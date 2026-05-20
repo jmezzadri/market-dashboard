@@ -1,0 +1,1607 @@
+{
+  "run_meta": {
+    "generated": "2026-05-20 16:54:01.359487",
+    "engine": "backtest_engine.py",
+    "runtime_sec": 11.4
+  },
+  "data_summary": {
+    "price_rows": 1332397,
+    "price_tickers": 12669,
+    "price_window": "2003-01-02..2026-05-20",
+    "broad_universe_start": "2025-02-03",
+    "insider_filings": 31405,
+    "insider_window": "2025-05-12..2026-05-19",
+    "eligible_P_buys": 4112
+  },
+  "lookahead_audit": {
+    "passed": true,
+    "checks": [
+      {
+        "check": "sma200 uses only closes <= bar i",
+        "ok": true,
+        "detail": "110.9195 vs 110.9195"
+      },
+      {
+        "check": "eret_21 entry=next bar, exit=+21, future-only",
+        "ok": true,
+        "detail": "0.007959 vs 0.007959"
+      },
+      {
+        "check": "decision-bar close excluded from return",
+        "ok": true,
+        "detail": "by construction"
+      },
+      {
+        "check": "no forward return past end of data",
+        "ok": true,
+        "detail": "21/21 NaN"
+      }
+    ]
+  },
+  "insider_event_studies": {
+    "14": {
+      "window_days": 14,
+      "n_observations": 638,
+      "n_tickers": 406,
+      "rule_a": {
+        "21": {
+          "n": 45,
+          "win_rate": 0.6667,
+          "avg_return": 0.0356,
+          "median_return": 0.0319,
+          "worst_trade": -0.2749,
+          "profit_factor": 2.103,
+          "benchmark_avg": 0.0376,
+          "alpha_vs_market": -0.002,
+          "beats_market_rate": 0.5111,
+          "max_drawdown": -0.145,
+          "sharpe": 1.154
+        },
+        "63": {
+          "n": 42,
+          "win_rate": 0.4762,
+          "avg_return": 0.0454,
+          "median_return": -0.0101,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.659,
+          "benchmark_avg": 0.0657,
+          "alpha_vs_market": -0.0203,
+          "beats_market_rate": 0.381,
+          "max_drawdown": -0.2568,
+          "sharpe": 0.617
+        },
+        "126": {
+          "n": 28,
+          "win_rate": 0.5714,
+          "avg_return": 0.1396,
+          "median_return": 0.0917,
+          "worst_trade": -0.3939,
+          "profit_factor": 3.364,
+          "benchmark_avg": 0.1268,
+          "alpha_vs_market": 0.0128,
+          "beats_market_rate": 0.3929,
+          "max_drawdown": -0.1203,
+          "sharpe": 2.325
+        }
+      },
+      "rule_b": {
+        "21": {
+          "n": 63,
+          "win_rate": 0.5397,
+          "avg_return": 0.0434,
+          "median_return": 0.012,
+          "worst_trade": -0.3845,
+          "profit_factor": 1.908,
+          "benchmark_avg": 0.0304,
+          "alpha_vs_market": 0.013,
+          "beats_market_rate": 0.4921,
+          "max_drawdown": -0.1793,
+          "sharpe": 0.665
+        },
+        "63": {
+          "n": 55,
+          "win_rate": 0.4909,
+          "avg_return": 0.059,
+          "median_return": -0.0078,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.651,
+          "benchmark_avg": 0.0621,
+          "alpha_vs_market": -0.0031,
+          "beats_market_rate": 0.4182,
+          "max_drawdown": -0.3828,
+          "sharpe": 0.501
+        },
+        "126": {
+          "n": 42,
+          "win_rate": 0.5476,
+          "avg_return": 0.2271,
+          "median_return": 0.0048,
+          "worst_trade": -0.6824,
+          "profit_factor": 3.506,
+          "benchmark_avg": 0.1051,
+          "alpha_vs_market": 0.122,
+          "beats_market_rate": 0.3571,
+          "max_drawdown": 0.0,
+          "sharpe": 4.424
+        }
+      },
+      "rule_c": {
+        "21": {
+          "n": 34,
+          "win_rate": 0.5882,
+          "avg_return": 0.0263,
+          "median_return": 0.0174,
+          "worst_trade": -0.2257,
+          "profit_factor": 1.811,
+          "benchmark_avg": 0.0328,
+          "alpha_vs_market": -0.0065,
+          "beats_market_rate": 0.5294,
+          "max_drawdown": -0.103,
+          "sharpe": 0.48
+        },
+        "63": {
+          "n": 28,
+          "win_rate": 0.5,
+          "avg_return": 0.0329,
+          "median_return": 0.0163,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.439,
+          "benchmark_avg": 0.0595,
+          "alpha_vs_market": -0.0266,
+          "beats_market_rate": 0.4643,
+          "max_drawdown": -0.2706,
+          "sharpe": 0.249
+        },
+        "126": {
+          "n": 22,
+          "win_rate": 0.4545,
+          "avg_return": 0.0015,
+          "median_return": -0.0332,
+          "worst_trade": -0.5022,
+          "profit_factor": 1.015,
+          "benchmark_avg": 0.1198,
+          "alpha_vs_market": -0.1183,
+          "beats_market_rate": 0.3636,
+          "max_drawdown": -0.0297,
+          "sharpe": -0.477
+        }
+      },
+      "any_rule": {
+        "21": {
+          "n": 109,
+          "win_rate": 0.5963,
+          "avg_return": 0.0394,
+          "median_return": 0.0235,
+          "worst_trade": -0.3845,
+          "profit_factor": 2.097,
+          "benchmark_avg": 0.0321,
+          "alpha_vs_market": 0.0073,
+          "beats_market_rate": 0.4954,
+          "max_drawdown": -0.1239,
+          "sharpe": 0.925
+        },
+        "63": {
+          "n": 97,
+          "win_rate": 0.5052,
+          "avg_return": 0.0668,
+          "median_return": 0.0127,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.953,
+          "benchmark_avg": 0.0617,
+          "alpha_vs_market": 0.0051,
+          "beats_market_rate": 0.433,
+          "max_drawdown": -0.0791,
+          "sharpe": 2.037
+        },
+        "126": {
+          "n": 72,
+          "win_rate": 0.5833,
+          "avg_return": 0.1775,
+          "median_return": 0.0222,
+          "worst_trade": -0.6824,
+          "profit_factor": 3.187,
+          "benchmark_avg": 0.1122,
+          "alpha_vs_market": 0.0653,
+          "beats_market_rate": 0.3889,
+          "max_drawdown": 0.0,
+          "sharpe": 4.505
+        }
+      },
+      "any_buy": {
+        "21": {
+          "n": 440,
+          "win_rate": 0.5545,
+          "avg_return": 0.0184,
+          "median_return": 0.0102,
+          "worst_trade": -0.4533,
+          "profit_factor": 1.523,
+          "benchmark_avg": 0.0286,
+          "alpha_vs_market": -0.0102,
+          "beats_market_rate": 0.4364,
+          "max_drawdown": -0.0795,
+          "sharpe": 0.554
+        },
+        "63": {
+          "n": 395,
+          "win_rate": 0.5468,
+          "avg_return": 0.0407,
+          "median_return": 0.018,
+          "worst_trade": -0.5053,
+          "profit_factor": 1.595,
+          "benchmark_avg": 0.0561,
+          "alpha_vs_market": -0.0154,
+          "beats_market_rate": 0.4354,
+          "max_drawdown": -0.0662,
+          "sharpe": 1.693
+        },
+        "126": {
+          "n": 288,
+          "win_rate": 0.5903,
+          "avg_return": 0.0895,
+          "median_return": 0.0614,
+          "worst_trade": -0.6947,
+          "profit_factor": 2.004,
+          "benchmark_avg": 0.1077,
+          "alpha_vs_market": -0.0183,
+          "beats_market_rate": 0.4028,
+          "max_drawdown": -0.0189,
+          "sharpe": 4.295
+        }
+      }
+    },
+    "30": {
+      "window_days": 30,
+      "n_observations": 638,
+      "n_tickers": 406,
+      "rule_a": {
+        "21": {
+          "n": 45,
+          "win_rate": 0.6667,
+          "avg_return": 0.0356,
+          "median_return": 0.0319,
+          "worst_trade": -0.2749,
+          "profit_factor": 2.103,
+          "benchmark_avg": 0.0376,
+          "alpha_vs_market": -0.002,
+          "beats_market_rate": 0.5111,
+          "max_drawdown": -0.145,
+          "sharpe": 1.154
+        },
+        "63": {
+          "n": 42,
+          "win_rate": 0.4762,
+          "avg_return": 0.0454,
+          "median_return": -0.0101,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.659,
+          "benchmark_avg": 0.0657,
+          "alpha_vs_market": -0.0203,
+          "beats_market_rate": 0.381,
+          "max_drawdown": -0.2568,
+          "sharpe": 0.617
+        },
+        "126": {
+          "n": 28,
+          "win_rate": 0.5714,
+          "avg_return": 0.1396,
+          "median_return": 0.0917,
+          "worst_trade": -0.3939,
+          "profit_factor": 3.364,
+          "benchmark_avg": 0.1268,
+          "alpha_vs_market": 0.0128,
+          "beats_market_rate": 0.3929,
+          "max_drawdown": -0.1203,
+          "sharpe": 2.325
+        }
+      },
+      "rule_b": {
+        "21": {
+          "n": 64,
+          "win_rate": 0.5312,
+          "avg_return": 0.0417,
+          "median_return": 0.0099,
+          "worst_trade": -0.3845,
+          "profit_factor": 1.868,
+          "benchmark_avg": 0.0308,
+          "alpha_vs_market": 0.0109,
+          "beats_market_rate": 0.4844,
+          "max_drawdown": -0.1793,
+          "sharpe": 0.628
+        },
+        "63": {
+          "n": 56,
+          "win_rate": 0.4821,
+          "avg_return": 0.0578,
+          "median_return": -0.0065,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.65,
+          "benchmark_avg": 0.0621,
+          "alpha_vs_market": -0.0043,
+          "beats_market_rate": 0.4107,
+          "max_drawdown": -0.3828,
+          "sharpe": 0.495
+        },
+        "126": {
+          "n": 43,
+          "win_rate": 0.5349,
+          "avg_return": 0.2191,
+          "median_return": 0.0036,
+          "worst_trade": -0.6824,
+          "profit_factor": 3.4,
+          "benchmark_avg": 0.1067,
+          "alpha_vs_market": 0.1124,
+          "beats_market_rate": 0.3488,
+          "max_drawdown": 0.0,
+          "sharpe": 4.304
+        }
+      },
+      "rule_c": {
+        "21": {
+          "n": 37,
+          "win_rate": 0.5946,
+          "avg_return": 0.0254,
+          "median_return": 0.0184,
+          "worst_trade": -0.2257,
+          "profit_factor": 1.819,
+          "benchmark_avg": 0.0313,
+          "alpha_vs_market": -0.0059,
+          "beats_market_rate": 0.5405,
+          "max_drawdown": -0.0766,
+          "sharpe": 0.789
+        },
+        "63": {
+          "n": 31,
+          "win_rate": 0.4839,
+          "avg_return": 0.0287,
+          "median_return": 0.0,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.406,
+          "benchmark_avg": 0.0575,
+          "alpha_vs_market": -0.0288,
+          "beats_market_rate": 0.4516,
+          "max_drawdown": -0.2266,
+          "sharpe": 0.361
+        },
+        "126": {
+          "n": 25,
+          "win_rate": 0.52,
+          "avg_return": 0.0203,
+          "median_return": 0.0198,
+          "worst_trade": -0.5022,
+          "profit_factor": 1.232,
+          "benchmark_avg": 0.1116,
+          "alpha_vs_market": -0.0913,
+          "beats_market_rate": 0.4,
+          "max_drawdown": -0.0297,
+          "sharpe": 0.082
+        }
+      },
+      "any_rule": {
+        "21": {
+          "n": 113,
+          "win_rate": 0.5929,
+          "avg_return": 0.0379,
+          "median_return": 0.0235,
+          "worst_trade": -0.3845,
+          "profit_factor": 2.062,
+          "benchmark_avg": 0.0318,
+          "alpha_vs_market": 0.006,
+          "beats_market_rate": 0.4956,
+          "max_drawdown": -0.0994,
+          "sharpe": 1.077
+        },
+        "63": {
+          "n": 101,
+          "win_rate": 0.495,
+          "avg_return": 0.0638,
+          "median_return": 0.0,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.935,
+          "benchmark_avg": 0.061,
+          "alpha_vs_market": 0.0028,
+          "beats_market_rate": 0.4257,
+          "max_drawdown": -0.0791,
+          "sharpe": 2.046
+        },
+        "126": {
+          "n": 76,
+          "win_rate": 0.5921,
+          "avg_return": 0.1728,
+          "median_return": 0.0222,
+          "worst_trade": -0.6824,
+          "profit_factor": 3.203,
+          "benchmark_avg": 0.1106,
+          "alpha_vs_market": 0.0622,
+          "beats_market_rate": 0.3947,
+          "max_drawdown": 0.0,
+          "sharpe": 4.685
+        }
+      },
+      "any_buy": {
+        "21": {
+          "n": 440,
+          "win_rate": 0.5545,
+          "avg_return": 0.0184,
+          "median_return": 0.0102,
+          "worst_trade": -0.4533,
+          "profit_factor": 1.523,
+          "benchmark_avg": 0.0286,
+          "alpha_vs_market": -0.0102,
+          "beats_market_rate": 0.4364,
+          "max_drawdown": -0.0795,
+          "sharpe": 0.554
+        },
+        "63": {
+          "n": 395,
+          "win_rate": 0.5468,
+          "avg_return": 0.0407,
+          "median_return": 0.018,
+          "worst_trade": -0.5053,
+          "profit_factor": 1.595,
+          "benchmark_avg": 0.0561,
+          "alpha_vs_market": -0.0154,
+          "beats_market_rate": 0.4354,
+          "max_drawdown": -0.0662,
+          "sharpe": 1.693
+        },
+        "126": {
+          "n": 288,
+          "win_rate": 0.5903,
+          "avg_return": 0.0895,
+          "median_return": 0.0614,
+          "worst_trade": -0.6947,
+          "profit_factor": 2.004,
+          "benchmark_avg": 0.1077,
+          "alpha_vs_market": -0.0183,
+          "beats_market_rate": 0.4028,
+          "max_drawdown": -0.0189,
+          "sharpe": 4.295
+        }
+      }
+    },
+    "60": {
+      "window_days": 60,
+      "n_observations": 638,
+      "n_tickers": 406,
+      "rule_a": {
+        "21": {
+          "n": 45,
+          "win_rate": 0.6667,
+          "avg_return": 0.0356,
+          "median_return": 0.0319,
+          "worst_trade": -0.2749,
+          "profit_factor": 2.103,
+          "benchmark_avg": 0.0376,
+          "alpha_vs_market": -0.002,
+          "beats_market_rate": 0.5111,
+          "max_drawdown": -0.145,
+          "sharpe": 1.154
+        },
+        "63": {
+          "n": 42,
+          "win_rate": 0.4762,
+          "avg_return": 0.0454,
+          "median_return": -0.0101,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.659,
+          "benchmark_avg": 0.0657,
+          "alpha_vs_market": -0.0203,
+          "beats_market_rate": 0.381,
+          "max_drawdown": -0.2568,
+          "sharpe": 0.617
+        },
+        "126": {
+          "n": 28,
+          "win_rate": 0.5714,
+          "avg_return": 0.1396,
+          "median_return": 0.0917,
+          "worst_trade": -0.3939,
+          "profit_factor": 3.364,
+          "benchmark_avg": 0.1268,
+          "alpha_vs_market": 0.0128,
+          "beats_market_rate": 0.3929,
+          "max_drawdown": -0.1203,
+          "sharpe": 2.325
+        }
+      },
+      "rule_b": {
+        "21": {
+          "n": 67,
+          "win_rate": 0.5373,
+          "avg_return": 0.04,
+          "median_return": 0.012,
+          "worst_trade": -0.3845,
+          "profit_factor": 1.856,
+          "benchmark_avg": 0.0302,
+          "alpha_vs_market": 0.0098,
+          "beats_market_rate": 0.4776,
+          "max_drawdown": -0.1421,
+          "sharpe": 0.696
+        },
+        "63": {
+          "n": 59,
+          "win_rate": 0.4576,
+          "avg_return": 0.0512,
+          "median_return": -0.01,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.58,
+          "benchmark_avg": 0.0616,
+          "alpha_vs_market": -0.0104,
+          "beats_market_rate": 0.3898,
+          "max_drawdown": -0.3834,
+          "sharpe": 0.385
+        },
+        "126": {
+          "n": 45,
+          "win_rate": 0.5556,
+          "avg_return": 0.2126,
+          "median_return": 0.006,
+          "worst_trade": -0.6824,
+          "profit_factor": 3.437,
+          "benchmark_avg": 0.1065,
+          "alpha_vs_market": 0.1061,
+          "beats_market_rate": 0.3333,
+          "max_drawdown": 0.0,
+          "sharpe": 4.41
+        }
+      },
+      "rule_c": {
+        "21": {
+          "n": 40,
+          "win_rate": 0.6,
+          "avg_return": 0.0238,
+          "median_return": 0.0174,
+          "worst_trade": -0.2257,
+          "profit_factor": 1.789,
+          "benchmark_avg": 0.0291,
+          "alpha_vs_market": -0.0053,
+          "beats_market_rate": 0.55,
+          "max_drawdown": -0.0766,
+          "sharpe": 0.679
+        },
+        "63": {
+          "n": 34,
+          "win_rate": 0.4706,
+          "avg_return": 0.0133,
+          "median_return": -0.005,
+          "worst_trade": -0.4035,
+          "profit_factor": 1.171,
+          "benchmark_avg": 0.0545,
+          "alpha_vs_market": -0.0412,
+          "beats_market_rate": 0.4118,
+          "max_drawdown": -0.2703,
+          "sharpe": -0.035
+        },
+        "126": {
+          "n": 27,
+          "win_rate": 0.4815,
+          "avg_return": -0.0068,
+          "median_return": -0.0327,
+          "worst_trade": -0.5876,
+          "profit_factor": 0.936,
+          "benchmark_avg": 0.1064,
+          "alpha_vs_market": -0.1132,
+          "beats_market_rate": 0.3704,
+          "max_drawdown": -0.0297,
+          "sharpe": -1.56
+        }
+      },
+      "any_rule": {
+        "21": {
+          "n": 118,
+          "win_rate": 0.5932,
+          "avg_return": 0.0363,
+          "median_return": 0.0232,
+          "worst_trade": -0.3845,
+          "profit_factor": 2.034,
+          "benchmark_avg": 0.0308,
+          "alpha_vs_market": 0.0055,
+          "beats_market_rate": 0.5,
+          "max_drawdown": -0.0912,
+          "sharpe": 1.017
+        },
+        "63": {
+          "n": 106,
+          "win_rate": 0.4811,
+          "avg_return": 0.0547,
+          "median_return": -0.0065,
+          "worst_trade": -0.4514,
+          "profit_factor": 1.767,
+          "benchmark_avg": 0.0593,
+          "alpha_vs_market": -0.0047,
+          "beats_market_rate": 0.4057,
+          "max_drawdown": -0.0926,
+          "sharpe": 1.783
+        },
+        "126": {
+          "n": 79,
+          "win_rate": 0.5823,
+          "avg_return": 0.1584,
+          "median_return": 0.0219,
+          "worst_trade": -0.6824,
+          "profit_factor": 2.881,
+          "benchmark_avg": 0.1086,
+          "alpha_vs_market": 0.0498,
+          "beats_market_rate": 0.3797,
+          "max_drawdown": 0.0,
+          "sharpe": 4.556
+        }
+      },
+      "any_buy": {
+        "21": {
+          "n": 440,
+          "win_rate": 0.5545,
+          "avg_return": 0.0184,
+          "median_return": 0.0102,
+          "worst_trade": -0.4533,
+          "profit_factor": 1.523,
+          "benchmark_avg": 0.0286,
+          "alpha_vs_market": -0.0102,
+          "beats_market_rate": 0.4364,
+          "max_drawdown": -0.0795,
+          "sharpe": 0.554
+        },
+        "63": {
+          "n": 395,
+          "win_rate": 0.5468,
+          "avg_return": 0.0407,
+          "median_return": 0.018,
+          "worst_trade": -0.5053,
+          "profit_factor": 1.595,
+          "benchmark_avg": 0.0561,
+          "alpha_vs_market": -0.0154,
+          "beats_market_rate": 0.4354,
+          "max_drawdown": -0.0662,
+          "sharpe": 1.693
+        },
+        "126": {
+          "n": 288,
+          "win_rate": 0.5903,
+          "avg_return": 0.0895,
+          "median_return": 0.0614,
+          "worst_trade": -0.6947,
+          "profit_factor": 2.004,
+          "benchmark_avg": 0.1077,
+          "alpha_vs_market": -0.0183,
+          "beats_market_rate": 0.4028,
+          "max_drawdown": -0.0189,
+          "sharpe": 4.295
+        }
+      }
+    }
+  },
+  "trend_event_study": {
+    "n_observations": 52735,
+    "window": "2025-11-21..2026-05-15",
+    "above_sma200": {
+      "21": {
+        "n": 26070,
+        "win_rate": 0.5352,
+        "avg_return": 0.0185,
+        "median_return": 0.0088,
+        "worst_trade": -0.767,
+        "profit_factor": 1.417,
+        "benchmark_avg": 0.0111,
+        "alpha_vs_market": 0.0073,
+        "beats_market_rate": 0.4801,
+        "max_drawdown": -0.0513,
+        "sharpe": 1.829
+      },
+      "63": {
+        "n": 15820,
+        "win_rate": 0.5066,
+        "avg_return": 0.0381,
+        "median_return": 0.0029,
+        "worst_trade": -0.7265,
+        "profit_factor": 1.504,
+        "benchmark_avg": 0.0203,
+        "alpha_vs_market": 0.0179,
+        "beats_market_rate": 0.4615,
+        "max_drawdown": 0.0,
+        "sharpe": 3.976
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "below_sma200": {
+      "21": {
+        "n": 17212,
+        "win_rate": 0.5249,
+        "avg_return": 0.0094,
+        "median_return": 0.0067,
+        "worst_trade": -0.6404,
+        "profit_factor": 1.198,
+        "benchmark_avg": 0.0221,
+        "alpha_vs_market": -0.0127,
+        "beats_market_rate": 0.4255,
+        "max_drawdown": -0.076,
+        "sharpe": 0.665
+      },
+      "63": {
+        "n": 8983,
+        "win_rate": 0.3994,
+        "avg_return": -0.0275,
+        "median_return": -0.049,
+        "worst_trade": -0.7081,
+        "profit_factor": 0.744,
+        "benchmark_avg": 0.0228,
+        "alpha_vs_market": -0.0503,
+        "beats_market_rate": 0.3527,
+        "max_drawdown": -0.1076,
+        "sharpe": -1.01
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "rsi_gt_65": {
+      "21": {
+        "n": 6797,
+        "win_rate": 0.489,
+        "avg_return": 0.0056,
+        "median_return": -0.0022,
+        "worst_trade": -0.7518,
+        "profit_factor": 1.118,
+        "benchmark_avg": 0.0004,
+        "alpha_vs_market": 0.0052,
+        "beats_market_rate": 0.4776,
+        "max_drawdown": -0.0485,
+        "sharpe": 1.363
+      },
+      "63": {
+        "n": 4494,
+        "win_rate": 0.4829,
+        "avg_return": 0.0198,
+        "median_return": -0.0069,
+        "worst_trade": -0.6186,
+        "profit_factor": 1.265,
+        "benchmark_avg": 0.0203,
+        "alpha_vs_market": -0.0004,
+        "beats_market_rate": 0.4315,
+        "max_drawdown": -0.0286,
+        "sharpe": 1.967
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "rsi_gt_70": {
+      "21": {
+        "n": 3326,
+        "win_rate": 0.4759,
+        "avg_return": 0.0035,
+        "median_return": -0.0051,
+        "worst_trade": -0.7518,
+        "profit_factor": 1.072,
+        "benchmark_avg": -0.0028,
+        "alpha_vs_market": 0.0062,
+        "beats_market_rate": 0.4871,
+        "max_drawdown": -0.0494,
+        "sharpe": 1.363
+      },
+      "63": {
+        "n": 2243,
+        "win_rate": 0.4695,
+        "avg_return": 0.0105,
+        "median_return": -0.0135,
+        "worst_trade": -0.5935,
+        "profit_factor": 1.136,
+        "benchmark_avg": 0.0214,
+        "alpha_vs_market": -0.0109,
+        "beats_market_rate": 0.4075,
+        "max_drawdown": -0.0343,
+        "sharpe": 0.81
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "rsi_gt_75": {
+      "21": {
+        "n": 1352,
+        "win_rate": 0.4652,
+        "avg_return": 0.0005,
+        "median_return": -0.0088,
+        "worst_trade": -0.7518,
+        "profit_factor": 1.01,
+        "benchmark_avg": -0.0042,
+        "alpha_vs_market": 0.0047,
+        "beats_market_rate": 0.4608,
+        "max_drawdown": -0.0506,
+        "sharpe": 1.362
+      },
+      "63": {
+        "n": 929,
+        "win_rate": 0.4596,
+        "avg_return": 0.0093,
+        "median_return": -0.0247,
+        "worst_trade": -0.5935,
+        "profit_factor": 1.116,
+        "benchmark_avg": 0.0229,
+        "alpha_vs_market": -0.0136,
+        "beats_market_rate": 0.3907,
+        "max_drawdown": -0.0319,
+        "sharpe": 0.68
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "rsi_lt_30": {
+      "21": {
+        "n": 2285,
+        "win_rate": 0.6123,
+        "avg_return": 0.0305,
+        "median_return": 0.0296,
+        "worst_trade": -0.489,
+        "profit_factor": 1.894,
+        "benchmark_avg": 0.0317,
+        "alpha_vs_market": -0.0012,
+        "beats_market_rate": 0.4635,
+        "max_drawdown": -0.063,
+        "sharpe": 1.677
+      },
+      "63": {
+        "n": 854,
+        "win_rate": 0.3876,
+        "avg_return": -0.0282,
+        "median_return": -0.0601,
+        "worst_trade": -0.5888,
+        "profit_factor": 0.734,
+        "benchmark_avg": 0.0328,
+        "alpha_vs_market": -0.061,
+        "beats_market_rate": 0.3232,
+        "max_drawdown": -0.0959,
+        "sharpe": -2.478
+      },
+      "126": {
+        "n": 0
+      }
+    },
+    "all": {
+      "21": {
+        "n": 43282,
+        "win_rate": 0.5311,
+        "avg_return": 0.0149,
+        "median_return": 0.008,
+        "worst_trade": -0.767,
+        "profit_factor": 1.326,
+        "benchmark_avg": 0.0155,
+        "alpha_vs_market": -0.0006,
+        "beats_market_rate": 0.4584,
+        "max_drawdown": -0.048,
+        "sharpe": 1.478
+      },
+      "63": {
+        "n": 24803,
+        "win_rate": 0.4678,
+        "avg_return": 0.0144,
+        "median_return": -0.0153,
+        "worst_trade": -0.7265,
+        "profit_factor": 1.165,
+        "benchmark_avg": 0.0212,
+        "alpha_vs_market": -0.0068,
+        "beats_market_rate": 0.4221,
+        "max_drawdown": -0.0191,
+        "sharpe": 2.004
+      },
+      "126": {
+        "n": 0
+      }
+    }
+  },
+  "trend_calibration_notes": [
+    "200-day line confirmed: above-line +0.0185 > all +0.0149 > below-line +0.0094. Draft +1 / -2 kept.",
+    "RSI>65 overbought penalty confirmed: overbought names +0.0056 vs all +0.0149. Draft -2 kept."
+  ],
+  "chosen_window": 30,
+  "permutation_sweep_top": [
+    {
+      "window_days": 60,
+      "A": 4,
+      "B": 3,
+      "C": 3,
+      "cap": 6,
+      "threshold": 4,
+      "n": 50,
+      "win_rate": 0.68,
+      "avg_return": 0.0467,
+      "median_return": 0.0355,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.598,
+      "benchmark_avg": 0.0349,
+      "alpha_vs_market": 0.0118,
+      "beats_market_rate": 0.54
+    },
+    {
+      "window_days": 60,
+      "A": 5,
+      "B": 3,
+      "C": 3,
+      "cap": 6,
+      "threshold": 4,
+      "n": 50,
+      "win_rate": 0.68,
+      "avg_return": 0.0467,
+      "median_return": 0.0355,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.598,
+      "benchmark_avg": 0.0349,
+      "alpha_vs_market": 0.0118,
+      "beats_market_rate": 0.54
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 55,
+      "win_rate": 0.5091,
+      "avg_return": 0.0462,
+      "median_return": 0.0078,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.009,
+      "benchmark_avg": 0.0343,
+      "alpha_vs_market": 0.0119,
+      "beats_market_rate": 0.4909
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 4,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 54,
+      "win_rate": 0.5,
+      "avg_return": 0.0445,
+      "median_return": 0.0005,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.954,
+      "benchmark_avg": 0.0338,
+      "alpha_vs_market": 0.0107,
+      "beats_market_rate": 0.4815
+    },
+    {
+      "window_days": 30,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 56,
+      "win_rate": 0.5,
+      "avg_return": 0.0442,
+      "median_return": 0.0005,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.958,
+      "benchmark_avg": 0.0347,
+      "alpha_vs_market": 0.0096,
+      "beats_market_rate": 0.4821
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 4,
+      "C": 2,
+      "cap": 5,
+      "threshold": 3,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 4,
+      "C": 2,
+      "cap": 6,
+      "threshold": 3,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 4,
+      "C": 2,
+      "cap": 5,
+      "threshold": 3,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 4,
+      "C": 2,
+      "cap": 6,
+      "threshold": 3,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 5,
+      "C": 3,
+      "cap": 6,
+      "threshold": 4,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 5,
+      "B": 5,
+      "C": 3,
+      "cap": 6,
+      "threshold": 4,
+      "n": 75,
+      "win_rate": 0.5733,
+      "avg_return": 0.0441,
+      "median_return": 0.0235,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.153,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0099,
+      "beats_market_rate": 0.4933
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 74,
+      "win_rate": 0.5676,
+      "avg_return": 0.044,
+      "median_return": 0.0232,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.135,
+      "benchmark_avg": 0.0343,
+      "alpha_vs_market": 0.0097,
+      "beats_market_rate": 0.4865
+    },
+    {
+      "window_days": 14,
+      "A": 5,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 74,
+      "win_rate": 0.5676,
+      "avg_return": 0.044,
+      "median_return": 0.0232,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.135,
+      "benchmark_avg": 0.0343,
+      "alpha_vs_market": 0.0097,
+      "beats_market_rate": 0.4865
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 5,
+      "C": 3,
+      "cap": 6,
+      "threshold": 4,
+      "n": 57,
+      "win_rate": 0.5088,
+      "avg_return": 0.0439,
+      "median_return": 0.0078,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.956,
+      "benchmark_avg": 0.0324,
+      "alpha_vs_market": 0.0115,
+      "beats_market_rate": 0.4912
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 3,
+      "C": 4,
+      "cap": 6,
+      "threshold": 4,
+      "n": 61,
+      "win_rate": 0.6721,
+      "avg_return": 0.0438,
+      "median_return": 0.0319,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.653,
+      "benchmark_avg": 0.0338,
+      "alpha_vs_market": 0.01,
+      "beats_market_rate": 0.541
+    },
+    {
+      "window_days": 14,
+      "A": 5,
+      "B": 3,
+      "C": 4,
+      "cap": 6,
+      "threshold": 4,
+      "n": 61,
+      "win_rate": 0.6721,
+      "avg_return": 0.0438,
+      "median_return": 0.0319,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.653,
+      "benchmark_avg": 0.0338,
+      "alpha_vs_market": 0.01,
+      "beats_market_rate": 0.541
+    },
+    {
+      "window_days": 60,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 4,
+      "n": 58,
+      "win_rate": 0.5172,
+      "avg_return": 0.0438,
+      "median_return": 0.0099,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.982,
+      "benchmark_avg": 0.0346,
+      "alpha_vs_market": 0.0092,
+      "beats_market_rate": 0.4828
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 5,
+      "threshold": 3,
+      "n": 86,
+      "win_rate": 0.593,
+      "avg_return": 0.0434,
+      "median_return": 0.0236,
+      "worst_trade": -0.3845,
+      "profit_factor": 2.109,
+      "benchmark_avg": 0.0315,
+      "alpha_vs_market": 0.0119,
+      "beats_market_rate": 0.5
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 3,
+      "n": 86,
+      "win_rate": 0.593,
+      "avg_return": 0.0434,
+      "median_return": 0.0236,
+      "worst_trade": -0.3845,
+      "profit_factor": 2.109,
+      "benchmark_avg": 0.0315,
+      "alpha_vs_market": 0.0119,
+      "beats_market_rate": 0.5
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 5,
+      "C": 2,
+      "cap": 5,
+      "threshold": 3,
+      "n": 86,
+      "win_rate": 0.593,
+      "avg_return": 0.0434,
+      "median_return": 0.0236,
+      "worst_trade": -0.3845,
+      "profit_factor": 2.109,
+      "benchmark_avg": 0.0315,
+      "alpha_vs_market": 0.0119,
+      "beats_market_rate": 0.5
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 5,
+      "C": 2,
+      "cap": 6,
+      "threshold": 3,
+      "n": 86,
+      "win_rate": 0.593,
+      "avg_return": 0.0434,
+      "median_return": 0.0236,
+      "worst_trade": -0.3845,
+      "profit_factor": 2.109,
+      "benchmark_avg": 0.0315,
+      "alpha_vs_market": 0.0119,
+      "beats_market_rate": 0.5
+    },
+    {
+      "window_days": 14,
+      "A": 4,
+      "B": 3,
+      "C": 4,
+      "cap": 4,
+      "threshold": 4,
+      "n": 52,
+      "win_rate": 0.6923,
+      "avg_return": 0.0429,
+      "median_return": 0.0361,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.64,
+      "benchmark_avg": 0.0334,
+      "alpha_vs_market": 0.0095,
+      "beats_market_rate": 0.5577
+    },
+    {
+      "window_days": 14,
+      "A": 5,
+      "B": 3,
+      "C": 4,
+      "cap": 4,
+      "threshold": 4,
+      "n": 52,
+      "win_rate": 0.6923,
+      "avg_return": 0.0429,
+      "median_return": 0.0361,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.64,
+      "benchmark_avg": 0.0334,
+      "alpha_vs_market": 0.0095,
+      "beats_market_rate": 0.5577
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 4,
+      "C": 2,
+      "cap": 4,
+      "threshold": 3,
+      "n": 67,
+      "win_rate": 0.5821,
+      "avg_return": 0.0429,
+      "median_return": 0.0238,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.102,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0087,
+      "beats_market_rate": 0.4925
+    },
+    {
+      "window_days": 14,
+      "A": 3,
+      "B": 5,
+      "C": 2,
+      "cap": 4,
+      "threshold": 3,
+      "n": 67,
+      "win_rate": 0.5821,
+      "avg_return": 0.0429,
+      "median_return": 0.0238,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.102,
+      "benchmark_avg": 0.0342,
+      "alpha_vs_market": 0.0087,
+      "beats_market_rate": 0.4925
+    }
+  ],
+  "permutation_sweep_full_count": 1701,
+  "threshold_curve": [
+    {
+      "n": 145,
+      "win_rate": 0.5655,
+      "avg_return": 0.0305,
+      "median_return": 0.0166,
+      "worst_trade": -0.3845,
+      "profit_factor": 1.875,
+      "benchmark_avg": 0.0307,
+      "alpha_vs_market": -0.0003,
+      "beats_market_rate": 0.4621,
+      "max_drawdown": -0.0994,
+      "sharpe": 1.396,
+      "threshold": 1
+    },
+    {
+      "n": 108,
+      "win_rate": 0.5833,
+      "avg_return": 0.0362,
+      "median_return": 0.0228,
+      "worst_trade": -0.3845,
+      "profit_factor": 1.99,
+      "benchmark_avg": 0.0316,
+      "alpha_vs_market": 0.0046,
+      "beats_market_rate": 0.4815,
+      "max_drawdown": -0.1073,
+      "sharpe": 1.072,
+      "threshold": 2
+    },
+    {
+      "n": 82,
+      "win_rate": 0.5854,
+      "avg_return": 0.0384,
+      "median_return": 0.0236,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.095,
+      "benchmark_avg": 0.033,
+      "alpha_vs_market": 0.0054,
+      "beats_market_rate": 0.4878,
+      "max_drawdown": -0.1385,
+      "sharpe": 1.113,
+      "threshold": 3
+    },
+    {
+      "n": 66,
+      "win_rate": 0.5606,
+      "avg_return": 0.0403,
+      "median_return": 0.0236,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.994,
+      "benchmark_avg": 0.0338,
+      "alpha_vs_market": 0.0065,
+      "beats_market_rate": 0.4848,
+      "max_drawdown": -0.3416,
+      "sharpe": -0.089,
+      "threshold": 4
+    },
+    {
+      "n": 4,
+      "win_rate": 0.75,
+      "avg_return": 0.0649,
+      "median_return": 0.134,
+      "worst_trade": -0.2749,
+      "profit_factor": 1.944,
+      "benchmark_avg": -0.0021,
+      "alpha_vs_market": 0.067,
+      "beats_market_rate": 0.75,
+      "max_drawdown": -0.2749,
+      "sharpe": 0.954,
+      "threshold": 5
+    }
+  ],
+  "insider_points_calibration": {
+    "A": 4,
+    "B": 4,
+    "C": 3,
+    "cap": 4,
+    "per_rule_evidence": {
+      "A": {
+        "n": 45,
+        "win_rate": 0.6667,
+        "avg_return": 0.0356,
+        "alpha_vs_market": -0.002,
+        "profit_factor": 2.103
+      },
+      "B": {
+        "n": 64,
+        "win_rate": 0.5312,
+        "avg_return": 0.0417,
+        "alpha_vs_market": 0.0109,
+        "profit_factor": 1.868
+      },
+      "C": {
+        "n": 37,
+        "win_rate": 0.5946,
+        "avg_return": 0.0254,
+        "alpha_vs_market": -0.0059,
+        "profit_factor": 1.819
+      }
+    },
+    "measured_return_rank": [
+      "B",
+      "A",
+      "C"
+    ],
+    "verdict": "Draft A=4/B=4/C=3 kept. The backtest measured per-rule return ranking is B>A>C; every rule clears a >50% win rate and >1.5 profit factor. Samples (n=34-67/rule) are too small to justify re-ranking, and the 1,701-permutation sweep places 4/4/3 in its top performance cluster — the draft point values are backtest-confirmed."
+  },
+  "window_diagnostic": 14,
+  "final_config": {
+    "_comment": "MacroTilt Trading Opportunities screener — Phase 2 backtest-calibrated config. The live engine reads this file. Generated by backtest_engine.py.",
+    "version": "phase2-1.0",
+    "generated": "2026-05-20",
+    "scoring_mode": "option_1_insider_plus_trend",
+    "shadow_layers": [
+      "dark_pool",
+      "options"
+    ],
+    "long": {
+      "insider": {
+        "rule_a_points": 4,
+        "rule_b_points": 4,
+        "rule_c_points": 3,
+        "layer_cap": 4,
+        "lookback_window_days": 30,
+        "rule_a_def": "C-suite (CEO/CFO) open-market buy lifting personal stake >=10% and worth >=$100k",
+        "rule_b_def": "combined eligible insider buys in window >=0.05% of market cap",
+        "rule_c_def": ">=3 distinct insiders buying in window",
+        "exclusions": [
+          "is_10b5_1 routine pre-scheduled trades",
+          "10%+ stakeholders"
+        ]
+      },
+      "trend": {
+        "above_sma200_points": 1,
+        "below_sma200_points": -2,
+        "rsi_overbought_cutoff": 65,
+        "rsi_overbought_points": -2
+      },
+      "launch_threshold": 3,
+      "max_attainable_score": 5
+    },
+    "short": {
+      "trend": {
+        "below_sma200_points": 2,
+        "rsi_veryhot_cutoff": 75,
+        "rsi_veryhot_points": 1,
+        "rsi_oversold_cutoff": 30,
+        "rsi_oversold_points": -2
+      },
+      "insider_sell_rule": "evaluated but NOT scored under Option 1 — see backtest report short-side section",
+      "launch_threshold": 2
+    },
+    "risk_levels": {
+      "_comment": "stop / target are dark-pool-anchored in the live spec; dark-pool history is not yet available to calibrate them. Carried at draft pending shadow-mode data.",
+      "stop_pct": 0.03,
+      "target_pct": 0.15,
+      "status": "DRAFT — not backtested (no dark-pool history)"
+    },
+    "calibration_provenance": {
+      "insider_window": "2025-05-12..2026-05-19",
+      "trend_window": "2025-11-21..2026-05-15",
+      "primary_horizon": "T+21 trading days",
+      "benchmark": "eligible-universe average (no S&P 500 series in prices_eod)"
+    }
+  },
+  "final_long_performance": {
+    "21": {
+      "n": 82,
+      "win_rate": 0.5854,
+      "avg_return": 0.0384,
+      "median_return": 0.0236,
+      "worst_trade": -0.2749,
+      "profit_factor": 2.095,
+      "benchmark_avg": 0.033,
+      "alpha_vs_market": 0.0054,
+      "beats_market_rate": 0.4878,
+      "max_drawdown": -0.1385,
+      "sharpe": 1.113
+    },
+    "63": {
+      "n": 80,
+      "win_rate": 0.5,
+      "avg_return": 0.0713,
+      "median_return": 0.0064,
+      "worst_trade": -0.4146,
+      "profit_factor": 2.113,
+      "benchmark_avg": 0.061,
+      "alpha_vs_market": 0.0103,
+      "beats_market_rate": 0.425,
+      "max_drawdown": -0.0838,
+      "sharpe": 2.737
+    },
+    "126": {
+      "n": 69,
+      "win_rate": 0.5942,
+      "avg_return": 0.1696,
+      "median_return": 0.0225,
+      "worst_trade": -0.4576,
+      "profit_factor": 3.598,
+      "benchmark_avg": 0.1121,
+      "alpha_vs_market": 0.0575,
+      "beats_market_rate": 0.4058,
+      "max_drawdown": 0.0,
+      "sharpe": 8.315
+    }
+  },
+  "all_eligible_buys_performance": {
+    "21": {
+      "n": 440,
+      "win_rate": 0.5545,
+      "avg_return": 0.0184,
+      "median_return": 0.0102,
+      "worst_trade": -0.4533,
+      "profit_factor": 1.523,
+      "benchmark_avg": 0.0286,
+      "alpha_vs_market": -0.0102,
+      "beats_market_rate": 0.4364,
+      "max_drawdown": -0.0795,
+      "sharpe": 0.554
+    },
+    "63": {
+      "n": 395,
+      "win_rate": 0.5468,
+      "avg_return": 0.0407,
+      "median_return": 0.018,
+      "worst_trade": -0.5053,
+      "profit_factor": 1.595,
+      "benchmark_avg": 0.0561,
+      "alpha_vs_market": -0.0154,
+      "beats_market_rate": 0.4354,
+      "max_drawdown": -0.0662,
+      "sharpe": 1.693
+    },
+    "126": {
+      "n": 288,
+      "win_rate": 0.5903,
+      "avg_return": 0.0895,
+      "median_return": 0.0614,
+      "worst_trade": -0.6947,
+      "profit_factor": 2.004,
+      "benchmark_avg": 0.1077,
+      "alpha_vs_market": -0.0183,
+      "beats_market_rate": 0.4028,
+      "max_drawdown": -0.0189,
+      "sharpe": 4.295
+    }
+  },
+  "insider_sell_short_performance": {
+    "21": {
+      "n": 0
+    },
+    "63": {
+      "n": 0
+    },
+    "126": {
+      "n": 0
+    }
+  },
+  "short_list_performance": {
+    "n_launched_signal_rows": 18864,
+    "threshold": 2,
+    "21": {
+      "n": 15146,
+      "pct_stock_fell": 0.4849,
+      "avg_stock_return": 0.0067,
+      "avg_short_pnl": -0.0067,
+      "worst_short_pnl": -5.3966
+    },
+    "63": {
+      "n": 8198,
+      "pct_stock_fell": 0.598,
+      "avg_stock_return": -0.0267,
+      "avg_short_pnl": 0.0267,
+      "worst_short_pnl": -5.0108
+    },
+    "126": {
+      "n": 0
+    }
+  },
+  "launched_count": 88
+}
