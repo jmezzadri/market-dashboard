@@ -1661,10 +1661,10 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
               return (
                 <g key={"h" + h._origIdx}>
                   {/* White halo behind the dashed line for contrast against the chart series */}
-                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke="rgba(255,255,255,0.85)" strokeWidth="4" />
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke="var(--surface-solid, var(--surface, #fff))" strokeWidth="4" opacity="0.85" />
                   <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke={h.color || "var(--text-muted)"} strokeWidth="1.8" strokeDasharray="7 4" />
                   {/* White halo behind the label */}
-                  <rect x={W - padR - 6 - (h.label||"").length * 5.5} y={labelY - 8} width={(h.label||"").length * 5.7 + 8} height={12} fill="rgba(255,255,255,0.92)" stroke="none" />
+                  <rect x={W - padR - 6 - (h.label||"").length * 5.5} y={labelY - 8} width={(h.label||"").length * 5.7 + 8} height={12} fill="var(--surface-solid, var(--surface, #fff))" stroke="none" opacity="0.92" />
                   <text x={W - padR - 6} y={labelY} fontSize="10.5" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="600">{h.label || ""}</text>
                 </g>
               );
@@ -2453,7 +2453,7 @@ export default function AssetTilt({ onOpenTicker }) {
               </div>
 
               {/* Chart — DAILY data when stress (indicator_history.json), weekly fallback for yield regime */}
-              <div style={{ background: "#ffffff", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
+              <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
                 {(() => {
                   // Build the daily data set if available
                   let chartData = allWeeks;
@@ -2594,7 +2594,7 @@ export default function AssetTilt({ onOpenTicker }) {
               )}
 
               {/* Data feed — neither MOVE nor 10y yield are "scheduled releases"; they are daily market closes pulled from Yahoo / FRED every weekday after market close. */}
-              <div style={{ marginBottom: 22, background: "#ffffff", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
+              <div style={{ marginBottom: 22, background: "var(--surface)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Data feed</div>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 32px", fontSize: 13 }}>
                   <div style={{ color: "var(--text-muted)" }}>Source</div>
