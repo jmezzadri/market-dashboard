@@ -201,12 +201,24 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
           {xLabels.map((l, i) => (
             <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
           ))}
-          {horizontalLines.map((h, i) => (
-            <g key={"h" + i}>
-              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
-              <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
-            </g>
-          ))}
+          {(() => {
+            const sorted = horizontalLines.map((h, i) => ({ ...h, _origIdx: i })).filter(h => h.value != null).sort((a, b) => a.value - b.value);
+            const yPositions = sorted.map(h => yToPx(h.value));
+            return sorted.map((h, i) => {
+              const tooCloseToNext = i < sorted.length - 1 && Math.abs(yPositions[i] - yPositions[i + 1]) < 18;
+              const tooCloseToPrev = i > 0 && Math.abs(yPositions[i] - yPositions[i - 1]) < 18;
+              const labelAbove = !tooCloseToNext || tooCloseToPrev;
+              const labelY = labelAbove ? yPositions[i] - 6 : yPositions[i] + 14;
+              return (
+                <g key={"h" + h._origIdx}>
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke="rgba(255,255,255,0.85)" strokeWidth="4" />
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke={h.color || "var(--text-muted)"} strokeWidth="1.8" strokeDasharray="7 4" />
+                  <rect x={W - padR - 6 - (h.label||"").length * 5.5} y={labelY - 8} width={(h.label||"").length * 5.7 + 8} height={12} fill="rgba(255,255,255,0.92)" stroke="none" />
+                  <text x={W - padR - 6} y={labelY} fontSize="10.5" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="600">{h.label || ""}</text>
+                </g>
+              );
+            });
+          })()}
           {allSeries.map((s, i) => {
             const sw = s.dashed ? 1.1 : (1.5 - i * 0.2);
             return (
