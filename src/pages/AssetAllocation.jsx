@@ -1379,7 +1379,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], drawdownBands = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], drawdownBands = [], zoneTints = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1538,6 +1538,23 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
       </div>
       <div style={{ position: "relative" }}>
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {/* zone tints — horizontal bands behind the chart series. Each tint has
+              yMin / yMax in DATA units; we clamp to the visible y-range. Renders
+              FIRST so everything else (drawdown bands, gridlines, series, hover)
+              sits on top. Used to color stress / regime zones (Watch + Risk Off
+              on Bond Vol; Inflationary + Deflationary on Yield Regime). */}
+          {zoneTints.map((z, i) => {
+            // Clamp to chart y-range. yMin/yMax may be ±Infinity to mean "to the edge".
+            const visibleMin = Math.max(yMin, z.yMin != null ? z.yMin : yMin);
+            const visibleMax = Math.min(yMax, z.yMax != null ? z.yMax : yMax);
+            if (visibleMax <= visibleMin) return null;
+            const yTop = yToPx(visibleMax);
+            const yBot = yToPx(visibleMin);
+            return (
+              <rect key={"zt" + i} x={padL} y={yTop} width={innerW} height={Math.max(0, yBot - yTop)}
+                    fill={z.color || "rgba(14,17,21,0.04)"} stroke="none" />
+            );
+          })}
           {/* drawdown bands — rendered first so they sit BEHIND gridlines and series */}
           {drawdownBands.filter(b => {
             if (!w.length) return false;
@@ -2315,6 +2332,22 @@ export default function AssetTilt({ onOpenTicker }) {
                     end:   d.window_end,
                     label: d.name,
                   }));
+                  // Background zone tints — paint each stress/regime zone behind the
+                  // line so the user sees at a glance when the reading sat in an
+                  // elevated zone. Subtle opacity (≤8%) so it reads as ambient context,
+                  // not a foreground signal. UX Designer call (Joe directive 2026-05-19,
+                  // option 1 chosen over per-segment line-color switching).
+                  const zoneTintsForChart = isStress
+                    ? [
+                        ...(watchValueStress != null
+                          ? [{ yMin: watchValueStress, yMax: upperMark, color: "rgba(204,143,0,0.07)" }]   // Watch band — amber
+                          : []),
+                        { yMin: upperMark, yMax: Infinity, color: "rgba(200,70,88,0.08)" },               // Risk Off — red
+                      ]
+                    : [
+                        { yMin: upperMark, yMax: Infinity, color: "rgba(168,99,154,0.07)" },              // Inflationary — purple
+                        { yMin: -Infinity, yMax: midMark,  color: "rgba(33,118,174,0.07)" },              // Deflationary — blue
+                      ];
                   return (
                     <HistoryChart
                       data={chartData}
@@ -2322,6 +2355,7 @@ export default function AssetTilt({ onOpenTicker }) {
                       horizontalLines={linesForChart}
                       verticalReferences={spliceMarker}
                       drawdownBands={ddBands}
+                      zoneTints={zoneTintsForChart}
                       fmtY={fmtVal}
                       defaultTf="5Y"
                       defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
