@@ -2582,18 +2582,20 @@ export default function AssetTilt({ onOpenTicker }) {
                 </div>
               )}
 
-              {/* Release Calendar */}
+              {/* Data feed — neither MOVE nor 10y yield are "scheduled releases"; they are daily market closes pulled from Yahoo / FRED every weekday after market close. */}
               <div style={{ marginBottom: 22, background: "#ffffff", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
-                <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Release calendar</div>
+                <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Data feed</div>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 32px", fontSize: 13 }}>
-                  <div style={{ color: "var(--text-muted)" }}>Frequency</div>
-                  <div>Daily after close</div>
-                  <div style={{ color: "var(--text-muted)" }}>Last release</div>
-                  <div>{macroEngine?.as_of}</div>
                   <div style={{ color: "var(--text-muted)" }}>Source</div>
-                  <div>{isStress ? "ICE BofA via Yahoo (^MOVE)" : "FRED DGS10 (10-year Treasury constant maturity)"}</div>
+                  <div>{isStress ? "Yahoo · ICE BofA MOVE Index (^MOVE)" : "FRED · 10-Year Treasury Constant Maturity Yield (DGS10)"}</div>
+                  <div style={{ color: "var(--text-muted)" }}>Cadence</div>
+                  <div>Daily after US market close (4:00 PM ET)</div>
+                  <div style={{ color: "var(--text-muted)" }}>Last value</div>
+                  <div>{liveAsOf || macroEngine?.as_of || "—"}</div>
                   <div style={{ color: "var(--text-muted)" }}>Next refresh</div>
-                  <div>Fri {macroEngine?.next_refresh} 15:45 ET</div>
+                  <div>Next US weekday close, ~4:30 PM ET</div>
+                  <div style={{ color: "var(--text-muted)" }}>Strategy rebalance</div>
+                  <div>Weekly · Friday close (engine uses the Friday reading for the regime call)</div>
                 </div>
               </div>
 
