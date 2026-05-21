@@ -334,7 +334,7 @@ function AccountQuotaBar({ rows }) {
           <span>as of {etTimeShort(latest.started_at)}</span>
         </div>
         <div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}>
-          The whole account's usage, read from Unusual Whales' response headers — not the usage of any single pipeline. The last reading is taken mid-afternoon, so the true end-of-day total runs higher.
+          The whole account's usage, read from Unusual Whales' own response headers — not the usage of any single pipeline. Readings land through the day; a final end-of-day meter read after the evening pipelines finish captures the true daily total.
         </div>
       </div>
     </ChartPanel>
@@ -565,8 +565,11 @@ export default function AdminUsage() {
   // headers; the metered pipelines capture it as remaining_daily / limit_daily.
   // That figure covers the WHOLE account — every pipeline that calls UW — not
   // just the ones this page meters by name. It is the only honest top-line.
-  const quotaRowsToday = todaysRows.filter(r => r.remaining_daily != null && r.limit_daily != null);
-  const lastQuotaRow = quotaRowsToday.reduce(
+  // Prefer today's latest reading, but fall back to the most recent reading
+  // on record (the same fallback AccountQuotaBar uses) so the headline is
+  // never a blank dash — the "as of" label below makes any staleness explicit.
+  const allQuotaRows = (rows || []).filter(r => r.remaining_daily != null && r.limit_daily != null);
+  const lastQuotaRow = allQuotaRows.reduce(
     (a,r) => (!a || new Date(r.started_at) > new Date(a.started_at)) ? r : a, null);
   const accountLimit = lastQuotaRow != null ? (Number(lastQuotaRow.limit_daily)||0) : 20000;
   const accountUsedToday = lastQuotaRow != null
@@ -574,6 +577,13 @@ export default function AdminUsage() {
     : null;
   const accountPct = (accountUsedToday != null && accountLimit > 0)
     ? Math.round((accountUsedToday / accountLimit) * 100) : null;
+  // Time-stamp the reading: time-only when it is from today, date + time
+  // when the headline is showing an older reading as a fallback.
+  const quotaFromToday = lastQuotaRow != null && etDayKey(lastQuotaRow.started_at) === today;
+  const quotaAsOf = lastQuotaRow != null
+    ? (quotaFromToday ? etTimeShort(lastQuotaRow.started_at)
+                      : etDateTimeShort(lastQuotaRow.started_at))
+    : null;
 
   return (
     <main className="fade-in main-padded" style={{maxWidth:1200, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
@@ -596,7 +606,7 @@ export default function AdminUsage() {
 
       {/* KPI strip */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(0,1fr))",gap:12,marginBottom:16}}>
-        <KpiTile label="UW account usage today" value={accountUsedToday!=null ? fmtInt(accountUsedToday) : "—"} sub={lastQuotaRow ? `of ${fmtInt(accountLimit)}/day · ${fmtPct(accountPct)} · as of ${etTimeShort(lastQuotaRow.started_at)}` : "no quota reading yet today"} tone={accountPct!=null ? (accountPct>=85?"bad":accountPct>=60?"warn":"good") : undefined} />
+        <KpiTile label="UW account usage today" value={accountUsedToday!=null ? fmtInt(accountUsedToday) : "—"} sub={lastQuotaRow ? `of ${fmtInt(accountLimit)}/day · ${fmtPct(accountPct)} · as of ${quotaAsOf}` : "no quota reading on record"} tone={accountPct!=null ? (accountPct>=85?"bad":accountPct>=60?"warn":"good") : undefined} />
         <KpiTile label="Remaining (min)" value={minRemaining!=null ? fmtInt(minRemaining) : "—"} sub="across sources reporting" tone={minRemaining!=null && minRemaining < 2000 ? "bad" : minRemaining!=null && minRemaining < 5000 ? "warn" : "good"} />
         <KpiTile label="Peak RPM today" value={peakRpmToday ? peakRpmToday.toFixed(0) : "—"} sub="Basic tier ceiling: 120/min" tone={peakRpmToday>=100?"bad":peakRpmToday>=80?"warn":"good"} />
         <KpiTile label="Last run" value={latestRow ? etTimeShort(latestRow.started_at) : "—"} sub={latestRow ? `${SOURCE_LABELS[latestRow.source]||latestRow.source} · ${latestRow.status}` : "no runs yet"} tone={failuresToday>0?"warn":"good"} />
