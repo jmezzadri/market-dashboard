@@ -1249,3 +1249,13 @@ background or chart canvas surface must use a theme variable.
 **Applies to:** All chart, modal, dial, badge, and panel work going
 forward. Every specialist binds. Pre-merge UAT checklist for any
 chart-touching PR must include both-theme screenshots.
+
+---
+
+## 2026-05-21 — "Fine" / "done" / "missing" are claims about the LIVE system — verify there
+
+**What happened:** Three compounding misses in one session. (1) Told the owner "there is no S&P 500 series" — relayed from a code comment in the backtest engine — when SPY price data is used across a dozen files on the site and goes back ~20 years. (2) Called the Macro Overview page "completely fine" after only confirming it rendered; the owner then listed ~11 stale or impossible readings on it (VIX 17.7 when it was >20, freshness stamps dated in the future, JOLTS from March, etc.). (3) Relayed an agent's "methodology fixed" as done; the agent had only re-pointed a snapshot-fixture test at a v2 file with the new write-up — the LIVE methodology page still rendered an older file whose Trading Opportunities section described the retired six-signal screener. The test went green; the page never changed.
+
+**What to do instead:** Before telling the owner anything is "fine," "done," "complete," or that data "doesn't exist": (1) Load the actual LIVE page (cache-busted) and read it top to bottom — content, every data value for sanity, every freshness stamp (none in the future, none stale), calculations, UX. "It renders" is not "it's fine." (2) Before claiming data does not exist, search the real data stores AND the code that reads them across the whole site — a doc line or code comment is a hypothesis, not a fact. (3) A passing automated test is not proof the live page is correct — verify the live surface, not the test. (4) When delegating to an agent, the brief decides what gets fixed — brief against the live symptom and verify the agent's result on the live system.
+
+**Applies to:** All. CRITICAL. This is the root cause of stale data hiding behind pages that render fine.
