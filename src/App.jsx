@@ -5115,6 +5115,22 @@ function HomeSectorPie() {
       </div>
     );
   }
+  // One distinct, professional colour per GICS sector — keyed by name so a
+  // sector keeps its colour regardless of weight ordering. A flat monochrome
+  // pie was unreadable across 11 slices (UX correction, Joe 2026-05-21).
+  const SECTOR_COLOR = {
+    'Information Technology': '#3a6ea5',
+    'Financials':             '#e08a3c',
+    'Health Care':            '#4f9d69',
+    'Industrials':            '#c65b5b',
+    'Consumer Discretionary': '#7d6bb0',
+    'Consumer Staples':       '#48a0a8',
+    'Communication Services': '#d4a843',
+    'Energy':                 '#9c6f52',
+    'Utilities':              '#6b95c9',
+    'Real Estate':            '#c47ba0',
+    'Materials':              '#8a9a4e',
+  };
   // Short labels so the slice callouts stay legible at tile width.
   const ABBR = {
     'Information Technology': 'Info Tech',
@@ -5122,25 +5138,20 @@ function HomeSectorPie() {
     'Consumer Discretionary': 'Cons Disc.',
     'Consumer Staples': 'Cons Staples',
   };
-  // Sort largest-weight first so the biggest positions get the deepest blue.
+  // Sort largest-weight first.
   const rows = sectors
     .map(s => ({
       name: s.sector || '—',
       short: ABBR[s.sector] || s.sector || '—',
+      color: SECTOR_COLOR[s.sector] || '#9aa4ad',
       weight: Number(s.weight) || 0,
     }))
     .sort((a, b) => b.weight - a.weight);
   const total = rows.reduce((acc, r) => acc + r.weight, 0) || 1;
-  // Slice fill — graded blue opacity by rank so the pie reads as one family
-  // and matches the dial palette. Deepest for the largest slice.
-  const fillFor = (i, n) => {
-    const t = n > 1 ? i / (n - 1) : 0;
-    return 'rgba(0,113,227,' + (0.92 - t * 0.66).toFixed(3) + ')';
-  };
   // A TRUE pie (no centre hole) — Joe directive 2026-05-21: larger pie, not a
   // doughnut, with the sector + % labelled directly on the chart instead of
   // hover tooltips. viewBox leaves room for callout labels on both sides.
-  const VBW = 360, VBH = 230, CX = 178, CY = 108, R = 76;
+  const VBW = 360, VBH = 232, CX = 180, CY = 110, R = 78;
   const polar = (r, deg) => {
     const a = (deg - 90) * Math.PI / 180;
     return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
@@ -5189,20 +5200,23 @@ function HomeSectorPie() {
       <svg viewBox={`0 0 ${VBW} ${VBH}`} style={{ width: '100%', display: 'block' }}>
         {slices.map((s) => (
           <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
-                fill={fillFor(s.i, slices.length)}
-                stroke="var(--surface)" strokeWidth="1.5" />
+                fill={s.color} stroke="var(--surface)" strokeWidth="1.6" />
         ))}
         {labels.map(({ s, y, side }) => {
-          const [ax, ay] = polar(R, s.midDeg);
-          const [bx] = polar(R + 10, s.midDeg);
+          const [ax, ay] = polar(R, s.midDeg);        // anchor on the arc
+          const [sx, sy] = polar(R + 12, s.midDeg);   // radial stub end — clears the pie
+          const kneeX = side === 'right' ? CX + R + 18 : CX - R - 18;
           const labelX = side === 'right' ? VBW - 6 : 6;
           return (
             <g key={'L' + s.name}>
+              {/* Right-angle leader: radial stub off the slice, then out to a
+                  rail clear of the pie, then down to the de-overlapped label.
+                  Stays outside the pie at every segment — no slice crossings. */}
               <polyline
-                points={`${ax.toFixed(1)},${ay.toFixed(1)} ${bx.toFixed(1)},${y.toFixed(1)} ${labelX},${y.toFixed(1)}`}
-                fill="none" stroke="var(--border)" strokeWidth="0.9" />
+                points={`${ax.toFixed(1)},${ay.toFixed(1)} ${sx.toFixed(1)},${sy.toFixed(1)} ${kneeX},${sy.toFixed(1)} ${kneeX},${y.toFixed(1)} ${labelX},${y.toFixed(1)}`}
+                fill="none" stroke="var(--border)" strokeWidth="1" strokeLinejoin="round" />
               <text x={labelX} y={y + 3} textAnchor={side === 'right' ? 'end' : 'start'}
-                    style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fill: 'var(--text)' }}>
+                    style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, fill: 'var(--text)' }}>
                 {s.short}{' '}
                 <tspan style={{ fill: 'var(--text-muted)' }}>{(s.weight * 100).toFixed(1)}%</tspan>
               </text>
