@@ -48,37 +48,13 @@ async function fetchManifest() {
     return cache || new Map();
   }
   const map = new Map();
-  // data_manifest.json shape support. v1 stored `elements` as an ARRAY of
-  // {name,...} rows. v2+ (2026-05-12 catalog reorg) stores it as an OBJECT
-  // keyed by "<category>.<element-slug>" (e.g. "scenario.v10-allocation"),
-  // and the rows no longer carry a `name` field. The loader must handle BOTH
-  // shapes — otherwise the whole freshness system reads an empty registry,
-  // every element falls back to slaHours=0, and every chip renders green
-  // regardless of how stale the data is. (Fix 2026-05-21.)
-  const indexElement = (catalogKey, el) => {
-    if (!el || typeof el !== "object") return;
-    const setExact = (k) => { if (typeof k === "string" && k) map.set(k, el); };
-    // Derived aliases never clobber an entry an exact key already claimed.
-    const setAlias = (k) => { if (typeof k === "string" && k && !map.has(k)) map.set(k, el); };
-    setExact(catalogKey);
-    setExact(el.name);
-    setExact(el.id);
-    // Derive short aliases from the catalog key so chips that pass a bare id
-    // ("v10_allocation", "macrotilt_engine") still resolve to the catalog
-    // entry: strip the "<category>." prefix, and add the underscore variant.
-    const base = (typeof catalogKey === "string" && catalogKey)
-      || (typeof el.name === "string" && el.name) || null;
-    if (base) {
-      const slug = base.includes(".") ? base.slice(base.indexOf(".") + 1) : base;
-      setAlias(slug);
-      setAlias(slug.replace(/-/g, "_"));
+  const els = Array.isArray(data?.elements) ? data.elements : [];
+  for (const el of els) {
+    if (el && typeof el === "object" && typeof el.name === "string") {
+      map.set(el.name, el);
+      // Also index by `id` for future callers that pass full IDs.
+      if (typeof el.id === "string") map.set(el.id, el);
     }
-  };
-  const elsRaw = data?.elements;
-  if (Array.isArray(elsRaw)) {
-    for (const el of elsRaw) indexElement(null, el);
-  } else if (elsRaw && typeof elsRaw === "object") {
-    for (const [catalogKey, el] of Object.entries(elsRaw)) indexElement(catalogKey, el);
   }
   cache = map;
   lastLoadedAt = Date.now();
