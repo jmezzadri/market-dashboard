@@ -184,12 +184,12 @@ function DocsTable({ cols, rows }) {
     cells.forEach((cell, j) => { o["c" + j] = cell; });
     return o;
   });
-  // Tier A across the board (sweep PR 2026-05-12): even reference / docs
-  // tables get the full sort/filter/resize/Columns toolbar so the site
-  // looks identical everywhere. Methodology page has many of these, so each
-  // gets a unique storageKey derived from its column shape.
+  // Reference / docs tables render in look-only mode (Tier B): no filter,
+  // sort, resize or Columns toolbar — those controls are for the large data
+  // tables (the screener), not a docs page. Each table still gets a unique
+  // storageKey derived from its column shape.
   const sk = "methodology_" + columns.map((c) => c.label).join("|").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
-  return <MTTable columns={columns} rows={rowObjs} rowKey="_id" features="full" storageKey={sk} />;
+  return <MTTable columns={columns} rows={rowObjs} rowKey="_id" features="look" storageKey={sk} />;
 }
 
 // ─── Section content (hand-written prose, no auto-generation) ──────────────
@@ -614,9 +614,6 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         cleanly. There is no trend or momentum pre-filter; the score itself does all the work of
         separating signal from noise.
       </Body>
-      <Body>
-        The two gates run on these data streams:
-      </Body>
       <DocsTable
         cols={["Stream", "Provider", "What it carries"]}
         rows={[
@@ -992,30 +989,6 @@ export default function MethodologyPage() {
       maxWidth: 1280, margin: "0 auto", padding: "32px 28px 60px",
       display: "grid", gridTemplateColumns: "260px 1fr", gap: 32,
     }}>
-
-      {/* ─── HERO + content (right column) ─── */}
-      <div style={{ gridColumn: "1 / -1", marginBottom: 8 }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
-          How MacroTilt thinks
-        </div>
-        <h1 style={{
-          fontFamily: "var(--font-display, Georgia, serif)",
-          fontSize: 44, fontWeight: 500, margin: "8px 0 12px",
-          letterSpacing: "-0.02em", lineHeight: 1.05,
-        }}>Methodology</h1>
-        <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--text-muted)", maxWidth: 760, margin: 0 }}>
-          MacroTilt runs a four-stage funnel from macro tape to actual holdings.
-          <strong style={{ color: "var(--text)" }}> Macro Overview</strong> is the indicator backdrop — 27 indicators across five domains, with no regime call on the page.
-          <strong style={{ color: "var(--text)" }}> Asset Tilt</strong> runs the 2-axis engine that turns the tape into an explicit allocation: equity %, defensive sleeve composition keyed to yield direction, plus sector and industry-group tilts.
-          <strong style={{ color: "var(--text)" }}> Trading Opportunities</strong> picks specific stocks within those.
-          <strong style={{ color: "var(--text)" }}> Portfolio Insights</strong> connects all of it to your actual brokerage holdings.
-        </p>
-        <div style={{ marginTop: 18, display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-          <span>Last updated · 2026-05-18</span>
-          <span>Engine · LOCKED · 1986 → 2026 validation</span>
-          <span>Daily refresh · 15:45 ET weekdays</span>
-        </div>
-      </div>
 
       {/* ─── LEFT: sticky TOC ─── */}
       <nav style={{
