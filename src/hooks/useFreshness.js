@@ -48,6 +48,20 @@ import {
 
 const REFRESH_MS = 60_000;
 
+// Returns the more recent of two ISO date / datetime strings; either may be
+// null. Used so a lagging pipeline_health row can't override the actual
+// `as_of` stamped inside the live data file the page already loaded.
+function mostRecentIso(a, b) {
+  if (!a) return b || null;
+  if (!b) return a || null;
+  const parse = (s) => new Date(s.length === 10 ? `${s}T00:00:00Z` : s).getTime();
+  const ta = parse(a);
+  const tb = parse(b);
+  if (!Number.isFinite(ta)) return b;
+  if (!Number.isFinite(tb)) return a;
+  return tb > ta ? b : a;
+}
+
 let cachedRows = null;        // Map<indicator_id, pipeline_health row>
 let lastFetchAt = 0;
 let inflight = null;
@@ -126,9 +140,14 @@ function statusForElement(elementId, fallback) {
     (fallback?.calendar) ||
     "wall-clock";
 
-  // 3. Decide last_good_at: prefer pipeline_health, else fall back to caller's
-  //    asOfIso (which the chip passes when pipeline_health hasn't backfilled).
-  const lastGoodAt = phRow?.last_good_at || fallback?.asOfIso || null;
+  // 3. Decide last_good_at. The staleness decision should reflect the most
+  //    recent EVIDENCE that the data is current. pipeline_health.last_good_at
+  //    is the cron-run time; the caller's asOfIso is the actual `as_of`
+  //    stamped inside the live data file the page just loaded. A frozen or
+  //    lagging pipeline_health row must NOT make genuinely-fresh data read
+  //    stale — so take whichever is more recent. (Fix 2026-05-21: the
+  //    v10_allocation health row froze while its data file kept refreshing.)
+  const lastGoodAt = mostRecentIso(phRow?.last_good_at || null, fallback?.asOfIso || null);
   const lastError = phRow?.last_error || null;
 
   // 4. Two-state decision.
@@ -178,7 +197,11 @@ function statusForElement(elementId, fallback) {
     // not lastGoodAt (cron run time). coveragePct and expectedNextRun ride
     // along so tooltips can show "16% of expected universe" and "next
     // refresh at <time>".
-    dataAsOf: phRow?.data_as_of || null,
+    // dataAsOf is the trading day the value represents. Prefer whichever is
+    // more recent — the tracking row's data_as_of, or the live file's as_of
+    // the caller passed — so the chip never shows a date older than the data
+    // actually rendered on the page.
+    dataAsOf: mostRecentIso(phRow?.data_as_of || null, fallback?.asOfIso || null),
     coveragePct: phRow?.coverage_pct != null ? Number(phRow.coverage_pct) : null,
     expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
