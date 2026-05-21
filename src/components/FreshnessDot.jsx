@@ -47,10 +47,20 @@ const HUES = {
 
 function formatLastRefresh(iso) {
   if (!iso) return "never";
-  const t = iso.length === 10 ? `${iso}T00:00:00Z` : iso;
-  const d = new Date(t);
+  // A date-only value (a data file's "as_of": "2026-05-20") is a calendar
+  // day, NOT a timestamp — render it as a plain date with no timezone
+  // conversion. Converting its implicit midnight-UTC into ET previously
+  // rolled the displayed date back a day ("May 20" data showed as
+  // "May 19 8:00 PM ET", which read as stale to the user). Fix 2026-05-21.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, mo, dy] = iso.split("-").map(Number);
+    return new Date(Date.UTC(y, mo - 1, dy)).toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric", timeZone: "UTC",
+    });
+  }
+  const d = new Date(iso);
   if (Number.isNaN(+d)) return "never";
-  // Plain English with NY-time formatting. Joe is in ET; this is the
+  // Full timestamps keep NY-time formatting. Joe is in ET; this is the
   // user-facing display, not a wire format.
   const datePart = d.toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric",
