@@ -5067,27 +5067,36 @@ function HomeAssetTiltEngineRead() {
     ? Math.round(yieldPct * 100) + 'th pctile'
     : 'awaiting data';
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-      <HomeMiniDial
-        label="Stress signal"
-        sublabel="Bond-mkt vol"
-        pct={stressPct}
-        valueText={stressState}
-        metaText={stressVal != null
-          ? stressVal.toFixed(1) + ' · ' + stressMeta
-          : stressMeta}
-        markers={[{ pctile: 75 }, { pctile: 85 }]}
-      />
-      <HomeMiniDial
-        label="Yield regime"
-        sublabel="3M Δ · 10Y"
-        pct={yieldPct}
-        valueText={yieldState}
-        metaText={yieldBp != null
-          ? (yieldBp >= 0 ? '+' : '') + Math.round(yieldBp) + ' bp · ' + yieldMeta
-          : yieldMeta}
-        markers={[{ pctile: 30 }, { pctile: 70 }]}
-      />
+    <div style={{ marginBottom: 12 }}>
+      {/* The dials read the 2-axis ENGINE feed — its own freshness chip,
+          separate from the pie's (the engine and the allocation are two
+          different feeds). Joe directive 2026-05-21. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 8 }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>Engine read</span>
+        <FreshnessDot indicatorId="macrotilt_engine" asOfIso={eng?.as_of || null} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <HomeMiniDial
+          label="Stress signal"
+          sublabel="Bond-mkt vol"
+          pct={stressPct}
+          valueText={stressState}
+          metaText={stressVal != null
+            ? stressVal.toFixed(1) + ' · ' + stressMeta
+            : stressMeta}
+          markers={[{ pctile: 75 }, { pctile: 85 }]}
+        />
+        <HomeMiniDial
+          label="Yield regime"
+          sublabel="3M Δ · 10Y"
+          pct={yieldPct}
+          valueText={yieldState}
+          metaText={yieldBp != null
+            ? (yieldBp >= 0 ? '+' : '') + Math.round(yieldBp) + ' bp · ' + yieldMeta
+            : yieldMeta}
+          markers={[{ pctile: 30 }, { pctile: 70 }]}
+        />
+      </div>
     </div>
   );
 }
@@ -5168,11 +5177,15 @@ function HomeSectorPie() {
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
       borderRadius: 8, padding: '14px 16px 16px',
     }}>
-      <div style={{
-        fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)',
-        letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
-        marginBottom: 10, textAlign: 'center',
-      }}>Recommended sector allocation</div>
+      {/* The pie reads the v10 ALLOCATION feed — its own freshness chip,
+          separate from the dials' engine chip. Joe directive 2026-05-21. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 10 }}>
+        <span style={{
+          fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)',
+          letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
+        }}>Recommended sector allocation</span>
+        <FreshnessDot indicatorId="v10_allocation" asOfIso={alloc?.as_of || null} />
+      </div>
       <svg viewBox="0 0 220 220" style={{ width: '66%', maxWidth: 248, display: 'block', margin: '0 auto' }}>
         {slices.map((s) => (
           <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
@@ -6290,7 +6303,6 @@ return(
            style={{...cardStyle, cursor:"pointer"}}>
         <div style={cardHeadSlimStyle}>
           <span style={cardTagStyle}>02</span>
-          <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:"auto"}}/>
         </div>
         <p style={tileExplainStyle}>An <span style={tileNameStyle}>Asset Tilt Engine</span> for optimal portfolio allocation — back-tested rigorously.</p>
         <HomeAssetTiltEngineRead />
