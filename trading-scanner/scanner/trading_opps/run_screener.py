@@ -39,6 +39,14 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
+# Sibling modules (backtest_engine, darkpool_scoring, options_scoring) live
+# next to this file. Make them importable whether this script is run directly
+# (python3 run_screener.py) or as a package module
+# (python -m scanner.trading_opps.run_screener -- how the workflow runs it).
+_HERE_BOOTSTRAP = os.path.dirname(os.path.abspath(__file__))
+if _HERE_BOOTSTRAP not in sys.path:
+    sys.path.insert(0, _HERE_BOOTSTRAP)
+
 import backtest_engine as E
 import darkpool_scoring as DP
 import options_scoring as OP
