@@ -124,13 +124,15 @@ def _env():
     return env
 
 
-def _supabase_get(path: str, retries: int = 12):
+def _supabase_get(path: str, retries: int = 36):
     """GET one PostgREST page, retrying transient 5xx / network failures with a
     capped exponential backoff. A full keyset-paginated pull of prices_eod makes
     ~1,300 requests over ~35 minutes, so a multi-minute Supabase 5xx blip or a
     connection-pooler saturation window must not be allowed to kill the whole
-    run. Retry budget here is ~6 minutes (12 attempts, backoff capped at 60s)
-    before the page is finally given up on."""
+    run. Retry budget here is ~30 minutes (36 attempts, backoff capped at 60s)
+    before the page is finally given up on — long enough to wait out a
+    sustained Supabase 5xx / connection-pooler saturation window, which the
+    earlier ~6-minute budget was not (observed 2026-05-21)."""
     env = _env()
     url = env["SUPABASE_URL"].rstrip("/")
     key = env["SUPABASE_SERVICE_ROLE_KEY"]
