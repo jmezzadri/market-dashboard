@@ -22,6 +22,37 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-21 — Never hand off mid-flight work; "done" means live + UAT'd + Joe signed off
+
+**What happened:** After opening PR #757 (Home Asset Tilt tile rebuild) and
+PR #758 (site-wide freshness re-arm), the agent wrote a handoff prompt for a
+fresh Cowork session that listed only the "still open" items and treated
+#757/#758 as finished. The handoff carried none of the historical context —
+Joe's original requirements, how he wanted the Home page to look, the
+conversation that produced the design, the why. It also implied #757/#758
+were done correctly when neither had been merged, deployed, or UAT'd on a
+running page; only a syntax/logic check had been run. A fresh session
+inheriting that handoff could not have corrected #757/#758 if they were
+wrong, because it lacked all the context behind them. Joe: "You're just
+telling the new session 'I did everything right' which I can almost
+guarantee you didn't."
+
+**What you should do instead:**
+- Never call work "done", "shipped", or "complete" until it is merged, live
+  on macrotilt.com, UAT'd by actually loading the rendered page and checking
+  it against what Joe asked for, AND Joe has explicitly signed off. An open
+  PR is not done. A passing build is not done. A logic or syntax check is
+  not a UAT.
+- Never pass mid-flight work to a new session. Work is finished in the
+  session that started it. The 2026-04-30 context-window handoff rule
+  applies only to genuinely fresh, not-yet-started work; it never licenses
+  abandoning half-finished work.
+- If a handoff is ever unavoidable it must carry ALL historical context —
+  Joe's original requirements, the design intent, the conversation, the
+  rationale — not just a punch list of open items.
+
+**Applies to:** All
+
 ## 2026-05-19 — Plain-English ban applies to EVERY reply, not just code reviews
 
 **What happened:** Joe blew up after I described the Asset Tilt
