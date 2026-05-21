@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 # Per-process cache for /api/stock/{ticker}/info (cleared at each scan run).
 _COMPANY_NAME_CACHE: dict[str, str] = {}
 
+# Per-process cache for the UW congress politician roster ({politician_id:
+# party}). The roster changes rarely and a scan process is short-lived, so
+# one fetch per process is plenty. See _congress_party_map() (bug #1098).
+_CONGRESS_PARTY_MAP: dict[str, str] | None = None
+
 # Rate-limiting for per-ticker screener fallback calls.
 # 18 rapid-fire calls in < 1s was triggering UW 429s and poisoning the options chain pre-fetch.
 _SCREENER_LAST_CALL: float = 0.0
@@ -145,10 +150,61 @@ def _row_within_utc_hours(row: dict[str, Any], hours: float, *keys: str) -> bool
     return True
 
 
+def _congress_party_map() -> dict[str, str]:
+    """{politician_id: party} from UW GET /api/congress/politicians.
+
+    Bug #1098: UW's /congress/recent-trades rows carry a politician_id but
+    no party. The politician roster endpoint carries the party (plus
+    chamber and gender) for every current member of Congress. One bulk
+    call, cached per process. Returns {} on any failure so a roster hiccup
+    never breaks a scan — congress rows just go out without a party and the
+    Scanner falls back to its bundled name roster.
+    """
+    global _CONGRESS_PARTY_MAP
+    if _CONGRESS_PARTY_MAP is not None:
+        return _CONGRESS_PARTY_MAP
+    out: dict[str, str] = {}
+    try:
+        resp = _get("/api/congress/politicians")
+        data = resp.get("data") if isinstance(resp, dict) else None
+        for p in (data or []):
+            if not isinstance(p, dict):
+                continue
+            pid = p.get("politician_id") or p.get("id")
+            party = p.get("party")
+            if pid and party:
+                out[str(pid)] = str(party)
+    except Exception as exc:
+        logger.warning("UW congress politician roster fetch failed: %s", exc)
+    _CONGRESS_PARTY_MAP = out
+    return out
+
+
+def _enrich_congress_party(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Stamp `party` onto congress trade rows from the politician roster.
+
+    Resolved by politician_id. Rows that already carry a party, or whose
+    politician_id is not in the roster, are left untouched.
+    """
+    party_map = _congress_party_map()
+    if not party_map:
+        return rows
+    for row in rows:
+        if row.get("party"):
+            continue
+        pid = row.get("politician_id")
+        if pid:
+            party = party_map.get(str(pid))
+            if party:
+                row["party"] = party
+    return rows
+
+
 def get_congress_trades(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[str, Any]]:
     """
     GET /api/congress/recent-trades
-    Buys only; rows with null ticker excluded.
+    Buys only; rows with null ticker excluded. Party stamped from the
+    UW politician roster by politician_id (bug #1098).
     """
     raw = _get(
         "/api/congress/recent-trades",
@@ -163,12 +219,13 @@ def get_congress_trades(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[st
         if not ticker:
             continue
         out.append(dict(row))
-    return out
+    return _enrich_congress_party(out)
 
 
 def get_congress_sells(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[str, Any]]:
     """
     GET /api/congress/recent-trades — Sell disclosures only (for reversal vs prior buys).
+    Party stamped from the UW politician roster by politician_id (bug #1098).
     """
     raw = _get(
         "/api/congress/recent-trades",
@@ -183,7 +240,7 @@ def get_congress_sells(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[str
         if not ticker:
             continue
         out.append(dict(row))
-    return out
+    return _enrich_congress_party(out)
 
 
 def _is_10b5_1_plan(row: dict[str, Any]) -> bool:
