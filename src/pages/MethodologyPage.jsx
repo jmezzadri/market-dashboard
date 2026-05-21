@@ -550,298 +550,170 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
   ),
 
   // ============================================================
-  // §3 TRADING OPPORTUNITIES - Signal Intelligence (v5 ship)
+  // §3 TRADING OPPORTUNITIES — current end-of-day screener
   //
-  // Rewritten in place per LESSONS rule #31 (rewrite, do not append).
-  // v5 swaps the v4.1 three-filter / three-signal pipeline for a
-  // six-signal weighted composite with bidirectional bands.
+  // Rewritten in place 2026-05-21 per LESSONS rule #31 (rewrite, do not
+  // append). The retired six-signal weighted composite (insider / options /
+  // congress / technicals / analyst / short interest, MacroTilt Score
+  // -100..+100, five bands, signal_intel_v5_daily) is gone. This section now
+  // describes the current screener: two plain gates ($5 price + $1.5M median
+  // daily dollar-volume), two live scoring layers (insider + trend), two
+  // shadow layers (dark pool + options) contributing 0 points until
+  // back-tested, score out of 5 rising to 10, names launch at a combined
+  // score of 3. Ported from src/v2/components/MethodologyBody.jsx.
   // ============================================================
   "ops-why": (
     <>
       <Body>
-        Asset Tilt tells you which sectors and industry groups to lean into. Trading Opportunities
-        goes one level finer: <strong>which specific stocks within those</strong>. The page scores
-        every US-listed stock over $300 million in market cap, daily, across six independent
-        signals - and blends them into a single MacroTilt Score from -100 to +100.
+        The Trading Opportunities page is the actionable end of the funnel. Macro Overview tells you
+        the regime; Asset Tilt tells you how to lean by sector; Trading Opportunities turns that lean
+        into <strong>specific tickers</strong>. It is an end-of-day screener — it runs once after the
+        close and publishes a daily <strong>buy list</strong> of individual stocks worth a closer
+        look.
       </Body>
       <Body>
-        Positive scores mean the signals lean bullish. Negative scores mean they lean bearish.
-        Cutoffs at -50, -20, +20, and +50 sort every name into one of five bands - Strong Sell,
-        Watch Sell, Neutral, Watch Buy, Strong Buy. The page works as a top-to-bottom ranking of
-        the entire market every trading day. Click any row for the per-stock dossier.
+        The screener is built to produce a sell / short list as well as a buy list. The back-test
+        found no reliable edge on the short side, so only the buy list is published today — the short
+        list turns on automatically if and when the evidence supports it.
       </Body>
     </>
   ),
   "ops-how": (
     <>
       <Body>
-        Open the page. The funnel card on the right shows how the full equity universe collapses
-        to today's universe, what signal coverage looks like, and the count in each of the five
-        bands. The table below ranks every scored name. Filter chips at the top let you focus on
-        a single band or your held names.
+        Open the page. The table ranks the names that launched onto today's buy list. Each row
+        carries the name's combined score, the live layers that earned it, and an entry reference
+        price, a stop, and a profit target. Click any row to open the full stock view — the
+        layer-by-layer score, the price chart, and the insider filings behind it.
       </Body>
       <Body>
-        Action bands on the MacroTilt Score:
+        A name <strong>launches</strong> onto the buy list when its combined score reaches{" "}
+        <strong>3</strong>. Today the score tops out at <strong>5</strong>, because only two of the
+        four scoring layers are live; it rises to 10 once the two shadow layers switch on (see
+        "Models &amp; calcs" below). The score itself does all the work of ranking — there is no
+        separate macro or sector overlay applied on this page.
       </Body>
-      <DocsTable
-        cols={["Score", "Band", "What it means"]}
-        rows={[
-          [<Code>+50 to +100</Code>,  "Strong Buy",  "Multiple bullish signals firing strongly. Highest conviction on the buy side."],
-          [<Code>+20 to +50</Code>,   "Watch Buy",   "Tilting bullish on one or two signals. Smaller position size or wait for confirmation."],
-          [<Code>-20 to +20</Code>,   "Neutral",     "Signals are mixed or quiet. No clear directional read."],
-          [<Code>-50 to -20</Code>,   "Watch Sell",  "Tilting bearish on one or two signals. Watch list for trim or hedge."],
-          [<Code>-100 to -50</Code>,  "Strong Sell", "Multiple bearish signals firing strongly. Highest conviction on the sell side."],
-        ]}
-      />
-      <Body>
-        Every name in the universe is shown. There is no upper cap ceiling: NVDA, AAPL, GOOGL,
-        KO - all scored, all visible. The same six signals run on every name. The only difference
-        at the largest end of the cap range is that the insider weight is shrunk (see "Cap-aware
-        insider weight" below).
-      </Body>
+      <Callout>
+        <strong>Honest status today.</strong> The screener was calibrated on a single twelve-month
+        window — and a mostly-rising one. That is enough history to launch it on, but it is not a
+        multi-cycle proof: it has not yet been tested through a real downturn, and the stop and
+        profit-target distances are still provisional pending the dark-pool layer. The calibration is
+        re-checked every quarter, and immediately if a market correction enters the data. Treat the
+        win rate as a reasonable expectation, not a promise.
+      </Callout>
     </>
   ),
   "ops-data": (
     <>
       <Body>
-        The pipeline is built on six independent data streams plus a universe definition:
+        Every night the screener scores every US-listed common stock that clears two plain gates:
+        the share price is at least <strong>$5</strong>, and the stock trades at least{" "}
+        <strong>$1.5 million of value a day</strong>, measured as a 90-day median of daily dollar
+        volume. That leaves roughly two to two-and-a-half thousand names. Anything cheaper or thinner
+        is dropped before scoring — those are names a normal-sized order cannot get into and out of
+        cleanly. There is no trend or momentum pre-filter; the score itself does all the work of
+        separating signal from noise.
+      </Body>
+      <Body>
+        The two gates run on these data streams:
       </Body>
       <DocsTable
         cols={["Stream", "Provider", "What it carries"]}
         rows={[
-          ["Universe + reference",  "Polygon Massive",              "Every US-listed Common Stock + ADR with market cap at least $300 million and last close above $5. About 3,300 names."],
-          ["EOD prices + volume",   "Polygon Massive",              "OHLCV for all names; feeds the technicals signal (Bollinger BandWidth, RSI, 50-day moving average, relative volume)."],
-          ["Insider buys + sells",  "Unusual Whales (SEC Form 4)",  "Open-market purchases and sales by officers and directors (transaction code \"P\" and \"S\"). RSU grants, option exercises, and tax-withholding are filtered out."],
-          ["Options flow",          "Unusual Whales",               "Daily call and put volume vs open interest; flags unusual activity."],
-          ["Congress trades",       "Unusual Whales",               "Disclosed buy and sell trades by US senators and representatives within reporting windows."],
-          ["Analyst actions",       "Unusual Whales",               "Wall Street equity research: upgrades, downgrades, price target changes, initiations."],
-          ["Short interest",        "FINRA short interest report",  "Bi-monthly short interest as percent of float, plus day-to-cover."],
+          ["EOD prices + volume", "Polygon Massive",             "Daily close and volume for every US-listed name — feeds the $5 price gate and the $1.5M 90-day median dollar-volume gate, and the 200-day moving average and 14-day RSI used by the trend layer."],
+          ["Insider buys",        "Unusual Whales (SEC Form 4)", "Open-market purchases by company officers and directors. Routine pre-scheduled trades and trades by 10%-plus shareholders are excluded — only conviction buying counts."],
+          ["Dark-pool prints",    "Unusual Whales",              "Large off-exchange block trades. Collected every night but scored at zero points until the layer has enough of its own history to be back-tested honestly (shadow mode)."],
+          ["End-of-day options",  "Unusual Whales",              "End-of-day options activity. Collected every night but scored at zero points until back-tested (shadow mode)."],
         ]}
       />
-      <Body>
-        The nightly scan runs after the close and writes one row per (ticker, scan_date) to{" "}
-        <Code>public.signal_intel_v5_daily</Code>. Each row carries the MacroTilt Score, the band,
-        all six sub-scores, the weights actually applied (after the cap-aware insider adjustment),
-        and a plain-English "so what" summary. The Trading Opportunities page reads from that
-        table directly.
-      </Body>
     </>
   ),
   "ops-models": (
     <>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 0 }}>Universe</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 0 }}>How a name earns its score</h4>
       <Body>
-        Every US-listed Common Stock + ADR with market cap at least $300 million and last close
-        above $5. About 3,300 names. There is no upper cap ceiling - mega-caps like NVDA, MSFT,
-        AAPL are scored alongside small caps. The $300 million floor drops micro-caps where
-        execution risk dominates; the $5 close filter drops penny names.
+        Each name is scored on two <strong>live</strong> layers of evidence. The{" "}
+        <strong>insider layer</strong> is the anchor — corporate insiders buying their own company's
+        stock is, by a wide margin, the strongest predictor in our own testing. The{" "}
+        <strong>trend layer</strong> is a guardrail that keeps the screener from chasing a falling or
+        badly overheated stock. Two further layers — large off-exchange block trades ("dark pool")
+        and end-of-day options activity — are built and collecting data every night, but they sit in{" "}
+        <strong>shadow mode</strong> and contribute <strong>zero points</strong> until they have
+        enough of their own history to be tested honestly. Because of that, today's score tops out at{" "}
+        <strong>5</strong>; it rises to 10 once those two layers switch on.
       </Body>
 
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The six signals</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The insider layer</h4>
       <Body>
-        Each signal returns a sub-score from -100 to +100. Strong bullish reads (around +50 or
-        higher) and strong bearish reads (around -50 or lower) are the actionable extremes.
+        The insider layer rewards three patterns of open-market buying by a company's own officers
+        and directors, over a rolling 30-day window. Routine pre-scheduled trades and trades by
+        10%-plus shareholders are excluded — only conviction buying counts.
       </Body>
       <DocsTable
-        cols={["Signal", "What it reads"]}
+        cols={["Insider pattern", "What earns the points", { label: "Points", numeric: true }]}
         rows={[
-          ["Insider buying",  "Open-market Form 4 buys (and sells) by company officers and directors. Cap-normalized so a $1 million buy is read the same way at every company size. First-buy refinement: bonus for buyers with no prior purchase in the previous twelve months."],
-          ["Options flow",    "Unusual call and put volume vs open interest. Persistent call-side imbalance is bullish, persistent put-side imbalance is bearish."],
-          ["Congress trades", "Recent disclosed buys and sells by US senators and representatives within the legal reporting window. Buying tilts bullish, selling tilts bearish."],
-          ["Technicals",      "20-day Bollinger BandWidth, 14-day RSI, distance from the 50-day moving average, relative volume. Reads \"tape strength\" without leaning on any single indicator."],
-          ["Analyst actions", "Recent Wall Street equity research changes: upgrades, downgrades, price target moves, initiations. Upward momentum positive, downward momentum negative."],
-          ["Short interest",  "Short interest as percent of float, plus week-over-week direction. Rising short interest is mildly bearish; falling short interest from elevated levels can be bullish (squeeze setup)."],
-        ]}
-      />
-
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The MacroTilt Score (calibrated weights)</h4>
-      <Body>
-        The composite is a weighted average of the six sub-scores. Weights were fit on a 12-month
-        walk-forward backtest (52 weekly Mondays, May 2025 through May 2026) using realized 21-day
-        forward returns as the truth signal. Signals with insufficient historical data sit at the
-        equal-weight floor (1/6) until the data layer is backfilled.
-      </Body>
-      <DocsTable
-        cols={["Signal", { label: "Weight", numeric: true }, "Calibration status"]}
-        rows={[
-          ["Insider buying",  <strong>36.30%</strong>, "Calibrated. Highest alpha in backtest (+7.18 percentage points vs SPY when strong, 61% hit rate)."],
-          ["Options flow",    "16.67%",                "Equal-weight floor. Full history backfill in progress."],
-          ["Congress trades", "16.67%",                "Equal-weight floor. Only 13 strong-signal events across the backtest year - thin history."],
-          ["Technicals",      <strong>8.69%</strong>,  "Calibrated. Reliable mid-tier (+3.42 percentage points alpha when strong, 56% hit rate)."],
-          ["Analyst actions", <strong>5.00%</strong>,  "Calibrated. Broad coverage but the lowest alpha among signals we could fit (+1.65 percentage points)."],
-          ["Short interest",  "16.67%",                "Equal-weight floor. Sparse coverage (93 tickers historically)."],
-          [<strong>Total</strong>, <strong>100.00%</strong>, ""],
-        ]}
-      />
-
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Cap-aware insider weight</h4>
-      <Body>
-        Only the insider signal is haircut by market cap. A $1 million open-market purchase by a
-        director is meaningful at a $500 million company - it is a real, visible commitment. The
-        same $1 million purchase at a $500 billion mega-cap is rounding error: it carries less
-        information per dollar. The weight on the insider signal therefore shrinks as market cap
-        grows. The weight freed up by the haircut is redistributed pro-rata across the other five
-        signals so the total still sums to 100%.
-      </Body>
-      <DocsTable
-        cols={[
-          "Market cap",
-          { label: "Insider weight factor",    numeric: true },
-          { label: "Effective insider weight", numeric: true },
-        ]}
-        rows={[
-          ["$500 million or less",  "1.00", "36.3%"],
-          ["$5 billion",            "0.75", "27.2%"],
-          ["$50 billion",           "0.50", "18.2%"],
-          ["$500 billion or more",  "0.25", "9.1%"],
+          [<strong>Conviction buy</strong>, "A CEO or CFO buying on the open market, in a trade that lifts their personal stake by at least 10% and is worth at least $100,000.", <strong>4</strong>],
+          [<strong>Size</strong>,           "All insider buying in the window, added up, comes to at least 0.05% of the company's market value.", <strong>4</strong>],
+          [<strong>Consensus</strong>,      "At least three different insiders buying within the same window.", <strong>2</strong>],
         ]}
       />
       <Body>
-        Academic basis: Lakonishok &amp; Lee (2001){" "}
-        <em>Are Insider Trades Informative?</em>, <em>Review of Financial Studies</em> 14(1),
-        pp. 79-111 - the predictive content of insider buying is strongest in small caps.
-        Cohen, Malloy &amp; Pomorski (2012) <em>Decoding Inside Information</em>,{" "}
-        <em>Journal of Finance</em> 67(3), pp. 1009-1043 - the information content scales with
-        how unusual the trade is for that specific insider.
+        The insider layer is <strong>capped at 4 points</strong>, so one stock cannot run away with
+        the score on insider evidence alone. One refinement matters: insider signals fade with age. A
+        fresh insider buy carries full weight for its first <strong>15 days</strong>, then tapers
+        steadily to nothing by <strong>day 31</strong>. The list retires its own stale ideas — a buy
+        that surfaced three weeks ago is worth less than one filed yesterday.
       </Body>
 
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Backtest results</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The trend layer</h4>
       <Body>
-        12-month walk-forward, 52 weekly Mondays from 2025-05-12 through 2026-05-04. Universe
-        sized at about 2,800 names per scan date (the historical market-cap data layer covers
-        $300M-$25B during the backtest window). Forward return is realized close-to-close, 21
-        trading days forward. Alpha is the strategy return minus SPY's return on the same scan
-        date. Sharpe is annualized from 12 non-overlapping monthly windows.
+        The trend layer then adjusts the insider score so the screener does not chase a broken or
+        overheated chart:
       </Body>
       <DocsTable
-        cols={[
-          "Band",
-          { label: "Mean 21-day return", numeric: true },
-          { label: "Alpha vs SPY",       numeric: true },
-          { label: "Beats SPY",          numeric: true },
-          { label: "Sharpe",             numeric: true },
-        ]}
+        cols={["Trend condition", { label: "Points", numeric: true }]}
         rows={[
-          [<strong>Strong Buy</strong>,  <strong>+8.30%</strong>, <strong>+7.21 pp</strong>, <strong>55.4%</strong>, <strong>3.00</strong>],
-          ["Watch Buy",                  "+3.39%", "+2.23 pp", "53.3%", "3.31"],
-          ["Watch Sell",                 "+2.72%", "+0.68 pp", "47.6%", "0.61"],
-          ["Strong Sell",                "-1.42%", "-2.99 pp", "35.3%", "--"],
-          ["SPY benchmark",              "+1.80%", "--",       "--",    "2.87"],
+          ["Price above its 200-day average",               <strong>+1</strong>],
+          ["Price below its 200-day average",               <strong>&minus;2</strong>],
+          ["Overheated momentum (14-day RSI above 65)",      <strong>&minus;2</strong>],
         ]}
       />
       <Body>
-        The Strong Buy band beats SPY by more than 7 percentage points on average and earns a
-        Sharpe ratio of 3.00 against SPY's 2.87 over the same window. The Strong Sell band
-        actually falls during an up year for the market - a real negative alpha that holds up
-        even when SPY is rising. The bands are monotonic with realized return: the methodology
-        works as a top-to-bottom sorter.
+        Insider points (capped at 4) plus the trend adjustment give the combined score. A name{" "}
+        <strong>launches</strong> onto the buy list when that combined score reaches{" "}
+        <strong>3</strong>.
       </Body>
 
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Per-signal performance</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Shadow layers</h4>
       <Body>
-        For each signal alone, the table below shows how the bullish leg (sub-score around +50 or
-        higher) performed when that signal was firing on its own.
+        Two further layers — large off-exchange block trades ("dark pool") and end-of-day options
+        activity — are fully built and collect data every night, but contribute{" "}
+        <strong>zero points</strong> to the score today. They stay in shadow mode until each has
+        enough of its own history to be back-tested honestly. When they switch on, the score ceiling
+        rises from 5 to 10.
       </Body>
-      <DocsTable
-        cols={[
-          "Signal",
-          { label: "Mean 21-day return", numeric: true },
-          { label: "Alpha vs SPY",       numeric: true },
-          { label: "Hit rate",           numeric: true },
-          "Read",
-        ]}
-        rows={[
-          [<strong>Insider buying</strong>, <strong>+8.87%</strong>, <strong>+7.18 pp</strong>, <strong>61.1%</strong>, "Strongest signal by a wide margin."],
-          ["Technicals",      "+4.28%", "+3.42 pp", "55.6%", "Reliable mid-tier contributor."],
-          ["Analyst actions", "+3.24%", "+1.65 pp", "56.6%", "Modest but the broadest coverage."],
-          ["Options flow",    "--",     "--",       "--",    "Calibration pending. Sits at equal-weight floor."],
-          ["Congress trades", "--",     "--",       "--",    "Only 13 strong events in the backtest year. Floor weight."],
-          ["Short interest",  "--",     "--",       "--",    "Sparse coverage. Floor weight."],
-        ]}
-      />
 
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Where the alpha lives</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>What the back-test showed</h4>
       <Body>
-        The Strong Buy alpha is concentrated in the small-cap segment of the universe. The
-        cap-bucket breakdown explains why - and is also why the insider weight is haircut on
-        larger names.
+        Every point value and the launch threshold above were set by a back-test, not by guesswork —
+        the same standing rule that retired the previous screener. Across the twelve months of
+        insider history available, the <strong>88 names</strong> the screener launched, measured one
+        month (21 trading days) later:
       </Body>
       <DocsTable
-        cols={[
-          "Cap bucket",
-          "Band",
-          { label: "Mean 21-day return", numeric: true },
-          { label: "Alpha vs SPY",       numeric: true },
-          { label: "Beats SPY",          numeric: true },
-        ]}
+        cols={["Measure", { label: "Result", numeric: true }, "In plain terms"]}
         rows={[
-          [<strong>$300M to $8.1B (small)</strong>,  <strong>Strong Buy</strong>, <strong>+9.66%</strong>, <strong>+8.58 pp</strong>, <strong>58.3%</strong>],
-          ["$8.1B to $23.5B (mid)",                  "Strong Buy",                "+0.70%", "-0.43 pp", "39.0%"],
-          ["$23.5B to $200B (large)",                "Watch Buy",                 "-4.14%", "-4.41 pp", "27.3%"],
-          ["$200B+ (mega)",                          "--",                        "--",     "--",       "(unmeasured in backtest)"],
+          [<strong>Win rate</strong>,              <strong>59.1%</strong>, "Roughly three of every five launched names were higher a month later."],
+          [<strong>Average move</strong>,          <strong>+5.96%</strong>, "The average launched name over the following month."],
+          [<strong>Versus the broad market</strong>, <strong>+2.42%</strong>, "How much the launched names beat the average eligible stock, per month."],
+          [<strong>Profit factor</strong>,         <strong>2.76</strong>, "About $2.76 earned for every $1.00 lost across all launched names."],
         ]}
       />
       <Body>
-        The clearest read: signal-driven alpha is concentrated in the $300M to $8.1B range. The
-        cap-aware insider weight tries to bake that finding into the live composite, by reducing
-        how much the insider signal can swing the score at larger sizes.
+        The short side is held back: the back-test found no reliable edge on the sell / short list,
+        so only the buy list publishes today. The short list turns on automatically if and when the
+        evidence supports it.
       </Body>
-
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Honesty caveats</h4>
-      <ul style={{ ...styles.body, paddingLeft: 22 }}>
-        <li style={styles.bullet}>
-          <strong>Three signals are at the equal-weight floor.</strong> Options flow, congress
-          trades, and short interest had insufficient historical data to calibrate. They are not
-          worthless; we just cannot tell yet. The freed weight when those signals do produce a
-          read flows through the composite proportionally, and the next calibration pass (planned
-          quarterly) will refit once the data is backfilled.
-        </li>
-        <li style={styles.bullet}>
-          <strong>Forward return is close-to-close, dividends excluded.</strong> Understates total
-          return on high-yield names (REITs, BDCs) by approximately 30 to 80 basis points over
-          21 days.
-        </li>
-        <li style={styles.bullet}>
-          <strong>Historical market cap uses single-snapshot shares outstanding.</strong> Drift is
-          typically less than 5% on small and mid caps; worst-case ~8% on high-buyback or
-          recently-issued names. Affects cap-bucket assignment at the boundaries.
-        </li>
-        <li style={styles.bullet}>
-          <strong>Mega-cap performance is unmeasured in the backtest.</strong> The historical
-          market-cap data layer ended at $25B during the backtest window. Live production scores
-          mega-caps (NVDA, MSFT, AAPL etc.) using the same six signals, but the empirical
-          performance read on the $200B+ band will only be visible once the data layer is
-          backfilled and the next quarterly calibration runs.
-        </li>
-        <li style={styles.bullet}>
-          <strong>First 7 scan dates have incomplete insider lookback.</strong> The insider
-          history table starts 2025-03-10; scan dates before 2025-06-23 have a truncated 365-day
-          prior-window check. Re-aggregated alpha excluding the first 7 scans was +6.84
-          percentage points vs the full-window +7.21 - the bias is small, the headline holds.
-        </li>
-        <li style={styles.bullet}>
-          <strong>No transaction costs, slippage, or implementation lag.</strong> Net of
-          round-trip costs the headline alpha narrows by ~50 basis points. Does not reverse.
-        </li>
-        <li style={styles.bullet}>
-          <strong>Cross-sectional alpha, not factor alpha.</strong> "Alpha vs SPY" is the
-          ticker's return minus SPY's return on the same scan date - not a Fama-French
-          factor-model alpha. Small-cap (IWM) underperformed SPY by about 5 percentage points
-          over this window, so the tilt-to-small-caps bias works against the headline. The alpha
-          read is real.
-        </li>
-        <li style={styles.bullet}>
-          <strong>Survivorship bias.</strong> Tickers that delisted between scan date and scan
-          date + 21 trading days drop out of the realized-return measurement rather than being
-          counted as -100%. Biases the headline upward; remediation requires the Polygon
-          delisted-corpus, out of scope for the initial ship.
-        </li>
-        <li style={styles.bullet}>
-          Harness code is at{" "}
-          <Code>trading-scanner/scanner/signal_intelligence_v5/backtest_harness.py</Code>{" "}
-          and is auditable.
-        </li>
-      </ul>
     </>
   ),
 
