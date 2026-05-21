@@ -556,8 +556,10 @@ function renderCell(c, r) {
       );
 
     case "sig": {
-      const s = r.signal || "Buy · Long";
-      return <span className="to-sig">{s}</span>;
+      // No fallback — a row with no signal (e.g. a watchlist name the
+      // screener has not launched) shows a dash, never a default Buy.
+      const s = r.signal;
+      return s ? <span className="to-sig">{s}</span> : dashSpan();
     }
 
     case "score": {
