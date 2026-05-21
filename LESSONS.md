@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-21 — resample() to a period-end label publishes a future-dated point for the in-progress period
+
+**What happened:** The Macro Overview IG OAS, HY/IG ratio, and commercial-paper-spread tiles showed "last updated" dates in the future (May 31, May 22) when the date was the 21st. Each is built by resampling a daily series to a coarser cadence — `resample("ME")` (month-end), `resample("W-FRI")` (week-Friday), `resample("QE")` (quarter-end). Those resamplers label every bucket with the period-END date, so the still-in-progress period gets a label in the future and its partial value is published with a future stamp. Separately, IG OAS was built from a `BAA - DGS10` proxy (on a wrong "BAMLC0A0CM is license-restricted" assumption) that ran ~2x the true spread, and the copper/gold ratio used a non-standard x100 scaling.
+
+**What you should do instead:** (1) Any time a series is resampled to a period-end label, immediately drop buckets dated after today: `s = s.loc[s.index <= pd.Timestamp.today().normalize()]`. The in-progress period is a partial value, not a finished observation. (2) `fetch_history.py` now runs a final `_drop_future_points()` guard over every indicator before writing — no future-dated point can reach `public/indicator_history.json` whatever an upstream block does; keep that guard. (3) Prefer a series' native daily cadence (no resample) when every input is already daily. (4) Before believing a "vendor X is unavailable/restricted" comment, query the vendor — `BAMLC0A0CM` was available on FRED's free tier the whole time.
+
+**Applies to:** Senior Quant + Data Steward — every producer block that calls `.resample(...)` or substitutes a proxy for a "restricted" series.
+
+---
+
 ## 2026-05-19 — Plain-English ban applies to EVERY reply, not just code reviews
 
 **What happened:** Joe blew up after I described the Asset Tilt
