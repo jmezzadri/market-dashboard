@@ -8,6 +8,12 @@ target lookback window.
 
 Default lookback for daily refresh = 14 days (window covers cron drift +
 late filings). Backfill mode walks 365 days for one-time history hydrate.
+
+Party affiliation (bug #1098): the /congress/recent-trades rows carry a
+politician_id but no party. UW exposes the party on a separate politician
+roster at /congress/politicians. At the start of each run we pull that
+roster once, build a {politician_id: party} map, and stamp `party` (and the
+`politician_id` column) onto every row we write.
 """
 
 from __future__ import annotations
@@ -24,6 +30,7 @@ import requests
 
 UW_BASE = "https://api.unusualwhales.com/api"
 UW_PATH = "/congress/recent-trades"
+UW_POLITICIANS_PATH = "/congress/politicians"
 TABLE = "congress_trades_daily"
 
 
@@ -50,6 +57,33 @@ def _uw_headers() -> dict[str, str]:
         "Authorization": f"Bearer {os.environ['UNUSUAL_WHALES_API_KEY']}",
         "UW-CLIENT-API-ID": os.environ.get("UW_CLIENT_API_ID", "100001"),
     }
+
+
+def fetch_politician_party_map() -> dict[str, str]:
+    """Build a {politician_id: party} map from UW /congress/politicians.
+
+    One bulk call. The roster carries politician_id, party, chamber and
+    gender for every current member of Congress. Returns {} on any failure
+    so a roster hiccup never blocks the trade ingest — affected rows simply
+    go in with party = None and the daily run picks them up next time.
+    """
+    try:
+        r = requests.get(f"{UW_BASE}{UW_POLITICIANS_PATH}",
+                         headers=_uw_headers(), timeout=20)
+        if r.status_code != 200:
+            return {}
+        data = r.json().get("data") or []
+    except Exception:
+        return {}
+    out: dict[str, str] = {}
+    for p in data:
+        if not isinstance(p, dict):
+            continue
+        pid = p.get("politician_id") or p.get("id")
+        party = p.get("party")
+        if pid and party:
+            out[str(pid)] = str(party)
+    return out
 
 
 def _parse_bucket(bucket: str | None) -> tuple[float | None, float | None]:
@@ -106,11 +140,16 @@ def fetch_disclosures(days_back: int = 14, max_pages: int = 50,
         page += 1
 
 
-def _row_to_insert(ev: dict[str, Any]) -> dict[str, Any] | None:
+def _row_to_insert(ev: dict[str, Any],
+                   party_map: dict[str, str] | None = None) -> dict[str, Any] | None:
     """Map UW disclosure event -> congress_trades_daily row.
 
     Real UW keys: name, ticker, txn_type, amounts, transaction_date,
     filed_at_date, politician_id, member_type, reporter, issuer.
+
+    `party_map` is the {politician_id: party} roster from
+    fetch_politician_party_map(); when present, the row's party is resolved
+    from it via the event's politician_id.
     """
     ticker = (ev.get("ticker") or "").upper()
     txn_date = ev.get("transaction_date") or ev.get("trans_date")
@@ -135,6 +174,10 @@ def _row_to_insert(ev: dict[str, Any]) -> dict[str, Any] | None:
         or ev.get("transaction_id")
         or f"{ticker}-{txn_date}-{member_name or 'x'}-{txn_type or 'x'}-{bucket or 'x'}"
     )
+    politician_id = ev.get("politician_id")
+    party = None
+    if politician_id and party_map:
+        party = party_map.get(str(politician_id))
     return {
         "ticker": ticker,
         "transaction_date": txn_date[:10] if isinstance(txn_date, str) else str(txn_date),
@@ -146,6 +189,8 @@ def _row_to_insert(ev: dict[str, Any]) -> dict[str, Any] | None:
         "amount_min": amin,
         "amount_max": amax,
         "filing_date": (ev.get("filed_at_date") or ev.get("filing_date") or "")[:10] or None,
+        "politician_id": str(politician_id) if politician_id else None,
+        "party": party,
         "raw": ev,
     }
 
@@ -176,20 +221,24 @@ def upsert_rows(rows: list[dict[str, Any]], batch_size: int = 500) -> int:
 
 def pull_and_upsert(days_back: int = 14, max_seconds: float = 1200.0) -> dict[str, Any]:
     t0 = time.time()
+    party_map = fetch_politician_party_map()
     rows: list[dict[str, Any]] = []
     fetched = 0
     for ev in fetch_disclosures(days_back=days_back):
         if time.time() - t0 > max_seconds:
             break
         fetched += 1
-        row = _row_to_insert(ev)
+        row = _row_to_insert(ev, party_map)
         if row:
             rows.append(row)
     upserted = upsert_rows(rows)
+    rows_with_party = sum(1 for r in rows if r.get("party"))
     return {
         "events_fetched": fetched,
         "rows_prepared": len(rows),
         "rows_upserted": upserted,
+        "politicians_in_roster": len(party_map),
+        "rows_with_party": rows_with_party,
         "days_back": days_back,
         "elapsed_sec": round(time.time() - t0, 1),
     }
