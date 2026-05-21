@@ -2,15 +2,15 @@ name: TRADING-OPPS-BACKTEST
 
 # Runs the Trading Opportunities backtest / calibration engine
 # (trading-scanner/scanner/trading_opps/backtest_engine.py) over the full
-# production price + insider history, then commits the regenerated
-# calibrated_config.json + backtest_results.json next to the engine.
+# production price + insider history, then — instead of committing the
+# regenerated calibration straight to the live site — opens a PULL REQUEST
+# with the regenerated calibrated_config.json + backtest_results.json for
+# Senior Quant review.
 #
-# This is the screener's re-calibration tool. Per the overhaul plan the
-# screener is re-calibrated quarterly and immediately whenever a market
-# correction enters the data — workflow_dispatch + the quarterly cron below
-# cover that. The branch-scoped push trigger is what runs it once now, on the
-# Phase 3 branch, to confirm the insider age-decay curve; it is removed before
-# this workflow merges to the live site.
+# Why a PR and not an auto-commit: the quarterly recalibration changes the
+# numbers the live screener scores on. Those must not ship without a human
+# (Senior Quant) reading the run and signing off. The workflow regenerates
+# and proposes; a person reviews and merges.
 #
 # The backtest pulls ~1.3M price rows + full insider history from Supabase and
 # runs for several minutes, so it cannot run in a short-lived shell — only here,
@@ -26,12 +26,6 @@ on:
     # Quarterly: 11:00 UTC on the first of Jan/Apr/Jul/Oct — the standing
     # re-calibration cadence from the overhaul plan (Part 7, item D1).
     - cron: '0 11 1 1,4,7,10 *'
-  push:
-    branches:
-      - feature/dev-trading-opps-phase3
-    paths:
-      - '.github/workflows/TRADING-OPPS-BACKTEST.yml'
-      - 'trading-scanner/scanner/trading_opps/backtest_engine.py'
 
 concurrency:
   group: trading-opps-backtest
@@ -43,6 +37,7 @@ jobs:
     timeout-minutes: 150
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -73,20 +68,53 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 trading-scanner/scanner/trading_opps/backtest_engine.py --pull
 
-      - name: Commit regenerated calibration + results
+      - name: Open a review PR with the regenerated calibration
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git add trading-scanner/scanner/trading_opps/calibrated_config.json \
-                  trading-scanner/scanner/trading_opps/backtest_results.json
+          set -euo pipefail
+          CFG=trading-scanner/scanner/trading_opps/calibrated_config.json
+          RES=trading-scanner/scanner/trading_opps/backtest_results.json
+          git add "$CFG" "$RES"
           if git diff --cached --quiet; then
-            echo "No changes in the two JSON artifacts — skipping commit."
+            echo "No changes in the two JSON artifacts — nothing to review, skipping PR."
             exit 0
           fi
           AS_OF=$(date -u +%Y-%m-%d)
-          git commit -m "TRADING-OPPS-BACKTEST refresh — ${AS_OF} [skip ci]
+          BRANCH="quant/trading-opps-recalibration-${AS_OF}"
+          git checkout -b "$BRANCH"
+          git commit -m "Trading Opps recalibration — ${AS_OF} (Senior Quant review)
 
           Regenerated calibrated_config.json + backtest_results.json by
-          .github/workflows/TRADING-OPPS-BACKTEST.yml"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          .github/workflows/TRADING-OPPS-BACKTEST.yml. This does NOT ship
+          automatically — it is opened as a PR for Senior Quant review."
+          git push -u origin "$BRANCH"
+          # Headline numbers for the reviewer (best-effort — never block on a parse miss).
+          SUMMARY=$(python3 -c "import json; r=json.load(open('$RES')); p=r.get('final_long_performance',{}).get('21',{}); print('n=%s, win rate=%.0f%%, avg return=%.2f%%, profit factor=%.2f' % (p.get('n','?'), (p.get('win_rate') or 0)*100, (p.get('avg_return') or 0)*100, p.get('profit_factor') or 0))" 2>/dev/null || echo "see backtest_results.json")
+          {
+            echo "Automated quarterly recalibration of the Trading Opportunities screener."
+            echo ""
+            echo "**This does not ship automatically — the Senior Quant must review and merge.**"
+            echo ""
+            echo "Regenerated insider-layer headline (T+21, 1-month horizon): ${SUMMARY}"
+            echo ""
+            echo "Files in this PR:"
+            echo "- calibrated_config.json — the calibration the live engine reads."
+            echo "- backtest_results.json — every number behind it, pinned."
+            echo ""
+            echo "Senior Quant review checklist:"
+            echo "- [ ] Point values still derive from each rule's measured edge (no gut-set numbers)."
+            echo "- [ ] Lookahead audit clean in the run log."
+            echo "- [ ] Any large move vs. the previous calibration is explained."
+            echo "- [ ] The dark-pool / options blocks and scoring_version survived regeneration."
+            echo "- [ ] Launch threshold still appropriate for the current score scale."
+            echo ""
+            echo "Generated by .github/workflows/TRADING-OPPS-BACKTEST.yml"
+          } > /tmp/pr_body.md
+          gh pr create \
+            --base main --head "$BRANCH" \
+            --title "Trading Opps quarterly recalibration — ${AS_OF} — Senior Quant review required" \
+            --body-file /tmp/pr_body.md
 
       - name: Upload backtest artifacts
         if: always()

@@ -174,8 +174,8 @@ function SignalIntelligenceRail({ ticker }) {
 
   const score = num(row.score);
   const scoreColor = score == null ? "var(--text)"
-                   : score >= 4.5 ? "var(--green-text)"
-                   : score >= 3.5 ? "var(--accent)"
+                   : score >= 7 ? "var(--green-text)"
+                   : score >= 5 ? "var(--accent)"
                    : "var(--text)";
   const scoreLabel = score == null ? "—" : score.toFixed(1);
 
@@ -202,9 +202,6 @@ function SignalIntelligenceRail({ ticker }) {
   if (insiderAge != null) insiderSubParts.push(`${insiderAge}d old`);
   if (decayPct != null) insiderSubParts.push(`${decayPct}% weight left`);
 
-  const darkShadow = String(row.dark_pool_status || "").toLowerCase() === "shadow";
-  const optionsShadow = String(row.options_shock_status || "").toLowerCase() === "shadow";
-
   const entry  = fmtMoney(row.entry);
   const stop   = fmtMoney(row.stop);
   const target = fmtMoney(row.target);
@@ -215,7 +212,7 @@ function SignalIntelligenceRail({ ticker }) {
       <div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 600, lineHeight: 1.05, color: scoreColor }}>
           {scoreLabel}
-          <span style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}> / 5</span>
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}> / 10</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
           {row.signal && (
@@ -275,14 +272,12 @@ function SignalIntelligenceRail({ ticker }) {
         <BreakdownRow label="SMA200 trend" points={fmtPoints(row.sma200_pts)} />
         <BreakdownRow label="RSI momentum" points={fmtPoints(row.rsi_pts)} />
 
-        {darkShadow
-          ? <BreakdownRow label="Dark pool" points="0 · shadow" muted />
-          : <BreakdownRow label="Dark pool" points={row.dark_pool_status ? String(row.dark_pool_status) : "—"} />}
-        {optionsShadow
-          ? <BreakdownRow label="Options shock" points="0 · shadow" muted />
-          : <BreakdownRow label="Options shock" points={row.options_shock_status ? String(row.options_shock_status) : "—"} />}
+        <BreakdownRow label="Dark pool"
+          points={row.dark_pool_pts != null ? fmtPoints(row.dark_pool_pts) : "—"} />
+        <BreakdownRow label="Options shock"
+          points={row.options_pts != null ? fmtPoints(row.options_pts) : "—"} />
 
-        <BreakdownRow label="System score" points={`${scoreLabel} / 5`} total />
+        <BreakdownRow label="System score" points={`${scoreLabel} / 10`} total />
       </div>
 
       {/* Trade levels */}

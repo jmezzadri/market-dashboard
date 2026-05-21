@@ -34,12 +34,14 @@ import os
 import sys
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
 import backtest_engine as E
+import darkpool_scoring as DP
+import options_scoring as OP
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INSIDER_WINDOW_DAYS = 30          # locked spec / calibrated_config lookback
@@ -260,6 +262,7 @@ def main():
                  "rsi_hot": tr["rsi_overbought_cutoff"],
                  "rsi_hot_pen": tr["rsi_overbought_points"]}
     launch_threshold = cfg["long"]["launch_threshold"]
+    scoring_version = cfg.get("scoring_version", "unversioned")
     stop_pct = cfg["risk_levels"]["stop_pct"]
     target_pct = cfg["risk_levels"]["target_pct"]
     win_rate = backtest_win_rate()
@@ -320,7 +323,8 @@ def main():
                                    ("C", ir["rule_c"])) if fired]
         rows.append({
             "_ticker": ticker, "_bar": bar, "_ir": ir,
-            "score": long_score, "insider_pts": round(insider_pts, 2),
+            "score": long_score, "launch_score": long_score,
+            "insider_pts": round(insider_pts, 2),
             "insider_rules": tags, "insider_age_days": ir["age_days"],
             "sma200": (float(sma200) if pd.notna(sma200) else None),
             "sma200_pts": sma200_pts, "rsi": (float(rsi) if pd.notna(rsi) else None),
@@ -333,6 +337,36 @@ def main():
         return
 
     launched_tickers = [r["_ticker"] for r in rows]
+    scan_iso = str(scan_date.date())
+
+    # ── [4b] dark-pool + options scoring layers ──────────────────────────
+    # Joe's 2026-05-21 calibration call: these two layers enrich each name's
+    # score and sharpen the ranking, but they NEVER move the launch decision
+    # — the gate above (insider + trend >= launch_threshold) is unchanged.
+    # Point values are from the spec and are NOT yet backtested (owner-
+    # approved; shipped with an on-page "not yet backtested" disclaimer and
+    # Senior-Quant sanity-checked candidate values). Reading darkpool_prints
+    # and options_eod_daily from Supabase adds NO Unusual Whales API calls —
+    # that raw data is already ingested nightly.
+    print("[4b] scoring dark-pool + options layers for launched names ...")
+    asof_dt = datetime(scan_date.year, scan_date.month, scan_date.day,
+                       23, 59, 59, tzinfo=timezone.utc)
+    dp_prints = DP.fetch_prints(launched_tickers, asof_dt, E._supabase_get)
+    opt_rows = OP.fetch_options(launched_tickers, scan_iso, E._supabase_get)
+    dp_by_t, opt_by_t = {}, {}
+    for r in rows:
+        t = r["_ticker"]
+        close = float(r["_bar"]["close"])
+        dp_by_t[t] = DP.score_darkpool(dp_prints.get(t, []), close, asof_dt)
+        opt_by_t[t] = OP.score_options(
+            (opt_rows.get(t) or {}).get("contracts"), close)
+        r["score"] = round(min(10.0, r["launch_score"]
+                           + dp_by_t[t]["points"] + opt_by_t[t]["points"]), 2)
+    dp_hits = sum(1 for v in dp_by_t.values() if v["points"] > 0)
+    opt_hits = sum(1 for v in opt_by_t.values() if v["points"] > 0)
+    print(f"    dark-pool scored {dp_hits}/{len(rows)} names; "
+          f"options scored {opt_hits}/{len(rows)} names; score ceiling 10")
+
     print("[5] fetching reference + earnings + price history for launches ...")
     ref = fetch_reference(launched_tickers)
     earn = fetch_earnings(launched_tickers, scan_date)
@@ -342,7 +376,6 @@ def main():
                    for t, g in px_launched.groupby("ticker", sort=False)}
 
     print("[6] assembling snapshot rows ...")
-    scan_iso = str(scan_date.date())
     snapshot = []
     for r in rows:
         t = r["_ticker"]
@@ -367,12 +400,19 @@ def main():
             "signal": "BUY · LONG",
             "score": r["score"],
             "score_1w": None, "score_1m": None,    # backfilled below
+            "score_1w_like_for_like": None,
+            "score_1m_like_for_like": None,
+            "scoring_version": scoring_version,
             "win_rate": win_rate,
             "insider_rules": r["insider_rules"],
             "insider_age_days": r["insider_age_days"],
             "insider_pts": r["insider_pts"],
-            "dark_pool_anchor": None, "dark_pool_status": "shadow",
-            "options_vol_shock": None, "options_shock_status": "shadow",
+            "dark_pool_anchor": dp_by_t[t]["anchor"],
+            "dark_pool_pts": dp_by_t[t]["points"],
+            "dark_pool_status": "live",
+            "options_vol_shock": opt_by_t[t]["shock_multiple"],
+            "options_pts": opt_by_t[t]["points"],
+            "options_shock_status": "live",
             "sma200_pct": sma200_pct, "sma200_pts": r["sma200_pts"],
             "rsi": (round(r["rsi"], 1) if r["rsi"] is not None else None),
             "rsi_pts": r["rsi_pts"],
@@ -406,20 +446,27 @@ def main():
         })
 
     # ── score 1W / 1M ago — read older snapshots of the SAME tickers ──
-    for label, days, field in (("1w", 7, "score_1w"), ("1m", 30, "score_1m")):
+    for label, days, field, lfl in (
+            ("1w", 7, "score_1w", "score_1w_like_for_like"),
+            ("1m", 30, "score_1m", "score_1m_like_for_like")):
         prior_iso = str((scan_date - pd.Timedelta(days=days)).date())
         try:
             tlist = ",".join(launched_tickers)
             prior = _supabase_get(
-                "trading_opps_signals?select=ticker,score"
+                "trading_opps_signals?select=ticker,score,scoring_version"
                 f"&scan_date=lte.{prior_iso}&ticker=in.({tlist})"
                 "&order=scan_date.desc") or []
             seen = {}
             for p in prior:
-                seen.setdefault(p["ticker"], p["score"])
+                seen.setdefault(p["ticker"], p)
             for row in snapshot:
-                if row["ticker"] in seen:
-                    row[field] = seen[row["ticker"]]
+                hit = seen.get(row["ticker"])
+                if hit is not None:
+                    row[field] = hit["score"]
+                    # Like-for-like ONLY when the older snapshot was scored
+                    # under the same scoring version — otherwise the score
+                    # moved because the method changed, not the signal.
+                    row[lfl] = (hit.get("scoring_version") == scoring_version)
         except Exception as exc:
             print(f"    score {label} backfill skipped: {exc}")
 
