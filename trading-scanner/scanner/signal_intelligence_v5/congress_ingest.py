@@ -59,6 +59,32 @@ def _uw_headers() -> dict[str, str]:
     }
 
 
+def _uw_get(url: str, params: dict[str, Any] | None = None,
+            retries: int = 4) -> requests.Response:
+    """GET a UW endpoint with 429-aware retry.
+
+    UW's per-minute rate-limit window is 60s, so a 429 has to wait the
+    window out — short exponential backoff is not enough. We honour the
+    x-uw-req-per-minute-reset header when UW sends it, else fall back to a
+    45s sleep. Without this, a transient 429 makes the whole ingest bail
+    and silently write nothing.
+    """
+    last: requests.Response | None = None
+    for attempt in range(retries + 1):
+        last = requests.get(url, headers=_uw_headers(), params=params or {},
+                            timeout=20)
+        if last.status_code == 429 and attempt < retries:
+            reset = last.headers.get("x-uw-req-per-minute-reset")
+            try:
+                wait = int(reset) + 5
+            except (TypeError, ValueError):
+                wait = 45
+            time.sleep(wait)
+            continue
+        return last
+    return last  # type: ignore[return-value]
+
+
 def fetch_politician_party_map() -> dict[str, str]:
     """Build a {politician_id: party} map from UW /congress/politicians.
 
@@ -68,8 +94,7 @@ def fetch_politician_party_map() -> dict[str, str]:
     go in with party = None and the daily run picks them up next time.
     """
     try:
-        r = requests.get(f"{UW_BASE}{UW_POLITICIANS_PATH}",
-                         headers=_uw_headers(), timeout=20)
+        r = _uw_get(f"{UW_BASE}{UW_POLITICIANS_PATH}")
         if r.status_code != 200:
             return {}
         data = r.json().get("data") or []
@@ -116,12 +141,10 @@ def fetch_disclosures(days_back: int = 14, max_pages: int = 50,
     ('senate'/'house'), reporter, issuer, notes.
     """
     cutoff = (datetime.utcnow().date() - timedelta(days=days_back)).isoformat()
-    headers = _uw_headers()
     page = 0
     while page < max_pages:
         params = {"limit": limit_per_page, "page": page}
-        r = requests.get(f"{UW_BASE}{UW_PATH}", headers=headers,
-                         params=params, timeout=20)
+        r = _uw_get(f"{UW_BASE}{UW_PATH}", params)
         if r.status_code != 200:
             return
         data = r.json().get("data") or []

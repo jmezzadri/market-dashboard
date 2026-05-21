@@ -43,7 +43,7 @@ jobs:
         working-directory: trading-scanner
         run: |
           pip install --upgrade pip
-          pip install requests supabase tzdata
+          pip install requests tzdata
 
       - name: End-of-day UW meter read
         working-directory: trading-scanner
