@@ -2674,12 +2674,14 @@
     },
     {
       "id": "v10-allocation-daily",
+      "name": "v10_allocation",
       "category": "scenario",
       "description": "v10.1c Asset Tilt allocator output. Reads cycle_board_snapshot.json, applies decision rules (defensive activation at stress >= 4, leverage 1.25x in calm regimes, all 4 hard caps), produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
       "sourcing_mode": "derived from cycle-mechanism-board-daily",
       "cadence": "daily (22:45 UTC weekdays)",
+      "release_calendar": "us-business-day",
       "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
-      "freshness_sla_hours": 30,
+      "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "src/App.jsx home Asset Tilt preview card",
         "src/pages/AssetAllocation.jsx full page"
