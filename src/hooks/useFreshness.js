@@ -49,8 +49,8 @@ import {
 const REFRESH_MS = 60_000;
 
 // Returns the more recent of two ISO date / datetime strings; either may be
-// null. Used so a lagging pipeline_health row can't override the actual
-// `as_of` stamped inside the live data file the page already loaded.
+// null. Lets a genuinely-fresh data file override a lagging pipeline_health
+// row instead of being dragged stale by it.
 function mostRecentIso(a, b) {
   if (!a) return b || null;
   if (!b) return a || null;
@@ -140,30 +140,33 @@ function statusForElement(elementId, fallback) {
     (fallback?.calendar) ||
     "wall-clock";
 
-  // 3. Decide last_good_at. The staleness decision should reflect the most
-  //    recent EVIDENCE that the data is current. pipeline_health.last_good_at
-  //    is the cron-run time; the caller's asOfIso is the actual `as_of`
-  //    stamped inside the live data file the page just loaded. A frozen or
-  //    lagging pipeline_health row must NOT make genuinely-fresh data read
-  //    stale — so take whichever is more recent. (Fix 2026-05-21: the
-  //    v10_allocation health row froze while its data file kept refreshing.)
-  const lastGoodAt = mostRecentIso(phRow?.last_good_at || null, fallback?.asOfIso || null);
+  // 3. Two dates, two different jobs:
+  //    - dataDate = the trading day the value on the page actually
+  //      represents (the `as_of` inside the live data file, passed as
+  //      asOfIso, and/or pipeline_health.data_as_of). THIS is what
+  //      "is it stale?" measures — a cron can run green every night and
+  //      still emit a stale file, so the cron-run time must not drive the
+  //      staleness call.
+  //    - lastGoodAt = the cron-run time. Kept only to detect "this pipeline
+  //      has never produced a successful run".
+  //    Take the most recent signal for each so a frozen pipeline_health row
+  //    cannot drag a genuinely-fresh data file stale. (Fix 2026-05-21.)
+  const dataDate = mostRecentIso(phRow?.data_as_of || null, fallback?.asOfIso || null);
+  const lastGoodAt = phRow?.last_good_at || null;
   const lastError = phRow?.last_error || null;
 
   // 4. Two-state decision.
   // Joe directive 2026-05-03: "I only want to know when something breaks."
-  // Concretely, this means red is reserved for:
-  //   - Upstream pull errored (lastError set)
-  //   - Element is registered (manifest entry OR pipeline_health row) AND
-  //     last_good_at is past SLA on the calendar
-  // An element with NO manifest entry AND NO pipeline_health row AND NO
-  // asOfIso fallback is "freshness tracking not configured yet" — render
-  // green and let the tooltip explain. Surfacing a chip that just says
-  // "no record" trains the user to ignore reds.
+  // Red is reserved for: an upstream pull error, an element that has never
+  // refreshed, or an element whose DATA is past its freshness SLA on the
+  // calendar. An element with NO manifest entry, NO pipeline_health row and
+  // NO date at all is "freshness tracking not configured yet" — render green
+  // and let the tooltip explain, rather than train the user to ignore a chip
+  // that just says "no record".
   let status = "green";
   let reason = null;
 
-  const isUntracked = !manifestEl && !phRow && !lastGoodAt;
+  const isUntracked = !manifestEl && !phRow && !dataDate && !lastGoodAt;
 
   if (isUntracked) {
     status = "green";
@@ -171,11 +174,13 @@ function statusForElement(elementId, fallback) {
   } else if (lastError) {
     status = "red";
     reason = `Upstream error: ${lastError}`;
-  } else if (!lastGoodAt) {
+  } else if (!dataDate && !lastGoodAt) {
     status = "red";
     reason = "No successful refresh on record";
   } else if (slaHours > 0) {
-    if (isStaleAgainstSLA(lastGoodAt, slaHours, calendar)) {
+    // Grade the DATA's as-of date against the SLA. Fall back to the cron-run
+    // time only when no data date is available at all.
+    if (isStaleAgainstSLA(dataDate || lastGoodAt, slaHours, calendar)) {
       status = "red";
       reason = "Past freshness SLA";
     }
@@ -197,11 +202,9 @@ function statusForElement(elementId, fallback) {
     // not lastGoodAt (cron run time). coveragePct and expectedNextRun ride
     // along so tooltips can show "16% of expected universe" and "next
     // refresh at <time>".
-    // dataAsOf is the trading day the value represents. Prefer whichever is
-    // more recent — the tracking row's data_as_of, or the live file's as_of
-    // the caller passed — so the chip never shows a date older than the data
-    // actually rendered on the page.
-    dataAsOf: mostRecentIso(phRow?.data_as_of || null, fallback?.asOfIso || null),
+    // dataAsOf — the trading day the value represents. Prefer the live
+    // file's as_of over a lagging tracking row; fall back to the cron time.
+    dataAsOf: dataDate || lastGoodAt || null,
     coveragePct: phRow?.coverage_pct != null ? Number(phRow.coverage_pct) : null,
     expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
