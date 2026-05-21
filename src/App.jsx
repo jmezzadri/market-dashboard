@@ -5004,15 +5004,17 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
   const CX = 66, CY = 68, R = 55;
   const tipX = CX + R * Math.cos(nrad);
   const tipY = CY - R * Math.sin(nrad);
-  // Joe directive 2026-05-21: bigger dials — fill the tile, no wasted space.
-  // The arc + label/state group is centred so the box reads balanced.
+  // Joe directive 2026-05-21: bigger dials, no wasted space. Vertical layout
+  // — label, a wide arc, then the state — so the arc fills the box width and
+  // the text sits on its own centred line and never wraps.
   return (
     <div style={{
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
-      borderRadius: 8, padding: '16px 20px', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', gap: 20,
+      borderRadius: 8, padding: '14px 16px 16px', display: 'flex',
+      flexDirection: 'column', alignItems: 'center',
     }}>
-      <svg viewBox="0 0 132 80" style={{ width: 116, flexShrink: 0, display: 'block' }}>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</div>
+      <svg viewBox="0 0 132 80" style={{ width: '82%', maxWidth: 178, display: 'block', marginTop: 2 }}>
         <path d="M 11 67 A 55 55 0 0 1 30 27"   fill="rgba(0,113,227,0.18)" />
         <path d="M 30 27 A 55 55 0 0 1 66 13"   fill="rgba(0,113,227,0.42)" />
         <path d="M 66 13 A 55 55 0 0 1 102 27"  fill="rgba(0,113,227,0.68)" />
@@ -5027,10 +5029,7 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
         <circle cx={tipX} cy={tipY} r="4" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.5" />
         <circle cx={CX} cy={CY} r="4" fill="var(--accent)" />
       </svg>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.3, marginBottom: 2 }}>{label}</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 23, fontStyle: 'italic', lineHeight: 1.2, color: 'var(--text)' }}>{valueText}</div>
-      </div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontStyle: 'italic', lineHeight: 1.1, color: 'var(--text)', marginTop: 2, whiteSpace: 'nowrap' }}>{valueText}</div>
     </div>
   );
 }
