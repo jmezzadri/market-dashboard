@@ -150,10 +150,58 @@ def test_universe_gate():
           not bool(last["SPK"]))
 
 
+# ── 7. Insider signal-age decay curve ───────────────────────────────────────
+def test_signal_age_decay():
+    # plateau: full weight through day 15
+    check("decay at age 0 is 1.0 (fresh)", abs(float(E.signal_age_decay(0)) - 1.0) < 1e-12)
+    check("decay at age 15 is 1.0 (end of plateau)",
+          abs(float(E.signal_age_decay(15)) - 1.0) < 1e-12)
+    # linear taper: day 16 -> 15/16, day 23 -> 8/16, day 31 -> 0
+    check("decay at age 16 is 15/16 = 0.9375",
+          abs(float(E.signal_age_decay(16)) - 0.9375) < 1e-12,
+          f"got {float(E.signal_age_decay(16))}")
+    check("decay at age 23 is 0.50 (midpoint of the taper)",
+          abs(float(E.signal_age_decay(23)) - 0.5) < 1e-12,
+          f"got {float(E.signal_age_decay(23))}")
+    check("decay at age 31 is 0.0 (fully decayed)",
+          abs(float(E.signal_age_decay(31)) - 0.0) < 1e-12)
+    check("decay past age 31 stays clamped at 0.0",
+          float(E.signal_age_decay(40)) == 0.0)
+    check("decay of a negative age clamps to 1.0 (full weight)",
+          float(E.signal_age_decay(-3)) == 1.0)
+    # vectorised: a NumPy array in, same-shape array out
+    arr = E.signal_age_decay(np.array([0, 23, 31]))
+    check("decay is vectorised over an array",
+          arr.shape == (3,) and abs(arr[1] - 0.5) < 1e-12)
+    # monotone non-increasing across the whole range
+    grid = E.signal_age_decay(np.arange(0, 45))
+    check("decay never increases as a signal ages",
+          bool(np.all(np.diff(grid) <= 1e-12)))
+
+
+# ── 8. Insider score with age decay ─────────────────────────────────────────
+def test_insider_score_decay():
+    pts = {"A": 4, "B": 4, "C": 3, "cap": 4}
+    all_fire = pd.Series({"rule_a": True, "rule_b": True, "rule_c": True})
+    check("fresh signal (age 0): capped 4 x 1.0 = 4.0",
+          abs(E.insider_score(all_fire, pts, age_days=0) - 4.0) < 1e-12)
+    check("aged signal (age 23): capped 4 x 0.5 = 2.0",
+          abs(E.insider_score(all_fire, pts, age_days=23) - 2.0) < 1e-12,
+          f"got {E.insider_score(all_fire, pts, age_days=23)}")
+    check("fully decayed signal (age 31): capped 4 x 0.0 = 0.0",
+          abs(E.insider_score(all_fire, pts, age_days=31) - 0.0) < 1e-12)
+    check("default age is 0 -> backward-compatible with the age-0 call",
+          abs(E.insider_score(all_fire, pts) - 4.0) < 1e-12)
+    c_only = pd.Series({"rule_a": False, "rule_b": False, "rule_c": True})
+    check("Rule C alone, aged 23d: 3 x 0.5 = 1.5",
+          abs(E.insider_score(c_only, pts, age_days=23) - 1.5) < 1e-12)
+
+
 if __name__ == "__main__":
     print("Phase 2 backtest engine — unit tests\n")
     for t in (test_rsi, test_insider_score, test_trend, test_csuite,
-              test_no_lookahead, test_universe_gate):
+              test_no_lookahead, test_universe_gate,
+              test_signal_age_decay, test_insider_score_decay):
         print(t.__name__)
         t()
     print(f"\n{PASS} passed, {FAIL} failed")

@@ -320,3 +320,14 @@ bespoke:
 #     / SHORT_INTEREST_INGEST_DAILY: referenced in DATA_LINEAGE but not
 #     present in the current worktree's .github/workflows/ — may be folded
 #     into V5_SCAN_DAILY or another orchestrator. Reconcile next review.
+
+  - SCREENER_TRADING_OPPS_DAILY.yml:
+      schedule: "19:00 ET weekdays"
+      manifest_element: screener.trading-opps-signals
+      reason: |
+        Evening compute step for the Trading Opportunities screener. Must
+        run after MASSIVE-DAILY (prices_eod, primary fire 18:00 ET) has
+        settled, so it cannot share the 16:30 ET EOD slot. The producer is
+        idempotent (upsert on scan_date + ticker) and auto-falls-back to the
+        last fully-ingested close, so an early or late fire is a no-op.
+      review_at: 2026-06-20

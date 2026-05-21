@@ -1,0 +1,73 @@
+name: SCREENER_TRADING_OPPS_DAILY
+
+# Phase 3 of the Trading Opportunities overhaul — the nightly screener producer.
+#
+# Runs the Phase 2 backtest-calibrated dual-direction screener (insider + trend
+# layers, with the 15-day-plateau insider age-decay) over the eligible universe
+# for the latest complete close, and appends one dated snapshot row per launched
+# name into public.trading_opps_signals. Append-only — earlier scan_dates are
+# never overwritten, so the page can show a name's score one week / one month
+# ago straight off an older snapshot.
+#
+# Pipeline name: screener-trading-opps-daily
+# Runs downstream of the EOD market-data + dark-pool + options ingests. It is
+# the evening compute step, scheduled 19:00 ET — after MASSIVE-DAILY (the
+# prices_eod ingest, primary fire 18:00 ET) has settled. The producer is
+# idempotent and auto-falls-back to the last fully-ingested close, so an
+# early or late fire is harmless — it simply re-scans the latest complete day.
+#
+# Required GitHub secrets (already configured for the sibling ingests):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY    (table reads + writes)
+
+on:
+  schedule:
+    # 19:00 ET weekdays. 23:00 UTC during EDT, 00:00 UTC (next day) during EST.
+    - cron: '0 23 * * 1-5'
+    - cron: '0 0 * * 2-6'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build + score + log only, do not write (true/false)"
+        required: false
+        default: 'false'
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Run the nightly screener
+        working-directory: trading-scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="--dry-run"
+          fi
+          PYTHONPATH=. python3 -m scanner.trading_opps.run_screener $ARGS
+
+      - name: Surface latest snapshot row count
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/trading_opps_signals?select=ticker&limit=1" \
+                  -I 2>&1 | grep -i content-range || true
