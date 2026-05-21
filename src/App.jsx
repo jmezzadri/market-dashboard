@@ -4989,39 +4989,226 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
 }
 
 
+// HomeMiniDial — a small arc-gauge that mirrors the Stress / Yield dials on
+// the Asset Tilt page (src/pages/AssetAllocation.jsx) but shrunk for the Home
+// tile. Four blue-opacity arc segments, a needle at 180 - pct*100*1.8
+// degrees, two faint threshold-marker dots. Pure presentational — NO hooks,
+// safe to render inline. Scale factor vs the full dial is 0.55x.
+function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
+  // pct is the 0..1 percentile that drives the needle. Clamp defensively so a
+  // bad data value can't sweep the needle off the arc.
+  const p = Math.max(0, Math.min(1, Number(pct) || 0));
+  const needleAngle = 180 - (p * 100 * 1.8);
+  const nrad = needleAngle * Math.PI / 180;
+  // viewBox 0 0 132 80; arc centred at (66,68) radius 55.
+  const CX = 66, CY = 68, R = 55;
+  const tipX = CX + R * Math.cos(nrad);
+  const tipY = CY - R * Math.sin(nrad);
+  // Compact layout — Joe directive 2026-05-21: much smaller dials, text
+  // trimmed. The sector pie below is the focus; the dials are a small
+  // secondary read. A little arc on the left, label + state stacked right.
+  return (
+    <div style={{
+      background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
+      borderRadius: 7, padding: '6px 9px', display: 'flex',
+      alignItems: 'center', gap: 8,
+    }}>
+      <svg viewBox="0 0 132 80" style={{ width: 56, flexShrink: 0, display: 'block' }}>
+        <path d="M 11 67 A 55 55 0 0 1 30 27"   fill="rgba(0,113,227,0.18)" />
+        <path d="M 30 27 A 55 55 0 0 1 66 13"   fill="rgba(0,113,227,0.42)" />
+        <path d="M 66 13 A 55 55 0 0 1 102 27"  fill="rgba(0,113,227,0.68)" />
+        <path d="M 102 27 A 55 55 0 0 1 121 67" fill="rgba(0,113,227,0.92)" />
+        {(markers || []).map((m, i) => {
+          const a = (180 - (m.pctile * 1.8)) * Math.PI / 180;
+          const mx = CX + R * Math.cos(a);
+          const my = CY - R * Math.sin(a);
+          return <circle key={i} cx={mx} cy={my} r="2.6" fill="var(--text)" />;
+        })}
+        <line x1={CX} y1={CY} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round" />
+        <circle cx={tipX} cy={tipY} r="4" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.5" />
+        <circle cx={CX} cy={CY} r="4" fill="var(--accent)" />
+      </svg>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.25 }}>{label}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontStyle: 'italic', lineHeight: 1.2, color: 'var(--text)' }}>{valueText}</div>
+      </div>
+    </div>
+  );
+}
+
 // HomeAssetTiltEngineRead — engine-read tile body inside the Home page's
-// Asset Tilt card (tile #02). Extracted from an inline IIFE on 2026-05-18
-// because the IIFE was calling React.useState and React.useEffect inside
-// App.jsx's render tree, making those hooks belong to App itself. When the
-// user navigated away from Home (tab !== "home"), those hooks were skipped
-// → App.jsx rendered fewer hooks than expected → React error #300, every
-// non-Home route blanked. Moving the hooks into a real component scopes
-// them to the component, so mount/unmount on navigation is fine.
+// Asset Tilt card (tile #02). Two small arc dials side by side, shrunk from
+// the Stress / Yield dials on the Asset Tilt page. Extracted as a real
+// component (not an inline IIFE) on 2026-05-18 because the IIFE was calling
+// React.useState / React.useEffect inside App.jsx's render tree, making those
+// hooks belong to App itself and causing React error #300 on non-Home routes
+// (see LESSONS.md 2026-05-18). Keeping it a real component scopes its hooks
+// to itself, so mount/unmount on navigation is safe.
 function HomeAssetTiltEngineRead() {
   const [eng, setEng] = React.useState(null);
   React.useEffect(() => {
     fetch('/macrotilt_engine.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setEng).catch(() => {});
   }, []);
-  const VIZ = { hot: '#D946C4', cool: '#10B981', watch: '#F59E0B' };
-  const stressState = eng?.stress?.state || null;
-  const yieldRegime = eng?.yield_regime?.state || null;
-  const eqPct = eng?.allocation?.equity_pct != null ? Math.round(eng.allocation.equity_pct) : null;
-  const stressColor = stressState === 'Risk Off' ? VIZ.hot : stressState === 'Watch' ? VIZ.watch : stressState === 'Risk On' ? VIZ.cool : 'var(--text-muted)';
+  const stress = eng?.stress || {};
+  const yieldR = eng?.yield_regime || {};
+  const stressState = stress.state || '—';
+  const yieldState  = yieldR.state || '—';
+  // Stress dial — needle on the 5y move percentile, two threshold dots at the
+  // Watch (75th) and Risk Off (85th) percentile gates.
+  const stressPct = stress.move_percentile_5y;
+  const stressVal = stress.move_value;
+  const stressMeta = stressPct != null
+    ? Math.round(stressPct * 100) + 'th pctile'
+    : 'awaiting data';
+  // Yield dial — needle on the 3-month yield-change percentile, threshold dots
+  // at the Deflationary (30th) and Inflationary (70th) percentile gates.
+  const yieldPct = yieldR.delta_y_3m_percentile_5y;
+  const yieldBp  = yieldR.delta_y_3m_bp;
+  const yieldMeta = yieldPct != null
+    ? Math.round(yieldPct * 100) + 'th pctile'
+    : 'awaiting data';
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)', marginBottom: 14 }}>
-      <div>
-        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Stress</div>
-        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: stressColor, marginTop: 4, lineHeight: 1 }}>{stressState || '—'}</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+      <HomeMiniDial
+        label="Stress signal"
+        sublabel="Bond-mkt vol"
+        pct={stressPct}
+        valueText={stressState}
+        metaText={stressVal != null
+          ? stressVal.toFixed(1) + ' · ' + stressMeta
+          : stressMeta}
+        markers={[{ pctile: 75 }, { pctile: 85 }]}
+      />
+      <HomeMiniDial
+        label="Yield regime"
+        sublabel="3M Δ · 10Y"
+        pct={yieldPct}
+        valueText={yieldState}
+        metaText={yieldBp != null
+          ? (yieldBp >= 0 ? '+' : '') + Math.round(yieldBp) + ' bp · ' + yieldMeta
+          : yieldMeta}
+        markers={[{ pctile: 30 }, { pctile: 70 }]}
+      />
+    </div>
+  );
+}
+
+// HomeSectorPie — sector-allocation pie for the Home page's Asset Tilt card.
+// A real module-level component (NOT an inline IIFE) because it needs hover
+// state for the slice tooltip — and per LESSONS.md 2026-05-18, hooks must
+// never live inside an inline IIFE in App.jsx's render path. Fetches
+// /v10_allocation.json directly so the pie always shows live recommended
+// weights; hardcodes nothing. Hovering a slice shows the sector name, its
+// recommended weight, and the difference versus the S&P 500.
+function HomeSectorPie() {
+  const [alloc, setAlloc] = React.useState(null);
+  const [hover, setHover] = React.useState(null);
+  React.useEffect(() => {
+    fetch('/v10_allocation.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setAlloc).catch(() => {});
+  }, []);
+  const sectors = (alloc && Array.isArray(alloc.sectors)) ? alloc.sectors : [];
+  if (!sectors.length) {
+    return (
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)', padding: '14px 0', textAlign: 'center' }}>
+        Loading allocation…
       </div>
-      <div>
-        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Yield</div>
-        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1 }}>{yieldRegime || '—'}</div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Equity</div>
-        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{eqPct != null ? eqPct + '%' : '—'}</div>
-      </div>
+    );
+  }
+  // Bright categorical palette — same vivid family as the Macro Overview
+  // tile (magenta #d946c4 / emerald #10b981 / amber #f59e0b). Keyed by
+  // sector name so a sector keeps its colour. Joe directive 2026-05-21.
+  const SECTOR_COLOR = {
+    'Information Technology': '#0071e3',
+    'Financials':             '#f59e0b',
+    'Health Care':            '#10b981',
+    'Industrials':            '#ef4444',
+    'Consumer Discretionary': '#8b5cf6',
+    'Consumer Staples':       '#14b8a6',
+    'Communication Services': '#d946c4',
+    'Energy':                 '#f97316',
+    'Utilities':              '#6366f1',
+    'Real Estate':            '#ec4899',
+    'Materials':              '#84cc16',
+  };
+  // Sort largest-weight first.
+  const rows = sectors
+    .map(s => ({
+      name: s.sector || '—',
+      color: SECTOR_COLOR[s.sector] || '#9aa4ad',
+      weight: Number(s.weight) || 0,
+      vsSpyPp: s.vs_spy_pp == null ? null : Number(s.vs_spy_pp),
+    }))
+    .sort((a, b) => b.weight - a.weight);
+  const total = rows.reduce((acc, r) => acc + r.weight, 0) || 1;
+  // A clean true pie — no centre hole, no leader lines. Sector / weight /
+  // vs-S&P-500 surface on hover. Joe directive 2026-05-21.
+  const CX = 110, CY = 110, R = 106;
+  const polar = (deg) => {
+    const a = (deg - 90) * Math.PI / 180;
+    return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
+  };
+  const wedge = (startDeg, endDeg) => {
+    const [x1, y1] = polar(startDeg);
+    const [x2, y2] = polar(endDeg);
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    return ['M', CX, CY, 'L', x1.toFixed(2), y1.toFixed(2),
+            'A', R, R, 0, large, 1, x2.toFixed(2), y2.toFixed(2), 'Z'].join(' ');
+  };
+  let cursor = 0;
+  const slices = rows.map((r, i) => {
+    const sweep = (r.weight / total) * 360;
+    const s = { ...r, i, startDeg: cursor, endDeg: cursor + sweep };
+    cursor += sweep;
+    return s;
+  });
+  const hov = hover != null ? slices[hover] : null;
+  return (
+    <div style={{
+      position: 'relative',
+      background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
+      borderRadius: 8, padding: '14px 16px 16px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)',
+        letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
+        marginBottom: 10, textAlign: 'center',
+      }}>Recommended sector allocation</div>
+      <svg viewBox="0 0 220 220" style={{ width: '66%', maxWidth: 248, display: 'block', margin: '0 auto' }}>
+        {slices.map((s) => (
+          <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
+                fill={s.color} stroke="var(--surface)" strokeWidth="2"
+                style={{
+                  cursor: 'pointer',
+                  opacity: hover == null || hover === s.i ? 1 : 0.4,
+                  transition: 'opacity .12s',
+                }}
+                onMouseEnter={() => setHover(s.i)}
+                onMouseLeave={() => setHover(null)} />
+        ))}
+      </svg>
+      {/* Hover tooltip — sector, recommended weight, difference vs S&P 500. */}
+      {hov && (
+        <div style={{
+          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--text)', color: 'var(--surface)',
+          padding: '7px 12px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.5,
+          fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap', pointerEvents: 'none',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.20)', zIndex: 5, textAlign: 'center',
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 1 }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: hov.color, marginRight: 6, verticalAlign: 'middle' }} />
+            {hov.name}
+          </div>
+          <div style={{ opacity: 0.85 }}>
+            {(hov.weight * 100).toFixed(1)}% weight
+            {hov.vsSpyPp != null && (
+              <> · {(hov.vsSpyPp >= 0 ? '+' : '−') + Math.abs(hov.vsSpyPp).toFixed(1)}% vs S&amp;P 500</>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -6109,34 +6296,7 @@ return(
         </div>
         <p style={tileExplainStyle}>An <span style={tileNameStyle}>Asset Tilt Engine</span> for optimal portfolio allocation — back-tested rigorously.</p>
         <HomeAssetTiltEngineRead />
-        {(() => {
-          if (!v10AllocSnap) {
-            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
-          }
-          // TOP 6 SECTOR ALLOCATIONS by absolute weight — Joe directive
-          // 2026-05-07. Drop the OW/UW vs-SPY framing: IT can be the
-          // single largest position at 22% of capital and still read as
-          // "-5% UW" against the SPY 27% tech weight, which is misleading
-          // on a tile labeled 'Asset Tilt'. Show what we actually own.
-          const sectors = (v10AllocSnap.sectors || []).slice();
-          const top6   = sectors
-            .map(s => ({...s, _w: s.weight ?? 0}))
-            .sort((a,b) => b._w - a._w)
-            .slice(0, 6);
-          while (top6.length < 6) top6.push({sector:"—", weight:null, vs_spy_pp:null, _empty:true});
-          const fmtPct = v => v == null ? "—" : (v * 100).toFixed(1) + "%";
-          const fmtDelta = v => v == null ? "" : (v >= 0 ? "+" : "") + Math.round(v) + "% vs SPY";
-          return (
-            <div style={stGridStyle}>
-              {top6.map((sec, i) => (
-                <div key={"alloc"+i} style={sec._empty ? {...stStyle, cursor:"default", alignItems:"flex-start"} : {...stStyle, alignItems:"flex-start"}}
-                     onClick={()=>{ if (!sec._empty) navTo("allocation"); }}>
-                  <TiltBarMini sectorName={sec.sector} weight={sec.weight} vsSpyPp={sec.vs_spy_pp} />
-                </div>
-              ))}
-            </div>
-          );
-        })()}
+        <HomeSectorPie />
       </div>
 
       {/* 03 · Equity Scanner — top launched names from the rebuilt

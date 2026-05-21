@@ -47,11 +47,24 @@ const HUES = {
 
 function formatLastRefresh(iso) {
   if (!iso) return "never";
-  const t = iso.length === 10 ? `${iso}T00:00:00Z` : iso;
-  const d = new Date(t);
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
   if (Number.isNaN(+d)) return "never";
-  // Plain English with NY-time formatting. Joe is in ET; this is the
-  // user-facing display, not a wire format.
+  // A freshness "as of" is conceptually a calendar DAY, and this system
+  // stores every such value at midnight UTC — whether as a date-only string
+  // ("2026-05-20") or a timestamp ("2026-05-20T00:00:00Z" / "...+00:00").
+  // Render any midnight-UTC value as a plain UTC date with NO timezone
+  // conversion. Converting midnight-UTC into ET rolled the displayed date
+  // back a day ("May 20" data showed as "May 19 8:00 PM ET", which read as
+  // stale to the user). Fix 2026-05-21.
+  const isMidnightUTC =
+    d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0;
+  if (iso.length === 10 || isMidnightUTC) {
+    return d.toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric", timeZone: "UTC",
+    });
+  }
+  // A genuine intraday timestamp — show ET date + time. Joe is in ET; this
+  // is the user-facing display, not a wire format.
   const datePart = d.toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric",
     timeZone: "America/New_York",
