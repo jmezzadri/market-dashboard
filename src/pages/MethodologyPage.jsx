@@ -572,9 +572,13 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         look.
       </Body>
       <Body>
-        The screener is built to produce a sell / short list as well as a buy list. The back-test
-        found no reliable edge on the short side, so only the buy list is published today — the short
-        list turns on automatically if and when the evidence supports it.
+        The screener is built to produce a sell / short list as well as a buy list, but only the
+        buy list is published today — the short side cannot be judged yet. The one piece testable
+        so far, a trend-only short score, showed no edge in the back-test; but that window was
+        entirely a bull market, where shorting loses by default. The real short signal — insiders
+        selling their own stock — produced zero qualifying events in the test window, so it is
+        genuinely untested. The short list turns on once the insider-sell, dark-pool and options
+        layers have enough history of their own to be back-tested honestly.
       </Body>
     </>
   ),
@@ -643,15 +647,15 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The insider layer</h4>
       <Body>
         The insider layer rewards three patterns of open-market buying by a company's own officers
-        and directors, over a rolling 30-day window. Routine pre-scheduled trades and trades by
+        and directors, over a rolling 30-day window. The three rules below — A, B and C — are the rule tags shown in the Insider Activity column on the Trading Opportunities table. Routine pre-scheduled trades and trades by
         10%-plus shareholders are excluded — only conviction buying counts.
       </Body>
       <DocsTable
-        cols={["Insider pattern", "What earns the points", { label: "Points", numeric: true }]}
+        cols={["Rule", "Pattern", "What earns the points", { label: "Points", numeric: true }]}
         rows={[
-          [<strong>Conviction buy</strong>, "A CEO or CFO buying on the open market, in a trade that lifts their personal stake by at least 10% and is worth at least $100,000.", <strong>4</strong>],
-          [<strong>Size</strong>,           "All insider buying in the window, added up, comes to at least 0.05% of the company's market value.", <strong>4</strong>],
-          [<strong>Consensus</strong>,      "At least three different insiders buying within the same window.", <strong>2</strong>],
+          [<strong>Rule A</strong>, "Conviction buy", "A CEO or CFO buying on the open market, in a trade that lifts their personal stake by at least 10% and is worth at least $100,000.", <strong>4</strong>],
+          [<strong>Rule B</strong>, "Size", "All insider buying in the window, added up, comes to at least 0.05% of the company's market value.", <strong>4</strong>],
+          [<strong>Rule C</strong>, "Consensus", "At least three different insiders buying within the same window.", <strong>2</strong>],
         ]}
       />
       <Body>
@@ -707,9 +711,12 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         ]}
       />
       <Body>
-        The short side is held back: the back-test found no reliable edge on the sell / short list,
-        so only the buy list publishes today. The short list turns on automatically if and when the
-        evidence supports it.
+        The short side is held back. The only part of it testable in this window — a trend-only
+        short score — showed no edge, but the test ran entirely in a bull market, where shorting
+        loses by default; and the real short signal, insider selling, produced zero qualifying
+        events, so it could not be tested at all. Only the buy list publishes today; the short
+        list turns on once the insider-sell, dark-pool and options layers have enough history to
+        be back-tested.
       </Body>
     </>
   ),
