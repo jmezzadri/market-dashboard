@@ -171,10 +171,15 @@ def pull_from_supabase():
     print("    pulling insider_history ...")
     irows, cur_id = [], None
     while True:
+        # shares_owned_before / shares_owned_after are real typed columns as of
+        # migration 057. They were previously dug out of the `raw` JSONB blob
+        # (raw->>shares_owned_before), which silently returned null if the
+        # vendor blob's shape ever changed — reading the columns makes the
+        # dependency explicit and a missing field loud instead of silent.
         sel = ("insider_history?select=id,ticker,filing_date,transaction_date,"
                "transaction_code,amount,stock_price,officer_title,is_officer,"
                "is_director,is_ten_percent_owner,is_10b5_1,marketcap,sector,"
-               "owner_name,sob:raw->>shares_owned_before,soa:raw->>shares_owned_after"
+               "owner_name,shares_owned_before,shares_owned_after"
                f"&transaction_code=in.(P,S)&order=id.asc&limit={PAGE}")
         if cur_id is not None:
             sel += f"&id=gt.{cur_id}"
@@ -184,8 +189,6 @@ def pull_from_supabase():
             break
         cur_id = page[-1]["id"]
     ins = pd.DataFrame(irows)
-    ins = ins.rename(columns={"sob": "shares_owned_before",
-                              "soa": "shares_owned_after"})
     px["trade_date"] = pd.to_datetime(px["trade_date"])
     for c in ("open", "high", "low", "close", "volume"):
         px[c] = pd.to_numeric(px[c], errors="coerce")

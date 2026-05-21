@@ -97,6 +97,18 @@ def _supa_headers() -> dict[str, str]:
     }
 
 
+def _int_or_none(v: Any) -> int | None:
+    """Coerce a vendor share-count field to int, or None if absent / blank /
+    non-numeric. Tolerates ints, floats, and numeric strings ('11051',
+    '11051.0') so a vendor formatting change can't crash the ingest."""
+    if v is None or v == "":
+        return None
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return None
+
+
 def _row_to_insert(ev: dict[str, Any]) -> dict[str, Any] | None:
     """Map UW event dict → insider_history row dict, or None if invalid."""
     eid = ev.get("id")
@@ -122,6 +134,11 @@ def _row_to_insert(ev: dict[str, Any]) -> dict[str, Any] | None:
         "formtype": ev.get("formtype") or None,
         "marketcap": int(ev.get("marketcap") or 0) if ev.get("marketcap") is not None else None,
         "sector": ev.get("sector") or None,
+        # Promoted to typed columns (migration 057): the screener's insider
+        # Rule A reads the insider's stake before/after a trade to detect a
+        # buy that lifts their personal stake >=10%. Kept inside `raw` too.
+        "shares_owned_before": _int_or_none(ev.get("shares_owned_before")),
+        "shares_owned_after": _int_or_none(ev.get("shares_owned_after")),
         "raw": ev,  # JSONB — preserve full event for future enhancements
     }
 
