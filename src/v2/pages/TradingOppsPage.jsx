@@ -43,7 +43,7 @@ export const COLS = [
   { k: "win",     grp: "Stock", lbl: "Win Rate", numeric: true,
     tip: "Empirical success probability of this setup, measured in the backtest." },
   { k: "insider", grp: "Stock", lbl: "Insider Activity", numeric: true, drv: true,
-    tip: "[SCORING INPUT] C-suite open-market buying. Drives up to 4 points; decays with signal age." },
+    tip: "[SCORING INPUT] Open-market buying by a company's own officers and directors. The letter tags are the rules that fired — A: a CEO or CFO conviction buy; B: combined insider buying that is large relative to company size; C: three or more insiders buying in the window. The number is the signal's age in days — full weight for the first 15 days, then fading to zero by day 31. Drives up to 4 points." },
   { k: "dp",      grp: "Stock", lbl: "Dark Pool Anchor", numeric: false, drv: true,
     tip: "[SCORING INPUT] Dark Pool price-clustering zone. Drives up to 2 points. Shadow mode — 0 points until backtested." },
   { k: "chart",   grp: "Stock", lbl: "Chart", numeric: false, sortable: false,
