@@ -5004,16 +5004,15 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
   const CX = 66, CY = 68, R = 55;
   const tipX = CX + R * Math.cos(nrad);
   const tipY = CY - R * Math.sin(nrad);
-  // Compact layout — Joe directive 2026-05-21: much smaller dials, text
-  // trimmed. The sector pie below is the focus; the dials are a small
-  // secondary read. A little arc on the left, label + state stacked right.
+  // Joe directive 2026-05-21: bigger dials — fill the tile, no wasted space.
+  // The arc + label/state group is centred so the box reads balanced.
   return (
     <div style={{
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
-      borderRadius: 7, padding: '6px 9px', display: 'flex',
-      alignItems: 'center', gap: 8,
+      borderRadius: 8, padding: '16px 20px', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', gap: 20,
     }}>
-      <svg viewBox="0 0 132 80" style={{ width: 56, flexShrink: 0, display: 'block' }}>
+      <svg viewBox="0 0 132 80" style={{ width: 116, flexShrink: 0, display: 'block' }}>
         <path d="M 11 67 A 55 55 0 0 1 30 27"   fill="rgba(0,113,227,0.18)" />
         <path d="M 30 27 A 55 55 0 0 1 66 13"   fill="rgba(0,113,227,0.42)" />
         <path d="M 66 13 A 55 55 0 0 1 102 27"  fill="rgba(0,113,227,0.68)" />
@@ -5029,8 +5028,8 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
         <circle cx={CX} cy={CY} r="4" fill="var(--accent)" />
       </svg>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.25 }}>{label}</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontStyle: 'italic', lineHeight: 1.2, color: 'var(--text)' }}>{valueText}</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.3, marginBottom: 2 }}>{label}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 23, fontStyle: 'italic', lineHeight: 1.2, color: 'var(--text)' }}>{valueText}</div>
       </div>
     </div>
   );
