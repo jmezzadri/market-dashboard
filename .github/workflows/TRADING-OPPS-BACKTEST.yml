@@ -1,0 +1,101 @@
+name: TRADING-OPPS-BACKTEST
+
+# Runs the Trading Opportunities backtest / calibration engine
+# (trading-scanner/scanner/trading_opps/backtest_engine.py) over the full
+# production price + insider history, then commits the regenerated
+# calibrated_config.json + backtest_results.json next to the engine.
+#
+# This is the screener's re-calibration tool. Per the overhaul plan the
+# screener is re-calibrated quarterly and immediately whenever a market
+# correction enters the data — workflow_dispatch + the quarterly cron below
+# cover that. The branch-scoped push trigger is what runs it once now, on the
+# Phase 3 branch, to confirm the insider age-decay curve; it is removed before
+# this workflow merges to the live site.
+#
+# The backtest pulls ~1.3M price rows + full insider history from Supabase and
+# runs for several minutes, so it cannot run in a short-lived shell — only here,
+# where there is no time cap.
+#
+# Required GitHub secrets (already configured for SCREENER_TRADING_OPPS_DAILY):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Quarterly: 11:00 UTC on the first of Jan/Apr/Jul/Oct — the standing
+    # re-calibration cadence from the overhaul plan (Part 7, item D1).
+    - cron: '0 11 1 1,4,7,10 *'
+  push:
+    branches:
+      - feature/dev-trading-opps-phase3
+    paths:
+      - '.github/workflows/TRADING-OPPS-BACKTEST.yml'
+      - 'trading-scanner/scanner/trading_opps/backtest_engine.py'
+
+concurrency:
+  group: trading-opps-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Unit tests — no-lookahead structural checks (gates the run)
+        working-directory: trading-scanner/scanner/trading_opps
+        run: python3 test_backtest_engine.py
+
+      - name: Run the full backtest (fresh Supabase pull)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 trading-scanner/scanner/trading_opps/backtest_engine.py --pull
+
+      - name: Commit regenerated calibration + results
+        run: |
+          git add trading-scanner/scanner/trading_opps/calibrated_config.json \
+                  trading-scanner/scanner/trading_opps/backtest_results.json
+          if git diff --cached --quiet; then
+            echo "No changes in the two JSON artifacts — skipping commit."
+            exit 0
+          fi
+          AS_OF=$(date -u +%Y-%m-%d)
+          git commit -m "TRADING-OPPS-BACKTEST refresh — ${AS_OF} [skip ci]
+
+          Regenerated calibrated_config.json + backtest_results.json by
+          .github/workflows/TRADING-OPPS-BACKTEST.yml"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Upload backtest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-opps-backtest-${{ github.run_id }}
+          path: |
+            trading-scanner/scanner/trading_opps/calibrated_config.json
+            trading-scanner/scanner/trading_opps/backtest_results.json
+            trading-scanner/scanner/trading_opps/TRADING_OPPS_PHASE2_BACKTEST_REPORT_2026-05-20.md
+          retention-days: 90
+          if-no-files-found: warn

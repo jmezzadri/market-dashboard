@@ -1023,6 +1023,25 @@
         "indicator.indicator-history-fred-yahoo (MOVE series, spliced 2002-11-12+)",
         "FRED DGS10 (10-year Treasury constant maturity, pulled live)"
       ]
+    },
+    "screener.trading-opps-signals": {
+      "category": "equity",
+      "element": "Trading Opportunities screener results (nightly)",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "MacroTilt (computed from prices_eod + insider_history)",
+      "license_tier": "internal",
+      "cadence": "daily",
+      "refresh_trigger": "github-actions: SCREENER_TRADING_OPPS_DAILY.yml",
+      "schedule_et": "19:00 ET weekdays",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "Trading Opportunities -> results table",
+        "Trading Opportunities -> Today's Scan Results hero tile"
+      ],
+      "target_storage": "Supabase: trading_opps_signals",
+      "failure_mode": "Trading Opportunities table holds the last good dated snapshot; freshness chip goes amber then red.",
+      "owner": "Data Steward",
+      "notes": "Phase 2 dual-direction screener. Runs the backtest-calibrated engine (insider + trend layers, with the 15-day-plateau insider age-decay) over the eligible universe and appends one dated snapshot per launched name. Append-only: earlier scan_dates are never overwritten."
     }
   }
 }
