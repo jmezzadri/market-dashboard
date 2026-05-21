@@ -557,10 +557,10 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
   // congress / technicals / analyst / short interest, MacroTilt Score
   // -100..+100, five bands, signal_intel_v5_daily) is gone. This section now
   // describes the current screener: two plain gates ($5 price + $1.5M median
-  // daily dollar-volume), two live scoring layers (insider + trend), two
-  // shadow layers (dark pool + options) contributing 0 points until
-  // back-tested, score out of 5 rising to 10, names launch at a combined
-  // score of 3. Ported from src/v2/components/MethodologyBody.jsx.
+  // daily dollar-volume) and four live scoring layers (insider + trend +
+  // dark pool + options). Dark-pool and options activated 2026-05-21 (score
+  // ceiling 5 -> 10); their point values are not yet backtested. Names launch
+  // at an insider+trend score of 3. Ported from MethodologyBody.jsx.
   // ============================================================
   "ops-why": (
     <>
@@ -591,17 +591,19 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         layer-by-layer score, the price chart, and the insider filings behind it.
       </Body>
       <Body>
-        A name <strong>launches</strong> onto the buy list when its combined score reaches{" "}
-        <strong>3</strong>. Today the score tops out at <strong>5</strong>, because only two of the
-        four scoring layers are live; it rises to 10 once the two shadow layers switch on (see
-        "Models &amp; calcs" below). The score itself does all the work of ranking — there is no
+        A name <strong>launches</strong> onto the buy list when its insider-and-trend score
+        reaches <strong>3</strong>. The score itself runs out of <strong>10</strong> — all four
+        scoring layers (insider, trend, dark pool, options) are live. The dark-pool and options
+        layers add conviction on top of the launch decision but never add or drop a name from the
+        list (see "Models &amp; calcs" below). The score does all the work of ranking — there is no
         separate macro or sector overlay applied on this page.
       </Body>
       <Callout>
-        <strong>Honest status today.</strong> The screener was calibrated on a single twelve-month
-        window — and a mostly-rising one. That is enough history to launch it on, but it is not a
-        multi-cycle proof: it has not yet been tested through a real downturn, and the stop and
-        profit-target distances are still provisional pending the dark-pool layer. The calibration is
+        <strong>Honest status today.</strong> The insider screener was calibrated on a single
+        twelve-month window — and a mostly-rising one. That is enough history to launch it on, but it
+        is not a multi-cycle proof: it has not yet been tested through a real downturn. The dark-pool
+        and options layers went live on 21 May 2026 without a back-test of their own, by owner
+        decision — there is not yet enough of their history to test honestly. The calibration is
         re-checked every quarter, and immediately if a market correction enters the data. Treat the
         win rate as a reasonable expectation, not a promise.
       </Callout>
@@ -623,8 +625,8 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         rows={[
           ["EOD prices + volume", "Polygon Massive",             "Daily close and volume for every US-listed name — feeds the $5 price gate and the $1.5M 90-day median dollar-volume gate, and the 200-day moving average and 14-day RSI used by the trend layer."],
           ["Insider buys",        "Unusual Whales (SEC Form 4)", "Open-market purchases by company officers and directors. Routine pre-scheduled trades and trades by 10%-plus shareholders are excluded — only conviction buying counts."],
-          ["Dark-pool prints",    "Unusual Whales",              "Large off-exchange block trades. Collected every night but scored at zero points until the layer has enough of its own history to be back-tested honestly (shadow mode)."],
-          ["End-of-day options",  "Unusual Whales",              "End-of-day options activity. Collected every night but scored at zero points until back-tested (shadow mode)."],
+          ["Dark-pool prints",    "Unusual Whales",              "Large off-exchange block trades. The dark-pool layer reads the last two trading days of these prints for an institutional clustering band. Live since 2026-05-21; point values not yet backtested."],
+          ["End-of-day options",  "Unusual Whales",              "Per-contract end-of-day options activity. The options layer reads it for fresh, aggressively-bought call volume. Live since 2026-05-21; point values not yet backtested."],
         ]}
       />
     </>
@@ -633,15 +635,14 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
     <>
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 0 }}>How a name earns its score</h4>
       <Body>
-        Each name is scored on two <strong>live</strong> layers of evidence. The{" "}
+        Each name is scored on <strong>four</strong> layers of evidence. The{" "}
         <strong>insider layer</strong> is the anchor — corporate insiders buying their own company's
         stock is, by a wide margin, the strongest predictor in our own testing. The{" "}
         <strong>trend layer</strong> is a guardrail that keeps the screener from chasing a falling or
-        badly overheated stock. Two further layers — large off-exchange block trades ("dark pool")
-        and end-of-day options activity — are built and collecting data every night, but they sit in{" "}
-        <strong>shadow mode</strong> and contribute <strong>zero points</strong> until they have
-        enough of their own history to be tested honestly. Because of that, today's score tops out at{" "}
-        <strong>5</strong>; it rises to 10 once those two layers switch on.
+        badly overheated stock. The <strong>dark-pool layer</strong> reads large off-exchange block
+        trades for the price level big institutions recently transacted around, and the{" "}
+        <strong>options layer</strong> reads fresh, aggressively-bought call activity. All four are
+        live, and the score runs from 0 to <strong>10</strong>.
       </Body>
 
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The insider layer</h4>
@@ -685,21 +686,42 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         <strong>3</strong>.
       </Body>
 
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Shadow layers</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The dark-pool layer</h4>
       <Body>
-        Two further layers — large off-exchange block trades ("dark pool") and end-of-day options
-        activity — are fully built and collect data every night, but contribute{" "}
-        <strong>zero points</strong> to the score today. They stay in shadow mode until each has
-        enough of its own history to be back-tested honestly. When they switch on, the score ceiling
-        rises from 5 to 10.
+        The dark-pool layer looks at the last two trading days of large off-exchange block trades.
+        Where that block volume piles up inside a narrow price band, that band is an institutional
+        anchor — a price level big money cared about. If the stock now trades above the band, the
+        band sits beneath the price as a support floor: <strong>2 points</strong>. If there is no
+        tight band but one standout large block printed below the price, that lone block is a weaker
+        anchor: <strong>1 point</strong>. The layer is capped at 2 points, and the anchor price it
+        finds also sets the entry, stop and target levels.
       </Body>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The options layer</h4>
+      <Body>
+        The options layer looks at medium-dated call contracts — 14 to 45 days to expiry — that are
+        moderately out-of-the-money. It rewards a contract showing two things at once: fresh
+        positioning (today's volume is large versus the open interest already on the contract) and
+        aggressive execution (at least 65% of that volume printed at the ask — the buyer paid up).
+        Volume of three times the open interest or more earns <strong>4 points</strong>; one to three
+        times earns <strong>3 points</strong>. The layer is capped at 4 points.
+      </Body>
+      <Callout>
+        <strong>Not yet backtested.</strong> The dark-pool and options point values above come from
+        the screener specification and have been sanity-checked by the Senior Quant — but, unlike the
+        insider and trend layers, they have not been through a back-test. There is not yet enough of
+        their own history. They were switched on by owner decision so the screener can begin using
+        them; treat them as developing signals, and expect their point values to be revisited once a
+        back-test is possible.
+      </Callout>
 
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>What the back-test showed</h4>
       <Body>
-        Every point value and the launch threshold above were set by a back-test, not by guesswork —
-        the same standing rule that retired the previous screener. Across the twelve months of
-        insider history available, the <strong>88 names</strong> the screener launched, measured one
-        month (21 trading days) later:
+        The insider point values, the trend adjustments and the launch threshold were set by a
+        back-test, not by guesswork — the same standing rule that retired the previous screener. (The
+        dark-pool and options point values were not — see the note above.) Across the twelve months
+        of insider history available, the <strong>88 names</strong> the screener launched, measured
+        one month (21 trading days) later:
       </Body>
       <DocsTable
         cols={["Measure", { label: "Result", numeric: true }, "In plain terms"]}
