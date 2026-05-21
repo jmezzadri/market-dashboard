@@ -26,7 +26,7 @@ import { useSortableTable, SortArrow } from "../../hooks/useSortableTable";
 // that get a shaded background wherever they sit.
 // ─────────────────────────────────────────────────────────────────────────
 
-const COLS = [
+export const COLS = [
   // ── Stock ──────────────────────────────────────────────────────────────
   { k: "last",    grp: "Stock", lbl: "Last Trade", numeric: false,
     tip: "[INFO] The most recent timestamp the stock executed a trade." },
@@ -102,9 +102,9 @@ const COLS = [
     tip: "[INFO] The next upcoming earnings date." },
 ];
 
-const GROUPS = ["Stock", "Options", "Statistics", "Technicals", "Info"];
-const COL_KEYS = COLS.map((c) => c.k);
-const COL_BY_KEY = Object.fromEntries(COLS.map((c) => [c.k, c]));
+export const GROUPS = ["Stock", "Options", "Statistics", "Technicals", "Info"];
+export const COL_KEYS = COLS.map((c) => c.k);
+export const COL_BY_KEY = Object.fromEntries(COLS.map((c) => [c.k, c]));
 
 // localStorage key — internal, carries a private version tag (no version
 // string ever reaches user-facing copy).
@@ -116,10 +116,10 @@ const STORAGE_KEY = "mt-tradingopps-cols-v1";
 // Order is only ever rearranged WITHIN a group (the customizer enforces it).
 // ─────────────────────────────────────────────────────────────────────────
 
-function loadColState() {
+export function loadColState(storageKey = STORAGE_KEY) {
   let saved = null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) saved = JSON.parse(raw);
   } catch (e) { /* ignore — private mode / corrupt value */ }
 
@@ -143,8 +143,8 @@ function loadColState() {
   return { order: repaired, hidden };
 }
 
-function saveColState(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+export function saveColState(state, storageKey = STORAGE_KEY) {
+  try { localStorage.setItem(storageKey, JSON.stringify(state)); }
   catch (e) { /* ignore */ }
 }
 
@@ -445,7 +445,7 @@ function ScanTile({ scanDate, universeScanned, gateCleared, activeAlerts, band5,
 // WITHIN each group. Persisted to localStorage by the parent.
 // ─────────────────────────────────────────────────────────────────────────
 
-function ColumnCustomizer({ order, hidden, onChange, onClose }) {
+export function ColumnCustomizer({ order, hidden, onChange, onClose }) {
   const panelRef = useRef(null);
   const [dragKey, setDragKey] = useState(null);
 
@@ -865,7 +865,7 @@ function sortValue(c, r) {
 // at component scope (never inside an IIFE).
 // ─────────────────────────────────────────────────────────────────────────
 
-function ResultsTable({ rows, order, hidden, onRowClick }) {
+export function ResultsTable({ rows, order, hidden, onRowClick, extraCol }) {
   // Visible columns, in saved order.
   const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
   const visibleCols = useMemo(
@@ -909,6 +909,7 @@ function ResultsTable({ rows, order, hidden, onRowClick }) {
             {groupSpans.map((s) => (
               <th key={s.group} colSpan={s.count}>{s.group}</th>
             ))}
+            {extraCol && <th key="_x" aria-hidden="true" />}
           </tr>
           <tr className="to-col-row">
             {visibleCols.map((c) => {
@@ -932,6 +933,7 @@ function ResultsTable({ rows, order, hidden, onRowClick }) {
                 </th>
               );
             })}
+            {extraCol && <th key="_x" aria-hidden="true" />}
           </tr>
         </thead>
         <tbody>
@@ -946,6 +948,11 @@ function ResultsTable({ rows, order, hidden, onRowClick }) {
                   {renderCell(c, r)}
                 </td>
               ))}
+              {extraCol && (
+                <td key="_x" onClick={(e) => e.stopPropagation()}>
+                  {extraCol.render(r)}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -960,7 +967,7 @@ function ResultsTable({ rows, order, hidden, onRowClick }) {
 // the light :root and the dark blocks of theme.css.
 // ─────────────────────────────────────────────────────────────────────────
 
-const PAGE_CSS = `
+export const PAGE_CSS = `
 .to-shell { max-width: 1500px; margin: 0 auto; padding: 0 32px; }
 
 /* ── Today's Scan Results tile (hero right slot) ── */
