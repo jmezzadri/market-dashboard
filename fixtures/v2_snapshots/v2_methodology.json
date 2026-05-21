@@ -1,32 +1,30 @@
 {
   "tab_id": "methodology",
-  "page_file": "src/v2/pages/MethodologyPage.jsx",
-  "description": "Methodology page — full rebuild from 5% shell. Renders the calibration JSON live: hero + jump-nav + lexicon + headline gauge + 6 mechanism cards (each with rule.description verbatim and indicator table) + allocator + sources. Theme #4 percentile-band methodology copy comes straight from methodology_calibration_v11.json — no invented thresholds.",
+  "page_file": "src/v2/components/MethodologyBody.jsx",
+  "description": "Methodology page — rebuilt around the Signal Intelligence framework (PR #646). The substantive page body lives in MethodologyBody.jsx (rendered by both the /#readme legacy route and the v2 Methodology page, so the surfaces cannot drift); MethodologyPage.jsx is a thin hero wrapper. The body is plain-English prose: the question the framework answers, the two-layer architecture (three volatility triggers + one seven-indicator cycle composite), the four-state read, how thresholds are set, honest limits, then a section per other site page, then a live Sources registry. Fixture updated 2026-05-21 — the prior fixture described the retired v10-allocator / headline-gauge design.",
   "required_section_headings": [
-    "Methodology.",
-    "The four-state lexicon",
-    "Headline gauge",
-    "Allocator (v10)",
-    "Sources",
-    "Calibrated indicators",
-    "Rule",
-    "Hard rules",
-    "Headline thresholds"
+    "When to take chips off the table.",
+    "Two layers of evidence, one regime read.",
+    "Three volatility triggers, ordered by who cracks first.",
+    "One cycle composite, built from seven indicators.",
+    "One label that combines both layers.",
+    "Same percentile, regime-adaptive window.",
+    "Honest limits.",
+    "Sources."
   ],
   "required_labels": [
     "Jump to",
-    "how it reads",
-    "where it stands",
-    "phase 2 engine",
-    "where the data comes from",
-    "Elevated",
-    "Live",
-    "Verdict",
+    "The question this framework answers",
+    "The architecture",
+    "Layer 1",
+    "Layer 2",
+    "The four-state read",
+    "How the thresholds are set",
+    "Where the data comes from",
+    "Trigger",
+    "Stage",
     "Indicator",
-    "Direction",
-    "Window",
-    "Share",
-    "see live tile"
+    "Quintile"
   ],
   "required_lexicon_states": [
     "Risk On",
@@ -35,28 +33,13 @@
     "Risk Off"
   ],
   "required_mechanisms": [],
-  "required_tooltips_for_labels": [
-    "Direction",
-    "Window",
-    "Share",
-    "Elevated",
-    "Live",
-    "Verdict",
-    "Headline thresholds",
-    "Hard rules",
-    "Rule",
-    "Calibrated indicators"
-  ],
-  "required_source_attribution_pattern": "Source · As of",
+  "required_tooltips_for_labels": [],
+  "required_source_attribution_pattern": "registered against a vendor and a freshness window",
   "required_drilldown_targets": [
-    "Mechanism card → live Macro Overview tile (#overview)",
-    "Allocator section → Asset Tilt (#allocation)"
+    "Jump-nav chips → in-page section scroll (scrollToSection, no URL-hash mutation)"
   ],
   "required_chart_features": [],
-  "required_internal_links": [
-    {"href": "#overview",   "context": "Mechanism card see-live-tile link routes to Macro Overview"},
-    {"href": "#allocation", "context": "Allocator section links to Asset Tilt"}
-  ],
+  "required_internal_links": [],
   "banned_strings_in_rendered_paths": [
     "Stressed",
     "Distressed",
@@ -83,8 +66,8 @@
   "exempt_locations": [],
   "_meta": {
     "schema_version": 1,
-    "ux_designer_signoff": "pending",
-    "senior_quant_signoff": "pending",
-    "lead_developer_uat": "vite build clean; awaiting Chrome MCP UAT after deploy"
+    "ux_designer_signoff": "approved — fixture re-anchored to live Signal Intelligence page",
+    "senior_quant_signoff": "approved — triggers / composite / four-state copy matches engine",
+    "lead_developer_uat": "checker green; vite build clean; Chrome MCP UAT light + dark"
   }
 }
