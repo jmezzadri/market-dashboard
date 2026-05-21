@@ -605,8 +605,13 @@ function renderCell(c, r) {
     }
 
     case "dp": {
-      // Dark Pool Anchor — render "shadow" in muted italic when status is
-      // 'shadow' (the only state until backtested); otherwise show the price.
+      // Dark Pool Anchor — a genuine screener output. A watchlist name the
+      // screener never launched (_unscored) has no dark-pool evaluation at
+      // all, so it dashes — distinct from a launched name whose dark-pool
+      // layer is in shadow mode pending backtest.
+      if (r._unscored) return dashSpan();
+      // Render "shadow" in muted italic when status is 'shadow' (the only
+      // state until backtested); otherwise show the price.
       if (r.dark_pool_status === "shadow" || r.dark_pool_anchor == null) {
         return <span className="to-shadow-cell">shadow</span>;
       }
@@ -671,7 +676,9 @@ function renderCell(c, r) {
       return <span>{fmtMcap(r.market_cap)}</span>;
 
     case "opts": {
-      // Options Vol Shock — same shadow treatment as Dark Pool.
+      // Options Vol Shock — a genuine screener output; same treatment as
+      // Dark Pool. An unscored watchlist name dashes (never evaluated).
+      if (r._unscored) return dashSpan();
       if (r.options_shock_status === "shadow" || r.options_vol_shock == null) {
         return <span className="to-shadow-cell">shadow</span>;
       }

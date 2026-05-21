@@ -9,9 +9,16 @@
 // to the user's watchlist names, with one slim remove control pinned at
 // the end of each row so the list stays manageable.
 //
-// A watchlist name the screener has not launched in the latest scan shows
-// the ticker with em-dashes across every screener column — correct, since
-// the screener flags names rather than scoring the whole universe.
+// A watchlist name the screener launched in the latest scan renders its
+// real screener row. A name the screener has NOT launched is hydrated from
+// the same market-data sources the producer reads (end-of-day prices,
+// ticker reference, the universe snapshot) so it shows full general market
+// data — price, change, volume, company name, sector, market cap, the
+// 52-week range, moving averages, the realized-vol statistics, RSI, percent
+// versus the 200-day line and the options-sentiment context. Only the eight
+// genuine screener-output columns (Score, Signal, Score 1W / 1M, Win Rate,
+// Insider Activity, Dark Pool Anchor, Options Vol Shock) stay blank for an
+// unscored name — those belong to the screener and cannot be invented.
 //
 // The component keeps the same name and props it had before, so the two
 // existing call sites in App.jsx need no change. Props beyond the ones
@@ -22,6 +29,7 @@
 
 import { useMemo, useState } from "react";
 import useTradingOppsBatch from "../hooks/useTradingOppsBatch";
+import useWatchlistRowHydration from "../hooks/useWatchlistRowHydration";
 import {
   loadColState,
   saveColState,
@@ -62,13 +70,24 @@ export default function WatchlistTable({
   );
 
   const { byTicker, loading } = useTradingOppsBatch(tickers);
+  const { byTicker: hydrated, loading: hydrating } = useWatchlistRowHydration(tickers);
 
-  // One row per watchlist ticker: the screener's full row when the name
-  // launched in the latest scan, otherwise a bare { ticker } row so the
-  // table renders the ticker with em-dashes across the screener columns.
+  // One row per watchlist ticker. A name the screener launched uses its
+  // real screener row as-is. Every other name uses a row hydrated from the
+  // market-data sources (price history, ticker reference, universe
+  // snapshot); it carries the informational columns and is marked
+  // `_unscored` so the shared renderer dashes the eight screener-output
+  // columns. A name with no market data anywhere still falls back to a bare
+  // row so the ticker itself always renders.
   const tableRows = useMemo(
-    () => tickers.map((t) => (byTicker[t] ? { ...byTicker[t], ticker: t } : { ticker: t })),
-    [tickers, byTicker]
+    () =>
+      tickers.map((t) => {
+        if (byTicker[t]) return { ...byTicker[t], ticker: t };
+        const h = hydrated[t];
+        if (h) return { ...h, ticker: t, _unscored: true };
+        return { ticker: t, _unscored: true };
+      }),
+    [tickers, byTicker, hydrated]
   );
 
   const [colState, setColState] = useState(() => loadColState(WATCHLIST_COL_STORAGE));
@@ -132,7 +151,7 @@ export default function WatchlistTable({
         Anchor, Options Vol Shock, SMA200, RSI.
       </div>
 
-      {loading && tableRows.length === 0 ? (
+      {(loading || hydrating) && tableRows.length === 0 ? (
         <div className="to-state" style={{ color: "var(--text-muted)" }}>
           Loading watchlist&hellip;
         </div>

@@ -23,6 +23,7 @@
         "Trading Opportunities \u2192 scanner table \u2192 Last close, day % change, 52w high/low",
         "Portfolio Insights \u2192 position rows (equity marks)",
         "Portfolio Insights \u2192 'Prices as of {date}' chip",
+        "Portfolio Insights \u2192 watchlist table \u2192 price-derived columns for unscored names (price, change, volume, 52w range, EMA/SMA, realized-vol stats, RSI, % vs 200-day)",
         "Asset Tilt \u2192 sector performance (via sector-perf compute)"
       ],
       "target_storage": "Supabase: prices_eod",
@@ -42,7 +43,8 @@
       "consumer_surfaces": [
         "Trading Opportunities \u2192 Ticker + Full name column",
         "Trading Opportunities \u2192 Sector / Industry Group column",
-        "Trading Opportunities \u2192 funnel counts (All US-listed)"
+        "Trading Opportunities \u2192 funnel counts (All US-listed)",
+        "Portfolio Insights \u2192 watchlist table \u2192 company name / sector / market cap for unscored names"
       ],
       "target_storage": "Supabase: ticker_reference",
       "failure_mode": "Scanner rows render with raw ticker but blank sector / company name. Funnel 'All US-listed' counter goes stale.",
@@ -383,7 +385,8 @@
       "consumer_surfaces": [
         "Trading Opportunities \u2192 IV Rank column",
         "Trading Opportunities \u2192 Market cap column",
-        "Trading Opportunities \u2192 funnel counts (Universe)"
+        "Trading Opportunities \u2192 funnel counts (Universe)",
+        "Portfolio Insights \u2192 watchlist table \u2192 options-sentiment columns (P/C, Net Prem, IV, IV Rank, Implied 7D/30D) + next earnings date for unscored names"
       ],
       "target_storage": "Supabase: universe_snapshots",
       "failure_mode": "IV Rank + market cap columns blank; funnel 'Universe' counter goes stale.",
