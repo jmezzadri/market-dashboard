@@ -1,0 +1,57 @@
+name: UW_METER_READ_NIGHTLY
+
+# End-of-day UW account meter read — bug #1197 Phase 1b.
+#
+# Makes ONE cheap UW call late at night, after the 11 PM insider ingest,
+# and writes the true end-of-day account usage to public.api_usage_log so
+# the admin UW usage page reflects the full day's burn (~15,000 of the
+# 20,000/day budget) instead of capping at the ~6 PM ticker_events reading.
+#
+# Two crons cover both US daylight-savings halves; the script's ET-hour
+# guard makes the off-season fire a no-op, so exactly one real reading
+# lands per weekday night. workflow_dispatch with force=true bypasses the
+# guard for a manual verification run.
+#
+# Required GitHub secrets (already configured for INSIDER_INGEST_NIGHTLY):
+#   UNUSUAL_WHALES_API_KEY
+#   UW_CLIENT_API_ID          (default: 100001)
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    - cron: '45 3 * * 2-6'   # 11:45 PM EDT (Mar-Nov), Mon-Fri ET
+    - cron: '45 4 * * 2-6'   # 11:45 PM EST (Nov-Mar), Mon-Fri ET
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run the meter read even outside the 11 PM ET window"
+        required: false
+        default: 'false'
+
+jobs:
+  meter-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests supabase tzdata
+
+      - name: End-of-day UW meter read
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          UW_CLIENT_API_ID: ${{ secrets.UW_CLIENT_API_ID || '100001' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          METER_FORCE: ${{ github.event.inputs.force || 'false' }}
+        run: |
+          PYTHONPATH=. python3 -m scanner.uw_meter_read

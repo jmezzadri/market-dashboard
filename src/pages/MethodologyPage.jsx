@@ -613,7 +613,7 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
           ["EOD prices + volume",   "Polygon Massive",              "OHLCV for all names; feeds the technicals signal (Bollinger BandWidth, RSI, 50-day moving average, relative volume)."],
           ["Insider buys + sells",  "Unusual Whales (SEC Form 4)",  "Open-market purchases and sales by officers and directors (transaction code \"P\" and \"S\"). RSU grants, option exercises, and tax-withholding are filtered out."],
           ["Options flow",          "Unusual Whales",               "Daily call and put volume vs open interest; flags unusual activity."],
-          ["Congress trades",       "Quiver Quant",                 "Disclosed buy and sell trades by US senators and representatives within reporting windows."],
+          ["Congress trades",       "Unusual Whales",               "Disclosed buy and sell trades by US senators and representatives within reporting windows."],
           ["Analyst actions",       "Unusual Whales",               "Wall Street equity research: upgrades, downgrades, price target changes, initiations."],
           ["Short interest",        "FINRA short interest report",  "Bi-monthly short interest as percent of float, plus day-to-cover."],
         ]}
@@ -1013,7 +1013,6 @@ else                                      →  REVIEW`}</Formula>
           ["Massive (Polygon Basic)",              "Daily price data for the equity universe, universe master, dividends, splits."],
           ["Unusual Whales",                       "Options flow, Form 4 insider buying, congressional trade disclosure, analyst actions."],
           ["FINRA short interest",                 "Bi-monthly short interest as % of float."],
-          ["Quiver Quant",                         "Congressional trade disclosures."],
           ["ZeroHedge (RSS + Premium)",            "News sentiment overlay."],
           ["Plaid",                                "Brokerage feed (read-only — MacroTilt cannot place trades)."],
         ]}
