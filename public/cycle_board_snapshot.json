@@ -14,19 +14,19 @@
       "id": "credit",
       "num": "02",
       "name": "Credit",
-      "score": 66
+      "score": 64
     },
     {
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 41
+      "score": 43
     },
     {
       "id": "growth",
       "num": "04",
       "name": "Growth",
-      "score": 48
+      "score": 47
     },
     {
       "id": "liquidity_policy",
@@ -38,7 +38,7 @@
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 65
+      "score": 66
     }
   ]
 }
