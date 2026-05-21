@@ -569,7 +569,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
 
         <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>How a name earns its score.</h3>
         <p style={{ ...body, marginTop: 8 }}>
-          Each name is scored on two live layers of evidence. The <strong>insider layer</strong> is the anchor — corporate insiders buying their own company&rsquo;s stock is, by a wide margin, the strongest predictor in our own testing. The <strong>trend layer</strong> is a guardrail that keeps the screener from chasing a falling or badly overheated stock. Two further layers — large off-exchange block trades (&ldquo;dark pool&rdquo;) and end-of-day options activity — are built and collecting data every night, but they contribute <strong>zero points</strong> until they have enough of their own history to be tested honestly. Because of that, today&rsquo;s score tops out at <strong>5</strong>; it rises to 10 once those two layers switch on.
+          Each name is scored on <strong>four</strong> layers of evidence. The <strong>insider layer</strong> is the anchor — corporate insiders buying their own company&rsquo;s stock is, by a wide margin, the strongest predictor in our own testing. The <strong>trend layer</strong> is a guardrail that keeps the screener from chasing a falling or badly overheated stock. The <strong>dark-pool layer</strong> reads large off-exchange block trades (&ldquo;dark pool&rdquo;) for the price level big institutions recently transacted around. The <strong>options layer</strong> reads fresh, aggressively-bought call activity. All four are live, and the score runs from 0 to <strong>10</strong>.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
           The insider layer rewards three patterns of open-market buying by a company&rsquo;s own officers and directors, over a rolling 30-day window. Routine pre-scheduled trades and trades by 10%-plus shareholders are excluded — only conviction buying counts.
@@ -599,15 +599,32 @@ export default function MethodologyBody({ withJumpNav = true }) {
           </tbody>
         </table>
         <p style={{ ...body, marginTop: 14 }}>
-          The insider layer is capped at 4 points, so one stock cannot run away with the score on insider evidence alone. The trend layer then adjusts: a name trading above its 200-day average price adds 1 point; below it subtracts 2; an overheated momentum reading (a 14-day RSI above 65) subtracts another 2. A name <strong>launches</strong> onto the buy list when its combined score reaches <strong>3</strong>.
+          The insider layer is capped at 4 points, so one stock cannot run away with the score on insider evidence alone. The trend layer then adjusts: a name trading above its 200-day average price adds 1 point; below it subtracts 2; an overheated momentum reading (a 14-day RSI above 65) subtracts another 2. A name <strong>launches</strong> onto the buy list when its insider-and-trend score reaches <strong>3</strong> — that gate is unchanged. The dark-pool and options layers then add their points on top, lifting the displayed score toward the ceiling of 10. They sharpen the score and the ranking, but they never add a name to the list or take one off it.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
           One refinement matters: insider signals fade with age. A fresh insider buy carries full weight for its first 15 days, then tapers steadily to nothing by day 31. The list retires its own stale ideas — a buy that surfaced three weeks ago is worth less than one filed yesterday.
         </p>
 
+        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>The dark-pool and options layers.</h3>
+        <p style={{ ...body, marginTop: 8 }}>
+          The <strong>dark-pool layer</strong> looks at the last two trading days of large off-exchange block trades. Where that block volume piles up inside a narrow price band, that band is an institutional anchor — a price level big money cared about. If the stock now trades above the band, the band sits beneath the price as a support floor: <strong>2 points</strong>. If there is no tight band but one standout large block printed below the price, that lone block is a weaker anchor: <strong>1 point</strong>. The layer is capped at 2 points, and the anchor price it finds also sets the entry, stop and target levels.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          The <strong>options layer</strong> looks at medium-dated call contracts — 14 to 45 days to expiry — that are moderately out-of-the-money. It rewards a contract showing two things at once: fresh positioning (today&rsquo;s volume is large versus the open interest already on the contract) and aggressive execution (at least 65% of that volume printed at the ask — the buyer paid up). Volume of three times the open interest or more earns <strong>4 points</strong>; one to three times earns <strong>3 points</strong>. The layer is capped at 4 points.
+        </p>
+        <div style={{
+          marginTop: 18, padding: 16,
+          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '0 6px 6px 0',
+          fontSize: 13.5, color: 'var(--ink-1, #222)',
+        }}>
+          <strong style={{ color: 'var(--ink-0, #000)' }}>Not yet backtested.</strong> The dark-pool and options point values above come from the screener specification and have been sanity-checked by the Senior Quant — but, unlike the insider and trend layers, they have not been through a back-test. There is not yet enough of their own history. They were switched on by owner decision so the screener can begin using them; treat them as developing signals, and expect their point values to be revisited once a back-test is possible.
+        </div>
+
         <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>What the back-test showed.</h3>
         <p style={{ ...body, marginTop: 8 }}>
-          Every point value and the launch threshold above were set by a back-test, not by guesswork — the same standing rule that retired the previous screener. Across the twelve months of insider history available, the 88 names the screener launched, measured one month (21 trading days) later:
+          The insider point values, the trend adjustments and the launch threshold were set by a back-test, not by guesswork — the same standing rule that retired the previous screener. (The dark-pool and options point values were not — see the note above.) Across the twelve months of insider history available, the 88 names the screener launched, measured one month (21 trading days) later:
         </p>
         <table style={tableBase}>
           <thead><tr>
@@ -651,7 +668,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
           borderRadius: '0 6px 6px 0',
           fontSize: 13.5, color: 'var(--ink-1, #222)',
         }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The screener was calibrated on a single twelve-month window — and a mostly-rising one. That is enough history to launch it on, but it is not a multi-cycle proof: it has not yet been tested through a real downturn, and the stop and profit-target distances are still provisional pending the dark-pool layer. The calibration is re-checked every quarter, and immediately if a market correction enters the data. Treat the win rate as a reasonable expectation, not a promise.
+          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The insider screener was calibrated on a single twelve-month window — and a mostly-rising one. That is enough history to launch it on, but it is not a multi-cycle proof: it has not yet been tested through a real downturn. The dark-pool and options layers went live on 21 May 2026 without a back-test of their own, by owner decision — there is not yet enough of their history to test honestly. The calibration is re-checked every quarter, and immediately if a market correction enters the data. Treat the win rate as a reasonable expectation, not a promise.
         </div>
       </section>
 

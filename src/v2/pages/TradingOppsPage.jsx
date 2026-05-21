@@ -35,7 +35,7 @@ export const COLS = [
   { k: "sig",     grp: "Stock", lbl: "Signal", numeric: false,
     tip: "System-generated directional bias (Buy / Long, Sell / Short, Watchlist)." },
   { k: "score",   grp: "Stock", lbl: "Score", numeric: true,
-    tip: "The integrated screener score. Launches at threshold 3. Current maximum is 5 (insider buying and trend live); rises to 10 once dark-pool and options activate." },
+    tip: "The integrated screener score, out of 10 — insider buying, the price trend, dark-pool clustering and options activity. A name reaches the list when its insider-and-trend foundation hits 3; the dark-pool and options layers then add conviction on top." },
   { k: "w1",      grp: "Stock", lbl: "Score 1W", numeric: true,
     tip: "Screener score one week ago." },
   { k: "m1",      grp: "Stock", lbl: "Score 1M", numeric: true,
@@ -45,7 +45,7 @@ export const COLS = [
   { k: "insider", grp: "Stock", lbl: "Insider Activity", numeric: true, drv: true,
     tip: "[SCORING INPUT] Open-market buying by a company's own officers and directors. The letter tags are the rules that fired — A: a CEO or CFO conviction buy; B: combined insider buying that is large relative to company size; C: three or more insiders buying in the window. The number is the signal's age in days — full weight for the first 15 days, then fading to zero by day 31. Drives up to 4 points." },
   { k: "dp",      grp: "Stock", lbl: "Dark Pool Anchor", numeric: false, drv: true,
-    tip: "[SCORING INPUT] Dark Pool price-clustering zone. Drives up to 2 points. Shadow mode — 0 points until backtested." },
+    tip: "[SCORING INPUT] The dark-pool price-clustering zone — an institutional support floor when price sits above it. Drives up to 2 points of the score. Live, but not yet backtested." },
   { k: "chart",   grp: "Stock", lbl: "Chart", numeric: false, sortable: false,
     tip: "[INFO] Recent price sparkline." },
   { k: "price",   grp: "Stock", lbl: "Price", numeric: true,
@@ -60,7 +60,7 @@ export const COLS = [
     tip: "[INFO] Market capitalization." },
   // ── Options ────────────────────────────────────────────────────────────
   { k: "opts",    grp: "Options", lbl: "Options Vol Shock", numeric: true, drv: true,
-    tip: "[SCORING INPUT] Volume spikes on out-of-the-money contracts versus open interest. Drives up to 4 points. Shadow mode — 0 points until backtested." },
+    tip: "[SCORING INPUT] Fresh, aggressively-bought volume on medium-dated out-of-the-money call contracts, versus their open interest. Drives up to 4 points of the score. Live, but not yet backtested." },
   { k: "pc",      grp: "Options", lbl: "P/C", numeric: true,
     tip: "[INFO] Put-to-call volume ratio." },
   { k: "netprem", grp: "Options", lbl: "Net Prem", numeric: true,
@@ -206,12 +206,13 @@ function fmtScanDate(d) {
   return `EOD ${dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
-// Score band: 5 = score >= 4.5, 4 = 3.5–4.49, 3 = 3.0–3.49.
+// Score band on the 0–10 scale: tier 5 = score >= 7, tier 4 = 5–6.99,
+// tier 3 = below 5 (a launched name's score is always >= 3).
 function scoreBand(s) {
   const n = num(s);
   if (n == null) return 3;
-  if (n >= 4.5) return 5;
-  if (n >= 3.5) return 4;
+  if (n >= 7) return 5;
+  if (n >= 5) return 4;
   return 3;
 }
 
@@ -425,15 +426,15 @@ function ScanTile({ scanDate, universeScanned, gateCleared, activeAlerts, band5,
       <div className="to-scan-bands">
         <div className="to-band to-band-5">
           <div className="bn">{band5}</div>
-          <div className="bl">Score 5</div>
+          <div className="bl">Score 7+</div>
         </div>
         <div className="to-band to-band-4">
           <div className="bn">{band4}</div>
-          <div className="bl">Score 4</div>
+          <div className="bl">Score 5–6</div>
         </div>
         <div className="to-band to-band-3">
           <div className="bn">{band3}</div>
-          <div className="bl">Score 3</div>
+          <div className="bl">Score 3–4</div>
         </div>
       </div>
     </div>
@@ -569,19 +570,31 @@ function renderCell(c, r) {
       return (
         <span className={`to-score to-score-${b}`}>
           <span className="sv">{n.toFixed(1)}</span>
-          <span className="sm">/ 5</span>
+          <span className="sm">/ 10</span>
         </span>
       );
     }
 
     case "w1": {
       const n = num(r.score_1w);
-      return <span className="to-muted">{n == null ? DASH : n.toFixed(1)}</span>;
+      if (n == null) return <span className="to-muted">{DASH}</span>;
+      if (r.score_1w_like_for_like === false) return (
+        <span className="to-muted" title="Not directly comparable — this earlier score was computed under the previous scoring method, before the score ceiling rose to 10.">
+          {n.toFixed(1)}<span className="to-lfl-mark">*</span>
+        </span>
+      );
+      return <span className="to-muted">{n.toFixed(1)}</span>;
     }
 
     case "m1": {
       const n = num(r.score_1m);
-      return <span className="to-muted">{n == null ? DASH : n.toFixed(1)}</span>;
+      if (n == null) return <span className="to-muted">{DASH}</span>;
+      if (r.score_1m_like_for_like === false) return (
+        <span className="to-muted" title="Not directly comparable — this earlier score was computed under the previous scoring method, before the score ceiling rose to 10.">
+          {n.toFixed(1)}<span className="to-lfl-mark">*</span>
+        </span>
+      );
+      return <span className="to-muted">{n.toFixed(1)}</span>;
     }
 
     case "win": {
@@ -607,14 +620,12 @@ function renderCell(c, r) {
     case "dp": {
       // Dark Pool Anchor — a genuine screener output. A watchlist name the
       // screener never launched (_unscored) has no dark-pool evaluation at
-      // all, so it dashes — distinct from a launched name whose dark-pool
-      // layer is in shadow mode pending backtest.
+      // all, so it dashes.
       if (r._unscored) return dashSpan();
-      // Render "shadow" in muted italic when status is 'shadow' (the only
-      // state until backtested); otherwise show the price.
-      if (r.dark_pool_status === "shadow" || r.dark_pool_anchor == null) {
-        return <span className="to-shadow-cell">shadow</span>;
-      }
+      // Live since 2026-05-21: show the institutional anchor price. A
+      // launched name with no dark-pool clustering data — and any legacy
+      // pre-2026-05-21 row — has a null anchor and dashes.
+      if (r.dark_pool_anchor == null) return dashSpan();
       return <span>${num(r.dark_pool_anchor).toFixed(2)}</span>;
     }
 
@@ -679,10 +690,10 @@ function renderCell(c, r) {
       // Options Vol Shock — a genuine screener output; same treatment as
       // Dark Pool. An unscored watchlist name dashes (never evaluated).
       if (r._unscored) return dashSpan();
-      if (r.options_shock_status === "shadow" || r.options_vol_shock == null) {
-        return <span className="to-shadow-cell">shadow</span>;
-      }
-      return <span>{num(r.options_vol_shock).toFixed(1)}</span>;
+      // Live since 2026-05-21: show the volume-to-open-interest multiple. A
+      // launched name with no options shock — and any legacy row — dashes.
+      if (r.options_vol_shock == null) return dashSpan();
+      return <span>{num(r.options_vol_shock).toFixed(1)}x</span>;
     }
 
     case "pc": {
@@ -1144,7 +1155,6 @@ export const PAGE_CSS = `
   color: var(--accent); background: var(--accent-soft);
   border-radius: 4px; padding: 1px 4px;
 }
-.to-shadow-cell { color: var(--text-dim); font-style: italic; font-size: 10px; }
 
 /* ── Column customizer panel ── */
 .to-cust-wrap { position: relative; }
@@ -1200,6 +1210,15 @@ export const PAGE_CSS = `
   margin: 24px 0; padding-top: 16px; border-top: 1px solid var(--border-faint);
   font-size: 11px; color: var(--text-dim);
 }
+.to-disclaimer {
+  margin: 12px 0 4px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md, 10px);
+  font-size: 12px; line-height: 1.55; color: var(--text-2, var(--text-dim));
+}
+.to-disclaimer strong { color: var(--text); font-weight: 600; }
+.to-lfl-mark { color: var(--accent); font-weight: 700; margin-left: 1px; }
 `;
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1223,9 +1242,9 @@ const HERO_BULLETS = [
 
 const BAND_CHIPS = [
   { value: "all", label: "All" },
-  { value: 5,     label: "Score 5" },
-  { value: 4,     label: "Score 4" },
-  { value: 3,     label: "Score 3" },
+  { value: 5,     label: "Score 7+" },
+  { value: 4,     label: "Score 5–6" },
+  { value: 3,     label: "Score 3–4" },
 ];
 
 export default function TradingOppsPage({ onOpenTicker }) {
@@ -1335,6 +1354,18 @@ export default function TradingOppsPage({ onOpenTicker }) {
           Anchor, Options Vol Shock, SMA200, RSI.
         </div>
 
+        <div className="to-disclaimer">
+          <strong>Scoring updated 21 May 2026.</strong> The dark-pool and
+          options layers are now live, raising the score ceiling from 5 to 10.
+          These two layers are <strong>not yet backtested</strong> &mdash; they
+          do not have enough of their own history yet. Their point values
+          follow the screener specification and have been sanity-checked by the
+          Senior Quant; treat them as developing signals. Because the ceiling
+          changed, any Score&nbsp;1W or Score&nbsp;1M figure from before this
+          date is marked with an asterisk (*) &mdash; it was scored on the old
+          5-point scale and is not directly comparable.
+        </div>
+
         {/* States */}
         {loading && (
           <div className="to-state" style={{ color: "var(--text-muted)" }}>
@@ -1376,9 +1407,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
         <div className="to-foot">
           34 columns across five groups &mdash; scroll right for Statistics,
-          Technicals and Info. Dark Pool Anchor and Options Vol Shock are in
-          shadow mode (0 points until backtested). Click any row to open the
-          full stock view.
+          Technicals and Info. Click any row to open the full stock view.
         </div>
       </div>
     </div>
