@@ -5115,115 +5115,80 @@ function HomeSectorPie() {
       </div>
     );
   }
-  // One distinct, professional colour per GICS sector — keyed by name so a
-  // sector keeps its colour regardless of weight ordering. A flat monochrome
-  // pie was unreadable across 11 slices (UX correction, Joe 2026-05-21).
+  // Bright categorical palette — same vivid family as the Macro Overview
+  // tile (magenta #d946c4 / emerald #10b981 / amber #f59e0b). Keyed by
+  // sector name so a sector keeps its colour. Joe directive 2026-05-21.
   const SECTOR_COLOR = {
-    'Information Technology': '#3a6ea5',
-    'Financials':             '#e08a3c',
-    'Health Care':            '#4f9d69',
-    'Industrials':            '#c65b5b',
-    'Consumer Discretionary': '#7d6bb0',
-    'Consumer Staples':       '#48a0a8',
-    'Communication Services': '#d4a843',
-    'Energy':                 '#9c6f52',
-    'Utilities':              '#6b95c9',
-    'Real Estate':            '#c47ba0',
-    'Materials':              '#8a9a4e',
-  };
-  // Short labels so the slice callouts stay legible at tile width.
-  const ABBR = {
-    'Information Technology': 'Info Tech',
-    'Communication Services': 'Comm Svcs',
-    'Consumer Discretionary': 'Cons Disc.',
-    'Consumer Staples': 'Cons Staples',
+    'Information Technology': '#0071e3',
+    'Financials':             '#f59e0b',
+    'Health Care':            '#10b981',
+    'Industrials':            '#ef4444',
+    'Consumer Discretionary': '#8b5cf6',
+    'Consumer Staples':       '#14b8a6',
+    'Communication Services': '#d946c4',
+    'Energy':                 '#f97316',
+    'Utilities':              '#6366f1',
+    'Real Estate':            '#ec4899',
+    'Materials':              '#84cc16',
   };
   // Sort largest-weight first.
   const rows = sectors
     .map(s => ({
       name: s.sector || '—',
-      short: ABBR[s.sector] || s.sector || '—',
       color: SECTOR_COLOR[s.sector] || '#9aa4ad',
       weight: Number(s.weight) || 0,
     }))
     .sort((a, b) => b.weight - a.weight);
   const total = rows.reduce((acc, r) => acc + r.weight, 0) || 1;
-  // A TRUE pie (no centre hole) — Joe directive 2026-05-21: larger pie, not a
-  // doughnut, with the sector + % labelled directly on the chart instead of
-  // hover tooltips. viewBox leaves room for callout labels on both sides.
-  const VBW = 360, VBH = 232, CX = 180, CY = 110, R = 78;
-  const polar = (r, deg) => {
+  // A clean true pie — no centre hole, and NO leader lines (they crossed the
+  // labels). Sector + % live in a legend below the pie. Joe 2026-05-21.
+  const CX = 110, CY = 110, R = 106;
+  const polar = (deg) => {
     const a = (deg - 90) * Math.PI / 180;
-    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+    return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
   };
   const wedge = (startDeg, endDeg) => {
-    const [x1, y1] = polar(R, startDeg);
-    const [x2, y2] = polar(R, endDeg);
+    const [x1, y1] = polar(startDeg);
+    const [x2, y2] = polar(endDeg);
     const large = (endDeg - startDeg) > 180 ? 1 : 0;
     return ['M', CX, CY, 'L', x1.toFixed(2), y1.toFixed(2),
             'A', R, R, 0, large, 1, x2.toFixed(2), y2.toFixed(2), 'Z'].join(' ');
   };
   let cursor = 0;
-  const slices = rows.map((r, i) => {
+  const slices = rows.map((r) => {
     const sweep = (r.weight / total) * 360;
-    const s = { ...r, i, startDeg: cursor, endDeg: cursor + sweep, midDeg: cursor + sweep / 2 };
+    const s = { ...r, startDeg: cursor, endDeg: cursor + sweep };
     cursor += sweep;
     return s;
   });
-  // Callout labels — anchor each at its slice mid-angle, then spread the
-  // labels vertically per side so adjacent small slices don't collide.
-  const LABEL_H = 16;
-  const place = (side) => {
-    const list = slices
-      .filter(s => (side === 'right' ? polar(R, s.midDeg)[0] >= CX : polar(R, s.midDeg)[0] < CX))
-      .map(s => ({ s, y: polar(R, s.midDeg)[1] }))
-      .sort((a, b) => a.y - b.y);
-    for (let i = 1; i < list.length; i++) {
-      if (list[i].y - list[i - 1].y < LABEL_H) list[i].y = list[i - 1].y + LABEL_H;
-    }
-    const overflow = list.length ? list[list.length - 1].y - (VBH - 8) : 0;
-    if (overflow > 0) list.forEach(o => { o.y -= overflow; });
-    list.forEach(o => { if (o.y < 12) o.y = 12; });
-    return list.map(o => ({ ...o, side }));
-  };
-  const labels = [...place('right'), ...place('left')];
   return (
     <div style={{
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
-      borderRadius: 8, padding: '12px 10px',
+      borderRadius: 8, padding: '14px 16px 16px',
     }}>
       <div style={{
         fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)',
         letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
-        marginBottom: 4, textAlign: 'center',
+        marginBottom: 10, textAlign: 'center',
       }}>Recommended sector allocation</div>
-      <svg viewBox={`0 0 ${VBW} ${VBH}`} style={{ width: '100%', display: 'block' }}>
+      <svg viewBox="0 0 220 220" style={{ width: '58%', maxWidth: 212, display: 'block', margin: '0 auto' }}>
         {slices.map((s) => (
           <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
-                fill={s.color} stroke="var(--surface)" strokeWidth="1.6" />
+                fill={s.color} stroke="var(--surface)" strokeWidth="2" />
         ))}
-        {labels.map(({ s, y, side }) => {
-          const [ax, ay] = polar(R, s.midDeg);        // anchor on the arc
-          const [sx, sy] = polar(R + 12, s.midDeg);   // radial stub end — clears the pie
-          const kneeX = side === 'right' ? CX + R + 18 : CX - R - 18;
-          const labelX = side === 'right' ? VBW - 6 : 6;
-          return (
-            <g key={'L' + s.name}>
-              {/* Right-angle leader: radial stub off the slice, then out to a
-                  rail clear of the pie, then down to the de-overlapped label.
-                  Stays outside the pie at every segment — no slice crossings. */}
-              <polyline
-                points={`${ax.toFixed(1)},${ay.toFixed(1)} ${sx.toFixed(1)},${sy.toFixed(1)} ${kneeX},${sy.toFixed(1)} ${kneeX},${y.toFixed(1)} ${labelX},${y.toFixed(1)}`}
-                fill="none" stroke="var(--border)" strokeWidth="1" strokeLinejoin="round" />
-              <text x={labelX} y={y + 3} textAnchor={side === 'right' ? 'end' : 'start'}
-                    style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, fill: 'var(--text)' }}>
-                {s.short}{' '}
-                <tspan style={{ fill: 'var(--text-muted)' }}>{(s.weight * 100).toFixed(1)}%</tspan>
-              </text>
-            </g>
-          );
-        })}
       </svg>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        columnGap: 22, rowGap: 1, marginTop: 16,
+      }}>
+        {slices.map((s) => (
+          <div key={'lg' + s.name} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 0', minWidth: 0 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 11.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{(s.weight * 100).toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
