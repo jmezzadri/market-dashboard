@@ -5103,6 +5103,7 @@ function HomeAssetTiltEngineRead() {
 // recommended weight, and the difference versus the S&P 500.
 function HomeSectorPie() {
   const [alloc, setAlloc] = React.useState(null);
+  const [hover, setHover] = React.useState(null);
   React.useEffect(() => {
     fetch('/v10_allocation.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setAlloc).catch(() => {});
@@ -5137,11 +5138,12 @@ function HomeSectorPie() {
       name: s.sector || '—',
       color: SECTOR_COLOR[s.sector] || '#9aa4ad',
       weight: Number(s.weight) || 0,
+      vsSpyPp: s.vs_spy_pp == null ? null : Number(s.vs_spy_pp),
     }))
     .sort((a, b) => b.weight - a.weight);
   const total = rows.reduce((acc, r) => acc + r.weight, 0) || 1;
-  // A clean true pie — no centre hole, and NO leader lines (they crossed the
-  // labels). Sector + % live in a legend below the pie. Joe 2026-05-21.
+  // A clean true pie — no centre hole, no leader lines. Sector / weight /
+  // vs-S&P-500 surface on hover. Joe directive 2026-05-21.
   const CX = 110, CY = 110, R = 106;
   const polar = (deg) => {
     const a = (deg - 90) * Math.PI / 180;
@@ -5155,14 +5157,16 @@ function HomeSectorPie() {
             'A', R, R, 0, large, 1, x2.toFixed(2), y2.toFixed(2), 'Z'].join(' ');
   };
   let cursor = 0;
-  const slices = rows.map((r) => {
+  const slices = rows.map((r, i) => {
     const sweep = (r.weight / total) * 360;
-    const s = { ...r, startDeg: cursor, endDeg: cursor + sweep };
+    const s = { ...r, i, startDeg: cursor, endDeg: cursor + sweep };
     cursor += sweep;
     return s;
   });
+  const hov = hover != null ? slices[hover] : null;
   return (
     <div style={{
+      position: 'relative',
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
       borderRadius: 8, padding: '14px 16px 16px',
     }}>
@@ -5171,24 +5175,40 @@ function HomeSectorPie() {
         letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
         marginBottom: 10, textAlign: 'center',
       }}>Recommended sector allocation</div>
-      <svg viewBox="0 0 220 220" style={{ width: '58%', maxWidth: 212, display: 'block', margin: '0 auto' }}>
+      <svg viewBox="0 0 220 220" style={{ width: '66%', maxWidth: 248, display: 'block', margin: '0 auto' }}>
         {slices.map((s) => (
           <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
-                fill={s.color} stroke="var(--surface)" strokeWidth="2" />
+                fill={s.color} stroke="var(--surface)" strokeWidth="2"
+                style={{
+                  cursor: 'pointer',
+                  opacity: hover == null || hover === s.i ? 1 : 0.4,
+                  transition: 'opacity .12s',
+                }}
+                onMouseEnter={() => setHover(s.i)}
+                onMouseLeave={() => setHover(null)} />
         ))}
       </svg>
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        columnGap: 22, rowGap: 1, marginTop: 16,
-      }}>
-        {slices.map((s) => (
-          <div key={'lg' + s.name} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 0', minWidth: 0 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 11.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{(s.weight * 100).toFixed(1)}%</span>
+      {/* Hover tooltip — sector, recommended weight, difference vs S&P 500. */}
+      {hov && (
+        <div style={{
+          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--text)', color: 'var(--surface)',
+          padding: '7px 12px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.5,
+          fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap', pointerEvents: 'none',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.20)', zIndex: 5, textAlign: 'center',
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 1 }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: hov.color, marginRight: 6, verticalAlign: 'middle' }} />
+            {hov.name}
           </div>
-        ))}
-      </div>
+          <div style={{ opacity: 0.85 }}>
+            {(hov.weight * 100).toFixed(1)}% weight
+            {hov.vsSpyPp != null && (
+              <> · {(hov.vsSpyPp >= 0 ? '+' : '−') + Math.abs(hov.vsSpyPp).toFixed(1)}% vs S&amp;P 500</>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
