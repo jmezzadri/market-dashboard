@@ -341,6 +341,42 @@ const INDICATOR_SOURCES = {
   cfnai:         "FRED · Chicago Fed National Activity Index (CFNAI)",
 };
 
+// Cadence WITH the publication lag spelled out. A user who sees "Daily" next
+// to a value two days old should not have to wonder whether the feed is
+// broken — the lag is a known, normal property of the series, so we state it.
+// "T+N" = the value lands N business days after the trading day it covers;
+// weekly/monthly/quarterly series state the typical wait after the period
+// closes. Series with no suffix publish same-day / with no material lag.
+const INDICATOR_CADENCE = {
+  yield_curve:   "Daily (T+1)",
+  real_rates:    "Daily (T+2)",
+  move:          "Daily (T+1)",
+  term_premium:  "Daily (T+4)",
+  breakeven_10y: "Daily (T+1)",
+  hy_ig:         "Daily (T+1)",
+  ig_oas:        "Daily (T+1)",
+  hy_ig_ratio:   "Daily (T+1)",
+  sloos_ci:      "Quarterly (~5-week lag)",
+  sloos_cre:     "Quarterly (~5-week lag)",
+  buffett:       "Quarterly (~1-quarter lag)",
+  cape:          "Monthly",
+  vix:           "Daily",
+  skew:          "Daily (T+1)",
+  eq_cr_corr:    "Daily",
+  cpff:          "Weekly (~1-week lag)",
+  anfci:         "Weekly (~1-week lag)",
+  stlfsi:        "Weekly (~1-week lag)",
+  bkx_spx_v11:   "Daily",
+  bank_credit:   "Weekly (~2-week lag)",
+  fed_bs:        "Weekly (~1-week lag)",
+  ic4wsa:        "Weekly (~1-week lag)",
+  ism:           "Monthly",
+  jolts_quits:   "Monthly (~6-week lag)",
+  copper_gold:   "Daily",
+  usd:           "Daily",
+  cfnai:         "Monthly (~4-week lag)",
+};
+
 const PANELS = [
   { id: 'rates',    title: 'Rates',            subtitle: 'The cost and shape of money — what duration is being repriced.' },
   { id: 'credit',   title: 'Credit',           subtitle: 'What lenders are charging for risk, and whether they\'re still lending.' },
@@ -917,7 +953,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
               </div>
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Cadence</div>
-                {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq}
+                {INDICATOR_CADENCE[indicatorId] || (series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq)}
               </div>
               <div>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Last update</div>
