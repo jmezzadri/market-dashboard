@@ -288,21 +288,21 @@ const INDICATORS = {
   cape:          { panel: 'equities', label: 'CAPE · Shiller P/E',         short: 'CAPE',       fmt: v => v.toFixed(1) + 'x',                              dir: 'hw',       methodology: 'Price divided by 10-year average inflation-adjusted earnings. Multi-cycle valuation measure.' },
   vix:           { panel: 'equities', label: 'VIX · equity volatility',    short: 'VIX',        fmt: v => v.toFixed(1),                                    dir: 'hw',       methodology: '30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.' },
   skew:          { panel: 'equities', label: 'SKEW · tail risk',           short: 'SKEW',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Premium of out-of-the-money S&P puts. Captures crash-risk demand.' },
-  eq_cr_corr:    { panel: 'equities', label: 'Equity-credit correlation',  short: 'Eq/Cr corr', fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: '60-day rolling correlation of SPX returns with HY OAS changes.' },
+  eq_cr_corr:    { panel: 'equities', label: 'Equity-credit correlation',  short: 'Eq/Cr corr', fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: '63-day rolling correlation of S&P 500 (SPY) and high-yield bond (HYG) daily returns.' },
 
   // MONEY & BANKING
-  cpff:          { panel: 'money', label: 'Commercial paper spread',       short: 'CPFF',       fmt: v => Math.round(v) + ' bp',                           dir: 'hw',       methodology: '30-day AA-rated commercial paper minus 30-day T-bill. Wider = expensive 30-day corporate borrowing.' },
+  cpff:          { panel: 'money', label: 'Commercial paper spread',       short: 'CPFF',       fmt: v => Math.round(v) + ' bp',                           dir: 'hw',       methodology: '3-month AA financial commercial paper rate minus the Fed Funds rate. Wider = costlier short-term corporate funding.' },
   anfci:         { panel: 'money', label: 'Chicago Fed FCI',               short: 'ANFCI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'Adjusted National Financial Conditions Index — 105 underlying variables. 0 = long-run average.' },
   stlfsi:        { panel: 'money', label: 'St. Louis FCI',                 short: 'STLFSI',     fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'St. Louis Fed Financial Stress Index. Weekly. Composite of 18 weekly financial variables.' },
   bkx_spx_v11:   { panel: 'money', label: 'KBW Bank / SPX',                short: 'BKX/SPX',    fmt: v => v.toFixed(4),                                    dir: 'lw',       methodology: 'KBW Bank Index divided by S&P 500. Banks underperform when balance sheets are under pressure.' },
-  bank_credit:   { panel: 'money', label: 'Bank credit growth (YoY)',      short: 'Bank credit',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Year-over-year growth in total loans and leases at all US commercial banks.' },
+  bank_credit:   { panel: 'money', label: 'Bank credit growth (YoY)',      short: 'Bank credit',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Year-over-year growth in total bank credit — loans, leases, and securities — at all US commercial banks.' },
   fed_bs:        { panel: 'money', label: 'Fed balance sheet (YoY)',       short: 'Fed BS YoY', fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'lw',       methodology: 'Year-over-year change in the size of the Federal Reserve balance sheet. Negative = the Fed is shrinking its balance sheet (quantitative tightening) — a tightening force on risk assets.' },
 
   // ECONOMY
   ic4wsa:        { panel: 'economy', label: 'Initial jobless claims (4w)', short: 'IC4WSA',     fmt: v => Math.round(v) + 'K',                             dir: 'hw',       methodology: '4-week moving average of initial unemployment claims, seasonally adjusted.' },
   ism:           { panel: 'economy', label: 'ISM Manufacturing',           short: 'ISM Mfg',    fmt: v => v.toFixed(1),                                    dir: 'lw',       methodology: 'Manufacturing purchasing managers index. 50 = neutral; below = contraction.' },
   jolts_quits:   { panel: 'economy', label: 'JOLTS · quits rate',          short: 'Quits',      fmt: v => v.toFixed(1) + '%',                              dir: 'lw',       methodology: '% of employed workers voluntarily leaving each month. A low quits rate means workers do not feel confident enough to leave — labor-market weakness signal.' },
-  copper_gold:   { panel: 'economy', label: 'Copper / Gold ratio',         short: 'Cu/Au',      fmt: v => v.toFixed(3),                                    dir: 'lw',       methodology: 'Front-month copper futures over gold futures. Cyclical demand indicator.' },
+  copper_gold:   { panel: 'economy', label: 'Copper / Gold ratio',         short: 'Cu/Au',      fmt: v => v.toFixed(2),                                    dir: 'lw',       methodology: 'Front-month copper ($/lb) divided by front-month gold ($/oz), scaled by 1,000 — the desk convention, which reads around 1.4. A rising ratio means cyclical/industrial demand is firming relative to safe-haven demand.' },
   usd:           { panel: 'economy', label: 'USD broad index',             short: 'USD',        fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: 'Trade-weighted broad dollar index against a basket of major currencies.' },
   cfnai:         { panel: 'economy', label: 'Chicago Fed National Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
 };
@@ -315,7 +315,7 @@ const INDICATOR_SOURCES = {
   yield_curve:   "FRED · 10-Year minus 2-Year Treasury (T10Y2Y)",
   real_rates:    "FRED · 10-Year Treasury Inflation-Indexed Yield (DFII10)",
   move:          "Yahoo · ICE BofA MOVE Index (^MOVE)",
-  term_premium:  "NY Fed · ACM Term Premium",
+  term_premium:  "FRED · Kim-Wright 10-Year Term Premium (THREEFYTP10)",
   breakeven_10y: "FRED · 10-Year Breakeven Inflation (T10YIE)",
   hy_ig:         "FRED · ICE BofA US High-Yield OAS (BAMLH0A0HYM2)",
   ig_oas:        "FRED · ICE BofA US Corporate OAS (BAMLC0A0CM)",
@@ -326,12 +326,12 @@ const INDICATOR_SOURCES = {
   cape:          "multpl.com · Shiller cyclically-adjusted P/E",
   vix:           "Yahoo · CBOE Volatility Index (^VIX)",
   skew:          "Yahoo · CBOE SKEW Index (^SKEW)",
-  eq_cr_corr:    "In-house · 60-day rolling correlation of SPX returns and HY OAS changes",
-  cpff:          "FRED · 30-day AA commercial paper minus 30-day T-bill (RIFSPPAAAD90NB - DTB3)",
+  eq_cr_corr:    "In-house · 63-day rolling correlation of S&P 500 (SPY) and high-yield bond (HYG) daily returns",
+  cpff:          "FRED · 3-month AA financial commercial paper minus Fed Funds (DCPF3M − DFF)",
   anfci:         "FRED · Chicago Fed Adjusted National Financial Conditions Index (ANFCI)",
   stlfsi:        "FRED · St. Louis Fed Financial Stress Index (STLFSI4)",
   bkx_spx_v11:   "Yahoo · KBW Bank Index (^BKX) / S&P 500 (^GSPC)",
-  bank_credit:   "FRED · H.8 Total Loans & Leases at All US Commercial Banks (TOTLL)",
+  bank_credit:   "FRED · H.8 Bank Credit, All Commercial Banks (TOTBKCR)",
   fed_bs:        "FRED · Total Assets of the Federal Reserve (WALCL)",
   ic4wsa:        "FRED · 4-week Moving Average of Initial Jobless Claims (IC4WSA)",
   ism:           "ISM website · Manufacturing PMI (monthly)",
@@ -652,7 +652,7 @@ function IndicatorTile({ ind, hist, onOpen }) {
             </div>
           )}
         </div>
-        {has && <FreshnessChip elementId={`indicator-${ind.id}-${(series.freq || 'd').toLowerCase()}`} fallback={series.as_of} />}
+        {has && <FreshnessChip elementId={`indicator-${ind.id}-${(series.freq || 'd').toLowerCase()}`} fallback={series.as_of} freq={series.freq} />}
       </div>
 
       {/* Value + delta */}
@@ -732,6 +732,20 @@ function Modal({ open, onClose, children }) {
 function panelTitle(panelId) {
   if (panelId === 'money') return 'Money & Banking';
   return panelId.charAt(0).toUpperCase() + panelId.slice(1);
+}
+
+// Cadence-aware "as of" formatter for the modal. Monthly / quarterly series
+// are dated to the first of their period by the data source — render them as
+// the period ("March 2026", "Q1 2026") so a current reading never reads as a
+// stale calendar day. Daily / weekly series render as a normal date.
+function fmtAsOf(iso, freq) {
+  if (!iso) return '—';
+  const dt = new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso);
+  if (Number.isNaN(dt.getTime())) return iso;
+  const f = (freq || '').toUpperCase();
+  if (f === 'M') return dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  if (f === 'Q') return `Q${Math.floor(dt.getUTCMonth() / 3) + 1} ${dt.getUTCFullYear()}`;
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────
@@ -871,7 +885,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-          <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${series.as_of || '—'}`} />
+          <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${fmtAsOf(series.as_of, series.freq)}`} />
           <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" />
           <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" />
           <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} />
@@ -907,7 +921,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
               </div>
               <div>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Last update</div>
-                {series.as_of || '—'}
+                {fmtAsOf(series.as_of, series.freq)}
               </div>
             </div>
           </div>

@@ -150,6 +150,32 @@ def series_to_points(s, *, round_dp=4):
     return out
 
 
+def _drop_future_points(result):
+    """Drop any point dated after today from every indicator.
+
+    A resample to a period-end label — resample("ME") / ("W-FRI") / ("QE") —
+    stamps the current, still-in-progress period with a FUTURE period-end
+    date (e.g. an in-progress May labelled 2026-05-31, an in-progress week
+    labelled with next Friday). This belt-and-suspenders pass guarantees no
+    future-dated observation ever reaches public/indicator_history.json,
+    whatever any individual indicator block does upstream.
+    """
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    for ind_id, entry in result.items():
+        if ind_id.startswith("__") or not isinstance(entry, dict):
+            continue
+        pts = entry.get("points")
+        if not pts:
+            continue
+        kept = [p for p in pts if p[0] <= today]
+        if len(kept) != len(pts):
+            print(f"  future-date guard: dropped {len(pts) - len(kept)} "
+                  f"future-dated point(s) from {ind_id}")
+            entry["points"] = kept
+    return result
+
+
 
 # ── Bug #1067/#1068 — pipeline_health honesty logger ─────────────────────────
 def _log_pipeline_health(series_id, message):
@@ -363,8 +389,12 @@ def fetch_all():
         df = pd.concat(
             [cp.rename("cp"), gd.rename("gd")], axis=1
         ).dropna()
-        # Scanner convention: (copper_$_per_lb × 100) / gold_$_per_oz → ~0.10-0.25
-        ratio = ((df["cp"] * 100.0) / df["gd"]).dropna()
+        # Conventional copper/gold ratio = (copper $/lb ÷ gold $/oz) × 1000.
+        # HG=F is quoted in $/lb (~6.3) and GC=F in $/oz (~4500), so the raw
+        # price ratio is ~0.0014; the ×1000 scaling gives the desk-standard
+        # reading of ~1.4. The previous ×100 scaling produced ~0.14 — a
+        # factor of 10 below the convention every trading desk references.
+        ratio = ((df["cp"] / df["gd"]) * 1000.0).dropna()
         result["copper_gold"] = {"freq": "D", "unit": "ratio",
                                  "points": series_to_points(ratio, round_dp=3)}
 
@@ -429,8 +459,13 @@ def fetch_all():
     if cp3 is not None and dff is not None:
         df = pd.concat([cp3.rename("cp"), dff.rename("ff")], axis=1).ffill().dropna()
         spread_bps = (df["cp"] - df["ff"]) * 100.0
-        # resample to weekly to match reported cadence
+        # Resample to weekly to match reported cadence. resample("W-FRI")
+        # labels each bucket with its FRIDAY date — for the current,
+        # in-progress week that Friday is in the future, so drop any bucket
+        # whose label is past today (the in-progress week is a partial value,
+        # not a completed weekly observation).
         spread_w = spread_bps.resample("W-FRI").last().dropna()
+        spread_w = spread_w.loc[spread_w.index <= pd.Timestamp.today().normalize()]
         result["cpff"] = {"freq": "W", "unit": "bps",
                           "points": series_to_points(spread_w, round_dp=1)}
 
@@ -479,7 +514,9 @@ def fetch_all():
     s = safe_fred("THREEFYTP10")
     if s is not None:
         bps = s * 100.0
-        result["term_premium"] = {"freq": "W", "unit": "bps",
+        # THREEFYTP10 is a DAILY FRED series — the freq label was previously
+        # "W", which made the freshness chip mis-state the cadence.
+        result["term_premium"] = {"freq": "D", "unit": "bps",
                                   "points": series_to_points(bps, round_dp=1)}
 
     # ── MONTHLY ────────────────────────────────────────────────────────────
@@ -735,27 +772,30 @@ def fetch_all():
         result["buffett"] = {"freq": "Q", "unit": "%",
                               "points": series_to_points(ratio, round_dp=1)}
 
-    print("Investment-Grade OAS (ig_oas) — methodology-v11.md (BAA - DGS10 long-history proxy) ...")
-    # Per methodology-v11.md: canonical BAMLC0A0CM is license-restricted on FRED.
-    # BAA - DGS10 is the long-history proxy (post-1986 sample). BAA is monthly.
-    baa = safe_fred("BAA")
-    dgs10 = safe_fred("DGS10")
-    if baa is not None and dgs10 is not None:
-        # Resample DGS10 (daily) to monthly to align with BAA (monthly).
-        dgs_m = dgs10.resample("ME").last().dropna()
-        df = pd.concat([baa.rename("baa"), dgs_m.rename("y")], axis=1).ffill().dropna()
-        ig_bps = (df["baa"] - df["y"]) * 100.0  # convert % to bps
-        result["ig_oas"] = {"freq": "M", "unit": "bps",
-                             "points": series_to_points(ig_bps, round_dp=0)}
-        # HY/IG ratio (relative-risk premium): hy_oas in bps (already × 100) divided by ig_oas in bps.
+    print("Investment-Grade OAS (ig_oas) — ICE BofA US Corporate Index OAS ...")
+    # BAMLC0A0CM (the canonical ICE BofA US Corporate Index OAS) IS available
+    # on FRED's free tier — verified 2026-05-21. The earlier assumption that
+    # it was "license-restricted" was wrong; the BAA - DGS10 proxy it forced
+    # ran roughly 2x the true spread (e.g. 136 bp vs the real ~75 bp) and the
+    # monthly resample stamped the in-progress month with a future date.
+    # Switching to the daily series fixes the value, the cadence, AND the
+    # future-dated stamp in one move, and matches the page's own methodology
+    # copy ("ICE BofA US Corporate Index OAS, daily close").
+    ig = safe_fred("BAMLC0A0CM")
+    if ig is not None:
+        ig_bps = ig * 100.0  # FRED reports %; 0.75% -> 75 bps
+        result["ig_oas"] = {"freq": "D", "unit": "bps",
+                            "points": series_to_points(ig_bps, round_dp=1)}
+        # HY/IG spread ratio (relative credit-risk premium). Both legs are
+        # daily ICE BofA OAS — computing on the daily series (no monthly
+        # resample) keeps the cadence honest and removes the future bucket.
         hy = safe_fred("BAMLH0A0HYM2")
         if hy is not None:
-            hy_bps = hy * 100.0
-            hy_m = hy_bps.resample("ME").last().dropna()
-            df2 = pd.concat([hy_m.rename("hy"), ig_bps.rename("ig")], axis=1).ffill().dropna()
-            ratio = df2["hy"] / df2["ig"]
-            result["hy_ig_ratio"] = {"freq": "M", "unit": "ratio",
-                                      "points": series_to_points(ratio, round_dp=2)}
+            df = pd.concat([(hy * 100.0).rename("hy"),
+                            ig_bps.rename("ig")], axis=1).dropna()
+            ratio = (df["hy"] / df["ig"]).dropna()
+            result["hy_ig_ratio"] = {"freq": "D", "unit": "ratio",
+                                     "points": series_to_points(ratio, round_dp=2)}
 
     print("FRA-OIS (fra_ois) — modern proxy: SOFR - Fed Funds ...")
     sofr = safe_fred("SOFR")
@@ -958,6 +998,11 @@ def fetch_all():
                                   "points": pts}
             print(f"  adv_dec: {len(pts)} daily points from Polygon prices_eod")
 
+
+    # Belt-and-suspenders: strip any future-dated point before stats/as_of are
+    # computed, so a resample-to-period-end label can never publish a stamp
+    # dated in the future (the IG OAS / HY-IG / CP-spread class of bug).
+    _drop_future_points(result)
 
     # Per-indicator stats block + as_of date. This is what the React frontend
     # now reads to render tile values, SD-score regime bands, and the generated
