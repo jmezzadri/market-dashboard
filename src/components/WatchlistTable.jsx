@@ -25,7 +25,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
-import useV5ScanBatch from "../hooks/useV5ScanBatch";
+import useTradingOppsBatch from "../hooks/useTradingOppsBatch";
 import usePricesEodBatch from "../hooks/usePricesEodBatch";
 import { Tip } from "../InfoTip";
 import {
@@ -402,133 +402,111 @@ function buildColumns({ onUpdateTheme, userOwnsRow }) {
     },
   ];
 
-  // v5 Trading Opps columns (Joe directive 2026-05-11) — numbers here match
-  // the Trading Opps page exactly for the same ticker on the same scan_date.
-  const v5Cols = [
+  // Trading Opportunities screener columns — re-pointed 2026-05-21
+  // (Phase 7 of the screener overhaul) from the retired six-signal model
+  // to the rebuilt dual-direction screener. Numbers here match the
+  // Trading Opportunities page exactly for the same ticker on the same
+  // scan. The screener publishes only LAUNCHED names, so a watchlist name
+  // the screener has not flagged shows an em-dash across this group.
+  const screenerCols = [
     {
-      key: "mt_score", label: "MT SCORE", numeric: true, defaultWidth: 100,
-      tooltip: "MacroTilt Score — weighted blend of six v5 signals (−100 bearish → +100 bullish). Live engine that powers Trading Opps.",
-      sortValue: (r) => r._v5?.mt_score ?? null,
+      key: "signal", label: "SIGNAL", categorical: true, defaultWidth: 115,
+      tooltip: "The screener's directional call. BUY · LONG means the rebuilt screener flagged this name on the latest scan; a dash means it has not.",
+      filterValue: (r) => r._topps?.signal || "Not flagged",
+      sortValue: (r) => (r._topps?.signal ? 1 : 0),
       render: (r) => {
-        const v = r._v5?.mt_score;
+        const s = r._topps?.signal;
+        if (!s) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: "var(--green-text)" }}>{s}</span>;
+      },
+    },
+    {
+      key: "score", label: "SCORE", numeric: true, defaultWidth: 95,
+      tooltip: "The screener score — out of 5 today (insider buying and trend live), rising to 10 once the dark-pool and options layers activate. A name launches onto the buy list at 3.",
+      sortValue: (r) => r._topps?.score ?? null,
+      render: (r) => {
+        const v = r._topps?.score;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v >= 50 ? "var(--green-text, var(--green))" : v >= 20 ? "var(--green)" : v <= -50 ? "var(--red-text, var(--red))" : v <= -20 ? "var(--red)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}</span>;
+        const col = v >= 4.5 ? "var(--green-text)" : v >= 3.5 ? "var(--green)" : "var(--text)";
+        return (
+          <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>
+            {Number(v).toFixed(1)}
+            <span style={{ fontSize: 9, color: "var(--text-dim)", fontWeight: 600 }}> / 5</span>
+          </span>
+        );
       },
     },
     {
-      key: "band", label: "BAND", categorical: true, defaultWidth: 110,
-      tooltip: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
-      // filterValue is the string label used by the + Filter picker;
-      // sortValue is the numeric rank used by column-header sort.
-      filterValue: (r) => r._v5?.band,
-      sortValue: (r) => {
-        const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
-        return order[r._v5?.band] ?? null;
-      },
+      key: "score_1w", label: "SCORE 1W", numeric: true, defaultWidth: 100,
+      tooltip: "The screener score one week ago. A dash means the name was not on the list then.",
+      sortValue: (r) => r._topps?.score_1w ?? null,
       render: (r) => {
-        const b = r._v5?.band;
-        if (!b) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = b === "Strong Buy" ? "var(--green-text, var(--green))" : b === "Buy Watch" ? "var(--green)" : b === "Sell Watch" ? "var(--red)" : b === "Strong Sell" ? "var(--red-text, var(--red))" : "var(--text-muted)";
-        return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: col }}>{b}</span>;
-      },
-    },
-    {
-      key: "ig", label: "INDUSTRY GROUP", categorical: true, defaultWidth: 210,
-      tooltip: "GICS Industry Group (25 mid-level buckets). Derived from SIC code via the same SIC→GICS mapping Trading Opps uses.",
-      filterValue: (r) => r._v5?.ig,
-      sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
-      render: (r) => (
-        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
-          {r._v5?.ig || "—"}
-        </span>
-      ),
-    },
-    {
-      key: "sub_short_interest", label: "SHORT INT", numeric: true, defaultWidth: 100,
-      tooltip: "Short Interest sub-score (−100 to +100). Rising SI + rising borrow cost above 50-day SMA = bearish; high SI + cheap borrow into earnings = bullish squeeze setup.",
-      sortValue: (r) => r._v5?.sub_short_interest ?? null,
-      render: (r) => {
-        const v = r._v5?.sub_short_interest;
+        const v = r._topps?.score_1w;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v >= 20 ? "var(--green-text)" : v <= -20 ? "var(--red-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: col, fontSize: 12 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(0)}</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{Number(v).toFixed(1)}</span>;
       },
     },
     {
-      key: "rsi_14", label: "RSI(14)", numeric: true, defaultWidth: 85,
-      tooltip: "14-day Relative Strength Index. >70 conventionally overbought; <30 oversold.",
-      sortValue: (r) => r._v5?.rsi_14 ?? null,
+      key: "score_1m", label: "SCORE 1M", numeric: true, defaultWidth: 100,
+      tooltip: "The screener score one month ago. A dash means the name was not on the list then.",
+      sortValue: (r) => r._topps?.score_1m ?? null,
       render: (r) => {
-        const v = r._v5?.rsi_14;
+        const v = r._topps?.score_1m;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v > 70 ? "var(--red-text)" : v < 30 ? "var(--orange-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(1)}</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{Number(v).toFixed(1)}</span>;
       },
     },
     {
-      key: "bb_bw", label: "BB BAND-WIDTH", numeric: true, defaultWidth: 115,
-      tooltip: "Bollinger band-width as percent of 20-day MA. <5% = compression / squeeze (amber). >15% = expansion / trend in motion.",
-      sortValue: (r) => r._v5?.bb_bw ?? null,
+      key: "win_rate", label: "WIN RATE", numeric: true, defaultWidth: 100,
+      tooltip: "The empirical success rate of this screener setup from the back-test — how often launched names were higher one month later.",
+      sortValue: (r) => r._topps?.win_rate ?? null,
       render: (r) => {
-        const v = r._v5?.bb_bw;
+        const v = r._topps?.win_rate;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v < 0.05 ? "var(--orange-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(2)}%</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{Number(v).toFixed(0)}%</span>;
       },
     },
     {
-      key: "rvol_20d", label: "RVOL (20d)", numeric: true, defaultWidth: 100,
-      tooltip: "Today's volume / 20-day average. ≥1.5× = unusual activity (green); <0.7× = quiet (amber); 1.0× = average.",
-      sortValue: (r) => r._v5?.rvol_20d ?? null,
+      key: "insider", label: "INSIDER ACTIVITY", categorical: true, defaultWidth: 150,
+      tooltip: "C-suite open-market buying that drove the score — the rules that fired (A conviction buy, B size, C consensus) and how many days ago the triggering buy was filed.",
+      filterValue: (r) => (r._topps?.insider_rules || []).join(""),
+      sortValue: (r) => r._topps?.insider_pts ?? null,
       render: (r) => {
-        const v = r._v5?.rvol_20d;
-        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v >= 1.5 ? "var(--green-text)" : v < 0.7 ? "var(--orange-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}×</span>;
+        const t = r._topps;
+        const rules = (t && Array.isArray(t.insider_rules)) ? t.insider_rules : [];
+        if (!t || (rules.length === 0 && t.insider_age_days == null)) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            {rules.map((tag, i) => (
+              <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--green-text)", border: "1px solid var(--border-faint)", borderRadius: 3, padding: "1px 4px" }}>{String(tag)}</span>
+            ))}
+            {t.insider_age_days != null && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>{Number(t.insider_age_days)}d</span>
+            )}
+          </span>
+        );
       },
     },
     {
-      key: "pct_50ma", label: "% VS 50D MA", numeric: true, defaultWidth: 105,
-      tooltip: "Today's close as percent distance from the 50-day SMA. >+5% uptrend; <−5% downtrend.",
-      sortValue: (r) => r._v5?.pct_50ma ?? null,
+      key: "sma200", label: "% VS 200D MA", numeric: true, defaultWidth: 115,
+      tooltip: "Today's close as a percent distance from the 200-day average price — the screener's trend layer. Above the line helps the score; below it applies a penalty.",
+      sortValue: (r) => r._topps?.sma200_pct ?? null,
       render: (r) => {
-        const v = r._v5?.pct_50ma;
+        const v = r._topps?.sma200_pct;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v > 5 ? "var(--green-text)" : v < -5 ? "var(--red-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+        const col = v >= 0 ? "var(--green-text)" : "var(--red-text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}%</span>;
       },
     },
     {
-      key: "pct_200ma", label: "% VS 200D MA", numeric: true, defaultWidth: 110,
-      tooltip: "Today's close as percent distance from the 200-day SMA. >+10% strong uptrend; <−10% downtrend.",
-      sortValue: (r) => r._v5?.pct_200ma ?? null,
+      key: "rsi", label: "RSI(14)", numeric: true, defaultWidth: 90,
+      tooltip: "14-day Relative Strength Index. Above 65 is overheated and costs the screener score 2 points; conventional overbought is 70, oversold 30.",
+      sortValue: (r) => r._topps?.rsi ?? null,
       render: (r) => {
-        const v = r._v5?.pct_200ma;
+        const v = r._topps?.rsi;
         if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const col = v > 10 ? "var(--green-text)" : v < -10 ? "var(--red-text)" : "var(--text)";
-        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
-      },
-    },
-    {
-      key: "ins_buys", label: "INSIDER BUYS (#)", numeric: true, defaultWidth: 115,
-      tooltip: "Number of Form 4 open-market buy events by officers / directors in the recent window.",
-      sortValue: (r) => r._v5?.ins_buys ?? null,
-      render: (r) => {
-        const v = r._v5?.ins_buys;
-        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{v}</span>;
-      },
-    },
-    {
-      key: "ins_buy_$", label: "INSIDER BUYS ($)", numeric: true, defaultWidth: 130,
-      tooltip: "Total $ value of recent Form 4 open-market buy events.",
-      sortValue: (r) => r._v5?.["ins_buy_$"] ?? null,
-      render: (r) => {
-        const v = r._v5?.["ins_buy_$"];
-        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const m = v >= 1e9 ? `$${(v/1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v/1e3).toFixed(0)}K` : `$${v.toFixed(0)}`;
-        return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{m}</span>;
+        const col = v > 65 ? "var(--red-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{Number(v).toFixed(0)}</span>;
       },
     },
   ];
@@ -592,7 +570,7 @@ function buildColumns({ onUpdateTheme, userOwnsRow }) {
   // risk cluster → watch action.
   return [
     baseCols[0], baseCols[1], baseCols[2],            // ticker, name, sector
-    ...v5Cols,                                         // mt_score, band, ig, ...
+    ...screenerCols,                                   // signal, score, 1W/1M, win rate, insider, trend
     baseCols[3], baseCols[4], baseCols[5],            // price, day%, mcap
     baseCols[6], baseCols[7], baseCols[8], baseCols[9], // ivRank, divYield, nextEarnings, week52
     baseCols[10],                                      // theme
@@ -639,7 +617,7 @@ export default function WatchlistTable({
   // Risk metrics + v5 batch — same hooks as pre-migration.
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
   const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
-  const { byTicker: _v5ByTicker } = useV5ScanBatch(_tickers);
+  const { byTicker: _toppsByTicker } = useTradingOppsBatch(_tickers);
   // Single source of truth for price + day-change: prices_eod via the
   // batched hook. Replaces the old scanData.signals.screener.close read,
   // which had its own refresh cadence and could disagree with the
@@ -715,10 +693,10 @@ export default function WatchlistTable({
         weekLow:  sc.week_52_low  != null ? Number(sc.week_52_low)  : null,
         weekHigh: sc.week_52_high != null ? Number(sc.week_52_high) : null,
         _risk:    _riskByTicker[t] || null,
-        _v5:      _v5ByTicker[t] || null,
+        _topps:   _toppsByTicker[t] || null,
       };
     });
-  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker, _v5ByTicker, userWatchlistTickers, watchBusy, portfolioAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker, _toppsByTicker, userWatchlistTickers, watchBusy, portfolioAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <MTTable
@@ -726,7 +704,7 @@ export default function WatchlistTable({
       rows={enriched}
       rowKey="ticker"
       onRowClick={(row) => onOpenTicker?.(row.ticker)}
-      storageKey={tableKey}
+      storageKey={`${tableKey}-s2`}
       features="full"
       emptyMessage={emptyMessage || "No tickers on your watchlist. Add one below."}
     />

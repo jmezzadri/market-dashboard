@@ -559,13 +559,90 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={eyebrow}>Trading Opportunities</div>
         <h2 style={h2}>Specific names to act on today.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the regime. The Asset Tilt tells you how to lean by sector. Trading Opportunities turns that lean into <strong>specific tickers</strong> — a Buy Watch list and a Sell Watch list that refresh every trading day.
+          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the regime; the Asset Tilt tells you how to lean by sector; Trading Opportunities turns that lean into <strong>specific tickers</strong>. It is an end-of-day screener — it runs once after the close and publishes a daily buy list of individual stocks worth a closer look.
+        </p>
+
+        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>The universe it scans.</h3>
+        <p style={{ ...body, marginTop: 8 }}>
+          Every night the screener scores every US-listed common stock that clears two plain gates: the share price is at least $5, and the stock trades at least $1.5 million of value a day, measured as a 90-day median. That leaves roughly two to two-and-a-half thousand names. Anything cheaper or thinner is dropped before scoring — those are names a normal-sized order cannot get into and out of cleanly. There is no trend or momentum pre-filter; the score itself does all the work of separating signal from noise.
+        </p>
+
+        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>How a name earns its score.</h3>
+        <p style={{ ...body, marginTop: 8 }}>
+          Each name is scored on two live layers of evidence. The <strong>insider layer</strong> is the anchor — corporate insiders buying their own company&rsquo;s stock is, by a wide margin, the strongest predictor in our own testing. The <strong>trend layer</strong> is a guardrail that keeps the screener from chasing a falling or badly overheated stock. Two further layers — large off-exchange block trades (&ldquo;dark pool&rdquo;) and end-of-day options activity — are built and collecting data every night, but they contribute <strong>zero points</strong> until they have enough of their own history to be tested honestly. Because of that, today&rsquo;s score tops out at <strong>5</strong>; it rises to 10 once those two layers switch on.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
-          The scanner runs over a universe of roughly three thousand US-listed equities each evening. For each name, it computes a score from eight technical and qualitative signals (insider buying, options unusual activity, momentum vs. moving averages, relative strength against the index hedge, liquidity, short interest, recent volatility, and a regulatory-news veto). Names with the highest composite score and that pass three hard gates appear on the Buy Watch tile. Names with collapsing scores plus deterioration in fundamentals appear on the Sell Watch tile.
+          The insider layer rewards three patterns of open-market buying by a company&rsquo;s own officers and directors, over a rolling 30-day window. Routine pre-scheduled trades and trades by 10%-plus shareholders are excluded — only conviction buying counts.
+        </p>
+        <table style={tableBase}>
+          <thead><tr>
+            <th style={th}>Insider pattern</th>
+            <th style={th}>What earns the points</th>
+            <th style={{ ...th, textAlign: 'center' }}>Points</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Conviction buy</td>
+              <td style={td}>A CEO or CFO buying on the open market, in a trade that lifts their personal stake by at least 10% and is worth at least $100,000.</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>4</td>
+            </tr>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Size</td>
+              <td style={td}>All insider buying in the window, added up, comes to at least 0.05% of the company&rsquo;s market value.</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>4</td>
+            </tr>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Consensus</td>
+              <td style={td}>At least three different insiders buying within the same window.</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>2</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ ...body, marginTop: 14 }}>
+          The insider layer is capped at 4 points, so one stock cannot run away with the score on insider evidence alone. The trend layer then adjusts: a name trading above its 200-day average price adds 1 point; below it subtracts 2; an overheated momentum reading (a 14-day RSI above 65) subtracts another 2. A name <strong>launches</strong> onto the buy list when its combined score reaches <strong>3</strong>.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
-          Click any row on the page for the full breakdown: signal-by-signal scores, the live price chart, the option chain, insider-trading filings, and the news catalysts that explain why the name showed up.
+          One refinement matters: insider signals fade with age. A fresh insider buy carries full weight for its first 15 days, then tapers steadily to nothing by day 31. The list retires its own stale ideas — a buy that surfaced three weeks ago is worth less than one filed yesterday.
+        </p>
+
+        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>What the back-test showed.</h3>
+        <p style={{ ...body, marginTop: 8 }}>
+          Every point value and the launch threshold above were set by a back-test, not by guesswork — the same standing rule that retired the previous screener. Across the twelve months of insider history available, the 88 names the screener launched, measured one month (21 trading days) later:
+        </p>
+        <table style={tableBase}>
+          <thead><tr>
+            <th style={th}>Measure</th>
+            <th style={{ ...th, textAlign: 'center' }}>Result</th>
+            <th style={th}>In plain terms</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Win rate</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>59.1%</td>
+              <td style={td}>Roughly three of every five launched names were higher a month later.</td>
+            </tr>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Average move</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>+5.96%</td>
+              <td style={td}>The average launched name over the following month.</td>
+            </tr>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Versus the broad market</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>+2.42%</td>
+              <td style={td}>How much the launched names beat the average eligible stock, per month.</td>
+            </tr>
+            <tr>
+              <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>Profit factor</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>2.76</td>
+              <td style={td}>About $2.76 earned for every $1.00 lost across all launched names.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ ...body, marginTop: 14 }}>
+          The screener is built to produce a sell / short list as well as a buy list. The back-test found no reliable edge on the short side, so only the buy list is published today — the short list turns on automatically if and when the evidence supports it.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          Each name on the list carries an entry reference price, a stop, and a profit target. Clicking any row opens the full stock view — the layer-by-layer score, the price chart, and the insider filings behind it.
         </p>
         <div style={{
           marginTop: 18, padding: 16,
@@ -574,7 +651,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
           borderRadius: '0 6px 6px 0',
           fontSize: 13.5, color: 'var(--ink-1, #222)',
         }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>How the regime feeds in.</strong> The Trading Opportunities scanner is independent of the Signal Intelligence regime read — it scores names on their own merits. The regime read is used as a gating layer above the scanner: in Cautionary or Risk Off regimes, the Buy Watch list is pruned and the Sell Watch list is featured first. In Risk On the Buy Watch is featured first.
+          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The screener was calibrated on a single twelve-month window — and a mostly-rising one. That is enough history to launch it on, but it is not a multi-cycle proof: it has not yet been tested through a real downturn, and the stop and profit-target distances are still provisional pending the dark-pool layer. The calibration is re-checked every quarter, and immediately if a market correction enters the data. Treat the win rate as a reasonable expectation, not a promise.
         </div>
       </section>
 
