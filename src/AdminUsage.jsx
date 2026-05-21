@@ -296,41 +296,46 @@ function PeakRpm({ rows, grain }) {
   );
 }
 
-// ── REMAINING-DAILY BY SOURCE (latest reading) ──────────────────────────────
-function RemainingDailyByEndpoint({ rows }) {
+// ── ACCOUNT-WIDE DAILY QUOTA (single bar) ───────────────────────────────────
+// remaining_daily / limit_daily come straight from UW's response headers and
+// describe the ENTIRE account, regardless of which pipeline observed them.
+// Showing them "by source" mislabelled the account total as one pipeline's use.
+function AccountQuotaBar({ rows }) {
   const latest = useMemo(() => {
-    // Latest row per source that reported remaining_daily + limit_daily.
-    const byKey = new Map();
+    let best = null;
     (rows || []).forEach(r => {
       if (r.remaining_daily == null || r.limit_daily == null) return;
-      const k = r.source;
-      const prev = byKey.get(k);
-      if (!prev || new Date(r.started_at) > new Date(prev.started_at)) byKey.set(k, r);
+      if (!best || new Date(r.started_at) > new Date(best.started_at)) best = r;
     });
-    return SOURCE_ORDER.map(s => byKey.get(s)).filter(Boolean);
+    return best;
   }, [rows]);
 
-  if (!latest.length) return <EmptyPanel msg="No rate-limit headers observed yet." />;
+  if (!latest) {
+    return (
+      <ChartPanel title="Account-wide daily quota" subtitle="UW Basic: 20,000 calls/day">
+        <EmptyPanel msg="No rate-limit headers observed yet." />
+      </ChartPanel>
+    );
+  }
+
+  const lim = Number(latest.limit_daily) || 0;
+  const used = Math.max(0, lim - (Number(latest.remaining_daily) || 0));
+  const pct = lim > 0 ? Math.min(100, Math.round((used / lim) * 100)) : 0;
+  const tone = pct >= 85 ? "var(--red)" : pct >= 60 ? "#B8860B" : "var(--green)";
 
   return (
-    <ChartPanel title="Daily quota remaining (latest reading by source)" subtitle="UW Basic: 20,000 calls/day shared across all scanners">
-      <div style={{padding:"6px 14px 14px",display:"flex",flexDirection:"column",gap:8}}>
-        {latest.map(r => {
-          const used = Math.max(0, (Number(r.limit_daily)||0) - (Number(r.remaining_daily)||0));
-          const pct = r.limit_daily > 0 ? Math.min(100, Math.round((used / r.limit_daily) * 100)) : 0;
-          const tone = pct >= 85 ? "var(--red)" : pct >= 60 ? "#B8860B" : "var(--green)";
-          return (
-            <div key={r.source} style={{display:"grid",gridTemplateColumns:"140px 1fr 140px",alignItems:"center",gap:10}}>
-              <div style={{fontSize:12,color:"var(--text-2)"}}>{SOURCE_LABELS[r.source]||r.source}</div>
-              <div style={{height:10,background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:4,overflow:"hidden"}}>
-                <div style={{width:`${pct}%`,height:"100%",background:tone}}/>
-              </div>
-              <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",textAlign:"right"}}>
-                {fmtInt(used)} / {fmtInt(r.limit_daily)} ({fmtPct(pct)})
-              </div>
-            </div>
-          );
-        })}
+    <ChartPanel title="Account-wide daily quota" subtitle="Shared across every UW pipeline">
+      <div style={{padding:"8px 14px 14px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{height:14,background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:4,overflow:"hidden"}}>
+          <div style={{width:`${pct}%`,height:"100%",background:tone}}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
+          <span>{fmtInt(used)} / {fmtInt(lim)} used ({fmtPct(pct)})</span>
+          <span>as of {etTimeShort(latest.started_at)}</span>
+        </div>
+        <div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}>
+          The whole account's usage, read from Unusual Whales' response headers — not the usage of any single pipeline. The last reading is taken mid-afternoon, so the true end-of-day total runs higher.
+        </div>
       </div>
     </ChartPanel>
   );
@@ -549,13 +554,26 @@ export default function AdminUsage() {
   // Top-line KPIs (today only, in ET).
   const today = etDayKey(new Date().toISOString());
   const todaysRows = (rows || []).filter(r => etDayKey(r.started_at) === today);
-  const callsToday = todaysRows.reduce((a,r) => a + (Number(r.calls_made)||0), 0);
   const peakRpmToday = todaysRows.reduce((m,r) => Math.max(m, Number(r.peak_rpm)||0), 0);
   const latestRow = (rows || [])[0];
   const minRemaining = (rows || [])
     .filter(r => r.remaining_daily != null && etDayKey(r.started_at) === today)
     .reduce((m,r) => m==null ? r.remaining_daily : Math.min(m, r.remaining_daily), null);
   const failuresToday = todaysRows.filter(r => r.status === "failed").length;
+
+  // Account-wide UW usage. UW returns the running daily total in its response
+  // headers; the metered pipelines capture it as remaining_daily / limit_daily.
+  // That figure covers the WHOLE account — every pipeline that calls UW — not
+  // just the ones this page meters by name. It is the only honest top-line.
+  const quotaRowsToday = todaysRows.filter(r => r.remaining_daily != null && r.limit_daily != null);
+  const lastQuotaRow = quotaRowsToday.reduce(
+    (a,r) => (!a || new Date(r.started_at) > new Date(a.started_at)) ? r : a, null);
+  const accountLimit = lastQuotaRow != null ? (Number(lastQuotaRow.limit_daily)||0) : 20000;
+  const accountUsedToday = lastQuotaRow != null
+    ? Math.max(0, accountLimit - (Number(lastQuotaRow.remaining_daily)||0))
+    : null;
+  const accountPct = (accountUsedToday != null && accountLimit > 0)
+    ? Math.round((accountUsedToday / accountLimit) * 100) : null;
 
   return (
     <main className="fade-in main-padded" style={{maxWidth:1200, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
@@ -578,10 +596,16 @@ export default function AdminUsage() {
 
       {/* KPI strip */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(0,1fr))",gap:12,marginBottom:16}}>
-        <KpiTile label="Calls today" value={fmtInt(callsToday)} sub={`${todaysRows.length} runs`} />
+        <KpiTile label="UW account usage today" value={accountUsedToday!=null ? fmtInt(accountUsedToday) : "—"} sub={lastQuotaRow ? `of ${fmtInt(accountLimit)}/day · ${fmtPct(accountPct)} · as of ${etTimeShort(lastQuotaRow.started_at)}` : "no quota reading yet today"} tone={accountPct!=null ? (accountPct>=85?"bad":accountPct>=60?"warn":"good") : undefined} />
         <KpiTile label="Remaining (min)" value={minRemaining!=null ? fmtInt(minRemaining) : "—"} sub="across sources reporting" tone={minRemaining!=null && minRemaining < 2000 ? "bad" : minRemaining!=null && minRemaining < 5000 ? "warn" : "good"} />
         <KpiTile label="Peak RPM today" value={peakRpmToday ? peakRpmToday.toFixed(0) : "—"} sub="Basic tier ceiling: 120/min" tone={peakRpmToday>=100?"bad":peakRpmToday>=80?"warn":"good"} />
         <KpiTile label="Last run" value={latestRow ? etTimeShort(latestRow.started_at) : "—"} sub={latestRow ? `${SOURCE_LABELS[latestRow.source]||latestRow.source} · ${latestRow.status}` : "no runs yet"} tone={failuresToday>0?"warn":"good"} />
+      </div>
+
+      {/* Coverage caveat — the per-feed charts below only meter pipelines that
+          opt into the usage logger; the account-usage KPI above is the true total. */}
+      <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"11px 14px",fontSize:12,color:"var(--text-2)",lineHeight:1.55,marginBottom:16}}>
+        <strong style={{color:"var(--text)"}}>Coverage.</strong> The "UW account usage today" figure above is the true account-wide total, read from Unusual Whales' own response headers. The per-feed charts below currently meter only 2 of the roughly 8 pipelines that call Unusual Whales — the four daily ingest feeds added in the May 2026 Trading Opportunities release are not yet wired into this log, so the stacked chart, period totals, and per-feed run list under-count. Full per-feed coverage is in progress.
       </div>
 
       {error && (
@@ -605,7 +629,7 @@ export default function AdminUsage() {
         <StackedCalls rows={rows} grain={grain} />
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <PeakRpm rows={rows} grain={grain} />
-          <RemainingDailyByEndpoint rows={rows} />
+          <AccountQuotaBar rows={rows} />
         </div>
         <RecentRunsTable rows={rows} />
       </div>
