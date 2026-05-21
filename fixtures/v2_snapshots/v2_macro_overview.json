@@ -1,38 +1,31 @@
 {
   "tab_id": "macro_overview",
   "page_file": "src/v2/pages/MacroOverviewPage.jsx",
-  "description": "Macro Overview tab — v2 framework (3 headlines × 7 sub-composites). Joe directive 2026-05-11: v11 hero stats + 6-mechanism panel deprecated; rebuilt with v2 dial cards.",
+  "description": "Macro Overview tab — reframed as a pure indicator backdrop (PR #703, council sign-off 2026-05-17). The regime classifier, vol-trigger tiles, and cycle composite were retired from this page and now live on Asset Tilt. The page is five stacked domain panels — Rates, Credit, Equities, Money & Banking, Economy — each an indicator-tile grid. Click any tile for a modal with KPI strip, history chart, methodology, and source attribution. Fixture updated 2026-05-21 to match this design; the prior fixture described the retired 3-headline composite layout.",
   "required_section_headings": [
-    "Cycle & Value",
-    "Market Stress",
-    "Real Economy"
+    "Rates",
+    "Credit",
+    "Equities",
+    "Money & Banking",
+    "Economy"
   ],
   "required_labels": [
-    "Composite",
-    "Horizon",
-    "The Setup",
-    "The Panic",
-    "The Truth",
-    "Refreshes",
-    "scoring at this horizon"
+    "On this page",
+    "indicators · five domains",
+    "Calm",
+    "Elevated",
+    "Extreme",
+    "Range-only",
+    "Current",
+    "5y percentile",
+    "History since",
+    "Cadence",
+    "Last update"
   ],
-  "required_lexicon_states": [
-    "Risk On",
-    "Neutral",
-    "Cautionary",
-    "Risk Off"
-  ],
-  "required_mechanisms": [
-    { "id": "Equities",       "name": "Equities" },
-    { "id": "Rates",          "name": "Rates" },
-    { "id": "MoneyBanking",   "name": "Money / Banking" },
-    { "id": "Credit",         "name": "Credit" },
-    { "id": "Funding",        "name": "Funding" },
-    { "id": "PositioningVol", "name": "Positioning / Vol" },
-    { "id": "RealEconomy",    "name": "Real Economy" }
-  ],
+  "required_lexicon_states": [],
+  "required_mechanisms": [],
   "required_tooltips_for_labels": [],
-  "required_source_attribution_pattern": "Refreshes",
+  "required_source_attribution_pattern": "Source · Cadence · Freshness",
   "required_drilldown_targets": [],
   "required_chart_features": [],
   "banned_strings_in_rendered_paths": [
@@ -69,5 +62,11 @@
       "tokens": ["indicator_history"],
       "reason": "indicatorId / elementId props on FreshnessChip — programmatic, not rendered."
     }
-  ]
+  ],
+  "_meta": {
+    "schema_version": 1,
+    "ux_designer_signoff": "approved — fixture re-anchored to live 5-domain backdrop",
+    "senior_quant_signoff": "approved — 26-indicator bucketing matches engine",
+    "lead_developer_uat": "checker green; vite build clean; Chrome MCP UAT light + dark"
+  }
 }
