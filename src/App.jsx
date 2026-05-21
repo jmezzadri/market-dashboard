@@ -5004,16 +5004,16 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
   const CX = 66, CY = 68, R = 55;
   const tipX = CX + R * Math.cos(nrad);
   const tipY = CY - R * Math.sin(nrad);
+  // Compact layout — Joe directive 2026-05-21: much smaller dials, text
+  // trimmed. The sector pie below is the focus; the dials are a small
+  // secondary read. A little arc on the left, label + state stacked right.
   return (
     <div style={{
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
-      borderRadius: 8, padding: '10px 12px 8px',
+      borderRadius: 7, padding: '6px 9px', display: 'flex',
+      alignItems: 'center', gap: 8,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontStyle: 'italic', fontWeight: 400, color: 'var(--text)' }}>{label}</div>
-        <div style={{ fontSize: 8.5, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{sublabel}</div>
-      </div>
-      <svg viewBox="0 0 132 80" style={{ width: '100%', display: 'block', margin: '4px auto 0' }}>
+      <svg viewBox="0 0 132 80" style={{ width: 56, flexShrink: 0, display: 'block' }}>
         <path d="M 11 67 A 55 55 0 0 1 30 27"   fill="rgba(0,113,227,0.18)" />
         <path d="M 30 27 A 55 55 0 0 1 66 13"   fill="rgba(0,113,227,0.42)" />
         <path d="M 66 13 A 55 55 0 0 1 102 27"  fill="rgba(0,113,227,0.68)" />
@@ -5022,15 +5022,15 @@ function HomeMiniDial({ label, sublabel, pct, valueText, metaText, markers }) {
           const a = (180 - (m.pctile * 1.8)) * Math.PI / 180;
           const mx = CX + R * Math.cos(a);
           const my = CY - R * Math.sin(a);
-          return <circle key={i} cx={mx} cy={my} r="2.4" fill="var(--text)" />;
+          return <circle key={i} cx={mx} cy={my} r="2.6" fill="var(--text)" />;
         })}
-        <line x1={CX} y1={CY} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx={tipX} cy={tipY} r="3.4" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.4" />
-        <circle cx={CX} cy={CY} r="3.4" fill="var(--accent)" />
+        <line x1={CX} y1={CY} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round" />
+        <circle cx={tipX} cy={tipY} r="4" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.5" />
+        <circle cx={CX} cy={CY} r="4" fill="var(--accent)" />
       </svg>
-      <div style={{ textAlign: 'center', marginTop: 2 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, lineHeight: 1, color: 'var(--text)' }}>{valueText}</div>
-        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.3 }}>{metaText}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 8, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.25 }}>{label}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontStyle: 'italic', lineHeight: 1.2, color: 'var(--text)' }}>{valueText}</div>
       </div>
     </div>
   );
@@ -5103,7 +5103,6 @@ function HomeAssetTiltEngineRead() {
 // recommended weight, and the difference versus the S&P 500.
 function HomeSectorPie() {
   const [alloc, setAlloc] = React.useState(null);
-  const [hover, setHover] = React.useState(null);
   React.useEffect(() => {
     fetch('/v10_allocation.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setAlloc).catch(() => {});
@@ -5116,13 +5115,19 @@ function HomeSectorPie() {
       </div>
     );
   }
+  // Short labels so the slice callouts stay legible at tile width.
+  const ABBR = {
+    'Information Technology': 'Info Tech',
+    'Communication Services': 'Comm Svcs',
+    'Consumer Discretionary': 'Cons Disc.',
+    'Consumer Staples': 'Cons Staples',
+  };
   // Sort largest-weight first so the biggest positions get the deepest blue.
   const rows = sectors
     .map(s => ({
       name: s.sector || '—',
+      short: ABBR[s.sector] || s.sector || '—',
       weight: Number(s.weight) || 0,
-      vsSpyPp: s.vs_spy_pp == null ? null : Number(s.vs_spy_pp),
-      rating: s.rating || null,
     }))
     .sort((a, b) => b.weight - a.weight);
   const total = rows.reduce((acc, r) => acc + r.weight, 0) || 1;
@@ -5130,112 +5135,81 @@ function HomeSectorPie() {
   // and matches the dial palette. Deepest for the largest slice.
   const fillFor = (i, n) => {
     const t = n > 1 ? i / (n - 1) : 0;
-    const op = 0.92 - t * 0.66;
-    return 'rgba(0,113,227,' + op.toFixed(3) + ')';
+    return 'rgba(0,113,227,' + (0.92 - t * 0.66).toFixed(3) + ')';
   };
-  // Geometry — donut-style pie, viewBox 0 0 200 132, centred at (100,66).
-  const CX = 100, CY = 66, R = 58, RIN = 30;
-  const polar = (cx, cy, r, deg) => {
+  // A TRUE pie (no centre hole) — Joe directive 2026-05-21: larger pie, not a
+  // doughnut, with the sector + % labelled directly on the chart instead of
+  // hover tooltips. viewBox leaves room for callout labels on both sides.
+  const VBW = 360, VBH = 230, CX = 178, CY = 108, R = 76;
+  const polar = (r, deg) => {
     const a = (deg - 90) * Math.PI / 180;
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
   };
-  const arcPath = (startDeg, endDeg) => {
-    const [ox1, oy1] = polar(CX, CY, R, endDeg);
-    const [ox2, oy2] = polar(CX, CY, R, startDeg);
-    const [ix1, iy1] = polar(CX, CY, RIN, startDeg);
-    const [ix2, iy2] = polar(CX, CY, RIN, endDeg);
+  const wedge = (startDeg, endDeg) => {
+    const [x1, y1] = polar(R, startDeg);
+    const [x2, y2] = polar(R, endDeg);
     const large = (endDeg - startDeg) > 180 ? 1 : 0;
-    return [
-      'M', ox1, oy1,
-      'A', R, R, 0, large, 0, ox2, oy2,
-      'L', ix1, iy1,
-      'A', RIN, RIN, 0, large, 1, ix2, iy2,
-      'Z',
-    ].join(' ');
+    return ['M', CX, CY, 'L', x1.toFixed(2), y1.toFixed(2),
+            'A', R, R, 0, large, 1, x2.toFixed(2), y2.toFixed(2), 'Z'].join(' ');
   };
   let cursor = 0;
   const slices = rows.map((r, i) => {
     const sweep = (r.weight / total) * 360;
-    const startDeg = cursor;
-    const endDeg = cursor + sweep;
-    cursor = endDeg;
-    return { ...r, i, startDeg, endDeg };
+    const s = { ...r, i, startDeg: cursor, endDeg: cursor + sweep, midDeg: cursor + sweep / 2 };
+    cursor += sweep;
+    return s;
   });
-  const hov = hover != null ? slices[hover] : null;
+  // Callout labels — anchor each at its slice mid-angle, then spread the
+  // labels vertically per side so adjacent small slices don't collide.
+  const LABEL_H = 16;
+  const place = (side) => {
+    const list = slices
+      .filter(s => (side === 'right' ? polar(R, s.midDeg)[0] >= CX : polar(R, s.midDeg)[0] < CX))
+      .map(s => ({ s, y: polar(R, s.midDeg)[1] }))
+      .sort((a, b) => a.y - b.y);
+    for (let i = 1; i < list.length; i++) {
+      if (list[i].y - list[i - 1].y < LABEL_H) list[i].y = list[i - 1].y + LABEL_H;
+    }
+    const overflow = list.length ? list[list.length - 1].y - (VBH - 8) : 0;
+    if (overflow > 0) list.forEach(o => { o.y -= overflow; });
+    list.forEach(o => { if (o.y < 12) o.y = 12; });
+    return list.map(o => ({ ...o, side }));
+  };
+  const labels = [...place('right'), ...place('left')];
   return (
     <div style={{
-      position: 'relative',
       background: 'var(--surface)', border: '0.5px solid var(--border-faint)',
-      borderRadius: 8, padding: '12px 12px 10px',
+      borderRadius: 8, padding: '12px 10px',
     }}>
       <div style={{
         fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)',
         letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600,
-        marginBottom: 6, textAlign: 'center',
+        marginBottom: 4, textAlign: 'center',
       }}>Recommended sector allocation</div>
-      <svg viewBox="0 0 200 132" style={{ width: '100%', maxWidth: 240, display: 'block', margin: '0 auto' }}>
-        {slices.map((s) => {
-          const isHover = hover === s.i;
+      <svg viewBox={`0 0 ${VBW} ${VBH}`} style={{ width: '100%', display: 'block' }}>
+        {slices.map((s) => (
+          <path key={s.name} d={wedge(s.startDeg, s.endDeg)}
+                fill={fillFor(s.i, slices.length)}
+                stroke="var(--surface)" strokeWidth="1.5" />
+        ))}
+        {labels.map(({ s, y, side }) => {
+          const [ax, ay] = polar(R, s.midDeg);
+          const [bx] = polar(R + 10, s.midDeg);
+          const labelX = side === 'right' ? VBW - 6 : 6;
           return (
-            <path
-              key={s.name}
-              d={arcPath(s.startDeg, s.endDeg)}
-              fill={fillFor(s.i, slices.length)}
-              stroke="var(--surface)"
-              strokeWidth="1.5"
-              style={{
-                cursor: 'pointer',
-                opacity: hover == null || isHover ? 1 : 0.45,
-                transition: 'opacity .12s',
-              }}
-              onMouseEnter={() => setHover(s.i)}
-              onMouseLeave={() => setHover(null)}
-            />
+            <g key={'L' + s.name}>
+              <polyline
+                points={`${ax.toFixed(1)},${ay.toFixed(1)} ${bx.toFixed(1)},${y.toFixed(1)} ${labelX},${y.toFixed(1)}`}
+                fill="none" stroke="var(--border)" strokeWidth="0.9" />
+              <text x={labelX} y={y + 3} textAnchor={side === 'right' ? 'end' : 'start'}
+                    style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fill: 'var(--text)' }}>
+                {s.short}{' '}
+                <tspan style={{ fill: 'var(--text-muted)' }}>{(s.weight * 100).toFixed(1)}%</tspan>
+              </text>
+            </g>
           );
         })}
-        {/* Centre label — hovered sector weight, or sector count at rest. */}
-        {hov ? (
-          <>
-            <text x={CX} y={CY - 2} textAnchor="middle"
-                  style={{ fontFamily: 'var(--font-display)', fontSize: 16, fill: 'var(--text)' }}>
-              {(hov.weight * 100).toFixed(1) + '%'}
-            </text>
-            <text x={CX} y={CY + 11} textAnchor="middle"
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 7.5, fill: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              weight
-            </text>
-          </>
-        ) : (
-          <>
-            <text x={CX} y={CY - 1} textAnchor="middle"
-                  style={{ fontFamily: 'var(--font-display)', fontSize: 16, fill: 'var(--text)' }}>
-              {slices.length}
-            </text>
-            <text x={CX} y={CY + 11} textAnchor="middle"
-                  style={{ fontFamily: 'var(--font-ui)', fontSize: 7.5, fill: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              sectors
-            </text>
-          </>
-        )}
       </svg>
-      {/* Hover tooltip — sector name, recommended weight, difference vs S&P 500. */}
-      {hov && (
-        <div style={{
-          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--text)', color: 'var(--surface)',
-          padding: '7px 11px', borderRadius: 6, fontSize: 11, lineHeight: 1.5,
-          fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap', pointerEvents: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.18)', zIndex: 5,
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: 1 }}>{hov.name}</div>
-          <div style={{ opacity: 0.85 }}>
-            {(hov.weight * 100).toFixed(1)}% weight
-            {hov.vsSpyPp != null && (
-              <> · {(hov.vsSpyPp >= 0 ? '+' : '−') + Math.abs(hov.vsSpyPp).toFixed(1)}% vs S&P 500</>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
