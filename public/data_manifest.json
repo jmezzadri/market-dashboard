@@ -2676,8 +2676,8 @@
       "id": "v10-allocation-daily",
       "name": "v10_allocation",
       "category": "scenario",
-      "description": "v10.1c Asset Tilt allocator output. Reads cycle_board_snapshot.json, applies decision rules (defensive activation at stress >= 4, leverage 1.25x in calm regimes, all 4 hard caps), produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
-      "sourcing_mode": "derived from cycle-mechanism-board-daily",
+      "description": "v10.2 Asset Tilt allocator output. The asset-class split (equity %, defensive %, defensive-sleeve composition) is read from the 2-axis MacroTilt engine (macrotilt_engine.json); the 6 cycle mechanisms drive only the sector / industry-group tilts. Leverage 1.25x in calm regimes; all 4 hard caps enforced. Produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
+      "sourcing_mode": "derived from macrotilt-engine-daily (equity/defensive split + defensive sleeve) and cycle-mechanism-board-daily (sector/IG tilts)",
       "cadence": "daily (22:45 UTC weekdays)",
       "release_calendar": "us-business-day",
       "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
@@ -2706,7 +2706,8 @@
       "freshness_sla_hours": 120,
       "consumer_surfaces": [
         "src/App.jsx home Asset Tilt preview tile",
-        "src/pages/AssetAllocation.jsx Today's Engine Read"
+        "src/pages/AssetAllocation.jsx Today's Engine Read",
+        "scripts/compute_v10_allocation.py (v10 allocator \u2014 reads equity %, defensive %, active_sleeve_composition for the Recommended Allocations asset-class split)"
       ],
       "output_path": "public/macrotilt_engine.json",
       "producer_script": "scripts/compute_macrotilt_engine.py",
