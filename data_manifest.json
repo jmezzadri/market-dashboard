@@ -1,6 +1,6 @@
 {
-  "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown \u2014 needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from \u201cengine not yet built\u201d to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily.",
-  "version": 6,
+  "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown \u2014 needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from \u201cengine not yet built\u201d to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily. v7 (2026-05-22) registers news.market-headlines-multisource, the Home market-news headlines feed, after a SCAN_345PM idempotency-gate shell syntax error silently froze it at 2026-05-19.",
+  "version": 7,
   "_freshness_sla_basis": "Per LESSONS.md: daily=49h (covers T+1 publish + weekend), weekly=192h, monthly=1200h, quarterly=3600h. Real-time (Supabase reads with no producer) use null. Manual/one-shot use null.",
   "_open_questions": [
     "portfolio.nav-chart \u2014 Vercel cron path /api/portfolio-history-snapshot referenced in code but not visible in vercel.json (only options-mark-batch is listed). Producer + schedule needs verification.",
@@ -773,6 +773,24 @@
       "target_storage": "public/v10_allocation.json",
       "failure_mode": "Asset Tilt freezes at prior day's allocation; Home Asset Tilt tile + Macro stance chip go stale.",
       "owner": "Senior Quant"
+    },
+    "news.market-headlines-multisource": {
+      "category": "news",
+      "element": "Macro market-news headlines (Home 'Today's headlines' / Market News tile)",
+      "sourcing_mode": "stp",
+      "source_vendor": "Multi-source RSS (ZeroHedge public RSS + CNBC / Bloomberg / Reuters / FT / WSJ)",
+      "license_tier": "free",
+      "cadence": "daily",
+      "refresh_trigger": "github-actions: SCAN_345PM_WEEKDAYS.yml (baked into the scanner run)",
+      "schedule_et": "15:30 ET primary + 17:30 ET + 21:30 ET backups, weekdays",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "Home -> Market News / Today's headlines tile"
+      ],
+      "target_storage": "public/latest_scan_data.json -> signals.market_news (items[] + zerohedge_public[])",
+      "failure_mode": "Home headlines tile freezes on the last good scan's news; no freshness chip currently warns the user.",
+      "owner": "Data Steward",
+      "notes": "Sub-feed baked into the scanner output by trading-scanner/scanner/market_news.py, distinct from news.ticker-events-news (the per-ticker UW modal feed). Registered v7 (2026-05-22) after the SCAN_345PM idempotency-gate shell syntax error (introduced in the bug #1187 gate rewrite) silently froze this feed at 2026-05-19. RECOMMENDED FOLLOW-UP: add a freshness chip to the Home headlines tile so future staleness is not silent."
     },
     "news.ticker-events-news": {
       "category": "news",
