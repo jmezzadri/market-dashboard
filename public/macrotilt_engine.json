@@ -15,8 +15,8 @@
   "yield_regime": {
     "state": "Inflationary",
     "delta_y_3m_bp": 49.0,
-    "delta_y_3m_bp_live": 48.0,
-    "live_as_of": "2026-05-20",
+    "delta_y_3m_bp_live": 49.0,
+    "live_as_of": "2026-05-21",
     "delta_y_3m_percentile_5y": 0.801,
     "inflationary_threshold_bp": 32.0,
     "deflationary_threshold_bp": -11.0,
