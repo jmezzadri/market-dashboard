@@ -175,27 +175,25 @@ def _finalize_prices(df):
               .sort_values(["ticker", "trade_date"]).reset_index(drop=True))
 
 
-def _pull_prices(since, cached, px_pkl):
+def _pull_prices(start_after=None, since=None, cached=None, px_pkl=None):
     """Keyset-pull prices_eod paginated by the PRIMARY KEY (ticker,
-    trade_date).
+    trade_date) — the only index that keeps every page fast regardless of
+    depth. Paginating by (trade_date, ticker) instead has no serving index;
+    the database sorts ~1.3M rows per page and cancels it with a statement
+    timeout (HTTP 500), which was the real cause of the pull failures.
 
-    This is deliberate. The table's only btree indexes are the primary key
-    (ticker, trade_date) and a (trade_date DESC) date index. Paginating by
-    (trade_date, ticker) — the previous approach — has no serving index for
-    its keyset cursor, so the database sorts ~1.3M rows for every page and
-    cancels the statement with a timeout (HTTP 500). That pathological query,
-    not general Supabase flakiness, was the real cause of the screener's pull
-    failures. Paginating by the primary key keeps every page an index scan,
-    fast regardless of depth.
-
-    since=None         -> pull the whole table (cold start).
-    since='YYYY-MM-DD' -> add a trade_date>=since filter (daily incremental
-                          refresh — usually one new trading day).
+    start_after=(ticker, 'YYYY-MM-DD') -> pull rows whose primary key is
+        strictly after that position. Used to RESUME an interrupted cold
+        pull from exactly where the checkpointed cache left off.
+    since='YYYY-MM-DD' -> also filter trade_date >= since (the daily
+        incremental refresh once the cache is complete).
+    Neither set -> pull the whole table (cold start from scratch).
 
     Every _CHECKPOINT_PAGES pages the merge of (cached + rows-so-far) is
-    written to px_pkl, so an interrupted pull resumes instead of restarting."""
+    written to px_pkl, so an interrupted pull leaves resumable progress."""
     PAGE = 1000
-    rows, cur_tk, cur_d, pages = [], None, None, 0
+    rows, pages = [], 0
+    cur_tk, cur_d = (start_after if start_after else (None, None))
     while True:
         sel = (f"prices_eod?select={_PRICE_COLS}"
                f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
@@ -251,16 +249,29 @@ def _pull_insider():
 def load_data(force_pull: bool = False):
     """Return (prices_df, insider_df).
 
-    Price history is cached at ./data/prices.pkl and refreshed INCREMENTALLY:
-    each run loads the cache and fetches only prices_eod rows on/after the
-    cache's latest trade_date. A cold start (no cache, or force_pull=True)
-    pulls the whole table once, checkpointing as it goes so an interrupted
-    pull resumes. insider_history is small and is re-pulled in full each run."""
+    Price history is cached at ./data/prices.pkl; a sidecar
+    ./data/prices_meta.json records whether that cache is COMPLETE. The three
+    cases:
+
+      * no cache              -> cold pull of the whole table.
+      * cache, not complete   -> a previous cold pull was interrupted; RESUME
+                                 it from the last primary-key position cached.
+      * cache, complete       -> incremental refresh: fetch only rows on/after
+                                 the cache's latest trade_date.
+
+    The cold pull paginates by the primary key and checkpoints every
+    _CHECKPOINT_PAGES pages, so a database outage mid-pull only costs the
+    pages since the last checkpoint — the next run resumes from there. The
+    completeness marker is what makes a partial cold pull resume correctly
+    instead of being mistaken for a complete cache. force_pull rebuilds from
+    scratch (used by the quarterly backtest). insider_history is small and is
+    re-pulled in full every run."""
     os.makedirs(DATA_DIR, exist_ok=True)
     px_pkl = os.path.join(DATA_DIR, "prices.pkl")
     in_pkl = os.path.join(DATA_DIR, "insider.pkl")
+    meta_path = os.path.join(DATA_DIR, "prices_meta.json")
 
-    cached = None
+    cached, meta = None, {}
     if not force_pull and os.path.exists(px_pkl):
         try:
             c = pd.read_pickle(px_pkl)
@@ -269,19 +280,41 @@ def load_data(force_pull: bool = False):
                 cached = c
         except Exception as exc:                           # noqa: BLE001
             print(f"    price cache unreadable ({exc}) — falling back to a full pull")
+    if cached is not None and os.path.exists(meta_path):
+        try:
+            meta = json.load(open(meta_path))
+        except Exception:                                  # noqa: BLE001
+            meta = {}
 
-    if cached is not None:
+    if cached is None:
+        print("    no price cache — full pull (one-time; checkpoints as it goes)")
+        px = _finalize_prices(_pull_prices(px_pkl=px_pkl))
+    elif meta.get("complete"):
         since = cached["trade_date"].max().strftime("%Y-%m-%d")
-        print(f"    price cache: {len(cached):,} rows through {since} — "
-              f"fetching only rows on/after {since}")
-        fresh = _pull_prices(since, cached, px_pkl)
+        print(f"    complete cache: {len(cached):,} rows through {since} — "
+              f"incremental refresh of rows on/after {since}")
+        fresh = _pull_prices(since=since, cached=cached, px_pkl=px_pkl)
         px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
         print(f"    refreshed: +{len(fresh):,} fetched rows")
     else:
-        print("    no usable price cache — full pull (one-time; checkpoints as it goes)")
-        px = _finalize_prices(_pull_prices(None, None, px_pkl))
+        last = cached.sort_values(["ticker", "trade_date"]).iloc[-1]
+        cursor = (str(last["ticker"]),
+                  pd.Timestamp(last["trade_date"]).strftime("%Y-%m-%d"))
+        print(f"    partial cache: {len(cached):,} rows — resuming the "
+              f"interrupted cold pull after {cursor[0]} / {cursor[1]}")
+        fresh = _pull_prices(start_after=cursor, cached=cached, px_pkl=px_pkl)
+        px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
+        print(f"    resumed: +{len(fresh):,} fetched rows")
 
+    # _pull_prices returned normally, so the price history is now complete.
     px.to_pickle(px_pkl)
+    try:
+        json.dump({"complete": True, "rows": int(len(px)),
+                   "max_trade_date": px["trade_date"].max().strftime("%Y-%m-%d")},
+                  open(meta_path, "w"))
+    except Exception as exc:                               # noqa: BLE001
+        print(f"    cache meta write skipped: {exc}")
+    print(f"    prices: {len(px):,} rows, {px['ticker'].nunique():,} tickers")
 
     print("    pulling insider_history (full) ...")
     ins = _pull_insider()
