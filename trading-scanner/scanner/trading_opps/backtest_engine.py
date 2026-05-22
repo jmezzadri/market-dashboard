@@ -158,7 +158,8 @@ def _supabase_get(path: str, retries: int = 36):
 # of requests. A cold start still pulls the whole table once, but checkpoints
 # its progress so an interrupted pull resumes instead of restarting.
 _PRICE_COLS = "ticker,trade_date,open,high,low,close,volume"
-_CHECKPOINT_PAGES = 100          # checkpoint the cache every N pages (~100k rows)
+_CHECKPOINT_PAGES = 50           # periodic cache checkpoint (~50k rows); a
+                                 # failure also banks progress immediately
 
 
 def _finalize_prices(df):
@@ -194,28 +195,43 @@ def _pull_prices(start_after=None, since=None, cached=None, px_pkl=None):
     PAGE = 1000
     rows, pages = [], 0
     cur_tk, cur_d = (start_after if start_after else (None, None))
-    while True:
-        sel = (f"prices_eod?select={_PRICE_COLS}"
-               f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
-        if since is not None:
-            sel += f"&trade_date=gte.{since}"
-        if cur_tk is not None:
-            sel += (f"&or=(ticker.gt.{cur_tk},"
-                    f"and(ticker.eq.{cur_tk},trade_date.gt.{cur_d}))")
-        page = _supabase_get(sel)
-        rows.extend(page)
-        pages += 1
-        if len(page) < PAGE:
-            break
-        cur_tk, cur_d = page[-1]["ticker"], page[-1]["trade_date"]
-        if px_pkl and pages % _CHECKPOINT_PAGES == 0:
-            parts = ([cached] if cached is not None and len(cached) else []) \
-                + [pd.DataFrame(rows)]
-            try:
-                _finalize_prices(pd.concat(parts, ignore_index=True)).to_pickle(px_pkl)
-                print(f"      checkpoint — {pages} pages, {len(rows):,} new rows saved")
-            except Exception as exc:                       # noqa: BLE001
-                print(f"      checkpoint save skipped: {exc}")
+
+    def _checkpoint(tag):
+        """Bank (cached + rows-so-far) to px_pkl so the next run resumes."""
+        if not (px_pkl and rows):
+            return
+        parts = ([cached] if cached is not None and len(cached) else []) \
+            + [pd.DataFrame(rows)]
+        try:
+            _finalize_prices(pd.concat(parts, ignore_index=True)).to_pickle(px_pkl)
+            print(f"      checkpoint ({tag}) — {len(rows):,} new rows banked")
+        except Exception as exc:                           # noqa: BLE001
+            print(f"      checkpoint save skipped: {exc}")
+
+    try:
+        while True:
+            sel = (f"prices_eod?select={_PRICE_COLS}"
+                   f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
+            if since is not None:
+                sel += f"&trade_date=gte.{since}"
+            if cur_tk is not None:
+                sel += (f"&or=(ticker.gt.{cur_tk},"
+                        f"and(ticker.eq.{cur_tk},trade_date.gt.{cur_d}))")
+            page = _supabase_get(sel)
+            rows.extend(page)
+            pages += 1
+            if len(page) < PAGE:
+                break
+            cur_tk, cur_d = page[-1]["ticker"], page[-1]["trade_date"]
+            if pages % _CHECKPOINT_PAGES == 0:
+                _checkpoint(f"{pages} pages")
+    except BaseException:                                  # noqa: BLE001
+        # Any failure (a Supabase 5xx that exhausts retries, a kill) banks
+        # everything pulled so far before propagating — so even a run that
+        # dies before the first periodic checkpoint still makes progress
+        # the next run resumes from.
+        _checkpoint("interrupted")
+        raise
     return pd.DataFrame(rows)
 
 
