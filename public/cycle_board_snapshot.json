@@ -14,13 +14,13 @@
       "id": "credit",
       "num": "02",
       "name": "Credit",
-      "score": 64
+      "score": 68
     },
     {
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 43
+      "score": 44
     },
     {
       "id": "growth",
