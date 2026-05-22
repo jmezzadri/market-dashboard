@@ -1935,7 +1935,7 @@ export default function AssetTilt({ onOpenTicker }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Today's Engine Read</h2>
             <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
-              <FreshnessDot indicatorId="macrotilt_engine" asOfIso={macroEngine.as_of} />
+              <FreshnessDot indicatorId="macrotilt_engine" asOfIso={macroEngine.yield_regime?.live_as_of || macroEngine.as_of} />
               <span style={{ marginLeft: 8 }}>{macroEngine.sources?.stress_signal} · {macroEngine.sources?.yield_filter} · As of {macroEngine.as_of}</span>
             </div>
           </div>
@@ -2115,10 +2115,30 @@ export default function AssetTilt({ onOpenTicker }) {
                     return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Inflat</text></>);
                   })()}
                 </svg>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(macroEngine.yield_regime?.delta_y_3m_bp || 0) >= 0 ? "+" : ""}{macroEngine.yield_regime?.delta_y_3m_bp?.toFixed(0)} bp</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  {Math.round((macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp
-                </div>
+                {(() => {
+                  // Live daily ΔY-3M on the dial — matches the MOVE dial.
+                  // The engine emits delta_y_3m_bp_live (raw daily 10Y yield,
+                  // same 3-month horizon) alongside the weekly regime input.
+                  // The needle, percentile and regime pills stay weekly —
+                  // that is the regime call. Falls back to the weekly number
+                  // if an older engine snapshot has no live field yet.
+                  const yr = macroEngine.yield_regime || {};
+                  const liveBp = yr.delta_y_3m_bp_live != null ? yr.delta_y_3m_bp_live : yr.delta_y_3m_bp;
+                  const liveDate = yr.live_as_of || null;
+                  return (
+                    <>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(liveBp || 0) >= 0 ? "+" : ""}{liveBp != null ? liveBp.toFixed(0) : "—"} bp</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                        {Math.round((yr.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{yr.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {yr.deflationary_threshold_bp?.toFixed(0)} bp
+                      </div>
+                      {liveDate && (
+                        <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, letterSpacing: "0.02em" }}>
+                          Live · {liveDate} · regime rebalances weekly
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {/* 24-week bar strip — yield regime */}
               {backtest?.weekly?.length >= 24 && (() => {
@@ -2351,19 +2371,33 @@ export default function AssetTilt({ onOpenTicker }) {
         const fmtVal = (v) => v == null ? "—" : (isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp"));
 
         let currentVal    = last[valueKey] || 0;
-        // For the stress (Bond Vol) modal: override "current" with the live
-        // daily MOVE reading so the modal matches Macro Overview's value
-        // instead of the weekly engine-snapshot value. The engine regime,
-        // percentile bands, and threshold calls all still come from the
-        // weekly snapshot — that's the strategy. Only the headline number
-        // is updated to live.
+        let currentPctile = (last[pctileKey] || 0) * 100;
+        // Both modals override "current" with the live reading so the modal
+        // matches the dial (and Macro Overview) instead of the weekly
+        // engine-snapshot value. The regime call, percentile bands and
+        // threshold calls still come from the weekly snapshot — that is the
+        // strategy. Only the headline number is updated to live.
+        //   - Stress  → live daily MOVE from indicator_history.json.
+        //   - Yield   → live daily ΔY-3M from the engine snapshot
+        //               (delta_y_3m_bp_live). The static backtest series'
+        //               last row lags the live engine (was +42 vs +55 on
+        //               2026-05-22) because that file is a one-shot build.
         let liveAsOf = null;
         if (isStress && indHist?.move?.points?.length) {
           const movePts = indHist.move.points;
           const lp = movePts[movePts.length - 1];
           if (lp && lp[1] != null) { currentVal = lp[1]; liveAsOf = lp[0]; }
+        } else if (!isStress && macroEngine?.yield_regime) {
+          const yr = macroEngine.yield_regime;
+          const liveBp = yr.delta_y_3m_bp_live != null ? yr.delta_y_3m_bp_live : yr.delta_y_3m_bp;
+          if (liveBp != null) {
+            currentVal = liveBp;
+            liveAsOf = yr.live_as_of || macroEngine.as_of || null;
+          }
+          if (yr.delta_y_3m_percentile_5y != null) {
+            currentPctile = yr.delta_y_3m_percentile_5y * 100;
+          }
         }
-        const currentPctile = (last[pctileKey] || 0) * 100;
         const upperMark     = last[upperThrKey] || 0;
         const midMark       = last[midThrKey] || 0;
         const stateNow      = last[stateKey];
@@ -2385,7 +2419,7 @@ export default function AssetTilt({ onOpenTicker }) {
           : stateNow;
         const captionSentence = isStress
           ? `Today's reading sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window — ${currentVal < midMark ? "below the Watch threshold" : currentVal < upperMark ? "in the Watch band" : "above the Risk Off threshold"}. The trigger has been in ${stateNow} for ${daysInState} trading days.`
-          : `Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
+          : `As of ${liveAsOf || macroEngine?.as_of || "the latest close"}, the 3-month change in the 10-year yield is ${fmtVal(currentVal)}. The regime read sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window and has been ${stateNow} for ${daysInState} day${daysInState === 1 ? "" : "s"} — the regime rebalances weekly.`;
 
         // Historical reads near today's level (similar-percentile-band episodes)
         const targetPct = currentPctile / 100;
@@ -2422,7 +2456,7 @@ export default function AssetTilt({ onOpenTicker }) {
                   <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase", fontWeight: 500, marginBottom: 6 }}>{eyebrow}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
                     <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, margin: 0, color: "var(--text)" }}>{title}</h2>
-                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {liveAsOf || macroEngine?.as_of}</span>
+                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● Live · {liveAsOf || macroEngine?.as_of}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -2439,7 +2473,7 @@ export default function AssetTilt({ onOpenTicker }) {
               {/* KPI strip */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
                 {[
-                  { lbl: "Current",                            val: fmtVal(currentVal), sub: liveAsOf ? ("live · " + liveAsOf) : "today's reading" },
+                  { lbl: "Current",                            val: fmtVal(currentVal), sub: liveAsOf ? ("live · " + liveAsOf) : "latest reading" },
                   { lbl: isStress ? "Watch threshold" : "Deflationary threshold",
                     val: fmtVal(midMark),
                     sub: isStress ? "75th percentile · 5y" : "30th percentile · 5y" },

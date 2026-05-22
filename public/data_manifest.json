@@ -2698,7 +2698,7 @@
       "id": "macrotilt-engine-daily",
       "name": "macrotilt_engine",
       "category": "indicator",
-      "description": "MacroTilt 2-axis regime engine snapshot — stress state, MOVE percentile, yield regime, equity %, defensive sleeve.",
+      "description": "MacroTilt 2-axis regime engine snapshot. Weekly regime call (stress state, MOVE percentile, yield regime, equity %, defensive sleeve) plus a daily-moving live ΔY-3M display value (delta_y_3m_bp_live / live_as_of) so the dial headline updates every trading day.",
       "sourcing_mode": "computed in-house from raw",
       "cadence": "daily (19:45 UTC weekdays)",
       "release_calendar": "us-business-day",
@@ -2712,7 +2712,7 @@
       "producer_script": "scripts/compute_macrotilt_engine.py",
       "owner": "Data Steward",
       "registered_date": "2026-05-21",
-      "registered_note": "Was missing from the registry entirely, so its freshness chip read green regardless of staleness. Registered daily/49h to match the workflow schedule (cron 45 19 * * 1-5). If the engine is intentionally weekly, the SLA should be revisited."
+      "registered_note": "Registered daily/49h to match the workflow (cron 45 19 * * 1-5). The regime CALL inside the snapshot rebalances weekly (Friday close), but as of 2026-05-22 the snapshot also carries delta_y_3m_bp_live + live_as_of — a daily-moving display value — so the file genuinely refreshes every weekday and daily/49h is the correct SLA. Freshness chips grade against live_as_of."
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

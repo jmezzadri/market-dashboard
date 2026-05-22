@@ -41,6 +41,10 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
                         >= 70th pctile -> Inflationary
                         <= 30th pctile -> Deflationary
                         in between     -> Neutral
+    Display:          delta_y_3m_bp_live — the same 3-month change computed
+                      on the raw DAILY yield (not Friday-resampled) so the dial
+                      headline moves every trading day. Display-only; the regime
+                      classification above always uses the weekly read.
 
   DEFENSIVE SLEEVE (regime-dependent)
     Inflationary:   50% cash, 30% GLD, 20% SHY, 0% TLT  (avoid duration)
@@ -204,6 +208,27 @@ def compute_engine() -> dict:
     delta_y_3m = (dgs10_weekly - dgs10_weekly.shift(13)) * 100.0  # pct -> bp
     delta_y_3m = delta_y_3m.dropna()
 
+    # ── Live (daily) ΔY-3M — display headline only ───────────────────────
+    # The regime CALL above is computed on Friday closes; that weekly
+    # smoothing is deliberate and is what the 1986-2026 backtest validated.
+    # But the NUMBER shown on the dial should move every trading day, the
+    # way the MOVE dial already does (Joe directive 2026-05-22). So we also
+    # compute a daily ΔY-3M off the raw DGS10 series: latest yield minus the
+    # yield ~3 months (91 calendar days = the same 13-week horizon) earlier.
+    # This never feeds the regime classification — display only.
+    dgs10_bday = dgs10_daily.asfreq("B").ffill().dropna()
+    delta_y_3m_live_bp = None
+    live_as_of_iso = None
+    if len(dgs10_bday) > 0:
+        live_date = dgs10_bday.index.max()
+        live_yield = float(dgs10_bday.loc[live_date])
+        anchor_date = live_date - pd.Timedelta(days=91)
+        anchor_window = dgs10_bday.loc[:anchor_date]
+        if len(anchor_window) > 0:
+            anchor_yield = float(anchor_window.iloc[-1])
+            delta_y_3m_live_bp = round((live_yield - anchor_yield) * 100.0, 1)
+            live_as_of_iso = live_date.date().isoformat()
+
     # Determine the most-recent COMPLETED Friday common to both series.
     # We deliberately exclude the in-progress current week so a mid-week run
     # reports the same regime that the prior Friday's production run did.
@@ -260,6 +285,8 @@ def compute_engine() -> dict:
         "yield_regime": {
             "state": yield_regime_state,
             "delta_y_3m_bp": round(delta_value, 1),
+            "delta_y_3m_bp_live": delta_y_3m_live_bp,
+            "live_as_of": live_as_of_iso,
             "delta_y_3m_percentile_5y": round(delta_pct, 3),
             "inflationary_threshold_bp": round(inflationary_thr, 1) if inflationary_thr is not None else None,
             "deflationary_threshold_bp": round(deflationary_thr, 1) if deflationary_thr is not None else None,
@@ -293,6 +320,9 @@ def main() -> None:
     print(f"  Yield regime:    {s['yield_regime']['state']:<10}  "
           f"DY3M={s['yield_regime']['delta_y_3m_bp']:>+5}bp  pct5y={s['yield_regime']['delta_y_3m_percentile_5y']:.3f}  "
           f"(70th={s['yield_regime']['inflationary_threshold_bp']}bp, 30th={s['yield_regime']['deflationary_threshold_bp']}bp)")
+    if s['yield_regime'].get('delta_y_3m_bp_live') is not None:
+        print(f"  Yield (live):    DY3M={s['yield_regime']['delta_y_3m_bp_live']:>+5}bp  "
+              f"(daily display value, as of {s['yield_regime']['live_as_of']})")
     sleeve_status = "active" if s['allocation']['defensive_pct'] > 0 else "standby (Risk On)"
     print(f"  Allocation:      {s['allocation']['equity_pct']}% equity / "
           f"{s['allocation']['defensive_pct']}% defensive")

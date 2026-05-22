@@ -5062,7 +5062,11 @@ function HomeAssetTiltEngineRead() {
   // Yield dial — needle on the 3-month yield-change percentile, threshold dots
   // at the Deflationary (30th) and Inflationary (70th) percentile gates.
   const yieldPct = yieldR.delta_y_3m_percentile_5y;
-  const yieldBp  = yieldR.delta_y_3m_bp;
+  // Live daily ΔY-3M for the dial number (matches the Asset Tilt page
+  // dial). The needle still rides the weekly percentile below — that
+  // is the regime call. Falls back to the weekly value on an older
+  // engine snapshot that has no live field yet.
+  const yieldBp  = yieldR.delta_y_3m_bp_live != null ? yieldR.delta_y_3m_bp_live : yieldR.delta_y_3m_bp;
   const yieldMeta = yieldPct != null
     ? Math.round(yieldPct * 100) + 'th pctile'
     : 'awaiting data';
@@ -5073,7 +5077,7 @@ function HomeAssetTiltEngineRead() {
           different feeds). Joe directive 2026-05-21. */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 8 }}>
         <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>Engine read</span>
-        <FreshnessDot indicatorId="macrotilt_engine" asOfIso={eng?.as_of || null} />
+        <FreshnessDot indicatorId="macrotilt_engine" asOfIso={eng?.yield_regime?.live_as_of || eng?.as_of || null} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <HomeMiniDial
