@@ -563,7 +563,7 @@ function EtfChip({ etf, onClick }) {
 // instead. IGs render as inline expanded child rows via MTTable's expandable
 // API. Defensive buckets merged into the same rows array, tagged via
 // _isDefensive so they render their own N/A markers.
-function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBuckets, defensivePerBucket, onSectorClick, onIGClick, onEtfClick }) {
+function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBuckets, defensivePerBucket, engineDefensive, onSectorClick, onIGClick, onEtfClick }) {
   const [openSectorKey, setOpenSectorKey] = useState(null);
 
   // Enrich each sector row with perf + vol from sector_perf.json
@@ -583,23 +583,32 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
   }), [sectors, leverage, sectorPerf]);
 
   // Defensive bucket rows — same column shape; N/A for tilt + rating.
-  const defensiveRows = useMemo(() => (defensiveBuckets || []).map(b => {
-    const perf = sectorPerf?.sectors?.[b.ticker] || {};
-    return {
-      sector: b.name,
-      ticker: b.ticker,
-      tiltDollar: defensivePerBucket || 0,
-      vs_spy_pp: null,
-      rating: null,
-      perf_1m: perf.perf_1m ?? null,
-      perf_3m: perf.perf_3m ?? null,
-      perf_ttm: perf.perf_ttm ?? null,
-      vol_ttm: perf.vol_ttm ?? null,
-      proxy: perf.proxy || b.ticker,
-      _isDefensive: true,
-      _key: "defensive:" + b.ticker,
-    };
-  }), [defensiveBuckets, defensivePerBucket, sectorPerf]);
+  // When the engine has the sleeve ON, the rows and dollar amounts come
+  // straight from the engine's yield-direction composition (v10.defensive).
+  // When the sleeve is OFF, fall back to the static bucket list shown at $0.
+  const defensiveRows = useMemo(() => {
+    const active = engineDefensive && engineDefensive.length > 0;
+    const src = active
+      ? engineDefensive.map(d => ({ ticker: d.ticker, name: d.name, dollar: d.dollar }))
+      : (defensiveBuckets || []).map(b => ({ ticker: b.ticker, name: b.name, dollar: 0 }));
+    return src.map(b => {
+      const perf = sectorPerf?.sectors?.[b.ticker] || {};
+      return {
+        sector: b.name,
+        ticker: b.ticker,
+        tiltDollar: b.dollar || 0,
+        vs_spy_pp: null,
+        rating: null,
+        perf_1m: perf.perf_1m ?? null,
+        perf_3m: perf.perf_3m ?? null,
+        perf_ttm: perf.perf_ttm ?? null,
+        vol_ttm: perf.vol_ttm ?? null,
+        proxy: perf.proxy || b.ticker,
+        _isDefensive: true,
+        _key: "defensive:" + b.ticker,
+      };
+    });
+  }, [engineDefensive, defensiveBuckets, sectorPerf]);
 
   const allRows = useMemo(() => [...sectorRows, ...defensiveRows], [sectorRows, defensiveRows]);
 
@@ -2234,6 +2243,7 @@ export default function AssetTilt({ onOpenTicker }) {
           sectorPerf={sectorPerf}
           defensiveBuckets={DEFENSIVE_BUCKETS}
           defensivePerBucket={defensivePerBucket}
+          engineDefensive={v10.defensive}
           onSectorClick={setSectorModal}
           onIGClick={setIgModal}
           onEtfClick={(e) => onOpenTicker(e.t || e)}
