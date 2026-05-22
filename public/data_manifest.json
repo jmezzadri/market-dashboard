@@ -2703,7 +2703,7 @@
       "cadence": "daily (19:45 UTC weekdays)",
       "release_calendar": "us-business-day",
       "refresh_trigger": ".github/workflows/macrotilt-engine-daily.yml",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 120,
       "consumer_surfaces": [
         "src/App.jsx home Asset Tilt preview tile",
         "src/pages/AssetAllocation.jsx Today's Engine Read"
@@ -2712,7 +2712,7 @@
       "producer_script": "scripts/compute_macrotilt_engine.py",
       "owner": "Data Steward",
       "registered_date": "2026-05-21",
-      "registered_note": "Registered daily/49h to match the workflow (cron 45 19 * * 1-5). The regime CALL inside the snapshot rebalances weekly (Friday close), but as of 2026-05-22 the snapshot also carries delta_y_3m_bp_live + live_as_of — a daily-moving display value — so the file genuinely refreshes every weekday and daily/49h is the correct SLA. Freshness chips grade against live_as_of."
+      "registered_note": "The regime CALL inside the snapshot rebalances weekly (Friday close); the snapshot also carries delta_y_3m_bp_live + live_as_of, a daily-moving display value. Freshness chips grade against live_as_of. SLA is 120h (not 49h) because live_as_of tracks the latest FRED DGS10 print, which lags 1-2 business days behind the engine run; with the us-business-day calendar plus a Friday-run / Monday-look gap a perfectly healthy feed can read ~110h old. 120h absorbs that without false-reds while a genuine multi-day engine outage still trips red. Do not tighten below ~108h."
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
