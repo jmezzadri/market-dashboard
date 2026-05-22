@@ -1,7 +1,9 @@
 {
-  "as_of": "2026-05-21",
-  "version": "v10.1c",
-  "engine": "Phase 2 \u2014 6-mechanism cycle-board allocator (tuned 2026-05-04)",
+  "as_of": "2026-05-22",
+  "version": "v10.2",
+  "engine": "v10.2 \u2014 asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
+  "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
+  "engine_as_of": "2026-05-22",
   "page_stance": "Cautious",
   "mechanism_scores": {
     "valuation": 100,
@@ -22,6 +24,7 @@
   "stress_score": 3,
   "equity_pct": 1.0,
   "defensive_pct": 0.0,
+  "defensive_sleeve_label": "Inflationary",
   "leverage": 1.0,
   "gross_exposure": 1.0,
   "sectors": [
@@ -1228,6 +1231,7 @@
     "max_defensive_50pct": true,
     "max_leverage_1_5x": true,
     "defensive_xor_leverage": true,
-    "all_6_mechanisms_used": true
+    "all_6_mechanisms_used": true,
+    "equity_plus_defensive_eq_100": true
   }
 }
