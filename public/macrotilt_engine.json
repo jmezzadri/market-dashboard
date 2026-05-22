@@ -2,20 +2,22 @@
   "_doc": "MacroTilt 2-axis regime engine. Axis 1 (stress) drives the de-risking decision from MOVE percentile. Axis 2 (yield direction) selects the defensive sleeve when de-risked. Validated 1986-2026 (Sharpe 0.61, max drawdown 35.0% vs SPY's 54.6%). Refreshed weekly Friday 15:45 ET by scripts/compute_macrotilt_engine.py via .github/workflows/macrotilt-engine-daily.yml.",
   "framework": "MacroTilt 2-axis engine",
   "calibration_label": "1986-2026 validated (locked 2026-05-13)",
-  "as_of": "2026-05-15",
-  "next_refresh": "2026-05-22",
+  "as_of": "2026-05-22",
+  "next_refresh": "2026-05-29",
   "stress": {
     "state": "Risk On",
-    "move_value": 79.9,
-    "move_percentile_5y": 0.261,
+    "move_value": 79.7,
+    "move_percentile_5y": 0.257,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
   },
   "yield_regime": {
     "state": "Inflationary",
-    "delta_y_3m_bp": 55.0,
-    "delta_y_3m_percentile_5y": 0.835,
+    "delta_y_3m_bp": 49.0,
+    "delta_y_3m_bp_live": 48.0,
+    "live_as_of": "2026-05-20",
+    "delta_y_3m_percentile_5y": 0.801,
     "inflationary_threshold_bp": 32.0,
     "deflationary_threshold_bp": -11.0,
     "trailing_window_weeks": 261
