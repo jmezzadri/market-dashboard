@@ -36,7 +36,8 @@
 // asOfIso is still honored as a fallback when pipeline_health doesn't
 // have a row yet (first deploy / cold start).
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useFreshness } from "../hooks/useFreshness";
 
 const HUES = {
@@ -180,6 +181,8 @@ export default function FreshnessDot({
 }) {
   const f = useFreshness(indicatorId, { asOfIso });
   const [hover, setHover] = useState(false);
+  const [tipXY, setTipXY] = useState(null);
+  const dotRef = useRef(null);
 
   // Two-state visual. Loading + missing fall back to neutral grey.
   const visualKey = f.status === "green" || f.status === "red" ? f.status : "loading";
@@ -193,36 +196,88 @@ export default function FreshnessDot({
     explain(f);
   };
 
+  // Instant tooltip. The native `title` attribute carries a browser-imposed
+  // ~1-second delay before it appears; a freshness chip has to answer "is
+  // this stale?" the moment the eye lands on it. So we render our own
+  // tooltip on mouseenter/focus with zero delay. It is portaled to <body>
+  // with position:fixed so no overflow:hidden ancestor can clip it — the dot
+  // renders in 30+ places (headers, table cells, tiles). Joe directive
+  // 2026-05-22.
+  const openTip = () => {
+    setHover(true);
+    const el = dotRef.current;
+    if (el && typeof window !== "undefined") {
+      const r = el.getBoundingClientRect();
+      const below = r.top < 96;  // not enough room above → flip below the dot
+      const x = Math.max(132, Math.min(window.innerWidth - 132, r.left + r.width / 2));
+      setTipXY({ x, y: below ? r.bottom : r.top, below });
+    }
+  };
+  const closeTip = () => { setHover(false); setTipXY(null); };
+
   return (
-    <span
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : -1}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (!clickable) return;
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(e); }
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      aria-label={`Data freshness: ${f.status}. ${tip}`}
-      title={tip}
-      style={{
-        display: "inline-block",
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: color,
-        cursor: clickable ? "pointer" : "help",
-        boxShadow:
-          showRing || hover
-            ? `0 0 0 ${Math.max(1.5, size * 0.35)}px ${color}28`
-            : "none",
-        transition: "box-shadow 0.12s ease-out",
-        verticalAlign: "middle",
-        flexShrink: 0,
-        ...style,
-      }}
-    />
+    <>
+      <span
+        ref={dotRef}
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : -1}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (!clickable) return;
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(e); }
+        }}
+        onMouseEnter={openTip}
+        onMouseLeave={closeTip}
+        onFocus={openTip}
+        onBlur={closeTip}
+        aria-label={`Data freshness: ${f.status}. ${tip}`}
+        style={{
+          display: "inline-block",
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          background: color,
+          cursor: clickable ? "pointer" : "help",
+          boxShadow:
+            showRing || hover
+              ? `0 0 0 ${Math.max(1.5, size * 0.35)}px ${color}28`
+              : "none",
+          transition: "box-shadow 0.12s ease-out",
+          verticalAlign: "middle",
+          flexShrink: 0,
+          ...style,
+        }}
+      />
+      {hover && tipXY && tip && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="tooltip"
+            style={{
+              position: "fixed",
+              left: tipXY.x,
+              top: tipXY.below ? tipXY.y + 8 : tipXY.y - 8,
+              transform: tipXY.below ? "translate(-50%, 0)" : "translate(-50%, -100%)",
+              maxWidth: 248,
+              background: "var(--surface, #ffffff)",
+              color: "var(--text, #1a1d21)",
+              border: "0.5px solid var(--border, #e3e0d8)",
+              borderRadius: 6,
+              padding: "6px 9px",
+              fontSize: 11,
+              lineHeight: 1.45,
+              fontFamily: "var(--font-ui, system-ui, sans-serif)",
+              boxShadow: "0 4px 14px rgba(14,17,21,0.16)",
+              pointerEvents: "none",
+              whiteSpace: "normal",
+              textAlign: "left",
+              zIndex: 10000,
+            }}
+          >
+            {tip}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -248,7 +303,6 @@ export function FreshnessDotLabel({ indicatorId, onExplain }) {
         color: "var(--text-muted)",
         cursor: onExplain ? "pointer" : "default",
       }}
-      title={buildTooltip(f)}
     >
       <FreshnessDot indicatorId={indicatorId} onExplain={onExplain} />
       <span style={{ color }}>{word}</span>
