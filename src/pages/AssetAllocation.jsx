@@ -1935,8 +1935,10 @@ export default function AssetTilt({ onOpenTicker }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Today's Engine Read</h2>
             <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+              {/* The freshness dot's tooltip is the single source of the as-of
+                  date. No hardcoded "As of <date>" text — it contradicted the
+                  tooltip (weekly as_of vs the live_as_of the dot grades). */}
               <FreshnessDot indicatorId="macrotilt_engine" asOfIso={macroEngine.yield_regime?.live_as_of || macroEngine.as_of} />
-              <span style={{ marginLeft: 8 }}>{macroEngine.sources?.stress_signal} · {macroEngine.sources?.yield_filter} · As of {macroEngine.as_of}</span>
             </div>
           </div>
 
