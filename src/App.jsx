@@ -5462,6 +5462,24 @@ const scanData=useMemo(
   },
   [rawScanData,mergeUniverseSnapshot,mergePrivateScan,mergeTickerEvents]
 );
+// ── Macro news (Home "Market News · Macro" tile) ────────────────
+// Fetched live from /api/macro-news on load (multi-source RSS, CDN-cached
+// ~10 min) so breaking headlines aren't gated on the once-a-day scan.
+// Falls back to scanData.signals.market_news when the endpoint is down.
+const [macroNews,setMacroNews]=useState(null);
+const [newsExpanded,setNewsExpanded]=useState(false);
+useEffect(()=>{
+  let cancelled=false;
+  (async()=>{
+    try{
+      const r=await fetch("/api/macro-news",{cache:"no-store"});
+      if(!r.ok) throw new Error("macro-news HTTP "+r.status);
+      const j=await r.json();
+      if(!cancelled && Array.isArray(j?.items) && j.items.length) setMacroNews(j.items);
+    }catch(_){ if(!cancelled) setMacroNews(null); }
+  })();
+  return ()=>{cancelled=true;};
+},[]);
 // Per-ticker scan-on-add: when a user adds a name to their watchlist, fire
 // /api/scan-ticker in the background. Server pulls news/info/analyst/screener
 // from UW (or copies a warm row written by another user < 1h ago), upserts
@@ -5935,32 +5953,36 @@ return(
   const bottomUnderweight = _sectorsRanked.slice(-_bottomN);   // worst-first order: already lowest → highest. Reverse so the lowest sits at the bottom (most-underweight last).
   bottomUnderweight.sort((a,b) => b.score - a.score);          // highest of the bottom-3 first, then down to lowest.
 
-  // ---- Headlines (multi-source, 2026-04-23) ----
-  // Scanner now aggregates ZH + CNBC + Bloomberg + Reuters + FT + WSJ
-  // into signals.market_news.items (deduped, newest-first). Older
-  // cached bundles still emit only `zerohedge_public` — fall back to
-  // that so the tile doesn't go blank on stale data.
-  const _mnBlock     = scanData?.signals?.market_news || {};
-  const _mnAvailable = Array.isArray(_mnBlock.items) && _mnBlock.items.length > 0
+  // ---- Headlines (multi-source) ----
+  // Primary source: the live /api/macro-news endpoint (fetched on load,
+  // CDN-cached ~10 min). Fallback: signals.market_news from the daily
+  // scan file, so the tile still renders if the endpoint is unavailable.
+  const _mnBlock    = scanData?.signals?.market_news || {};
+  const _mnFallback = Array.isArray(_mnBlock.items) && _mnBlock.items.length > 0
     ? _mnBlock.items
     : (_mnBlock.zerohedge_public || []);
-  // Per-source cap of 2 across the 7 Home slots. Prevents ZH (which
-  // posts ~25x/day) from swamping the feed on quiet news days while
-  // preserving strict chronological order within the available pool.
-  const _HEADLINE_SLOTS     = 7;
+  // newsPool — full deduped, newest-first set of headlines available.
+  const newsPool = (Array.isArray(macroNews) && macroNews.length > 0)
+    ? macroNews
+    : _mnFallback;
+  // Collapsed preview: 7 slots, max 2 per source, so one high-volume
+  // outlet (ZH posts ~25x/day) can't swamp the at-a-glance view.
+  const _HEADLINE_SLOTS      = 7;
   const _HEADLINE_SOURCE_CAP = 2;
   const _mnSourceCounts = Object.create(null);
-  const headlines = [];
-  for (const it of _mnAvailable) {
+  const headlinesPreview = [];
+  for (const it of newsPool) {
     const src = it?.source || "ZeroHedge";
     if ((_mnSourceCounts[src] || 0) >= _HEADLINE_SOURCE_CAP) continue;
-    headlines.push(it);
+    headlinesPreview.push(it);
     _mnSourceCounts[src] = (_mnSourceCounts[src] || 0) + 1;
-    if (headlines.length >= _HEADLINE_SLOTS) break;
+    if (headlinesPreview.length >= _HEADLINE_SLOTS) break;
   }
-  // Keep `zhPub` defined as a shim because the count-badge below still
-  // reads it in older-site-cached JS. Point it at the aggregated pool.
-  const zhPub = _mnAvailable;
+  // Expanded view shows every article pulled, strict newest-first, no cap.
+  // `headlines` is what the tile renders, driven by the expand toggle.
+  const headlines = newsExpanded ? newsPool : headlinesPreview;
+  // `zhPub` shim — the count badge reads its length for the total.
+  const zhPub = newsPool;
   const fmtHeadlineTime = (iso) => {
     if (!iso) return "";
     const dt = new Date(iso);
@@ -6699,6 +6721,27 @@ return(
             }}>{n.source || "ZeroHedge"}</div>
           </a>
         ))}
+        {newsPool.length > _HEADLINE_SLOTS && (
+          <button
+            type="button"
+            onClick={()=>setNewsExpanded(v=>!v)}
+            style={{
+              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              width:"100%", padding:"var(--space-4)",
+              border:"none", borderTop:"1px solid var(--border-faint)",
+              background:"var(--surface)", cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+              letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--accent)",
+              transition:"background 120ms cubic-bezier(0.2,0.8,0.2,1)",
+            }}
+            onMouseEnter={e=>e.currentTarget.style.background="var(--surface-3)"}
+            onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}
+          >
+            {newsExpanded
+              ? "Show fewer ↑"
+              : `Show all ${newsPool.length} headlines ↓`}
+          </button>
+        )}
       </div>
       ) : (
       <div style={{
