@@ -149,28 +149,83 @@ def _supabase_get(path: str, retries: int = 36):
             time.sleep(min(60, 5 * (attempt + 1)))
 
 
-def pull_from_supabase():
-    """Pull prices_eod and insider_history from production Supabase via keyset
-    pagination (every page stays fast regardless of depth). Caches to ./data."""
-    os.makedirs(DATA_DIR, exist_ok=True)
+# ── price history: incremental cache ────────────────────────────────────────
+# The nightly screener used to pull the whole prices_eod table (~1.3M rows /
+# ~1,300 paginated requests / ~35 min) every run, which left it exposed to any
+# Supabase 5xx window for the full duration. Instead the price frame is cached
+# to ./data/prices.pkl and refreshed INCREMENTALLY — each run fetches only the
+# rows on/after the cache's latest trade_date. One new trading day is a handful
+# of requests. A cold start still pulls the whole table once, but checkpoints
+# its progress so an interrupted pull resumes instead of restarting.
+_PRICE_COLS = "ticker,trade_date,open,high,low,close,volume"
+_CHECKPOINT_PAGES = 100          # checkpoint the cache every N pages (~100k rows)
+
+
+def _finalize_prices(df):
+    """Type-coerce, de-duplicate on (ticker, trade_date) keeping the freshest
+    copy, and sort. Safe on an empty frame."""
+    cols = ["ticker", "trade_date", "open", "high", "low", "close", "volume"]
+    if df is None or len(df) == 0:
+        return pd.DataFrame(columns=cols)
+    df = df.copy()
+    df["trade_date"] = pd.to_datetime(df["trade_date"])
+    for c in ("open", "high", "low", "close", "volume"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    return (df.drop_duplicates(["ticker", "trade_date"], keep="last")
+              .sort_values(["ticker", "trade_date"]).reset_index(drop=True))
+
+
+def _pull_prices(since, cached, px_pkl):
+    """Keyset-pull prices_eod paginated by the PRIMARY KEY (ticker,
+    trade_date).
+
+    This is deliberate. The table's only btree indexes are the primary key
+    (ticker, trade_date) and a (trade_date DESC) date index. Paginating by
+    (trade_date, ticker) — the previous approach — has no serving index for
+    its keyset cursor, so the database sorts ~1.3M rows for every page and
+    cancels the statement with a timeout (HTTP 500). That pathological query,
+    not general Supabase flakiness, was the real cause of the screener's pull
+    failures. Paginating by the primary key keeps every page an index scan,
+    fast regardless of depth.
+
+    since=None         -> pull the whole table (cold start).
+    since='YYYY-MM-DD' -> add a trade_date>=since filter (daily incremental
+                          refresh — usually one new trading day).
+
+    Every _CHECKPOINT_PAGES pages the merge of (cached + rows-so-far) is
+    written to px_pkl, so an interrupted pull resumes instead of restarting."""
     PAGE = 1000
-    # ---- prices_eod ----
-    print("    pulling prices_eod ...")
-    rows, cur_d, cur_t = [], None, None
+    rows, cur_tk, cur_d, pages = [], None, None, 0
     while True:
-        sel = ("prices_eod?select=ticker,trade_date,open,high,low,close,volume"
-               f"&order=trade_date.asc,ticker.asc&limit={PAGE}")
-        if cur_d is not None:
-            sel += (f"&or=(trade_date.gt.{cur_d},"
-                    f"and(trade_date.eq.{cur_d},ticker.gt.{cur_t}))")
+        sel = (f"prices_eod?select={_PRICE_COLS}"
+               f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
+        if since is not None:
+            sel += f"&trade_date=gte.{since}"
+        if cur_tk is not None:
+            sel += (f"&or=(ticker.gt.{cur_tk},"
+                    f"and(ticker.eq.{cur_tk},trade_date.gt.{cur_d}))")
         page = _supabase_get(sel)
         rows.extend(page)
+        pages += 1
         if len(page) < PAGE:
             break
-        cur_d, cur_t = page[-1]["trade_date"], page[-1]["ticker"]
-    px = pd.DataFrame(rows)
-    # ---- insider_history (open-market buys + sells) ----
-    print("    pulling insider_history ...")
+        cur_tk, cur_d = page[-1]["ticker"], page[-1]["trade_date"]
+        if px_pkl and pages % _CHECKPOINT_PAGES == 0:
+            parts = ([cached] if cached is not None and len(cached) else []) \
+                + [pd.DataFrame(rows)]
+            try:
+                _finalize_prices(pd.concat(parts, ignore_index=True)).to_pickle(px_pkl)
+                print(f"      checkpoint — {pages} pages, {len(rows):,} new rows saved")
+            except Exception as exc:                       # noqa: BLE001
+                print(f"      checkpoint save skipped: {exc}")
+    return pd.DataFrame(rows)
+
+
+def _pull_insider():
+    """Full pull of insider_history (open-market buys + sells). The table is
+    small (~31k rows / ~31 requests) so it is re-pulled in full every run —
+    that keeps amendments correct and is not the slow part of the load."""
+    PAGE = 1000
     irows, cur_id = [], None
     while True:
         # shares_owned_before / shares_owned_after are real typed columns as of
@@ -190,25 +245,54 @@ def pull_from_supabase():
         if len(page) < PAGE:
             break
         cur_id = page[-1]["id"]
-    ins = pd.DataFrame(irows)
-    px["trade_date"] = pd.to_datetime(px["trade_date"])
-    for c in ("open", "high", "low", "close", "volume"):
-        px[c] = pd.to_numeric(px[c], errors="coerce")
-    px = (px.drop_duplicates(["ticker", "trade_date"])
-            .sort_values(["ticker", "trade_date"]).reset_index(drop=True))
-    px.to_pickle(os.path.join(DATA_DIR, "prices.pkl"))
-    ins.to_pickle(os.path.join(DATA_DIR, "insider.pkl"))
-    return px, ins
+    return pd.DataFrame(irows)
 
 
 def load_data(force_pull: bool = False):
-    """Return (prices_df, insider_df). Uses the ./data cache when present;
-    otherwise pulls fresh from production Supabase."""
+    """Return (prices_df, insider_df).
+
+    Price history is cached at ./data/prices.pkl and refreshed INCREMENTALLY:
+    each run loads the cache and fetches only prices_eod rows on/after the
+    cache's latest trade_date. A cold start (no cache, or force_pull=True)
+    pulls the whole table once, checkpointing as it goes so an interrupted
+    pull resumes. insider_history is small and is re-pulled in full each run."""
+    os.makedirs(DATA_DIR, exist_ok=True)
     px_pkl = os.path.join(DATA_DIR, "prices.pkl")
     in_pkl = os.path.join(DATA_DIR, "insider.pkl")
-    if not force_pull and os.path.exists(px_pkl) and os.path.exists(in_pkl):
-        return pd.read_pickle(px_pkl), pd.read_pickle(in_pkl)
-    return pull_from_supabase()
+
+    cached = None
+    if not force_pull and os.path.exists(px_pkl):
+        try:
+            c = pd.read_pickle(px_pkl)
+            if c is not None and len(c) and "trade_date" in c.columns:
+                c["trade_date"] = pd.to_datetime(c["trade_date"])
+                cached = c
+        except Exception as exc:                           # noqa: BLE001
+            print(f"    price cache unreadable ({exc}) — falling back to a full pull")
+
+    if cached is not None:
+        since = cached["trade_date"].max().strftime("%Y-%m-%d")
+        print(f"    price cache: {len(cached):,} rows through {since} — "
+              f"fetching only rows on/after {since}")
+        fresh = _pull_prices(since, cached, px_pkl)
+        px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
+        print(f"    refreshed: +{len(fresh):,} fetched rows")
+    else:
+        print("    no usable price cache — full pull (one-time; checkpoints as it goes)")
+        px = _finalize_prices(_pull_prices(None, None, px_pkl))
+
+    px.to_pickle(px_pkl)
+
+    print("    pulling insider_history (full) ...")
+    ins = _pull_insider()
+    ins.to_pickle(in_pkl)
+    return px, ins
+
+
+def pull_from_supabase():
+    """Unconditional full rebuild of the price + insider cache. Retained as a
+    thin back-compat shim; load_data(force_pull=True) is the real path."""
+    return load_data(force_pull=True)
 
 
 # ───────────────────────────────────────────────────────────────────────────

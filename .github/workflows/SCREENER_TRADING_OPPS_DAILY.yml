@@ -48,6 +48,18 @@ jobs:
           pip install --upgrade pip
           pip install pandas numpy requests
 
+      # Persist the price-history cache between nightly runs. The screener
+      # refreshes it incrementally (only the new trading day); restore-keys
+      # prefix-matches the most recent prior cache, and the run-id key makes
+      # every save a fresh entry so the cache rolls forward each night.
+      - name: Restore cached price history
+        uses: actions/cache/restore@v4
+        with:
+          path: trading-scanner/scanner/trading_opps/data
+          key: prices-eod-cache-${{ github.run_id }}
+          restore-keys: |
+            prices-eod-cache-
+
       - name: Run the nightly screener
         working-directory: trading-scanner
         env:
@@ -59,6 +71,15 @@ jobs:
             ARGS="--dry-run"
           fi
           PYTHONPATH=. python3 -m scanner.trading_opps.run_screener $ARGS
+
+      # Save even on failure: a cold pull checkpoints partial progress, and
+      # persisting it lets the next run resume instead of restarting.
+      - name: Save cached price history
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: trading-scanner/scanner/trading_opps/data
+          key: prices-eod-cache-${{ github.run_id }}
 
       - name: Surface latest snapshot row count
         if: ${{ inputs.dry_run != 'true' }}

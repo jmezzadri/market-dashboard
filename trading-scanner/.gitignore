@@ -17,3 +17,6 @@ venv/
 .pytest_cache/
 dist/
 build/
+
+# Screener price-history cache (runtime-generated, persisted via Actions cache)
+scanner/trading_opps/data/
