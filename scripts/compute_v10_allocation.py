@@ -4,6 +4,7 @@ compute_v10_allocation.py — v10 allocator (Phase 2 of Asset Tilt re-architectu
 
 Reads:
   - public/cycle_board_snapshot.json  (6 mechanism scores 0-100, refreshed nightly)
+  - public/macrotilt_engine.json      (2-axis engine — equity/defensive split + sleeve)
 
 Writes:
   - public/v10_allocation.json        (today's recommended allocation)
@@ -11,17 +12,17 @@ Writes:
 Replaces the deprecated v9 allocator that keyed off the now-retired R&L composite.
 v10 keys off the live 6-mechanism cycle board.
 
-DECISION RULES — v10.1c, locked 2026-05-04 after backtest sweep:
+DECISION RULES — v10.2, 2026-05-22 (asset-class split sourced from the engine):
 
-  1. Equity vs Defensive split — driven by the 3 stress-detection mechanisms:
-     Credit, Liquidity & Policy, Positioning & Breadth.
-     stress_score = sum over the 3:
-         mechanism in caution band (50-75)  → +1
-         mechanism in risk-off band (75-100) → +2
-     defensive_pct = 0% if stress_score < 4, else (stress_score - 3) × 20%,
-     hard cap 50%. Calibrated 2026-05-04: keeps allocator at 100% equity 88%
-     of the time per Joe directive ("most of the time at 100% equity"); only
-     activates defensive sleeve in genuinely severe stress.
+  1. Equity vs Defensive split — READ from the 2-axis MacroTilt engine
+     (macrotilt_engine.json); NOT recomputed here. The engine sets equity %,
+     defensive %, and the defensive-sleeve composition off bond-market
+     volatility (MOVE) and the 3-month change in the 10-year Treasury yield.
+     The six cycle mechanisms drive ONLY the sector / industry-group tilts.
+     This wiring makes the Recommended Allocations table react to a MOVE
+     spike (the engine's job) rather than only to a credit-cycle slide.
+     The cycle stress_score is still computed below — for the page stance
+     label and as a diagnostic — but no longer drives the equity split.
 
   2. Leverage — 1.25x when ALL 6 mechanisms read Risk-on or Neutral (no
      Caution, no Risk-off bands). Otherwise 1.0x. The 1.5x ceiling is reserved
@@ -49,6 +50,7 @@ from typing import Dict, List
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_IN = REPO_ROOT / "public" / "cycle_board_snapshot.json"
+ENGINE_IN = REPO_ROOT / "public" / "macrotilt_engine.json"
 ALLOC_OUT = REPO_ROOT / "public" / "v10_allocation.json"
 
 # 11 GICS sector universe — Joe-locked 2026-05-03.
@@ -131,6 +133,17 @@ SECTOR_ETFS: Dict[str, List[str]] = {
     "Materials":                ["XLB","VAW","FMAT"],
     "Real Estate":              ["XLRE","VNQ","FREL"],
     "Utilities":                ["XLU","VPU","FUTY"],
+}
+
+# Engine defensive-sleeve legs -> display ticker + name. The 2-axis engine
+# emits active_sleeve_composition keyed by these leg names; v10 maps them to
+# the tickers shown in the Recommended Allocations defensive rows.
+ENGINE_SLEEVE_DISPLAY: Dict[str, Dict[str, str]] = {
+    "cash": {"ticker": "BIL", "name": "Cash · 1-3M Treasury Bills"},
+    "SHY":  {"ticker": "SHY", "name": "Short Treasuries · 1-3 Yr"},
+    "TLT":  {"ticker": "TLT", "name": "Long Treasuries · 20+ Yr"},
+    "GLD":  {"ticker": "GLD", "name": "Gold"},
+    "LQD":  {"ticker": "LQD", "name": "IG Corporate Bonds"},
 }
 
 
@@ -290,26 +303,50 @@ def compute_contribution_matrix(sector_rows: List[Dict], ig_rows: List[Dict]) ->
     }
 
 
+def _to_frac(x) -> float:
+    """Engine emits equity/defensive on a 0-100 scale; normalize to 0-1."""
+    x = float(x)
+    return x / 100.0 if x > 1.0 else x
+
+
 def main() -> None:
     snapshot = json.loads(SNAPSHOT_IN.read_text())
     mechs = {m["id"]: m["score"] for m in snapshot["mechanisms"]}
 
+    # --- Asset-class split: READ from the 2-axis engine, not recomputed ---
+    engine = json.loads(ENGINE_IN.read_text())
+    eng_alloc = engine.get("allocation", {}) or {}
+    equity_pct = _to_frac(eng_alloc.get("equity_pct", 100))
+    defensive_pct = _to_frac(eng_alloc.get("defensive_pct", 0))
+    # Engine equity + defensive should sum to 100%. If the engine ever emits
+    # an inconsistent pair, trust defensive and back out equity.
+    if abs(equity_pct + defensive_pct - 1.0) > 0.01:
+        equity_pct = max(0.0, 1.0 - defensive_pct)
+    sleeve_comp = eng_alloc.get("active_sleeve_composition", {}) or {}
+    sleeve_label = eng_alloc.get("active_sleeve_label")
+
     bands = {k: band(v) for k, v in mechs.items()}
+    # Cycle stress score — no longer drives the equity split; kept for the
+    # page stance label and as a diagnostic.
     stress_score = compute_stress_score(mechs)
-    defensive_pct = compute_defensive_pct(stress_score)
-    equity_pct = 1.0 - defensive_pct
     leverage = compute_leverage(mechs, defensive_pct, regime_flip=False)
     sectors = compute_sector_tilts(mechs, equity_pct)
     igs = compute_ig_tilts(mechs, sectors)
     contribution_matrix = compute_contribution_matrix(sectors, igs)
 
-    # Defensive sleeve composition — equal-weight 4 buckets when active
+    # Defensive sleeve — composition from the engine (keyed off yield
+    # direction). Dollar = leg weight * defensive_pct * $100. Empty when the
+    # engine has the sleeve off (defensive_pct = 0).
     defensive = []
     if defensive_pct > 0:
-        each = defensive_pct * 100 / 4
-        for ticker, name in [("BIL", "Cash (1-3M Treasury)"), ("TLT", "Long Treasuries"),
-                              ("GLD", "Gold"), ("LQD", "IG Corporate Bonds")]:
-            defensive.append({"ticker": ticker, "name": name, "dollar": round(each, 2)})
+        for leg, w in sleeve_comp.items():
+            if w and float(w) > 0:
+                disp = ENGINE_SLEEVE_DISPLAY.get(leg, {"ticker": leg, "name": leg})
+                defensive.append({
+                    "ticker": disp["ticker"],
+                    "name": disp["name"],
+                    "dollar": round(float(w) * defensive_pct * 100, 2),
+                })
 
     # Page-level stance label
     if stress_score >= 5: page_stance = "Risk Off"
@@ -319,14 +356,17 @@ def main() -> None:
 
     out = {
         "as_of": snapshot["as_of"],
-        "version": "v10.1c",
-        "engine": "Phase 2 — 6-mechanism cycle-board allocator (tuned 2026-05-04)",
+        "version": "v10.2",
+        "engine": "v10.2 — asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
+        "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
+        "engine_as_of": engine.get("as_of"),
         "page_stance": page_stance,
         "mechanism_scores": mechs,
         "mechanism_bands": bands,
         "stress_score": stress_score,
         "equity_pct": round(equity_pct, 4),
         "defensive_pct": round(defensive_pct, 4),
+        "defensive_sleeve_label": sleeve_label,
         "leverage": leverage,
         "gross_exposure": round(equity_pct * leverage, 4),
         "sectors": sectors,
@@ -338,6 +378,7 @@ def main() -> None:
             "max_leverage_1_5x": leverage <= 1.5,
             "defensive_xor_leverage": not (defensive_pct > 0 and leverage > 1.0),
             "all_6_mechanisms_used": len(mechs) == 6,
+            "equity_plus_defensive_eq_100": abs(equity_pct + defensive_pct - 1.0) < 0.01,
         },
     }
     ALLOC_OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -347,9 +388,10 @@ def main() -> None:
     print(f"Today as of {snapshot['as_of']}:")
     for k, v in mechs.items():
         print(f"  {k:24s}  {v:3d}/100  {bands[k]}")
-    print(f"\nStress score: {stress_score}/6")
-    print(f"Equity %: {equity_pct*100:.1f}")
-    print(f"Defensive %: {defensive_pct*100:.1f}")
+    print(f"\nCycle stress score (diagnostic only): {stress_score}/6")
+    print(f"Asset-class split — from 2-axis engine (as of {engine.get('as_of')}):")
+    print(f"  Equity %: {equity_pct*100:.1f}")
+    print(f"  Defensive %: {defensive_pct*100:.1f}")
     print(f"Leverage: {leverage:.2f}x")
     print(f"Gross exposure: {equity_pct * leverage * 100:.1f}%")
     print(f"\nSector allocation (per $100):")
