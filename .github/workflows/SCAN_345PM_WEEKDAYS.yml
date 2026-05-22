@@ -96,7 +96,7 @@ jobs:
           fi
           echo "NY time: $NY_HM · today (ET): $TODAY_ET · file scan_time date: ${FILE_DATE_ET:-none}"
           if [ "$FILE_DATE_ET" = "$TODAY_ET" ]; then
-            echo "::notice::Today'"'"'s scan already published (file scan_time = $FILE_DATE_ET) — idempotent skip."
+            echo "::notice::Today's scan already published (file scan_time = $FILE_DATE_ET) — idempotent skip."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
           else
             echo "✓ File scan_time is $FILE_DATE_ET, today is $TODAY_ET — proceeding."
