@@ -433,9 +433,9 @@ def main():
             "week_52_high": ex.get("week_52_high"),
             "market_cap": ir.get("marketcap") or refrow.get("market_cap"),
             "spark": ex.get("spark"),
-            "pc_ratio": None, "net_premium": None, "iv": None, "iv_rank": None,
-            "implied_7d_pct": None, "implied_7d_usd": None,
-            "implied_30d_pct": None, "implied_30d_usd": None,
+            # Group-3 informational options columns (context only — these
+            # do NOT feed the score). iv_rank stays null pending IV history.
+            **OP.informational_columns(opt_rows.get(t), price),
             "realized_vol": ex.get("realized_vol"),
             "mean_return": ex.get("mean_return"),
             "std_dev": ex.get("std_dev"),

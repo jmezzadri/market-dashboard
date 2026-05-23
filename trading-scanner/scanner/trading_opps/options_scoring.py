@@ -181,6 +181,43 @@ def score_options(contracts: list[dict], spot: float | None) -> dict:
 # calls: the per-contract data is already ingested nightly; this only reads
 # it back out of Supabase).
 # ---------------------------------------------------------------------------
+def informational_columns(opt_row, spot):
+    """Map an options_eod_daily row to the Group-3 informational display
+    columns the Trading Opportunities page reads (P/C, Net Prem, IV,
+    Implied 7D, Implied 30D). These are context-only metrics — they do NOT
+    feed the score. opt_row may be None. Units match the page renderers:
+    net premium in $millions, IV as a percent, implied moves carried as
+    both a percent and a dollar figure. iv_rank is not derivable from the
+    current feed (it needs an IV history we do not yet retain) and stays
+    None — a separate follow-up.
+    """
+    out = {"pc_ratio": None, "net_premium": None, "iv": None,
+           "iv_rank": None, "implied_7d_pct": None, "implied_7d_usd": None,
+           "implied_30d_pct": None, "implied_30d_usd": None}
+    if not opt_row:
+        return out
+    pc = _num(opt_row.get("put_call_ratio"))
+    netp = _num(opt_row.get("net_premium"))
+    iv = _num(opt_row.get("atm_iv"))
+    im7 = _num(opt_row.get("implied_move_7d"))
+    im30 = _num(opt_row.get("implied_move_30d"))
+    if pc is not None:
+        out["pc_ratio"] = round(pc, 4)
+    if netp is not None:
+        out["net_premium"] = round(netp / 1e6, 4)      # page shows "$x.xM"
+    if iv is not None:
+        out["iv"] = round(iv * 100.0, 2)               # page shows "x%"
+    if im7 is not None:
+        out["implied_7d_usd"] = round(im7, 4)
+        if spot:
+            out["implied_7d_pct"] = round(im7 / spot * 100.0, 3)
+    if im30 is not None:
+        out["implied_30d_usd"] = round(im30, 4)
+        if spot:
+            out["implied_30d_pct"] = round(im30 / spot * 100.0, 3)
+    return out
+
+
 def fetch_options(tickers: list[str], asof_date: str,
                   supabase_get) -> dict[str, dict]:
     """Pull the latest options_eod_daily row (on or before `asof_date`) for
@@ -189,7 +226,8 @@ def fetch_options(tickers: list[str], asof_date: str,
     Returns {ticker: {as_of_date, contracts:[...]}}.
     """
     by_ticker: dict[str, dict] = {}
-    cols = "ticker,as_of_date,contracts"
+    cols = ("ticker,as_of_date,contracts,put_call_ratio,net_premium,"
+            "atm_iv,implied_move_7d,implied_move_30d")
     for i in range(0, len(tickers), 20):
         chunk = ",".join(tickers[i:i + 20])
         path = (f"options_eod_daily?select={cols}"
