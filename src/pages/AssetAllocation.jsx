@@ -773,6 +773,7 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
       rowKey="_key"
       onRowClick={handleRowClick}
       storageKey="recommended-allocations-v1"
+      hideToolbarControls
       expandable={{
         isExpanded: (r) => !r._isDefensive && openSectorKey === r.sector,
         childRows: (r) => igs.filter(ig => ig.sector === r.sector),
@@ -2234,6 +2235,18 @@ export default function AssetTilt({ onOpenTicker }) {
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
         <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Recommended Allocations</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 9 }}>
+            {[
+              "Equity vs. defensive split \u2014 and the cash / Treasuries / gold mix within the defensive sleeve \u2014 is set by the regime engine: bond-market volatility (MOVE) and the 3-month change in the 10-year Treasury yield.",
+              "Sector and industry-group tilts are set by the six cycle mechanisms \u2014 valuation, credit, funding, growth, liquidity & policy, and positioning & breadth.",
+              `Refreshes every weekday evening after the close. Last updated ${v10.as_of ? new Date(v10.as_of + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "\u2014"}.`,
+            ].map((t, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, lineHeight: 1.45, color: "var(--text-muted)" }}>
+                <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{"\u2022"}</span>
+                <span>{t}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <SectorTable
           sectors={v10.sectors}

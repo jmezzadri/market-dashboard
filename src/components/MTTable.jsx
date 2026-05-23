@@ -115,6 +115,9 @@ export default function MTTable({
   toolbar,
   className = "",
   emptyMessage = "No rows.",
+  // hideToolbarControls: hide the "+ Filter" / "Columns N/M" popovers for a
+  // table that should read as a static recommendation (sort still works).
+  hideToolbarControls = false,
   // expandable rows: optional
   //   isExpanded(row) => boolean
   //   onToggle(row)   => void   (caller manages the expansion state)
@@ -338,7 +341,7 @@ export default function MTTable({
       )}
 
       {/* Toolbar (optional) */}
-      {(toolbar?.chips || toolbar?.search || isFull) && (
+      {(toolbar?.chips || toolbar?.search || (isFull && !hideToolbarControls)) && (
         <div className="mt-chip-bar">
           {toolbar?.chips && toolbar.chips.options.map(opt => {
             const active = (toolbar.chips.current || "__all__") === opt.value;
