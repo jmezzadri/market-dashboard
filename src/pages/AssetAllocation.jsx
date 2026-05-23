@@ -2486,7 +2486,7 @@ export default function AssetTilt({ onOpenTicker }) {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 40, lineHeight: 1, color: "var(--text)" }}>{fmtVal(currentVal)}</div>
-                  <div style={{ fontSize: 11, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", marginTop: 6, fontWeight: 500 }}>{stateNow} · {daysInState} days in state</div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", marginTop: 6, fontWeight: 500 }}>{stateNow} · {daysInState} day{daysInState === 1 ? "" : "s"} in state</div>
                 </div>
               </div>
 
@@ -2505,7 +2505,7 @@ export default function AssetTilt({ onOpenTicker }) {
                   { lbl: isStress ? "Risk Off threshold" : "Inflationary threshold",
                     val: fmtVal(upperMark),
                     sub: isStress ? "85th percentile · 5y" : "70th percentile · 5y" },
-                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days in state" },
+                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " day" + (daysInState === 1 ? "" : "s") + " in state" },
                 ].map(k => (
                   <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
