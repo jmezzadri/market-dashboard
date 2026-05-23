@@ -228,32 +228,32 @@ def fetch_reference(tickers: list) -> dict:
     return ref
 
 
-def fetch_earnings(tickers: list, asof: pd.Timestamp) -> dict:
-    """Next upcoming earnings date per ticker, best-effort. Any failure or an
-    unexpected feed shape leaves the column null — it never blocks a scan.
+def fetch_universe_extras(tickers: list, asof_iso: str) -> dict:
+    """Per-ticker next-earnings date and IV rank from public.universe_snapshots
+    — a daily per-ticker snapshot covering ~3,000 names (Unusual Whales stock
+    state). Best-effort: any failure leaves those columns null and never
+    blocks a scan. Returns {ticker: {"earnings_date", "iv_rank"}}, taking the
+    most recent snapshot on or before the scan date for each ticker.
 
-    The earnings table's date column is `report_date` (an earlier version of
-    this function queried `earnings_date`, which does not exist, so the
-    lookup silently returned nothing). Note that public.earnings_history is
-    today a sparse, historical table — it carries only a handful of large
-    caps' PAST reported earnings — so this lookup will keep returning empty
-    until an upcoming-earnings-calendar feed for the screener universe is
-    added (Data Steward follow-up)."""
+    (earnings_history was the wrong source — it is a sparse table of a few
+    large caps' PAST reported results; universe_snapshots carries the
+    UPCOMING earnings date and the IV rank for the whole screener universe.)"""
     out = {}
-    asof_s = str(asof.date())
     for i in range(0, len(tickers), 120):
         chunk = ",".join(tickers[i:i + 120])
         try:
             rows = _supabase_get(
-                "earnings_history?select=ticker,report_date"
-                f"&ticker=in.({chunk})&report_date=gte.{asof_s}"
-                "&order=report_date.asc") or []
+                "universe_snapshots?select=ticker,as_of_date,"
+                "next_earnings_date,iv_rank"
+                f"&ticker=in.({chunk})&as_of_date=lte.{asof_iso}"
+                "&order=as_of_date.desc") or []
             for r in rows:
                 t = r.get("ticker")
-                if t and t not in out and r.get("report_date"):
-                    out[t] = r["report_date"]
-        except Exception:
-            pass
+                if t and t not in out:        # first row = most recent snapshot
+                    out[t] = {"earnings_date": r.get("next_earnings_date"),
+                              "iv_rank": r.get("iv_rank")}
+        except Exception as exc:              # noqa: BLE001
+            print(f"    universe_snapshots fetch failed for a batch: {exc}")
     return out
 
 
@@ -385,7 +385,7 @@ def main():
 
     print("[5] fetching reference + earnings + price history for launches ...")
     ref = fetch_reference(launched_tickers)
-    earn = fetch_earnings(launched_tickers, scan_date)
+    uni = fetch_universe_extras(launched_tickers, scan_iso)
     px_launched = px[px["ticker"].isin(launched_tickers)].sort_values(
         ["ticker", "trade_date"])
     extras_by_t = {t: price_extras(g)
@@ -442,7 +442,8 @@ def main():
             "market_cap": ir.get("marketcap") or refrow.get("market_cap"),
             "spark": ex.get("spark"),
             # Group-3 informational options columns (context only — these
-            # do NOT feed the score). iv_rank stays null pending IV history.
+            # do NOT feed the score). iv_rank from this spread is null; it is
+            # overridden below from universe_snapshots.
             **OP.informational_columns(opt_rows.get(t), price),
             "realized_vol": ex.get("realized_vol"),
             "mean_return": ex.get("mean_return"),
@@ -452,7 +453,8 @@ def main():
             "sma50": ex.get("sma50"),
             "company_name": refrow.get("name") or t,
             "sector": ir.get("sector") or refrow.get("sic_description"),
-            "earnings_date": earn.get(t),
+            "earnings_date": (uni.get(t) or {}).get("earnings_date"),
+            "iv_rank": (uni.get(t) or {}).get("iv_rank"),
             "entry": price,
             "stop": (round(price * (1 - stop_pct), 2) if price else None),
             "target": (round(price * (1 + target_pct), 2) if price else None),

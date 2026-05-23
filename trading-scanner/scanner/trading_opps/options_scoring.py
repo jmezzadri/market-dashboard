@@ -187,9 +187,9 @@ def informational_columns(opt_row, spot):
     Implied 7D, Implied 30D). These are context-only metrics — they do NOT
     feed the score. opt_row may be None. Units match the page renderers:
     net premium in $millions, IV as a percent, implied moves carried as
-    both a percent and a dollar figure. iv_rank is not derivable from the
-    current feed (it needs an IV history we do not yet retain) and stays
-    None — a separate follow-up.
+    both a percent and a dollar figure. iv_rank is returned None here — the
+    producer overrides it from universe_snapshots, which carries a ready
+    IV rank for the whole universe.
     """
     out = {"pc_ratio": None, "net_premium": None, "iv": None,
            "iv_rank": None, "implied_7d_pct": None, "implied_7d_usd": None,
