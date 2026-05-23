@@ -2527,6 +2527,20 @@ export default function AssetTilt({ onOpenTicker }) {
                       .filter(p => p[0] >= "2002-11-12")
                       .map(p => ({ date: p[0], move: p[1] }));
                     chartValueKey = "move";
+                  } else if (!isStress && liveAsOf && currentVal != null && chartData.length) {
+                    // The weekly backtest series (macrotilt_engine_backtest.json) is
+                    // rebuilt only periodically, so its last row lags the live engine
+                    // — e.g. +42 bp on 2026-05-15 vs the live +49 bp on 2026-05-21.
+                    // Extend the plotted line to the live daily reading so the chart
+                    // ends on the same number and date as the headline. Append when
+                    // the live reading is newer than the last weekly row; otherwise
+                    // overwrite that row's value in place.
+                    const lastRow = chartData[chartData.length - 1];
+                    if (liveAsOf > lastRow.date) {
+                      chartData = [...chartData, { date: liveAsOf, [chartValueKey]: currentVal }];
+                    } else {
+                      chartData = chartData.slice(0, -1).concat({ ...lastRow, [chartValueKey]: currentVal });
+                    }
                   }
                   // ANY-INDICATOR OVERLAY — merge every indicator from
                   // indicator_history.json into the chart's row objects so the
