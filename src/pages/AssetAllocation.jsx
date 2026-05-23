@@ -1370,12 +1370,20 @@ const NAMED_EVENTS = [
   { start: "2023-08-01", end: "2024-01-31", name: "Post-banking-stress calm" },
   { start: "2024-08-15", end: "2024-11-30", name: "Post-carry-unwind calm" },
 ]
+// Parse a YYYY-MM-DD string as LOCAL midnight. Bare date strings are parsed
+// as UTC by the JS engine, which renders one calendar day early in US time
+// zones — chart axis labels and crosshair readouts showed e.g. "May 20" for
+// a May 21 reading. Non-bare values pass through unchanged.
+function parseLocalDate(s) {
+  return new Date(typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s + "T00:00:00" : s);
+}
+
 function findNamedEvent(dateStr) {
   for (const e of NAMED_EVENTS) {
     if (dateStr >= e.start && dateStr <= e.end) return e.name;
   }
   // Fallback: month/year label
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
@@ -1405,7 +1413,7 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
     if (data.length < 10) return "weekly";
     let gapSum = 0, n = 0;
     for (let i = 1; i < Math.min(20, data.length); i++) {
-      const a = new Date(data[i - 1].date), b = new Date(data[i].date);
+      const a = parseLocalDate(data[i - 1].date), b = parseLocalDate(data[i].date);
       gapSum += (b - a) / (1000 * 60 * 60 * 24);
       n++;
     }
@@ -1527,7 +1535,7 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
     { i: 0, d: w[0]?.date },
     { i: Math.floor(w.length / 2), d: w[Math.floor(w.length / 2)]?.date },
     { i: w.length - 1, d: w[w.length - 1]?.date },
-  ].filter(p => p.d).map(p => ({ x: xToPx(p.i), label: (() => { const d = new Date(p.d); return d.toLocaleDateString("en-US", { month: "short", year: tf === "Max" || tf === "5Y" ? "numeric" : "2-digit" }); })() }));
+  ].filter(p => p.d).map(p => ({ x: xToPx(p.i), label: (() => { const d = parseLocalDate(p.d); return d.toLocaleDateString("en-US", { month: "short", year: tf === "Max" || tf === "5Y" ? "numeric" : "2-digit" }); })() }));
 
   const handleMove = (e) => {
     if (!svgRef.current || w.length === 0) return;
@@ -1571,7 +1579,7 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
         {hover ? (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{(() => { const d = parseLocalDate(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
               <div style={{ fontSize: 10.5, color: "var(--text-dim)", letterSpacing: "0.04em" }}>HOVER · POINT {hoverIdx + 1} OF {w.length}</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(" + allSeries.length + ", 1fr)", gap: 12 }}>
@@ -2062,7 +2070,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     </div>
                     {hoverW && (
                       <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{parseLocalDate(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
                         <div><strong style={{ fontWeight: 500 }}>MOVE {hoverW.move?.toFixed(0)}</strong> · {Math.round((hoverW.move_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.stress_state}</span></div>
                       </div>
                     )}
@@ -2177,7 +2185,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     </div>
                     {hoverW && (
                       <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{parseLocalDate(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
                         <div><strong style={{ fontWeight: 500 }}>ΔY-3M {(hoverW.delta_y_3m_bp >= 0 ? "+" : "") + (hoverW.delta_y_3m_bp || 0).toFixed(0)} bp</strong> · {Math.round((hoverW.delta_y_3m_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.yield_regime}</span></div>
                       </div>
                     )}
@@ -2653,7 +2661,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     </thead>
                     <tbody>
                       {enriched.map((e) => {
-                        const d = new Date(e.peakDate);
+                        const d = parseLocalDate(e.peakDate);
                         const periodLabel = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
                         return (
                           <tr key={e.peakDate}>
