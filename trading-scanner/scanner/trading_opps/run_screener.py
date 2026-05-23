@@ -230,20 +230,28 @@ def fetch_reference(tickers: list) -> dict:
 
 def fetch_earnings(tickers: list, asof: pd.Timestamp) -> dict:
     """Next upcoming earnings date per ticker, best-effort. Any failure or an
-    unexpected feed shape leaves the column null — it never blocks a scan."""
+    unexpected feed shape leaves the column null — it never blocks a scan.
+
+    The earnings table's date column is `report_date` (an earlier version of
+    this function queried `earnings_date`, which does not exist, so the
+    lookup silently returned nothing). Note that public.earnings_history is
+    today a sparse, historical table — it carries only a handful of large
+    caps' PAST reported earnings — so this lookup will keep returning empty
+    until an upcoming-earnings-calendar feed for the screener universe is
+    added (Data Steward follow-up)."""
     out = {}
     asof_s = str(asof.date())
     for i in range(0, len(tickers), 120):
         chunk = ",".join(tickers[i:i + 120])
         try:
             rows = _supabase_get(
-                "earnings_history?select=ticker,earnings_date"
-                f"&ticker=in.({chunk})&earnings_date=gte.{asof_s}"
-                "&order=earnings_date.asc") or []
+                "earnings_history?select=ticker,report_date"
+                f"&ticker=in.({chunk})&report_date=gte.{asof_s}"
+                "&order=report_date.asc") or []
             for r in rows:
                 t = r.get("ticker")
-                if t and t not in out and r.get("earnings_date"):
-                    out[t] = r["earnings_date"]
+                if t and t not in out and r.get("report_date"):
+                    out[t] = r["report_date"]
         except Exception:
             pass
     return out
