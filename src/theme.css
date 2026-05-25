@@ -1120,3 +1120,30 @@ a:hover { text-decoration: underline; }
   margin-bottom: 18px;
 }
 .v2-back-btn:hover { text-decoration: underline; }
+
+/* ── Drawer key/value rows — Bug #1165 follow-up ────────────────────────────
+   .v2-drawer-row / .lbl / .val had no CSS, so the drill-down meta rows
+   (indicator Source + Series sections, the Sector→IG→ETF terminal node)
+   rendered the label glued to the value: "VendorYahoo Finance", "SymbolKBE".
+   Scoped under .v2-drawer so it only touches drawer rows. */
+.v2-drawer .v2-drawer-section { margin-top: 22px; }
+.v2-drawer .v2-drawer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line-0, #efece4);
+  font-size: 13px;
+}
+.v2-drawer .v2-drawer-row:last-child { border-bottom: none; }
+.v2-drawer .v2-drawer-row .lbl {
+  color: var(--ink-2, #8a8578);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.v2-drawer .v2-drawer-row .val {
+  color: var(--ink-0, #0f1115);
+  text-align: right;
+  font-feature-settings: "tnum";
+}
