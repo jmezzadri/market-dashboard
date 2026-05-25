@@ -192,7 +192,12 @@ export default function HomePage() {
   const eqPct = v10?.equity_pct != null ? Math.round(v10.equity_pct * 100) : null;
   const defPct = v10?.defensive_pct != null ? Math.round(v10.defensive_pct * 100) : null;
   const lev = v10?.leverage != null ? v10.leverage.toFixed(2) : '—';
-  const stance = v10?.page_stance || '—';
+  // Map the raw allocator stance to the approved Axis-1 lexicon, identical
+  // to AssetTiltPage so the Home preview tile and the Asset Tilt page agree
+  // (Bug #1159 follow-up — the tile was showing the raw word 'Cautious').
+  const STANCE_MAP = { 'Cautious': 'Watch', 'Watch': 'Watch', 'Cautionary': 'Watch', 'Stressed': 'Risk Off', 'Distressed': 'Risk Off', 'Concerning': 'Watch', 'Complacent': 'Watch', 'Normal': 'Risk On', 'Neutral': 'Watch', 'Risk On': 'Risk On', 'Risk Off': 'Risk Off' };
+  const rawStance = v10?.page_stance || '—';
+  const stance = STANCE_MAP[rawStance] || rawStance;
   const sectors = v10?.sectors || [];
   const ow = sectors.filter((s) => s.rating === 'OW').slice(0, 3);
   const uw = sectors.filter((s) => s.rating === 'UW').slice(0, 3);
