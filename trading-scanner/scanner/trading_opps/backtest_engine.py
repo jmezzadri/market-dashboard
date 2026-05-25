@@ -162,6 +162,15 @@ _CHECKPOINT_TICKERS = 100        # checkpoint the cache every N completed
                                  # tickers (~25k rows); a failure also banks
                                  # progress immediately
 
+# Incremental-refresh reconciliation window. Each nightly run re-pulls every
+# prices_eod row on/after (cache max trade_date - this many days) and de-dups
+# on (ticker, trade_date) keeping the freshest. This re-pull window is what
+# makes the steady-state refresh self-healing: a day that was only partially
+# ingested when a prior run ran, or a trading day newly completed since, is
+# reconciled to its full universe within the window instead of being skipped
+# forever. 7 calendar days comfortably covers a long holiday weekend.
+_INCREMENTAL_REFRESH_BUFFER_DAYS = 7
+
 # Durable backstop for the completed price panel. The GitHub Actions cache is
 # best-effort and can be evicted (7-day idle window / 10 GB repo cap), which
 # would silently reproduce a multi-day cold-pull outage. Once a cold pull
@@ -477,12 +486,33 @@ def load_data(force_pull: bool = False):
         px = _finalize_prices(_pull_prices(px_pkl=px_pkl))
         cold_pull_completed = True
     elif meta.get("complete"):
-        since = cached["trade_date"].max().strftime("%Y-%m-%d")
-        print(f"    complete cache: {len(cached):,} rows through {since} -- "
-              f"incremental refresh of rows on/after {since}")
+        # Incremental refresh. The anchor is NOT the cache's global-max
+        # trade_date -- a single stray later-dated row (e.g. a weekend
+        # money-market tick, or a partial overnight ingest) would push that
+        # max forward and permanently lock out every earlier trading day
+        # from ever being reconciled (bug #1208 residual: a lone 2026-05-23
+        # SPAXX row anchored the refresh at the 23rd, so the complete
+        # 12,206-row Friday 05-22 ingest was never pulled into the cache and
+        # the screener stayed stuck on 05-21). Instead the window starts a
+        # fixed buffer of days BEFORE the cache's max, so the most recent
+        # handful of days -- including any day that was only partially
+        # ingested last run, and any freshly-completed trading day -- is
+        # always re-pulled and reconciled. _finalize_prices de-duplicates on
+        # (ticker, trade_date) keeping the freshest row, so re-pulling a day
+        # cleanly overwrites a stale partial slice. The cost is a few extra
+        # rows per ticker per night -- negligible -- and the refresh is now
+        # self-healing rather than able to silently drift.
+        cache_max = cached["trade_date"].max()
+        since_ts = cache_max - pd.Timedelta(days=_INCREMENTAL_REFRESH_BUFFER_DAYS)
+        since = since_ts.strftime("%Y-%m-%d")
+        print(f"    complete cache: {len(cached):,} rows through "
+              f"{cache_max.strftime('%Y-%m-%d')} -- incremental refresh "
+              f"re-pulling rows on/after {since} "
+              f"({_INCREMENTAL_REFRESH_BUFFER_DAYS}-day reconciliation window)")
         fresh = _pull_prices(since=since, cached=cached, px_pkl=px_pkl)
         px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
-        print(f"    refreshed: +{len(fresh):,} fetched rows")
+        print(f"    refreshed: +{len(fresh):,} fetched rows, "
+              f"panel now through {px['trade_date'].max().strftime('%Y-%m-%d')}")
         cold_pull_completed = False
     else:
         # Partial cold pull (interrupted). Resume from the last ticker banked
