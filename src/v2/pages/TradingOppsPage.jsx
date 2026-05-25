@@ -19,6 +19,10 @@ import { createPortal } from "react-dom";
 import PageHero from "../components/PageHero";
 import { supabase } from "../../lib/supabase";
 import { useSortableTable, SortArrow } from "../../hooks/useSortableTable";
+import {
+  latestTradingSessionDate,
+  isNYSETradingDay,
+} from "../../lib/freshnessClock";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Column spec — 34 columns, five groups, in the exact left-to-right order
@@ -204,6 +208,55 @@ function fmtScanDate(d) {
   const dt = new Date(`${d}T00:00:00`);
   if (isNaN(dt.getTime())) return String(d);
   return `EOD ${dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+}
+
+// Staleness of the loaded scan against the trading calendar (bug #1200).
+//
+// The nightly screener (SCREENER_TRADING_OPPS_DAILY) can fail and leave the
+// page showing days-old results under a "Today's Scan Results" heading with
+// no warning. This compares the loaded scan_date to the most recent COMPLETE
+// NYSE trading session and counts how many trading days behind it is — so a
+// scan that is current "as of last close" reads as fresh on a weekend, and
+// only a genuinely-missed nightly run flags. Reuses freshnessClock's
+// trading-calendar helpers; it does not invent new date math.
+//
+// Returns { state: "fresh" | "stale" | "very-stale", daysBehind, label }.
+//   stale  (amber) — 1 trading day behind: last night's run has not landed.
+//   very-stale (red) — 2+ trading days behind: the nightly run has failed.
+function scanFreshness(scanDateIso, nowMs) {
+  if (!scanDateIso) return { state: "fresh", daysBehind: 0, label: null };
+  const scan = new Date(`${scanDateIso}T00:00:00Z`);
+  if (Number.isNaN(scan.getTime())) {
+    return { state: "fresh", daysBehind: 0, label: null };
+  }
+  // Most recent COMPLETE trading session, anchored to ET midnight UTC.
+  const latest = latestTradingSessionDate(nowMs);
+  const latestUTC = new Date(Date.UTC(
+    latest.getFullYear(), latest.getMonth(), latest.getDate(),
+  ));
+  // Count NYSE trading days strictly after the scan date, up to and
+  // including the latest complete session. 0 ⇒ the scan IS the latest close.
+  let daysBehind = 0;
+  const probe = new Date(scan.getTime());
+  for (let i = 0; i < 30 && probe.getTime() < latestUTC.getTime(); i++) {
+    probe.setUTCDate(probe.getUTCDate() + 1);
+    if (probe.getTime() > latestUTC.getTime()) break;
+    if (isNYSETradingDay(probe)) daysBehind += 1;
+  }
+  if (daysBehind <= 0) return { state: "fresh", daysBehind: 0, label: null };
+  const plural = daysBehind === 1 ? "day" : "days";
+  if (daysBehind === 1) {
+    return {
+      state: "stale",
+      daysBehind,
+      label: `1 trading ${plural} behind — last night's scan has not landed yet`,
+    };
+  }
+  return {
+    state: "very-stale",
+    daysBehind,
+    label: `${daysBehind} trading ${plural} behind — the nightly scan has failed; treat these results as stale`,
+  };
 }
 
 // Score band on the 0–10 scale: tier 5 = score >= 7, tier 4 = 5–6.99,
@@ -403,12 +456,31 @@ function HeaderTip({ tip, children }) {
 
 function ScanTile({ scanDate, universeScanned, gateCleared, activeAlerts, band5, band4, band3 }) {
   const fmtCount = (v) => (v == null ? DASH : Number(v).toLocaleString());
+  // Bug #1200 — flag stale scan output instead of presenting it as "Today's".
+  const fresh = scanFreshness(scanDate);
+  const isStale = fresh.state !== "fresh";
+  // When the scan is behind the trading calendar, drop the "Today's" claim.
+  const heading = isStale ? "Latest Scan Results" : "Today’s Scan Results";
   return (
     <div className="to-scan-tile">
       <div className="to-scan-tile-head">
-        <h3>Today&rsquo;s Scan Results</h3>
+        <h3>{heading}</h3>
         <span>{fmtScanDate(scanDate)}</span>
       </div>
+      {isStale && (
+        <div
+          className={`to-stale-flag ${fresh.state}`}
+          role="status"
+          title={fresh.label}
+        >
+          <span className="to-stale-dot" aria-hidden="true" />
+          <span className="to-stale-text">
+            {fresh.state === "very-stale" ? "STALE" : "MAY BE STALE"}
+            {" · "}
+            {fresh.label}
+          </span>
+        </div>
+      )}
       <div className="to-funnel-row">
         <span className="lbl">Universe scanned</span>
         <span className="val">{fmtCount(universeScanned)}</span>
@@ -1008,6 +1080,27 @@ export const PAGE_CSS = `
   margin: 0; color: var(--text);
 }
 .to-scan-tile-head span { font-size: 11px; color: var(--text-dim); }
+/* Bug #1200 — staleness flag: amber when 1 trading day behind, red when 2+. */
+.to-stale-flag {
+  display: flex; align-items: center; gap: 7px;
+  margin: -4px 0 12px; padding: 6px 9px;
+  border-radius: 6px; font-size: 10.5px; line-height: 1.35;
+}
+.to-stale-flag.stale {
+  background: rgba(255, 159, 10, 0.10);
+  border: 1px solid var(--orange-text);
+  color: var(--orange-text);
+}
+.to-stale-flag.very-stale {
+  background: rgba(200, 70, 88, 0.10);
+  border: 1px solid var(--red);
+  color: var(--red-text);
+}
+.to-stale-dot {
+  flex: none; width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor;
+}
+.to-stale-text { font-weight: 600; }
 .to-funnel-row {
   display: flex; justify-content: space-between;
   font-size: 12.5px; padding: 5px 0;
