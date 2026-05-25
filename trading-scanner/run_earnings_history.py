@@ -54,9 +54,13 @@ def latest_universe() -> List[str]:
         print("[earnings] universe_snapshots empty — nothing to refresh.")
         return []
     latest_ts = j[0]["snapshot_ts"]
+    # Pass the filter via params= so requests URL-encodes it. latest_ts is a
+    # full ISO timestamp containing a "+" (e.g. "...+00:00"); interpolating it
+    # raw into the URL lets PostgREST decode the "+" to a space and corrupt
+    # the snapshot_ts filter, returning 0 tickers (#1201).
     r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/universe_snapshots"
-        f"?select=ticker&snapshot_ts=eq.{latest_ts}",
+        f"{SUPABASE_URL}/rest/v1/universe_snapshots",
+        params={"select": "ticker", "snapshot_ts": f"eq.{latest_ts}"},
         headers=HEADERS, timeout=60,
     )
     r.raise_for_status()
