@@ -255,7 +255,7 @@ import { IND } from "./data/indicatorRegistry";
 // M = Monthly, Q = Quarterly). This was accidentally overwritten with dates
 // at some point — values below are the actual update cadence of each source.
 const IND_FREQ={
-  vix:"D",hy_ig:"D",eq_cr_corr:"D",yield_curve:"D",move:"D",
+  vix:"D",hy_ig:"D",ig_oas:"D",eq_cr_corr:"D",yield_curve:"D",move:"D",
   real_rates:"D",copper_gold:"D",bkx_spx:"D",usd:"D",skew:"D",
   anfci:"W",stlfsi:"W",cpff:"W",loan_syn:"W",bank_credit:"W",jobless:"W",cmdi:"W",term_premium:"W",
   cape:"M",ism:"M",jolts_quits:"M",
@@ -1919,7 +1919,7 @@ const TYPE_MAP = {
   skew:"Lead",
   // COINCIDENT
   vix:"Coincident", move:"Coincident", anfci:"Coincident", stlfsi:"Coincident",
-  cmdi:"Coincident", hy_ig:"Coincident", hy_ig_etf:"Coincident", cpff:"Coincident",
+  cmdi:"Coincident", hy_ig:"Coincident", ig_oas:"Coincident", hy_ig_etf:"Coincident", cpff:"Coincident",
   loan_syn:"Coincident", bkx_spx:"Coincident", usd:"Coincident", rrp:"Coincident",
   bank_reserves:"Coincident", tga:"Coincident", eq_cr_corr:"Coincident", bank_unreal:"Coincident",
   // LAG
