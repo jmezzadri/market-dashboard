@@ -704,11 +704,11 @@ def fetch_all():
                                    "points": series_to_points(s, round_dp=2)}
 
     print("CFNAI raw + CFNAI 3-month MA (methodology-v11.md: FRED CFNAIMA3 direct) ...")
-    s_cfnai = safe_fred("CFNAI")
+    s_cfnai = safe_fred("CFNAI", start="1996-01-01")  # bug #1194: backfill to 1996 per LESSONS 1996-floor rule
     if s_cfnai is not None:
         result["cfnai"] = {"freq": "M", "unit": "index",
                             "points": series_to_points(s_cfnai, round_dp=2)}
-    s_cfnai_3ma = safe_fred("CFNAIMA3")
+    s_cfnai_3ma = safe_fred("CFNAIMA3", start="1996-01-01")  # bug #1194: backfill to 1996 per LESSONS 1996-floor rule
     if s_cfnai_3ma is not None:
         result["cfnai_3ma"] = {"freq": "M", "unit": "index",
                                 "points": series_to_points(s_cfnai_3ma, round_dp=2)}
