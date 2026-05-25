@@ -289,7 +289,7 @@ function SignalIntelligenceRail({ ticker }) {
         }}>
           Trade levels
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 6 }}>
+        <div className="tdm-levels" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 6 }}>
           <LevelTile label="Entry"  value={entry}  tone="neutral" />
           <LevelTile label="Stop"   value={stop}   tone="down" />
           <LevelTile label="Target" value={target} tone="up" />
@@ -370,7 +370,7 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
       borderRadius: "var(--radius-xs, 6px)",
       overflow: "hidden",
     }}>
-      <div style={{display:"flex",borderBottom:"1px solid var(--border-faint)",gap:0}}>
+      <div className="tdm-tabrow" style={{display:"flex",borderBottom:"1px solid var(--border-faint)",gap:0}}>
         <button onClick={()=>setTab("about")} style={tabBtnStyle(tab==="about")}>About</button>
         <button onClick={()=>setTab("dividends")} style={tabBtnStyle(tab==="dividends")}>
           Dividend history{divs.length>0?` · ${divs.length}`:""}
@@ -380,7 +380,7 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
         </button>
       </div>
 
-      <div style={{padding:"16px 18px"}}>
+      <div className="tdm-tabbody" style={{padding:"16px 18px"}}>
         {tab === "about" && (
           deepDive.loading
             ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading company overview…</div>
@@ -1030,17 +1030,63 @@ const scrollToSection=(id)=>{
 };
 return(
 <div className="modal-backdrop" onClick={onClose}>
+{/* ── Bug #1153 — phone-width responsive pass. Scoped <style> block:
+    every rule is gated behind @media (max-width: 640px) so desktop
+    rendering is byte-identical above the breakpoint. Targets the
+    tdm-* classes added to the inline-styled blocks below. The
+    desktop inline styles remain authoritative ≥ 641px. */}
+<style>{`
+@media (max-width: 640px) {
+  .tdm-sheet { padding: var(--space-4) var(--space-4) var(--space-4) !important; }
+  /* Collapse the 2-column body (panels + Signal rail) to a single column
+     so the 360px rail no longer forces ~750px of content width. */
+  .tdm-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-4) !important;
+  }
+  /* The Signal rail moves below the panels; drop the desktop left border
+     and left padding, add a top divider instead. */
+  .tdm-rail {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--border-faint);
+    padding-top: var(--space-4);
+  }
+  /* Hero: name and price stack instead of competing for width. */
+  .tdm-hero {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3) !important;
+    padding-right: 36px !important;
+  }
+  .tdm-hero-price { text-align: left !important; }
+  .tdm-hero-price .tdm-fresh { justify-content: flex-start !important; }
+  .tdm-hero-name { font-size: 24px !important; }
+  /* KPI strip: 4 cards across is unreadable on a phone — 2x2 grid. */
+  .tdm-kpis { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  /* Bottom-tab buttons: allow wrapping + tighter padding so the tab row
+     (About / Dividend history / Splits) never overflows the sheet. */
+  .tdm-tabrow { flex-wrap: wrap !important; }
+  .tdm-tabrow > button { padding: 8px 10px !important; font-size: 10px !important; }
+  /* Tab body: tighten padding; let the dividend/splits tables scroll
+     horizontally instead of clipping on a narrow screen. */
+  .tdm-tabbody { padding: 14px !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Trade levels: Entry/Stop/Target stay 3-up but tighten the gap. */
+  .tdm-levels { gap: 5px !important; }
+}
+`}</style>
 <div className="modal-wrap">
-<div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{position:"relative",padding:"var(--space-5) var(--space-5) var(--space-4)"}}>
+<div className="modal-sheet tdm-sheet" onClick={e=>e.stopPropagation()} style={{position:"relative",padding:"var(--space-5) var(--space-5) var(--space-4)"}}>
 <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
-{/* ── modal-grid: 2-column layout (left = existing panels; right = Signal Intelligence rail). Stacks under 980px. */}
-<div className="modal-grid" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 360px",gap:"var(--space-5)",alignItems:"start"}}>
+{/* ── modal-grid: 2-column layout (left = existing panels; right = Signal
+    Intelligence rail). Collapses to a single column ≤ 640px via the
+    scoped media query above (#1153). */}
+<div className="modal-grid tdm-grid" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 360px",gap:"var(--space-5)",alignItems:"start"}}>
 <div className="modal-left" style={{minWidth:0}}>
 {/* ── v5 hero — identity-only (Phase 4b PR-B). LESSONS rule #29:
     Fraunces big-name, JetBrains Mono labels, var(--ink-1)/etc. via
     the site's existing parchment overlay. LESSONS rule #30: every
     value derives from live data; no hardcoded narrative. */}
-<div style={{paddingRight:48,marginBottom:"var(--space-4)",display:"grid",gridTemplateColumns:"1fr auto",gap:"var(--space-5)",alignItems:"start"}}>
+<div className="tdm-hero" style={{paddingRight:48,marginBottom:"var(--space-4)",display:"grid",gridTemplateColumns:"1fr auto",gap:"var(--space-5)",alignItems:"start"}}>
   {/* LEFT — identity */}
   <div style={{minWidth:0}}>
     <div style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.18em",color:"var(--text-dim)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
@@ -1060,7 +1106,7 @@ return(
     {/* v5.4: explicit overflowWrap + maxWidth so a long company name
         (e.g. "Dianthus Therapeutics, Inc. Common Stock") wraps inside
         the modal sheet instead of overflowing left. */}
-    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontWeight:500,fontSize:32,letterSpacing:"-0.012em",color:"var(--text)",lineHeight:1.05,margin:"0 0 6px",overflowWrap:"anywhere",wordBreak:"break-word",maxWidth:"100%"}}>
+    <h1 className="tdm-hero-name" style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontWeight:500,fontSize:32,letterSpacing:"-0.012em",color:"var(--text)",lineHeight:1.05,margin:"0 0 6px",overflowWrap:"anywhere",wordBreak:"break-word",maxWidth:"100%"}}>
       {companyName}
       {sector&&!isFund&&<span style={{fontStyle:"italic",fontWeight:400,color:"var(--text-muted)"}}> · {sector}</span>}
     </h1>
@@ -1085,7 +1131,7 @@ return(
     {wlError&&<div style={{fontSize:11,color:"var(--red)",fontFamily:"var(--font-mono)",marginTop:4}}>{wlError}</div>}
   </div>
   {/* RIGHT — price + delta */}
-  <div style={{textAlign:"right",flexShrink:0}}>
+  <div className="tdm-hero-price" style={{textAlign:"right",flexShrink:0}}>
     <div className="num" style={{fontFamily:"var(--font-mono)",fontSize:30,fontWeight:600,color:"var(--text)",lineHeight:1}}>{price?fmt$(price):"—"}</div>
     {dayPct!=null&&prevClose!=null&&price!=null&&(
       <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:dayPct>=0?"var(--green-text, #1a8c39)":"var(--red-text, var(--red))"}}>
@@ -1098,7 +1144,7 @@ return(
         the 84% of tickers UW doesn't cover). Events stays bound to the
         scanner artifact's ticker_events_ts since the per-ticker event
         rows ARE refreshed by that pipeline. */}
-    {(priceTradeDate||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={eodPrice.ingested_at || (priceTradeDate?`${priceTradeDate}T16:00:00-04:00`:null)} eventsTs={scanData?.ticker_events_ts} compact/></div>}
+    {(priceTradeDate||scanData?.ticker_events_ts)&&<div className="tdm-fresh" style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={eodPrice.ingested_at || (priceTradeDate?`${priceTradeDate}T16:00:00-04:00`:null)} eventsTs={scanData?.ticker_events_ts} compact/></div>}
   </div>
 </div>
 
@@ -1152,7 +1198,7 @@ return(
   const fmtRetSpy = v => v==null ? null : `vs SPY ${v>=0?"+":""}${(v*100).toFixed(1)}%`;
 
   return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:"var(--space-4)"}}>
+    <div className="tdm-kpis" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:"var(--space-4)"}}>
       <KpiCard
         label="1-week return"
         value={fmtRet(wk)}
@@ -1237,7 +1283,7 @@ return(
 />
 
 </div>
-<aside className="modal-rail" style={{minWidth:0,paddingLeft:"var(--space-2)",borderLeft:"1px solid var(--border-faint)"}}>
+<aside className="modal-rail tdm-rail" style={{minWidth:0,paddingLeft:"var(--space-2)",borderLeft:"1px solid var(--border-faint)"}}>
 <SignalIntelligenceRail ticker={ticker} />
 </aside>
 </div>
