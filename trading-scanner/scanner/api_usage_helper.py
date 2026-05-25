@@ -53,11 +53,21 @@ def log_run_summary(
         return False
 
     now = datetime.now(timezone.utc)
+    # public.api_usage_log (migration 011) declares calls_made as
+    # `integer NOT NULL default 0`. PostgREST sends every key in the JSON
+    # body as an explicit column value, and an explicit JSON null DEFEATS
+    # the column default — Postgres then rejects the row with 23502 (NOT
+    # NULL violation) on calls_made. The universe_snapshot failure path
+    # calls this helper without calls_made, so it arrived here as None and
+    # every failed-run usage row was being rejected (bug #1199). Coerce a
+    # missing call count to 0 so the row always satisfies the constraint;
+    # the four columns with no default (run_id, source, started_at,
+    # completed_at) are each given a non-null fallback for the same reason.
     row: dict[str, Any] = {
         "run_id": str(run_id or _uuid.uuid4()),
         "source": source,
         "endpoint": endpoint,
-        "calls_made": calls_made,
+        "calls_made": calls_made if calls_made is not None else 0,
         "started_at": (started_at or now).isoformat(),
         "completed_at": (completed_at or now).isoformat(),
         "status": status,
