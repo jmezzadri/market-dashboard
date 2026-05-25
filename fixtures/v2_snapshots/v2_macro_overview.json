@@ -33,6 +33,7 @@
     "Distressed",
     "Concerning",
     "Complacent",
+    "Cautionary",
     "complacency",
     "complacent",
     "Tilt points",
@@ -53,13 +54,21 @@
     {
       "file": "src/v2/pages/MacroOverviewPage.jsx",
       "line_pattern": "['\"`](Stressed|Distressed|Concerning|Complacent|Normal|Cautious)['\"`]\\s*:\\s*['\"`](Risk On|Neutral|Cautionary|Risk Off)['\"`]",
-      "tokens": ["Stressed", "Distressed", "Concerning", "Complacent", "Normal"],
+      "tokens": [
+        "Stressed",
+        "Distressed",
+        "Concerning",
+        "Complacent",
+        "Normal"
+      ],
       "reason": "STANCE_MAP defensive remap collapsing legacy labels to v2 lexicon."
     },
     {
       "file": "src/v2/pages/MacroOverviewPage.jsx",
       "line_pattern": "\\bindicatorId=|\\belementId=",
-      "tokens": ["indicator_history"],
+      "tokens": [
+        "indicator_history"
+      ],
       "reason": "indicatorId / elementId props on FreshnessChip — programmatic, not rendered."
     }
   ],

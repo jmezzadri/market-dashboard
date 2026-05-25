@@ -235,12 +235,12 @@ const SECTION_CONTENT = {
         rows={[
           ["Calm",         "Reading is not signalling stress (mid or low end of its 5y range, in the non-stress direction)."],
           ["Elevated",     "Mid-range — worth watching."],
-          ["Stressed",     "Reading is at an extreme of its 5y range, in the direction that historically means stress."],
+          ["Extreme",      "Reading is at an extreme of its 5y range, in the direction that historically means stress."],
           ["Range-only",   "Direction-agnostic indicator — color suppressed; the tile shows position in 5y range only."],
         ]}
       />
       <Body>
-        Click any tile for full history (back to 1986 where available), the indicator's methodology card, and overlay options for cross-indicator comparison. The hero strip at the top of the page summarizes today's count: how many indicators are Calm vs. Elevated vs. Stressed, and which domains carry the stress.
+        Click any tile for full history (back to 1986 where available), the indicator's methodology card, and overlay options for cross-indicator comparison. The hero strip at the top of the page summarizes today's count: how many indicators are Calm vs. Elevated vs. Extreme, and which domains carry the stress.
       </Body>
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Refresh cadence</h4>
       <Body>
@@ -333,7 +333,7 @@ else:
 
 color = "Calm"        if stress_pct < 60
         "Elevated"    if 60 <= stress_pct < 80
-        "Stressed"    if stress_pct >= 80
+        "Extreme"     if stress_pct >= 80
         "Range-only"  if indicator.stress_direction == "neutral"`}</Formula>
       <Body>
         The "Range-only" case covers a small set of indicators where the direction-of-stress is context-dependent (USD broad index, CFNAI). For these, the tile shows the percentile pill but suppresses the color — the user reads position-in-range without a directional editorial.

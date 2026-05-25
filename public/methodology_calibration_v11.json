@@ -5,19 +5,19 @@
   "as_of": "2026-05-25",
   "lexicon": {
     "states": [
-      "Normal",
-      "Cautionary",
+      "Risk On",
+      "Watch",
       "Risk Off",
       "Risk Off (deeper)"
     ],
     "tooltips": {
-      "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
-      "Cautionary": "Tile rule is partially met. Watch but do not act.",
+      "Risk On": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
+      "Watch": "Tile rule is partially met. Watch but do not act.",
       "Risk Off": "Tile rule is fully met. Mechanism is signaling its alert regime.",
       "Risk Off (deeper)": "Tile rule is fully met AND deteriorating over the last 60 trading days."
     },
     "headline_thresholds": {
-      "Constructive": "0\u20131 mechanisms elevated",
+      "Constructive": "0–1 mechanisms elevated",
       "Watchful": "2 mechanisms elevated",
       "Defensive setup forming": "3 mechanisms elevated",
       "High-conviction defensive": "4+ mechanisms elevated"
@@ -29,14 +29,14 @@
     "n_total": 6,
     "verdict": "Watchful",
     "verdict_label": "Neutral",
-    "verdict_state": "Cautionary",
+    "verdict_state": "Watch",
     "breakdown": {
-      "Cautionary": 1,
+      "Watch": 1,
       "Risk Off": 1,
       "Risk Off (deeper)": 0
     },
-    "headline_sentence": "Neutral. 2 of 3 live cycle mechanisms elevated above the cohort \u2014 1 in Risk Off territory, 1 Cautionary.",
-    "subheadline": "2 of 3 cycle mechanisms are elevated above the cohort. Mixed setup \u2014 neither risk-on nor risk-off cleanly."
+    "headline_sentence": "Neutral. 2 of 3 live cycle mechanisms elevated above the cohort — 1 in Risk Off territory, 1 on Watch.",
+    "subheadline": "2 of 3 cycle mechanisms are elevated above the cohort. Mixed setup — neither risk-on nor risk-off cleanly."
   },
   "tiles": [
     {
@@ -45,10 +45,10 @@
       "order": 1,
       "live": true,
       "description_short": "How richly equities are priced relative to history.",
-      "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature \u2014 high prices, high prices for risk, narrow risk premium.",
+      "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature — high prices, high prices for risk, narrow risk premium.",
       "rule": {
         "logic": "concerning_if_three_of_four_in_concerning_quartile",
-        "description": "Risk Off when 3 of 4 indicators sit in their top-tail quartile. For CAPE, P/E, and Buffett indicator the top-tail quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
+        "description": "Risk Off when 3 of 4 indicators sit in their top-tail quartile. For CAPE, P/E, and Buffett indicator the top-tail quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Watch when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
         "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged."
       },
       "indicators": [
@@ -56,8 +56,8 @@
           "id": "cape",
           "name": "CAPE (Shiller)",
           "unit": "ratio",
-          "description": "Cyclically-adjusted price-to-earnings ratio \u2014 S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths out earnings cycles so highs and lows are comparable across decades.",
-          "so_what": "When CAPE sits in the top quartile of its long-run distribution, real subsequent 10-year returns have been low; when it sits in the bottom quartile, they have been high. Not a timing tool \u2014 a long-horizon valuation read.",
+          "description": "Cyclically-adjusted price-to-earnings ratio — S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths out earnings cycles so highs and lows are comparable across decades.",
+          "so_what": "When CAPE sits in the top quartile of its long-run distribution, real subsequent 10-year returns have been low; when it sits in the bottom quartile, they have been high. Not a timing tool — a long-horizon valuation read.",
           "formula": "CAPE = S&P 500 price / (10-year average inflation-adjusted earnings per share)",
           "source": "Shiller / multpl (curated monthly)",
           "source_url": "https://www.multpl.com/shiller-pe",
@@ -621,7 +621,7 @@
               "zone": "top quartile"
             }
           ],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-2011 (15y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-2011 (15y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "hy_oas",
@@ -649,7 +649,7 @@
             },
             {
               "peer_id": "ig_oas",
-              "peer_name": "IG OAS (Baa \u2212 10y)",
+              "peer_name": "IG OAS (Baa − 10y)",
               "corr_1y": -0.37,
               "corr_5y": -0.35,
               "n_1y": 12,
@@ -671,8 +671,8 @@
           "unit": "percent",
           "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for perfection.",
           "so_what": "When ERP is at or below zero, investors are accepting less from stocks than they could get risk-free from Treasuries. Historically that compression has marked late-cycle equity tops.",
-          "formula": "ERP = (1 / CAPE) \u00d7 100 \u2212 10-year Treasury yield",
-          "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
+          "formula": "ERP = (1 / CAPE) × 100 − 10-year Treasury yield",
+          "source": "Derived: 1/CAPE − DGS10 (FRED)",
           "source_url": "https://fred.stlouisfed.org/series/DGS10",
           "sample_window": "post-2011 (15y)",
           "current": {
@@ -1453,11 +1453,11 @@
             }
           ],
           "episodes": [],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2011 (15y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2011 (15y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "ig_oas",
-              "peer_name": "IG OAS (Baa \u2212 10y)",
+              "peer_name": "IG OAS (Baa − 10y)",
               "corr_1y": 0.82,
               "corr_5y": 0.76,
               "n_1y": 12,
@@ -1492,7 +1492,7 @@
             "frequency": "D",
             "last_release": "2026-05-22",
             "next_release": "2026-05-23 (T+1)",
-            "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
+            "source": "Derived: 1/CAPE − DGS10 (FRED)",
             "source_url": "https://fred.stlouisfed.org/series/DGS10"
           },
           "composite_share_pct": 33.1
@@ -1502,8 +1502,8 @@
           "name": "Buffett Indicator",
           "unit": "% of GDP",
           "description": "Nonfinancial corporate equity market cap as a percentage of GDP. Warren Buffett's preferred 'overall valuation' yardstick. Above 150% has historically preceded significant drawdowns; the post-1970 median is around 72%.",
-          "so_what": "When this ratio sits at all-time-high levels \u2014 as it does today \u2014 the equity market is large relative to the economy backing it. Subsequent 10-year real returns have been low.",
-          "formula": "Buffett = (Nonfinancial corp equity market cap / GDP) \u00d7 100",
+          "so_what": "When this ratio sits at all-time-high levels — as it does today — the equity market is large relative to the economy backing it. Subsequent 10-year real returns have been low.",
+          "formula": "Buffett = (Nonfinancial corp equity market cap / GDP) × 100",
           "source": "FRED: NCBCEL / GDP (quarterly)",
           "source_url": "https://fred.stlouisfed.org/series/NCBCEL",
           "sample_window": "post-1970 (~55y)",
@@ -2464,7 +2464,7 @@
               "zone": "top quartile"
             }
           ],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-1970 (~55y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-1970 (~55y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "hy_oas",
@@ -2533,7 +2533,7 @@
           "share_pct": 33.4
         }
       ],
-      "headline_caption": "Cycle-peak valuation \u2014 multiple reads in the top quartile of long-run history."
+      "headline_caption": "Cycle-peak valuation — multiple reads in the top quartile of long-run history."
     },
     {
       "id": "credit",
@@ -2553,12 +2553,12 @@
       "indicators": [
         {
           "id": "ig_oas",
-          "name": "IG OAS (Baa \u2212 10y)",
+          "name": "IG OAS (Baa − 10y)",
           "unit": "bp",
           "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in caution.",
-          "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit \u2014 the 'priced for perfection' read.",
-          "formula": "IG OAS proxy = Moody's Baa yield \u2212 10-year Treasury yield, in basis points",
-          "source": "FRED: BAA \u2212 DGS10 (monthly)",
+          "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit — the 'priced for perfection' read.",
+          "formula": "IG OAS proxy = Moody's Baa yield − 10-year Treasury yield, in basis points",
+          "source": "FRED: BAA − DGS10 (monthly)",
           "source_url": "https://fred.stlouisfed.org/series/BAA",
           "sample_window": "post-1986 (~40y)",
           "current": {
@@ -3119,7 +3119,7 @@
               "zone": "bottom quartile"
             }
           ],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-1986 (~40y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-1986 (~40y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "erp",
@@ -3158,7 +3158,7 @@
             "frequency": "M",
             "last_release": "2026-05-01",
             "next_release": "2026-06-01 (~30d)",
-            "source": "FRED: BAA \u2212 DGS10 (monthly)",
+            "source": "FRED: BAA − DGS10 (monthly)",
             "source_url": "https://fred.stlouisfed.org/series/BAA"
           },
           "composite_share_pct": 41.7
@@ -3168,7 +3168,7 @@
           "name": "HY OAS",
           "unit": "bp",
           "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-          "so_what": "HY OAS sits in the bottom quartile of its post-2011 range. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
+          "so_what": "HY OAS sits in the bottom quartile of its post-2011 range. The high-yield market is pricing minimal default risk — a read consistent with late-cycle caution rather than imminent risk-off.",
           "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
           "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -3368,7 +3368,7 @@
               "zone": "bottom quartile"
             }
           ],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2011 (15y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2011 (15y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "cape",
@@ -3416,10 +3416,10 @@
           "id": "hy_ig_ratio",
           "name": "HY/IG ratio",
           "unit": "ratio",
-          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in an early-stage risk-off way.",
+          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect — captures whether credit markets are pricing the junk-vs-quality differential normally or in an early-stage risk-off way.",
           "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
-          "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa \u2212 DGS10)",
-          "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
+          "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa − DGS10)",
+          "source": "Derived: HY OAS / (BAA − DGS10)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
           "sample_window": "post-2011 (15y)",
           "current": {
@@ -3612,11 +3612,11 @@
               "zone": "top quartile"
             }
           ],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-2011 (15y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the top quartile of post-2011 (15y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "ig_oas",
-              "peer_name": "IG OAS (Baa \u2212 10y)",
+              "peer_name": "IG OAS (Baa − 10y)",
               "corr_1y": -0.49,
               "corr_5y": -0.75,
               "n_1y": 12,
@@ -3651,20 +3651,20 @@
             "frequency": "D",
             "last_release": "2026-05-22",
             "next_release": "2026-05-23 (T+1)",
-            "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
+            "source": "Derived: HY OAS / (BAA − DGS10)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
           "composite_share_pct": 13.6
         }
       ],
-      "current_state": "Cautionary",
+      "current_state": "Watch",
       "rule_status": "2 of 3 in bottom quartile",
       "as_of": "2026-05-25",
       "composite_score": 69,
       "composite_breakdown": [
         {
           "indicator_id": "ig_oas",
-          "name": "IG OAS (Baa \u2212 10y)",
+          "name": "IG OAS (Baa − 10y)",
           "alert_score": 86,
           "share_pct": 41.7
         },
@@ -3681,7 +3681,7 @@
           "share_pct": 13.6
         }
       ],
-      "headline_caption": "Credit caution \u2014 high-yield and IG spreads pricing minimal default risk."
+      "headline_caption": "Credit caution — high-yield and IG spreads pricing minimal default risk."
     },
     {
       "id": "funding",
@@ -3689,9 +3689,9 @@
       "order": 3,
       "live": false,
       "ships_in": "Sprint 2",
-      "description_short": "Bank-system funding stress \u2014 SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, CP funding spread.",
-      "current_state": "\u2014",
-      "headline_caption": "Bank-system funding stress \u2014 SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, CP funding spread."
+      "description_short": "Bank-system funding stress — SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, CP funding spread.",
+      "current_state": "—",
+      "headline_caption": "Bank-system funding stress — SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, CP funding spread."
     },
     {
       "id": "growth",
@@ -3699,17 +3699,17 @@
       "order": 4,
       "live": true,
       "description_short": "How fast (or slow) the real economy is moving.",
-      "description_long": "The Growth tile aggregates four real-economy reads: a broad activity index (CFNAI), an early labor-market signal (jobless claims), a manufacturing PMI proxy (ISM headline), and the bank-relative-equity signal (BKX vs S&P). The Growth rule fires only when indicators are BOTH at extreme levels AND deteriorating over 60 trading days \u2014 the 'AND' avoids permanently-elevated false alarms.",
+      "description_long": "The Growth tile aggregates four real-economy reads: a broad activity index (CFNAI), an early labor-market signal (jobless claims), a manufacturing PMI proxy (ISM headline), and the bank-relative-equity signal (BKX vs S&P). The Growth rule fires only when indicators are BOTH at extreme levels AND deteriorating over 60 trading days — the 'AND' avoids permanently-elevated false alarms.",
       "rule": {
         "logic": "level_AND_trend",
-        "description": "Risk Off when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND deteriorating across all four."
+        "description": "Risk Off when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Watch when 2 of 4. Risk Off (deeper) when 3 of 4 AND deteriorating across all four."
       },
       "indicators": [
         {
           "id": "cfnai_3ma",
           "name": "CFNAI 3-month",
           "unit": "index",
-          "description": "Chicago Fed National Activity Index, 3-month moving average. A weighted average of 85 monthly indicators of US activity. Below \u22120.7 has historically signaled recession.",
+          "description": "Chicago Fed National Activity Index, 3-month moving average. A weighted average of 85 monthly indicators of US activity. Below −0.7 has historically signaled recession.",
           "so_what": "Mid-range today (z = +0.15) but trending down over the last 60 days. Not yet at the level-and-trend condition the rule requires; worth watching.",
           "formula": "3-month moving average of the Chicago Fed National Activity Index (a weighted composite of 85 monthly US activity series)",
           "source": "FRED: CFNAIMA3 (monthly)",
@@ -4245,7 +4245,7 @@
             }
           ],
           "episodes": [],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "ism",
@@ -4833,7 +4833,7 @@
             }
           ],
           "episodes": [],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "hy_ig_ratio",
@@ -5081,7 +5081,7 @@
             }
           ],
           "episodes": [],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "cape",
@@ -5109,7 +5109,7 @@
             },
             {
               "peer_id": "ig_oas",
-              "peer_name": "IG OAS (Baa \u2212 10y)",
+              "peer_name": "IG OAS (Baa − 10y)",
               "corr_1y": -0.51,
               "corr_5y": -0.34,
               "n_1y": 12,
@@ -5129,8 +5129,8 @@
           "id": "bkx_spx",
           "name": "Banks vs S&P 500 (BKX/SPX)",
           "unit": "ratio",
-          "description": "Ratio of the KBW Bank Index to the S&P 500. Banks lead the cycle in both directions \u2014 under-performance signals tightening credit conditions and growth slowdown.",
-          "so_what": "Banks are sitting in the bottom quartile of relative performance vs the S&P (z = \u22121.06). The trend isn't deteriorating month-over-month, so the rule's level-and-trend condition isn't met \u2014 but the level alone is an under-the-surface caution.",
+          "description": "Ratio of the KBW Bank Index to the S&P 500. Banks lead the cycle in both directions — under-performance signals tightening credit conditions and growth slowdown.",
+          "so_what": "Banks are sitting in the bottom quartile of relative performance vs the S&P (z = −1.06). The trend isn't deteriorating month-over-month, so the rule's level-and-trend condition isn't met — but the level alone is an under-the-surface caution.",
           "formula": "BKX/SPX = KBW Bank Index closing price / S&P 500 closing price",
           "source": "Yahoo: ^BKX, ^GSPC (daily)",
           "source_url": "https://finance.yahoo.com/quote/%5EBKX",
@@ -5669,7 +5669,7 @@
             }
           ],
           "episodes": [],
-          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small \u2014 base-rate context only.",
+          "episodes_disclosure": "Historical reference, not a forecast. Episodes are 3-month-confirmed entries into the bottom quartile of post-2006 (20y); SPX returns are price-only. Sample size is small — base-rate context only.",
           "comovement": [
             {
               "peer_id": "hy_ig_ratio",
@@ -5714,8 +5714,8 @@
           "composite_share_pct": 45.0
         }
       ],
-      "current_state": "Normal",
-      "rule_status": "0 of 4 elevated \u00b7 2 of 4 deteriorating over 60d",
+      "current_state": "Risk On",
+      "rule_status": "0 of 4 elevated · 2 of 4 deteriorating over 60d",
       "as_of": "2026-05-25",
       "composite_score": 53,
       "composite_breakdown": [
@@ -5744,7 +5744,7 @@
           "share_pct": 45.0
         }
       ],
-      "headline_caption": "Real economy moving at trend \u2014 no level-and-trend signal."
+      "headline_caption": "Real economy moving at trend — no level-and-trend signal."
     },
     {
       "id": "liquidity_policy",
@@ -5753,7 +5753,7 @@
       "live": false,
       "ships_in": "Sprint 4",
       "description_short": "Adjusted Financial Conditions, real Fed funds rate, M2 YoY, term premium, Fed balance sheet trajectory.",
-      "current_state": "\u2014",
+      "current_state": "—",
       "headline_caption": "Adjusted Financial Conditions, real Fed funds rate, M2 YoY, term premium, Fed balance sheet trajectory."
     },
     {
@@ -5763,7 +5763,7 @@
       "live": false,
       "ships_in": "Sprint 4",
       "description_short": "NAAIM exposure, margin debt YoY, put/call ratio, % of S&P above 200dma, advance-decline.",
-      "current_state": "\u2014",
+      "current_state": "—",
       "headline_caption": "NAAIM exposure, margin debt YoY, put/call ratio, % of S&P above 200dma, advance-decline."
     }
   ],
@@ -5776,8 +5776,8 @@
   "data_caveats": [
     "Sprint 1 valuation distributions use the 15-year (post-2011) window for CAPE and ERP; Buffett indicator uses post-1970.",
     "Sprint 1 credit distributions use post-1986 for IG OAS, post-2011 for HY OAS and HY/IG ratio.",
-    "Trailing P/E and leveraged-loan spread are deferred to Sprint 1.5 / Sprint 2 \u2014 both require additional data sourcing.",
-    "ISM headline used in place of ISM new-orders subindex \u2014 paid feed required for the latter."
+    "Trailing P/E and leveraged-loan spread are deferred to Sprint 1.5 / Sprint 2 — both require additional data sourcing.",
+    "ISM headline used in place of ISM new-orders subindex — paid feed required for the latter."
   ],
   "build_meta": {
     "script": "compute_v11_sprint1_calibration.py",

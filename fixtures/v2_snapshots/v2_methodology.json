@@ -28,8 +28,8 @@
   ],
   "required_lexicon_states": [
     "Risk On",
+    "Watch",
     "Neutral",
-    "Cautionary",
     "Risk Off"
   ],
   "required_mechanisms": [],
@@ -45,6 +45,7 @@
     "Distressed",
     "Concerning",
     "Complacent",
+    "Cautionary",
     "complacency",
     "complacent",
     "Tilt points",
@@ -69,5 +70,18 @@
     "ux_designer_signoff": "approved — fixture re-anchored to live Signal Intelligence page",
     "senior_quant_signoff": "approved — triggers / composite / four-state copy matches engine",
     "lead_developer_uat": "checker green; vite build clean; Chrome MCP UAT light + dark"
+  },
+  "approved_lexicon_vocabulary": {
+    "axis1_stress_signal": [
+      "Risk On",
+      "Watch",
+      "Risk Off"
+    ],
+    "axis2_yield_regime": [
+      "Inflationary",
+      "Neutral",
+      "Deflationary"
+    ],
+    "_note": "#1159 — council-approved two-axis lexicon. required_lexicon_states above lists only the states this page actually renders as visible text."
   }
 }

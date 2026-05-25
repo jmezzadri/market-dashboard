@@ -52,13 +52,17 @@
     "MTChart imported and used"
   ],
   "required_internal_links": [
-    {"href": "#overview", "context": "Mechanism cell links to Macro Overview"}
+    {
+      "href": "#overview",
+      "context": "Mechanism cell links to Macro Overview"
+    }
   ],
   "banned_strings_in_rendered_paths": [
     "Stressed",
     "Distressed",
     "Concerning",
     "Complacent",
+    "Cautionary",
     "complacency",
     "complacent",
     "concerning",
@@ -87,7 +91,9 @@
     {
       "file": "src/v2/pages/IndicatorsPage.jsx",
       "line_pattern": "fetch\\('/indicator_history\\.json'|elementId=\"indicator_history\"|/indicator_history\\.json|fetch.*indicator_history",
-      "tokens": ["indicator_history"],
+      "tokens": [
+        "indicator_history"
+      ],
       "reason": "indicator_history.json is the data file path; fetch() and FreshnessChip elementId are programmatic, not rendered."
     }
   ],

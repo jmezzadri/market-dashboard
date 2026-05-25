@@ -93,14 +93,14 @@ export const DEFS = {
   // MacroTilt for the first time. Used by the v2 pages via <InfoTip term=…>
   // or <Tip def=…>.
   "TODAYS STANCE":
-    "MacroTilt's overall read on the market today, scored 0–100 — higher means a more defensive backdrop. The label beneath (Risk On, Neutral, Cautionary, Risk Off) is the plain-English version of that score.",
+    "MacroTilt's overall read on the market today, scored 0–100 — higher means a more defensive backdrop. The label beneath (Risk On, Neutral, Watch, Risk Off) is the plain-English version of that score.",
   "CURRENT REGIME":
-    "The market backdrop MacroTilt sees right now — Risk On, Neutral, Cautionary, or Risk Off — based on whether volatility and funding-stress triggers have crossed and how late in the cycle we are.",
+    "The market backdrop MacroTilt sees right now — Risk On, Neutral, Watch, or Risk Off — based on whether volatility and funding-stress triggers have crossed and how late in the cycle we are.",
   "RISK ON":
     "No volatility or funding-stress triggers are firing — the backdrop supports staying fully invested.",
   "NEUTRAL":
     "One stress trigger has crossed but not held — possibly a false alarm. The stance is to hold and watch.",
-  "CAUTIONARY":
+  "WATCH":
     "One or more stress triggers have been sustained — the backdrop argues for trimming risk.",
   "RISK OFF":
     "Stress triggers are sustained while the cycle is late — the backdrop argues for a defensive stance.",

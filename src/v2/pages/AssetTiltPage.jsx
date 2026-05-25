@@ -83,7 +83,7 @@ export default function AssetTiltPage() {
   const defPct = v10?.defensive_pct != null ? Math.round(v10.defensive_pct * 100) : null;
   const lev = v10?.leverage;
   const stress = v10?.stress_score;
-  const STANCE_MAP = { 'Cautious':'Cautionary', 'Stressed':'Risk Off', 'Distressed':'Risk Off', 'Concerning':'Cautionary', 'Complacent':'Cautionary', 'Normal':'Neutral' };
+  const STANCE_MAP = { 'Cautious':'Watch', 'Watch':'Watch', 'Cautionary':'Watch', 'Stressed':'Risk Off', 'Distressed':'Risk Off', 'Concerning':'Watch', 'Complacent':'Watch', 'Normal':'Risk On', 'Neutral':'Watch', 'Risk On':'Risk On', 'Risk Off':'Risk Off' };
   const rawStance = v10?.page_stance || '—';
   const stance = STANCE_MAP[rawStance] || rawStance;
   const sectors = v10?.sectors || [];

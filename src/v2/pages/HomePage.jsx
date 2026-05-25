@@ -27,7 +27,7 @@ function scoreBand(score) {
   if (score == null) return { id: 'unknown', cls: 'placeholder', label: '—' };
   if (score < 25) return { id: 'r-on', cls: 'r-on', label: 'Risk On' };
   if (score < 50) return { id: 'r-neu', cls: 'r-neu', label: 'Neutral' };
-  if (score < 75) return { id: 'r-cau', cls: 'r-cau', label: 'Cautionary' };
+  if (score < 75) return { id: 'r-cau', cls: 'r-cau', label: 'Watch' };
   return { id: 'r-off', cls: 'r-off', label: 'Risk Off' };
 }
 
@@ -162,14 +162,14 @@ export default function HomePage() {
     const sustained = stages.filter(s => s >= 2).length;
     const crossed = stages.filter(s => s === 1).length;
     const latecycle = cycle != null && cycle >= LATE_CYCLE;
-    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Cautionary' : crossed >= 1 ? 'Neutral' : 'Risk On';
+    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Watch' : crossed >= 1 ? 'Neutral' : 'Risk On';
     return { vix, move: mv, cpff: cp, cycle, regime: { label } };
   }, [indHist, cycleV2]);
 
   const regimeShortDesc = {
     'Risk On':    'No volatility triggers. Stay fully invested.',
     'Neutral':    'One trigger crossed — possible head fake. Hold.',
-    'Cautionary': 'One or more triggers sustained. Trim risk.',
+    'Watch': 'One or more triggers sustained. Trim risk.',
     'Risk Off':   'Sustained at late-cycle. Defensive stance.',
   };
   const { snap, v10, scan, err } = useHomeData();
@@ -199,7 +199,7 @@ export default function HomePage() {
 
   // Today's stance copy from cycle board
   const stanceLabel = compAvg != null
-    ? (compAvg < 25 ? 'Risk On' : compAvg < 50 ? 'Neutral' : compAvg < 75 ? 'Cautionary' : 'Risk Off')
+    ? (compAvg < 25 ? 'Risk On' : compAvg < 50 ? 'Neutral' : compAvg < 75 ? 'Watch' : 'Risk Off')
     : 'Loading';
 
   // Top scan picks — read from the actual JSON shape:

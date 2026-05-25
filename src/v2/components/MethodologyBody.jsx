@@ -70,7 +70,7 @@ const PERCENTILE_BANDS = [
     band:   'Upper-middle',
     range:  '50th to 75th percentile',
     tint:   'Amber',
-    call:   'Cautionary',
+    call:   'Watch',
     meaning: 'Above the midpoint and drifting toward the Risk-Off end of the range. Worth watching.',
   },
   {
@@ -247,7 +247,7 @@ const td = {
 };
 
 // Swatch dot for the band tint table — matches the chart tint palette:
-// green Risk-On, grey Neutral, amber Cautionary, red Risk-Off.
+// green Risk-On, grey Neutral, amber Watch, red Risk-Off.
 const TINT_SWATCH = {
   Green: '#10B981',
   Grey:  '#64748B',
@@ -425,7 +425,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
           </tbody>
         </table>
         <p style={{ ...body, marginTop: 14 }}>
-          So the chart tint legend reads directly off the bands: <strong>green</strong> is the Risk-On zone (the calm quarter), <strong>grey</strong> is neutral, <strong>amber</strong> is cautionary, and <strong>red</strong> is the Risk-Off zone (the elevated quarter). Same four bands, whether you are reading a number, a band label, or a tinted chart.
+          So the chart tint legend reads directly off the bands: <strong>green</strong> is the Risk-On zone (the calm quarter), <strong>grey</strong> is neutral, <strong>amber</strong> is the Watch zone, and <strong>red</strong> is the Risk-Off zone (the elevated quarter). Same four bands, whether you are reading a number, a band label, or a tinted chart.
         </p>
       </section>
 
