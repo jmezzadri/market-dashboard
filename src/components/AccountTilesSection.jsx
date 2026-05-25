@@ -30,7 +30,10 @@ import PositionsTable from "./PositionsTable";
 
 // ── pure helpers ──────────────────────────────────────────────────────────
 
-function computeAccountStats(rowsForAccount) {
+// Exported (bug #1204) so the Home page's Portfolio Insights tile can compute
+// per-account TTM with the EXACT same logic the Portfolio Insights page uses,
+// guaranteeing the two surfaces can never disagree.
+export function computeAccountStats(rowsForAccount) {
   if (!rowsForAccount || rowsForAccount.length === 0) {
     return { ttmTwr: null, sharpe: null, annVol: null, navSeries: [], dataMonths: 0 };
   }

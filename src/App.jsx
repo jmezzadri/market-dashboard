@@ -65,7 +65,7 @@ import PositionEditor from "./components/PositionEditor";
 import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
 import ImportTransactions from "./components/ImportTransactions";
-import AccountTilesSection from "./components/AccountTilesSection";
+import AccountTilesSection, { computeAccountStats } from "./components/AccountTilesSection";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
@@ -6636,11 +6636,23 @@ return(
                 </div>
               );
             }
-            const _byAcct = _portfolioReturns?.periodReturnsByAccount || {};
+            // Bug #1204 — per-account TTM must match the Portfolio Insights
+            // page exactly. The Insights page's AccountTilesSection computes
+            // each account's TTM via computeAccountStats (chained last-12
+            // monthly returns from portfolio_history, grouped by
+            // account_label). The Home tile previously used a different
+            // engine (_portfolioReturns.periodReturnsByAccount, a NAV-walk
+            // Modified-Dietz chain) which produced divergent numbers — e.g.
+            // Taxable read ~+131% here vs ~+31% on the Insights page, and the
+            // Roth even disagreed on sign. Compute it the SAME way here so
+            // the two surfaces cannot disagree.
+            const _histByLabel = new Map();
+            for (const r of (_phRows || [])) {
+              if (!_histByLabel.has(r.account_label)) _histByLabel.set(r.account_label, []);
+              _histByLabel.get(r.account_label).push(r);
+            }
             const _accts = ACCOUNTS.slice(0, 6).map(a => {
-              const ttm = _byAcct[a.label] != null ? _byAcct[a.label].TTM
-                        : _byAcct[a.id]    != null ? _byAcct[a.id].TTM
-                        : null;
+              const ttm = computeAccountStats(_histByLabel.get(a.label) || []).ttmTwr;
               return {
                 id: a.id || a.label || "_",
                 label: a.label || "Account",
