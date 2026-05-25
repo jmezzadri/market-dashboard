@@ -488,6 +488,33 @@ export default function PositionEditor({
     setErr("");
     setSubmitting(true);
     try {
+      // ── Bug #1195 — "look before create" ───────────────────────────────
+      // For a stock/ETF holding, confirm the symbol is a real, known ticker
+      // before we write it. universe_master is the canonical full-coverage
+      // US-equity list (~12,500 active tickers, populated by the daily
+      // Massive cron) — broad enough that small caps Joe actually holds are
+      // not false-rejected. We only check the stock class: options use an
+      // UNDERLYING (still equity, but the contract symbol differs), bonds
+      // use CUSIPs, crypto uses non-equity symbols, and cash is "CASH".
+      // Fail-open on a lookup/network error so a transient outage never
+      // blocks a legitimate save — we only reject on a confirmed miss.
+      if (assetClass === "stock" && tickerClean) {
+        try {
+          const { data: tickerRow, error: lookupErr } = await supabase
+            .from("universe_master")
+            .select("ticker")
+            .eq("ticker", tickerClean)
+            .maybeSingle();
+          if (!lookupErr && tickerRow == null) {
+            setErr(`"${tickerClean}" isn't a recognized stock ticker. Check the symbol and try again.`);
+            setSubmitting(false);
+            return;
+          }
+        } catch {
+          // Lookup unavailable — fall through and allow the save (fail-open).
+        }
+      }
+
       // ── Phase 4 path: when adding a non-cash position with the "Pay from
       // cash" toggle on, route the entire save through the add_position RPC
       // (mig 029). The RPC atomically writes the BUY tx row, debits/credits
