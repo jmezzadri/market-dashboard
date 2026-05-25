@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import PageHero from "../components/PageHero";
 import { supabase } from "../../lib/supabase";
 import { useSortableTable, SortArrow } from "../../hooks/useSortableTable";
+import { InfoTip } from "../../InfoTip";
 import {
   latestTradingSessionDate,
   isNYSETradingDay,
@@ -482,15 +483,15 @@ function ScanTile({ scanDate, universeScanned, gateCleared, activeAlerts, band5,
         </div>
       )}
       <div className="to-funnel-row">
-        <span className="lbl">Universe scanned</span>
+        <span className="lbl">Universe scanned<InfoTip def="The full set of U.S.-listed stocks the screener looked at in last night's run, before any filtering." size={10} /></span>
         <span className="val">{fmtCount(universeScanned)}</span>
       </div>
       <div className="to-funnel-row">
-        <span className="lbl">Cleared the $1.5M liquidity gate</span>
+        <span className="lbl">Cleared the $1.5M liquidity gate<InfoTip def="How many of those stocks trade enough each day to be tradable — at least 1.5 million dollars of value changing hands." size={10} /></span>
         <span className="val">{fmtCount(gateCleared)}</span>
       </div>
       <div className="to-funnel-row">
-        <span className="lbl">Active long alerts (score &ge; 3)</span>
+        <span className="lbl">Active long alerts (score &ge; 3)<InfoTip def="How many stocks scored high enough to make the buy list — a score of 3 or more on the screener's ten-point scale." size={10} /></span>
         <span className="val" style={{ color: "var(--green-text)" }}>
           {Number(activeAlerts).toLocaleString()}
         </span>
@@ -498,15 +499,15 @@ function ScanTile({ scanDate, universeScanned, gateCleared, activeAlerts, band5,
       <div className="to-scan-bands">
         <div className="to-band to-band-5">
           <div className="bn">{band5}</div>
-          <div className="bl">Score 7+</div>
+          <div className="bl">Score 7+<InfoTip def="The strongest band — stocks scoring 7 or higher out of 10, where the screener has the most conviction." size={9} /></div>
         </div>
         <div className="to-band to-band-4">
           <div className="bn">{band4}</div>
-          <div className="bl">Score 5–6</div>
+          <div className="bl">Score 5–6<InfoTip def="The middle band — solid setups scoring 5 to 6 out of 10." size={9} /></div>
         </div>
         <div className="to-band to-band-3">
           <div className="bn">{band3}</div>
-          <div className="bl">Score 3–4</div>
+          <div className="bl">Score 3–4<InfoTip def="The entry band — stocks that just cleared the screener's threshold, scoring 3 to 4 out of 10." size={9} /></div>
         </div>
       </div>
     </div>
