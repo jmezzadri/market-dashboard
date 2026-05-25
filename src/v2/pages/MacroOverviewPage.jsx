@@ -560,7 +560,7 @@ function MiniChart({ points, color = VIZ_COLORS.neutral, fmt = (v) => v.toFixed(
         <path d={d} fill="none" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={lastX} cy={lastY} r="3" fill={color} stroke="var(--surface)" strokeWidth="1" />
         <text x={padL + 2} y={padT - 2} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{hi.toFixed(hi >= 100 ? 0 : 2)}</text>
-        <text x={padL + 2} y={height - padB + 9} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
+        <text x={padL + 2} y={height - padB - 3} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
         <text x={padL} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{axisDateFmt(firstDate)}</text>
         <text x={width - padR} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="end">{axisDateFmt(lastDate)}</text>
         {/* Crosshair */}
