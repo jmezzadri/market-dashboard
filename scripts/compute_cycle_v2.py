@@ -167,6 +167,8 @@ SUB_COMPOSITE_DEFS: Dict[str, Dict[str, Any]] = {
              "transform": "yoy_pct"},
         ],
     },
+    # 2026-05-25 (bug #1193): spx_200dma + naaim removed — both killed from the
+    # indicator framework on 2026-05-11. PositioningVol now: vix, move, skew, eq_cr_corr.
     "PositioningVol": {
         "label": "Positioning / Vol",
         "lookback_start": "2011-01-01",
@@ -175,8 +177,6 @@ SUB_COMPOSITE_DEFS: Dict[str, Dict[str, Any]] = {
             {"id": "vix",        "history_key": "vix",        "direction": "high_is_concerning"},
             {"id": "move",       "history_key": "move",       "direction": "high_is_concerning"},
             {"id": "skew",       "history_key": "skew",       "direction": "high_is_concerning"},
-            {"id": "naaim",      "history_key": "naaim",      "direction": "low_is_concerning"},
-            {"id": "spx_200dma", "history_key": "spx_200dma", "direction": "low_is_concerning"},
             {"id": "eq_cr_corr", "history_key": "eq_cr_corr", "direction": "high_is_concerning"},
         ],
     },

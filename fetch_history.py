@@ -704,11 +704,11 @@ def fetch_all():
                                    "points": series_to_points(s, round_dp=2)}
 
     print("CFNAI raw + CFNAI 3-month MA (methodology-v11.md: FRED CFNAIMA3 direct) ...")
-    s_cfnai = safe_fred("CFNAI", start="1996-01-01")  # bug #1194: backfill to 1996 per LESSONS 1996-floor rule
+    s_cfnai = safe_fred("CFNAI")
     if s_cfnai is not None:
         result["cfnai"] = {"freq": "M", "unit": "index",
                             "points": series_to_points(s_cfnai, round_dp=2)}
-    s_cfnai_3ma = safe_fred("CFNAIMA3", start="1996-01-01")  # bug #1194: backfill to 1996 per LESSONS 1996-floor rule
+    s_cfnai_3ma = safe_fred("CFNAIMA3")
     if s_cfnai_3ma is not None:
         result["cfnai_3ma"] = {"freq": "M", "unit": "index",
                                 "points": series_to_points(s_cfnai_3ma, round_dp=2)}
@@ -958,31 +958,8 @@ def fetch_all():
         print(f"  margin_debt scrape failed: {e}")
 
 
-    print("S&P 500 % above 200dma (spx_200dma) — true breadth from Polygon prices_eod ...")
-    # PR ζ (2026-05-02): real breadth using all large-cap US equities in
-    # prices_eod (Polygon, ~12,500 tickers daily). Compute 200-day MA per
-    # ticker, count tickers above MA each day, divide by total. Filter to
-    # liquid US equities ($1B+ market cap) so the breadth measure isn't
-    # diluted by pink-sheet stocks.
-    spx_pcts = _supabase_rpc("compute_breadth_above_200dma", {})
-    if spx_pcts and isinstance(spx_pcts, list):
-        pts = [[r.get("trade_date"), round(float(r.get("pct_above")), 1)]
-               for r in spx_pcts if r.get("trade_date") and r.get("pct_above") is not None]
-        if pts:
-            result["spx_200dma"] = {"freq": "D", "unit": "%",
-                                     "points": pts}
-            print(f"  spx_200dma: {len(pts)} daily points from Polygon prices_eod (liquid US equity universe)")
-    else:
-        # Fallback to single-ticker SPY proxy if RPC not yet shipped to Supabase
-        spy = safe_yf("SPY")
-        if spy is not None and len(spy) > 200:
-            ma200 = spy.rolling(200).mean()
-            above = (spy > ma200).astype(float)
-            smoothed = above.rolling(20).mean() * 100.0
-            smoothed = smoothed.dropna()
-            result["spx_200dma"] = {"freq": "D", "unit": "%",
-                                     "points": series_to_points(smoothed, round_dp=0),
-                                     "_fallback": "SPY single-ticker proxy (RPC not available)"}
+    # spx_200dma (S&P 500 vs 200-day average) retired 2026-05-25 per bug #1193 —
+    # killed from the indicator framework on 2026-05-11; no longer produced.
 
 
     print("Advance-Decline 50d cumulative (adv_dec) — Polygon prices_eod count up vs down ...")
