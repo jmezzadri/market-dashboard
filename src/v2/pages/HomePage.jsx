@@ -3,6 +3,7 @@ import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
+import { InfoTip } from '../../InfoTip';
 
 /**
  * HomePage v2 — cutover.
@@ -248,7 +249,7 @@ export default function HomePage() {
               </h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingBottom: 6, textAlign: 'right' }}>
-              <span className="t-eyebrow">Today's stance</span>
+              <span className="t-eyebrow">Today's stance <InfoTip term="TODAYS STANCE" size={11} /></span>
               <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
                 {compAvg != null ? <CountUp to={compAvg} /> : '—'}
                 {compAvg != null && <span style={{ fontSize: 24, color: 'var(--ink-2)', marginLeft: 2 }}>/100</span>}
@@ -271,7 +272,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4 }}>
-                Current regime
+                Current regime <InfoTip term="CURRENT REGIME" size={10} />
               </div>
               <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontStyle: 'italic', fontWeight: 400, fontSize: 40, lineHeight: 1.05, color: 'var(--accent)', letterSpacing: '-0.005em' }}>
                 {si?.regime?.label || 'Loading…'}
@@ -282,13 +283,13 @@ export default function HomePage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
               {[
-                { name: 'Equity Vol', sub: 'VIX', d: si?.vix },
-                { name: 'Bond Vol', sub: 'MOVE', d: si?.move },
-                { name: 'Funding', sub: 'CPFF', d: si?.cpff },
-                { name: 'Cycle', sub: 'POSITION', d: { pctile: si?.cycle, stage: si?.cycle >= 80 ? 3 : si?.cycle >= 50 ? 1 : 0 } },
-              ].map(({ name, sub, d }) => (
+                { name: 'Equity Vol', sub: 'VIX', tip: 'EQUITY VOL', d: si?.vix },
+                { name: 'Bond Vol', sub: 'MOVE', tip: 'BOND VOL', d: si?.move },
+                { name: 'Funding', sub: 'CPFF', tip: 'FUNDING', d: si?.cpff },
+                { name: 'Cycle', sub: 'POSITION', tip: 'CYCLE POSITION', d: { pctile: si?.cycle, stage: si?.cycle >= 80 ? 3 : si?.cycle >= 50 ? 1 : 0 } },
+              ].map(({ name, sub, tip, d }) => (
                 <div key={sub} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 9.5, letterSpacing: '.10em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4, lineHeight: 1.2 }}>{name}</div>
+                  <div style={{ fontSize: 9.5, letterSpacing: '.10em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4, lineHeight: 1.2 }}>{name} <InfoTip term={tip} size={9} /></div>
                   <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', letterSpacing: '-0.005em' }}>
                     {d?.pctile != null ? d.pctile : '—'}
                   </div>
@@ -321,20 +322,20 @@ export default function HomePage() {
               </div>
             )}
             <div style={{ display:'flex', gap:14, fontSize:11, color:'var(--ink-2)', letterSpacing:'.04em', marginBottom:14 }}>
-              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{eqPct ?? '—'}%</strong> equity</span>
-              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{defPct ?? '—'}%</strong> defensive</span>
-              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{lev}×</strong> leverage</span>
+              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{eqPct ?? '—'}%</strong> equity <InfoTip term="EQUITY %" size={10} /></span>
+              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{defPct ?? '—'}%</strong> defensive <InfoTip term="DEFENSIVE %" size={10} /></span>
+              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{lev}×</strong> leverage <InfoTip term="LEVERAGE" size={10} /></span>
             </div>
             <div style={{ paddingTop:14, borderTop:'1px solid var(--line-0)' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
-                  <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--up)', fontWeight:500, marginBottom:6 }}>Overweight</div>
+                  <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--up)', fontWeight:500, marginBottom:6 }}>Overweight <InfoTip term="OVERWEIGHT" size={9} /></div>
                   <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
                     {ow.length ? ow.map((s) => <div key={s.sector}>{s.sector}</div>) : <span style={{ color:'var(--ink-2)' }}>—</span>}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--down)', fontWeight:500, marginBottom:6 }}>Underweight</div>
+                  <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--down)', fontWeight:500, marginBottom:6 }}>Underweight <InfoTip term="UNDERWEIGHT" size={9} /></div>
                   <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
                     {uw.length ? uw.map((s) => <div key={s.sector}>{s.sector}</div>) : <span style={{ color:'var(--ink-2)' }}>—</span>}
                   </div>
