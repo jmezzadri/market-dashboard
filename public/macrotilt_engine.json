@@ -6,8 +6,8 @@
   "next_refresh": "2026-05-29",
   "stress": {
     "state": "Risk On",
-    "move_value": 79.7,
-    "move_percentile_5y": 0.257,
+    "move_value": 78.4,
+    "move_percentile_5y": 0.23,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
