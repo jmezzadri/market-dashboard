@@ -26,10 +26,51 @@ function sliceByRange(data, range) {
   });
 }
 
+// ─── Calibrated regime tint bands (#1158) ───────────────────────────────
+// Cut-points are the 25th/50th/75th PERCENTILES of the chart series' OWN
+// historical data — the same array the chart already receives, no external
+// fetch. Linear-interpolation percentile (the standard "type 7" estimator).
+function percentile(sortedVals, p) {
+  const n = sortedVals.length;
+  if (!n) return null;
+  if (n === 1) return sortedVals[0];
+  const idx = (p / 100) * (n - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.min(lo + 1, n - 1);
+  const frac = idx - lo;
+  return sortedVals[lo] + (sortedVals[hi] - sortedVals[lo]) * frac;
+}
+
+// Compute the three band cuts from a [date, value] series.
+function computeBandCuts(data) {
+  if (!data?.length) return null;
+  const vals = data
+    .map((p) => p[1])
+    .filter((v) => typeof v === 'number' && Number.isFinite(v))
+    .sort((a, b) => a - b);
+  if (vals.length < 4) return null; // too few points to calibrate quartiles
+  return {
+    p25: percentile(vals, 25),
+    p50: percentile(vals, 50),
+    p75: percentile(vals, 75),
+  };
+}
+
 export default function MTChart({
   data, timeframes = DEFAULT_TF, initialRange = '3Y',
   yFormat, tipFormat, height = 200, width = 600,
-  tintBands = null, // {p25, p50, p75, direction: 'high'|'low'} — paints calibrated Risk On/Neutral/Cautionary/Risk Off bands
+  // Polarity of the series, controls which quarter is the Risk-On zone:
+  //   'stress'  — HIGH reading = bad (VIX, MOVE, SKEW, OAS, jobless claims).
+  //               top quarter = Risk Off, bottom quarter = Risk On.  [default]
+  //   'risk-on' — HIGH reading = good (MT engine score, breadth, NAV,
+  //               equity momentum). Inverted: top quarter = Risk On.
+  //   'none'    — no calibrated bands (e.g. bidirectional indicators
+  //               where a single 4-zone ramp is not meaningful).
+  polarity = 'stress',
+  // Bands are ON by default. Pass tintBands={false} to suppress them, or
+  // pass an explicit {p25, p50, p75[, direction]} object to override the
+  // self-computed percentile cuts (back-compat with the original prop).
+  tintBands = true,
 }) {
   const [range, setRange] = useState(initialRange);
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -53,6 +94,26 @@ export default function MTChart({
     ys = vals.map((v) => pad.t + (H - pad.t - pad.b) * (1 - (v - yMin) / (yMax - yMin)));
     pathD = `M ${xs[0]} ${ys[0]}` + xs.slice(1).map((x, i) => ` L ${x} ${ys[i + 1]}`).join('');
     areaD = pathD + ` L ${xs[xs.length - 1]} ${H - pad.b} L ${xs[0]} ${H - pad.b} Z`;
+  }
+
+  // Resolve the band cut-points. Priority:
+  //   1. explicit {p25,p50,p75} object passed by the consumer
+  //   2. percentiles computed from the FULL series (data), polarity-agnostic
+  // Bands are suppressed when tintBands===false or polarity==='none'.
+  let bandCuts = null;
+  let bandDir = polarity === 'risk-on' ? 'low' : 'high';
+  if (tintBands && polarity !== 'none') {
+    if (typeof tintBands === 'object'
+        && tintBands.p25 != null && tintBands.p50 != null && tintBands.p75 != null) {
+      bandCuts = { p25: tintBands.p25, p50: tintBands.p50, p75: tintBands.p75 };
+      if (tintBands.direction === 'low' || tintBands.direction === 'high') {
+        bandDir = tintBands.direction;
+      }
+    } else {
+      // Percentiles from the series' own full history (not the sliced range)
+      // so the zones stay stable as the reader switches timeframe pills.
+      bandCuts = computeBandCuts(data);
+    }
   }
 
   useEffect(() => {
@@ -150,35 +211,49 @@ export default function MTChart({
             <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
-                {tintBands && tintBands.p25 != null && tintBands.p50 != null && tintBands.p75 != null && (() => {
-          // Map percentile cuts to SVG y-coords using current yMin/yMax
+        {bandCuts && bandCuts.p25 != null && bandCuts.p50 != null && bandCuts.p75 != null && sliced.length >= 2 && (() => {
+          // Map percentile cuts to SVG y-coords using the current yMin/yMax.
           const yAt = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - yMin) / (yMax - yMin));
-          const dir = tintBands.direction === 'low' ? 'low' : 'high';
-          // For 'high' direction (high reading = risk off): top→p75 = Risk Off, p75→p50 = Cautionary, p50→p25 = Neutral, p25→bottom = Risk On
-          // For 'low' direction: invert.
           const yTop = pad.t;
           const yBot = H - pad.b;
-          const y25 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p25)));
-          const y50 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p50)));
-          const y75 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p75)));
-          const xL = pad.l, xW = W - pad.r - pad.l;
-          // bands listed top-down by SVG y (smaller y = higher value for 'high' direction)
-          const bands = dir === 'high'
+          const clamp = (y) => Math.max(yTop, Math.min(yBot, y));
+          const y25 = clamp(yAt(bandCuts.p25));
+          const y50 = clamp(yAt(bandCuts.p50));
+          const y75 = clamp(yAt(bandCuts.p75));
+          const xL = pad.l;
+          const xW = W - pad.r - pad.l;
+          // Band fills are CSS theme variables so they flip with light/dark
+          // mode and never use a hardcoded palette. Defined in theme.css.
+          const RISK_ON  = 'var(--tint-risk-on)';
+          const NEUTRAL  = 'var(--tint-neutral)';
+          const CAUTION  = 'var(--tint-cautionary)';
+          const RISK_OFF = 'var(--tint-risk-off)';
+          // 'high' polarity (high reading = stress):
+          //   top→p75 Risk Off, p75→p50 Cautionary, p50→p25 Neutral, p25→bottom Risk On
+          // 'low' polarity (high reading = risk-on): inverted.
+          const bands = bandDir === 'high'
             ? [
-                { y0: yTop, y1: y75, fill: 'rgba(224,123,134,0.10)' },   // Risk Off
-                { y0: y75,  y1: y50, fill: 'rgba(232,197,118,0.10)' },   // Cautionary
-                { y0: y50,  y1: y25, fill: 'rgba(245,241,232,0.03)' },   // Neutral
-                { y0: y25,  y1: yBot, fill: 'rgba(109,212,158,0.10)' }, // Risk On
+                { y0: yTop, y1: y75,  fill: RISK_OFF, label: 'Risk Off zone' },
+                { y0: y75,  y1: y50,  fill: CAUTION,  label: 'Cautionary zone' },
+                { y0: y50,  y1: y25,  fill: NEUTRAL,  label: 'Neutral zone' },
+                { y0: y25,  y1: yBot, fill: RISK_ON,  label: 'Risk-On zone' },
               ]
             : [
-                { y0: yTop, y1: y75, fill: 'rgba(109,212,158,0.10)' },  // top values = Risk On (low direction)
-                { y0: y75,  y1: y50, fill: 'rgba(245,241,232,0.03)' },   // Neutral
-                { y0: y50,  y1: y25, fill: 'rgba(232,197,118,0.10)' },   // Cautionary
-                { y0: y25,  y1: yBot, fill: 'rgba(224,123,134,0.10)' },// Risk Off (low values)
+                { y0: yTop, y1: y75,  fill: RISK_ON,  label: 'Risk-On zone' },
+                { y0: y75,  y1: y50,  fill: NEUTRAL,  label: 'Neutral zone' },
+                { y0: y50,  y1: y25,  fill: CAUTION,  label: 'Cautionary zone' },
+                { y0: y25,  y1: yBot, fill: RISK_OFF, label: 'Risk Off zone' },
               ];
-          return bands.map((b, i) => (
-            <rect key={'tband-' + i} x={xL} y={Math.min(b.y0, b.y1)} width={xW} height={Math.abs(b.y1 - b.y0)} fill={b.fill} />
-          ));
+          return (
+            <g className="v2-chart-tint" aria-hidden="true">
+              {bands.map((b, i) => (
+                <rect key={'tband-' + i} x={xL} y={Math.min(b.y0, b.y1)}
+                  width={xW} height={Math.abs(b.y1 - b.y0)} fill={b.fill}>
+                  <title>{b.label}</title>
+                </rect>
+              ))}
+            </g>
+          );
         })()}
         <g>{ticks.map((t, i) => (<line key={i} className="grid" x1={pad.l} x2={W - pad.r} y1={t.y} y2={t.y} />))}</g>
         <g>{ticks.map((t, i) => (<text key={i} className="yLabel" x={pad.l - 6} y={t.y + 3} textAnchor="end">{t.label}</text>))}</g>

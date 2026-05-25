@@ -427,9 +427,14 @@ export default function IndicatorsPage() {
             </div>
 
             {openInd.points?.length >= 2 && (
+              // Calibrated regime tint bands (#1158): a high-warns indicator
+              // is stress polarity (top quarter = Risk Off); a low-warns
+              // indicator inverts; bidirectional gets no single 4-zone ramp.
               <MTChart
                 data={openInd.points}
                 initialRange="5Y"
+                polarity={openInd.direction === 'lw' ? 'risk-on'
+                  : openInd.direction === 'bw' ? 'none' : 'stress'}
                 timeframes={[
                   { key: '1Y', label: '1Y' },
                   { key: '3Y', label: '3Y' },
