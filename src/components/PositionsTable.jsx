@@ -31,7 +31,7 @@ import { computeSectionComposites, colorForDirection } from "../ticker/sectionCo
 import MTTable from "./MTTable";
 
 const SIGNAL_COLS = [
-  { key: "technicals", short: "Technical",             long: "Technicals (25% of OVR)" },
+  { key: "technicals", short: "Technical",             long: "Technicals (25% of the overall rank)" },
   { key: "insider",    short: "Insider",               long: "Insider Form-4 buys/sells (25%)" },
   { key: "options",    short: "Options",               long: "Options flow (20%)" },
   { key: "congress",   short: "Congress",              long: "Congressional trade disclosures (15%)" },
