@@ -15,16 +15,39 @@ const MECH_LABELS = {
   growth: 'Growth', liquidity_policy: 'Liquidity & Policy', positioning_breadth: 'Positioning & Breadth',
 };
 
+// The mechanism keys on a sector/IG `contributions` block use the engine's
+// canonical ids; the calibration tiles key the same mechanisms by their own
+// `id`. These already line up except where the calibration uses a different
+// slug — this map bridges the two so the mechanism drill can find the right
+// tile (and therefore the indicator list + vendors) for a contribution row.
+const MECH_TILE_ID = {
+  valuation: 'valuation', credit: 'credit', funding: 'funding',
+  growth: 'growth', liquidity_policy: 'liquidity_policy', positioning_breadth: 'positioning_breadth',
+};
+
 export default function AssetTiltPage() {
   const [v10, setV10] = useState(null);
+  const [calib, setCalib] = useState(null);
+  const [manifest, setManifest] = useState(null);
   const [err, setErr] = useState(null);
-  const [openIg, setOpenIg] = useState(null);
+  // Drill state. `drill` is a stack-like object describing the deepest open
+  // level so the Drawer's ← Back walks Sector → IG → ETF and IG → Mechanism →
+  // (indicator vendor shown inline). `null` = drawer closed.  Bug #1165.
+  const [drill, setDrill] = useState(null);
   const [igFilter, setIgFilter] = useState('all');
 
   useEffect(() => {
     fetch('/v10_allocation.json', { cache: 'no-cache' })
       .then((r) => r.ok ? r.json() : null)
       .then(setV10).catch((e) => setErr(e?.message));
+    // Calibration tiles carry each mechanism's component indicator list;
+    // the manifest carries each indicator's source vendor. Both feed the
+    // Mechanism → Indicators → vendor drill. Failure is non-fatal — the
+    // mechanism rows simply stay non-clickable if the lookups are empty.
+    fetch('/methodology_calibration_v11.json', { cache: 'no-cache' })
+      .then((r) => r.ok ? r.json() : null).then(setCalib).catch(() => {});
+    fetch('/data_manifest.json', { cache: 'no-cache' })
+      .then((r) => r.ok ? r.json() : null).then(setManifest).catch(() => {});
   }, []);
 
   const eqPct = v10?.equity_pct != null ? Math.round(v10.equity_pct * 100) : null;
@@ -46,7 +69,45 @@ export default function AssetTiltPage() {
   const top = igsSorted.slice(0, 5);
   const bot = igsSorted.slice(-5).reverse();
 
-  const openIgRecord = openIg ? igs.find((ig) => ig.id === openIg) : null;
+  // Per-mechanism component-indicator list, keyed by mechanism tile id.
+  // Built from the calibration tiles so the Mechanism drill knows which
+  // indicators roll up into a mechanism contribution.  Bug #1165.
+  const mechIndicators = useMemo(() => {
+    const out = {};
+    (calib?.tiles || []).forEach((t) => {
+      out[t.id] = (t.indicators || []).map((ind) => ({
+        id: ind.id,
+        name: ind.name || ind.id,
+        share: ind.composite_share_pct != null ? Number(ind.composite_share_pct) : null,
+      }));
+    });
+    return out;
+  }, [calib]);
+
+  // Indicator id → source vendor, from the data manifest. This is the
+  // terminal node of the Mechanism → Indicators → vendor drill.
+  const vendorFor = useMemo(() => {
+    const out = {};
+    const els = manifest?.elements;
+    if (!Array.isArray(els)) return out;
+    els.forEach((e) => {
+      if (e.category !== 'indicator' || !e.name) return;
+      out[e.name] = (e.source_vendor || '').split(/[(:·]/)[0].trim() || null;
+    });
+    return out;
+  }, [manifest]);
+
+  // Resolve the open records from the drill stack. Helpers above their
+  // consumers (no temporal-dead-zone — these are plain const expressions).
+  const openSector = drill?.sector ? sectors.find((s) => s.sector === drill.sector) : null;
+  const openIgRecord = drill?.ig ? igs.find((ig) => ig.id === drill.ig) : null;
+  const openEtf = drill?.etf || null;
+  const openMech = drill?.mech || null;
+  // Industry groups that belong to the open sector — the Sector → IG level.
+  const sectorIgs = useMemo(
+    () => (openSector ? igsSorted.filter((ig) => ig.sector === openSector.sector) : []),
+    [openSector, igsSorted]
+  );
 
   return (
     <div className="v2-root">
@@ -114,7 +175,10 @@ export default function AssetTiltPage() {
             {sectors.map((s) => {
               const maxW = Math.max(...sectors.map((x) => x.weight));
               return (
-                <div key={s.sector} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 60px', gap: 14, alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--line-0)', fontSize: 14 }}>
+                <div key={s.sector} onClick={() => setDrill({ sector: s.sector })}
+                  style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 60px', gap: 14, alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--line-0)', fontSize: 14, cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <span className={`v2-pill ${s.rating === 'OW' ? 'r-on' : s.rating === 'UW' ? 'r-off' : 'placeholder'}`}>{s.rating}</span>
                   <span style={{ color: 'var(--ink-0)' }}>{s.sector}</span>
                   <div style={{ height: 5, background: 'var(--bg-2)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
@@ -132,7 +196,7 @@ export default function AssetTiltPage() {
               <span className="t-eyebrow" title="The five industry groups with the largest overweight versus the five with the largest underweight.">Top 5 · bottom 5</span>
             </div>
             {top.map((ig) => (
-              <div key={ig.id} onClick={() => setOpenIg(ig.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}>
+              <div key={ig.id} onClick={() => setDrill({ ig: ig.id })} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}>
                 <div>
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
@@ -146,7 +210,7 @@ export default function AssetTiltPage() {
               <span style={{ flex: 1, height: 1, background: 'var(--line-1)' }} />
             </div>
             {bot.map((ig) => (
-              <div key={ig.id} onClick={() => setOpenIg(ig.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}>
+              <div key={ig.id} onClick={() => setDrill({ ig: ig.id })} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}>
                 <div>
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
@@ -194,7 +258,7 @@ export default function AssetTiltPage() {
             </thead>
             <tbody>
               {igsFiltered.map((ig) => (
-                <tr key={ig.id} onClick={() => setOpenIg(ig.id)} style={{ cursor: 'pointer' }}
+                <tr key={ig.id} onClick={() => setDrill({ ig: ig.id })} style={{ cursor: 'pointer' }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-2)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontWeight: 500 }}>
@@ -222,14 +286,84 @@ export default function AssetTiltPage() {
         </div>
       </div>
 
-      <Drawer open={openIgRecord != null} onClose={() => setOpenIg(null)}>
-        {openIgRecord && (
+      {/* ── DRILL DRAWER ─────────────────────────────────────────────────
+          Bug #1165. One Drawer, four levels. Active level is the deepest
+          key set on `drill`: ETF > Mechanism > IG > Sector. ← Back walks
+          one level up; close clears the whole stack. */}
+      <Drawer
+        open={drill != null}
+        onClose={() => setDrill(null)}
+        onBack={
+          openEtf ? () => setDrill({ sector: drill.sector, ig: drill.ig })
+          : openMech ? () => setDrill({ sector: drill.sector, ig: drill.ig })
+          : (openIgRecord && drill?.sector) ? () => setDrill({ sector: drill.sector })
+          : undefined
+        }
+        backLabel={
+          openEtf ? (openIgRecord?.name || openSector?.sector || 'previous')
+          : openMech ? (openIgRecord?.name || 'industry group')
+          : (openIgRecord && drill?.sector) ? (openSector?.sector || 'sector')
+          : undefined
+        }
+      >
+        {/* ── Level: SECTOR → lists its industry groups ── */}
+        {openSector && !openIgRecord && (
+          <>
+            <div className="t-eyebrow accent">GICS sector</div>
+            <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{openSector.sector}</h3>
+            <div className="v2-drawer-grid">
+              <div className="v2-drawer-stat">
+                <div className="lbl">Rating <InfoTip def="The allocator's lean on this sector — OW (overweight), MW (marketweight), or UW (underweight)." size={10} /></div>
+                <div className="v">{openSector.rating}</div>
+              </div>
+              <div className="v2-drawer-stat">
+                <div className="lbl">Weight</div>
+                <div className="v">{(openSector.weight * 100).toFixed(1)}%</div>
+              </div>
+              <div className="v2-drawer-stat">
+                <div className="lbl">$ exposure <InfoTip term="$ EXPOSURE" size={10} /></div>
+                <div className="v">${(openSector.dollar || 0).toFixed(2)}K</div>
+              </div>
+            </div>
+            <div className="v2-drawer-section">
+              <span className="t-eyebrow">Sector ETFs</span>
+              <div style={{ marginTop: 8, color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em' }}>
+                {(openSector.etfs || []).map((t) => (
+                  <span key={t} onClick={() => setDrill({ sector: drill.sector, etf: t })}
+                    style={{ display: 'inline-block', padding: '4px 9px', border: '1px solid var(--line-1)', borderRadius: 4, marginRight: 6, marginBottom: 6, color: 'var(--ink-1)', cursor: 'pointer' }}>{t} →</span>
+                ))}
+              </div>
+            </div>
+            <div className="v2-drawer-section">
+              <span className="t-eyebrow">Industry groups</span>
+              {sectorIgs.length === 0 && (
+                <div style={{ color: 'var(--ink-2)', fontSize: 12, padding: '8px 0' }}>No industry groups mapped to this sector.</div>
+              )}
+              {sectorIgs.map((ig) => (
+                <div key={ig.id} onClick={() => setDrill({ sector: drill.sector, ig: ig.id })}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className={`v2-pill ${ig.rating === 'OW' ? 'r-on' : ig.rating === 'UW' ? 'r-off' : 'placeholder'}`} style={{ minWidth: 30, justifyContent: 'center' }}>{ig.rating}</span>
+                    <span style={{ color: 'var(--ink-0)' }}>{ig.name}</span>
+                  </div>
+                  <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, color: ig.tilt_score >= 0 ? 'var(--up)' : 'var(--down)', fontFeatureSettings: '"tnum"' }}>${(ig.dollar || 0).toFixed(2)}K →</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Level: IG → tickers (ETF drill) + contribution by mechanism (mechanism drill) ── */}
+        {openIgRecord && !openEtf && !openMech && (
           <>
             <div className="t-eyebrow accent">{openIgRecord.sector} · industry group</div>
             <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{openIgRecord.name}</h3>
             <div style={{ marginBottom: 8, color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em' }}>
               {(openIgRecord.tickers || []).map((t) => (
-                <span key={t} style={{ display: 'inline-block', padding: '3px 8px', border: '1px solid var(--line-1)', borderRadius: 4, marginRight: 6, color: 'var(--ink-1)' }}>{t}</span>
+                <span key={t} onClick={() => setDrill({ sector: drill.sector, ig: drill.ig, etf: t })}
+                  style={{ display: 'inline-block', padding: '4px 9px', border: '1px solid var(--line-1)', borderRadius: 4, marginRight: 6, marginBottom: 6, color: 'var(--ink-1)', cursor: 'pointer' }}>{t} →</span>
               ))}
             </div>
             <div className="v2-drawer-grid">
@@ -254,9 +388,15 @@ export default function AssetTiltPage() {
               {Object.entries(openIgRecord.contributions || {}).map(([m, v]) => {
                 const up = v >= 0;
                 const segW = Math.min(50, Math.abs(v) * 50);
+                const tileId = MECH_TILE_ID[m] || m;
+                const drillable = (mechIndicators[tileId] || []).length > 0;
                 return (
-                  <div key={m} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 80px', gap: 16, alignItems: 'center', padding: '8px 0', fontSize: 13 }}>
-                    <span style={{ color: 'var(--ink-1)' }}>{MECH_LABELS[m] || m}</span>
+                  <div key={m}
+                    onClick={drillable ? () => setDrill({ sector: drill.sector, ig: drill.ig, mech: m }) : undefined}
+                    style={{ display: 'grid', gridTemplateColumns: '160px 1fr 80px', gap: 16, alignItems: 'center', padding: '8px 0', fontSize: 13, cursor: drillable ? 'pointer' : 'default' }}
+                    onMouseEnter={drillable ? (e) => e.currentTarget.style.background = 'var(--bg-2)' : undefined}
+                    onMouseLeave={drillable ? (e) => e.currentTarget.style.background = 'transparent' : undefined}>
+                    <span style={{ color: 'var(--ink-1)' }}>{MECH_LABELS[m] || m}{drillable ? ' →' : ''}</span>
                     <div style={{ position: 'relative', height: 14, display: 'flex', alignItems: 'center' }}>
                       <span style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, background: 'var(--line-1)' }} />
                       <span style={{
@@ -274,6 +414,66 @@ export default function AssetTiltPage() {
             </div>
           </>
         )}
+
+        {/* ── Level: ETF → terminal node of Sector→IG→ETF ── */}
+        {openEtf && (
+          <>
+            <div className="t-eyebrow accent">
+              {openIgRecord ? `${openIgRecord.name} · ETF` : openSector ? `${openSector.sector} · ETF` : 'ETF'}
+            </div>
+            <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{openEtf}</h3>
+            <div className="v2-drawer-section">
+              <div className="v2-drawer-row"><span className="lbl">Symbol</span><span className="val">{openEtf}</span></div>
+              {openIgRecord && (
+                <div className="v2-drawer-row"><span className="lbl">Industry group</span><span className="val">{openIgRecord.name}</span></div>
+              )}
+              <div className="v2-drawer-row"><span className="lbl">Sector</span><span className="val">{openIgRecord?.sector || openSector?.sector || '—'}</span></div>
+              <div className="v2-drawer-row"><span className="lbl">Role</span><span className="val">Tracking ETF for this {openIgRecord ? 'industry group' : 'sector'}</span></div>
+            </div>
+          </>
+        )}
+
+        {/* ── Level: MECHANISM → component indicators → source vendor ── */}
+        {openMech && openIgRecord && (() => {
+          const tileId = MECH_TILE_ID[openMech] || openMech;
+          const inds = mechIndicators[tileId] || [];
+          const contribVal = openIgRecord.contributions?.[openMech];
+          return (
+            <>
+              <div className="t-eyebrow accent">{openIgRecord.name} · mechanism</div>
+              <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{MECH_LABELS[openMech] || openMech}</h3>
+              {contribVal != null && (
+                <div className="v2-drawer-grid">
+                  <div className="v2-drawer-stat">
+                    <div className="lbl">Contribution to tilt</div>
+                    <div className={`v ${contribVal >= 0 ? 'up' : 'down'}`} style={{ fontSize: 22 }}>
+                      {contribVal >= 0 ? '+' : ''}{contribVal.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="v2-drawer-section">
+                <span className="t-eyebrow">Component indicators <InfoTip def="The calibrated indicators that roll up into this mechanism's composite score. Share is each indicator's weight within the mechanism." size={10} /></span>
+                {inds.length === 0 && (
+                  <div style={{ color: 'var(--ink-2)', fontSize: 12, padding: '8px 0' }}>No indicators mapped to this mechanism.</div>
+                )}
+                {inds.map((ind) => (
+                  <div key={ind.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'baseline', padding: '9px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13 }}>
+                    <div>
+                      <div style={{ color: 'var(--ink-0)' }}>{ind.name}</div>
+                      <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.03em', marginTop: 2 }}>
+                        Source · {vendorFor[ind.id] || 'Source not yet mapped'}
+                      </div>
+                    </div>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 13, color: 'var(--ink-1)', fontFeatureSettings: '"tnum"' }}>
+                      {ind.share != null ? `${ind.share.toFixed(1)}%` : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
       </Drawer>
 
       {err && (
