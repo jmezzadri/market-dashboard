@@ -229,19 +229,19 @@ export default function MTChart({
           const CAUTION  = 'var(--tint-cautionary)';
           const RISK_OFF = 'var(--tint-risk-off)';
           // 'high' polarity (high reading = stress):
-          //   top→p75 Risk Off, p75→p50 Cautionary, p50→p25 Neutral, p25→bottom Risk On
+          //   top→p75 Risk Off, p75→p50 Watch, p50→p25 Neutral, p25→bottom Risk On
           // 'low' polarity (high reading = risk-on): inverted.
           const bands = bandDir === 'high'
             ? [
                 { y0: yTop, y1: y75,  fill: RISK_OFF, label: 'Risk Off zone' },
-                { y0: y75,  y1: y50,  fill: CAUTION,  label: 'Cautionary zone' },
+                { y0: y75,  y1: y50,  fill: CAUTION,  label: 'Watch zone' },
                 { y0: y50,  y1: y25,  fill: NEUTRAL,  label: 'Neutral zone' },
                 { y0: y25,  y1: yBot, fill: RISK_ON,  label: 'Risk-On zone' },
               ]
             : [
                 { y0: yTop, y1: y75,  fill: RISK_ON,  label: 'Risk-On zone' },
                 { y0: y75,  y1: y50,  fill: NEUTRAL,  label: 'Neutral zone' },
-                { y0: y50,  y1: y25,  fill: CAUTION,  label: 'Cautionary zone' },
+                { y0: y50,  y1: y25,  fill: CAUTION,  label: 'Watch zone' },
                 { y0: y25,  y1: yBot, fill: RISK_OFF, label: 'Risk Off zone' },
               ];
           return (
