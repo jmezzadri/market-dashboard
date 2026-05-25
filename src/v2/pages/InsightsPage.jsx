@@ -1,18 +1,48 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
+import Drawer from '../components/Drawer';
 import { usePricesAsOfDate } from '../../hooks/usePricesAsOfDate';
 import MTChart from '../components/MTChart';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import usePortfolioHistory from '../../hooks/usePortfolioHistory';
+import { useTransactionsLedger } from '../../hooks/useTransactionsLedger';
 import { useSession } from '../../auth/useSession';
 import { InfoTip } from '../../InfoTip';
+
+// Money formatter — matches the broker-statement style used elsewhere.
+function fmtMoney(v, opts = {}) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const sign = v < 0 ? '-' : opts.signed ? '+' : '';
+  return sign + '$' + Math.abs(v).toLocaleString('en-US', {
+    minimumFractionDigits: opts.cents === false ? 0 : 2,
+    maximumFractionDigits: opts.cents === false ? 0 : 2,
+  });
+}
+
+// Option-aware ticker label so a trade row reads obvious — "NVDA $195P 7/17/26".
+function tradeTickerLabel(r) {
+  if (r.assetClass === 'option' && r.contractType && r.strike != null) {
+    const ct = r.contractType.toUpperCase().slice(0, 1);
+    const exp = r.expiration
+      ? new Date(r.expiration).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })
+      : '';
+    return `${r.ticker} $${r.strike}${ct}${exp ? ' ' + exp : ''}`;
+  }
+  return r.ticker;
+}
 
 export default function InsightsPage() {
   const { positions, accounts, loading: posLoading } = useUserPortfolio();
   const { session, loading: authLoading } = useSession();
   const isAuthed = !!session;
   const navHistory = usePortfolioHistory({ since: null });
+  // Trade-level ledger — the components a position aggregates into. Drives
+  // the Position → Trades drill.  Bug #1165.
+  const { rows: txRows, loading: txLoading } = useTransactionsLedger();
+  // Open position drill, identified by { ticker, accountId } so the same
+  // ticker held in two accounts opens its own trades. null = drawer closed.
+  const [openPos, setOpenPos] = useState(null);
   const [navPoints, setNavPoints] = useState([]);
 
   useEffect(() => {
@@ -42,6 +72,34 @@ export default function InsightsPage() {
     () => accountList.reduce((s, a) => s + (a.value || 0), 0),
     [accountList]
   );
+
+  // Flat, sorted position list across every account — the rows the user
+  // clicks to drill into trades. Each row keeps its account label so the
+  // table reads without a second lookup.  Bug #1165.
+  const positionRows = useMemo(() => {
+    const out = [];
+    accountList.forEach((a) => {
+      (Array.isArray(a.positions) ? a.positions : []).forEach((p) => {
+        out.push({
+          ...p,
+          accountId: p.accountId || p.account_id || a.id || a.account_id,
+          accountLabel: a.label || a.account_name || 'Account',
+          value: Number(p.value) || Number(p.market_value) || 0,
+        });
+      });
+    });
+    return out.sort((x, y) => (y.value || 0) - (x.value || 0));
+  }, [accountList]);
+
+  // Trades that make up the open position — same ticker, same account.
+  // This is the component layer behind a position aggregate.
+  const openPosTrades = useMemo(() => {
+    if (!openPos || !Array.isArray(txRows)) return [];
+    return txRows.filter(
+      (r) => r.ticker === openPos.ticker
+        && (openPos.accountId == null || r.accountId === openPos.accountId)
+    );
+  }, [openPos, txRows]);
 
   // Prices-as-of freshness chip (Joe directive — bug 1155).
   // Pinned to the `massive-eod` indicator in pipeline_health (the
@@ -128,6 +186,59 @@ export default function InsightsPage() {
             </div>
           ))}
         </div>
+        {/* POSITIONS — each row drills to its underlying trades. Bug #1165. */}
+        {isAuthed && positionRows.length > 0 && (
+          <div style={{ marginTop: 24, background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px 14px', borderBottom: '1px solid var(--line-0)' }}>
+              <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>Positions</h2>
+              <span className="t-eyebrow">{positionRows.length} holdings</span>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {[
+                    { label: 'Position', align: 'left' },
+                    { label: 'Account', align: 'left' },
+                    { label: 'Quantity', align: 'right' },
+                    { label: 'Price', align: 'right' },
+                    { label: 'Market value', align: 'right' },
+                  ].map((h) => (
+                    <th key={h.label} style={{
+                      textAlign: h.align, padding: '14px 28px', fontSize: 10.5, letterSpacing: '.14em',
+                      textTransform: 'uppercase', color: 'var(--ink-2)', fontWeight: 500,
+                      borderBottom: '1px solid var(--line-1)', background: 'var(--bg-1)',
+                    }}>{h.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {positionRows.map((p) => (
+                  <tr key={`${p.accountId}-${p.id || p.ticker}`}
+                    onClick={() => setOpenPos({ ticker: p.ticker, accountId: p.accountId, name: p.name, accountLabel: p.accountLabel, value: p.value })}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontWeight: 500 }}>
+                      {p.ticker}
+                      {p.name ? <span style={{ color: 'var(--ink-2)', fontWeight: 400, marginLeft: 8, fontSize: 12 }}>{p.name}</span> : null}
+                    </td>
+                    <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>{p.accountLabel}</td>
+                    <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-1)', fontFeatureSettings: '"tnum"' }}>
+                      {p.quantity != null ? Number(p.quantity).toLocaleString('en-US', { maximumFractionDigits: 6 }) : '—'}
+                    </td>
+                    <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-1)', fontFeatureSettings: '"tnum"' }}>
+                      {p.price != null ? fmtMoney(Number(p.price)) : '—'}
+                    </td>
+                    <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', fontWeight: 500 }}>
+                      {fmtMoney(p.value, { cents: false })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {(!authLoading && !isAuthed) && (
           <div style={{ marginTop: 32, padding: 32, background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', textAlign: 'center', color: 'var(--ink-2)' }}>
             Sign in to load your portfolio.
@@ -142,6 +253,65 @@ export default function InsightsPage() {
           Accounts · End-of-day prices nightly · Positions imported from Chase, Schwab, Fidelity
         </div>
       </div>
+
+      {/* POSITION → TRADES DRILL — Bug #1165. The trades that make up the
+          clicked position, newest first, from the transactions ledger. */}
+      <Drawer open={openPos != null} onClose={() => setOpenPos(null)}>
+        {openPos && (
+          <>
+            <div className="t-eyebrow accent">{openPos.accountLabel} · position</div>
+            <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>
+              {openPos.ticker}{openPos.name ? <span style={{ color: 'var(--ink-2)', fontWeight: 400, fontSize: 14, marginLeft: 8 }}>{openPos.name}</span> : null}
+            </h3>
+            <div className="v2-drawer-grid">
+              <div className="v2-drawer-stat">
+                <div className="lbl">Market value</div>
+                <div className="v">{fmtMoney(openPos.value, { cents: false })}</div>
+              </div>
+              <div className="v2-drawer-stat">
+                <div className="lbl">Trades on file</div>
+                <div className="v">{openPosTrades.length}</div>
+              </div>
+            </div>
+
+            <div className="v2-drawer-section">
+              <span className="t-eyebrow">Trade history <InfoTip def="Every buy, sell, open and close logged against this position in the transactions ledger." size={10} /></span>
+              {txLoading && (
+                <div style={{ color: 'var(--ink-2)', fontSize: 12, padding: '10px 0' }}>Loading trades…</div>
+              )}
+              {!txLoading && openPosTrades.length === 0 && (
+                <div style={{ color: 'var(--ink-2)', fontSize: 12, padding: '10px 0' }}>
+                  No trades on file for this position yet. Trades appear here once they are recorded in the ledger.
+                </div>
+              )}
+              {!txLoading && openPosTrades.map((t) => (
+                <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12, alignItems: 'baseline', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, letterSpacing: '.05em', padding: '3px 8px', borderRadius: 'var(--r-sm)',
+                    background: 'var(--bg-2)', border: '1px solid var(--line-1)',
+                    color: ['BUY', 'OPEN'].includes((t.side || '').toUpperCase()) ? 'var(--up)'
+                      : ['SELL', 'SHORT'].includes((t.side || '').toUpperCase()) ? 'var(--down)' : 'var(--ink-1)',
+                  }}>{(t.side || '—').toUpperCase()}</span>
+                  <div>
+                    <div style={{ color: 'var(--ink-0)' }}>{tradeTickerLabel(t)}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.03em', marginTop: 2 }}>
+                      {t.executedAt ? t.executedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                      {t.quantity != null ? ` · ${Number(t.quantity).toLocaleString('en-US', { maximumFractionDigits: 6 })} @ ${fmtMoney(t.price)}` : ''}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontFeatureSettings: '"tnum"', textAlign: 'right' }}>
+                    {t.realizedPnl != null ? (
+                      <span style={{ color: t.realizedPnl >= 0 ? 'var(--up)' : 'var(--down)' }}>{fmtMoney(t.realizedPnl, { signed: true })}</span>
+                    ) : t.netProceeds != null ? (
+                      <span style={{ color: 'var(--ink-1)' }}>{fmtMoney(t.netProceeds)}</span>
+                    ) : <span style={{ color: 'var(--ink-3)' }}>—</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Drawer>
     </div>
   );
 }

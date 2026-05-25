@@ -149,6 +149,24 @@ export default function IndicatorsPage() {
     return out;
   }, [manifest]);
 
+  // Indicator id → source vendor + endpoint, from the data manifest.
+  // This is the terminal node of the Indicator → source vendor drill so a
+  // reader opening any indicator can see exactly which vendor feeds it.
+  // Bug #1165.
+  const sourceFor = useMemo(() => {
+    const out = {};
+    const els = manifest?.elements;
+    if (!Array.isArray(els)) return out;
+    els.forEach((e) => {
+      if (e.category !== 'indicator' || !e.name) return;
+      out[e.name] = {
+        vendor: (e.source_vendor || '').split(/[(]/)[0].trim() || null,
+        endpoint: e.source_endpoint || null,
+      };
+    });
+    return out;
+  }, [manifest]);
+
   // Manifest-derived live source list (for footer)
   const manifestSources = useMemo(() => {
     const els = manifest?.elements;
@@ -464,6 +482,20 @@ export default function IndicatorsPage() {
               <div className="v2-drawer-row"><span className="lbl">Direction</span><span className="val">{openInd.direction === 'hw' ? 'High = elevated' : openInd.direction === 'lw' ? 'Low = elevated' : openInd.direction === 'bw' ? 'Both extremes elevated' : '—'}</span></div>
               <div className="v2-drawer-row"><span className="lbl">Sample window</span><span className="val">{openInd.stats?.window || '—'}</span></div>
               <div className="v2-drawer-row"><span className="lbl">Outlier handling</span><span className="val">{openInd.stats?.winsorize || '—'}</span></div>
+            </div>
+
+            {/* Source vendor — terminal node of the Indicator → source drill.
+                Pulled from data_manifest.json. Bug #1165. */}
+            <div className="v2-drawer-section">
+              <span className="t-eyebrow">Source</span>
+              <div className="v2-drawer-row"><span className="lbl">Vendor</span><span className="val">{sourceFor[openInd.id]?.vendor || 'Source not yet mapped'}</span></div>
+              {sourceFor[openInd.id]?.endpoint && (
+                <div className="v2-drawer-row"><span className="lbl">Feed</span><span className="val">{sourceFor[openInd.id].endpoint}</span></div>
+              )}
+              {openInd.mech_name && (
+                <div className="v2-drawer-row"><span className="lbl">Mechanism</span><span className="val">{openInd.mech_name}</span></div>
+              )}
+              <div className="v2-drawer-row"><span className="lbl">Licence tier</span><span className="val" style={{ textTransform: 'capitalize' }}>{openInd.tier || '—'}</span></div>
             </div>
           </>
         )}
