@@ -3,7 +3,7 @@
 // Reads public.trading_opps_signals — the nightly results table written by
 // the rebuilt screener (Phase 2 engine). One row per launched stock for the
 // most recent scan_date. The page is PageHero + a controls row + a wide
-// 34-column results table. Clicking a row opens the existing global stock
+// 33-column results table. Clicking a row opens the existing global stock
 // modal via the onOpenTicker prop.
 //
 // This file faithfully translates the finalized design mockup
@@ -26,7 +26,7 @@ import {
 } from "../../lib/freshnessClock";
 
 // ─────────────────────────────────────────────────────────────────────────
-// Column spec — 34 columns, five groups, in the exact left-to-right order
+// Column spec — 33 columns, five groups, in the exact left-to-right order
 // from the locked mockup. `drv:true` marks the five score-driving columns
 // that get a shaded background wherever they sit.
 // ─────────────────────────────────────────────────────────────────────────
@@ -45,8 +45,6 @@ export const COLS = [
     tip: "Screener score one week ago." },
   { k: "m1",      grp: "Stock", lbl: "Score 1M", numeric: true,
     tip: "Screener score one month ago. A dash means the stock was not on the list then." },
-  { k: "win",     grp: "Stock", lbl: "Win Rate", numeric: true,
-    tip: "Empirical success probability of this setup, measured in the backtest." },
   { k: "insider", grp: "Stock", lbl: "Insider Activity", numeric: true, drv: true,
     tip: "[SCORING INPUT] Open-market buying by a company's own officers and directors. The letter tags are the rules that fired — A: a CEO or CFO conviction buy; B: combined insider buying that is large relative to company size; C: three or more insiders buying in the window. The number is the signal's age in days — full weight for the first 15 days, then fading to zero by day 31. Drives up to 4 points." },
   { k: "dp",      grp: "Stock", lbl: "Dark Pool Anchor", numeric: false, drv: true,
@@ -706,11 +704,6 @@ function renderCell(c, r) {
       return <span className="to-muted">{n.toFixed(1)}</span>;
     }
 
-    case "win": {
-      const n = num(r.win_rate);
-      return n == null ? dashSpan() : <span>{n.toFixed(0)}%</span>;
-    }
-
     case "insider": {
       const rules = Array.isArray(r.insider_rules) ? r.insider_rules : [];
       if (rules.length === 0 && r.insider_age_days == null) return dashSpan();
@@ -958,7 +951,6 @@ function sortValue(c, r) {
     case "score":   return num(r.score);
     case "w1":      return num(r.score_1w);
     case "m1":      return num(r.score_1m);
-    case "win":     return num(r.win_rate);
     case "insider": return Array.isArray(r.insider_rules) ? r.insider_rules.length : null;
     case "dp":      return num(r.dark_pool_anchor);
     case "price":   return num(r.price);
@@ -1597,7 +1589,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
         )}
 
         <div className="to-foot">
-          34 columns across five groups &mdash; scroll right for Statistics,
+          33 columns across five groups &mdash; scroll right for Statistics,
           Technicals and Info. Click any row to open the full stock view.
         </div>
       </div>

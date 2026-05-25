@@ -65,18 +65,6 @@ def load_config() -> dict:
         return json.load(f)
 
 
-def backtest_win_rate() -> float:
-    """The launched-list T+21 win rate from the pinned backtest, as a percent.
-    This is the empirical hit-rate the page shows in the Win Rate column."""
-    try:
-        with open(os.path.join(HERE, "backtest_results.json")) as f:
-            res = json.load(f)
-        wr = res["final_long_performance"]["21"]["win_rate"]
-        return round(float(wr) * 100.0, 1)
-    except Exception:
-        return None
-
-
 def _supabase_write(table: str, rows: list, on_conflict: str):
     """Upsert rows via the Supabase REST API (service role)."""
     env = E._env()
@@ -281,7 +269,6 @@ def main():
     scoring_version = cfg.get("scoring_version", "unversioned")
     stop_pct = cfg["risk_levels"]["stop_pct"]
     target_pct = cfg["risk_levels"]["target_pct"]
-    win_rate = backtest_win_rate()
 
     print("[1] loading production data ...")
     px, ins_raw = E.load_data()
@@ -419,7 +406,6 @@ def main():
             "score_1w_like_for_like": None,
             "score_1m_like_for_like": None,
             "scoring_version": scoring_version,
-            "win_rate": win_rate,
             "insider_rules": r["insider_rules"],
             "insider_age_days": r["insider_age_days"],
             "insider_pts": r["insider_pts"],

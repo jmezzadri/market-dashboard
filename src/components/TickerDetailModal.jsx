@@ -179,10 +179,6 @@ function SignalIntelligenceRail({ ticker }) {
                    : "var(--text)";
   const scoreLabel = score == null ? "—" : score.toFixed(1);
 
-  const winRate = num(row.win_rate);
-  const winLabel = winRate == null ? null
-                 : `win ${winRate <= 1 ? Math.round(winRate * 100) : Math.round(winRate)}%`;
-
   // Insider rule tags + freshness.
   let insiderTags = [];
   if (Array.isArray(row.insider_rules)) {
@@ -224,9 +220,6 @@ function SignalIntelligenceRail({ ticker }) {
             }}>
               {String(row.signal).replace(/_/g, " ")}
             </span>
-          )}
-          {winLabel && (
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{winLabel}</span>
           )}
         </div>
       </div>
