@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import Drawer from '../components/Drawer';
+import { InfoTip, HeadWithTip } from '../../InfoTip';
 
 /**
  * AssetTiltPage v2 — cutover.
@@ -64,22 +65,22 @@ export default function AssetTiltPage() {
           </div>
           <div className="v2-stats" style={{ marginTop: 28 }}>
             <div className={`s ${stress > 1 ? 'warn' : ''}`}>
-              <span className="lbl">Stress</span>
+              <span className="lbl">Stress <InfoTip term="STRESS" size={10} /></span>
               <span className="v"><CountUp to={stress != null ? stress : 0} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /6</span></span>
               <span className="d">mechanisms above Neutral</span>
             </div>
             <div className="s">
-              <span className="lbl">Equity</span>
+              <span className="lbl">Equity <InfoTip term="EQUITY %" size={10} /></span>
               <span className="v"><CountUp to={eqPct != null ? eqPct : 0} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}>%</span></span>
               <span className="d">{defPct === 0 ? 'no defensive sleeve' : `${defPct}% defensive`}</span>
             </div>
             <div className="s">
-              <span className="lbl">Defensive</span>
+              <span className="lbl">Defensive <InfoTip term="DEFENSIVE %" size={10} /></span>
               <span className="v"><CountUp to={defPct != null ? defPct : 0} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}>%</span></span>
               <span className="d">BIL · TLT · GLD · LQD</span>
             </div>
             <div className="s">
-              <span className="lbl">Leverage</span>
+              <span className="lbl">Leverage <InfoTip term="LEVERAGE" size={10} /></span>
               <span className="v">{lev != null ? lev.toFixed(2) : '—'}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}>×</span></span>
               <span className="d">gross {v10?.gross_exposure?.toFixed(2) || '—'}×</span>
             </div>
@@ -175,13 +176,19 @@ export default function AssetTiltPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
-                {['Industry group', 'Sector', 'Tickers', 'Tilt', '$ exposure'].map((h, i) => (
-                  <th key={h} style={{
+                {[
+                  { label: 'Industry group', term: null },
+                  { label: 'Sector', term: null },
+                  { label: 'Tickers', term: null },
+                  { label: 'Tilt', term: 'TILT' },
+                  { label: '$ exposure', term: '$ EXPOSURE' },
+                ].map((h, i) => (
+                  <th key={h.label} style={{
                     textAlign: i === 4 ? 'right' : 'left',
                     padding: '14px 28px', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase',
                     color: 'var(--ink-2)', fontWeight: 500, borderBottom: '1px solid var(--line-1)',
                     background: 'var(--bg-1)', position: 'sticky', top: 0,
-                  }}>{h}</th>
+                  }}>{h.term ? <HeadWithTip label={h.label} term={h.term} /> : h.label}</th>
                 ))}
               </tr>
             </thead>
@@ -227,23 +234,23 @@ export default function AssetTiltPage() {
             </div>
             <div className="v2-drawer-grid">
               <div className="v2-drawer-stat">
-                <div className="lbl">Position</div>
+                <div className="lbl">Position <InfoTip term="TILT" size={10} /></div>
                 <div className={`v ${openIgRecord.tilt_score >= 0 ? 'up' : 'down'}`} style={{ fontSize: 22 }}>
                   {openIgRecord.tilt_score >= 0 ? 'Overweight' : 'Underweight'}
                 </div>
               </div>
               <div className="v2-drawer-stat">
-                <div className="lbl">Rating</div>
+                <div className="lbl">Rating <InfoTip def="The allocator's lean on this group — OW (overweight, hold more), MW (marketweight, hold neutral), or UW (underweight, hold less)." size={10} /></div>
                 <div className="v">{openIgRecord.rating}</div>
               </div>
               <div className="v2-drawer-stat">
-                <div className="lbl">$ exposure</div>
+                <div className="lbl">$ exposure <InfoTip term="$ EXPOSURE" size={10} /></div>
                 <div className="v">${openIgRecord.dollar?.toFixed(2)}K</div>
               </div>
             </div>
 
             <div className="v2-drawer-section">
-              <span className="t-eyebrow">Contribution by mechanism</span>
+              <span className="t-eyebrow">Contribution by mechanism <InfoTip term="CONTRIBUTION BY MECHANISM" size={10} /></span>
               {Object.entries(openIgRecord.contributions || {}).map(([m, v]) => {
                 const up = v >= 0;
                 const segW = Math.min(50, Math.abs(v) * 50);

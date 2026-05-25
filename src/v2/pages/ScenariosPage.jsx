@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
+import { InfoTip } from '../../InfoTip';
 
 export default function ScenariosPageV2() {
   const [data, setData] = useState(null);
@@ -56,7 +57,7 @@ export default function ScenariosPageV2() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, paddingTop: 14, marginTop: 'auto' }}>
                 {(Array.isArray(s.key_metrics) ? s.key_metrics : Array.isArray(s.kpis) ? s.kpis : []).slice(0, 3).map((k, j) => (
                   <div key={j} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-2)', marginBottom: 6 }}>{k.label}</div>
+                    <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-2)', marginBottom: 6 }}>{k.label} <InfoTip def="A key projected outcome for this scenario — how this measure is expected to move if the scenario plays out." size={9} /></div>
                     <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 22, fontFeatureSettings: '"tnum"', color: k.value < 0 ? 'var(--down)' : 'var(--up)' }}>{k.value > 0 ? '+' : ''}{k.value}{k.unit || ''}</div>
                   </div>
                 ))}

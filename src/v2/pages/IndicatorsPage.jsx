@@ -4,6 +4,7 @@ import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import Drawer from '../components/Drawer';
 import { IND } from '../../data/indicatorRegistry';
+import { InfoTip } from '../../InfoTip';
 
 /**
  * IndicatorsPage v2 — sortable filterable table of every calibrated indicator.
@@ -234,22 +235,22 @@ export default function IndicatorsPage() {
           </div>
           <div className="v2-stats" style={{ marginTop: 28 }}>
             <div className="s">
-              <span className="lbl">Calibrated series</span>
+              <span className="lbl">Calibrated series <InfoTip term="CALIBRATED SERIES" size={10} /></span>
               <span className="v"><CountUp to={rows.filter((x) => !x.deprecated).length} /></span>
               <span className="d">live + tracked</span>
             </div>
             <div className={`s ${flaggedCount > 0 ? 'warn' : ''}`}>
-              <span className="lbl">In alert tail</span>
+              <span className="lbl">In alert tail <InfoTip term="IN ALERT TAIL" size={10} /></span>
               <span className="v"><CountUp to={flaggedCount} /></span>
               <span className="d">in alert quartile</span>
             </div>
             <div className="s">
-              <span className="lbl" title="Number of monthly composite readings on file for this indicator.">Months of history</span>
+              <span className="lbl">Months of history <InfoTip def="The total volume of historical data points on file across every tracked indicator." size={10} /></span>
               <span className="v"><CountUp to={Math.round(rows.reduce((s, x) => s + (x.points?.length || 0), 0) / 1000)} format={(v) => `${Math.round(v)}K`} /></span>
               <span className="d">across all series</span>
             </div>
             <div className="s">
-              <span className="lbl">Last refresh</span>
+              <span className="lbl">Last refresh <InfoTip def="When the most recent indicator reading on the page was published." size={10} /></span>
               <span className="v" style={{ fontSize: 24 }}>{rows.length ? relativeAge(rows[0].asOf) : '—'}</span>
               <span className="d">most recent point</span>
             </div>
@@ -306,12 +307,17 @@ export default function IndicatorsPage() {
                   { label: 'Direction',   align: 'left',  tip: 'Whether elevated, depressed, or both extremes are alert-side.' },
                   { label: 'Last update', align: 'right', tip: 'How recently the source vendor published a fresh reading.' },
                 ].map((c) => (
-                  <th key={c.label} title={c.tip || undefined} style={{
+                  <th key={c.label} style={{
                     textAlign: c.align,
                     padding: '14px 18px', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase',
                     color: 'var(--ink-2)', fontWeight: 500, borderBottom: '1px solid var(--line-1)',
                     background: 'var(--bg-1)', position: 'sticky', top: 0,
-                  }}>{c.label}</th>
+                  }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexDirection: c.align === 'right' ? 'row-reverse' : 'row' }}>
+                      {c.label}
+                      {c.tip ? <InfoTip def={c.tip} size={10} /> : null}
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>

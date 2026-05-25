@@ -6,6 +6,7 @@ import MTChart from '../components/MTChart';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import usePortfolioHistory from '../../hooks/usePortfolioHistory';
 import { useSession } from '../../auth/useSession';
+import { InfoTip } from '../../InfoTip';
 
 export default function InsightsPage() {
   const { positions, accounts, loading: posLoading } = useUserPortfolio();
@@ -64,7 +65,7 @@ export default function InsightsPage() {
         <div className="v2-shell">
           <div className="v2-hero-row">
             <div>
-              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>Total net liquidation</div>
+              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>Total net liquidation <InfoTip term="TOTAL NET LIQUIDATION" size={11} /></div>
               <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 'clamp(48px,6vw,80px)', lineHeight: .95, letterSpacing: '-.025em', color: 'var(--ink-0)', fontFeatureSettings: '"tnum","lnum"' }}>
                 {posLoading ? '—' : (
                   <>
@@ -86,7 +87,7 @@ export default function InsightsPage() {
         <div className="v2-shell" style={{ marginTop: 32 }}>
           <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
-              <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>Net liquidation</h2>
+              <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>Net liquidation <InfoTip term="NET LIQUIDATION" size={12} /></h2>
             </div>
             {/* Net liquidation is risk-on polarity (#1158): a higher
                 reading is the favourable end, so the top quarter of the

@@ -86,6 +86,80 @@ export const DEFS = {
     "Federal Funds Rate. Overnight inter-bank lending rate set by the FOMC — the Fed's primary policy tool.",
   TIPS:
     "Treasury Inflation-Protected Securities. Government bonds whose principal indexes to CPI. The real yield on TIPS = market-implied real interest rate.",
+
+  // ─── MacroTilt v2 site labels (bug #1162) ──────────────────────────────
+  // Plain-English, one-sentence explanations for every label or statistic
+  // on the v2 site that would not be obvious to a portfolio manager seeing
+  // MacroTilt for the first time. Used by the v2 pages via <InfoTip term=…>
+  // or <Tip def=…>.
+  "TODAYS STANCE":
+    "MacroTilt's overall read on the market today, scored 0–100 — higher means a more defensive backdrop. The label beneath (Risk On, Neutral, Cautionary, Risk Off) is the plain-English version of that score.",
+  "CURRENT REGIME":
+    "The market backdrop MacroTilt sees right now — Risk On, Neutral, Cautionary, or Risk Off — based on whether volatility and funding-stress triggers have crossed and how late in the cycle we are.",
+  "RISK ON":
+    "No volatility or funding-stress triggers are firing — the backdrop supports staying fully invested.",
+  "NEUTRAL":
+    "One stress trigger has crossed but not held — possibly a false alarm. The stance is to hold and watch.",
+  "CAUTIONARY":
+    "One or more stress triggers have been sustained — the backdrop argues for trimming risk.",
+  "RISK OFF":
+    "Stress triggers are sustained while the cycle is late — the backdrop argues for a defensive stance.",
+  "EQUITY VOL":
+    "How jumpy the stock market is right now, shown as where today's VIX sits in its own five-year range (0 = calmest, 100 = most volatile).",
+  "BOND VOL":
+    "How jumpy the bond market is right now, shown as where today's MOVE index sits in its own five-year range (0 = calmest, 100 = most volatile).",
+  "FUNDING":
+    "How expensive short-term corporate borrowing is, shown as where the commercial-paper spread sits in its own five-year range — a higher reading means tighter funding.",
+  "CYCLE POSITION":
+    "How far along the economic cycle MacroTilt judges we are, 0–100 — a higher reading means later in the cycle, when downside risk tends to build.",
+  "EQUITY %":
+    "The share of the portfolio the allocator wants invested in stocks right now.",
+  "DEFENSIVE %":
+    "The share of the portfolio the allocator wants held in defensive assets — short-term Treasuries, long Treasuries, gold, and investment-grade bonds.",
+  "LEVERAGE":
+    "How much total market exposure the allocator is taking versus the cash on hand — 1.0× means fully invested with no borrowing, above 1.0× means borrowing to add exposure.",
+  "GROSS EXPOSURE":
+    "Total market exposure counting both long and short positions added together, as a multiple of portfolio capital.",
+  "STRESS":
+    "How many of the six cycle mechanisms are currently reading above Neutral — the more that are, the more cautious the allocator becomes.",
+  "MECHANISMS FLAGGED":
+    "How many of the six cycle mechanisms are currently flagging stress, out of six.",
+  "OVERWEIGHT":
+    "Sectors the allocator wants to hold more of than a neutral benchmark would.",
+  "UNDERWEIGHT":
+    "Sectors the allocator wants to hold less of than a neutral benchmark would.",
+  "MARKETWEIGHT":
+    "Sectors the allocator wants to hold at roughly the same level as a neutral benchmark.",
+  "TILT":
+    "Which way and how strongly the allocator leans on this group — up for overweight, down for underweight.",
+  "TILT SCORE":
+    "A single number combining the six cycle mechanisms' votes on this group — positive means lean overweight, negative means lean underweight.",
+  "$ EXPOSURE":
+    "The dollar amount of the modeled portfolio the allocator assigns to this group.",
+  "COMPOSITE SHARE":
+    "How much this single indicator counts toward its mechanism's overall score, as a percentage — the indicators in one mechanism add up to 100%.",
+  "MECHANISM":
+    "One of the six building blocks of MacroTilt's cycle read — Valuation, Credit, Funding, Growth, Liquidity & Policy, and Positioning & Breadth.",
+  "CONTRIBUTION BY MECHANISM":
+    "How much each of the six cycle mechanisms pushes this group's tilt up or down — the bars add up to the overall lean.",
+  "5Y PERCENTILE":
+    "Where today's reading sits within the indicator's own range over the last five years — 0 = the lowest it's been, 100 = the highest.",
+  "PERCENTILE":
+    "Where the current reading sits within this indicator's own historical range — 0 = the lowest on record, 100 = the highest.",
+  "IN ALERT TAIL":
+    "How many indicators are currently reading at the extreme, alert-side end of their historical range.",
+  "CALIBRATED SERIES":
+    "The number of indicators that are fully calibrated and actively tracked.",
+  "30-DAY Δ":
+    "How much the reading has moved over the past 30 days.",
+  "WIN RATE":
+    "How often this kind of setup has worked out historically, measured in MacroTilt's backtest.",
+  "TOTAL NET LIQUIDATION":
+    "What the whole portfolio would be worth if every position were sold today at current prices.",
+  "NET LIQUIDATION":
+    "What the portfolio would be worth if every position were sold today at current prices, tracked over time.",
+  "SCORE":
+    "MacroTilt's overall conviction in this stock, out of 10 — built from insider buying, price trend, dark-pool clustering, and options activity.",
 };
 
 /**
