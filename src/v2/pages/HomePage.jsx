@@ -302,7 +302,7 @@ export default function HomePage() {
           {/* CARD 2 · ASSET TILT (with sector mini-list folded in) */}
           <article className="v2-tile" onClick={() => navTo('allocation')} tabIndex={0}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <span className="t-eyebrow accent">02 · Where the cycle says to lean</span>
+              <span className="t-eyebrow accent">02 · Asset Tilt</span>
               <FreshnessChip elementId="v10_allocation" fallback={v10?.as_of} />
             </div>
             <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:14 }}>
@@ -346,15 +346,15 @@ export default function HomePage() {
           {/* CARD 3 · PORTFOLIO SNAPSHOT (placeholder until React port wires Supabase) */}
           <article className="v2-tile" onClick={() => navTo('insights')} tabIndex={0}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <span className="t-eyebrow accent">03 · Your portfolio</span>
+              <span className="t-eyebrow accent">03 · Portfolio Insights</span>
               <FreshnessChip elementId="portfolio_history" />
             </div>
             <div style={{ margin:'auto 0', textAlign:'center', color:'var(--ink-2)', fontSize:13, padding:'40px 0' }}>
               <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-1)', marginBottom:10 }}>
-                {user ? 'Open Insights to view your portfolio' : 'Sign in to view your portfolio'}
+                {user ? 'Open Portfolio Insights to view your portfolio' : 'Sign in to view your portfolio'}
               </div>
               <div style={{ fontSize:11, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--accent)', fontWeight:500 }}>
-                Open Insights →
+                Open Portfolio Insights →
               </div>
             </div>
           </article>
@@ -362,7 +362,7 @@ export default function HomePage() {
           {/* CARD 4 · DAILY OPP SCAN */}
           <article className="v2-tile" onClick={() => navTo('portopps')} tabIndex={0}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <span className="t-eyebrow accent">04 · What to act on today</span>
+              <span className="t-eyebrow accent">04 · Trading Opportunities</span>
               <FreshnessChip elementId="latest_scan" fallback={scan?.scan_time} />
             </div>
             {buys.length === 0 && nears.length === 0 ? (
