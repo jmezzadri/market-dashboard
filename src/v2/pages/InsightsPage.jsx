@@ -88,9 +88,13 @@ export default function InsightsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
               <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>Net liquidation</h2>
             </div>
+            {/* Net liquidation is risk-on polarity (#1158): a higher
+                reading is the favourable end, so the top quarter of the
+                series' own history paints as the Risk-On zone. */}
             <MTChart
               data={navPoints}
               initialRange="3Y"
+              polarity="risk-on"
               timeframes={[
                 { key: '1Y', label: '1Y' },
                 { key: '3Y', label: '3Y' },

@@ -121,6 +121,15 @@
   --green-text:  #1f7a4f;
   --red-text:    #a82e3f;
 
+  /* Calibrated regime tint bands behind charts (bug #1158).
+     Soft, subtle fills painted under the line on MTChart — they must
+     never overpower the stroke. Cut-points are the 25/50/75 percentiles
+     of each series' own history, computed client-side. Light-mode tints. */
+  --tint-risk-on:     rgba(47,157,106,0.10);
+  --tint-neutral:     rgba(120,134,148,0.06);
+  --tint-cautionary:  rgba(193,150,70,0.12);
+  --tint-risk-off:    rgba(200,70,88,0.10);
+
   /* Backward-compat aliases — fold iOS-bright tokens to neutral / accent.
      Components still reading --yellow / --orange / --blue / --purple receive
      a muted slate or the brand accent — visual hierarchy moves to layout. */
@@ -224,6 +233,12 @@
     --green-text:  #4ec18a;
     --red-text:    #e07484;
 
+    /* Calibrated regime tint bands — dark-mode variant (bug #1158). */
+    --tint-risk-on:     rgba(78,193,138,0.14);
+    --tint-neutral:     rgba(152,164,176,0.07);
+    --tint-cautionary:  rgba(216,178,96,0.15);
+    --tint-risk-off:    rgba(224,116,132,0.14);
+
     --yellow:       #6e7a85;
     --yellow-text:  #98a4b0;
     --orange:       #6e7a85;
@@ -272,6 +287,12 @@
   --red:         #e07484;
   --green-text:  #4ec18a;
   --red-text:    #e07484;
+
+  /* Calibrated regime tint bands — dark-mode variant (bug #1158). */
+  --tint-risk-on:     rgba(78,193,138,0.14);
+  --tint-neutral:     rgba(152,164,176,0.07);
+  --tint-cautionary:  rgba(216,178,96,0.15);
+  --tint-risk-off:    rgba(224,116,132,0.14);
 
   --yellow:       #6e7a85;
   --yellow-text:  #98a4b0;
