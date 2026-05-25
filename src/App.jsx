@@ -65,7 +65,7 @@ import PositionEditor from "./components/PositionEditor";
 import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
 import ImportTransactions from "./components/ImportTransactions";
-import AccountTilesSection from "./components/AccountTilesSection";
+import AccountTilesSection, { computeAccountStats } from "./components/AccountTilesSection";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
@@ -5575,8 +5575,8 @@ const onUpdateWatchlistTheme = async (t, theme) => {
   return true;
 };
 
-// SPX history snapshot: the Portfolio Insights tile uses composite_history_daily.json's
-// SPXp series as the SPY benchmark for true-period (1W/1M/YTD/TTM) returns.
+// SPX history snapshot: the Portfolio Insights tile uses macrotilt_engine_backtest.json's
+// weekly spy_cumulative series as the SPY benchmark for true-period (1W/1M/YTD/TTM) returns.
 // Phase 9 will replace this with prices_eod (Massive). v9_allocation.json drives the
 // Asset Allocation tab. The deprecated 3-composite snapshot (_macroLatestSnap) was
 // removed in PR #1b — modal switched to cycleBoardSnap.
@@ -5599,16 +5599,26 @@ useEffect(() => {
 }, []);
 useEffect(() => {
   let cancelled = false;
-  fetch("/composite_history_daily.json")
+  // Bug #1205 — the SPY benchmark used to be read from
+  // composite_history_daily.json's `SPXp` field, but that artifact no longer
+  // exists (it 404s in production), so `_spxHistory` stayed null and every
+  // SPY-comparison number on Portfolio Insights ("TTM Performance" /
+  // "Portfolio Sharpe" in the Key Statistics box) rendered as an em-dash.
+  // The SPY benchmark series lives in macrotilt_engine_backtest.json under
+  // `weekly[].spy_cumulative` (a growth-of-$1 index, 1986→present, weekly).
+  // computeSpyReturns only needs a positive price proxy per date, so the
+  // cumulative index works as-is. Re-point the fetch to the file + field
+  // that the benchmark data actually provides.
+  fetch("/macrotilt_engine_backtest.json")
     .then(r => r.ok ? r.json() : null)
-    .then(arr => {
-      if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
+    .then(j => {
+      if (cancelled || !j || !Array.isArray(j.weekly) || j.weekly.length === 0) return;
       // Slim history → [{d, spx}] for the period-return calculation. Drops
-      // null entries and pre-allocates so tile 04 can compute 1W/1M/YTD/TTM
-      // returns synchronously.
-      const hist = arr
-        .filter(x => x && x.d && Number.isFinite(Number(x.SPXp)) && Number(x.SPXp) > 0)
-        .map(x => ({ d: x.d, spx: Number(x.SPXp) }));
+      // null entries so tile 04 / the Key Stats box can compute
+      // 1W/1M/YTD/TTM returns synchronously.
+      const hist = j.weekly
+        .filter(x => x && x.date && Number.isFinite(Number(x.spy_cumulative)) && Number(x.spy_cumulative) > 0)
+        .map(x => ({ d: x.date, spx: Number(x.spy_cumulative) }));
       if (hist.length > 0) setSpxHistory(hist);
     })
     .catch(() => {});
@@ -6626,11 +6636,23 @@ return(
                 </div>
               );
             }
-            const _byAcct = _portfolioReturns?.periodReturnsByAccount || {};
+            // Bug #1204 — per-account TTM must match the Portfolio Insights
+            // page exactly. The Insights page's AccountTilesSection computes
+            // each account's TTM via computeAccountStats (chained last-12
+            // monthly returns from portfolio_history, grouped by
+            // account_label). The Home tile previously used a different
+            // engine (_portfolioReturns.periodReturnsByAccount, a NAV-walk
+            // Modified-Dietz chain) which produced divergent numbers — e.g.
+            // Taxable read ~+131% here vs ~+31% on the Insights page, and the
+            // Roth even disagreed on sign. Compute it the SAME way here so
+            // the two surfaces cannot disagree.
+            const _histByLabel = new Map();
+            for (const r of (_phRows || [])) {
+              if (!_histByLabel.has(r.account_label)) _histByLabel.set(r.account_label, []);
+              _histByLabel.get(r.account_label).push(r);
+            }
             const _accts = ACCOUNTS.slice(0, 6).map(a => {
-              const ttm = _byAcct[a.label] != null ? _byAcct[a.label].TTM
-                        : _byAcct[a.id]    != null ? _byAcct[a.id].TTM
-                        : null;
+              const ttm = computeAccountStats(_histByLabel.get(a.label) || []).ttmTwr;
               return {
                 id: a.id || a.label || "_",
                 label: a.label || "Account",
