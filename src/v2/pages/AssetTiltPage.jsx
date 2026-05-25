@@ -25,6 +25,35 @@ const MECH_TILE_ID = {
   growth: 'growth', liquidity_policy: 'liquidity_policy', positioning_breadth: 'positioning_breadth',
 };
 
+// ── Bug #1149 — Asset Tilt → Trading Opportunities hand-off ──────────────
+//
+// Clicking "View in Trading Opportunities" inside an industry-group drawer
+// deep-links to the screener pre-filtered to that group's stocks. The
+// screener (trading_opps_signals) carries NO per-stock industry-group tag —
+// the only per-stock classification on a screener row is the broad `sector`
+// field (the 11-bucket vendor sector taxonomy: Technology, Financial
+// Services, Healthcare, …). So the screener can only honestly filter by
+// SECTOR, not by industry group.
+//
+// That means the hand-off is only accurate for the industry groups that are
+// the SOLE Asset Tilt industry group inside their GICS sector — filtering
+// the screener to that sector then returns exactly that group's universe
+// with no contamination from sibling groups. Every other Asset Tilt sector
+// holds 2–3 industry groups (Information Technology = Semiconductors +
+// Software + Hardware; Financials = Banks + Insurance + Diversified
+// Financials; etc.), so a sector-level filter for any one of them would
+// silently mix in the siblings — a misleading filter the council scope
+// explicitly forbids. When in doubt, exclude: a missing button is fine.
+//
+// CLEAN_IG_IDS — the allowlist. Each id below is the only Asset Tilt
+// industry group in its GICS sector, and that GICS sector maps 1:1 onto a
+// single screener `sector` value:
+//   reits     → Real Estate  (only IG in GICS Real Estate)
+//   electric  → Utilities    (only IG in GICS Utilities)
+// All 22 other industry groups share their GICS sector with one or two
+// siblings and are deliberately excluded.
+const CLEAN_IG_IDS = new Set(['reits', 'electric']);
+
 export default function AssetTiltPage() {
   const [v10, setV10] = useState(null);
   const [calib, setCalib] = useState(null);
@@ -412,6 +441,33 @@ export default function AssetTiltPage() {
                 );
               })}
             </div>
+
+            {/* Bug #1149 — hand-off to the Trading Opportunities screener,
+                pre-filtered to this industry group. Rendered only when the
+                group maps cleanly to a single screener sector (CLEAN_IG_IDS);
+                a misleading partial filter is never shown. */}
+            {CLEAN_IG_IDS.has(openIgRecord.id) && (
+              <div className="v2-drawer-section">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.hash = '#portopps?ig=' + encodeURIComponent(openIgRecord.id);
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                    padding: '9px 16px', borderRadius: 'var(--r-pill)',
+                    background: 'var(--accent)', color: '#1a1411',
+                    border: '1px solid transparent', cursor: 'pointer',
+                    letterSpacing: '.01em',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.06)'}
+                  onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+                >
+                  View in Trading Opportunities →
+                </button>
+              </div>
+            )}
           </>
         )}
 
