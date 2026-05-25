@@ -15,9 +15,11 @@ limit_daily. That row is the true end-of-day reading.
 
 Run via .github/workflows/UW_METER_READ_NIGHTLY.yml at ~11:45 PM ET on
 weekdays. The workflow carries one cron per US daylight-savings half, so it
-fires twice; the ET-hour guard below makes the off-season fire a no-op, so
-exactly one real meter read lands per weekday night. Pass --force (or set
-METER_FORCE=true) to bypass the guard for a manual verification run.
+fires twice. GitHub Actions often delivers a scheduled cron hours late, so
+instead of a fixed time-of-night guard the job is idempotent per ET day:
+whichever fire lands first does the read, and any later fire that finds
+today's end-of-day row already written no-ops. Pass --force (or set
+METER_FORCE=true) to force a read even when today's row already exists.
 
 429 handling: UW's per-minute rate-limit window is 60s, so a transient 429
 has to be waited out, not retried with short backoff. read_meter() honours
@@ -96,6 +98,47 @@ def read_meter() -> tuple[int | None, int | None, int]:
     return None, None, calls
 
 
+def _already_read_today(now_et: datetime) -> bool:
+    """True if an end-of-day meter row already exists for today (ET).
+
+    GitHub Actions delivers the scheduled cron hours late and the workflow
+    fires twice (one cron per DST half), so a fixed time-of-night guard made
+    the job no-op every night (#1197). Instead we record once per ET day:
+    whichever fire lands first writes the row, any later fire finds it here
+    and skips. If the check itself cannot run, return False so the meter
+    read still proceeds rather than being silently skipped.
+    """
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("uw_meter_read: SUPABASE env not set — skipping idempotency "
+              "check, proceeding with the read.")
+        return False
+    et_day_start = now_et.replace(hour=0, minute=0, second=0, microsecond=0)
+    since_utc = et_day_start.astimezone(timezone.utc).isoformat()
+    try:
+        # params= so requests URL-encodes the "+" in since_utc — a raw "+"
+        # in a PostgREST query decodes to a space and breaks the filter.
+        resp = requests.get(
+            f"{url.rstrip('/')}/rest/v1/api_usage_log",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={
+                "select": "id",
+                "source": "eq.ad_hoc",
+                "notes->>meter_read": "eq.end_of_day",
+                "started_at": f"gte.{since_utc}",
+                "limit": "1",
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return len(resp.json()) > 0
+    except requests.RequestException as exc:
+        print(f"uw_meter_read: idempotency check failed ({exc}) — "
+              f"proceeding with the read.")
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -108,14 +151,15 @@ def main() -> int:
     )
 
     now_et = datetime.now(ZoneInfo("America/New_York"))
-    # The workflow has two crons so it reaches 11:45 PM ET in both DST
-    # halves. Only the fire that lands in the 11 PM ET hour is the real
-    # end-of-day read; the other is a no-op so we don't append a
-    # near-midnight (~0) reading that would mislabel the headline KPI.
-    if now_et.hour != 23 and not forced:
+    # Record once per ET day. The workflow has two crons (one per DST half)
+    # and GitHub Actions delivers them hours late, so a fixed "11 PM ET
+    # hour" guard made the job no-op every night (#1197). Now whichever
+    # fire lands first does the read; a later fire finds today's row and
+    # no-ops here.
+    if not forced and _already_read_today(now_et):
         print(
-            f"uw_meter_read: ET hour is {now_et.hour}, not 23 — skipping "
-            f"this off-season cron fire."
+            f"uw_meter_read: an end-of-day reading already exists for "
+            f"{now_et.date().isoformat()} (ET) — skipping this cron fire."
         )
         return 0
 
