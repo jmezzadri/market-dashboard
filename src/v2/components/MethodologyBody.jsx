@@ -1,126 +1,162 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 /**
- * MethodologyBody — Signal Intelligence framework, plain-English methodology.
+ * MethodologyBody — MacroTilt methodology, plain-English.
  *
  * Source of truth for what is described here:
- *   Risk_Off_Framework_Methodology.md (spec, repo workspace)
- *   src/v2/pages/MacroOverviewPage.jsx (live engine — formulas, thresholds,
- *     stage logic, regime classifier)
+ *   src/v2/pages/MacroOverviewPage.jsx (live engine — the indicator registry,
+ *     the trailing-5-year percentile math, and the quartile-band classifier:
+ *     see trailingPctile(), heatColor() and heatLabel()).
  *
- * Anything that names a vol trigger, a cycle indicator, a stage, a quintile
- * cutoff, or a regime state must match the engine character-for-character.
- * Do not introduce a value here that is not produced by the engine. If the
- * engine changes, this page changes in the same PR.
+ * The macro engine does NOT use hard count rules ("flagged when 3 of 4
+ * indicators sit in their concerning quarter"). It places each indicator by
+ * where its current value sits in its OWN trailing five-year history — four
+ * quartile bands — and reads stress directionally. This page describes THAT.
+ *
+ * Anything that names a percentile cutoff, a band color, a direction, or a
+ * regime label must match the engine character-for-character. Do not
+ * introduce a value here that is not produced by the engine. If the engine
+ * changes, this page changes in the same PR.
  *
  * Rendered by both /#readme (default URL, legacy wrapper) and the
  * preview-URL v2 Methodology page, so the surfaces cannot drift.
  */
 
-// ── Four-state lexicon — identical to the engine. ────────────────────────
+// ── Three-state lexicon — the labels the engine uses. ────────────────────
+// A reading is placed by its trailing-five-year percentile, then read in the
+// direction of stress for that series. These three labels describe where a
+// reading sits — they are not count rules.
 const REGIME_STATES = [
   {
     label: 'Risk On',
     cls:   'r-on',
-    short: 'No volatility trigger above its mark.',
-    detail: 'Vol is calm. The fully-invested default position. No action.',
+    short: 'The reading sits in the calm quarter of its own five-year range.',
+    detail: 'Where the indicator currently sits is among the calmest quarter of its last five years. Nothing here argues for taking risk off.',
   },
   {
-    label: 'Neutral',
-    cls:   'r-neu',
-    short: 'Exactly one trigger crossed for exactly one week.',
-    detail: 'Roughly one in four single-week crosses are head-fakes — they slip back below the mark within a week. Note it. Do not act yet.',
-  },
-  {
-    label: 'Cautionary',
+    label: 'Watch',
     cls:   'r-cau',
-    short: 'A trigger has held above its mark for at least two weeks.',
-    detail: 'Head-fake filtered. Vol is real. The cycle composite is in the middle to upper zone — the cycle has either started to confirm or already broken. Past the forward-looking signal point; act on personal risk tolerance.',
+    short: 'The reading has drifted into the middle or upper-middle of its five-year range.',
+    detail: 'The indicator is no longer calm but not yet extreme — somewhere between the 25th and 75th percentile of its own history. Worth noting; not yet an actionable signal on its own.',
   },
   {
     label: 'Risk Off',
     cls:   'r-off',
-    short: 'A trigger has held for at least two weeks AND the cycle composite is in the deepest calm zone.',
-    detail: 'The actionable signal. Vol has cracked while the macro cycle still looks fine — leading edge, not trailing edge. Late-cycle setup, early-stress confirmation. This is when broad confirmation is most likely to follow.',
+    short: 'The reading sits in the most-elevated quarter of its own five-year range, on the Risk-Off side.',
+    detail: 'The indicator is in the top quarter of its five-year history on the stress side. This is the actionable end of the scale — the reading is as elevated as it has been on only the worst one-in-four days of the last five years.',
   },
 ];
 
-// ── Three vol triggers — identical to the engine. ────────────────────────
-const VOL_TRIGGERS = [
+// ── Quartile bands — identical cutoffs to the engine. ────────────────────
+// heatColor()/heatLabel() in MacroOverviewPage.jsx split each indicator's
+// trailing-5y percentile at 25 / 50 / 75. For a HIGH-is-stress series the
+// top quarter is Risk Off; for a LOW-is-stress series the bands invert.
+const PERCENTILE_BANDS = [
   {
-    name: 'Equity Volatility',
-    measures: 'The 30-day implied move on the S&P 500.',
-    position: 'Often the LAST to confirm. The most-cited stress measure, but the slowest of the three.',
+    band:   'Bottom quarter',
+    range:  'Below the 25th percentile',
+    tint:   'Green',
+    call:   'Risk-On zone',
+    meaning: 'On the stress side, the reading is among the calmest quarter of its own five-year history.',
   },
   {
-    name: 'Bond Volatility',
-    measures: 'Implied volatility on Treasury options. Captures rate-policy uncertainty and bond-market stress.',
-    position: 'MIDDLE. Often follows funding stress and leads equity vol.',
+    band:   'Lower-middle',
+    range:  '25th to 50th percentile',
+    tint:   'Grey',
+    call:   'Neutral',
+    meaning: 'Below the midpoint of its five-year range. Unremarkable — neither calm nor elevated.',
   },
   {
-    name: 'Funding Stress',
-    measures: 'The spread of commercial paper rates over Treasury bills — how expensive it is for blue-chip companies to borrow for 30 days.',
-    position: 'Often the LEADING trigger. In 2008, this was elevated from May onwards while equity vol stayed calm through August.',
+    band:   'Upper-middle',
+    range:  '50th to 75th percentile',
+    tint:   'Amber',
+    call:   'Cautionary',
+    meaning: 'Above the midpoint and drifting toward the Risk-Off end of the range. Worth watching.',
+  },
+  {
+    band:   'Top quarter',
+    range:  'Above the 75th percentile',
+    tint:   'Red',
+    call:   'Risk-Off zone',
+    meaning: 'On the stress side, the reading is among the most elevated quarter of its own five-year history.',
   },
 ];
 
-// ── Five stages — identical to the engine. ───────────────────────────────
-const STAGE_TABLE = [
-  { stage: 'Calm',       weeks: 'Below the mark',         meaning: 'No action.' },
-  { stage: 'Watching',   weeks: 'One week above',         meaning: 'About one in four single-week crosses are head-fakes — they resolve back below within a week. Note it. Do not act yet.' },
-  { stage: 'Holding',    weeks: 'Two to three weeks',     meaning: 'Head-fake filtered out. Worth preparing.' },
-  { stage: 'Confirmed',  weeks: 'Four to seven weeks',    meaning: 'The signal is real. Act consistent with your own risk tolerance.' },
-  { stage: 'Entrenched', weeks: 'Eight weeks or longer',  meaning: 'Late-stage signal. The math still says drawdown probability is elevated even if you have not acted yet.' },
+// ── The five indicator domains — identical to the engine panels. ─────────
+const INDICATOR_DOMAINS = [
+  {
+    domain: 'Rates',
+    reads:  'How the bond market is pricing duration, real yields and policy uncertainty.',
+    examples: 'The 10-year-minus-2-year yield curve, the 10-year real yield, bond volatility, the term premium, and 10-year breakeven inflation.',
+  },
+  {
+    domain: 'Credit',
+    reads:  'What lenders are charging to take on borrower risk.',
+    examples: 'High-yield and investment-grade option-adjusted spreads, the high-yield-to-investment-grade ratio, and the Senior Loan Officer survey on tightening standards.',
+  },
+  {
+    domain: 'Equities',
+    reads:  'How richly stocks are priced and how much crash protection the options market is buying.',
+    examples: 'The Buffett indicator, the Shiller CAPE, the VIX, the SKEW tail-risk index, and the equity-credit correlation.',
+  },
+  {
+    domain: 'Money & Banking',
+    reads:  'How loose or tight financial plumbing and bank balance sheets are.',
+    examples: 'The commercial-paper spread, the Chicago and St. Louis financial-conditions indices, the KBW Bank-to-S&P ratio, bank-credit growth, and the Fed balance sheet.',
+  },
+  {
+    domain: 'Economy',
+    reads:  'Whether the real economy is firming or softening.',
+    examples: 'Initial jobless claims, ISM Manufacturing, the JOLTS quits rate, the copper-to-gold ratio, the broad dollar, and the Chicago Fed activity index.',
+  },
 ];
 
-// ── Seven cycle indicators — identical to the engine. ────────────────────
-// flipped=true means LOW value is the bearish direction. The engine inverts
-// the percentile rank for those four (100 minus raw rank) so all seven point
-// in the same direction inside the average.
-const CYCLE_INDICATORS = [
-  { name: 'Copper / Gold ratio',          higherMeans: 'Cyclical demand is healthy (bullish).',                flipped: true  },
-  { name: 'KBW Bank index / S&P ratio',   higherMeans: 'Banks are leading the market (bullish, healthy credit).', flipped: true  },
-  { name: '10-year minus 2-year Treasury spread', higherMeans: 'Yield curve is steeper (bullish, banks make money lending).', flipped: true  },
-  { name: 'Chicago Fed financial conditions',     higherMeans: 'Conditions are tighter (bearish).',           flipped: false },
-  { name: 'Initial jobless claims',       higherMeans: 'More people are losing their jobs (bearish).',         flipped: false },
-  { name: 'High-Yield credit spread',     higherMeans: 'Risky-borrower lenders demand more compensation (bearish, credit stress).', flipped: false },
-  { name: 'Investment-Grade credit spread', higherMeans: 'Safer-borrower lenders demand more compensation (bearish, credit stress).', flipped: false },
+// ── Direction of stress — three reading types in the engine. ─────────────
+// Mirrors the dir flag in the engine registry: 'hw' (high warns), 'lw' (low
+// warns), 'neutral' (range-only — no good/bad direction).
+const DIRECTION_TYPES = [
+  {
+    type:  'High readings warn',
+    plain: 'For these series a high reading is the Risk-Off reading. The top quarter of the five-year range is the Risk-Off zone, the bottom quarter is the Risk-On zone.',
+    examples: 'The VIX, bond volatility, credit spreads, the Chicago Fed financial-conditions index, and initial jobless claims.',
+  },
+  {
+    type:  'Low readings warn',
+    plain: 'For these series a low reading is the Risk-Off reading. The bands invert — the bottom quarter is the Risk-Off zone and the top quarter is the Risk-On zone.',
+    examples: 'The yield curve, the copper-to-gold ratio, the KBW Bank-to-S&P ratio, bank-credit growth, and ISM Manufacturing.',
+  },
+  {
+    type:  'Range-only',
+    plain: 'A handful of series have no inherent good or bad direction. They are still placed against their five-year range, but shown as position-in-range only — no Risk-On or Risk-Off call is attached.',
+    examples: 'Breakeven inflation, the equity-credit correlation, the commercial-paper spread, and the broad dollar index.',
+  },
 ];
 
-// ── Cycle composite quintile bands — identical to the engine. ────────────
-const QUINTILE_BANDS = [
-  { band: 'Q1', range: 'Under 20',  meaning: 'Deepest calm. Late expansion, nothing has broken yet.' },
-  { band: 'Q2', range: '20 to 40',  meaning: 'Calm. Late-cycle territory.' },
-  { band: 'Q3', range: '40 to 60',  meaning: 'Middle. Early stress visible in some places.' },
-  { band: 'Q4', range: '60 to 80',  meaning: 'Stress is broad and confirmed in several places.' },
-  { band: 'Q5', range: '80 and up', meaning: 'Full-blown macro stress. The cycle has already broken.' },
-];
-
-// ── Limitations — sourced verbatim from the spec doc, plain language. ────
+// ── Limitations — honest limits of the percentile-band approach. ─────────
 const LIMITATIONS = [
   {
     head: 'It does not call entries or bottoms.',
-    body: 'The framework answers one question: when to take chips off the table. It is silent on when to put them back. A separate decision rule (not this page) governs re-entry.',
+    body: 'The framework answers one question: when the backdrop looks elevated enough to take chips off the table. It is silent on when to put them back. A separate decision rule (not this page) governs re-entry.',
   },
   {
-    head: 'A bounce-back and a grind look the same here.',
-    body: 'The framework measures the deepest peak-to-trough drop over a forward window. A drop that recovers in three months and a drop that grinds for a year are scored identically. For a fully-invested investor with patience, those are roughly equivalent. For a stop-loss-driven investor, the second is much worse — the framework does not distinguish.',
+    head: 'A five-year window has a memory, and it forgets.',
+    body: 'Every indicator is ranked against its own trailing five years. That keeps each reading calibrated to the market we actually have — but it also means a long calm stretch resets what "elevated" means. After several quiet years, a reading that would have looked benign mid-crisis can land in the top quarter simply because the recent baseline is so low.',
   },
   {
-    head: 'Two crises dominate the deep-stress sample.',
-    body: 'The conditional drawdown numbers behind the framework are heavily shaped by the 2008 financial crisis and the 2020 pandemic crash. Slower-grinding tops (2000 to 2002) contribute, but the deepest-stress readings are dominated by those two episodes.',
+    head: 'Quartile placement is relative, not absolute.',
+    body: 'A reading in the top quarter is extreme relative to its own recent history — not necessarily extreme in absolute terms. In a structurally low-volatility era the top quarter can still be a calm absolute level. The bands tell you where a series sits versus itself; they do not claim a universal danger line.',
   },
   {
-    head: 'Pre-2002 history runs on two triggers, not three.',
-    body: 'Bond Volatility is not available in free public data before 2002. Any back-test that pre-dates 2002 reduces to Equity Vol plus Funding Stress. The 1998 LTCM crisis — the most consequential pre-2006 test — cannot be fully verified with the three-trigger framework.',
+    head: 'Indicators are read one at a time.',
+    body: 'Each indicator is placed in its own band independently. The page deliberately does not collapse the twenty-six readings into a single score or fire a regime label off a count of how many sit in the top quarter. The reader sees the spread of evidence and weighs it; the page does not weigh it for them.',
   },
   {
-    head: 'Credit-spread substitutes used before 2011 are not exact.',
-    body: 'Native high-yield and investment-grade credit-spread series only run back to 2011 (investment grade) and 2011 (high yield). Before that the framework uses BAA-AAA spreads as a proxy. Correlation is high (0.87 for high yield, 0.98 for investment grade) but the proxy is less sensitive to the deepest credit-stress episodes.',
+    head: 'Quarterly and survey series move in steps.',
+    body: 'Some inputs — the Senior Loan Officer survey, ISM, JOLTS — update monthly or quarterly. Their band can sit unchanged for weeks and then jump a full quartile on a single release. A daily series and a quarterly series share the same band scale but not the same responsiveness.',
   },
   {
-    head: '1996 had seven false positives.',
-    body: 'The framework fired Risk Off seven times during 1996 mid-bull-market wobbles that did not lead to drawdowns. Vol triggers twitched, but credit was tight and cyclicals were not weakening. A filter for sustained cyclical weakness would have cleared most of those out — it was deliberately not added to keep the framework simple.',
+    head: 'History depth varies across indicators.',
+    body: 'The trailing-five-year window is the same length for every series, but some series only have a few years of clean public history to begin with. Where the underlying record is short, the percentile rank is computed on fewer observations and is correspondingly less stable.',
   },
 ];
 
@@ -130,21 +166,22 @@ const LIMITATIONS = [
 // touching window.location.hash (the site's tab router watches the hash and
 // would swallow any unknown value back to the Home tab).
 const SECTIONS = [
-  // Group 1 — Macro Overview / Signal Intelligence
-  { id: 'mo-question',     label: 'Macro Overview · the question',  group: 'Macro Overview' },
-  { id: 'mo-architecture', label: 'Two layers' },
-  { id: 'mo-triggers',     label: 'Layer 1 — volatility triggers' },
-  { id: 'mo-composite',    label: 'Layer 2 — cycle composite' },
-  { id: 'mo-regime',       label: 'The four-state read' },
-  { id: 'mo-thresholds',   label: 'How thresholds are set' },
-  { id: 'mo-limits',       label: 'What this does not do' },
+  // Group 1 — Macro Overview
+  { id: 'mo-question',   label: 'Macro Overview · the question', group: 'Macro Overview' },
+  { id: 'mo-approach',   label: 'How a reading is placed' },
+  { id: 'mo-bands',      label: 'The four quartile bands' },
+  { id: 'mo-direction',  label: 'Which way is stress' },
+  { id: 'mo-domains',    label: 'The five indicator domains' },
+  { id: 'mo-regime',     label: 'Reading the bands' },
+  { id: 'mo-window',     label: 'Why a five-year window' },
+  { id: 'mo-limits',     label: 'What this does not do' },
   // Group 2 — the rest of the site
-  { id: 'asset-tilt',      label: 'Asset Tilt',          group: 'Other pages' },
-  { id: 'trading-opps',    label: 'Trading Opportunities' },
-  { id: 'portfolio',       label: 'Portfolio Insights' },
-  { id: 'scenarios',       label: 'Scenario Analysis' },
+  { id: 'asset-tilt',    label: 'Asset Tilt',           group: 'Other pages' },
+  { id: 'trading-opps',  label: 'Trading Opportunities' },
+  { id: 'portfolio',     label: 'Portfolio Insights' },
+  { id: 'scenarios',     label: 'Scenario Analysis' },
   // Group 3 — registry
-  { id: 'sources',         label: 'Where the data comes from', group: 'Sources' },
+  { id: 'sources',       label: 'Where the data comes from', group: 'Sources' },
 ];
 
 // scrollToSection — used instead of href="#id" to avoid touching the URL hash
@@ -207,6 +244,15 @@ const td = {
   borderBottom: '1px solid var(--line-0, rgba(0,0,0,0.06))',
   color: 'var(--ink-1, var(--text, #222))',
   verticalAlign: 'top',
+};
+
+// Swatch dot for the band tint table — matches the chart tint palette:
+// green Risk-On, grey Neutral, amber Cautionary, red Risk-Off.
+const TINT_SWATCH = {
+  Green: '#10B981',
+  Grey:  '#64748B',
+  Amber: '#F59E0B',
+  Red:   '#D946C4',
 };
 
 export default function MethodologyBody({ withJumpNav = true }) {
@@ -291,8 +337,8 @@ export default function MethodologyBody({ withJumpNav = true }) {
       )}
 
       {/* ────────────────────────────────────────────────────────────────
-          MACRO OVERVIEW — sections 1 through 7 cover the Macro Overview
-          page (Signal Intelligence framework).
+          MACRO OVERVIEW — sections 1 through 8 cover the Macro Overview
+          page (the indicator backdrop and its calibrated percentile bands).
           ──────────────────────────────────────────────────────────────── */}
 
       <div style={{
@@ -306,156 +352,151 @@ export default function MethodologyBody({ withJumpNav = true }) {
 
       {/* 1. The question */}
       <section id="mo-question" style={sectionBox}>
-        <div style={eyebrow}>The question this framework answers</div>
-        <h2 style={h2}>When to take chips off the table.</h2>
+        <div style={eyebrow}>The question this page answers</div>
+        <h2 style={h2}>When does the backdrop look elevated.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          MacroTilt is built for an investor who is almost always fully invested in equities. The operational question is not when to buy — it is when to take risk off. Signal Intelligence is the framework that answers it.
+          MacroTilt is built for an investor who is almost always fully invested in equities. The operational question is not when to buy — it is when the macro backdrop has stretched far enough to think about taking risk off. The Macro Overview page answers it by reading a panel of indicators against their own recent history.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
-          It is not a buy signal. It does not call entries, bottoms, or "buy the dip" moments. It is a forward-looking sell-warning system: when do the conditions look like a meaningful drawdown is closer than the calm surface suggests.
+          It is not a buy signal, and it does not call entries, bottoms, or "buy the dip" moments. It is a backdrop read: for each indicator, how stretched is today&rsquo;s reading versus where that same indicator has been over the last five years.
         </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          2. Two layers
+          2. How a reading is placed
           ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-architecture" style={sectionBox}>
-        <div style={eyebrow}>The architecture</div>
-        <h2 style={h2}>Two layers of evidence, one regime read.</h2>
+      <section id="mo-approach" style={sectionBox}>
+        <div style={eyebrow}>The approach</div>
+        <h2 style={h2}>Every reading is placed against its own history.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          Two layers, each looking at a different kind of evidence:
+          There are no hard count rules on this page — nothing fires because "three of four indicators" did something. Instead, each indicator is placed by where its current value sits inside its <strong>own</strong> trailing five-year distribution. The output for every indicator is a single percentile: the share of the last five years that indicator spent at a lower reading than today.
         </p>
         <ul style={{ ...body, paddingLeft: 22, marginTop: 8 }}>
           <li style={{ marginBottom: 8 }}>
-            <strong>Layer 1 — three volatility triggers.</strong> Equity Vol, Bond Vol, Funding Stress. These are fast, forward-looking, and crack before the macro economy confirms.
+            A reading near the bottom of its five-year range lands at a <strong>low percentile</strong>.
+          </li>
+          <li style={{ marginBottom: 8 }}>
+            A reading near the top of its five-year range lands at a <strong>high percentile</strong>.
           </li>
           <li>
-            <strong>Layer 2 — one cycle composite.</strong> Seven macro indicators averaged into a single 0-to-100 score. Tells you whether the cycle is calm (the dangerous setup) or already broken.
+            A reading near the middle lands near the <strong>50th percentile</strong>.
           </li>
         </ul>
         <p style={{ ...body, marginTop: 14 }}>
-          Layer 1 tells us when trouble has arrived. Layer 2 tells us whether that trouble matters yet. Combined, they produce one of four labels — Risk On, Neutral, Cautionary, or Risk Off — that describes the tape today.
+          Because every indicator is scored against itself, indicators measured in completely different units — a volatility index, a credit spread in basis points, a ratio — become directly comparable. An indicator at its 80th percentile is equally stretched whatever its units. The percentile is the common scale.
         </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          3. Layer 1 — volatility triggers
+          3. The four quartile bands
           ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-triggers" style={sectionBox}>
-        <div style={eyebrow}>Layer 1</div>
-        <h2 style={h2}>Three volatility triggers, ordered by who cracks first.</h2>
+      <section id="mo-bands" style={sectionBox}>
+        <div style={eyebrow}>The calibration</div>
+        <h2 style={h2}>Four quartile bands, calibrated to each indicator.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          Each trigger has a mark on a half-circle dial. The mark is the level the reading has been at or above on only the worst one-in-seven trading days over the past five years. That is the trailing five-year 85th percentile of the trigger's own values.
+          Each indicator&rsquo;s five-year percentile is split into four quartile bands at the 25th, 50th and 75th percentiles. The bands are the same tints used to tint every chart on the site, so the band an indicator sits in is legible at a glance without reading the axis.
         </p>
         <table style={tableBase}>
           <thead><tr>
-            <th style={th}>Trigger</th>
-            <th style={th}>What it measures</th>
-            <th style={th}>Position in the stress chain</th>
-          </tr></thead>
-          <tbody>
-            {VOL_TRIGGERS.map((t) => (
-              <tr key={t.name}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{t.name}</td>
-                <td style={td}>{t.measures}</td>
-                <td style={td}>{t.position}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>How the mark stays current.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          Every weekday at 7 AM Eastern Time, the underlying weekly history refreshes. The five-year window slides forward one day. The mark is re-computed against the new window. Nothing manual — the mark drifts as markets evolve, so a 2009-style high-vol regime and a 2017-style low-vol regime each get their own calibrated mark.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          Each dial is scaled so the mark always lands at the same arc position, no matter the units. So an Equity Vol of 18, a Bond Vol of 90, and a Funding Stress of 25 basis points are all visually comparable — same arc position, different units.
-        </p>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>Five stages, one per trigger.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          Once a trigger crosses its mark, it moves through five stages based on how many consecutive weeks it has stayed above. Each trigger has its own stage at any given moment.
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Stage</th>
-            <th style={th}>How long above the mark</th>
+            <th style={th}>Quartile band</th>
+            <th style={th}>Where the reading sits</th>
+            <th style={th}>Chart tint</th>
+            <th style={th}>The call (on the stress side)</th>
             <th style={th}>What it means</th>
           </tr></thead>
           <tbody>
-            {STAGE_TABLE.map((s) => (
-              <tr key={s.stage}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{s.stage}</td>
-                <td style={td}>{s.weeks}</td>
-                <td style={td}>{s.meaning}</td>
+            {PERCENTILE_BANDS.map((b) => (
+              <tr key={b.band}>
+                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{b.band}</td>
+                <td style={td}>{b.range}</td>
+                <td style={td}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{
+                      width: 11, height: 11, borderRadius: '50%',
+                      background: TINT_SWATCH[b.tint], flexShrink: 0, opacity: 0.9,
+                    }} />
+                    {b.tint}
+                  </span>
+                </td>
+                <td style={{ ...td, fontWeight: 600 }}>{b.call}</td>
+                <td style={td}>{b.meaning}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <p style={{ ...body, marginTop: 14 }}>
+          So the chart tint legend reads directly off the bands: <strong>green</strong> is the Risk-On zone (the calm quarter), <strong>grey</strong> is neutral, <strong>amber</strong> is cautionary, and <strong>red</strong> is the Risk-Off zone (the elevated quarter). Same four bands, whether you are reading a number, a band label, or a tinted chart.
+        </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          4. Layer 2 — cycle composite
+          4. Which way is stress
           ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-composite" style={sectionBox}>
-        <div style={eyebrow}>Layer 2</div>
-        <h2 style={h2}>One cycle composite, built from seven indicators.</h2>
+      <section id="mo-direction" style={sectionBox}>
+        <div style={eyebrow}>Direction of stress</div>
+        <h2 style={h2}>For some series, high is bad; for others, low is.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          The cycle composite is the fact-check on Layer 1. Each of the seven indicators below is ranked against its own full history — the longest one runs back to the 1960s. The rank is then converted into a 0-to-100 stress percentile: higher means more stress. For four of the seven indicators, low readings actually mean stress, so we flip the rank (100 minus the raw rank) before averaging. That way all seven point in the same direction.
+          A high percentile is not automatically bad news. Whether the top quarter is the Risk-Off zone or the Risk-On zone depends on which direction means stress for that particular series. Every indicator is tagged one of three ways.
         </p>
         <table style={tableBase}>
           <thead><tr>
-            <th style={th}>Indicator</th>
-            <th style={th}>Higher reading means</th>
-            <th style={{ ...th, textAlign: 'center' }}>Direction flipped before averaging?</th>
+            <th style={th}>Reading type</th>
+            <th style={th}>How the bands work</th>
+            <th style={th}>Examples</th>
           </tr></thead>
           <tbody>
-            {CYCLE_INDICATORS.map((i) => (
-              <tr key={i.name}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{i.name}</td>
-                <td style={td}>{i.higherMeans}</td>
-                <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>{i.flipped ? 'Yes' : 'No'}</td>
+            {DIRECTION_TYPES.map((d) => (
+              <tr key={d.type}>
+                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{d.type}</td>
+                <td style={td}>{d.plain}</td>
+                <td style={td}>{d.examples}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <p style={{ ...body, marginTop: 14 }}>
-          The seven stress percentiles are averaged into a single 0-to-100 score. Then the score is bucketed into a quintile:
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Quintile</th>
-            <th style={th}>Score range</th>
-            <th style={th}>What it means</th>
-          </tr></thead>
-          <tbody>
-            {QUINTILE_BANDS.map((q) => (
-              <tr key={q.band}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{q.band}</td>
-                <td style={td}>{q.range}</td>
-                <td style={td}>{q.meaning}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>Why a calm cycle composite is the dangerous setup.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          A low composite reading means the cycle looks fine on the surface. That is the exact moment a vol crack is most actionable — the engine is deep in the expansion and the things that usually break first have not broken yet. When vol cracks while the cycle still looks calm, we are at the leading edge of trouble, not the back end of it. That is the setup the framework is designed to catch.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          If the composite is already in the upper half (Q3 to Q5) when a vol trigger fires, we are already inside a downturn. The forward-looking edge is gone — by then it is reactive, not preemptive.
+          The percentile is computed the same way for every indicator. The direction tag only decides which end of the five-year range gets painted as the Risk-Off zone — so a low-warns series like the yield curve flips the bands, and its <em>bottom</em> quarter is the red Risk-Off zone.
         </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          5. The four-state read
+          5. The five indicator domains
+          ──────────────────────────────────────────────────────────────── */}
+      <section id="mo-domains" style={sectionBox}>
+        <div style={eyebrow}>The panel</div>
+        <h2 style={h2}>Twenty-six indicators across five domains.</h2>
+        <p style={{ ...body, marginTop: 14 }}>
+          The Macro Overview page groups its indicators into five domains. Each indicator within a domain is placed in its own quartile band; the domain grouping is for legibility, not for any scoring step.
+        </p>
+        <table style={tableBase}>
+          <thead><tr>
+            <th style={th}>Domain</th>
+            <th style={th}>What it reads</th>
+            <th style={th}>Indicators include</th>
+          </tr></thead>
+          <tbody>
+            {INDICATOR_DOMAINS.map((d) => (
+              <tr key={d.domain}>
+                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{d.domain}</td>
+                <td style={td}>{d.reads}</td>
+                <td style={td}>{d.examples}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ ...body, marginTop: 14 }}>
+          Every weekday the underlying history refreshes, the trailing five-year window slides forward, and each indicator&rsquo;s percentile and band are recomputed against the new window. Nothing is set by hand — the bands drift as the market evolves.
+        </p>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────────
+          6. Reading the bands
           ──────────────────────────────────────────────────────────────── */}
       <section id="mo-regime" style={sectionBox}>
-        <div style={eyebrow}>The four-state read</div>
-        <h2 style={h2}>One label that combines both layers.</h2>
+        <div style={eyebrow}>Reading the page</div>
+        <h2 style={h2}>One band per indicator — read the spread.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          Every reading rolls up into one of four labels. No exceptions, no in-between states.
+          Each indicator carries one of three calls, taken straight from the quartile band it sits in on the stress side of its range.
         </p>
         <div style={{
           display: 'grid',
@@ -491,37 +532,37 @@ export default function MethodologyBody({ withJumpNav = true }) {
           ))}
         </div>
         <p style={{ ...body, marginTop: 20, fontSize: 13 }}>
-          The Risk Off label is the actionable one — vol has cracked while the cycle still looks calm. That is the moment broad confirmation is most likely to follow. The Cautionary label is the reactive cousin — vol has cracked but the cycle has already broken, so the forward-looking edge has already been priced in.
+          The page deliberately stops there. It does not collapse the panel into a single headline regime or fire a label off a count of how many indicators sit in the top quarter. The reader sees the spread of evidence — how many domains are in the Risk-Off zone, how many are still calm — and weighs it. A worked example: High-Yield OAS, a high-warns credit series, recently sat near the 12th percentile of its trailing five-year range. That is the bottom quarter, so its chart paints green and the indicator reads Risk On — credit spreads are about as calm as they have been on all but the quietest one-in-eight days of the last five years.
         </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          6. Thresholds
+          7. Why a five-year window
           ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-thresholds" style={sectionBox}>
-        <div style={eyebrow}>How the thresholds are set</div>
-        <h2 style={h2}>Same percentile, regime-adaptive window.</h2>
+      <section id="mo-window" style={sectionBox}>
+        <div style={eyebrow}>How the bands stay current</div>
+        <h2 style={h2}>A trailing five-year window, sliding daily.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          Three decisions sit behind every threshold on this page:
+          Two decisions sit behind every band on this page:
         </p>
         <ul style={{ ...body, paddingLeft: 22, marginTop: 8 }}>
           <li style={{ marginBottom: 10 }}>
-            <strong>Same percentile across triggers.</strong> All three vol triggers are marked at their own 85th percentile. That makes them like-for-like — an 85th-percentile reading is equally rare for each trigger regardless of the absolute units.
-          </li>
-          <li style={{ marginBottom: 10 }}>
-            <strong>Trailing five-year window.</strong> Funding markets changed after the 2009 reforms. Bond-market behavior shifted in the 2010s. Equity vol drifted lower across the same decade. A rolling five-year window absorbs those regime shifts so the mark stays calibrated to today's market, not to a structural era that has already ended.
+            <strong>The same quartile cutoffs for every indicator.</strong> All twenty-six indicators are split at the 25th, 50th and 75th percentiles of their own history. That makes the bands like-for-like — a top-quarter reading is equally rare for each indicator regardless of its absolute units.
           </li>
           <li>
-            <strong>85th percentile, not 95th or 75th.</strong> The 95th only fires during a full-blown crisis — by then it is too late to act forward-looking. The 75th has too many false positives. 85th is calibrated for the risk-off decision, validated across the available history.
+            <strong>A trailing five-year window.</strong> Funding markets, bond behavior and equity volatility all shift across a decade. Ranking against a rolling five-year window keeps each band calibrated to today&rsquo;s market rather than to a structural era that has already ended. The window slides forward one day every weekday, and the bands re-calibrate with it.
           </li>
         </ul>
+        <p style={{ ...body, marginTop: 14 }}>
+          The trade-off is honest: a five-year window has a memory, and it forgets. After a long calm stretch the baseline drops, and a reading that would once have looked ordinary can land in the top quarter simply because the recent past was so quiet. The bands tell you where a series sits versus its own recent self — not against an all-time danger line.
+        </p>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          7. What this does not do
+          8. What this does not do
           ──────────────────────────────────────────────────────────────── */}
       <section id="mo-limits" style={sectionBox}>
-        <div style={eyebrow}>What this framework will not do</div>
+        <div style={eyebrow}>What this page will not do</div>
         <h2 style={h2}>Honest limits.</h2>
         <p style={{ ...body, marginTop: 14 }}>
           A framework that does not name its limits is not a framework — it is a sales pitch. These are the limits.
@@ -559,15 +600,6 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <p style={{ ...body, marginTop: 14 }}>
           Two hard rules constrain every output. <strong>Defensive sleeve never exceeds 50%</strong> of capital, even in the worst regime — the system will not put more than half the book in bonds, cash, and gold. <strong>Leverage never exceeds 1.5×</strong>, and defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×. These are constraints in the optimization, not assumptions about what is optimal.
         </p>
-        <div style={{
-          marginTop: 18, padding: 16,
-          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 6px 6px 0',
-          fontSize: 13.5, color: 'var(--ink-1, #222)',
-        }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The Asset Tilt engine was built and back-tested against the older cycle-mechanism framework that Signal Intelligence replaced on Macro Overview. The recommendations on Asset Tilt today are still produced by that older engine. Recalibrating the engine against Signal Intelligence is multi-week work — it sits on the active punch list, scoped for the Senior Quant. Until that recalibration lands and is back-tested, treat the Asset Tilt numbers as a v1 recommendation, not a Signal-Intelligence-anchored one.
-        </div>
       </section>
 
       {/* Trading Opportunities */}
@@ -575,7 +607,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={eyebrow}>Trading Opportunities</div>
         <h2 style={h2}>Specific names to act on today.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the regime; the Asset Tilt tells you how to lean by sector; Trading Opportunities turns that lean into <strong>specific tickers</strong>. It is an end-of-day screener — it runs once after the close and publishes a daily buy list of individual stocks worth a closer look.
+          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the backdrop; the Asset Tilt tells you how to lean by sector; Trading Opportunities turns that lean into <strong>specific tickers</strong>. It is an end-of-day screener — it runs once after the close and publishes a daily buy list of individual stocks worth a closer look.
         </p>
 
         <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>The universe it scans.</h3>
@@ -708,20 +740,11 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={eyebrow}>Scenario Analysis</div>
         <h2 style={h2}>How your portfolio reacts under stress.</h2>
         <p style={{ ...body, marginTop: 14 }}>
-          The Scenario Analysis page runs a shock through the macro factor panel and tells you how your portfolio, the Asset Tilt recommendation, and each cycle indicator move in response. Two flavors: <strong>historical scenarios</strong> (the GFC, COVID, Volmageddon, the 2022 rate-hike cycle, and several others) replay the actual shock through today's factor structure; <strong>bespoke shocks</strong> let you pin one or more factors at a chosen size of move and propagate the rest using historical correlations.
+          The Scenario Analysis page runs a shock through the macro factor panel and tells you how your portfolio, the Asset Tilt recommendation, and each macro indicator move in response. Two flavors: <strong>historical scenarios</strong> (the GFC, COVID, Volmageddon, the 2022 rate-hike cycle, and several others) replay the actual shock through today's factor structure; <strong>bespoke shocks</strong> let you pin one or more factors at a chosen size of move and propagate the rest using historical correlations.
         </p>
         <p style={{ ...body, marginTop: 14 }}>
           The page returns a portfolio-level profit-and-loss estimate, a per-position breakdown of which holdings move most under that shock, and the updated Asset Tilt recommendation the engine would produce in that scenario.
         </p>
-        <div style={{
-          marginTop: 18, padding: 16,
-          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 6px 6px 0',
-          fontSize: 13.5, color: 'var(--ink-1, #222)',
-        }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> Like Asset Tilt, the scenario engine was built around the older cycle-mechanism framework. The shocks it propagates and the per-indicator responses it shows are anchored to that older framework. Migrating Scenario Analysis to Signal Intelligence is multi-week work — it sits on the active punch list. Treat scenario outputs today as directional rather than literal, until the rebuild lands.
-        </div>
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
@@ -784,7 +807,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
       }}>
-        Signal Intelligence · {sources.length} source vendors · {Object.keys(manifest?.elements || {}).length} registered data elements
+        MacroTilt methodology · {sources.length} source vendors · {Object.keys(manifest?.elements || {}).length} registered data elements
       </div>
     </div>
   );
