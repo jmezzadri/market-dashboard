@@ -1269,3 +1269,13 @@ chart-touching PR must include both-theme screenshots.
 **What to do instead:** Before telling the owner anything is "fine," "done," "complete," or that data "doesn't exist": (1) Load the actual LIVE page (cache-busted) and read it top to bottom — content, every data value for sanity, every freshness stamp (none in the future, none stale), calculations, UX. "It renders" is not "it's fine." (2) Before claiming data does not exist, search the real data stores AND the code that reads them across the whole site — a doc line or code comment is a hypothesis, not a fact. (3) A passing automated test is not proof the live page is correct — verify the live surface, not the test. (4) When delegating to an agent, the brief decides what gets fixed — brief against the live symptom and verify the agent's result on the live system.
 
 **Applies to:** All. CRITICAL. This is the root cause of stale data hiding behind pages that render fine.
+
+---
+
+## 2026-05-25 — A turn that plans to dispatch a subagent must emit the Agent call in that same turn
+
+**What happened:** An agent narrated "dispatching subagent" for three consecutive turns and ended each turn on text with no Agent tool call actually emitted — pure narration, zero execution. From the user's seat the work appeared to be in motion when in fact nothing had been started.
+
+**What you should do instead:** If a turn's plan is to dispatch work to a subagent, the Agent tool call must be in that same turn. A turn may not claim a dispatch happened unless the Agent tool call is actually present in it. If a turn ends on text, that text describes work already completed in the turn, or explains what blocks further work — it never describes a not-yet-emitted dispatch as if it had occurred. This is the subagent-delegation analogue of the existing "never end a turn with 'starting on X' and then stop" rule.
+
+**Applies to:** All four specialists. Any turn whose plan includes delegation.
