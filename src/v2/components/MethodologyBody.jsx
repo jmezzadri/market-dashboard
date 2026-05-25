@@ -218,13 +218,29 @@ export default function MethodologyBody({ withJumpNav = true }) {
       .catch(() => {});
   }, []);
 
-  // Build the live source-vendor list from the data registry.
+  // Build the live source-vendor list from the data registry. Bug #1189:
+  // strip parenthetical qualifiers (they carry internal table / file names),
+  // split on every delimiter, and drop placeholder / internal-only tokens so
+  // the Sources list shows only clean, real vendor names.
   const sources = useMemo(() => {
     const els = manifest?.elements || {};
+    const isInternal = (t) => {
+      const x = t.toLowerCase();
+      return !x
+        || /^(n\/a|tbd|self|none|unknown)\b/.test(x)
+        || x.startsWith('internal')
+        || /\.(json|py|csv|yml|yaml)\b/.test(x);
+    };
     const out = new Set();
     Object.values(els).forEach((e) => {
       const v = e?.source_vendor || e?.source || '';
-      if (v) v.split(/[·,;|]/).forEach((s) => { const t = s.trim(); if (t) out.add(t); });
+      if (!v) return;
+      v.replace(/\([^)]*\)/g, '')
+        .split(/[·,;|+]/)
+        .forEach((s) => {
+          const t = s.trim().replace(/\s{2,}/g, ' ');
+          if (t && !isInternal(t)) out.add(t);
+        });
     });
     return Array.from(out).sort();
   }, [manifest]);
