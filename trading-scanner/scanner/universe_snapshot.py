@@ -75,6 +75,26 @@ SUPPLEMENTAL_TICKERS: list[str] = ["SPY"]
 MAX_RETRIES = 3
 RETRY_BACKOFF = (1.0, 2.0, 4.0)
 
+# --- UW rate-limit pacing (bug #1199) ---------------------------------------
+# The screener pull fires its ~7 band calls + the supplemental call back to
+# back. With no spacing, all of them land inside the same UW per-minute
+# window and the job trips UW's per-minute limit (HTTP 429); the fixed-
+# backoff retry above can't recover because the minute window is 60s long,
+# so the run was aborting and universe_snapshots went stale (#1199).
+#
+# Two safeguards, modelled on the existing UW callers in scanner/:
+#   1. UW_MIN_CALL_INTERVAL — a floor on the gap between any two UW calls,
+#      same pattern as unusual_whales._SCREENER_MIN_INTERVAL. Keeps the
+#      job comfortably under the per-minute ceiling in the steady state.
+#   2. On a 429, wait out the *whole* minute window using UW's own
+#      `x-uw-req-per-minute-reset` header, the same approach as
+#      uw_meter_read.read_meter(). A short exponential backoff cannot
+#      clear a per-minute limit; the reset header tells us exactly how
+#      long the window has left.
+UW_MIN_CALL_INTERVAL = 1.5     # seconds between consecutive UW screener calls
+RATE_LIMIT_FALLBACK_WAIT = 45  # seconds to wait on a 429 with no reset header
+_last_uw_call_ts: float = 0.0  # monotonic timestamp of the last UW call
+
 UPSERT_BATCH_SIZE = 1000  # supabase-py handles this comfortably
 
 # Every typed column on public.universe_snapshots. Any UW field NOT in this
@@ -148,6 +168,41 @@ def _headers() -> dict[str, str]:
     }
 
 
+def _pace_uw_call() -> None:
+    """Throttle so consecutive UW calls are at least UW_MIN_CALL_INTERVAL apart.
+
+    Call this immediately before every UW request. It sleeps just long
+    enough to keep the steady-state call rate under UW's per-minute ceiling
+    (bug #1199). Same pattern as unusual_whales._SCREENER_MIN_INTERVAL.
+    """
+    global _last_uw_call_ts
+    elapsed = time.monotonic() - _last_uw_call_ts
+    if 0 < elapsed < UW_MIN_CALL_INTERVAL:
+        time.sleep(UW_MIN_CALL_INTERVAL - elapsed)
+    _last_uw_call_ts = time.monotonic()
+
+
+def _int_header(value: str | None) -> int | None:
+    """Parse an integer UW rate-limit header; None if absent or unparseable."""
+    try:
+        return int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _rate_limit_wait(resp: requests.Response) -> float:
+    """Seconds to wait out a 429, from UW's per-minute rate-limit headers.
+
+    UW's per-minute window is 60s, so a 429 must be waited out, not retried
+    with a short exponential backoff (a 1-2-4s backoff never clears it).
+    `x-uw-req-per-minute-reset` carries the seconds left in the current
+    window; we add a small safety margin. Falls back to a fixed wait when
+    the header is absent. Mirrors uw_meter_read.read_meter().
+    """
+    reset = _int_header(resp.headers.get("x-uw-req-per-minute-reset"))
+    return float(reset + 5) if reset else float(RATE_LIMIT_FALLBACK_WAIT)
+
+
 def _fetch_band(
     min_mcap: int,
     max_mcap: int | None,
@@ -172,11 +227,15 @@ def _fetch_band(
     last_exc: Exception | None = None
     for attempt in range(MAX_RETRIES + 1):
         try:
+            _pace_uw_call()
             r = requests.get(url, headers=_headers(), params=params, timeout=60)
             if r.status_code == 429 and attempt < MAX_RETRIES:
-                wait = RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)]
+                # Per-minute limit hit — wait out the window (header-driven),
+                # not a short exponential backoff (#1199).
+                wait = _rate_limit_wait(r)
                 logger.warning(
-                    "UW screener 429 — band [%s, %s] retry %d/%d after %.0fs",
+                    "UW screener 429 — band [%s, %s] retry %d/%d after %.0fs "
+                    "(per-minute window)",
                     min_mcap, max_mcap, attempt + 1, MAX_RETRIES, wait,
                 )
                 time.sleep(wait)
@@ -305,9 +364,11 @@ def _fetch_ticker(ticker: str) -> dict[str, Any] | None:
     url = f"{UW_BASE_URL}{SCREENER_PATH}"
     for attempt in range(MAX_RETRIES + 1):
         try:
+            _pace_uw_call()
             r = requests.get(url, headers=_headers(), params=params, timeout=30)
             if r.status_code == 429 and attempt < MAX_RETRIES:
-                time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
+                # Wait out the per-minute window via the reset header (#1199).
+                time.sleep(_rate_limit_wait(r))
                 continue
             if 500 <= r.status_code < 600 and attempt < MAX_RETRIES:
                 time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
