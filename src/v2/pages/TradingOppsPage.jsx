@@ -111,6 +111,42 @@ export const GROUPS = ["Stock", "Options", "Statistics", "Technicals", "Info"];
 export const COL_KEYS = COLS.map((c) => c.k);
 export const COL_BY_KEY = Object.fromEntries(COLS.map((c) => [c.k, c]));
 
+// ─────────────────────────────────────────────────────────────────────────
+// Bug #1149 — Asset Tilt → Trading Opportunities deep-link.
+//
+// The Asset Tilt page links here with a #portopps?ig=<id> hash. We read that
+// id, resolve it to (a) a display name for the dismissible chip and (b) the
+// screener `sector` value to filter rows by.
+//
+// The screener (trading_opps_signals) has no per-stock industry-group tag —
+// the only per-stock classification on a row is the broad vendor `sector`.
+// So only the industry groups that are the SOLE Asset Tilt industry group in
+// their GICS sector can be honestly filtered (sector ⇒ exactly that group).
+// Asset Tilt gates the "View in Trading Opportunities" button to that same
+// allowlist, so IG_DEEPLINK only ever needs entries for those groups. Any
+// other / unknown ?ig= value is ignored and the full screener shows.
+//
+//   ig id     display name (for the chip)   screener `sector` to filter by
+const IG_DEEPLINK = {
+  reits:    { name: "REITs",                    sector: "Real Estate" },
+  electric: { name: "Electric & Multi-Utility", sector: "Utilities" },
+};
+
+// Read the ?ig=<id> segment from the current location hash. Returns the
+// matching IG_DEEPLINK entry (with the id attached) or null.
+function readIgDeeplink() {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash || "";
+  const qs = hash.replace(/^#/, "").split("?")[1] || "";
+  let id = null;
+  try {
+    id = new URLSearchParams(qs).get("ig");
+  } catch (e) { /* malformed hash — ignore */ }
+  if (!id) return null;
+  const entry = IG_DEEPLINK[id];
+  return entry ? { id, ...entry } : null;
+}
+
 // localStorage key — internal, carries a private version tag (no version
 // string ever reaches user-facing copy).
 const STORAGE_KEY = "mt-tradingopps-cols-v1";
@@ -1158,6 +1194,24 @@ export const PAGE_CSS = `
   display: inline-block;
 }
 
+/* ── Bug #1149 — Asset Tilt deep-link chip ── */
+.to-iglink-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 4px 0 10px; padding: 6px 8px 6px 12px;
+  background: var(--accent-soft); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 10px);
+  font-size: 12px; color: var(--text-2);
+}
+.to-iglink-text strong { color: var(--text); font-weight: 600; }
+.to-iglink-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 13px; line-height: 1;
+  cursor: pointer; padding: 0; font-family: var(--font-ui);
+}
+.to-iglink-x:hover { background: var(--hover); color: var(--text); }
+
 /* ── Table ── */
 .to-table-wrap {
   background: var(--surface);
@@ -1348,6 +1402,22 @@ export default function TradingOppsPage({ onOpenTicker }) {
   const [colState, setColState] = useState(() => loadColState());
   const [custOpen, setCustOpen] = useState(false);
 
+  // Bug #1149 — industry-group deep-link from Asset Tilt (#portopps?ig=<id>).
+  // Initialised from the hash on mount, kept in sync on hashchange so a
+  // back/forward or a fresh deep-link re-applies the filter. Dismissing the
+  // chip clears both the state and the ?ig= segment from the URL.
+  const [igDeeplink, setIgDeeplink] = useState(() => readIgDeeplink());
+  useEffect(() => {
+    const onHashChange = () => setIgDeeplink(readIgDeeplink());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+  const clearIgDeeplink = () => {
+    setIgDeeplink(null);
+    // Drop the ?ig= segment but stay on the Trading Opportunities tab.
+    if (typeof window !== "undefined") window.location.hash = "#portopps";
+  };
+
   const updateColState = (next) => {
     setColState(next);
     saveColState(next);
@@ -1363,11 +1433,18 @@ export default function TradingOppsPage({ onOpenTicker }) {
     return { b5, b4, b3, active: rows.length };
   }, [rows]);
 
-  // Rows filtered by the active band chip.
+  // Rows filtered by the active band chip and, if a deep-link is active, the
+  // industry group's screener sector (bug #1149). Both filters compose.
   const filteredRows = useMemo(() => {
-    if (bandFilter === "all") return rows;
-    return rows.filter((r) => scoreBand(r.score) === bandFilter);
-  }, [rows, bandFilter]);
+    let out = rows;
+    if (igDeeplink) {
+      out = out.filter((r) => r.sector === igDeeplink.sector);
+    }
+    if (bandFilter !== "all") {
+      out = out.filter((r) => scoreBand(r.score) === bandFilter);
+    }
+    return out;
+  }, [rows, bandFilter, igDeeplink]);
 
   const openTicker = (ticker) => {
     if (typeof onOpenTicker === "function") onOpenTicker(ticker);
@@ -1442,6 +1519,24 @@ export default function TradingOppsPage({ onOpenTicker }) {
           </div>
         </div>
 
+        {/* Bug #1149 — dismissible deep-link chip. Present only when the
+            page was opened from an Asset Tilt industry-group hand-off. */}
+        {igDeeplink && (
+          <div className="to-iglink-chip" role="status">
+            <span className="to-iglink-text">
+              From Asset Tilt: <strong>{igDeeplink.name}</strong>
+            </span>
+            <button
+              type="button"
+              className="to-iglink-x"
+              onClick={clearIgDeeplink}
+              aria-label="Clear the Asset Tilt filter"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
         <div className="to-legend">
           <span className="sw" />
           Shaded columns feed the score &mdash; Insider Activity, Dark Pool
@@ -1486,7 +1581,9 @@ export default function TradingOppsPage({ onOpenTicker }) {
           <div style={{ marginTop: 4 }}>
             {filteredRows.length === 0 ? (
               <div className="to-state" style={{ color: "var(--text-muted)" }}>
-                No stocks in this score band today.
+                {igDeeplink
+                  ? `No ${igDeeplink.name} stocks in today's scan.`
+                  : "No stocks in this score band today."}
               </div>
             ) : (
               <ResultsTable
