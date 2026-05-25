@@ -158,8 +158,18 @@ def _supabase_get(path: str, retries: int = 36):
 # of requests. A cold start still pulls the whole table once, but checkpoints
 # its progress so an interrupted pull resumes instead of restarting.
 _PRICE_COLS = "ticker,trade_date,open,high,low,close,volume"
-_CHECKPOINT_PAGES = 50           # periodic cache checkpoint (~50k rows); a
-                                 # failure also banks progress immediately
+_CHECKPOINT_TICKERS = 100        # checkpoint the cache every N completed
+                                 # tickers (~25k rows); a failure also banks
+                                 # progress immediately
+
+# Durable backstop for the completed price panel. The GitHub Actions cache is
+# best-effort and can be evicted (7-day idle window / 10 GB repo cap), which
+# would silently reproduce a multi-day cold-pull outage. Once a cold pull
+# completes, the panel is also uploaded to Supabase Storage; a fresh runner
+# with no cache hit restores it from there in one request instead of
+# re-pulling ~1.3M rows.
+_PANEL_BUCKET = "screener-cache"
+_PANEL_OBJECT = "trading_opps/prices.pkl"
 
 
 def _finalize_prices(df):
@@ -177,24 +187,41 @@ def _finalize_prices(df):
 
 
 def _pull_prices(start_after=None, since=None, cached=None, px_pkl=None):
-    """Keyset-pull prices_eod paginated by the PRIMARY KEY (ticker,
-    trade_date) — the only index that keeps every page fast regardless of
-    depth. Paginating by (trade_date, ticker) instead has no serving index;
-    the database sorts ~1.3M rows per page and cancels it with a statement
-    timeout (HTTP 500), which was the real cause of the pull failures.
+    """Pull prices_eod with index-served pagination ONLY.
 
-    start_after=(ticker, 'YYYY-MM-DD') -> pull rows whose primary key is
-        strictly after that position. Used to RESUME an interrupted cold
-        pull from exactly where the checkpointed cache left off.
-    since='YYYY-MM-DD' -> also filter trade_date >= since (the daily
-        incremental refresh once the cache is complete).
-    Neither set -> pull the whole table (cold start from scratch).
+    ROOT CAUSE OF THE 10-RUN OUTAGE (#1208): the old keyset advanced with a
+    PostgREST `or=(ticker.gt.X,and(ticker.eq.X,trade_date.gt.Y))` filter.
+    PostgREST cannot serve that disjunction from the (ticker, trade_date)
+    primary-key index — it falls back to a scan + sort of the ~460k rows past
+    the cursor and Postgres cancels it with a statement timeout (verified:
+    that exact query returns HTTP 500 / SQLSTATE 57014 in ~10s). Every
+    resumed cold pull therefore died on its FIRST page, banking ~0-2k rows,
+    so the pull crept forward ~2k rows/run and never converged.
 
-    Every _CHECKPOINT_PAGES pages the merge of (cached + rows-so-far) is
-    written to px_pkl, so an interrupted pull leaves resumable progress."""
-    PAGE = 1000
-    rows, pages = [], 0
-    cur_tk, cur_d = (start_after if start_after else (None, None))
+    THE FIX: paginate by a SINGLE indexed column at a time, which the PK
+    index always serves as a fast range scan:
+      * advance from ticker to ticker with `ticker=gt.<ticker>`;
+      * pull one ticker's whole history per request (`ticker=eq.<ticker>`,
+        ordered by trade_date) -- most tickers are well under PostgREST's
+        hard 1000-row response cap;
+      * for the rare deep-history ticker (>1000 rows, e.g. 20+ years), page
+        WITHIN the ticker with `ticker=eq.<ticker>&trade_date=gt.<date>`,
+        also a fast single-anchored range scan.
+    No query ever uses the `or=` disjunction, so none can time out.
+
+    start_after=(ticker, _) -> RESUME: pull tickers strictly after that
+        ticker. The cursor is a fully-completed ticker, so resuming with
+        `ticker=gt.<ticker>` is exact and loses nothing.
+    since='YYYY-MM-DD' -> the daily incremental refresh: pull only rows with
+        trade_date >= since, across all tickers.
+    Neither set -> cold pull of the whole table.
+
+    Progress is checkpointed to px_pkl every _CHECKPOINT_TICKERS completed
+    tickers, and again on any failure, so an interrupted pull always resumes
+    from a ticker boundary."""
+    PAGE = 1000                  # PostgREST hard response cap
+    rows = []
+    completed_tickers = 0
 
     def _checkpoint(tag):
         """Bank (cached + rows-so-far) to px_pkl so the next run resumes."""
@@ -204,35 +231,104 @@ def _pull_prices(start_after=None, since=None, cached=None, px_pkl=None):
             + [pd.DataFrame(rows)]
         try:
             _finalize_prices(pd.concat(parts, ignore_index=True)).to_pickle(px_pkl)
-            print(f"      checkpoint ({tag}) — {len(rows):,} new rows banked")
+            print(f"      checkpoint ({tag}) -- {len(rows):,} new rows banked")
         except Exception as exc:                           # noqa: BLE001
             print(f"      checkpoint save skipped: {exc}")
 
+    # -- incremental refresh: one trade_date window, all tickers ------------
+    # Once the cache is complete the nightly delta is a handful of rows. It
+    # walks ticker by ticker within the date window -- never the slow `or=`
+    # form.
+    if since is not None:
+        cur_tk = None
+        try:
+            while True:
+                sel = (f"prices_eod?select={_PRICE_COLS}"
+                       f"&trade_date=gte.{since}"
+                       f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
+                if cur_tk is not None:
+                    sel += f"&ticker=gt.{cur_tk}"
+                page = _supabase_get(sel)
+                if not page:
+                    break
+                # keep only whole tickers -- a ticker that exactly fills the
+                # page is re-pulled in full next loop (cheap, de-duped by
+                # _finalize_prices).
+                if len(page) == PAGE:
+                    last_tk = page[-1]["ticker"]
+                    trimmed = [r for r in page if r["ticker"] != last_tk]
+                    if not trimmed:
+                        # one ticker alone exceeds a page within the window:
+                        # page within that ticker by trade_date.
+                        rows.extend(_pull_one_ticker(last_tk, since=since))
+                        cur_tk = last_tk
+                        continue
+                    rows.extend(trimmed)
+                    cur_tk = trimmed[-1]["ticker"]
+                else:
+                    rows.extend(page)
+                    cur_tk = page[-1]["ticker"]
+        except BaseException:                              # noqa: BLE001
+            _checkpoint("interrupted (incremental)")
+            raise
+        return pd.DataFrame(rows)
+
+    # -- cold pull / resume: ticker by ticker ------------------------------
+    after = start_after[0] if start_after else None
     try:
         while True:
-            sel = (f"prices_eod?select={_PRICE_COLS}"
-                   f"&order=ticker.asc,trade_date.asc&limit={PAGE}")
-            if since is not None:
-                sel += f"&trade_date=gte.{since}"
-            if cur_tk is not None:
-                sel += (f"&or=(ticker.gt.{cur_tk},"
-                        f"and(ticker.eq.{cur_tk},trade_date.gt.{cur_d}))")
-            page = _supabase_get(sel)
-            rows.extend(page)
-            pages += 1
-            if len(page) < PAGE:
+            # next batch of ticker NAMES after the cursor.
+            tk_sel = ("prices_eod?select=ticker&order=ticker.asc"
+                      f"&limit={PAGE}")
+            if after is not None:
+                tk_sel += f"&ticker=gt.{after}"
+            tk_page = _supabase_get(tk_sel)
+            if not tk_page:
                 break
-            cur_tk, cur_d = page[-1]["ticker"], page[-1]["trade_date"]
-            if pages % _CHECKPOINT_PAGES == 0:
-                _checkpoint(f"{pages} pages")
+            seen, tickers = set(), []
+            for r in tk_page:
+                t = r["ticker"]
+                if t not in seen:
+                    seen.add(t)
+                    tickers.append(t)
+            for t in tickers:
+                rows.extend(_pull_one_ticker(t))
+                after = t
+                completed_tickers += 1
+                if completed_tickers % _CHECKPOINT_TICKERS == 0:
+                    _checkpoint(f"{completed_tickers} tickers")
+            if len(tk_page) < PAGE:
+                break
     except BaseException:                                  # noqa: BLE001
-        # Any failure (a Supabase 5xx that exhausts retries, a kill) banks
-        # everything pulled so far before propagating — so even a run that
-        # dies before the first periodic checkpoint still makes progress
-        # the next run resumes from.
+        # A Supabase 5xx that exhausts retries, or a runner kill -- bank
+        # every fully-completed ticker so the next run resumes from a clean
+        # ticker boundary.
         _checkpoint("interrupted")
         raise
     return pd.DataFrame(rows)
+
+
+def _pull_one_ticker(ticker, since=None):
+    """Return every prices_eod row for one ticker as a list of dicts, paging
+    WITHIN the ticker by trade_date when its history exceeds the 1000-row
+    PostgREST cap. Both query shapes -- `ticker=eq.X` and
+    `ticker=eq.X&trade_date=gt.Y` -- are single-anchored range scans the
+    primary-key index serves fast, so neither can hit a statement timeout."""
+    PAGE = 1000
+    out, cur_d, first = [], since, True
+    while True:
+        sel = (f"prices_eod?select={_PRICE_COLS}"
+               f"&ticker=eq.{ticker}&order=trade_date.asc&limit={PAGE}")
+        if cur_d is not None:
+            op = "gte" if first else "gt"
+            sel += f"&trade_date={op}.{cur_d}"
+        page = _supabase_get(sel)
+        out.extend(page)
+        if len(page) < PAGE:
+            break
+        cur_d = page[-1]["trade_date"]
+        first = False
+    return out
 
 
 def _pull_insider():
@@ -262,6 +358,59 @@ def _pull_insider():
     return pd.DataFrame(irows)
 
 
+def _panel_storage_download(dest_path):
+    """Best-effort restore of the completed price panel from Supabase Storage.
+    Returns True if a panel was written to dest_path. Never raises -- a miss
+    just means the cold pull runs (or resumes from the Actions cache)."""
+    try:
+        env = _env()
+        url = env["SUPABASE_URL"].rstrip("/")
+        key = env["SUPABASE_SERVICE_ROLE_KEY"]
+        req = urllib.request.Request(
+            f"{url}/storage/v1/object/{_PANEL_BUCKET}/{_PANEL_OBJECT}",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"})
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = resp.read()
+        with open(dest_path, "wb") as fh:
+            fh.write(data)
+        return True
+    except Exception as exc:                               # noqa: BLE001
+        print(f"    storage panel restore skipped ({exc})")
+        return False
+
+
+def _panel_storage_upload(src_path):
+    """Best-effort upload of the completed price panel to Supabase Storage so a
+    future GitHub Actions cache eviction cannot reproduce a cold-pull outage.
+    Creates the private bucket on first use. Never raises."""
+    try:
+        env = _env()
+        url = env["SUPABASE_URL"].rstrip("/")
+        key = env["SUPABASE_SERVICE_ROLE_KEY"]
+        hdr = {"apikey": key, "Authorization": f"Bearer {key}"}
+        # ensure the bucket exists (idempotent -- ignores "already exists")
+        try:
+            body = json.dumps({"id": _PANEL_BUCKET, "name": _PANEL_BUCKET,
+                               "public": False}).encode()
+            req = urllib.request.Request(f"{url}/storage/v1/bucket", data=body,
+                                         headers={**hdr, "Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=60).read()
+        except Exception:                                  # noqa: BLE001
+            pass
+        with open(src_path, "rb") as fh:
+            payload = fh.read()
+        req = urllib.request.Request(
+            f"{url}/storage/v1/object/{_PANEL_BUCKET}/{_PANEL_OBJECT}",
+            data=payload, method="POST",
+            headers={**hdr, "Content-Type": "application/octet-stream",
+                     "x-upsert": "true"})
+        urllib.request.urlopen(req, timeout=300).read()
+        print(f"    durable panel backstop uploaded to "
+              f"storage/{_PANEL_BUCKET}/{_PANEL_OBJECT} ({len(payload):,} bytes)")
+    except Exception as exc:                               # noqa: BLE001
+        print(f"    storage panel upload skipped ({exc})")
+
+
 def load_data(force_pull: bool = False):
     """Return (prices_df, insider_df).
 
@@ -275,52 +424,80 @@ def load_data(force_pull: bool = False):
       * cache, complete       -> incremental refresh: fetch only rows on/after
                                  the cache's latest trade_date.
 
-    The cold pull paginates by the primary key and checkpoints every
-    _CHECKPOINT_PAGES pages, so a database outage mid-pull only costs the
-    pages since the last checkpoint — the next run resumes from there. The
-    completeness marker is what makes a partial cold pull resume correctly
-    instead of being mistaken for a complete cache. force_pull rebuilds from
-    scratch (used by the quarterly backtest). insider_history is small and is
-    re-pulled in full every run."""
+    The cold pull paginates one ticker at a time (a fast index-served range
+    scan -- never the slow `or=` keyset that timed out, see _pull_prices) and
+    checkpoints every _CHECKPOINT_TICKERS completed tickers, so a database
+    outage mid-pull only costs the tickers since the last checkpoint -- the
+    next run resumes from that ticker boundary. The completeness marker is
+    what makes a partial cold pull resume correctly instead of being mistaken
+    for a complete cache. A finished panel is also mirrored to Supabase
+    Storage as a durable backstop against GitHub Actions cache eviction.
+    force_pull rebuilds from scratch (used by the quarterly backtest).
+    insider_history is small and is re-pulled in full every run."""
     os.makedirs(DATA_DIR, exist_ok=True)
     px_pkl = os.path.join(DATA_DIR, "prices.pkl")
     in_pkl = os.path.join(DATA_DIR, "insider.pkl")
     meta_path = os.path.join(DATA_DIR, "prices_meta.json")
 
-    cached, meta = None, {}
-    if not force_pull and os.path.exists(px_pkl):
-        try:
-            c = pd.read_pickle(px_pkl)
-            if c is not None and len(c) and "trade_date" in c.columns:
-                c["trade_date"] = pd.to_datetime(c["trade_date"])
-                cached = c
-        except Exception as exc:                           # noqa: BLE001
-            print(f"    price cache unreadable ({exc}) — falling back to a full pull")
-    if cached is not None and os.path.exists(meta_path):
-        try:
-            meta = json.load(open(meta_path))
-        except Exception:                                  # noqa: BLE001
-            meta = {}
+    def _read_cache():
+        """(cached_df_or_None, meta_dict) from the local ./data files."""
+        c_df, m = None, {}
+        if os.path.exists(px_pkl):
+            try:
+                c = pd.read_pickle(px_pkl)
+                if c is not None and len(c) and "trade_date" in c.columns:
+                    c["trade_date"] = pd.to_datetime(c["trade_date"])
+                    c_df = c
+            except Exception as exc:                       # noqa: BLE001
+                print(f"    price cache unreadable ({exc}) -- ignoring it")
+        if c_df is not None and os.path.exists(meta_path):
+            try:
+                m = json.load(open(meta_path))
+            except Exception:                              # noqa: BLE001
+                m = {}
+        return c_df, m
+
+    cached, meta = (None, {}) if force_pull else _read_cache()
+
+    # No local cache (Actions cache miss / first run / eviction): try the
+    # durable Supabase Storage backstop before falling back to a cold pull.
+    if cached is None and not force_pull:
+        if _panel_storage_download(px_pkl):
+            cached, meta = _read_cache()
+            if cached is not None:
+                # the storage panel is a finished cold pull -- mark complete
+                # so the run does the cheap incremental refresh, not a re-pull.
+                meta = {"complete": True}
+                print(f"    restored {len(cached):,}-row price panel from the "
+                      f"durable Supabase Storage backstop")
 
     if cached is None:
-        print("    no price cache — full pull (one-time; checkpoints as it goes)")
+        print("    no price cache -- full cold pull "
+              "(one-time; checkpoints every ticker batch)")
         px = _finalize_prices(_pull_prices(px_pkl=px_pkl))
+        cold_pull_completed = True
     elif meta.get("complete"):
         since = cached["trade_date"].max().strftime("%Y-%m-%d")
-        print(f"    complete cache: {len(cached):,} rows through {since} — "
+        print(f"    complete cache: {len(cached):,} rows through {since} -- "
               f"incremental refresh of rows on/after {since}")
         fresh = _pull_prices(since=since, cached=cached, px_pkl=px_pkl)
         px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
         print(f"    refreshed: +{len(fresh):,} fetched rows")
+        cold_pull_completed = False
     else:
-        last = cached.sort_values(["ticker", "trade_date"]).iloc[-1]
-        cursor = (str(last["ticker"]),
-                  pd.Timestamp(last["trade_date"]).strftime("%Y-%m-%d"))
-        print(f"    partial cache: {len(cached):,} rows — resuming the "
-              f"interrupted cold pull after {cursor[0]} / {cursor[1]}")
-        fresh = _pull_prices(start_after=cursor, cached=cached, px_pkl=px_pkl)
+        # Partial cold pull (interrupted). Resume from the last ticker banked
+        # -- every ticker in the partial cache is FULLY pulled (a ticker that
+        # fails mid-history is never added to the frame), so `ticker=gt.<last>`
+        # resumes exactly with nothing skipped and nothing re-counted.
+        last_ticker = str(cached["ticker"].max())
+        print(f"    partial cache: {len(cached):,} rows, "
+              f"{cached['ticker'].nunique():,} tickers -- resuming the "
+              f"interrupted cold pull after ticker {last_ticker}")
+        fresh = _pull_prices(start_after=(last_ticker, None),
+                             cached=cached, px_pkl=px_pkl)
         px = _finalize_prices(pd.concat([cached, fresh], ignore_index=True))
         print(f"    resumed: +{len(fresh):,} fetched rows")
+        cold_pull_completed = True
 
     # _pull_prices returned normally, so the price history is now complete.
     px.to_pickle(px_pkl)
@@ -331,6 +508,14 @@ def load_data(force_pull: bool = False):
     except Exception as exc:                               # noqa: BLE001
         print(f"    cache meta write skipped: {exc}")
     print(f"    prices: {len(px):,} rows, {px['ticker'].nunique():,} tickers")
+
+    # A cold pull (from scratch or resumed-to-completion) just produced a
+    # fresh full panel -- push it to the durable backstop so a future Actions
+    # cache eviction cannot reproduce a multi-day outage. The cheap nightly
+    # incremental refresh skips this (the backstop is refreshed by whichever
+    # run does the next cold pull; the panel is append-only history).
+    if cold_pull_completed:
+        _panel_storage_upload(px_pkl)
 
     print("    pulling insider_history (full) ...")
     ins = _pull_insider()
