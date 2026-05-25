@@ -1,6 +1,6 @@
 {
   "_doc": "v2 Cycle Mechanism panel \u2014 horizon-aware. Per CYCLE_MECHANISM_V2_SPEC.md (Joe approval 2026-05-10). Refreshed daily by scripts/compute_cycle_v2.py at 22:30 UTC weekdays. Runs alongside the v1 single-composite producer until 2026-05-31 cutover.",
-  "as_of": "2026-05-22",
+  "as_of": "2026-05-25",
   "framework": "v11 cycle mechanisms v2 \u2014 horizon-aware",
   "spec_doc": "/Users/joemezzadri/Documents/market-dashboard/CYCLE_MECHANISM_V2_SPEC.md",
   "horizons": [
@@ -12,8 +12,8 @@
   "primary_horizon": "6m",
   "ic_gate": 0.1,
   "validation_summary": {
-    "n_indicators_total": 38,
-    "n_passes_ic_gate": 25,
+    "n_indicators_total": 36,
+    "n_passes_ic_gate": 24,
     "n_horizon_sensitive": 1
   },
   "indicators": [
@@ -53,8 +53,8 @@
       "current_value_as_of": "2026-04-30",
       "current_score": 99,
       "ic_profile": {
-        "1m": -0.027,
-        "3m": -0.071,
+        "1m": -0.026,
+        "3m": -0.07,
         "6m": -0.055,
         "12m": -0.097
       },
@@ -163,7 +163,7 @@
       "ic_profile": {
         "1m": 0.13,
         "3m": 0.256,
-        "6m": 0.21,
+        "6m": 0.209,
         "12m": 0.244
       },
       "signal_type_at_horizon": {
@@ -188,9 +188,9 @@
       "current_value_as_of": "2026-05-21",
       "current_score": 91,
       "ic_profile": {
-        "1m": 0.284,
+        "1m": 0.283,
         "3m": 0.221,
-        "6m": 0.266,
+        "6m": 0.267,
         "12m": 0.112
       },
       "signal_type_at_horizon": {
@@ -242,9 +242,9 @@
       "current_value_as_of": "2026-05-21",
       "current_score": 40,
       "ic_profile": {
-        "1m": 0.229,
+        "1m": 0.228,
         "3m": 0.299,
-        "6m": 0.499,
+        "6m": 0.498,
         "12m": 0.565
       },
       "signal_type_at_horizon": {
@@ -269,7 +269,7 @@
       "current_value_as_of": "2026-05-22",
       "current_score": 68,
       "ic_profile": {
-        "1m": 0.037,
+        "1m": 0.036,
         "3m": 0.096,
         "6m": 0.151,
         "12m": 0.229
@@ -380,7 +380,7 @@
         "1m": -0.049,
         "3m": -0.084,
         "6m": -0.05,
-        "12m": -0.012
+        "12m": -0.011
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -432,7 +432,7 @@
       "current_score": 24,
       "ic_profile": {
         "1m": -0.021,
-        "3m": 0.004,
+        "3m": 0.005,
         "6m": -0.026,
         "12m": -0.002
       },
@@ -486,8 +486,8 @@
       "current_score": 66,
       "ic_profile": {
         "1m": 0.106,
-        "3m": 0.049,
-        "6m": 0.156,
+        "3m": 0.048,
+        "6m": 0.159,
         "12m": null
       },
       "signal_type_at_horizon": {
@@ -542,7 +542,7 @@
         "1m": 0.132,
         "3m": 0.118,
         "6m": 0.009,
-        "12m": 0.215
+        "12m": 0.214
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -593,7 +593,7 @@
       "current_value_as_of": "2026-05-21",
       "current_score": 1,
       "ic_profile": {
-        "1m": -0.014,
+        "1m": -0.013,
         "3m": 0.053,
         "6m": 0.074,
         "12m": 0.241
@@ -620,7 +620,7 @@
       "current_value_as_of": "2026-05-21",
       "current_score": 1,
       "ic_profile": {
-        "1m": -0.014,
+        "1m": -0.013,
         "3m": 0.053,
         "6m": 0.074,
         "12m": 0.241
@@ -649,7 +649,7 @@
       "ic_profile": {
         "1m": 0.075,
         "3m": 0.132,
-        "6m": 0.137,
+        "6m": 0.138,
         "12m": 0.208
       },
       "signal_type_at_horizon": {
@@ -782,8 +782,8 @@
       "current_value_as_of": "2026-05-16",
       "current_score": 29,
       "ic_profile": {
-        "1m": 0.014,
-        "3m": 0.045,
+        "1m": 0.013,
+        "3m": 0.044,
         "6m": 0.043,
         "12m": -0.039
       },
@@ -859,9 +859,9 @@
       "history_key": "copper_gold",
       "sub_composite": "RealEconomy",
       "direction": "low_is_concerning",
-      "current_value": 1.415,
-      "current_value_as_of": "2026-05-22",
-      "current_score": 49,
+      "current_value": 1.412,
+      "current_value_as_of": "2026-05-25",
+      "current_score": 53,
       "ic_profile": {
         "1m": 0.033,
         "3m": 0.045,
@@ -879,16 +879,16 @@
       "passes_ic_gate": true,
       "scoring": "threshold",
       "lookback_start": null,
-      "scored_value": 0.212
+      "scored_value": -1.19
     },
     {
       "id": "vix",
       "history_key": "vix",
       "sub_composite": "PositioningVol",
       "direction": "high_is_concerning",
-      "current_value": 16.7,
-      "current_value_as_of": "2026-05-22",
-      "current_score": 52,
+      "current_value": 16.59,
+      "current_value_as_of": "2026-05-25",
+      "current_score": 51,
       "ic_profile": {
         "1m": 0.175,
         "3m": 0.236,
@@ -906,7 +906,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3870
+      "sample_size": 3871
     },
     {
       "id": "move",
@@ -963,59 +963,6 @@
       "sample_size": 3808
     },
     {
-      "id": "naaim",
-      "history_key": "naaim",
-      "sub_composite": "PositioningVol",
-      "direction": "low_is_concerning",
-      "current_value": 82.02,
-      "current_value_as_of": "2026-05-20",
-      "current_score": null,
-      "ic_profile": {
-        "1m": null,
-        "3m": null,
-        "6m": null,
-        "12m": null
-      },
-      "signal_type_at_horizon": {
-        "1m": "flat",
-        "3m": "flat",
-        "6m": "flat",
-        "12m": "flat"
-      },
-      "primary_signal_type": "flat",
-      "horizon_sensitive": false,
-      "passes_ic_gate": false,
-      "scoring": "percentile",
-      "lookback_start": "2011-01-01"
-    },
-    {
-      "id": "spx_200dma",
-      "history_key": "spx_200dma",
-      "sub_composite": "PositioningVol",
-      "direction": "low_is_concerning",
-      "current_value": 100.0,
-      "current_value_as_of": "2026-05-22",
-      "current_score": 72,
-      "ic_profile": {
-        "1m": -0.024,
-        "3m": -0.081,
-        "6m": -0.156,
-        "12m": -0.256
-      },
-      "signal_type_at_horizon": {
-        "1m": "flat",
-        "3m": "flat",
-        "6m": "momentum",
-        "12m": "momentum"
-      },
-      "primary_signal_type": "momentum",
-      "horizon_sensitive": false,
-      "passes_ic_gate": true,
-      "scoring": "percentile",
-      "lookback_start": "2011-01-01",
-      "sample_size": 3870
-    },
-    {
       "id": "eq_cr_corr",
       "history_key": "eq_cr_corr",
       "sub_composite": "PositioningVol",
@@ -1025,8 +972,8 @@
       "current_score": 83,
       "ic_profile": {
         "1m": 0.149,
-        "3m": 0.241,
-        "6m": 0.136,
+        "3m": 0.24,
+        "6m": 0.135,
         "12m": 0.179
       },
       "signal_type_at_horizon": {
@@ -1160,7 +1107,7 @@
         "1m": null,
         "3m": null,
         "6m": 25,
-        "12m": 41
+        "12m": 40
       },
       "n_scored_by_horizon": {
         "1m": 0,
@@ -1179,24 +1126,24 @@
     "PositioningVol": {
       "label": "Positioning / Vol",
       "scores_by_horizon": {
-        "1m": 32,
+        "1m": 33,
         "3m": 45,
-        "6m": 52,
-        "12m": 52
+        "6m": 45,
+        "12m": 45
       },
       "n_scored_by_horizon": {
         "1m": 2,
         "3m": 3,
-        "6m": 4,
-        "12m": 4
+        "6m": 3,
+        "12m": 3
       },
       "n_eligible_by_horizon": {
-        "1m": 4,
-        "3m": 4,
-        "6m": 4,
-        "12m": 4
+        "1m": 3,
+        "3m": 3,
+        "6m": 3,
+        "12m": 3
       },
-      "n_indicators_total": 6
+      "n_indicators_total": 4
     }
   },
   "headlines": {
@@ -1234,8 +1181,8 @@
       "scores_by_horizon": {
         "1m": 62,
         "3m": 55,
-        "6m": 51,
-        "12m": 64
+        "6m": 49,
+        "12m": 61
       },
       "n_subcomposites_by_horizon": {
         "1m": 3,
@@ -1255,7 +1202,7 @@
         "1m": null,
         "3m": null,
         "6m": 25,
-        "12m": 41
+        "12m": 40
       },
       "n_subcomposites_by_horizon": {
         "1m": 0,
@@ -1287,7 +1234,7 @@
       "recommended_action": "Neutral \u2014 wait for confirmation",
       "real_economy_caption": "real economy expanding \u2014 market read confirmed for risk-on / fragile for risk-off",
       "setup": 56,
-      "stress": 51,
+      "stress": 49,
       "real_economy": 25
     },
     "12m": {
@@ -1295,8 +1242,8 @@
       "recommended_action": "De-risk strategically \u2014 wait for capitulation",
       "real_economy_caption": "real economy mid-range \u2014 market read uncorroborated",
       "setup": 74,
-      "stress": 64,
-      "real_economy": 41
+      "stress": 61,
+      "real_economy": 40
     }
   }
 }
