@@ -357,26 +357,31 @@ async function handle(req: Request): Promise<Response> {
       if (!rec) {
         lastError = "indicator not present in indicator_history.json";
       } else {
-        // 2026-05-04 hotfix — chip freshness reflects the PRODUCER (did the
-        // fetch script run successfully today?), not the data_date the
-        // upstream feed currently happens to publish. Per LESSONS rule
-        // 2026-05-03 (b) "deeper fix": the data_date-vs-publish-date
-        // convention for as_of is inverted relative to what the chip wants.
+        // Bug #1207 (2026-05-25) — staleness must reflect the AGE OF THE DATA,
+        // not "did the fetch script run". Each indicator in
+        // indicator_history.json carries its own per-item data date in
+        // `rec.as_of` (the date of the most recent published observation).
         //
-        // indicator_history.json carries a top-level __meta__.generated_at_utc
-        // stamped on every successful fetch_history.py run. Use that as the
-        // freshness signal so a Friday-close FRED daily doesn't lie red on
-        // Monday afternoon just because FRED publishes T+1 to T+3.
+        // This branch previously used the top-level
+        // `__meta__.generated_at_utc` — a "fetch_history.py ran" timestamp
+        // re-stamped on every successful run. When an upstream feed (FRED /
+        // Yahoo) went stale but the fetch script still completed, that
+        // meta-stamp stayed fresh, so every one of the ~40 generic
+        // indicators computed a near-zero age and reported green even
+        // though their actual data was days old. That defeated the entire
+        // purpose of the watchdog (the symptom: 48/48 green while ~43 feeds
+        // were 5-6 days stale).
         //
+        // Fix: read each indicator's own `rec.as_of`. The release-calendar
+        // tolerances and per-row cadence windows below
+        // (CADENCE_TOLERANCE_MINUTES + expected_cadence_minutes) are
+        // unchanged — they already absorb the legitimate T+1..T+3 publish
+        // lag for series whose pipeline_health row is calibrated for it.
         // If the per-indicator fetch errored inside an otherwise-successful
-        // run, the producer writes last_error to this row via
-        // _log_pipeline_health; that surfaces in the chip tooltip. The
-        // staleness signal still reads from the meta-block — we are
-        // explicitly choosing "did the pipeline run" over "what was the
-        // most recent published data point" as the chip semantics.
-        const metaAt = indicators.__meta__?.generated_at_utc ?? null;
-        asOf = metaAt || rec.as_of || null;
-        if (!asOf) lastError = "no as_of field";
+        // run, the producer still writes last_error to this row via
+        // _log_pipeline_health; that surfaces in the chip tooltip.
+        asOf = rec.as_of || null;
+        if (!asOf) lastError = "no as_of field in indicator_history.json";
       }
     }
 
