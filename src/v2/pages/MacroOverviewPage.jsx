@@ -28,6 +28,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
 import FreshnessChip from '../components/FreshnessChip';
+import { InfoTip } from '../../InfoTip';
 
 // ─── HistoryChart — IDENTICAL to AssetAllocation.jsx. Do NOT change here
 //     without updating Asset Tilt in lockstep. Joe rule: every chart is the
@@ -733,7 +734,7 @@ function IndicatorTile({ ind, hist, onOpen }) {
       {/* Percentile bar */}
       {has && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>5y</span>
+          <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>5y<InfoTip def="Where today\u2019s reading sits within this indicator\u2019s own five-year range \u2014 0 is the lowest it has been, 100 the highest." size={9} /></span>
           <div style={{ flex: 1 }}>
             <PctileBar pct={pct} color={c} />
           </div>
@@ -857,8 +858,9 @@ export default function MacroOverviewPage() {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 400, lineHeight: 1, letterSpacing: '-0.015em', color: 'var(--text)' }}>
               {totalIndicators}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               indicators · five domains
+              <InfoTip def="The total number of macro indicators tracked on this page, grouped into five domains: Rates, Credit, Equities, Money & Banking, and the real Economy." size={10} />
             </div>
             {asOf && (
               <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-muted)' }}>
@@ -945,10 +947,10 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-          <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${fmtAsOf(series.as_of, series.freq)}`} />
-          <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" />
-          <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" />
-          <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} />
+          <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${fmtAsOf(series.as_of, series.freq)}`} tip="The latest reading for this indicator." />
+          <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" tip="How much the reading has moved over the past 30 days." />
+          <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" tip="Where today\u2019s reading sits within this indicator\u2019s own range over the last five years \u2014 0 is the lowest it has been, 100 the highest." />
+          <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} tip="The first date for which MacroTilt holds data on this indicator." />
         </div>
 
         <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '22px 24px', marginBottom: 22 }}>
@@ -991,10 +993,10 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
   );
 }
 
-function KPI({ label, value, sub }) {
+function KPI({ label, value, sub, tip }) {
   return (
     <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 8, padding: '12px 14px' }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{label}{tip ? <InfoTip def={tip} size={9} /> : null}</div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, color: 'var(--text)', lineHeight: 1.05, letterSpacing: '-0.015em' }}>{value}</div>
       <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>
     </div>
