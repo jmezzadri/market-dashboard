@@ -341,6 +341,30 @@ const INDICATOR_SOURCES = {
   cfnai:         "FRED · Chicago Fed National Activity Index (CFNAI)",
 };
 
+// User-facing Source lines must read as the data VENDOR only — never an
+// internal feed code, dataset identifier, table name, or pipeline name
+// (bug #1161). The INDICATOR_SOURCES entries above keep the full internal
+// detail for traceability; this helper strips it down to the clean vendor
+// label that ships to the user. The freshness date is shown separately in
+// the panel's "Last update" field, so the Source line carries the vendor
+// alone. Internal raw-name keys ("In-house") map to the product name.
+const VENDOR_LABELS = {
+  "fred":          "FRED",
+  "yahoo":         "Yahoo Finance",
+  "in-house":      "MacroTilt",
+  "multpl.com":    "multpl.com",
+  "ism website":   "ISM",
+  "ism":           "ISM",
+};
+
+function cleanVendor(sourceStr) {
+  if (!sourceStr) return "Source not yet mapped";
+  // The vendor is the first "·"-delimited segment; everything after it is
+  // the internal dataset/feed identifier and must not reach the user.
+  const vendorRaw = sourceStr.split("·")[0].trim();
+  return VENDOR_LABELS[vendorRaw.toLowerCase()] || vendorRaw;
+}
+
 // Cadence WITH the publication lag spelled out. A user who sees "Daily" next
 // to a value two days old should not have to wonder whether the feed is
 // broken — the lag is a known, normal property of the series, so we state it.
@@ -949,7 +973,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
             <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Source</div>
-                {INDICATOR_SOURCES[indicatorId] || 'Source not yet mapped'}
+                {cleanVendor(INDICATOR_SOURCES[indicatorId])}
               </div>
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Cadence</div>
