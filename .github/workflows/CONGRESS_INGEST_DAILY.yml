@@ -5,8 +5,9 @@ name: CONGRESS_INGEST_DAILY
 
 on:
   schedule:
-    - cron: '0 10 * * 1-5'
-    - cron: '0 11 * * 1-5'
+    # 07:00 ET morning slot (Phase 2a staggered to clear the 6:00 ET pile-up)
+    - cron: '0 11 * * 1-5'    # 07:00 ET EDT
+    - cron: '0 12 * * 1-5'    # 07:00 ET EST
   workflow_dispatch:
     inputs:
       days_back:
@@ -19,18 +20,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Idempotency gate — only run at the expected America/New_York local hour
+        # DST guard: each workflow has two cron lines (one for EDT, one for EST).
+        # Both fire most of the year. This step skips whichever one isn't at the
+        # expected ET local hour, so the feed runs once a day, not twice.
+        if: github.event_name == 'schedule'
+        run: |
+          ET_HOUR=$(TZ=America/New_York date +%H)
+          EXPECTED='07'
+          if [ "$ET_HOUR" != "$EXPECTED" ]; then
+            echo "::notice::Current ET hour is $ET_HOUR, expected $EXPECTED. The other DST cron line owns this slot. Skipping."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          else
+            echo "✓ ET hour matches expected ($EXPECTED) — proceeding."
+          fi
+
       - uses: actions/checkout@v4
+        if: env.SKIP_RUN != 'true'
       - uses: actions/setup-python@v5
+        if: env.SKIP_RUN != 'true'
         with:
           python-version: '3.11'
 
       - name: Install scanner deps
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         run: |
           pip install --upgrade pip
           pip install requests
 
       - name: Run ingest
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         env:
           UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
@@ -43,6 +63,7 @@ jobs:
             --days-back $DAYS --max-seconds 1500
 
       - name: Surface row count
+        if: env.SKIP_RUN != 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
