@@ -358,13 +358,17 @@ def pull_and_upsert(tickers: list[str],
             pass
         time.sleep(sleep_per_call)
 
-        # UW continuous
+        # UW continuous — Phase 1 (2026-05-26 Joe-approved): only cost-to-borrow
+        # has a live reader. SVR (volume-and-ratio) and FTDs (fails-to-deliver)
+        # were dropped from the nightly ingest to halve the per-ticker request
+        # count from 3 to 1. The back-test harness still expects those columns
+        # to exist in short_interest_daily; historical rows are preserved, only
+        # new rows stop accumulating SVR/FTD values. Re-enable here if a
+        # future back-test needs fresh data.
         try:
             d_snap = fetch_uw_data(sym)
-            svr = fetch_uw_volume_ratio(sym)
-            ftd = fetch_uw_ftds(sym)
-            if d_snap or svr or ftd:
-                daily_rows += upsert_daily(sym, d_snap, svr, ftd, today)
+            if d_snap:
+                daily_rows += upsert_daily(sym, d_snap, [], [], today)
                 tickers_uw += 1
         except Exception:
             pass
