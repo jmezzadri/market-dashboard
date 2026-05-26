@@ -9,6 +9,7 @@ import FreshnessDot from "../components/FreshnessDot";
 import { InfoTip } from "../InfoTip";
 import MTTable from "../components/MTTable";
 import PageHero from "../v2/components/PageHero";
+import { ordinalSuffix } from "../lib/ordinal";
 
 const STANCE_COLOR = {
   "Risk On":  "var(--green)",
@@ -2059,7 +2060,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     <>
                       <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{shown != null ? shown.toFixed(1) : "—"}</div>
                       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                        {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
+                        {(function(){const p=Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100); return p + ordinalSuffix(p);})()} pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
                       </div>
                       {liveDate && (
                         <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, letterSpacing: "0.02em" }}>
@@ -2096,7 +2097,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     {hoverW && (
                       <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
                         <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{parseLocalDate(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
-                        <div><strong style={{ fontWeight: 500 }}>MOVE {hoverW.move?.toFixed(0)}</strong> · {Math.round((hoverW.move_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.stress_state}</span></div>
+                        <div><strong style={{ fontWeight: 500 }}>MOVE {hoverW.move?.toFixed(0)}</strong> · {(function(){const p=Math.round((hoverW.move_pctile_5y || 0) * 100); return p + ordinalSuffix(p);})()} pctile · <span style={{ color: "var(--accent)" }}>{hoverW.stress_state}</span></div>
                       </div>
                     )}
                     <div style={{ marginTop: 10, textAlign: "center" }}>
@@ -2174,7 +2175,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     <>
                       <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(liveBp || 0) >= 0 ? "+" : ""}{liveBp != null ? liveBp.toFixed(0) : "—"} bp</div>
                       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                        {Math.round((yr.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{yr.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {yr.deflationary_threshold_bp?.toFixed(0)} bp
+                        {(function(){const p=Math.round((yr.delta_y_3m_percentile_5y || 0) * 100); return p + ordinalSuffix(p);})()} pctile · Infl ≥ +{yr.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {yr.deflationary_threshold_bp?.toFixed(0)} bp
                       </div>
                       {liveDate && (
                         <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, letterSpacing: "0.02em" }}>
@@ -2211,7 +2212,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     {hoverW && (
                       <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
                         <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{parseLocalDate(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
-                        <div><strong style={{ fontWeight: 500 }}>ΔY-3M {(hoverW.delta_y_3m_bp >= 0 ? "+" : "") + (hoverW.delta_y_3m_bp || 0).toFixed(0)} bp</strong> · {Math.round((hoverW.delta_y_3m_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.yield_regime}</span></div>
+                        <div><strong style={{ fontWeight: 500 }}>ΔY-3M {(hoverW.delta_y_3m_bp >= 0 ? "+" : "") + (hoverW.delta_y_3m_bp || 0).toFixed(0)} bp</strong> · {(function(){const p=Math.round((hoverW.delta_y_3m_pctile_5y || 0) * 100); return p + ordinalSuffix(p);})()} pctile · <span style={{ color: "var(--accent)" }}>{hoverW.yield_regime}</span></div>
                       </div>
                     )}
                     <div style={{ marginTop: 10, textAlign: "center" }}>
