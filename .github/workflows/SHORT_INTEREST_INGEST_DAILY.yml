@@ -22,18 +22,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Idempotency gate — only run at the expected America/New_York local hour
+        # DST guard: each workflow has two cron lines (one for EDT, one for EST).
+        # Both fire most of the year. This step skips whichever one isn't at the
+        # expected ET local hour, so the feed runs once a day, not twice.
+        if: github.event_name == 'schedule'
+        run: |
+          ET_HOUR=$(TZ=America/New_York date +%H)
+          EXPECTED='06'
+          if [ "$ET_HOUR" != "$EXPECTED" ]; then
+            echo "::notice::Current ET hour is $ET_HOUR, expected $EXPECTED. The other DST cron line owns this slot. Skipping."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          else
+            echo "✓ ET hour matches expected ($EXPECTED) — proceeding."
+          fi
+
       - uses: actions/checkout@v4
+        if: env.SKIP_RUN != 'true'
       - uses: actions/setup-python@v5
+        if: env.SKIP_RUN != 'true'
         with:
           python-version: '3.11'
 
       - name: Install scanner deps
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         run: |
           pip install --upgrade pip
           pip install requests
 
       - name: Run ingest
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         env:
           UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
@@ -49,6 +68,7 @@ jobs:
             --max-seconds 2700 $ARGS
 
       - name: Surface row counts
+        if: env.SKIP_RUN != 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
