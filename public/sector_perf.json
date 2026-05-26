@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-25T23:48:35+00:00",
+  "as_of": "2026-05-26T23:51:19+00:00",
   "version": "v2",
   "method": {
     "proxy": "Primary Select Sector SPDR ETF per GICS sector.",
@@ -117,22 +117,22 @@
       "last_date": "2026-05-22"
     },
     "TLT": {
-      "perf_1m": -2.16,
-      "perf_3m": -5.64,
-      "perf_ttm": 0.85,
+      "perf_1m": -1.86,
+      "perf_3m": -5.34,
+      "perf_ttm": 0.82,
       "vol_ttm": 10.1,
       "proxy": "TLT",
-      "last_close": 84.68,
-      "last_date": "2026-05-22"
+      "last_close": 85.1,
+      "last_date": "2026-05-26"
     },
     "GLD": {
-      "perf_1m": -3.99,
-      "perf_3m": -14.02,
-      "perf_ttm": 35.31,
+      "perf_1m": -4.44,
+      "perf_3m": -12.77,
+      "perf_ttm": 36.58,
       "vol_ttm": 27.0,
       "proxy": "GLD",
-      "last_close": 413.82,
-      "last_date": "2026-05-22"
+      "last_close": 414.0,
+      "last_date": "2026-05-26"
     },
     "LQD": {
       "perf_1m": -1.05,
