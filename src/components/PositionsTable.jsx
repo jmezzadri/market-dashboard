@@ -648,26 +648,56 @@ export default function PositionsTable({
       // outside prices_eod coverage: positions.price (Massive-synced),
       // then screener overlay (Unusual Whales), then screener prev_close.
       const eod = _eodByTicker[T] || {};
-      const price = Number.isFinite(eod.close) ? eod.close
-                  : (p.price != null ? Number(p.price)
-                  : (sc.close != null ? Number(sc.close)
-                  : (sc.prev_close != null ? Number(sc.prev_close) : null)));
-      const scPrevFallback = sc.prev_close != null ? Number(sc.prev_close) : null;
-      const prev  = Number.isFinite(eod.prev_close) ? eod.prev_close : scPrevFallback;
 
-      const currentValue = price != null
-        ? (quantity != null ? quantity * price : valueDb)
-        : null;
-      const totalCost = (quantity != null && avgCost != null) ? quantity * avgCost : null;
-      const pnl$   = (currentValue != null && totalCost != null) ? currentValue - totalCost : null;
-      const pnlPct = (price != null && avgCost) ? (price / avgCost - 1) * 100 : null;
+      // Cash rows are NOT marketable equities. They store dollars held
+      // (price=$1, value=dollars). The prices_eod overlay must never
+      // multiply a cash quantity by an equity tick — ticker collisions
+      // like 'CASH' (Pathward Financial, NYSE) would otherwise mark a
+      // $81K cash balance to ~$82/sh × 81K = $6.7M. Detect cash rows up
+      // front and route them around the entire mark-to-market pipeline.
+      const isCashRow = (p.sector === "Cash")
+        || (p.assetClass === "cash")
+        || (p.asset_class === "cash");
+
+      const price = isCashRow
+        ? (p.price != null ? Number(p.price) : 1)
+        : (Number.isFinite(eod.close) ? eod.close
+        : (p.price != null ? Number(p.price)
+        : (sc.close != null ? Number(sc.close)
+        : (sc.prev_close != null ? Number(sc.prev_close) : null))));
+      const scPrevFallback = sc.prev_close != null ? Number(sc.prev_close) : null;
+      const prev  = isCashRow
+        ? price
+        : (Number.isFinite(eod.prev_close) ? eod.prev_close : scPrevFallback);
+
+      const currentValue = isCashRow
+        ? valueDb
+        : (price != null
+            ? (quantity != null ? quantity * price : valueDb)
+            : null);
+      const totalCost = isCashRow
+        ? valueDb
+        : ((quantity != null && avgCost != null) ? quantity * avgCost : null);
+      const pnl$   = isCashRow
+        ? null
+        : ((currentValue != null && totalCost != null) ? currentValue - totalCost : null);
+      const pnlPct = isCashRow
+        ? null
+        : ((price != null && avgCost) ? (price / avgCost - 1) * 100 : null);
 
       // PNL DAY $ / % use the same (price, prev) pair the PRICE column
       // displays, so the math is internally consistent. Was previously
       // pulling sc.close/sc.prev_close which could disagree with PRICE.
-      const perShareDay = (price != null && prev != null) ? price - prev : null;
-      const pnlDay$   = (perShareDay != null && quantity != null) ? perShareDay * quantity : null;
-      const pnlDayPct = (price != null && prev) ? (price / prev - 1) * 100 : null;
+      // Cash rows have no day P&L (dollars don't move against themselves).
+      const perShareDay = isCashRow
+        ? null
+        : ((price != null && prev != null) ? price - prev : null);
+      const pnlDay$   = isCashRow
+        ? null
+        : ((perShareDay != null && quantity != null) ? perShareDay * quantity : null);
+      const pnlDayPct = isCashRow
+        ? null
+        : ((price != null && prev) ? (price / prev - 1) * 100 : null);
 
       const wealthPct = grandTotal && currentValue != null ? (currentValue / grandTotal) * 100 : null;
 
