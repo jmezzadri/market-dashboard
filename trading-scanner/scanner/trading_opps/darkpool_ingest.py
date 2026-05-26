@@ -44,6 +44,8 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
+import uuid
+from scanner.api_usage_helper import log_run_summary
 
 from scanner.trading_opps.universe import build_screener_universe
 
@@ -335,6 +337,40 @@ if __name__ == "__main__":
             ts = ts[:args.limit]
 
     as_of = date.fromisoformat(args.as_of) if args.as_of else None
-    print(json.dumps(pull_and_upsert(
-        ts, as_of=as_of, days_back=args.days_back, max_seconds=args.max_seconds,
-    ), indent=2))
+
+    # Bug #1032 follow-up: write one row per run to api_usage_log so the
+    # Admin API Usage bar chart shows this pipeline's daily UW call volume.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(
+            ts, as_of=as_of, days_back=args.days_back, max_seconds=args.max_seconds,
+        )
+        print(json.dumps(_result, indent=2))
+        # Estimate UW calls: roughly (tickers_done * days_queried), since the
+        # ingest pulls GET /api/darkpool/{ticker}?date=... once per ticker per
+        # day in the window.
+        _calls = int((_result.get("tickers_done") or 0) * (_result.get("days_queried") or 1))
+        log_run_summary(
+            source="darkpool_prints",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=_calls,
+            status="success" if _result.get("full_run") else "partial",
+            notes={
+                "tickers_done": _result.get("tickers_done"),
+                "tickers_with_prints": _result.get("tickers_with_prints"),
+                "prints_upserted": _result.get("prints_upserted"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="darkpool_prints",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise

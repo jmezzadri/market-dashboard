@@ -19,6 +19,8 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterator
 
 import requests
+import uuid
+from scanner.api_usage_helper import log_run_summary
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
@@ -228,4 +230,40 @@ if __name__ == "__main__":
     p.add_argument("--max-seconds", type=float, default=1800.0)
     args = p.parse_args()
     as_of = date.fromisoformat(args.as_of) if args.as_of else None
-    print(json.dumps(pull_and_upsert(as_of=as_of, max_seconds=args.max_seconds), indent=2))
+
+    # Bug #1032 follow-up: write one row per run to api_usage_log so the
+    # Admin API Usage bar chart shows this pipeline's daily UW call volume.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(as_of=as_of, max_seconds=args.max_seconds)
+        print(json.dumps(_result, indent=2))
+        # Estimate UW calls: the script paginates flow-alerts and walks the
+        # iterator twice (once to count, once to aggregate). UW returns
+        # ~50 events per page, so roughly events_fetched_first_pass / 25
+        # gets within an order of magnitude of total page requests.
+        _events = int(_result.get("events_fetched_first_pass") or 0)
+        _calls = max(1, _events // 25) if _events else 0
+        log_run_summary(
+            source="options_flow",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=_calls,
+            status="success",
+            notes={
+                "events_fetched_first_pass": _result.get("events_fetched_first_pass"),
+                "tickers_aggregated": _result.get("tickers_aggregated"),
+                "rows_upserted": _result.get("rows_upserted"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="options_flow",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise
