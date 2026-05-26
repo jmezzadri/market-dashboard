@@ -411,6 +411,22 @@ const PANELS = [
 ];
 
 // ─── helpers ────────────────────────────────────────────────────────────
+// Returns the correct English ordinal suffix for an integer (st/nd/rd/th).
+// 1 -> 'st', 2 -> 'nd', 3 -> 'rd', 4..10 -> 'th', 11/12/13 -> 'th' (special case),
+// 21 -> 'st', 22 -> 'nd', 23 -> 'rd', etc.
+function ordinalSuffix(n) {
+  if (n == null || !Number.isFinite(n)) return '';
+  const v = Math.abs(Math.round(n));
+  const lastTwo = v % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return 'th';
+  switch (v % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
 function ascending(arr) { return [...arr].sort((a,b) => a-b); }
 
 function percentile(value, arr) {
@@ -663,7 +679,7 @@ function DomainHeatStrip({ indicators, hist, onOpen }) {
         const c = heatColor(pct, ind.dir);
         const lbl = heatLabel(pct, ind.dir);
         return (
-          <div key={ind.id} onClick={() => onOpen(ind.id)} title={`${ind.short} · ${pct != null ? Math.round(pct*100)+'th' : '—'} pctile${lbl ? ' · ' + lbl : ''}`} style={{
+          <div key={ind.id} onClick={() => onOpen(ind.id)} title={`${ind.short} · ${pct != null ? (function(){const p=Math.round(pct*100);return p+ordinalSuffix(p);})() : '—'} pctile${lbl ? ' · ' + lbl : ''}`} style={{
             flex: 1, minWidth: 0, height: 36, borderRadius: 6, cursor: 'pointer',
             background: c, opacity: 0.85,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -739,7 +755,7 @@ function IndicatorTile({ ind, hist, onOpen }) {
             <PctileBar pct={pct} color={c} />
           </div>
           <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'right' }}>
-            {pct != null ? Math.round(pct*100) + 'th' : '—'}
+            {pct != null ? (function(){const p=Math.round(pct*100);return p+ordinalSuffix(p);})() : '—'}
           </span>
         </div>
       )}
@@ -949,7 +965,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
           <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${fmtAsOf(series.as_of, series.freq)}`} tip="The latest reading for this indicator." />
           <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" tip="How much the reading has moved over the past 30 days." />
-          <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" tip="Where today\u2019s reading sits within this indicator\u2019s own range over the last five years \u2014 0 is the lowest it has been, 100 the highest." />
+          <KPI label="5y percentile" value={pct5y != null ? (function(){const p=Math.round(pct5y*100);return p+ordinalSuffix(p);})() : '—'} sub="trailing 5 years" tip="Where today\u2019s reading sits within this indicator\u2019s own range over the last five years \u2014 0 is the lowest it has been, 100 the highest." />
           <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} tip="The first date for which MacroTilt holds data on this indicator." />
         </div>
 
