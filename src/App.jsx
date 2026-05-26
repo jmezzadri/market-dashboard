@@ -12,6 +12,7 @@ import MethodologyPageV2 from "./v2/pages/MethodologyPage";
 import ScenariosPageV2 from "./v2/pages/ScenariosPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
 import V2ErrorBoundary from "./v2/components/ErrorBoundary";
+import { ordinalSuffix } from "./lib/ordinal";
 
 
 // Cutover feature flag — REVERTED to default-OFF 2026-05-06 (P0 rollback).
@@ -4977,7 +4978,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
               }, item.panel),
               React.createElement("span", { style: { color: "var(--text)", fontWeight: 500 } }, meta.l),
               React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, meta.f(item.value)),
-              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: VIZ.hot, fontSize: 11, fontWeight: 700 } }, Math.round(item.pctile * 100) + "th")
+              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: VIZ.hot, fontSize: 11, fontWeight: 700 } }, (function(){const p=Math.round(item.pctile * 100); return p + ordinalSuffix(p);})())
             );
           })
         ) : React.createElement("div", {
@@ -5057,7 +5058,7 @@ function HomeAssetTiltEngineRead() {
   const stressPct = stress.move_percentile_5y;
   const stressVal = stress.move_value;
   const stressMeta = stressPct != null
-    ? Math.round(stressPct * 100) + 'th pctile'
+    ? (function(){const p=Math.round(stressPct * 100); return p + ordinalSuffix(p) + ' pctile';})()
     : 'awaiting data';
   // Yield dial — needle on the 3-month yield-change percentile, threshold dots
   // at the Deflationary (30th) and Inflationary (70th) percentile gates.
@@ -5068,7 +5069,7 @@ function HomeAssetTiltEngineRead() {
   // engine snapshot that has no live field yet.
   const yieldBp  = yieldR.delta_y_3m_bp_live != null ? yieldR.delta_y_3m_bp_live : yieldR.delta_y_3m_bp;
   const yieldMeta = yieldPct != null
-    ? Math.round(yieldPct * 100) + 'th pctile'
+    ? (function(){const p=Math.round(yieldPct * 100); return p + ordinalSuffix(p) + ' pctile';})()
     : 'awaiting data';
   return (
     <div style={{ marginBottom: 12 }}>
