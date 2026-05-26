@@ -32,6 +32,7 @@ const SOURCE_COLORS = {
   options_eod:        "#d97706",   // orange
   options_flow:       "#ea580c",   // deeper orange
   short_interest:     "#7c3aed",   // purple
+  untagged:           "rgba(120,120,120,0.45)", // light gray — historical residual (calls made before per-source logging was wired)
   ad_hoc:             "var(--text-muted)",   // gray
 };
 const SOURCE_LABELS = {
@@ -44,9 +45,10 @@ const SOURCE_LABELS = {
   options_eod:        "Options EOD",
   options_flow:       "Options flow",
   short_interest:     "Short interest",
+  untagged:           "Untagged (pre-logging)",
   ad_hoc:             "Ad-hoc",
 };
-const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","darkpool_prints","options_eod","options_flow","short_interest","ad_hoc"];
+const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","darkpool_prints","options_eod","options_flow","short_interest","untagged","ad_hoc"];
 
 const STATUS_COLORS = { success:"var(--green)", partial:"#B8860B", failed:"var(--red)" };
 
@@ -176,22 +178,53 @@ function KpiTile({ label, value, sub, tone }) {
 // ── STACKED BAR CHART (calls_made by source, bucketed by grain) ────────────
 function StackedCalls({ rows, grain }) {
   // Aggregate by ET-bucket × source.
+  //
+  // Each bucket also carries an "untagged" synthetic source = the gap between
+  // the true account-wide UW usage (derived from UW's own response headers
+  // captured in remaining_daily / limit_daily) and the sum of per-source
+  // calls_made we managed to log. Historically several pipelines called UW
+  // without logging to api_usage_log, so logged << true_used; the synthetic
+  // residual makes that gap visible instead of hiding it. Going forward (once
+  // PR #826's per-source logging takes effect) the residual will shrink to
+  // ~zero on each new bar.
   const { buckets, perBucket, maxTotal } = useMemo(() => {
-    const m = new Map(); // bucketKey -> Map(source -> sumCalls)
+    const m = new Map(); // bucketKey -> { calls: Map(source -> sumCalls), accountUsed: number|null }
     (rows || []).forEach(r => {
       const key = bucketKey(r.started_at, grain);
       if (!key) return;
-      if (!m.has(key)) m.set(key, new Map());
-      const s = m.get(key);
-      s.set(r.source, (s.get(r.source) || 0) + (Number(r.calls_made) || 0));
+      if (!m.has(key)) m.set(key, { calls: new Map(), accountUsed: null });
+      const slot = m.get(key);
+      slot.calls.set(r.source, (slot.calls.get(r.source) || 0) + (Number(r.calls_made) || 0));
+      // remaining_daily is UW's "calls left in the daily budget" header captured
+      // at the time of the call. The lowest value we observed in this bucket
+      // corresponds to the highest cumulative usage we hit during that bucket.
+      const rem = r.remaining_daily != null ? Number(r.remaining_daily) : null;
+      const lim = r.limit_daily != null ? Number(r.limit_daily) : null;
+      if (rem != null && lim != null && Number.isFinite(rem) && Number.isFinite(lim)) {
+        const used = lim - rem;
+        if (used > 0 && (slot.accountUsed == null || used > slot.accountUsed)) {
+          slot.accountUsed = used;
+        }
+      }
     });
     const buckets = [...m.keys()].sort(); // ascending
     let maxTotal = 0;
     const perBucket = buckets.map(k => {
-      const s = m.get(k);
-      const total = SOURCE_ORDER.reduce((a,src) => a + (s.get(src) || 0), 0);
+      const slot = m.get(k);
+      const calls = slot.calls;
+      const loggedSum = SOURCE_ORDER.reduce((a,src) => a + (calls.get(src) || 0), 0);
+      // Inject the synthetic residual ONLY when we actually observed an
+      // account-used number and it exceeds what we logged per-source. The
+      // residual is capped at zero (never negative) so a bucket with no
+      // remaining_daily header just renders the logged bars at face value.
+      const untaggedRaw = (slot.accountUsed != null) ? (slot.accountUsed - loggedSum) : 0;
+      const untagged = untaggedRaw > 0 ? untaggedRaw : 0;
+      if (untagged > 0) {
+        calls.set("untagged", untagged);
+      }
+      const total = SOURCE_ORDER.reduce((a,src) => a + (calls.get(src) || 0), 0);
       if (total > maxTotal) maxTotal = total;
-      return { key:k, parts:SOURCE_ORDER.map(src => ({ src, v:(s.get(src) || 0) })), total };
+      return { key:k, parts:SOURCE_ORDER.map(src => ({ src, v:(calls.get(src) || 0) })), total };
     });
     return { buckets, perBucket, maxTotal };
   }, [rows, grain]);
@@ -244,7 +277,7 @@ function StackedCalls({ rows, grain }) {
           );
         })}
       </svg>
-      <Legend sources={SOURCE_ORDER.filter(s => (rows||[]).some(r => r.source===s))} />
+      <Legend sources={SOURCE_ORDER.filter(s => perBucket.some(b => b.parts.some(p => p.src===s && p.v>0)))} />
     </ChartPanel>
   );
 }
