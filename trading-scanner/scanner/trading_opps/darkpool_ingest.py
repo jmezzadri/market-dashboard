@@ -47,7 +47,7 @@ import requests
 import uuid
 from scanner.api_usage_helper import log_run_summary
 
-from scanner.trading_opps.universe import build_screener_universe
+from scanner.trading_opps.universe import build_screener_candidate_universe
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     if args.tickers:
         ts = [t.strip().upper() for t in args.tickers.split(",") if t.strip()]
     else:
-        ts = build_screener_universe()
+        ts = build_screener_candidate_universe()
         if args.limit:
             ts = ts[:args.limit]
 
