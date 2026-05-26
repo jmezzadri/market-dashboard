@@ -197,26 +197,31 @@ def upsert_rows(rows: list[dict[str, Any]], batch_size: int = 200) -> int:
 
 def pull_and_upsert(as_of: date | None = None,
                     max_seconds: float = 1800.0) -> dict[str, Any]:
+    """Single-pass pull. Phase 1 item 1e (2026-05-26): the previous
+    implementation pulled fetch_flow_alerts() twice — once into a
+    count-only loop, then again inside aggregate_by_ticker. The first
+    pull served no purpose other than incrementing a counter and roughly
+    doubled the UW call count for this feed. Now the pull is streamed
+    once, with a soft time budget enforced inside the count loop."""
     as_of = as_of or date.today()
     t0 = time.time()
-    events_iter = fetch_flow_alerts()
 
-    rows_by_ticker: dict[str, dict[str, Any]] = {}
+    def _budgeted_events() -> Iterator[dict[str, Any]]:
+        nonlocal fetched
+        for ev in fetch_flow_alerts():
+            if time.time() - t0 > max_seconds:
+                break
+            fetched += 1
+            yield ev
+
     fetched = 0
-    for ev in events_iter:
-        if time.time() - t0 > max_seconds:
-            break
-        fetched += 1
-
-    # Re-pull, since the iterator was exhausted above. Actually do the
-    # aggregation inline this time.
-    rows_by_ticker = aggregate_by_ticker(fetch_flow_alerts(), as_of)
+    rows_by_ticker = aggregate_by_ticker(_budgeted_events(), as_of)
     rows = list(rows_by_ticker.values())
     upserted = upsert_rows(rows)
 
     return {
         "as_of": as_of.isoformat(),
-        "events_fetched_first_pass": fetched,
+        "events_fetched": fetched,
         "tickers_aggregated": len(rows_by_ticker),
         "rows_upserted": upserted,
         "elapsed_sec": round(time.time() - t0, 1),
