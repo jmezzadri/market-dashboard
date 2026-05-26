@@ -28,6 +28,10 @@ const SOURCE_COLORS = {
   daily_scanner:      "var(--green)",   // green
   scan_on_add:        "#B8860B",   // amber
   indicator_refresh:  "#f472b6",   // pink
+  darkpool_prints:    "#0d9488",   // teal
+  options_eod:        "#d97706",   // orange
+  options_flow:       "#ea580c",   // deeper orange
+  short_interest:     "#7c3aed",   // purple
   ad_hoc:             "var(--text-muted)",   // gray
 };
 const SOURCE_LABELS = {
@@ -36,9 +40,13 @@ const SOURCE_LABELS = {
   daily_scanner:      "Daily scanner",
   scan_on_add:        "Scan on add",
   indicator_refresh:  "Indicator refresh",
+  darkpool_prints:    "Dark-pool prints",
+  options_eod:        "Options EOD",
+  options_flow:       "Options flow",
+  short_interest:     "Short interest",
   ad_hoc:             "Ad-hoc",
 };
-const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","ad_hoc"];
+const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","darkpool_prints","options_eod","options_flow","short_interest","ad_hoc"];
 
 const STATUS_COLORS = { success:"var(--green)", partial:"#B8860B", failed:"var(--red)" };
 
@@ -610,12 +618,6 @@ export default function AdminUsage() {
         <KpiTile label="Remaining (min)" value={minRemaining!=null ? fmtInt(minRemaining) : "—"} sub="across sources reporting" tone={minRemaining!=null && minRemaining < 2000 ? "bad" : minRemaining!=null && minRemaining < 5000 ? "warn" : "good"} />
         <KpiTile label="Peak RPM today" value={peakRpmToday ? peakRpmToday.toFixed(0) : "—"} sub="Basic tier ceiling: 120/min" tone={peakRpmToday>=100?"bad":peakRpmToday>=80?"warn":"good"} />
         <KpiTile label="Last run" value={latestRow ? etTimeShort(latestRow.started_at) : "—"} sub={latestRow ? `${SOURCE_LABELS[latestRow.source]||latestRow.source} · ${latestRow.status}` : "no runs yet"} tone={failuresToday>0?"warn":"good"} />
-      </div>
-
-      {/* Coverage caveat — the per-feed charts below only meter pipelines that
-          opt into the usage logger; the account-usage KPI above is the true total. */}
-      <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"11px 14px",fontSize:12,color:"var(--text-2)",lineHeight:1.55,marginBottom:16}}>
-        <strong style={{color:"var(--text)"}}>Coverage.</strong> The "UW account usage today" figure above is the true account-wide total, read from Unusual Whales' own response headers. The per-feed charts below currently meter only 2 of the roughly 8 pipelines that call Unusual Whales — the four daily ingest feeds added in the May 2026 Trading Opportunities release are not yet wired into this log, so the stacked chart, period totals, and per-feed run list under-count. Full per-feed coverage is in progress.
       </div>
 
       {error && (

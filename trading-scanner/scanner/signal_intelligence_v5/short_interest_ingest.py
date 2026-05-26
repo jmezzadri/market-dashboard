@@ -22,10 +22,12 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
+import uuid
+from scanner.api_usage_helper import log_run_summary
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
@@ -396,4 +398,38 @@ if __name__ == "__main__":
         if args.limit:
             ts = ts[:args.limit]
 
-    print(json.dumps(pull_and_upsert(ts, max_seconds=args.max_seconds), indent=2))
+    # Bug #1032 follow-up: write one row per run to api_usage_log so the
+    # Admin API Usage bar chart shows this pipeline's daily UW call volume.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(ts, max_seconds=args.max_seconds)
+        print(json.dumps(_result, indent=2))
+        # Estimate UW calls: 3 endpoints per UW-touched ticker
+        # (shorts/data, shorts/volume-and-ratio, shorts/ftds). FINRA hits
+        # are not Unusual Whales and don't count toward the budget.
+        _calls = int((_result.get("tickers_uw") or 0) * 3)
+        log_run_summary(
+            source="short_interest",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=_calls,
+            status="success",
+            notes={
+                "tickers_done": _result.get("tickers_done"),
+                "tickers_finra": _result.get("tickers_finra"),
+                "tickers_uw": _result.get("tickers_uw"),
+                "daily_rows_upserted": _result.get("daily_rows_upserted"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="short_interest",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise

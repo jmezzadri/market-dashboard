@@ -54,6 +54,8 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 import requests
+import uuid
+from scanner.api_usage_helper import log_run_summary
 
 from scanner.trading_opps.universe import build_screener_universe
 
@@ -474,4 +476,38 @@ if __name__ == "__main__":
             ts = ts[:args.limit]
 
     as_of = date.fromisoformat(args.as_of) if args.as_of else None
-    print(json.dumps(pull_and_upsert(ts, as_of=as_of, max_seconds=args.max_seconds), indent=2))
+
+    # Bug #1032 follow-up: write one row per run to api_usage_log so the
+    # Admin API Usage bar chart shows this pipeline's daily UW call volume.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(ts, as_of=as_of, max_seconds=args.max_seconds)
+        print(json.dumps(_result, indent=2))
+        # Estimate UW calls: ~4 endpoints per ticker (option-contracts,
+        # options-volume, volatility/realized, volatility/term-structure).
+        _calls = int((_result.get("tickers_done") or 0) * 4)
+        log_run_summary(
+            source="options_eod",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=_calls,
+            status="success" if _result.get("full_run") else "partial",
+            notes={
+                "tickers_done": _result.get("tickers_done"),
+                "tickers_with_data": _result.get("tickers_with_data"),
+                "rows_upserted": _result.get("rows_upserted"),
+                "contracts_stored": _result.get("contracts_stored"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="options_eod",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise
