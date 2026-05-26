@@ -32,6 +32,7 @@ import ScenariosPage from "./pages/ScenariosPage";
 import IndicatorsPage from "./pages/IndicatorsPage";
 import MethodologyPage from "./pages/MethodologyPage";
 import TickerPage from "./pages/TickerPage";
+import BisectPage from "./pages/BisectPage";
 
 const VALID_PAGES = new Set([
   "home",
@@ -42,6 +43,7 @@ const VALID_PAGES = new Set([
   "scenarios",
   "indicators",
   "methodology",
+  "bisect",
 ]);
 
 const DEFAULT_PREFS = {
@@ -159,6 +161,9 @@ export default function V2Shell({ onExit }) {
 
   // Ticker from subpath
   const activeTicker = page === "ticker" ? subpath[0] || ticker : null;
+  // Bisect step from subpath — included in memo deps so navigation between
+  // #v2/bisect/1 → /2 → /3 actually re-renders the page.
+  const bisectStep = page === "bisect" ? subpath[0] || null : null;
 
   const currentPage = useMemo(() => {
     if (page === "ticker" && activeTicker) {
@@ -185,14 +190,16 @@ export default function V2Shell({ onExit }) {
         return <IndicatorsPage openTicker={openTicker} setPage={navigate} />;
       case "methodology":
         return <MethodologyPage setPage={navigate} />;
+      case "bisect":
+        return <BisectPage subpath={subpath} setPage={navigate} openTicker={openTicker} />;
       case "home":
       default:
         return <HomePage openTicker={openTicker} setPage={navigate} />;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, activeTicker]);
+  }, [page, activeTicker, bisectStep]);
 
-  const sidebarPage = page === "ticker" ? "scanner" : page;
+  const sidebarPage = page === "ticker" ? "scanner" : page === "bisect" ? "home" : page;
 
   return (
     <div className="mt-app">
