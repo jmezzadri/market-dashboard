@@ -3,13 +3,13 @@ name: OPTIONS_EOD_INGEST_DAILY
 # Phase 1 of the Trading Opportunities overhaul — per-contract end-of-day
 # options.
 #
-# For every name in the screener universe, pulls UW's per-ticker options
-# feed (per-contract volume / open interest / greeks plus the day's
+# For every name in the screener-candidate universe, pulls UW's per-ticker
+# options feed (per-contract volume / open interest / greeks plus the day's
 # put-call ratio, net premium, implied vol, implied moves, realized vol)
 # into public.options_eod_daily — one row per (ticker, as_of_date).
 # Idempotent UPSERT on (ticker, as_of_date); a re-run is a no-op.
 #
-# Normalized EOD market-data slot: 16:30 ET weekdays (per pipeline_schedule.yml).
+# Normalized EOD market-data slot: 16:00 ET weekdays.
 #
 # Required GitHub secrets (already configured for the other UW ingests):
 #   UNUSUAL_WHALES_API_KEY
@@ -34,18 +34,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
+      - name: Idempotency gate — only run at the expected America/New_York local hour
+        # DST guard: each workflow has two cron lines (one for EDT, one for EST).
+        # Both fire most of the year. This step skips whichever one isn't at the
+        # expected ET local hour, so the feed runs once a day, not twice.
+        if: github.event_name == 'schedule'
+        run: |
+          ET_HOUR=$(TZ=America/New_York date +%H)
+          EXPECTED='16'
+          if [ "$ET_HOUR" != "$EXPECTED" ]; then
+            echo "::notice::Current ET hour is $ET_HOUR, expected $EXPECTED. The other DST cron line owns this slot. Skipping."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          else
+            echo "✓ ET hour matches expected ($EXPECTED) — proceeding."
+          fi
+
       - uses: actions/checkout@v4
+        if: env.SKIP_RUN != 'true'
       - uses: actions/setup-python@v5
+        if: env.SKIP_RUN != 'true'
         with:
           python-version: '3.11'
 
       - name: Install scanner deps
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         run: |
           pip install --upgrade pip
           pip install requests
 
       - name: Run options end-of-day ingest
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         env:
           UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
@@ -62,6 +81,7 @@ jobs:
             --max-seconds 18000 $ARGS
 
       - name: Surface row count
+        if: env.SKIP_RUN != 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
