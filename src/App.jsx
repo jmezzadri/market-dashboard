@@ -4666,7 +4666,7 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","readme","admin","bugs","lab","scenarios"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","paper","readme","admin","bugs","lab","scenarios"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
@@ -4674,7 +4674,8 @@ const TAB_META={
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
-  insights:  {eyebrow:"Paper Portfolio",       title:"Paper Portfolio",         sub:"$1M paper trading book on Alpaca. Sleeve A ($500K) follows the Asset Tilt engine across 24 industry-group ETFs. Sleeve B ($500K) follows the Equity Scanner long-only, with up to 2x leverage when buy signals exceed cash. Idle cash sits as cash — no bond proxy."},
+  insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
+  paper:     {eyebrow:"Paper Portfolio",        title:"Paper Portfolio",         sub:"$1M paper trading book on Alpaca. Sleeve A ($500K) follows the Asset Tilt engine across 24 industry-group ETFs. Sleeve B ($500K) follows the Equity Scanner long-only, with up to 2x leverage when buy signals exceed cash. Idle cash sits as cash — no bond proxy."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin",                 title:"Data sources & pipeline health", sub:"Three destinations: Polygon Massive, Unusual Whales, and a cross-vendor Data Health view of every feed on the site. Visible only to admins."},
   bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
@@ -4693,7 +4694,8 @@ const NAV_ITEMS = [
   { id:"overview",   label:"Macro Overview",                                icon:<NavIconGauge/>  },
   { id:"allocation", label:"Asset Tilt",                                    icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities",                          icon:<NavIconPie/>    },
-  { id:"insights",   label:"Paper Portfolio",                                icon:<NavIconRadar/>  },
+  { id:"insights",   label:"Portfolio Insights",                             icon:<NavIconList/>   },
+  { id:"paper",      label:"Paper Portfolio",                                icon:<NavIconRadar/>  },
   { id:"scenarios",  label:"Scenario Analysis",                             icon:<NavIconHeat/>   },
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
 ];
@@ -6781,7 +6783,7 @@ return(
 })()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
-{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
+{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
   <SectionHeader
     eyebrow={TAB_META[tab].eyebrow}
     title={TAB_META[tab].title}
@@ -6854,10 +6856,622 @@ return(
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
 {tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
-{/* PAPER PORTFOLIO — $1M Alpaca paper book. Replaced the old Portfolio Insights
-    surface 2026-05-26 per Joe directive. URL slug stays /#insights so existing
-    bookmarks survive; the sidebar label is now "Paper Portfolio". */}
-{tab==="insights" && <V2ErrorBoundary><PaperPortfolioPageV2 /></V2ErrorBoundary>}
+{/* PAPER PORTFOLIO — $1M Alpaca paper book. Independent of /#insights. */}
+{tab==="paper" && <V2ErrorBoundary><PaperPortfolioPageV2 /></V2ErrorBoundary>}
+
+{V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
+{!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
+{!V2_ENABLED && tab==="insights" && !(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+const heldByTicker={};
+ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
+  if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
+  heldByTicker[p.ticker].total+=p.value;
+  heldByTicker[p.ticker].accounts.push({acctId:acc.id,acctLabel:acc.label,value:p.value});
+}));
+const tacticalAccts=ACCOUNTS.filter(a=>a.tactical);
+const cashByAcct=tacticalAccts.map(acc=>{
+  const cash=acc.positions.filter(p=>p.sector==="Cash").reduce((a,p)=>a+p.value,0);
+  return{id:acc.id,label:acc.label,cash};
+}).filter(x=>x.cash!==0).sort((a,b)=>b.cash-a.cash);
+const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
+// Sort held positions by value DESC — biggest exposure first, regardless of account
+const heldPositions=ACCOUNTS
+  .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
+  .sort((a,b)=>b.value-a.value);
+const heldTickers=new Set(heldPositions.map(p=>p.ticker));
+const scoreByTicker=scanData?.score_by_ticker||{};
+// Classes of holdings the scanner framework doesn't meaningfully evaluate —
+// commodities, crypto wrappers, HY-bond funds, broad intl-equity funds get
+// artificially low scores (e.g. SLV=0, GLD=6) because the scanner looks for
+// equity-specific signals (Congress/insider/flow) that don't apply.
+const SCANNER_OUT_OF_SCOPE_SECTORS=new Set(["Commodity","Metals","Crypto","HY Bonds","Intl Equity"]);
+const BROAD_INDEX_FUNDS=new Set(["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"]);
+const actionFor=p=>{
+  if(!p.acctTactical)return{label:"MONITOR",color:"var(--text-dim)",reason:"Plan-fund account — can't act on tactical signals here.",detail:`This position sits in ${p.acctLabel}, which is limited to the plan's menu of funds. Signals from the scanner don't apply — the account holds what the plan allows. Review at enrollment/re-enrollment windows or major life events.`};
+  if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return{label:"OUT OF SCOPE",color:"var(--text-dim)",reason:`Scanner doesn't evaluate ${p.sector.toLowerCase()} positions.`,detail:`The scanner looks for equity-specific signals (Congressional trades, insider Form-4s, unusual options flow, technical momentum) that don't meaningfully apply to ${p.sector.toLowerCase()} holdings. This position is held for strategic/diversification reasons — not tactical scanner signals. Review based on portfolio allocation thesis, not the daily scan.`};
+  if(BROAD_INDEX_FUNDS.has(p.ticker))return{label:"CORE",color:"var(--accent)",reason:"Broad-market index fund — not a tactical position.",detail:`${p.ticker} is a diversified index holding. Do not manage tactically on daily scanner signals; it's a long-term core holding. Review allocation relative to age-based glide path, not market regime.`};
+  const sc=scoreByTicker[p.ticker];
+  if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not scored in the latest scan.",detail:`The scanner runs a scored universe of equity tickers; ${p.ticker} isn't currently included. This is a scanner coverage gap, not a sell signal. Task #9 tracks adding held positions to the always-scored list so this gets proper signal data.`};
+  if(sc>=60)return{label:"BUY ZONE",color:"var(--green)",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
+  if(sc>=35)return{label:"HOLD",color:"#B8860B",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
+  if(sc>=20)return{label:"WATCH",color:"var(--yellow)",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
+  return{label:"REVIEW",color:"var(--red)",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
+};
+const fmt$K=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${Math.round(v).toLocaleString()}`;
+const fmt$Full=v=>`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const sectionPanel={background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,overflow:"hidden",marginBottom:12};
+const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
+const sectionTitleStyle={fontSize:16,fontWeight:800,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"};
+const subTitleStyle={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
+// Visual separator for sub-sections INSIDE a Section Panel. Each sub-panel gets
+// its own bordered frame + header row so Allocation / Notable / Positions /
+// Deployable Cash read as discrete blocks rather than one giant flow.
+const subPanelOuter={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,overflow:"hidden",marginBottom:12};
+const subPanelHeader={padding:"8px 12px",background:"var(--surface)",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
+const subPanelTitleStyle={fontSize:11,color:"var(--text-2)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em",fontWeight:700};
+const subPanelBody={padding:"10px 12px"};
+const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
+const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
+const showTrading=tab==="portopps";
+const showInsights=tab==="insights";
+return(<>
+{showInsights&&portfolioAuthed&&(()=>{
+  // Portfolio Insights hero — two-col layout mirroring Trading Opps /
+  // Macro Overview. Left: eyebrow + serif headline + italic accent +
+  // subtitle. Right: bordered "Key Statistics vs. S&P 500" card with
+  // 4 stats — Total Wealth, TTM Performance, Portfolio Beta, Portfolio
+  // Sharpe — each carrying an S&P comparison line below the value.
+  const _ttm = _portfolioReturns?.periodReturns?.TTM;
+  const _ttmPct = _ttm!=null ? `${_ttm>=0?"+":""}${(_ttm*100).toFixed(1)}%` : "—";
+  const _sharpe = _portfolioSharpe?.sharpe;
+  const _sharpeStr = _sharpe!=null ? _sharpe.toFixed(2) : "—";
+  const _grandTotalK = grandTotal>=1000 ? `$${Math.round(grandTotal/1000).toLocaleString()}K` : `$${Math.round(grandTotal).toLocaleString()}`;
+  const _acctCount = (ACCOUNTS||[]).length;
+  // S&P TTM via existing helper, anchored to portfolio's latest date.
+  const _latestDate = _portfolioReturns?.latestDate || null;
+  const _spyRet = (_spxHistory && _latestDate) ? computeSpyReturns(_spxHistory, _latestDate) : null;
+  const _spyTtm = _spyRet?.TTM;
+  const _spyTtmStr = _spyTtm!=null ? `${_spyTtm>=0?"+":""}${(_spyTtm*100).toFixed(1)}%` : "—";
+  // S&P Sharpe — same math as portfolio Sharpe (computePortfolioSharpe)
+  // applied to month-end SPX closes over the trailing 12 months. Apples-
+  // to-apples with the portfolio number above.
+  const _spySharpeStr = (()=>{
+    if (!Array.isArray(_spxHistory) || _spxHistory.length < 24) return "—";
+    const last = _spxHistory[_spxHistory.length - 1];
+    const lastT = new Date(last.d + "T00:00:00Z").getTime();
+    const cutoff = new Date(lastT - 365 * 86400000).toISOString().slice(0, 10);
+    const recent = _spxHistory.filter(p => p.d >= cutoff && p.spx > 0);
+    const byMonth = {};
+    for (const p of recent) byMonth[p.d.slice(0,7)] = p;  // keep last of month
+    const months = Object.values(byMonth).sort((a,b)=>a.d.localeCompare(b.d));
+    if (months.length < 12) return "—";
+    const s = computePortfolioSharpe(
+      months.map(m => ({as_of: m.d, nav: m.spx, contributions: 0, withdrawals: 0})),
+      0.05
+    );
+    return s?.sharpe!=null ? s.sharpe.toFixed(2) : "—";
+  })();
+  const cells = [
+    {lbl:"Total Wealth", v:_grandTotalK, sub:`${_acctCount} account${_acctCount===1?"":"s"}`},
+    {lbl:"TTM Performance", v:_ttmPct, sub:`S&P ${_spyTtmStr}`, col:_ttm!=null && _ttm>=0?"var(--green-text)":_ttm!=null?"var(--red-text)":"var(--text)"},
+    {lbl:"Portfolio Beta", v:portBeta!=null?portBeta.toFixed(2):"—", sub:"S&P 1.00", col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
+    {lbl:"Portfolio Sharpe", v:_sharpeStr, sub:`S&P ${_spySharpeStr}`},
+  ];
+  return (
+    <PageHero
+      eyebrow={<span style={{display:"inline-flex",alignItems:"center",gap:10}}>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={_latestDate}/></span>}
+      title={<>Your portfolio and watchlist &ndash; <em>augmented with MacroTilt&rsquo;s signal intelligence.</em></>}
+      bullets={[
+        "Time-weighted performance, and position-level alerts",
+        "The same MacroTilt Score you see on Trading Opportunities applied to your positions",
+      ]}
+      right={
+      <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 16px"}}>
+        <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",textAlign:"center",marginBottom:12}}>
+          Key Statistics <span style={{color:"var(--text-dim)"}}>vs. S&amp;P 500</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {cells.map(c=>(
+            <div key={c.lbl} style={{textAlign:"center",padding:"10px 8px",border:"1px solid var(--border-faint)",borderRadius:8,background:"var(--surface-2)"}}>
+              <div style={{fontFamily:"var(--font-ui)",fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{c.lbl}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:c.col||"var(--text)",letterSpacing:"-0.01em",lineHeight:1.1}}>{c.v}</div>
+              <div style={{fontFamily:"var(--font-ui)",fontSize:10,color:"var(--text-dim)",marginTop:4,letterSpacing:"0.04em"}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+      </aside>
+      }
+    />
+  
+  );
+})()}
+<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1216,margin:"0 auto"}}>
+{/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
+    publicly clickable, but shows zero-state + a contextual prompt instead
+    of a full LoginScreen. Signing in swaps the skeleton for real data. */}
+{showInsights&&!portfolioAuthed&&(
+<div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
+<div style={{flex:"1 1 260px",minWidth:0}}>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>SIGN IN TO SEE YOUR PORTFOLIO</div>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>Sign in to populate Portfolio Insights with your own accounts, positions, and watchlist — private to your account.</div>
+</div>
+<button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
+</div>
+)}
+
+{showTrading&&(()=>{
+const universeCount=Object.keys(scanData?.signals?.screener||{}).length;
+const watchlistSize=(WATCHLIST||[]).length;
+const _scanT=scanData?.scan_time?new Date(scanData.scan_time):null;
+const _scanLabel=_scanT?_scanT.toLocaleString("en-US",{timeZone:"America/New_York",weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})+" ET":"—";
+const _subline=(buyCount>0||watchCount>0)
+  ?`${buyCount} buy alert${buyCount===1?"":"s"} · ${watchCount} near trigger today.`
+  :"Awaiting today's scan run — buy alerts and near-triggers populate after 3:30 PM ET.";
+const _stanceColor=_scanT?"var(--green-text)":"var(--text-muted)";
+const _stanceBg=_scanT?"rgba(31,138,90,0.12)":"rgba(165,118,10,0.12)";
+const _b=()=>({fontWeight:600,color:"var(--text)"});
+const _topBuy = (rebucketBuy || [])[0] || null;
+const _topNear = (rebucketNear || [])[0] || null;
+const _topPick = _topBuy || _topNear;
+const _topScore = _topPick ? Math.round(_topPick.ovr ?? 0) : 0;
+const _topTicker = _topPick ? _topPick.ticker : "—";
+const _topBand = _topScore >= 75 ? "Buy zone" : _topScore >= 50 ? "Near trigger" : _topScore > 0 ? "Watch" : "Awaiting scan";
+// MO-mirroring gauge geometry: viewBox 380x230, cx=190 cy=180, R_outer=140, R_inner=90.
+// Filled wedge paths (NOT strokes), 4 bands at 25-pct increments, pointer sweep
+// from -(180 - a_today)deg → 0deg on mount.
+const _aToday = 180 - _topScore * 1.8;
+const _polar = (r, deg) => { const rad = deg * Math.PI / 180; return [190 + r * Math.cos(rad), 180 - r * Math.sin(rad)]; };
+const _wedge = (a0, a1) => {
+  const [x0o, y0o] = _polar(140, a0);
+  const [x1o, y1o] = _polar(140, a1);
+  const [x1i, y1i] = _polar(90, a1);
+  const [x0i, y0i] = _polar(90, a0);
+  return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A 140 140 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A 90 90 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+};
+const [_tipX, _tipY] = _polar(148, _aToday);
+const _bandColor = _topScore >= 75 ? "var(--green)" : _topScore >= 50 ? "var(--yellow-text)" : "var(--text-muted)";
+const _startDeg = -(180 - _aToday);
+return(<>
+{/* Trading Opps hero — exact MO mirror.
+    Spec: .hero-row grid 1fr 360px gap 36, eyebrow Inter 11px/0.10em,
+    h1 Fraunces clamp(28-38)/1.18/-0.012em, subtitle Inter 16/1.55,
+    right card 1px border 12 radius 18-20-14 pad text-center,
+    gauge 380x230 viewBox with R 140/90 filled wedges. */}
+<section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"start",marginBottom:32}}>
+<div style={{minWidth:0}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14}}>
+Trading Opportunities
+</div>
+<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px"}}>
+The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
+</h1>
+<p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
+An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one signed composite ranging from &minus;100 (bearish) to +100 (bullish). Names scoring above +75 trigger a buy alert; +50 to +75 sit on the near-trigger watch.
+</p>
+
+</div>
+
+<aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 14px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.18em",marginBottom:4}}>Today&apos;s scan</div>
+<svg viewBox="0 0 380 230" style={{display:"block",maxWidth:280,width:"100%",margin:"0 auto"}}>
+<path d={_wedge(180, 135)} fill="rgba(0,113,227,0.18)"/>
+<path d={_wedge(135, 90)} fill="rgba(0,113,227,0.42)"/>
+<path d={_wedge(90, 45)} fill="rgba(0,113,227,0.68)"/>
+<path d={_wedge(45, 0)} fill="rgba(0,113,227,0.92)"/>
+<g className="to-pointer" style={{transformOrigin:"190px 180px",animation:"toPointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards"}}>
+<line x1="190" y1="180" x2={_tipX.toFixed(2)} y2={_tipY.toFixed(2)} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+<circle cx="190" cy="180" r="6" fill="currentColor"/>
+<circle cx={_tipX.toFixed(2)} cy={_tipY.toFixed(2)} r="4.5" fill="currentColor" stroke="var(--surface)" strokeWidth="1.8"/>
+</g>
+</svg>
+<div style={{fontFamily:"var(--font-mono)",fontSize:38,fontWeight:600,color:"var(--text)",letterSpacing:"-0.02em",lineHeight:1,marginTop:6}}>
+{_topScore}<span style={{fontSize:18,fontWeight:400,color:"var(--text-muted)",marginLeft:4}}>/ 100</span>
+</div>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.14em",marginTop:4,marginBottom:4}}>top score &middot; <span style={{color:"var(--text)"}}>{_topTicker}</span></div>
+<div style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:500,color:_bandColor,margin:"6px 0 0",letterSpacing:"-0.005em"}}>{_topBand}</div>
+<div style={{display:"flex",gap:14,marginTop:14,paddingTop:12,borderTop:"1px solid var(--border-faint)",width:"100%",justifyContent:"space-around"}}>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{buyCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>buys</div></div>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{watchCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>near</div></div>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{(WATCHLIST||[]).length}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>tracking</div></div>
+</div>
+</aside>
+</section>
+<style>{`@keyframes toPointerSweep { from { transform: rotate(${_startDeg.toFixed(1)}deg); } to { transform: rotate(0deg); } } @media (prefers-reduced-motion: reduce) { .to-pointer { animation: none !important; } }`}</style>
+</>);
+})()}
+{/* SNAPSHOT removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
+
+{/* PORTFOLIO RISK block removed 2026-05-04 (re-deleted after PR #448 regression). */}
+
+{/* SECTION 1 — UNIFIED TRADING OPPS TABLE (only on portopps tab).
+    Joe directive 2026-05-08: drop the 3-section split (BUY ALERTS / NEAR
+    TRIGGER / YOUR WATCHLIST). One table. Row tints: green for >=75 (buy),
+    soft green for 50-75 (near), no tint for <50. */}
+{showTrading&&<div style={sectionPanel}>
+
+<div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+
+{(()=>{
+// Build ONE unified table: triggered (>=75) + nearTrigger (50-75) + watchlist (<50).
+// Joe directive 2026-05-08: row tints distinguish bands; no separate tables.
+const screenerMap = scanData?.signals?.screener || {};
+const infoMap = scanData?.signals?.info || {};
+const _seen = new Set();
+const _rows = [];
+// Order: buy first, near second, then watchlist below threshold.
+[...rebucketBuy, ...rebucketNear].forEach(it => {
+  const t = String(it.ticker || "").toUpperCase();
+  if (_seen.has(t)) return;
+  _seen.add(t);
+  _rows.push({ ticker: it.ticker, name: screenerMap[it.ticker]?.full_name || "", theme: "" });
+});
+(rebucketOther || []).forEach(r => {
+  const t = String(r?.ticker || "").toUpperCase();
+  if (_seen.has(t)) return;
+  _seen.add(t);
+  _rows.push({ ticker: r.ticker, name: r.name || screenerMap[r.ticker]?.full_name || "", theme: r.theme || "" });
+});
+return (<>
+<div id="section-watchlist" style={{height:0}} aria-hidden="true"/>
+<WatchlistTable
+  rows={_rows}
+  signals={scanData?.signals}
+  screener={screenerMap}
+  info={infoMap}
+  tableKey="watchlist_unified"
+  heldTickers={heldTickers}
+  userWatchlistTickers={userWatchlistTickers}
+  onAddToWatchlist={onAddToWatchlist}
+  onRemoveFromWatchlist={onRemoveFromWatchlist}
+  onUpdateTheme={onUpdateWatchlistTheme}
+  portfolioAuthed={portfolioAuthed}
+  onOpenTicker={(t)=>setTickerDetail(t)}
+  tintByScore={true}
+  emptyMessage={portfolioAuthed
+    ? `No buy alerts, near-triggers, or watchlist names today · Last scan: ${lastScanLabel}`
+    : "Sign in to populate the unified watchlist."}
+/>
+{portfolioAuthed
+  ? <WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>
+  : null}
+</>);
+})()}
+{/* DATA FRESHNESS moved to bottom of the panel — Joe directive 2026-05-08. */}
+<div style={{padding:"12px 16px 0",borderTop:"1px solid var(--border-faint)",marginTop:8}}>
+  <DataFreshness
+    scanTs={scanData?.scan_time}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
+</div>
+
+</div>
+</div>}
+
+{/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
+    per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
+    surfaced above, so they read as supporting context rather than primary. */}
+{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
+{/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
+{showInsights&&<div style={sectionPanel}>
+<div style={sectionHeader}>
+<span style={sectionTitleStyle}>ALLOCATION</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{heldPositions.length} position{heldPositions.length===1?"":"s"}</span>
+</div>
+<div style={{padding:"12px 16px"}}>
+{ACCOUNTS.length===0?(
+  portfolioAuthed?(
+    <OnboardingPanel userId={session?.user?.id} onDone={refetchPortfolio}/>
+  ):(
+    <div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
+      Sign in to populate allocation, positions, and risk insights with your own data.
+    </div>
+  )
+):<>
+
+{/* ALLOCATION (per-class bar chart). Joe directive 2026-05-11: previous
+    stacked horizontal bar collapsed all six classes onto one row; this
+    rebuilds as one labeled bar per asset class, sorted by $ value
+    descending. Bar width is proportional to the class's value relative
+    to the largest class (max-scaled) so dominant holdings read clearly.
+    Margin debt / shorts (negative values) render as muted rows with the
+    signed value and no bar drawn. % is computed against gross (sum of
+    positive values) so positives sum to 100%. */}
+<div style={subPanelOuter}>
+<div style={subPanelBody}>
+{(()=>{
+const assetData=Object.entries(assetRollup)
+  .map(([cls,val])=>({id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}))
+  .sort((a,b)=>b.value-a.value);
+const gross=assetData.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
+const net=assetData.reduce((a,s)=>a+s.value,0);
+const hasLiab=assetData.some(s=>s.value<0);
+const posCount=assetData.filter(s=>s.value>0).length;
+const maxPositive=Math.max(...assetData.map(s=>s.value),0)||1;
+return(
+<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>ASSET CLASS MIX</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{hasLiab?`${posCount} classes · ${fmt$K(gross)} gross · ${fmt$K(net)} net`:`${posCount} classes · ${fmt$K(net)}`}</span>
+</div>
+<div style={{display:"flex",flexDirection:"column",gap:10}}>
+{assetData.map(s=>{
+const isLiab=s.value<0;
+const pctOfGross=(s.value/gross)*100;
+const barPct=isLiab?0:Math.max(0,(s.value/maxPositive)*100);
+return(
+<div key={s.id} style={{display:"grid",gridTemplateColumns:"160px 1fr 150px",alignItems:"center",columnGap:14}} title={`${s.name} · ${fmt$K(s.value)} · ${pctOfGross.toFixed(1)}%`}>
+<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:isLiab?0.4:1}}/>
+<span style={{fontSize:12,color:"var(--text)",fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.name}</span>
+</div>
+<div style={{height:10,background:"var(--border-faint)",borderRadius:5,overflow:"hidden",position:"relative"}}>
+{!isLiab&&<div style={{height:"100%",width:`${barPct}%`,background:s.color,borderRadius:5,transition:"width 280ms ease-out"}}/>}
+</div>
+<div style={{display:"flex",justifyContent:"flex-end",alignItems:"baseline",gap:10,fontFamily:"var(--font-mono)"}}>
+<span style={{fontSize:12,color:isLiab?"var(--text-2)":"var(--text)",fontWeight:600}}>{fmt$K(s.value)}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",minWidth:42,textAlign:"right"}}>{isLiab?`${pctOfGross.toFixed(1)}%`:`${pctOfGross.toFixed(0)}%`}</span>
+</div>
+</div>
+);
+})}
+</div>
+</div>
+);
+})()}
+</div>
+</div>
+{/* /ALLOCATION sub-panel */}
+
+{/* NOTABLE block removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
+
+{/* POSITIONS global table removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
+
+{/* DEPLOYABLE CASH removed 2026-05-04 — per-tile cash chip in AccountTilesSection covers it. */}
+
+</>}
+</div>
+</div>}
+
+{/* TRADE HISTORY moved to the bottom of the page 2026-05-11 per Joe
+    directive — see TradeHistorySection rendered after the Watchlist
+    section below. Page now reads top-to-bottom: hero → allocation →
+    accounts → watchlist → trade history. */}
+
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
+    Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
+{showInsights&&(
+  <AccountTilesSection
+    accounts={ACCOUNTS}
+    grandTotal={grandTotal}
+    convColor={CONV.color}
+    convLabel={CONV.label}
+    stressScore={COMP100}
+    scanData={scanData}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
+    onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+    onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
+    onDelete={portfolioAuthed?deletePositionInline:undefined}
+    onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+    onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
+    onRescan={portfolioAuthed?(rows)=>handleRescanAllPositions(rows):undefined}
+    rescanBusy={rescanState.active}
+    rescanProgress={{done:rescanState.done,total:rescanState.total}}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
+)}
+
+{/* WATCHLIST — Joe directive 2026-05-11. Rendered below the account
+    tiles on Portfolio Insights so the page reads top-to-bottom:
+    KPIs → allocation → trade history → account tiles → watchlist.
+    Same WatchlistTable component as Trading Opps, scoped to the
+    user's saved watchlist rows. Add/remove handlers are the existing
+    ones already wired for Trading Opps — no new data plumbing. */}
+{showInsights && portfolioAuthed && (
+  <div style={sectionPanel}>
+    <div style={sectionHeader}>
+      <span style={sectionTitleStyle}>WATCHLIST</span>
+      <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
+        {(userWatchlistRows||[]).length} ticker{(userWatchlistRows||[]).length===1?"":"s"} tracked
+      </span>
+    </div>
+    <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+      <WatchlistTable
+        rows={userWatchlistRows||[]}
+        signals={scanData?.signals}
+        screener={scanData?.signals?.screener || {}}
+        info={scanData?.signals?.info || {}}
+        tableKey="watchlist_insights"
+        heldTickers={heldTickers}
+        userWatchlistTickers={userWatchlistTickers}
+        onAddToWatchlist={onAddToWatchlist}
+        onRemoveFromWatchlist={onRemoveFromWatchlist}
+        onUpdateTheme={onUpdateWatchlistTheme}
+        portfolioAuthed={portfolioAuthed}
+        onOpenTicker={(t)=>setTickerDetail(t)}
+        emptyMessage="Your watchlist is empty. Add a ticker below to start tracking names alongside your portfolio."
+      />
+      <WatchlistAddInput
+        session={session}
+        watchlistRows={userWatchlistRows}
+        refetchPortfolio={refetchPortfolio}
+        onTickerAdded={scanTicker}
+      />
+    </div>
+  </div>
+)}
+
+{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
+    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
+    filters + CSV export. Moved to bottom of the page 2026-05-11 per Joe
+    directive so the page reads top-to-bottom: hero → allocation →
+    accounts → watchlist → trade history. */}
+{showInsights && portfolioAuthed && (
+  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
+)}
+
+{/* NAV-OVER-TIME chart REMOVED 2026-05-11 per Joe directive. The line
+    chart added more visual noise than insight (axis scaling on small
+    accounts misled; aggregate-first TWR was already in the Key Stats
+    card). If you want the chart back, see commit history before
+    PR feature/ux-pi-cleanup-v2. */}
+{false && showInsights && _portfolioReturns?.aggregate && _portfolioReturns.aggregate.length >= 2 && (()=>{
+  const agg = _portfolioReturns.aggregate;
+  // Slim history → [{d, spx}] from composite_history_daily.json (already
+  // pulled by the existing _spxHistory effect).
+  const portStart = agg[0].as_of;
+  // SPY benchmark, rebased: pin SPY's value on portStart to portfolio's first NAV.
+  // Then walk SPY forward by its returns to a parallel series.
+  let spyLine = null;
+  if (Array.isArray(_spxHistory) && _spxHistory.length > 0) {
+    // Find SPY value at-or-before portStart for the anchor.
+    let anchorIdx = -1;
+    for (let i = _spxHistory.length - 1; i >= 0; i--) {
+      if (_spxHistory[i].d <= portStart) { anchorIdx = i; break; }
+    }
+    if (anchorIdx >= 0) {
+      const spyAnchor = _spxHistory[anchorIdx].spx;
+      const portAnchor = agg[0].nav;
+      // Map portfolio dates → nearest SPY value (forward-fill).
+      spyLine = agg.map(p => {
+        let si = -1;
+        for (let i = _spxHistory.length - 1; i >= 0; i--) {
+          if (_spxHistory[i].d <= p.as_of) { si = i; break; }
+        }
+        if (si < 0) return null;
+        const spyNow = _spxHistory[si].spx;
+        const rebased = portAnchor * (spyNow / spyAnchor);
+        return { as_of: p.as_of, v: rebased };
+      }).filter(x => x);
+    }
+  }
+  // Layout
+  const W = 720, H = 220, M = { l: 56, r: 16, t: 12, b: 28 };
+  const innerW = W - M.l - M.r;
+  const innerH = H - M.t - M.b;
+  const navMin = Math.min(...agg.map(p => p.nav), ...(spyLine ? spyLine.map(p => p.v) : []));
+  const navMax = Math.max(...agg.map(p => p.nav), ...(spyLine ? spyLine.map(p => p.v) : []));
+  const padPct = 0.06;
+  const yMin = navMin - (navMax - navMin) * padPct;
+  const yMax = navMax + (navMax - navMin) * padPct;
+  const xOf = i => M.l + (i / (agg.length - 1)) * innerW;
+  const yOf = v => M.t + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const navPoints = agg.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.nav).toFixed(1)}`).join(" ");
+  // Build SPY point list keyed off the same x-positions (one entry per agg row).
+  const spyPoints = spyLine ? spyLine.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.v).toFixed(1)}`).join(" ") : null;
+  // Y-axis ticks at min, mid, max
+  const ticks = [yMin, (yMin + yMax) / 2, yMax];
+  const fmt$K = v => v >= 1000 ? `$${Math.round(v / 1000).toLocaleString()}K` : `$${Math.round(v).toLocaleString()}`;
+  // X-axis labels at first, mid, last
+  const xLabels = [agg[0].as_of, agg[Math.floor(agg.length / 2)].as_of, agg[agg.length - 1].as_of];
+  const portReturn = (agg[agg.length - 1].nav / agg[0].nav - 1) * 100;
+  const spyReturn = spyLine ? (spyLine[spyLine.length - 1].v / spyLine[0].v - 1) * 100 : null;
+  const portCol = portReturn >= 0 ? "var(--green-text)" : "var(--orange-text)";
+  return (
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,gap:12,flexWrap:"wrap"}}>
+        <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700}}>NAV OVER TIME · TIME-WEIGHTED</div>
+        <div style={{display:"flex",gap:18,fontFamily:"monospace",fontSize:11,color:"var(--text-muted)"}}>
+          <span><span style={{display:"inline-block",width:10,height:2,background:"var(--accent)",verticalAlign:"middle",marginRight:6}}></span>Portfolio <strong style={{color:portCol,marginLeft:4}}>{portReturn>=0?"+":""}{portReturn.toFixed(1)}%</strong></span>
+          {spyReturn != null && <span><span style={{display:"inline-block",width:12,height:2,background:"var(--text-dim)",verticalAlign:"middle",marginRight:6,borderTop:"1px dashed var(--text-dim)"}}></span>SPY (rebased) <strong style={{color:"var(--text-2)",marginLeft:4}}>{spyReturn>=0?"+":""}{spyReturn.toFixed(1)}%</strong></span>}
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block",overflow:"visible"}} preserveAspectRatio="none">
+        {/* Y grid */}
+        {ticks.map((tv, i) => (
+          <g key={`y${i}`}>
+            <line x1={M.l} x2={M.l + innerW} y1={yOf(tv)} y2={yOf(tv)} stroke="var(--border-faint)" strokeDasharray={i === 1 ? "2 4" : "0"} strokeWidth="1" />
+            <text x={M.l - 6} y={yOf(tv) + 3} textAnchor="end" fontSize="9" fontFamily="monospace" fill="var(--text-muted)">{fmt$K(tv)}</text>
+          </g>
+        ))}
+        {/* X labels */}
+        {xLabels.map((d, i) => (
+          <text key={`x${i}`} x={M.l + (i / 2) * innerW} y={H - 8} textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"} fontSize="9" fontFamily="monospace" fill="var(--text-muted)">{d}</text>
+        ))}
+        {/* SPY line first (under) */}
+        {spyPoints && <polyline fill="none" stroke="var(--text-dim)" strokeWidth="1.4" strokeDasharray="3 3" points={spyPoints} />}
+        {/* Portfolio line on top */}
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="1.25" points={navPoints} />
+        {/* End-point dots */}
+        <circle cx={xOf(agg.length - 1)} cy={yOf(agg[agg.length - 1].nav)} r="3" fill="var(--accent)" />
+        {spyLine && spyLine.length > 0 && <circle cx={xOf(spyLine.length - 1)} cy={yOf(spyLine[spyLine.length - 1].v)} r="2.5" fill="var(--text-dim)" />}
+      </svg>
+      <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:6}}>{agg.length} monthly observations · {portStart} → {agg[agg.length - 1].as_of}. SPY benchmark rebased so both lines start at the same NAV (so the curves compare visually). Aggregate-first TWR rollup; flows netted out.</div>
+    </div>
+  );
+})()}
+
+{/* REALIZED P&L · CLOSED TRADES REMOVED 2026-05-11 per Joe directive.
+    The four-card tile (YTD / 1M / 3M / Lifetime) duplicated information
+    already accessible in TradeHistorySection above (which lists every
+    closed trade with realized P&L on each row, plus CSV export). Keep
+    the underlying transactions math — it still powers Trade History. */}
+{false && showInsights && portfolioAuthed && (() => {
+  const fmt$ = v => {
+    const n = Math.round(v||0);
+    const abs = Math.abs(n).toLocaleString();
+    return (n>=0?"+$":"-$") + abs;
+  };
+  const fmt$Cents = v => {
+    if (v == null) return "—";
+    const sign = v>=0?"+":"-";
+    return sign + "$" + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+  const colorFor = v => v>0 ? "var(--green-text)" : v<0 ? "var(--orange-text)" : "var(--text)";
+  const closes = _txRows.filter(r => r.realizedPnl != null).length;
+  const cards = [
+    { lbl:"YTD",      sub:`Jan 1 → today`,         data:_txTotals.ytd },
+    { lbl:"1 MONTH",  sub:`last 30 days`,          data:_txTotals.m1 },
+    { lbl:"3 MONTHS", sub:`last 90 days`,          data:_txTotals.m3 },
+    { lbl:"LIFETIME", sub:`since first close`,     data:_txTotals.lifetime },
+  ];
+  return (
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+        <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+          REALIZED P&amp;L · CLOSED TRADES
+          <InfoTip term="Realized P&L" def="Locked-in gains and losses from positions you've actually closed (sold or bought-to-close). Excludes paper gains on positions you still hold. Short-term (held ≤ 1 year) is taxed at your ordinary income rate; long-term (held > 1 year) is taxed at the preferential 0/15/20% capital-gains rate." size={10}/>
+        </div>
+        <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.05em"}}>{closes} closed trade{closes===1?"":"s"}</span>
+      </div>
+      {closes === 0 ? (
+        <div style={{padding:"18px 16px",fontSize:13,color:"var(--text-muted)",textAlign:"center",fontStyle:"italic"}}>
+          No closed trades yet. Realized P&amp;L will populate after your first close.
+        </div>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+          {cards.map(c => {
+            const tip = `Short-term: ${fmt$Cents(c.data.st)}  ·  Long-term: ${fmt$Cents(c.data.lt)}`;
+            return (
+              <div key={c.lbl} style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px",position:"relative"}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>
+                  <span>{c.lbl}</span>
+                  <InfoTip term={`${c.lbl} realized P&L`} def={`Total realized P&L for trades closed in this window. Short-term: ${fmt$Cents(c.data.st)}. Long-term: ${fmt$Cents(c.data.lt)}. Hover the value to see this breakdown.`} size={9}/>
+                </div>
+                <div title={tip} style={{fontSize:18,fontWeight:800,color:colorFor(c.data.all),fontFamily:"monospace",cursor:"help"}}>
+                  {fmt$(c.data.all)}
+                </div>
+                <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>
+                  {c.sub} · ST {fmt$Cents(c.data.st)} / LT {fmt$Cents(c.data.lt)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:8}}>
+        Sourced from your trade ledger. Short-term (ST) = held ≤ 1 year, taxed at ordinary rates. Long-term (LT) = held &gt; 1 year, taxed at capital-gains rates. Excludes fees on tickets where the broker didn't report them.
+      </div>
+    </div>
+  );
+})()}
+
+
+</div>
+</>);
+})()}
 
 {/* Per-ticker detail modal — opens from any ticker-level 'Details' click in
     portopps (opportunity cards, position cards). Escape hatch at the bottom
