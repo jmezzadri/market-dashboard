@@ -1,0 +1,81 @@
+name: PAPER-PORTFOLIO-EOD-DAILY
+
+# MacroTilt paper-portfolio EOD phase.
+#   1. Translator: Asset Tilt + Equity Scanner → pending paper_orders rows.
+#   2. Submitter:  pending → Alpaca paper MOO submissions (time_in_force=opg).
+#
+# Pipeline name (Data Steward convention): paper-portfolio-eod-daily
+# Pre-flight:
+#   * Sleeve A signal source — public/v10_allocation.json (refreshed by
+#     INDICATOR-REFRESH_7AM_WEEKDAYS earlier in the day).
+#   * Sleeve B signal source — public.signal_intel_v5_daily (refreshed by
+#     SCAN workflows after the 3:30 PM close).
+# Both must be current as of today before this workflow runs.
+#
+# Schedule (Data Steward standard slot for portfolio surfaces):
+#   * 20:30 UTC = 4:30 PM EDT (UTC-4) / 3:30 PM EST (UTC-5) — after market close.
+#   * Submission is routed by Alpaca to NEXT trading day's opening auction.
+#   * Weekdays only. Holiday calendar handled by Alpaca's `is_open` clock —
+#     a non-trading day yields zero pending rows and the submitter is a no-op.
+#
+# Required GitHub secrets:
+#   SUPABASE_ACCESS_TOKEN     — read paper_accounts + signal_intel_v5_daily,
+#                                write paper_signal_capture + paper_orders.
+#   SUPABASE_URL              — Supabase project URL (used by sub-readers).
+#   ALPACA_PAPER_KEY_ID       — Alpaca paper API key.
+#   ALPACA_PAPER_SECRET       — Alpaca paper API secret.
+#   ALPACA_PAPER_BASE_URL     — default https://paper-api.alpaca.markets
+
+on:
+  schedule:
+    - cron: '30 20 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (compute, no DB writes, no Alpaca submission)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: paper-portfolio-eod
+  cancel-in-progress: false
+
+jobs:
+  eod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas pyarrow numpy scipy
+
+      - name: Run EOD phase (translator + submitter)
+        # Live-submission guard: PAPER_LIVE_TRADING_ENABLED must be set to
+        # 'true' in repo secrets for the submitter to actually POST orders
+        # to Alpaca. Otherwise the runner silently downgrades to dry-run.
+        # Until Joe approves, leave this secret unset.
+        env:
+          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
+          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python -m paper_portfolio.runner --phase eod --dry-run
+          else
+            python -m paper_portfolio.runner --phase eod
+          fi
