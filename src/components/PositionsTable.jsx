@@ -736,6 +736,7 @@ export default function PositionsTable({
         sector: p.sector || inf.sector || sc.sector || "",
         quantity, price, avgCost, totalCost, currentValue,
         pnl$, pnlPct, pnlDay$, pnlDayPct,
+        isCashRow,
         beta: p.beta != null ? Number(p.beta) : null,
         purchaseDate: p.purchaseDate || null,
         holdingDays, annualizedPnl, wealthPct,
@@ -817,7 +818,7 @@ export default function PositionsTable({
         columns={columns}
         rows={enriched}
         rowKey={(r) => `${r.acctLabel}-${r.ticker}-${r._raw?.id || ""}`}
-        onRowClick={(row) => onOpenTicker?.(row.ticker)}
+        onRowClick={(row) => { if (row.isCashRow) return; onOpenTicker?.(row.ticker); }}
         storageKey={tableKey}
         features="full"
       />
