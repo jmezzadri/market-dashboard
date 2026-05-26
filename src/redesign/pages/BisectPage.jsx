@@ -13,7 +13,6 @@
  * produces, instead of inferring from the bundle.
  */
 import React, { useState, useEffect } from "react";
-import useScanData from "../hooks/useScanData";
 
 import UniverseFreshness from "../../components/UniverseFreshness";
 import WatchlistTable from "../../components/WatchlistTable";
@@ -73,6 +72,37 @@ class Boundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+
+// Inline scan-snapshot loader — same source the legacy site uses, kept
+// local to the bisect page so this file has no external hook dependency.
+// (The PR #1 attempt added src/redesign/hooks/useScanData.js; we don't
+// take that file as part of this bisect branch to keep the harness
+// minimally invasive.)
+const _SCAN_URL =
+  "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json?t=";
+
+function useScanData() {
+  const [state, setState] = React.useState({ data: null, loading: true, error: null });
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch(_SCAN_URL + Date.now())
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then((d) => {
+        if (!cancelled) setState({ data: d, loading: false, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) setState({ data: null, loading: false, error: err });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return state;
 }
 
 export default function BisectPage({ subpath, setPage, openTicker }) {
