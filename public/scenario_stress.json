@@ -1,6 +1,6 @@
 {
   "_doc": "Phase 2 scenario-stress mechanism scores. For each scenario, each calibrated indicator's peak-stress value is percentiled against the indicator's full live sample (post-2011) and direction-corrected 0-100 (higher = more stress) using the same convention as the live v11 cycle-mechanism scorer. Mechanism score = simple-average of available indicator scores; composite = simple-average of mechanism scores. Indicators with value=null (e.g. RRP pre-2013) or no historical sample are dropped from the denominator and listed in indicators_dropped per scenario. Refreshed nightly by scripts/compute_scenario_mechanism_stress.py at 23:00 UTC weekdays.",
-  "as_of": "2026-05-23",
+  "as_of": "2026-05-26",
   "framework": "v11 cycle mechanisms",
   "calibration_version": "phase2b-decisions-locked-2026-05-08",
   "calibration_as_of": "2026-05-08",
@@ -245,7 +245,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "Per Q1 substitute: VXO (Black-Scholes-derived precursor; CBOE constructed retroactively from S&P 100 options) spiked to ~150 on Oct 19 '87 close. DRAFT \u2014 VXO Oct '87 reconstructions vary by source (range 100\u2013150); 150 represents the panic-peak reading. Tag: proxy."
             },
             {
@@ -534,7 +534,7 @@
               "percentile": 85.1,
               "score": 85,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "VIX ~24 Mar 10 '00 Nasdaq peak (low for that era; pre-2008 VIX averaged higher than post-GFC norms)"
             },
             {
@@ -814,7 +814,7 @@
               "percentile": 99.5,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "VIX close 49.3 Oct 9 '02 (cycle peak)"
             },
             {
@@ -1094,7 +1094,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "VIX intraday 80.86 Nov 20 2008 (record high)"
             },
             {
@@ -1385,7 +1385,7 @@
               "percentile": 97.9,
               "score": 98,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 36.1 (was 36.07 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 36.07 Dec 24 '18 (cycle peak)"
             },
             {
@@ -1672,7 +1672,7 @@
               "percentile": 99.8,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 61.6 (was 82.7 as_of 2020-03-16). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
             },
             {
@@ -1959,7 +1959,7 @@
               "percentile": 97.0,
               "score": 97,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 33.6 (was 36.5 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX peaked 36.5 Oct 12 2022"
             },
             {
@@ -2246,7 +2246,7 @@
               "percentile": 98.5,
               "score": 99,
               "history_key": "vix",
-              "history_sample_size": 3870,
+              "history_sample_size": 3871,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 38.6 (was 38.57 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
             },
             {
