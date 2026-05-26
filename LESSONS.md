@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-25 — Cash rows must skip the equity mark-to-market overlay
+
+**What happened:** Joe opened the Portfolio Insights table and the value column on his $81,011.49 cash balance read $6.7M. The PositionsTable enriched calc had ladder-resolved a "live price" for ticker `CASH` from the prices_eod table, which carries Pathward Financial Group (a real NYSE-listed stock with the symbol `CASH`, trading around $82.74). The table then computed currentValue = quantity × price = 81,011.49 × 82.74 = $6,702,890, completely overriding the value stored in the database. Cash held in the portfolio uses ticker convention `CASH` (or `SPAXX` etc.) with price=1 and quantity=dollars-held — the equity overlay was never meant to touch those rows.
+
+**What you should do instead:** Any view that marks positions to market — Positions table, watchlist, ticker detail modal, asset tilt sums — must detect cash rows first and short-circuit out of the price-resolution ladder. A row is cash when `sector === "Cash"` OR `asset_class === "cash"` (frontend shape: `assetClass`). For cash rows: price stays as the stored per-unit price (1), currentValue stays as the stored dollar value, and pnl$, pnlPct, pnlDay$, pnlDayPct all render as null/em-dash (dollars don't move against themselves). Same guard applies to any future surface that maps a position quantity through a prices_eod lookup — write the cash short-circuit before the price ladder, not after, so a new ticker collision (`USD`, `BOND`, ETF symbols a user might pick as a cash label) can never re-create this class of bug.
+
+**Applies to:** Lead Developer + Senior Quant — any code that does `quantity × price` for a position. Before that multiplication, gate on the row not being cash.
+
+---
+
 ## 2026-05-21 — resample() to a period-end label publishes a future-dated point for the in-progress period
 
 **What happened:** The Macro Overview IG OAS, HY/IG ratio, and commercial-paper-spread tiles showed "last updated" dates in the future (May 31, May 22) when the date was the 21st. Each is built by resampling a daily series to a coarser cadence — `resample("ME")` (month-end), `resample("W-FRI")` (week-Friday), `resample("QE")` (quarter-end). Those resamplers label every bucket with the period-END date, so the still-in-progress period gets a label in the future and its partial value is published with a future stamp. Separately, IG OAS was built from a `BAA - DGS10` proxy (on a wrong "BAMLC0A0CM is license-restricted" assumption) that ran ~2x the true spread, and the copper/gold ratio used a non-standard x100 scaling.
