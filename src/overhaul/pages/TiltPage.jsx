@@ -145,20 +145,24 @@ export default function TiltPage() {
   const stressDates = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.move)).map((w) => w.date), [weeklyTail24]);
   const yieldDates  = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.delta_y_3m_bp)).map((w) => w.date), [weeklyTail24]);
 
-  /* Defensive sleeve weights as a portion of the TOTAL portfolio (not just
-     the defensive bucket). Used to render the 4-bar allocation visualization
-     in the stance card. When the sleeve is on standby (Risk On regime), all
-     three defensive components are 0 — the "Defensive sleeve on standby"
-     caption explains why under the bars. */
+  /* Defensive sleeve weights as a portion of the TOTAL portfolio, expressed
+     as a percentage (0–100). Used to render the 4-bar allocation
+     visualization in the stance card. Note: equity_pct / defensive_pct in
+     v10_allocation.json are FRACTIONS (1.0 = 100%); we multiply by 100 here
+     so the bar widths render at the right scale. When the sleeve is on
+     standby (Risk On regime), all three defensive components are 0 — the
+     "Defensive sleeve on standby" caption explains why under the bars. */
+  const equityPctDisplay = equityPct != null ? equityPct * 100 : 0;
   const sleeveAllocPct = useMemo(() => {
     if (!sleeve || defPct == null) {
       return { gold: 0, treasury: 0, cash: 0 };
     }
+    const def100 = defPct * 100;
     return {
-      gold:     (defPct * (sleeve.gld   ?? 0)) || 0,
-      treasury: (defPct * (sleeve.tlt   ?? 0)) || 0,
+      gold:     def100 * (sleeve.gld   ?? 0),
+      treasury: def100 * (sleeve.tlt   ?? 0),
       // Cash row absorbs SHY for display per the engine spec.
-      cash:     (defPct * ((sleeve.cash ?? 0) + (sleeve.shy ?? 0))) || 0,
+      cash:     def100 * ((sleeve.cash ?? 0) + (sleeve.shy ?? 0)),
     };
   }, [sleeve, defPct]);
 
@@ -365,7 +369,7 @@ export default function TiltPage() {
             <div className="at-allocbars">
               {(() => {
                 const rows = [
-                  { id: 'equity',   label: 'Equities',   pct: equityPct ?? 0, klass: 'at-allocfill--equity'   },
+                  { id: 'equity',   label: 'Equities',   pct: equityPctDisplay,         klass: 'at-allocfill--equity'   },
                   { id: 'treasury', label: 'Treasuries', pct: sleeveAllocPct.treasury, klass: 'at-allocfill--treasury' },
                   { id: 'gold',     label: 'Gold',       pct: sleeveAllocPct.gold,     klass: 'at-allocfill--gold'     },
                   { id: 'cash',     label: 'Cash',       pct: sleeveAllocPct.cash,     klass: 'at-allocfill--cash'     },
