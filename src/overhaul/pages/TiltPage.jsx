@@ -704,7 +704,7 @@ export default function TiltPage() {
 function BacktestChart({ series, hover, setHover }) {
   const W = 980;
   const H = 420;
-  const PAD = { l: 76, r: 16, t: 16, b: 92 };
+  const PAD = { l: 110, r: 16, t: 16, b: 92 };
   const innerW = W - PAD.l - PAD.r;
   const innerH = H - PAD.t - PAD.b;
   /* Layout for the labeled rails BELOW the plot area:
@@ -929,7 +929,7 @@ function BacktestChart({ series, hover, setHover }) {
             <span className="at-bkchart-regime">{hi.stress} · {hi.yld}</span>
           </>
         ) : (
-          <span className="at-bkchart-hint">Hover the chart to read values · top band = stress signal · bottom band = yield regime</span>
+          <span className="at-bkchart-hint">Hover the chart to read values · two labeled rails below the year axis show the stress signal and yield regime for each week</span>
         )}
       </div>
     </div>
