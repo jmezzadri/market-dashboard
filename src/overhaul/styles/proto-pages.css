@@ -48,22 +48,28 @@
   display: flex; align-items: center; gap: 8px;
 }
 
-.mt-overhaul .hm-allocgroup { display: flex; flex-direction: column; gap: 2px; }
-.mt-overhaul .hm-eyebrowrow { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 6px 6px; border-bottom: 1px solid var(--mt-line-0); }
+.mt-overhaul .hm-allocgroup { display: flex; flex-direction: column; gap: 4px; }
+.mt-overhaul .hm-eyebrowrow { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 6px 8px; border-bottom: 1px solid var(--mt-line-0); }
 .mt-overhaul .hm-allocfoot { color: var(--mt-ink-2); font-size: 11px; }
+/* 2026-05-27 — sector name column widened from 150px to 215px so the
+   long sector names ("Information Technology", "Consumer Discretionary",
+   "Consumer Staples", "Communication Services") render without
+   truncation. Rows have more vertical breathing room (padding 10/8
+   vs. 6/6) and slightly larger body type so the tile reads less
+   cramped. Joe directive 2026-05-27. */
 .mt-overhaul .hm-allocrow {
   appearance: none; border: none; background: transparent;
-  display: grid; grid-template-columns: 150px 1fr 56px; gap: 12px; align-items: center;
-  padding: 6px 6px; border-radius: 6px;
-  font: inherit; color: inherit; cursor: pointer; text-align: left; font-size: 12.5px;
+  display: grid; grid-template-columns: 215px 1fr 72px; gap: 14px; align-items: center;
+  padding: 10px 8px; border-radius: 6px;
+  font: inherit; color: inherit; cursor: pointer; text-align: left; font-size: 13.5px;
 }
 .mt-overhaul .hm-allocrow:hover { background: var(--mt-accent-soft); }
-.mt-overhaul .hm-allocname { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
-.mt-overhaul .hm-allocnamelbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-overhaul .hm-allocname { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
+.mt-overhaul .hm-allocnamelbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
 .mt-overhaul .hm-allocbar { position: relative; height: 6px; background: var(--mt-surface-3); border-radius: 999px; overflow: hidden; }
 .mt-overhaul .hm-allocbar > span { display: block; height: 100%; border-radius: 999px; transition: width 600ms cubic-bezier(0.2,0.8,0.2,1); }
-.mt-overhaul .hm-allocpct { text-align: right; font-family: var(--mt-font-display); font-size: 15px; font-weight: 500; }
-.mt-overhaul .hm-allocpct i { font-style: normal; font-size: 11px; color: var(--mt-ink-2); margin-left: 1px; font-family: var(--mt-font-ui); font-weight: 400; }
+.mt-overhaul .hm-allocpct { text-align: right; font-family: var(--mt-font-display); font-size: 18px; font-weight: 500; }
+.mt-overhaul .hm-allocpct i { font-style: normal; font-size: 12px; color: var(--mt-ink-2); margin-left: 2px; font-family: var(--mt-font-ui); font-weight: 400; }
 
 @media (max-width: 1100px) {
 
