@@ -197,8 +197,11 @@ export default function TickerPage() {
   const v5Row = v5Map?.byTicker?.[sym] || null;
   const eventsForSym = events.byTicker?.get?.(sym) || { news: [], insider: [], congress: [], darkpool: [] };
 
-  /* Composite price / score — scanner first, fall back to universe snapshot. */
-  const score   = scanRow?.score ?? v5Row?.mt_score ?? 3.4;
+  /* Composite price / score — scanner row is canonical 0-5. When the scanner
+     doesn't carry this ticker (it ranks only the top discovery names), fall
+     back to the totalScore from the v5 breakdown below — which is also 0-5
+     because every sub-score is mapped to 0-5 first. v5's raw mt_score uses a
+     different scale and would over-rotate the dial. */
   const sector  = scanRow?.sector || snap?.sector || 'Equity';
   const price   = snap?.close ?? scanRow?.price ?? 0;
   const chgPct  = snap?.perc_change != null
@@ -222,6 +225,10 @@ export default function TickerPage() {
   const totalScore = useMemo(() => breakdown.reduce(
     (s, c) => s + (c.contrib ?? 0), 0
   ), [breakdown]);
+
+  /* Dial score — scanner first (canonical 0-5), then the totalScore from the
+     v5 breakdown (also 0-5). Never raw v5 mt_score (different scale). */
+  const score = scanRow?.score ?? (v5Row ? totalScore : null);
 
   const related = (scanner.rows || []).filter((r) => r.ticker !== sym).slice(0, 4);
 
@@ -284,7 +291,7 @@ export default function TickerPage() {
         <div className="tk-scoreblock">
           <div className="mt-eyebrow">MacroTilt Score</div>
           <div className="tk-bigdial">
-            <ScoreDial score={score} max={5} size={96} />
+            <ScoreDial score={score != null ? score : 0} max={5} size={96} />
           </div>
           {signal && (
             <span className="mt-tag mt-tag--accent tk-sigpill">
@@ -514,7 +521,7 @@ function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row }
           <tr>
             <td colSpan={3}><b>MacroTilt Score</b></td>
             <td className="num lm-scorecontr">
-              <b>{Number(headlineScore).toFixed(1)}<i>/5</i></b>
+              <b>{headlineScore != null ? Number(headlineScore).toFixed(1) : '—'}<i>/5</i></b>
             </td>
           </tr>
         </tfoot>
