@@ -71,12 +71,21 @@ export default function BigHistoryChart({
   };
   const onLeave = () => setHover(null);
 
-  // Date labels — beginning, middle, end.
+  // Date labels — beginning, middle, end. The axis labels stay short
+  // (month + year) so they don't crowd the chart edge; the hover tooltip
+  // shows the FULL week-of date (month + day + year) so Joe knows exactly
+  // which observation he's reading.
   const dateLabel = (i) => {
     const iso = data[i]?.x;
     if (!iso) return '';
     const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
     return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  };
+  const tooltipDateLabel = (i) => {
+    const iso = data[i]?.x;
+    if (!iso) return '';
+    const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   };
 
   return (
@@ -181,7 +190,7 @@ export default function BigHistoryChart({
           className="num"
         >
           <b>{yFormat(hover.d.y)}</b>{' '}
-          <span style={{ color: 'var(--mt-ink-2)' }}>· {dateLabel(hover.i)}</span>
+          <span style={{ color: 'var(--mt-ink-2)' }}>· {tooltipDateLabel(hover.i)}</span>
         </div>
       )}
     </div>

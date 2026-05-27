@@ -703,10 +703,21 @@ export default function TiltPage() {
  * ------------------------------------------------------------------ */
 function BacktestChart({ series, hover, setHover }) {
   const W = 980;
-  const H = 360;
-  const PAD = { l: 56, r: 16, t: 16, b: 36 };
+  const H = 420;
+  const PAD = { l: 76, r: 16, t: 16, b: 92 };
   const innerW = W - PAD.l - PAD.r;
   const innerH = H - PAD.t - PAD.b;
+  /* Layout for the labeled rails BELOW the plot area:
+       y = PAD.t + innerH           → bottom of plot, where lines/grid end
+       y = PAD.t + innerH + 8       → top of year-label row
+       y = PAD.t + innerH + 28      → top of stress-signal rail
+       y = PAD.t + innerH + 50      → top of yield-regime rail
+     The rails are clearly outside the chart so they never overlap the
+     lines OR the year labels. */
+  const RAIL_H = 14;
+  const yearY  = PAD.t + innerH + 22;
+  const stressY = PAD.t + innerH + 38;
+  const yieldY  = PAD.t + innerH + 60;
 
   /* Re-base each series so the first visible point starts at 1.0 — that way
      the chart compares performance OVER the selected window, not since 1986
@@ -767,12 +778,26 @@ function BacktestChart({ series, hover, setHover }) {
   const tickVals = Array.from({ length: yTicks + 1 }, (_, i) => y0 + ((y1 - y0) * i) / yTicks);
 
   /* x-axis: pick a small number of date labels — first, last, and a few
-     evenly spaced years in between. */
+     evenly spaced years in between. Dedupe in case rounding produces
+     repeats on short windows (1M/6M). Format depends on window length:
+     show MMM-YYYY for windows under ~2 years, just YYYY for longer
+     spans so labels never collide. */
+  const seenIdx = new Set();
   const labelIdxs = [];
   const labelN = 6;
   for (let i = 0; i < labelN; i++) {
-    labelIdxs.push(Math.round((i / (labelN - 1)) * (norm.length - 1)));
+    const idx = Math.round((i / (labelN - 1)) * (norm.length - 1));
+    if (!seenIdx.has(idx)) { seenIdx.add(idx); labelIdxs.push(idx); }
   }
+  const isShortWindow = norm.length <= 110; // ~2 years
+  const formatXLabel = (d) => {
+    if (!d) return '';
+    if (isShortWindow) {
+      const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(d.slice(5,7),10)-1] || '';
+      return `${m} ${d.slice(2,4)}`;
+    }
+    return d.slice(0, 4);
+  };
 
   function onMove(e) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -794,30 +819,6 @@ function BacktestChart({ series, hover, setHover }) {
         onMouseMove={onMove}
         onMouseLeave={onLeave}
       >
-        {/* Top band — stress signal. Thin strip at top of plot area. */}
-        {bands.map((b, i) => (
-          <rect
-            key={`s${i}`}
-            x={xOf(b.start)}
-            y={PAD.t}
-            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
-            height={10}
-            fill={stressFill(b.stress)}
-            opacity="0.55"
-          />
-        ))}
-        {/* Bottom band — yield regime. Thin strip just above x-axis. */}
-        {bands.map((b, i) => (
-          <rect
-            key={`y${i}`}
-            x={xOf(b.start)}
-            y={PAD.t + innerH - 10}
-            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
-            height={10}
-            fill={yieldFill(b.yld)}
-            opacity="0.45"
-          />
-        ))}
         {/* y-grid */}
         {tickVals.map((v, i) => (
           <g key={`t${i}`}>
@@ -840,31 +841,83 @@ function BacktestChart({ series, hover, setHover }) {
             </text>
           </g>
         ))}
-        {/* x-axis labels */}
-        {labelIdxs.map((i) => (
-          <text
-            key={`x${i}`}
-            x={xOf(i)}
-            y={H - PAD.b + 18}
-            textAnchor="middle"
-            className="at-bkchart-tick"
-          >
-            {norm[i]?.date?.slice(0, 4) || ''}
-          </text>
-        ))}
+        {/* Plot frame — light border so the plot area reads as one box,
+            separate from the rails below. */}
+        <rect
+          x={PAD.l}
+          y={PAD.t}
+          width={innerW}
+          height={innerH}
+          fill="none"
+          stroke="var(--mt-line-1)"
+          strokeWidth="1"
+          opacity="0.7"
+        />
         {/* Lines */}
         <path d={path('spy')} fill="none" stroke="var(--mt-ink-2)" strokeWidth="1.4" opacity="0.85" />
         <path d={path('reg')} fill="none" stroke="var(--mt-warn)" strokeWidth="1.4" opacity="0.85" />
         <path d={path('at')}  fill="none" stroke="var(--mt-accent)" strokeWidth="1.8" />
-        {/* Hover crosshair */}
+        {/* Hover crosshair — extends from top of plot area down through both rails so the user can see what regime applied at any date. */}
         {hx != null && (
           <g pointerEvents="none">
-            <line x1={hx} x2={hx} y1={PAD.t} y2={PAD.t + innerH} stroke="var(--mt-line-1)" strokeWidth="1" />
+            <line x1={hx} x2={hx} y1={PAD.t} y2={yieldY + RAIL_H} stroke="var(--mt-ink-2)" strokeWidth="1" opacity="0.55" strokeDasharray="3 3" />
             <circle cx={hx} cy={yOf(hi.at)}  r="3.5" fill="var(--mt-accent)" />
             <circle cx={hx} cy={yOf(hi.spy)} r="3"   fill="var(--mt-ink-2)" />
             <circle cx={hx} cy={yOf(hi.reg)} r="3"   fill="var(--mt-warn)" />
           </g>
         )}
+        {/* Year axis labels — their own row, between plot and rails. */}
+        {labelIdxs.map((i) => (
+          <text
+            key={`x${i}`}
+            x={xOf(i)}
+            y={yearY}
+            textAnchor="middle"
+            className="at-bkchart-tick"
+          >
+            {formatXLabel(norm[i]?.date)}
+          </text>
+        ))}
+        {/* Stress signal rail — labeled, lives OUTSIDE the plot area. */}
+        <text
+          x={PAD.l - 8}
+          y={stressY + RAIL_H * 0.72}
+          textAnchor="end"
+          className="at-bkchart-railLabel"
+        >
+          Stress signal
+        </text>
+        {bands.map((b, i) => (
+          <rect
+            key={`s${i}`}
+            x={xOf(b.start)}
+            y={stressY}
+            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
+            height={RAIL_H}
+            fill={stressFill(b.stress)}
+            opacity="0.85"
+          />
+        ))}
+        {/* Yield regime rail — labeled, lives OUTSIDE the plot area. */}
+        <text
+          x={PAD.l - 8}
+          y={yieldY + RAIL_H * 0.72}
+          textAnchor="end"
+          className="at-bkchart-railLabel"
+        >
+          Yield regime
+        </text>
+        {bands.map((b, i) => (
+          <rect
+            key={`y${i}`}
+            x={xOf(b.start)}
+            y={yieldY}
+            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
+            height={RAIL_H}
+            fill={yieldFill(b.yld)}
+            opacity="0.8"
+          />
+        ))}
       </svg>
       <div className="at-bkchart-readout num">
         {hi ? (
