@@ -21,6 +21,7 @@ import {
 
 import './styles/tokens.css';
 import './styles/chrome.css';
+import './styles/pages.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
