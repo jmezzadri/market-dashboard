@@ -1,367 +1,256 @@
+/**
+ * v2 PortfolioPage — wired to real data.
+ *
+ * Drops the mock dataset and uses the production hooks the legacy
+ * Insights tab already uses (useUserPortfolio + scanData + UniverseFreshness).
+ * The PositionsTable, WatchlistTable, BulkImport, and PositionEditor
+ * components are imported from src/components/ — same surface, full
+ * feature parity (sub-composite scores, sortable, CRUD, rescan).
+ */
 import React, { useMemo, useState } from "react";
-import { FreshnessChip, Sparkline, Tip } from "../atoms";
-import ScoreDial from "../components/ScoreDial";
-import { MT_PORTFOLIO_ACCOUNTS, MT_POSITIONS, gen } from "../data/mock";
+import { Tip } from "../atoms";
 
-const PF_COLORS = ["#0a5cd1", "#1f9d60", "#c08428", "#c1394f", "#5c34c9", "#0a8a8a"];
-const CLASS_ALLOC = [
-  { name: "HY Bonds", value: 349000, pct: 68, color: "#0a5cd1" },
-  { name: "Cash", value: 82000, pct: 16, color: "#7a8290" },
-  { name: "Individual Stocks", value: 72000, pct: 14, color: "#3a3f47" },
-  { name: "Index Funds", value: 9000, pct: 2, color: "#0a8a8a" },
-  { name: "Precious Metals", value: 2000, pct: 0.4, color: "#c08428" },
-  { name: "Crypto", value: 2000, pct: 0.4, color: "#5c34c9" },
-];
+import { useSession } from "../../auth/useSession";
+import { useUserPortfolio } from "../../hooks/useUserPortfolio";
+import { useUniverseSnapshot } from "../../hooks/useUniverseSnapshot";
+import useScanData from "../hooks/useScanData";
 
-export default function PortfolioPage({ setPage, openTicker }) {
-  const [drillRow, setDrillRow] = useState("NVDA");
-  const [tab, setTab] = useState("byaccount");
-  const [acctOpen, setAcctOpen] = useState(null);
+import PositionsTable from "../../components/PositionsTable";
+import WatchlistTable from "../../components/WatchlistTable";
+import UniverseFreshness from "../../components/UniverseFreshness";
+import BulkImport from "../../components/BulkImport";
+import PositionEditor from "../../components/PositionEditor";
 
-  const total = MT_PORTFOLIO_ACCOUNTS.reduce((s, a) => s + a.balance, 0);
-  const sectorAlloc = useMemo(() => {
-    const out = {};
-    for (const p of MT_POSITIONS) out[p.sector] = (out[p.sector] || 0) + p.value;
-    return Object.entries(out)
-      .map(([name, v]) => ({ name, value: v, pct: (v / total) * 100 }))
-      .sort((a, b) => b.value - a.value);
-  }, [total]);
+function flattenPositions(accounts) {
+  if (!Array.isArray(accounts)) return [];
+  const out = [];
+  for (const a of accounts) {
+    if (!Array.isArray(a.positions)) continue;
+    for (const p of a.positions) {
+      out.push({ ...p, account: a.label, accountId: a.id, accountColor: a.color });
+    }
+  }
+  return out;
+}
 
-  const pnl = (p) => {
-    const totalCost = p.cost * p.shares;
-    const pl = p.value - totalCost;
-    const plPct = (pl / totalCost) * 100;
-    return { totalCost, pl, plPct };
+function sumGrandTotal(accounts) {
+  let total = 0;
+  for (const a of accounts || []) {
+    for (const p of a.positions || []) {
+      const v = Number(p.value);
+      if (Number.isFinite(v)) total += v;
+    }
+  }
+  return total;
+}
+
+function bucketCandidates(scanData) {
+  // scanData.signals.screener arrives as a dict keyed by ticker symbol, not
+  // a list. Walk the values, not the object itself. (Bug fix from PR #1
+  // first attempt — see LESSONS 2026-05-26.)
+  const screenerObj = scanData?.signals?.screener || {};
+  const rows = Object.values(screenerObj).map((row, i) => {
+    if (row && !row.ticker) {
+      // The dict key is the ticker; preserve it on the row so downstream
+      // tables can render the symbol column.
+      const t = Object.keys(screenerObj)[i];
+      return { ...row, ticker: t };
+    }
+    return row;
+  });
+  const buy = [], near = [];
+  for (const r of rows) {
+    if (!r) continue;
+    const score = Number(r.overall_score ?? r.score ?? 0);
+    if (!Number.isFinite(score)) continue;
+    if (score >= 60) buy.push(r);
+    else if (score >= 40) near.push(r);
+  }
+  buy.sort((a, b) => (b.overall_score || b.score) - (a.overall_score || a.score));
+  near.sort((a, b) => (b.overall_score || b.score) - (a.overall_score || a.score));
+  return { buy, near };
+}
+
+function screenerInfoMaps(scanData) {
+  // Both fields ship from the producer as dicts keyed by ticker symbol —
+  // the same shape the legacy Insights tab consumes. Pass them straight
+  // through. Bug fix from PR #1 first attempt.
+  return {
+    screener: scanData?.signals?.screener || {},
+    info: scanData?.signals?.info || {},
   };
+}
 
-  const account = acctOpen ? MT_PORTFOLIO_ACCOUNTS.find((a) => a.name === acctOpen) : null;
-  const acctPositions = acctOpen ? MT_POSITIONS.filter((p) => p.account === acctOpen) : [];
+export default function PortfolioPage({ openTicker }) {
+  const { session } = useSession();
+  const portfolioAuthed = !!session;
+  const { accounts: ACCOUNTS, watchlist: userWatchlistRows, refetch: refetchPortfolio } = useUserPortfolio();
+  const { data: scanData } = useScanData();
+  const uni = useUniverseSnapshot() || {};
+  const { ts: universeSnapshotTs, pricesTs, eventsTs } = uni;
+
+  const heldPositions = useMemo(() => flattenPositions(ACCOUNTS), [ACCOUNTS]);
+  const grandTotal = useMemo(() => sumGrandTotal(ACCOUNTS), [ACCOUNTS]);
+  const heldTickers = useMemo(
+    () => new Set(heldPositions.map((p) => String(p.ticker || "").toUpperCase())),
+    [heldPositions]
+  );
+  const { buy, near } = useMemo(() => bucketCandidates(scanData), [scanData]);
+  const { screener, info } = useMemo(() => screenerInfoMaps(scanData), [scanData]);
+
+  const [positionEditor, setPositionEditor] = useState(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   return (
     <>
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">
-            Portfolio insights <FreshnessChip state="fresh" asOf="3 min" />
+          <div className="mt-eyebrow" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            Portfolio insights
+            <UniverseFreshness ts={universeSnapshotTs} pricesTs={pricesTs} eventsTs={eventsTs} compact />
           </div>
           <h1 className="mt-h1">
             Your portfolio and watchlist — <i>augmented</i> with MacroTilt's signal intelligence.
           </h1>
           <p className="mt-deck">
-            Time-weighted performance and position-level alerts. The same scoring you see on Trading Scanner
-            applied to every position you hold across six accounts.
+            Time-weighted performance and position-level alerts. The same scoring you see on Trading
+            Scanner applied to every position you hold across {ACCOUNTS?.length || 0} account
+            {ACCOUNTS?.length === 1 ? "" : "s"}.
           </p>
         </div>
         <div className="pf-keystats">
-          <div className="mt-eyebrow">Key stats vs. S&amp;P 500</div>
+          <div className="mt-eyebrow">Snapshot</div>
           <div className="pf-keygrid">
-            <div><div className="mt-eyebrow">Total wealth</div><b className="pf-keynum num">$516<i>K</i></b><span className="num pf-keysub">6 accounts</span></div>
-            <div><div className="mt-eyebrow">TTM performance</div><b className="pf-keynum num up">+79.4<i>%</i></b><span className="num pf-keysub">S&amp;P +34.1%</span></div>
-            <div><div className="mt-eyebrow">Beta</div><b className="pf-keynum num">0.86</b><span className="num pf-keysub">S&amp;P 1.00</span></div>
-            <div><div className="mt-eyebrow">Sharpe</div><b className="pf-keynum num">0.29</b><span className="num pf-keysub">S&amp;P 1.52</span></div>
+            <div>
+              <div className="mt-eyebrow">Total wealth</div>
+              <b className="pf-keynum num">${(grandTotal / 1000).toFixed(0)}<i>K</i></b>
+              <span className="num pf-keysub">{ACCOUNTS?.length || 0} accounts</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Held positions</div>
+              <b className="pf-keynum num">{heldPositions.length}</b>
+              <span className="num pf-keysub">across accounts</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Buy alerts</div>
+              <b className="pf-keynum num up">{buy.length}</b>
+              <span className="num pf-keysub">composite ≥ 60</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Near trigger</div>
+              <b className="pf-keynum num" style={{ color: "var(--mt-warn)" }}>{near.length}</b>
+              <span className="num pf-keysub">40 – 59</span>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {!portfolioAuthed && (
+        <section className="mt-pagesection">
+          <div className="mt-card" style={{ padding: 24 }}>
+            <div className="mt-eyebrow" style={{ marginBottom: 6 }}>Sign in required</div>
+            <p style={{ margin: 0, color: "var(--mt-ink-1)", fontSize: 14 }}>
+              Sign in on the current site to load your portfolio. Once you have, this page reads
+              the same accounts &amp; watchlist live from Supabase — no separate login required.
+            </p>
+          </div>
+        </section>
+      )}
+
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div>
+            <div className="mt-eyebrow">Trading opportunities</div>
+            <div className="mt-h2">Buy alerts &amp; near-trigger candidates from today's scan.</div>
+          </div>
+          <UniverseFreshness ts={universeSnapshotTs} pricesTs={pricesTs} eventsTs={eventsTs} />
+        </div>
+        <div className="mt-card" style={{ padding: 0, marginBottom: 14 }}>
+          <WatchlistTable
+            rows={buy}
+            signals={scanData?.signals}
+            screener={screener}
+            info={info}
+            heldTickers={heldTickers}
+            onOpenTicker={openTicker}
+            emptyMessage="No buy alerts in the latest scan."
+            tableKey="v2_pf_buy"
+          />
+        </div>
+        <div className="mt-card" style={{ padding: 0 }}>
+          <WatchlistTable
+            rows={near}
+            signals={scanData?.signals}
+            screener={screener}
+            info={info}
+            heldTickers={heldTickers}
+            onOpenTicker={openTicker}
+            emptyMessage="No near-trigger candidates in the latest scan."
+            tableKey="v2_pf_near"
+          />
         </div>
       </section>
 
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">By account</div>
-            <div className="mt-h2">Six accounts · trailing 12 months · click to drill</div>
+            <div className="mt-eyebrow">Positions</div>
+            <div className="mt-h2">Engine signal on every position you hold.</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="mt-btn">Upload CSV (Chase / Fidelity / Schwab)</button>
-            <Tip content="Coming soon — wire a brokerage account directly via Plaid.">
+            {portfolioAuthed && (
+              <button className="mt-btn" onClick={() => setPositionEditor({ mode: "add" })}>+ Add position</button>
+            )}
+            {portfolioAuthed && (
+              <button className="mt-btn" onClick={() => setShowBulkImport(true)}>Upload CSV</button>
+            )}
+            <Tip content="Coming soon — wire a brokerage directly via Plaid.">
               <button className="mt-btn" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
-                Connect brokerage via Plaid
+                Connect via Plaid
               </button>
             </Tip>
           </div>
         </div>
-        <div className="pf-acctgrid">
-          {MT_PORTFOLIO_ACCOUNTS.map((a) => (
-            <button
-              key={a.name}
-              className={`mt-card pf-acctcard ${acctOpen === a.name ? "on" : ""}`}
-              onClick={() => setAcctOpen(acctOpen === a.name ? null : a.name)}
-            >
-              <div className="pf-accthead">
-                <span className="pf-acctname">
-                  <span className="pf-acctdot" style={{ background: a.color }} />
-                  {a.name}
-                </span>
-                <span className="num pf-acctshare">{a.share.toFixed(1)}<i>% of book</i></span>
-              </div>
-              <div className="pf-acctbal num">${(a.balance / 1000).toFixed(0)}K</div>
-              <Sparkline
-                data={gen(60, 100, 8, a.ttm / 40, `acct-${a.name}`)}
-                width={260}
-                height={28}
-                stroke={a.ttm >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                fill={a.ttm >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                area
-                showDot={false}
-              />
-              <div className="pf-acctkv">
-                <div><div className="mt-eyebrow">TTM</div><b className={`num ${a.ttm >= 0 ? "up" : "down"}`}>{a.ttm > 0 ? "+" : ""}{a.ttm.toFixed(2)}%</b></div>
-                <div><div className="mt-eyebrow">Sharpe</div><b className="num">{a.sharpe > 0 ? "+" : ""}{a.sharpe.toFixed(2)}</b></div>
-                <div><div className="mt-eyebrow">Positions</div><b className="num">{a.positions}</b></div>
-              </div>
-              <div className="pf-acctfoot">
-                <span>{acctOpen === a.name ? "▾ Hide" : "▸ Open"}</span>
-              </div>
-            </button>
-          ))}
+        <div className="mt-card" style={{ padding: 0 }}>
+          <PositionsTable
+            rows={heldPositions}
+            grandTotal={grandTotal}
+            screener={screener}
+            info={info}
+            onOpenTicker={openTicker}
+            emptyMessage={portfolioAuthed
+              ? "No positions yet. Add one or upload a CSV to get started."
+              : "Sign in to load your positions."}
+            onAdd={portfolioAuthed ? () => setPositionEditor({ mode: "add" }) : undefined}
+            onBulkImport={portfolioAuthed ? () => setShowBulkImport(true) : undefined}
+            onEdit={portfolioAuthed ? (existing) => setPositionEditor({ mode: "edit", existing }) : undefined}
+            pricesTs={pricesTs}
+            eventsTs={eventsTs}
+            footnoteSource="Unusual Whales · Yahoo Finance"
+            tableKey="v2_pf_positions"
+          />
         </div>
-
-        {account && (
-          <article className="mt-card pf-acctdrill mt-fade">
-            <div className="pf-acctdrillhead">
-              <div>
-                <div className="mt-eyebrow">
-                  <span className="pf-acctdot" style={{ background: account.color, marginRight: 6 }} />
-                  {account.type.toUpperCase()}
-                </div>
-                <div className="mt-h2">{account.name}</div>
-                <div style={{ fontSize: 13, color: "var(--mt-ink-2)", marginTop: 4 }}>
-                  <b className="num" style={{ color: "var(--mt-ink-0)" }}>${(account.balance / 1000).toFixed(0)}K</b>
-                  {" "}· {account.positions} positions ·{" "}
-                  <Tip content="Trailing 12 months, time-weighted, before tax.">
-                    <span className={account.ttm >= 0 ? "up" : "down"}>
-                      {account.ttm > 0 ? "+" : ""}{account.ttm.toFixed(1)}% TTM
-                    </span>
-                  </Tip>
-                </div>
-              </div>
-              <button className="mt-btn" onClick={() => setAcctOpen(null)}>✕ Close</button>
-            </div>
-
-            <div className="pf-acctdrillgrid">
-              <div className="pf-acctcol">
-                <div className="mt-eyebrow">Performance · 12 months</div>
-                <Sparkline
-                  data={gen(252, 100, 12, account.ttm / 30, `acct-perf-${account.name}`)}
-                  width={520}
-                  height={140}
-                  stroke={account.ttm >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                  fill={account.ttm >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                  area
-                />
-                <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: 12, color: "var(--mt-ink-2)" }}>
-                  <span><b className="num" style={{ color: "var(--mt-ink-0)" }}>{account.sharpe.toFixed(2)}</b> sharpe</span>
-                  <span><b className="num" style={{ color: "var(--mt-ink-0)" }}>0.92</b> beta</span>
-                  <span><b className="num down">−18.4%</b> max DD</span>
-                </div>
-              </div>
-              <div className="pf-acctcol">
-                <div className="mt-eyebrow">Positions in this account</div>
-                <table className="pf-mini">
-                  <thead><tr><th>Ticker</th><th className="num">Score</th><th className="num">Value</th><th className="num">P/L</th></tr></thead>
-                  <tbody>
-                    {acctPositions.map((p) => {
-                      const { pl, plPct } = pnl(p);
-                      return (
-                        <tr key={p.ticker}>
-                          <td>
-                            <span
-                              className="lm-tkmain lm-tkmain--link"
-                              onClick={() => openTicker?.(p.ticker)}
-                              style={{ fontSize: 14 }}
-                            >
-                              {p.ticker}
-                            </span>
-                          </td>
-                          <td className="num"><b>{p.score.toFixed(1)}</b></td>
-                          <td className="num">${(p.value / 1000).toFixed(1)}K</td>
-                          <td className={`num ${pl >= 0 ? "up" : "down"}`}>
-                            {pl > 0 ? "+" : ""}${(pl / 1000).toFixed(1)}K · {plPct > 0 ? "+" : ""}{plPct.toFixed(1)}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </article>
-        )}
       </section>
 
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">Allocation</div>
-            <div className="mt-h2">Where the money lives.</div>
-          </div>
-          <div className="mt-pillgroup">
-            <button className={`mt-pill ${tab === "byaccount" ? "on" : ""}`} onClick={() => setTab("byaccount")}>By account</button>
-            <button className={`mt-pill ${tab === "bysector" ? "on" : ""}`} onClick={() => setTab("bysector")}>By sector</button>
-            <button className={`mt-pill ${tab === "byclass" ? "on" : ""}`} onClick={() => setTab("byclass")}>By asset class</button>
-          </div>
-        </div>
-        <article className="mt-card">
-          <div className="pf-allocrows">
-            {(tab === "bysector"
-              ? sectorAlloc
-              : tab === "byclass"
-              ? CLASS_ALLOC
-              : MT_PORTFOLIO_ACCOUNTS.map((a) => ({
-                  name: a.name,
-                  value: a.balance,
-                  pct: a.share,
-                  color: a.color,
-                }))
-            ).map((r, i) => (
-              <div key={r.name} className="pf-allocrow">
-                <span
-                  className="pf-alloccolor"
-                  style={{ background: r.color || PF_COLORS[i % PF_COLORS.length] }}
-                />
-                <span className="pf-allocname">{r.name}</span>
-                <span className="pf-allocbar">
-                  <span
-                    style={{
-                      width: `${Math.min(100, r.pct)}%`,
-                      background: r.color || PF_COLORS[i % PF_COLORS.length],
-                    }}
-                  />
-                </span>
-                <span className="num pf-allocval">${(r.value / 1000).toFixed(0)}K</span>
-                <span className="num pf-allocpct">{r.pct.toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
+      {positionEditor && portfolioAuthed && (
+        <PositionEditor
+          mode={positionEditor.mode}
+          existing={positionEditor.existing}
+          accounts={(ACCOUNTS || []).map((a) => ({ id: a.id, label: a.label }))}
+          userId={session?.user?.id}
+          onClose={() => setPositionEditor(null)}
+          onSaved={async () => { await refetchPortfolio?.(); setPositionEditor(null); }}
+          onDeleted={async () => { await refetchPortfolio?.(); setPositionEditor(null); }}
+        />
+      )}
 
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">Positions · MacroTilt score</div>
-            <div className="mt-h2">Engine signal on every position — with value, cost &amp; P&amp;L.</div>
-          </div>
-          <div className="mt-pillgroup">
-            <button className="mt-pill on">All</button>
-            <button className="mt-pill">Alerts <span className="sc-colcount num">3</span></button>
-            <button className="mt-pill">Buys <span className="sc-colcount num">5</span></button>
-            <button className="mt-pill">Trims <span className="sc-colcount num">2</span></button>
-          </div>
-        </div>
-        <ul className="lm-scanlist">
-          {MT_POSITIONS.map((p) => {
-            const { pl, plPct, totalCost } = pnl(p);
-            return (
-              <li key={p.ticker} className={`lm-scancard ${drillRow === p.ticker ? "open" : ""}`}>
-                <button
-                  className="lm-scanrow pf-posrow"
-                  onClick={() => setDrillRow(drillRow === p.ticker ? null : p.ticker)}
-                >
-                  <div className="lm-tk">
-                    <span
-                      className="lm-tkmain lm-tkmain--link"
-                      onClick={(e) => { e.stopPropagation(); openTicker?.(p.ticker); }}
-                    >
-                      {p.ticker}
-                    </span>
-                    <div className="lm-tksub">{p.account} · {p.sector}</div>
-                  </div>
-                  <div>
-                    <span
-                      className={`lm-sigpill ${p.sig === "trim" ? "lm-sigpill--short" : ""}`}
-                      style={p.sig === "hold" ? { background: "var(--mt-surface-3)", color: "var(--mt-ink-1)" } : {}}
-                    >
-                      {p.sig.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="lm-tkscore"><ScoreDial score={p.score} /></div>
-                  <div className="num pf-valblock">
-                    <div className="lm-tkpx">${(p.value / 1000).toFixed(1)}K</div>
-                    <div style={{ fontSize: 11, color: "var(--mt-ink-2)" }}>
-                      {p.shares} sh @ ${p.price.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="num pf-plblock">
-                    <div className={`pf-plval ${pl >= 0 ? "up" : "down"}`}>
-                      {pl > 0 ? "+" : ""}${(pl / 1000).toFixed(1)}K
-                    </div>
-                    <div className={`pf-plpct ${plPct >= 0 ? "up" : "down"}`}>
-                      {plPct > 0 ? "+" : ""}{plPct.toFixed(1)}%
-                    </div>
-                  </div>
-                  <div
-                    className={`lm-tkchg num ${p.chg >= 0 ? "up" : "down"}`}
-                    style={{ textAlign: "right" }}
-                  >
-                    <div>${p.price.toFixed(2)}</div>
-                    <div style={{ fontSize: 11 }}>{p.chg > 0 ? "+" : ""}{p.chg.toFixed(2)}%</div>
-                  </div>
-                  <Sparkline
-                    data={gen(30, p.price, p.price * 0.07, 0, `pos-${p.ticker}`)}
-                    width={80}
-                    height={28}
-                    stroke={p.chg >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                    fill={p.chg >= 0 ? "var(--mt-up)" : "var(--mt-down)"}
-                    area
-                  />
-                  <div className="lm-tkchev">{drillRow === p.ticker ? "▾" : "▸"}</div>
-                </button>
-                {drillRow === p.ticker && (
-                  <div className="lm-drill mt-fade">
-                    <div className="lm-drillcol">
-                      <div className="mt-eyebrow">Signal vs. last review</div>
-                      <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55 }}>
-                        Engine sees <b>{p.ticker}</b> as a{" "}
-                        <b>{p.sig === "trim" ? "trim" : p.sig === "buy" ? "buy" : "hold"}</b>{" "}
-                        ({p.score.toFixed(1)}/10).{" "}
-                        {p.sig === "trim"
-                          ? "Score has degraded over the last 14 days on insider distribution + technical weakness — engine recommends reducing exposure by 1/3."
-                          : p.sig === "buy"
-                          ? "Score has improved over the last 14 days on strong insider buying and options sweeps — engine flags as add candidate."
-                          : "Score is range-bound; hold without action."}
-                      </p>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 12 }}>
-                        <div><div className="mt-eyebrow">Cost basis</div><b className="num" style={{ fontFamily: "var(--mt-font-display)", fontSize: 17 }}>${(totalCost / 1000).toFixed(1)}K</b></div>
-                        <div><div className="mt-eyebrow">Mkt value</div><b className="num" style={{ fontFamily: "var(--mt-font-display)", fontSize: 17 }}>${(p.value / 1000).toFixed(1)}K</b></div>
-                        <div><div className="mt-eyebrow">Total P/L</div><b className={`num ${pl >= 0 ? "up" : "down"}`} style={{ fontFamily: "var(--mt-font-display)", fontSize: 17 }}>{pl > 0 ? "+" : ""}${(pl / 1000).toFixed(1)}K</b></div>
-                      </div>
-                      <div className="lm-drillctas">
-                        <button className="mt-btn mt-btn--primary" onClick={() => openTicker?.(p.ticker)}>
-                          Open ticker detail →
-                        </button>
-                        <button className="mt-btn">Set alert</button>
-                        <button className="mt-btn">Adjust position</button>
-                      </div>
-                    </div>
-                    <div className="lm-drillcol">
-                      <div className="mt-eyebrow">Score composition · {p.ticker}</div>
-                      <div className="lm-drilllayers">
-                        {[
-                          ["Technicals", 0.6],
-                          ["Insider", 0.7],
-                          ["Options", 0.55],
-                          ["Analyst", 0.65],
-                        ].map(([k, v]) => (
-                          <div key={k} className="lm-drilllayer">
-                            <div className="lm-drilllayertop">
-                              <span className="lm-drilllayerk">{k}</span>
-                              <span className="num lm-drilllayerv">
-                                {(v * 5).toFixed(1)}<i>/5</i>
-                              </span>
-                            </div>
-                            <div className="lm-drilllayerbar">
-                              <b style={{ width: `${v * 100}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {showBulkImport && portfolioAuthed && (
+        <BulkImport
+          userId={session?.user?.id}
+          onClose={() => setShowBulkImport(false)}
+          onDone={async () => { await refetchPortfolio?.(); setShowBulkImport(false); }}
+        />
+      )}
     </>
   );
 }
