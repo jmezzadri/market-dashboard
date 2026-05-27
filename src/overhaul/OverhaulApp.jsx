@@ -9,7 +9,19 @@
 
    Activated by appending ?v=3 to any URL in the live app (legacy gate
    lives in src/App.jsx). When the overhaul is feature-complete, the
-   default render will flip to this shell. */
+   default render will flip to this shell.
+
+   2026-05-27 (Joe): the /admin/data and /admin/bugs routes used to
+   render a placeholder Stub saying "operational, not redesigned." That
+   made both pages look blank in the new shell. Wire them through to the
+   real AdminDataHealth and AdminBugs surfaces (legacy components, but
+   they read the same CSS tokens — text/surface/border/accent — that the
+   overhaul tokens.css defines, so they render in-brand without
+   restyling). Wrapped each in <div className="mt-pagebody mt-fade"> so
+   the page-level fade-in + horizontal padding match the rest of the
+   shell. The legacy components use their own <main> wrapper; that's OK
+   inside the overhaul shell because the outer <main className="mt-main">
+   is the chrome container, not a content slot. */
 
 import React from 'react';
 import {
@@ -47,7 +59,11 @@ import ScenariosPage from './pages/ScenariosPage';
 import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
-import Stub from './pages/_Stub';
+
+// Real admin surfaces (legacy components, mounted into the overhaul
+// shell so the sidebar links don't open a placeholder card).
+import AdminBugs from '../AdminBugs';
+import AdminDataHealth from '../AdminDataHealth';
 
 function Shell() {
   return (
@@ -70,23 +86,17 @@ function Shell() {
             <Route
               path="/admin/data"
               element={
-                <Stub
-                  eyebrow="Admin · Data"
-                  title={{ before: 'Operational, ', after: '.' }}
-                  accent="not redesigned"
-                  deck="Admin views are operational tools, linked in the sidebar so the navigation matches the live site — they are not part of the redesign scope."
-                />
+                <div className="mt-pagebody mt-fade">
+                  <AdminDataHealth />
+                </div>
               }
             />
             <Route
               path="/admin/bugs"
               element={
-                <Stub
-                  eyebrow="Admin · Bugs"
-                  title={{ before: 'Operational, ', after: '.' }}
-                  accent="not redesigned"
-                  deck="The bug-report tooling stays in the legacy admin shell for now."
-                />
+                <div className="mt-pagebody mt-fade">
+                  <AdminBugs />
+                </div>
               }
             />
             <Route path="*" element={<Navigate to="/" replace />} />
