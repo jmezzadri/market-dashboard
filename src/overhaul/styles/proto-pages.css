@@ -277,28 +277,55 @@
   display: grid; grid-template-columns: repeat(24, 1fr); gap: 4px;
   margin-bottom: 14px;
 }
+/* 2026-05-27 — Joe directive: regime history cells now show two clearly
+   distinct color bands per cell. Top half = stress signal (green / amber
+   / red), bottom half = yield regime (blue / gray / orange). Previously
+   the two were a pale background + a 3px bottom border, which looked
+   uniformly grey at a glance. */
 .mt-overhaul .at-regcell {
   width: 100%;
-  height: 36px; border-radius: 4px; cursor: help;
-  background: var(--mt-surface-3);
+  height: 44px; border-radius: 4px; cursor: help;
+  background: linear-gradient(to bottom, var(--reg-top, var(--mt-surface-3)) 50%, var(--reg-bot, var(--mt-surface-3)) 50%);
   transition: transform 120ms;
+  --reg-top: var(--mt-surface-3);
+  --reg-bot: var(--mt-surface-3);
 }
 .mt-overhaul .at-regcell:hover { transform: translateY(-2px); }
-.mt-overhaul .at-regcell--infl    { background: color-mix(in oklab, var(--mt-warn) 30%, var(--mt-surface)); }
-.mt-overhaul .at-regcell--neutral { background: color-mix(in oklab, var(--mt-ink-2) 18%, var(--mt-surface)); }
-.mt-overhaul .at-regcell--defl    { background: color-mix(in oklab, var(--mt-up) 18%, var(--mt-surface)); }
-.mt-overhaul .at-regcell--on      { box-shadow: inset 0 -3px 0 var(--mt-up); }
-.mt-overhaul .at-regcell--watch   { box-shadow: inset 0 -3px 0 var(--mt-warn); }
-.mt-overhaul .at-regcell--off     { box-shadow: inset 0 -3px 0 var(--mt-down); }
+.mt-overhaul .at-regcell--skel { background: var(--mt-surface-3); }
+/* Stress signal — top half */
+.mt-overhaul .at-regcell--on    { --reg-top: var(--mt-up); }
+.mt-overhaul .at-regcell--watch { --reg-top: var(--mt-warn); }
+.mt-overhaul .at-regcell--off   { --reg-top: var(--mt-down); }
+/* Yield regime — bottom half. Distinct from the stress palette so the
+   user can read the two dimensions independently. */
+.mt-overhaul .at-regcell--defl    { --reg-bot: #5e8aa8; }
+.mt-overhaul .at-regcell--neutral { --reg-bot: #94999f; }
+.mt-overhaul .at-regcell--infl    { --reg-bot: #d68a3a; }
 
 .mt-overhaul .at-regfoot { display: flex; gap: 14px; font-size: 11.5px; color: var(--mt-ink-2); align-items: center; flex-wrap: wrap; }
 .mt-overhaul .at-regdot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 .mt-overhaul .at-regdot--on { background: var(--mt-up); }
 .mt-overhaul .at-regdot--watch { background: var(--mt-warn); }
 .mt-overhaul .at-regdot--off { background: var(--mt-down); }
-.mt-overhaul .at-regdot--neutral { background: color-mix(in oklab, var(--mt-ink-2) 30%, var(--mt-surface)); }
-.mt-overhaul .at-regdot--infl    { background: color-mix(in oklab, var(--mt-warn) 60%, var(--mt-surface)); }
-.mt-overhaul .at-regdot--defl    { background: color-mix(in oklab, var(--mt-up) 60%, var(--mt-surface)); }
+.mt-overhaul .at-regdot--defl    { background: #5e8aa8; }
+.mt-overhaul .at-regdot--neutral { background: #94999f; }
+.mt-overhaul .at-regdot--infl    { background: #d68a3a; }
+
+/* Regime tag — small one-liner under the hero (replaces the long
+   "Bond-market volatility (MOVE) and the 3-month change in 10y yield..."
+   prose paragraph Joe flagged as repetitive nonsense). */
+.mt-overhaul .at-regimetag {
+  margin-top: 14px; font-size: 14px; color: var(--mt-ink-1);
+  font-family: var(--mt-font-ui);
+}
+.mt-overhaul .at-regimetag i { font-style: italic; color: var(--mt-warn); }
+
+/* Gauge history head — eyebrow on the left, timeframe pills on the right. */
+.mt-overhaul .at-gauge-histhead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 14px; margin-bottom: 6px;
+}
+.mt-overhaul .at-rangepills .mt-pill { font-size: 10.5px; padding: 4px 8px; }
 
 .mt-overhaul /* ─── Scanner ──────────────────────────────────────────────────────── */
 .sc-results {

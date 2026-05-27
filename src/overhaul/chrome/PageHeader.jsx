@@ -39,13 +39,17 @@ export default function PageHeader() {
   const ms = nyseMarketState();
   const today = formatToday();
 
+  /* 2026-05-27 — Joe directive: keep only Light and Dark Navy; drop the
+     pure-black 'dark' variant from the cycle. If a user has 'dark' saved
+     in localStorage from a prior session, treat it as navy. */
   const cycleTheme = () => {
-    const order = ['light', 'dark', 'navy'];
-    const next = order[(order.indexOf(tweaks.theme) + 1) % order.length];
+    const order = ['light', 'navy'];
+    const current = tweaks.theme === 'dark' ? 'navy' : tweaks.theme;
+    const next = order[(order.indexOf(current) + 1) % order.length];
     setTweak('theme', next);
   };
 
-  const themeGlyph = tweaks.theme === 'light' ? '☾' : tweaks.theme === 'dark' ? '✱' : '☀';
+  const themeGlyph = tweaks.theme === 'light' ? '☾' : '☀';
 
   return (
     <header className="mt-header">

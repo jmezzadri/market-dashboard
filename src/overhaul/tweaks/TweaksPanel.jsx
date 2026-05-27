@@ -7,10 +7,11 @@ import React from 'react';
 import { useTweaks } from './TweaksContext';
 
 const OPTIONS = {
+  // 2026-05-27 — Joe directive: keep only Light + Dark Navy. The 'dark'
+  // (pure-black) variant is retired from the picker.
   theme: [
     ['light', 'Light · paper'],
-    ['dark', 'Dark · cool gray'],
-    ['navy', 'Navy · Copilot-inspired'],
+    ['navy',  'Dark Navy'],
   ],
   accent: [
     ['blue', 'Blue'],

@@ -127,23 +127,40 @@ export default function TiltPage() {
     setExpandedIGs(n);
   };
 
-  /* Real 24-week history from the engine backtest weekly series.
-     Fallbacks to an empty array — Sparkline + regime strip degrade
-     gracefully (chip turns red via the backtest manifest entry). */
+  /* 2026-05-27 — history-range selector. Joe asked for more than 24 weeks
+     and we have 2056 weekly points (~40 years) in the engine backtest.
+     The user picks the window from the pill group inside each gauge card.
+     Default 24W to stay zoomed-in on the current regime. */
+  const [histRange, setHistRange] = useState('24w');
+  const HIST_WINDOWS = [
+    { key: '24w', label: '24W', weeks: 24 },
+    { key: '1y',  label: '1Y',  weeks: 52 },
+    { key: '5y',  label: '5Y',  weeks: 260 },
+    { key: 'max', label: 'Max', weeks: null }, // null = all available
+  ];
+
+  /* Real 24-week history (still used by the Regime History strip — cells
+     need readable width so that stays at 24 cells). */
   const weeklyTail24 = useMemo(() => {
     const w = backtest?.weekly;
     if (!Array.isArray(w)) return [];
     return w.slice(-24);
   }, [backtest]);
 
-  const stressHist = useMemo(() => weeklyTail24.map((w) => w.move).filter(Number.isFinite), [weeklyTail24]);
-  const yieldHist  = useMemo(() => weeklyTail24.map((w) => w.delta_y_3m_bp).filter(Number.isFinite), [weeklyTail24]);
-  /* Parallel arrays of dates so the hover handlers can look up the trading
-     week the user is pointing at. weeklyTail24 carries the canonical week
-     date; the histograms above filter out NaN values which would desync
-     the indices, so we re-derive from the SAME filtered set. */
-  const stressDates = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.move)).map((w) => w.date), [weeklyTail24]);
-  const yieldDates  = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.delta_y_3m_bp)).map((w) => w.date), [weeklyTail24]);
+  /* Sparkline windows — slice the weekly series to the selected range.
+     Empty array degrades gracefully via the "pending wire" placeholder. */
+  const weeklyHistRange = useMemo(() => {
+    const w = backtest?.weekly;
+    if (!Array.isArray(w)) return [];
+    const cfg = HIST_WINDOWS.find((c) => c.key === histRange) ?? HIST_WINDOWS[0];
+    return cfg.weeks ? w.slice(-cfg.weeks) : w;
+  }, [backtest, histRange]);
+
+  const stressHist = useMemo(() => weeklyHistRange.map((w) => w.move).filter(Number.isFinite), [weeklyHistRange]);
+  const yieldHist  = useMemo(() => weeklyHistRange.map((w) => w.delta_y_3m_bp).filter(Number.isFinite), [weeklyHistRange]);
+  const stressDates = useMemo(() => weeklyHistRange.filter((w) => Number.isFinite(w.move)).map((w) => w.date), [weeklyHistRange]);
+  const yieldDates  = useMemo(() => weeklyHistRange.filter((w) => Number.isFinite(w.delta_y_3m_bp)).map((w) => w.date), [weeklyHistRange]);
+  const totalWeeks = backtest?.weekly?.length ?? 0;
 
   /* Defensive sleeve weights as a portion of the TOTAL portfolio, expressed
      as a percentage (0–100). Used to render the 4-bar allocation
@@ -184,17 +201,9 @@ export default function TiltPage() {
               <span className="at-headalloc--dim"><span className="num">{fmtPercent(defPct, 0)}</span><i>% defensive</i></span>
             </span>
           </h1>
-          <p className="mt-deck">
-            <b>
-              {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime.
-            </b>{' '}
-            Bond-market volatility (MOVE) and the 3-month change in 10y yield set the regime and equity
-            exposure. Sector tilts within the equity bucket key off six factor reads. Defensive sleeve
-            fires only when stress crosses Watch.{' '}
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#tilt'); }}>
-              Read the full methodology →
-            </a>
-          </p>
+          <div className="at-regimetag">
+            {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime
+          </div>
         </div>
         <div className="at-keystats at-keystats--compact">
           <div className="mt-eyebrow">Backtest · {validatedRange}</div>
@@ -271,11 +280,25 @@ export default function TiltPage() {
                   : regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}
               </span>
             </div>
-            <div className="mt-eyebrow at-gauge-eyebrow">
-              24-week history{' '}
-              {stressHist.length === 0 && (
-                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
-              )}
+            <div className="at-gauge-histhead">
+              <div className="mt-eyebrow at-gauge-eyebrow">
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {stressHist.length === 0 && (
+                  <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+                )}
+              </div>
+              <div className="mt-pillgroup at-rangepills">
+                {HIST_WINDOWS.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className={`mt-pill ${histRange === c.key ? 'on' : ''}`}
+                    onClick={() => setHistRange(c.key)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
             {stressHist.length > 0 ? (
               <Sparkline
@@ -293,7 +316,10 @@ export default function TiltPage() {
             ) : (
               <div className="at-spark-placeholder">MOVE history pending wire</div>
             )}
-            <div className="at-gaugemini num"><span>24W</span><span>NOW</span></div>
+            <div className="at-gaugemini num">
+              <span>{HIST_WINDOWS.find((c) => c.key === histRange)?.label === 'Max' ? `${totalWeeks}W` : (HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W')}</span>
+              <span>NOW</span>
+            </div>
           </article>
 
           {/* Yield regime · 3M Δ 10y */}
@@ -333,11 +359,25 @@ export default function TiltPage() {
                   : regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}
               </span>
             </div>
-            <div className="mt-eyebrow at-gauge-eyebrow">
-              24-week history{' '}
-              {yieldHist.length === 0 && (
-                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
-              )}
+            <div className="at-gauge-histhead">
+              <div className="mt-eyebrow at-gauge-eyebrow">
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {yieldHist.length === 0 && (
+                  <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+                )}
+              </div>
+              <div className="mt-pillgroup at-rangepills">
+                {HIST_WINDOWS.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className={`mt-pill ${histRange === c.key ? 'on' : ''}`}
+                    onClick={() => setHistRange(c.key)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
             {yieldHist.length > 0 ? (
               <Sparkline
@@ -355,7 +395,10 @@ export default function TiltPage() {
             ) : (
               <div className="at-spark-placeholder">Yield history pending wire</div>
             )}
-            <div className="at-gaugemini num"><span>24W</span><span>NOW</span></div>
+            <div className="at-gaugemini num">
+              <span>{HIST_WINDOWS.find((c) => c.key === histRange)?.label === 'Max' ? `${totalWeeks}W` : (HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W')}</span>
+              <span>NOW</span>
+            </div>
           </article>
 
           {/* Stance card — four-bar allocation visualization.
