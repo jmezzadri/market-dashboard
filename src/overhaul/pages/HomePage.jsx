@@ -33,7 +33,7 @@ import useIndicators from '../lib/useIndicators';
 import useAllocation from '../lib/useAllocation';
 import useEngineRegime from '../lib/useEngineRegime';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import useUserPortfolio from '../../hooks/useUserPortfolio';
+import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 
 function fmtPercent(v, digits = 0) {
   if (v == null || !Number.isFinite(v)) return '—';

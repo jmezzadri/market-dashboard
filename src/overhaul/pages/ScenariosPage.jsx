@@ -32,7 +32,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import FreshnessChip from '../components/FreshnessChip';
 import useAllocation from '../lib/useAllocation';
-import useUserPortfolio from '../../hooks/useUserPortfolio';
+import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 
 /* Map scenario_definitions.id → drawdown.name in macrotilt_engine_backtest.json.
    When the engine backtest doesn't cover a scenario window (e.g., the AI 2024
