@@ -409,6 +409,17 @@
   background: var(--mt-accent); border: 2px solid var(--mt-surface); box-shadow: 0 2px 8px var(--mt-accent-glow);
 }
 .mt-overhaul .sn-sliderval { font-family: var(--mt-font-display); font-size: 20px; text-align: right; font-weight: 400; }
+/* 2026-05-27 — CCAR 12-factor port. Each slider shows sigma above + nominal
+   value below, stacked right-aligned inside the 80px column. */
+.mt-overhaul .sn-sliderval--stacked { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; line-height: 1.1; }
+.mt-overhaul .sn-sigma { font-family: var(--mt-font-display); font-size: 16px; font-weight: 500; }
+.mt-overhaul .sn-nominal { font-size: 11px; color: var(--mt-ink-2); font-family: var(--mt-font-ui); }
+/* Sector code badge used in the per-sector stress list (Asset Tilt engine
+   response card). Compact monospace tag adjacent to the sector name. */
+.mt-overhaul .sn-sectorcode {
+  font-family: var(--mt-font-ui); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--mt-ink-2); text-transform: uppercase;
+}
 
 .mt-overhaul .sn-headercard { display: flex; flex-direction: column; gap: 14px; }
 .mt-overhaul .sn-headertop { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
