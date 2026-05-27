@@ -41,7 +41,7 @@ function saveView(v) {
 }
 
 export default function MacroPage() {
-  const { indicators, loading } = useIndicators();
+  const { active: indicators, loading } = useIndicators();
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');

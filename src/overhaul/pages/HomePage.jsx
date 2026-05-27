@@ -1,6 +1,16 @@
 /* Home page — editorial hero · two-column today's read · 3 feature cards.
    Composes RegimeCanvas + Engine call card + finished components.
-   Site-overhaul PR-O10. */
+   Site-overhaul PR-O10, fixed in PR-O12.
+
+   2026-05-27 fixes:
+   - Use `active` (non-deprecated) indicator set everywhere on this page so
+     the deck count and the stat tile count come from the SAME source and
+     can never disagree.
+   - Replace the bogus "Stress Signal 300" (stress_score is a 0-5-ish
+     value, not 0-1; multiplying by 100 was wrong) with the engine's
+     canonical page_stance label.
+   - Rebalance the Engine Call card so the right column doesn't end with a
+     wall of white space below the sector bars. */
 
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +25,7 @@ const FEATURE_CARDS = [
     to: '/scanner',
     eyebrow: 'Trading scanner',
     title: 'High-conviction names',
-    deck: 'Long signals across the screener universe, scored 0–5 on a published weighted sum across six components.',
+    deck: 'Long signals across the screener universe, scored on a published weighted sum across five components.',
   },
   {
     n: '02',
@@ -43,19 +53,26 @@ const HEADLINES = [
 ];
 
 export default function HomePage() {
-  const { indicators } = useIndicators();
+  const { active } = useIndicators();
   const { allocation } = useAllocation();
   const navigate = useNavigate();
 
+  // Single source of truth — every count on this page derives from this object.
   const stats = useMemo(() => ({
-    extreme: indicators.filter((i) => i.state === 'extreme').length,
-    elevated: indicators.filter((i) => i.state === 'elevated').length,
-    calm: indicators.filter((i) => i.state === 'calm').length,
-    total: indicators.length,
-  }), [indicators]);
+    extreme: active.filter((i) => i.state === 'extreme').length,
+    elevated: active.filter((i) => i.state === 'elevated').length,
+    calm: active.filter((i) => i.state === 'calm').length,
+    total: active.length,
+  }), [active]);
 
   const equityPct = allocation?.equity_pct ?? null;
   const defPct = allocation?.defensive_pct ?? null;
+  const stance = allocation?.page_stance || null;
+  const stanceColor =
+    stance === 'Risk On' ? 'var(--mt-up)'
+    : stance === 'Risk Off' || stance === 'Stressed' || stance === 'Distressed' ? 'var(--mt-down)'
+    : 'var(--mt-warn)';
+
   const sectors = (allocation?.sectors || [])
     .slice()
     .sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
@@ -66,12 +83,12 @@ export default function HomePage() {
         <div>
           <div className="mt-eyebrow">Today · {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
           <h1 className="mt-h1">
-            The regime reads <i>risk-on inflationary</i>.
+            The regime reads <i>{(stance || 'cautious').toLowerCase()}</i>.
           </h1>
           <p className="mt-deck">
-            <b>{stats.extreme}</b> of {stats.total} indicators in <b>extreme</b>,{' '}
-            <b>{stats.elevated}</b> elevated, the rest calm. The engine is
-            tilted{' '}
+            <b className="num">{stats.extreme}</b> of <b className="num">{stats.total}</b> indicators in{' '}
+            <b>extreme</b>, <b className="num">{stats.elevated}</b> elevated,{' '}
+            <b className="num">{stats.calm}</b> calm. The engine is tilted{' '}
             <b>{equityPct != null ? `${(equityPct * 100).toFixed(0)}% equity` : 'equity-heavy'}</b>{' '}
             against the defensive sleeve.
           </p>
@@ -81,14 +98,15 @@ export default function HomePage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: 14,
-            minWidth: 320,
+            minWidth: 360,
           }}
         >
           <StatTile
-            label="Stress signal"
-            value={allocation?.stress_score != null ? `${Math.round(allocation.stress_score * 100)}` : '—'}
-            sub={allocation?.page_stance || 'Reading…'}
-            color="var(--mt-up)"
+            label="Engine stance"
+            value={stance || '—'}
+            sub={`${stats.extreme + stats.elevated} of ${stats.total} indicators elevated`}
+            color={stanceColor}
+            isText
           />
           <StatTile
             label="Equity / Defensive"
@@ -98,9 +116,9 @@ export default function HomePage() {
           />
           <StatTile
             label="Indicators"
-            value={`${stats.extreme + stats.elevated} / ${stats.total}`}
-            sub="extreme + elevated"
-            color={stats.extreme > 5 ? 'var(--mt-down)' : 'var(--mt-warn)'}
+            value={`${stats.extreme} / ${stats.total}`}
+            sub="extreme today"
+            color={stats.extreme > stats.total * 0.2 ? 'var(--mt-down)' : 'var(--mt-warn)'}
           />
         </div>
       </section>
@@ -117,29 +135,32 @@ export default function HomePage() {
           }}
         >
           <div onClick={() => navigate('/macro')} style={{ cursor: 'pointer' }}>
-            <RegimeCanvas indicators={indicators} aspect={1.55} />
+            <RegimeCanvas indicators={active} aspect={1.55} />
           </div>
           <div className="mt-card" style={{ padding: 22, display: 'flex', flexDirection: 'column' }}>
             <div className="mt-eyebrow">Engine call · today</div>
             <div
               style={{
                 fontFamily: 'var(--mt-font-display)',
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: 500,
                 letterSpacing: '-0.02em',
-                margin: '4px 0 6px',
+                margin: '6px 0 8px',
+                color: stanceColor,
               }}
             >
-              {allocation?.page_stance || 'Reading…'}
+              {stance || 'Reading…'}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginBottom: 14 }}>
-              <b className="num">{equityPct != null ? `${(equityPct * 100).toFixed(0)}%` : '—'}</b>{' '}
-              equity · <b className="num">{defPct != null ? `${(defPct * 100).toFixed(0)}%` : '—'}</b>{' '}
-              defensive
+            <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 14, lineHeight: 1.55 }}>
+              The engine recommends{' '}
+              <b>{equityPct != null ? `${(equityPct * 100).toFixed(0)}%` : '—'}</b>{' '}
+              in equities and{' '}
+              <b>{defPct != null ? `${(defPct * 100).toFixed(0)}%` : '—'}</b>{' '}
+              in the defensive sleeve. Sectors sorted by current weight.
             </div>
             <div className="mt-divider" />
-            <div className="mt-eyebrow" style={{ marginTop: 8, marginBottom: 8 }}>Eleven sectors</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, overflowY: 'auto' }}>
+            <div className="mt-eyebrow" style={{ marginTop: 10, marginBottom: 10 }}>Eleven sectors · tilt vs S&amp;P</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
               {sectors.map((s) => {
                 const tilt = s.vs_spy_pp ?? 0;
                 const weight = (s.weight ?? 0) * 100;
@@ -149,39 +170,50 @@ export default function HomePage() {
                     key={s.sector}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 60px 40px',
-                      gap: 8,
+                      gridTemplateColumns: '1fr 100px 50px',
+                      gap: 10,
                       alignItems: 'center',
-                      fontSize: 12,
+                      fontSize: 13,
                     }}
                   >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--mt-ink-0)' }}>
                       {s.sector}
+                      <span
+                        className="num"
+                        style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 6 }}
+                      >
+                        {weight.toFixed(1)}%
+                      </span>
                     </span>
                     <div
                       style={{
-                        height: 6,
+                        height: 8,
                         background: 'var(--mt-surface-3)',
-                        borderRadius: 3,
+                        borderRadius: 4,
                         overflow: 'hidden',
                       }}
                     >
                       <div
                         style={{
-                          width: `${Math.min(100, weight * 2.5)}%`,
+                          width: `${Math.min(100, Math.max(6, weight * 2.8))}%`,
                           height: '100%',
                           background: color,
                         }}
                       />
                     </div>
                     <span className="num" style={{ textAlign: 'right', color, fontWeight: 600 }}>
-                      {tilt > 0 ? '+' : ''}{tilt.toFixed(0)}
+                      {tilt > 0 ? '+' : ''}{tilt.toFixed(1)}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <FreshnessChip elementId="v9-asset-allocation-daily" variant="label" style={{ marginTop: 12 }} />
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--mt-line-0)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <FreshnessChip elementId="v9-asset-allocation-daily" variant="label" />
+              <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/tilt')}>
+                Open Asset Tilt →
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -271,25 +303,25 @@ export default function HomePage() {
   );
 }
 
-function StatTile({ label, value, sub, color }) {
+function StatTile({ label, value, sub, color, isText = false }) {
   return (
     <div className="mt-card" style={{ padding: 14 }}>
       <div className="mt-eyebrow">{label}</div>
       <div
-        className="num"
+        className={isText ? '' : 'num'}
         style={{
           fontFamily: 'var(--mt-font-display)',
-          fontSize: 26,
+          fontSize: isText ? 22 : 26,
           fontWeight: 500,
           letterSpacing: '-0.02em',
           color: color || 'var(--mt-ink-0)',
-          marginTop: 2,
-          lineHeight: 1.0,
+          marginTop: 4,
+          lineHeight: 1.05,
         }}
       >
         {value}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 4 }}>{sub}</div>
+      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 6 }}>{sub}</div>
     </div>
   );
 }
