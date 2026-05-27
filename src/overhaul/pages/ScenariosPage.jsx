@@ -122,6 +122,11 @@ export default function ScenariosPage() {
        isolate one factor's impact without the implied moves. */
   const [propMode, setPropMode] = useState('correlated');
   const [driver, setDriver] = useState(null);
+  /* Builder is open by default. Once the user has set their shocks they can
+     collapse the slider grid so the downstream Strategy Allocations and
+     Sector Matrix are immediately visible without scrolling past 12
+     slider rows. Joe directive 2026-05-27. */
+  const [builderCollapsed, setBuilderCollapsed] = useState(false);
 
   /* Slider change handler. In correlated mode, the touched slider
      becomes the driver and propagateRealistic rebuilds the full
@@ -326,92 +331,143 @@ export default function ScenariosPage() {
         </div>
       </section>
 
-      {/* Custom builder — 12-factor CCAR panel */}
+      {/* Custom builder — 12-factor CCAR panel. Collapsible per Joe directive
+          2026-05-27: once the shock is set, the user wants to hide the
+          slider grid and focus on the downstream Strategy Allocations and
+          Sector Matrix without scrolling past 12 rows. */}
       {activeId === 'custom' && (
         <section className="mt-pagesection">
           <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">Build a shock</div>
               <div className="mt-h2">
-                {propMode === 'correlated'
-                  ? 'Pull one factor — the others move with it.'
-                  : 'Pull a factor — the engine recomputes live.'}
+                {builderCollapsed
+                  ? 'Shock locked in — results below.'
+                  : propMode === 'correlated'
+                    ? 'Pull one factor — the others move with it.'
+                    : 'Pull a factor — the engine recomputes live.'}
               </div>
             </div>
             <div className="sn-builder-controls">
-              <div className="sn-proptoggle" role="group" aria-label="Factor propagation mode">
-                <button
-                  type="button"
-                  className={`sn-proppill ${propMode === 'correlated' ? 'on' : ''}`}
-                  onClick={() => setPropMode('correlated')}
-                  title="Move one slider; the other 11 factors move in tandem via the historical correlation matrix."
-                >
-                  Correlated
-                </button>
-                <button
-                  type="button"
-                  className={`sn-proppill ${propMode === 'independent' ? 'on' : ''}`}
-                  onClick={() => { setPropMode('independent'); setDriver(null); }}
-                  title="Each slider moves on its own. Useful for isolating one factor's impact."
-                >
-                  Independent
-                </button>
-              </div>
-              <div className="mt-pillgroup">
-                {HORIZONS.map((h) => (
-                  <button
-                    key={h.key}
-                    type="button"
-                    className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
-                    onClick={() => setHorizon(h.key)}
-                  >
-                    {h.key}
+              {!builderCollapsed && (
+                <>
+                  <div className="sn-proptoggle" role="group" aria-label="Factor propagation mode">
+                    <button
+                      type="button"
+                      className={`sn-proppill ${propMode === 'correlated' ? 'on' : ''}`}
+                      onClick={() => setPropMode('correlated')}
+                      title="Move one slider; the other 11 factors move in tandem via the historical correlation matrix."
+                    >
+                      Correlated
+                    </button>
+                    <button
+                      type="button"
+                      className={`sn-proppill ${propMode === 'independent' ? 'on' : ''}`}
+                      onClick={() => { setPropMode('independent'); setDriver(null); }}
+                      title="Each slider moves on its own. Useful for isolating one factor's impact."
+                    >
+                      Independent
+                    </button>
+                  </div>
+                  <div className="mt-pillgroup">
+                    {HORIZONS.map((h) => (
+                      <button
+                        key={h.key}
+                        type="button"
+                        className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
+                        onClick={() => setHorizon(h.key)}
+                      >
+                        {h.key}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="sn-resetbtn" onClick={handleResetCustom}>
+                    Reset to today
                   </button>
-                ))}
-              </div>
-              <button type="button" className="sn-resetbtn" onClick={handleResetCustom}>
-                Reset to today
+                </>
+              )}
+              <button
+                type="button"
+                className="sn-collapsebtn"
+                onClick={() => setBuilderCollapsed(!builderCollapsed)}
+                aria-expanded={!builderCollapsed}
+              >
+                {builderCollapsed ? 'Edit shock ▾' : 'Collapse ▴'}
               </button>
             </div>
           </div>
-          {propMode === 'correlated' && (
-            <div className="sn-prophelper">
-              {driver
-                ? <>Driver: <b>{FACTORS.find((f) => f.id === driver)?.name ?? driver}</b>. Every other factor is implied from the historical correlation matrix. Switch to <button type="button" className="sn-inlinelink" onClick={() => { setPropMode('independent'); }}>Independent</button> to override individual sliders.</>
-                : <>Move any slider to set the <b>driver</b>. The other 11 factors will move with it based on historical co-movements.</>}
-            </div>
-          )}
-          <div className="sn-customcard">
-            {FACTORS.map((f) => {
-              const v = customShocks[f.id] ?? 0;
-              const clamped = Math.max(f.min, Math.min(f.max, v));
-              const isDriver = propMode === 'correlated' && driver === f.id;
+
+          {builderCollapsed ? (
+            /* Collapsed state: compact summary line with driver, horizon,
+               propagation mode, and any factor moved more than 0.5σ from
+               zero. Click Edit shock to re-open. */
+            (() => {
+              const moved = FACTORS
+                .map((f) => ({ f, v: customShocks[f.id] ?? 0 }))
+                .filter(({ v }) => Math.abs(v) >= 0.5)
+                .sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+              const driverF = driver ? FACTORS.find((f) => f.id === driver) : null;
               return (
-                <div key={f.id} className={`sn-slidercell ${isDriver ? 'sn-slidercell--driver' : ''}`}>
-                  <div>
-                    <div className="mt-eyebrow">
-                      {f.name}
-                      {isDriver && <span className="sn-drivertag">DRIVER</span>}
-                    </div>
-                    <div className="sn-slidersub">σ from long-run mean</div>
-                  </div>
-                  <input
-                    type="range"
-                    className="sn-slider"
-                    min={f.min}
-                    max={f.max}
-                    step={f.step}
-                    value={clamped}
-                    onChange={(e) => handleSliderChange(f.id, Number(e.target.value))}
-                  />
-                  <div className="sn-sliderval num sn-sliderval--stacked">
-                    <span className="sn-sigma">{fmtSigma(clamped)}</span>
-                    <span className="sn-nominal">{fmtNominal(f.id, clamped)}</span>
-                  </div>
+                <div className="sn-collapsedsummary">
+                  <span className="sn-summarylabel">Custom shock</span>
+                  {propMode === 'correlated' && driverF ? (
+                    <span className="sn-summarychip">
+                      Driver: <b>{driverF.name}</b> {fmtSigma(customShocks[driver])}
+                    </span>
+                  ) : (
+                    <span className="sn-summarychip">{propMode === 'correlated' ? 'Correlated' : 'Independent'}</span>
+                  )}
+                  <span className="sn-summarychip">{horizon} horizon</span>
+                  {moved.length > 0 && (
+                    <span className="sn-summarychip">
+                      {moved.length} factor{moved.length === 1 ? '' : 's'} {'>'} 0.5σ
+                    </span>
+                  )}
                 </div>
               );
-            })}
-          </div>
+            })()
+          ) : (
+            <>
+              {propMode === 'correlated' && (
+                <div className="sn-prophelper">
+                  {driver
+                    ? <>Driver: <b>{FACTORS.find((f) => f.id === driver)?.name ?? driver}</b>. Every other factor is implied from the historical correlation matrix. Switch to <button type="button" className="sn-inlinelink" onClick={() => { setPropMode('independent'); }}>Independent</button> to override individual sliders.</>
+                    : <>Move any slider to set the <b>driver</b>. The other 11 factors will move with it based on historical co-movements.</>}
+                </div>
+              )}
+              <div className="sn-customcard">
+                {FACTORS.map((f) => {
+                  const v = customShocks[f.id] ?? 0;
+                  const clamped = Math.max(f.min, Math.min(f.max, v));
+                  const isDriver = propMode === 'correlated' && driver === f.id;
+                  return (
+                    <div key={f.id} className={`sn-slidercell ${isDriver ? 'sn-slidercell--driver' : ''}`}>
+                      <div>
+                        <div className="mt-eyebrow">
+                          {f.name}
+                          {isDriver && <span className="sn-drivertag">DRIVER</span>}
+                        </div>
+                        <div className="sn-slidersub">σ from long-run mean</div>
+                      </div>
+                      <input
+                        type="range"
+                        className="sn-slider"
+                        min={f.min}
+                        max={f.max}
+                        step={f.step}
+                        value={clamped}
+                        onChange={(e) => handleSliderChange(f.id, Number(e.target.value))}
+                      />
+                      <div className="sn-sliderval num sn-sliderval--stacked">
+                        <span className="sn-sigma">{fmtSigma(clamped)}</span>
+                        <span className="sn-nominal">{fmtNominal(f.id, clamped)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </section>
       )}
 
