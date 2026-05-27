@@ -360,6 +360,8 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.18);
 }
 .mt-overhaul .mt-spacer-flex { flex: 1; }
+.mt-overhaul .mc-legend--push { margin-left: auto; }
+.mt-overhaul .mt-pagesection--flush { padding-top: 0; }
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;
