@@ -210,7 +210,7 @@ export default function IndicatorsPage() {
                   <th onClick={() => toggleSort('domain')}>Category{arrow('domain')}</th>
                   <th onClick={() => toggleSort('freq')}>Freq{arrow('freq')}</th>
                   <th onClick={() => toggleSort('typeLabel')}>Type{arrow('typeLabel')}</th>
-                  <th>Last refresh</th>
+                  <th onClick={() => toggleSort('asOf')}>Last refresh{arrow('asOf')}</th>
                   <th className="num" onClick={() => toggleSort('value')}>Current{arrow('value')}</th>
                   <th className="num" onClick={() => toggleSort('prior_3m')}>3M ago{arrow('prior_3m')}</th>
                   <th className="num" onClick={() => toggleSort('prior_6m')}>6M ago{arrow('prior_6m')}</th>

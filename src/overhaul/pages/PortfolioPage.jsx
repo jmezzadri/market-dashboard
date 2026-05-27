@@ -57,9 +57,64 @@ function fakeSpark(seed, base = 100, ttm = 10) {
 
 export default function PortfolioPage() {
   const portfolio = useUserPortfolio();
-  const positions = portfolio?.positions || [];
-  const accountSummaries = portfolio?.accountSummaries || [];
   const loading = portfolio?.loading;
+  const isAuthed = portfolio?.isAuthed;
+
+  /* 2026-05-27 — data-shape adapter. useUserPortfolio returns a nested shape:
+       { accounts: [{ id, label, color, positions: [{ ticker, value, quantity,
+         avgCost, sector, price, assetClass, ... }] }], watchlist, isAuthed,
+         loading, ... }
+     This page was originally wired against a flat shape (portfolio.positions,
+     portfolio.accountSummaries) that the hook never exposed, so even when the
+     user was signed in and had positions, the page rendered the empty state.
+     Adapter below flattens accounts[].positions[] into the flat `positions`
+     and derives `accountSummaries` from the same source so the existing
+     render code below stays unchanged. */
+  const accounts = useMemo(() => portfolio?.accounts || [], [portfolio?.accounts]);
+  const positions = useMemo(() => {
+    const out = [];
+    accounts.forEach((a) => {
+      (a.positions || []).forEach((p) => {
+        out.push({
+          ticker: p.ticker,
+          name: p.name,
+          sector: p.sector || 'Unknown',
+          asset_class: p.assetClass || null,
+          quantity: p.quantity,
+          last_price: p.price,
+          avg_cost: p.avgCost,
+          market_value: p.value != null
+            ? Number(p.value)
+            : (p.price != null && p.quantity != null ? Number(p.price) * Number(p.quantity) : null),
+          cost_basis: (p.avgCost != null && p.quantity != null)
+            ? Number(p.avgCost) * Number(p.quantity)
+            : null,
+          account_name: a.label,
+          account: a.label,
+          mt_score: null,            // joined later by the scanner row hook if needed
+          day_change_pct: null,      // not in the portfolio fetch — joined separately on Scanner
+        });
+      });
+    });
+    return out;
+  }, [accounts]);
+  const accountSummaries = useMemo(() => {
+    return accounts.map((a, i) => {
+      const ps = a.positions || [];
+      const market_value = ps.reduce(
+        (s, p) => s + (Number(p.value) || (Number(p.price) || 0) * (Number(p.quantity) || 0)),
+        0,
+      );
+      return {
+        account_name: a.label,
+        market_value,
+        position_count: ps.length,
+        color: a.color || PF_COLORS[i % PF_COLORS.length],
+        ttm: 0,        // analytics tile reads "—" until we wire account-level TTM
+        sharpe: 0,
+      };
+    });
+  }, [accounts]);
   const [openAcct, setOpenAcct] = useState(null);
   const [allocTab, setAllocTab] = useState('account');
   const [drillKey, setDrillKey] = useState(null);
@@ -200,7 +255,17 @@ export default function PortfolioPage() {
           <div className="mt-card mt-loadingcard">Loading portfolio…</div>
         ) : accountTiles.length === 0 ? (
           <div className="mt-card mt-loadingcard">
-            No accounts yet — sign in to see your portfolio.
+            {isAuthed
+              ? 'Signed in, but no accounts on file yet. Click "Upload transactions" to import broker CSVs (Chase, Fidelity, Schwab).'
+              : (
+                <>
+                  Not signed in.{' '}
+                  <a href="/?v=2" style={{ color: 'var(--mt-accent)', fontWeight: 500 }}>
+                    Sign in →
+                  </a>{' '}
+                  to see your portfolio.
+                </>
+              )}
           </div>
         ) : (
           <div className="pf-acctgrid">

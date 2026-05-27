@@ -8,6 +8,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import Tip from '../components/Tip';
 import NavIcon from '../components/NavIcon';
+import { useSession } from '../../auth/useSession';
+import { supabase } from '../../lib/supabase';
 
 const NAV = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -15,6 +17,10 @@ const NAV = [
   { to: '/tilt', label: 'Asset Tilt', icon: 'tilt' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
   { to: '/portfolio', label: 'Portfolio insights', icon: 'portfolio' },
+  /* Paper Portfolio hasn't been ported to the new shell yet — link out to
+     the legacy app's paper tab so the page is reachable from the new nav.
+     Drop the v=2 once the new-shell port lands. */
+  { external: '/?v=2#paper', label: 'Paper Portfolio', icon: 'portfolio' },
   { to: '/scenarios', label: 'Scenario analysis', icon: 'scenarios' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },
   { to: '/methodology', label: 'Methodology', icon: 'methodology' },
@@ -26,6 +32,16 @@ const ADMIN = [
 ];
 
 export default function Sidebar() {
+  const { user, loading } = useSession();
+  const signedIn = !!user;
+  const email = user?.email || null;
+
+  async function handleSignOut() {
+    try { await supabase.auth.signOut(); } catch (e) { /* best effort */ }
+    /* Reload to clear any cached state from authed components. */
+    if (typeof window !== 'undefined') window.location.assign('/');
+  }
+
   return (
     <aside className="mt-sidebar">
       <div className="mt-sidebar-brand">
@@ -50,18 +66,29 @@ export default function Sidebar() {
       </div>
       <nav className="mt-sidebar-nav" aria-label="Primary">
         {NAV.map((item) => (
-          <Tip key={item.to} content={item.label} side="right" bare block>
-            <NavLink
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `mt-navitem ${isActive ? 'mt-navitem--active' : ''}`
-              }
-              aria-label={item.label}
-            >
-              <span className="mt-navicon"><NavIcon k={item.icon} /></span>
-              <span className="mt-navlbl">{item.label}</span>
-            </NavLink>
+          <Tip key={item.to || item.external} content={item.label} side="right" bare block>
+            {item.external ? (
+              <a
+                href={item.external}
+                className="mt-navitem"
+                aria-label={item.label}
+              >
+                <span className="mt-navicon"><NavIcon k={item.icon} /></span>
+                <span className="mt-navlbl">{item.label}</span>
+              </a>
+            ) : (
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `mt-navitem ${isActive ? 'mt-navitem--active' : ''}`
+                }
+                aria-label={item.label}
+              >
+                <span className="mt-navicon"><NavIcon k={item.icon} /></span>
+                <span className="mt-navlbl">{item.label}</span>
+              </NavLink>
+            )}
           </Tip>
         ))}
         <div className="mt-navsep" role="separator" aria-hidden>
@@ -82,7 +109,43 @@ export default function Sidebar() {
           </Tip>
         ))}
       </nav>
-      <div className="mt-sidebar-foot">joe@macrotilt</div>
+      {/* Real session identity — replaces the hardcoded 'joe@macrotilt'
+          placeholder. Shows the actual signed-in email + a Sign out button,
+          or a Sign in CTA when the user has no session. */}
+      <div className="mt-sidebar-foot">
+        {loading ? (
+          <span style={{ opacity: 0.6 }}>…</span>
+        ) : signedIn ? (
+          <>
+            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {email}
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--mt-ink-2)',
+                fontSize: 11,
+                marginTop: 2,
+                padding: 0,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <a
+            href="/?v=2"
+            style={{ color: 'var(--mt-accent)', fontWeight: 500, textDecoration: 'none' }}
+          >
+            Sign in →
+          </a>
+        )}
+      </div>
     </aside>
   );
 }
