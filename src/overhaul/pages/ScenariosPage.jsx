@@ -64,6 +64,7 @@ import {
   fmtSigma,
   fmtNominal,
   getCurrentReadings,
+  propagateRealistic,
   sectorStressMatrix,
   customReturns,
 } from '../lib/ccar';
@@ -110,6 +111,39 @@ export default function ScenariosPage() {
     () => Object.fromEntries(FACTOR_IDS.map((f) => [f, 0])),
   );
   const [customInitialized, setCustomInitialized] = useState(false);
+  /* Propagation mode for the custom shock builder.
+     - 'correlated' (default): moving any slider becomes the driver; the
+       other 11 factors update in tandem via the historical correlation
+       matrix in ccar.propagateRealistic(). This is the realistic case —
+       you cannot move VIX +2σ in real life without bond vol, credit
+       spreads, and put/call all moving with it.
+     - 'independent': each slider moves on its own. Useful for
+       counterfactual / stress-test thinking where the user wants to
+       isolate one factor's impact without the implied moves. */
+  const [propMode, setPropMode] = useState('correlated');
+  const [driver, setDriver] = useState(null);
+
+  /* Slider change handler. In correlated mode, the touched slider
+     becomes the driver and propagateRealistic rebuilds the full
+     12-factor vector from the driver's z-score; in independent mode
+     only that one factor changes. */
+  const handleSliderChange = (factorId, value) => {
+    if (propMode === 'correlated') {
+      setDriver(factorId);
+      setCustomShocks(propagateRealistic(factorId, value));
+    } else {
+      setCustomShocks({ ...customShocks, [factorId]: value });
+    }
+  };
+
+  /* Reset button — re-seed every slider to today's actual factor
+     reading and clear the driver. Useful after exploring an aggressive
+     hypothetical shock. */
+  const handleResetCustom = () => {
+    if (indicatorHistory) setCustomShocks(getCurrentReadings(indicatorHistory));
+    else setCustomShocks(Object.fromEntries(FACTOR_IDS.map((f) => [f, 0])));
+    setDriver(null);
+  };
   const { allocation } = useAllocation();
   const { isAuthed } = useUserPortfolio();
 
@@ -298,29 +332,67 @@ export default function ScenariosPage() {
           <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">Build a shock</div>
-              <div className="mt-h2">Pull a factor — the engine recomputes live.</div>
+              <div className="mt-h2">
+                {propMode === 'correlated'
+                  ? 'Pull one factor — the others move with it.'
+                  : 'Pull a factor — the engine recomputes live.'}
+              </div>
             </div>
-            <div className="mt-pillgroup">
-              {HORIZONS.map((h) => (
+            <div className="sn-builder-controls">
+              <div className="sn-proptoggle" role="group" aria-label="Factor propagation mode">
                 <button
-                  key={h.key}
                   type="button"
-                  className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
-                  onClick={() => setHorizon(h.key)}
+                  className={`sn-proppill ${propMode === 'correlated' ? 'on' : ''}`}
+                  onClick={() => setPropMode('correlated')}
+                  title="Move one slider; the other 11 factors move in tandem via the historical correlation matrix."
                 >
-                  {h.key}
+                  Correlated
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className={`sn-proppill ${propMode === 'independent' ? 'on' : ''}`}
+                  onClick={() => { setPropMode('independent'); setDriver(null); }}
+                  title="Each slider moves on its own. Useful for isolating one factor's impact."
+                >
+                  Independent
+                </button>
+              </div>
+              <div className="mt-pillgroup">
+                {HORIZONS.map((h) => (
+                  <button
+                    key={h.key}
+                    type="button"
+                    className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
+                    onClick={() => setHorizon(h.key)}
+                  >
+                    {h.key}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="sn-resetbtn" onClick={handleResetCustom}>
+                Reset to today
+              </button>
             </div>
           </div>
+          {propMode === 'correlated' && (
+            <div className="sn-prophelper">
+              {driver
+                ? <>Driver: <b>{FACTORS.find((f) => f.id === driver)?.name ?? driver}</b>. Every other factor is implied from the historical correlation matrix. Switch to <button type="button" className="sn-inlinelink" onClick={() => { setPropMode('independent'); }}>Independent</button> to override individual sliders.</>
+                : <>Move any slider to set the <b>driver</b>. The other 11 factors will move with it based on historical co-movements.</>}
+            </div>
+          )}
           <div className="sn-customcard">
             {FACTORS.map((f) => {
               const v = customShocks[f.id] ?? 0;
               const clamped = Math.max(f.min, Math.min(f.max, v));
+              const isDriver = propMode === 'correlated' && driver === f.id;
               return (
-                <div key={f.id} className="sn-slidercell">
+                <div key={f.id} className={`sn-slidercell ${isDriver ? 'sn-slidercell--driver' : ''}`}>
                   <div>
-                    <div className="mt-eyebrow">{f.name}</div>
+                    <div className="mt-eyebrow">
+                      {f.name}
+                      {isDriver && <span className="sn-drivertag">DRIVER</span>}
+                    </div>
                     <div className="sn-slidersub">σ from long-run mean</div>
                   </div>
                   <input
@@ -330,7 +402,7 @@ export default function ScenariosPage() {
                     max={f.max}
                     step={f.step}
                     value={clamped}
-                    onChange={(e) => setCustomShocks({ ...customShocks, [f.id]: Number(e.target.value) })}
+                    onChange={(e) => handleSliderChange(f.id, Number(e.target.value))}
                   />
                   <div className="sn-sliderval num sn-sliderval--stacked">
                     <span className="sn-sigma">{fmtSigma(clamped)}</span>
