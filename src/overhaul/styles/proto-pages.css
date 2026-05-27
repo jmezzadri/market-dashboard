@@ -311,14 +311,94 @@
 .mt-overhaul .at-regdot--neutral { background: #94999f; }
 .mt-overhaul .at-regdot--infl    { background: #d68a3a; }
 
-/* Regime tag — small one-liner under the hero (replaces the long
-   "Bond-market volatility (MOVE) and the 3-month change in 10y yield..."
-   prose paragraph Joe flagged as repetitive nonsense). */
-.mt-overhaul .at-regimetag {
-  margin-top: 14px; font-size: 14px; color: var(--mt-ink-1);
-  font-family: var(--mt-font-ui);
+/* 2026-05-27 — Two-band regime cells with a clear horizontal divider so the
+   stress signal (top) and yield regime (bottom) never blur together. The old
+   linear-gradient .at-regcell rules above are kept for backward compat but
+   the live JSX now renders .at-regcell-stack with two .at-regband children. */
+.mt-overhaul .at-regcell-stack {
+  display: flex; flex-direction: column;
+  height: 48px; border-radius: 4px; overflow: hidden;
+  cursor: help; transition: transform 120ms;
+  box-shadow: 0 0 0 1px var(--mt-line-0);
 }
-.mt-overhaul .at-regimetag i { font-style: italic; color: var(--mt-warn); }
+.mt-overhaul .at-regcell-stack:hover { transform: translateY(-2px); }
+.mt-overhaul .at-regband { flex: 1 1 50%; min-height: 0; }
+.mt-overhaul .at-regband--stress { border-bottom: 1px solid rgba(255,255,255,0.55); }
+[data-mt-theme='dark'] .mt-overhaul .at-regband--stress,
+[data-mt-theme='navy'] .mt-overhaul .at-regband--stress { border-bottom-color: rgba(0,0,0,0.45); }
+.mt-overhaul .at-regband--skel { background: var(--mt-surface-3); }
+.mt-overhaul .at-regband--on    { background: var(--mt-up); }
+.mt-overhaul .at-regband--watch { background: var(--mt-warn); }
+.mt-overhaul .at-regband--off   { background: var(--mt-down); }
+.mt-overhaul .at-regband--defl    { background: #5e8aa8; }
+.mt-overhaul .at-regband--neutral { background: #94999f; }
+.mt-overhaul .at-regband--infl    { background: #d68a3a; }
+
+.mt-overhaul .at-regfoot--split { flex-direction: column; align-items: stretch; gap: 8px; }
+.mt-overhaul .at-regfootrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 11.5px; color: var(--mt-ink-2); }
+.mt-overhaul .at-regfootlabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--mt-ink-3); margin-right: 4px; min-width: 170px; }
+
+/* Expandable tile head — used for Historical Engine Reading + Backtest Results.
+   Matches mt-sectionhead visual weight but is a button so the entire bar is
+   clickable. Chevron rotates on open. */
+.mt-overhaul .at-tilehead {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 12px 16px; margin-bottom: 8px;
+  background: var(--mt-surface); border: 1px solid var(--mt-line-1);
+  border-radius: var(--mt-r-md); cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+  transition: background var(--mt-dur-fast) var(--mt-ease);
+}
+.mt-overhaul .at-tilehead:hover { background: var(--mt-surface-2); }
+.mt-overhaul .at-tilehead .mt-h2 { margin: 2px 0 0; }
+.mt-overhaul .at-tilechev { color: var(--mt-ink-2); font-size: 18px; margin-left: 16px; }
+.mt-overhaul .at-tilesummary { margin-top: 8px; color: var(--mt-ink-2); font-size: 13px; }
+
+/* Backtest Results card — chart head, legend, SVG container, drawdown table. */
+.mt-overhaul .at-bkhead { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+.mt-overhaul .at-bklegend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; font-size: 12.5px; color: var(--mt-ink-1); }
+.mt-overhaul .at-bklegitem { display: inline-flex; align-items: center; gap: 6px; }
+.mt-overhaul .at-bkdot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.mt-overhaul .at-bkdot--at    { background: var(--mt-accent); }
+.mt-overhaul .at-bkdot--spy   { background: var(--mt-ink-2); }
+.mt-overhaul .at-bkdot--blend { background: var(--mt-warn); }
+
+.mt-overhaul .at-bkchart { display: flex; flex-direction: column; gap: 8px; }
+.mt-overhaul .at-bkchart-svg { width: 100%; height: auto; cursor: crosshair; }
+.mt-overhaul .at-bkchart-tick { font-size: 11px; fill: var(--mt-ink-2); font-family: var(--mt-font-mono); }
+.mt-overhaul .at-bkchart-readout {
+  display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px;
+  padding: 8px 10px; background: var(--mt-surface-2);
+  border-radius: var(--mt-r-sm); color: var(--mt-ink-1);
+  align-items: center;
+}
+.mt-overhaul .at-bkchart-readout i { font-style: normal; }
+.mt-overhaul .at-bkchart-regime { margin-left: auto; color: var(--mt-ink-2); font-style: italic; }
+.mt-overhaul .at-bkchart-hint { color: var(--mt-ink-2); font-style: italic; }
+
+.mt-overhaul .at-bkdrawhead { margin-top: 22px; }
+.mt-overhaul .at-bkdrawtable {
+  margin-top: 8px;
+  display: grid; grid-template-columns: 1fr; gap: 0;
+  border-top: 1px solid var(--mt-line-1);
+}
+.mt-overhaul .at-bkdrawrow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.4fr;
+  align-items: center; gap: 12px;
+  padding: 10px 8px; border-bottom: 1px solid var(--mt-line-0);
+  font-size: 13.5px; color: var(--mt-ink-1);
+}
+.mt-overhaul .at-bkdrawrow--head {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--mt-ink-3); font-family: var(--mt-font-ui);
+  border-bottom: 1px solid var(--mt-line-1);
+}
+.mt-overhaul .at-bkdrawname { font-weight: 500; color: var(--mt-ink-0); }
+.mt-overhaul .at-bkdrawnum { text-align: right; font-family: var(--mt-font-mono); font-feature-settings: "tnum"; }
+.mt-overhaul .at-bkdrawnum.up   { color: var(--mt-up); }
+.mt-overhaul .at-bkdrawnum.down { color: var(--mt-down); }
+.mt-overhaul .at-bkdrawregime { font-size: 12.5px; color: var(--mt-ink-2); }
 
 /* Gauge history head — eyebrow on the left, timeframe pills on the right. */
 .mt-overhaul .at-gauge-histhead {
