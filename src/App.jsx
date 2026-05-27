@@ -8,12 +8,11 @@ import IndicatorsPageV2 from "./v2/pages/IndicatorsPage";
 import AssetTiltPageV2 from "./v2/pages/AssetTiltPage";
 import TradingOppsPageV2 from "./v2/pages/TradingOppsPage";
 import InsightsPageV2 from "./v2/pages/InsightsPage";
-import PaperPortfolioPageV2 from "./v2/pages/PaperPortfolioPage";
 import MethodologyPageV2 from "./v2/pages/MethodologyPage";
 import ScenariosPageV2 from "./v2/pages/ScenariosPage";
+import PaperPortfolioPageV2 from "./v2/pages/PaperPortfolioPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
 import V2ErrorBoundary from "./v2/components/ErrorBoundary";
-import { ordinalSuffix } from "./lib/ordinal";
 
 
 // Cutover feature flag — REVERTED to default-OFF 2026-05-06 (P0 rollback).
@@ -4316,7 +4315,7 @@ return(
       </div>
       <div>
         <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>FACTOR CONSTRUCTION</div>
-        <div>Each factor averages the standardized deviations of its contributing indicators (distance from 5-year mean, direction-adjusted so higher always means riskier). Equal weights within a factor. Data: FRED, ICE BofA, NY Fed CMDI, Shiller CAPE, CBOE.</div>
+        <div>Each factor averages the standardized deviations of its contributing indicators (distance from 5-year mean, direction-adjusted so higher always means riskier). Equal weights within a factor. Data: U.S. Treasury, FRED, ICE BofA, NY Fed CMDI, Shiller CAPE, CBOE/Yahoo.</div>
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Fama &amp; French (1993) — multifactor models motivate linear aggregation.</div>
       </div>
       <div>
@@ -4675,7 +4674,7 @@ const TAB_META={
   allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
-  paper:     {eyebrow:"Paper Portfolio",        title:"Paper Portfolio",         sub:"$1M paper trading book on Alpaca. Sleeve A ($500K) follows the Asset Tilt engine across 24 industry-group ETFs. Sleeve B ($500K) follows the Equity Scanner long-only, with up to 2x leverage when buy signals exceed cash. Idle cash sits as cash — no bond proxy."},
+  paper:     {eyebrow:"Paper Portfolio",       title:"Paper Portfolio",         sub:"$1M paper trading book on Alpaca. Sleeve A ($500K) follows the Asset Tilt engine; Sleeve B ($500K) follows the Equity Scanner long-only with up to 2x leverage on overflow buy signals. Idle cash sits in literal cash."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin",                 title:"Data sources & pipeline health", sub:"Three destinations: Polygon Massive, Unusual Whales, and a cross-vendor Data Health view of every feed on the site. Visible only to admins."},
   bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
@@ -4981,7 +4980,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
               }, item.panel),
               React.createElement("span", { style: { color: "var(--text)", fontWeight: 500 } }, meta.l),
               React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, meta.f(item.value)),
-              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: VIZ.hot, fontSize: 11, fontWeight: 700 } }, (function(){const p=Math.round(item.pctile * 100); return p + ordinalSuffix(p);})())
+              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: VIZ.hot, fontSize: 11, fontWeight: 700 } }, Math.round(item.pctile * 100) + "th")
             );
           })
         ) : React.createElement("div", {
@@ -5061,7 +5060,7 @@ function HomeAssetTiltEngineRead() {
   const stressPct = stress.move_percentile_5y;
   const stressVal = stress.move_value;
   const stressMeta = stressPct != null
-    ? (function(){const p=Math.round(stressPct * 100); return p + ordinalSuffix(p) + ' pctile';})()
+    ? Math.round(stressPct * 100) + 'th pctile'
     : 'awaiting data';
   // Yield dial — needle on the 3-month yield-change percentile, threshold dots
   // at the Deflationary (30th) and Inflationary (70th) percentile gates.
@@ -5072,7 +5071,7 @@ function HomeAssetTiltEngineRead() {
   // engine snapshot that has no live field yet.
   const yieldBp  = yieldR.delta_y_3m_bp_live != null ? yieldR.delta_y_3m_bp_live : yieldR.delta_y_3m_bp;
   const yieldMeta = yieldPct != null
-    ? (function(){const p=Math.round(yieldPct * 100); return p + ordinalSuffix(p) + ' pctile';})()
+    ? Math.round(yieldPct * 100) + 'th pctile'
     : 'awaiting data';
   return (
     <div style={{ marginBottom: 12 }}>
@@ -6856,9 +6855,8 @@ return(
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
 {tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
-{/* PAPER PORTFOLIO — $1M Alpaca paper book. Independent of /#insights. */}
+{/* PAPER PORTFOLIO — $1M paper book on Alpaca. Always v2; no V1 fallback. */}
 {tab==="paper" && <V2ErrorBoundary><PaperPortfolioPageV2 /></V2ErrorBoundary>}
-
 {V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
 {!V2_ENABLED && tab==="insights" && !(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
@@ -7595,7 +7593,7 @@ return(
 </div>
 
 <Footer
-  leftText={tab==="portopps"?"SOURCES · FRED · CBOE · ICE BofA · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
+  leftText={tab==="portopps"?"SOURCES · U.S. Treasury · FRED · CBOE · ICE BofA · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · U.S. Treasury · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed · Yahoo Finance"}
   rightText="⚠ NOT INVESTMENT ADVICE"
 />
 

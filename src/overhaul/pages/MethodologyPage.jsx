@@ -46,14 +46,16 @@ const SECTIONS = [
    update both this constant AND the relevant manifest entries in the
    same PR (the project Data Steward sign-off rule catches this). */
 const VENDORS = [
-  ['FRED',              'St. Louis Fed economic data',                  'Free', 'Macro indicator family'],
-  ['Polygon (Massive)', 'Daily prices, splits, dividends, fundamentals','Paid', 'Universe master, ticker reference'],
-  ['Unusual Whales',    'Options flow, dark pool, insider, congress',   'Paid', 'Scanner facets, ticker events'],
-  ['ICE BofA via FRED', 'Investment-grade & high-yield credit spreads', 'Free', 'Credit family'],
-  ['CBOE',              'VIX, SKEW, put/call',                          'Free', 'Equity volatility family'],
-  ['ISM',               'Manufacturing & Services PMI',                 'Free', 'Economy family'],
-  ['FDIC Call Reports', 'Bank balance-sheet unrealized losses',         'Free', 'Bank family'],
-  ['Shiller (Yale)',    'CAPE ratio',                                   'Free', 'Equity valuation family'],
+  ['U.S. Treasury (Treasury.gov)', 'Daily Treasury par + TIPS yield curves',       'Free', '10Y-2Y slope, 10Y TIPS real rate, 10Y breakeven'],
+  ['FRED',                          'St. Louis Fed economic data',                  'Free', 'Macro indicator family (jobless, M2, SLOOS, term premium, RRP, etc.)'],
+  ['Polygon (Massive)',             'Daily prices, splits, dividends, fundamentals','Paid', 'Universe master, ticker reference'],
+  ['Unusual Whales',                'Options flow, dark pool, insider, congress',   'Paid', 'Scanner facets, ticker events'],
+  ['ICE BofA via FRED',             'Investment-grade & high-yield credit spreads', 'Free', 'Credit family (HY OAS, IG OAS)'],
+  ['Yahoo Finance',                 'VIX, MOVE, SKEW, USD, copper/gold, KBE/SPY',  'Free', 'Equity volatility family + dollar/commodity proxies'],
+  ['CBOE',                          'VIX, SKEW (via Yahoo mirror)',                 'Free', 'Equity volatility family'],
+  ['ISM',                           'Manufacturing & Services PMI',                 'Free', 'Economy family'],
+  ['FDIC Call Reports',             'Bank balance-sheet unrealized losses',         'Free', 'Bank family'],
+  ['Shiller (Yale)',                'CAPE ratio',                                   'Free', 'Equity valuation family'],
 ];
 
 function fmtPct(v, digits = 2) {

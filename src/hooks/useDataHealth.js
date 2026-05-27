@@ -44,6 +44,7 @@ function notify() { listeners.forEach((fn) => fn()); }
 const VENDOR_RULES = [
   { test: (s) => /^massive$/i.test(s),              vendor: "Polygon Massive" },
   { test: (s) => /^Unusual Whales\b/i.test(s),      vendor: "Unusual Whales" },
+  { test: (s) => /^Treasury\.gov\b/i.test(s),       vendor: "U.S. Treasury" },
   { test: (s) => /^FRED\b/i.test(s),                vendor: "FRED" },
   { test: (s) => /^Yahoo\b/i.test(s),               vendor: "Yahoo Finance" },
   { test: (s) => /^ISM\b/i.test(s),                 vendor: "ISM" },
@@ -75,7 +76,9 @@ export const VENDOR_BLAST_RADIUS = {
   "Unusual Whales":
     "Options flow, insider buys, congress trades, analyst ratings, screener universe. Powers the v5 scanner, the Trading Opps composites, the Portfolio Insights option marks.",
   "FRED":
-    "30+ macro series (rates, spreads, credit, claims, M2, balance sheet). Powers Macro Overview, the Cycle Mechanism Board, indicator drilldowns, scenario analysis.",
+    "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview, the Cycle Mechanism Board, indicator drilldowns, scenario analysis. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
+  "U.S. Treasury":
+    "Daily Treasury par yield curve (1Mo–30Y nominal) and daily TIPS real yield curve (5Y–30Y). Powers the 10Y-2Y slope, 10Y TIPS real rate, and 10Y inflation breakeven indicators. Free CSV feed at home.treasury.gov, same-day publication ~16:00 ET.",
   "Yahoo Finance":
     "VIX, MOVE, SKEW, KBE/SPY ratio, LQD/HYG ratio, DX-Y dollar index. Powers macro indicators + portfolio price marks where Polygon coverage is incomplete.",
   "ISM":
@@ -109,6 +112,7 @@ export const VENDOR_MONTHLY_COST = {
   "Polygon Massive":         "$79",
   "Unusual Whales":          "$150",
   "FRED":                    "Free",
+  "U.S. Treasury":           "Free",
   "Yahoo Finance":           "Free",
   "ISM":                     "Free",
   "New York Fed":            "Free",

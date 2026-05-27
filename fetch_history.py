@@ -90,6 +90,101 @@ DIRECTION = {
 fred = Fred(api_key=FRED_API_KEY)
 
 
+# ── Fail-loud staleness gate (Joe directive 2026-05-27) ──────────────────────
+# These are the daily indicators the All Indicators page shows as "Daily" in
+# the FREQ column. If any of them is more than its SLA worth of trading days
+# behind today, the workflow fails loudly instead of writing a stale file.
+# SLA = max trading days behind we tolerate before raising.
+#   FRED daily series legitimately publish T+1 (BAMLH0A0HYM2, BAMLC0A0CM,
+#   THREEFYTP10), so they get SLA=2.
+#   Treasury.gov + Yahoo are same-day, so SLA=1.
+DAILY_FRESHNESS_SLA = {
+    "vix":           1,  # Yahoo ^VIX
+    "move":          1,  # Yahoo ^MOVE
+    "skew":          1,  # Yahoo ^SKEW
+    "usd":           1,  # Yahoo DX-Y.NYB
+    "copper_gold":   1,  # Yahoo HG=F / GC=F
+    "bkx_spx":       1,  # Yahoo KBE / SPY
+    "eq_cr_corr":    1,  # Yahoo SPY / HYG
+    "hy_ig_etf":     1,  # Yahoo LQD / HYG
+    "yield_curve":   1,  # Treasury.gov (was FRED T10Y2Y)
+    "real_rates":    1,  # Treasury.gov (was FRED DFII10)
+    "breakeven_10y": 1,  # Treasury.gov computed (was FRED T10YIE)
+    "hy_ig":         2,  # FRED BAMLH0A0HYM2 (T+1 publication)
+    "ig_oas":        2,  # FRED BAMLC0A0CM   (T+1 publication)
+    "term_premium":  2,  # FRED THREEFYTP10  (T+1 publication)
+    "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
+}
+
+
+class StalenessError(RuntimeError):
+    """Raised when a daily indicator is older than its SLA. Fails the workflow."""
+
+
+# Standard NYSE holidays for 2026 — used to compute trading-day gap.
+NYSE_HOLIDAYS_2026 = {
+    "2026-01-01",  # New Year's Day
+    "2026-01-19",  # MLK Day
+    "2026-02-16",  # Presidents Day
+    "2026-04-03",  # Good Friday
+    "2026-05-25",  # Memorial Day
+    "2026-06-19",  # Juneteenth
+    "2026-07-03",  # July 4 observed (Sat 4th)
+    "2026-09-07",  # Labor Day
+    "2026-11-26",  # Thanksgiving
+    "2026-12-25",  # Christmas
+}
+
+
+def _trading_days_behind(last_date_iso, today=None):
+    """Count weekday-and-non-holiday days between last_date and today.
+    Returns 0 if last_date is today or later, 1 if today is the next trading
+    day, etc."""
+    from datetime import date, timedelta
+    if today is None:
+        today = date.today()
+    last = date.fromisoformat(last_date_iso)
+    if last >= today:
+        return 0
+    n = 0
+    d = last + timedelta(days=1)
+    while d <= today:
+        if d.weekday() < 5 and d.isoformat() not in NYSE_HOLIDAYS_2026:
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+
+def _check_daily_freshness_or_raise(data):
+    """Audit every daily indicator against its SLA. Raise StalenessError listing
+    every violation in one message — easier to fix five at once than to chase
+    one error per workflow run."""
+    violations = []
+    for ind_id, sla in DAILY_FRESHNESS_SLA.items():
+        entry = data.get(ind_id)
+        if not entry:
+            violations.append(f"  {ind_id}: missing entirely from fetch result")
+            continue
+        pts = entry.get("points") or []
+        if not pts:
+            violations.append(f"  {ind_id}: zero points")
+            continue
+        last_iso = pts[-1][0]
+        behind = _trading_days_behind(last_iso)
+        if behind > sla:
+            src = entry.get("source", "?")
+            violations.append(
+                f"  {ind_id}: last={last_iso}, {behind} trading days behind "
+                f"(SLA {sla}); source: {src}"
+            )
+    if violations:
+        msg = (
+            f"{len(violations)} daily indicator(s) exceeded freshness SLA:\n"
+            + "\n".join(violations)
+        )
+        raise StalenessError(msg)
+
+
 def compute_stats(points, direction="hw", winsorize=True, window_years=STATS_WINDOW_YEARS):
     """Compute {mean, sd, window, winsorize, n} for a points list.
 
@@ -312,6 +407,88 @@ def safe_fred(series_id, start=START, transform=None, retries=3):
     return None
 
 
+def safe_treasury(series_kind, tenor_label, start=START, retries=3):
+    """Pull a daily Treasury yield curve series directly from Treasury.gov.
+
+    Replaces FRED for daily Treasury yields and TIPS yields. Treasury.gov is the
+    upstream publisher — same data FRED republishes, but available same-day
+    instead of FRED's late-afternoon T+1 cadence.
+
+    Args:
+        series_kind: 'nominal' (Treasury par yields) or 'tips' (real yields)
+        tenor_label: column header on the Treasury.gov CSV, e.g. '10 Yr', '2 Yr',
+                     '10 YR' (TIPS uses 'YR', nominal uses 'Yr' — annoying but
+                     that's how the CSV ships).
+        start: ISO date string; we paginate across years from this point.
+
+    Returns:
+        pandas Series indexed by date, values in % (matches FRED scale).
+    """
+    import time
+    import urllib.request, urllib.error
+    import io
+    KIND_PARAM = {
+        "nominal": "daily_treasury_yield_curve",
+        "tips":    "daily_treasury_real_yield_curve",
+    }
+    if series_kind not in KIND_PARAM:
+        raise ValueError(f"safe_treasury: unknown kind {series_kind!r}")
+    start_year = int(start[:4])
+    end_year = datetime.utcnow().year
+    frames = []
+    for year in range(start_year, end_year + 1):
+        url = (
+            "https://home.treasury.gov/resource-center/data-chart-center/"
+            f"interest-rates/daily-treasury-rates.csv/{year}/all"
+            f"?type={KIND_PARAM[series_kind]}&field_tdr_date_value={year}"
+            "&page&_format=csv"
+        )
+        last_err = None
+        body = None
+        for attempt in range(retries):
+            try:
+                req = urllib.request.Request(url, headers={
+                    "User-Agent": "macrotilt-data-steward/1.0 (+https://macrotilt.com)"
+                })
+                with urllib.request.urlopen(req, timeout=25) as r:
+                    body = r.read().decode("utf-8", errors="replace")
+                if "Date," in body[:200]:
+                    break
+                last_err = f"unexpected body head: {body[:80]!r}"
+            except Exception as e:
+                last_err = str(e)
+            if attempt < retries - 1:
+                time.sleep(1.5 * (attempt + 1))
+        if body is None or "Date," not in body[:200]:
+            print(f"  Treasury.gov {series_kind} {year} FAILED: {last_err}")
+            continue
+        try:
+            df = pd.read_csv(io.StringIO(body))
+        except Exception as e:
+            print(f"  Treasury.gov {series_kind} {year} parse FAILED: {e}")
+            continue
+        if tenor_label not in df.columns:
+            print(f"  Treasury.gov {series_kind} {year}: missing column "
+                  f"{tenor_label!r} (have: {list(df.columns)})")
+            continue
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors="coerce")
+        df = df.dropna(subset=["Date"])
+        df = df[["Date", tenor_label]].rename(columns={tenor_label: "value"})
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df = df.dropna(subset=["value"])
+        frames.append(df.set_index("Date")["value"].sort_index())
+    if not frames:
+        print(f"  Treasury.gov {series_kind}/{tenor_label}: no data fetched")
+        _log_pipeline_health(
+            f"Treasury.gov {series_kind} {tenor_label}",
+            f"no observations from Treasury.gov ({last_err})",
+        )
+        return None
+    s = pd.concat(frames).sort_index()
+    s = s[~s.index.duplicated(keep="last")]
+    return s
+
+
 def safe_yf(ticker, start=START):
     try:
         h = yf.Ticker(ticker).history(start=start, auto_adjust=False)["Close"].dropna()
@@ -360,12 +537,21 @@ def fetch_all():
         result["eq_cr_corr"] = {"freq": "D", "unit": "corr",
                                 "points": series_to_points(corr, round_dp=3)}
 
-    print("10Y-2Y slope ...")
-    s = safe_fred("T10Y2Y")
-    if s is not None:
-        bps = s * 100.0  # FRED % → bps
+    print("10Y-2Y slope (Treasury.gov nominal curve) ...")
+    # Source migration 2026-05-27 (Joe directive): dropped FRED T10Y2Y in favor
+    # of computing the spread directly from Treasury.gov daily yields. Same
+    # underlying data — Treasury.gov is FRED's upstream publisher — but lands
+    # same-day instead of FRED's late-afternoon T+1 cadence.
+    t10y = safe_treasury("nominal", "10 Yr")
+    t2y  = safe_treasury("nominal", "2 Yr")
+    if t10y is not None and t2y is not None:
+        df = pd.concat([t10y.rename("t10"), t2y.rename("t2")], axis=1).dropna()
+        bps = ((df["t10"] - df["t2"]) * 100.0).dropna()  # % → bps
         result["yield_curve"] = {"freq": "D", "unit": "bps",
-                                 "points": series_to_points(bps, round_dp=1)}
+                                 "points": series_to_points(bps, round_dp=1),
+                                 "source": "Treasury.gov daily yield curve (10Y − 2Y)"}
+    else:
+        print("  yield_curve: Treasury.gov fetch failed — leaving prior value")
 
     print("MOVE Index ...")
     s = safe_yf("^MOVE", start="2002-11-12")  # spliced pre-2006 window per FINAL_LOCKED_ENGINE_2026-05-13
@@ -376,11 +562,19 @@ def fetch_all():
         # fallback: try FRED proxy (no perfect public series — skip gracefully)
         print("  MOVE: no Yahoo, skipping (fallback to overrides)")
 
-    print("10Y TIPS (real_rates) ...")
-    s = safe_fred("DFII10")
+    print("10Y TIPS / real_rates (Treasury.gov TIPS curve) ...")
+    # Source migration 2026-05-27 (Joe directive): dropped FRED DFII10 in favor
+    # of Treasury.gov's daily real yield curve. DFII10 was the indicator that
+    # most often shipped stale because FRED publishes it around 20:00 UTC,
+    # after our 10:00-UTC morning workflow. Treasury.gov posts it same-day
+    # (typically 15:00-16:00 ET), so our 22:00-UTC afternoon run captures it.
+    s = safe_treasury("tips", "10 YR")
     if s is not None:
         result["real_rates"] = {"freq": "D", "unit": "%",
-                                "points": series_to_points(s, round_dp=2)}
+                                "points": series_to_points(s, round_dp=2),
+                                "source": "Treasury.gov daily TIPS yield curve (10Y)"}
+    else:
+        print("  real_rates: Treasury.gov fetch failed — leaving prior value")
 
     print("Copper/Gold ratio ...")
     cp = safe_yf("HG=F")
@@ -697,11 +891,20 @@ def fetch_all():
         result["tga"] = {"freq": "W", "unit": "$bn",
                         "points": series_to_points(s_b, round_dp=1)}
 
-    print("10Y Inflation Breakeven (breakeven_10y) ...")
-    s = safe_fred("T10YIE")
-    if s is not None:
+    print("10Y Inflation Breakeven (Treasury.gov 10Y nominal − 10Y TIPS) ...")
+    # Source migration 2026-05-27 (Joe directive): replaced FRED T10YIE with
+    # the explicit arithmetic Treasury uses. T10YIE is just (DGS10 − DFII10),
+    # and we now have both series direct from Treasury.gov same-day.
+    t10n = safe_treasury("nominal", "10 Yr")
+    t10r = safe_treasury("tips",    "10 YR")
+    if t10n is not None and t10r is not None:
+        df = pd.concat([t10n.rename("nom"), t10r.rename("real")], axis=1).dropna()
+        be = (df["nom"] - df["real"]).dropna()
         result["breakeven_10y"] = {"freq": "D", "unit": "%",
-                                   "points": series_to_points(s, round_dp=2)}
+                                   "points": series_to_points(be, round_dp=2),
+                                   "source": "Treasury.gov daily curve (10Y nominal − 10Y TIPS)"}
+    else:
+        print("  breakeven_10y: Treasury.gov fetch failed — leaving prior value")
 
     print("CFNAI raw + CFNAI 3-month MA (methodology-v11.md: FRED CFNAIMA3 direct) ...")
     s_cfnai = safe_fred("CFNAI")
@@ -1193,6 +1396,23 @@ def main():
             os.makedirs(out_dir, exist_ok=True)
         print(f"Fetching history → {OUT_PATH}")
         data = fetch_all()
+        # ── Fail-loud staleness gate (Joe directive 2026-05-27) ───────────────
+        # Before this gate existed, individual safe_fred() / safe_yf() / safe_treasury()
+        # failures returned None and were quietly dropped. The workflow logged
+        # "success" while the on-disk JSON went days stale. Now: any daily
+        # indicator that is more than N trading days behind today fails the
+        # whole run with a visible exception, so the workflow goes red on
+        # GitHub Actions and an issue is auto-filed by the watchdog.
+        try:
+            _check_daily_freshness_or_raise(data)
+        except StalenessError as _se:
+            print(f"\nFRESHNESS GATE FAILED: {_se}")
+            _log_run_to_api_usage(
+                status="failed",
+                started_at=started_at,
+                error_message=str(_se),
+            )
+            raise
         with open(OUT_PATH, "w") as f:
             json.dump(data, f, separators=(",", ":"))
         size_kb = os.path.getsize(OUT_PATH) / 1024

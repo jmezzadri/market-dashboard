@@ -160,11 +160,11 @@ export const FEED_DETAILS = {
 
   "real_rates": {
     ingestion_kind: "api",
-    api_endpoint: "https://api.stlouisfed.org/fred/series/observations?series_id=DFII10",
-    ingestion_explain: "REST API call to FRED for series DFII10 (10-year TIPS yield, the standard real-rate proxy). Pulled by fetch_history.py each weekday morning.",
+    api_endpoint: "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv?type=daily_treasury_real_yield_curve",
+    ingestion_explain: "Direct pull from Treasury.gov's daily TIPS real yield curve CSV — the upstream source FRED republishes as DFII10. Migrated from FRED on 2026-05-27 because FRED publishes ~20:00 UTC (after our morning workflow), while Treasury.gov posts the same data ~16:00 ET — captured by the afternoon workflow same day. Pulled by fetch_history.py and fetch_indicators.py.",
     data_fields: [
-      { name: "as_of",  example: "2026-05-12", note: "Trading day" },
-      { name: "value",  example: "2.18",       note: "10-year real yield in percent" },
+      { name: "as_of",  example: "2026-05-27", note: "Trading day" },
+      { name: "value",  example: "2.09",       note: "10-year real yield in percent" },
       { name: "history",example: "[{date, value}, …]", note: "5-year trailing history" },
     ],
   },
