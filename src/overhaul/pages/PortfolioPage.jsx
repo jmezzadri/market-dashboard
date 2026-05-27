@@ -553,9 +553,7 @@ function PositionDrill({ row, navigate }) {
                 <span className="lm-drilllayerk">{k}</span>
                 <span className="num lm-drilllayerv">—<i>/5</i></span>
               </div>
-              <div className="lm-drilllayerbar">
-                <b style={{ width: '0%' }} />
-              </div>
+              <div className="lm-drilllayerbar lm-drilllayerbar--empty" />
             </div>
           ))}
         </div>
