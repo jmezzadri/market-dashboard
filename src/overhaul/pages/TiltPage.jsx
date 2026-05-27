@@ -360,16 +360,11 @@ export default function TiltPage() {
             <div className="mt-h2">When the engine moved.</div>
           </div>
         </div>
-        <div className="mt-card" style={{ padding: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)', gap: 4, marginBottom: 12 }}>
+        <div className="mt-card">
+          <div className="at-regstrip">
             {Array.from({ length: 24 }).map((_, i) => {
               const stage = i < 6 ? 'neutral' : i < 12 ? 'infl' : i < 18 ? 'neutral' : 'infl';
               const stress = i < 8 ? 'on' : i < 14 ? 'watch' : 'on';
-              const bg =
-                stress === 'on' && stage === 'infl' ? 'color-mix(in oklab, var(--mt-up) 30%, var(--mt-warn) 30%)' :
-                stress === 'on' ? 'var(--mt-up)' :
-                stress === 'watch' && stage === 'infl' ? 'var(--mt-warn)' :
-                'var(--mt-ink-3)';
               return (
                 <Tip
                   key={i}
@@ -377,50 +372,20 @@ export default function TiltPage() {
                   block
                   content={`Week ${i + 1}: ${stress === 'on' ? 'Risk On' : 'Watch'} · ${stage === 'infl' ? 'Inflationary' : 'Neutral'}`}
                 >
-                  <div
-                    style={{
-                      height: 38,
-                      borderRadius: 4,
-                      background: bg,
-                      opacity: 0.85,
-                    }}
-                  />
+                  <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
                 </Tip>
               );
             })}
           </div>
-          <div
-            style={{
-              display: 'flex',
-              gap: 14,
-              fontSize: 11.5,
-              color: 'var(--mt-ink-2)',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> Risk On
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> Watch
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-down)' }} /> Risk Off
-            </span>
-            <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-ink-3)' }} /> Neutral
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> Inflationary
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> Deflationary
-            </span>
-            <span className="num" style={{ marginLeft: 'auto', color: 'var(--mt-ink-3)' }}>
-              24 weeks · rebalanced weekly
-            </span>
+          <div className="at-regfoot">
+            <span><span className="at-regdot at-regdot--on" /> Risk On</span>
+            <span><span className="at-regdot at-regdot--watch" /> Watch</span>
+            <span><span className="at-regdot at-regdot--off" /> Risk Off</span>
+            <span className="lm-flowfootsep" />
+            <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
+            <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
+            <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
+            <span className="num" style={{ marginLeft: 'auto' }}>24 weeks · rebalanced weekly</span>
           </div>
         </div>
       </section>

@@ -230,13 +230,22 @@ export default function MacroPage() {
       ) : view === 'map' ? (
         <>
           <section className="mt-pagesection">
-            <RegimeCanvas
-              indicators={filtered}
-              onSelect={setSelected}
-              selected={selected}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--mt-ink-2)' }}>
-              Showing <b className="num">{filtered.length}</b> of <b className="num">{indicators.length}</b> · click any dot to drill
+            <div className="lm-canvas">
+              <RegimeCanvas
+                indicators={filtered}
+                onSelect={setSelected}
+                selected={selected}
+              />
+              <div className="lm-canvaslegend">
+                <div className="lm-legrow">
+                  <span className="lm-legdot lm-legdot--extreme" /> extreme
+                  <span className="lm-legdot lm-legdot--elevated" /> elevated
+                  <span className="lm-legdot lm-legdot--calm" /> calm
+                </div>
+                <div className="lm-legrow lm-legrow--dim">
+                  showing {filtered.length} of {indicators.length} · click any dot to drill
+                </div>
+              </div>
             </div>
           </section>
           {selected && (

@@ -23,6 +23,14 @@ import './styles/tokens.css';
 import './styles/chrome.css';
 import './styles/pages.css';
 
+// Prototype CSS files ported VERBATIM from Claude Design's handoff,
+// scoped under .mt-overhaul. These are the design vocabulary the pages
+// are written against — without them, every page renders inline styles
+// that approximate the look badly. Joe directive 2026-05-27.
+import './styles/proto-lm-components.css';
+import './styles/proto-pages.css';
+import './styles/proto-methodology.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
 

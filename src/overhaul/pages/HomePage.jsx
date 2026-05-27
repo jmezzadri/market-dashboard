@@ -173,28 +173,15 @@ export default function HomePage() {
             <div style={{ margin: '0 -12px' }}>
               <RegimeCanvas indicators={active} aspect={1.55} />
             </div>
-            <div
-              style={{
-                marginTop: 8,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: 11.5,
-                color: 'var(--mt-ink-2)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-down)' }} /> extreme
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> elevated
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> calm
-                </span>
+            <div className="lm-canvaslegend">
+              <div className="lm-legrow">
+                <span className="lm-legdot lm-legdot--extreme" /> extreme
+                <span className="lm-legdot lm-legdot--elevated" /> elevated
+                <span className="lm-legdot lm-legdot--calm" /> calm
               </div>
-              <span className="num">{total} indicators · live · 5y normalized</span>
+              <div className="lm-legrow lm-legrow--dim">
+                {total} indicators · live · 5y normalized
+              </div>
             </div>
           </div>
 
