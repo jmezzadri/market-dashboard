@@ -259,65 +259,29 @@ export default function HomePage() {
               <span className="num" style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>= 100%</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
               {allocRows.map((s) => (
                 <button
                   key={s.code}
                   type="button"
                   onClick={() => navigate('/tilt')}
-                  style={{
-                    appearance: 'none',
-                    border: 'none',
-                    background: 'transparent',
-                    width: '100%',
-                    display: 'grid',
-                    gridTemplateColumns: '42px 1fr 60px',
-                    gap: 10,
-                    alignItems: 'center',
-                    padding: 0,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
+                  className="hm-allocrow"
                 >
-                  <span
-                    style={{
-                      fontFamily: 'var(--mt-font-mono)',
-                      fontSize: 11,
-                      color: 'var(--mt-ink-2)',
-                      fontWeight: 600,
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {s.code}
+                  <span className="hm-allocname">
+                    <span className="lm-flowcode">{s.code}</span>
+                    <span className="hm-allocnamelbl">{s.name}</span>
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="hm-allocbar">
                     <span
                       style={{
-                        fontSize: 12.5,
-                        color: 'var(--mt-ink-1)',
-                        flex: '0 0 auto',
-                        maxWidth: 140,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        width: `${(s.fraction * 100).toFixed(1)}%`,
+                        background: 'var(--mt-accent)',
                       }}
-                    >
-                      {s.name}
-                    </span>
-                    <span style={{ flex: 1, height: 6, background: 'var(--mt-surface-3)', borderRadius: 3, overflow: 'hidden' }}>
-                      <span
-                        style={{
-                          display: 'block',
-                          width: `${(s.fraction * 100).toFixed(1)}%`,
-                          height: '100%',
-                          background: 'var(--mt-accent)',
-                        }}
-                      />
-                    </span>
+                    />
                   </span>
-                  <span className="num" style={{ textAlign: 'right', fontSize: 13, color: 'var(--mt-ink-0)', fontWeight: 600 }}>
+                  <span className="num hm-allocpct">
                     {(s.weight * 100).toFixed(1)}
-                    <span style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', marginLeft: 2, fontWeight: 400 }}>%</span>
+                    <i>%</i>
                   </span>
                 </button>
               ))}
