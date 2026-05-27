@@ -70,6 +70,11 @@ export default function TiltPage() {
   const [expandedSectors, setExpandedSectors] = useState(new Set());
   const [expandedIGs, setExpandedIGs] = useState(new Set());
   const [sectorView, setSectorView] = useState('tilt');
+  /* Sparkline hover state — { idx, value, date } when the user is hovering,
+     null otherwise. Lets the gauge "Now" line swap to the hovered week so the
+     24-week history reads like a real tooltip instead of a decorative curve. */
+  const [stressHover, setStressHover] = useState(null);
+  const [yieldHover, setYieldHover] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,6 +138,29 @@ export default function TiltPage() {
 
   const stressHist = useMemo(() => weeklyTail24.map((w) => w.move).filter(Number.isFinite), [weeklyTail24]);
   const yieldHist  = useMemo(() => weeklyTail24.map((w) => w.delta_y_3m_bp).filter(Number.isFinite), [weeklyTail24]);
+  /* Parallel arrays of dates so the hover handlers can look up the trading
+     week the user is pointing at. weeklyTail24 carries the canonical week
+     date; the histograms above filter out NaN values which would desync
+     the indices, so we re-derive from the SAME filtered set. */
+  const stressDates = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.move)).map((w) => w.date), [weeklyTail24]);
+  const yieldDates  = useMemo(() => weeklyTail24.filter((w) => Number.isFinite(w.delta_y_3m_bp)).map((w) => w.date), [weeklyTail24]);
+
+  /* Defensive sleeve weights as a portion of the TOTAL portfolio (not just
+     the defensive bucket). Used to render the 4-bar allocation visualization
+     in the stance card. When the sleeve is on standby (Risk On regime), all
+     three defensive components are 0 — the "Defensive sleeve on standby"
+     caption explains why under the bars. */
+  const sleeveAllocPct = useMemo(() => {
+    if (!sleeve || defPct == null) {
+      return { gold: 0, treasury: 0, cash: 0 };
+    }
+    return {
+      gold:     (defPct * (sleeve.gld   ?? 0)) || 0,
+      treasury: (defPct * (sleeve.tlt   ?? 0)) || 0,
+      // Cash row absorbs SHY for display per the engine spec.
+      cash:     (defPct * ((sleeve.cash ?? 0) + (sleeve.shy ?? 0))) || 0,
+    };
+  }, [sleeve, defPct]);
 
   /* Backtest validation numbers — never hardcoded. */
   const at = backtest?.validation?.asset_tilt;
@@ -228,8 +256,16 @@ export default function TiltPage() {
               ]}
             />
             <div className="at-gaugefoot num">
-              <span>{regime.move != null ? regime.move.toFixed(1) : '—'}</span>
-              <span className="at-gaugedim">{regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}</span>
+              <span>
+                {stressHover && stressHover.value != null
+                  ? stressHover.value.toFixed(1)
+                  : regime.move != null ? regime.move.toFixed(1) : '—'}
+              </span>
+              <span className="at-gaugedim">
+                {stressHover && stressHover.date
+                  ? `week of ${stressHover.date}`
+                  : regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}
+              </span>
             </div>
             <div className="mt-eyebrow at-gauge-eyebrow">
               24-week history{' '}
@@ -238,7 +274,18 @@ export default function TiltPage() {
               )}
             </div>
             {stressHist.length > 0 ? (
-              <Sparkline data={stressHist} width={520} height={56} stroke="var(--mt-accent)" fill="var(--mt-accent)" area />
+              <Sparkline
+                data={stressHist}
+                width={520}
+                height={56}
+                stroke="var(--mt-accent)"
+                fill="var(--mt-accent)"
+                area
+                onHover={(idx, value) => {
+                  if (idx == null) setStressHover(null);
+                  else setStressHover({ idx, value, date: stressDates[idx] ?? null });
+                }}
+              />
             ) : (
               <div className="at-spark-placeholder">MOVE history pending wire</div>
             )}
@@ -270,11 +317,17 @@ export default function TiltPage() {
             />
             <div className="at-gaugefoot num">
               <span>
-                {regime.yieldDeltaBp != null
-                  ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp`
-                  : '—'}
+                {yieldHover && yieldHover.value != null
+                  ? `${yieldHover.value >= 0 ? '+' : ''}${yieldHover.value.toFixed(0)} bp`
+                  : regime.yieldDeltaBp != null
+                    ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp`
+                    : '—'}
               </span>
-              <span className="at-gaugedim">{regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}</span>
+              <span className="at-gaugedim">
+                {yieldHover && yieldHover.date
+                  ? `week of ${yieldHover.date}`
+                  : regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}
+              </span>
             </div>
             <div className="mt-eyebrow at-gauge-eyebrow">
               24-week history{' '}
@@ -283,46 +336,73 @@ export default function TiltPage() {
               )}
             </div>
             {yieldHist.length > 0 ? (
-              <Sparkline data={yieldHist} width={520} height={56} stroke="var(--mt-warn)" fill="var(--mt-warn)" area />
+              <Sparkline
+                data={yieldHist}
+                width={520}
+                height={56}
+                stroke="var(--mt-warn)"
+                fill="var(--mt-warn)"
+                area
+                onHover={(idx, value) => {
+                  if (idx == null) setYieldHover(null);
+                  else setYieldHover({ idx, value, date: yieldDates[idx] ?? null });
+                }}
+              />
             ) : (
               <div className="at-spark-placeholder">Yield history pending wire</div>
             )}
             <div className="at-gaugemini num"><span>24W</span><span>NOW</span></div>
           </article>
 
-          {/* Stance card */}
+          {/* Stance card — four-bar allocation visualization.
+              Joe directive 2026-05-27: replace the prose "100% equity ·
+              0% defensive · would compose — gold · — TLT · — cash" with
+              horizontal bars per asset class. Bars use distinct accent
+              colors so the user can see WHAT is firing and HOW MUCH at
+              a glance. */}
           <article className="mt-card at-stance">
-            <div className="mt-eyebrow">Allocation</div>
-            <div className="at-stanceval">
-              <span className="at-stancepct num">{fmtPercent(equityPct, 0)}<i>%</i></span>
-              <span className="at-stancelabel">equity</span>
+            <div className="mt-eyebrow">Recommended allocation</div>
+            <div className="at-allocbars">
+              {(() => {
+                const rows = [
+                  { id: 'equity',   label: 'Equities',   pct: equityPct ?? 0, klass: 'at-allocfill--equity'   },
+                  { id: 'treasury', label: 'Treasuries', pct: sleeveAllocPct.treasury, klass: 'at-allocfill--treasury' },
+                  { id: 'gold',     label: 'Gold',       pct: sleeveAllocPct.gold,     klass: 'at-allocfill--gold'     },
+                  { id: 'cash',     label: 'Cash',       pct: sleeveAllocPct.cash,     klass: 'at-allocfill--cash'     },
+                ];
+                return rows.map((r) => (
+                  <div key={r.id} className={`at-allocbar ${r.pct === 0 ? 'at-allocbar--empty' : ''}`}>
+                    <span className="at-alloclabel">{r.label}</span>
+                    <span className="at-alloctrack">
+                      <span
+                        className={`at-allocfill ${r.klass}`}
+                        style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }}
+                      />
+                    </span>
+                    <span className="num at-allocval">
+                      {r.pct === 0 ? '0' : r.pct < 1 ? r.pct.toFixed(1) : Math.round(r.pct)}<i>%</i>
+                    </span>
+                  </div>
+                ));
+              })()}
             </div>
-            <div className="at-stanceval at-stanceval--dim">
-              <span className="at-stancepct num">{fmtPercent(defPct, 0)}<i>%</i></span>
-              <span className="at-stancelabel">defensive</span>
-            </div>
-            <div className="mt-divider" />
-            <p className="at-stance-note">
-              Defensive sleeve on{' '}
-              <Tip content="Activates when stress signal crosses Watch threshold (MOVE > 116).">
-                <b>{sleeve ? 'firing' : 'standby'}</b>
-              </Tip>{' '}
-              — would compose{' '}
+            <div className="at-allocfoot">
               {sleeve ? (
                 <>
-                  <b className="num">{sleeve.gold}% gold</b>,{' '}
-                  <b className="num">{sleeve.tlt}% TLT</b>,{' '}
-                  <b className="num">{sleeve.cash}% cash</b>
+                  <Tip content="Defensive sleeve activates when stress signal crosses Watch threshold (MOVE > 116).">
+                    <b className="at-allocstate at-allocstate--on">Defensive sleeve firing</b>
+                  </Tip>
+                  {' '}— composition tuned to {(regime.yieldRegime || 'neutral').toLowerCase()} regime.
                 </>
               ) : (
                 <>
-                  <b className="num">—</b> gold ·{' '}
-                  <b className="num">—</b> TLT ·{' '}
-                  <b className="num">—</b> cash
+                  <Tip content="Defensive sleeve activates when stress signal crosses Watch threshold (MOVE > 116).">
+                    <b className="at-allocstate at-allocstate--off">Defensive sleeve on standby</b>
+                  </Tip>
+                  {' '}— would shift to gold / Treasuries / cash if stress crosses Watch.
                 </>
-              )}{' '}
-              in this {(regime.yieldRegime || 'neutral').toLowerCase()} regime.
-            </p>
+              )}
+            </div>
           </article>
         </div>
       </section>

@@ -227,12 +227,51 @@
 .mt-overhaul .at-gaugezone--down .at-gaugezonelbl { color: var(--mt-down); }
 .mt-overhaul .at-gaugezonenum { font-size: 13px; font-family: var(--mt-font-display); font-weight: 500; color: var(--mt-ink-0); }
 
-.mt-overhaul .at-stance { display: flex; flex-direction: column; gap: 10px; }
+.mt-overhaul .at-stance { display: flex; flex-direction: column; gap: 14px; }
 .mt-overhaul .at-stanceval { display: flex; align-items: baseline; gap: 8px; }
 .mt-overhaul .at-stancepct { font-family: var(--mt-font-display); font-size: 44px; font-weight: 400; letter-spacing: -0.02em; line-height: 1; }
 .mt-overhaul .at-stancepct i { font-style: normal; font-size: 20px; color: var(--mt-ink-2); margin-left: 2px; }
 .mt-overhaul .at-stanceval--dim .at-stancepct { color: var(--mt-ink-2); }
 .mt-overhaul .at-stancelabel { font-size: 12.5px; color: var(--mt-ink-2); }
+
+/* 2026-05-27 — Four-bar recommended allocation visualization. Replaces
+   the prose "100% equity · 0% defensive · would compose — gold · — TLT
+   · — cash" with horizontal bars per asset class so the user can see
+   at a glance WHAT is firing and HOW MUCH. Joe directive. */
+.mt-overhaul .at-allocbars { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.mt-overhaul .at-allocbar {
+  display: grid; grid-template-columns: 92px 1fr 56px; gap: 12px; align-items: center;
+}
+.mt-overhaul .at-alloclabel { font-size: 13px; color: var(--mt-ink-0); font-family: var(--mt-font-ui); }
+.mt-overhaul .at-alloctrack {
+  position: relative; height: 10px;
+  background: var(--mt-surface-3); border-radius: 999px; overflow: hidden;
+}
+.mt-overhaul .at-allocfill {
+  display: block; height: 100%; border-radius: 999px;
+  transition: width 600ms cubic-bezier(0.2,0.8,0.2,1), background-color 200ms ease;
+  min-width: 2px; /* keep a hairline visible on 0% rows so the user can see the empty channel */
+}
+.mt-overhaul .at-allocbar--empty .at-allocfill { background: var(--mt-line-1); min-width: 0; }
+.mt-overhaul .at-allocfill--equity   { background: var(--mt-accent); }
+.mt-overhaul .at-allocfill--treasury { background: #7c5cff; }
+.mt-overhaul .at-allocfill--gold     { background: #d4a73a; }
+.mt-overhaul .at-allocfill--cash     { background: var(--mt-ink-2); }
+.mt-overhaul .at-allocval {
+  text-align: right; font-family: var(--mt-font-display); font-size: 17px;
+  font-weight: 500; color: var(--mt-ink-0); line-height: 1;
+}
+.mt-overhaul .at-allocbar--empty .at-allocval { color: var(--mt-ink-2); }
+.mt-overhaul .at-allocval i {
+  font-style: normal; font-size: 11px; color: var(--mt-ink-2);
+  margin-left: 1px; font-family: var(--mt-font-ui); font-weight: 400;
+}
+.mt-overhaul .at-allocfoot {
+  font-size: 12.5px; color: var(--mt-ink-2); line-height: 1.5;
+  margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--mt-line-0);
+}
+.mt-overhaul .at-allocstate--on  { color: var(--mt-up); }
+.mt-overhaul .at-allocstate--off { color: var(--mt-ink-0); }
 
 .mt-overhaul .at-regstrip {
   display: grid; grid-template-columns: repeat(24, 1fr); gap: 4px;
