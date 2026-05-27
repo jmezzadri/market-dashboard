@@ -1,0 +1,32 @@
+{
+  "_doc": "Methodology changelog — material changes to the engine, the indicator framework, or the scoring math. Owned by Senior Quant + Data Steward; updated by manual PR when a model/calibration ships. Joe Path-A directive 2026-05-27: dates + notes here are reference facts, not market data, so they live in this curated file rather than hardcoded in the Methodology page.",
+  "owner": "Senior Quant + Data Steward",
+  "as_of": "2026-05-27",
+  "schema_version": 1,
+  "entries": [
+    {
+      "date": "2026-05-27",
+      "note": "Site overhaul — prototype-faithful rebuild of all 9 pages, shared components, regime hook."
+    },
+    {
+      "date": "2026-05-21",
+      "note": "Trading Scanner rebuilt — dual-direction, dark pool + options scoring went live."
+    },
+    {
+      "date": "2026-05-11",
+      "note": "Indicator framework finalized. NAAIM and SPX-vs-200dma retired."
+    },
+    {
+      "date": "2026-04-30",
+      "note": "v11 Cycle Mechanism Board became the Macro Overview anchor; old composites deprecated."
+    },
+    {
+      "date": "2026-04-28",
+      "note": "Massive (Polygon) integration phase 1 — universe master replaces UW screener."
+    },
+    {
+      "date": "2026-04-27",
+      "note": "Scenario Analysis v1 launched, aligned to CCAR US-16 factor panel."
+    }
+  ]
+}

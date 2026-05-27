@@ -63,7 +63,7 @@
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     },
     "last_updated": "2026-05-27",
-    "last_change": "Added scenario-scenario_definitions-static (new curated file) and scenario-portfolio_impact-on_demand (stub for the strategy comparison pipeline \u2014 surfaced as red chip on Scenarios page strategy table). Path A directive: every red chip backed by a real manifest entry."
+    "last_change": "Added site-methodology_changelog-static (curated changelog file for Methodology page)."
   },
   "elements": [
     {
@@ -2773,6 +2773,34 @@
         "scenario-scenario_definitions-static",
         "portfolio-positions-on_change"
       ]
+    },
+    {
+      "id": "site-methodology_changelog-static",
+      "category": "ops",
+      "name": "methodology_changelog",
+      "description": "Reference list of material changes to the engine, indicator framework, or scoring math. Methodology page Changelog section reads this file.",
+      "sourcing_mode": "curated",
+      "source_vendor": "n/a (curated by Senior Quant + Data Steward)",
+      "source_endpoint": "public/methodology_changelog.json",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "static",
+      "scheduled_fetch_time_et": "n/a (hand-maintained)",
+      "refresh_trigger": "Manual PR when a model/calibration ships",
+      "freshness_sla_hours": 26280,
+      "output_destination": "public/methodology_changelog.json",
+      "producer_script": "n/a (hand-maintained JSON)",
+      "consumer_surfaces": [
+        {
+          "tab": "methodology",
+          "tile": "Changelog section (08)"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Static file; if missing, Methodology changelog section renders an empty list and a red FreshnessChip.",
+      "owner": "Senior Quant (notes), Data Steward (curation)",
+      "release_calendar": "wall-clock",
+      "dependencies": []
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
