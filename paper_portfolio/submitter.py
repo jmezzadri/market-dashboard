@@ -213,9 +213,10 @@ def submit_pending_orders(
             continue
 
         try:
+            # Pass qty as-is (may be None). The client uses notional when qty is None or <= 0.
             order_resp = alpaca.submit_market_on_open(
                 ticker=row.ticker,
-                qty=qty if qty is not None else 0.0,    # if notional path, qty arg ignored
+                qty=qty,
                 side=row.side,
                 client_order_id=row.id,
                 notional=notional,

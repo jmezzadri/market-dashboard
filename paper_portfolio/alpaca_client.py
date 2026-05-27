@@ -174,8 +174,8 @@ class AlpacaPaperClient:
         """
         if side not in ("buy", "sell"):
             raise ValueError(f"side must be 'buy' or 'sell', got {side}")
-        if qty is None and notional is None:
-            raise ValueError("must pass either qty or notional")
+        if (qty is None or qty <= 0) and (notional is None or notional <= 0):
+            raise ValueError("must pass either qty>0 or notional>0")
         body: dict[str, Any] = {
             "symbol": ticker,
             "side": side,
@@ -184,7 +184,11 @@ class AlpacaPaperClient:
             "client_order_id": client_order_id,
             "extended_hours": extended_hours,
         }
-        if qty is not None:
+        # Prefer qty when present and positive; otherwise use notional.
+        # (Fixes bug 2026-05-27: when the translator can't get a live price
+        # it leaves qty=None and writes target_notional. The old code would
+        # pass qty=0 here and Alpaca rejected with HTTP 422.)
+        if qty is not None and qty > 0:
             body["qty"] = str(qty)
         else:
             body["notional"] = str(notional)
