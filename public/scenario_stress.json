@@ -117,7 +117,7 @@
               "percentile": 0.0,
               "score": 0,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "Per Q1 substitute: Moody's BAA corporate yield Oct '87 \u2248 11.5% minus 10y Treasury ~9.0% = ~250 bps. Source: FRED BAA + DGS10. BAMLH0A0HYM2 series begins 1996. Tag: proxy."
             },
             {
@@ -128,7 +128,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Per Q7 Senior Quant decision 2026-05-08 (extends Q1 substitute logic to IG): Moody's AAA corporate yield Oct '87 \u2248 10.5% minus 10y Treasury ~9.0% = ~150 bps. Source: FRED AAA + DGS10. BAMLC0A0CM series begins 1996. Tag: proxy."
             }
           ]
@@ -245,7 +245,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "Per Q1 substitute: VXO (Black-Scholes-derived precursor; CBOE constructed retroactively from S&P 100 options) spiked to ~150 on Oct 19 '87 close. DRAFT \u2014 VXO Oct '87 reconstructions vary by source (range 100\u2013150); 150 represents the panic-peak reading. Tag: proxy."
             },
             {
@@ -256,7 +256,7 @@
               "percentile": 47.9,
               "score": 48,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "60d correlation derived from S&P + Moody's BAA-Treasury proxy (BAMLH0A0HYM2 doesn't exist pre-1996). Estimate ~0.70 in Oct '87 panic. DRAFT \u2014 needs reconstruction in Phase 2C producer using BAA proxy."
             }
           ]
@@ -362,7 +362,7 @@
               "percentile": 98.3,
               "score": 98,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "FRED BAMLH0A0HYM2 ~470 bps Mar '00 (elevated late-cycle credit fears)"
             },
             {
@@ -373,7 +373,7 @@
               "percentile": 97.4,
               "score": 97,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "FRED BAMLC0A0CM ~135 bps Mar '00"
             }
           ]
@@ -402,10 +402,10 @@
               "value": 0.0,
               "as_of": "2000-03-31",
               "direction": "high_is_concerning",
-              "percentile": 77.3,
+              "percentile": 77.2,
               "score": 77,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "FRED STLFSI4 ~0 Mar '00 (calm \u2014 peak euphoria)"
             },
             {
@@ -523,7 +523,7 @@
               "percentile": 2.8,
               "score": 3,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "CBOE SKEW ~115 Mar '00 (elevated tail-hedge demand even during peak euphoria)"
             },
             {
@@ -534,7 +534,7 @@
               "percentile": 85.1,
               "score": 85,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "VIX ~24 Mar 10 '00 Nasdaq peak (low for that era; pre-2008 VIX averaged higher than post-GFC norms)"
             },
             {
@@ -545,7 +545,7 @@
               "percentile": 0.7,
               "score": 1,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Equity-credit 60d corr ~0.40 Mar '00 (low \u2014 bull-market complacency, equity and credit decoupled)"
             },
             {
@@ -556,7 +556,7 @@
               "percentile": 89.8,
               "score": 90,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "MOVE Index ~115 Mar '00 (rate-cycle vol from Fed tightening)"
             }
           ]
@@ -642,7 +642,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "FRED BAMLH0A0HYM2 peaked ~1099 bps Oct 10 '02"
             },
             {
@@ -653,7 +653,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "FRED BAMLC0A0CM peaked ~270 bps Oct '02 (telecom/utility credit blowup)"
             }
           ]
@@ -685,7 +685,7 @@
               "percentile": 93.0,
               "score": 93,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "FRED STLFSI4 ~0.5 Oct '02 (modestly elevated; well below GFC)"
             },
             {
@@ -803,7 +803,7 @@
               "percentile": 9.6,
               "score": 10,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "CBOE SKEW averaged ~118 Oct '02"
             },
             {
@@ -814,7 +814,7 @@
               "percentile": 99.5,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "VIX close 49.3 Oct 9 '02 (cycle peak)"
             },
             {
@@ -825,7 +825,7 @@
               "percentile": 30.5,
               "score": 30,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Equity-credit 60d corr ~0.65 Oct '02"
             },
             {
@@ -836,7 +836,7 @@
               "percentile": 98.8,
               "score": 99,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "MOVE peaked ~145 mid-'02 (telecom/Enron credit-induced rates vol)"
             }
           ]
@@ -922,7 +922,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "FRED BAMLH0A0HYM2 hit 1971 bps Dec 15 2008"
             },
             {
@@ -933,7 +933,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-01 = 520.0 (was 620 as_of 2008-12-08). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM peaked ~620 in Dec 2008"
             }
           ]
@@ -965,7 +965,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-14 = 6.02 (was 7.3 as_of 2008-10-17). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 hit 7.32 Oct 2008 (record)"
             },
             {
@@ -1083,7 +1083,7 @@
               "percentile": 2.7,
               "score": 3,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 114.9 (was 118 as_of 2008-10-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW elevated 115-125 range Oct-Nov 2008"
             },
             {
@@ -1094,7 +1094,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "VIX intraday 80.86 Nov 20 2008 (record high)"
             },
             {
@@ -1105,7 +1105,7 @@
               "percentile": 33.9,
               "score": 34,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 0.66 (was 0.85 as_of 2008-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr near 0.85 at GFC peak"
             },
             {
@@ -1116,7 +1116,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 211.6 (was 213 as_of 2008-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE Index peaked ~213 Oct 2008 (Senior Quant validation 2026-05-09 \u2014 corrected from 260; original value likely confused with VIX peak)"
             }
           ]
@@ -1202,7 +1202,7 @@
               "percentile": 99.0,
               "score": 99,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "FRED BAMLH0A0HYM2 closed 537 bps Dec 24 '18 (cycle peak)"
             },
             {
@@ -1213,7 +1213,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-01 = 212.0 (was 158 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM closed 158 bps Dec 24 '18"
             }
           ]
@@ -1245,7 +1245,7 @@
               "percentile": 93.8,
               "score": 94,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-21 = 0.54 (was 0.5 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~0.5 Dec '18 (modestly elevated, well below GFC/COVID)"
             },
             {
@@ -1267,7 +1267,7 @@
               "percentile": 26.1,
               "score": 74,
               "history_key": "rrp",
-              "history_sample_size": 3174,
+              "history_sample_size": 3175,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 8.0 (was 0.001 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP minimal usage Dec '18 (~$1B daily, well below 2022 peak)"
             }
           ]
@@ -1374,7 +1374,7 @@
               "percentile": 10.3,
               "score": 10,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 118.3 (was 125 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW averaged ~125 Dec '18"
             },
             {
@@ -1385,7 +1385,7 @@
               "percentile": 97.9,
               "score": 98,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 36.1 (was 36.07 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 36.07 Dec 24 '18 (cycle peak)"
             },
             {
@@ -1396,7 +1396,7 @@
               "percentile": 72.8,
               "score": 73,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 0.77 (was 0.55 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.55 Dec '18 (elevated but not panic)"
             },
             {
@@ -1407,7 +1407,7 @@
               "percentile": 37.6,
               "score": 38,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 66.0 (was 88 as_of 2018-12-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked ~88 mid-Dec '18 (low by historical-stress standards)"
             }
           ]
@@ -1489,7 +1489,7 @@
               "percentile": 99.9,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 880.0 (was 1100 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: BAMLH0A0HYM2 peaked 1087 bps Mar 23 2020"
             },
             {
@@ -1500,7 +1500,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-01 = 316.0 (was 402 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: BAMLC0A0CM peaked 402 bps Mar 23 2020"
             }
           ]
@@ -1529,10 +1529,10 @@
               "value": 5.66,
               "as_of": "2020-03-20",
               "direction": "high_is_concerning",
-              "percentile": 99.9,
+              "percentile": 100.0,
               "score": 100,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-20 = 5.66 (was 5.5 as_of 2020-03-20). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~5.50 in Mar 2020"
             },
             {
@@ -1551,10 +1551,10 @@
               "value": 26.9,
               "as_of": "2020-03-23",
               "direction": "low_is_concerning",
-              "percentile": 32.2,
+              "percentile": 32.3,
               "score": 68,
               "history_key": "rrp",
-              "history_sample_size": 3174,
+              "history_sample_size": 3175,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 26.9 (was 0 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP usage minimal during stress"
             }
           ]
@@ -1661,7 +1661,7 @@
               "percentile": 6.9,
               "score": 7,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 117.1 (was 135 as_of 2020-03-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: SKEW elevated mid-March"
             },
             {
@@ -1672,7 +1672,7 @@
               "percentile": 99.8,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 61.6 (was 82.7 as_of 2020-03-16). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
             },
             {
@@ -1683,7 +1683,7 @@
               "percentile": 99.6,
               "score": 100,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 0.91 (was 0.8 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.80 at COVID peak"
             },
             {
@@ -1694,7 +1694,7 @@
               "percentile": 97.7,
               "score": 98,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 135.4 (was 164 as_of 2020-03-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked 164 Mar 9 2020"
             }
           ]
@@ -1776,7 +1776,7 @@
               "percentile": 99.4,
               "score": 99,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "HY OAS peaked ~603 bps Sep-Oct 2022"
             },
             {
@@ -1787,7 +1787,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 243.0 (was 165 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: IG OAS peaked ~165 bps Oct 2022"
             }
           ]
@@ -1816,10 +1816,10 @@
               "value": 0.17,
               "as_of": "2022-10-07",
               "direction": "high_is_concerning",
-              "percentile": 84.8,
+              "percentile": 84.7,
               "score": 85,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-07 = 0.17 (was 1.2 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: STLFSI4 modestly elevated, ~1.2"
             },
             {
@@ -1841,7 +1841,7 @@
               "percentile": 98.6,
               "score": 1,
               "history_key": "rrp",
-              "history_sample_size": 3174,
+              "history_sample_size": 3175,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 2247.2 (was 2200 as_of 2022-12-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP record $2.55T late-Dec 2022 (~$2.2T avg Q4)"
             }
           ]
@@ -1948,7 +1948,7 @@
               "percentile": 15.9,
               "score": 16,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 120.0 (was 135 as_of 2022-04-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: SKEW persistently elevated through 2022"
             },
             {
@@ -1959,7 +1959,7 @@
               "percentile": 97.0,
               "score": 97,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 33.6 (was 36.5 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX peaked 36.5 Oct 12 2022"
             },
             {
@@ -1970,7 +1970,7 @@
               "percentile": 98.7,
               "score": 99,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 0.9 (was 0.65 as_of 2022-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.65 in 2022"
             },
             {
@@ -1981,7 +1981,7 @@
               "percentile": 99.7,
               "score": 100,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 160.7 (was 160 as_of 2022-10-21). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked 160 Oct 2022 (UK gilt spillover)"
             }
           ]
@@ -2063,7 +2063,7 @@
               "percentile": 85.5,
               "score": 85,
               "history_key": "hy_ig",
-              "history_sample_size": 811,
+              "history_sample_size": 812,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 393.0 (was 388 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED BAMLH0A0HYM2 close ~388 bps Aug 5 '24 (intraday wider)"
             },
             {
@@ -2074,7 +2074,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "ig_oas",
-              "history_sample_size": 783,
+              "history_sample_size": 784,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-01 = 151.0 (was 105 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM close ~105 bps Aug 5 '24"
             }
           ]
@@ -2106,7 +2106,7 @@
               "percentile": 52.4,
               "score": 52,
               "history_key": "stlfsi",
-              "history_sample_size": 802,
+              "history_sample_size": 803,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-02 = -0.34 (was -0.3 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~-0.3 Aug '24 (below average \u2014 calm)"
             },
             {
@@ -2128,7 +2128,7 @@
               "percentile": 73.4,
               "score": 27,
               "history_key": "rrp",
-              "history_sample_size": 3174,
+              "history_sample_size": 3175,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 316.2 (was 300 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP balance ~$300B Aug '24 (well off the $2.55T Dec '22 peak; declining as QT progresses)"
             }
           ]
@@ -2235,7 +2235,7 @@
               "percentile": 85.9,
               "score": 86,
               "history_key": "skew",
-              "history_sample_size": 3809,
+              "history_sample_size": 3810,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 145.3 (was 140 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW ~140 average Aug '24 (chronically elevated through 2024)"
             },
             {
@@ -2246,7 +2246,7 @@
               "percentile": 98.5,
               "score": 99,
               "history_key": "vix",
-              "history_sample_size": 3872,
+              "history_sample_size": 3873,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 38.6 (was 38.57 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
             },
             {
@@ -2257,7 +2257,7 @@
               "percentile": 37.9,
               "score": 38,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3871,
+              "history_sample_size": 3872,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 0.67 (was 0.5 as_of 2024-08-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.50 Aug '24"
             },
             {
@@ -2268,7 +2268,7 @@
               "percentile": 92.6,
               "score": 93,
               "history_key": "move",
-              "history_sample_size": 3790,
+              "history_sample_size": 3791,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 121.2 (was 105 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE Index ~105 Aug 5 '24 (modestly elevated)"
             }
           ]
