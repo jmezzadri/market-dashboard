@@ -1289,3 +1289,13 @@ chart-touching PR must include both-theme screenshots.
 **What you should do instead:** If a turn's plan is to dispatch work to a subagent, the Agent tool call must be in that same turn. A turn may not claim a dispatch happened unless the Agent tool call is actually present in it. If a turn ends on text, that text describes work already completed in the turn, or explains what blocks further work — it never describes a not-yet-emitted dispatch as if it had occurred. This is the subagent-delegation analogue of the existing "never end a turn with 'starting on X' and then stop" rule.
 
 **Applies to:** All four specialists. Any turn whose plan includes delegation.
+
+---
+
+## 2026-05-27 — On-disk MacroTilt GitHub token now has `repo` + `workflow` scopes — workflow YAML edits via API work directly
+
+**What happened:** Earlier today the on-disk classic personal access token at `~/Documents/Claude Projects/MacroTilt/.secrets/github_pat.txt` only carried the `repo` permission. Every attempt to edit a file under `.github/workflows/` via the GitHub API returned a misleading 404 from `POST /git/trees` — not a 401 or 403 — which made the scope gap non-obvious and burned ~10 minutes of diagnosis, then forced a slower fallback through the GitHub web editor. Owner added the `workflow` checkbox to the existing "MacroTilt" classic token at github.com/settings/tokens. Verified live: `curl -sI -H "Authorization: Bearer $TOKEN" https://api.github.com/user` now returns `x-oauth-scopes: repo, workflow`. The token value itself was unchanged — adding a scope to an existing classic token leaves the value intact, so the on-disk file is still valid. Owner also deleted two unused classic tokens at the same time ("Claude 2", "market-dashboard-launched"). Remaining classic tokens on the account: "MacroTilt" (in-use, both scopes, no expiry) and "Claude Token" (unused backup with both scopes).
+
+**What you should do instead:** Use the GitHub API directly to edit anything under `.github/workflows/` — no more browser-driven web-editor fallback for workflow YAML changes. If `POST /git/trees` ever returns 404 again on a workflow file edit, FIRST check `x-oauth-scopes` on `GET /user` before assuming missing-tree or any other cause — scope drift is the more likely culprit if the token is ever rotated. The current memory entry covering this is `reference_github_pat_workflow_scope.md`, now marked RESOLVED 2026-05-27 PM.
+
+**Applies to:** Lead Developer and Data Steward. Any specialist editing `.github/workflows/*.yml` via API.
