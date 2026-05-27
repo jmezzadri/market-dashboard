@@ -1,8 +1,10 @@
 # MacroTilt Data Vendor Ledger
 
-Last updated: 2026-05-20. Owner: Data Steward.
+Last updated: 2026-05-27. Owner: Data Steward.
 
-This is the cost + blast-radius ledger for every external data source that feeds the live site. Eight vendors total. Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
+This is the cost + blast-radius ledger for every external data source that feeds the live site. Nine vendors total. Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
+
+**2026-05-27 update — Treasury.gov added.** Daily Treasury par yields and TIPS real yields were migrated from FRED to Treasury.gov (the upstream publisher) for same-day publication. FRED publishes these series ~20:00 UTC, after our morning workflow; Treasury.gov posts the same data ~16:00 ET, captured by our afternoon workflow. Three indicators moved: `yield_curve` (10Y-2Y slope), `real_rates` (10Y TIPS), and `breakeven_10y` (computed). FRED stays primary for the rest of the macro series.
 
 If a vendor disappears, the "Removal blast radius" line tells Joe exactly what goes blank on the site. Manifest element IDs in each section link to the corresponding entry in `data_manifest.json`.
 
@@ -25,7 +27,21 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 2. Yahoo Finance (yfinance unofficial library)
+## 2. U.S. Treasury (home.treasury.gov daily yield curve CSVs)
+
+- **Monthly cost:** $0 (free public CSV feed)
+- **License tier:** Public, no key required, no rate-limit posted. The feed is the Treasury Department's own publication — FRED and every commercial vendor downstream of these series pull from this same CSV.
+- **What it powers (manifest elements):**
+  - `indicator-yield_curve-daily` — 10Y nominal − 2Y nominal, in bps (recession early-warning gauge)
+  - `indicator-real_rates-daily` — 10Y TIPS real yield, in %
+  - `indicator-breakeven_10y-daily` — 10Y nominal − 10Y TIPS, in % (market-implied inflation expectation; computed in-house from the two feeds above)
+- **Alternatives evaluated:** FRED (republishes these series as T10Y2Y, DFII10, T10YIE) — declined on 2026-05-27 because FRED publishes them with an afternoon delay (DFII10 ~20:00 UTC) that left the cards stale into the next morning. Bloomberg / Reuters carry the same data on paid terminals — not viable for personal-use MacroTilt.
+- **Contract end date:** None (perpetual public CSV).
+- **Removal blast radius:** Moderate. Three indicator cards on /#indicators go stale, the rates pillar on the Cycle Mechanism Board loses two of its inputs, and the 10Y Breakeven card has no replacement (it depends on having both feeds same-day). FRED republishes the same series with a publication lag, so a fallback to FRED is one-line revert; we just gain back the lag.
+
+---
+
+## 3. Yahoo Finance (yfinance unofficial library)
 
 - **Monthly cost:** $0 (free, no API key)
 - **License tier:** Public scrape. Unofficial — Yahoo has periodically tightened access. Rate-limit-friendly with backoff.
@@ -38,7 +54,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 3. Polygon Massive
+## 4. Polygon Massive
 
 - **Monthly cost:** ~$29-79/month (Basic tier; exact tier needs verification). Capped at ~2 years of historical aggregates per the 2026-04-30 memo on Polygon Basic's 2-year cap.
 - **License tier:** Paid. API key `MASSIVE_API_KEY` in workflow + edge function secrets.
@@ -57,7 +73,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 4. Unusual Whales
+## 5. Unusual Whales
 
 - **Monthly cost:** ~$12.50/month ($150/year UW API tier, kept per 2026-04-22 audit). The $63/month UW Retail Pro tier ($756/year) was **cancelled** on 2026-04-22. The Phase 1 dark-pool and per-contract options feeds added 2026-05-20 for the rebuilt Trading Opportunities screener are exposed on this same $150/year API tier — no upgrade cost (verified per Decision 2 of the Trading Opportunities overhaul).
 - **License tier:** Paid API. Key `UNUSUAL_WHALES_API_KEY` in workflow secrets. Per the 2026-05-09 insider backfill memo, the API tier does NOT honor ticker filters — bulk endpoints stream global and we filter client-side.
@@ -82,7 +98,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 5. Nasdaq / FINRA short-interest API
+## 6. Nasdaq / FINRA short-interest API
 
 - **Monthly cost:** $0 (free public endpoint)
 - **License tier:** Public. Bi-monthly settlement data (15th + end-of-month).
@@ -94,7 +110,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 6. ISM (Institute for Supply Management — via investing.com scrape)
+## 7. ISM (Institute for Supply Management — via investing.com scrape)
 
 - **Monthly cost:** $0 (scraped from investing.com; ISM's direct subscription is $1,895/year and not used)
 - **License tier:** Free via scrape. License restriction is why FRED does not carry ISM series — we scrape rather than pay ISM directly.
@@ -107,7 +123,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 7. State Street SPDR (SPY holdings file)
+## 8. State Street SPDR (SPY holdings file)
 
 - **Monthly cost:** $0 (free public holdings file)
 - **License tier:** Public — daily holdings disclosure required for ETFs.
@@ -119,7 +135,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 8. GitHub `unitedstates/congress-legislators` (CC0)
+## 9. GitHub `unitedstates/congress-legislators` (CC0)
 
 - **Monthly cost:** $0 (CC0 public domain)
 - **License tier:** Public, CC0 license.
@@ -131,7 +147,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
-## 9. ZeroHedge Premium
+## 10. ZeroHedge Premium
 
 - **Monthly cost:** ~$30/month (per 2026-04-22 subscription audit memo)
 - **License tier:** Paid subscription, cookie-based access (no API). Weekly canary checks the cookie's health.

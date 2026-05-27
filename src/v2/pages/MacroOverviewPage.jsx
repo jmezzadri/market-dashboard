@@ -313,11 +313,11 @@ const INDICATORS = {
 // number on the page back to where it came from. Mirrors the Per-Ticker
 // Data Inventory format (vendor · feed identifier). Joe directive 2026-05-19.
 const INDICATOR_SOURCES = {
-  yield_curve:   "FRED · 10-Year minus 2-Year Treasury (T10Y2Y)",
-  real_rates:    "FRED · 10-Year Treasury Inflation-Indexed Yield (DFII10)",
+  yield_curve:   "Treasury.gov · Daily yield curve (10-Year minus 2-Year)",
+  real_rates:    "Treasury.gov · Daily TIPS yield curve (10-Year real yield)",
   move:          "Yahoo · ICE BofA MOVE Index (^MOVE)",
   term_premium:  "FRED · Kim-Wright 10-Year Term Premium (THREEFYTP10)",
-  breakeven_10y: "FRED · 10-Year Breakeven Inflation (T10YIE)",
+  breakeven_10y: "Treasury.gov · Daily curve (10-Year nominal minus 10-Year TIPS)",
   hy_ig:         "FRED · ICE BofA US High-Yield OAS (BAMLH0A0HYM2)",
   ig_oas:        "FRED · ICE BofA US Corporate OAS (BAMLC0A0CM)",
   hy_ig_ratio:   "In-house · HY OAS / IG OAS ratio (from FRED feeds above)",
@@ -352,6 +352,7 @@ const INDICATOR_SOURCES = {
 const VENDOR_LABELS = {
   "fred":          "FRED",
   "yahoo":         "Yahoo Finance",
+  "treasury.gov":  "U.S. Treasury",
   "in-house":      "MacroTilt",
   "multpl.com":    "multpl.com",
   "ism website":   "ISM",
@@ -373,11 +374,11 @@ function cleanVendor(sourceStr) {
 // weekly/monthly/quarterly series state the typical wait after the period
 // closes. Series with no suffix publish same-day / with no material lag.
 const INDICATOR_CADENCE = {
-  yield_curve:   "Daily (T+1)",
-  real_rates:    "Daily (T+2)",
+  yield_curve:   "Daily (same-day, ~16:00 ET)",
+  real_rates:    "Daily (same-day, ~16:00 ET)",
   move:          "Daily (T+1)",
   term_premium:  "Daily (T+4)",
-  breakeven_10y: "Daily (T+1)",
+  breakeven_10y: "Daily (same-day, ~16:00 ET)",
   hy_ig:         "Daily (T+1)",
   ig_oas:        "Daily (T+1)",
   hy_ig_ratio:   "Daily (T+1)",
@@ -411,22 +412,6 @@ const PANELS = [
 ];
 
 // ─── helpers ────────────────────────────────────────────────────────────
-// Returns the correct English ordinal suffix for an integer (st/nd/rd/th).
-// 1 -> 'st', 2 -> 'nd', 3 -> 'rd', 4..10 -> 'th', 11/12/13 -> 'th' (special case),
-// 21 -> 'st', 22 -> 'nd', 23 -> 'rd', etc.
-function ordinalSuffix(n) {
-  if (n == null || !Number.isFinite(n)) return '';
-  const v = Math.abs(Math.round(n));
-  const lastTwo = v % 100;
-  if (lastTwo >= 11 && lastTwo <= 13) return 'th';
-  switch (v % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
-  }
-}
-
 function ascending(arr) { return [...arr].sort((a,b) => a-b); }
 
 function percentile(value, arr) {
@@ -679,7 +664,7 @@ function DomainHeatStrip({ indicators, hist, onOpen }) {
         const c = heatColor(pct, ind.dir);
         const lbl = heatLabel(pct, ind.dir);
         return (
-          <div key={ind.id} onClick={() => onOpen(ind.id)} title={`${ind.short} · ${pct != null ? (function(){const p=Math.round(pct*100);return p+ordinalSuffix(p);})() : '—'} pctile${lbl ? ' · ' + lbl : ''}`} style={{
+          <div key={ind.id} onClick={() => onOpen(ind.id)} title={`${ind.short} · ${pct != null ? Math.round(pct*100)+'th' : '—'} pctile${lbl ? ' · ' + lbl : ''}`} style={{
             flex: 1, minWidth: 0, height: 36, borderRadius: 6, cursor: 'pointer',
             background: c, opacity: 0.85,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -755,7 +740,7 @@ function IndicatorTile({ ind, hist, onOpen }) {
             <PctileBar pct={pct} color={c} />
           </div>
           <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'right' }}>
-            {pct != null ? (function(){const p=Math.round(pct*100);return p+ordinalSuffix(p);})() : '—'}
+            {pct != null ? Math.round(pct*100) + 'th' : '—'}
           </span>
         </div>
       )}
@@ -965,7 +950,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
           <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${fmtAsOf(series.as_of, series.freq)}`} tip="The latest reading for this indicator." />
           <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" tip="How much the reading has moved over the past 30 days." />
-          <KPI label="5y percentile" value={pct5y != null ? (function(){const p=Math.round(pct5y*100);return p+ordinalSuffix(p);})() : '—'} sub="trailing 5 years" tip="Where today\u2019s reading sits within this indicator\u2019s own range over the last five years \u2014 0 is the lowest it has been, 100 the highest." />
+          <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" tip="Where today\u2019s reading sits within this indicator\u2019s own range over the last five years \u2014 0 is the lowest it has been, 100 the highest." />
           <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} tip="The first date for which MacroTilt holds data on this indicator." />
         </div>
 

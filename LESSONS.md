@@ -22,17 +22,90 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
-## 2026-05-25 — Cash rows must skip the equity mark-to-market overlay
+## 2026-05-26 — Site-overhaul brief lives on disk; read it BEFORE any redesign work
 
-**What happened:** Joe opened the Portfolio Insights table and the value column on his $81,011.49 cash balance read $6.7M. The PositionsTable enriched calc had ladder-resolved a "live price" for ticker `CASH` from the prices_eod table, which carries Pathward Financial Group (a real NYSE-listed stock with the symbol `CASH`, trading around $82.74). The table then computed currentValue = quantity × price = 81,011.49 × 82.74 = $6,702,890, completely overriding the value stored in the database. Cash held in the portfolio uses ticker convention `CASH` (or `SPAXX` etc.) with price=1 and quantity=dollars-held — the equity overlay was never meant to touch those rows.
+**What happened:** Joe uploaded the Claude Design site-overhaul zip (the canonical
+redesign spec — 9 pages, exact tokens, acceptance checklist) and asked the agent
+to implement it. The agent never looked for the brief, never read it, and spent
+the entire day building unrelated prototype work in `market-dashboard/src/redesign/`
+— a different/older mock folder. Then made a cutover to main that replaced
+macrotilt.com's polished production home with the lower-fidelity prototype, and
+parroted stale copy from the prototype ("Scenario engine paused, rebuilding") as
+current project status. Joe spent the day staring at previews of the wrong thing,
+with no idea what was being built. Quote: "I literally don't have a fucking clue
+what you've been working on all day with all these previews. I sent you the zip
+file with instructions and all the details from my Claude Design session."
 
-**What you should do instead:** Any view that marks positions to market — Positions table, watchlist, ticker detail modal, asset tilt sums — must detect cash rows first and short-circuit out of the price-resolution ladder. A row is cash when `sector === "Cash"` OR `asset_class === "cash"` (frontend shape: `assetClass`). For cash rows: price stays as the stored per-unit price (1), currentValue stays as the stored dollar value, and pnl$, pnlPct, pnlDay$, pnlDayPct all render as null/em-dash (dollars don't move against themselves). Same guard applies to any future surface that maps a position quantity through a prices_eod lookup — write the cash short-circuit before the price ladder, not after, so a new ticker collision (`USD`, `BOND`, ETF symbols a user might pick as a cash label) can never re-create this class of bug.
+**What you should do instead:** At the start of any task whose words include
+"redesign", "new UX", "v2", "overhaul", "Claude Design", or "site refresh",
+the FIRST tool calls must be (in order):
 
-**Applies to:** Lead Developer + Senior Quant — any code that does `quantity × price` for a position. Before that multiplication, gate on the row not being cash.
+1. `ls ~/Documents/Claude\ Projects/MacroTilt/site-overhaul/` — confirm the zip
+   and extracted folder are still there.
+2. `cat ~/Documents/Claude\ Projects/MacroTilt/site-overhaul/extracted/design_handoff_macrotilt_v2/README.md`
+   — read the entire brief. It defines tokens, page list, components, acceptance criteria.
+3. Cross-reference against `[[reference-site-overhaul-handoff]]` in auto-memory
+   for the same content.
+4. Only then propose implementation steps. If the brief disagrees with anything
+   else in the repo (the `src/redesign/` folder in `market-dashboard/`, mock pages,
+   old wrapper files), the brief wins. Those other folders are stale prototype
+   work that was supposed to be replaced by this implementation.
+
+Implementation rules baked in by the brief (do not re-litigate):
+- Implement in **`market-dashboard-live/`**, NOT `market-dashboard/`.
+- **Path-based React Router** — routes `/`, `/macro`, `/tilt`, `/scanner`,
+  `/portfolio`, `/scenarios`, `/indicators`, `/methodology`, `/ticker/:symbol`.
+- Replace ALL prototype mock data with the existing real hooks
+  (`useIndicators()`, `useSectorTilts()`, `useScannerResults()`, `usePortfolio()`).
+- Every value renders a `FreshnessChip`. No static freshness strings.
+- No modals. All drills inline.
+- Tickers always clickable.
+- Tweaks panel ships (theme/accent/density/sidebar/fonts/headline-scale).
+- Editorial type scale default; light theme default; user choice persists in
+  `localStorage`.
+
+If the brief is missing from disk, ASK Joe to re-upload before doing any
+redesign work. Do not invent scope from older repo content.
+
+**Applies to:** Every session that touches the redesign / overhaul work.
 
 ---
 
-## 2026-05-21 — resample() to a period-end label publishes a future-dated point for the in-progress period
+## 2026-05-26 — GitHub PAT is on disk; never ask Joe for it again
+
+**What happened:** Joe re-issued the GitHub Personal Access Token in chat
+because the agent could not push from the sandbox and was driving Finder
+to double-click `push-*.command` files on Joe's Mac, taking over his
+keyboard/mouse during the session. Joe: "Can you please save this token
+so this never happens again. You know how many times ive had to deal with
+this with you. You misplace this all the time!!! I set no expiration.
+Please do not lose this." This has happened multiple times across
+sessions.
+
+**What you should do instead:** At the start of any task that involves a
+git push, read the PAT from disk before doing anything else:
+
+1. Primary: `~/Documents/Claude Projects/MacroTilt/.secrets/github_pat.txt`
+   (sandbox path: `/sessions/<session>/mnt/MacroTilt/.secrets/github_pat.txt`)
+2. Fallback: `GITHUB_TOKEN=ghp_…` line in
+   `market-dashboard/.env.local`
+
+Configure the local clone's remote as
+`https://x-access-token:${TOKEN}@github.com/jmezzadri/market-dashboard.git`
+and push directly from the sandbox. Never echo the token in chat. Never
+drive Finder or Terminal to push. The `push-v2-*.command` files in the
+MacroTilt folder are retired — leave them in place but do not invoke
+them.
+
+If a push fails on auth, the token has been revoked or rotated. Ask Joe
+to regenerate via 3 UI clicks at github.com/settings/tokens (Settings →
+Developer settings → Personal access tokens → Regenerate, scope `repo`),
+then save the new token to the same two files. Never ask "where is the
+token" or "do you have a token" — read disk first.
+
+**Applies to:** Every session that pushes to `jmezzadri/market-dashboard`.
+
+---## 2026-05-21 — resample() to a period-end label publishes a future-dated point for the in-progress period
 
 **What happened:** The Macro Overview IG OAS, HY/IG ratio, and commercial-paper-spread tiles showed "last updated" dates in the future (May 31, May 22) when the date was the 21st. Each is built by resampling a daily series to a coarser cadence — `resample("ME")` (month-end), `resample("W-FRI")` (week-Friday), `resample("QE")` (quarter-end). Those resamplers label every bucket with the period-END date, so the still-in-progress period gets a label in the future and its partial value is published with a future stamp. Separately, IG OAS was built from a `BAA - DGS10` proxy (on a wrong "BAMLC0A0CM is license-restricted" assumption) that ran ~2x the true spread, and the copper/gold ratio used a non-standard x100 scaling.
 
@@ -1292,10 +1365,24 @@ chart-touching PR must include both-theme screenshots.
 
 ---
 
-## 2026-05-27 — On-disk MacroTilt GitHub token now has `repo` + `workflow` scopes — workflow YAML edits via API work directly
+## 2026-05-27 — Never accept silent staleness on a "successful" data workflow
 
-**What happened:** Earlier today the on-disk classic personal access token at `~/Documents/Claude Projects/MacroTilt/.secrets/github_pat.txt` only carried the `repo` permission. Every attempt to edit a file under `.github/workflows/` via the GitHub API returned a misleading 404 from `POST /git/trees` — not a 401 or 403 — which made the scope gap non-obvious and burned ~10 minutes of diagnosis, then forced a slower fallback through the GitHub web editor. Owner added the `workflow` checkbox to the existing "MacroTilt" classic token at github.com/settings/tokens. Verified live: `curl -sI -H "Authorization: Bearer $TOKEN" https://api.github.com/user` now returns `x-oauth-scopes: repo, workflow`. The token value itself was unchanged — adding a scope to an existing classic token leaves the value intact, so the on-disk file is still valid. Owner also deleted two unused classic tokens at the same time ("Claude 2", "market-dashboard-launched"). Remaining classic tokens on the account: "MacroTilt" (in-use, both scopes, no expiry) and "Claude Token" (unused backup with both scopes).
+**What happened:** The INDICATOR-REFRESH workflow kept logging `success` every morning and evening while individual indicators silently went days stale because `safe_fred()` calls were returning `None` on FRED hiccups and the result was dropped without raising. Joe had to manually spot stale values on the Macro Overview and All Indicators pages before anyone noticed the pipeline was rotting. A workflow that finishes with exit code 0 but writes a stale file is the worst possible failure mode: it actively masks the problem.
 
-**What you should do instead:** Use the GitHub API directly to edit anything under `.github/workflows/` — no more browser-driven web-editor fallback for workflow YAML changes. If `POST /git/trees` ever returns 404 again on a workflow file edit, FIRST check `x-oauth-scopes` on `GET /user` before assuming missing-tree or any other cause — scope drift is the more likely culprit if the token is ever rotated. The current memory entry covering this is `reference_github_pat_workflow_scope.md`, now marked RESOLVED 2026-05-27 PM.
+**What you should do instead:** Every producer that writes a "live" data file must include a fail-loud staleness gate. The pattern, baked into `fetch_history.py` on 2026-05-27: a `DAILY_FRESHNESS_SLA` table maps each daily-cadence indicator to the max number of trading days behind we tolerate before the workflow fails. After the fetch completes but before the file is written, `_check_daily_freshness_or_raise()` walks every entry, computes the trading-day gap (NYSE-calendar-aware — weekends + observed market holidays don't count), and raises `StalenessError` for the whole run if any indicator is past its SLA. The workflow goes red on GitHub Actions, the watchdog auto-files a P1 bug, and the on-disk file is never overwritten with a stale value.
 
-**Applies to:** Lead Developer and Data Steward. Any specialist editing `.github/workflows/*.yml` via API.
+Three rules around this pattern: (1) helper functions like `safe_fred` / `safe_yf` / `safe_treasury` may return None to keep the run going through one indicator's hiccup, but the gate at the end of the run is mandatory — "we log to pipeline_health" is not enough, by the time a row hits pipeline_health the stale file has already shipped; (2) SLA is in trading days, not calendar days — T+1 FRED series get SLA=2, same-day Treasury.gov / Yahoo series get SLA=1; (3) a new indicator without an SLA entry is a missing config, not exempt — add an entry to `DAILY_FRESHNESS_SLA` in the same PR as the producer code.
+
+**Applies to:** All data producers — Lead Developer + Data Steward sign-off on any PR that touches `fetch_history.py`, `fetch_indicators.py`, `scripts/compute_*.py`, or any new daily producer.
+
+---
+
+## 2026-05-27 — Don't anchor on vendor names you've been using; check whether the publisher is upstream
+
+**What happened:** Three daily Treasury yield indicators (`yield_curve`, `real_rates`, `breakeven_10y`) sat on FRED for 18 months. FRED was the wrong choice: FRED republishes Treasury's own daily yield curve and TIPS curve with an afternoon delay (FRED publishes DFII10 around 20:00 UTC, after our morning workflow runs), which is why these cards repeatedly shipped stale. The fix wasn't a third-party paid feed — it was to read directly from Treasury.gov, which is FRED's upstream publisher and posts the same data same-day.
+
+**What you should do instead:** When picking a vendor for a series, ask "who does this vendor get the data from?" If there's an upstream publisher with the same license tier (free / public) that publishes on a tighter cadence, that's the right source. The default mental model — "this is the FRED series for X" or "this is the Yahoo ticker for X" — is correct for routine use but wrong any time the lag matters. Treasury.gov, FRED, NY Fed, ICE BofA, BLS, BEA all have free public feeds; FRED republishes most of them. Check the publisher before the republisher.
+
+The 2026-05-27 migration added a `safe_treasury(kind, tenor)` helper in both `fetch_history.py` and `fetch_indicators.py` that pulls Treasury.gov's daily-yield-curve CSV (kind=`nominal`) and daily-TIPS-curve CSV (kind=`tips`), then swapped FRED `T10Y2Y`, `DFII10`, and `T10YIE` call sites for the computed-from-Treasury equivalents. Source labels updated in `data_manifest.json`, `MacroOverviewPage.jsx`, `MethodologyPage.jsx`, `dataRegistry.js`, `indicatorRegistry.js`, `feedLineage.js`, `useDataHealth.js`, `data_vendors.md`, and the footer SOURCES line on `App.jsx` and `Dashboard.jsx`. Pipeline_health vendor rows updated via Supabase Management API in the same PR.
+
+**Applies to:** Data Steward (lead) + Senior Quant. Any new daily macro / rates indicator requires a "who's the upstream publisher?" check before the source is locked.

@@ -173,6 +173,62 @@ def safe_fred(series_id):
     _log_pipeline_health(series_id, f"no fresh observation from FRED ({last_err})")
     return None
 
+
+def safe_treasury(series_kind, tenor_label):
+    """Return (latest_value, as_of_str) from the Treasury.gov daily yield-curve CSV.
+
+    Replaces FRED for daily Treasury and TIPS yields — same data, but Treasury.gov
+    publishes same-day instead of FRED's late-afternoon T+1 delay.
+
+    Args:
+        series_kind: 'nominal' (par yields) or 'tips' (real yields).
+        tenor_label: CSV column header — e.g. '10 Yr' for nominal, '10 YR' for TIPS.
+    """
+    import time, urllib.request, io
+    from datetime import datetime as _dt
+    KIND = {
+        "nominal": "daily_treasury_yield_curve",
+        "tips":    "daily_treasury_real_yield_curve",
+    }
+    year = _dt.utcnow().year
+    last_err = None
+    for attempt in range(2):
+        try:
+            url = (
+                "https://home.treasury.gov/resource-center/data-chart-center/"
+                f"interest-rates/daily-treasury-rates.csv/{year}/all"
+                f"?type={KIND[series_kind]}&field_tdr_date_value={year}"
+                "&page&_format=csv"
+            )
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "macrotilt-data-steward/1.0 (+https://macrotilt.com)"
+            })
+            with urllib.request.urlopen(req, timeout=20) as r:
+                body = r.read().decode("utf-8", errors="replace")
+            df = pd.read_csv(io.StringIO(body))
+            if tenor_label not in df.columns:
+                last_err = f"missing column {tenor_label!r}"
+                break
+            df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors="coerce")
+            df = df.dropna(subset=["Date"]).sort_values("Date")
+            val = pd.to_numeric(df[tenor_label], errors="coerce").dropna()
+            if val.empty:
+                last_err = "empty after parse"
+            else:
+                last_dt = df.loc[val.index[-1], "Date"]
+                return float(val.iloc[-1]), last_dt.strftime("%b %d %Y")
+        except Exception as e:
+            last_err = str(e)
+            print(f"  ⚠ Treasury.gov {series_kind} {tenor_label} attempt {attempt+1}: {e}")
+            if attempt == 0:
+                time.sleep(5)
+                continue
+    _log_pipeline_health(
+        f"Treasury.gov {series_kind} {tenor_label}",
+        f"no observation from Treasury.gov ({last_err})",
+    )
+    return None
+
 def safe_yahoo(ticker):
     try:
         hist = yf.Ticker(ticker).history(period="5d")["Close"].dropna()
@@ -271,9 +327,13 @@ def fetch_all():
     except Exception as e:
         print(f"    ⚠ {e}")
 
-    print("  Yield Curve (10Y-2Y)...")
-    r = safe_fred("T10Y2Y")
-    if r: results["yield_curve"] = (round(r[0] * 100, 0), r[1])
+    print("  Yield Curve (10Y-2Y) — Treasury.gov ...")
+    # Source migration 2026-05-27 (Joe directive): dropped FRED T10Y2Y in favor
+    # of Treasury.gov same-day pull and computing 10Y − 2Y inline.
+    t10 = safe_treasury("nominal", "10 Yr")
+    t2  = safe_treasury("nominal", "2 Yr")
+    if t10 and t2:
+        results["yield_curve"] = (round((t10[0] - t2[0]) * 100, 0), t10[1])
 
     print("  MOVE Index...")
     r = safe_yahoo("^MOVE")
@@ -287,8 +347,11 @@ def fetch_all():
     r = safe_fred("STLFSI4")
     if r: results["stlfsi"] = (round(r[0], 2), r[1])
 
-    print("  Real Rates (10Y TIPS)...")
-    r = safe_fred("DFII10")
+    print("  Real Rates (10Y TIPS) — Treasury.gov ...")
+    # Source migration 2026-05-27 (Joe directive): dropped FRED DFII10 in favor
+    # of Treasury.gov's daily TIPS curve. FRED DFII10 publishes around 20:00 UTC
+    # (the source of repeated "Stale · 6d" labels); Treasury.gov posts same-day.
+    r = safe_treasury("tips", "10 YR")
     if r: results["real_rates"] = (round(r[0], 2), r[1])
 
     print("  SLOOS C&I...")
