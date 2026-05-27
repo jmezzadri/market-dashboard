@@ -13,7 +13,8 @@ name: PAPER-PORTFOLIO-EOD-DAILY
 # Both must be current as of today before this workflow runs.
 #
 # Schedule (Data Steward standard slot for portfolio surfaces):
-#   * 20:30 UTC = 4:30 PM EDT (UTC-4) / 3:30 PM EST (UTC-5) — after market close.
+#   * 23:30 UTC = 7:30 PM EDT (UTC-4) / 6:30 PM EST (UTC-5) — inside Alpaca's
+#     overnight opg-order window (19:00 ET to 09:28 ET next morning).
 #   * Submission is routed by Alpaca to NEXT trading day's opening auction.
 #   * Weekdays only. Holiday calendar handled by Alpaca's `is_open` clock —
 #     a non-trading day yields zero pending rows and the submitter is a no-op.
@@ -28,7 +29,12 @@ name: PAPER-PORTFOLIO-EOD-DAILY
 
 on:
   schedule:
-    - cron: '30 20 * * 1-5'
+    # 23:30 UTC = 19:30 ET (EDT) / 18:30 ET (EST).
+    # Previously 20:30 UTC = 16:30 ET — but Alpaca only accepts MOO (opg)
+    # orders between 19:00 ET and 09:28 ET next morning, so 16:30 ET fires
+    # were rejected with HTTP 403 'opg orders must be submitted after 7:00pm
+    # and before 9:28am'. Moved to 23:30 UTC to land inside the window.
+    - cron: '30 23 * * 1-5'
   workflow_dispatch:
     inputs:
       dry_run:

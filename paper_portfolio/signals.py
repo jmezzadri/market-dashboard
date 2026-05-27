@@ -8,20 +8,23 @@ industry-group entries; each entry carries a `dollar` field (= weight %
 list. We use `tickers[0]` as the calibration ETF for each IG (the file's
 ordering is the engine's preferred primary).
 
-Sleeve B signal source: public.signal_intel_v5_daily — the v5 scanner's
-nightly output. mt_score lives on [-100, +100]. The locked translator
-spec asks for a 0–10 buy-side scale; we normalize as:
+Sleeve B signal source: public.trading_opps_signals — the scanner the
+Trading Opportunities page renders from. score field is already on a 0–10
+scale (raised from 5 to 10 on 2026-05-21 when dark-pool + options layers
+went live; current data still caps at 5 until those layers surface). We
+filter on direction='long' (Sleeve B is long-only by spec) and
+signal='BUY · LONG' (the producer also emits WATCHLIST rows we ignore).
 
-    buy_score = max(0.0, mt_score / 10.0)
+Buy threshold and tier sizes (per locked Joe spec):
+    buy_score ≥ 5 : buy (≥ 5 is the launch + size threshold)
+    9 ≤ buy_score ≤ 10 : tier 1, $50K per name
+    7 ≤ buy_score < 9  : tier 2, $40K per name
+    5 ≤ buy_score < 7  : tier 3, $30K per name
 
-so:
-    mt_score 50  → buy_score  5   (spec threshold)
-    mt_score 100 → buy_score 10
-    mt_score  0  → buy_score  0   (no signal)
-    mt_score <0  → buy_score  0   (Sleeve B is long-only)
-
-This normalization is one place, documented here, and locked at v1. Senior
-Quant sign-off required before changing it.
+CHANGED 2026-05-27: previous version read signal_intel_v5_daily (mt_score
+on -100..+100). Joe flagged the mismatch with what the page shows; today's
+fix aligns Sleeve B to the same scanner that drives the user-visible
+Trading Opps surface.
 """
 
 from __future__ import annotations
@@ -123,11 +126,14 @@ class EquityScannerSnapshot:
     raw_payload_sample: list[dict[str, Any]]  # first 25 rows, for audit
 
 
-def _normalize_buy_score(mt_score: float | None) -> float:
-    """Locked v1: long-only normalization of mt_score to a 0–10 scale."""
-    if mt_score is None:
+def _normalize_buy_score(score: float | None) -> float:
+    """trading_opps_signals.score is already on a 0–10 scale (score ceiling
+    raised from 5 to 10 on 2026-05-21 when dark-pool + options layers came
+    live; current data caps at 5 until those layers surface higher scores).
+    Long-only: clamp negatives to 0."""
+    if score is None:
         return 0.0
-    return max(0.0, float(mt_score) / 10.0)
+    return max(0.0, float(score))
 
 
 def _supabase_query(sql: str) -> list[dict[str, Any]]:
@@ -165,27 +171,37 @@ def load_equity_scanner_snapshot(
         # Pick the most recent scan_date with data.
         latest = _supabase_query(
             "select max(scan_date)::text as scan_date "
-            "from public.signal_intel_v5_daily;"
+            "from public.trading_opps_signals;"
         )
         scan_date = latest[0]["scan_date"] if latest and latest[0]["scan_date"] else None
         if not scan_date:
-            raise RuntimeError("signal_intel_v5_daily has no rows.")
+            raise RuntimeError("trading_opps_signals has no rows.")
 
+    # CHANGED 2026-05-27: source switched from signal_intel_v5_daily to
+    # trading_opps_signals — the scanner the user sees on /#portopps. The
+    # v5 scanner had a -100..+100 score scale we were normalizing; the
+    # trading_opps scanner is already on a 0–10 scale. We also filter
+    # to direction='long' (Sleeve B is long-only by spec) and to
+    # signal='BUY · LONG' so we only act on launched-name buys (the
+    # producer also writes WATCHLIST rows we should ignore).
     rows = _supabase_query(
-        "select scan_date::text as scan_date, ticker, mt_score, band "
-        "from public.signal_intel_v5_daily "
+        "select scan_date::text as scan_date, ticker, score, signal, direction "
+        "from public.trading_opps_signals "
         f"where scan_date = '{scan_date}' "
-        "order by mt_score desc nulls last;"
+        "and direction = 'long' "
+        "and signal = 'BUY · LONG' "
+        "order by score desc nulls last;"
     )
     signals: list[EquitySignal] = []
     for r in rows:
-        bs = _normalize_buy_score(r.get("mt_score"))
+        score = r.get("score")
+        bs = _normalize_buy_score(score)
         if bs >= buy_threshold:
             signals.append(EquitySignal(
                 ticker=r["ticker"],
-                mt_score=float(r["mt_score"]) if r.get("mt_score") is not None else 0.0,
+                mt_score=float(score) * 10.0 if score is not None else 0.0,  # rescaled for downstream code that thought it was -100..+100
                 buy_score=bs,
-                band=r.get("band", "Neutral"),
+                band=r.get("signal", "BUY · LONG"),
                 scan_date=r["scan_date"],
             ))
 
