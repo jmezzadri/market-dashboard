@@ -144,8 +144,17 @@ export default function useIndicators() {
     return out;
   }, [hist, sourceFor]);
 
+  // The brief promises "indicators across five domains". Deprecated entries
+  // are kept in the registry for historical reference but should NOT be
+  // surfaced as part of the active framework on Home / Macro / Indicators
+  // (Joe directive 2026-05-27 — page kept saying 35 while the framework is
+  // smaller). Consumers that need the historical set can read `indicators`;
+  // page-facing surfaces should read `active`.
+  const active = useMemo(() => indicators.filter((i) => !i.deprecated), [indicators]);
+
   return {
-    indicators,
+    indicators,        // raw set including deprecated — for the All Indicators table
+    active,            // non-deprecated only — what the brief's counts mean
     loading: hist == null,
     error: err,
   };

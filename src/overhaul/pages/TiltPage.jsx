@@ -102,19 +102,21 @@ export default function TiltPage() {
           }}
         >
           <div className="mt-card">
+            {/* stress_score from the v10 engine is on a 0-5 scale, not 0-1.
+                Don't multiply by 100. Gauge buckets: 0-1.5 calm, 1.5-3 caution, 3-5 risk-off. */}
             <BigGauge
-              value={stress != null ? stress * 100 : null}
+              value={stress}
               min={0}
-              max={100}
-              thresholds={[40, 70]}
+              max={5}
+              thresholds={[1.5, 3]}
               label="Stress signal"
               size={240}
             />
             <GaugeLegend
               zones={[
-                { label: 'Risk On', range: '0 – 40', color: 'var(--mt-up)' },
-                { label: 'Cautionary', range: '40 – 70', color: 'var(--mt-warn)' },
-                { label: 'Risk Off', range: '70 – 100', color: 'var(--mt-down)' },
+                { label: 'Risk On', range: '0 – 1.5', color: 'var(--mt-up)' },
+                { label: 'Cautionary', range: '1.5 – 3', color: 'var(--mt-warn)' },
+                { label: 'Risk Off', range: '3 – 5', color: 'var(--mt-down)' },
               ]}
             />
           </div>
