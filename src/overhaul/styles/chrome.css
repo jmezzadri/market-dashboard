@@ -478,6 +478,73 @@
   grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--mt-ink-2);
 }
 .mt-overhaul .lm-drilllayerbar--empty { opacity: 0.6; }
+/* Ticker detail wiring 2026-05-27 — utilities for the data-wired tabs */
+.mt-overhaul .tk-tablewrap { overflow-x: auto; }
+.mt-overhaul .tk-evttable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mt-overhaul .tk-evttable th {
+  text-align: left; padding: 10px 12px;
+  font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--mt-ink-2); font-weight: 600; background: var(--mt-surface-2);
+}
+.mt-overhaul .tk-evttable th.num { text-align: right; }
+.mt-overhaul .tk-evttable td { padding: 10px 12px; border-top: 1px solid var(--mt-line-0); vertical-align: middle; }
+.mt-overhaul .tk-evttable td.num { text-align: right; }
+.mt-overhaul .tk-evttable td.up   { color: var(--mt-up); }
+.mt-overhaul .tk-evttable td.down { color: var(--mt-down); }
+.mt-overhaul .tk-tag-soft {
+  display: inline-block; margin-left: 6px;
+  font-size: 10px; font-family: var(--mt-font-mono);
+  padding: 1px 5px; border-radius: 3px;
+  background: var(--mt-surface-3); color: var(--mt-ink-2);
+}
+.mt-overhaul .tk-techstrip { margin-top: 22px; }
+.mt-overhaul .tk-techgrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px; margin-top: 10px;
+}
+.mt-overhaul .tk-techcell {
+  padding: 10px 12px; background: var(--mt-surface-2); border-radius: 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.mt-overhaul .tk-techcell b.num {
+  font-family: var(--mt-font-display); font-size: 16px; font-weight: 500;
+  color: var(--mt-ink-0);
+}
+.mt-overhaul .tk-techsub {
+  font-size: 11px; color: var(--mt-ink-3); margin-top: 2px;
+}
+.mt-overhaul .tk-techfoot {
+  margin-top: 10px; font-size: 12px; color: var(--mt-ink-2); line-height: 1.55;
+}
+.mt-overhaul .tk-newslist {
+  list-style: none; padding: 0; margin: 8px 0 0;
+  display: flex; flex-direction: column;
+}
+.mt-overhaul .tk-newsrow {
+  display: grid; grid-template-columns: 90px 1fr 140px; gap: 14px;
+  padding: 10px 4px; border-top: 1px solid var(--mt-line-0);
+  font-size: 13px; align-items: baseline;
+}
+.mt-overhaul .tk-newsrow:first-child { border-top: none; }
+.mt-overhaul .tk-newstime {
+  color: var(--mt-ink-3); font-family: var(--mt-font-mono); font-size: 11px;
+}
+.mt-overhaul .tk-newshead { color: var(--mt-ink-0); line-height: 1.5; }
+.mt-overhaul .tk-newslink {
+  color: var(--mt-ink-0); text-decoration: none; border-bottom: 1px solid transparent;
+}
+.mt-overhaul .tk-newslink:hover { border-bottom-color: var(--mt-accent); color: var(--mt-accent); }
+.mt-overhaul .tk-newssrc {
+  font-size: 10.5px; color: var(--mt-ink-2);
+  letter-spacing: 0.08em; text-align: right; text-transform: uppercase;
+}
+.mt-overhaul .tk-fundheader {
+  display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: start;
+}
+.mt-overhaul .tk-fundsplit {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px;
+}
+.mt-overhaul .sc-colcount { font-size: 11px; color: var(--mt-ink-2); margin-left: 4px; }
 .mt-overhaul .mt-sectionhead-tight {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px;
 }
