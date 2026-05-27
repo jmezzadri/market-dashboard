@@ -1,0 +1,218 @@
+/* ============================================================================
+   MacroTilt — Site Overhaul design system tokens.
+   Ported from site-overhaul/extracted/design_handoff_macrotilt_v2/lm.css
+   2026-05-26 — PR-O1 Foundation.
+
+   Tokens live on :root (light default) and swap via data-attrs on <html>:
+     data-mt-theme    "light" | "dark" | "navy"
+     data-mt-accent   "blue" | "teal" | "violet" | "ink"
+     data-mt-density  "spacious" | "balanced" | "dense"
+     data-mt-sidebar  "rail" | "rail-collapsed" | "top"
+     data-mt-fonts    "fraunces-inter" | "inter-only" | "ibm-mix"
+     data-mt-type     "editorial" | "monumental"
+
+   We use the `data-mt-*` prefix (not the prototype's bare `data-theme`) so
+   the overhaul shell never clashes with the legacy app's theming. The
+   --mt-* CSS variable names match the prototype so component CSS ports
+   one-for-one.
+   ========================================================================= */
+
+:root {
+  /* — Surfaces (light default) — */
+  --mt-bg: #f4f3ee;
+  --mt-bg-grad: radial-gradient(ellipse at 30% 0%, #fafaf5 0%, #f0eee5 50%, #e7e4d8 100%);
+  --mt-surface: #ffffff;
+  --mt-surface-2: #fafaf6;
+  --mt-surface-3: rgba(20, 23, 28, 0.04);
+  --mt-ink-0: #15181d;
+  --mt-ink-1: #3a3f47;
+  --mt-ink-2: #6b7280;
+  --mt-ink-3: #a1a6ad;
+  --mt-line-0: rgba(20, 23, 28, 0.06);
+  --mt-line-1: rgba(20, 23, 28, 0.14);
+
+  /* — Accent (default = blue) — */
+  --mt-accent: #0a5cd1;
+  --mt-accent-soft: rgba(10, 92, 209, 0.08);
+  --mt-accent-glow: rgba(10, 92, 209, 0.16);
+
+  /* — Semantic direction colors (never decorative) — */
+  --mt-up: #1f9d60;
+  --mt-down: #c1394f;
+  --mt-warn: #c08428;
+
+  /* — Type — */
+  --mt-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --mt-font-ui: 'Inter', -apple-system, system-ui, sans-serif;
+  --mt-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* — Density (spacing scale, swaps per data-mt-density) — */
+  --mt-pad-page: 36px;
+  --mt-pad-card: 22px;
+  --mt-gap-section: 56px;
+  --mt-gap-card: 16px;
+  --mt-row-h: 56px;
+
+  /* — Radii — */
+  --mt-r-sm: 6px;
+  --mt-r-md: 10px;
+  --mt-r-lg: 14px;
+  --mt-r-xl: 18px;
+
+  /* — Motion — */
+  --mt-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mt-dur-fast: 160ms;
+  --mt-dur-med: 280ms;
+  --mt-dur-slow: 460ms;
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────────────── */
+[data-mt-theme='dark'] {
+  --mt-bg: #0b0e13;
+  --mt-bg-grad: radial-gradient(ellipse at top, #131820 0%, #0d1218 60%, #08090d 100%);
+  --mt-surface: #11151b;
+  --mt-surface-2: #161b22;
+  --mt-surface-3: rgba(255, 255, 255, 0.04);
+  --mt-ink-0: #e8ecf2;
+  --mt-ink-1: #b9c0cb;
+  --mt-ink-2: #7a8290;
+  --mt-ink-3: #545a66;
+  --mt-line-0: rgba(255, 255, 255, 0.05);
+  --mt-line-1: rgba(255, 255, 255, 0.10);
+  --mt-accent: #5ea2ff;
+  --mt-accent-soft: rgba(94, 162, 255, 0.14);
+  --mt-accent-glow: rgba(94, 162, 255, 0.22);
+  --mt-up: #44c98d;
+  --mt-down: #ef5d72;
+  --mt-warn: #d9a64a;
+  color-scheme: dark;
+}
+
+/* ─── Navy theme — Copilot-Money-inspired deep navy ────────────────── */
+[data-mt-theme='navy'] {
+  --mt-bg: #000814;
+  --mt-bg-grad: radial-gradient(ellipse at top, #001533 0%, #00081e 60%, #00040e 100%);
+  --mt-surface: #001533;
+  --mt-surface-2: #00204d;
+  --mt-surface-3: rgba(255, 255, 255, 0.05);
+  --mt-ink-0: rgba(255, 255, 255, 0.92);
+  --mt-ink-1: rgba(255, 255, 255, 0.78);
+  --mt-ink-2: #7f8ba4;
+  --mt-ink-3: #597caa;
+  --mt-line-0: rgba(255, 255, 255, 0.06);
+  --mt-line-1: rgba(255, 255, 255, 0.12);
+  --mt-accent: #1c6cff;
+  --mt-accent-soft: rgba(28, 108, 255, 0.18);
+  --mt-accent-glow: rgba(28, 108, 255, 0.32);
+  --mt-up: #00cc4b;
+  --mt-down: #ff4433;
+  --mt-warn: #fece4c;
+  color-scheme: dark;
+}
+
+/* ─── Accent variants ────────────────────────────────────────────────── */
+[data-mt-accent='teal'] {
+  --mt-accent: #0a8a8a;
+  --mt-accent-soft: rgba(10, 138, 138, 0.10);
+  --mt-accent-glow: rgba(10, 138, 138, 0.18);
+}
+[data-mt-accent='teal'][data-mt-theme='dark'] {
+  --mt-accent: #4dd9c7;
+  --mt-accent-soft: rgba(77, 217, 199, 0.14);
+  --mt-accent-glow: rgba(77, 217, 199, 0.20);
+}
+[data-mt-accent='violet'] {
+  --mt-accent: #5c34c9;
+  --mt-accent-soft: rgba(92, 52, 201, 0.10);
+  --mt-accent-glow: rgba(92, 52, 201, 0.18);
+}
+[data-mt-accent='violet'][data-mt-theme='dark'] {
+  --mt-accent: #a78bfa;
+  --mt-accent-soft: rgba(167, 139, 250, 0.16);
+  --mt-accent-glow: rgba(167, 139, 250, 0.22);
+}
+[data-mt-theme='navy'][data-mt-accent='teal'] {
+  --mt-accent: #00d9c7;
+  --mt-accent-soft: rgba(0, 217, 199, 0.18);
+  --mt-accent-glow: rgba(0, 217, 199, 0.30);
+}
+[data-mt-theme='navy'][data-mt-accent='violet'] {
+  --mt-accent: #a78bfa;
+  --mt-accent-soft: rgba(167, 139, 250, 0.18);
+  --mt-accent-glow: rgba(167, 139, 250, 0.28);
+}
+[data-mt-theme='navy'][data-mt-accent='ink'] {
+  --mt-accent: rgba(255, 255, 255, 0.92);
+  --mt-accent-soft: rgba(255, 255, 255, 0.10);
+  --mt-accent-glow: rgba(255, 255, 255, 0.20);
+}
+
+/* ─── Density variants ───────────────────────────────────────────────── */
+[data-mt-density='spacious'] {
+  --mt-pad-page: 48px;
+  --mt-pad-card: 28px;
+  --mt-gap-section: 72px;
+  --mt-gap-card: 20px;
+  --mt-row-h: 68px;
+}
+[data-mt-density='dense'] {
+  --mt-pad-page: 24px;
+  --mt-pad-card: 14px;
+  --mt-gap-section: 36px;
+  --mt-gap-card: 10px;
+  --mt-row-h: 42px;
+}
+
+/* ─── Monumental headline scale (Tweak option) ────────────────────── */
+[data-mt-type='monumental'] .mt-h1 {
+  font-size: clamp(72px, 9vw, 112px) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.92 !important;
+  font-weight: 500 !important;
+}
+[data-mt-type='monumental'] .mt-h2 {
+  font-size: clamp(28px, 3vw, 38px) !important;
+}
+
+/* ─── Font pairing variants ──────────────────────────────────────────── */
+[data-mt-fonts='inter-only'] {
+  --mt-font-display: var(--mt-font-ui);
+}
+[data-mt-fonts='ibm-mix'] {
+  --mt-font-display: 'IBM Plex Serif', Georgia, serif;
+}
+
+/* ─── App scope: scope to .mt-overhaul so the legacy app isn't touched. ── */
+.mt-overhaul,
+.mt-overhaul * {
+  box-sizing: border-box;
+}
+.mt-overhaul {
+  font-family: var(--mt-font-ui);
+  color: var(--mt-ink-0);
+  background: var(--mt-bg);
+  background-image: var(--mt-bg-grad);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.mt-overhaul button { font-family: inherit; cursor: pointer; }
+.mt-overhaul .num,
+.mt-overhaul .num * { font-variant-numeric: tabular-nums; }
+.mt-overhaul .up { color: var(--mt-up); }
+.mt-overhaul .down { color: var(--mt-down); }
+
+.mt-overhaul ::-webkit-scrollbar { width: 8px; height: 8px; }
+.mt-overhaul ::-webkit-scrollbar-track { background: transparent; }
+.mt-overhaul ::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, currentColor 18%, transparent);
+  border-radius: 999px;
+}
+.mt-overhaul ::selection { background: var(--mt-accent-soft); }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .mt-overhaul .mt-fade,
+  .mt-overhaul .mt-rise { animation: none !important; }
+}
