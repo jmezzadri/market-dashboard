@@ -362,6 +362,15 @@
 .mt-overhaul .mt-spacer-flex { flex: 1; }
 .mt-overhaul .mc-legend--push { margin-left: auto; }
 .mt-overhaul .mt-pagesection--flush { padding-top: 0; }
+.mt-overhaul .hm-canvaswrap { margin: 0 -12px; }
+/* Bar fill: the prototype targets `.hm-allocbar > span` for the colored fill.
+   Since the JSX uses .hm-allocbar-fill on that inner span, this rule routes
+   the prototype style through that semantic class name and adds the accent. */
+.mt-overhaul .hm-allocbar-fill { background: var(--mt-accent); }
+.mt-overhaul .hm-nowrap { white-space: nowrap; }
+.mt-overhaul .hm-stat-down { color: var(--mt-down); }
+.mt-overhaul .hm-stat-warn { color: var(--mt-warn); }
+.mt-overhaul .hm-stat-up   { color: var(--mt-up); }
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;
