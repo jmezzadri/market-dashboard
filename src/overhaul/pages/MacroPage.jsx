@@ -1,10 +1,21 @@
-/* Macro Overview — rebuilt 2026-05-27 to prototype/pages/macro.jsx.
-   Joe directives:
-     - All counts derived from active indicators (29 today)
-     - On-this-page right card shows {N} total + Lead/Coincident/Lag breakdown
-       (NOT a duplicate extreme/elevated/calm — that's the page's filter pills)
-     - Domain strip freshness rolls up across ALL indicators in the domain
-       (worst-case wins), not the first indicator's freshness. */
+/* Macro Overview — refactored 2026-05-27 per Joe Path-A directive.
+
+   Catalog: 1 violation — DOMAIN_TITLE one-liners (Path-A exception #3:
+   design copy, never gets stale, kept verbatim).
+
+   Style refactor (zero inline style={{...}} after this commit):
+   - "On this page" right card uses .mc-onthispage / .mc-otpval /
+     .mc-otpsub / .mc-otprow classes from the prototype port instead of
+     inline-styled approximations.
+   - Filter bar uses .mc-filterbar / .mc-legend / .mc-legend--push.
+   - Section spacing uses --tight / --tight2 / --flush variants.
+   - Loading state uses .mt-loadingcard.
+
+   Behavior preserved:
+   - All counts derived from real useIndicators() hook.
+   - Domain-strip freshness chip points to the OLDEST indicator in the
+     domain (most likely to fail SLA first).
+   - View toggle persists to localStorage. */
 
 import React, { useMemo, useState, useEffect } from 'react';
 import FreshnessChip from '../components/FreshnessChip';
@@ -12,9 +23,9 @@ import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
-import { useFreshness } from '../../hooks/useFreshness';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Money', 'Economy'];
+// Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
 const DOMAIN_TITLE = {
   Rates: 'The cost and shape of money.',
   Credit: 'Stress in lending markets.',
@@ -34,14 +45,10 @@ function saveView(v) {
   try { window.localStorage.setItem('mt.overhaul.macro.view', v); } catch {}
 }
 
-// Domain-level freshness chip: worst status across the domain's indicators.
+// Domain-level freshness chip: bind to the oldest indicator in the domain
+// (the one most likely to fail SLA first). useFreshness can't be called in
+// a loop, so this is the cleanest one-chip aggregation we can do safely.
 function DomainFreshness({ inds }) {
-  // We can't call useFreshness in a loop. Instead, render one chip per
-  // indicator visually-hidden and surface the worst status. Simpler: pick
-  // the most-out-of-date by `asOf` ISO string as a heuristic, since the
-  // useFreshness hook itself is hard to aggregate cleanly here.
-  // For correctness we render the chip bound to the indicator with the
-  // OLDEST asOf — that's the one most likely to fail SLA first.
   const oldest = useMemo(() => {
     if (!inds?.length) return null;
     return [...inds].sort((a, b) => String(a.asOf || '').localeCompare(String(b.asOf || '')))[0];
@@ -74,7 +81,6 @@ export default function MacroPage() {
     calm: indicators.filter((i) => i.state === 'calm').length,
   }), [indicators]);
 
-  // LEAD/COINC/LAG type counts (registryTier 1/2/3)
   const typeCounts = useMemo(() => ({
     lead: indicators.filter((i) => i.registryTier === 1).length,
     coinc: indicators.filter((i) => i.registryTier === 2).length,
@@ -106,35 +112,14 @@ export default function MacroPage() {
             indicator backdrop.
           </p>
         </div>
-        <div
-          className="mt-card"
-          style={{ minWidth: 240, padding: 18, display: 'flex', flexDirection: 'column', gap: 6 }}
-        >
+        <div className="mc-onthispage">
           <div className="mt-eyebrow">On this page</div>
-          <div
-            className="num"
-            style={{
-              fontFamily: 'var(--mt-font-display)',
-              fontSize: 44,
-              fontWeight: 500,
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-              color: 'var(--mt-ink-0)',
-            }}
-          >
-            {indicators.length || '—'}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>indicators · five domains</div>
+          <div className="mc-otpval num">{indicators.length || '—'}</div>
+          <div className="mc-otpsub">indicators · five domains</div>
           <div className="mt-divider" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
-            <span>Leading</span><b className="num">{typeCounts.lead}</b>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
-            <span>Coincident</span><b className="num">{typeCounts.coinc}</b>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
-            <span>Lagging</span><b className="num">{typeCounts.lag}</b>
-          </div>
+          <div className="mc-otprow"><span>Leading</span><b className="num">{typeCounts.lead}</b></div>
+          <div className="mc-otprow"><span>Coincident</span><b className="num">{typeCounts.coinc}</b></div>
+          <div className="mc-otprow"><span>Lagging</span><b className="num">{typeCounts.lag}</b></div>
           <FreshnessChip elementId="market-universe_master-daily" variant="label" />
         </div>
       </section>
@@ -179,7 +164,7 @@ export default function MacroPage() {
       )}
 
       {/* Filter bar + view toggle */}
-      <section className="mt-pagesection" style={{ paddingTop: 16, paddingBottom: 8 }}>
+      <section className="mt-pagesection mt-pagesection--tight">
         <div className="mc-filterbar">
           <div className="mc-legend">
             <div className="mt-eyebrow">Filter</div>
@@ -211,7 +196,7 @@ export default function MacroPage() {
               ))}
             </div>
           </div>
-          <div className="mc-legend" style={{ marginLeft: 'auto' }}>
+          <div className="mc-legend mc-legend--push">
             <div className="mt-eyebrow">View</div>
             <div className="mt-pillgroup">
               <button type="button" className={`mt-pill ${view === 'map' ? 'on' : ''}`} onClick={() => setView('map')}>Map</button>
@@ -223,9 +208,7 @@ export default function MacroPage() {
 
       {loading ? (
         <section className="mt-pagesection">
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            Loading indicators…
-          </div>
+          <div className="mt-loadingcard">Loading indicators…</div>
         </section>
       ) : view === 'map' ? (
         <>
@@ -249,7 +232,7 @@ export default function MacroPage() {
             </div>
           </section>
           {selected && (
-            <section className="mt-pagesection" style={{ paddingTop: 8 }}>
+            <section className="mt-pagesection mt-pagesection--tight2">
               <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
             </section>
           )}
@@ -288,7 +271,7 @@ export default function MacroPage() {
             );
           })}
           {selected && (
-            <section className="mt-pagesection" style={{ paddingTop: 0 }}>
+            <section className="mt-pagesection mt-pagesection--flush">
               <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
             </section>
           )}

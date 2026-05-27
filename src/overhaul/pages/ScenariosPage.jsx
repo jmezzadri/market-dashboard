@@ -1,52 +1,173 @@
-/* Scenario Analysis — rebuilt 2026-05-27 to prototype/pages/scenarios.jsx.
-   - Hero LEFT: H1 "See how your portfolio and MacroTilt's engines react under stress."
-   - Hero RIGHT: sn-picker block with sn-scengrid (pills, not big cards)
-   - For canned scenarios: header card with title + blurb + 3-stat grid
-     (Peak DD / Engine call / Horizon pills)
-   - For custom: card with 4 slider rows + value display
-   - Strategy comparison table: 7 columns (Strategy / Eq / Cash / Gold / TLT / Return / Max DD)
-   - Side-by-side split: engine sector response (left) + position-level P/L (right)
-*/
+/* Scenario Analysis — refactored 2026-05-27 per Joe Path-A directive.
 
-import React, { useState, useMemo } from 'react';
+   Catalog violations resolved (4 of 4 → 0):
+   1. SCENARIOS hardcoded array → fetched from /scenario_definitions.json
+      (curated 8-scenario reference list created this session).
+   2. Strategy comparison table — WIRED to real per-scenario S&P + engine
+      drawdowns from /macrotilt_engine_backtest.json drawdowns[]. The
+      legacy ScenarioAnalysis page already reads from this source via the
+      STRAT_RETURNS_MAP constant — the overhaul page now reads it
+      directly. 60-40 row uses the legacy formula:
+          ret = engine + (spy - engine) × 0.25
+      "Your portfolio" row em-dashes when not signed in (real wiring
+      lands in a portfolio-impact follow-up).
+   3. MacroTilt Asset Tilt row → engine_depth from same drawdown match.
+   4. engineSectors stress proxy (Math.round of vs_spy_pp synthesized) →
+      cells em-dashed + red FreshnessChip on the section backed by
+      scenario-allocation_history-weekly. Real sector-stress logic lives
+      in the legacy file (around line 1306-1360) and is complex enough
+      to port in a follow-up; this PR removes the fabrication honestly.
+
+   Style refactor (zero inline style props):
+   - Hero picker uses .sn-picker / .sn-scengrid / .sn-scenpill /
+     .sn-scenpill--custom.
+   - Custom builder uses .sn-customcard / .sn-slidercell / .sn-slider
+     / .sn-slidersub / .sn-sliderval.
+   - Scenario header card uses .sn-headercard / .sn-headertop /
+     .sn-headertitle / .sn-headersub / .sn-headstats / .sn-headstat.
+   - Strategy table uses .sn-strategytable.
+   - Split view uses .sn-splitcard with .sn-engineimpact and
+     .sn-poslosses inner cards. */
+
+import React, { useEffect, useMemo, useState } from 'react';
 import FreshnessChip from '../components/FreshnessChip';
 import useAllocation from '../lib/useAllocation';
+import useUserPortfolio from '../../hooks/useUserPortfolio';
 
-const SCENARIOS = [
-  { id: 'blackmonday', name: "Black Monday ('87)", peakDD: -22.6, call: 'Risk Off · Deflationary', blurb: 'October 1987: 22.6% single-day drop. Bond vol spiked, yields collapsed, dollar weakened.' },
-  { id: 'dotcomup', name: "Dot-Com Lead-Up ('00)", peakDD: +8.4, call: 'Risk On · Inflationary', blurb: 'March 2000: peak of the Nasdaq bubble. Eight-week window before the rollover.' },
-  { id: 'dotcomflush', name: "Dot-Com Flush ('02)", peakDD: -14.1, call: 'Risk Off · Neutral', blurb: 'October 2002: capitulation low after 32-month grind. Tech multiples re-rated by 60%+.' },
-  { id: 'gfc', name: "GFC ('08)", peakDD: -37.4, call: 'Risk Off · Deflationary', blurb: 'September–November 2008. Lehman, Iceland, AIG. MOVE > 250. Credit spreads to 1,800bp.' },
-  { id: 'ratehike', name: "Rate Hikes ('18)", peakDD: -19.8, call: 'Watch · Neutral', blurb: 'Q4 2018: Powell pivot. SPX drew down 19.8% on rate-cycle fears.' },
-  { id: 'covid', name: "Covid ('20)", peakDD: -33.9, call: 'Risk Off · Deflationary', blurb: 'March 2020. Liquidity flush, VIX > 80, MOVE > 160, oil briefly negative.' },
-  { id: 'inflation', name: "Inflation ('22)", peakDD: -24.1, call: 'Watch · Inflationary', blurb: '2022: 4×75bp Fed hikes. Bonds and stocks both selling off, real yields up 250bp.' },
-  { id: 'ai', name: "AI Correction ('24)", peakDD: -18.2, call: 'Watch · Neutral', blurb: 'Late 2024 AI cohort correction · 18% NASDAQ drawdown.' },
+/* Map scenario_definitions.id → drawdown.name in macrotilt_engine_backtest.json.
+   When the engine backtest doesn't cover a scenario window (e.g., the AI 2024
+   correction is more recent than the last drawdown entry), engine-derived
+   cells em-dash. */
+const SCENARIO_TO_DRAWDOWN = {
+  blackmonday:  '1987 Black Monday',
+  dotcomup:     '2000 Dot-com',
+  dotcomflush:  '2000 Dot-com',
+  gfc:          '2007 GFC',
+  ratehike:     '2018 Q4',
+  covid:        '2020 COVID',
+  inflation:    '2022 bear',
+  ai:           null,
+};
+
+const HORIZONS = [
+  { key: '1M', mul: 0.4 },
+  { key: '3M', mul: 0.75 },
+  { key: '6M', mul: 1.0 },
 ];
 
+const SLIDERS = [
+  { key: 'move',  label: 'MOVE · bond vol',        sub: '1.0 = today · 2.0 = double',  min: -1,   max: 2.5, step: 0.05 },
+  { key: 'ust10', label: '10y Treasury yield Δ',   sub: 'Percentage-point shift',      min: -2,   max: 3,   step: 0.05 },
+  { key: 'dxy',   label: 'USD index Δ',            sub: '% shift',                     min: -0.2, max: 0.2, step: 0.005 },
+  { key: 'oil',   label: 'Brent crude Δ',          sub: '% shift',                     min: -0.5, max: 1,   step: 0.01 },
+];
+
+function fmtPctSigned(v, digits = 1) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v >= 0 ? '+' : ''}${v.toFixed(digits)}%`;
+}
+function fmtPctDown(v, digits = 1) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v.toFixed(digits)}%`;
+}
+
 export default function ScenariosPage() {
+  const [scenarios, setScenarios] = useState([]);
+  const [backtest, setBacktest] = useState(null);
   const [activeId, setActiveId] = useState('gfc');
   const [horizon, setHorizon] = useState('3M');
   const [custom, setCustom] = useState({ move: 0.6, ust10: 0.4, dxy: -0.04, oil: 0.3 });
   const { allocation } = useAllocation();
-  const scen = activeId === 'custom' ? null : SCENARIOS.find((s) => s.id === activeId);
+  const { isAuthed } = useUserPortfolio();
 
-  const horizonMul = horizon === '1M' ? 0.4 : horizon === '3M' ? 0.75 : 1.0;
-  const baseDD = scen?.peakDD ?? -10;
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/scenario_definitions.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && Array.isArray(j?.scenarios)) setScenarios(j.scenarios); })
+      .catch(() => {});
+    fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setBacktest(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
-  const strategies = useMemo(() => [
-    { name: 'S&P 500',                       equity: '100%', cash: '—',   gold: '—',   tlt: '—',   ret: baseDD * horizonMul, dd: baseDD,        you: false, mt: false },
-    { name: 'S&P 500 / Cash 60/40',          equity: '60%',  cash: '40%', gold: '—',   tlt: '—',   ret: baseDD * 0.6 * horizonMul, dd: baseDD * 0.6, you: false, mt: false },
-    { name: 'Your portfolio',                equity: '83.7%',cash: '15.8%',gold: '0.4%',tlt: '—',  ret: baseDD * 0.8 * horizonMul, dd: baseDD * 0.85, you: true,  mt: false },
-    { name: 'MacroTilt Asset Tilt',          equity: '40%',  cash: '—',   gold: '30%', tlt: '30%', ret: -baseDD * 0.15 * horizonMul, dd: baseDD * 0.22, you: false, mt: true  },
-  ], [baseDD, horizonMul]);
+  const scen = activeId === 'custom' ? null : scenarios.find((s) => s.id === activeId);
+  const horizonMul = HORIZONS.find((h) => h.key === horizon)?.mul ?? 1.0;
 
-  const engineSectors = useMemo(() => {
-    const list = (allocation?.sectors || []).slice(0, 8);
-    return list.map((s, i) => {
-      const proxy = Math.round((s.vs_spy_pp ?? 0) * 0.6 + (i % 2 === 0 ? 2 : -3));
-      const stress = -Math.abs(proxy) - ((i * 7) % 9);
-      return { sector: s.sector, code: (s.etfs && s.etfs[0]) || s.sector, proxy, stress };
-    });
+  /* Real per-scenario S&P and engine depths from the backtest drawdowns list.
+     Falls back to scenario.peak_dd_pct (curated reference) for the S&P number
+     when the backtest doesn't cover this window; engine cells em-dash. */
+  const drawdown = useMemo(() => {
+    if (!scen || !backtest?.drawdowns) return null;
+    const targetName = SCENARIO_TO_DRAWDOWN[scen.id];
+    if (!targetName) return null;
+    return backtest.drawdowns.find((d) => d.name === targetName) || null;
+  }, [scen, backtest]);
+
+  /* Strategy rows — real returns wired to the engine backtest.
+     S&P row uses spy_depth × 100 from the matched drawdown, falling back to
+     the curated scenario.peak_dd_pct when no drawdown match exists.
+     60-40 row uses the legacy formula: engine + (spy - engine) × 0.25.
+     Asset Tilt row uses engine_depth × 100 from the drawdown.
+     Your-portfolio row em-dashes when unauthenticated. */
+  const strategies = useMemo(() => {
+    if (!scen) return [];
+    const spyFromBacktest = drawdown ? drawdown.spy_depth * 100 : null;
+    const engineFromBacktest = drawdown ? drawdown.engine_depth * 100 : null;
+    const spyFallback = scen.peak_dd_pct ?? null;
+
+    const spyDD = spyFromBacktest != null ? spyFromBacktest : spyFallback;
+    const engineDD = engineFromBacktest;
+    const cashDD = (spyDD != null && engineDD != null)
+      ? engineDD + (spyDD - engineDD) * 0.25
+      : null;
+
+    const apply = (depth) => (depth != null ? depth * horizonMul : null);
+
+    return [
+      {
+        name: 'S&P 500',
+        equity: '100%', cash: '—', gold: '—', tlt: '—',
+        ret: apply(spyDD),
+        dd: spyDD,
+        you: false, mt: false,
+      },
+      {
+        name: 'S&P 500 / Cash 60/40',
+        equity: '60%', cash: '40%', gold: '—', tlt: '—',
+        ret: apply(cashDD),
+        dd: cashDD,
+        you: false, mt: false,
+      },
+      {
+        name: 'Your portfolio',
+        equity: isAuthed ? '—' : '—', cash: '—', gold: '—', tlt: '—',
+        ret: null,
+        dd: null,
+        you: true, mt: false,
+        note: isAuthed ? 'Position-level scenario impact not yet wired.' : 'Sign in to see portfolio impact.',
+      },
+      {
+        name: 'MacroTilt Asset Tilt',
+        equity: '40%', cash: '—', gold: '30%', tlt: '30%',
+        ret: apply(engineDD),
+        dd: engineDD,
+        you: false, mt: true,
+      },
+    ];
+  }, [scen, drawdown, horizonMul, isAuthed]);
+
+  /* engineSectors stress proxy was fabricated (Math.round of vs_spy_pp).
+     Per Joe handoff option (b): render the sector list with em-dashes in
+     the proxy/stress columns and surface a red FreshnessChip on the
+     section. Real per-scenario sector-stress logic ports in a follow-up. */
+  const engineSectorsList = useMemo(() => {
+    return (allocation?.sectors || []).slice(0, 8).map((s) => ({
+      sector: s.sector,
+      code: (s.etfs && s.etfs[0]) || s.sector,
+    }));
   }, [allocation]);
 
   return (
@@ -63,33 +184,18 @@ export default function ScenariosPage() {
             oil — pull the levers, watch the engine respond.
           </p>
         </div>
-        <div className="mt-card" style={{ minWidth: 360, padding: 18 }}>
+        <div className="sn-picker">
           <div className="mt-eyebrow">Scenario selection</div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 6,
-              marginTop: 10,
-            }}
-          >
-            {SCENARIOS.map((s) => (
+          <div className="sn-scengrid">
+            {scenarios.length === 0 && (
+              <div className="sn-scenpill sn-scenpill--loading">Loading scenarios…</div>
+            )}
+            {scenarios.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setActiveId(s.id)}
-                style={{
-                  appearance: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid var(--mt-line-0)',
-                  background: activeId === s.id ? 'var(--mt-accent-soft)' : 'var(--mt-surface-2)',
-                  color: activeId === s.id ? 'var(--mt-accent)' : 'var(--mt-ink-1)',
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                }}
+                className={`sn-scenpill ${activeId === s.id ? 'on' : ''}`}
               >
                 {s.name}
               </button>
@@ -97,19 +203,7 @@ export default function ScenariosPage() {
             <button
               type="button"
               onClick={() => setActiveId('custom')}
-              style={{
-                appearance: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: `1px dashed ${activeId === 'custom' ? 'var(--mt-accent)' : 'var(--mt-line-1)'}`,
-                background: activeId === 'custom' ? 'var(--mt-accent-soft)' : 'transparent',
-                color: activeId === 'custom' ? 'var(--mt-accent)' : 'var(--mt-ink-1)',
-                fontSize: 12.5,
-                fontWeight: 500,
-                gridColumn: '1 / -1',
-              }}
+              className={`sn-scenpill sn-scenpill--custom ${activeId === 'custom' ? 'on' : ''}`}
             >
               + Custom multi-factor shock
             </button>
@@ -126,44 +220,36 @@ export default function ScenariosPage() {
               <div className="mt-h2">Pull a factor — the engine recomputes live.</div>
             </div>
             <div className="mt-pillgroup">
-              {['1M', '3M', '6M'].map((h) => (
-                <button key={h} type="button" className={`mt-pill ${horizon === h ? 'on' : ''}`} onClick={() => setHorizon(h)}>{h}</button>
+              {HORIZONS.map((h) => (
+                <button
+                  key={h.key}
+                  type="button"
+                  className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
+                  onClick={() => setHorizon(h.key)}
+                >
+                  {h.key}
+                </button>
               ))}
             </div>
           </div>
-          <div className="mt-card" style={{ padding: 18 }}>
-            {[
-              ['move', 'MOVE · bond vol', '1.0 = today · 2.0 = double', -1, 2.5, 0.05],
-              ['ust10', '10y Treasury yield Δ', 'Percentage-point shift', -2, 3, 0.05],
-              ['dxy', 'USD index Δ', '% shift', -0.2, 0.2, 0.005],
-              ['oil', 'Brent crude Δ', '% shift', -0.5, 1, 0.01],
-            ].map(([k, label, sub, mn, mx, step]) => (
-              <div
-                key={k}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '220px 1fr 70px',
-                  gap: 14,
-                  alignItems: 'center',
-                  padding: '10px 0',
-                  borderTop: '1px solid var(--mt-line-0)',
-                }}
-              >
+          <div className="sn-customcard">
+            {SLIDERS.map((s) => (
+              <div key={s.key} className="sn-slidercell">
                 <div>
-                  <div className="mt-eyebrow">{label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 2 }}>{sub}</div>
+                  <div className="mt-eyebrow">{s.label}</div>
+                  <div className="sn-slidersub">{s.sub}</div>
                 </div>
                 <input
                   type="range"
-                  min={mn}
-                  max={mx}
-                  step={step}
-                  value={custom[k]}
-                  onChange={(e) => setCustom({ ...custom, [k]: Number(e.target.value) })}
-                  style={{ width: '100%' }}
+                  className="sn-slider"
+                  min={s.min}
+                  max={s.max}
+                  step={s.step}
+                  value={custom[s.key]}
+                  onChange={(e) => setCustom({ ...custom, [s.key]: Number(e.target.value) })}
                 />
-                <div className="num" style={{ textAlign: 'right', fontSize: 16, fontWeight: 600, color: 'var(--mt-ink-0)' }}>
-                  {custom[k] > 0 ? '+' : ''}{(custom[k] * 100).toFixed(0)}%
+                <div className="sn-sliderval num">
+                  {custom[s.key] > 0 ? '+' : ''}{(custom[s.key] * 100).toFixed(0)}%
                 </div>
               </div>
             ))}
@@ -174,52 +260,36 @@ export default function ScenariosPage() {
       {/* Scenario header card */}
       {activeId !== 'custom' && scen && (
         <section className="mt-pagesection">
-          <div className="mt-card" style={{ padding: 22 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 22,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 240 }}>
+          <div className="sn-headercard">
+            <div className="sn-headertop">
+              <div>
                 <div className="mt-eyebrow">Active scenario</div>
-                <div
-                  style={{
-                    fontFamily: 'var(--mt-font-display)',
-                    fontSize: 28,
-                    fontWeight: 500,
-                    letterSpacing: '-0.02em',
-                    margin: '4px 0 6px',
-                    color: 'var(--mt-ink-0)',
-                  }}
-                >
-                  {scen.name}
-                </div>
-                <p style={{ fontSize: 13.5, color: 'var(--mt-ink-1)', lineHeight: 1.55, margin: 0, maxWidth: '60ch' }}>
-                  {scen.blurb}
-                </p>
+                <div className="sn-headertitle">{scen.name}</div>
+                <p className="sn-headersub">{scen.blurb}</p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: 22, alignItems: 'flex-start' }}>
-                <div>
+              <div className="sn-headstats">
+                <div className="sn-headstat">
                   <div className="mt-eyebrow">Peak drawdown</div>
-                  <b className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 500, color: 'var(--mt-down)' }}>
-                    {scen.peakDD > 0 ? '+' : ''}{scen.peakDD.toFixed(1)}%
+                  <b className="num sn-headstat-dd">
+                    {scen.peak_dd_pct > 0 ? '+' : ''}{scen.peak_dd_pct.toFixed(1)}%
                   </b>
                 </div>
-                <div>
+                <div className="sn-headstat">
                   <div className="mt-eyebrow">Engine call</div>
-                  <b style={{ fontFamily: 'var(--mt-font-display)', fontSize: 16, fontWeight: 500, color: 'var(--mt-ink-0)' }}>
-                    {scen.call}
-                  </b>
+                  <b className="sn-headstat-call">{scen.regime_call}</b>
                 </div>
-                <div>
+                <div className="sn-headstat">
                   <div className="mt-eyebrow">Horizon</div>
-                  <div className="mt-pillgroup" style={{ marginTop: 2 }}>
-                    {['1M', '3M', '6M'].map((h) => (
-                      <button key={h} type="button" className={`mt-pill ${horizon === h ? 'on' : ''}`} onClick={() => setHorizon(h)}>{h}</button>
+                  <div className="mt-pillgroup">
+                    {HORIZONS.map((h) => (
+                      <button
+                        key={h.key}
+                        type="button"
+                        className={`mt-pill ${horizon === h.key ? 'on' : ''}`}
+                        onClick={() => setHorizon(h.key)}
+                      >
+                        {h.key}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -229,7 +299,7 @@ export default function ScenariosPage() {
         </section>
       )}
 
-      {/* Strategy allocations */}
+      {/* Strategy allocations table — REAL data from backtest drawdowns */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
@@ -238,52 +308,37 @@ export default function ScenariosPage() {
           </div>
           <FreshnessChip elementId="scenario-allocation_history-weekly" variant="label" />
         </div>
-        <div className="mt-card" style={{ padding: 0 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <div className="sn-strategytable">
+          <table>
             <thead>
               <tr>
-                {['Strategy', 'Equity', 'Cash', 'Gold', 'TLT', 'Return', 'Max DD'].map((h, i) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: i === 0 ? 'left' : 'right',
-                      padding: '12px 16px',
-                      fontSize: 10.5,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: 'var(--mt-ink-2)',
-                      fontWeight: 600,
-                      background: 'var(--mt-surface-2)',
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th className="sn-thLeft">Strategy</th>
+                <th className="sn-thNum">Equity</th>
+                <th className="sn-thNum">Cash</th>
+                <th className="sn-thNum">Gold</th>
+                <th className="sn-thNum">TLT</th>
+                <th className="sn-thNum">Return</th>
+                <th className="sn-thNum">Max DD</th>
               </tr>
             </thead>
             <tbody>
               {strategies.map((s) => (
-                <tr
-                  key={s.name}
-                  style={{
-                    borderTop: '1px solid var(--mt-line-0)',
-                    background: s.you ? 'var(--mt-accent-soft)' : 'transparent',
-                  }}
-                >
-                  <td style={{ padding: '12px 16px', textAlign: 'left' }}>
-                    <b style={{ color: s.mt ? 'var(--mt-accent)' : 'var(--mt-ink-0)' }}>{s.name}</b>
-                    {s.you && <span className="mt-tag mt-tag--accent" style={{ marginLeft: 8 }}>YOU</span>}
-                    {s.mt && <span className="mt-tag mt-tag--accent" style={{ marginLeft: 8 }}>MACROTILT</span>}
+                <tr key={s.name} className={s.you ? 'sn-row-you' : ''}>
+                  <td className="sn-tdLeft">
+                    <b className={s.mt ? 'sn-row-mt' : ''}>{s.name}</b>
+                    {s.you && <span className="mt-tag mt-tag--accent sn-tag">YOU</span>}
+                    {s.mt && <span className="mt-tag mt-tag--accent sn-tag">MACROTILT</span>}
+                    {s.note && <div className="sn-row-note">{s.note}</div>}
                   </td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px' }}>{s.equity}</td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px' }}>{s.cash}</td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px' }}>{s.gold}</td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px' }}>{s.tlt}</td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px', color: s.ret >= 0 ? 'var(--mt-up)' : 'var(--mt-down)', fontWeight: 600 }}>
-                    {s.ret >= 0 ? '+' : ''}{s.ret.toFixed(1)}%
+                  <td className="num sn-tdNum">{s.equity}</td>
+                  <td className="num sn-tdNum">{s.cash}</td>
+                  <td className="num sn-tdNum">{s.gold}</td>
+                  <td className="num sn-tdNum">{s.tlt}</td>
+                  <td className={`num sn-tdNum sn-tdRet ${s.ret == null ? '' : s.ret >= 0 ? 'up' : 'down'}`}>
+                    {fmtPctSigned(s.ret, 1)}
                   </td>
-                  <td className="num" style={{ textAlign: 'right', padding: '12px 16px', color: 'var(--mt-down)', fontWeight: 600 }}>
-                    {s.dd.toFixed(1)}%
+                  <td className="num sn-tdNum sn-tdDD">
+                    {fmtPctDown(s.dd, 1)}
                   </td>
                 </tr>
               ))}
@@ -292,43 +347,47 @@ export default function ScenariosPage() {
         </div>
       </section>
 
-      {/* Split — engine response + portfolio impact */}
+      {/* Split — engine response (em-dashed + red chip) + portfolio impact */}
       <section className="mt-pagesection">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--mt-gap-card)' }}>
-          <article className="mt-card" style={{ padding: 18 }}>
-            <div className="mt-eyebrow">Asset Tilt engine response</div>
-            <div className="mt-h2" style={{ marginBottom: 12 }}>How sectors would move.</div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {engineSectors.map((s) => (
-                <li
-                  key={s.code}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '50px 1fr 70px 30px 70px',
-                    gap: 10,
-                    alignItems: 'center',
-                    padding: '10px 0',
-                    borderTop: '1px solid var(--mt-line-0)',
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 11, color: 'var(--mt-ink-2)', fontWeight: 600 }}>{s.code}</span>
-                  <span style={{ color: 'var(--mt-ink-1)' }}>{s.sector}</span>
-                  <span className="num" style={{ textAlign: 'right', color: s.proxy >= 0 ? 'var(--mt-up)' : 'var(--mt-down)', fontWeight: 600 }}>
-                    {s.proxy >= 0 ? '+' : ''}{s.proxy}%
-                  </span>
-                  <span style={{ textAlign: 'center', color: 'var(--mt-ink-3)' }}>→</span>
-                  <span className="num" style={{ textAlign: 'right', color: 'var(--mt-down)', fontWeight: 600 }}>{s.stress}%</span>
+        <div className="sn-splitcard">
+          <article className="mt-card sn-engineimpact">
+            <div className="mt-sectionhead-tight">
+              <div>
+                <div className="mt-eyebrow">Asset Tilt engine response</div>
+                <div className="mt-h2">How sectors would move.</div>
+              </div>
+              <FreshnessChip elementId="scenario-allocation_history-weekly" variant="dot" />
+            </div>
+            <ul className="sn-sectorlist">
+              {engineSectorsList.map((s) => (
+                <li key={s.code} className="sn-sectorrow">
+                  <span className="sn-sectorcode">{s.code}</span>
+                  <span className="sn-secname">{s.sector}</span>
+                  <span className="num sn-proxy">—</span>
+                  <span className="sn-arrow">→</span>
+                  <span className="num sn-stress">—</span>
                 </li>
               ))}
             </ul>
+            <div className="sn-section-note">
+              Per-scenario sector-stress numbers are not yet wired into the
+              overhaul — the legacy Scenario Analysis page has the logic, port
+              follows in a separate change.
+            </div>
           </article>
 
-          <article className="mt-card" style={{ padding: 18 }}>
-            <div className="mt-eyebrow">Your portfolio impact</div>
-            <div className="mt-h2" style={{ marginBottom: 12 }}>Position-level P/L · {horizon} window.</div>
-            <div style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>
-              Sign in to your portfolio to see position-level scenario impact.
+          <article className="mt-card sn-poslosses">
+            <div className="mt-sectionhead-tight">
+              <div>
+                <div className="mt-eyebrow">Your portfolio impact</div>
+                <div className="mt-h2">Position-level P/L · {horizon} window.</div>
+              </div>
+              <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" />
+            </div>
+            <div className="sn-section-note">
+              {isAuthed
+                ? 'Position-level scenario impact for your holdings is not yet wired into the overhaul.'
+                : 'Sign in to your portfolio to see position-level scenario impact.'}
             </div>
           </article>
         </div>

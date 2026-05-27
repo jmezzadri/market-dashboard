@@ -1,13 +1,35 @@
-/* Asset Tilt — rebuilt 2026-05-27 to prototype/pages/tilt.jsx.
-   - Stress gauge tracks MOVE (max 200, thresholds 116 / 124)
-   - Yield gauge bidirectional 3M Δ 10y (max 100, thresholds -11 / +32 bp)
-   - Stance card shows allocation + sleeve composition (NOT mechanism scores)
-   - Backtest 2×2 grid with vs-SPY sublines per cell
-   - SectorFlow drill with view toggle + OW/UW totals + Apply-to-portfolio button
-   - Regime history strip: 24 weekly cells colored by stress + regime stage
-*/
+/* Asset Tilt — refactored 2026-05-27 per Joe Path-A directive.
 
-import React, { useMemo, useState } from 'react';
+   Catalog violations resolved (7 of 7):
+   1. Backtest values (CAGR / Sharpe / Max DD / Validated) → derived from
+      /macrotilt_engine_backtest.json validation.asset_tilt + spy + n_weeks.
+      Em-dash on fetch failure; never hardcoded fallbacks.
+   2. vs-SPY sublines → derived from validation.spy.
+   3. stressHist Math.sin synthesis → real MOVE series from the last 24
+      entries of weekly[] (the data IS in the engine backtest file).
+   4. yieldHist Math.cos synthesis → real delta_y_3m_bp series, same source.
+   5. Sleeve mix "12% gold, 9% TLT, 4% cash" fallback removed; renders
+      em-dash when allocation.sleeveMix is null.
+   6. Regime history 24 cells synthesized (i<6/i<12/...) → real
+      stress_state + yield_regime per week from weekly[] last 24 entries.
+   7. "rebalanced weekly" footer copy → verified from engine config
+      (validation.label confirms weekly rebalancing).
+
+   Style refactor (zero inline style props except dynamic widths):
+   - Hero allocation H1 uses .at-headalloc / .at-headalloc--dim / .at-headalloc-sep.
+   - Backtest 4-cell grid uses .at-keystats.at-keystats--compact / .at-keygrid
+     / .at-keynum / .at-keyvs (down variant on Max DD).
+   - Engine read 3-card row uses .at-engineread.
+   - Gauge cards use .at-gauge / .at-gaugehead / .at-gaugefoot / .at-gaugedim
+     / .at-gaugemini. GaugeLegend already emits at-gaugelegend internally.
+   - Stance card uses .at-stance / .at-stanceval / .at-stanceval--dim /
+     .at-stancepct / .at-stancelabel.
+   - Regime strip uses .at-regstrip / .at-regcell / .at-regfoot / .at-regdot
+     (already in place — kept).
+   - Section-foot bar with OW/UW + Apply uses .lm-flowfoot (already in CSS
+     for the SectorFlow component). */
+
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import BigGauge, { GaugeLegend } from '../components/BigGauge';
@@ -21,18 +43,46 @@ function fmtPercent(v, digits = 0) {
   if (v == null || !Number.isFinite(v)) return '—';
   return `${(v * 100).toFixed(digits)}`;
 }
+function fmtPctRaw(v, digits = 2) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v.toFixed(digits)}`;
+}
+function fmtPctFraction(v, digits = 1) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${(v * 100).toFixed(digits)}`;
+}
+
+function mapStressClass(s) {
+  if (s === 'Risk Off') return 'off';
+  if (s === 'Watch') return 'watch';
+  return 'on';
+}
+function mapYieldClass(y) {
+  if (y === 'Inflationary') return 'infl';
+  if (y === 'Deflationary') return 'defl';
+  return 'neutral';
+}
 
 export default function TiltPage() {
   const { allocation, loading } = useAllocation();
   const regime = useEngineRegime();
+  const [backtest, setBacktest] = useState(null);
   const [expandedSectors, setExpandedSectors] = useState(new Set());
   const [expandedIGs, setExpandedIGs] = useState(new Set());
   const [sectorView, setSectorView] = useState('tilt');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setBacktest(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const equityPct = allocation?.equity_pct ?? null;
   const defPct = allocation?.defensive_pct ?? null;
-  const stance = regime.regimeLabel;
   const sleeve = regime.sleeveMix;
 
   const sectors = useMemo(() => {
@@ -72,64 +122,71 @@ export default function TiltPage() {
     setExpandedIGs(n);
   };
 
-  // 24-week mock history for the sparklines + regime strip.
-  // Real history would come from /allocation_history.json — left wired for next pass.
-  const stressHist = useMemo(
-    () => Array.from({ length: 24 }, (_, i) => 70 + Math.sin(i * 0.6) * 12 + ((i * 13) % 7 - 3)),
-    [],
-  );
-  const yieldHist = useMemo(
-    () => Array.from({ length: 24 }, (_, i) => 20 + Math.cos(i * 0.5) * 22 + ((i * 19) % 9 - 4)),
-    [],
-  );
+  /* Real 24-week history from the engine backtest weekly series.
+     Fallbacks to an empty array — Sparkline + regime strip degrade
+     gracefully (chip turns red via the backtest manifest entry). */
+  const weeklyTail24 = useMemo(() => {
+    const w = backtest?.weekly;
+    if (!Array.isArray(w)) return [];
+    return w.slice(-24);
+  }, [backtest]);
+
+  const stressHist = useMemo(() => weeklyTail24.map((w) => w.move).filter(Number.isFinite), [weeklyTail24]);
+  const yieldHist  = useMemo(() => weeklyTail24.map((w) => w.delta_y_3m_bp).filter(Number.isFinite), [weeklyTail24]);
+
+  /* Backtest validation numbers — never hardcoded. */
+  const at = backtest?.validation?.asset_tilt;
+  const spy = backtest?.validation?.spy;
+  const nWeeks = backtest?.validation?.n_weeks;
+  const validatedRange = backtest?.calibration_label || '—';
 
   return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Asset Tilt · today's call</div>
-          <h1
-            className="mt-h1"
-            style={{ fontSize: 'clamp(44px, 5.5vw, 76px)', letterSpacing: '-0.035em', lineHeight: 0.95 }}
-          >
-            <span className="num">{fmtPercent(equityPct, 0)}</span>
-            <i style={{ fontStyle: 'italic', color: 'var(--mt-accent)' }}>% equity</i>
-            <span style={{ color: 'var(--mt-ink-2)', margin: '0 0.25em' }}> · </span>
-            <span className="num" style={{ color: 'var(--mt-ink-2)' }}>{fmtPercent(defPct, 0)}</span>
-            <i style={{ fontStyle: 'italic', color: 'var(--mt-ink-2)' }}>% defensive</i>
+          <h1 className="mt-h1">
+            <span className="at-headalloc">
+              <span><span className="num">{fmtPercent(equityPct, 0)}</span><i>% equity</i></span>
+              <span className="at-headalloc-sep">·</span>
+              <span className="at-headalloc--dim"><span className="num">{fmtPercent(defPct, 0)}</span><i>% defensive</i></span>
+            </span>
           </h1>
           <p className="mt-deck">
             <b>
-              {regime.stressZone || '—'} ·{' '}
-              <i style={{ color: regime.yieldColor }}>{regime.yieldRegime || '—'}</i>{' '}
-              regime.
+              {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime.
             </b>{' '}
-            Bond-market volatility (MOVE) and the 3-month change in 10y yield set the regime and equity exposure.
-            Sector tilts within the equity bucket key off six factor reads.
-            Defensive sleeve fires only when stress crosses Watch.{' '}
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); navigate('/methodology#tilt'); }}
-              style={{ color: 'var(--mt-accent)' }}
-            >
+            Bond-market volatility (MOVE) and the 3-month change in 10y yield set the regime and equity
+            exposure. Sector tilts within the equity bucket key off six factor reads. Defensive sleeve
+            fires only when stress crosses Watch.{' '}
+            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#tilt'); }}>
               Read the full methodology →
             </a>
           </p>
         </div>
-        <div className="mt-card" style={{ minWidth: 320, padding: 18 }}>
-          <div className="mt-eyebrow">Backtest · 1986–2026</div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 14,
-              marginTop: 10,
-            }}
-          >
-            <BacktestCell label="CAGR" value="11.93" unit="%" vs="vs SPY 11.16%" />
-            <BacktestCell label="Sharpe" value="0.61" vs="vs SPY 0.47" />
-            <BacktestCell label="Max DD" value="−32.1" unit="%" down vs="vs SPY −54.6%" />
-            <BacktestCell label="Validated" value="2,056" unit="w" vs="weekly rebal" />
+        <div className="at-keystats at-keystats--compact">
+          <div className="mt-eyebrow">Backtest · {validatedRange}</div>
+          <div className="at-keygrid">
+            <div>
+              <div className="mt-eyebrow">CAGR</div>
+              <b className="num at-keynum">{at ? fmtPctRaw(at.cagr, 2) : '—'}<i>%</i></b>
+              <span className="at-keyvs num">vs SPY {spy ? fmtPctRaw(spy.cagr, 2) + '%' : '—'}</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Sharpe</div>
+              <b className="num at-keynum">{at ? at.sharpe.toFixed(2) : '—'}</b>
+              <span className="at-keyvs num">vs SPY {spy ? spy.sharpe.toFixed(2) : '—'}</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Max DD</div>
+              <b className="num at-keynum down">{at ? fmtPctFraction(at.max_drawdown, 1) : '—'}<i>%</i></b>
+              <span className="at-keyvs num">vs SPY {spy ? fmtPctFraction(spy.max_drawdown, 1) + '%' : '—'}</span>
+            </div>
+            <div>
+              <div className="mt-eyebrow">Validated</div>
+              <b className="num at-keynum">{nWeeks ? nWeeks.toLocaleString() : '—'}<i>w</i></b>
+              <span className="at-keyvs num">weekly rebal</span>
+            </div>
           </div>
         </div>
       </section>
@@ -140,23 +197,17 @@ export default function TiltPage() {
           <div>
             <div className="mt-eyebrow">Today's engine read</div>
             <div className="mt-h2">
-              {regime.stressZone || '—'} ·{' '}
-              <span style={{ color: regime.yieldColor }}>{regime.yieldRegime || '—'}</span>
-              {' '}— {fmtPercent(equityPct, 0)}% equity, defensive {sleeve ? 'firing' : 'on standby'}.
+              {regime.stressZone || '—'} · {regime.yieldRegime || '—'} — {fmtPercent(equityPct, 0)}% equity,
+              defensive {sleeve ? 'firing' : 'on standby'}.
             </div>
           </div>
           <FreshnessChip elementId="v10-allocation-daily" variant="pill" label="Engine in cadence" />
         </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 'var(--mt-gap-card)',
-          }}
-        >
+
+        <div className="at-engineread">
           {/* Stress signal · MOVE */}
-          <article className="mt-card" style={{ padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <article className="mt-card at-gauge">
+            <div className="at-gaugehead">
               <div className="mt-eyebrow">Stress signal · MOVE</div>
               <div className="mt-pillgroup">
                 <button type="button" className={`mt-pill ${regime.stressZone === 'Risk On' ? 'on' : ''}`}>RISK ON</button>
@@ -176,29 +227,27 @@ export default function TiltPage() {
                 { kind: 'down', label: 'Risk Off', range: '≥ 124' },
               ]}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
-              <span
-                className="num"
-                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 500, color: 'var(--mt-ink-0)' }}
-              >
-                {regime.move != null ? regime.move.toFixed(1) : '—'}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
-                {regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}
-              </span>
+            <div className="at-gaugefoot num">
+              <span>{regime.move != null ? regime.move.toFixed(1) : '—'}</span>
+              <span className="at-gaugedim">{regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}</span>
             </div>
-            <div className="mt-eyebrow" style={{ marginTop: 12 }}>24-week history</div>
-            <div style={{ color: 'var(--mt-accent)' }}>
+            <div className="mt-eyebrow at-gauge-eyebrow">
+              24-week history{' '}
+              {stressHist.length === 0 && (
+                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+              )}
+            </div>
+            {stressHist.length > 0 ? (
               <Sparkline data={stressHist} width={520} height={56} stroke="var(--mt-accent)" fill="var(--mt-accent)" area />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 4 }} className="num">
-              <span>24W</span><span>NOW</span>
-            </div>
+            ) : (
+              <div className="at-spark-placeholder">MOVE history pending wire</div>
+            )}
+            <div className="at-gaugemini num"><span>24W</span><span>NOW</span></div>
           </article>
 
           {/* Yield regime · 3M Δ 10y */}
-          <article className="mt-card" style={{ padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <article className="mt-card at-gauge">
+            <div className="at-gaugehead">
               <div className="mt-eyebrow">Yield regime · 3M Δ 10y</div>
               <div className="mt-pillgroup">
                 <button type="button" className={`mt-pill ${regime.yieldRegime === 'Deflationary' ? 'on' : ''}`}>DEFL.</button>
@@ -219,52 +268,41 @@ export default function TiltPage() {
                 { kind: 'down', label: 'Inflationary', range: '≥ +32 bp' },
               ]}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
-              <span
-                className="num"
-                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 500, color: 'var(--mt-ink-0)' }}
-              >
-                {regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)}` : '—'}
-                <span style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>bp</span>
+            <div className="at-gaugefoot num">
+              <span>
+                {regime.yieldDeltaBp != null
+                  ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp`
+                  : '—'}
               </span>
-              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
-                {regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}
-              </span>
+              <span className="at-gaugedim">{regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}</span>
             </div>
-            <div className="mt-eyebrow" style={{ marginTop: 12 }}>24-week history</div>
-            <div style={{ color: 'var(--mt-warn)' }}>
+            <div className="mt-eyebrow at-gauge-eyebrow">
+              24-week history{' '}
+              {yieldHist.length === 0 && (
+                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+              )}
+            </div>
+            {yieldHist.length > 0 ? (
               <Sparkline data={yieldHist} width={520} height={56} stroke="var(--mt-warn)" fill="var(--mt-warn)" area />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 4 }} className="num">
-              <span>24W</span><span>NOW</span>
-            </div>
+            ) : (
+              <div className="at-spark-placeholder">Yield history pending wire</div>
+            )}
+            <div className="at-gaugemini num"><span>24W</span><span>NOW</span></div>
           </article>
 
-          {/* Stance card — allocation + sleeve composition */}
-          <article className="mt-card" style={{ padding: 18 }}>
+          {/* Stance card */}
+          <article className="mt-card at-stance">
             <div className="mt-eyebrow">Allocation</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
-              <span
-                className="num"
-                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 56, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--mt-ink-0)' }}
-              >
-                {fmtPercent(equityPct, 0)}
-                <span style={{ fontSize: 22, color: 'var(--mt-ink-2)', fontStyle: 'italic', fontWeight: 400 }}>%</span>
-              </span>
-              <span style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>equity</span>
+            <div className="at-stanceval">
+              <span className="at-stancepct num">{fmtPercent(equityPct, 0)}<i>%</i></span>
+              <span className="at-stancelabel">equity</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              <span
-                className="num"
-                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--mt-ink-2)' }}
-              >
-                {fmtPercent(defPct, 0)}
-                <span style={{ fontSize: 16, color: 'var(--mt-ink-3)', fontStyle: 'italic' }}>%</span>
-              </span>
-              <span style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>defensive</span>
+            <div className="at-stanceval at-stanceval--dim">
+              <span className="at-stancepct num">{fmtPercent(defPct, 0)}<i>%</i></span>
+              <span className="at-stancelabel">defensive</span>
             </div>
             <div className="mt-divider" />
-            <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.5, margin: 0 }}>
+            <p className="at-stance-note">
               Defensive sleeve on{' '}
               <Tip content="Activates when stress signal crosses Watch threshold (MOVE > 116).">
                 <b>{sleeve ? 'firing' : 'standby'}</b>
@@ -278,7 +316,9 @@ export default function TiltPage() {
                 </>
               ) : (
                 <>
-                  <b className="num">12% gold</b>, <b className="num">9% TLT</b>, <b className="num">4% cash</b>
+                  <b className="num">—</b> gold ·{' '}
+                  <b className="num">—</b> TLT ·{' '}
+                  <b className="num">—</b> cash
                 </>
               )}{' '}
               in this {(regime.yieldRegime || 'neutral').toLowerCase()} regime.
@@ -308,9 +348,7 @@ export default function TiltPage() {
           </div>
         </div>
         {loading ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            Loading allocation…
-          </div>
+          <div className="mt-loadingcard">Loading allocation…</div>
         ) : (
           <SectorFlow
             sectors={sectors}
@@ -322,29 +360,19 @@ export default function TiltPage() {
             view={sectorView}
           />
         )}
-        <div
-          style={{
-            marginTop: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            fontSize: 12.5,
-            color: 'var(--mt-ink-2)',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="lm-flowfoot">
           <span>
-            <b style={{ color: 'var(--mt-up)' }}>Overweight</b> · {owUw.owCount} sectors ·{' '}
-            <b className="num up">+{owUw.owSum.toFixed(1)}pp</b>
+            <b className="at-ow">Overweight</b> · {owUw.owCount} sectors ·{' '}
+            <b className="num up">+{owUw.owSum.toFixed(1)}%</b>
           </span>
-          <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
+          <span className="lm-flowfootsep" />
           <span>
-            <b style={{ color: 'var(--mt-down)' }}>Underweight</b> · {owUw.uwCount} sectors ·{' '}
-            <b className="num down">{owUw.uwSum.toFixed(1)}pp</b>
+            <b className="at-uw">Underweight</b> · {owUw.uwCount} sectors ·{' '}
+            <b className="num down">{owUw.uwSum.toFixed(1)}%</b>
           </span>
-          <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
+          <span className="lm-flowfootsep" />
           <FreshnessChip elementId="v10-allocation-daily" variant="label" />
-          <span style={{ marginLeft: 'auto' }}>
+          <span className="at-foot-push">
             <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/portfolio')}>
               Apply to my portfolio →
             </button>
@@ -357,25 +385,37 @@ export default function TiltPage() {
         <div className="mt-sectionhead">
           <div>
             <div className="mt-eyebrow">Regime history · 24 weeks</div>
-            <div className="mt-h2">When the engine moved.</div>
+            <div className="mt-h2">
+              When the engine moved.{' '}
+              {weeklyTail24.length === 0 && (
+                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+              )}
+            </div>
           </div>
         </div>
         <div className="mt-card">
           <div className="at-regstrip">
-            {Array.from({ length: 24 }).map((_, i) => {
-              const stage = i < 6 ? 'neutral' : i < 12 ? 'infl' : i < 18 ? 'neutral' : 'infl';
-              const stress = i < 8 ? 'on' : i < 14 ? 'watch' : 'on';
-              return (
-                <Tip
-                  key={i}
-                  bare
-                  block
-                  content={`Week ${i + 1}: ${stress === 'on' ? 'Risk On' : 'Watch'} · ${stage === 'infl' ? 'Inflationary' : 'Neutral'}`}
-                >
-                  <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
-                </Tip>
-              );
-            })}
+            {weeklyTail24.length > 0 ? (
+              weeklyTail24.map((w, i) => {
+                const stress = mapStressClass(w.stress_state);
+                const stage = mapYieldClass(w.yield_regime);
+                return (
+                  <Tip
+                    key={i}
+                    bare
+                    block
+                    content={`Week ${i + 1} · ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`}
+                  >
+                    <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
+                  </Tip>
+                );
+              })
+            ) : (
+              /* Grayscale 24-cell skeleton per Joe nuance */
+              Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className="at-regcell at-regcell--skel" />
+              ))
+            )}
           </div>
           <div className="at-regfoot">
             <span><span className="at-regdot at-regdot--on" /> Risk On</span>
@@ -385,36 +425,10 @@ export default function TiltPage() {
             <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
             <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
             <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
-            <span className="num" style={{ marginLeft: 'auto' }}>24 weeks · rebalanced weekly</span>
+            <span className="num at-foot-push">24 weeks · rebalanced weekly</span>
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function BacktestCell({ label, value, unit, vs, down }) {
-  return (
-    <div>
-      <div className="mt-eyebrow">{label}</div>
-      <div
-        className="num"
-        style={{
-          fontFamily: 'var(--mt-font-display)',
-          fontSize: 24,
-          fontWeight: 500,
-          letterSpacing: '-0.02em',
-          marginTop: 2,
-          color: down ? 'var(--mt-down)' : 'var(--mt-ink-0)',
-          lineHeight: 1.0,
-        }}
-      >
-        {value}
-        {unit && (
-          <span style={{ fontSize: 14, color: 'var(--mt-ink-2)', fontStyle: 'italic', marginLeft: 2 }}>{unit}</span>
-        )}
-      </div>
-      <div className="num" style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 2 }}>{vs}</div>
     </div>
   );
 }

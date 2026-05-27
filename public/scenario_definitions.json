@@ -1,0 +1,80 @@
+{
+  "_doc": "Canonical reference list of the 8 historical scenarios used by the Scenarios page. These are design-spec FACTS about history, not live model output — peak drawdowns and one-line blurbs are stable academic references. Live model output (per-scenario portfolio impact, MacroTilt allocation, regime read) is computed elsewhere and joined at render time.",
+  "owner": "Data Steward",
+  "as_of": "2026-05-27",
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "blackmonday",
+      "name": "Black Monday ('87)",
+      "peak_window": "1987-10-19 to 1987-10-26",
+      "peak_dd_pct": -22.6,
+      "regime_call": "Risk Off · Deflationary",
+      "blurb": "October 1987: 22.6% single-day drop. Bond vol spiked, yields collapsed, dollar weakened.",
+      "stress_stress_key": "black_monday_1987"
+    },
+    {
+      "id": "dotcomup",
+      "name": "Dot-Com Lead-Up ('00)",
+      "peak_window": "2000-03-10 to 2000-05-05",
+      "peak_dd_pct": 8.4,
+      "regime_call": "Risk On · Inflationary",
+      "blurb": "March 2000: peak of the Nasdaq bubble. Eight-week window before the rollover.",
+      "stress_stress_key": "dotcom_slow_2000"
+    },
+    {
+      "id": "dotcomflush",
+      "name": "Dot-Com Flush ('02)",
+      "peak_window": "2002-10-09 to 2002-12-31",
+      "peak_dd_pct": -14.1,
+      "regime_call": "Risk Off · Neutral",
+      "blurb": "October 2002: capitulation low after 32-month grind. Tech multiples re-rated by 60%+.",
+      "stress_stress_key": "dotcom_capitulation_2002"
+    },
+    {
+      "id": "gfc",
+      "name": "GFC ('08)",
+      "peak_window": "2008-09-15 to 2008-11-20",
+      "peak_dd_pct": -37.4,
+      "regime_call": "Risk Off · Deflationary",
+      "blurb": "September–November 2008. Lehman, Iceland, AIG. MOVE > 250. Credit spreads to 1,800bp.",
+      "stress_stress_key": "gfc_2008"
+    },
+    {
+      "id": "ratehike",
+      "name": "Rate Hikes ('18)",
+      "peak_window": "2018-10-03 to 2018-12-24",
+      "peak_dd_pct": -19.8,
+      "regime_call": "Watch · Neutral",
+      "blurb": "Q4 2018: Powell pivot. SPX drew down 19.8% on rate-cycle fears.",
+      "stress_stress_key": "q4_2018"
+    },
+    {
+      "id": "covid",
+      "name": "Covid ('20)",
+      "peak_window": "2020-02-19 to 2020-03-23",
+      "peak_dd_pct": -33.9,
+      "regime_call": "Risk Off · Deflationary",
+      "blurb": "March 2020. Liquidity flush, VIX > 80, MOVE > 160, oil briefly negative.",
+      "stress_stress_key": "covid_2020"
+    },
+    {
+      "id": "inflation",
+      "name": "Inflation ('22)",
+      "peak_window": "2022-01-03 to 2022-10-13",
+      "peak_dd_pct": -24.1,
+      "regime_call": "Watch · Inflationary",
+      "blurb": "2022: 4×75bp Fed hikes. Bonds and stocks both selling off, real yields up 250bp.",
+      "stress_stress_key": null
+    },
+    {
+      "id": "ai",
+      "name": "AI Correction ('24)",
+      "peak_window": "2024-07-10 to 2024-09-06",
+      "peak_dd_pct": -18.2,
+      "regime_call": "Watch · Neutral",
+      "blurb": "Late 2024 AI cohort correction · 18% NASDAQ drawdown.",
+      "stress_stress_key": null
+    }
+  ]
+}

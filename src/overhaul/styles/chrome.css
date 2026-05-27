@@ -327,6 +327,160 @@
   align-items: end;
 }
 .mt-overhaul .mt-pagesection { padding: 32px var(--mt-pad-page); }
+.mt-overhaul .mt-pagesection--tight { padding-top: 16px; padding-bottom: 12px; }
+.mt-overhaul .mt-pagesection--tight2 { padding-top: 8px; }
+.mt-overhaul .mt-loadingcard {
+  padding: 36px;
+  text-align: center;
+  color: var(--mt-ink-2);
+  background: var(--mt-surface);
+  border: 1px solid var(--mt-line-0);
+  border-radius: var(--mt-r-lg);
+}
+.mt-overhaul .mt-tablecard {
+  padding: 0;
+  overflow: hidden;
+  background: var(--mt-surface);
+  border: 1px solid var(--mt-line-0);
+  border-radius: var(--mt-r-lg);
+}
+.mt-overhaul .al-row--push { margin-left: auto; }
+.mt-overhaul .sectionhead-pill { display: flex; align-items: center; gap: 10px; }
+.mt-overhaul .mt-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--mt-ink-0);
+  color: var(--mt-surface);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 100000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.mt-overhaul .mt-spacer-flex { flex: 1; }
+.mt-overhaul .mc-legend--push { margin-left: auto; }
+.mt-overhaul .mt-pagesection--flush { padding-top: 0; }
+.mt-overhaul .hm-canvaswrap { margin: 0 -12px; }
+/* Bar fill: the prototype targets `.hm-allocbar > span` for the colored fill.
+   Since the JSX uses .hm-allocbar-fill on that inner span, this rule routes
+   the prototype style through that semantic class name and adds the accent. */
+.mt-overhaul .hm-allocbar-fill { background: var(--mt-accent); }
+.mt-overhaul .hm-nowrap { white-space: nowrap; }
+.mt-overhaul .hm-stat-down { color: var(--mt-down); }
+.mt-overhaul .hm-stat-warn { color: var(--mt-warn); }
+.mt-overhaul .hm-stat-up   { color: var(--mt-up); }
+.mt-overhaul .at-gauge-eyebrow { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+.mt-overhaul .at-spark-placeholder {
+  height: 56px;
+  border-radius: var(--mt-r-sm);
+  background: linear-gradient(90deg, var(--mt-surface-2), var(--mt-surface-3), var(--mt-surface-2));
+  background-size: 200% 100%;
+  animation: mt-shimmer 1.6s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  color: var(--mt-ink-3);
+  letter-spacing: 0.04em;
+}
+@keyframes mt-shimmer { from { background-position: 0% 0; } to { background-position: -200% 0; } }
+.mt-overhaul .at-regcell--skel { background: var(--mt-surface-3); }
+.mt-overhaul .at-ow { color: var(--mt-up); }
+.mt-overhaul .at-uw { color: var(--mt-down); }
+.mt-overhaul .at-foot-push { margin-left: auto; }
+.mt-overhaul .at-stance-note { font-size: 12.5px; color: var(--mt-ink-2); line-height: 1.5; margin: 0; }
+/* Scenarios page bits not covered by the prototype sn-* port */
+.mt-overhaul .sn-scenpill--loading { opacity: 0.6; }
+.mt-overhaul .sn-row-you  { background: var(--mt-accent-soft); }
+.mt-overhaul .sn-row-mt   { color: var(--mt-accent); }
+.mt-overhaul .sn-tag      { margin-left: 8px; }
+.mt-overhaul .sn-row-note { font-size: 11.5px; color: var(--mt-ink-2); margin-top: 4px; }
+.mt-overhaul .sn-thLeft   { text-align: left;  padding: 12px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-2); font-weight: 600; background: var(--mt-surface-2); }
+.mt-overhaul .sn-thNum    { text-align: right; padding: 12px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-2); font-weight: 600; background: var(--mt-surface-2); }
+.mt-overhaul .sn-tdLeft   { text-align: left;  padding: 12px 16px; border-top: 1px solid var(--mt-line-0); }
+.mt-overhaul .sn-tdNum    { text-align: right; padding: 12px 16px; border-top: 1px solid var(--mt-line-0); }
+.mt-overhaul .sn-tdRet.up   { color: var(--mt-up);   font-weight: 600; }
+.mt-overhaul .sn-tdRet.down { color: var(--mt-down); font-weight: 600; }
+.mt-overhaul .sn-tdDD       { color: var(--mt-down); font-weight: 600; }
+.mt-overhaul .sn-strategytable table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mt-overhaul .sn-headstat-dd   { font-family: var(--mt-font-display); font-size: 22px; font-weight: 500; color: var(--mt-down); }
+.mt-overhaul .sn-headstat-call { font-family: var(--mt-font-display); font-size: 16px; font-weight: 500; color: var(--mt-ink-0); }
+.mt-overhaul .sn-sectorlist { list-style: none; padding: 0; margin: 0; }
+.mt-overhaul .sn-sectorrow {
+  display: grid; grid-template-columns: 50px 1fr 70px 30px 70px; gap: 10px;
+  align-items: center; padding: 10px 0; border-top: 1px solid var(--mt-line-0);
+  font-size: 13px;
+}
+.mt-overhaul .sn-sectorcode { font-family: var(--mt-font-mono); font-size: 11px; color: var(--mt-ink-2); font-weight: 600; }
+.mt-overhaul .sn-arrow      { text-align: center; color: var(--mt-ink-3); }
+.mt-overhaul .sn-proxy, .mt-overhaul .sn-stress { text-align: right; color: var(--mt-ink-3); }
+.mt-overhaul .sn-section-note { margin-top: 10px; font-size: 12px; color: var(--mt-ink-3); line-height: 1.55; }
+/* Portfolio page utilities introduced by the content-remediation refactor —
+   small layout helpers used by the page chrome that aren't covered by the
+   prototype pf-* class set. */
+.mt-overhaul .pf-headcta { display: flex; gap: 8px; flex-wrap: wrap; }
+.mt-overhaul .pf-acctdrillmeta { font-size: 13px; color: var(--mt-ink-2); margin-top: 4px; }
+.mt-overhaul .pf-acctdrillmeta b.num { color: var(--mt-ink-0); }
+.mt-overhaul .pf-acctdrillstats {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  margin-top: 8px; font-size: 12px; color: var(--mt-ink-2);
+}
+.mt-overhaul .pf-acctdrillstats b.num { color: var(--mt-ink-0); }
+.mt-overhaul .pf-allocempty {
+  padding: 24px 8px; color: var(--mt-ink-2); font-size: 13px;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+}
+.mt-overhaul .pf-drillkv {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+}
+.mt-overhaul .pf-drillnote {
+  margin-top: 8px; font-size: 11.5px; color: var(--mt-ink-3); line-height: 1.5;
+}
+.mt-overhaul .lm-drillwhy {
+  margin: 6px 0 0; font-size: 13.5px; line-height: 1.55;
+  color: var(--mt-ink-1); max-width: 480px;
+}
+/* Ticker page utilities introduced by the content-remediation refactor.
+   Most of the tk-* page chrome ships in proto-pages.css; these are small
+   helpers for em-dash empty states, the back row, the score-change strip,
+   and the chart head label. */
+.mt-overhaul .tk-backrow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px var(--mt-pad-page) 0;
+}
+.mt-overhaul .tk-charthead { margin-bottom: 14px; }
+.mt-overhaul .tk-windowlabel {
+  color: var(--mt-ink-2); font-size: 14px; font-family: var(--mt-font-ui);
+}
+.mt-overhaul .tk-sigpill { align-self: center; }
+.mt-overhaul .tk-scoredelta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; color: var(--mt-ink-2);
+  justify-content: center; margin-top: 6px; flex-wrap: wrap;
+}
+.mt-overhaul .tk-scoredelta b.num { color: var(--mt-ink-0); }
+.mt-overhaul .tk-tabhead {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.mt-overhaul .tk-empty {
+  padding: 24px 4px; color: var(--mt-ink-2); font-size: 13px; line-height: 1.55;
+}
+.mt-overhaul .tk-emptyfoot {
+  margin-top: 10px; font-size: 11.5px; color: var(--mt-ink-3); line-height: 1.5;
+}
+.mt-overhaul .tk-scoretable { margin-top: 14px; }
+.mt-overhaul .tk-keygrid--tight { margin-top: 10px; }
+.mt-overhaul .tk-keygrid--fund { grid-template-columns: repeat(4, 1fr); margin-top: 10px; }
+.mt-overhaul .tk-relempty {
+  grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--mt-ink-2);
+}
+.mt-overhaul .lm-drilllayerbar--empty { opacity: 0.6; }
+.mt-overhaul .mt-sectionhead-tight {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+}
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;

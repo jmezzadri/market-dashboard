@@ -9,16 +9,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EventChart from './EventChart';
-
-// Weights sum to 1.0; contribution = (score/5) × weight × 5 → headline 0-5.
-const SCORE_WEIGHTS = [
-  { key: 'Technicals',  weight: 0.25, why: '200d trend, RSI, MACD, ATR' },
-  { key: 'Insider',     weight: 0.20, why: 'C-suite buys/sells, 60d ratio' },
-  { key: 'Analyst',     weight: 0.20, why: 'Upgrades, raised price targets' },
-  { key: 'Options vol', weight: 0.15, why: 'Calls/puts, IV rank, sweeps' },
-  { key: 'Congress',    weight: 0.10, why: 'Senate + House disclosures' },
-  { key: 'Dark pool',   weight: 0.10, why: 'Block trades, VWAP anchor' },
-];
+import { SCORE_WEIGHTS } from '../lib/scoreWeights';
+/* SCORE_WEIGHTS moved to ../lib/scoreWeights.js (2026-05-27) so the
+   "How the score is built" cards on ScannerPage and this drill body
+   read from the same source — previously a catalog violation. */
 
 function breakdownFor(headlineScore5, ticker) {
   // Stable per-(ticker, component) numbers that sum to the headline.
