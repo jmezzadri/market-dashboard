@@ -1,11 +1,8 @@
-/* All Indicators page — full filterable, sortable table view.
-   Site-overhaul PR-O2.
-
-   Wired to:
-     - useIndicators() (reads /indicator_history.json + IND registry + manifest)
-     - FreshnessChip (per-row, wraps real useFreshness)
-     - IndicatorDetail (inline drill on row click)
-   No mock data anywhere in this page. */
+/* All Indicators — rebuilt 2026-05-27 to prototype/pages/indicators.jsx.
+   - Layer pills: All / Vol triggers / Cycle composite / Reference
+   - Type column shows LEAD / COINC / LAG (from registryTier 1/2/3)
+   - 5y sparkline (full data)
+   - Hero summary uses FreshnessChip pill + 3-cell grid of layer counts. */
 
 import React, { useMemo, useState } from 'react';
 import Sparkline from '../components/Sparkline';
@@ -13,13 +10,13 @@ import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 
-const LAYERS = [
-  ['All', null],
-  ['Tier 1', { tier: 1 }],
-  ['Tier 2', { tier: 2 }],
-  ['Deprecated', { deprecated: true }],
-];
+const LAYERS = ['All', 'Vol triggers', 'Cycle composite', 'Reference'];
 const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Money', 'Economy'];
+
+// Vol triggers — the named volatility indicators
+const VOL_TRIGGER_IDS = new Set(['vix', 'move', 'skew']);
+// Cycle composite — the v11 framework's calibrated set (10 active mapped today)
+const CYCLE_COMPOSITE_IDS = new Set(['cape', 'erp', 'buffett', 'ig_oas', 'hy_oas', 'hy_ig_ratio', 'cfnai_3ma', 'jobless', 'ism', 'hy_ig']);
 
 function fmtNum(v, decimals = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -28,7 +25,6 @@ function fmtNum(v, decimals = 2) {
     maximumFractionDigits: decimals,
   });
 }
-
 function fmtFreq(freq) {
   const f = String(freq || '').toUpperCase();
   if (f === 'D') return 'Daily';
@@ -39,26 +35,23 @@ function fmtFreq(freq) {
 }
 
 export default function IndicatorsPage() {
-  const { indicators, loading } = useIndicators();
+  const { active, loading } = useIndicators();
   const [layer, setLayer] = useState('All');
   const [domain, setDomain] = useState('All');
   const [sort, setSort] = useState({ key: 'state', dir: 'desc' });
   const [drill, setDrill] = useState(null);
 
+  const counts = useMemo(() => ({
+    vol: active.filter((i) => VOL_TRIGGER_IDS.has(i.id)).length,
+    cycle: active.filter((i) => CYCLE_COMPOSITE_IDS.has(i.id)).length,
+    reference: active.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !CYCLE_COMPOSITE_IDS.has(i.id)).length,
+  }), [active]);
+
   const filtered = useMemo(() => {
-    let rows = indicators;
-    const lconf = LAYERS.find(([l]) => l === layer)?.[1];
-    if (lconf) {
-      if (lconf.deprecated) rows = rows.filter((i) => i.deprecated);
-      else if (lconf.tier) rows = rows.filter((i) => {
-        // Tier is the 4th entry in the IND meta tuple.
-        const tierFromMeta = i.tier === 'paid' ? 1 : 2;
-        // Use the registry tier if set (Tier 1/2 = importance, not license).
-        // For simplicity here we infer importance from the family.
-        const importance = ['equity', 'credit', 'rates'].includes(i.familyId) ? 1 : 2;
-        return importance === lconf.tier;
-      });
-    }
+    let rows = active;
+    if (layer === 'Vol triggers') rows = rows.filter((i) => VOL_TRIGGER_IDS.has(i.id));
+    else if (layer === 'Cycle composite') rows = rows.filter((i) => CYCLE_COMPOSITE_IDS.has(i.id));
+    else if (layer === 'Reference') rows = rows.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !CYCLE_COMPOSITE_IDS.has(i.id));
     if (domain !== 'All') rows = rows.filter((i) => i.domain === domain);
     // Sort
     const arr = [...rows];
@@ -79,25 +72,11 @@ export default function IndicatorsPage() {
       return String(av).localeCompare(String(bv)) * dir;
     });
     return arr;
-  }, [indicators, layer, domain, sort]);
-
-  const counts = useMemo(() => {
-    return {
-      extreme: indicators.filter((i) => i.state === 'extreme').length,
-      elevated: indicators.filter((i) => i.state === 'elevated').length,
-      calm: indicators.filter((i) => i.state === 'calm').length,
-    };
-  }, [indicators]);
+  }, [active, layer, domain, sort]);
 
   function toggleSort(key) {
-    setSort((prev) => {
-      if (prev.key === key) {
-        return { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' };
-      }
-      return { key, dir: 'desc' };
-    });
+    setSort((p) => p.key === key ? { key, dir: p.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
   }
-
   function arrow(key) {
     if (sort.key !== key) return '';
     return sort.dir === 'desc' ? ' ↓' : ' ↑';
@@ -109,29 +88,27 @@ export default function IndicatorsPage() {
         <div>
           <div className="mt-eyebrow">All indicators</div>
           <h1 className="mt-h1">
-            Every input, in <i>one table</i>.
+            Every indicator tracked on <i>MacroTilt</i> — what it is, why it matters, how it's used.
           </h1>
           <p className="mt-deck">
-            Sourced live from the data registry. Leading, coincident, and lagging
-            indicators across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Money</b>,
-            and the real <b>Economy</b>. Click any row to drill — chart, percentile bar,
-            stats, methodology.
+            Sourced live from the data registry. <b>Leading</b>, <b>coincident</b>, and <b>lagging</b> indicators
+            across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>.
           </p>
         </div>
         <div className="al-summary">
-          <FreshnessChip elementId="universe-master-daily" variant="pill" label={`${indicators.length} indicators`} />
+          <FreshnessChip elementId="market-universe_master-daily" variant="pill" label={`${active.length} indicators`} />
           <div className="al-summarygrid">
             <div>
-              <div className="mt-eyebrow">Extreme</div>
-              <b className="num al-sumnum" style={{ color: 'var(--mt-down)' }}>{counts.extreme}</b>
+              <div className="mt-eyebrow">Vol triggers</div>
+              <b className="num al-sumnum">{counts.vol}</b>
             </div>
             <div>
-              <div className="mt-eyebrow">Elevated</div>
-              <b className="num al-sumnum" style={{ color: 'var(--mt-warn)' }}>{counts.elevated}</b>
+              <div className="mt-eyebrow">Cycle composite</div>
+              <b className="num al-sumnum">{counts.cycle}</b>
             </div>
             <div>
-              <div className="mt-eyebrow">Calm</div>
-              <b className="num al-sumnum" style={{ color: 'var(--mt-up)' }}>{counts.calm}</b>
+              <div className="mt-eyebrow">Reference</div>
+              <b className="num al-sumnum">{counts.reference}</b>
             </div>
           </div>
         </div>
@@ -142,7 +119,7 @@ export default function IndicatorsPage() {
           <div className="al-row">
             <div className="mt-eyebrow">Layer</div>
             <div className="mt-pillgroup">
-              {LAYERS.map(([l]) => (
+              {LAYERS.map((l) => (
                 <button
                   key={l}
                   type="button"
@@ -169,6 +146,10 @@ export default function IndicatorsPage() {
               ))}
             </div>
           </div>
+          <div className="al-row" style={{ marginLeft: 'auto' }}>
+            <button type="button" className="mt-btn">＋ Filter</button>
+            <button type="button" className="mt-btn">⚙ Columns <span className="num">11/14</span></button>
+          </div>
         </div>
       </section>
 
@@ -185,25 +166,29 @@ export default function IndicatorsPage() {
                   <th onClick={() => toggleSort('name')}>Indicator{arrow('name')}</th>
                   <th onClick={() => toggleSort('domain')}>Category{arrow('domain')}</th>
                   <th onClick={() => toggleSort('freq')}>Freq{arrow('freq')}</th>
-                  <th onClick={() => toggleSort('state')}>State{arrow('state')}</th>
+                  <th onClick={() => toggleSort('typeLabel')}>Type{arrow('typeLabel')}</th>
                   <th>Last refresh</th>
                   <th className="num" onClick={() => toggleSort('value')}>Current{arrow('value')}</th>
                   <th className="num" onClick={() => toggleSort('prior_3m')}>3M ago{arrow('prior_3m')}</th>
                   <th className="num" onClick={() => toggleSort('prior_6m')}>6M ago{arrow('prior_6m')}</th>
                   <th className="num" onClick={() => toggleSort('prior_1y')}>1Y ago{arrow('prior_1y')}</th>
-                  <th>Trend</th>
+                  <th>5y</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((i) => {
                   const isOpen = drill === i.id;
-                  const stateColor =
+                  const color =
                     i.state === 'extreme'
                       ? 'var(--mt-down)'
                       : i.state === 'elevated'
                         ? 'var(--mt-warn)'
                         : 'var(--mt-up)';
-                  const trendPts = (i.points || []).slice(-90).map((p) => p[1]).filter(Number.isFinite);
+                  // 5-year sparkline = full available points (or up to ~1260 daily)
+                  const trendPts = (i.points || [])
+                    .slice(-Math.min(1260, (i.points || []).length))
+                    .map((p) => p[1])
+                    .filter(Number.isFinite);
                   return (
                     <React.Fragment key={i.id}>
                       <tr className={isOpen ? 'open' : ''} onClick={() => setDrill(isOpen ? null : i.id)}>
@@ -214,10 +199,12 @@ export default function IndicatorsPage() {
                         <td><span className="al-cat">{i.domain}</span></td>
                         <td><span className="al-freq">{fmtFreq(i.freq)}</span></td>
                         <td>
-                          <span className={`al-type al-type--${i.state}`}>{i.state}</span>
+                          <span className={`al-type al-type--${i.typeLabel === 'LEAD' ? 'extreme' : i.typeLabel === 'COINC' ? 'elevated' : 'calm'}`}>
+                            {i.typeLabel}
+                          </span>
                         </td>
                         <td>
-                          <FreshnessChip elementId={i.id} variant="label" />
+                          <FreshnessChip elementId={i.manifestId} variant="label" />
                         </td>
                         <td className={`num al-current al-current--${i.state}`}>
                           {fmtNum(i.value, i.decimals ?? 2)}<span className="al-unit">{i.unit}</span>
@@ -225,8 +212,8 @@ export default function IndicatorsPage() {
                         <td className="num al-historical">{fmtNum(i.prior_3m, i.decimals ?? 2)}</td>
                         <td className="num al-historical">{fmtNum(i.prior_6m, i.decimals ?? 2)}</td>
                         <td className="num al-historical">{fmtNum(i.prior_1y, i.decimals ?? 2)}</td>
-                        <td style={{ color: stateColor }}>
-                          <Sparkline data={trendPts} width={120} height={22} stroke={stateColor} showDot />
+                        <td style={{ color }}>
+                          <Sparkline data={trendPts} width={140} height={22} stroke={color} showDot={false} />
                         </td>
                       </tr>
                       {isOpen && (
@@ -245,10 +232,9 @@ export default function IndicatorsPage() {
         )}
         <div className="al-tablefoot">
           <span>
-            Showing <b className="num">{filtered.length}</b> of{' '}
-            <b className="num">{indicators.length}</b> indicators
+            Showing <b className="num">{filtered.length}</b> of <b className="num">{active.length}</b> indicators
           </span>
-          {!loading && <FreshnessChip elementId="universe-master-daily" variant="label" />}
+          {!loading && <FreshnessChip elementId="market-universe_master-daily" variant="label" />}
         </div>
       </section>
     </div>

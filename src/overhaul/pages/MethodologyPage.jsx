@@ -1,43 +1,45 @@
-/* Methodology page — editorial long-form. 8 numbered sections, TOC with
-   deep-link anchors, me-formula blocks for math, vendor table, changelog.
-   Site-overhaul PR-O9. */
+/* Methodology — rebuilt 2026-05-27 to prototype/pages/methodology.jsx.
+   Editorial long-form. 8 numbered sections. TOC anchors. Formula blocks.
+   "X indicators" string binds to live count, not hardcoded 27. */
 
 import React, { useEffect } from 'react';
+import useIndicators from '../lib/useIndicators';
 
 const SECTIONS = [
-  { id: 'macro',       title: 'Macro overview' },
-  { id: 'tilt',        title: 'Asset Tilt' },
-  { id: 'scanner',     title: 'Trading Scanner' },
-  { id: 'portfolio',   title: 'Portfolio Insights' },
-  { id: 'scenarios',   title: 'Scenario Analysis' },
-  { id: 'freshness',   title: 'Data freshness' },
-  { id: 'sources',     title: 'Sources & vendors' },
-  { id: 'changelog',   title: 'Changelog' },
+  ['macro',     'Macro overview'],
+  ['tilt',      'Asset Tilt engine'],
+  ['scanner',   'Trading scanner'],
+  ['portfolio', 'Portfolio insights'],
+  ['scenarios', 'Scenario analysis'],
+  ['freshness', 'Data freshness contract'],
+  ['sources',   'Data sources & vendors'],
+  ['change',    'Changelog'],
 ];
 
 const VENDORS = [
-  ['FRED',                    'St. Louis Fed economic data',                       'Free',     '24 indicators'],
-  ['Polygon (Massive)',       'Daily prices, splits, dividends, fundamentals',     'Paid',     'Universe master'],
-  ['Unusual Whales',          'Options flow, dark pool, insider, congress',        'Paid',     'Scanner facets'],
-  ['ICE BofA via FRED',       'Investment-grade & high-yield credit spreads',      'Free',     'Credit family'],
-  ['CBOE',                    'VIX, SKEW, put/call',                                'Free',     'Equity vol'],
-  ['ISM',                     'Manufacturing & Services PMI',                       'Free',     'Economy'],
-  ['FDIC Call Reports',       'Bank balance-sheet unrealized losses',               'Free',     'Bank family'],
-  ['Shiller (Yale)',          'CAPE ratio',                                          'Free',     'Equity valuation'],
+  ['FRED', 'St. Louis Fed economic data', 'Free', '24 indicators'],
+  ['Polygon (Massive)', 'Daily prices, splits, dividends, fundamentals', 'Paid', 'Universe master'],
+  ['Unusual Whales', 'Options flow, dark pool, insider, congress', 'Paid', 'Scanner facets'],
+  ['ICE BofA via FRED', 'Investment-grade & high-yield credit spreads', 'Free', 'Credit family'],
+  ['CBOE', 'VIX, SKEW, put/call', 'Free', 'Equity vol'],
+  ['ISM', 'Manufacturing & Services PMI', 'Free', 'Economy'],
+  ['FDIC Call Reports', 'Bank balance-sheet unrealized losses', 'Free', 'Bank family'],
+  ['Shiller (Yale)', 'CAPE ratio', 'Free', 'Equity valuation'],
 ];
 
 const CHANGELOG = [
-  ['2026-05-26', 'Site overhaul — new design system, page chrome, and routing shipped behind ?v=3 flag.'],
+  ['2026-05-27', 'Site overhaul — prototype-faithful rebuild of all 9 pages, shared components, regime hook.'],
   ['2026-05-21', 'Trading Scanner rebuilt — dual-direction, dark pool + options scoring went live.'],
-  ['2026-05-11', 'Indicator framework finalized — 36 active indicators across 4 buckets. NAAIM and SPX-vs-200dma retired.'],
-  ['2026-05-07', 'Asset Tilt v10 — top OW / bottom UW Home tile structure, IG drilldown wired.'],
+  ['2026-05-11', 'Indicator framework finalized. NAAIM and SPX-vs-200dma retired.'],
   ['2026-04-30', 'v11 Cycle Mechanism Board became the Macro Overview anchor; old composites deprecated.'],
   ['2026-04-28', 'Massive (Polygon) integration phase 1 — universe master replaces UW screener.'],
   ['2026-04-27', 'Scenario Analysis v1 launched, aligned to CCAR US-16 factor panel.'],
 ];
 
 export default function MethodologyPage() {
-  // Scroll-into-view when arriving via deep-link from an indicator drill.
+  const { active } = useIndicators();
+  const liveCount = active.length || '—';
+
   useEffect(() => {
     const hash = window.location.hash?.slice(1);
     if (hash) {
@@ -52,246 +54,226 @@ export default function MethodologyPage() {
         <div>
           <div className="mt-eyebrow">Methodology</div>
           <h1 className="mt-h1">
-            How the <i>engine</i> actually works.
+            How MacroTilt <i>actually</i> works.
           </h1>
           <p className="mt-deck">
-            Every number on this site comes from a public formula. This page
-            documents the math behind the macro indicators, the asset tilt
-            engine, the trading scanner, and the freshness contract — section
-            by section, in plain English with the underlying formulas inline.
+            Six sections. Plain English. Every page on the site links here for the underlying logic.
+            The full formula sheet and data vendor table are at the bottom.
           </p>
         </div>
-        <nav className="me-toc" aria-label="Methodology table of contents">
-          <div className="mt-eyebrow">Contents</div>
-          <ol>
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a href={`#${s.id}`}>{s.title}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
       </section>
 
-      <section className="mt-pagesection" style={{ paddingTop: 8, maxWidth: 760, marginLeft: 'var(--mt-pad-page)' }}>
-        {/* 1. Macro */}
-        <article id="macro" className="me-section">
-          <div className="mt-eyebrow">01 · Macro overview</div>
-          <h2>What the indicators say.</h2>
-          <p>
-            The Macro Overview reads 36 indicators in five domains: <b>Rates</b>,{' '}
-            <b>Credit</b>, <b>Equities</b>, <b>Money</b>, and the real{' '}
-            <b>Economy</b>. Each indicator's current reading is ranked against
-            its full history (back to 1996 where the series allows). The
-            percentile rank is mapped to a state — <i>calm</i>, <i>elevated</i>,
-            or <i>extreme</i> — using direction-aware thresholds.
-          </p>
-          <h3>Direction-aware state</h3>
-          <p>
-            Each indicator has a direction flag — high-warns, low-warns, or
-            bidirectional. The state thresholds flip with the direction so an
-            inverted yield curve at the 5th percentile is "extreme" but a low
-            HY-IG spread at the same percentile is "calm".
-          </p>
-          <div className="me-formula">
-{`if direction = "hw" (high warns):
-    pct ≥ 85 → extreme; pct ≥ 75 → elevated; else calm
+      <section className="mt-pagesection">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '260px 1fr',
+            gap: 32,
+            alignItems: 'flex-start',
+          }}
+        >
+          <nav className="me-toc">
+            <div className="mt-eyebrow">Sections</div>
+            <ol>
+              {SECTIONS.map(([id, label]) => (
+                <li key={id}>
+                  <a href={`#${id}`}>{label}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
 
-if direction = "lw" (low warns):
-    pct ≤ 15 → extreme; pct ≤ 25 → elevated; else calm
+          <div>
+            <article id="macro" className="me-section">
+              <div className="mt-eyebrow">01 · Macro overview</div>
+              <h2>Five-domain backdrop · {liveCount} indicators</h2>
+              <p>
+                Every indicator on MacroTilt is classified into one of five domains:{' '}
+                <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Money &amp; Banking</b>,
+                and the real <b>Economy</b>. Within a domain, each indicator has a{' '}
+                <b>type</b> — Lead, Coincident, or Lag — based on its empirical timing
+                vs. the business cycle.
+              </p>
+              <p>
+                <b>State</b> (Calm / Elevated / Extreme) is set by where today's reading
+                sits in the 5-year percentile distribution of the same indicator. Cut-points
+                are domain-specific; for most two-sided indicators we use{' '}
+                <code>[10, 25, 75, 90]</code> percentiles. The map's spatial placement uses{' '}
+                <i>state</i>, not raw percentile, so red dots always live in the stress quadrant
+                regardless of whether the extreme is high or low.
+              </p>
+              <div className="me-formula">
+{`state(today) = bin(percentile_5y(value), [10, 25, 75, 90])
+stress_x = state ∈ {extreme: +0.62, elevated: +0.18, calm: −0.55}
+regime_y = domain_anchor ∈ {Rates: +0.40, Equities: +0.10, Credit: −0.05, Money: −0.25, Economy: −0.42}`}
+              </div>
+            </article>
 
-if direction = "bw" (bidirectional):
-    |pct − 50| ≥ 35 → extreme; ≥ 25 → elevated; else calm`}
-          </div>
-          <h3>Domain rollup on the regime map</h3>
-          <p>
-            On the regime canvas, an indicator's x-coordinate is anchored to
-            its state (extreme → right, calm → left) and its y-coordinate to
-            its domain. Dots in the same (domain, state) bucket are stacked in
-            a small grid so they remain individually clickable.
-          </p>
-        </article>
+            <article id="tilt" className="me-section">
+              <div className="mt-eyebrow">02 · Asset Tilt engine</div>
+              <h2>Two axes set the regime · equity % &amp; sector tilts</h2>
+              <p>
+                Bond-market volatility (<b>MOVE</b>) sets the stress axis. The 3-month
+                change in 10-year Treasury yield (<b>3M Δ 10y</b>) sets the yield-regime
+                axis. Together they define a 3×3 grid (Risk On / Watch / Risk Off ×
+                Inflationary / Neutral / Deflationary). The cell determines equity %, the
+                defensive sleeve composition, and the within-equity sector tilts.
+              </p>
+              <div className="me-formula">
+{`stress_signal = MOVE
+stress_zone   = MOVE < 116 → Risk On · 116 ≤ MOVE < 124 → Watch · MOVE ≥ 124 → Risk Off
+yield_regime  = 3M Δ 10y ≥ +32 bp → Inflationary · ≤ −11 bp → Deflationary · else Neutral
+equity_pct    = lookup_grid(stress_zone, yield_regime)
+sleeve_mix    = inflationary ? 12% Au / 9% TLT / 4% Cash : 4% Au / 16% TLT / 5% Cash`}
+              </div>
+              <p>
+                Within the equity bucket, six factor reads drive sector and industry-group
+                tilts: credit OAS, valuation z-score, breadth, growth, liquidity, and an
+                earnings-revision z. Each sector's active weight is a weighted sum of those
+                factors, clipped to [−4%, +6%] vs. its cap weight.
+              </p>
+              <p>
+                <b>Validated 1986 → 2026</b> over 2,056 weeks. <b>CAGR 11.93%</b> vs SPY
+                11.16%, Sharpe 0.61 vs 0.47, max drawdown −32.1% vs −54.6%. Rebalanced
+                weekly; defensive sleeve fires only when stress crosses Watch.
+              </p>
+            </article>
 
-        {/* 2. Tilt */}
-        <article id="tilt" className="me-section">
-          <div className="mt-eyebrow">02 · Asset Tilt</div>
-          <h2>From regime to allocation.</h2>
-          <p>
-            The Asset Tilt engine reads the macro regime and produces a target
-            allocation across 25 industry groups plus 4 defensive sleeves
-            (BIL, TLT, GLD, LQD). The v9 framework is validated against the
-            S&amp;P 500 on Sharpe and has shipped to production indefinitely.
-          </p>
-          <div className="me-formula">
-{`target_weight(IG) = base_weight(IG)
-                  + Σ factor_loading(IG, factor) × factor_signal
-                  + regime_overlay(IG)`}
-          </div>
-          <p>
-            Tilts are reported relative to the S&amp;P 500 sector benchmark.
-            A positive tilt on Technology of +6.2% means the engine is
-            recommending Tech 6.2 percentage points heavier than the
-            benchmark.
-          </p>
-        </article>
+            <article id="scanner" className="me-section">
+              <div className="mt-eyebrow">03 · Trading scanner</div>
+              <h2>Five signals · one MacroTilt Score (0–5 today; ceiling 10 once backtested)</h2>
+              <p>
+                Each ticker is scored on six components, each on a 0–5 scale. The headline
+                score is the weighted sum. Weights are calibrated to historical alpha
+                contribution.
+              </p>
+              <div className="me-formula">
+{`Technicals × 0.25 · Insider × 0.20 · Analyst × 0.20
+Options vol × 0.15 · Congress × 0.10 · Dark pool × 0.10
+MacroTilt Score = Σ (component_score / 5) × weight × 5     (live, 0–5 scale)`}
+              </div>
+            </article>
 
-        {/* 3. Scanner */}
-        <article id="scanner" className="me-section">
-          <div className="mt-eyebrow">03 · Trading Scanner</div>
-          <h2>The composite score.</h2>
-          <p>
-            Each scanner row is scored on a 0–10 scale that reconciles to a
-            weighted sum of six component scores. The score math is published
-            and surfaced on the drill row of every result.
-          </p>
-          <div className="me-formula">
-{`score(ticker) = Σ (component_score / 5) × weight × 10
-
-weights:
-  Technicals  0.25
-  Insider     0.20
-  Analyst     0.20
-  Options vol 0.15
-  Congress    0.10
-  Dark pool   0.10`}
-          </div>
-          <p>
-            Scoring methodology changed on <b>2026-05-21</b> to incorporate
-            dark pool and options flow. Pre-2026-05-21 scores are not
-            comparable; the change is documented in the scanner UI's blue
-            callout.
-          </p>
-        </article>
-
-        {/* 4. Portfolio */}
-        <article id="portfolio" className="me-section">
-          <div className="mt-eyebrow">04 · Portfolio Insights</div>
-          <h2>Cost-basis P/L, not just market value.</h2>
-          <p>
-            Positions are imported from broker CSVs (Chase, Fidelity, Schwab).
-            Realized P/L uses the broker's taxable number as canonical;
-            wash-sale disallowed losses are preserved in the transaction
-            ledger for future economic-P/L overlay but do not affect the
-            headline realized number.
-          </p>
-          <div className="me-formula">
+            <article id="portfolio" className="me-section">
+              <div className="mt-eyebrow">04 · Portfolio insights</div>
+              <h2>Cost-basis P/L, not just market value</h2>
+              <p>
+                Positions are imported from broker CSVs (Chase, Fidelity, Schwab). Realized
+                P/L uses the broker's taxable number as canonical; wash-sale disallowed losses
+                are preserved in the transaction ledger for future economic-P/L overlay but
+                do not affect the headline realized number.
+              </p>
+              <div className="me-formula">
 {`unrealized_pl_$ = market_value − cost_basis
 unrealized_pl_pct = (market_value − cost_basis) / cost_basis`}
-          </div>
-        </article>
+              </div>
+            </article>
 
-        {/* 5. Scenarios */}
-        <article id="scenarios" className="me-section">
-          <div className="mt-eyebrow">05 · Scenario Analysis</div>
-          <h2>Eight shocks, one custom builder.</h2>
-          <p>
-            The scenario engine factor panel uses CCAR US-Domestic 16 (six
-            economic variables, four financial-conditions variables, six
-            interest-rate variables) translated into the v9 allocation
-            engine's native factor set. Eight canned historical scenarios are
-            re-anchored against the CCAR panel for consistency.
-          </p>
-          <p>
-            Custom scenarios use a correlated factor-move framework — moving
-            one factor automatically nudges the others by their historical
-            covariance. Independent factor sliders are not exposed to prevent
-            uncalibrated shock combinations.
-          </p>
-        </article>
+            <article id="scenarios" className="me-section">
+              <div className="mt-eyebrow">05 · Scenario analysis</div>
+              <h2>Eight shocks, one custom builder</h2>
+              <p>
+                The scenario engine factor panel uses CCAR US-Domestic 16 (six economic
+                variables, four financial-conditions variables, six interest-rate variables)
+                translated into the v9 allocation engine's native factor set. Eight canned
+                historical scenarios are re-anchored against the CCAR panel.
+              </p>
+              <p>
+                Custom scenarios use a correlated factor-move framework — moving one factor
+                automatically nudges the others by their historical covariance. Independent
+                factor sliders are not exposed to prevent uncalibrated shock combinations.
+              </p>
+            </article>
 
-        {/* 6. Freshness */}
-        <article id="freshness" className="me-section">
-          <div className="mt-eyebrow">06 · Data freshness</div>
-          <h2>Green or red, never amber.</h2>
-          <p>
-            Every value on every page renders a freshness chip. Two states:
-            green if the value is within its SLA, red if it's past. There's no
-            amber — the user wants to know either "fine" or "broken".
-          </p>
-          <p>
-            SLAs are configured per indicator in <code>data_manifest.json</code>{' '}
-            and are calendar-aware: a Friday-close daily indicator is not
-            "stale" on Sunday night, and a monthly indicator is rendered as
-            the period it covers ("Mar 2026") rather than an age ("80d ago").
-          </p>
-          <div className="me-formula">
+            <article id="freshness" className="me-section">
+              <div className="mt-eyebrow">06 · Data freshness contract</div>
+              <h2>Green or red, never amber</h2>
+              <p>
+                Every value on every page renders a freshness chip. Two states: green if
+                within SLA, red if past. There's no amber — you want to know either "fine"
+                or "broken".
+              </p>
+              <p>
+                SLAs are configured per element in <code>data_manifest.json</code> and are
+                calendar-aware: a Friday-close daily indicator is not "stale" on Sunday
+                night, and a monthly indicator is rendered as the period it covers
+                ("Mar 2026") rather than an age ("80d ago").
+              </p>
+              <div className="me-formula">
 {`status = green  if data_as_of within freshness_sla_hours
        = red    if past SLA OR upstream error OR no successful refresh
 
 aggregate status = OR of element status + every dependency status`}
+              </div>
+            </article>
+
+            <article id="sources" className="me-section">
+              <div className="mt-eyebrow">07 · Data sources &amp; vendors</div>
+              <h2>Where every number comes from</h2>
+              <p>
+                Every indicator and every market-data field is registered in the data
+                manifest with its vendor, endpoint, license tier, and SLA.
+              </p>
+              <table className="me-vendortbl">
+                <thead>
+                  <tr>
+                    <th>Vendor</th>
+                    <th>What it covers</th>
+                    <th>Tier</th>
+                    <th>Where it shows up</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {VENDORS.map(([v, c, t, w]) => (
+                    <tr key={v}>
+                      <td><b>{v}</b></td>
+                      <td>{c}</td>
+                      <td>{t}</td>
+                      <td>{w}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </article>
+
+            <article id="change" className="me-section">
+              <div className="mt-eyebrow">08 · Changelog</div>
+              <h2>What changed, when</h2>
+              <p>
+                Material changes to the engine, the indicator framework, or the scoring
+                math are logged here in plain English.
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {CHANGELOG.map(([date, note]) => (
+                  <li
+                    key={date}
+                    style={{
+                      display: 'flex',
+                      gap: 16,
+                      padding: '10px 0',
+                      borderBottom: '1px solid var(--mt-line-0)',
+                      fontSize: 14,
+                      color: 'var(--mt-ink-1)',
+                    }}
+                  >
+                    <span
+                      className="num"
+                      style={{
+                        minWidth: 100,
+                        color: 'var(--mt-ink-2)',
+                        fontFamily: 'var(--mt-font-mono)',
+                        fontSize: 12,
+                      }}
+                    >
+                      {date}
+                    </span>
+                    <span style={{ flex: 1 }}>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
           </div>
-        </article>
-
-        {/* 7. Sources */}
-        <article id="sources" className="me-section">
-          <div className="mt-eyebrow">07 · Sources &amp; vendors</div>
-          <h2>Where every number comes from.</h2>
-          <p>
-            Every indicator and every market data field is registered in the
-            data manifest with its vendor, endpoint, license tier, and SLA.
-            The vendor list below covers the data flowing through the site
-            today.
-          </p>
-          <table className="me-vendortbl">
-            <thead>
-              <tr>
-                <th>Vendor</th>
-                <th>What it covers</th>
-                <th>Tier</th>
-                <th>Where it shows up</th>
-              </tr>
-            </thead>
-            <tbody>
-              {VENDORS.map(([v, c, t, w]) => (
-                <tr key={v}>
-                  <td><b>{v}</b></td>
-                  <td>{c}</td>
-                  <td>{t}</td>
-                  <td>{w}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </article>
-
-        {/* 8. Changelog */}
-        <article id="changelog" className="me-section">
-          <div className="mt-eyebrow">08 · Changelog</div>
-          <h2>What changed, when.</h2>
-          <p>
-            Material changes to the engine, the indicator framework, or the
-            scoring math are logged here in plain English. Versioned snapshots
-            of the locked methodology JSON live in the repo for reproducibility.
-          </p>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {CHANGELOG.map(([date, note]) => (
-              <li
-                key={date}
-                style={{
-                  display: 'flex',
-                  gap: 16,
-                  padding: '10px 0',
-                  borderBottom: '1px solid var(--mt-line-0)',
-                  fontSize: 14,
-                  color: 'var(--mt-ink-1)',
-                }}
-              >
-                <span
-                  className="num"
-                  style={{
-                    minWidth: 100,
-                    color: 'var(--mt-ink-2)',
-                    fontFamily: 'var(--mt-font-mono)',
-                    fontSize: 12,
-                  }}
-                >
-                  {date}
-                </span>
-                <span style={{ flex: 1 }}>{note}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
+        </div>
       </section>
     </div>
   );

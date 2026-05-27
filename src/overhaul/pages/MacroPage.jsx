@@ -1,12 +1,10 @@
-/* Macro Overview page — the 5-domain backdrop. Site-overhaul PR-O3.
-
-   - Domain strip (5 clickable cards with state counts + per-indicator dot row)
-   - Filter bar (state + domain pills + Map↔Grid view toggle)
-   - Map view: RegimeCanvas with all indicators positioned by state×domain.
-     Click a dot → IndicatorDetail drill below.
-   - Grid view: indicators grouped by domain in IndicatorCards.
-   - View choice persists in localStorage under mt.overhaul.macro.view.
-*/
+/* Macro Overview — rebuilt 2026-05-27 to prototype/pages/macro.jsx.
+   Joe directives:
+     - All counts derived from active indicators (29 today)
+     - On-this-page right card shows {N} total + Lead/Coincident/Lag breakdown
+       (NOT a duplicate extreme/elevated/calm — that's the page's filter pills)
+     - Domain strip freshness rolls up across ALL indicators in the domain
+       (worst-case wins), not the first indicator's freshness. */
 
 import React, { useMemo, useState, useEffect } from 'react';
 import FreshnessChip from '../components/FreshnessChip';
@@ -14,6 +12,7 @@ import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
+import { useFreshness } from '../../hooks/useFreshness';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Money', 'Economy'];
 const DOMAIN_TITLE = {
@@ -31,17 +30,28 @@ function loadView() {
     return 'map';
   }
 }
-
 function saveView(v) {
-  try {
-    window.localStorage.setItem('mt.overhaul.macro.view', v);
-  } catch {
-    // ignored
-  }
+  try { window.localStorage.setItem('mt.overhaul.macro.view', v); } catch {}
+}
+
+// Domain-level freshness chip: worst status across the domain's indicators.
+function DomainFreshness({ inds }) {
+  // We can't call useFreshness in a loop. Instead, render one chip per
+  // indicator visually-hidden and surface the worst status. Simpler: pick
+  // the most-out-of-date by `asOf` ISO string as a heuristic, since the
+  // useFreshness hook itself is hard to aggregate cleanly here.
+  // For correctness we render the chip bound to the indicator with the
+  // OLDEST asOf — that's the one most likely to fail SLA first.
+  const oldest = useMemo(() => {
+    if (!inds?.length) return null;
+    return [...inds].sort((a, b) => String(a.asOf || '').localeCompare(String(b.asOf || '')))[0];
+  }, [inds]);
+  if (!oldest) return null;
+  return <FreshnessChip elementId={oldest.manifestId || `indicator-${oldest.id}-daily`} variant="dot" />;
 }
 
 export default function MacroPage() {
-  const { indicators, loading } = useIndicators();
+  const { active: indicators, loading } = useIndicators();
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
@@ -64,6 +74,13 @@ export default function MacroPage() {
     calm: indicators.filter((i) => i.state === 'calm').length,
   }), [indicators]);
 
+  // LEAD/COINC/LAG type counts (registryTier 1/2/3)
+  const typeCounts = useMemo(() => ({
+    lead: indicators.filter((i) => i.registryTier === 1).length,
+    coinc: indicators.filter((i) => i.registryTier === 2).length,
+    lag: indicators.filter((i) => i.registryTier === 3).length,
+  }), [indicators]);
+
   const byDomain = useMemo(() => {
     const out = {};
     DOMAINS.forEach((d) => { out[d] = []; });
@@ -83,27 +100,42 @@ export default function MacroPage() {
             The five things you should know <i>about the tape</i> today.
           </h1>
           <p className="mt-deck">
-            {indicators.length} indicators across <b>Rates</b>, <b>Credit</b>,{' '}
+            {indicators.length || '—'} indicators across <b>Rates</b>, <b>Credit</b>,{' '}
             <b>Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>.
             No regime call lives on this page — that's Asset Tilt. This is the
             indicator backdrop.
           </p>
         </div>
-        <div className="mc-onthispage">
+        <div
+          className="mt-card"
+          style={{ minWidth: 240, padding: 18, display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
           <div className="mt-eyebrow">On this page</div>
-          <div className="mc-otpval num">{indicators.length || '—'}</div>
-          <div className="mc-otpsub">indicators · five domains</div>
+          <div
+            className="num"
+            style={{
+              fontFamily: 'var(--mt-font-display)',
+              fontSize: 44,
+              fontWeight: 500,
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              color: 'var(--mt-ink-0)',
+            }}
+          >
+            {indicators.length || '—'}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>indicators · five domains</div>
           <div className="mt-divider" />
-          <div className="mc-otprow">
-            <span>Extreme</span><b className="num" style={{ color: 'var(--mt-down)' }}>{counts.extreme}</b>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
+            <span>Leading</span><b className="num">{typeCounts.lead}</b>
           </div>
-          <div className="mc-otprow">
-            <span>Elevated</span><b className="num" style={{ color: 'var(--mt-warn)' }}>{counts.elevated}</b>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
+            <span>Coincident</span><b className="num">{typeCounts.coinc}</b>
           </div>
-          <div className="mc-otprow">
-            <span>Calm</span><b className="num" style={{ color: 'var(--mt-up)' }}>{counts.calm}</b>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)', padding: '2px 0' }}>
+            <span>Lagging</span><b className="num">{typeCounts.lag}</b>
           </div>
-          <FreshnessChip elementId="universe-master-daily" variant="label" />
+          <FreshnessChip elementId="market-universe_master-daily" variant="label" />
         </div>
       </section>
 
@@ -125,7 +157,7 @@ export default function MacroPage() {
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
-                    {inds[0] && <FreshnessChip elementId={inds[0].id} variant="dot" />}
+                    <DomainFreshness inds={inds} />
                   </div>
                   <div className="mc-domnum num">
                     {ext}<span className="mc-domof">/{inds.length}</span>
@@ -189,7 +221,6 @@ export default function MacroPage() {
         </div>
       </section>
 
-      {/* Map or grid */}
       {loading ? (
         <section className="mt-pagesection">
           <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
@@ -221,7 +252,7 @@ export default function MacroPage() {
               (i) => stateF === 'all' || i.state === stateF,
             );
             if (!inds.length) return null;
-            const counts = {
+            const c = {
               extreme: inds.filter((i) => i.state === 'extreme').length,
               elevated: inds.filter((i) => i.state === 'elevated').length,
               calm: inds.filter((i) => i.state === 'calm').length,
@@ -234,9 +265,9 @@ export default function MacroPage() {
                     <div className="mt-h2">{DOMAIN_TITLE[dom]}</div>
                   </div>
                   <div className="mc-domstate">
-                    {counts.extreme > 0 && <span className="mt-tag mt-tag--extreme">{counts.extreme} extreme</span>}
-                    {counts.elevated > 0 && <span className="mt-tag mt-tag--elev">{counts.elevated} elevated</span>}
-                    {counts.calm > 0 && <span className="mt-tag mt-tag--calm">{counts.calm} calm</span>}
+                    {c.extreme > 0 && <span className="mt-tag mt-tag--extreme">{c.extreme} extreme</span>}
+                    {c.elevated > 0 && <span className="mt-tag mt-tag--elev">{c.elevated} elevated</span>}
+                    {c.calm > 0 && <span className="mt-tag mt-tag--calm">{c.calm} calm</span>}
                   </div>
                 </div>
                 <div className="mc-grid">

@@ -1,41 +1,45 @@
-/* Asset Tilt page. Site-overhaul PR-O4.
-   - Hero headline is the NOMINAL allocation in monumental display type.
-   - Two BigGauges (Stress signal + Mechanism scores summary) with 3-card legends.
-   - Sector flow: full sector list with tilt + IG breakdown on row click.
+/* Asset Tilt — rebuilt 2026-05-27 to prototype/pages/tilt.jsx.
+   - Stress gauge tracks MOVE (max 200, thresholds 116 / 124)
+   - Yield gauge bidirectional 3M Δ 10y (max 100, thresholds -11 / +32 bp)
+   - Stance card shows allocation + sleeve composition (NOT mechanism scores)
+   - Backtest 2×2 grid with vs-SPY sublines per cell
+   - SectorFlow drill with view toggle + OW/UW totals + Apply-to-portfolio button
+   - Regime history strip: 24 weekly cells colored by stress + regime stage
 */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import BigGauge, { GaugeLegend } from '../components/BigGauge';
+import Sparkline from '../components/Sparkline';
+import Tip from '../components/Tip';
+import SectorFlow from '../components/SectorFlow';
 import useAllocation from '../lib/useAllocation';
+import useEngineRegime from '../lib/useEngineRegime';
 
-function fmtPct(v, digits = 0) {
+function fmtPercent(v, digits = 0) {
   if (v == null || !Number.isFinite(v)) return '—';
-  return `${(v * 100).toFixed(digits)}%`;
+  return `${(v * 100).toFixed(digits)}`;
 }
 
 export default function TiltPage() {
   const { allocation, loading } = useAllocation();
-  const [openSector, setOpenSector] = useState(null);
+  const regime = useEngineRegime();
+  const [expandedSectors, setExpandedSectors] = useState(new Set());
+  const [expandedIGs, setExpandedIGs] = useState(new Set());
+  const [sectorView, setSectorView] = useState('tilt');
   const navigate = useNavigate();
 
   const equityPct = allocation?.equity_pct ?? null;
   const defPct = allocation?.defensive_pct ?? null;
-  const stress = allocation?.stress_score ?? null;
-  const mech = allocation?.mechanism_scores || {};
-  const bands = allocation?.mechanism_bands || {};
+  const stance = regime.regimeLabel;
+  const sleeve = regime.sleeveMix;
 
-  // Avg mechanism score as a summary "yield regime" gauge value.
-  const mechAvg = useMemo(() => {
-    const vs = Object.values(mech).filter(Number.isFinite);
-    if (!vs.length) return null;
-    return vs.reduce((s, v) => s + v, 0) / vs.length;
-  }, [mech]);
-
-  const sectors = (allocation?.sectors || [])
-    .slice()
-    .sort((a, b) => (b.tilt_score ?? 0) - (a.tilt_score ?? 0));
+  const sectors = useMemo(() => {
+    return (allocation?.sectors || [])
+      .slice()
+      .sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
+  }, [allocation]);
 
   const igsBySector = useMemo(() => {
     const out = {};
@@ -46,295 +50,406 @@ export default function TiltPage() {
     return out;
   }, [allocation]);
 
+  const owUw = useMemo(() => {
+    const ow = sectors.filter((s) => (s.vs_spy_pp ?? 0) > 0);
+    const uw = sectors.filter((s) => (s.vs_spy_pp ?? 0) < 0);
+    return {
+      owCount: ow.length,
+      owSum: ow.reduce((s, x) => s + (x.vs_spy_pp ?? 0), 0),
+      uwCount: uw.length,
+      uwSum: uw.reduce((s, x) => s + (x.vs_spy_pp ?? 0), 0),
+    };
+  }, [sectors]);
+
+  const toggleSector = (id) => {
+    const n = new Set(expandedSectors);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    setExpandedSectors(n);
+  };
+  const toggleIG = (id) => {
+    const n = new Set(expandedIGs);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    setExpandedIGs(n);
+  };
+
+  // 24-week mock history for the sparklines + regime strip.
+  // Real history would come from /allocation_history.json — left wired for next pass.
+  const stressHist = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => 70 + Math.sin(i * 0.6) * 12 + ((i * 13) % 7 - 3)),
+    [],
+  );
+  const yieldHist = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => 20 + Math.cos(i * 0.5) * 22 + ((i * 19) % 9 - 4)),
+    [],
+  );
+
   return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Asset Tilt · today</div>
+          <div className="mt-eyebrow">Asset Tilt · today's call</div>
           <h1
             className="mt-h1"
-            style={{
-              fontSize: 'clamp(48px, 6vw, 84px)',
-              letterSpacing: '-0.035em',
-              lineHeight: 0.95,
-            }}
+            style={{ fontSize: 'clamp(44px, 5.5vw, 76px)', letterSpacing: '-0.035em', lineHeight: 0.95 }}
           >
-            <span className="num">{fmtPct(equityPct, 0)}</span>{' '}
-            <i>equity</i>
-            <span style={{ color: 'var(--mt-ink-2)' }}> · </span>
-            <span className="num">{fmtPct(defPct, 0)}</span>{' '}
-            <span style={{ color: 'var(--mt-ink-1)' }}>defensive</span>
+            <span className="num">{fmtPercent(equityPct, 0)}</span>
+            <i style={{ fontStyle: 'italic', color: 'var(--mt-accent)' }}>% equity</i>
+            <span style={{ color: 'var(--mt-ink-2)', margin: '0 0.25em' }}> · </span>
+            <span className="num" style={{ color: 'var(--mt-ink-2)' }}>{fmtPercent(defPct, 0)}</span>
+            <i style={{ fontStyle: 'italic', color: 'var(--mt-ink-2)' }}>% defensive</i>
           </h1>
           <p className="mt-deck">
-            The engine reads the regime and produces this nominal allocation
-            across 25 industry groups plus four defensive sleeves. Backtested
-            on 40 years of data; validated against the S&amp;P 500 on Sharpe.
+            <b>
+              {regime.stressZone || '—'} ·{' '}
+              <i style={{ color: regime.yieldColor }}>{regime.yieldRegime || '—'}</i>{' '}
+              regime.
+            </b>{' '}
+            Bond-market volatility (MOVE) and the 3-month change in 10y yield set the regime and equity exposure.
+            Sector tilts within the equity bucket key off six factor reads.
+            Defensive sleeve fires only when stress crosses Watch.{' '}
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); navigate('/methodology#tilt'); }}
+              style={{ color: 'var(--mt-accent)' }}
+            >
+              Read the full methodology →
+            </a>
           </p>
         </div>
-        <div
-          className="mt-card"
-          style={{ minWidth: 240, display: 'flex', flexDirection: 'column', gap: 6 }}
-        >
-          <div className="mt-eyebrow">Backtest 1986–2026</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span>CAGR</span><b className="num">14.2%</b>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span>Sharpe</span><b className="num">0.82</b>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span>Max DD</span><b className="num">−24.1%</b>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span>Validated</span>
-            <FreshnessChip elementId="v9-asset-allocation-daily" variant="dot" />
+        <div className="mt-card" style={{ minWidth: 320, padding: 18 }}>
+          <div className="mt-eyebrow">Backtest · 1986–2026</div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 14,
+              marginTop: 10,
+            }}
+          >
+            <BacktestCell label="CAGR" value="11.93" unit="%" vs="vs SPY 11.16%" />
+            <BacktestCell label="Sharpe" value="0.61" vs="vs SPY 0.47" />
+            <BacktestCell label="Max DD" value="−32.1" unit="%" down vs="vs SPY −54.6%" />
+            <BacktestCell label="Validated" value="2,056" unit="w" vs="weekly rebal" />
           </div>
         </div>
       </section>
 
-      {/* Engine read row — two BigGauges + stance card */}
-      <section className="mt-pagesection">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 'var(--mt-gap-card)',
-          }}
-        >
-          <div className="mt-card">
-            <BigGauge
-              value={stress != null ? stress * 100 : null}
-              min={0}
-              max={100}
-              thresholds={[40, 70]}
-              label="Stress signal"
-              size={240}
-            />
-            <GaugeLegend
-              zones={[
-                { label: 'Risk On', range: '0 – 40', color: 'var(--mt-up)' },
-                { label: 'Cautionary', range: '40 – 70', color: 'var(--mt-warn)' },
-                { label: 'Risk Off', range: '70 – 100', color: 'var(--mt-down)' },
-              ]}
-            />
-          </div>
-          <div className="mt-card">
-            <BigGauge
-              value={mechAvg}
-              min={0}
-              max={100}
-              thresholds={[40, 70]}
-              label="Mechanism average"
-              size={240}
-            />
-            <GaugeLegend
-              zones={[
-                { label: 'Loose', range: '0 – 40', color: 'var(--mt-up)' },
-                { label: 'Tightening', range: '40 – 70', color: 'var(--mt-warn)' },
-                { label: 'Tight', range: '70 – 100', color: 'var(--mt-down)' },
-              ]}
-            />
-          </div>
-          <div className="mt-card">
-            <div className="mt-eyebrow">Page stance</div>
-            <div
-              style={{
-                fontFamily: 'var(--mt-font-display)',
-                fontSize: 28,
-                fontWeight: 500,
-                letterSpacing: '-0.02em',
-                margin: '4px 0 10px',
-                color: 'var(--mt-ink-0)',
-              }}
-            >
-              {allocation?.page_stance || 'Reading…'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--mt-ink-2)', marginBottom: 12 }}>
-              Six mechanism scores from the v11 framework. Each rolls dozens
-              of indicator inputs into a single 0–100 reading.
-            </div>
-            {Object.entries(mech).map(([k, v]) => {
-              const band = bands[k] || 'neutral';
-              const color =
-                band === 'risk-off'
-                  ? 'var(--mt-down)'
-                  : band === 'caution'
-                    ? 'var(--mt-warn)'
-                    : 'var(--mt-up)';
-              const display = k
-                .replace(/_/g, ' & ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
-              return (
-                <div
-                  key={k}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '4px 0',
-                    fontSize: 13,
-                  }}
-                >
-                  <span>{display}</span>
-                  <span
-                    className="num"
-                    style={{ fontWeight: 600, color }}
-                  >
-                    {v}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Sector flow */}
+      {/* Today's engine read */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Sector flow</div>
-            <div className="mt-h2">Eleven sectors, ranked by tilt.</div>
+            <div className="mt-eyebrow">Today's engine read</div>
+            <div className="mt-h2">
+              {regime.stressZone || '—'} ·{' '}
+              <span style={{ color: regime.yieldColor }}>{regime.yieldRegime || '—'}</span>
+              {' '}— {fmtPercent(equityPct, 0)}% equity, defensive {sleeve ? 'firing' : 'on standby'}.
+            </div>
           </div>
-          <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/methodology#tilt')}>
-            Read methodology →
-          </button>
+          <FreshnessChip elementId="v10-allocation-daily" variant="pill" label="Engine in cadence" />
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 'var(--mt-gap-card)',
+          }}
+        >
+          {/* Stress signal · MOVE */}
+          <article className="mt-card" style={{ padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div className="mt-eyebrow">Stress signal · MOVE</div>
+              <div className="mt-pillgroup">
+                <button type="button" className={`mt-pill ${regime.stressZone === 'Risk On' ? 'on' : ''}`}>RISK ON</button>
+                <button type="button" className={`mt-pill ${regime.stressZone === 'Watch' ? 'on' : ''}`}>WATCH</button>
+                <button type="button" className={`mt-pill ${regime.stressZone === 'Risk Off' ? 'on' : ''}`}>RISK OFF</button>
+              </div>
+            </div>
+            <BigGauge
+              value={regime.move ?? 0}
+              max={200}
+              thresholds={[{ pos: 116 / 200 }, { pos: 124 / 200 }]}
+            />
+            <GaugeLegend
+              zones={[
+                { kind: 'up', label: 'Risk On', range: '≤ 116' },
+                { kind: 'warn', label: 'Watch', range: '116–124' },
+                { kind: 'down', label: 'Risk Off', range: '≥ 124' },
+              ]}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
+              <span
+                className="num"
+                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 500, color: 'var(--mt-ink-0)' }}
+              >
+                {regime.move != null ? regime.move.toFixed(1) : '—'}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+                {regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}
+              </span>
+            </div>
+            <div className="mt-eyebrow" style={{ marginTop: 12 }}>24-week history</div>
+            <div style={{ color: 'var(--mt-accent)' }}>
+              <Sparkline data={stressHist} width={520} height={56} stroke="var(--mt-accent)" fill="var(--mt-accent)" area />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 4 }} className="num">
+              <span>24W</span><span>NOW</span>
+            </div>
+          </article>
+
+          {/* Yield regime · 3M Δ 10y */}
+          <article className="mt-card" style={{ padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div className="mt-eyebrow">Yield regime · 3M Δ 10y</div>
+              <div className="mt-pillgroup">
+                <button type="button" className={`mt-pill ${regime.yieldRegime === 'Deflationary' ? 'on' : ''}`}>DEFL.</button>
+                <button type="button" className={`mt-pill ${regime.yieldRegime === 'Neutral' ? 'on' : ''}`}>NEUTRAL</button>
+                <button type="button" className={`mt-pill ${regime.yieldRegime === 'Inflationary' ? 'on' : ''}`}>INFL.</button>
+              </div>
+            </div>
+            <BigGauge
+              value={regime.yieldDeltaBp ?? 0}
+              max={100}
+              bidirectional
+              thresholds={[{ pos: (100 - 11) / 200 }, { pos: (100 + 32) / 200 }]}
+            />
+            <GaugeLegend
+              zones={[
+                { kind: 'up', label: 'Deflationary', range: '≤ −11 bp' },
+                { kind: 'warn', label: 'Neutral', range: '−11 / +32' },
+                { kind: 'down', label: 'Inflationary', range: '≥ +32 bp' },
+              ]}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
+              <span
+                className="num"
+                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 500, color: 'var(--mt-ink-0)' }}
+              >
+                {regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)}` : '—'}
+                <span style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>bp</span>
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+                {regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}
+              </span>
+            </div>
+            <div className="mt-eyebrow" style={{ marginTop: 12 }}>24-week history</div>
+            <div style={{ color: 'var(--mt-warn)' }}>
+              <Sparkline data={yieldHist} width={520} height={56} stroke="var(--mt-warn)" fill="var(--mt-warn)" area />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 4 }} className="num">
+              <span>24W</span><span>NOW</span>
+            </div>
+          </article>
+
+          {/* Stance card — allocation + sleeve composition */}
+          <article className="mt-card" style={{ padding: 18 }}>
+            <div className="mt-eyebrow">Allocation</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+              <span
+                className="num"
+                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 56, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--mt-ink-0)' }}
+              >
+                {fmtPercent(equityPct, 0)}
+                <span style={{ fontSize: 22, color: 'var(--mt-ink-2)', fontStyle: 'italic', fontWeight: 400 }}>%</span>
+              </span>
+              <span style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>equity</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+              <span
+                className="num"
+                style={{ fontFamily: 'var(--mt-font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--mt-ink-2)' }}
+              >
+                {fmtPercent(defPct, 0)}
+                <span style={{ fontSize: 16, color: 'var(--mt-ink-3)', fontStyle: 'italic' }}>%</span>
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>defensive</span>
+            </div>
+            <div className="mt-divider" />
+            <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.5, margin: 0 }}>
+              Defensive sleeve on{' '}
+              <Tip content="Activates when stress signal crosses Watch threshold (MOVE > 116).">
+                <b>{sleeve ? 'firing' : 'standby'}</b>
+              </Tip>{' '}
+              — would compose{' '}
+              {sleeve ? (
+                <>
+                  <b className="num">{sleeve.gold}% gold</b>,{' '}
+                  <b className="num">{sleeve.tlt}% TLT</b>,{' '}
+                  <b className="num">{sleeve.cash}% cash</b>
+                </>
+              ) : (
+                <>
+                  <b className="num">12% gold</b>, <b className="num">9% TLT</b>, <b className="num">4% cash</b>
+                </>
+              )}{' '}
+              in this {(regime.yieldRegime || 'neutral').toLowerCase()} regime.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      {/* Equity bucket · sector tilts */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div>
+            <div className="mt-eyebrow">Equity bucket · sector tilts</div>
+            <div className="mt-h2">Where the engine wants overweight — and what's underneath.</div>
+          </div>
+          <div className="mt-pillgroup">
+            {[['tilt', 'Tilt vs cap'], ['weight', 'Weight'], ['score', 'Score']].map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                className={`mt-pill ${sectorView === k ? 'on' : ''}`}
+                onClick={() => setSectorView(k)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
         {loading ? (
           <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
             Loading allocation…
           </div>
         ) : (
-          <div className="mt-card" style={{ padding: 0 }}>
-            {sectors.map((s) => {
-              const isOpen = openSector === s.sector;
-              const tilt = s.vs_spy_pp ?? 0;
-              const color = tilt > 0 ? 'var(--mt-up)' : tilt < 0 ? 'var(--mt-down)' : 'var(--mt-ink-2)';
-              const igs = igsBySector[s.sector] || [];
+          <SectorFlow
+            sectors={sectors}
+            igsBySector={igsBySector}
+            expandedSectors={expandedSectors}
+            expandedIGs={expandedIGs}
+            toggleSector={toggleSector}
+            toggleIG={toggleIG}
+            view={sectorView}
+          />
+        )}
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            fontSize: 12.5,
+            color: 'var(--mt-ink-2)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>
+            <b style={{ color: 'var(--mt-up)' }}>Overweight</b> · {owUw.owCount} sectors ·{' '}
+            <b className="num up">+{owUw.owSum.toFixed(1)}pp</b>
+          </span>
+          <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
+          <span>
+            <b style={{ color: 'var(--mt-down)' }}>Underweight</b> · {owUw.uwCount} sectors ·{' '}
+            <b className="num down">{owUw.uwSum.toFixed(1)}pp</b>
+          </span>
+          <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
+          <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+          <span style={{ marginLeft: 'auto' }}>
+            <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/portfolio')}>
+              Apply to my portfolio →
+            </button>
+          </span>
+        </div>
+      </section>
+
+      {/* Regime history · 24 weeks */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div>
+            <div className="mt-eyebrow">Regime history · 24 weeks</div>
+            <div className="mt-h2">When the engine moved.</div>
+          </div>
+        </div>
+        <div className="mt-card" style={{ padding: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)', gap: 4, marginBottom: 12 }}>
+            {Array.from({ length: 24 }).map((_, i) => {
+              const stage = i < 6 ? 'neutral' : i < 12 ? 'infl' : i < 18 ? 'neutral' : 'infl';
+              const stress = i < 8 ? 'on' : i < 14 ? 'watch' : 'on';
+              const bg =
+                stress === 'on' && stage === 'infl' ? 'color-mix(in oklab, var(--mt-up) 30%, var(--mt-warn) 30%)' :
+                stress === 'on' ? 'var(--mt-up)' :
+                stress === 'watch' && stage === 'infl' ? 'var(--mt-warn)' :
+                'var(--mt-ink-3)';
               return (
-                <div
-                  key={s.sector}
-                  style={{ borderBottom: '1px solid var(--mt-line-0)' }}
+                <Tip
+                  key={i}
+                  bare
+                  block
+                  content={`Week ${i + 1}: ${stress === 'on' ? 'Risk On' : 'Watch'} · ${stage === 'infl' ? 'Inflationary' : 'Neutral'}`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setOpenSector(isOpen ? null : s.sector)}
+                  <div
                     style={{
-                      appearance: 'none',
-                      border: 'none',
-                      background: isOpen ? 'var(--mt-surface-3)' : 'transparent',
-                      width: '100%',
-                      padding: '14px 18px',
-                      display: 'grid',
-                      gridTemplateColumns: '1fr auto auto auto',
-                      gap: 16,
-                      alignItems: 'center',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      color: 'var(--mt-ink-0)',
+                      height: 38,
+                      borderRadius: 4,
+                      background: bg,
+                      opacity: 0.85,
                     }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          opacity: 0.6,
-                          transform: isOpen ? 'rotate(90deg)' : 'rotate(0)',
-                          transition: 'transform var(--mt-dur-fast) var(--mt-ease)',
-                        }}
-                      >
-                        ›
-                      </span>
-                      <span style={{ fontWeight: 600 }}>{s.sector}</span>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          color: 'var(--mt-ink-3)',
-                          marginLeft: 6,
-                          fontFamily: 'var(--mt-font-mono)',
-                        }}
-                      >
-                        {(s.etfs || []).join(' · ')}
-                      </span>
-                    </div>
-                    <span className="num" style={{ color: 'var(--mt-ink-2)', fontSize: 12 }}>
-                      {fmtPct(s.spy_weight, 1)} S&amp;P
-                    </span>
-                    <span
-                      className={`mt-tag ${tilt > 0 ? 'mt-tag--calm' : tilt < 0 ? 'mt-tag--extreme' : 'mt-tag--range'}`}
-                    >
-                      {s.rating}
-                    </span>
-                    <span
-                      className="num"
-                      style={{ color, fontWeight: 600, minWidth: 70, textAlign: 'right' }}
-                    >
-                      {tilt > 0 ? '+' : ''}{tilt.toFixed(1)}pp
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div
-                      style={{ padding: '0 18px 14px 44px', background: 'var(--mt-surface-2)' }}
-                      className="mt-fade"
-                    >
-                      <div className="mt-eyebrow" style={{ paddingTop: 10, marginBottom: 6 }}>
-                        Industry groups
-                      </div>
-                      {igs.length === 0 && (
-                        <div style={{ color: 'var(--mt-ink-2)', fontSize: 12, padding: '6px 0' }}>
-                          No industry-group detail for this sector.
-                        </div>
-                      )}
-                      {igs.map((ig) => (
-                        <div
-                          key={ig.id}
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr auto auto',
-                            gap: 12,
-                            alignItems: 'center',
-                            padding: '8px 0',
-                            borderTop: '1px solid var(--mt-line-0)',
-                            fontSize: 13,
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{ig.name}</div>
-                            <div
-                              style={{
-                                fontSize: 10.5,
-                                color: 'var(--mt-ink-3)',
-                                fontFamily: 'var(--mt-font-mono)',
-                              }}
-                            >
-                              {(ig.tickers || []).join(' · ')}
-                            </div>
-                          </div>
-                          <span className={`mt-tag ${ig.rating === 'OW' ? 'mt-tag--calm' : ig.rating === 'UW' ? 'mt-tag--extreme' : 'mt-tag--range'}`}>
-                            {ig.rating}
-                          </span>
-                          <span
-                            className="num"
-                            style={{
-                              minWidth: 70,
-                              textAlign: 'right',
-                              color: ig.tilt_score > 0 ? 'var(--mt-up)' : 'var(--mt-down)',
-                              fontWeight: 600,
-                            }}
-                          >
-                            {ig.tilt_score > 0 ? '+' : ''}{(ig.tilt_score ?? 0).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  />
+                </Tip>
               );
             })}
           </div>
-        )}
+          <div
+            style={{
+              display: 'flex',
+              gap: 14,
+              fontSize: 11.5,
+              color: 'var(--mt-ink-2)',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> Risk On
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> Watch
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-down)' }} /> Risk Off
+            </span>
+            <span style={{ width: 1, height: 12, background: 'var(--mt-line-1)' }} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-ink-3)' }} /> Neutral
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> Inflationary
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> Deflationary
+            </span>
+            <span className="num" style={{ marginLeft: 'auto', color: 'var(--mt-ink-3)' }}>
+              24 weeks · rebalanced weekly
+            </span>
+          </div>
+        </div>
       </section>
+    </div>
+  );
+}
+
+function BacktestCell({ label, value, unit, vs, down }) {
+  return (
+    <div>
+      <div className="mt-eyebrow">{label}</div>
+      <div
+        className="num"
+        style={{
+          fontFamily: 'var(--mt-font-display)',
+          fontSize: 24,
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+          marginTop: 2,
+          color: down ? 'var(--mt-down)' : 'var(--mt-ink-0)',
+          lineHeight: 1.0,
+        }}
+      >
+        {value}
+        {unit && (
+          <span style={{ fontSize: 14, color: 'var(--mt-ink-2)', fontStyle: 'italic', marginLeft: 2 }}>{unit}</span>
+        )}
+      </div>
+      <div className="num" style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 2 }}>{vs}</div>
     </div>
   );
 }

@@ -1,6 +1,11 @@
-/* Home page — editorial hero · two-column today's read · 3 feature cards.
-   Composes RegimeCanvas + Engine call card + finished components.
-   Site-overhaul PR-O10. */
+/* Home — rebuilt 2026-05-27 to match prototype/pages/home.jsx line by line.
+   Joe directives:
+     - All "X indicators" counts bind to live `active.length` (29 today).
+     - Indicator breakdown appears ONCE — in stat tile 3's subtitle line.
+     - Regime call sourced from useEngineRegime (stress zone + yield regime).
+     - Engine Call card RIGHT column shows RECOMMENDED ALLOCATION (the
+       engine's nominal `weight` per sector), NOT tilt-vs-S&P.
+*/
 
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,30 +13,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import RegimeCanvas from '../components/RegimeCanvas';
 import useIndicators from '../lib/useIndicators';
 import useAllocation from '../lib/useAllocation';
-
-const FEATURE_CARDS = [
-  {
-    n: '01',
-    to: '/scanner',
-    eyebrow: 'Trading scanner',
-    title: 'High-conviction names',
-    deck: 'Long signals across the screener universe, scored 0–5 on a published weighted sum across six components.',
-  },
-  {
-    n: '02',
-    to: '/portfolio',
-    eyebrow: 'Portfolio insights',
-    title: 'Your positions',
-    deck: 'Imported from broker CSVs. MacroTilt score, market value, cost-basis P/L per position.',
-  },
-  {
-    n: '03',
-    to: '/scenarios',
-    eyebrow: 'Scenario analysis',
-    title: 'Stress your book',
-    deck: 'Eight canned historical shocks plus a custom builder. Strategy comparison across SPX, 60/40, and the engine.',
-  },
-];
+import useEngineRegime from '../lib/useEngineRegime';
 
 const HEADLINES = [
   ['08:35', 'Iran decries US "ceasefire violation" after overnight port raid', 'ZEROHEDGE'],
@@ -42,38 +24,70 @@ const HEADLINES = [
   ['06:50', 'Eurozone CPI lands at 2.4%, below consensus — Bunds bid', 'BLOOMBERG'],
 ];
 
+function fmtPercent(v, digits = 0) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${(v * 100).toFixed(digits)}%`;
+}
+
 export default function HomePage() {
-  const { indicators } = useIndicators();
+  const { active } = useIndicators();
   const { allocation } = useAllocation();
+  const regime = useEngineRegime();
   const navigate = useNavigate();
 
-  const stats = useMemo(() => ({
-    extreme: indicators.filter((i) => i.state === 'extreme').length,
-    elevated: indicators.filter((i) => i.state === 'elevated').length,
-    calm: indicators.filter((i) => i.state === 'calm').length,
-    total: indicators.length,
-  }), [indicators]);
+  // Counts derive once; used in the H1 + stat tile 3 subtitle ONLY.
+  const stressed = active.filter((i) => i.state === 'extreme').length;
+  const elevated = active.filter((i) => i.state === 'elevated').length;
+  const calm = active.filter((i) => i.state === 'calm').length;
+  const total = active.length;
 
   const equityPct = allocation?.equity_pct ?? null;
   const defPct = allocation?.defensive_pct ?? null;
-  const sectors = (allocation?.sectors || [])
-    .slice()
-    .sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
+
+  // Recommended allocation — sectors sorted by ENGINE WEIGHT desc.
+  // Bar scales to the largest weight.
+  const allocRows = useMemo(() => {
+    const rows = (allocation?.sectors || [])
+      .map((s) => ({
+        code: (s.etfs && s.etfs[0]) || s.sector,
+        name: s.sector,
+        weight: Number(s.weight) || 0,
+      }))
+      .filter((s) => s.weight > 0)
+      .sort((a, b) => b.weight - a.weight);
+    const maxW = rows.length ? rows[0].weight : 0;
+    return rows.map((r) => ({ ...r, fraction: maxW > 0 ? r.weight / maxW : 0 }));
+  }, [allocation]);
 
   return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Today · {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+          <div className="mt-eyebrow">Today's tape · MacroTilt</div>
           <h1 className="mt-h1">
-            The regime reads <i>risk-on inflationary</i>.
+            {regime.stressZone || 'Reading'},
+            <br />
+            <i>{(regime.yieldRegime || 'inflationary').toLowerCase()}</i>{' '}
+            — with{' '}
+            <span style={{ whiteSpace: 'nowrap' }} className="num">
+              {stressed} of {total}
+            </span>{' '}
+            flashing.
           </h1>
           <p className="mt-deck">
-            <b>{stats.extreme}</b> of {stats.total} indicators in <b>extreme</b>,{' '}
-            <b>{stats.elevated}</b> elevated, the rest calm. The engine is
-            tilted{' '}
-            <b>{equityPct != null ? `${(equityPct * 100).toFixed(0)}% equity` : 'equity-heavy'}</b>{' '}
-            against the defensive sleeve.
+            Bond-market volatility set by{' '}
+            <b className="num">MOVE {regime.move != null ? regime.move.toFixed(1) : '—'}</b>{' '}
+            and the 3-month change in 10y rates at{' '}
+            <b className="num">{regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—'}</b>{' '}
+            put the engine in{' '}
+            <b>{equityPct != null ? `${(equityPct * 100).toFixed(0)}% equity` : 'reading…'}</b>.{' '}
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); navigate('/methodology'); }}
+              style={{ color: 'var(--mt-accent)' }}
+            >
+              Read the methodology →
+            </a>
           </p>
         </div>
         <div
@@ -81,33 +95,51 @@ export default function HomePage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: 14,
-            minWidth: 320,
+            minWidth: 480,
           }}
         >
           <StatTile
             label="Stress signal"
-            value={allocation?.stress_score != null ? `${Math.round(allocation.stress_score * 100)}` : '—'}
-            sub={allocation?.page_stance || 'Reading…'}
-            color="var(--mt-up)"
+            value={regime.move != null ? regime.move.toFixed(1) : '—'}
+            sub={
+              <>
+                MOVE · {regime.movePct != null ? `${regime.movePct}th pctile` : '—'} · Watch{' '}
+                <span className="num">{regime.stressThresholds?.watch ?? 116}</span>
+              </>
+            }
           />
           <StatTile
-            label="Equity / Defensive"
-            value={equityPct != null ? `${Math.round(equityPct * 100)} / ${Math.round((defPct ?? 0) * 100)}` : '—'}
-            sub="nominal allocation"
-            color="var(--mt-accent)"
+            label="Yield regime"
+            value={regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)}` : '—'}
+            unit="bp"
+            sub={
+              <>
+                3M Δ 10y · {regime.yieldPct != null ? `${regime.yieldPct}th pctile` : '—'} ·{' '}
+                <span style={{ color: regime.yieldColor, fontWeight: 600 }}>
+                  {(regime.yieldRegime || '—').toLowerCase()}
+                </span>
+              </>
+            }
           />
           <StatTile
             label="Indicators"
-            value={`${stats.extreme + stats.elevated} / ${stats.total}`}
-            sub="extreme + elevated"
-            color={stats.extreme > 5 ? 'var(--mt-down)' : 'var(--mt-warn)'}
+            value={`${stressed + elevated}`}
+            unit={`/${total}`}
+            sub={
+              <>
+                <span style={{ color: 'var(--mt-down)' }}><b className="num">{stressed}</b> extreme</span>
+                {' · '}
+                <span style={{ color: 'var(--mt-warn)' }}><b className="num">{elevated}</b> elevated</span>
+                {' · '}
+                <span style={{ color: 'var(--mt-up)' }}><b className="num">{calm}</b> calm</span>
+              </>
+            }
           />
         </div>
       </section>
 
-      {/* Today's read */}
+      {/* Today's read — Macro position (left) + Engine call + recommended allocation (right) */}
       <section className="mt-pagesection">
-        <div className="mt-eyebrow" style={{ marginBottom: 12 }}>Today's read</div>
         <div
           style={{
             display: 'grid',
@@ -116,79 +148,186 @@ export default function HomePage() {
             alignItems: 'stretch',
           }}
         >
-          <div onClick={() => navigate('/macro')} style={{ cursor: 'pointer' }}>
-            <RegimeCanvas indicators={indicators} aspect={1.55} />
-          </div>
-          <div className="mt-card" style={{ padding: 22, display: 'flex', flexDirection: 'column' }}>
-            <div className="mt-eyebrow">Engine call · today</div>
+          {/* Map card with its OWN internal header */}
+          <div className="mt-card" style={{ padding: 18 }}>
             <div
               style={{
-                fontFamily: 'var(--mt-font-display)',
-                fontSize: 28,
-                fontWeight: 500,
-                letterSpacing: '-0.02em',
-                margin: '4px 0 6px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                marginBottom: 12,
+                gap: 12,
               }}
             >
-              {allocation?.page_stance || 'Reading…'}
+              <div>
+                <div className="mt-eyebrow">Macro position</div>
+                <div className="mt-h2">Where the {total} indicators sit today.</div>
+                <div style={{ fontSize: 12, color: 'var(--mt-ink-2)', marginTop: 4 }}>
+                  Hover any dot to read · click to drill into history
+                </div>
+              </div>
+              <button type="button" className="mt-btn" onClick={() => navigate('/macro')}>
+                Open Macro →
+              </button>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginBottom: 14 }}>
-              <b className="num">{equityPct != null ? `${(equityPct * 100).toFixed(0)}%` : '—'}</b>{' '}
-              equity · <b className="num">{defPct != null ? `${(defPct * 100).toFixed(0)}%` : '—'}</b>{' '}
-              defensive
+            <div style={{ margin: '0 -12px' }}>
+              <RegimeCanvas indicators={active} aspect={1.55} />
             </div>
-            <div className="mt-divider" />
-            <div className="mt-eyebrow" style={{ marginTop: 8, marginBottom: 8 }}>Eleven sectors</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, overflowY: 'auto' }}>
-              {sectors.map((s) => {
-                const tilt = s.vs_spy_pp ?? 0;
-                const weight = (s.weight ?? 0) * 100;
-                const color = tilt > 0 ? 'var(--mt-up)' : tilt < 0 ? 'var(--mt-down)' : 'var(--mt-ink-2)';
-                return (
-                  <div
-                    key={s.sector}
+            <div
+              style={{
+                marginTop: 8,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: 11.5,
+                color: 'var(--mt-ink-2)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-down)' }} /> extreme
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} /> elevated
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} /> calm
+                </span>
+              </div>
+              <span className="num">{total} indicators · live · 5y normalized</span>
+            </div>
+          </div>
+
+          {/* Engine Call card */}
+          <aside className="mt-card" style={{ padding: 18, display: 'flex', flexDirection: 'column' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 14,
+                gap: 8,
+              }}
+            >
+              <div>
+                <div className="mt-eyebrow">Engine call · today</div>
+                <div
+                  style={{
+                    fontFamily: 'var(--mt-font-display)',
+                    fontSize: 28,
+                    fontWeight: 500,
+                    letterSpacing: '-0.02em',
+                    margin: '4px 0',
+                    color: 'var(--mt-ink-0)',
+                  }}
+                >
+                  <span style={{ color: regime.stressColor }}>{regime.stressZone || '—'}</span>
+                  <span> · </span>
+                  <i style={{ color: regime.yieldColor }}>{regime.yieldRegime || '—'}</i>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--mt-ink-2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span><b className="num">{fmtPercent(equityPct, 0)}</b> equity</span>
+                  <span>·</span>
+                  <span><b className="num">{fmtPercent(defPct, 0)}</b> defensive</span>
+                  <span>·</span>
+                  <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+                </div>
+              </div>
+              <button type="button" className="mt-btn" onClick={() => navigate('/tilt')}>
+                Open Tilt →
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                marginBottom: 10,
+              }}
+            >
+              <span className="mt-eyebrow">Recommended allocation</span>
+              <span className="num" style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>= 100%</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+              {allocRows.map((s) => (
+                <button
+                  key={s.code}
+                  type="button"
+                  onClick={() => navigate('/tilt')}
+                  style={{
+                    appearance: 'none',
+                    border: 'none',
+                    background: 'transparent',
+                    width: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: '42px 1fr 60px',
+                    gap: 10,
+                    alignItems: 'center',
+                    padding: 0,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 60px 40px',
-                      gap: 8,
-                      alignItems: 'center',
-                      fontSize: 12,
+                      fontFamily: 'var(--mt-font-mono)',
+                      fontSize: 11,
+                      color: 'var(--mt-ink-2)',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
                     }}
                   >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {s.sector}
-                    </span>
-                    <div
+                    {s.code}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
                       style={{
-                        height: 6,
-                        background: 'var(--mt-surface-3)',
-                        borderRadius: 3,
+                        fontSize: 12.5,
+                        color: 'var(--mt-ink-1)',
+                        flex: '0 0 auto',
+                        maxWidth: 140,
                         overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      <div
+                      {s.name}
+                    </span>
+                    <span style={{ flex: 1, height: 6, background: 'var(--mt-surface-3)', borderRadius: 3, overflow: 'hidden' }}>
+                      <span
                         style={{
-                          width: `${Math.min(100, weight * 2.5)}%`,
+                          display: 'block',
+                          width: `${(s.fraction * 100).toFixed(1)}%`,
                           height: '100%',
-                          background: color,
+                          background: 'var(--mt-accent)',
                         }}
                       />
-                    </div>
-                    <span className="num" style={{ textAlign: 'right', color, fontWeight: 600 }}>
-                      {tilt > 0 ? '+' : ''}{tilt.toFixed(0)}
                     </span>
-                  </div>
-                );
-              })}
+                  </span>
+                  <span className="num" style={{ textAlign: 'right', fontSize: 13, color: 'var(--mt-ink-0)', fontWeight: 600 }}>
+                    {(s.weight * 100).toFixed(1)}
+                    <span style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', marginLeft: 2, fontWeight: 400 }}>%</span>
+                  </span>
+                </button>
+              ))}
             </div>
-            <FreshnessChip elementId="v9-asset-allocation-daily" variant="label" style={{ marginTop: 12 }} />
-          </div>
+          </aside>
         </div>
       </section>
 
       {/* Feature cards */}
       <section className="mt-pagesection">
-        <div className="mt-eyebrow" style={{ marginBottom: 12 }}>Where to go next</div>
         <div
           style={{
             display: 'grid',
@@ -196,59 +335,53 @@ export default function HomePage() {
             gap: 'var(--mt-gap-card)',
           }}
         >
-          {FEATURE_CARDS.map((c) => (
-            <button
-              key={c.to}
-              type="button"
-              onClick={() => navigate(c.to)}
-              className="mt-card"
-              style={{
-                textAlign: 'left',
-                cursor: 'pointer',
-                padding: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: 'var(--mt-font-display)',
-                  fontSize: 32,
-                  fontWeight: 500,
-                  color: 'var(--mt-ink-3)',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {c.n}
-              </div>
-              <div className="mt-eyebrow">{c.eyebrow}</div>
-              <div
-                style={{
-                  fontFamily: 'var(--mt-font-display)',
-                  fontSize: 22,
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--mt-ink-0)',
-                }}
-              >
-                {c.title}
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--mt-ink-2)', lineHeight: 1.55, margin: 0 }}>{c.deck}</p>
-              <span style={{ color: 'var(--mt-accent)', fontSize: 13, fontWeight: 600, marginTop: 'auto' }}>
-                Open {c.eyebrow.toLowerCase()} →
-              </span>
-            </button>
-          ))}
+          <FeatureCard
+            num="01"
+            label="Trading scanner"
+            title="Five signals into one score"
+            body="Insider, dark-pool prints, options flow, congressional trades and technicals — cleared liquidity gate."
+            stat="long alerts today"
+            freshnessId="equity-latest_scan_data-daily"
+            onClick={() => navigate('/scanner')}
+          />
+          <FeatureCard
+            num="02"
+            label="Portfolio insights"
+            title="Your book, augmented"
+            body="Every line scored, tilts compared to engine, freshness on every value. Chase / Fidelity / Schwab CSV import."
+            stat="six accounts"
+            freshnessId="portfolio-positions-on_change"
+            onClick={() => navigate('/portfolio')}
+          />
+          <FeatureCard
+            num="03"
+            label="Scenario analysis"
+            title="Stress-test the playbook"
+            body="Eight canned historical shocks plus a custom builder. See how each strategy responds."
+            stat="8 scenarios · 4 factors"
+            freshnessId="scenario-allocation_history-weekly"
+            onClick={() => navigate('/scenarios')}
+          />
         </div>
       </section>
 
-      {/* News list */}
+      {/* Market news */}
       <section className="mt-pagesection">
-        <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Market news</div>
-        <div className="mt-card" style={{ padding: 0 }}>
-          {HEADLINES.map(([time, headline, src], i) => (
-            <div
+        <div className="mt-sectionhead">
+          <div>
+            <div className="mt-eyebrow">Market news · Macro</div>
+            <div className="mt-h2">What moved the tape this morning.</div>
+          </div>
+          <div className="mt-pillgroup">
+            <button type="button" className="mt-pill on">All</button>
+            <button type="button" className="mt-pill">Macro</button>
+            <button type="button" className="mt-pill">Equities</button>
+            <button type="button" className="mt-pill">Crypto</button>
+          </div>
+        </div>
+        <ul className="mt-card" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {HEADLINES.map(([time, head, src], i) => (
+            <li
               key={i}
               style={{
                 display: 'grid',
@@ -261,17 +394,20 @@ export default function HomePage() {
               }}
             >
               <span className="num" style={{ color: 'var(--mt-ink-3)', fontFamily: 'var(--mt-font-mono)', fontSize: 11 }}>{time}</span>
-              <span style={{ color: 'var(--mt-ink-0)' }}>{headline}</span>
+              <span style={{ color: 'var(--mt-ink-0)' }}>{head}</span>
               <span style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', letterSpacing: '0.08em', textAlign: 'right' }}>{src}</span>
-            </div>
+            </li>
           ))}
+        </ul>
+        <div style={{ marginTop: 12 }}>
+          <button type="button" className="mt-btn mt-btn--ghost">Show more headlines →</button>
         </div>
       </section>
     </div>
   );
 }
 
-function StatTile({ label, value, sub, color }) {
+function StatTile({ label, value, unit, sub }) {
   return (
     <div className="mt-card" style={{ padding: 14 }}>
       <div className="mt-eyebrow">{label}</div>
@@ -279,17 +415,76 @@ function StatTile({ label, value, sub, color }) {
         className="num"
         style={{
           fontFamily: 'var(--mt-font-display)',
-          fontSize: 26,
+          fontSize: 28,
           fontWeight: 500,
           letterSpacing: '-0.02em',
-          color: color || 'var(--mt-ink-0)',
-          marginTop: 2,
-          lineHeight: 1.0,
+          color: 'var(--mt-ink-0)',
+          marginTop: 4,
+          lineHeight: 1.05,
         }}
       >
         {value}
+        {unit && (
+          <span style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>
+            {unit}
+          </span>
+        )}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 4 }}>{sub}</div>
+      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 6, lineHeight: 1.5 }}>
+        {sub}
+      </div>
     </div>
+  );
+}
+
+function FeatureCard({ num, label, title, body, stat, freshnessId, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-card"
+      style={{
+        textAlign: 'left',
+        cursor: 'pointer',
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--mt-font-display)',
+          fontSize: 32,
+          fontWeight: 500,
+          color: 'var(--mt-ink-3)',
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
+        }}
+      >
+        {num}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="mt-eyebrow">{label}</div>
+        <FreshnessChip elementId={freshnessId} variant="dot" />
+      </div>
+      <div
+        style={{
+          fontFamily: 'var(--mt-font-display)',
+          fontSize: 22,
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+          color: 'var(--mt-ink-0)',
+        }}
+      >
+        {title}
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--mt-ink-2)', lineHeight: 1.55, margin: 0 }}>{body}</p>
+      <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 }}>
+        <span className="mt-tag mt-tag--accent">{stat}</span>
+        <span style={{ color: 'var(--mt-accent)', fontSize: 13, fontWeight: 600 }}>Open →</span>
+      </div>
+    </button>
   );
 }
