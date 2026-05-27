@@ -449,6 +449,17 @@ async function handle(req: Request): Promise<Response> {
       last_good_at: lastGoodIso
         ? lastGoodIso
         : (asOf ? new Date(asOfToMs(asOf, row.cadence) ?? Date.now()).toISOString() : row.last_good_at),
+      // 2026-05-27 — write the trading-day data date the watchdog just
+      // observed into data_as_of. The chip layer (useFreshness.js,
+      // post-2026-05-12 Phase 2) anchors staleness off data_as_of, not
+      // last_good_at. Until this line, data_as_of was a producer-write-only
+      // column — for the ~40 FRED/Yahoo indicators that have no producer-
+      // side health-row writer, it stayed frozen at whatever value seeded
+      // it (2026-05-11 / 2026-05-12 in production), which made every chip
+      // render red across the site even though the watchdog's own status
+      // call (computed from asOf) was correctly going green. Now that the
+      // watchdog has just computed asOf, persist it.
+      data_as_of: asOf || row.data_as_of,
       last_error: lastError,
       status: newStatus,
       prev_status: row.status,
