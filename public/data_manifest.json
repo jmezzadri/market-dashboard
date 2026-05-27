@@ -63,7 +63,7 @@
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     },
     "last_updated": "2026-05-27",
-    "last_change": "Removed scenario-portfolio_impact-on_demand (added in error this session \u2014 the data IS available in macrotilt_engine_backtest.json drawdowns; legacy ScenarioAnalysis page already wires to it via STRAT_RETURNS_MAP)."
+    "last_change": "2026-05-27 \u2014 renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run."
   },
   "elements": [
     {
@@ -1052,7 +1052,7 @@
     {
       "id": "scenario-v9_allocation-weekly",
       "category": "scenario",
-      "name": "v9_allocation",
+      "name": "v10_allocation",
       "description": "Current week v9 allocation (regime, alpha, equity_share, leverage, picks, defensive sleeve).",
       "sourcing_mode": "computed",
       "source_vendor": "n/a",
@@ -1084,7 +1084,7 @@
     {
       "id": "scenario-allocation_history-weekly",
       "category": "scenario",
-      "name": "allocation_history",
+      "name": "scenarios",
       "description": "Rolling 26-entry history of prior v9 allocations (picks, leverage, equity_share, defensive).",
       "sourcing_mode": "derived",
       "source_vendor": "n/a",
@@ -1114,7 +1114,7 @@
     {
       "id": "scenario-scenario_allocations-weekly",
       "category": "scenario",
-      "name": "scenario_allocations",
+      "name": "scenarios",
       "description": "Pre-computed v9 allocations under 8 historical CCAR-anchored stress scenarios.",
       "sourcing_mode": "computed",
       "source_vendor": "n/a",
@@ -1169,7 +1169,7 @@
     {
       "id": "market-universe_master-daily",
       "category": "market",
-      "name": "universe_master",
+      "name": "massive-universe",
       "description": "Canonical ticker universe (~12,500 active US stocks + ETFs + ADRs). Replaces UW screener as ticker master.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1202,7 +1202,7 @@
     {
       "id": "market-prices_eod-daily",
       "category": "market",
-      "name": "prices_eod",
+      "name": "massive-eod",
       "description": "Full-market end-of-day OHLCV + VWAP + transactions count for all US stocks.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1232,7 +1232,7 @@
     {
       "id": "market-ticker_reference-rolling",
       "category": "market",
-      "name": "ticker_reference",
+      "name": "massive-ticker-details",
       "description": "Per-ticker rich metadata: description, logo URL, SIC code, market cap, employees, address, refresh_priority.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1259,7 +1259,7 @@
     {
       "id": "market-dividends-daily",
       "category": "market",
-      "name": "dividends",
+      "name": "massive-corporate-actions",
       "description": "Per-ticker dividend ex/pay/record/declared dates + cash amount + frequency.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1286,7 +1286,7 @@
     {
       "id": "market-splits-daily",
       "category": "market",
-      "name": "splits",
+      "name": "massive-corporate-actions",
       "description": "Per-ticker stock-split execution date + from/to ratio.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1313,7 +1313,7 @@
     {
       "id": "equity-universe_snapshots-3xday",
       "category": "equity",
-      "name": "universe_snapshots",
+      "name": "uw-universe-snapshots",
       "description": "3x-weekday UW screener snapshot (~50 fields \u00d7 ~1,694 tickers \u2265$1B mcap).",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales",
@@ -1346,7 +1346,7 @@
     {
       "id": "equity-ticker_events-3xday",
       "category": "equity",
-      "name": "ticker_events",
+      "name": "uw-universe-snapshots",
       "description": "3x-weekday UW firehose: per-ticker news, insider transactions, congress trades, dark pool prints.",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales",
@@ -1378,7 +1378,7 @@
     {
       "id": "equity-latest_scan_data-daily",
       "category": "equity",
-      "name": "latest_scan_data",
+      "name": "latest_scan",
       "description": "Composite scanner output: buy_opportunities, watch_items, signals (technicals/screener/news/etc), config.",
       "sourcing_mode": "computed",
       "source_vendor": "Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares",
