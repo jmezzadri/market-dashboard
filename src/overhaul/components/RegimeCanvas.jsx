@@ -179,31 +179,10 @@ export default function RegimeCanvas({
           );
         })}
       </svg>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 12,
-          left: 16,
-          display: 'flex',
-          gap: 14,
-          fontSize: 11,
-          color: 'var(--mt-ink-2)',
-          alignItems: 'center',
-        }}
-      >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-down)' }} />
-          extreme
-        </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-warn)' }} />
-          elevated
-        </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mt-up)' }} />
-          calm
-        </span>
-      </div>
+      {/* Internal legend removed 2026-05-27 — Joe screenshot showed it
+          rendering twice (once here, once in the parent card). The
+          prototype puts the legend in the parent card's lm-canvaslegend
+          block, so callers control it. */}
     </div>
   );
 }
