@@ -27,7 +27,6 @@ import { useNavigate } from 'react-router-dom';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import FreshnessChip from '../components/FreshnessChip';
 import Sparkline from '../components/Sparkline';
-import ScanList from '../components/ScanList';
 import Tip from '../components/Tip';
 
 const PF_COLORS = ['#0a5cd1', '#1f9d60', '#c08428', '#c1394f', '#5c34c9', '#0a8a8a'];
@@ -506,25 +505,78 @@ export default function PortfolioPage() {
         </article>
       </section>
 
-      {/* Positions list — ScanList rows with drill */}
+      {/* Positions table — clean per-position rows. Scanner-only fields
+          (mt_score, day-change, I/D/O signal badges) intentionally omitted
+          here: they require the scanner-row join which the portfolio fetch
+          doesn't carry. Showing them with placeholder values reads as
+          "bastardized" — half-built fields that mislead. Click a ticker
+          to open the per-ticker page where real signal data lives. */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Positions · MacroTilt score</div>
+            <div className="mt-eyebrow">Positions</div>
             <div className="mt-h2">
-              Engine signal on every position — with value, cost &amp; P/L.
+              Every open position across your accounts — value, cost basis, P/L.
             </div>
           </div>
         </div>
         {positions.length === 0 ? (
           <div className="mt-card mt-loadingcard">No positions yet.</div>
         ) : (
-          <ScanList
-            rows={positionsAsScanRows}
-            drillOpenKey={drillKey}
-            setDrillOpenKey={setDrillKey}
-            renderDrill={(row) => <PositionDrill row={row} navigate={navigate} />}
-          />
+          <div className="mt-tablecard">
+            <table className="al-table pf-positable">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Account</th>
+                  <th>Sector</th>
+                  <th className="num">Quantity</th>
+                  <th className="num">Avg cost</th>
+                  <th className="num">Last price</th>
+                  <th className="num">Market value</th>
+                  <th className="num">Cost basis</th>
+                  <th className="num">P/L</th>
+                </tr>
+              </thead>
+              <tbody>
+                {positions
+                  .slice()
+                  .sort((a, b) => (b.market_value || 0) - (a.market_value || 0))
+                  .map((p, i) => {
+                    const mv = Number(p.market_value) || 0;
+                    const cb = Number(p.cost_basis) || 0;
+                    const pl = mv - cb;
+                    const plPct = cb > 0 ? (pl / cb) * 100 : null;
+                    return (
+                      <tr
+                        key={`${p.ticker}-${p.account_name}-${i}`}
+                        onClick={() => p.ticker && p.ticker !== 'CASH' ? navigate(`/ticker/${p.ticker}`) : null}
+                        style={{ cursor: p.ticker && p.ticker !== 'CASH' ? 'pointer' : 'default' }}
+                      >
+                        <td><b>{p.ticker}</b></td>
+                        <td>{p.account_name || '—'}</td>
+                        <td style={{ color: 'var(--mt-ink-2)' }}>{p.sector || '—'}</td>
+                        <td className="num">{p.quantity != null ? Number(p.quantity).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'}</td>
+                        <td className="num">{p.avg_cost != null ? fmt$(p.avg_cost, 2) : '—'}</td>
+                        <td className="num">{p.last_price != null ? fmt$(p.last_price, 2) : '—'}</td>
+                        <td className="num"><b>{fmt$(mv, 0)}</b></td>
+                        <td className="num" style={{ color: 'var(--mt-ink-2)' }}>{cb > 0 ? fmt$(cb, 0) : '—'}</td>
+                        <td className={`num ${pl >= 0 ? 'up' : 'down'}`}>
+                          {cb > 0 ? (
+                            <>
+                              {pl > 0 ? '+' : ''}{fmt$(pl, 0)}
+                              <span style={{ color: 'var(--mt-ink-3)', marginLeft: 6 }}>
+                                {plPct != null ? `${plPct >= 0 ? '+' : ''}${plPct.toFixed(1)}%` : ''}
+                              </span>
+                            </>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

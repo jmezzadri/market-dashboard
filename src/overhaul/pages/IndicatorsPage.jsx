@@ -157,23 +157,14 @@ export default function IndicatorsPage() {
         </div>
       </section>
 
+      {/* Toolbar — Joe directive 2026-05-27: removed the "Layer" pill set
+          (Vol triggers / Cycle composite / Reference) because those are
+          internal taxonomy and meaningless to a reader. Also removed the
+          decorative "+ Filter" and "Columns —" buttons that had no
+          implementation. Category pills stay because they're the actual
+          domain rollup a portfolio manager scans by. */}
       <section className="mt-pagesection mt-pagesection--tight">
         <div className="al-toolbar mt-card">
-          <div className="al-row">
-            <div className="mt-eyebrow">Layer</div>
-            <div className="mt-pillgroup">
-              {LAYERS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  className={`mt-pill ${layer === l ? 'on' : ''}`}
-                  onClick={() => setLayer(l)}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="al-row">
             <div className="mt-eyebrow">Category</div>
             <div className="mt-pillgroup">
@@ -188,12 +179,6 @@ export default function IndicatorsPage() {
                 </button>
               ))}
             </div>
-          </div>
-          <div className="al-row al-row--push">
-            <button type="button" className="mt-btn">＋ Filter</button>
-            <button type="button" className="mt-btn">
-              ⚙ Columns <span className="num">—</span>
-            </button>
           </div>
         </div>
       </section>
