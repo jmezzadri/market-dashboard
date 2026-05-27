@@ -445,17 +445,20 @@ export default function PaperPortfolioPage() {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    let cancelled = false;
+    // The cancellation flag pattern caused a render bug on deep-link mounts:
+    // React's strict-mount-then-unmount-then-remount cycle during initial hydration
+    // could land the await-resolved setState after `cancelled` had been flipped,
+    // leaving the state at defaults and the page in its empty render. Removed the
+    // flag — the only cost is a benign "setState on unmounted" warning if the
+    // user clicks away mid-fetch, which beats showing them empty data.
     (async () => {
       try {
-        // 1) NAV daily history
         const nav = await supabase
           .from('paper_nav_daily')
           .select('*')
           .order('snapshot_date', { ascending: true });
-        if (!cancelled) setNavHistory(nav.data || []);
+        setNavHistory(nav.data || []);
 
-        // 2) latest positions snapshot
         const latestDate = await supabase
           .from('paper_positions')
           .select('snapshot_date')
@@ -468,29 +471,26 @@ export default function PaperPortfolioPage() {
             .select('*')
             .eq('snapshot_date', ld)
             .order('market_value', { ascending: false });
-          if (!cancelled) setPositions(pos.data || []);
+          setPositions(pos.data || []);
         }
 
-        // 3) recent order intents
         const ord = await supabase
           .from('paper_orders')
           .select('id, created_at, sleeve, ticker, side, target_notional, signal_source, status, signal_score')
           .order('created_at', { ascending: false })
           .limit(200);
-        if (!cancelled) setOrders(ord.data || []);
+        setOrders(ord.data || []);
 
-        // 4) account config
         const acc = await supabase
           .from('paper_accounts')
           .select('*')
           .eq('status', 'active')
           .limit(1);
-        if (!cancelled) setAccount(acc?.data?.[0] || null);
+        setAccount(acc?.data?.[0] || null);
       } catch (e) {
-        if (!cancelled) setErr(e?.message || String(e));
+        setErr(e?.message || String(e));
       }
     })();
-    return () => { cancelled = true; };
   }, []);
 
   const sleeveA = useMemo(() => positions.filter((p) => p.sleeve === 'A'), [positions]);
