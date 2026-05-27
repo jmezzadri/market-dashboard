@@ -63,7 +63,7 @@
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     },
     "last_updated": "2026-05-27",
-    "last_change": "Added site-methodology_changelog-static (curated changelog file for Methodology page)."
+    "last_change": "Removed scenario-portfolio_impact-on_demand (added in error this session \u2014 the data IS available in macrotilt_engine_backtest.json drawdowns; legacy ScenarioAnalysis page already wires to it via STRAT_RETURNS_MAP)."
   },
   "elements": [
     {
@@ -2742,37 +2742,6 @@
       "owner": "Data Steward (curation), Senior Quant (regime calls)",
       "release_calendar": "wall-clock",
       "dependencies": []
-    },
-    {
-      "id": "scenario-portfolio_impact-on_demand",
-      "category": "scenario",
-      "name": "scenario_portfolio_impact",
-      "description": "Per-scenario portfolio impact: for each of the 8 historical scenarios, the projected return / drawdown for S&P 500, S&P/Cash 60-40, the user's portfolio, and the MacroTilt Asset Tilt allocation. The Strategy Comparison table on the Scenarios page is the only consumer. Currently NOT WIRED \u2014 pipeline absent; the table reads em-dashes and shows a red FreshnessChip.",
-      "sourcing_mode": "computed",
-      "source_vendor": "n/a (computed from scenario_stress.json + macrotilt_engine_backtest.json + portfolio.positions)",
-      "source_endpoint": "TBD \u2014 scripts/build_scenario_portfolio_impact.py (not yet written)",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "on_demand",
-      "scheduled_fetch_time_et": "n/a (request-time computation on Scenarios page load)",
-      "refresh_trigger": "Page-load hook useScenarioPortfolioImpact(scenarioId) \u2014 fires on scenario selection change",
-      "freshness_sla_hours": 192,
-      "output_destination": "public/scenario_portfolio_impact.json (planned)",
-      "producer_script": "scripts/build_scenario_portfolio_impact.py (planned)",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Strategy comparison table (4 rows \u00d7 5 cols)"
-        }
-      ],
-      "current_status": "stub",
-      "failure_mode": "Pipeline not yet built. Strategy table renders em-dashes for the four return/dd cells and surfaces a red FreshnessChip tooltip pointing to this manifest entry. Data Steward backlog item.",
-      "owner": "Senior Quant (model), Data Steward (pipeline + freshness wiring), Lead Dev (hook + page wiring)",
-      "release_calendar": "wall-clock",
-      "dependencies": [
-        "scenario-scenario_definitions-static",
-        "portfolio-positions-on_change"
-      ]
     },
     {
       "id": "site-methodology_changelog-static",
