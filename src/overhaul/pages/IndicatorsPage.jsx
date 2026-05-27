@@ -1,10 +1,22 @@
-/* All Indicators — rebuilt 2026-05-27 to prototype/pages/indicators.jsx.
-   - Layer pills: All / Vol triggers / Cycle composite / Reference
-   - Type column shows LEAD / COINC / LAG (from registryTier 1/2/3)
-   - 5y sparkline (full data)
-   - Hero summary uses FreshnessChip pill + 3-cell grid of layer counts. */
+/* All Indicators — refactored 2026-05-27 per Joe Path-A directive.
 
-import React, { useMemo, useState } from 'react';
+   Changes vs the prior overhaul rebuild:
+   - CYCLE_COMPOSITE_IDS is now DERIVED from /methodology_calibration_v11.json
+     (tiles[].indicators[].id, unique set). Previously hardcoded — that drift
+     against the calibrated framework was a catalog violation.
+   - VOL_TRIGGER_IDS stays as labeled DESIGN CONFIG (vix/move/skew). These
+     are a framework decision, not user data — closest fit to exception #3
+     ("Macro domain one-liners — design copy, never gets stale. Keep.").
+     Comment makes the intent explicit so future agents don't mistake it.
+   - "11/14 columns" hardcoded count em-dashed — no live column-picker state
+     yet, so the count is unknown until that feature ships.
+   - Every section spacing override now uses --tight / --tight2 variant
+     classes instead of inline style props.
+   - Loading state uses .mt-loadingcard class instead of inline styles.
+   - Table card uses .mt-tablecard class instead of inline styles.
+   - al-row right-alignment uses .al-row--push utility instead of inline. */
+
+import React, { useEffect, useMemo, useState } from 'react';
 import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
@@ -13,10 +25,12 @@ import useIndicators from '../lib/useIndicators';
 const LAYERS = ['All', 'Vol triggers', 'Cycle composite', 'Reference'];
 const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Money', 'Economy'];
 
-// Vol triggers — the named volatility indicators
+/* DESIGN CONFIG — the three named volatility-trigger indicators.
+   This is framework decision, not market data: MOVE / VIX / SKEW have been
+   the headline gauge inputs since the 2-axis engine shipped. No upstream
+   calibration file lists them as a set, so they live here as config.
+   Path-A exception #3: design copy, never goes stale. */
 const VOL_TRIGGER_IDS = new Set(['vix', 'move', 'skew']);
-// Cycle composite — the v11 framework's calibrated set (10 active mapped today)
-const CYCLE_COMPOSITE_IDS = new Set(['cape', 'erp', 'buffett', 'ig_oas', 'hy_oas', 'hy_ig_ratio', 'cfnai_3ma', 'jobless', 'ism', 'hy_ig']);
 
 function fmtNum(v, decimals = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -34,8 +48,37 @@ function fmtFreq(freq) {
   return freq || '—';
 }
 
+/* Pull the canonical set of cycle-composite indicator IDs from the
+   v11 methodology calibration file. tiles[].indicators[].id, uniqued.
+   On fetch failure we render an empty Set; the Cycle composite layer
+   pill simply yields zero rows and the count shows 0 — preferable to
+   silently using a stale hardcoded list. */
+function useCycleCompositeIds() {
+  const [ids, setIds] = useState(/** @type {Set<string>} */(new Set()));
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/methodology_calibration_v11.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => {
+        if (cancelled || !m) return;
+        const tiles = Array.isArray(m.tiles) ? m.tiles : [];
+        const out = new Set();
+        for (const t of tiles) {
+          for (const ind of t.indicators || []) {
+            if (ind && ind.id) out.add(ind.id);
+          }
+        }
+        setIds(out);
+      })
+      .catch(() => {/* leave as empty set — UI degrades gracefully */});
+    return () => { cancelled = true; };
+  }, []);
+  return ids;
+}
+
 export default function IndicatorsPage() {
   const { active, loading } = useIndicators();
+  const cycleIds = useCycleCompositeIds();
   const [layer, setLayer] = useState('All');
   const [domain, setDomain] = useState('All');
   const [sort, setSort] = useState({ key: 'state', dir: 'desc' });
@@ -43,15 +86,15 @@ export default function IndicatorsPage() {
 
   const counts = useMemo(() => ({
     vol: active.filter((i) => VOL_TRIGGER_IDS.has(i.id)).length,
-    cycle: active.filter((i) => CYCLE_COMPOSITE_IDS.has(i.id)).length,
-    reference: active.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !CYCLE_COMPOSITE_IDS.has(i.id)).length,
-  }), [active]);
+    cycle: active.filter((i) => cycleIds.has(i.id)).length,
+    reference: active.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !cycleIds.has(i.id)).length,
+  }), [active, cycleIds]);
 
   const filtered = useMemo(() => {
     let rows = active;
     if (layer === 'Vol triggers') rows = rows.filter((i) => VOL_TRIGGER_IDS.has(i.id));
-    else if (layer === 'Cycle composite') rows = rows.filter((i) => CYCLE_COMPOSITE_IDS.has(i.id));
-    else if (layer === 'Reference') rows = rows.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !CYCLE_COMPOSITE_IDS.has(i.id));
+    else if (layer === 'Cycle composite') rows = rows.filter((i) => cycleIds.has(i.id));
+    else if (layer === 'Reference') rows = rows.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !cycleIds.has(i.id));
     if (domain !== 'All') rows = rows.filter((i) => i.domain === domain);
     // Sort
     const arr = [...rows];
@@ -72,7 +115,7 @@ export default function IndicatorsPage() {
       return String(av).localeCompare(String(bv)) * dir;
     });
     return arr;
-  }, [active, layer, domain, sort]);
+  }, [active, cycleIds, layer, domain, sort]);
 
   function toggleSort(key) {
     setSort((p) => p.key === key ? { key, dir: p.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
@@ -114,7 +157,7 @@ export default function IndicatorsPage() {
         </div>
       </section>
 
-      <section className="mt-pagesection" style={{ paddingTop: 16, paddingBottom: 12 }}>
+      <section className="mt-pagesection mt-pagesection--tight">
         <div className="al-toolbar mt-card">
           <div className="al-row">
             <div className="mt-eyebrow">Layer</div>
@@ -146,20 +189,20 @@ export default function IndicatorsPage() {
               ))}
             </div>
           </div>
-          <div className="al-row" style={{ marginLeft: 'auto' }}>
+          <div className="al-row al-row--push">
             <button type="button" className="mt-btn">＋ Filter</button>
-            <button type="button" className="mt-btn">⚙ Columns <span className="num">11/14</span></button>
+            <button type="button" className="mt-btn">
+              ⚙ Columns <span className="num">—</span>
+            </button>
           </div>
         </div>
       </section>
 
-      <section className="mt-pagesection" style={{ paddingTop: 8 }}>
+      <section className="mt-pagesection mt-pagesection--tight2">
         {loading ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            Loading indicators…
-          </div>
+          <div className="mt-loadingcard">Loading indicators…</div>
         ) : (
-          <div className="mt-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="mt-tablecard">
             <table className="al-table">
               <thead>
                 <tr>
@@ -191,10 +234,12 @@ export default function IndicatorsPage() {
                     .filter(Number.isFinite);
                   return (
                     <React.Fragment key={i.id}>
-                      <tr className={isOpen ? 'open' : ''} onClick={() => setDrill(isOpen ? null : i.id)}>
+                      <tr className={`al-row-tr ${isOpen ? 'open' : ''}`} onClick={() => setDrill(isOpen ? null : i.id)}>
                         <td>
-                          <div className="al-tkname">{i.name}</div>
-                          <div className="al-tkcode">{i.id}</div>
+                          <div className="al-tk">
+                            <div className="al-tkname">{i.name}</div>
+                            <div className="al-tkcode">{i.id}</div>
+                          </div>
                         </td>
                         <td><span className="al-cat">{i.domain}</span></td>
                         <td><span className="al-freq">{fmtFreq(i.freq)}</span></td>
@@ -212,7 +257,7 @@ export default function IndicatorsPage() {
                         <td className="num al-historical">{fmtNum(i.prior_3m, i.decimals ?? 2)}</td>
                         <td className="num al-historical">{fmtNum(i.prior_6m, i.decimals ?? 2)}</td>
                         <td className="num al-historical">{fmtNum(i.prior_1y, i.decimals ?? 2)}</td>
-                        <td style={{ color }}>
+                        <td className="al-sparkcell">
                           <Sparkline data={trendPts} width={140} height={22} stroke={color} showDot={false} />
                         </td>
                       </tr>

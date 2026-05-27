@@ -327,6 +327,25 @@
   align-items: end;
 }
 .mt-overhaul .mt-pagesection { padding: 32px var(--mt-pad-page); }
+.mt-overhaul .mt-pagesection--tight { padding-top: 16px; padding-bottom: 12px; }
+.mt-overhaul .mt-pagesection--tight2 { padding-top: 8px; }
+.mt-overhaul .mt-loadingcard {
+  padding: 36px;
+  text-align: center;
+  color: var(--mt-ink-2);
+  background: var(--mt-surface);
+  border: 1px solid var(--mt-line-0);
+  border-radius: var(--mt-r-lg);
+}
+.mt-overhaul .mt-tablecard {
+  padding: 0;
+  overflow: hidden;
+  background: var(--mt-surface);
+  border: 1px solid var(--mt-line-0);
+  border-radius: var(--mt-r-lg);
+}
+.mt-overhaul .al-row--push { margin-left: auto; }
+.mt-overhaul .sectionhead-pill { display: flex; align-items: center; gap: 10px; }
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;
