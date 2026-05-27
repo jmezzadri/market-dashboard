@@ -6,15 +6,17 @@ name: macrotilt-engine-daily
 # Overview page, Asset Tilt page, and the home page tile.
 #
 # Schedule:
-#   - Daily 19:45 UTC weekdays (≈ 15:45 ET standard / 14:45 ET DST)
-#     so the snapshot is current before market close. The weekly Friday read
-#     drives Monday-open execution per the engine spec.
+#   - Daily 22:30 UTC weekdays = 18:30 ET (EDT) / 17:30 ET (EST).
+#     Joe directive 2026-05-27 evening: moved from 19:45 UTC (15:45 ET, BEFORE market
+#     close) → 22:30 UTC (18:30 ET, AFTER the 18:00 ET evening INDICATOR-REFRESH that
+#     publishes same-day MOVE + late-publish FRED series). Previously the engine was
+#     reading STALE morning macro data; now it sees the full day's close.
 #
 # Pattern: cycle-mechanisms-daily.yml.
 
 on:
   schedule:
-    - cron: "45 19 * * 1-5"
+    - cron: "30 22 * * 1-5"
   workflow_dispatch:
 
 concurrency:

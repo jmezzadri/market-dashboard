@@ -35,6 +35,10 @@ on:
     # were rejected with HTTP 403 'opg orders must be submitted after 7:00pm
     # and before 9:28am'. Moved to 23:30 UTC to land inside the window.
     - cron: '30 23 * * 1-5'
+    # Safety-net retry 2h after the primary. Fires Tue-Sat 01:30 UTC = 21:30 ET (EDT)
+    # / 20:30 ET (EST). Useful if the 19:30 ET primary run skipped because engines
+    # weren't fresh yet (per the runner.py freshness gate added 2026-05-27).
+    - cron: '30 1 * * 2-6'
   workflow_dispatch:
     inputs:
       dry_run:
