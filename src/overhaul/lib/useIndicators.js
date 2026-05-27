@@ -112,6 +112,8 @@ export default function useIndicators() {
       const state = stateFor(pct, direction);
       const familyId = meta[2];
       const src = sourceFor[id] || {};
+      const registryTier = Number(meta[3]) || 0; // 1=lead 2=coincident 3=lag
+      const typeLabel = registryTier === 1 ? 'LEAD' : registryTier === 3 ? 'LAG' : 'COINC';
       out.push({
         id,
         name: meta[0],
@@ -136,7 +138,12 @@ export default function useIndicators() {
         deprecated: meta[11] === true,
         description: meta[12] || '',
         narrative: meta[13] || '',
-        tier: src.tier || 'free',
+        registryTier,            // 1 / 2 / 3
+        typeLabel,               // 'LEAD' | 'COINC' | 'LAG'
+        // Indicator manifest id used by useFreshness lookups: matches
+        // the manifest's `id` field (e.g., "indicator-vix-daily").
+        manifestId: `indicator-${id}-daily`,
+        licenseTier: src.tier || 'free',
         sourceVendor: src.vendor,
         sourceEndpoint: src.endpoint,
       });
@@ -144,8 +151,17 @@ export default function useIndicators() {
     return out;
   }, [hist, sourceFor]);
 
+  // The brief promises "indicators across five domains". Deprecated entries
+  // are kept in the registry for historical reference but should NOT be
+  // surfaced as part of the active framework on Home / Macro / Indicators
+  // (Joe directive 2026-05-27 — page kept saying 35 while the framework is
+  // smaller). Consumers that need the historical set can read `indicators`;
+  // page-facing surfaces should read `active`.
+  const active = useMemo(() => indicators.filter((i) => !i.deprecated), [indicators]);
+
   return {
-    indicators,
+    indicators,        // raw set including deprecated — for the All Indicators table
+    active,            // non-deprecated only — what the brief's counts mean
     loading: hist == null,
     error: err,
   };

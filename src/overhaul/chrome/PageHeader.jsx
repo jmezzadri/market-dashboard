@@ -67,8 +67,12 @@ export default function PageHeader() {
             ingest pipelines are green, this reads "All feeds healthy".
             When any are red, the chip flips and the tooltip names the
             failing upstream. */}
+        {/* Real manifest ID — was a fictional ID prior to PR-O13; the
+            fictional ID resolved to "no manifest entry → green" which made
+            the All-feeds chip permanently green regardless of actual
+            pipeline state. */}
         <FreshnessChip
-          elementId="universe-master-daily"
+          elementId="market-universe_master-daily"
           variant="pill"
           label="All feeds"
         />
