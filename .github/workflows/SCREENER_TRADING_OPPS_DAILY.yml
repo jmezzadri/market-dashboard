@@ -6,25 +6,26 @@ name: SCREENER_TRADING_OPPS_DAILY
 # layers, with the 15-day-plateau insider age-decay) over the eligible universe
 # for the latest complete close, and appends one dated snapshot row per launched
 # name into public.trading_opps_signals. Append-only — earlier scan_dates are
-# never overwritten, so the page can show a name's score one week / one month
+# never overwritten, so the page can read a name's score one week / one month
 # ago straight off an older snapshot.
 #
 # Pipeline name: screener-trading-opps-daily
-# Runs downstream of the EOD market-data + dark-pool + options ingests. It is
-# the evening compute step, scheduled 19:00 ET — after MASSIVE-DAILY (the
-# prices_eod ingest, primary fire 18:00 ET) has settled. The producer is
-# idempotent and auto-falls-back to the last fully-ingested close, so an
-# early or late fire is harmless — it simply re-scans the latest complete day.
 #
-# Required GitHub secrets (already configured for the sibling ingests):
+# TRIGGER MODEL (changed 2026-05-27):
+#   Previously a cron at 19:00 ET that raced with MASSIVE-DAILY. Now triggers
+#   on MASSIVE-DAILY workflow_run success (always after prices_eod is in),
+#   plus a late-night safety-net cron at 02:00 ET if workflow_run misses.
+#
+# Required GitHub secrets:
 #   SUPABASE_URL
-#   SUPABASE_SERVICE_ROLE_KEY    (table reads + writes)
+#   SUPABASE_SERVICE_ROLE_KEY
 
 on:
+  workflow_run:
+    workflows: ["MASSIVE-DAILY"]
+    types: [completed]
   schedule:
-    # 19:00 ET weekdays. 23:00 UTC during EDT, 00:00 UTC (next day) during EST.
-    - cron: '0 23 * * 1-5'
-    - cron: '0 0 * * 2-6'
+    - cron: '0 6 * * 2-6'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -32,8 +33,16 @@ on:
         required: false
         default: 'false'
 
+concurrency:
+  group: screener-trading-opps-daily
+  cancel-in-progress: false
+
 jobs:
   produce:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event_name == 'schedule'
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -48,10 +57,6 @@ jobs:
           pip install --upgrade pip
           pip install pandas numpy requests
 
-      # Persist the price-history cache between nightly runs. The screener
-      # refreshes it incrementally (only the new trading day); restore-keys
-      # prefix-matches the most recent prior cache, and the run-id key makes
-      # every save a fresh entry so the cache rolls forward each night.
       - name: Restore cached price history
         uses: actions/cache/restore@v4
         with:
@@ -72,8 +77,6 @@ jobs:
           fi
           PYTHONPATH=. python3 -m scanner.trading_opps.run_screener $ARGS
 
-      # Save even on failure: a cold pull checkpoints partial progress, and
-      # persisting it lets the next run resume instead of restarting.
       - name: Save cached price history
         if: always()
         uses: actions/cache/save@v4
