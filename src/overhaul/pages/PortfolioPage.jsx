@@ -1,9 +1,25 @@
-/* Portfolio Insights — rebuilt 2026-05-27 to prototype/pages/portfolio.jsx.
-   - Hero: inline FreshnessChip in eyebrow + 2×2 key stats grid with vs-SPY
-   - Account cards: colored dot, % of book, balance, sparkline, 3-cell metrics
-   - Account drill: 12-month perf chart (left) + positions table (right)
-   - Allocation card: 3-tab pill + rows with colored dot prefix
-   - Positions list: ScanList rows with score+P/L + drill
+/* Portfolio Insights — refactored 2026-05-27 to prototype/pages/portfolio.jsx.
+
+   Catalog violations resolved (HARDCODED_CONTENT_CATALOG_2026-05-27.md):
+   1. 'Beta 0.86' / 'Sharpe 0.29' KeyCell values → em-dash + red FreshnessChip
+      on the key-stats card backed by portfolio-positions-on_change.
+   2. 'S&P 1.00' / 'S&P 1.52' reference sublines → removed (reference framing
+      only, no live data).
+   3. CLASS_ALLOC fabricated '83/12/4/1' percentages → derived from positions
+      via useUserPortfolio sectors when present; placeholder empty state +
+      red chip when not.
+   4. Account drill '0.92 beta / -18.4% max DD' literals → em-dash + chip
+      backed by portfolio-positions-on_change.
+   5. PositionDrill 'Engine sees X as a … hold' synthesized narrative →
+      derived from row.signal when present; em-dash otherwise.
+   6. PositionDrill score composition bars (Technicals 0.78 / Insider 0.62
+      / Options 0.55 / Analyst 0.71 fabricated) → em-dashed cell values +
+      empty bar tracks, single red chip on the panel backed by
+      equity-latest_scan_data-daily.
+
+   Inline-style policy: zero layout/color/font/padding/margin/gap/background
+   props. Dynamic values like `style={{ width: `${pct}%` }}` and palette
+   tokens for the colored allocation dots stay (per Joe's spec).
 */
 
 import React, { useMemo, useState } from 'react';
@@ -12,17 +28,9 @@ import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import FreshnessChip from '../components/FreshnessChip';
 import Sparkline from '../components/Sparkline';
 import ScanList from '../components/ScanList';
-import ScoreDial from '../components/ScoreDial';
 import Tip from '../components/Tip';
 
 const PF_COLORS = ['#0a5cd1', '#1f9d60', '#c08428', '#c1394f', '#5c34c9', '#0a8a8a'];
-
-const CLASS_ALLOC = [
-  { name: 'Equities', pct: 83, color: '#0a5cd1' },
-  { name: 'Cash', pct: 12, color: '#7a8290' },
-  { name: 'Gold / Defensive', pct: 4, color: '#c08428' },
-  { name: 'Crypto', pct: 1, color: '#5c34c9' },
-];
 
 function fmt$(v, decimals = 0) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -88,6 +96,23 @@ export default function PortfolioPage() {
       .sort((a, b) => b.value - a.value);
   }, [positions, total]);
 
+  /* Derived class allocation from position-level asset_class field if present,
+     else null (will render empty state + red chip). */
+  const byClass = useMemo(() => {
+    const out = {};
+    let counted = 0;
+    positions.forEach((p) => {
+      const c = p.asset_class || null;
+      if (!c) return;
+      out[c] = (out[c] || 0) + (Number(p.market_value) || 0);
+      counted += 1;
+    });
+    if (counted === 0) return null;
+    return Object.entries(out)
+      .map(([name, v]) => ({ name, value: v, pct: total > 0 ? (v / total) * 100 : 0 }))
+      .sort((a, b) => b.value - a.value);
+  }, [positions, total]);
+
   const accountTiles = accountSummaries.length
     ? accountSummaries
     : Object.entries(byAccount).map(([name, ps], i) => ({
@@ -118,8 +143,8 @@ export default function PortfolioPage() {
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            Portfolio insights
+          <div className="mt-eyebrow">
+            Portfolio insights{' '}
             <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" />
           </div>
           <h1 className="mt-h1">
@@ -130,13 +155,25 @@ export default function PortfolioPage() {
             Trading Scanner applied to every position you hold across your accounts.
           </p>
         </div>
-        <div className="mt-card" style={{ minWidth: 380, padding: 18 }}>
-          <div className="mt-eyebrow">Key stats vs. S&amp;P 500</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 10 }}>
-            <KeyCell label="Total wealth" value={fmt$(total, 0)} sub={`${accountTiles.length} accounts`} />
-            <KeyCell label="TTM performance" value={fmtPct(ttmPct, 1)} sub="S&P +34.1%" up={ttmPct != null && ttmPct >= 0} />
-            <KeyCell label="Beta" value="0.86" sub="S&P 1.00" />
-            <KeyCell label="Sharpe" value="0.29" sub="S&P 1.52" />
+        <div className="pf-keystats">
+          <div className="mt-eyebrow">
+            Key stats vs. S&amp;P 500{' '}
+            <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" />
+          </div>
+          <div className="pf-keygrid">
+            <KeyCell
+              label="Total wealth"
+              value={fmt$(total, 0)}
+              sub={`${accountTiles.length} accounts`}
+            />
+            <KeyCell
+              label="TTM performance"
+              value={fmtPct(ttmPct, 1)}
+              sub="trailing 12 months"
+              up={ttmPct != null && ttmPct >= 0}
+            />
+            <KeyCell label="Beta" value="—" sub="awaiting analytics feed" />
+            <KeyCell label="Sharpe" value="—" sub="awaiting analytics feed" />
           </div>
         </div>
       </section>
@@ -150,7 +187,7 @@ export default function PortfolioPage() {
               {accountTiles.length || 'No'} accounts · trailing 12 months · click to drill
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="pf-headcta">
             <button type="button" className="mt-btn">Upload transactions</button>
             <Tip content="Plaid coming soon — for now, import broker CSVs from Chase, Fidelity, Schwab.">
               <button type="button" className="mt-btn" disabled>
@@ -160,21 +197,13 @@ export default function PortfolioPage() {
           </div>
         </div>
         {loading ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            Loading portfolio…
-          </div>
+          <div className="mt-card mt-loadingcard">Loading portfolio…</div>
         ) : accountTiles.length === 0 ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
+          <div className="mt-card mt-loadingcard">
             No accounts yet — sign in to see your portfolio.
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: 'var(--mt-gap-card)',
-            }}
-          >
+          <div className="pf-acctgrid">
             {accountTiles.map((a, i) => {
               const isOpen = openAcct === a.account_name;
               const color = a.color || PF_COLORS[i % PF_COLORS.length];
@@ -186,70 +215,49 @@ export default function PortfolioPage() {
                   key={a.account_name}
                   type="button"
                   onClick={() => setOpenAcct(isOpen ? null : a.account_name)}
-                  className="mt-card"
-                  style={{
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    padding: 16,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    borderColor: isOpen ? color : 'var(--mt-line-0)',
-                  }}
+                  className={`mt-card pf-acctcard ${isOpen ? 'on' : ''}`}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--mt-ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {a.account_name}
-                      </span>
+                  <div className="pf-accthead">
+                    <span className="pf-acctname">
+                      <span className="pf-acctdot" style={{ background: color }} />
+                      {a.account_name}
                     </span>
-                    <span className="num" style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>
-                      {share.toFixed(1)}<i style={{ color: 'var(--mt-ink-3)', fontStyle: 'italic' }}>% of book</i>
+                    <span className="num pf-acctshare">
+                      {share.toFixed(1)}<i>% of book</i>
                     </span>
                   </div>
-                  <div
-                    className="num"
-                    style={{
-                      fontFamily: 'var(--mt-font-display)',
-                      fontSize: 28,
-                      fontWeight: 500,
-                      letterSpacing: '-0.02em',
-                      color: 'var(--mt-ink-0)',
-                      lineHeight: 1,
-                    }}
-                  >
+                  <div className="pf-acctbal num">
                     {fmt$(Number(a.market_value) || 0, 0)}
                   </div>
-                  <div style={{ color: ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>
-                    <Sparkline
-                      data={fakeSpark(a.account_name, 100, ttm)}
-                      width={260}
-                      height={28}
-                      stroke={ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-                      fill={ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-                      area
-                      showDot={false}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <Sparkline
+                    data={fakeSpark(a.account_name, 100, ttm)}
+                    width={260}
+                    height={28}
+                    stroke={ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
+                    fill={ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
+                    area
+                    showDot={false}
+                  />
+                  <div className="pf-acctkv">
                     <div>
                       <div className="mt-eyebrow">TTM</div>
-                      <b className="num" style={{ color: ttm >= 0 ? 'var(--mt-up)' : 'var(--mt-down)', fontSize: 13 }}>
+                      <b className={`num ${ttm >= 0 ? 'up' : 'down'}`}>
                         {ttm > 0 ? '+' : ''}{ttm.toFixed(2)}%
                       </b>
                     </div>
                     <div>
                       <div className="mt-eyebrow">Sharpe</div>
-                      <b className="num" style={{ fontSize: 13 }}>{sharpe > 0 ? '+' : ''}{sharpe.toFixed(2)}</b>
+                      <b className="num">{sharpe > 0 ? '+' : ''}{sharpe.toFixed(2)}</b>
                     </div>
                     <div>
                       <div className="mt-eyebrow">Positions</div>
-                      <b className="num" style={{ fontSize: 13 }}>{a.position_count ?? (byAccount[a.account_name] || []).length}</b>
+                      <b className="num">
+                        {a.position_count ?? (byAccount[a.account_name] || []).length}
+                      </b>
                     </div>
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mt-ink-2)' }}>
-                    {isOpen ? '▾ Hide details' : '▸ Open details'}
+                  <div className="pf-acctfoot">
+                    <span>{isOpen ? '▾ Hide' : '▸ Open'}</span>
                   </div>
                 </button>
               );
@@ -259,46 +267,73 @@ export default function PortfolioPage() {
 
         {/* Inline account drill */}
         {account && (
-          <div className="mt-card mt-fade" style={{ marginTop: 16, padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <article className="mt-card pf-acctdrill mt-fade">
+            <div className="pf-acctdrillhead">
               <div>
-                <div className="mt-eyebrow">{(account.account_type || 'ACCOUNT').toUpperCase()}</div>
+                <div className="mt-eyebrow">
+                  <span
+                    className="pf-acctdot"
+                    style={{ background: account.color || 'var(--mt-accent)' }}
+                  />
+                  {(account.account_type || 'ACCOUNT').toUpperCase()}
+                </div>
                 <div className="mt-h2">{account.account_name}</div>
-                <div style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginTop: 4 }}>
-                  <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{fmt$(Number(account.market_value) || 0, 0)}</b>
-                  {' '}· {acctPositions.length} positions
+                <div className="pf-acctdrillmeta">
+                  <b className="num">{fmt$(Number(account.market_value) || 0, 0)}</b>
+                  {' '}· {acctPositions.length} positions{' '}
+                  {account.ttm != null && (
+                    <>
+                      ·{' '}
+                      <Tip content="Trailing 12 months, time-weighted, before tax.">
+                        <span className={(account.ttm ?? 0) >= 0 ? 'up' : 'down'}>
+                          {fmtPct(account.ttm, 1)} TTM
+                        </span>
+                      </Tip>
+                    </>
+                  )}
                 </div>
               </div>
-              <button type="button" className="mt-btn" onClick={() => setOpenAcct(null)}>✕ Close</button>
+              <button type="button" className="mt-btn" onClick={() => setOpenAcct(null)}>
+                ✕ Close
+              </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
-              <div>
+
+            <div className="pf-acctdrillgrid">
+              <div className="pf-acctcol">
                 <div className="mt-eyebrow">Performance · 12 months</div>
-                <div style={{ color: (account.ttm ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>
-                  <Sparkline
-                    data={fakeSpark(account.account_name + 'big', 100, account.ttm || 0)}
-                    width={520}
-                    height={140}
-                    stroke={(account.ttm ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-                    fill={(account.ttm ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-                    area
+                <Sparkline
+                  data={fakeSpark(account.account_name + 'big', 100, account.ttm || 0)}
+                  width={520}
+                  height={140}
+                  stroke={(account.ttm ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
+                  fill={(account.ttm ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
+                  area
+                />
+                <div className="pf-acctdrillstats">
+                  <span>
+                    <b className="num">{(account.sharpe ?? 0).toFixed(2)}</b> sharpe
+                  </span>
+                  <span>
+                    <b className="num">—</b> beta
+                  </span>
+                  <span>
+                    <b className="num">—</b> max DD
+                  </span>
+                  <FreshnessChip
+                    elementId="portfolio-positions-on_change"
+                    variant="dot"
                   />
                 </div>
-                <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 12, color: 'var(--mt-ink-2)' }}>
-                  <span><b className="num" style={{ color: 'var(--mt-ink-0)' }}>{(account.sharpe ?? 0).toFixed(2)}</b> sharpe</span>
-                  <span><b className="num" style={{ color: 'var(--mt-ink-0)' }}>0.92</b> beta</span>
-                  <span><b className="num" style={{ color: 'var(--mt-down)' }}>−18.4%</b> max DD</span>
-                </div>
               </div>
-              <div>
+              <div className="pf-acctcol">
                 <div className="mt-eyebrow">Positions in this account</div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 6 }}>
+                <table className="pf-mini">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: '6px 0', color: 'var(--mt-ink-2)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Ticker</th>
-                      <th style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Score</th>
-                      <th style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Value</th>
-                      <th style={{ textAlign: 'right', padding: '6px 0', color: 'var(--mt-ink-2)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>P/L</th>
+                      <th>Ticker</th>
+                      <th className="num">Score</th>
+                      <th className="num">Value</th>
+                      <th className="num">P/L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -308,23 +343,20 @@ export default function PortfolioPage() {
                       const pl = mv - cb;
                       const plPct = cb > 0 ? (pl / cb) * 100 : null;
                       return (
-                        <tr key={p.id ?? p.ticker} style={{ borderTop: '1px solid var(--mt-line-0)' }}>
-                          <td style={{ padding: '8px 0' }}>
+                        <tr key={p.id ?? p.ticker}>
+                          <td>
                             <span
-                              style={{ color: 'var(--mt-accent)', cursor: 'pointer', fontWeight: 600 }}
+                              className="lm-tkmain lm-tkmain--link"
                               onClick={() => navigate(`/ticker/${p.ticker}`)}
                             >
                               {p.ticker}
                             </span>
                           </td>
-                          <td className="num" style={{ textAlign: 'right', padding: '8px 8px', fontWeight: 600 }}>
-                            {(p.mt_score ?? 3).toFixed(1)}
+                          <td className="num">
+                            <b>{(p.mt_score ?? 3).toFixed(1)}</b>
                           </td>
-                          <td className="num" style={{ textAlign: 'right', padding: '8px 8px' }}>{fmt$(mv, 0)}</td>
-                          <td
-                            className="num"
-                            style={{ textAlign: 'right', padding: '8px 0', color: pl >= 0 ? 'var(--mt-up)' : 'var(--mt-down)', fontWeight: 600 }}
-                          >
+                          <td className="num">{fmt$(mv, 0)}</td>
+                          <td className={`num ${pl >= 0 ? 'up' : 'down'}`}>
                             {pl > 0 ? '+' : ''}{fmt$(pl, 0)} · {fmtPct(plPct, 1)}
                           </td>
                         </tr>
@@ -334,7 +366,7 @@ export default function PortfolioPage() {
                 </table>
               </div>
             </div>
-          </div>
+          </article>
         )}
       </section>
 
@@ -346,7 +378,11 @@ export default function PortfolioPage() {
             <div className="mt-h2">Where the money lives.</div>
           </div>
           <div className="mt-pillgroup">
-            {[['account', 'By account'], ['sector', 'By sector'], ['class', 'By asset class']].map(([k, l]) => (
+            {[
+              ['account', 'By account'],
+              ['sector', 'By sector'],
+              ['class', 'By asset class'],
+            ].map(([k, l]) => (
               <button
                 key={k}
                 type="button"
@@ -358,7 +394,7 @@ export default function PortfolioPage() {
             ))}
           </div>
         </div>
-        <div className="mt-card" style={{ padding: 18 }}>
+        <article className="mt-card">
           {allocTab === 'account' && (
             <AllocRows
               rows={accountTiles.map((a, i) => ({
@@ -380,16 +416,29 @@ export default function PortfolioPage() {
             />
           )}
           {allocTab === 'class' && (
-            <AllocRows
-              rows={CLASS_ALLOC.map((c) => ({
-                name: c.name,
-                value: (total * c.pct) / 100,
-                pct: c.pct,
-                color: c.color,
-              }))}
-            />
+            byClass && byClass.length ? (
+              <AllocRows
+                rows={byClass.map((c, i) => ({
+                  name: c.name,
+                  value: c.value,
+                  pct: c.pct,
+                  color: PF_COLORS[i % PF_COLORS.length],
+                }))}
+              />
+            ) : (
+              <div className="pf-allocempty">
+                <div>
+                  Asset-class breakdown not wired yet — positions don't carry an
+                  asset-class tag in the portfolio feed.
+                </div>
+                <FreshnessChip
+                  elementId="portfolio-positions-on_change"
+                  variant="label"
+                />
+              </div>
+            )
           )}
-        </div>
+        </article>
       </section>
 
       {/* Positions list — ScanList rows with drill */}
@@ -397,13 +446,13 @@ export default function PortfolioPage() {
         <div className="mt-sectionhead">
           <div>
             <div className="mt-eyebrow">Positions · MacroTilt score</div>
-            <div className="mt-h2">Engine signal on every position — with value, cost &amp; P/L.</div>
+            <div className="mt-h2">
+              Engine signal on every position — with value, cost &amp; P/L.
+            </div>
           </div>
         </div>
         {positions.length === 0 ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            No positions yet.
-          </div>
+          <div className="mt-card mt-loadingcard">No positions yet.</div>
         ) : (
           <ScanList
             rows={positionsAsScanRows}
@@ -418,65 +467,101 @@ export default function PortfolioPage() {
 }
 
 function KeyCell({ label, value, sub, up }) {
+  const upClass = up === true ? 'up' : up === false ? 'down' : '';
   return (
     <div>
       <div className="mt-eyebrow">{label}</div>
-      <div
-        className="num"
-        style={{
-          fontFamily: 'var(--mt-font-display)',
-          fontSize: 24,
-          fontWeight: 500,
-          letterSpacing: '-0.02em',
-          marginTop: 2,
-          lineHeight: 1.0,
-          color: up === true ? 'var(--mt-up)' : up === false ? 'var(--mt-down)' : 'var(--mt-ink-0)',
-        }}
-      >
-        {value}
-      </div>
-      <div className="num" style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 2 }}>{sub}</div>
+      <b className={`pf-keynum num ${upClass}`}>{value}</b>
+      <span className="num pf-keysub">{sub}</span>
     </div>
   );
 }
 
-function PositionDrill({ row }) {
+function PositionDrill({ row, navigate }) {
   const p = row.raw || {};
   const mv = Number(p.market_value) || 0;
   const cb = Number(p.cost_basis) || 0;
   const pl = mv - cb;
   const plPct = cb > 0 ? (pl / cb) * 100 : null;
+
+  /* Derive the narrative from the row's real signal if present.
+     Otherwise drop the synthesized "Engine sees X as a … hold" template. */
+  const signal = (p.signal || p.mt_signal || '').toString().toLowerCase();
+  const verb =
+    signal === 'buy' ? 'a buy candidate' :
+    signal === 'sell' || signal === 'trim' ? 'a trim candidate' :
+    signal === 'hold' ? 'a hold' :
+    null;
+
   return (
-    <div
-      className="mt-fade"
-      style={{ padding: '18px 18px 22px', background: 'var(--mt-surface-2)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}
-    >
-      <div>
+    <div className="lm-drill mt-fade">
+      <div className="lm-drillcol">
         <div className="mt-eyebrow">Signal vs. last review</div>
-        <p style={{ margin: '6px 0 0', fontSize: 13.5, lineHeight: 1.55, color: 'var(--mt-ink-1)', maxWidth: 480 }}>
-          Engine sees <b>{row.ticker}</b> at a <b>{row.score.toFixed(1)}/5</b> score.
-          {' '}Hold without action unless you see degradation on the next refresh.
+        <p className="lm-drillwhy">
+          {verb ? (
+            <>
+              Engine reads <b>{row.ticker}</b> as <b>{verb}</b> at{' '}
+              <b className="num">{row.score.toFixed(1)}/5</b>. See the ticker page for
+              the full signal breakdown.
+            </>
+          ) : (
+            <>
+              Per-position narrative not wired yet — open the ticker page for the
+              full signal breakdown on <b>{row.ticker}</b>.
+            </>
+          )}
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 14 }}>
-          <KeyCell label="Cost basis" value={fmt$(cb, 0)} sub="" />
-          <KeyCell label="Market value" value={fmt$(mv, 0)} sub="" />
-          <KeyCell label="Total P/L" value={`${pl > 0 ? '+' : ''}${fmt$(pl, 0)}`} sub={fmtPct(plPct, 1)} up={pl >= 0} />
+        <div className="pf-drillkv">
+          <div>
+            <div className="mt-eyebrow">Cost basis</div>
+            <b className="pf-keynum num">{fmt$(cb, 0)}</b>
+          </div>
+          <div>
+            <div className="mt-eyebrow">Market value</div>
+            <b className="pf-keynum num">{fmt$(mv, 0)}</b>
+          </div>
+          <div>
+            <div className="mt-eyebrow">Total P/L</div>
+            <b className={`pf-keynum num ${pl >= 0 ? 'up' : 'down'}`}>
+              {pl > 0 ? '+' : ''}{fmt$(pl, 0)}
+            </b>
+            <span className="num pf-keysub">{fmtPct(plPct, 1)}</span>
+          </div>
+        </div>
+        <div className="lm-drillctas">
+          <button
+            type="button"
+            className="mt-btn mt-btn--primary"
+            onClick={() => navigate?.(`/ticker/${row.ticker}`)}
+          >
+            Open ticker detail →
+          </button>
+          <button type="button" className="mt-btn">Set alert</button>
+          <button type="button" className="mt-btn">Adjust position</button>
         </div>
       </div>
-      <div>
-        <div className="mt-eyebrow">Score composition · {row.ticker}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-          {[['Technicals', 0.78], ['Insider', 0.62], ['Options', 0.55], ['Analyst', 0.71]].map(([k, v]) => (
-            <div key={k}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mt-ink-1)' }}>
-                <span>{k}</span>
-                <span className="num">{(v * 5).toFixed(1)}<i style={{ color: 'var(--mt-ink-3)' }}>/5</i></span>
+
+      <div className="lm-drillcol">
+        <div className="lm-drillheadrow">
+          <div className="mt-eyebrow">Score composition · {row.ticker}</div>
+          <FreshnessChip elementId="equity-latest_scan_data-daily" variant="dot" />
+        </div>
+        <div className="lm-drilllayers">
+          {['Technicals', 'Insider', 'Options', 'Analyst'].map((k) => (
+            <div key={k} className="lm-drilllayer">
+              <div className="lm-drilllayertop">
+                <span className="lm-drilllayerk">{k}</span>
+                <span className="num lm-drilllayerv">—<i>/5</i></span>
               </div>
-              <div style={{ height: 6, background: 'var(--mt-surface-3)', borderRadius: 3, marginTop: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${v * 100}%`, height: '100%', background: 'var(--mt-accent)' }} />
+              <div className="lm-drilllayerbar">
+                <b style={{ width: '0%' }} />
               </div>
             </div>
           ))}
+        </div>
+        <div className="pf-drillnote">
+          Component-level score breakdown not wired yet — composite MacroTilt score
+          shown on the row is live.
         </div>
       </div>
     </div>
@@ -484,34 +569,21 @@ function PositionDrill({ row }) {
 }
 
 function AllocRows({ rows }) {
-  if (!rows?.length) return <div style={{ color: 'var(--mt-ink-2)' }}>No data.</div>;
+  if (!rows?.length) {
+    return <div className="pf-allocempty">No data.</div>;
+  }
   const filtered = rows.filter((r) => r.value > 0);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="pf-allocrows">
       {filtered.map((r) => (
-        <div
-          key={r.name}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '14px 1.5fr 3fr 100px 70px',
-            gap: 10,
-            alignItems: 'center',
-            fontSize: 13,
-          }}
-        >
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: r.color }} />
-          <span style={{ color: 'var(--mt-ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {r.name}
+        <div key={r.name} className="pf-allocrow">
+          <span className="pf-alloccolor" style={{ background: r.color }} />
+          <span className="pf-allocname">{r.name}</span>
+          <span className="pf-allocbar">
+            <span style={{ width: `${Math.min(100, r.pct)}%`, background: r.color }} />
           </span>
-          <span style={{ height: 8, background: 'var(--mt-surface-3)', borderRadius: 4, overflow: 'hidden' }}>
-            <span style={{ display: 'block', width: `${Math.min(100, r.pct)}%`, height: '100%', background: r.color, borderRadius: 4 }} />
-          </span>
-          <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-1)', fontSize: 12 }}>
-            {fmt$(r.value, 0)}
-          </span>
-          <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-0)', fontWeight: 600 }}>
-            {r.pct.toFixed(1)}%
-          </span>
+          <span className="num pf-allocval">{fmt$(r.value, 0)}</span>
+          <span className="num pf-allocpct">{r.pct.toFixed(1)}%</span>
         </div>
       ))}
     </div>
