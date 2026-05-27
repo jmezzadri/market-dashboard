@@ -346,6 +346,20 @@
 }
 .mt-overhaul .al-row--push { margin-left: auto; }
 .mt-overhaul .sectionhead-pill { display: flex; align-items: center; gap: 10px; }
+.mt-overhaul .mt-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--mt-ink-0);
+  color: var(--mt-surface);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 100000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.mt-overhaul .mt-spacer-flex { flex: 1; }
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;

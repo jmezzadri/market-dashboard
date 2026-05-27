@@ -1,8 +1,23 @@
-/* Trading Scanner — rebuilt 2026-05-27 to prototype/pages/scanner.jsx.
-   Joe directive: score is 0-5 (backend native scale). Bucket pills are
-   4.5+ / 3.5-4.49 / 3.0-3.49. Score-math drill reconciles to /5.
+/* Trading Scanner — refactored 2026-05-27 per Joe Path-A directive.
 
-   Uses shared ScanList + ScanDrill from src/overhaul/components/. */
+   Changes vs the prior overhaul rebuild:
+   - Bucket cards now use the prototype's .sc-results / .sc-results-head
+     / .sc-buckets / .sc-bucket.sc-bucket--score{7,5,3} classes instead
+     of inline-styled approximations. Score 4.5+ maps to --score7 (green),
+     3.5–4.49 to --score5 (accent), 3.0–3.49 to --score3 (neutral).
+   - Toolbar uses .sc-toolbar.
+   - Column picker uses .sc-colpicker / .sc-colgrid / .sc-coltoggle /
+     .sc-colgrip / .sc-collock.
+   - Score-built cards use .sc-buildgrid / .sc-buildcell / .sc-buildwhy /
+     .sc-buildw.
+   - "Scoring updated" copy uses .sc-note (no more hardcoded date — the
+     date was a catalog violation; rephrased so it doesn't pretend to be
+     a changelog timestamp).
+   - SCORE_WEIGHTS imported from shared lib/scoreWeights.js — no more
+     duplicate with ScanDrill.
+   - "11/14 columns" hardcoded count em-dashed (no live picker state).
+   - Toast positioned via .mt-toast utility class.
+   - Zero inline style props on this page after the refactor. */
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +26,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
 import ScanList from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
+import { SCORE_WEIGHTS } from '../lib/scoreWeights';
 
 function bucketFor(s) {
   if (s >= 4.5) return 'b5';
@@ -18,13 +34,27 @@ function bucketFor(s) {
   return 'b3';
 }
 
-const COMPONENTS = [
-  ['Technicals',  '200d trend, RSI, MACD, ATR',           0.25],
-  ['Insider',     'C-suite buys/sells, 60d ratio',        0.20],
-  ['Analyst',     'Upgrades, raised price targets',       0.20],
-  ['Options vol', 'Calls/puts, IV rank, sweeps',          0.15],
-  ['Congress',    'Senate + House disclosures',           0.10],
-  ['Dark pool',   'Block trades, VWAP anchor',            0.10],
+const BUCKETS = [
+  { key: 'b5', label: 'Score 4.5+',    proto: 'sc-bucket--score7' },
+  { key: 'b4', label: 'Score 3.5–4.49', proto: 'sc-bucket--score5' },
+  { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
+];
+
+const COLUMNS = [
+  ['Last trade',        true,  false],
+  ['Ticker',            true,  true],
+  ['Signal',            true,  false],
+  ['Score',             true,  true],
+  ['Score 1w',          true,  false],
+  ['Score 1m',          true,  false],
+  ['Insider activity',  true,  false],
+  ['Dark pool anchor',  true,  false],
+  ['Options vol shock', false, false],
+  ['Chart',             true,  false],
+  ['Price',             true,  false],
+  ['Change',            true,  false],
+  ['Volume',            true,  false],
+  ['52w range',         true,  false],
 ];
 
 export default function ScannerPage() {
@@ -75,77 +105,34 @@ export default function ScannerPage() {
             Five signals — <b>insider activity</b>, <b>dark-pool prints</b>,{' '}
             <b>options flow</b>, <b>congressional trades</b>, and{' '}
             <b>technicals</b> — rolled into one MacroTilt Score (0–5).
-            Long alerts today{' '}
-            <b className="num">{universeTotal}</b>.{' '}
+            Long alerts today <b className="num">{universeTotal}</b>.{' '}
             <a
               href="#"
               onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}
-              style={{ color: 'var(--mt-accent)' }}
             >
               See the scoring methodology →
             </a>
           </p>
         </div>
-        <div className="mt-card" style={{ minWidth: 340, padding: 18 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}
-          >
-            <div className="mt-eyebrow">Today's scan{scanDate ? ` · ${scanDate}` : ''}</div>
+        <div className="sc-results">
+          <div className="sc-results-head">
+            <div className="mt-eyebrow">
+              Today's scan{scanDate ? ` · ${scanDate}` : ''}
+            </div>
             <FreshnessChip elementId="equity-latest_scan_data-daily" variant="label" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {[
-              ['b5', 'Score 4.5+', 'var(--mt-up)', counts.b5 || 0],
-              ['b4', 'Score 3.5–4.49', 'var(--mt-accent)', counts.b4 || 0],
-              ['b3', 'Score 3.0–3.49', 'var(--mt-warn)', counts.b3 || 0],
-            ].map(([k, label, color, n]) => {
-              const isOn = bucket === k;
+          <div className="sc-buckets">
+            {BUCKETS.map((b) => {
+              const isOn = bucket === b.key;
               return (
                 <button
-                  key={k}
+                  key={b.key}
                   type="button"
-                  onClick={() => setBucket(isOn ? 'all' : k)}
-                  style={{
-                    appearance: 'none',
-                    cursor: 'pointer',
-                    padding: '12px 10px',
-                    textAlign: 'left',
-                    background: isOn ? 'var(--mt-surface-2)' : 'var(--mt-surface)',
-                    border: `1px solid ${isOn ? color : 'var(--mt-line-0)'}`,
-                    borderTop: `3px solid ${color}`,
-                    borderRadius: 10,
-                  }}
+                  className={`sc-bucket ${b.proto} ${isOn ? 'on' : ''}`}
+                  onClick={() => setBucket(isOn ? 'all' : b.key)}
                 >
-                  <div
-                    className="num"
-                    style={{
-                      fontFamily: 'var(--mt-font-display)',
-                      fontSize: 28,
-                      fontWeight: 500,
-                      letterSpacing: '-0.02em',
-                      color: 'var(--mt-ink-0)',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {n}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      color: 'var(--mt-ink-2)',
-                      marginTop: 4,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {label}
-                  </div>
+                  <span className="num">{counts[b.key] || 0}</span>
+                  <span>{b.label}</span>
                 </button>
               );
             })}
@@ -154,107 +141,72 @@ export default function ScannerPage() {
       </section>
 
       {/* Toolbar */}
-      <section className="mt-pagesection" style={{ paddingTop: 8, paddingBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      <section className="mt-pagesection mt-pagesection--tight2">
+        <div className="sc-toolbar">
           <div className="mt-pillgroup">
-            {[
-              ['all', `All ${universeTotal}`],
-              ['b5', `Score 4.5+ ${counts.b5 || 0}`],
-              ['b4', `Score 3.5–4.49 ${counts.b4 || 0}`],
-              ['b3', `Score 3.0–3.49 ${counts.b3 || 0}`],
-            ].map(([k, l]) => (
+            <button
+              type="button"
+              className={`mt-pill ${bucket === 'all' ? 'on' : ''}`}
+              onClick={() => setBucket('all')}
+            >
+              All {universeTotal}
+            </button>
+            {BUCKETS.map((b) => (
               <button
-                key={k}
+                key={b.key}
                 type="button"
-                className={`mt-pill ${bucket === k ? 'on' : ''}`}
-                onClick={() => setBucket(k)}
+                className={`mt-pill ${bucket === b.key ? 'on' : ''}`}
+                onClick={() => setBucket(b.key)}
               >
-                {l}
+                {b.label} {counts[b.key] || 0}
               </button>
             ))}
           </div>
-          <Tip content="Engine doesn't yet output short signals — long-only universe today.">
-            <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>Long signals only</span>
-          </Tip>
-          <span style={{ flex: 1 }} />
+          <span className="sc-shortnote">
+            <Tip content="Engine doesn't yet output short signals — long-only universe today.">
+              Long signals only
+            </Tip>
+          </span>
+          <span className="mt-spacer-flex" />
           <button type="button" className="mt-btn">＋ Filter</button>
-          <button type="button" className="mt-btn" onClick={() => setShowCols(!showCols)}>
-            ⚙ Columns <span className="num" style={{ marginLeft: 4 }}>11/14</span>
+          <button
+            type="button"
+            className="mt-btn"
+            onClick={() => setShowCols(!showCols)}
+          >
+            ⚙ Columns <span className="sc-colcount num">—</span>
           </button>
         </div>
         {showCols && (
-          <div
-            className="mt-card mt-fade"
-            style={{ marginTop: 12, padding: 18 }}
-          >
-            <div className="mt-eyebrow" style={{ marginBottom: 10 }}>Show / hide / reorder columns</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {[
-                ['Last trade', true],
-                ['Ticker', true, true],
-                ['Signal', true],
-                ['Score', true, true],
-                ['Score 1w', true],
-                ['Score 1m', true],
-                ['Insider activity', true],
-                ['Dark pool anchor', true],
-                ['Options vol shock', false],
-                ['Chart', true],
-                ['Price', true],
-                ['Change', true],
-                ['Volume', true],
-                ['52w range', true],
-              ].map(([name, on, locked]) => (
+          <div className="sc-colpicker mt-fade">
+            <div className="mt-eyebrow">Show / hide / reorder columns</div>
+            <div className="sc-colgrid">
+              {COLUMNS.map(([name, on, locked]) => (
                 <label
                   key={name}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '6px 10px',
-                    border: '1px solid var(--mt-line-0)',
-                    borderRadius: 8,
-                    background: on ? 'var(--mt-surface-3)' : 'transparent',
-                    cursor: locked ? 'not-allowed' : 'pointer',
-                    fontSize: 12.5,
-                  }}
+                  className={`sc-coltoggle ${on ? 'on' : ''} ${locked ? 'locked' : ''}`}
                 >
                   <input type="checkbox" checked={on} readOnly />
-                  <span style={{ fontFamily: 'var(--mt-font-mono)', color: 'var(--mt-ink-3)' }}>⋮⋮</span>
+                  <span className="sc-colgrip">⋮⋮</span>
                   <span>{name}</span>
-                  {locked && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
+                  {locked && <span className="sc-collock">🔒</span>}
                 </label>
               ))}
             </div>
           </div>
         )}
-        <div
-          style={{
-            marginTop: 12,
-            padding: '10px 14px',
-            border: '1px solid var(--mt-line-0)',
-            background: 'var(--mt-surface-2)',
-            borderRadius: 8,
-            fontSize: 12.5,
-            color: 'var(--mt-ink-2)',
-            lineHeight: 1.55,
-          }}
-        >
-          <b style={{ color: 'var(--mt-ink-0)' }}>Scoring updated 21 May 2026.</b>{' '}
+        <div className="sc-note">
+          <b>Scoring update.</b>{' '}
           The dark-pool and options layers are now live, raising the score
-          ceiling from 5 to 10. These two layers are not yet backtested —
-          treat them as developing signals. Any Score 1W or Score 1M figure
-          from before this date is marked{' '}
-          <span style={{ color: 'var(--mt-accent)' }}>*</span>.
+          ceiling. These two layers are not yet backtested — treat them as
+          developing signals.
         </div>
       </section>
 
       {/* ScanList */}
-      <section className="mt-pagesection" style={{ paddingTop: 12 }}>
+      <section className="mt-pagesection mt-pagesection--tight2">
         {loading ? (
-          <div className="mt-card" style={{ padding: 36, textAlign: 'center', color: 'var(--mt-ink-2)' }}>
-            Loading scan results…
-          </div>
+          <div className="mt-loadingcard">Loading scan results…</div>
         ) : (
           <ScanList
             rows={filtered}
@@ -263,64 +215,32 @@ export default function ScannerPage() {
             renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
           />
         )}
-        {toast && (
-          <div
-            className="mt-fade"
-            style={{
-              position: 'fixed',
-              bottom: 32,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'var(--mt-ink-0)',
-              color: 'var(--mt-surface)',
-              padding: '10px 16px',
-              borderRadius: 8,
-              fontSize: 13,
-              zIndex: 100000,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            }}
-          >
-            {toast}
-          </div>
-        )}
+        {toast && <div className="mt-toast mt-fade">{toast}</div>}
       </section>
 
       {/* How the score is built */}
-      <section className="mt-pagesection" style={{ paddingTop: 24 }}>
-        <div className="mt-card" style={{ padding: 24 }}>
-          <div className="mt-sectionhead" style={{ marginBottom: 16 }}>
+      <section className="mt-pagesection">
+        <div className="mt-card">
+          <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">How the score is built</div>
               <div className="mt-h2">Six inputs · one number per ticker.</div>
             </div>
-            <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/methodology#scanner')}>
+            <button
+              type="button"
+              className="mt-btn mt-btn--ghost"
+              onClick={() => navigate('/methodology#scanner')}
+            >
               Full methodology →
             </button>
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 14,
-            }}
-          >
-            {COMPONENTS.map(([k, why, weight]) => (
-              <div
-                key={k}
-                style={{
-                  padding: 14,
-                  border: '1px solid var(--mt-line-0)',
-                  borderRadius: 10,
-                  background: 'var(--mt-surface-2)',
-                }}
-              >
-                <div className="mt-eyebrow">{k}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', marginTop: 6, lineHeight: 1.5 }}>{why}</div>
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--mt-ink-2)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-                  weight{' '}
-                  <b className="num" style={{ color: 'var(--mt-ink-0)', fontSize: 13 }}>
-                    {(weight * 100).toFixed(0)}%
-                  </b>
+          <div className="sc-buildgrid">
+            {SCORE_WEIGHTS.map((c) => (
+              <div key={c.key} className="sc-buildcell">
+                <div className="mt-eyebrow">{c.key}</div>
+                <div className="sc-buildwhy">{c.why}</div>
+                <div className="sc-buildw">
+                  weight <b className="num">{(c.weight * 100).toFixed(0)}%</b>
                 </div>
               </div>
             ))}
