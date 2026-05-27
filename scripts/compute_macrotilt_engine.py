@@ -17,9 +17,12 @@ Writes:
                                      attribution — consumed by Macro Overview
                                      page, Asset Tilt page, and the home tile)
 
-Schedule: Friday 15:45 ET (19:45 UTC standard time / 20:45 UTC during DST)
-via .github/workflows/macrotilt-engine-daily.yml. Also runs daily on weekdays
-to keep the as-of stamp current and catch mid-week vol spikes.
+Schedule: Daily 15:45 ET weekdays (19:45 UTC standard time / 20:45 UTC during
+DST) via .github/workflows/macrotilt-engine-daily.yml. Joe directive 2026-05-27:
+engine switched from weekly Friday close to daily close — see the same-date
+patch to to_weekly_friday() and the .shift(13)→.shift(63) edit. The locked
+calibration (1986-2026, Sharpe 0.61, max DD 35.0%) was on weekly data so
+daily-cadence Sharpe/drawdown are untested.
 
 ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
 
@@ -29,7 +32,7 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
                       Z-score-standardized. Not used in live production
                       (live engine only reads trailing 5y, which is well
                       inside the 2002+ actual MOVE window).
-    Rule:             trailing 5-year percentile, weekly Friday close
+    Rule:             trailing 5-year percentile, daily close (2026-05-27)
                         < 75th pctile  -> Risk On     (100% equity)
                        75-85th pctile  -> Watch       (80% equity / 20% defensive)
                         >= 85th pctile -> Risk Off    (50% equity / 50% defensive)
@@ -37,7 +40,7 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
   AXIS 2 — YIELD DIRECTION (selects defensive sleeve when de-risked)
     Source:           10Y Treasury yield (FRED DGS10)
     Computation:      trailing 3-month change in yield (in basis points)
-    Rule:             trailing 5-year percentile of the 3-month change
+    Rule:             trailing 5-year percentile of the 3-month change (daily; 63 bday shift)
                         >= 70th pctile -> Inflationary
                         <= 30th pctile -> Deflationary
                         in between     -> Neutral
@@ -52,7 +55,9 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
     Neutral:        50% cash, 25% GLD, 0% SHY, 25% TLT  (balanced)
 
   REBALANCE
-    Cadence: weekly Friday close, execute following Monday open.
+    Cadence: daily close (changed 2026-05-27), execute following open.
+             Original validated cadence was weekly Friday — daily fires
+             more often and may oversample the noisier distribution.
 """
 from __future__ import annotations
 
@@ -77,7 +82,10 @@ RISK_OFF_PCTILE = 0.85
 INFLATIONARY_PCTILE = 0.70
 DEFLATIONARY_PCTILE = 0.30
 ROLLING_YEARS = 5
-MIN_OBS_WEEKLY = 52  # at least one year of weekly data before producing a read
+MIN_OBS_WEEKLY = 252  # ≥1 year of DAILY observations before producing a read
+                       # (Joe directive 2026-05-27: switched from weekly Friday
+                       # to daily close. Constant name kept for downstream
+                       # JSON field compat; value is now trading days, not weeks.)
 
 ALLOCATION = {
     "Risk On":  {"equity_pct": 100, "defensive_pct": 0},
@@ -138,12 +146,12 @@ def fetch_dgs10_series(api_key: str, since: str = "2018-01-01") -> pd.Series:
 # ── Transforms ───────────────────────────────────────────────────────
 
 def to_weekly_friday(s: pd.Series) -> pd.Series:
-    """Resample a daily series to weekly Friday close. If a Friday is missing
-    (holiday), fall back to the most-recent prior business day."""
-    # forward-fill within the week, then take Friday
-    daily = s.asfreq("B").ffill()
-    weekly = daily.resample("W-FRI").last().dropna()
-    return weekly
+    """DAILY-close series (Joe directive 2026-05-27: engine switched from
+    weekly Friday to daily close — see top-of-file comment). Function name
+    kept to minimize the diff against the previous engine; what it actually
+    returns now is the business-day-frequency forward-filled daily series.
+    """
+    return s.asfreq("B").ffill().dropna()
 
 
 def trailing_pctile(weekly: pd.Series, asof: pd.Timestamp,
@@ -186,12 +194,20 @@ def classify_yield_regime(delta_pctile: float) -> str:
     return "Neutral"
 
 
+def next_business_day_after(d: dt.date) -> dt.date:
+    """Next business day strictly after `d`. Skips weekends. Does NOT skip
+    US holidays — those just produce a forward-filled value in the daily
+    series, so an extra day in next_refresh is harmless."""
+    nd = d + dt.timedelta(days=1)
+    while nd.weekday() >= 5:
+        nd += dt.timedelta(days=1)
+    return nd
+
+
 def next_friday_after(d: dt.date) -> dt.date:
-    """Next Friday strictly after `d`. If d is a Friday, returns d+7."""
-    days_ahead = (4 - d.weekday()) % 7
-    if days_ahead == 0:
-        days_ahead = 7
-    return d + dt.timedelta(days=days_ahead)
+    """DEPRECATED 2026-05-27 (kept as a thin alias to avoid breaking the
+    `compute_engine()` call site below). Returns next_business_day_after(d)."""
+    return next_business_day_after(d)
 
 
 def compute_engine() -> dict:
@@ -204,8 +220,9 @@ def compute_engine() -> dict:
     # Pull enough history for a 5y + 3-month rolling window with comfortable buffer
     dgs10_daily = fetch_dgs10_series(api_key, since="2018-01-01")
     dgs10_weekly = to_weekly_friday(dgs10_daily)
-    # 3-month change in yield = current minus value 13 weeks ago, in bp (yield is in pct)
-    delta_y_3m = (dgs10_weekly - dgs10_weekly.shift(13)) * 100.0  # pct -> bp
+    # 3-month change in yield = current minus value ~3 months (63 business
+    # days) ago, in bp (yield is in pct). 63 = 252 * 3/12.
+    delta_y_3m = (dgs10_weekly - dgs10_weekly.shift(63)) * 100.0  # pct -> bp
     delta_y_3m = delta_y_3m.dropna()
 
     # ── Live (daily) ΔY-3M — display headline only ───────────────────────
@@ -229,14 +246,13 @@ def compute_engine() -> dict:
             delta_y_3m_live_bp = round((live_yield - anchor_yield) * 100.0, 1)
             live_as_of_iso = live_date.date().isoformat()
 
-    # Determine the most-recent COMPLETED Friday common to both series.
-    # We deliberately exclude the in-progress current week so a mid-week run
-    # reports the same regime that the prior Friday's production run did.
+    # Determine the most-recent COMPLETED close common to both series
+    # (changed 2026-05-27: previously weekly Friday — now daily).
     today = pd.Timestamp(dt.date.today())
     common_idx = move_weekly.index.intersection(delta_y_3m.index)
     common_idx = common_idx[common_idx <= today]
     if len(common_idx) == 0:
-        raise RuntimeError("No completed Friday close common to MOVE and DGS10 ΔY-3M")
+        raise RuntimeError("No completed daily close common to MOVE and DGS10 ΔY-3M")
     asof = common_idx.max()
 
     # Percentile reads
