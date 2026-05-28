@@ -273,22 +273,57 @@ export default function MethodologyPage() {
           <div className="me-num">06</div>
           <div>
             <div className="mt-eyebrow">Data freshness contract</div>
-            <h2 className="me-h2">Why every value has a chip</h2>
+            <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
             <p className="me-body-p">
-              Every value, chart, gauge and table on MacroTilt renders a <b>freshness chip</b> — green if
-              the underlying data is within SLA, red if stale. Aggregates roll up automatically: a single
-              stale dependency flips the parent chip red and the tooltip names the culprit. No surface
-              ever renders a hard-coded freshness string.
+              Every value, chart, gauge and table on MacroTilt sits next to a <b>freshness chip</b>. Green
+              means the data behind it is current; red means it's past its expected refresh window.
+              When a section depends on multiple inputs, the chip rolls up — if any single input is
+              stale, the section's chip turns red and the tooltip says which input is the problem.
             </p>
-            <div className="me-formula">
-              chip(element) = green if last_good_at(element) within SLA(element) ∧ all_deps_green<br />
-              chip(element) = red   otherwise<br />
-              tooltip(red)  = "Data is stale — last updated {`{ts}`} ({`{age}`} past due) · {`{root cause}`}"
-            </div>
             <p className="me-body-p">
-              SLAs and the manifest of every element are stored in <code>data_manifest.json</code>; live
-              status is tracked in <code>pipeline_health</code>. The chip component reads both via{' '}
-              <code>useFreshness(elementId)</code>.
+              The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full
+              overnight price batch lands (the batch finishes between 2 AM and 8 AM ET the next morning,
+              not same-day). Four jobs run in sequence:
+            </p>
+            <table className="me-vendors">
+              <thead>
+                <tr>
+                  <th>When (ET)</th>
+                  <th>Job</th>
+                  <th>What it does</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>8:00 AM</td>
+                  <td>Massive</td>
+                  <td>Pulls Polygon's full overnight price batch (~12,200 tickers).</td>
+                </tr>
+                <tr>
+                  <td>8:15 AM</td>
+                  <td>Asset Tilt</td>
+                  <td>Recalculates the recommended allocation from today's indicators.</td>
+                </tr>
+                <tr>
+                  <td>8:30 AM</td>
+                  <td>Trading Ops scanner</td>
+                  <td>Scans the universe on last night's close, writes the signal table.</td>
+                </tr>
+                <tr>
+                  <td>9:00 AM</td>
+                  <td>Paper Portfolio queue</td>
+                  <td>Queues rebalance trades into Alpaca for the 9:30 open.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="me-body-p">
+              Each job is safe to re-run, and backup runs fire if any one job misses its window. Same-day
+              evening runs of Massive are kept as best-effort scraps so dashboard tiles can show a rough
+              close intra-evening — the canonical "data is complete" run is the 8 AM morning one.
+            </p>
+            <p className="me-body-p">
+              For per-feed freshness across all sources at any time, the <b>Admin · Data → Data Health</b>{' '}
+              page shows every feed, when it last refreshed, and what's on its dependency chain.
             </p>
           </div>
         </article>

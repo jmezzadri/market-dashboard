@@ -1386,3 +1386,128 @@ Three rules around this pattern: (1) helper functions like `safe_fred` / `safe_y
 The 2026-05-27 migration added a `safe_treasury(kind, tenor)` helper in both `fetch_history.py` and `fetch_indicators.py` that pulls Treasury.gov's daily-yield-curve CSV (kind=`nominal`) and daily-TIPS-curve CSV (kind=`tips`), then swapped FRED `T10Y2Y`, `DFII10`, and `T10YIE` call sites for the computed-from-Treasury equivalents. Source labels updated in `data_manifest.json`, `MacroOverviewPage.jsx`, `MethodologyPage.jsx`, `dataRegistry.js`, `indicatorRegistry.js`, `feedLineage.js`, `useDataHealth.js`, `data_vendors.md`, and the footer SOURCES line on `App.jsx` and `Dashboard.jsx`. Pipeline_health vendor rows updated via Supabase Management API in the same PR.
 
 **Applies to:** Data Steward (lead) + Senior Quant. Any new daily macro / rates indicator requires a "who's the upstream publisher?" check before the source is locked.
+
+---
+
+## 2026-05-27 — Build the full impact map BEFORE merging anything that touches the site
+
+**What happened:** Joe spent a full evening watching me chase the same bug
+across the site one surface at a time. Each fix I shipped was technically
+correct but only patched the symptom on one page; the underlying change
+(Treasury.gov migration, workflow re-sequence, chip rendering) had
+downstream effects on the manifest, the methodology page, the admin
+landing, the admin data-health view, the freshness chips, the
+pipeline_health table, the changelog, the data-vendor ledger, the
+indicator registry, the feed-lineage strings, the footer source line,
+the data-registry, and the useDataHealth vendor rules. I kept finding
+each one only after Joe pointed at the screen and said "this is wrong
+too." Two-line summary from Joe: "It's impossible to keep the site
+updated and clean. It really is."
+
+The previous rule "open the file before proposing a teardown" is not
+strong enough. A grep for the vendor name catches the obvious call sites
+but misses the derived surfaces — narrative paragraphs, tooltip strings,
+source labels, changelogs, vendor scorecards, freshness chips with
+encoded element IDs. Those are real consumers of the change and they go
+stale silently.
+
+**What you should do instead:** Before touching ANYTHING that affects
+the site, build a written impact map. Not from memory. Not from a
+single grep. From an actual walk of the data model and every page that
+renders it. The map goes in the PR description and is part of the
+specialist sign-off — no sign-off without the map.
+
+**The map has six required tracks. Every one is filled in before merge.**
+
+1. **Data model.** What table, file, or producer is changing? List every
+   row, column, JSON key, manifest entry, pipeline_health row, and
+   Supabase row that holds this value. Use schema introspection
+   (`information_schema.columns`, `select * limit 1`) — not memory.
+
+2. **Producers.** Which scripts / workflows / Edge Functions write the
+   thing? List every one, including same-day backup runs and chained
+   `workflow_run` triggers. For a schedule change, every cron expression
+   in every YAML in `.github/workflows/`.
+
+3. **Consumers.** Every page, component, hook, derived file, and admin
+   surface that READS the thing. Walk the import graph:
+   `src/**/*.jsx`, `src/**/*.js`, `public/*.json`, `scripts/*.py`,
+   `paper_portfolio/*.py`, `asset_allocation/**/*.py`, plus the legacy
+   `Dashboard.jsx`, `App.jsx`. A consumer that renders a stale label is
+   still broken even if its query still works.
+
+4. **Surfaces.** Every place a human sees this value on the live site.
+   For each one, name the exact section / heading / tooltip / chip /
+   footer line / changelog entry. Hit at minimum: the page itself, its
+   methodology section, the data-vendor table, the admin data-health
+   scorecard, the admin landing if it has a tile, the footer source
+   line, the file-lineage drawer, and any tooltip that names the
+   vendor.
+
+5. **Knowledge / docs.** `data_manifest.json`, `data_vendors.md`,
+   `methodology_changelog.json`, `dataRegistry.js`, `indicatorRegistry.js`,
+   `feedLineage.js`, `useDataHealth.js` vendor rules, `LESSONS.md`,
+   `CLAUDE.md` or `README` if relevant. Any narrative copy that names
+   the vendor or the cadence.
+
+6. **Live verification plan.** The list of URLs to load post-deploy and
+   what to check on each — value rendered, chip color, freshness time,
+   tooltip wording, source label. Include the changelog page and the
+   admin data-health view explicitly.
+
+**Procedure for building the map (Lead Developer leads, all specialists consult):**
+
+a. Open Supabase and read the actual table schema for any
+   pipeline_health / manifest / producer row this change touches.
+
+b. `grep -rln` for the vendor name, the table name, the column name,
+   the element ID, AND any human-readable label that names them (e.g.
+   "FRED", "Treasury.gov", "DFII10", "10Y TIPS", "yield curve", "T+1",
+   "same-day"). One grep is not enough — vendor labels show up under
+   many phrasings.
+
+c. Walk the React component import graph from each consumer up to the
+   page that mounts it. A change to a hook propagates to every consumer
+   of that hook; list them all.
+
+d. For schedule changes: list every cron in every YAML, then list every
+   `workflow_run` trigger that fires off this workflow's completion,
+   then list every consumer surface that reads the output. Schedule
+   changes have multi-hop downstream effects.
+
+e. Write the six-track map into the PR description before requesting
+   sign-off. The Lead Developer template is:
+
+   ```
+   ## Impact map (per LESSONS 2026-05-27 — full impact mapping rule)
+
+   1. Data model: ...
+   2. Producers: ...
+   3. Consumers: ...
+   4. Surfaces (every human-visible place this value appears): ...
+   5. Knowledge / docs to update: ...
+   6. Live verification plan (URL → what to check): ...
+   ```
+
+f. Specialist sign-off (UX Designer for surfaces, Senior Quant for
+   math, Data Steward for the manifest, Lead Developer for code) does
+   NOT happen without the map. A "looks good" without a map is not a
+   sign-off.
+
+g. After merge: actually load every URL in section 6 in Chrome via the
+   MCP, take screenshots, attach them to the PR or post-merge comment.
+   This is the binding part of the existing "always view the rendered
+   page" rule — the impact map tells you which pages to load.
+
+**What this rule explicitly forbids:**
+- Shipping a vendor swap, schedule change, or schema change without an
+  impact map in the PR description.
+- Calling a change "done" or "verified" after fixing only the surface
+  the user pointed at.
+- Relying on memory or a single grep for the consumer list.
+- Specialist sign-off on a PR whose impact map is missing or shorter
+  than the actual surface count.
+
+**Applies to:** All four specialists. The Lead Developer owns building
+the map; every other specialist owns checking their domain on it
+before signing off.
