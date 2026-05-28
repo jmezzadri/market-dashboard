@@ -21,7 +21,16 @@
    the page-level fade-in + horizontal padding match the rest of the
    shell. The legacy components use their own <main> wrapper; that's OK
    inside the overhaul shell because the outer <main className="mt-main">
-   is the chrome container, not a content slot. */
+   is the chrome container, not a content slot.
+
+   2026-05-27 follow-up (Joe pushed back: dark theme was broken): legacy
+   AdminBugs/AdminDataHealth read --text/--surface/--border tokens that
+   only flip on [data-theme="dark"], while the overhaul flips on
+   [data-mt-theme="dark"]. Result: dark chrome with bright white legacy
+   panels in the middle. Added legacy-bridge.css to re-map the legacy
+   tokens to the dark palette whenever the overhaul shell is in dark or
+   navy mode (and pin them to LIGHT in light mode so the OS dark-mode
+   media query in theme.css can't sneak through). */
 
 import React from 'react';
 import {
@@ -42,6 +51,10 @@ import './styles/pages.css';
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
+
+// Legacy-token bridge — must load AFTER tokens.css and theme.css so it
+// wins specificity for embedded legacy components (AdminBugs etc.).
+import './styles/legacy-bridge.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
