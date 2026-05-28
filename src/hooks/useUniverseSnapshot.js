@@ -9,10 +9,25 @@
 //
 // `public.universe_snapshots` is a separate table populated 3x/weekday (10:00 /
 // 13:00 / 15:45 ET) from the same UW /api/screener/stocks endpoint, covering
-// every equity ≥ $1B mcap. This hook reads the latest snapshot, returns an
-// overlay that merges its fields into scanData.signals.screener and .info so
-// every surface that reads from scanData — Watchlist, Positions, Ticker Detail,
+// every equity ≥ $1B mcap. This hook reads the freshest available row PER
+// TICKER and returns an overlay that merges those fields into scanData so every
+// surface that reads from scanData — Watchlist, Positions, Ticker Detail,
 // Scanner tabs — automatically picks up the fresher values.
+//
+// Latest-per-ticker (2026-05-27 fix)
+// ----------------------------------
+// Earlier versions of this hook found the most recent `snapshot_ts` and then
+// SELECTED only rows at that exact timestamp. The UW screener has flickering
+// universe membership — a small/illiquid ticker that was in the noon batch can
+// drop out of the 3:45 batch, then re-appear in the next morning. Reading only
+// the most recent batch left those tickers blank on every UI surface even
+// though their last good snapshot was just a few hours old.
+//
+// We now pull the last ~48 hours of snapshots (every batch over that window)
+// and dedupe client-side keeping the most recent row per ticker. ~6 batches
+// × ~2,500 rows ≈ 15K rows, well within the PostgREST payload limits we already
+// paginate around. Any ticker that hasn't snapshotted in 48 hours falls out —
+// that's intentional (genuinely stale data shouldn't silently render).
 //
 // Merge order (set in App.jsx / Scanner.jsx)
 // ------------------------------------------
@@ -37,9 +52,9 @@
 // Shape returned
 // --------------
 //   {
-//     rows       : Array<row>               // raw universe rows at latest ts
-//     byTicker   : Map<ticker, row>
-//     snapshotTs : ISO string | null        // time of latest snapshot
+//     rows       : Array<row>               // dedupe-latest rows
+//     byTicker   : Map<ticker, row>         // dedupe-latest per ticker
+//     snapshotTs : ISO string | null        // time of the most recent batch
 //     loading    : boolean
 //     error      : Error | null
 //     mergeInto  : (scanData) => scanData   // pass-through when byTicker empty
@@ -50,9 +65,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../auth/useSession";
 
-// Fields we SELECT from universe_snapshots. Kept narrow on purpose — we don't
-// need the full 70-column row shape for the overlay. If a new field becomes
-// load-bearing for the UI, add it here AND to SCREENER_OVERLAY_FIELDS below.
+// Fields we SELECT from universe_snapshots.
 const SELECT_COLUMNS = [
   "ticker",
   "snapshot_ts",
@@ -65,7 +78,7 @@ const SELECT_COLUMNS = [
   "week_52_high", "week_52_low",
   // IV / volatility
   "iv30d", "iv_rank", "realized_volatility",
-  // implied moves (next expiry + 7/30 tenors)
+  // implied moves
   "implied_move", "implied_move_perc",
   "implied_move_7", "implied_move_perc_7",
   "implied_move_30", "implied_move_perc_30",
@@ -82,8 +95,6 @@ const SELECT_COLUMNS = [
   "next_earnings_date", "er_time", "next_dividend_date",
 ].join(",");
 
-// Fields overlaid onto scanData.signals.screener[T]. Everything in SELECT_COLUMNS
-// that the existing components read from `sc.*` lives here.
 const SCREENER_OVERLAY_FIELDS = [
   "full_name", "sector",
   "close", "prev_close", "perc_change", "high", "low",
@@ -102,13 +113,14 @@ const SCREENER_OVERLAY_FIELDS = [
   "next_earnings_date", "er_time", "next_dividend_date",
 ];
 
-// Fields overlaid onto scanData.signals.info[T]. Narrower than screener —
-// components that read info first for these specific fields (PositionsTable's
-// nextEarnings, WatchlistTable's marketcap fallback) need them there.
 const INFO_OVERLAY_FIELDS = [
   "marketcap", "sector", "full_name", "issue_type",
   "next_earnings_date", "next_dividend_date",
 ];
+
+// How far back to look for the dedupe-latest window. 48h covers a Friday-close
+// → Monday-morning gap plus the normal 3x/day batch cadence.
+const LOOKBACK_HOURS = 48;
 
 export function useUniverseSnapshot() {
   const { session, loading: sessionLoading } = useSession();
@@ -126,8 +138,6 @@ export function useUniverseSnapshot() {
   }, []);
 
   useEffect(() => {
-    // Unauthenticated — no fetch. RLS would return 0 rows anyway; skipping the
-    // round-trip keeps the initial render clean for signed-out visitors.
     if (!userId) {
       setRows([]);
       setSnapshotTs(null);
@@ -142,45 +152,41 @@ export function useUniverseSnapshot() {
 
     (async () => {
       try {
-        // 1) Find the latest snapshot_ts. Using `order desc limit 1` against
-        //    the (snapshot_ts desc) index is a single index lookup — cheap.
-        const latestRes = await supabase
-          .from("universe_snapshots")
-          .select("snapshot_ts")
-          .order("snapshot_ts", { ascending: false })
-          .limit(1);
-        if (cancelled) return;
-        if (latestRes.error) throw latestRes.error;
-        const latestTs = latestRes.data?.[0]?.snapshot_ts || null;
-        if (!latestTs) {
-          // Table empty — treat as no-op (shouldn't happen in prod; could in
-          // local dev before the first run).
-          setRows([]);
-          setSnapshotTs(null);
-          setLoading(false);
-          return;
-        }
-
-        // 2) Pull every row at that snapshot_ts. ~1,700 rows × ~35 columns;
-        //    payload is well under 1 MB compressed. Supabase's default 1000-row
-        //    PostgREST cap requires an explicit `range` — we paginate to be
-        //    safe.
+        // Pull every snapshot within the lookback window, newest first. Paginate
+        // around PostgREST's 1000-row cap. We dedupe client-side: the first
+        // time we see a ticker in newest-first order is its freshest row.
+        const sinceIso = new Date(Date.now() - LOOKBACK_HOURS * 3600 * 1000).toISOString();
         const PAGE = 1000;
-        let all = [];
-        for (let from = 0; from < 10000; from += PAGE) {
+        const seen = new Set();
+        const latestPerTicker = [];
+        let latestTs = null;
+
+        for (let from = 0; from < 50000; from += PAGE) {
           const { data, error: qErr } = await supabase
             .from("universe_snapshots")
             .select(SELECT_COLUMNS)
-            .eq("snapshot_ts", latestTs)
+            .gte("snapshot_ts", sinceIso)
+            .order("snapshot_ts", { ascending: false })
             .range(from, from + PAGE - 1);
           if (cancelled) return;
           if (qErr) throw qErr;
           if (!data || data.length === 0) break;
-          all = all.concat(data);
+
+          for (const r of data) {
+            if (!r?.ticker) continue;
+            const T = String(r.ticker).toUpperCase();
+            if (seen.has(T)) continue; // newest-first → first sighting wins
+            seen.add(T);
+            latestPerTicker.push(r);
+            if (!latestTs || (r.snapshot_ts && r.snapshot_ts > latestTs)) {
+              latestTs = r.snapshot_ts;
+            }
+          }
+
           if (data.length < PAGE) break;
         }
 
-        setRows(all);
+        setRows(latestPerTicker);
         setSnapshotTs(latestTs);
         setLoading(false);
       } catch (err) {
@@ -212,7 +218,6 @@ export function useUniverseSnapshot() {
     const nextInfo     = { ...(prev.info     || {}) };
 
     for (const [T, row] of byTicker) {
-      // Screener overlay — universe values win field-by-field where non-null.
       const existingSc = nextScreener[T] || {};
       const overlayedSc = { ...existingSc };
       let scChanged = false;
@@ -225,7 +230,6 @@ export function useUniverseSnapshot() {
       }
       if (scChanged) nextScreener[T] = overlayedSc;
 
-      // Info overlay — narrower set of fields.
       const existingInf = nextInfo[T] || {};
       const overlayedInf = { ...existingInf };
       let infChanged = false;
@@ -246,9 +250,6 @@ export function useUniverseSnapshot() {
         screener: nextScreener,
         info:     nextInfo,
       },
-      // Expose the universe snapshot timestamp to downstream UI that wants to
-      // render a "Prices: 3x/day · Updated HH:MM ET" indicator. Orthogonal to
-      // scanData.date_label (which is the public artifact's build time).
       universe_snapshot_ts: snapshotTs,
     };
   }, [byTicker, snapshotTs]);
