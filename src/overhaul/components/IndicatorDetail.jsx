@@ -63,6 +63,22 @@ export default function IndicatorDetail({ ind, onClose }) {
         ? 'var(--mt-warn)'
         : 'var(--mt-up)';
 
+  // Plain-English note on how the displayed series relates to the raw vendor
+  // feed, read from the manifest's sourcing_mode. "STP" = straight-through
+  // from the vendor (no note needed). Everything else means MacroTilt builds
+  // the series, so we say how.
+  const sourcingNote = (() => {
+    const mode = String(ind.sourcingMode || '').toLowerCase();
+    if (!mode || mode === 'stp') return null;
+    if (mode.includes('curated')) return 'curated by MacroTilt';
+    if (mode.includes('anchor')) return 'vendor feed, history anchored in-house by MacroTilt';
+    if (mode.includes('computed') || mode.includes('derived')) {
+      return 'computed in-house by MacroTilt from the raw source';
+    }
+    if (mode === 'tbd') return null;
+    return null;
+  })();
+
   return (
     <div
       className="mt-card mt-fade ind-detail"
@@ -100,7 +116,11 @@ export default function IndicatorDetail({ ind, onClose }) {
             </span>
           </div>
           <div style={{ marginTop: 6 }}>
-            <FreshnessChip elementId={ind.id} variant="label" />
+            <FreshnessChip
+              elementId={ind.manifestId || ind.id}
+              fallback={{ asOfIso: ind.asOf }}
+              variant="label"
+            />
           </div>
         </div>
       </header>
@@ -129,6 +149,7 @@ export default function IndicatorDetail({ ind, onClose }) {
         points={sliced}
         accent={accent}
         height={260}
+        freq={ind.freq}
         yFormat={(v) => fmtNum(v, ind.decimals ?? 2)}
       />
 
@@ -176,22 +197,14 @@ export default function IndicatorDetail({ ind, onClose }) {
         ))}
       </div>
 
-      {/* Narrative + description */}
-      {ind.narrative && (
-        <p
-          style={{
-            marginTop: 18,
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: 'var(--mt-ink-1)',
-            background: 'var(--mt-surface-3)',
-            padding: '10px 14px',
-            borderRadius: 8,
-          }}
-        >
-          {ind.narrative}
-        </p>
-      )}
+      {/* Methodology / how-it's-measured. The per-indicator "what's happening
+          now" narrative was removed 2026-05-28 (Joe directive): it was
+          hand-written prose referencing specific levels and dates
+          ("-109bps in 2023", "down from 23.9 a month ago") that silently
+          went stale the moment the market moved. Anything shown here must be
+          sourced live, never typed in. The methodology description below is
+          static reference copy (formula, source, thresholds) — that does not
+          go stale and stays. */}
       {ind.description && (
         <details style={{ marginTop: 12 }}>
           <summary
@@ -219,11 +232,18 @@ export default function IndicatorDetail({ ind, onClose }) {
         </details>
       )}
 
-      {/* Source line */}
+      {/* Source line — names the raw vendor AND, when MacroTilt builds the
+          indicator itself rather than reading it straight from the vendor,
+          says so explicitly. Joe directive 2026-05-28: if we source raw data
+          from somewhere but derive the indicator in-house, that must be on the
+          screen so nobody mistakes a computed series for a vendor feed. */}
       {ind.sourceVendor && (
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--mt-ink-2)' }}>
           Source: <b style={{ color: 'var(--mt-ink-1)' }}>{ind.sourceVendor}</b>
           {ind.sourceEndpoint ? ` · ${ind.sourceEndpoint}` : ''}
+          {sourcingNote && (
+            <span style={{ color: 'var(--mt-ink-1)' }}> · {sourcingNote}</span>
+          )}
         </div>
       )}
 

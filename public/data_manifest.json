@@ -11,7 +11,7 @@
     "repo": "https://github.com/jmezzadri/market-dashboard",
     "supabase_project_ref": "yqaqqzseepebrocgibcw",
     "production_url": "https://www.macrotilt.com",
-    "phase": "1 \u2014 INVENTORY ONLY (no code changes; review and sign off before Phase 2)",
+    "phase": "1 — INVENTORY ONLY (no code changes; review and sign off before Phase 2)",
     "naming_convention": "<category>-<element>-<cadence>",
     "categories": [
       "market",
@@ -44,9 +44,9 @@
       "Added release_calendar (nyse-trading-day | us-business-day | wall-clock) per element.",
       "Added dependencies array (upstream element IDs) per element; non-empty for derived/composite/scenario rollups.",
       "Recalibrated freshness_sla_hours per Joe sign-off 2026-05-01: daily=25, weekly=192, monthly=816, quarterly=2496.",
-      "Registered 2 previously-uninventoried derived elements (cfnai_3ma, m2_yoy) \u2014 gap surfaced during dep mapping.",
-      "2026-05-03: Daily SLA recalibrated 25h\u219249h to absorb FRED T+1 publish lag plus weekend rollover. Joe directive 2026-05-03: 'I only want to know when something breaks. No reds on weekends/holidays for legit-cadence elements.'",
-      "2026-05-03 (b): Monthly SLA 816h\u21921200h, Quarterly SLA 2496h\u21923600h, term_premium reclassified daily\u2192weekly. Reason: FRED publishes monthlies ~3-4 weeks after period end and quarterlies up to 10 weeks after; previous SLAs flipped chips red while FRED was operating on its normal schedule."
+      "Registered 2 previously-uninventoried derived elements (cfnai_3ma, m2_yoy) — gap surfaced during dep mapping.",
+      "2026-05-03: Daily SLA recalibrated 25h→49h to absorb FRED T+1 publish lag plus weekend rollover. Joe directive 2026-05-03: 'I only want to know when something breaks. No reds on weekends/holidays for legit-cadence elements.'",
+      "2026-05-03 (b): Monthly SLA 816h→1200h, Quarterly SLA 2496h→3600h, term_premium reclassified daily→weekly. Reason: FRED publishes monthlies ~3-4 weeks after period end and quarterlies up to 10 weeks after; previous SLAs flipped chips red while FRED was operating on its normal schedule."
     ],
     "phase4_v11_inventory_pr2a_2026_05_01": {
       "placeholder_indicators_registered": 12,
@@ -63,14 +63,14 @@
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     },
     "last_updated": "2026-05-27",
-    "last_change": "2026-05-27 \u2014 renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run."
+    "last_change": "2026-05-27 — renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run."
   },
   "elements": [
     {
       "id": "indicator-vix-daily",
       "category": "indicator",
       "name": "vix",
-      "description": "CBOE VIX index \u2014 30-day implied volatility on the S&P 500 (the 'fear gauge').",
+      "description": "CBOE VIX index — 30-day implied volatility on the S&P 500 (the 'fear gauge').",
       "sourcing_mode": "STP",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance ^VIX",
@@ -97,11 +97,11 @@
         },
         {
           "tab": "readme",
-          "tile": "Methodology \u2014 indicator table"
+          "tile": "Methodology — indicator table"
         }
       ],
       "current_status": "live",
-      "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'; no auto-bug.",
+      "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "nyse-trading-day",
       "dependencies": []
@@ -110,10 +110,10 @@
       "id": "indicator-hy_ig-daily",
       "category": "indicator",
       "name": "hy_ig",
-      "description": "ICE BofA HY OAS spread (bps) \u2014 credit spread compression vs Treasuries.",
+      "description": "ICE BofA HY OAS spread (bps) — credit spread compression vs Treasuries.",
       "sourcing_mode": "STP+anchor",
       "source_vendor": "FRED",
-      "source_endpoint": "FRED BAMLH0A0HYM2 (\u00d7100); pre-2023 in-script anchor _hy_ig_pre2023_anchor",
+      "source_endpoint": "FRED BAMLH0A0HYM2 (×100); pre-2023 in-script anchor _hy_ig_pre2023_anchor",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -137,7 +137,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Credit mechanism modal \u2014 indicator row (as 'HY OAS' on screen \u2014 naming clash with manifest 'hy_ig'; tracked for cleanup)"
+          "tile": "v11 Credit mechanism modal — indicator row (as 'HY OAS' on screen — naming clash with manifest 'hy_ig'; tracked for cleanup)"
         }
       ],
       "current_status": "live",
@@ -150,7 +150,7 @@
       "id": "indicator-eq_cr_corr-daily",
       "category": "indicator",
       "name": "eq_cr_corr",
-      "description": "63-day rolling Pearson correlation of SPY vs HYG daily returns \u2014 equity/credit decoupling signal.",
+      "description": "63-day rolling Pearson correlation of SPY vs HYG daily returns — equity/credit decoupling signal.",
       "sourcing_mode": "computed",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance SPY + HYG daily closes",
@@ -186,10 +186,10 @@
       "id": "indicator-yield_curve-daily",
       "category": "indicator",
       "name": "yield_curve",
-      "description": "10Y-2Y Treasury slope (bps) \u2014 recession early-warning gauge.",
+      "description": "10Y-2Y Treasury slope (bps) — recession early-warning gauge.",
       "sourcing_mode": "STP",
       "source_vendor": "Treasury.gov",
-      "source_endpoint": "Treasury.gov daily yield curve (10Y minus 2Y, \u00d7100 \u2192 bps)",
+      "source_endpoint": "Treasury.gov daily yield curve (10Y minus 2Y, ×100 → bps)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -222,7 +222,7 @@
       "id": "indicator-move-daily",
       "category": "indicator",
       "name": "move",
-      "description": "ICE BofA MOVE swaption-vol index \u2014 implied volatility of US Treasury options.",
+      "description": "ICE BofA MOVE swaption-vol index — implied volatility of US Treasury options.",
       "sourcing_mode": "STP+anchor",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance ^MOVE; fallback _move_fallback_monthly",
@@ -258,7 +258,7 @@
       "id": "indicator-real_rates-daily",
       "category": "indicator",
       "name": "real_rates",
-      "description": "10-year TIPS real yield (%) \u2014 risk-free real rate.",
+      "description": "10-year TIPS real yield (%) — risk-free real rate.",
       "sourcing_mode": "STP",
       "source_vendor": "Treasury.gov",
       "source_endpoint": "Treasury.gov daily TIPS yield curve (10Y)",
@@ -326,7 +326,7 @@
       "id": "indicator-copper_gold-daily",
       "category": "indicator",
       "name": "copper_gold",
-      "description": "(Copper \u00d7 100) / Gold ratio \u2014 cyclical vs safe-haven commodity demand.",
+      "description": "(Copper × 100) / Gold ratio — cyclical vs safe-haven commodity demand.",
       "sourcing_mode": "computed",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance HG=F + GC=F",
@@ -362,7 +362,7 @@
       "id": "indicator-bkx_spx-daily",
       "category": "indicator",
       "name": "bkx_spx",
-      "description": "KBE/SPY ratio \u2014 bank-stock relative strength vs broad market.",
+      "description": "KBE/SPY ratio — bank-stock relative strength vs broad market.",
       "sourcing_mode": "computed",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance KBE + SPY",
@@ -389,7 +389,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 indicator row"
+          "tile": "v11 Growth mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
@@ -402,10 +402,10 @@
       "id": "indicator-usd-daily",
       "category": "indicator",
       "name": "usd",
-      "description": "Trade-weighted US Dollar broad index \u2014 global USD strength.",
+      "description": "Trade-weighted US Dollar broad index — global USD strength.",
       "sourcing_mode": "STP",
       "source_vendor": "Yahoo Finance (DX-Y.NYB ICE US Dollar Index)",
-      "source_endpoint": "yfinance DX-Y.NYB (both fetch_history.py and fetch_indicators.py \u2014 unified per PR #121 + PR #1.5)",
+      "source_endpoint": "yfinance DX-Y.NYB (both fetch_history.py and fetch_indicators.py — unified per PR #121 + PR #1.5)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -430,7 +430,7 @@
       ],
       "current_status": "live",
       "failure_mode": "Per-indicator try/except. SD calibration in App.jsx (mean=99, sd=7) is DXY-scale.",
-      "owner": "Senior Quant \u2014 Phase 2 review candidate",
+      "owner": "Senior Quant — Phase 2 review candidate",
       "release_calendar": "us-business-day",
       "dependencies": []
     },
@@ -438,7 +438,7 @@
       "id": "indicator-skew-daily",
       "category": "indicator",
       "name": "skew",
-      "description": "CBOE SKEW Index \u2014 implied tail-risk in S&P 500 options.",
+      "description": "CBOE SKEW Index — implied tail-risk in S&P 500 options.",
       "sourcing_mode": "STP",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance ^SKEW",
@@ -495,7 +495,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
+          "tile": "v11 Liquidity & Policy mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
@@ -538,10 +538,10 @@
       "id": "indicator-cpff-weekly",
       "category": "indicator",
       "name": "cpff",
-      "description": "3-Month Commercial Paper minus Fed Funds spread (bps) \u2014 short funding stress.",
+      "description": "3-Month Commercial Paper minus Fed Funds spread (bps) — short funding stress.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
-      "source_endpoint": "FRED DCPF3M \u2212 DFF (\u00d7100), resampled W-FRI",
+      "source_endpoint": "FRED DCPF3M − DFF (×100), resampled W-FRI",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "weekly",
@@ -559,7 +559,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+          "tile": "v11 Funding mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
@@ -572,7 +572,7 @@
       "id": "indicator-loan_syn-daily",
       "category": "indicator",
       "name": "loan_syn",
-      "description": "ICE BofA HY effective yield (%) \u2014 leveraged-loan / HY funding cost proxy.",
+      "description": "ICE BofA HY effective yield (%) — leveraged-loan / HY funding cost proxy.",
       "sourcing_mode": "STP+anchor",
       "source_vendor": "FRED",
       "source_endpoint": "FRED BAMLH0A0HYM2EY; pre-2023 anchor _loan_syn_pre2023_anchor",
@@ -602,7 +602,7 @@
       "id": "indicator-bank_credit-weekly",
       "category": "indicator",
       "name": "bank_credit",
-      "description": "Total bank credit YoY % growth \u2014 broad credit creation gauge.",
+      "description": "Total bank credit YoY % growth — broad credit creation gauge.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
       "source_endpoint": "FRED TOTBKCR pct_change(52)",
@@ -632,7 +632,7 @@
       "id": "indicator-jobless-weekly",
       "category": "indicator",
       "name": "jobless",
-      "description": "Initial unemployment claims (thousands) \u2014 weekly labor stress gauge.",
+      "description": "Initial unemployment claims (thousands) — weekly labor stress gauge.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED ICSA / 1000",
@@ -653,7 +653,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 indicator row"
+          "tile": "v11 Growth mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
@@ -666,7 +666,7 @@
       "id": "indicator-cmdi-weekly",
       "category": "indicator",
       "name": "cmdi",
-      "description": "NY Fed CMDI proxy (= NFCI + 0.5, clipped \u2265 0) \u2014 corporate bond market dislocation.",
+      "description": "NY Fed CMDI proxy (= NFCI + 0.5, clipped ≥ 0) — corporate bond market dislocation.",
       "sourcing_mode": "derived",
       "source_vendor": "FRED",
       "source_endpoint": "FRED NFCI (proxy formula)",
@@ -693,13 +693,13 @@
       "dependencies": []
     },
     {
-      "id": "indicator-term_premium-daily",
+      "id": "indicator-term_premium-weekly",
       "category": "indicator",
       "name": "term_premium",
-      "description": "Kim-Wright 10-year term premium (bps) \u2014 duration risk premium. (Fed Board publishes weekly, not daily \u2014 corrected 2026-05-03.)",
+      "description": "Kim-Wright 10-year term premium (bps) — duration risk premium. (Fed Board publishes weekly, not daily — corrected 2026-05-03.)",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
-      "source_endpoint": "FRED THREEFYTP10 (\u00d7100)",
+      "source_endpoint": "FRED THREEFYTP10 (×100)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "weekly",
@@ -717,7 +717,7 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
+          "tile": "v11 Liquidity & Policy mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
@@ -730,7 +730,7 @@
       "id": "indicator-cape-monthly",
       "category": "indicator",
       "name": "cape",
-      "description": "Shiller CAPE \u2014 cyclically-adjusted P/E ratio for the S&P 500.",
+      "description": "Shiller CAPE — cyclically-adjusted P/E ratio for the S&P 500.",
       "sourcing_mode": "curated",
       "source_vendor": "Shiller / multpl.com",
       "source_endpoint": "multpl.com/shiller-pe/table/by-month (live HTML scrape)",
@@ -751,12 +751,12 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Valuation mechanism modal \u2014 indicator row"
+          "tile": "v11 Valuation mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "Falls back to _cape_fallback_monthly hardcoded anchor on scrape failure.",
-      "owner": "Senior Quant \u2014 Phase 2 priority",
+      "owner": "Senior Quant — Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
     },
@@ -764,7 +764,7 @@
       "id": "indicator-ism-monthly",
       "category": "indicator",
       "name": "ism",
-      "description": "ISM Manufacturing PMI \u2014 manufacturing-sector sentiment.",
+      "description": "ISM Manufacturing PMI — manufacturing-sector sentiment.",
       "sourcing_mode": "curated",
       "source_vendor": "TradingEconomics (free, scraped) + ISM curated anchors",
       "source_endpoint": "TradingEconomics scrape (latest value) + hardcoded historical anchors",
@@ -775,7 +775,7 @@
       "refresh_trigger": "manual code edit",
       "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[ism]",
-      "producer_script": "fetch_history.py \u2014 TradingEconomics scrape with anchor merge",
+      "producer_script": "fetch_history.py — TradingEconomics scrape with anchor merge",
       "consumer_surfaces": [
         {
           "tab": "indicators"
@@ -785,12 +785,12 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 indicator row"
+          "tile": "v11 Growth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "If TradingEconomics scrape fails, freshness chip will go stale (red) on next pipeline-health-check tick. Hardcoded anchors used as fallback for historical depth.",
-      "owner": "Senior Quant \u2014 Phase 2 priority",
+      "owner": "Senior Quant — Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
     },
@@ -798,7 +798,7 @@
       "id": "indicator-jolts_quits-monthly",
       "category": "indicator",
       "name": "jolts_quits",
-      "description": "JOLTS quit rate (%) \u2014 labor-market confidence gauge.",
+      "description": "JOLTS quit rate (%) — labor-market confidence gauge.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED JTSQUR",
@@ -807,7 +807,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 1200,
+      "freshness_sla_hours": 1920,
       "output_destination": "public/indicator_history.json[jolts_quits]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -888,7 +888,7 @@
       "id": "indicator-credit_3y-quarterly",
       "category": "indicator",
       "name": "credit_3y",
-      "description": "3-year bank credit growth \u2014 medium-term credit cycle measure.",
+      "description": "3-year bank credit growth — medium-term credit cycle measure.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
       "source_endpoint": "FRED TOTBKCR pct_change(156), quarterly resample",
@@ -918,10 +918,10 @@
       "id": "indicator-bank_unreal-quarterly",
       "category": "indicator",
       "name": "bank_unreal",
-      "description": "Bank unrealized losses on AFS+HTM, % of Tier-1 capital \u2014 banking system fragility.",
+      "description": "Bank unrealized losses on AFS+HTM, % of Tier-1 capital — banking system fragility.",
       "sourcing_mode": "curated",
       "source_vendor": "FDIC QBP (manual)",
-      "source_endpoint": "FDIC Quarterly Banking Profile \u2014 manual quarterly update (Joe pastes 1 number per quarter ~60 days after quarter close)",
+      "source_endpoint": "FDIC Quarterly Banking Profile — manual quarterly update (Joe pastes 1 number per quarter ~60 days after quarter close)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly (manual)",
@@ -929,7 +929,7 @@
       "refresh_trigger": "manual edit by Joe per quarter",
       "freshness_sla_hours": 2496,
       "output_destination": "public/indicator_history.json[bank_unreal]",
-      "producer_script": "_bank_unreal_fallback_quarterly() in fetch_history.py \u2014 Joe edits the anchor list each quarter",
+      "producer_script": "_bank_unreal_fallback_quarterly() in fetch_history.py — Joe edits the anchor list each quarter",
       "consumer_surfaces": [
         {
           "tab": "indicators"
@@ -940,7 +940,7 @@
       ],
       "current_status": "live_manual_quarterly",
       "failure_mode": "Joe directive 2026-05-02: do not build a scraper. New QBP value publishes ~60d after quarter close; Joe pastes the new number into _bank_unreal_fallback_quarterly() once per quarter.",
-      "owner": "Senior Quant \u2014 Phase 2 priority",
+      "owner": "Senior Quant — Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
     },
@@ -955,7 +955,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "n/a \u2014 runs whenever compute_composite_history.py runs",
+      "scheduled_fetch_time_et": "n/a — runs whenever compute_composite_history.py runs",
       "refresh_trigger": "compute_composite_history.py (manual)",
       "freshness_sla_hours": 49,
       "output_destination": "public/composite_history_daily.json[].SPX, .SPXp",
@@ -976,7 +976,7 @@
       "id": "v9-fed_funds-weekly",
       "category": "indicator",
       "name": "fed_funds",
-      "description": "Effective Fed Funds rate \u2014 input to v9 allocation regression panel.",
+      "description": "Effective Fed Funds rate — input to v9 allocation regression panel.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "fred.stlouisfed.org/graph/fredgraph.csv?id=DFF",
@@ -1004,7 +1004,7 @@
       "id": "v9-industrial_prod-monthly",
       "category": "indicator",
       "name": "industrial_prod",
-      "description": "Industrial Production Index \u2014 v9 growth factor input.",
+      "description": "Industrial Production Index — v9 growth factor input.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO",
@@ -1031,7 +1031,7 @@
       "id": "v9-capacity_util-monthly",
       "category": "indicator",
       "name": "capacity_util",
-      "description": "Capacity Utilization \u2014 v9 growth factor input.",
+      "description": "Capacity Utilization — v9 growth factor input.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "fred.stlouisfed.org/graph/fredgraph.csv?id=TCU",
@@ -1058,7 +1058,7 @@
       "id": "v9-natgas_henry-daily",
       "category": "indicator",
       "name": "natgas_henry",
-      "description": "Henry Hub natural-gas spot price \u2014 v9 inflation factor input.",
+      "description": "Henry Hub natural-gas spot price — v9 inflation factor input.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "fred.stlouisfed.org/graph/fredgraph.csv?id=DHHNGSP",
@@ -1136,7 +1136,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Skipped on missing prior file. Joe noted history begins ~2026-04-26 \u2014 comparison columns empty until next rebalance.",
+      "failure_mode": "Skipped on missing prior file. Joe noted history begins ~2026-04-26 — comparison columns empty until next rebalance.",
       "owner": "Senior Quant + Lead Dev",
       "release_calendar": "nyse-trading-day",
       "dependencies": [
@@ -1164,7 +1164,7 @@
       ],
       "current_status": "live (Sprint 2 Scenario Engine reads /scenario_allocations.json on Scenarios tab; regenerated weekly by SCENARIO-PRECOMPUTE-WEEKLY)",
       "failure_mode": "ScenarioAnalysis.jsx is built but not imported or routed; produced data has no consumer. Phase 2: mount the page or kill the producer.",
-      "owner": "Senior Quant + Lead Dev \u2014 Phase 2 review",
+      "owner": "Senior Quant + Lead Dev — Phase 2 review",
       "release_calendar": "nyse-trading-day",
       "dependencies": [
         "scenario-calibration-quarterly",
@@ -1182,19 +1182,19 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly",
-      "scheduled_fetch_time_et": "15th of Jan/Apr/Jul/Oct, 07:00\u201308:00",
-      "refresh_trigger": "PHASE1-CALIBRATION (DRAFT \u2014 uncommitted YAML in workspace folder)",
+      "scheduled_fetch_time_et": "15th of Jan/Apr/Jul/Oct, 07:00–08:00",
+      "refresh_trigger": "PHASE1-CALIBRATION (DRAFT — uncommitted YAML in workspace folder)",
       "freshness_sla_hours": 3600,
       "output_destination": "public/scenario_calibration/*.json (4 files)",
       "producer_script": "scripts/calibrate_scenario_panel.py",
       "consumer_surfaces": [
         {
-          "page": "pages/ScenarioAnalysis.jsx \u2014 UNMOUNTED"
+          "page": "pages/ScenarioAnalysis.jsx — UNMOUNTED"
         }
       ],
       "current_status": "live-no-cron + unused-consumer",
       "failure_mode": "DOUBLE GAP: PHASE1-CALIBRATION.yml not in .github/workflows/ (only in workspace folder); ScenarioAnalysis.jsx not mounted.",
-      "owner": "Senior Quant + Lead Dev \u2014 Phase 2 review",
+      "owner": "Senior Quant + Lead Dev — Phase 2 review",
       "release_calendar": "us-business-day",
       "dependencies": []
     },
@@ -1279,10 +1279,10 @@
       "producer_script": "scripts/backfill_ticker_reference.py",
       "consumer_surfaces": [
         {
-          "component": "Stock modal \u2014 fixes missing-name/desc/logo on per-ticker views"
+          "component": "Stock modal — fixes missing-name/desc/logo on per-ticker views"
         }
       ],
-      "current_status": "live (rolling backfill \u2014 Phase 1 fix for missing-company-name bug)",
+      "current_status": "live (rolling backfill — Phase 1 fix for missing-company-name bug)",
       "failure_mode": "Rolling backfill priority queue; no immediate user-visible effect on transient failure.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
@@ -1306,7 +1306,7 @@
       "producer_script": "scripts/backfill_massive_initial.py",
       "consumer_surfaces": [
         {
-          "component": "Stock modal \u2014 Corporate actions tile (planned)"
+          "component": "Stock modal — Corporate actions tile (planned)"
         }
       ],
       "current_status": "live",
@@ -1333,7 +1333,7 @@
       "producer_script": "scripts/backfill_massive_initial.py",
       "consumer_surfaces": [
         {
-          "component": "Stock modal \u2014 Corporate actions tile (planned)"
+          "component": "Stock modal — Corporate actions tile (planned)"
         }
       ],
       "current_status": "live",
@@ -1346,7 +1346,7 @@
       "id": "equity-universe_snapshots-3xday",
       "category": "equity",
       "name": "uw-universe-snapshots",
-      "description": "3x-weekday UW screener snapshot (~50 fields \u00d7 ~1,694 tickers \u2265$1B mcap).",
+      "description": "3x-weekday UW screener snapshot (~50 fields × ~1,694 tickers ≥$1B mcap).",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales",
       "source_endpoint": "api.unusualwhales.com/api/screener/stocks (band-sliced by marketcap)",
@@ -1370,8 +1370,8 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "UW 429/5xx retried 3\u00d7; supabase-py exception \u2192 workflow fails red, no auto-bug.",
-      "owner": "Lead Dev \u2014 Phase 2 candidate to replace with Massive (now that Polygon covers universe master)",
+      "failure_mode": "UW 429/5xx retried 3×; supabase-py exception → workflow fails red, no auto-bug.",
+      "owner": "Lead Dev — Phase 2 candidate to replace with Massive (now that Polygon covers universe master)",
       "release_calendar": "nyse-trading-day",
       "dependencies": []
     },
@@ -1402,7 +1402,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Per-source try/except \u2014 one source can fail without sinking others (status='partial').",
+      "failure_mode": "Per-source try/except — one source can fail without sinking others (status='partial').",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
       "dependencies": []
@@ -1445,7 +1445,7 @@
       "id": "equity-user_scan_data-daily",
       "category": "equity",
       "name": "user_scan_data",
-      "description": "Per-user \u00d7 ticker scan supplement (technicals_json, screener_json, composite_json) for user's watchlist (excluded from public artifact).",
+      "description": "Per-user × ticker scan supplement (technicals_json, screener_json, composite_json) for user's watchlist (excluded from public artifact).",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales + Yahoo (computed)",
       "source_endpoint": "scanner.supabase_io.write_user_scan_rows + api/scan-ticker.js",
@@ -1494,7 +1494,7 @@
       "producer_script": "trading-scanner/run_earnings_history.py",
       "consumer_surfaces": [
         {
-          "component": "Stock modal \u2014 Earnings & Events tile (bug #1134)"
+          "component": "Stock modal — Earnings & Events tile (bug #1134)"
         }
       ],
       "current_status": "live (verify on main vs worktree)",
@@ -1538,7 +1538,7 @@
       "id": "equity-zerohedge_public-daily",
       "category": "news",
       "name": "zerohedge_public",
-      "description": "Free ZeroHedge RSS \u2014 market headlines.",
+      "description": "Free ZeroHedge RSS — market headlines.",
       "sourcing_mode": "STP",
       "source_vendor": "ZeroHedge (RSS)",
       "source_endpoint": "cms.zerohedge.com/fullrss2.xml",
@@ -1557,7 +1557,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "RSS fetch fail \u2192 empty list, no headlines render.",
+      "failure_mode": "RSS fetch fail → empty list, no headlines render.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1566,10 +1566,10 @@
       "id": "equity-zerohedge_premium-live",
       "category": "news",
       "name": "zerohedge_premium",
-      "description": "ZeroHedge Premium \u2014 login-walled premium articles, fetched via Path 2 (cookie session).",
+      "description": "ZeroHedge Premium — login-walled premium articles, fetched via Path 2 (cookie session).",
       "sourcing_mode": "STP",
       "source_vendor": "ZeroHedge Premium",
-      "source_endpoint": "https://www.zerohedge.com/ (home page) \u2014 premium items extracted from __NEXT_DATA__ JSON, gated by ZEROHEDGE_COOKIE env var",
+      "source_endpoint": "https://www.zerohedge.com/ (home page) — premium items extracted from __NEXT_DATA__ JSON, gated by ZEROHEDGE_COOKIE env var",
       "license_tier": "paid ($300/yr; renews 2026-05-12)",
       "monthly_cost_usd": 25,
       "cadence": "on every scanner run (SCAN_345PM workflow, weekdays 15:45 ET)",
@@ -1577,12 +1577,12 @@
       "refresh_trigger": "SCAN_345PM_WEEKDAYS.yml",
       "freshness_sla_hours": 25,
       "output_destination": "latest_scan_data.json signals.market_news.zerohedge_premium[] AND signals.market_news.items[] (filter source_tier=\"premium\")",
-      "producer_script": "scanner/market_news.py::fetch_zerohedge_premium (Path 2 \u2014 cookie session, PR #10 / 2026-04-30)",
+      "producer_script": "scanner/market_news.py::fetch_zerohedge_premium (Path 2 — cookie session, PR #10 / 2026-04-30)",
       "consumer_surfaces": [
         "Modal news pane (rendered alongside public ZH RSS items, gated to Joe per ZH ToS)"
       ],
-      "current_status": "LIVE as of 2026-04-30 (PR #10) \u2014 produces 5+ items per scan from a fresh test",
-      "failure_mode": "ZEROHEDGE_COOKIE expires (Drupal default ~3 weeks) \u2192 fetch logs warning + returns []. Refresh: open zerohedge.com in Chrome \u2192 DevTools \u2192 Network tab \u2192 copy Cookie: header \u2192 re-paste as ZEROHEDGE_COOKIE secret.",
+      "current_status": "LIVE as of 2026-04-30 (PR #10) — produces 5+ items per scan from a fresh test",
+      "failure_mode": "ZEROHEDGE_COOKIE expires (Drupal default ~3 weeks) → fetch logs warning + returns []. Refresh: open zerohedge.com in Chrome → DevTools → Network tab → copy Cookie: header → re-paste as ZEROHEDGE_COOKIE secret.",
       "owner": "Lead Developer (Path 2 cookie maintenance is identity-bound to Joe)",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1609,7 +1609,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "RSS fail \u2192 falls back to UW news only.",
+      "failure_mode": "RSS fail → falls back to UW news only.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1694,7 +1694,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Skipped \u2192 discovery feed light.",
+      "failure_mode": "Skipped → discovery feed light.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
       "dependencies": []
@@ -1731,7 +1731,7 @@
       "id": "ops-pipeline_health-30min",
       "category": "ops",
       "name": "pipeline_health",
-      "description": "Canonical site-wide freshness store \u2014 one row per indicator, with R/A/G status, expected_cadence, last_good_at.",
+      "description": "Canonical site-wide freshness store — one row per indicator, with R/A/G status, expected_cadence, last_good_at.",
       "sourcing_mode": "computed",
       "source_vendor": "self (reads producer outputs)",
       "source_endpoint": "supabase/functions/pipeline-health-check",
@@ -1739,7 +1739,7 @@
       "monthly_cost_usd": 0,
       "cadence": "every 30 minutes",
       "scheduled_fetch_time_et": "every :00 and :30",
-      "refresh_trigger": "pg_cron pipeline-health-check-30min (migrations 021 \u2192 031 vault-bearer)",
+      "refresh_trigger": "pg_cron pipeline-health-check-30min (migrations 021 → 031 vault-bearer)",
       "freshness_sla_hours": 1,
       "output_destination": "Supabase public.pipeline_health",
       "producer_script": "supabase/functions/pipeline-health-check/index.ts",
@@ -1752,7 +1752,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Email alert via Resend on green\u2192red transition (24h debounce).",
+      "failure_mode": "Email alert via Resend on green→red transition (24h debounce).",
       "owner": "Data Steward + UX Designer + Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1761,7 +1761,7 @@
       "id": "ops-bug_reports-event",
       "category": "ops",
       "name": "bug_reports",
-      "description": "Public bug submissions + admin triage state machine (received \u2192 triaged \u2192 approved \u2192 merged \u2192 deployed \u2192 verified_closed).",
+      "description": "Public bug submissions + admin triage state machine (received → triaged → approved → merged → deployed → verified_closed).",
       "sourcing_mode": "STP",
       "source_vendor": "n/a (user-generated)",
       "source_endpoint": "Public form via submit_bug_report SECURITY DEFINER RPC + edge fns submit-bug-report / approve-bug-fix / nudge-stale-bugs / resolve-bug-report",
@@ -1836,7 +1836,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Empty seed (memory rule #21 trap) \u2192 admin pages 403.",
+      "failure_mode": "Empty seed (memory rule #21 trap) → admin pages 403.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1845,7 +1845,7 @@
       "id": "ops-user_preferences-on_change",
       "category": "ops",
       "name": "user_preferences",
-      "description": "Per-user UI state \u2014 column order/visibility/widths per table.",
+      "description": "Per-user UI state — column order/visibility/widths per table.",
       "sourcing_mode": "STP",
       "source_vendor": "n/a (user-generated)",
       "source_endpoint": "supabase.from('user_preferences').upsert(...) (debounced)",
@@ -1866,7 +1866,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Silent fail \u2192 table reverts to defaults next session.",
+      "failure_mode": "Silent fail → table reverts to defaults next session.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1960,7 +1960,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Insert fails \u2192 ticker not added.",
+      "failure_mode": "Insert fails → ticker not added.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -1991,7 +1991,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Atomic with positions update \u2014 both succeed or both roll back.",
+      "failure_mode": "Atomic with positions update — both succeed or both roll back.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
       "dependencies": []
@@ -2021,8 +2021,8 @@
         }
       ],
       "current_status": "live-no-consumer",
-      "failure_mode": "Producer runs but neither hook is imported anywhere \u2014 Phase 2 candidate (consumer wiring or producer pause).",
-      "owner": "Lead Dev \u2014 Phase 2 review",
+      "failure_mode": "Producer runs but neither hook is imported anywhere — Phase 2 candidate (consumer wiring or producer pause).",
+      "owner": "Lead Dev — Phase 2 review",
       "release_calendar": "nyse-trading-day",
       "dependencies": []
     },
@@ -2052,9 +2052,9 @@
           "tile": "Macro Overview blurb"
         }
       ],
-      "current_status": "live (cron trigger source ambiguous \u2014 Phase 2 verify)",
+      "current_status": "live (cron trigger source ambiguous — Phase 2 verify)",
       "failure_mode": "Threshold-gated; if no material moves, returns null and tile renders nothing.",
-      "owner": "Senior Quant + Data Steward \u2014 Phase 2 cron audit",
+      "owner": "Senior Quant + Data Steward — Phase 2 cron audit",
       "release_calendar": "wall-clock",
       "dependencies": []
     },
@@ -2084,9 +2084,9 @@
           "tile": "Sector Outlook blurb"
         }
       ],
-      "current_status": "live (PR #355 \u2014 sector_rank_history wired to generate-commentary edge fn, 2026-04-30)",
+      "current_status": "live (PR #355 — sector_rank_history wired to generate-commentary edge fn, 2026-04-30)",
       "failure_mode": "Per source: sector_rank_history table not wired; LLM gets no context, blurb stays null.",
-      "owner": "Senior Quant + Lead Dev \u2014 Phase 2 fix",
+      "owner": "Senior Quant + Lead Dev — Phase 2 fix",
       "release_calendar": "wall-clock",
       "dependencies": []
     },
@@ -2121,7 +2121,7 @@
       "id": "indicator-cfnai_3ma-monthly",
       "category": "indicator",
       "name": "cfnai_3ma",
-      "description": "CFNAI 3-month moving average (smoothed) \u2014 derived in fetch_history.py from FRED CFNAI raw monthly series.",
+      "description": "CFNAI 3-month moving average (smoothed) — derived in fetch_history.py from FRED CFNAI raw monthly series.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED CFNAIMA3 (direct, not derived)",
@@ -2136,7 +2136,7 @@
       "consumer_surfaces": [
         {
           "tab": "home",
-          "tile": "Macro Overview composite \u2014 Growth"
+          "tile": "Macro Overview composite — Growth"
         },
         {
           "tab": "overview",
@@ -2148,11 +2148,11 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 indicator row"
+          "tile": "v11 Growth mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
-      "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
+      "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -2161,10 +2161,10 @@
       "id": "indicator-m2_yoy-monthly",
       "category": "indicator",
       "name": "m2_yoy",
-      "description": "M2 money supply YoY % growth \u2014 derived in fetch_history.py from FRED M2SL raw monthly series.",
+      "description": "M2 money supply YoY % growth — derived in fetch_history.py from FRED M2SL raw monthly series.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
-      "source_endpoint": "FRED M2SL pct_change(12) \u00d7 100",
+      "source_endpoint": "FRED M2SL pct_change(12) × 100",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2176,7 +2176,7 @@
       "consumer_surfaces": [
         {
           "tab": "home",
-          "tile": "Macro Overview composite \u2014 Inflation & Rates"
+          "tile": "Macro Overview composite — Inflation & Rates"
         },
         {
           "tab": "overview",
@@ -2188,11 +2188,11 @@
         },
         {
           "tab": "overview",
-          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
+          "tile": "v11 Liquidity & Policy mechanism modal — indicator row"
         }
       ],
       "current_status": "live",
-      "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
+      "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -2201,7 +2201,7 @@
       "id": "indicator-erp-monthly",
       "category": "indicator",
       "name": "erp",
-      "description": "Equity Risk Premium \u2014 S&P 500 earnings yield minus 10-year Treasury yield.",
+      "description": "Equity Risk Premium — S&P 500 earnings yield minus 10-year Treasury yield.",
       "sourcing_mode": "STP+derived",
       "source_vendor": "FRED + Shiller",
       "source_endpoint": "(1/CAPE) - DGS10 derived",
@@ -2213,12 +2213,12 @@
       "freshness_sla_hours": 1680,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[erp] (PENDING \u2014 currently placeholder in v11 modal)",
+      "output_destination": "public/indicator_history.json[erp] (PENDING — currently placeholder in v11 modal)",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Valuation mechanism modal \u2014 indicator row"
+          "tile": "v11 Valuation mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2229,7 +2229,7 @@
       "id": "indicator-buffett-quarterly",
       "category": "indicator",
       "name": "buffett",
-      "description": "Buffett Indicator \u2014 US equity market cap as share of GDP. Wilshire 5000 / Nominal GDP.",
+      "description": "Buffett Indicator — US equity market cap as share of GDP. Wilshire 5000 / Nominal GDP.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
       "source_endpoint": "FRED NCBCEL / GDP",
@@ -2246,7 +2246,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Valuation mechanism modal \u2014 indicator row"
+          "tile": "v11 Valuation mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2257,16 +2257,16 @@
       "id": "indicator-ig_oas-daily",
       "category": "indicator",
       "name": "ig_oas",
-      "description": "Investment-grade corporate OAS spread (bps) \u2014 option-adjusted spread of US Corporate Master investment-grade index over Treasuries.",
+      "description": "Investment-grade corporate OAS spread (bps) — option-adjusted spread of US Corporate Master investment-grade index over Treasuries.",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED BAA - DGS10 (long-history proxy)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "monthly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1680,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
@@ -2274,7 +2274,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Credit mechanism modal \u2014 indicator row"
+          "tile": "v11 Credit mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2285,16 +2285,16 @@
       "id": "indicator-hy_ig_ratio-daily",
       "category": "indicator",
       "name": "hy_ig_ratio",
-      "description": "HY OAS divided by IG OAS \u2014 relative-risk premium ratio between high-yield and investment-grade credit.",
+      "description": "HY OAS divided by IG OAS — relative-risk premium ratio between high-yield and investment-grade credit.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED",
       "source_endpoint": "FRED BAMLH0A0HYM2 / (BAA - DGS10)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "monthly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1680,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-hy_ig-daily",
@@ -2305,7 +2305,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Credit mechanism modal \u2014 indicator row"
+          "tile": "v11 Credit mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2316,7 +2316,7 @@
       "id": "indicator-fra_ois-daily",
       "category": "indicator",
       "name": "fra_ois",
-      "description": "3-month FRA-OIS spread (bps) \u2014 interbank credit risk gauge. Forward Rate Agreement (3m LIBOR/SOFR forward) minus Overnight Index Swap (Fed Funds expectations).",
+      "description": "3-month FRA-OIS spread (bps) — interbank credit risk gauge. Forward Rate Agreement (3m LIBOR/SOFR forward) minus Overnight Index Swap (Fed Funds expectations).",
       "sourcing_mode": "computed",
       "source_vendor": "TBD (Bloomberg or paid feed; FRED does not carry this directly)",
       "source_endpoint": "FRED SOFR - DFF (modern proxy)",
@@ -2328,12 +2328,12 @@
       "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[fra_ois] (PENDING \u2014 needs paid source or proxy)",
+      "output_destination": "public/indicator_history.json[fra_ois] (PENDING — needs paid source or proxy)",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+          "tile": "v11 Funding mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2344,7 +2344,7 @@
       "id": "indicator-cdx_basis-daily",
       "category": "indicator",
       "name": "cdx_basis",
-      "description": "CDX IG basis \u2014 credit-default swap basis vs cash bond spreads. Indicator of arbitrage friction in IG credit markets.",
+      "description": "CDX IG basis — credit-default swap basis vs cash bond spreads. Indicator of arbitrage friction in IG credit markets.",
       "sourcing_mode": "derived",
       "source_vendor": "TBD (Markit; paid)",
       "source_endpoint": "Renders hy_ig_ratio as practical proxy (UW does not carry CDX directly; true CDX is paid Markit)",
@@ -2356,12 +2356,12 @@
       "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[cdx_basis] (PENDING \u2014 paid source)",
+      "output_destination": "public/indicator_history.json[cdx_basis] (PENDING — paid source)",
       "producer_script": "derived in App.jsx (PR #2C)",
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+          "tile": "v11 Funding mechanism modal — indicator row"
         }
       ],
       "current_status": "placeholder_uses_proxy",
@@ -2372,7 +2372,7 @@
       "id": "indicator-xccy_basis-daily",
       "category": "indicator",
       "name": "xccy_basis",
-      "description": "3-month USD/EUR cross-currency basis \u2014 global USD funding stress gauge.",
+      "description": "3-month USD/EUR cross-currency basis — global USD funding stress gauge.",
       "sourcing_mode": "TBD",
       "source_vendor": "TBD (Bloomberg; paid)",
       "source_endpoint": "FRED-derivable approximation pending",
@@ -2384,12 +2384,12 @@
       "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[xccy_basis] (PENDING \u2014 paid source)",
+      "output_destination": "public/indicator_history.json[xccy_basis] (PENDING — paid source)",
       "producer_script": "TBD",
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+          "tile": "v11 Funding mechanism modal — indicator row"
         }
       ],
       "current_status": "placeholder_hardcoded",
@@ -2400,7 +2400,7 @@
       "id": "indicator-real_fedfunds-monthly",
       "category": "indicator",
       "name": "real_fedfunds",
-      "description": "Real Fed funds rate \u2014 Effective Fed Funds rate minus year-over-year core PCE inflation.",
+      "description": "Real Fed funds rate — Effective Fed Funds rate minus year-over-year core PCE inflation.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED (DFF - PCEPILFE YoY)",
       "source_endpoint": "FRED DFF - PCEPILFE YoY",
@@ -2417,7 +2417,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
+          "tile": "v11 Liquidity & Policy mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2428,10 +2428,10 @@
       "id": "indicator-margin_debt-monthly",
       "category": "indicator",
       "name": "margin_debt",
-      "description": "FINRA margin debt YoY % growth \u2014 leverage in retail/institutional brokerage accounts.",
+      "description": "FINRA margin debt YoY % growth — leverage in retail/institutional brokerage accounts.",
       "sourcing_mode": "STP",
       "source_vendor": "FINRA (HTML scrape)",
-      "source_endpoint": "finra.org/investors/learn-to-invest/advanced-investing/margin-statistics \u2014 public table, scraped via Mon-YY regex",
+      "source_endpoint": "finra.org/investors/learn-to-invest/advanced-investing/margin-statistics — public table, scraped via Mon-YY regex",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2445,7 +2445,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2456,10 +2456,10 @@
       "id": "indicator-put_call-daily",
       "category": "indicator",
       "name": "put_call",
-      "description": "CBOE equity put/call ratio \u2014 equity put volume divided by call volume. Low values = complacent positioning.",
+      "description": "CBOE equity put/call ratio — equity put volume divided by call volume. Low values = complacent positioning.",
       "sourcing_mode": "computed",
       "source_vendor": "Unusual Whales (universe_snapshots aggregate)",
-      "source_endpoint": "public.universe_snapshots \u2014 sum(put_volume)/sum(call_volume) across our covered universe",
+      "source_endpoint": "public.universe_snapshots — sum(put_volume)/sum(call_volume) across our covered universe",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2473,7 +2473,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2484,10 +2484,10 @@
       "id": "indicator-spx_200dma-daily",
       "category": "indicator",
       "name": "spx_200dma",
-      "description": "% of S&P 500 stocks above their 200-day moving average \u2014 breadth measure.",
+      "description": "% of S&P 500 stocks above their 200-day moving average — breadth measure.",
       "sourcing_mode": "computed",
       "source_vendor": "Polygon (prices_eod aggregate)",
-      "source_endpoint": "public.compute_breadth_above_200dma() RPC \u2014 % of liquid US equities above 200-day MA",
+      "source_endpoint": "public.compute_breadth_above_200dma() RPC — % of liquid US equities above 200-day MA",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2501,7 +2501,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2512,10 +2512,10 @@
       "id": "indicator-adv_dec-daily",
       "category": "indicator",
       "name": "adv_dec",
-      "description": "NYSE advance-decline 50-day cumulative \u2014 breadth gauge. Positive = participation broad, negative = narrow rally.",
+      "description": "NYSE advance-decline 50-day cumulative — breadth gauge. Positive = participation broad, negative = narrow rally.",
       "sourcing_mode": "computed",
       "source_vendor": "Polygon (prices_eod aggregate)",
-      "source_endpoint": "public.compute_advance_decline_50d() RPC \u2014 Polygon prices_eod, 50-day rolling net",
+      "source_endpoint": "public.compute_advance_decline_50d() RPC — Polygon prices_eod, 50-day rolling net",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2529,7 +2529,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2540,7 +2540,7 @@
       "id": "indicator-sofr_ois-daily",
       "category": "indicator",
       "name": "sofr_ois",
-      "description": "SOFR-OIS spread (bps) \u2014 overnight bank-to-bank funding stress measure. Modern equivalent of LIBOR-OIS post-LIBOR cessation.",
+      "description": "SOFR-OIS spread (bps) — overnight bank-to-bank funding stress measure. Modern equivalent of LIBOR-OIS post-LIBOR cessation.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED (SOFR - DFF as practical proxy for OIS)",
       "source_endpoint": "FRED SOFR - FRED DFF",
@@ -2557,7 +2557,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+          "tile": "v11 Funding mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2568,16 +2568,16 @@
       "id": "indicator-naaim-weekly",
       "category": "indicator",
       "name": "naaim",
-      "description": "NAAIM Exposure Index \u2014 weekly survey of active investment managers reporting their average equity exposure (0-200%, 100=fully invested). Sentiment + positioning signal.",
+      "description": "NAAIM Exposure Index — weekly survey of active investment managers reporting their average equity exposure (0-200%, 100=fully invested). Sentiment + positioning signal.",
       "sourcing_mode": "STP",
       "source_vendor": "NAAIM (free, scraped)",
-      "source_endpoint": "naaim.org/programs/naaim-exposure-index/ \u2014 public HTML table scrape",
+      "source_endpoint": "naaim.org/programs/naaim-exposure-index/ — public HTML table scrape",
       "license_tier": "free (with scraper)",
       "monthly_cost_usd": 0,
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 480,
+      "freshness_sla_hours": 192,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[naaim] (PENDING)",
@@ -2585,7 +2585,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2596,7 +2596,7 @@
       "id": "indicator-ic4wsa-weekly",
       "category": "indicator",
       "name": "ic4wsa",
-      "description": "Initial unemployment claims, 4-week moving average \u2014 methodology-v11.md preferred Growth-mechanism input (vs ICSA raw).",
+      "description": "Initial unemployment claims, 4-week moving average — methodology-v11.md preferred Growth-mechanism input (vs ICSA raw).",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED IC4WSA",
@@ -2605,7 +2605,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 480,
+      "freshness_sla_hours": 192,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ic4wsa]",
@@ -2613,7 +2613,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 Senior Quant pick: IC4WSA preferred per methodology-v11.md"
+          "tile": "v11 Growth mechanism modal — Senior Quant pick: IC4WSA preferred per methodology-v11.md"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2624,7 +2624,7 @@
       "id": "indicator-bkx_spx_v11-daily",
       "category": "indicator",
       "name": "bkx_spx_v11",
-      "description": "KBW Bank Index ^BKX / S&P 500 index ^GSPC \u2014 methodology-v11.md preferred Growth-mechanism input (vs KBE/SPY ETFs).",
+      "description": "KBW Bank Index ^BKX / S&P 500 index ^GSPC — methodology-v11.md preferred Growth-mechanism input (vs KBE/SPY ETFs).",
       "sourcing_mode": "computed",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "yfinance ^BKX + ^GSPC",
@@ -2641,7 +2641,7 @@
       "consumer_surfaces": [
         {
           "tab": "overview",
-          "tile": "v11 Growth mechanism modal \u2014 Senior Quant pick: ^BKX/^GSPC preferred per methodology-v11.md"
+          "tile": "v11 Growth mechanism modal — Senior Quant pick: ^BKX/^GSPC preferred per methodology-v11.md"
         }
       ],
       "current_status": "live_pending_first_workflow_run",
@@ -2652,18 +2652,18 @@
       "id": "site-cycle_board-daily",
       "category": "indicator",
       "name": "cycle_board",
-      "description": "v11 six-mechanism cycle board snapshot \u2014 Valuation / Credit / Funding / Growth / Liquidity & Policy / Positioning & Breadth scores feeding the Macro Overview page.",
+      "description": "v11 six-mechanism cycle board snapshot — Valuation / Credit / Funding / Growth / Liquidity & Policy / Positioning & Breadth scores feeding the Macro Overview page.",
       "sourcing_mode": "computed",
       "source_vendor": "Internal v11 model",
-      "source_endpoint": "retired 2026-05-25 (#1159) \u2014 formerly compute_v11_sprint1_calibration.py; methodology_calibration_v11.json now static",
+      "source_endpoint": "retired 2026-05-25 (#1159) — formerly compute_v11_sprint1_calibration.py; methodology_calibration_v11.json now static",
       "license_tier": "internal",
       "monthly_cost_usd": 0,
       "cadence": "static",
       "scheduled_fetch_time_et": null,
-      "refresh_trigger": "retired 2026-05-25 (#1159) \u2014 V11 calibration job shut down; methodology_calibration_v11.json is now a static checked-in file",
+      "refresh_trigger": "retired 2026-05-25 (#1159) — V11 calibration job shut down; methodology_calibration_v11.json is now a static checked-in file",
       "freshness_sla_hours": 49,
       "output_destination": "public/cycle_board_snapshot.json",
-      "producer_script": "retired 2026-05-25 (#1159) \u2014 no longer regenerated",
+      "producer_script": "retired 2026-05-25 (#1159) — no longer regenerated",
       "consumer_surfaces": [
         {
           "tab": "home",
@@ -2730,7 +2730,7 @@
       "id": "macrotilt-engine-daily",
       "name": "macrotilt_engine",
       "category": "indicator",
-      "description": "MacroTilt 2-axis regime engine snapshot. Weekly regime call (stress state, MOVE percentile, yield regime, equity %, defensive sleeve) plus a daily-moving live \u0394Y-3M display value (delta_y_3m_bp_live / live_as_of) so the dial headline updates every trading day.",
+      "description": "MacroTilt 2-axis regime engine snapshot. Weekly regime call (stress state, MOVE percentile, yield regime, equity %, defensive sleeve) plus a daily-moving live ΔY-3M display value (delta_y_3m_bp_live / live_as_of) so the dial headline updates every trading day.",
       "sourcing_mode": "computed in-house from raw",
       "cadence": "daily (19:45 UTC weekdays)",
       "release_calendar": "us-business-day",
@@ -2739,7 +2739,7 @@
       "consumer_surfaces": [
         "src/App.jsx home Asset Tilt preview tile",
         "src/pages/AssetAllocation.jsx Today's Engine Read",
-        "scripts/compute_v10_allocation.py (v10 allocator \u2014 reads equity %, defensive %, active_sleeve_composition for the Recommended Allocations asset-class split)"
+        "scripts/compute_v10_allocation.py (v10 allocator — reads equity %, defensive %, active_sleeve_composition for the Recommended Allocations asset-class split)"
       ],
       "output_path": "public/macrotilt_engine.json",
       "producer_script": "scripts/compute_macrotilt_engine.py",
@@ -2751,7 +2751,7 @@
       "id": "scenario-scenario_definitions-static",
       "category": "scenario",
       "name": "scenario_definitions",
-      "description": "Canonical list of the 8 historical shock scenarios (Black Monday '87 through AI Correction '24) \u2014 id, name, peak window, peak drawdown, regime call, and one-line blurb. Stable academic references; the Scenarios page reads this list to render the picker and per-scenario header.",
+      "description": "Canonical list of the 8 historical shock scenarios (Black Monday '87 through AI Correction '24) — id, name, peak window, peak drawdown, regime call, and one-line blurb. Stable academic references; the Scenarios page reads this list to render the picker and per-scenario header.",
       "sourcing_mode": "curated",
       "source_vendor": "n/a (curated by Data Steward + Senior Quant)",
       "source_endpoint": "public/scenario_definitions.json",
@@ -2802,49 +2802,217 @@
       "owner": "Senior Quant (notes), Data Steward (curation)",
       "release_calendar": "wall-clock",
       "dependencies": []
+    },
+    {
+      "id": "indicator-fed_bs-weekly",
+      "name": "fed_bs",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WALCL (YoY % change)",
+      "sourcing_mode": "computed",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[fed_bs]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Fed Balance Sheet"
+        }
+      ],
+      "description": "Fed total assets YoY change (WALCL) — QE/QT direction.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-rrp-daily",
+      "name": "rrp",
+      "category": "indicator",
+      "cadence": "daily",
+      "freshness_sla_hours": 49,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED RRPONTSYD",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[rrp]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Reverse Repo"
+        }
+      ],
+      "description": "Overnight reverse-repo take-up at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-bank_reserves-weekly",
+      "name": "bank_reserves",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WRESBAL",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[bank_reserves]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Bank Reserves"
+        }
+      ],
+      "description": "Reserve balances of depository institutions at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-tga-weekly",
+      "name": "tga",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WTREGEN",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[tga]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Treasury General Account"
+        }
+      ],
+      "description": "Treasury General Account cash held at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-cfnai-monthly",
+      "name": "cfnai",
+      "category": "indicator",
+      "cadence": "monthly",
+      "freshness_sla_hours": 1200,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED CFNAI",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[cfnai]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — CFNAI"
+        }
+      ],
+      "description": "Chicago Fed National Activity Index — 85-component activity composite.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-hy_ig_etf-daily",
+      "name": "hy_ig_etf",
+      "category": "indicator",
+      "cadence": "daily",
+      "freshness_sla_hours": 49,
+      "release_calendar": "nyse-trading-day",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "LQD / HYG price ratio",
+      "sourcing_mode": "computed",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[hy_ig_etf]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — HY-IG ETF Proxy"
+        }
+      ],
+      "description": "LQD÷HYG price ratio — Yahoo-sourced HY-IG spread proxy (reference only).",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
     "G1. compute_composite_history.py has no scheduled GH workflow. Bug #1036 root cause. Composites RL/GR/IR + SPX/DJI/NDX overlays are append-only and only run when somebody manually invokes the script. MUST wire to INDICATOR-REFRESH or its own daily workflow in Phase 3.",
     "G2. CAPE / ISM / Bank Unrealized Losses are hardcoded constants in fetch_history.py + fetch_indicators.py. Stale-by-design. Phase 2: replace with live FRED/multpl/ISM/FDIC source or remove from indicator panel.",
     "G3. USD source mismatch: fetch_history.py uses FRED DTWEXBGS while fetch_indicators.py uses Yahoo DX-Y.NYB. PR #121 fixed live tick, history may still misalign. Phase 2 spot-check.",
-    "G4. SCAN_345PM_WEEKDAYS.yml filename says 345PM but `name:` field says 330PM and DST gate fires at 15:30 ET. Misleading filename \u2014 rationalize naming convention in Phase 3 (<category>-<element>-<cadence>).",
-    "G5. trigger-workflow edge function allowlist hardcoded to SCAN/INDICATOR-REFRESH/UNIVERSE_SNAPSHOT \u2014 does NOT include MASSIVE-DAILY.yml that mig 034 cron tries to dispatch. Either function source has been hot-patched in deployment or pg_cron job 034 will silently no-op. Verify.",
+    "G4. SCAN_345PM_WEEKDAYS.yml filename says 345PM but `name:` field says 330PM and DST gate fires at 15:30 ET. Misleading filename — rationalize naming convention in Phase 3 (<category>-<element>-<cadence>).",
+    "G5. trigger-workflow edge function allowlist hardcoded to SCAN/INDICATOR-REFRESH/UNIVERSE_SNAPSHOT — does NOT include MASSIVE-DAILY.yml that mig 034 cron tries to dispatch. Either function source has been hot-patched in deployment or pg_cron job 034 will silently no-op. Verify.",
     "G6. generate-commentary cron source unknown. Source comment says 23:00 ET but no cron.schedule() in committed migrations. Either Supabase Studio direct entry, Cowork task, or unwired. Phase 2 confirm.",
     "G7. sector_commentary writes null with reason='sector_rank_history_not_wired'. The downstream table never got created. Sector Outlook blurb shows nothing. Phase 2: either wire sector_rank_history or remove the tile.",
     "G8. ScenarioAnalysis.jsx + scenario_allocations.json + scenario_calibration/*.json are a fully-built unmounted feature tree. Either ship the page or kill the producer chain.",
     "G9. portfolio_history pg_cron writes daily NAV per account but no UI consumes the data. Either ship Portfolio Insights time-series view or pause the cron.",
     "G10. ZeroHedge Premium $300/yr is being charged with stub code returning []. RED kill candidate (Phase 5).",
-    "G11. All workflows fail silently \u2014 no `if: failure()` step, no Slack/email/PagerDuty wire-in. Per project memory, failure-alert was claimed shipped 2026-04-28 but verification needed.",
-    "G12. Daily intraday clock-sequenced chain (15:30 SCAN \u2192 15:45 UNIVERSE \u2192 15:50 EVENTS) has no `needs:` or workflow_run dependency \u2014 relies on 15-minute clock buffer. Saturday weekly chain (12:00 V9 \u2192 13:30 SCENARIO) has 90-minute buffer. Phase 3 normalize: either explicit dependency or single window.",
+    "G11. All workflows fail silently — no `if: failure()` step, no Slack/email/PagerDuty wire-in. Per project memory, failure-alert was claimed shipped 2026-04-28 but verification needed.",
+    "G12. Daily intraday clock-sequenced chain (15:30 SCAN → 15:45 UNIVERSE → 15:50 EVENTS) has no `needs:` or workflow_run dependency — relies on 15-minute clock buffer. Saturday weekly chain (12:00 V9 → 13:30 SCENARIO) has 90-minute buffer. Phase 3 normalize: either explicit dependency or single window.",
     "G13. Two `LESSONS.md` references in project_instructions, but file does not exist in the repo. The corrections live only in Joe's auto-memory. Phase 2: create LESSONS.md and migrate auto-memory rules into it (binding, in-repo).",
-    "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up.",
-    "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision.",
-    "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR.",
-    "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper.",
-    "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
-    "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop.",
-    "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source.",
-    "G22. PR \u03b8 wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog).",
-    "G23. PR \u03b9 wires NAAIM Exposure Index to public weekly survey table at naaim.org/programs/naaim-exposure-index/. Test scrape returns 10 weekly rows (Mar 4 \u2192 Apr 29 2026). Fragility: if NAAIM changes page structure, chip goes stale.",
-    "G24. PR \u03ba \u2014 manifest cleanup. usd entry corrected to reflect both producers now use DX-Y.NYB (USD source unification, item #5 of approved sequence, complete). bank_unreal entry annotated with FDIC API surface limitation finding \u2014 public /banks/financials endpoint does not expose AOCIROCEH (returned 0 for all banks queried); proper scraper needs the QBP press release HTML or different API endpoint discovery.",
-    "G25. PR \u03bb \u2014 composite full kill executed per Joe directive 2026-05-02. compute_composite_history.py archived to scripts/_archive/. Three composite JSONs deleted from public/. INDICATOR-REFRESH composite recompute step removed. v9 asset_allocation/* readers wrapped in try/except (return None / skip if file missing) \u2014 v9 is dormant pending Asset Tilt rebuild. Edge fn pipeline-health-check returns empty array on composite 404 (graceful). bank_unreal flipped to live_manual_quarterly per Joe directive \u2014 Joe pastes one new QBP number per quarter into _bank_unreal_fallback_quarterly()."
+    "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements — Phase 5 follow-up.",
+    "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) — kept as placeholders pending vendor decision.",
+    "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) — needs reconciliation in a follow-up cleanup PR.",
+    "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR α corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded — their public free URLs are blocked or deprecated; needs vendor or scraper.",
+    "G19. PR β wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 — replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
+    "G20. PR γ removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers — the \"Under construction\" tile on Home will close that loop.",
+    "G21. PR ζ rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers × 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker — falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source.",
+    "G22. PR θ wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog).",
+    "G23. PR ι wires NAAIM Exposure Index to public weekly survey table at naaim.org/programs/naaim-exposure-index/. Test scrape returns 10 weekly rows (Mar 4 → Apr 29 2026). Fragility: if NAAIM changes page structure, chip goes stale.",
+    "G24. PR κ — manifest cleanup. usd entry corrected to reflect both producers now use DX-Y.NYB (USD source unification, item #5 of approved sequence, complete). bank_unreal entry annotated with FDIC API surface limitation finding — public /banks/financials endpoint does not expose AOCIROCEH (returned 0 for all banks queried); proper scraper needs the QBP press release HTML or different API endpoint discovery.",
+    "G25. PR λ — composite full kill executed per Joe directive 2026-05-02. compute_composite_history.py archived to scripts/_archive/. Three composite JSONs deleted from public/. INDICATOR-REFRESH composite recompute step removed. v9 asset_allocation/* readers wrapped in try/except (return None / skip if file missing) — v9 is dormant pending Asset Tilt rebuild. Edge fn pipeline-health-check returns empty array on composite 404 (graceful). bank_unreal flipped to live_manual_quarterly per Joe directive — Joe pastes one new QBP number per quarter into _bank_unreal_fallback_quarterly()."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
       "artifact": "public/composite_weights.json",
       "consumer": "Read by compute_composite_history.py only; not by any live frontend route",
-      "verdict": "Live (used by composite computation) \u2014 keep but document"
+      "verdict": "Live (used by composite computation) — keep but document"
     },
     {
       "artifact": "public/composite_event_markers.json",
       "consumer": "Only referenced in pages/TodayMacro.jsx.new and .fromfresh (dead variants)",
-      "verdict": "Unused \u2014 kill or wire up"
+      "verdict": "Unused — kill or wire up"
     },
     {
       "artifact": "public/manifest.json + public/manifest-v2.json",
       "consumer": "None in live App.jsx",
-      "verdict": "Likely vestigial PWA manifests \u2014 verify and prune"
+      "verdict": "Likely vestigial PWA manifests — verify and prune"
     },
     {
       "artifact": "public/sector_lab_research/backtest_v4_raw.json + public/methodology/v4_*.json",
@@ -2868,12 +3036,12 @@
     },
     {
       "artifact": "src/components/HistoricalChart.jsx + src/hooks/useStockRiskMetrics.js + src/hooks/useRiskMetricsBatch.js",
-      "consumer": "None \u2014 all use /api/price-history but no consumer renders them",
+      "consumer": "None — all use /api/price-history but no consumer renders them",
       "verdict": "Dead code; /api/price-history endpoint may also be killable once Massive prices_eod takes over modal chart"
     },
     {
       "artifact": "src/hooks/usePortfolioHistory.js + src/hooks/useDailyNavSnapshot.js",
-      "consumer": "None \u2014 but the underlying portfolio_history table is being populated daily by pg_cron",
+      "consumer": "None — but the underlying portfolio_history table is being populated daily by pg_cron",
       "verdict": "Either wire up the Insights tab consumers or pause the snapshot cron; current state wastes 1 daily DB write per user per account"
     },
     {
@@ -2884,7 +3052,7 @@
     {
       "artifact": "HORSE-RACE.yml + PHASE1-CALIBRATION.yml",
       "consumer": "Loose YAML files in /Users/joemezzadri/Documents/market-dashboard/ workspace folder, NOT under .github/workflows/",
-      "verdict": "Phase 2 decision \u2014 commit them, kill them, or move into formal workflows"
+      "verdict": "Phase 2 decision — commit them, kill them, or move into formal workflows"
     }
   ]
 }
