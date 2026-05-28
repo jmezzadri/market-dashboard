@@ -40,13 +40,23 @@ name: MASSIVE-DAILY
 
 on:
   schedule:
-    # Cron is UTC. Five weekday fire windows so a dropped or delayed
-    # GitHub schedule is recovered the same evening (idempotent script).
-    - cron: "30 20 * * 1-5"  # Primary: Mon-Fri 16:30 ET (DST)
-    - cron: "0 21  * * 1-5"  # Backup A: Mon-Fri 17:00 ET (DST)
-    - cron: "0 22  * * 1-5"  # Backup B: Mon-Fri 18:00 ET (DST) / 17:00 ET (standard)
-    - cron: "0 0   * * 2-6"  # Backup C: Mon-Fri 20:00 ET (Tue-Sat 00:00 UTC)
-    - cron: "0 3   * * 2-6"  # Backup D: Mon-Fri 23:00 ET (Tue-Sat 03:00 UTC)
+    # Cron is UTC. Same-day evening runs are best-effort scraps — Polygon's
+    # T+0 batch right after the close only contains a few dozen tickers
+    # (verified 2026-05-27: by 23:00 UTC the same day, only 63 of ~12,200
+    # universe was ingested). The CANONICAL "panel is complete" run is the
+    # next-morning window: between 02:00 and 08:00 ET the following day
+    # Polygon publishes the full T+1 EOD batch and Massive pulls it.
+    #
+    # Same-day approximate runs (kept so dashboard tiles can show a rough
+    # close intra-evening; script is idempotent so safe to re-fire):
+    - cron: "30 20 * * 1-5"  # Mon-Fri 16:30 ET (DST primary)
+    - cron: "0 21  * * 1-5"  # Mon-Fri 17:00 ET
+    - cron: "0 22  * * 1-5"  # Mon-Fri 18:00 ET
+    - cron: "0 0   * * 2-6"  # Mon-Fri 20:00 ET (next-day 00:00 UTC)
+    - cron: "0 3   * * 2-6"  # Mon-Fri 23:00 ET (next-day 03:00 UTC)
+    # Next-morning canonical "panel complete" runs (Joe directive 2026-05-27):
+    - cron: "0 12  * * 2-6"  # Tue-Sat 08:00 ET (EDT) — catches Polygon T+1 batch
+    - cron: "0 13  * * 2-6"  # Tue-Sat 08:00 ET (EST) — standard-time coverage
   workflow_dispatch: {}
 
 jobs:
