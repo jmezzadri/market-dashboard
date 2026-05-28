@@ -176,7 +176,18 @@ export default function useIndicators() {
         typeLabel,               // 'LEAD' | 'COINC' | 'LAG'
         // Indicator manifest id used by useFreshness lookups: matches
         // the manifest's `id` field (e.g., "indicator-vix-daily").
-        manifestId: `indicator-${id}-daily`,
+        // 2026-05-27 fix: was hardcoded "daily" for every indicator, which
+        // meant weekly/monthly/quarterly indicators (ANFCI, STLFSI, SLOOS,
+        // Bank Credit, JOLTS, CMDI, CPFF, Init Claims, etc.) never matched
+        // their manifest entries. The chip then rendered "—" for the Last
+        // Refresh time on every one of those rows. Now: pick the suffix from
+        // the indicator's actual frequency.
+        manifestId: `indicator-${id}-${
+          h.freq === 'W' ? 'weekly'
+          : h.freq === 'M' ? 'monthly'
+          : h.freq === 'Q' ? 'quarterly'
+          : 'daily'
+        }`,
         licenseTier: src.tier || 'free',
         sourceVendor: src.vendor,
         sourceEndpoint: src.endpoint,
