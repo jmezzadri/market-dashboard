@@ -129,7 +129,17 @@ function statusForElement(elementId, fallback) {
   //    pipeline_health is keyed only by short name — so resolve to the short
   //    name before reading pipeline_health.
   const manifestEl = getElement(elementId);
-  const phKey = manifestEl?.name || elementId;
+  // Try in order:
+  //   (a) manifest's name field (canonical),
+  //   (b) the short-name middle slug of an "indicator-XXX-cadence" elementId
+  //       (rescues rows where the manifest entry has the wrong cadence
+  //       suffix or isn't registered at all — e.g. tga, loan_syn 2026-05-27),
+  //   (c) the elementId itself (last resort).
+  const slugMatch = /^indicator-([a-z0-9_]+)-(daily|weekly|monthly|quarterly)$/i.exec(elementId);
+  const phKey =
+    manifestEl?.name
+    || (slugMatch && slugMatch[1])
+    || elementId;
 
   // 1. Pipeline-health row gives us last_good_at + last_error + label.
   const phRow = (cachedRows && cachedRows.get(phKey)) || null;
