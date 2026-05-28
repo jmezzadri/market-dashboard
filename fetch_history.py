@@ -467,6 +467,27 @@ def _fetch_treasury_year(series_kind, year, retries=3):
     return df
 
 
+def _warm_treasury_cache(series_kind, start_year, end_year, max_workers=8):
+    """Pre-fetch every (kind, year) CSV in parallel and populate the cache.
+    Without this, fetch_history.py spent ~10 minutes hitting Treasury.gov
+    year-by-year (21 years × ~25s worst case = 525s). With 8-way parallelism
+    the wall-clock collapses to ~5-15 seconds total."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    pending_years = [
+        y for y in range(start_year, end_year + 1)
+        if (series_kind, y) not in _TREASURY_YEAR_CACHE
+    ]
+    if not pending_years:
+        return
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(_fetch_treasury_year, series_kind, y): y for y in pending_years}
+        for fut in as_completed(futures):
+            try:
+                fut.result()
+            except Exception as e:
+                print(f"  Treasury.gov {series_kind} {futures[fut]} parallel fetch error: {e}")
+
+
 def safe_treasury(series_kind, tenor_label, start=START, retries=3):
     """Pull a daily Treasury yield curve series directly from Treasury.gov.
 
@@ -486,6 +507,10 @@ def safe_treasury(series_kind, tenor_label, start=START, retries=3):
     """
     start_year = int(start[:4])
     end_year = datetime.utcnow().year
+    # Warm the cache for every year in parallel before the sequential pass.
+    # First call for each (kind) pays the network cost once; subsequent tenor
+    # reads for the same kind read straight from cache.
+    _warm_treasury_cache(series_kind, start_year, end_year)
     frames = []
     last_err = None
     for year in range(start_year, end_year + 1):
