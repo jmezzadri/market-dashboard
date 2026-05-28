@@ -43,6 +43,7 @@ import PortfolioPage from './pages/PortfolioPage';
 import ScenariosPage from './pages/ScenariosPage';
 import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
+import PaperPage from './pages/PaperPage';
 import TickerPage from './pages/TickerPage';
 
 import AdminDataPage from './pages/AdminDataPage';
@@ -62,6 +63,7 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
+            <Route path="/paper" element={<PaperPage />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
