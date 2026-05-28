@@ -245,6 +245,56 @@ export default function AdminDataHealth() {
         <div style={{ padding: "40px 20px", color: MUTED, textAlign: "center" }}>Loading…</div>
       )}
 
+      {/* ─── Section 0: Daily rebalance schedule ────────────────────────
+          Joe directive 2026-05-27 — surface the new morning sequence here
+          (the admin operational view) instead of on the landing. The full
+          batch from Polygon doesn't land same-day; it arrives 2-8 AM ET the
+          next morning, so the rebalance pipeline runs Tue-Sat morning. */}
+      <Section
+        title="Daily rebalance schedule"
+        subtitle="Tue–Sat morning · runs after Polygon's overnight batch"
+      >
+        <div style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 12, lineHeight: 1.55, maxWidth: 760 }}>
+          The full price batch from Polygon (which Massive ingests) doesn't
+          land same-day — it arrives between 2 AM and 8 AM ET the next
+          morning. So the rebalance pipeline runs in the morning, after
+          everything is fresh and before the 9:30 AM market open.
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <Th>When (ET)</Th>
+                <Th>Job</Th>
+                <Th>What it does</Th>
+                <Th>Triggers off</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["8:00 AM", "Massive", "Pulls Polygon's full overnight batch (~12,200 tickers).", "Schedule"],
+                ["8:15 AM", "Asset Tilt", "Recalculates the recommended allocation from today's indicators.", "Schedule"],
+                ["8:30 AM", "Trading Ops scanner", "Scans the universe on last night's close, writes the signal table.", "Schedule + Massive completion"],
+                ["9:00 AM", "Paper Portfolio queue", "Queues the rebalance trades into Alpaca for the 9:30 open.", "Schedule + Scanner completion"],
+              ].map(([when, job, what, trig]) => (
+                <tr key={job} style={{ borderTop: "1px solid var(--border)" }}>
+                  <Td style={{ fontFamily: "monospace", fontWeight: 600, whiteSpace: "nowrap" }}>{when}</Td>
+                  <Td style={{ fontWeight: 600 }}>{job}</Td>
+                  <Td style={{ color: "var(--text-2)", lineHeight: 1.5 }}>{what}</Td>
+                  <Td style={{ color: MUTED, fontSize: 11, fontFamily: "monospace" }}>{trig}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: MUTED, lineHeight: 1.55 }}>
+          Each job is safe to re-run. Backup runs fire if any one job misses
+          its window. Same-day evening runs of Massive are kept as best-effort
+          scraps so dashboard tiles can show a rough close intra-evening; the
+          canonical "data complete" run is the 8 AM morning one.
+        </div>
+      </Section>
+
       {/* ─── Section 1: Vendor scorecard ─────────────────────────────── */}
       <Section
         title="Vendor scorecard"
