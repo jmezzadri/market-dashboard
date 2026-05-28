@@ -2,14 +2,23 @@
 
    Renders:
      - TweaksProvider (theme/accent/etc. persisted to localStorage)
-     - BrowserRouter with the 9 page routes from the brief
+     - BrowserRouter with the page routes from the brief
      - Sidebar (rail / collapsed-rail) + TopNav (top) chrome variants
      - PageHeader with date / search / freshness pill / theme / tweaks
      - TweaksPanel slide-over
 
    Activated by appending ?v=3 to any URL in the live app (legacy gate
    lives in src/App.jsx). When the overhaul is feature-complete, the
-   default render will flip to this shell. */
+   default render will flip to this shell.
+
+   2026-05-28 — Paper Portfolio + Admin · Bugs routes added. The sidebar
+   has linked /paper and /admin/bugs since the overhaul shell shipped,
+   but the router never had a /paper route (catchall sent users home)
+   and /admin/bugs was a stub placeholder. Both pages already exist on
+   disk (src/v2/pages/PaperPortfolioPage.jsx and src/AdminBugs.jsx) and
+   are wired in here verbatim. Legacy-bridge.css (added in PR #849) maps
+   the legacy theme tokens these components read to the overhaul theme
+   tokens, so dark/navy modes render correctly. */
 
 import React from 'react';
 import {
@@ -48,7 +57,13 @@ import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
-import Stub from './pages/_Stub';
+
+// Pages that live outside the overhaul folder. PaperPortfolioPage is the
+// v2 Alpaca paper-trading page; AdminBugs is the legacy admin triage
+// dashboard. Mounted here as-is — no redesign yet, but wired so the
+// existing sidebar links actually resolve.
+import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
+import AdminBugs from '../AdminBugs';
 
 function Shell() {
   return (
@@ -64,22 +79,13 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
+            <Route path="/paper" element={<PaperPortfolioPage />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
-            <Route
-              path="/admin/bugs"
-              element={
-                <Stub
-                  eyebrow="Admin · Bugs"
-                  title={{ before: 'Operational, ', after: '.' }}
-                  accent="not redesigned"
-                  deck="The bug-report tooling stays in the legacy admin shell for now."
-                />
-              }
-            />
+            <Route path="/admin/bugs" element={<AdminBugs />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
