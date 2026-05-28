@@ -40,8 +40,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
 import useMassiveTickerInfo from '../../hooks/useMassiveTickerInfo';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import { useTickerEvents } from '../../hooks/useTickerEvents';
-import { useUniverseSnapshot } from '../../hooks/useUniverseSnapshot';
+import { useTickerLatestSnapshot, useTickerEventsScoped } from '../../hooks/useTickerSinglePage';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
 import useV5ScanBatch from '../../hooks/useV5ScanBatch';
@@ -177,19 +176,24 @@ export default function TickerPage() {
   const sym = (symbol || '').toUpperCase();
   const navigate = useNavigate();
 
+  const [tab, setTab] = useState('score');
+  const [tf, setTf]   = useState('1Y');
+
+  // Price-history window expands on demand. The 1Y default loads in ~200ms;
+  // 5Y / Max only kick in when the user clicks those pills, on a separate
+  // refetch (the hook caches per-period).
+  const histPeriod = (tf === '5Y' || tf === 'Max') ? '5y' : '1y';
+
   const info = useMassiveTickerInfo(sym);
   const scanner = useTradingOppsTop(60);
-  const events = useTickerEvents({ daysBack: 90 });
-  const universe = useUniverseSnapshot();
+  const events = useTickerEventsScoped(sym, { daysBack: 90 });
+  const universe = useTickerLatestSnapshot(sym);
   const tech = useTickerTechnicalsLive(sym);
   const deep = useTickerDeepDive(sym);
   const v5Map = useV5ScanBatch([sym]);
   const earnings = useEarningsHistory(sym);
   const eod = useTickerEodPrice(sym);
-  const history = useTickerPriceHistory(sym, '5y');
-
-  const [tab, setTab] = useState('score');
-  const [tf, setTf]   = useState('1Y');
+  const history = useTickerPriceHistory(sym, histPeriod);
 
   // Overlay toggles
   const [overlay50, setOverlay50] = useState(false);
@@ -272,9 +276,10 @@ export default function TickerPage() {
     return out;
   }, [overlayEvents, earnings.quarters, deep.dividends, deep.splits, visibleStart, visibleEnd]);
 
-  // Compare ticker overlay — fetch SPY history once via the same hook and
-  // normalize both series to start at 100 on the first visible date.
-  const spy = useTickerPriceHistory(overlayCompare ? 'SPY' : null, '5y');
+  // Compare ticker overlay — fetch SPY history at the same window as the
+  // ticker. Only fired when the compare toggle is on (hook returns empty
+  // immediately for a null ticker).
+  const spy = useTickerPriceHistory(overlayCompare ? 'SPY' : null, histPeriod);
   const compareOverlay = useMemo(() => {
     if (!overlayCompare || slicedPrices.length === 0) return null;
     const visible = new Set(slicedPrices.map((p) => p.d));
