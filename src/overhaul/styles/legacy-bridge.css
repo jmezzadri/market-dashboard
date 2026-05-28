@@ -1,0 +1,100 @@
+/* ============================================================================
+   MacroTilt — legacy-bridge.css
+   Added 2026-05-27 for the Admin · Data / Admin · Bugs restoration.
+
+   PROBLEM:
+   The overhaul shell uses --mt-* tokens that flip via [data-mt-theme="dark"]
+   on <html>. The legacy AdminBugs / AdminDataHealth components (now mounted
+   inside the overhaul shell) read --text / --surface / --border tokens that
+   only flip via [data-theme="dark"] or the prefers-color-scheme media query.
+   When Joe toggled the overhaul to dark, the chrome went dark but the
+   embedded legacy components kept rendering with LIGHT tokens — white
+   panels in a dark page.
+
+   FIX:
+   Inside .mt-overhaul, bind the legacy tokens to the same data-mt-theme
+   attribute the overhaul already drives. Two scopes:
+     - dark / navy: dark legacy palette
+     - light (or unset): light legacy palette — explicitly, so a dark OS
+       can't sneak the legacy `prefers-color-scheme: dark` media query
+       through and break the LIGHT overhaul rendering.
+
+   The two ancestor selectors give specificity (0,2,0), which beats the
+   legacy theme.css's `:root[data-theme="dark"]` (0,1,1). Load order also
+   helps — this file imports AFTER theme.css per main.jsx → tokens.css
+   → chrome.css → ... → legacy-bridge.css.
+   ========================================================================= */
+
+/* ── Default / LIGHT theme inside overhaul shell ───────────────────────── */
+.mt-overhaul,
+[data-mt-theme='light'] .mt-overhaul {
+  --surface:       #ffffff;
+  --surface-2:     #f4f5f7;
+  --surface-3:     rgba(0,113,227,0.04);
+  --surface-solid: #ffffff;
+  --hover:         rgba(0,0,0,0.04);
+
+  --border:        rgba(14,17,21,0.10);
+  --border-strong: rgba(14,17,21,0.18);
+  --border-faint:  rgba(14,17,21,0.06);
+
+  --text:          #0e1115;
+  --text-2:        #2a2a2e;
+  --text-muted:    #5e5e63;
+  --text-dim:      #98989f;
+
+  --accent:        #0071e3;
+  --accent-soft:   rgba(0,113,227,0.10);
+  --link:          #0071e3;
+
+  --green:       #2f9d6a;
+  --red:         #c84658;
+  --green-text:  #1f7a4f;
+  --red-text:    #a82e3f;
+
+  --yellow:       #6b7a85;
+  --yellow-text:  #4a5765;
+  --orange:       #6b7a85;
+  --orange-text:  #4a5765;
+  --blue:         #0071e3;
+  --blue-text:    #0071e3;
+  --purple:       #5e5e63;
+  --purple-text:  #2a2a2e;
+}
+
+/* ── DARK + NAVY themes inside overhaul shell ──────────────────────────── */
+[data-mt-theme='dark'] .mt-overhaul,
+[data-mt-theme='navy'] .mt-overhaul {
+  --surface:       #16191e;
+  --surface-2:     #1c2027;
+  --surface-3:     rgba(255,255,255,0.04);
+  --surface-solid: #16191e;
+  --hover:         rgba(255,255,255,0.06);
+
+  --border:        rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --border-faint:  rgba(255,255,255,0.04);
+
+  --text:          #f5f5f7;
+  --text-2:        #d2d2d7;
+  --text-muted:    #98989f;
+  --text-dim:      #6e6e74;
+
+  --accent:        #0a84ff;
+  --accent-soft:   rgba(10,132,255,0.18);
+  --link:          #0a84ff;
+
+  --green:       #4ec18a;
+  --red:         #e07484;
+  --green-text:  #4ec18a;
+  --red-text:    #e07484;
+
+  --yellow:       #6e7a85;
+  --yellow-text:  #98a4b0;
+  --orange:       #6e7a85;
+  --orange-text:  #98a4b0;
+  --blue:         #0a84ff;
+  --blue-text:    #0a84ff;
+  --purple:       #98989f;
+  --purple-text:  #d2d2d7;
+}
