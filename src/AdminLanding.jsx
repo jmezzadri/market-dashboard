@@ -24,7 +24,7 @@
 // - The Data Health tile is visually distinct (slightly heavier border)
 //   so it reads as the cross-cutting destination, not "another vendor."
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useDataHealth, VENDOR_MONTHLY_COST } from "./hooks/useDataHealth";
 
@@ -201,6 +201,100 @@ export default function AdminLanding() {
           Three destinations: the two paid vendors that account for most of the data on the site, and a cross-cutting view of every feed.
         </p>
       </header>
+
+      {/* Daily rebalance schedule — Joe directive 2026-05-27.
+          Surfaces the four jobs that run in sequence Tue-Sat morning so the
+          Paper Portfolio queue lands BEFORE the 9:30 AM open. Plain English,
+          no internal workflow names — those live in the GitHub repo. */}
+      <section style={{
+        marginBottom: 18,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: "14px 18px",
+        background: "var(--surface)",
+      }}>
+        <div style={{
+          fontSize: 11, color: MUTED, fontFamily: "monospace",
+          letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6,
+        }}>
+          Daily rebalance schedule
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 10, lineHeight: 1.55 }}>
+          The full price batch from Polygon (which Massive ingests) doesn't
+          land same-day — it arrives between 2&thinsp;AM and 8&thinsp;AM ET the
+          next morning. So the rebalance pipeline runs in the morning, after
+          everything is fresh and before the 9:30&thinsp;AM open.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 14, fontSize: 13 }}>
+          {[
+            ["8:00 AM ET", "Massive pulls Polygon's full overnight batch."],
+            ["8:15 AM ET", "Asset Tilt recalculates the allocation."],
+            ["8:30 AM ET", "Trading Ops scans the universe on last night's close."],
+            ["9:00 AM ET", "Paper Portfolio queues trades into Alpaca for the 9:30 open."],
+          ].map(([time, what]) => (
+            <React.Fragment key={time}>
+              <div className="num" style={{ color: "var(--text)", fontWeight: 600 }}>{time}</div>
+              <div style={{ color: "var(--text-2)" }}>{what}</div>
+            </React.Fragment>
+          ))}
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: MUTED }}>
+          Runs Tue–Sat (the morning after each weekday close). Each job is
+          safe to re-run; backups fire if any one job misses.
+        </div>
+      </section>
+
+      {/* Free public data sources — Joe directive 2026-05-27.
+          The two paid vendor tiles above don't show the full picture; most
+          of the macro indicator family runs on free public feeds. Treasury.gov
+          was added 2026-05-27 to replace FRED for the daily yield indicators
+          (10Y-2Y slope, 10Y TIPS, 10Y breakeven) because Treasury.gov is the
+          upstream publisher and posts same-day — FRED posts T+1. */}
+      <section style={{
+        marginBottom: 18,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: "14px 18px",
+        background: "var(--surface)",
+      }}>
+        <div style={{
+          fontSize: 11, color: MUTED, fontFamily: "monospace",
+          letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6,
+        }}>
+          Free public data sources
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 10, lineHeight: 1.55 }}>
+          In addition to the two paid vendors above, the site reads from{" "}
+          <b style={{ color: "var(--text)" }}>nine free public feeds</b>. They
+          carry the macro indicator family — rates, spreads, credit, claims,
+          M2, the dollar index, VIX/MOVE/SKEW, and so on.
+        </div>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          rowGap: 6, columnGap: 18, fontSize: 13,
+        }}>
+          {[
+            ["U.S. Treasury", "Daily Treasury yields and TIPS yields (10Y-2Y slope, 10Y TIPS real rate, 10Y inflation breakeven). Same-day publication."],
+            ["FRED (St. Louis Fed)", "Most macro series — jobless claims, M2, balance sheet, term premium, RRP, SLOOS, etc. T+1 publication."],
+            ["Yahoo Finance", "VIX, MOVE, SKEW, dollar index, copper/gold ratio. Same-day."],
+            ["ICE BofA (via FRED)", "HY and IG credit spreads. T+1."],
+            ["CBOE / Yahoo mirror", "Equity volatility indices."],
+            ["ISM", "Manufacturing and Services PMI. Monthly."],
+            ["FDIC Call Reports", "Bank balance-sheet unrealized losses. Quarterly."],
+            ["Shiller (Yale)", "CAPE ratio. Monthly."],
+            ["GitHub roster", "Members of Congress, used by the congress-trades drill."],
+          ].map(([name, body]) => (
+            <div key={name} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{name}</span>
+              <span style={{ color: "var(--text-2)", lineHeight: 1.5 }}>{body}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: MUTED }}>
+          For the per-feed freshness state across all paid + free sources, open the Data Health tile below.
+        </div>
+      </section>
 
       {loading && (
         <div style={{ padding: "12px 14px", color: MUTED, fontSize: 12, marginBottom: 12 }}>Loading pipeline health…</div>
