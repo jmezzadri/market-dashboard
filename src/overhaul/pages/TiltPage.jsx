@@ -289,10 +289,7 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
-                {stressHist.length === 0 && (
-                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
-                )}
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -371,10 +368,7 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
-                {yieldHist.length === 0 && (
-                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
-                )}
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -527,10 +521,7 @@ export default function TiltPage() {
           <div>
             <div className="mt-eyebrow">Regime history · 24 weeks</div>
             <div className="mt-h2">
-              When the engine moved.{' '}
-              {weeklyTail24.length === 0 && (
-                {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
-              )}
+              When the engine moved.
             </div>
           </div>
         </div>
