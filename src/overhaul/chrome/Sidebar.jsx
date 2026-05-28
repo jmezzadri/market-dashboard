@@ -17,10 +17,7 @@ const NAV = [
   { to: '/tilt', label: 'Asset Tilt', icon: 'tilt' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
   { to: '/portfolio', label: 'Portfolio insights', icon: 'portfolio' },
-  /* Paper Portfolio hasn't been ported to the new shell yet — link out to
-     the legacy app's paper tab so the page is reachable from the new nav.
-     Drop the v=2 once the new-shell port lands. */
-  { external: '/?v=2#paper', label: 'Paper Portfolio', icon: 'portfolio' },
+  { to: '/paper', label: 'Paper Portfolio', icon: 'portfolio' },
   { to: '/scenarios', label: 'Scenario analysis', icon: 'scenarios' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },
   { to: '/methodology', label: 'Methodology', icon: 'methodology' },
