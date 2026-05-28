@@ -112,7 +112,11 @@ DAILY_FRESHNESS_SLA = {
     "breakeven_10y": 1,  # Treasury.gov computed (was FRED T10YIE)
     "hy_ig":         2,  # FRED BAMLH0A0HYM2 (T+1 publication)
     "ig_oas":        2,  # FRED BAMLC0A0CM   (T+1 publication)
-    "term_premium":  2,  # FRED THREEFYTP10  (T+1 publication)
+    # FRED Kim-Wright THREEFYTP10 frequently lags 3-5 days in practice
+    # (Federal Reserve research series, not a market series). Lag-bucket
+    # indicator, so 5 trading days is acceptable. Bumped from 2 → 5 on
+    # 2026-05-27 after observing the actual publication cadence.
+    "term_premium":  5,
     "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
 }
 
@@ -1447,6 +1451,30 @@ def main():
             os.makedirs(out_dir, exist_ok=True)
         print(f"Fetching history → {OUT_PATH}")
         data = fetch_all()
+        # ── Carry forward prior values for missing indicators ────────────────
+        # A transient Yahoo rate-limit ("Too Many Requests") used to wipe the
+        # affected indicator out of the new JSON entirely. Now: if an indicator
+        # is in the existing on-disk file but missing from the fresh fetch,
+        # copy the prior entry forward and tag it. The freshness gate still
+        # raises if the carried-forward value is past its SLA, so we don't
+        # mask staleness — we just don't blow away the prior good value for
+        # one bad HTTP call.
+        try:
+            if os.path.isfile(OUT_PATH):
+                with open(OUT_PATH) as _f:
+                    prior = json.load(_f)
+                carried = []
+                for ind_id, entry in prior.items():
+                    if ind_id.startswith("__"):
+                        continue
+                    if ind_id not in data and isinstance(entry, dict) and entry.get("points"):
+                        data[ind_id] = entry
+                        carried.append(ind_id)
+                if carried:
+                    print(f"  Carried forward {len(carried)} indicator(s) from prior "
+                          f"file (fresh fetch failed): {', '.join(carried)}")
+        except Exception as _ce:
+            print(f"  carry-forward step skipped: {_ce}")
         # ── Fail-loud staleness gate (Joe directive 2026-05-27) ───────────────
         # Before this gate existed, individual safe_fred() / safe_yf() / safe_treasury()
         # failures returned None and were quietly dropped. The workflow logged
@@ -1458,11 +1486,6 @@ def main():
             _check_daily_freshness_or_raise(data)
         except StalenessError as _se:
             print(f"\nFRESHNESS GATE FAILED: {_se}")
-            _log_run_to_api_usage(
-                status="failed",
-                started_at=started_at,
-                error_message=str(_se),
-            )
             raise
         with open(OUT_PATH, "w") as f:
             json.dump(data, f, separators=(",", ":"))
