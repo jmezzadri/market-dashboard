@@ -193,17 +193,11 @@ export default function TiltPage() {
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Asset Tilt · today's call</div>
+          <div className="mt-eyebrow">Asset Tilt</div>
           <h1 className="mt-h1">
-            <span className="at-headalloc">
-              <span><span className="num">{fmtPercent(equityPct, 0)}</span><i>% equity</i></span>
-              <span className="at-headalloc-sep">·</span>
-              <span className="at-headalloc--dim"><span className="num">{fmtPercent(defPct, 0)}</span><i>% defensive</i></span>
-            </span>
+            A <i>back-tested</i> asset allocation tool that seeks to beat
+            the S&amp;P 500 on a risk-adjusted basis over the long run.
           </h1>
-          <div className="at-regimetag">
-            {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime
-          </div>
         </div>
         <div className="at-keystats at-keystats--compact">
           <div className="mt-eyebrow">Backtest · {validatedRange}</div>
