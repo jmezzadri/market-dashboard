@@ -61,11 +61,10 @@ export default function PageHeader() {
         <span className="mt-headmeta-sep" />
         <span><b>{today.split(', ')[0]}</b>, {today.split(', ').slice(1).join(', ')}</span>
       </div>
-      <div className="mt-search" role="search" aria-label="Search">
-        <span aria-hidden>⌕</span>
-        <span>Search tickers, indicators, scenarios…</span>
-        <kbd>⌘K</kbd>
-      </div>
+      {/* Header search removed 2026-05-27 — the prior static
+          "Search tickers, indicators, scenarios…" pill was unwired chrome
+          ported from the prototype. If a real command palette is ever
+          built, mount it here. */}
       <div className="mt-headstatus">
         {/* Freshness pill rolls up the universe pipeline — when all
             ingest pipelines are green, this reads "All feeds healthy".
