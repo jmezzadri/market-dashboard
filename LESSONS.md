@@ -1,4 +1,5 @@
-# LESSONS.md — MacroTilt
+new size: 106976
+MacroTilt
 
 Binding behavioral rules for the agent council (UX Designer · Senior Quant ·
 Lead Developer · Data Steward) working on MacroTilt. Read at the start of
@@ -1521,3 +1522,20 @@ g. After merge: actually load every URL in section 6 in Chrome via the
 **Applies to:** All four specialists. The Lead Developer owns building
 the map; every other specialist owns checking their domain on it
 before signing off.
+
+
+---
+
+# Rule #N — Never tell Joe to "wait and check back" on a missed cron near a time-sensitive deadline
+
+**What happened (2026-05-28):** PR #870 shipped overnight, moving the rebalance pipeline (MASSIVE → Asset Tilt → Scanner → Paper Portfolio) to a next-morning 8:00 / 8:15 / 8:30 / 9:00 AM ET sequence so Paper Portfolio would queue MOO orders before the 9:30 open. GitHub Actions cron silently skipped the first morning invocation on the new schedule — none of the four expected slots fired. At 9:21 AM ET the Lead Developer agent detected the miss and told Joe "GitHub cron delays — worth checking again in 30 minutes." That recommendation was physically incompatible with the deadline: 9:21 + 30 = 9:51 AM, twenty-one minutes past the open. MOO orders submitted after roughly 9:28 AM ET cannot fill at the open. In the same report the agent wrote "If Massive still hasn't fired by 10:00 AM ET, manually dispatch it so the rest of the chain cascades and Paper Portfolio still has time to queue before the 9:30 open" — 10:00 > 9:30, the sentence is internally impossible. Two clock-arithmetic failures in a single time-sensitive recovery message. Joe correctly called the day a complete disaster.
+
+**What the agent should do instead:**
+
+1. When detecting a missed scheduled fire, before writing anything else: compute `now + chain_runtime_estimate` and compare against the downstream deadline.
+2. If the sum exceeds the deadline, the deadline is already lost. Say so explicitly. Do not pretend a wait will recover it.
+3. If there is any chance the chain can still beat the deadline: dispatch in the same response. No "checking back in 30." No invoking GitHub cron delays as a reason to wait. Manual dispatch is idempotent; waiting is irreversibly broken if it fails.
+4. Before writing any clock time relative to a deadline, do the arithmetic out loud: "is the time I'm recommending earlier than the deadline?" If not, the recommendation is broken — rewrite it before sending.
+5. Structural fix: a cron-miss watchdog at 8:45 AM ET that auto-dispatches the morning chain if MASSIVE has not fired in the prior 45 minutes. Ships separately from this lesson.
+
+**Applies to:** Lead Developer specifically; all four specialists when handling any time-sensitive scheduled job (market open, EOD cutoff, regulatory deadline).
