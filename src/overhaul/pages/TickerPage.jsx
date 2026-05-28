@@ -565,8 +565,12 @@ export default function TickerPage() {
 /* ---------- helpers ---------- */
 
 /* Dedupe stuttered names like "SPDR Gold Trust, SPDR Gold Shares" → "SPDR Gold
-   Trust". Splits on comma / "; " and drops any segment whose token set is a
-   strict subset (or equal) to a previous one. Order-preserving. */
+   Trust". Polygon and other vendors sometimes return the legal-entity name and
+   the listing name comma-joined, and the two share a long prefix. We drop any
+   later segment whose token overlap with an earlier segment is high (≥ 50% of
+   either side) — that catches the SPDR case (SPDR + Gold appear in both, 2 of
+   3 tokens) without mangling unrelated multi-name strings like
+   "Berkshire Hathaway, Inc. Class B". Order-preserving. */
 function dedupeName(s) {
   if (!s) return s;
   const parts = String(s).split(/\s*[,;]\s*/).map((p) => p.trim()).filter(Boolean);
@@ -574,12 +578,13 @@ function dedupeName(s) {
   const kept = [];
   const seenTokenSets = [];
   for (const p of parts) {
-    const toks = new Set(p.toLowerCase().split(/\s+/).filter(Boolean));
+    const toks = new Set(p.toLowerCase().replace(/[.,]/g, '').split(/\s+/).filter(Boolean));
     const isDup = seenTokenSets.some((prev) => {
-      // Drop if every word in p is already in prev OR every word in prev is in p.
-      const pSubset = [...toks].every((t) => prev.has(t));
-      const prevSubset = [...prev].every((t) => toks.has(t));
-      return pSubset || prevSubset;
+      if (toks.size === 0 || prev.size === 0) return false;
+      let inter = 0;
+      for (const t of toks) if (prev.has(t)) inter++;
+      const ratio = inter / Math.min(toks.size, prev.size);
+      return ratio >= 0.5;
     });
     if (!isDup) {
       kept.push(p);
