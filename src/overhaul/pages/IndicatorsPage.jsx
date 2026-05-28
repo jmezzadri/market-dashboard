@@ -16,21 +16,13 @@
    - Table card uses .mt-tablecard class instead of inline styles.
    - al-row right-alignment uses .al-row--push utility instead of inline. */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 
-const LAYERS = ['All', 'Vol triggers', 'Cycle composite', 'Reference'];
 const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Money', 'Economy'];
-
-/* DESIGN CONFIG — the three named volatility-trigger indicators.
-   This is framework decision, not market data: MOVE / VIX / SKEW have been
-   the headline gauge inputs since the 2-axis engine shipped. No upstream
-   calibration file lists them as a set, so they live here as config.
-   Path-A exception #3: design copy, never goes stale. */
-const VOL_TRIGGER_IDS = new Set(['vix', 'move', 'skew']);
 
 function fmtNum(v, decimals = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -48,54 +40,14 @@ function fmtFreq(freq) {
   return freq || '—';
 }
 
-/* Pull the canonical set of cycle-composite indicator IDs from the
-   v11 methodology calibration file. tiles[].indicators[].id, uniqued.
-   On fetch failure we render an empty Set; the Cycle composite layer
-   pill simply yields zero rows and the count shows 0 — preferable to
-   silently using a stale hardcoded list. */
-function useCycleCompositeIds() {
-  const [ids, setIds] = useState(/** @type {Set<string>} */(new Set()));
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/methodology_calibration_v11.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((m) => {
-        if (cancelled || !m) return;
-        const tiles = Array.isArray(m.tiles) ? m.tiles : [];
-        const out = new Set();
-        for (const t of tiles) {
-          for (const ind of t.indicators || []) {
-            if (ind && ind.id) out.add(ind.id);
-          }
-        }
-        setIds(out);
-      })
-      .catch(() => {/* leave as empty set — UI degrades gracefully */});
-    return () => { cancelled = true; };
-  }, []);
-  return ids;
-}
-
 export default function IndicatorsPage() {
   const { active, loading } = useIndicators();
-  const cycleIds = useCycleCompositeIds();
-  const [layer, setLayer] = useState('All');
   const [domain, setDomain] = useState('All');
   const [sort, setSort] = useState({ key: 'state', dir: 'desc' });
   const [drill, setDrill] = useState(null);
 
-  // Removed 2026-05-27 per Joe directive: the right-side summary tile
-  // ("29 indicators · 1d ago" + VOL TRIGGERS / CYCLE COMPOSITE / REFERENCE
-  // counts) was confusing legacy clutter from the cycle-composite era and
-  // didn't carry useful information for a portfolio decision. Layer filter
-  // pills below still let the user slice by Vol triggers / Cycle composite /
-  // Reference if they want.
-
   const filtered = useMemo(() => {
     let rows = active;
-    if (layer === 'Vol triggers') rows = rows.filter((i) => VOL_TRIGGER_IDS.has(i.id));
-    else if (layer === 'Cycle composite') rows = rows.filter((i) => cycleIds.has(i.id));
-    else if (layer === 'Reference') rows = rows.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !cycleIds.has(i.id));
     if (domain !== 'All') rows = rows.filter((i) => i.domain === domain);
     // Sort
     const arr = [...rows];
@@ -116,7 +68,7 @@ export default function IndicatorsPage() {
       return String(av).localeCompare(String(bv)) * dir;
     });
     return arr;
-  }, [active, cycleIds, layer, domain, sort]);
+  }, [active, domain, sort]);
 
   function toggleSort(key) {
     setSort((p) => p.key === key ? { key, dir: p.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
@@ -144,21 +96,6 @@ export default function IndicatorsPage() {
       <section className="mt-pagesection mt-pagesection--tight">
         <div className="al-toolbar mt-card">
           <div className="al-row">
-            <div className="mt-eyebrow">Layer</div>
-            <div className="mt-pillgroup">
-              {LAYERS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  className={`mt-pill ${layer === l ? 'on' : ''}`}
-                  onClick={() => setLayer(l)}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="al-row">
             <div className="mt-eyebrow">Category</div>
             <div className="mt-pillgroup">
               {DOMAINS.map((d) => (
@@ -172,12 +109,6 @@ export default function IndicatorsPage() {
                 </button>
               ))}
             </div>
-          </div>
-          <div className="al-row al-row--push">
-            <button type="button" className="mt-btn">＋ Filter</button>
-            <button type="button" className="mt-btn">
-              ⚙ Columns <span className="num">—</span>
-            </button>
           </div>
         </div>
       </section>
@@ -233,7 +164,15 @@ export default function IndicatorsPage() {
                           </span>
                         </td>
                         <td>
-                          <FreshnessChip elementId={i.manifestId} variant="label" />
+                          {/* Anchor freshness to the data point actually plotted
+                              (i.asOf) — never let a pipeline_health run that ran
+                              later than the published file make a stale on-screen
+                              value look fresh. The user sees the file, not the cron. */}
+                          <FreshnessChip
+                            elementId={i.manifestId}
+                            fallback={{ asOfIso: i.asOf }}
+                            variant="label"
+                          />
                         </td>
                         <td className={`num al-current al-current--${i.state}`}>
                           {fmtNum(i.value, i.decimals ?? 2)}<span className="al-unit">{i.unit}</span>

@@ -94,10 +94,30 @@ export default function useIndicators() {
         tier: String(e.license_tier || '').toLowerCase().startsWith('paid')
           ? 'paid'
           : (e.license_tier || 'free'),
+        // The manifest is the single source of truth for how often a series
+        // refreshes. The frequency shown on the page and the freshness SLA
+        // both derive from this, NOT from the history file's freq field —
+        // those two had drifted (e.g. term_premium / Kim-Wright is a weekly
+        // Fed release but the history file marked it daily, and ig_oas was
+        // tagged monthly though it is a daily FRED series).
+        cadence: String(e.cadence || '').toLowerCase() || null,
+        // How the displayed series relates to the raw vendor feed.
+        sourcingMode: e.sourcing_mode || null,
       };
     });
     return out;
   }, [manifest]);
+
+  // Map a manifest cadence to the single-letter freq code the UI uses.
+  const cadenceToFreq = (cad) => {
+    switch (cad) {
+      case 'daily': return 'D';
+      case 'weekly': return 'W';
+      case 'monthly': return 'M';
+      case 'quarterly': return 'Q';
+      default: return null;
+    }
+  };
 
   const indicators = useMemo(() => {
     if (!hist) return [];
@@ -138,6 +158,9 @@ export default function useIndicators() {
       const state = stateFor(pct, direction);
       const familyId = meta[2];
       const src = sourceFor[id] || {};
+      // Manifest cadence wins for the displayed frequency + SLA lookup; the
+      // history file's freq is only a fallback for series not yet registered.
+      const freqCode = cadenceToFreq(src.cadence) || h.freq || meta[3] || '';
       const registryTier = Number(meta[3]) || 0; // 1=lead 2=coincident 3=lag
       const typeLabel = registryTier === 1 ? 'LEAD' : registryTier === 3 ? 'LAG' : 'COINC';
       // Prefer live-computed priors from the points array. Fall back to the
@@ -161,7 +184,7 @@ export default function useIndicators() {
         asOf: last?.[0] || h.as_of,
         points: h.points || [],
         stats: h.stats || {},
-        freq: h.freq || meta[3] || '',
+        freq: freqCode,
         pct,
         direction,
         state,
@@ -183,14 +206,15 @@ export default function useIndicators() {
         // Refresh time on every one of those rows. Now: pick the suffix from
         // the indicator's actual frequency.
         manifestId: `indicator-${id}-${
-          h.freq === 'W' ? 'weekly'
-          : h.freq === 'M' ? 'monthly'
-          : h.freq === 'Q' ? 'quarterly'
+          freqCode === 'W' ? 'weekly'
+          : freqCode === 'M' ? 'monthly'
+          : freqCode === 'Q' ? 'quarterly'
           : 'daily'
         }`,
         licenseTier: src.tier || 'free',
         sourceVendor: src.vendor,
         sourceEndpoint: src.endpoint,
+        sourcingMode: src.sourcingMode,
       });
     });
     return out;

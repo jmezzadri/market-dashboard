@@ -161,7 +161,16 @@ function statusForElement(elementId, fallback) {
   //      has never produced a successful run".
   //    Take the most recent signal for each so a frozen pipeline_health row
   //    cannot drag a genuinely-fresh data file stale. (Fix 2026-05-21.)
-  const dataDate = mostRecentIso(phRow?.data_as_of || null, fallback?.asOfIso || null);
+  // When a consumer tells us the as-of of the value it is actually rendering
+  // (fallback.asOfIso — e.g. the last point of the chart the user is looking
+  // at), THAT is authoritative for staleness. A pipeline_health row that
+  // recorded a later successful run than the data the page is showing must not
+  // make a stale on-screen value look fresh — the user sees the published
+  // file, not the cron log. (Joe 2026-05-28: freshness chips were green while
+  // the plotted series was days old because the chip trusted pipeline_health
+  // over the file.) When no consumer as-of is supplied, fall back to
+  // pipeline_health's data_as_of as before.
+  const dataDate = fallback?.asOfIso || phRow?.data_as_of || null;
   const lastGoodAt = phRow?.last_good_at || null;
   const lastError = phRow?.last_error || null;
 
