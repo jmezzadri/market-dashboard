@@ -1,29 +1,30 @@
 /* DataFlowPage — end-to-end data lineage dashboard.
 
-   Replaces the old vendor-per-page admin views with a single E2E surface
-   that shows every external source, every derived indicator bucket, every
-   modelled engine, every live surface, and every downstream workflow.
+   Single E2E surface that shows every external source, every derived
+   indicator bucket, every modelled engine, every live surface, and every
+   downstream workflow. Replaces the per-vendor admin views.
 
    Behaviour:
+     - Status dots on source tiles read from live pipeline_health via the
+       useDataHealth hook (60s cache + tab-focus refresh).
      - Click any tile -> draws full transitive upstream + downstream chain
        (BFS in both directions on the edge list below), dims unconnected
        tiles, paints SVG curves on the connector layer.
      - Click again or click empty space -> clears the lineage.
-     - Drawer below the flow shows detail for the selected tile. Currently
-       hard-wired to render the Asset Tilt Allocator (sector allocation)
-       detail — the next PR will branch on selectedId to swap drawer
-       contents per box.
+     - Drawer below renders rich content per tile from TILE_DETAILS.
+       Asset tilt allocator gets the special SectorAllocationDrawer that
+       breaks out the three input groups + static config.
 
-   Edges are derived from a live-code audit (see DATA_TEARDOWN_KICKOFF.md
-   and compute_v10_allocation.py). Sources are connected to the SPECIFIC
-   derived buckets they feed — not via a hub fan-out — so clicking ISM
-   only lights up the growth chain, not the entire cycle board.
+   Edges are derived from a live-code audit. Sources are connected to the
+   SPECIFIC derived buckets they feed — not via a hub fan-out — so
+   clicking ISM only lights up the growth chain.
 
    Theming uses --mt-* tokens from tokens.css, so the page picks up the
    existing light / dark / navy themes via data-mt-theme on <html>.
 */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useDataHealth, VENDOR_MONTHLY_COST } from '../../hooks/useDataHealth';
 
 const EDGES = [
   // Sources -> Indicator History Compiler
@@ -107,13 +108,13 @@ const COL1_EQUITY = [
 const COL1_MACRO = [
   { id: 'fred', name: 'FRED', cd: 'Daily · ~30 series' },
   { id: 'treasury', name: 'US Treasury', cd: 'Daily · 4 PM ET' },
-  { id: 'ism', name: 'ISM PMI release', cd: 'Monthly', manual: true, warn: true },
+  { id: 'ism', name: 'ISM PMI release', cd: 'Monthly', manual: true },
   { id: 'naaim', name: 'NAAIM exposure', cd: 'Weekly' },
   { id: 'gdpnow', name: 'Atlanta Fed GDPNow', cd: 'Bi-weekly' },
   { id: 'multpl', name: 'multpl.com CAPE', cd: 'Monthly' },
   { id: 'zh', name: 'ZeroHedge premium', cd: 'Weekly' },
   { id: 'congress', name: 'Congress roster', cd: 'Monthly' },
-  { id: 'fdic', name: 'FDIC HTM losses', cd: 'Quarterly', manual: true, warn: true },
+  { id: 'fdic', name: 'FDIC HTM losses', cd: 'Quarterly', manual: true },
   { id: 'broker', name: 'Broker CSV (Chase)', cd: 'Ad-hoc', manual: true },
 ];
 
@@ -157,8 +158,345 @@ const COL4_WORKFLOWS = [
   { id: 'commentary', name: 'News commentary', cd: 'Threshold-gated' },
 ];
 
+// ---------- Source tile -> canonical vendor (for live freshness lookup) ----------
+const VENDOR_BY_TILE = {
+  polygon:  'Polygon Massive',
+  uw:       'Unusual Whales',
+  yahoo:    'Yahoo Finance',
+  nasdaq:   'Nasdaq / FINRA',
+  spdr:     'State Street SPDR',
+  fred:     'FRED',
+  treasury: 'U.S. Treasury',
+  ism:      'ISM',
+  naaim:    null,
+  gdpnow:   'FRED',
+  multpl:   'Shiller dataset',
+  zh:       'ZeroHedge',
+  congress: 'GitHub public roster',
+  fdic:     'FDIC',
+  broker:   null,
+};
+
+// ---------- Per-tile drawer content ----------
+const TILE_DETAILS = {
+  // -- Sources --
+  polygon: {
+    role: 'source',
+    desc: 'End-of-day equity prices for ~12,600 US-listed tickers, plus ticker reference (name, SIC, sector, industry group), dividends, splits, sector ETF performance, and the master universe.',
+    consumers: {
+      engines: ['Trading opps scanner', 'Sector performance compute'],
+      surfaces: ['Trading ops (prices, day change, sector)', 'Portfolio insights (position marks)', 'Asset tilt (sector performance)'],
+      workflows: [],
+    },
+  },
+  uw: {
+    role: 'source',
+    desc: 'Per-ticker universe snapshot, insider trades, options flow alerts, dark-pool prints, per-contract EOD options, congress trades, analyst ratings, news event streams, earnings history.',
+    consumers: {
+      engines: ['Trading opps scanner', 'Dark-pool scoring layer', 'Options scoring layer'],
+      surfaces: ['Trading ops (composite scores)', 'Portfolio insights (option marks)', 'All indicators (IV rank, earnings)'],
+      workflows: [],
+    },
+  },
+  yahoo: {
+    role: 'source',
+    desc: 'Free market data for indices and macro-sensitive ETFs: ^MOVE, ^SKEW, GLD, SPY, KBE, HG=F (copper), GC=F (gold), HYG, LQD. Used for both macro signals and price fallback.',
+    consumers: {
+      engines: ['Indicator history compiler', '2-axis engine (MOVE)'],
+      surfaces: ['All indicators (MOVE, SKEW)', 'Macro overview (positioning + commodity)'],
+      workflows: [],
+    },
+  },
+  nasdaq: {
+    role: 'source',
+    desc: 'Bi-monthly settlement short-interest print, published via Nasdaq/FINRA. Feeds the short-interest sub-score on the Trading Opps scanner.',
+    consumers: {
+      engines: ['Trading opps scanner'],
+      surfaces: ['Trading ops (short interest column)'],
+      workflows: [],
+    },
+  },
+  spdr: {
+    role: 'source',
+    desc: 'SPY GICS sector weights from the SPDR holdings file. Used as the benchmark against which Asset Tilt computes vs-SPY deltas.',
+    consumers: {
+      engines: ['Asset tilt allocator'],
+      surfaces: ['Asset tilt (vs-SPY column)'],
+      workflows: [],
+    },
+  },
+  fred: {
+    role: 'source',
+    desc: '~30 macro series including HY/IG OAS, jobless claims, M2, balance sheet WALCL, term premium, RRP, SLOOS, and rate series (DGS10, DGS2, DFF, SOFR, CP yields).',
+    consumers: {
+      engines: ['Indicator history compiler', '2-axis engine (DGS10)'],
+      surfaces: ['Macro overview', 'All indicators', 'Methodology'],
+      workflows: [],
+    },
+  },
+  treasury: {
+    role: 'source',
+    desc: 'Daily par yields (1Mo–30Y nominal) and TIPS real yields from home.treasury.gov. Published same-day around 4 PM ET. Replaced FRED for same-day Treasury coverage in May 2026.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (yield curve)', 'All indicators (10Y, 2Y, breakevens)'],
+      workflows: [],
+    },
+  },
+  ism: {
+    role: 'source',
+    desc: 'Monthly Purchasing Managers Index release. Currently scraped from TradingEconomics. Feeds the Growth cycle mechanism — and only the Growth mechanism — despite being a high-attention release.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (Growth mechanism)', 'All indicators (ISM PMI)'],
+      workflows: [],
+    },
+  },
+  naaim: {
+    role: 'source',
+    desc: 'Weekly NAAIM Active-Manager Exposure Index — a positioning indicator scraped from naaim.org. Feeds the Positioning & Breadth mechanism.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (Positioning mechanism)', 'All indicators'],
+      workflows: [],
+    },
+  },
+  gdpnow: {
+    role: 'source',
+    desc: 'Atlanta Fed GDPNow nowcast, ingested via the FRED GDPNOW series. Refreshes bi-weekly when the Atlanta Fed publishes an update.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (Growth mechanism)', 'All indicators'],
+      workflows: [],
+    },
+  },
+  multpl: {
+    role: 'source',
+    desc: 'Shiller CAPE ratio, scraped monthly from multpl.com with a curated anchor fallback for missed scrapes. Feeds the Valuation mechanism and the Equity Risk Premium derived indicator.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (Valuation mechanism)', 'All indicators (CAPE, ERP)'],
+      workflows: [],
+    },
+  },
+  zh: {
+    role: 'source',
+    desc: 'ZeroHedge premium feed, cookie-authenticated. A weekly cookie health-check workflow emails Joe to refresh the cookie when it nears expiry.',
+    consumers: {
+      engines: [],
+      surfaces: ['Ticker detail (commentary)', 'Home (news strip)'],
+      workflows: ['News commentary'],
+    },
+  },
+  congress: {
+    role: 'source',
+    desc: 'Members of Congress roster JSON (unitedstates/congress-legislators on GitHub, CC0). Refreshes monthly with a PR on diff. Used to attach member names to congressional trade activity.',
+    consumers: {
+      engines: ['Trading opps scanner'],
+      surfaces: ['Trading ops (congress trades column)'],
+      workflows: [],
+    },
+  },
+  fdic: {
+    role: 'source',
+    desc: 'FDIC Quarterly Banking Profile — bank unrealized HTM losses. Manually updated quarterly via a curated anchor list because the underlying FDIC publication is PDF-based.',
+    consumers: {
+      engines: ['Indicator history compiler'],
+      surfaces: ['Macro overview (Credit mechanism)', 'All indicators (bank stress)'],
+      workflows: [],
+    },
+  },
+  broker: {
+    role: 'source',
+    desc: 'Chase J.P. Morgan transaction CSV uploads. Joe uploads broker statements ad-hoc to reconcile Portfolio Insights against the real account. Wash-sale handling matches broker-reported realized P&L.',
+    consumers: {
+      engines: [],
+      surfaces: ['Portfolio insights (positions, trade history, realized P&L)'],
+      workflows: [],
+    },
+  },
+
+  // -- Derived --
+  rates: {
+    role: 'derived',
+    desc: 'Six rates-and-curve derived indicators: 10Y-2Y slope, 10Y breakeven inflation, term premium, real Fed funds rate, 3-month Δ 10Y in bps, and 10Y yield 5-year percentile.',
+    consumers: {
+      engines: ['Cycle mechanism board (Funding mechanism)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  credit: {
+    role: 'derived',
+    desc: 'Six credit derived indicators: HY-IG spread, HY/IG ratio, HY/IG ETF proxy (HYG/LQD), commercial paper minus Fed funds spread, FRA-OIS modern proxy, and the CMDI distress proxy.',
+    consumers: {
+      engines: ['Cycle mechanism board (Credit mechanism)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  liquidity: {
+    role: 'derived',
+    desc: 'Four liquidity-and-money derived indicators: M2 year-over-year, Fed balance sheet year-over-year, three-year bank credit growth, and bank credit year-over-year.',
+    consumers: {
+      engines: ['Cycle mechanism board (Liquidity & Policy mechanism)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  growth: {
+    role: 'derived',
+    desc: 'Growth bucket: two derived indicators (CFNAI 3-month moving average, jobless claims 4-week moving average) plus the direct ISM Manufacturing and Services PMI prints and the Atlanta Fed GDPNow nowcast.',
+    consumers: {
+      engines: ['Cycle mechanism board (Growth mechanism)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  valuation: {
+    role: 'derived',
+    desc: 'Two valuation derived indicators: the Buffett indicator (corporate equities divided by GDP) and the Equity Risk Premium (1/CAPE minus 10Y yield).',
+    consumers: {
+      engines: ['Cycle mechanism board (Valuation mechanism)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  positioning: {
+    role: 'derived',
+    desc: 'Three positioning-and-volatility derived indicators: MOVE 5-year percentile, NAAIM exposure index, and 63-day rolling equity-credit correlation (SPY vs HYG).',
+    consumers: {
+      engines: ['Cycle mechanism board (Positioning & Breadth)', '2-axis engine (MOVE)', 'Cycle board (horizon-aware)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+  commodity: {
+    role: 'derived',
+    desc: 'Two commodity-and-sector derived indicators: Copper/Gold ratio (HG/GC × 100) and BKX/SPX (banks versus market).',
+    consumers: {
+      engines: ['Cycle mechanism board (growth signal)'],
+      surfaces: ['Macro overview', 'All indicators'],
+      workflows: [],
+    },
+  },
+
+  // -- Engines --
+  ihc: {
+    role: 'engine',
+    desc: 'Indicator History Compiler. Pulls all macro sources nightly and twice daily, derives every indicator above, and writes the consolidated indicator_history.json that the rest of the engine and surface chain reads from.',
+    owner: 'Senior Quant + Lead Dev',
+    output: 'indicator_history.json',
+    consumers: {
+      engines: ['Cycle mechanism board', 'Cycle board (horizon-aware)', '2-axis engine'],
+      surfaces: ['All indicators (36-indicator grid)', 'Methodology'],
+      workflows: [],
+    },
+  },
+  v11: {
+    role: 'engine',
+    desc: 'The Cycle Mechanism Board. Scores six macro mechanisms 0–100 each via direction-corrected percentile averaging of their constituent indicators. The six are Valuation, Credit, Funding, Growth, Liquidity & Policy, and Positioning & Breadth.',
+    owner: 'Senior Quant',
+    output: 'cycle_board_snapshot.json',
+    consumers: {
+      engines: ['Asset tilt allocator'],
+      surfaces: ['Macro overview (the anchor)', 'Home (cycle tile)', 'Methodology'],
+      workflows: [],
+    },
+  },
+  cv2: {
+    role: 'engine',
+    desc: 'Horizon-aware variant of the cycle board. Computes per-indicator Spearman information coefficients against SPY forward returns at 1, 3, 6, and 12-month horizons; produces seven sub-composites and three headline gauges (Cycle & Value, Market Stress, Real Economy).',
+    owner: 'Senior Quant',
+    output: 'cycle_v2.json',
+    consumers: {
+      engines: [],
+      surfaces: ['Macro overview (horizon panel)', 'All indicators (sub-composites)'],
+      workflows: [],
+    },
+  },
+  twoaxis: {
+    role: 'engine',
+    desc: 'MacroTilt 2-axis engine. Axis 1 (Stress) reads MOVE trailing 5-year percentile and maps to Risk On / Watch / Risk Off bands and equity allocation 100% / 80% / 50%. Axis 2 (Yield Direction) reads the 3-month Δ 10Y 5-year percentile and maps to Inflationary / Neutral / Deflationary defensive sleeves.',
+    owner: 'Senior Quant',
+    output: 'macrotilt_engine.json',
+    consumers: {
+      engines: ['Asset tilt allocator'],
+      surfaces: ['Macro overview (stress band)', 'Asset tilt (equity / defensive split)'],
+      workflows: [],
+    },
+  },
+  asset_tilt: { role: 'engine', special: 'sector_allocation' },
+  scanner: {
+    role: 'engine',
+    desc: 'Trading Opportunities scanner. Per-ticker MacroTilt Score in [-100, +100] built from six weighted sub-scores: insider, options flow, congress, technicals, analyst, short interest. Assigns one of five bands: Strong Sell, Watch Sell, Neutral, Watch Buy, Strong Buy.',
+    owner: 'Senior Quant + Lead Dev',
+    output: 'signal_intel_v5_daily',
+    consumers: {
+      engines: [],
+      surfaces: ['Trading ops (named tickers)', 'Home (top opps tile)', 'Methodology (scoring framework)'],
+      workflows: ['Alpaca paper queue (Sleeve B)'],
+    },
+  },
+  stress: {
+    role: 'engine',
+    desc: 'Scenario Stress engine. Translates Fed CCAR US-16 variables to the v9 factor panel and runs eight historical CCAR-anchored scenarios to project stressed allocations.',
+    owner: 'Senior Quant',
+    output: 'scenario_allocations.json',
+    consumers: {
+      engines: [],
+      surfaces: ['Scenario analysis'],
+      workflows: [],
+    },
+  },
+  sectorperf: {
+    role: 'engine',
+    desc: 'Sector Performance Compute. 1-month, 3-month, and trailing-twelve-month return plus TTM volatility for each of the 11 GICS sector ETFs.',
+    owner: 'Lead Dev',
+    output: 'sector_perf.json',
+    consumers: {
+      engines: [],
+      surfaces: ['Asset tilt (sector performance column)', 'All indicators (sector grid)'],
+      workflows: [],
+    },
+  },
+
+  // -- Surfaces --
+  home: { role: 'surface', desc: 'Landing tile dashboard. Summarises the regime, the asset tilt, the top trading opportunities, and any urgent freshness alerts on a single screen.' },
+  overview: { role: 'surface', desc: 'Macro Overview page. Anchored on the Cycle Mechanism Board — six mechanism scores, the stress band, the yield direction band, and the regime label.' },
+  allocation: { role: 'surface', desc: 'Asset Tilt page. Live sector allocation (11 sectors + 25 industry groups), the defensive sleeve, the page stance, and the vs-SPY deltas.' },
+  ops: { role: 'surface', desc: 'Trading Opportunities page. Filterable grid of every scanner-scored ticker with MacroTilt Score, band, sub-scores, and named drivers.' },
+  insights: { role: 'surface', desc: "Portfolio Insights page. Joe's real positions, watchlist, trade history, accounts, and realized P&L — reconciled to broker statements." },
+  paper: { role: 'surface', desc: 'Paper Portfolio page. Alpaca-mirrored paper account: $1M total with two sleeves. NAV, fills, and positions update on the morning open and EOD chains.' },
+  scenarios: { role: 'surface', desc: 'Scenario Analysis page. CCAR-anchored historical stress scenarios plus a bespoke shock builder; projects allocation drift under stressed factor moves.' },
+  indicators: { role: 'surface', desc: 'All Indicators page. Full 36-indicator grid with per-indicator percentile, history, and drill-down panels.' },
+  methodology: { role: 'surface', desc: "Methodology page. Documents every engine's framework, calibration tables, formulae, and back-test results. Updated in the same PR as any model change." },
+
+  // -- Workflows --
+  alpaca: {
+    role: 'workflow',
+    desc: 'Paper-portfolio EOD and Open jobs. EOD translates the Asset Tilt allocation and the Trading Opps scanner output into pending paper orders and submits them market-on-open to Alpaca; the morning Open job mirrors fills back to Supabase.',
+    consumers: { engines: [], surfaces: ['Paper portfolio'], workflows: [] },
+  },
+  alerts: {
+    role: 'workflow',
+    desc: 'Resend-powered email alerts for workflow failures, daily home smoke tests, pipeline freshness watchdog, and bug-triage events.',
+    consumers: { engines: [], surfaces: [], workflows: [] },
+  },
+  triage: {
+    role: 'workflow',
+    desc: 'Bug triage email loop. Resend acknowledgement on file → 36-hour nudge on stale bugs → one-tap APPROVE email that auto-merges the triage PR via the GitHub API.',
+    consumers: { engines: [], surfaces: ['Admin · Bugs'], workflows: [] },
+  },
+  commentary: {
+    role: 'workflow',
+    desc: 'Threshold-gated editorial commentary generator. Pulls ZeroHedge premium articles, runs a Claude call when relevant tickers cross a salience threshold, and writes blurbs to the Ticker Detail commentary section.',
+    consumers: { engines: [], surfaces: ['Ticker detail', 'Home (news strip)'], workflows: [] },
+  },
+};
+
 // ---------- Tile component ----------
-function Tile({ tile, role, selected, lit, dim, onClick }) {
+function Tile({ tile, role, selected, lit, dim, status, onClick }) {
   const cls = [
     'df-tile',
     `df-tile--${role}`,
@@ -167,6 +505,7 @@ function Tile({ tile, role, selected, lit, dim, onClick }) {
     lit ? 'df-tile--lit' : '',
     dim ? 'df-tile--dim' : '',
   ].filter(Boolean).join(' ');
+  const dotCls = `df-dot df-dot--${status || 'g'}`;
   return (
     <button
       type="button"
@@ -174,20 +513,20 @@ function Tile({ tile, role, selected, lit, dim, onClick }) {
       onClick={(e) => { e.stopPropagation(); onClick(tile.id); }}
       data-id={tile.id}
     >
-      <span className={`df-dot ${tile.warn ? 'df-dot--warn' : ''}`} aria-hidden />
+      <span className={dotCls} aria-hidden />
       <span className="df-tile-name">{tile.name}</span>
       <span className="df-tile-cd">{tile.cd}</span>
     </button>
   );
 }
 
-// ---------- Sector allocation drawer (default content) ----------
+// ---------- Sector allocation drawer (special-case for asset_tilt) ----------
 function SectorAllocationDrawer() {
   return (
     <div className="df-drawer">
       <div className="df-drawer-head">
         <h3>
-          <span className="df-dot df-dot--inline" aria-hidden />
+          <span className="df-dot df-dot--inline df-dot--g" aria-hidden />
           Asset tilt allocator · sector allocation
         </h3>
       </div>
@@ -202,7 +541,7 @@ function SectorAllocationDrawer() {
       <div className="df-meta">
         <div><div className="df-meta-k">Type</div><div className="df-meta-v">Modelled engine</div></div>
         <div><div className="df-meta-k">Cadence</div><div className="df-meta-v">Daily · 8:15 AM ET</div></div>
-        <div><div className="df-meta-k">Last run</div><div className="df-meta-v">Today · 8:15 AM ET</div></div>
+        <div><div className="df-meta-k">Output</div><div className="df-meta-v">v10_allocation.json</div></div>
         <div><div className="df-meta-k">Owner</div><div className="df-meta-v">Senior Quant + Lead Dev</div></div>
       </div>
 
@@ -275,22 +614,87 @@ function SectorAllocationDrawer() {
   );
 }
 
-// ---------- Generic drawer placeholder for non-asset-tilt tiles ----------
-function GenericDrawer({ name }) {
+// ---------- Generic per-tile drawer (TILE_DETAILS-driven) ----------
+function TileDetailDrawer({ tileId, tileById, status }) {
+  const details = TILE_DETAILS[tileId];
+  const tile = tileById[tileId];
+  if (!details || !tile) return null;
+
+  const roleLabel = {
+    source: 'External source',
+    derived: 'Derived indicator bucket',
+    engine: 'Modelled engine',
+    surface: 'Live surface',
+    workflow: 'Downstream workflow',
+  }[details.role] || 'Element';
+
+  const consumers = details.consumers || { engines: [], surfaces: [], workflows: [] };
+  const vendor = details.role === 'source' ? VENDOR_BY_TILE[tileId] : null;
+  const cost = vendor ? VENDOR_MONTHLY_COST[vendor] : null;
+
+  const dotCls = `df-dot df-dot--inline df-dot--${status || 'g'}`;
+
   return (
     <div className="df-drawer">
       <div className="df-drawer-head">
         <h3>
-          <span className="df-dot df-dot--inline" aria-hidden />
-          {name}
+          <span className={dotCls} aria-hidden />
+          {tile.name}
         </h3>
       </div>
-      <p className="df-drawer-desc" style={{ fontStyle: 'italic' }}>
-        Detailed drawer for this element ships in the next PR. The lineage above already reflects this
-        element's accurate upstream and downstream chain.
-      </p>
+      <p className="df-drawer-desc">{details.desc}</p>
+
+      <div className="df-meta">
+        <div><div className="df-meta-k">Type</div><div className="df-meta-v">{roleLabel}</div></div>
+        <div><div className="df-meta-k">Cadence</div><div className="df-meta-v">{tile.cd}</div></div>
+        {vendor && <div><div className="df-meta-k">Vendor</div><div className="df-meta-v">{vendor}</div></div>}
+        {cost && <div><div className="df-meta-k">Monthly cost</div><div className="df-meta-v">{cost}</div></div>}
+        {details.owner && <div><div className="df-meta-k">Owner</div><div className="df-meta-v">{details.owner}</div></div>}
+        {details.output && <div><div className="df-meta-k">Output</div><div className="df-meta-v">{details.output}</div></div>}
+        {tile.manual && <div><div className="df-meta-k">Ingest</div><div className="df-meta-v">Manual upload</div></div>}
+      </div>
+
+      {(consumers.engines.length + consumers.surfaces.length + consumers.workflows.length) > 0 && (
+        <div className="df-block">
+          <div className="df-block-h">Downstream consumers</div>
+          <div className="df-grp">
+            <div>
+              <div className="df-grp-h">Engines</div>
+              <ul>
+                {consumers.engines.length === 0
+                  ? <li className="df-grp-empty">None</li>
+                  : consumers.engines.map((c) => <li key={c}>{c}</li>)}
+              </ul>
+            </div>
+            <div>
+              <div className="df-grp-h">Live surfaces</div>
+              <ul>
+                {consumers.surfaces.length === 0
+                  ? <li className="df-grp-empty">None</li>
+                  : consumers.surfaces.map((c) => <li key={c}>{c}</li>)}
+              </ul>
+            </div>
+            <div>
+              <div className="df-grp-h">Downstream workflows</div>
+              <ul>
+                {consumers.workflows.length === 0
+                  ? <li className="df-grp-empty">None</li>
+                  : consumers.workflows.map((c) => <li key={c}>{c}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// ---------- Status lookup helpers ----------
+function statusForVendorRollup(rollup) {
+  if (!rollup) return 'g';
+  if (rollup.red > 0) return 'r';
+  if (rollup.amber > 0) return 'a';
+  return 'g';
 }
 
 // ---------- Main page ----------
@@ -299,11 +703,33 @@ export default function DataFlowPage() {
   const flowRef = useRef(null);
   const svgRef = useRef(null);
 
-  const allTiles = [
+  // Live vendor freshness (60s cache, focus refresh)
+  const { byVendor } = useDataHealth();
+
+  const allTiles = useMemo(() => [
     ...COL1_EQUITY, ...COL1_MACRO, ...COL2_DERIVED,
     ...COL3_ENGINES, ...COL4_SURFACES, ...COL4_WORKFLOWS,
-  ];
-  const tileById = Object.fromEntries(allTiles.map((t) => [t.id, t]));
+  ], []);
+  const tileById = useMemo(
+    () => Object.fromEntries(allTiles.map((t) => [t.id, t])),
+    [allTiles],
+  );
+
+  // Resolve per-tile status from live data
+  const statusByTile = useMemo(() => {
+    const out = {};
+    allTiles.forEach((t) => {
+      const vendor = VENDOR_BY_TILE[t.id];
+      if (vendor && byVendor && byVendor.get(vendor)) {
+        out[t.id] = statusForVendorRollup(byVendor.get(vendor));
+      } else if (t.manual) {
+        out[t.id] = 'a'; // manual sources default to amber to flag attention
+      } else {
+        out[t.id] = 'g';
+      }
+    });
+    return out;
+  }, [allTiles, byVendor]);
 
   const drawLineage = useCallback((id) => {
     const svg = svgRef.current;
@@ -370,9 +796,16 @@ export default function DataFlowPage() {
       selected={selectedId === tile.id}
       lit={litSet.has(tile.id)}
       dim={dimSet.has(tile.id)}
+      status={statusByTile[tile.id]}
       onClick={handleTileClick}
     />
   );
+
+  const drawerForSelection = () => {
+    if (!selectedId) return null;
+    if (selectedId === 'asset_tilt') return <SectorAllocationDrawer />;
+    return <TileDetailDrawer tileId={selectedId} tileById={tileById} status={statusByTile[selectedId]} />;
+  };
 
   return (
     <div className="mt-pagebody mt-fade df-page">
@@ -434,11 +867,7 @@ export default function DataFlowPage() {
         <span className="df-legend-hint">Tap a tile to trace · tap again to clear</span>
       </div>
 
-      {selectedId === 'asset_tilt' ? (
-        <SectorAllocationDrawer />
-      ) : selectedId && tileById[selectedId] ? (
-        <GenericDrawer name={tileById[selectedId].name} />
-      ) : null}
+      {drawerForSelection()}
 
       <style>{`
         .df-page { padding-bottom: 40px; }
@@ -470,7 +899,9 @@ export default function DataFlowPage() {
         .df-tile-name { display: block; font-size: 12.5px; font-weight: 600; color: var(--mt-ink-0); line-height: 1.25; padding-right: 16px; }
         .df-tile-cd { display: block; font-size: 10.5px; color: var(--mt-ink-2); margin-top: 2px; line-height: 1.25; }
         .df-dot { position: absolute; top: 10px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
-        .df-dot--warn { background: var(--mt-warn); }
+        .df-dot--g { background: var(--mt-up); }
+        .df-dot--a { background: var(--mt-warn); }
+        .df-dot--r { background: var(--mt-down); }
         .df-dot--inline { position: static; display: inline-block; vertical-align: 1px; margin-right: 6px; }
 
         .df-legend { display: flex; gap: 16px; justify-content: flex-end; align-items: center;
