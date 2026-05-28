@@ -6782,7 +6782,7 @@ return(
 })()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
-{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
+{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="paper" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
   <SectionHeader
     eyebrow={TAB_META[tab].eyebrow}
     title={TAB_META[tab].title}
