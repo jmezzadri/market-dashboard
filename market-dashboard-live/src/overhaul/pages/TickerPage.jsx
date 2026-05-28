@@ -326,8 +326,9 @@ export default function TickerPage() {
     [eventsForSym.news],
   );
 
-  // Hero name resolution.
-  const fullName = info.name || snap?.full_name || deep?.ref?.name || sym;
+  // Hero name resolution + dedupe of stuttered upstream strings
+  // (Polygon sometimes returns "SPDR Gold Trust, SPDR Gold Shares").
+  const fullName = dedupeName(info.name || snap?.full_name || deep?.ref?.name || sym);
 
   // Day-of-the-day OHL from prices_eod's latest row.
   const todayOpen  = eod?.open ?? null;
@@ -378,17 +379,32 @@ export default function TickerPage() {
             </div>
           </div>
         </div>
-        <div className="tk-scoreblock">
-          <div className="mt-eyebrow">MacroTilt Score</div>
-          <div className="tk-bigdial">
-            <ScoreDial score={score != null ? score : 0} max={5} size={96} />
+        {/* Score block — only render when the scanner/v5 actually has a score.
+            Many ETFs (GLD, SLV, XLE, …) are excluded from the screener universe,
+            so they have no score. Rendering a 0.0 dial in that case lies. */}
+        {score != null ? (
+          <div className="tk-scoreblock">
+            <div className="mt-eyebrow">MacroTilt Score</div>
+            <div className="tk-bigdial">
+              <ScoreDial score={score} max={5} size={96} />
+            </div>
+            {signal && (
+              <span className="mt-tag mt-tag--accent tk-sigpill">
+                {signal}{direction ? ` · ${direction}` : ''}
+              </span>
+            )}
           </div>
-          {signal && (
-            <span className="mt-tag mt-tag--accent tk-sigpill">
-              {signal}{direction ? ` · ${direction}` : ''}
+        ) : (
+          <div className="tk-scoreblock">
+            <div className="mt-eyebrow">MacroTilt Score</div>
+            <div className="tk-bigdial" style={{ display: 'grid', placeItems: 'center', height: 96 }}>
+              <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>Not scored</span>
+            </div>
+            <span style={{ color: 'var(--mt-ink-3)', fontSize: 11.5, lineHeight: 1.35, display: 'block', marginTop: 4 }}>
+              ETF or non-screener ticker — outside the daily scan universe.
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Price chart */}
@@ -547,6 +563,31 @@ export default function TickerPage() {
 }
 
 /* ---------- helpers ---------- */
+
+/* Dedupe stuttered names like "SPDR Gold Trust, SPDR Gold Shares" → "SPDR Gold
+   Trust". Splits on comma / "; " and drops any segment whose token set is a
+   strict subset (or equal) to a previous one. Order-preserving. */
+function dedupeName(s) {
+  if (!s) return s;
+  const parts = String(s).split(/\s*[,;]\s*/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 1) return s;
+  const kept = [];
+  const seenTokenSets = [];
+  for (const p of parts) {
+    const toks = new Set(p.toLowerCase().split(/\s+/).filter(Boolean));
+    const isDup = seenTokenSets.some((prev) => {
+      // Drop if every word in p is already in prev OR every word in prev is in p.
+      const pSubset = [...toks].every((t) => prev.has(t));
+      const prevSubset = [...prev].every((t) => toks.has(t));
+      return pSubset || prevSubset;
+    });
+    if (!isDup) {
+      kept.push(p);
+      seenTokenSets.push(toks);
+    }
+  }
+  return kept.join(', ');
+}
 
 function OverlayBtn({ on, onClick, children }) {
   return (
