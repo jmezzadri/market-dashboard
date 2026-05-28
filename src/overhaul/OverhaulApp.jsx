@@ -1,36 +1,14 @@
 /* OverhaulApp — root shell for the May 2026 site overhaul.
 
-   Renders:
-     - TweaksProvider (theme/accent/etc. persisted to localStorage)
-     - BrowserRouter with the 9 page routes from the brief
-     - Sidebar (rail / collapsed-rail) + TopNav (top) chrome variants
-     - PageHeader with date / search / freshness pill / theme / tweaks
-     - TweaksPanel slide-over
-
-   Activated by appending ?v=3 to any URL in the live app (legacy gate
-   lives in src/App.jsx). When the overhaul is feature-complete, the
-   default render will flip to this shell.
-
-   2026-05-27 (Joe): the /admin/data and /admin/bugs routes used to
-   render a placeholder Stub saying "operational, not redesigned." That
-   made both pages look blank in the new shell. Wire them through to the
-   real AdminDataHealth and AdminBugs surfaces (legacy components, but
-   they read the same CSS tokens — text/surface/border/accent — that the
-   overhaul tokens.css defines, so they render in-brand without
-   restyling). Wrapped each in <div className="mt-pagebody mt-fade"> so
-   the page-level fade-in + horizontal padding match the rest of the
-   shell. The legacy components use their own <main> wrapper; that's OK
-   inside the overhaul shell because the outer <main className="mt-main">
-   is the chrome container, not a content slot.
-
-   2026-05-27 follow-up (Joe pushed back: dark theme was broken): legacy
-   AdminBugs/AdminDataHealth read --text/--surface/--border tokens that
-   only flip on [data-theme="dark"], while the overhaul flips on
-   [data-mt-theme="dark"]. Result: dark chrome with bright white legacy
-   panels in the middle. Added legacy-bridge.css to re-map the legacy
-   tokens to the dark palette whenever the overhaul shell is in dark or
-   navy mode (and pin them to LIGHT in light mode so the OS dark-mode
-   media query in theme.css can't sneak through). */
+   2026-05-27 (Joe):
+     /admin/data routes through AdminDataPage — a thin wrapper that
+     renders AdminLanding (3-tile home: Polygon Massive · Unusual Whales
+     · Data Health) by default, and hash-routes to the matching vendor
+     detail page when a tile is clicked. /admin/bugs renders AdminBugs
+     directly (no tile landing for it). legacy-bridge.css aliases the
+     legacy --text/--surface/--border tokens to the overhaul --mt-*
+     tokens so all four mounted admin surfaces follow the active theme
+     (light/dark/navy) instead of rendering a transplant palette. */
 
 import React from 'react';
 import {
@@ -44,16 +22,10 @@ import './styles/tokens.css';
 import './styles/chrome.css';
 import './styles/pages.css';
 
-// Prototype CSS files ported VERBATIM from Claude Design's handoff,
-// scoped under .mt-overhaul. These are the design vocabulary the pages
-// are written against — without them, every page renders inline styles
-// that approximate the look badly. Joe directive 2026-05-27.
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
 
-// Legacy-token bridge — must load AFTER tokens.css and theme.css so it
-// wins specificity for embedded legacy components (AdminBugs etc.).
 import './styles/legacy-bridge.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
@@ -73,10 +45,8 @@ import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 
-// Real admin surfaces (legacy components, mounted into the overhaul
-// shell so the sidebar links don't open a placeholder card).
+import AdminDataPage from './pages/AdminDataPage';
 import AdminBugs from '../AdminBugs';
-import AdminDataHealth from '../AdminDataHealth';
 
 function Shell() {
   return (
@@ -96,14 +66,7 @@ function Shell() {
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
-            <Route
-              path="/admin/data"
-              element={
-                <div className="mt-pagebody mt-fade">
-                  <AdminDataHealth />
-                </div>
-              }
-            />
+            <Route path="/admin/data" element={<AdminDataPage />} />
             <Route
               path="/admin/bugs"
               element={
