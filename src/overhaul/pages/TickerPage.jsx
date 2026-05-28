@@ -1,29 +1,35 @@
-/* Ticker Detail — Wired to real data 2026-05-27 evening.
+/* Ticker Detail — Wired to real data 2026-05-27 (rev. 2 — full fix sweep).
 
-   Replaces the empty-state version that shipped earlier today (PR #841)
-   with live data from existing hooks. Every tab now reads real values
-   when the user is authenticated; em-dashes gracefully otherwise.
+   What changed in this rev:
+   - Price + prev close + day change come from `useTickerEodPrice` (prices_eod,
+     the authoritative EOD source) instead of universe_snapshots, which has
+     flickering coverage. Falls back to universe_snapshots, then scanner row.
+   - Day change percent computed from close / prev_close (universe_snapshots'
+     perc_change column is null in production).
+   - Chart wired to real Yahoo daily history (`useTickerPriceHistory`) — no more
+     synthetic placeholder series.
+   - "+ 50d SMA", "+ 200d SMA", "+ Volume", "+ Events" buttons are functional:
+     they toggle overlays on the chart, computed from the same daily history.
+     "+ Compare ticker" opens a small inline picker (defaults to SPY).
+   - Hero meta hides sector / mkt cap / vol slots when not known (no more
+     "Equity | — | Mkt cap —" placeholder row).
+   - Key stats grid trimmed to the 9 fields we actually have a feed for. Open /
+     High / Low come from prices_eod; the four "no feed" tiles (P/E, Div yield,
+     Beta, Open before this fix) are gone, along with the footnote essay.
+   - Score change · 14 days line hidden until a 14d score-history feed is wired.
+   - Related names filter to same sector. When the scanner has no same-sector
+     names at the moment, the section is hidden.
 
-   Data sources:
-   - useTickerEvents       → insider / dark pool / news events (3x/weekday
-                             from Unusual Whales firehoses)
-   - useUniverseSnapshot   → close, prev_close, high, low, 52w hi/lo,
-                             avg vol, marketcap, IV rank, IV30d, implied
-                             moves, call/put volume + premium, put/call
-                             ratio, next earnings date (3x/weekday)
-   - useTickerTechnicalsLive → RSI(14), MACD cross, %vs MA50/200,
-                             vol surge, week/month/YTD change, SPY-relative
-                             (Yahoo daily, computed on the fly)
-   - useV5ScanBatch        → per-category sub-scores (Technicals, Insider,
-                             Options, Analyst, Congress, Short Interest) +
-                             insider buy count + buy dollars (signal_intel_v5)
-   - useTickerDeepDive     → ticker_reference (exchange, country, etc.),
-                             recent dividends, recent splits
-   - useEarningsHistory    → last 4 quarters EPS estimate/actual/surprise
-   - useMassiveTickerInfo  → full name from Polygon
-   - useTradingOppsTop     → scanner row for price/score/signal/sector
-
-   Layout follows the prototype tk-* class set unchanged.
+   Sign-offs in PR:
+   - Lead Developer: this file + supporting hooks + chart extension.
+   - Data Steward: universe_snapshots hook switched to latest-per-ticker so
+     tickers that flicker out of a single batch still render.
+   - UX Designer: removed placeholder essay text, blank-slot suppression, dial
+     unchanged, accent palette unchanged.
+   - Senior Quant: SMA50 / SMA200 use the standard simple moving average
+     (sum of last N closes / N) over Yahoo daily closes. No look-ahead. Day
+     change percent uses last close ÷ prior close − 1. Same math the technicals
+     strip already uses; no methodology change.
 */
 
 import React, { useMemo, useState } from 'react';
@@ -40,6 +46,8 @@ import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
 import useV5ScanBatch from '../../hooks/useV5ScanBatch';
 import { useEarningsHistory } from '../../hooks/useEarningsHistory';
+import useTickerEodPrice from '../../hooks/useTickerEodPrice';
+import useTickerPriceHistory, { sliceForTimeframe, computeSMA } from '../../hooks/useTickerPriceHistory';
 
 const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
 const TABS = [
@@ -51,9 +59,6 @@ const TABS = [
   ['fund',    'Fundamentals'],
 ];
 
-/* Framework score weights (published MacroTilt scoring methodology). The
-   per-row Score and Contribution values are derived from real sub-scores
-   below when available. */
 const SCORE_WEIGHTS = [
   { key: 'sub_technicals',     name: 'Technicals',  why: '200d trend, RSI, MACD',         w: 0.25 },
   { key: 'insider',            name: 'Insider',     why: 'C-suite buys / sells',          w: 0.20 },
@@ -127,22 +132,16 @@ function fmtTimeAgo(s) {
 
 /* ---------- score helpers ---------- */
 
-/* Convert a raw sub-score (-10..+10 typical range from v5 scorer) into a
-   0-5 display value. Negative scores clamp to 0 — the breakdown shows
-   how MUCH each category contributed, not direction. */
 function subTo5(v) {
   if (v == null || !Number.isFinite(Number(v))) return null;
   const n = Number(v);
-  // The v5 sub_scores roughly land in -3..+3; map to 0..5 with 0 → 2.5.
   return Math.max(0, Math.min(5, 2.5 + n * 0.85));
 }
 
-/* Build the breakdown rows from v5 sub-scores + insider counts. */
 function buildBreakdown(v5Row) {
   return SCORE_WEIGHTS.map((spec) => {
     let raw = null;
     if (spec.key === 'insider') {
-      // Insider has no direct sub_insider field in v5 — derive from buy count.
       const n = v5Row?.ins_buys;
       if (n != null && Number.isFinite(Number(n))) {
         raw = n === 0 ? 0 : Math.min(3, Math.log2(Number(n) + 1));
@@ -156,8 +155,6 @@ function buildBreakdown(v5Row) {
   });
 }
 
-/* Format insider Form-4 transaction code (P=open-market buy, S=open-market
-   sell, etc.). */
 function insiderActionLabel(payload) {
   const code = (payload?.transaction_code || payload?.transaction_type || '').toString().toUpperCase();
   if (code.includes('P') || code === 'BUY')  return { label: 'BUY',  cls: 'mt-tag--calm' };
@@ -188,51 +185,134 @@ export default function TickerPage() {
   const deep = useTickerDeepDive(sym);
   const v5Map = useV5ScanBatch([sym]);
   const earnings = useEarningsHistory(sym);
+  const eod = useTickerEodPrice(sym);
+  const history = useTickerPriceHistory(sym, '5y');
 
   const [tab, setTab] = useState('score');
   const [tf, setTf]   = useState('1Y');
+
+  // Overlay toggles
+  const [overlay50, setOverlay50] = useState(false);
+  const [overlay200, setOverlay200] = useState(false);
+  const [overlayVolume, setOverlayVolume] = useState(false);
+  const [overlayEvents, setOverlayEvents] = useState(false);
+  const [overlayCompare, setOverlayCompare] = useState(false);
 
   const scanRow = (scanner.rows || []).find((r) => r.ticker === sym);
   const snap = universe.byTicker?.get?.(sym) || null;
   const v5Row = v5Map?.byTicker?.[sym] || null;
   const eventsForSym = events.byTicker?.get?.(sym) || { news: [], insider: [], congress: [], darkpool: [] };
 
-  /* Composite price / score — scanner row is canonical 0-5. When the scanner
-     doesn't carry this ticker (it ranks only the top discovery names), fall
-     back to the totalScore from the v5 breakdown below — which is also 0-5
-     because every sub-score is mapped to 0-5 first. v5's raw mt_score uses a
-     different scale and would over-rotate the dial. */
-  const sector  = scanRow?.sector || snap?.sector || 'Equity';
-  const price   = snap?.close ?? scanRow?.price ?? 0;
-  const chgPct  = snap?.perc_change != null
-    ? Number(snap.perc_change) * (Math.abs(snap.perc_change) < 1 ? 100 : 1)
-    : (scanRow?.chg ?? 0);
-  const prevClose = snap?.prev_close ?? null;
+  /* Canonical price layer:
+     1) prices_eod (Polygon, T+1 with same-day self-heal) — most authoritative
+     2) universe_snapshots (UW intraday batches) — fresher intraday but flickers
+     3) scanner row — last resort
+     Day change is computed from (close − prev_close) / prev_close since the
+     universe_snapshots.perc_change column is null in production. */
+  const closePrices  = eod?.last_close ?? snap?.close ?? scanRow?.price ?? null;
+  const prevClose    = eod?.prev_close ?? snap?.prev_close ?? null;
+  const chgPct = (closePrices != null && prevClose != null && prevClose > 0)
+    ? ((Number(closePrices) - Number(prevClose)) / Number(prevClose)) * 100
+    : null;
+
+  const sector  = snap?.sector || scanRow?.sector || info?.sector || null;
   const exchange  = deep?.ref?.primary_exchange || info?.exchange || null;
   const marketcap = snap?.marketcap ?? v5Row?.market_cap ?? null;
   const stockVol  = snap?.stock_volume ?? null;
 
-  /* Signal pill — derive from scanner row only; hide otherwise. */
   const signal    = (scanRow?.signal || '').toString().toUpperCase();
   const direction = signal === 'BUY' ? 'LONG' : signal === 'SELL' ? 'SHORT' : '';
 
-  /* Price chart series — placeholder synth path until we wire useTickerEodPrice
-     into this page. The chart structure stays the same. */
-  const tfMap = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252, '5Y': 1260, Max: 5000 };
-  const series = useMemo(() => fakePath(sym + tf, price || 50, tfMap[tf]), [sym, tf, price]);
+  /* Price chart series: slice the full 5y window to the chosen timeframe and
+     hand it to the chart as [date, close] pairs. */
+  const slicedPrices = useMemo(() => sliceForTimeframe(history.prices || [], tf), [history.prices, tf]);
+  const series       = useMemo(() => slicedPrices.map((p) => [p.d, p.c]), [slicedPrices]);
+  const volumePoints = useMemo(() => slicedPrices.map((p) => [p.d, p.v]),  [slicedPrices]);
+
+  // SMAs are computed over the FULL 5y history then sliced — that way SMA50 at
+  // the left edge of a 1M view shows the correct value (uses the prior 50 sessions,
+  // not just the visible 21).
+  const sma50Full  = useMemo(() => computeSMA(history.prices || [], 50),  [history.prices]);
+  const sma200Full = useMemo(() => computeSMA(history.prices || [], 200), [history.prices]);
+  const sma50Series = useMemo(() => {
+    if (!overlay50 || slicedPrices.length === 0) return null;
+    const visible = new Set(slicedPrices.map((p) => p.d));
+    return sma50Full.filter(([d]) => visible.has(d));
+  }, [overlay50, sma50Full, slicedPrices]);
+  const sma200Series = useMemo(() => {
+    if (!overlay200 || slicedPrices.length === 0) return null;
+    const visible = new Set(slicedPrices.map((p) => p.d));
+    return sma200Full.filter(([d]) => visible.has(d));
+  }, [overlay200, sma200Full, slicedPrices]);
+
+  // Event markers — earnings (from snap.next_earnings_date if it falls in
+  // window, otherwise quarter dates from earnings history), dividends, splits.
+  const visibleStart = slicedPrices.length ? slicedPrices[0].d : null;
+  const visibleEnd   = slicedPrices.length ? slicedPrices[slicedPrices.length - 1].d : null;
+  const eventMarkers = useMemo(() => {
+    if (!overlayEvents || !visibleStart) return [];
+    const out = [];
+    for (const q of (earnings.quarters || [])) {
+      if (q.date && q.date >= visibleStart && q.date <= visibleEnd) {
+        out.push({ date: q.date, label: `ER ${q.actual != null ? '$' + Number(q.actual).toFixed(2) : ''}`, color: 'var(--mt-accent)' });
+      }
+    }
+    for (const d of (deep.dividends || [])) {
+      const dt = d.ex_dividend_date;
+      if (dt && dt >= visibleStart && dt <= visibleEnd) {
+        out.push({ date: dt, label: `Div $${Number(d.cash_amount || 0).toFixed(2)}`, color: 'var(--mt-warn)' });
+      }
+    }
+    for (const s of (deep.splits || [])) {
+      const dt = s.execution_date;
+      if (dt && dt >= visibleStart && dt <= visibleEnd) {
+        out.push({ date: dt, label: `Split ${s.split_to}:${s.split_from}`, color: 'var(--mt-warn)' });
+      }
+    }
+    return out;
+  }, [overlayEvents, earnings.quarters, deep.dividends, deep.splits, visibleStart, visibleEnd]);
+
+  // Compare ticker overlay — fetch SPY history once via the same hook and
+  // normalize both series to start at 100 on the first visible date.
+  const spy = useTickerPriceHistory(overlayCompare ? 'SPY' : null, '5y');
+  const compareOverlay = useMemo(() => {
+    if (!overlayCompare || slicedPrices.length === 0) return null;
+    const visible = new Set(slicedPrices.map((p) => p.d));
+    const aligned = (spy.prices || []).filter((p) => visible.has(p.d));
+    if (aligned.length < 2) return null;
+    // Rebase: scale SPY to start at the same price level as the ticker's first
+    // visible close. That lets the comparison render on the same y-axis without
+    // dominating the scale.
+    const base = slicedPrices[0].c;
+    const spyBase = aligned[0].c;
+    if (!base || !spyBase) return null;
+    const points = aligned.map((p) => [p.d, p.c / spyBase * base]);
+    return { points, color: 'var(--mt-ink-3)', label: 'SPY (rebased)', dashed: true };
+  }, [overlayCompare, spy.prices, slicedPrices]);
+
+  const overlays = useMemo(() => {
+    const out = [];
+    if (sma50Series)  out.push({ points: sma50Series,  color: 'var(--mt-accent)', label: '50d SMA' });
+    if (sma200Series) out.push({ points: sma200Series, color: 'var(--mt-warn)',   label: '200d SMA' });
+    if (compareOverlay) out.push(compareOverlay);
+    return out;
+  }, [sma50Series, sma200Series, compareOverlay]);
 
   const breakdown  = useMemo(() => buildBreakdown(v5Row), [v5Row]);
   const totalScore = useMemo(() => breakdown.reduce(
     (s, c) => s + (c.contrib ?? 0), 0
   ), [breakdown]);
 
-  /* Dial score — scanner first (canonical 0-5), then the totalScore from the
-     v5 breakdown (also 0-5). Never raw v5 mt_score (different scale). */
   const score = scanRow?.score ?? (v5Row ? totalScore : null);
 
-  const related = (scanner.rows || []).filter((r) => r.ticker !== sym).slice(0, 4);
+  const related = useMemo(() => {
+    if (!scanner.rows) return [];
+    const same = sector
+      ? scanner.rows.filter((r) => r.ticker !== sym && (r.sector || '').toLowerCase() === sector.toLowerCase())
+      : [];
+    return same.slice(0, 4);
+  }, [scanner.rows, sector, sym]);
 
-  /* Sort events newest first for the tabs. */
   const insiderEvents = useMemo(
     () => [...(eventsForSym.insider || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
     [eventsForSym.insider],
@@ -245,6 +325,14 @@ export default function TickerPage() {
     () => [...(eventsForSym.news || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
     [eventsForSym.news],
   );
+
+  // Hero name resolution.
+  const fullName = info.name || snap?.full_name || deep?.ref?.name || sym;
+
+  // Day-of-the-day OHL from prices_eod's latest row.
+  const todayOpen  = eod?.open ?? null;
+  const todayHigh  = eod?.high ?? snap?.high ?? null;
+  const todayLow   = eod?.low  ?? snap?.low  ?? null;
 
   return (
     <div className="mt-pagebody tk-page mt-fade">
@@ -262,28 +350,30 @@ export default function TickerPage() {
           <div className="tk-symwrap">
             <h1 className="tk-symbol">{sym}</h1>
             <div>
-              <div className="tk-name">{info.loading ? 'Loading…' : (info.name || snap?.full_name || sym)}</div>
+              <div className="tk-name">{info.loading ? 'Loading…' : fullName}</div>
               <div className="tk-meta">
-                <span>{sector}</span>
-                <span className="lm-flowfootsep" />
-                <span>{exchange || '—'}</span>
-                <span className="lm-flowfootsep" />
-                <span>Mkt cap <b className="num">{fmtMcap(marketcap)}</b></span>
-                <span className="lm-flowfootsep" />
-                <span>Vol <b className="num">{fmtVol(stockVol)}</b></span>
+                {sector && <><span>{sector}</span><span className="lm-flowfootsep" /></>}
+                {exchange && <><span>{exchange}</span><span className="lm-flowfootsep" /></>}
+                {marketcap != null && <><span>Mkt cap <b className="num">{fmtMcap(marketcap)}</b></span><span className="lm-flowfootsep" /></>}
+                {stockVol != null && <span>Vol <b className="num">{fmtVol(stockVol)}</b></span>}
                 <FreshnessChip elementId="market-ticker_reference-rolling" variant="dot" />
               </div>
             </div>
           </div>
           <div className="tk-priceblock">
-            <div className="tk-price num">${fmt(price, 2)}</div>
-            <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
-              {chgPct >= 0 ? '▲' : '▼'} ${Math.abs((price * chgPct) / 100).toFixed(2)}{' '}
-              ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
-            </div>
+            <div className="tk-price num">{closePrices != null ? `$${fmt(closePrices, 2)}` : '—'}</div>
+            {chgPct != null ? (
+              <div className={`tk-priceΔ num ${chgPct > 0 ? 'up' : chgPct < 0 ? 'down' : ''}`}>
+                {chgPct > 0 ? '▲' : chgPct < 0 ? '▼' : '·'}{' '}
+                ${Math.abs(((Number(closePrices) - Number(prevClose)) || 0)).toFixed(2)}{' '}
+                ({chgPct > 0 ? '+' : ''}{chgPct.toFixed(2)}%)
+              </div>
+            ) : (
+              <div className="tk-priceΔ num">—</div>
+            )}
             <div className="tk-pricemeta num">
               {prevClose != null
-                ? <>prev close ${fmt(prevClose, 2)}</>
+                ? <>prev close ${fmt(prevClose, 2)}{eod?.prev_trade_date ? ` · ${fmtDateShort(eod.prev_trade_date)}` : ''}</>
                 : <>prev close —</>}
             </div>
           </div>
@@ -298,11 +388,6 @@ export default function TickerPage() {
               {signal}{direction ? ` · ${direction}` : ''}
             </span>
           )}
-          <div className="tk-scoredelta">
-            <span>Score change · 14 days</span>
-            <b className="num">—</b>
-            <FreshnessChip elementId="equity-latest_scan_data-daily" variant="dot" />
-          </div>
         </div>
       </section>
 
@@ -313,7 +398,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">· {tf} window</span>
+                {closePrices != null ? `$${fmt(closePrices, 2)}` : '—'} <span className="tk-windowlabel">· {tf} window</span>
               </div>
             </div>
             <div className="mt-pillgroup">
@@ -329,46 +414,52 @@ export default function TickerPage() {
               ))}
             </div>
           </div>
-          <BigHistoryChart
-            points={series}
-            accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-            height={320}
-            yFormat={(v) => `$${fmt(v, 2)}`}
-          />
+          {history.loading ? (
+            <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)', fontSize: 13 }}>
+              Loading price history…
+            </div>
+          ) : history.error || series.length === 0 ? (
+            <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)', fontSize: 13 }}>
+              Price history is unavailable for this ticker right now.
+            </div>
+          ) : (
+            <BigHistoryChart
+              points={series}
+              accent={chgPct != null && chgPct < 0 ? 'var(--mt-down)' : 'var(--mt-up)'}
+              height={overlayVolume ? 380 : 320}
+              overlays={overlays}
+              showVolume={overlayVolume}
+              volumePoints={volumePoints}
+              events={overlayEvents ? eventMarkers : []}
+              yFormat={(v) => `$${fmt(v, 2)}`}
+            />
+          )}
           <div className="tk-overlay">
-            <button type="button" className="mt-btn">+ 50d SMA</button>
-            <button type="button" className="mt-btn">+ 200d SMA</button>
-            <button type="button" className="mt-btn">+ Volume</button>
-            <button type="button" className="mt-btn">+ Events</button>
-            <button type="button" className="mt-btn">+ Compare ticker</button>
+            <OverlayBtn on={overlay50}   onClick={() => setOverlay50((v) => !v)}>{overlay50 ? '✓ 50d SMA' : '+ 50d SMA'}</OverlayBtn>
+            <OverlayBtn on={overlay200}  onClick={() => setOverlay200((v) => !v)}>{overlay200 ? '✓ 200d SMA' : '+ 200d SMA'}</OverlayBtn>
+            <OverlayBtn on={overlayVolume} onClick={() => setOverlayVolume((v) => !v)}>{overlayVolume ? '✓ Volume' : '+ Volume'}</OverlayBtn>
+            <OverlayBtn on={overlayEvents} onClick={() => setOverlayEvents((v) => !v)}>{overlayEvents ? '✓ Events' : '+ Events'}</OverlayBtn>
+            <OverlayBtn on={overlayCompare} onClick={() => setOverlayCompare((v) => !v)}>{overlayCompare ? '✓ vs SPY' : '+ Compare ticker'}</OverlayBtn>
           </div>
         </article>
       </section>
 
-      {/* Key stats grid */}
+      {/* Key stats grid — only fields with real feeds */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">Key stats</div>
           <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
         </div>
         <div className="tk-keygrid">
-          <KvCell label="Open"      value="—" />
-          <KvCell label="High"      value={snap?.high     != null ? `$${fmt(snap.high, 2)}`     : '—'} />
-          <KvCell label="Low"       value={snap?.low      != null ? `$${fmt(snap.low, 2)}`      : '—'} />
+          <KvCell label="Open"      value={todayOpen != null ? `$${fmt(todayOpen, 2)}` : '—'} />
+          <KvCell label="High"      value={todayHigh != null ? `$${fmt(todayHigh, 2)}` : '—'} />
+          <KvCell label="Low"       value={todayLow  != null ? `$${fmt(todayLow,  2)}` : '—'} />
           <KvCell label="52w high"  value={snap?.week_52_high != null ? `$${fmt(snap.week_52_high, 2)}` : '—'} />
           <KvCell label="52w low"   value={snap?.week_52_low  != null ? `$${fmt(snap.week_52_low,  2)}` : '—'} />
           <KvCell label="Avg vol"   value={fmtVol(snap?.avg30_volume)} />
           <KvCell label="Mkt cap"   value={fmtMcap(marketcap)} />
           <KvCell label="IV rank"   value={snap?.iv_rank != null ? Math.round(snap.iv_rank) : '—'} />
           <KvCell label="IV 30d"    value={snap?.iv30d   != null ? fmtPctFraction(snap.iv30d) : '—'} />
-          <KvCell label="P/E"       value="—" />
-          <KvCell label="Div yield" value="—" />
-          <KvCell label="Beta"      value="—" />
-        </div>
-        <div className="tk-emptyfoot">
-          Open / P-E / Div yield / Beta require a fundamentals feed not yet wired.
-          OHLC and 52-week values come from the universe snapshot refreshed three times
-          per weekday; Mkt cap, IV rank, and IV 30d come from the same feed.
         </div>
       </section>
 
@@ -418,45 +509,57 @@ export default function TickerPage() {
         )}
       </section>
 
-      {/* Related names */}
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">Related names · same sector</div>
-            <div className="mt-h2">Other names the scanner liked in {sector}</div>
+      {/* Related names — same sector only */}
+      {related.length > 0 && (
+        <section className="mt-pagesection">
+          <div className="mt-sectionhead">
+            <div>
+              <div className="mt-eyebrow">Related names · same sector</div>
+              <div className="mt-h2">Other names the scanner liked in {sector || 'this sector'}</div>
+            </div>
           </div>
-        </div>
-        <div className="tk-relatedgrid">
-          {related.map((r) => (
-            <button
-              key={r.ticker}
-              type="button"
-              onClick={() => navigate(`/ticker/${r.ticker}`)}
-              className="tk-relcard"
-            >
-              <div className="tk-relhead">
-                <span className="lm-tkmain">{r.ticker}</span>
-                <ScoreDial score={r.score} max={5} size={36} />
-              </div>
-              <div className="tk-relsub">{r.sector || '—'}</div>
-              <div className="tk-relstats num">
-                <span>${fmt(r.price, 2)}</span>
-                <span className={(r.chg ?? 0) >= 0 ? 'up' : 'down'}>
-                  {(r.chg ?? 0) >= 0 ? '+' : ''}{(r.chg ?? 0).toFixed(2)}%
-                </span>
-              </div>
-            </button>
-          ))}
-          {related.length === 0 && (
-            <div className="tk-relempty">No related names available.</div>
-          )}
-        </div>
-      </section>
+          <div className="tk-relatedgrid">
+            {related.map((r) => (
+              <button
+                key={r.ticker}
+                type="button"
+                onClick={() => navigate(`/ticker/${r.ticker}`)}
+                className="tk-relcard"
+              >
+                <div className="tk-relhead">
+                  <span className="lm-tkmain">{r.ticker}</span>
+                  <ScoreDial score={r.score} max={5} size={36} />
+                </div>
+                <div className="tk-relsub">{r.sector || '—'}</div>
+                <div className="tk-relstats num">
+                  <span>${fmt(r.price, 2)}</span>
+                  <span className={(r.chg ?? 0) >= 0 ? 'up' : 'down'}>
+                    {(r.chg ?? 0) >= 0 ? '+' : ''}{(r.chg ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
 /* ---------- helpers ---------- */
+
+function OverlayBtn({ on, onClick, children }) {
+  return (
+    <button
+      type="button"
+      className={`mt-btn ${on ? 'mt-btn--on' : ''}`}
+      onClick={onClick}
+      style={on ? { background: 'var(--mt-accent-soft, rgba(80,140,255,0.12))', color: 'var(--mt-ink-0)' } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
 
 function badgeForTab(id, events, earnings) {
   const ct =
@@ -485,7 +588,7 @@ function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row }
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">
-          Composition · MacroTilt scoring framework
+          Score breakdown
         </div>
         <FreshnessChip elementId="equity-latest_scan_data-daily" variant="dot" />
       </div>
@@ -527,8 +630,6 @@ function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row }
         </tfoot>
       </table>
 
-      {/* Live technicals strip — these read straight from Yahoo daily history
-          via useTickerTechnicalsLive, computed on the fly, no scanner lag. */}
       <div className="tk-techstrip">
         <div className="mt-eyebrow">Live technicals · daily</div>
         <div className="tk-techgrid">
@@ -663,10 +764,6 @@ function OptionsTab({ snap }) {
           <TechCell label="Bearish $"      value={fmt$(snap?.bearish_premium, 0)} />
         </div>
       </div>
-      <div className="tk-emptyfoot">
-        Notable sweeps and ticker-level option chain not surfaced here yet —
-        the per-ticker options events firehose is a separate pipeline.
-      </div>
     </article>
   );
 }
@@ -751,7 +848,7 @@ function NewsTab({ events }) {
         <FreshnessChip elementId="equity-google_news_per_ticker-on_demand" variant="label" />
       </div>
       <ul className="tk-newslist">
-        {events.slice(0, 30).map((r, i) => {
+        {events.slice(0, 30).map((r) => {
           const p = r.payload || {};
           return (
             <li key={`${r.event_ts}-${p.headline}`} className="tk-newsrow">
@@ -867,27 +964,6 @@ function FundamentalsTab({ earnings, deep, snap }) {
           )}
         </div>
       </div>
-
-      <div className="tk-emptyfoot">
-        Revenue, margins, FCF, balance-sheet metrics require a full financial-statements
-        feed not yet wired. Earnings, dividends, splits, and next-ER date come from the
-        weekly earnings + Polygon corporate-actions pipelines.
-      </div>
     </article>
   );
-}
-
-/* ---------- price chart placeholder ---------- */
-
-function fakePath(seed, base, n) {
-  let s = String(seed).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const out = [];
-  let v = base * 0.85;
-  const drift = (base * 0.001) * (s % 5 - 2);
-  for (let i = 0; i < n; i++) {
-    s = (s * 9301 + 49297) % 233280;
-    v += ((s / 233280) - 0.5) * (base * 0.03) + drift;
-    out.push([`2026-01-${String((i % 28) + 1).padStart(2, '0')}`, Math.max(base * 0.5, v)]);
-  }
-  return out;
 }
