@@ -6,6 +6,18 @@
   "entries": [
     {
       "date": "2026-05-27",
+      "note": "Daily rebalance pipeline moved to next-morning. Massive 8:00 ET → Asset Tilt 8:15 ET → Trading Ops scanner 8:30 ET → Paper Portfolio queues trades into Alpaca 9:00 ET (Tue-Sat, 30 min before the 9:30 open). Same-day evening runs only captured ~0.5% of the universe because Polygon's full batch lands 2-8 AM ET the next morning."
+    },
+    {
+      "date": "2026-05-27",
+      "note": "Treasury yields moved off FRED to U.S. Treasury (Treasury.gov) for same-day publication. Affects 10Y-2Y slope, 10Y TIPS real rate, and 10Y inflation breakeven. FRED publishes T+1; Treasury.gov publishes same-day around 4 PM ET."
+    },
+    {
+      "date": "2026-05-27",
+      "note": "Daily-indicator freshness gate added. The producer now fails loudly if any daily indicator exceeds its publication SLA — workflow goes red and the prior good file is preserved instead of being overwritten with a stale value."
+    },
+    {
+      "date": "2026-05-27",
       "note": "Site overhaul — prototype-faithful rebuild of all 9 pages, shared components, regime hook."
     },
     {
