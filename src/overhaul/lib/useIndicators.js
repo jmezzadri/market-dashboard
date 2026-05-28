@@ -102,6 +102,32 @@ export default function useIndicators() {
   const indicators = useMemo(() => {
     if (!hist) return [];
     const out = [];
+    // Compute a historical value at a given calendar offset back from the
+    // latest point. Walks back through the points list looking for the first
+    // dated entry on or before (latest_date - daysBack). Used to populate the
+    // 3M / 6M / 1Y columns directly from the live history file — previously
+    // these read from hardcoded indicatorRegistry meta slots, which were
+    // null for every indicator added after 2026-04 and caused the All
+    // Indicators page to show em-dashes on perfectly valid columns
+    // (Joe spotted 2026-05-27 evening).
+    const priorAt = (points, daysBack) => {
+      if (!Array.isArray(points) || points.length === 0) return null;
+      const lastIso = points[points.length - 1][0];
+      const lastT = Date.parse(lastIso + 'T00:00:00Z');
+      if (!Number.isFinite(lastT)) return null;
+      const targetT = lastT - daysBack * 86400_000;
+      // Binary search would be nicer; linear back-walk is fine for ~5k pts.
+      for (let i = points.length - 1; i >= 0; i--) {
+        const t = Date.parse(points[i][0] + 'T00:00:00Z');
+        if (Number.isFinite(t) && t <= targetT) {
+          return Number.isFinite(points[i][1]) ? points[i][1] : null;
+        }
+      }
+      // Asked for further-back than the series goes — return earliest point
+      // rather than nothing, so a 6mo-old indicator still renders 6M/1Y
+      // sensibly. Caller can decide whether to display.
+      return Number.isFinite(points[0][1]) ? points[0][1] : null;
+    };
     Object.entries(IND).forEach(([id, meta]) => {
       const h = hist[id];
       if (!h) return;
@@ -114,6 +140,14 @@ export default function useIndicators() {
       const src = sourceFor[id] || {};
       const registryTier = Number(meta[3]) || 0; // 1=lead 2=coincident 3=lag
       const typeLabel = registryTier === 1 ? 'LEAD' : registryTier === 3 ? 'LAG' : 'COINC';
+      // Prefer live-computed priors from the points array. Fall back to the
+      // registry meta slot only when points are missing (curated anchor-only
+      // series like CAPE / bank_unreal).
+      const livePts = h.points || [];
+      const liveP1m = livePts.length ? priorAt(livePts, 30) : null;
+      const liveP3m = livePts.length ? priorAt(livePts, 91) : null;
+      const liveP6m = livePts.length ? priorAt(livePts, 183) : null;
+      const liveP1y = livePts.length ? priorAt(livePts, 365) : null;
       out.push({
         id,
         name: meta[0],
@@ -131,10 +165,10 @@ export default function useIndicators() {
         pct,
         direction,
         state,
-        prior_1m: meta[7],
-        prior_3m: meta[8],
-        prior_6m: meta[9],
-        prior_1y: meta[10],
+        prior_1m: liveP1m != null ? liveP1m : meta[7],
+        prior_3m: liveP3m != null ? liveP3m : meta[8],
+        prior_6m: liveP6m != null ? liveP6m : meta[9],
+        prior_1y: liveP1y != null ? liveP1y : meta[10],
         deprecated: meta[11] === true,
         description: meta[12] || '',
         narrative: meta[13] || '',

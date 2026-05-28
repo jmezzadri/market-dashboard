@@ -289,8 +289,15 @@ def _sync_pipeline_health_from_result(result):
     key = _os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
         return
-    updated = 0
+    upserted = 0
     skipped = 0
+    # UPSERT (POST with Prefer: resolution=merge-duplicates on the
+    # indicator_id unique key) so that indicators added to the JSON but never
+    # registered in pipeline_health get a row automatically. Without this an
+    # indicator-without-a-row renders blank in the Last Refresh column on the
+    # All Indicators page. PATCH-only was the previous behaviour and missed
+    # ~9 indicators (bkx_spx_v11, buffett, erp, fra_ois, hy_ig_ratio, ic4wsa,
+    # naaim, real_fedfunds, sofr_ois) as of 2026-05-27.
     for ind_id, entry in result.items():
         if ind_id.startswith("__") or not isinstance(entry, dict):
             continue
@@ -299,33 +306,40 @@ def _sync_pipeline_health_from_result(result):
             continue
         iso_date = pts[-1][0]
         data_as_of = f"{iso_date}T20:00:00+00:00"
-        body = _json.dumps({
-            "data_as_of": data_as_of,
-            "last_good_at": data_as_of,
-            "status": "green",
-            "last_error": None,
-        }).encode("utf-8")
+        row = {
+            "indicator_id":              ind_id,
+            "label":                     entry.get("label") or ind_id,
+            "source":                    entry.get("source") or "Producer: fetch_history.py",
+            "cadence":                   entry.get("freq") or "D",
+            "expected_cadence_minutes":  1440,
+            "data_as_of":                data_as_of,
+            "last_good_at":              data_as_of,
+            "status":                    "green",
+            "last_error":                None,
+            "coverage_pct":              100.0,
+        }
+        body = _json.dumps(row).encode("utf-8")
         req = _ur.Request(
-            f"{url}/rest/v1/pipeline_health?indicator_id=eq.{ind_id}",
-            data=body, method="PATCH",
+            f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",
+            data=body, method="POST",
             headers={
                 "apikey": key,
                 "Authorization": f"Bearer {key}",
                 "Content-Type": "application/json",
-                "Prefer": "return=minimal",
+                "Prefer": "return=minimal,resolution=merge-duplicates",
             },
         )
         try:
             with _ur.urlopen(req, timeout=10) as r:
                 r.read()
-            updated += 1
+            upserted += 1
         except _ue.HTTPError as e:
-            print(f"  pipeline_health sync {ind_id} HTTP {e.code}")
+            print(f"  pipeline_health upsert {ind_id} HTTP {e.code}: {e.read().decode()[:120]}")
             skipped += 1
         except Exception as e:
-            print(f"  pipeline_health sync {ind_id} error: {e}")
+            print(f"  pipeline_health upsert {ind_id} error: {e}")
             skipped += 1
-    print(f"  pipeline_health sync: {updated} rows updated, {skipped} skipped")
+    print(f"  pipeline_health sync: {upserted} rows upserted, {skipped} skipped")
 
 
 # ── Bug #1067/#1068 — pipeline_health honesty logger ─────────────────────────
