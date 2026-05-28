@@ -112,7 +112,18 @@ function fmtMcap(v) {
 function fmtDateShort(s) {
   if (!s) return '—';
   try {
-    const d = new Date(s);
+    let d;
+    // Bare YYYY-MM-DD strings (e.g. prices_eod.trade_date) must be parsed as
+    // LOCAL calendar dates, not as UTC instants. `new Date("2026-05-26")`
+    // returns 00:00 UTC, which renders as the prior day in any negative-offset
+    // timezone (the user's ET browser would see "May 25"). Build the date
+    // explicitly from the YYYY-MM-DD components instead.
+    if (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y, m, day] = s.split('-').map(Number);
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(s);
+    }
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   } catch { return '—'; }
 }
