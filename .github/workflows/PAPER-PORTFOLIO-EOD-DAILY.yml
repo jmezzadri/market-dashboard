@@ -39,8 +39,11 @@ on:
     - cron: '0 13 * * 2-6'
     - cron: '0 14 * * 2-6'
   # Chain off the Trading Ops scanner so the queue fires as soon as the
-  # scanner finishes — gives us both timely-after-scanner AND the fixed-
-  # time backup above.
+  # morning scanner finishes. A pre-open WINDOW GUARD (see the first job
+  # step) means only the morning run (08:00-09:25 ET) actually submits;
+  # the scanner's evening re-runs trigger this workflow but exit as clean
+  # no-ops, so we "queue once" per Joe's directive without losing the
+  # reliability of firing the moment the morning panel is ready.
   workflow_run:
     workflows: ["SCREENER_TRADING_OPPS_DAILY"]
     types: [completed]
@@ -64,24 +67,53 @@ jobs:
       contents: read
 
     steps:
+      - name: Pre-open submit window guard
+        id: window
+        # Only submit in the morning pre-open window (08:00-09:25 ET). This
+        # makes the scanner's evening completion chains harmless no-ops while
+        # keeping the morning trigger. Manual dry-runs always proceed.
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch — proceeding."
+            exit 0
+          fi
+          H=$(TZ=America/New_York date +%H)
+          M=$(TZ=America/New_York date +%M)
+          MINS=$((10#$H * 60 + 10#$M))
+          # 08:00 ET = 480 minutes, 09:25 ET = 565 minutes.
+          if [ "$MINS" -ge 480 ] && [ "$MINS" -le 565 ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "Pre-open window ($H:$M ET) — proceeding to queue trades."
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "Outside pre-open window ($H:$M ET) — no-op (queue once in the morning)."
+          fi
+
       - name: Check out market-dashboard
+        if: steps.window.outputs.proceed == 'true'
         uses: actions/checkout@v4.2.2
 
       - name: Set up Python
+        if: steps.window.outputs.proceed == 'true'
         uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Install dependencies
+        if: steps.window.outputs.proceed == 'true'
         run: |
           pip install requests pandas pyarrow numpy scipy
 
       - name: Run EOD phase (translator + submitter)
-        # Live-submission guard: PAPER_LIVE_TRADING_ENABLED must be set to
-        # 'true' in repo secrets for the submitter to actually POST orders
-        # to Alpaca. Otherwise the runner silently downgrades to dry-run.
-        # Until Joe approves, leave this secret unset.
+        if: steps.window.outputs.proceed == 'true'
+        # Live-submission guard: PAPER_LIVE_TRADING_ENABLED must equal the
+        # literal 'true' in repo secrets for the submitter to POST orders to
+        # Alpaca; any other value downgrades to dry-run. Currently ENABLED.
+        # The runner's own freshness gate independently blocks submission and
+        # names the stale input if either sleeve is not current for the
+        # session, so a bad data day is a clean skip, never a bad trade.
         env:
           SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
