@@ -1,48 +1,66 @@
 /* ============================================================================
-   MacroTilt — legacy-bridge.css  (v2, 2026-05-27)
+   MacroTilt — legacy-bridge.css  (v3, 2026-05-28)
 
    PROBLEM:
    The overhaul shell uses --mt-* tokens that flip across light / dark / navy
-   themes. Legacy components mounted inside the shell (AdminBugs,
-   AdminDataHealth) read --text / --surface / --border / --accent tokens
-   defined in theme.css. Those legacy tokens don't follow the overhaul's
-   data-mt-theme attribute, so the embedded legacy panels rendered with
-   the wrong palette.
+   themes via the data-mt-theme attribute on <html>. Legacy components mounted
+   inside the shell read tokens defined in legacy theme.css (which only flips
+   on data-theme — a different attribute the overhaul does not set). Result:
+   embedded legacy panels render with the light-mode palette even when the
+   overhaul shell is in dark or navy mode.
 
-   v1 (PR #849) hardcoded the dark-theme palette for both dark AND navy —
-   which meant in navy mode the panels rendered #16191e (near-black) on
-   the #001533 navy background. Joe correctly called that broken.
-
-   v2 (this file) aliases the legacy tokens directly to the overhaul's
-   --mt-* tokens. The legacy panel surface is the overhaul surface; the
-   legacy text is the overhaul ink; the legacy accent is the overhaul
-   accent. The result: legacy components inherit the exact active theme
-   palette — light, dark, navy, and any future theme — automatically.
+   v1 (PR #849) hardcoded the dark-theme palette for both dark AND navy.
+   v2 (2026-05-27) aliased the --surface / --text / --accent family to the
+       overhaul --mt-* tokens so AdminBugs / AdminDataHealth picked up the
+       active theme. File was NEVER imported in OverhaulApp.jsx — dead file.
+   v3 (this file) — (a) imports it (see OverhaulApp.jsx), (b) extends it
+       with the V2-page token family (--bg-1 / --line-0 / --ink-0 etc.) so
+       Paper Portfolio (mounted in the overhaul shell 2026-05-28) renders
+       the right palette in light, dark, AND navy. Also aligns the V2
+       PageHero outer width with the V2 paper-shell width so the hero
+       and the section panels share the same left edge.
 
    Scope: .mt-overhaul. Specificity wins because it's a class selector
-   (0,1,0) vs the legacy theme.css :root selector (0,0,1). Load order
-   (this file imports AFTER theme.css + tokens.css via OverhaulApp.jsx)
+   (0,1,0) vs the legacy :root selector (0,0,1). Load order (this file
+   imports AFTER tokens.css + chrome.css + pages.css via OverhaulApp.jsx)
    removes any ambiguity.
    ========================================================================= */
 
 .mt-overhaul {
-  /* — Surfaces — */
+  /* — Legacy "surface" family (used by AdminBugs, AdminDataHealth, and
+       miscellaneous v2 helpers) — */
   --surface:       var(--mt-surface);
   --surface-2:     var(--mt-surface-2);
   --surface-3:     var(--mt-surface-3);
   --surface-solid: var(--mt-surface);
   --hover:         var(--mt-surface-3);
 
+  /* — Legacy "bg" family (used by V2 page components including
+       PaperPortfolioPage, RegimeCanvas, BigGauge, etc.) — */
+  --bg:            var(--mt-bg);
+  --bg-0:          var(--mt-bg);
+  --bg-1:          var(--mt-surface);
+  --bg-2:          var(--mt-surface-2);
+  --bg-3:          var(--mt-surface-3);
+
   /* — Borders — */
   --border:        var(--mt-line-0);
   --border-strong: var(--mt-line-1);
   --border-faint:  var(--mt-line-0);
+  --line-0:        var(--mt-line-0);
+  --line-1:        var(--mt-line-1);
 
-  /* — Text — */
+  /* — Text (legacy --text family) — */
   --text:          var(--mt-ink-0);
   --text-2:        var(--mt-ink-1);
   --text-muted:    var(--mt-ink-2);
   --text-dim:      var(--mt-ink-3);
+
+  /* — Text (V2 --ink family) — */
+  --ink-0:         var(--mt-ink-0);
+  --ink-1:         var(--mt-ink-1);
+  --ink-2:         var(--mt-ink-2);
+  --ink-3:         var(--mt-ink-3);
 
   /* — Accent — */
   --accent:        var(--mt-accent);
@@ -63,4 +81,29 @@
   --blue-text:   var(--mt-accent);
   --purple:      var(--mt-ink-1);
   --purple-text: var(--mt-ink-1);
+
+  /* — V2 semantic (used by PaperPortfolioPage and similar) — */
+  --up:          var(--mt-up);
+  --down:        var(--mt-down);
+  --warn:        var(--mt-warn);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Hero / page-shell width alignment for V2 pages mounted in the overhaul.
+
+   V2's PageHero uses max-width: 1280px (locked spec for V2 brand). V2's
+   paper-shell uses max-width: 1440px (PaperPortfolioPage's own panel
+   container). When both render in the overhaul shell, the hero appears
+   visibly narrower than the section panels below, so the left edges
+   don't line up.
+
+   Inside .mt-overhaul ONLY, widen the PageHero inner block to 1440px so
+   it aligns with paper-shell. The hero's INTERNAL text caps (title
+   max-width 760, bullets max-width 720) still keep editorial copy
+   readable; only the right-side summary card slot moves outward to align
+   with the table columns below.
+   ───────────────────────────────────────────────────────────────────── */
+
+.mt-overhaul .mt-page-hero-inner {
+  max-width: 1440px;
 }

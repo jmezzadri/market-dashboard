@@ -11,14 +11,21 @@
    lives in src/App.jsx). When the overhaul is feature-complete, the
    default render will flip to this shell.
 
-   2026-05-28 — Paper Portfolio + Admin · Bugs routes added. The sidebar
-   has linked /paper and /admin/bugs since the overhaul shell shipped,
-   but the router never had a /paper route (catchall sent users home)
-   and /admin/bugs was a stub placeholder. Both pages already exist on
-   disk (src/v2/pages/PaperPortfolioPage.jsx and src/AdminBugs.jsx) and
-   are wired in here verbatim. Legacy-bridge.css (added in PR #849) maps
-   the legacy theme tokens these components read to the overhaul theme
-   tokens, so dark/navy modes render correctly. */
+   2026-05-28 — Paper Portfolio + Admin · Bugs routes added (PR #880). The
+   sidebar has linked /paper and /admin/bugs since the overhaul shell
+   shipped, but the router never had a /paper route (catchall sent users
+   home) and /admin/bugs was a stub placeholder. Both pages already exist
+   on disk (src/v2/pages/PaperPortfolioPage.jsx and src/AdminBugs.jsx)
+   and are wired in here.
+
+   2026-05-28 — legacy-bridge.css imported here for the first time. The
+   file existed in the repo since 2026-05-27 but was never loaded, so the
+   token aliases it defines never applied — V2 pages mounted in the
+   overhaul shell rendered with light-mode colors regardless of the
+   active theme. v3 of the bridge also extends the alias set to cover
+   the V2 page token family (--bg-1, --ink-0, --line-0, etc.). Import
+   ORDER matters: the bridge must load AFTER tokens.css so the
+   .mt-overhaul-scoped aliases override the legacy :root tokens. */
 
 import React from 'react';
 import {
@@ -39,6 +46,12 @@ import './styles/pages.css';
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
+
+// Legacy-bridge — maps legacy theme tokens (--surface, --bg-1, --ink-0,
+// --line-0, etc.) to the overhaul --mt-* tokens so V2 / AdminBugs pages
+// mounted inside the overhaul shell pick up the active theme palette
+// in light, dark, and navy modes. Must load AFTER tokens.css.
+import './styles/legacy-bridge.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
