@@ -715,19 +715,57 @@ export default function DataFlowPage() {
     [allTiles],
   );
 
-  // Resolve per-tile status from live data
+  // Resolve per-tile status from live data.
+  // Every tile is wired — sources read from their canonical vendor
+  // rollup; everything downstream takes the worst status of its
+  // transitive upstream source set (so a red source paints every
+  // tile that depends on it). Operational workflows with no graph
+  // upstream (alerts, triage) inherit the worst of all sources.
   const statusByTile = useMemo(() => {
     const out = {};
+
+    // Pre-compute the OWN status for every tile (vendor / manual / null).
+    const ownStatus = {};
     allTiles.forEach((t) => {
       const vendor = VENDOR_BY_TILE[t.id];
       if (vendor && byVendor && byVendor.get(vendor)) {
-        out[t.id] = statusForVendorRollup(byVendor.get(vendor));
+        ownStatus[t.id] = statusForVendorRollup(byVendor.get(vendor));
       } else if (t.manual) {
-        out[t.id] = 'a'; // manual sources default to amber to flag attention
+        ownStatus[t.id] = 'a';
       } else {
-        out[t.id] = 'g';
+        ownStatus[t.id] = null;
       }
     });
+
+    const worse = (a, b) => {
+      if (a === 'r' || b === 'r') return 'r';
+      if (a === 'a' || b === 'a') return 'a';
+      return 'g';
+    };
+
+    // For every tile: roll up own + worst upstream.
+    allTiles.forEach((t) => {
+      let worst = ownStatus[t.id] || 'g';
+      const upstream = bfs(t.id, 'up');
+      upstream.forEach((uid) => {
+        const us = ownStatus[uid];
+        if (us) worst = worse(worst, us);
+      });
+      out[t.id] = worst;
+    });
+
+    // Operational sidecars (alerts, triage) aren't in the lineage graph
+    // but should reflect overall pipeline health — they fire on any
+    // source failure. Inherit worst of all source statuses.
+    ['alerts', 'triage'].forEach((id) => {
+      let worst = 'g';
+      [...COL1_EQUITY, ...COL1_MACRO].forEach((src) => {
+        const s = ownStatus[src.id];
+        if (s) worst = worse(worst, s);
+      });
+      out[id] = worst;
+    });
+
     return out;
   }, [allTiles, byVendor]);
 
