@@ -276,6 +276,58 @@ def _drop_future_points(result):
 
 
 
+# ── Sync pipeline_health.data_as_of from the just-written JSON ──────────────
+# Joe directive 2026-05-27 (post-Treasury.gov rollout): FreshnessChip reads
+# `data_as_of` from `pipeline_health`, NOT from indicator_history.json. If
+# nothing keeps those two in sync, chips drift stale on a green workflow.
+# After every successful run we patch pipeline_health.data_as_of for every
+# indicator in the just-written file. Single source of truth: the JSON we
+# just wrote. No-ops silently if Supabase env vars aren't set.
+def _sync_pipeline_health_from_result(result):
+    import os as _os, urllib.request as _ur, json as _json, urllib.error as _ue
+    url = _os.environ.get("SUPABASE_URL")
+    key = _os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        return
+    updated = 0
+    skipped = 0
+    for ind_id, entry in result.items():
+        if ind_id.startswith("__") or not isinstance(entry, dict):
+            continue
+        pts = entry.get("points") or []
+        if not pts:
+            continue
+        iso_date = pts[-1][0]
+        data_as_of = f"{iso_date}T20:00:00+00:00"
+        body = _json.dumps({
+            "data_as_of": data_as_of,
+            "last_good_at": data_as_of,
+            "status": "green",
+            "last_error": None,
+        }).encode("utf-8")
+        req = _ur.Request(
+            f"{url}/rest/v1/pipeline_health?indicator_id=eq.{ind_id}",
+            data=body, method="PATCH",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+        )
+        try:
+            with _ur.urlopen(req, timeout=10) as r:
+                r.read()
+            updated += 1
+        except _ue.HTTPError as e:
+            print(f"  pipeline_health sync {ind_id} HTTP {e.code}")
+            skipped += 1
+        except Exception as e:
+            print(f"  pipeline_health sync {ind_id} error: {e}")
+            skipped += 1
+    print(f"  pipeline_health sync: {updated} rows updated, {skipped} skipped")
+
+
 # ── Bug #1067/#1068 — pipeline_health honesty logger ─────────────────────────
 def _log_pipeline_health(series_id, message):
     """Update public.pipeline_health with the latest fetcher result so
@@ -1491,6 +1543,12 @@ def main():
             json.dump(data, f, separators=(",", ":"))
         size_kb = os.path.getsize(OUT_PATH) / 1024
         print(f"Wrote {OUT_PATH}  ({size_kb:.0f} KB)")
+        # ── Sync pipeline_health from the just-written file ───────────────────
+        # Without this, FreshnessChip reads stale data_as_of from
+        # pipeline_health and renders Red on perfectly current cards. See
+        # 2026-05-27 evening incident: all daily-indicator chips on
+        # /indicators showed Stale while values were correct.
+        _sync_pipeline_health_from_result(data)
         # Summary per indicator
         n_indicators = 0
         for k, v in sorted(data.items()):
