@@ -113,53 +113,105 @@ def most_recent_prior_trading_day(now_et: "datetime") -> "date":
 
 
 def check_engine_freshness(required_date: "date") -> "tuple[bool, dict]":
-    """Return (ok, details) where ok is True iff both engines are at >= required_date."""
+    """Return (ok, details).
+
+    ok is True iff BOTH sleeves the translator actually consumes are current
+    for `required_date` (the most recent COMPLETED trading day):
+
+      Sleeve A (Asset Tilt)  -> public/v10_allocation.json `as_of`.
+          This is the DAILY allocator the translator reads. It uses the
+          latest-available read of every macro input (forward-filled), so a
+          single feed that publishes a day late (e.g. ICE BofA HY/IG OAS,
+          which lags Treasuries by ~1 day) does NOT make the allocation stale.
+      Sleeve B (Scanner)     -> max(scan_date) in public.trading_opps_signals.
+
+    The weekly 2-axis regime model (public/macrotilt_engine.json, surfaced
+    inside v10_allocation.json as `engine_as_of`) is NOT a daily gate: it
+    refreshes on Fridays, so requiring it to equal a daily trading date would
+    correctly block trading 4 days out of 5. We only flag it if it has gone
+    stale beyond a generous 10-day weekly tolerance, which would mean the
+    weekly refresh itself has broken.
+    """
     import os, json
+    import datetime as _dt
     import requests as _rq
     from pathlib import Path as _P
 
     details = {"required": required_date.isoformat()}
 
-    # 1) Trading Opps — Supabase Management API
-    token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
-    if not token:
-        return False, {"required": required_date.isoformat(), "error": "SUPABASE_ACCESS_TOKEN missing"}
-    r = _rq.post(
-        "https://api.supabase.com/v1/projects/yqaqqzseepebrocgibcw/database/query",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"query": "select max(scan_date)::text as d from public.trading_opps_signals;"},
-        timeout=30,
-    )
-    rows = r.json()
-    scanner_date_str = rows[0]["d"] if isinstance(rows, list) and rows and rows[0].get("d") else None
-    details["trading_opps_signals.max(scan_date)"] = scanner_date_str
-
-    # 2) Asset Tilt — read the in-repo macrotilt_engine.json (workflow checks out main)
-    engine_path = _P("public/macrotilt_engine.json")
-    engine_date_str = None
-    if engine_path.exists():
-        try:
-            engine_date_str = json.loads(engine_path.read_text()).get("as_of")
-        except Exception:
-            engine_date_str = None
-    details["macrotilt_engine.as_of"] = engine_date_str
-
-    # Compare
-    import datetime as _dt
     def _parse(s):
+        if not s:
+            return None
         try:
-            return _dt.date.fromisoformat(s) if s else None
+            return _dt.date.fromisoformat(str(s)[:10])
         except Exception:
             return None
+
+    # Sleeve A: the daily allocator the translator consumes.
+    alloc_date_str = None
+    regime_date_str = None
+    alloc_path = _P("public/v10_allocation.json")
+    if alloc_path.exists():
+        try:
+            _a = json.loads(alloc_path.read_text())
+            alloc_date_str = _a.get("as_of")
+            regime_date_str = _a.get("engine_as_of")
+        except Exception:
+            pass
+    details["v10_allocation.as_of"] = alloc_date_str
+    details["v10_allocation.engine_as_of(weekly)"] = regime_date_str
+
+    # Sleeve B: the scanner the translator consumes.
+    token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
+    scanner_date_str = None
+    if not token:
+        details["error"] = "SUPABASE_ACCESS_TOKEN missing"
+    else:
+        try:
+            r = _rq.post(
+                "https://api.supabase.com/v1/projects/yqaqqzseepebrocgibcw/database/query",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"query": "select max(scan_date)::text as d from public.trading_opps_signals;"},
+                timeout=30,
+            )
+            rows = r.json()
+            scanner_date_str = rows[0]["d"] if isinstance(rows, list) and rows and rows[0].get("d") else None
+        except Exception as e:
+            details["error"] = f"scanner query failed: {e}"
+    details["trading_opps_signals.max(scan_date)"] = scanner_date_str
+
+    alloc_date = _parse(alloc_date_str)
     scanner_date = _parse(scanner_date_str)
-    engine_date = _parse(engine_date_str)
+    regime_date = _parse(regime_date_str)
 
-    scanner_ok = bool(scanner_date and scanner_date >= required_date)
-    engine_ok = bool(engine_date and engine_date >= required_date)
-    details["scanner_ok"] = scanner_ok
-    details["engine_ok"] = engine_ok
+    sleeve_a_ok = bool(alloc_date and alloc_date >= required_date)
+    sleeve_b_ok = bool(scanner_date and scanner_date >= required_date)
+    # Weekly regime: a problem only if stale well beyond a normal week.
+    regime_ok = bool(regime_date and (required_date - regime_date).days <= 10)
 
-    return scanner_ok and engine_ok, details
+    details["sleeve_a_ok"] = sleeve_a_ok
+    details["sleeve_b_ok"] = sleeve_b_ok
+    details["regime_ok"] = regime_ok
+
+    stale = []
+    if not sleeve_a_ok:
+        stale.append(
+            f"Asset Tilt allocation (v10_allocation.json as_of={alloc_date_str}, "
+            f"need >= {required_date.isoformat()})"
+        )
+    if not sleeve_b_ok:
+        stale.append(
+            f"Equity scanner (trading_opps_signals max scan_date={scanner_date_str}, "
+            f"need >= {required_date.isoformat()})"
+        )
+    if not regime_ok:
+        stale.append(
+            f"Weekly regime engine (macrotilt engine_as_of={regime_date_str}, "
+            f">10d old — the weekly Friday refresh may be broken)"
+        )
+    details["stale_inputs"] = stale
+
+    return (sleeve_a_ok and sleeve_b_ok and regime_ok), details
 
 
 def _now_eastern():
@@ -192,15 +244,19 @@ def run_eod_phase(
         now_et = _now_eastern()
         required = most_recent_prior_trading_day(now_et)
         ok, details = check_engine_freshness(required)
-        logger.info("freshness gate: required=%s scanner=%s engine=%s",
-                    details.get("required"),
-                    details.get("trading_opps_signals.max(scan_date)"),
-                    details.get("macrotilt_engine.as_of"))
+        logger.info(
+            "freshness gate: required=%s | sleeveA alloc as_of=%s | "
+            "sleeveB scanner scan_date=%s | weekly regime as_of=%s",
+            details.get("required"),
+            details.get("v10_allocation.as_of"),
+            details.get("trading_opps_signals.max(scan_date)"),
+            details.get("v10_allocation.engine_as_of(weekly)"),
+        )
         if not ok:
             logger.warning(
-                "ENGINES NOT FRESH (required %s, scanner_ok=%s, engine_ok=%s) — "
-                "skipping EOD submission. Will retry on next workflow run.",
-                details.get("required"), details.get("scanner_ok"), details.get("engine_ok")
+                "FRESHNESS GATE BLOCKED submission. Stale input(s): %s. "
+                "Will retry on the next morning run.",
+                " | ".join(details.get("stale_inputs") or ["unknown"]),
             )
             return {"freshness_gate": "skipped", "details": details}
     t_result = run_translator(
