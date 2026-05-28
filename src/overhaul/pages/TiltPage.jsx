@@ -75,16 +75,6 @@ export default function TiltPage() {
      24-week history reads like a real tooltip instead of a decorative curve. */
   const [stressHover, setStressHover] = useState(null);
   const [yieldHover, setYieldHover] = useState(null);
-  /* 2026-05-27 — Joe directive: top of page = today's call, bottom = historical.
-     Two expandable tiles below the engine read. Regime History defaults open
-     (it's the visual at-a-glance), Backtest Results defaults closed so the
-     page stays short by default. */
-  const [regimeOpen, setRegimeOpen] = useState(true);
-  const [backtestOpen, setBacktestOpen] = useState(false);
-  /* Backtest chart timeframe selector. Independent of the 24W gauge selector. */
-  const [bkRange, setBkRange] = useState('Max');
-  /* Backtest chart hover — for the tooltip on the long-history chart. */
-  const [bkHover, setBkHover] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -199,34 +189,21 @@ export default function TiltPage() {
   const nWeeks = backtest?.validation?.n_weeks;
   const validatedRange = backtest?.calibration_label || '—';
 
-  /* Long-history backtest chart — independent timeframe slicer.
-     Joe directive 2026-05-27: bottom of Asset Tilt becomes the historical
-     view. Show Asset Tilt vs SPY vs SPY/Cash blend (regime_only is the
-     SPY-with-de-risk-into-cash line per validation.regime_only.label) from
-     1986 → today, with timeframe pills (1M / 6M / 1Y / 5Y / Max). */
-  const BK_WINDOWS = [
-    { key: '1m',  label: '1M',  weeks: 4 },
-    { key: '6m',  label: '6M',  weeks: 26 },
-    { key: '1y',  label: '1Y',  weeks: 52 },
-    { key: '5y',  label: '5Y',  weeks: 260 },
-    { key: 'Max', label: 'Max', weeks: null },
-  ];
-  const bkSeries = useMemo(() => {
-    const w = backtest?.weekly;
-    if (!Array.isArray(w)) return [];
-    const cfg = BK_WINDOWS.find((c) => c.key === bkRange) ?? BK_WINDOWS[4];
-    return cfg.weeks ? w.slice(-cfg.weeks) : w;
-  }, [backtest, bkRange]);
-
   return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Asset Tilt</div>
+          <div className="mt-eyebrow">Asset Tilt · today's call</div>
           <h1 className="mt-h1">
-            A <i>back-tested</i> asset allocation tool that seeks to beat
-            the S&amp;P 500 on a risk-adjusted basis over the long run.
+            <span className="at-headalloc">
+              <span><span className="num">{fmtPercent(equityPct, 0)}</span><i>% equity</i></span>
+              <span className="at-headalloc-sep">·</span>
+              <span className="at-headalloc--dim"><span className="num">{fmtPercent(defPct, 0)}</span><i>% defensive</i></span>
+            </span>
           </h1>
+          <div className="at-regimetag">
+            {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime
+          </div>
         </div>
         <div className="at-keystats at-keystats--compact">
           <div className="mt-eyebrow">Backtest · {validatedRange}</div>
@@ -265,14 +242,21 @@ export default function TiltPage() {
               defensive {sleeve ? 'firing' : 'on standby'}.
             </div>
           </div>
-          <FreshnessChip elementId="v10-allocation-daily" variant="pill" label="Engine in cadence" />
+          {/* 2026-05-27 — removed the top-level "Engine in cadence" pill per
+              Joe. The four section-level chips below (Stress signal, Yield
+              regime, Recommended allocation, Sector tilts) carry the
+              freshness signal in a way that ties to what the user is
+              looking at instead of a meaningless engine cadence stamp. */}
         </div>
 
         <div className="at-engineread">
           {/* Stress signal · MOVE */}
           <article className="mt-card at-gauge">
             <div className="at-gaugehead">
-              <div className="mt-eyebrow">Stress signal · MOVE</div>
+              <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span>Stress signal · MOVE</span>
+                <FreshnessChip elementId="indicator-move-daily" variant="label" />
+              </div>
               <div className="mt-pillgroup">
                 <button type="button" className={`mt-pill ${regime.stressZone === 'Risk On' ? 'on' : ''}`}>RISK ON</button>
                 <button type="button" className={`mt-pill ${regime.stressZone === 'Watch' ? 'on' : ''}`}>WATCH</button>
@@ -307,7 +291,7 @@ export default function TiltPage() {
               <div className="mt-eyebrow at-gauge-eyebrow">
                 {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
                 {stressHist.length === 0 && (
-                  <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
                 )}
               </div>
               <div className="mt-pillgroup at-rangepills">
@@ -348,7 +332,10 @@ export default function TiltPage() {
           {/* Yield regime · 3M Δ 10y */}
           <article className="mt-card at-gauge">
             <div className="at-gaugehead">
-              <div className="mt-eyebrow">Yield regime · 3M Δ 10y</div>
+              <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span>Yield regime · 3M Δ 10y</span>
+                <FreshnessChip elementId="indicator-yield_curve-daily" variant="label" />
+              </div>
               <div className="mt-pillgroup">
                 <button type="button" className={`mt-pill ${regime.yieldRegime === 'Deflationary' ? 'on' : ''}`}>DEFL.</button>
                 <button type="button" className={`mt-pill ${regime.yieldRegime === 'Neutral' ? 'on' : ''}`}>NEUTRAL</button>
@@ -386,7 +373,7 @@ export default function TiltPage() {
               <div className="mt-eyebrow at-gauge-eyebrow">
                 {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
                 {yieldHist.length === 0 && (
-                  <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
                 )}
               </div>
               <div className="mt-pillgroup at-rangepills">
@@ -431,7 +418,10 @@ export default function TiltPage() {
               colors so the user can see WHAT is firing and HOW MUCH at
               a glance. */}
           <article className="mt-card at-stance">
-            <div className="mt-eyebrow">Recommended allocation</div>
+            <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span>Recommended allocation</span>
+              <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+            </div>
             <div className="at-allocbars">
               {(() => {
                 const rows = [
@@ -481,7 +471,10 @@ export default function TiltPage() {
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Equity bucket · sector tilts</div>
+            <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span>Equity bucket · sector tilts</span>
+              <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+            </div>
             <div className="mt-h2">Where the engine wants overweight — and what's underneath.</div>
           </div>
           <div className="mt-pillgroup">
@@ -520,8 +513,6 @@ export default function TiltPage() {
             <b className="at-uw">Underweight</b> · {owUw.uwCount} sectors ·{' '}
             <b className="num down">{owUw.uwSum.toFixed(1)}%</b>
           </span>
-          <span className="lm-flowfootsep" />
-          <FreshnessChip elementId="v10-allocation-daily" variant="label" />
           <span className="at-foot-push">
             <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate('/portfolio')}>
               Apply to my portfolio →
@@ -530,408 +521,55 @@ export default function TiltPage() {
         </div>
       </section>
 
-      {/* Historical Engine Reading — collapsible tile */}
+      {/* Regime history · 24 weeks */}
       <section className="mt-pagesection">
-        <button
-          type="button"
-          className={`at-tilehead ${regimeOpen ? 'is-open' : ''}`}
-          onClick={() => setRegimeOpen((v) => !v)}
-          aria-expanded={regimeOpen}
-        >
+        <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Last 24 weeks</div>
+            <div className="mt-eyebrow">Regime history · 24 weeks</div>
             <div className="mt-h2">
-              Historical Engine Reading{' '}
+              When the engine moved.{' '}
               {weeklyTail24.length === 0 && (
-                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+                {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
               )}
             </div>
           </div>
-          <span className="at-tilechev" aria-hidden="true">{regimeOpen ? '▾' : '▸'}</span>
-        </button>
-        {regimeOpen && (
-          <div className="mt-card">
-            <div className="at-regstrip">
-              {weeklyTail24.length > 0 ? (
-                weeklyTail24.map((w, i) => {
-                  const stress = mapStressClass(w.stress_state);
-                  const stage = mapYieldClass(w.yield_regime);
-                  return (
-                    <Tip
-                      key={i}
-                      bare
-                      block
-                      content={`Week ${i + 1} · ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`}
-                    >
-                      <div className="at-regcell-stack">
-                        <div className={`at-regband at-regband--stress at-regband--${stress}`} />
-                        <div className={`at-regband at-regband--yield at-regband--${stage}`} />
-                      </div>
-                    </Tip>
-                  );
-                })
-              ) : (
-                /* Grayscale 24-cell skeleton per Joe nuance */
-                Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="at-regcell-stack">
-                    <div className="at-regband at-regband--skel" />
-                    <div className="at-regband at-regband--skel" />
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="at-regfoot at-regfoot--split">
-              <div className="at-regfootrow">
-                <span className="at-regfootlabel">Stress signal (top band)</span>
-                <span><span className="at-regdot at-regdot--on" /> Risk On</span>
-                <span><span className="at-regdot at-regdot--watch" /> Watch</span>
-                <span><span className="at-regdot at-regdot--off" /> Risk Off</span>
-              </div>
-              <div className="at-regfootrow">
-                <span className="at-regfootlabel">Yield regime (bottom band)</span>
-                <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
-                <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
-                <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
-                <span className="num at-foot-push">24 weeks · rebalanced weekly</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Backtest Results — collapsible tile, full 1986→today chart + drawdown table */}
-      <section className="mt-pagesection">
-        <button
-          type="button"
-          className={`at-tilehead ${backtestOpen ? 'is-open' : ''}`}
-          onClick={() => setBacktestOpen((v) => !v)}
-          aria-expanded={backtestOpen}
-        >
-          <div>
-            <div className="mt-eyebrow">{validatedRange}</div>
-            <div className="mt-h2">
-              Backtest Results{' '}
-              {!backtest && (
-                <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
-              )}
-            </div>
-            <div className="at-tilesummary num">
-              {at && spy ? (
-                <>
-                  Asset Tilt {fmtPctRaw(at.cagr, 1)}% annualized vs SPY {fmtPctRaw(spy.cagr, 1)}% ·
-                  Sharpe {at.sharpe.toFixed(2)} vs {spy.sharpe.toFixed(2)} ·
-                  Max drawdown {fmtPctFraction(at.max_drawdown, 0)}% vs {fmtPctFraction(spy.max_drawdown, 0)}%
-                </>
-              ) : '—'}
-            </div>
-          </div>
-          <span className="at-tilechev" aria-hidden="true">{backtestOpen ? '▾' : '▸'}</span>
-        </button>
-        {backtestOpen && (
-          <div className="mt-card">
-            <div className="at-bkhead">
-              <div>
-                <div className="mt-eyebrow">Cumulative growth of $1</div>
-                <div className="at-bklegend num">
-                  <span className="at-bklegitem"><i className="at-bkdot at-bkdot--at" />Asset Tilt</span>
-                  <span className="at-bklegitem"><i className="at-bkdot at-bkdot--spy" />S&amp;P 500</span>
-                  <span className="at-bklegitem"><i className="at-bkdot at-bkdot--blend" />S&amp;P 500 / Cash blend</span>
-                </div>
-              </div>
-              <div className="mt-pillgroup">
-                {BK_WINDOWS.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    className={`mt-pill ${bkRange === c.key ? 'on' : ''}`}
-                    onClick={() => setBkRange(c.key)}
+        </div>
+        <div className="mt-card">
+          <div className="at-regstrip">
+            {weeklyTail24.length > 0 ? (
+              weeklyTail24.map((w, i) => {
+                const stress = mapStressClass(w.stress_state);
+                const stage = mapYieldClass(w.yield_regime);
+                return (
+                  <Tip
+                    key={i}
+                    bare
+                    block
+                    content={`Week ${i + 1} · ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`}
                   >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {bkSeries.length > 1 ? (
-              <BacktestChart series={bkSeries} hover={bkHover} setHover={setBkHover} />
+                    <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
+                  </Tip>
+                );
+              })
             ) : (
-              <div className="at-spark-placeholder">Backtest series loading…</div>
+              /* Grayscale 24-cell skeleton per Joe nuance */
+              Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className="at-regcell at-regcell--skel" />
+              ))
             )}
-            <div className="at-bkdrawhead">
-              <div className="mt-eyebrow">Drawdown comparison · major peak-to-trough episodes</div>
-            </div>
-            <div className="at-bkdrawtable num">
-              <div className="at-bkdrawrow at-bkdrawrow--head">
-                <span>Episode</span>
-                <span className="at-bkdrawnum">SPY depth</span>
-                <span className="at-bkdrawnum">Engine depth</span>
-                <span className="at-bkdrawnum">Engine − SPY</span>
-                <span>Dominant yield regime</span>
-              </div>
-              {(backtest?.drawdowns || []).map((d) => (
-                <div key={d.name} className="at-bkdrawrow">
-                  <span className="at-bkdrawname">{d.name}</span>
-                  <span className="at-bkdrawnum down">{fmtPctFraction(d.spy_depth, 1)}%</span>
-                  <span className="at-bkdrawnum down">{fmtPctFraction(d.engine_depth, 1)}%</span>
-                  <span className={`at-bkdrawnum ${d.diff_pp > 0 ? 'up' : d.diff_pp < 0 ? 'down' : ''}`}>
-                    {d.diff_pp > 0 ? '+' : ''}{d.diff_pp.toFixed(1)} pp
-                  </span>
-                  <span className="at-bkdrawregime">{d.yield_regime_dominant}</span>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
+          <div className="at-regfoot">
+            <span><span className="at-regdot at-regdot--on" /> Risk On</span>
+            <span><span className="at-regdot at-regdot--watch" /> Watch</span>
+            <span><span className="at-regdot at-regdot--off" /> Risk Off</span>
+            <span className="lm-flowfootsep" />
+            <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
+            <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
+            <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
+            <span className="num at-foot-push">24 weeks · rebalanced weekly</span>
+          </div>
+        </div>
       </section>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * BacktestChart                                                      *
- *                                                                    *
- * Inline SVG line chart for the long-history backtest. Three lines:  *
- *   - Asset Tilt cumulative (orange / accent)                         *
- *   - SPY cumulative (slate)                                          *
- *   - SPY/Cash blend a.k.a. regime_only (warn/amber)                  *
- *                                                                    *
- * Behind the lines, paint vertical bands keyed off stress_state +    *
- * yield_regime so the user can see WHICH regime each rally or         *
- * drawdown happened in. Bands are low-opacity so the lines stay       *
- * readable.                                                           *
- *                                                                    *
- * Joe directive 2026-05-27: this is the historical view.              *
- * ------------------------------------------------------------------ */
-function BacktestChart({ series, hover, setHover }) {
-  const W = 980;
-  const H = 420;
-  const PAD = { l: 110, r: 16, t: 16, b: 92 };
-  const innerW = W - PAD.l - PAD.r;
-  const innerH = H - PAD.t - PAD.b;
-  /* Layout for the labeled rails BELOW the plot area:
-       y = PAD.t + innerH           → bottom of plot, where lines/grid end
-       y = PAD.t + innerH + 8       → top of year-label row
-       y = PAD.t + innerH + 28      → top of stress-signal rail
-       y = PAD.t + innerH + 50      → top of yield-regime rail
-     The rails are clearly outside the chart so they never overlap the
-     lines OR the year labels. */
-  const RAIL_H = 14;
-  const yearY  = PAD.t + innerH + 22;
-  const stressY = PAD.t + innerH + 38;
-  const yieldY  = PAD.t + innerH + 60;
-
-  /* Re-base each series so the first visible point starts at 1.0 — that way
-     the chart compares performance OVER the selected window, not since 1986
-     forever. */
-  const at0 = series[0]?.asset_tilt_cumulative || 1;
-  const spy0 = series[0]?.spy_cumulative || 1;
-  const reg0 = series[0]?.regime_only_cumulative || 1;
-  const norm = series.map((w) => ({
-    date: w.date,
-    at: (w.asset_tilt_cumulative ?? 0) / at0,
-    spy: (w.spy_cumulative ?? 0) / spy0,
-    reg: (w.regime_only_cumulative ?? 0) / reg0,
-    stress: w.stress_state,
-    yld: w.yield_regime,
-  }));
-
-  const allVals = norm.flatMap((p) => [p.at, p.spy, p.reg]).filter(Number.isFinite);
-  const yMin = Math.min(...allVals);
-  const yMax = Math.max(...allVals);
-  const yPad = (yMax - yMin) * 0.04 || 0.04;
-  const y0 = yMin - yPad;
-  const y1 = yMax + yPad;
-
-  const xOf = (i) => PAD.l + (i / (norm.length - 1)) * innerW;
-  const yOf = (v) => PAD.t + (1 - (v - y0) / (y1 - y0)) * innerH;
-  const path = (key) => norm.map((p, i) => `${i ? 'L' : 'M'}${xOf(i).toFixed(1)},${yOf(p[key]).toFixed(1)}`).join(' ');
-
-  /* Regime bands — paint a faint vertical color block behind each contiguous
-     run of identical stress + yield state. Run-length compression keeps the
-     SVG element count down. */
-  const bands = [];
-  let runStart = 0;
-  for (let i = 1; i <= norm.length; i++) {
-    const prev = norm[i - 1];
-    const cur = norm[i];
-    if (!cur || cur.stress !== prev.stress || cur.yld !== prev.yld) {
-      bands.push({
-        start: runStart,
-        end: i - 1,
-        stress: prev.stress,
-        yld: prev.yld,
-      });
-      runStart = i;
-    }
-  }
-  const stressFill = (s) => {
-    if (s === 'Risk Off') return 'var(--mt-down)';
-    if (s === 'Watch') return 'var(--mt-warn)';
-    return 'var(--mt-up)';
-  };
-  const yieldFill = (y) => {
-    if (y === 'Inflationary') return 'var(--mt-warn)';
-    if (y === 'Deflationary') return 'var(--mt-accent)';
-    return 'var(--mt-line-1)';
-  };
-
-  const yTicks = 4;
-  const tickVals = Array.from({ length: yTicks + 1 }, (_, i) => y0 + ((y1 - y0) * i) / yTicks);
-
-  /* x-axis: pick a small number of date labels — first, last, and a few
-     evenly spaced years in between. Dedupe in case rounding produces
-     repeats on short windows (1M/6M). Format depends on window length:
-     show MMM-YYYY for windows under ~2 years, just YYYY for longer
-     spans so labels never collide. */
-  const seenIdx = new Set();
-  const labelIdxs = [];
-  const labelN = 6;
-  for (let i = 0; i < labelN; i++) {
-    const idx = Math.round((i / (labelN - 1)) * (norm.length - 1));
-    if (!seenIdx.has(idx)) { seenIdx.add(idx); labelIdxs.push(idx); }
-  }
-  const isShortWindow = norm.length <= 110; // ~2 years
-  const formatXLabel = (d) => {
-    if (!d) return '';
-    if (isShortWindow) {
-      const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(d.slice(5,7),10)-1] || '';
-      return `${m} ${d.slice(2,4)}`;
-    }
-    return d.slice(0, 4);
-  };
-
-  function onMove(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * W;
-    const idx = Math.max(0, Math.min(norm.length - 1, Math.round(((px - PAD.l) / innerW) * (norm.length - 1))));
-    setHover({ idx, p: norm[idx] });
-  }
-  function onLeave() { setHover(null); }
-
-  const hi = hover?.p;
-  const hx = hover ? xOf(hover.idx) : null;
-
-  return (
-    <div className="at-bkchart">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        className="at-bkchart-svg"
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-      >
-        {/* y-grid */}
-        {tickVals.map((v, i) => (
-          <g key={`t${i}`}>
-            <line
-              x1={PAD.l}
-              x2={PAD.l + innerW}
-              y1={yOf(v)}
-              y2={yOf(v)}
-              stroke="var(--mt-line-1)"
-              strokeWidth="1"
-              opacity="0.35"
-            />
-            <text
-              x={PAD.l - 8}
-              y={yOf(v) + 4}
-              textAnchor="end"
-              className="at-bkchart-tick"
-            >
-              {v >= 10 ? `${v.toFixed(0)}×` : `${v.toFixed(1)}×`}
-            </text>
-          </g>
-        ))}
-        {/* Plot frame — light border so the plot area reads as one box,
-            separate from the rails below. */}
-        <rect
-          x={PAD.l}
-          y={PAD.t}
-          width={innerW}
-          height={innerH}
-          fill="none"
-          stroke="var(--mt-line-1)"
-          strokeWidth="1"
-          opacity="0.7"
-        />
-        {/* Lines */}
-        <path d={path('spy')} fill="none" stroke="var(--mt-ink-2)" strokeWidth="1.4" opacity="0.85" />
-        <path d={path('reg')} fill="none" stroke="var(--mt-warn)" strokeWidth="1.4" opacity="0.85" />
-        <path d={path('at')}  fill="none" stroke="var(--mt-accent)" strokeWidth="1.8" />
-        {/* Hover crosshair — extends from top of plot area down through both rails so the user can see what regime applied at any date. */}
-        {hx != null && (
-          <g pointerEvents="none">
-            <line x1={hx} x2={hx} y1={PAD.t} y2={yieldY + RAIL_H} stroke="var(--mt-ink-2)" strokeWidth="1" opacity="0.55" strokeDasharray="3 3" />
-            <circle cx={hx} cy={yOf(hi.at)}  r="3.5" fill="var(--mt-accent)" />
-            <circle cx={hx} cy={yOf(hi.spy)} r="3"   fill="var(--mt-ink-2)" />
-            <circle cx={hx} cy={yOf(hi.reg)} r="3"   fill="var(--mt-warn)" />
-          </g>
-        )}
-        {/* Year axis labels — their own row, between plot and rails. */}
-        {labelIdxs.map((i) => (
-          <text
-            key={`x${i}`}
-            x={xOf(i)}
-            y={yearY}
-            textAnchor="middle"
-            className="at-bkchart-tick"
-          >
-            {formatXLabel(norm[i]?.date)}
-          </text>
-        ))}
-        {/* Stress signal rail — labeled, lives OUTSIDE the plot area. */}
-        <text
-          x={PAD.l - 8}
-          y={stressY + RAIL_H * 0.72}
-          textAnchor="end"
-          className="at-bkchart-railLabel"
-        >
-          Stress signal
-        </text>
-        {bands.map((b, i) => (
-          <rect
-            key={`s${i}`}
-            x={xOf(b.start)}
-            y={stressY}
-            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
-            height={RAIL_H}
-            fill={stressFill(b.stress)}
-            opacity="0.85"
-          />
-        ))}
-        {/* Yield regime rail — labeled, lives OUTSIDE the plot area. */}
-        <text
-          x={PAD.l - 8}
-          y={yieldY + RAIL_H * 0.72}
-          textAnchor="end"
-          className="at-bkchart-railLabel"
-        >
-          Yield regime
-        </text>
-        {bands.map((b, i) => (
-          <rect
-            key={`y${i}`}
-            x={xOf(b.start)}
-            y={yieldY}
-            width={Math.max(0.5, xOf(b.end) - xOf(b.start))}
-            height={RAIL_H}
-            fill={yieldFill(b.yld)}
-            opacity="0.8"
-          />
-        ))}
-      </svg>
-      <div className="at-bkchart-readout num">
-        {hi ? (
-          <>
-            <span><b>{hi.date}</b></span>
-            <span><i className="at-bkdot at-bkdot--at" />Asset Tilt {hi.at.toFixed(2)}×</span>
-            <span><i className="at-bkdot at-bkdot--blend" />Blend {hi.reg.toFixed(2)}×</span>
-            <span><i className="at-bkdot at-bkdot--spy" />SPY {hi.spy.toFixed(2)}×</span>
-            <span className="at-bkchart-regime">{hi.stress} · {hi.yld}</span>
-          </>
-        ) : (
-          <span className="at-bkchart-hint">Hover the chart to read values · two labeled rails below the year axis show the stress signal and yield regime for each week</span>
-        )}
-      </div>
     </div>
   );
 }
