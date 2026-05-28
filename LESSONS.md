@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-28 — When diagnosing a bug, surface every regression in the same diff — not just the one Joe noticed
+
+**What happened:** Joe asked why Asset Tilt was breaking. I traced it to PR #864 and shipped a fix for the JSX crash. I had the full PR #864 diff open the whole time, and that diff also rewrote the hero from yesterday's descriptive sentence back to the giant "100% equity / 0% defensive" headline — a clean regression of b43030b that I'd shipped the day before. I said nothing about the hero. Joe loaded the patched page, saw the regressed hero, and had to ask "why is this back?" That's two trips to me for one bad PR.
+
+**What you should do instead:** When investigating a reported bug, read the full diff of the offending PR and any other PRs that landed in the same window. List every change that touches user-visible behavior — not just the one matching the symptom. If anything else in the diff looks like an unrequested change or a regression of recent work, surface it in the same response as the bug fix, with a one-line "also noticed: X — should I revert this too?" Don't make Joe be the regression detector for changes I already had in front of me.
+
+**Applies to:** Every bug-fix task. Especially when the offending PR's stated scope is narrower than its actual diff.
+
+---
+
 ## 2026-05-26 — Site-overhaul brief lives on disk; read it BEFORE any redesign work
 
 **What happened:** Joe uploaded the Claude Design site-overhaul zip (the canonical
