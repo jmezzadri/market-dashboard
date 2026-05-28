@@ -153,6 +153,25 @@ def mirror_positions(
 # 2) Fills mirror
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _normalize_rfc3339(ts: str) -> str:
+    """Coerce any timestamp string into the RFC-3339 'Z' form Alpaca accepts.
+
+    Handles Postgres ::text output ('2026-05-27 13:38:48.556838+00' — space
+    separator, bare '+00' offset), Python isoformat ('...+00:00'), and
+    strings already ending in 'Z'. The old code only stripped a literal
+    '+00:00' suffix and missed the '+00' / space-separated Postgres form,
+    which Alpaca rejected with HTTP 422.
+    """
+    import re
+    s = str(ts).strip().replace(" ", "T")
+    s = re.sub(r"\.\d+", "", s)              # drop fractional seconds
+    s = re.sub(r"[+-]00:?00$", "Z", s)         # +0000 / +00:00 -> Z
+    s = re.sub(r"[+-]00$", "Z", s)             # bare +00 -> Z
+    if not (s.endswith("Z") or re.search(r"[+-]\d\d:?\d\d$", s)):
+        s += "Z"                                # naive -> assume UTC
+    return s
+
+
 def mirror_fills(
     alpaca: AlpacaPaperClient | None = None,
     since_iso: str | None = None,
@@ -179,10 +198,10 @@ def mirror_fills(
             from datetime import timedelta
             since_iso = (datetime.now(tz=timezone.utc) - timedelta(days=7)).isoformat()
 
-    # Alpaca's REST API rejects `+00:00` timezone offsets on the `after` query
-    # parameter with HTTP 422. Normalize to the `Z` suffix it does accept.
-    if since_iso.endswith("+00:00"):
-        since_iso = since_iso[:-6] + "Z"
+    # Alpaca's /v2/orders `after` parameter requires RFC-3339 (e.g.
+    # 2026-05-27T13:38:48Z). Normalize any input shape (Postgres ::text,
+    # Python isoformat, already-Z) so we never send a 422-triggering value.
+    since_iso = _normalize_rfc3339(since_iso)
 
     orders = alpaca.list_orders(status="closed", after=since_iso, limit=500)
     n_inserted = 0
