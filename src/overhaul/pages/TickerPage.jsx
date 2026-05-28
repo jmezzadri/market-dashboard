@@ -320,6 +320,10 @@ export default function TickerPage() {
   ), [breakdown]);
 
   const score = scanRow?.score ?? (v5Row ? totalScore : null);
+  // Only commit to "Not scored" once BOTH score sources have finished loading.
+  // Otherwise the dial flashes "Not scored" during the initial paint and looks
+  // broken for in-universe tickers like RCAT.
+  const scoreLoading = scanner.loading || v5Map.loading;
 
   const related = useMemo(() => {
     if (!scanner.rows) return [];
@@ -395,32 +399,40 @@ export default function TickerPage() {
             </div>
           </div>
         </div>
-        {/* Score block — only render when the scanner/v5 actually has a score.
-            Many ETFs (GLD, SLV, XLE, …) are excluded from the screener universe,
-            so they have no score. Rendering a 0.0 dial in that case lies. */}
-        {score != null ? (
-          <div className="tk-scoreblock">
-            <div className="mt-eyebrow">MacroTilt Score</div>
-            <div className="tk-bigdial">
-              <ScoreDial score={score} max={5} size={96} />
-            </div>
-            {signal && (
-              <span className="mt-tag mt-tag--accent tk-sigpill">
-                {signal}{direction ? ` · ${direction}` : ''}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="tk-scoreblock">
-            <div className="mt-eyebrow">MacroTilt Score</div>
+        {/* Score block — three states:
+            1) Score known → real dial.
+            2) Still loading either scanner or v5 → loading placeholder (never
+               render "Not scored" while data is in flight).
+            3) Both sources have settled and neither has a row → "Not scored"
+               (ETFs and other off-universe tickers). */}
+        <div className="tk-scoreblock">
+          <div className="mt-eyebrow">MacroTilt Score</div>
+          {score != null ? (
+            <>
+              <div className="tk-bigdial">
+                <ScoreDial score={score} max={5} size={96} />
+              </div>
+              {signal && (
+                <span className="mt-tag mt-tag--accent tk-sigpill">
+                  {signal}{direction ? ` · ${direction}` : ''}
+                </span>
+              )}
+            </>
+          ) : scoreLoading ? (
             <div className="tk-bigdial" style={{ display: 'grid', placeItems: 'center', height: 96 }}>
-              <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>Not scored</span>
+              <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>Loading…</span>
             </div>
-            <span style={{ color: 'var(--mt-ink-3)', fontSize: 11.5, lineHeight: 1.35, display: 'block', marginTop: 4 }}>
-              ETF or non-screener ticker — outside the daily scan universe.
-            </span>
-          </div>
-        )}
+          ) : (
+            <>
+              <div className="tk-bigdial" style={{ display: 'grid', placeItems: 'center', height: 96 }}>
+                <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>Not scored</span>
+              </div>
+              <span style={{ color: 'var(--mt-ink-3)', fontSize: 11.5, lineHeight: 1.35, display: 'block', marginTop: 4 }}>
+                ETF or non-screener ticker — outside the daily scan universe.
+              </span>
+            </>
+          )}
+        </div>
       </section>
 
       {/* Price chart */}
