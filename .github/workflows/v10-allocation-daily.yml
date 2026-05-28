@@ -9,7 +9,14 @@ name: v10-allocation-daily
 
 on:
   schedule:
-    - cron: "45 22 * * 1-5"
+    # 08:15 ET morning runs (Joe directive 2026-05-27). Aligned with
+    # Massive's next-morning panel-complete window so Asset Tilt and the
+    # Trading Ops scanner are both based on the same close. Was 22:45 UTC
+    # (18:45 ET same-day) which produced Asset Tilt on T-close data while
+    # Trading Ops fell back to T-1 — the two engines disagreed by a day.
+    # 12:15 UTC = 08:15 ET (EDT), 13:15 UTC = 08:15 ET (EST). Idempotent.
+    - cron: "15 12 * * 2-6"
+    - cron: "15 13 * * 2-6"
   workflow_dispatch:
   workflow_run:
     workflows: ["cycle-mechanisms-daily"]
