@@ -84,11 +84,12 @@ export default function IndicatorsPage() {
   const [sort, setSort] = useState({ key: 'state', dir: 'desc' });
   const [drill, setDrill] = useState(null);
 
-  const counts = useMemo(() => ({
-    vol: active.filter((i) => VOL_TRIGGER_IDS.has(i.id)).length,
-    cycle: active.filter((i) => cycleIds.has(i.id)).length,
-    reference: active.filter((i) => !VOL_TRIGGER_IDS.has(i.id) && !cycleIds.has(i.id)).length,
-  }), [active, cycleIds]);
+  // Removed 2026-05-27 per Joe directive: the right-side summary tile
+  // ("29 indicators · 1d ago" + VOL TRIGGERS / CYCLE COMPOSITE / REFERENCE
+  // counts) was confusing legacy clutter from the cycle-composite era and
+  // didn't carry useful information for a portfolio decision. Layer filter
+  // pills below still let the user slice by Vol triggers / Cycle composite /
+  // Reference if they want.
 
   const filtered = useMemo(() => {
     let rows = active;
@@ -138,33 +139,25 @@ export default function IndicatorsPage() {
             across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>.
           </p>
         </div>
-        <div className="al-summary">
-          <FreshnessChip elementId="market-universe_master-daily" variant="pill" label={`${active.length} indicators`} />
-          <div className="al-summarygrid">
-            <div>
-              <div className="mt-eyebrow">Vol triggers</div>
-              <b className="num al-sumnum">{counts.vol}</b>
-            </div>
-            <div>
-              <div className="mt-eyebrow">Cycle composite</div>
-              <b className="num al-sumnum">{counts.cycle}</b>
-            </div>
-            <div>
-              <div className="mt-eyebrow">Reference</div>
-              <b className="num al-sumnum">{counts.reference}</b>
-            </div>
-          </div>
-        </div>
       </section>
 
-      {/* Toolbar — Joe directive 2026-05-27: removed the "Layer" pill set
-          (Vol triggers / Cycle composite / Reference) because those are
-          internal taxonomy and meaningless to a reader. Also removed the
-          decorative "+ Filter" and "Columns —" buttons that had no
-          implementation. Category pills stay because they're the actual
-          domain rollup a portfolio manager scans by. */}
       <section className="mt-pagesection mt-pagesection--tight">
         <div className="al-toolbar mt-card">
+          <div className="al-row">
+            <div className="mt-eyebrow">Layer</div>
+            <div className="mt-pillgroup">
+              {LAYERS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`mt-pill ${layer === l ? 'on' : ''}`}
+                  onClick={() => setLayer(l)}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="al-row">
             <div className="mt-eyebrow">Category</div>
             <div className="mt-pillgroup">
@@ -179,6 +172,12 @@ export default function IndicatorsPage() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="al-row al-row--push">
+            <button type="button" className="mt-btn">＋ Filter</button>
+            <button type="button" className="mt-btn">
+              ⚙ Columns <span className="num">—</span>
+            </button>
           </div>
         </div>
       </section>
@@ -195,7 +194,7 @@ export default function IndicatorsPage() {
                   <th onClick={() => toggleSort('domain')}>Category{arrow('domain')}</th>
                   <th onClick={() => toggleSort('freq')}>Freq{arrow('freq')}</th>
                   <th onClick={() => toggleSort('typeLabel')}>Type{arrow('typeLabel')}</th>
-                  <th onClick={() => toggleSort('asOf')}>Last refresh{arrow('asOf')}</th>
+                  <th>Last refresh</th>
                   <th className="num" onClick={() => toggleSort('value')}>Current{arrow('value')}</th>
                   <th className="num" onClick={() => toggleSort('prior_3m')}>3M ago{arrow('prior_3m')}</th>
                   <th className="num" onClick={() => toggleSort('prior_6m')}>6M ago{arrow('prior_6m')}</th>

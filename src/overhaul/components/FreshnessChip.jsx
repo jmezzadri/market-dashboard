@@ -70,6 +70,10 @@ export default function FreshnessChip({
         ? 'var(--mt-ink-3)'
         : 'var(--mt-up)';
 
+  // Joe directive 2026-05-27 — drop the "Fresh"/"Stale"/"Checking" word.
+  // The colored dot already carries the status; the relative time is what's
+  // useful. The word was redundant clutter. Kept for screen-reader aria-label
+  // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
   const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt);
   const exactStamp = fmtExact(f?.dataAsOf || f?.lastGoodAt);
@@ -119,12 +123,12 @@ export default function FreshnessChip({
         }}
       >
         {dot}
-        <span style={{ color }}>{word}</span>
-        {asOf && <span>· {asOf}</span>}
+        {asOf && <span>{asOf}</span>}
       </span>
     );
   } else {
-    // pill
+    // pill — show the explicit label if a caller passed one (e.g. "29
+    // indicators"), otherwise just the dot + relative time.
     inner = (
       <span
         style={{
@@ -145,8 +149,8 @@ export default function FreshnessChip({
         }}
       >
         {dot}
-        {label || word}
-        {asOf && <span style={{ opacity: 0.7 }}>· {asOf}</span>}
+        {label && <span>{label}</span>}
+        {asOf && <span style={{ opacity: label ? 0.7 : 1 }}>{label ? `· ${asOf}` : asOf}</span>}
       </span>
     );
   }
