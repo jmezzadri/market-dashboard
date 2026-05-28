@@ -1,6 +1,9 @@
 // useTickerEodPrice — authoritative last-close + prev-close + trade_date
 // for any ticker, sourced from prices_eod (Polygon Massive EOD).
 //
+// 2026-05-27 — extended to also return open / high / low / volume for the
+// latest session, used by the redesigned ticker page Key Stats grid.
+//
 // Why this exists:
 //   The TickerDetailModal used to read price from a chain of overlays
 //   (signal_intel_v5_daily.diagnostic, universe_snapshots, the public
@@ -20,8 +23,9 @@
 //   second instead of waiting for the next batch.
 //
 // What it returns:
-//   { last_close, prev_close, trade_date, prev_trade_date, day_pct,
-//     loading, source: "prices_eod", error }
+//   { last_close, prev_close, trade_date, prev_trade_date,
+//     open, high, low, volume,
+//     day_pct, loading, source: "prices_eod", error }
 //
 //   trade_date / prev_trade_date are the actual trading-day labels of the
 //   two values — these are what the freshness chip MUST anchor to, not
@@ -44,20 +48,20 @@ const EMPTY = {
   trade_date: null,
   prev_trade_date: null,
   ingested_at: null,
+  open: null,
+  high: null,
+  low: null,
+  volume: null,
   day_pct: null,
   loading: false,
   source: null,
   error: null,
 };
 
-// Format the most recent NYSE trading session as a YYYY-MM-DD anchored
-// to ET (not UTC) so comparisons against prices_eod.trade_date are
-// meaningful. prices_eod.trade_date is stored as the calendar ET date
-// of the session.
 function latestSessionETDate() {
   const d = latestTradingSessionDate();
   if (!d) return null;
-  const s = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
+  const s = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   return s;
 }
 
@@ -77,7 +81,7 @@ export default function useTickerEodPrice(ticker) {
     async function readPricesEod() {
       const { data, error } = await supabase
         .from("prices_eod")
-        .select("close, trade_date, ingested_at")
+        .select("close, open, high, low, volume, trade_date, ingested_at")
         .eq("ticker", upper)
         .order("trade_date", { ascending: false })
         .limit(2);
@@ -101,6 +105,10 @@ export default function useTickerEodPrice(ticker) {
         trade_date: cur?.trade_date || null,
         prev_trade_date: prev?.trade_date || null,
         ingested_at: cur?.ingested_at || null,
+        open:   cur && cur.open  != null ? Number(cur.open)   : null,
+        high:   cur && cur.high  != null ? Number(cur.high)   : null,
+        low:    cur && cur.low   != null ? Number(cur.low)    : null,
+        volume: cur && cur.volume != null ? Number(cur.volume) : null,
         day_pct,
         loading: false,
         source: "prices_eod",
@@ -113,15 +121,9 @@ export default function useTickerEodPrice(ticker) {
         let result = await readPricesEod();
         if (cancelled) return;
 
-        // Self-heal: if the most recent prices_eod row for this ticker
-        // is older than the latest NYSE trading session, ask the
-        // eod-same-day edge function to fetch today's bar from Yahoo
-        // and upsert. Re-query prices_eod after.
         const sessionDate = latestSessionETDate();
         const haveDate = result.cur?.trade_date || null;
         if (sessionDate && haveDate && haveDate < sessionDate) {
-          // Commit what we have first so the modal renders something
-          // immediately rather than spinning.
           commit(result);
           try {
             const { data: sess } = await supabase.auth.getSession();
@@ -136,18 +138,16 @@ export default function useTickerEodPrice(ticker) {
               body: JSON.stringify({ ticker: upper }),
             });
           } catch (e) {
-            // Fallback is best-effort; the committed (stale) value still renders.
             // eslint-disable-next-line no-console
             console.warn("[useTickerEodPrice] eod-same-day fallback failed", e);
           }
           if (cancelled) return;
-          // Re-query after the upsert.
           try {
             const fresh = await readPricesEod();
             if (cancelled) return;
             commit(fresh);
           } catch (_) {
-            // Stick with what we already committed.
+            /* keep previously committed */
           }
           return;
         }
