@@ -33,8 +33,14 @@ class AlpacaPosition:
     avg_entry_price: float
     market_value: float
     cost_basis: float
-    unrealized_pl: float
+    unrealized_pl: float            # total open P&L in $ (since entry)
     side: str  # 'long' / 'short'
+    unrealized_plpc: float = 0.0    # total open P&L as a fraction (0.05 = +5%)
+    unrealized_intraday_pl: float = 0.0    # today's P&L in $
+    unrealized_intraday_plpc: float = 0.0  # today's P&L as a fraction
+    current_price: float = 0.0      # latest price
+    lastday_price: float = 0.0      # prior session close
+    change_today: float = 0.0       # price move today as a fraction
 
 
 @dataclass(frozen=True)
@@ -117,6 +123,12 @@ class AlpacaPaperClient:
                 cost_basis=float(p.get("cost_basis", 0)),
                 unrealized_pl=float(p.get("unrealized_pl", 0)),
                 side=p.get("side", "long"),
+                unrealized_plpc=float(p.get("unrealized_plpc", 0) or 0),
+                unrealized_intraday_pl=float(p.get("unrealized_intraday_pl", 0) or 0),
+                unrealized_intraday_plpc=float(p.get("unrealized_intraday_plpc", 0) or 0),
+                current_price=float(p.get("current_price", 0) or 0),
+                lastday_price=float(p.get("lastday_price", 0) or 0),
+                change_today=float(p.get("change_today", 0) or 0),
             ))
         return positions
 
@@ -128,6 +140,78 @@ class AlpacaPaperClient:
         except requests.HTTPError:
             return None
         return float(data.get("trade", {}).get("p", 0)) or None
+
+    def get_close_price(self, ticker: str) -> float | None:
+        """Latest daily close from Alpaca's MARKET-DATA host
+        (data.alpaca.markets, free IEX feed). The trading host used elsewhere
+        (paper-api.alpaca.markets) does NOT serve market data — querying it for
+        prices silently returns nothing, which is why the old SPY benchmark
+        never had data. Used for benchmark prices (SPY, AGG)."""
+        data_base = os.environ.get(
+            "ALPACA_DATA_BASE_URL", "https://data.alpaca.markets"
+        ).rstrip("/")
+        # Prefer the most recent daily bar's close.
+        try:
+            resp = requests.get(
+                f"{data_base}/v2/stocks/{ticker}/bars",
+                headers=self._headers(),
+                params={"timeframe": "1Day", "limit": 1, "feed": "iex"},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            bars = resp.json().get("bars") or []
+            if bars:
+                c = float(bars[-1].get("c") or 0)
+                if c:
+                    return c
+        except requests.RequestException:
+            pass
+        # Fallback: latest trade on the data host.
+        try:
+            resp = requests.get(
+                f"{data_base}/v2/stocks/{ticker}/trades/latest",
+                headers=self._headers(), params={"feed": "iex"}, timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            return float(resp.json().get("trade", {}).get("p", 0)) or None
+        except requests.RequestException:
+            return None
+
+    def get_daily_closes(self, ticker: str, start_iso: str, end_iso: str | None = None) -> list[tuple[str, float]]:
+        """Daily closes for a ticker over [start_iso, end_iso] from the
+        market-data host (IEX free feed). Returns [(YYYY-MM-DD, close), ...]
+        ascending. Used to anchor benchmark returns (inception / trailing-12m /
+        previous close) without storing a full price series."""
+        data_base = os.environ.get(
+            "ALPACA_DATA_BASE_URL", "https://data.alpaca.markets"
+        ).rstrip("/")
+        out: list[tuple[str, float]] = []
+        page_token = None
+        try:
+            for _ in range(8):  # safety cap on pagination
+                params = {"timeframe": "1Day", "start": start_iso, "feed": "iex", "limit": 1000}
+                if end_iso:
+                    params["end"] = end_iso
+                if page_token:
+                    params["page_token"] = page_token
+                resp = requests.get(
+                    f"{data_base}/v2/stocks/{ticker}/bars",
+                    headers=self._headers(), params=params, timeout=self.timeout,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                for b in (body.get("bars") or []):
+                    t = (b.get("t") or "")[:10]
+                    c = float(b.get("c") or 0)
+                    if t and c:
+                        out.append((t, c))
+                page_token = body.get("next_page_token")
+                if not page_token:
+                    break
+        except requests.RequestException:
+            pass
+        out.sort(key=lambda x: x[0])
+        return out
 
     def get_clock(self) -> dict:
         """Returns Alpaca's market clock with keys: is_open, next_open,
@@ -174,8 +258,8 @@ class AlpacaPaperClient:
         """
         if side not in ("buy", "sell"):
             raise ValueError(f"side must be 'buy' or 'sell', got {side}")
-        if (qty is None or qty <= 0) and (notional is None or notional <= 0):
-            raise ValueError("must pass either qty>0 or notional>0")
+        if qty is None and notional is None:
+            raise ValueError("must pass either qty or notional")
         body: dict[str, Any] = {
             "symbol": ticker,
             "side": side,
@@ -184,11 +268,7 @@ class AlpacaPaperClient:
             "client_order_id": client_order_id,
             "extended_hours": extended_hours,
         }
-        # Prefer qty when present and positive; otherwise use notional.
-        # (Fixes bug 2026-05-27: when the translator can't get a live price
-        # it leaves qty=None and writes target_notional. The old code would
-        # pass qty=0 here and Alpaca rejected with HTTP 422.)
-        if qty is not None and qty > 0:
+        if qty is not None:
             body["qty"] = str(qty)
         else:
             body["notional"] = str(notional)
