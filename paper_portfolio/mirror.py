@@ -242,8 +242,13 @@ def _spy_anchor_closes(alpaca: AlpacaPaperClient) -> dict:
     if not closes:
         return out
     out["prev"] = closes[-2][1] if len(closes) >= 2 else None
-    ttm_target = (today - timedelta(days=365)).isoformat()
     on_or_before = lambda tgt: next((c for d, c in reversed(closes) if d <= tgt), closes[0][1])
+    # Window-match TTM to the book's life while it's younger than a year, so the
+    # "Vs S&P 500" TTM compares like-for-like instead of the book's few days
+    # against SPY's full 12 months. Once the book is >1yr old this is the true
+    # trailing-12-month anchor.
+    ttm_cal = (today - timedelta(days=365)).isoformat()
+    ttm_target = max(ttm_cal, inception_date) if inception_date else ttm_cal
     out["ttm"] = on_or_before(ttm_target)
     if inception_date:
         out["inception"] = on_or_before(inception_date)
