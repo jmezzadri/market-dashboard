@@ -63,6 +63,7 @@ def run(
     scan_date: str | None = None,
     dry_run: bool = False,
     use_live_prices: bool = True,
+    suppress_buys: bool = False,
 ) -> TranslatorResult:
     """Execute one full translator cycle.
 
@@ -132,6 +133,7 @@ def run(
     intents = build_order_intents(
         sleeve_a, sleeve_b, live_positions,
         alpaca=alpaca, asset_tilt_snapshot=asset_tilt,
+        suppress_buys=suppress_buys,
     )
     logger.info("diff produced %d order intents", len(intents))
 
