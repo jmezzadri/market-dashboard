@@ -145,10 +145,14 @@ def _realized_pnl_by_sleeve() -> dict[str, float]:
     paper_fills. Buys raise the cost base; sells realize (sell - avg_cost) x qty.
     Returns {'A': $, 'B': $}. Informational per-sleeve split; the headline
     realized number is derived exactly from NAV minus open P&L in the writer."""
-    rows = _supabase_query(
-        "select sleeve, ticker, side, quantity, price, filled_at "
-        "from public.paper_fills order by filled_at asc;"
-    )
+    try:
+        rows = _supabase_query(
+            "select sleeve, ticker, side, quantity, price, filled_at "
+            "from public.paper_fills order by filled_at asc;"
+        )
+    except Exception as e:
+        logger.warning("realized-P&L query failed (%s); defaulting to 0", e)
+        return {"A": 0.0, "B": 0.0}
     # per (sleeve,ticker): running avg cost + qty
     lots: dict[tuple, dict] = {}
     realized = {"A": 0.0, "B": 0.0}
@@ -175,11 +179,16 @@ def _portfolio_beta(snapshot_date: date) -> float | None:
     beta = cov(book_ret, spy_ret) / var(spy_ret). Needs a meaningful sample —
     returns None until at least 20 daily return pairs exist so the page can
     show 'building' instead of a noisy number."""
-    rows = _supabase_query(
-        "select total_nav, spy_close from public.paper_nav_daily "
-        "where spy_close is not null and total_nav is not null "
-        "order by snapshot_date asc;"
-    )
+    try:
+        rows = _supabase_query(
+            "select total_nav, spy_close from public.paper_nav_daily "
+            "where spy_close is not null and total_nav is not null "
+            "order by snapshot_date asc;"
+        )
+    except Exception as e:
+        # spy_close column may not exist yet on a dry-run or first bootstrap.
+        logger.warning("beta query failed (%s); returning None", e)
+        return None
     navs = [float(r["total_nav"]) for r in rows]
     spys = [float(r["spy_close"]) for r in rows]
     # daily simple returns
