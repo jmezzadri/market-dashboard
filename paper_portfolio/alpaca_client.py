@@ -141,6 +141,42 @@ class AlpacaPaperClient:
             return None
         return float(data.get("trade", {}).get("p", 0)) or None
 
+    def get_close_price(self, ticker: str) -> float | None:
+        """Latest daily close from Alpaca's MARKET-DATA host
+        (data.alpaca.markets, free IEX feed). The trading host used elsewhere
+        (paper-api.alpaca.markets) does NOT serve market data — querying it for
+        prices silently returns nothing, which is why the old SPY benchmark
+        never had data. Used for benchmark prices (SPY, AGG)."""
+        data_base = os.environ.get(
+            "ALPACA_DATA_BASE_URL", "https://data.alpaca.markets"
+        ).rstrip("/")
+        # Prefer the most recent daily bar's close.
+        try:
+            resp = requests.get(
+                f"{data_base}/v2/stocks/{ticker}/bars",
+                headers=self._headers(),
+                params={"timeframe": "1Day", "limit": 1, "feed": "iex"},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            bars = resp.json().get("bars") or []
+            if bars:
+                c = float(bars[-1].get("c") or 0)
+                if c:
+                    return c
+        except requests.RequestException:
+            pass
+        # Fallback: latest trade on the data host.
+        try:
+            resp = requests.get(
+                f"{data_base}/v2/stocks/{ticker}/trades/latest",
+                headers=self._headers(), params={"feed": "iex"}, timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            return float(resp.json().get("trade", {}).get("p", 0)) or None
+        except requests.RequestException:
+            return None
+
     def get_clock(self) -> dict:
         """Returns Alpaca's market clock with keys: is_open, next_open,
         next_close. Used by the runner to gate MOO submissions to the
