@@ -177,14 +177,16 @@ const PAGE_CSS = `
 .paper-rebal-meta { font-weight: 400; color: var(--ink-2); font-feature-settings: "tnum"; }
 .paper-rebal-source { font-size: 11px; color: var(--ink-3); margin-top: 3px; letter-spacing: .04em; }
 
-/* Summary matrix (top-right) — restrained, hairline, tabular. */
-.pmx { width: 100%; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
-.pmx th, .pmx td { padding: 8px 10px; text-align: right; white-space: nowrap; font-size: 12.5px; }
+/* Summary matrix (top-right) — restrained, hairline, tabular.
+   table-layout:fixed + width:100% so it ALWAYS fits the card (never clips
+   Inception/Beta). Columns share the width via the colgroup. */
+.pmx { width: 100%; table-layout: fixed; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
+.pmx th, .pmx td { padding: 7px 6px; text-align: right; white-space: nowrap; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
 .pmx thead th {
-  font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2);
+  font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2);
   font-weight: 500; border-bottom: 1px solid var(--line-1);
 }
-.pmx thead th:first-child, .pmx tbody td:first-child { text-align: left; }
+.pmx thead th:first-child, .pmx tbody td:first-child { text-align: left; white-space: normal; }
 .pmx tbody td { border-bottom: 1px solid var(--line-0); color: var(--ink-1); }
 .pmx tbody tr:last-child td { border-bottom: none; }
 .pmx .rlabel { color: var(--ink-0); font-weight: 500; }
@@ -326,7 +328,7 @@ function SummaryCard({ navHistory }) {
 
   const betaTd = (r) => {
     if (r.vs) return <td className="muted"></td>;
-    if (r.beta == null) return <td className="muted">building…</td>;
+    if (r.beta == null) return <td className="muted" title="Beta builds over ~20 trading days">—</td>;
     return <td className="rowval">{r.beta.toFixed(2)}</td>;
   };
 
@@ -348,9 +350,17 @@ function SummaryCard({ navHistory }) {
         <span className="pts-asof">{latest.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}</span>
       </div>
       <table className="pmx">
+        <colgroup>
+          <col style={{ width: '25%' }} />
+          <col style={{ width: '17%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '13%' }} />
+        </colgroup>
         <thead>
           <tr>
-            <th></th><th>Value</th><th>Daily P&amp;L</th><th>TTM P&amp;L</th><th>Inception</th><th>Beta</th>
+            <th></th><th>Value</th><th>Daily</th><th>TTM</th><th>Incep.</th><th>Beta</th>
           </tr>
         </thead>
         <tbody>
