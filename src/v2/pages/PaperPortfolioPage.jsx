@@ -134,16 +134,23 @@ function NavHero({ navHistory, account }) {
   const leverageUsed = latest.sleeve_b_margin_used || 0;
   const leverageOn = leverageUsed > 0;
 
-  // Per-sleeve roll-ups.
-  const aNav = latest.sleeve_a_nav, bNav = latest.sleeve_b_nav;
-  const aRet = aNav != null ? aNav / 500_000 - 1 : null;
-  const bRet = bNav != null ? bNav / 500_000 - 1 : null;
+  // Per-sleeve roll-ups. NOTE: sleeve_*_nav from the DB is a cash-plug that
+  // always sums back to the $500K cap (single Alpaca cash pool), so it can't
+  // be used for return. Mark each sleeve to market instead:
+  //   value = $500K start + realized + unrealized;  return = P&L / $500K.
+  const SLEEVE_CAP = 500_000;
   const aUnrl = latest.sleeve_a_unrealized_pnl ?? null;
   const bUnrl = latest.sleeve_b_unrealized_pnl ?? null;
   const aReal = latest.sleeve_a_realized_pnl ?? null;
   const bReal = latest.sleeve_b_realized_pnl ?? null;
   const aPos = latest.sleeve_a_positions ?? null;
   const bPos = latest.sleeve_b_positions ?? null;
+  const aPnl = (aUnrl != null || aReal != null) ? (aReal ?? 0) + (aUnrl ?? 0) : null;
+  const bPnl = (bUnrl != null || bReal != null) ? (bReal ?? 0) + (bUnrl ?? 0) : null;
+  const aNav = aPnl != null ? SLEEVE_CAP + aPnl : latest.sleeve_a_nav;
+  const bNav = bPnl != null ? SLEEVE_CAP + bPnl : latest.sleeve_b_nav;
+  const aRet = aPnl != null ? aPnl / SLEEVE_CAP : null;
+  const bRet = bPnl != null ? bPnl / SLEEVE_CAP : null;
 
   const signColor = (n) => (n == null ? COLOR.textMuted : (n >= 0 ? COLOR.green : COLOR.red));
 
