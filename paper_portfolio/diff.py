@@ -78,6 +78,7 @@ def build_order_intents(
     live_positions: Iterable[AlpacaPosition],
     alpaca: AlpacaPaperClient | None = None,
     asset_tilt_snapshot: AssetTiltSnapshot | None = None,
+    suppress_buys: bool = False,
 ) -> list[OrderIntent]:
     """Compute the buy/sell intent list to move from `live_positions` to
     the combined target across both sleeves.
@@ -85,6 +86,10 @@ def build_order_intents(
     `alpaca` is optional — if None, OrderIntent.target_quantity is left as
     None (the Phase 4 submit path can compute qty at submit time). Tests
     pass None to keep the function fully deterministic.
+
+    `suppress_buys=True` (DEGRADED MODE) drops every buy/add intent while
+    keeping all sells and orphan exits — used when a decision-moving input is
+    stale, so the portfolio de-risks but never adds risk on bad data.
 
     `asset_tilt_snapshot` is optional but improves orphan-sleeve
     attribution: if a live position is not in either current target, we
@@ -120,6 +125,9 @@ def build_order_intents(
         if _below_tolerance(abs(diff), "A", sleeve_a_target.capital_assigned):
             continue
         side = "buy" if diff > 0 else "sell"
+        # DEGRADED MODE: suppress NEW BUYS / adds; exits (sells) still run.
+        if suppress_buys and side == "buy":
+            continue
         last_price = alpaca.get_last_trade_price(ticker) if alpaca else None
         qty = _qty_from_notional(abs(diff), last_price)
         intents.append(OrderIntent(
@@ -165,6 +173,9 @@ def build_order_intents(
         if _below_tolerance(abs(diff), "B", sleeve_b_target.capital_assigned):
             continue
         side = "buy" if diff > 0 else "sell"
+        # DEGRADED MODE: suppress NEW BUYS / adds; exits (sells) still run.
+        if suppress_buys and side == "buy":
+            continue
         last_price = alpaca.get_last_trade_price(ticker) if alpaca else None
         # Convert score to integer for the paper_orders.signal_score column
         # (its column type is integer; we round-half-up).
