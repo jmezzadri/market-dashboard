@@ -50,6 +50,7 @@ def _live_trading_enabled() -> bool:
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.mirror import (
+    ensure_paper_schema,
     mirror_fills,
     mirror_positions,
     write_nav_daily,
@@ -95,10 +96,14 @@ def run_open_phase(
     snapshot_date: date | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Fills + positions + NAV mirror."""
+    """Fills + positions + NAV mirror. Used by both the morning OPEN refresh
+    and the authoritative CLOSE-of-day snapshot (same logic, different time —
+    the close run captures settled closing prices for the backtest record)."""
     logger.info("=" * 60)
-    logger.info("PHASE OPEN — fill + position + NAV mirror")
+    logger.info("PHASE OPEN/CLOSE — fill + position + NAV mirror")
     logger.info("=" * 60)
+    if not dry_run:
+        ensure_paper_schema()
     alpaca = AlpacaPaperClient()
     # The fills mirror is the LEAST critical of the three writes (it feeds the
     # trade-history table, not the NAV/P&L the page leads with). It must never
@@ -117,7 +122,10 @@ def run_open_phase(
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="MacroTilt paper-portfolio nightly runner.")
-    p.add_argument("--phase", choices=["eod", "open", "all"], default="eod")
+    p.add_argument("--phase", choices=["eod", "open", "close", "all"], default="eod",
+                   help="eod=order intent (16:30 ET); open=morning mirror (09:45 ET); "
+                        "close=authoritative end-of-day snapshot at settled close prices "
+                        "(16:10 ET) — the daily backtest record; all=eod+open.")
     p.add_argument("--account", help="paper account_number override")
     p.add_argument("--asset-tilt-path", default="public/v10_allocation.json")
     p.add_argument("--scan-date", help="explicit scanner scan_date (YYYY-MM-DD)")
@@ -149,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
             scan_date=args.scan_date,
             dry_run=effective_dry_run,
         )
-    if args.phase in ("open", "all"):
+    if args.phase in ("open", "close", "all"):
         run_open_phase(dry_run=effective_dry_run)
     logger.info("runner done — phase=%s dry_run=%s", args.phase, effective_dry_run)
     return 0
