@@ -181,9 +181,9 @@ const PAGE_CSS = `
    table-layout:fixed + width:100% so it ALWAYS fits the card (never clips
    Inception/Beta). Columns share the width via the colgroup. */
 .pmx { width: 100%; table-layout: fixed; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
-.pmx th, .pmx td { padding: 7px 6px; text-align: right; white-space: nowrap; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
+.pmx th, .pmx td { padding: 6px 3px; text-align: right; white-space: nowrap; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
 .pmx thead th {
-  font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2);
+  font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2);
   font-weight: 500; border-bottom: 1px solid var(--line-1);
 }
 .pmx thead th:first-child, .pmx tbody td:first-child { text-align: left; white-space: normal; }
@@ -351,12 +351,12 @@ function SummaryCard({ navHistory }) {
       </div>
       <table className="pmx">
         <colgroup>
-          <col style={{ width: '25%' }} />
-          <col style={{ width: '17%' }} />
+          <col style={{ width: '23%' }} />
+          <col style={{ width: '18%' }} />
           <col style={{ width: '15%' }} />
           <col style={{ width: '15%' }} />
           <col style={{ width: '15%' }} />
-          <col style={{ width: '13%' }} />
+          <col style={{ width: '14%' }} />
         </colgroup>
         <thead>
           <tr>
