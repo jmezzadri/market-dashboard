@@ -168,6 +168,31 @@ export function isStaleAgainstSLA(asOfIso, slaHours, calendar, nowMs) {
   return age > slaHours;
 }
 
+// ─── Whole-day age for the relative-age label ───────────────────────────────
+// Counts the number of calendar-of-record days between the as-of DATE and
+// today, both taken as ET calendar dates. This is time-of-day independent: a
+// value dated "yesterday" is always 1, no matter the current hour or whether
+// UTC has already rolled past midnight while it is still the prior day in ET.
+// Weekends and holidays are not counted for trading/business calendars, so a
+// Friday value read on Monday is 1, not 3. This is what the chip shows as
+// "Nd ago", so the words always agree with the green/red dot.
+export function calendarDaysSince(asOfIso, calendar, nowMs) {
+  if (!asOfIso) return null;
+  const asOfDateStr = String(asOfIso).slice(0, 10);
+  const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+  // "today" as an ET calendar date (YYYY-MM-DD via the en-CA locale).
+  const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const start = new Date(`${asOfDateStr}T00:00:00Z`).getTime();
+  const end = new Date(`${todayET}T00:00:00Z`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
+  const dayMs = 86400000;
+  let count = 0;
+  for (let t = start + dayMs; t <= end; t += dayMs) {
+    if (isCalendarDay(new Date(t), calendar)) count++;
+  }
+  return count;
+}
+
 // ─── Convenience formatter ──────────────────────────────────────────────────
 // Returns a plain-English age string. Used by the chip tooltip.
 //   "just now" / "12 minutes ago" / "3 hours ago" / "2 days ago"

@@ -36,7 +36,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar } from "../lib/freshnessClock";
+import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince } from "../lib/freshnessClock";
 import {
   getElement,
   getSLAHours,
@@ -232,6 +232,11 @@ function statusForElement(elementId, fallback) {
     calendarAgeHours: (dataDate || lastGoodAt)
       ? ageHoursAgainstCalendar(dataDate || lastGoodAt, calendar)
       : null,
+    // Whole ET-session-days since the displayed value's date — drives the
+    // "Nd ago" label so it never disagrees with the dot (see calendarDaysSince).
+    calendarDaysAgo: (dataDate || lastGoodAt)
+      ? calendarDaysSince(dataDate || lastGoodAt, calendar)
+      : null,
     coveragePct: phRow?.coverage_pct != null ? Number(phRow.coverage_pct) : null,
     expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
@@ -331,6 +336,7 @@ export function useFreshness(elementId, fallback) {
     // expected refresh time.
     dataAsOf: rolled.dataAsOf,
     calendarAgeHours: rolled.calendarAgeHours,
+    calendarDaysAgo: rolled.calendarDaysAgo,
     coveragePct: rolled.coveragePct,
     expectedNextRun: rolled.expectedNextRun,
     reason: rolled.reason,

@@ -21,7 +21,7 @@ import { useFreshness } from '../../hooks/useFreshness';
 // "1d ago", never "2d ago", regardless of weekends or midnight rounding. The
 // label then always agrees with the green/red dot beside it. (Joe 2026-05-28:
 // "daily, green chip, 2d ago — that's an oxymoron.")
-function fmtStamp(iso, calendarAgeHours) {
+function fmtStamp(iso, calendarDaysAgo) {
   if (!iso) return '—';
   const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
   if (Number.isNaN(dt.getTime())) return '—';
@@ -29,13 +29,26 @@ function fmtStamp(iso, calendarAgeHours) {
   if (wallMin < -1440) {
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   }
+  // Same ET session-date as today: show intraday wall-clock freshness.
+  if (calendarDaysAgo != null && calendarDaysAgo <= 0) {
+    if (wallMin < 1) return 'just now';
+    if (wallMin < 60) return `${Math.round(wallMin)}m ago`;
+    const hr = wallMin / 60;
+    if (hr < 24) return `${Math.round(hr)}h ago`;
+    return 'today';
+  }
+  // One or more whole ET sessions back. This integer is calendar-aware
+  // (weekends/holidays not counted), so it always agrees with the dot.
+  if (calendarDaysAgo != null) {
+    if (calendarDaysAgo < 8) return `${calendarDaysAgo}d ago`;
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
+  // Fallback (no day count supplied): plain wall-clock.
   if (wallMin < 1) return 'just now';
   if (wallMin < 60) return `${Math.round(wallMin)}m ago`;
   const wallHr = wallMin / 60;
   if (wallHr < 24) return `${Math.round(wallHr)}h ago`;
-  // Day bucket: prefer the calendar-aware age so the words match the dot.
-  const ageHr = Number.isFinite(calendarAgeHours) ? calendarAgeHours : wallHr;
-  const day = Math.max(1, Math.floor(ageHr / 24));
+  const day = Math.floor(wallHr / 24);
   if (day < 8) return `${day}d ago`;
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
@@ -83,7 +96,7 @@ export default function FreshnessChip({
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
-  const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarAgeHours);
+  const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
   const exactStamp = fmtExact(f?.dataAsOf || f?.lastGoodAt);
 
   const onEnter = () => {
