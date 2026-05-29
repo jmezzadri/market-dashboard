@@ -439,8 +439,8 @@ def write_nav_daily(
     # Benchmarks — store the RAW closing prices for SPY and AGG. The page
     # normalizes both to a $1M capital-matched start (SPY buy-and-hold and a
     # 60/40 SPY/AGG blend), so the comparison is apples-to-apples in dollars.
-    spy_close = alpaca.get_last_trade_price("SPY")
-    agg_close = alpaca.get_last_trade_price("AGG")
+    spy_close = alpaca.get_close_price("SPY")
+    agg_close = alpaca.get_close_price("AGG")
     # Back-compat: keep the old 100-share anchor column populated.
     spy_value = spy_close * 100 if spy_close else None
 
