@@ -15,20 +15,28 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFreshness } from '../../hooks/useFreshness';
 
-function fmtStamp(iso) {
+// Relative-age label. When the hook supplies a calendar-aware age (weekends +
+// holidays already removed for trading/business-day series), the day bucket
+// uses THAT and floors it — so a value from the last trading session reads
+// "1d ago", never "2d ago", regardless of weekends or midnight rounding. The
+// label then always agrees with the green/red dot beside it. (Joe 2026-05-28:
+// "daily, green chip, 2d ago — that's an oxymoron.")
+function fmtStamp(iso, calendarAgeHours) {
   if (!iso) return '—';
   const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
   if (Number.isNaN(dt.getTime())) return '—';
-  const min = (Date.now() - dt.getTime()) / 60000;
-  if (min < -1440) {
+  const wallMin = (Date.now() - dt.getTime()) / 60000;
+  if (wallMin < -1440) {
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   }
-  if (min < 1) return 'just now';
-  if (min < 60) return `${Math.round(min)}m ago`;
-  const hr = min / 60;
-  if (hr < 24) return `${Math.round(hr)}h ago`;
-  const day = hr / 24;
-  if (day < 8) return `${Math.round(day)}d ago`;
+  if (wallMin < 1) return 'just now';
+  if (wallMin < 60) return `${Math.round(wallMin)}m ago`;
+  const wallHr = wallMin / 60;
+  if (wallHr < 24) return `${Math.round(wallHr)}h ago`;
+  // Day bucket: prefer the calendar-aware age so the words match the dot.
+  const ageHr = Number.isFinite(calendarAgeHours) ? calendarAgeHours : wallHr;
+  const day = Math.max(1, Math.floor(ageHr / 24));
+  if (day < 8) return `${day}d ago`;
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
@@ -75,7 +83,7 @@ export default function FreshnessChip({
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
-  const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt);
+  const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarAgeHours);
   const exactStamp = fmtExact(f?.dataAsOf || f?.lastGoodAt);
 
   const onEnter = () => {

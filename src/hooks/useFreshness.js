@@ -36,7 +36,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { isStaleAgainstSLA, formatRelativeAge } from "../lib/freshnessClock";
+import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar } from "../lib/freshnessClock";
 import {
   getElement,
   getSLAHours,
@@ -224,6 +224,14 @@ function statusForElement(elementId, fallback) {
     // dataAsOf — the trading day the value represents. Prefer the live
     // file's as_of over a lagging tracking row; fall back to the cron time.
     dataAsOf: dataDate || lastGoodAt || null,
+    // Calendar-aware age (hours) of the displayed value. Weekends + holidays
+    // are not counted, so the relative-age text the chip shows ("1d ago")
+    // matches the same trading/business calendar the staleness call uses —
+    // a value from the last trading session never reads "2d ago" next to a
+    // green dot just because a weekend or midnight-rounding sat in between.
+    calendarAgeHours: (dataDate || lastGoodAt)
+      ? ageHoursAgainstCalendar(dataDate || lastGoodAt, calendar)
+      : null,
     coveragePct: phRow?.coverage_pct != null ? Number(phRow.coverage_pct) : null,
     expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
@@ -322,6 +330,7 @@ export function useFreshness(elementId, fallback) {
     // trading day the value is from, the coverage ratio, and the next
     // expected refresh time.
     dataAsOf: rolled.dataAsOf,
+    calendarAgeHours: rolled.calendarAgeHours,
     coveragePct: rolled.coveragePct,
     expectedNextRun: rolled.expectedNextRun,
     reason: rolled.reason,
