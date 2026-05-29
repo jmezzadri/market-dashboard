@@ -28,7 +28,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import date, datetime, timezone
+import re
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -38,6 +39,30 @@ from paper_portfolio.signals import load_asset_tilt_snapshot
 
 logger = logging.getLogger("paper_mirror")
 PROJECT_REF = "yqaqqzseepebrocgibcw"
+
+
+def _to_rfc3339_utc(ts: str) -> str:
+    """Normalize a timestamp string into the RFC-3339 UTC form Alpaca's REST
+    API accepts on the `after` parameter (e.g. "2026-05-27T13:38:48Z").
+
+    Handles both Python isoformat ("...+00:00") and Postgres ::text
+    ("2026-05-27 13:38:48.556838+00", space separator + bare "+00" offset).
+    """
+    s = ts.strip().replace(" ", "T")
+    # Accept a trailing "Z" (some callers / future schema changes emit it).
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    # Pad a bare two-digit trailing offset ("+00" / "-05") to "+00:00".
+    s = re.sub(r"([+-]\d{2})$", r"\1:00", s)
+    try:
+        d = datetime.fromisoformat(s)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        # Last resort: hand Alpaca a clearly-valid lookback rather than crash.
+        logger.warning("could not parse since_iso %r; falling back to 7-day lookback", ts)
+        return (datetime.now(tz=timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,25 +178,6 @@ def mirror_positions(
 # 2) Fills mirror
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _normalize_rfc3339(ts: str) -> str:
-    """Coerce any timestamp string into the RFC-3339 'Z' form Alpaca accepts.
-
-    Handles Postgres ::text output ('2026-05-27 13:38:48.556838+00' — space
-    separator, bare '+00' offset), Python isoformat ('...+00:00'), and
-    strings already ending in 'Z'. The old code only stripped a literal
-    '+00:00' suffix and missed the '+00' / space-separated Postgres form,
-    which Alpaca rejected with HTTP 422.
-    """
-    import re
-    s = str(ts).strip().replace(" ", "T")
-    s = re.sub(r"\.\d+", "", s)              # drop fractional seconds
-    s = re.sub(r"[+-]00:?00$", "Z", s)         # +0000 / +00:00 -> Z
-    s = re.sub(r"[+-]00$", "Z", s)             # bare +00 -> Z
-    if not (s.endswith("Z") or re.search(r"[+-]\d\d:?\d\d$", s)):
-        s += "Z"                                # naive -> assume UTC
-    return s
-
-
 def mirror_fills(
     alpaca: AlpacaPaperClient | None = None,
     since_iso: str | None = None,
@@ -198,10 +204,15 @@ def mirror_fills(
             from datetime import timedelta
             since_iso = (datetime.now(tz=timezone.utc) - timedelta(days=7)).isoformat()
 
-    # Alpaca's /v2/orders `after` parameter requires RFC-3339 (e.g.
-    # 2026-05-27T13:38:48Z). Normalize any input shape (Postgres ::text,
-    # Python isoformat, already-Z) so we never send a 422-triggering value.
-    since_iso = _normalize_rfc3339(since_iso)
+    # Alpaca's REST `after` parameter requires strict RFC-3339 (a `T`
+    # separator and a full/`Z` timezone). The value here can arrive in two
+    # shapes: Python isoformat ("2026-05-27T13:38:48.556838+00:00") or
+    # Postgres `::text` ("2026-05-27 13:38:48.556838+00" — note the SPACE
+    # separator and the bare two-digit "+00" offset). The old guard only
+    # handled the "+00:00" case, so the Postgres form sailed through and
+    # Alpaca rejected it with HTTP 422, crashing the whole open phase.
+    # Normalize any of these into "YYYY-MM-DDTHH:MM:SSZ".
+    since_iso = _to_rfc3339_utc(since_iso)
 
     orders = alpaca.list_orders(status="closed", after=since_iso, limit=500)
     n_inserted = 0
