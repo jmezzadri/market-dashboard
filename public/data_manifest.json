@@ -187,7 +187,7 @@
       "category": "indicator",
       "name": "yield_curve",
       "description": "10Y-2Y Treasury slope (bps) — recession early-warning gauge.",
-      "sourcing_mode": "STP",
+      "sourcing_mode": "computed",
       "source_vendor": "Treasury.gov",
       "source_endpoint": "Treasury.gov daily yield curve (10Y minus 2Y, ×100 → bps)",
       "license_tier": "free",
@@ -694,7 +694,7 @@
       "dependencies": []
     },
     {
-      "id": "indicator-term_premium-weekly",
+      "id": "indicator-term_premium-daily",
       "category": "indicator",
       "name": "term_premium",
       "description": "Kim-Wright 10-year term premium (bps) — duration risk premium. (Fed Board publishes weekly, not daily — corrected 2026-05-03.)",
@@ -703,10 +703,10 @@
       "source_endpoint": "FRED THREEFYTP10 (×100)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "weekly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 384,
+      "freshness_sla_hours": 150,
       "output_destination": "public/indicator_history.json[term_premium]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -725,7 +725,8 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace."
     },
     {
       "id": "indicator-cape-monthly",
@@ -2203,7 +2204,7 @@
       "category": "indicator",
       "name": "erp",
       "description": "Equity Risk Premium — S&P 500 earnings yield minus 10-year Treasury yield.",
-      "sourcing_mode": "STP+derived",
+      "sourcing_mode": "computed",
       "source_vendor": "FRED + Shiller",
       "source_endpoint": "(1/CAPE) - DGS10 derived",
       "license_tier": "free",
