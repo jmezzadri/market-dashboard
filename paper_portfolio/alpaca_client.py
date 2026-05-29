@@ -33,8 +33,14 @@ class AlpacaPosition:
     avg_entry_price: float
     market_value: float
     cost_basis: float
-    unrealized_pl: float
+    unrealized_pl: float            # total open P&L in $ (since entry)
     side: str  # 'long' / 'short'
+    unrealized_plpc: float = 0.0    # total open P&L as a fraction (0.05 = +5%)
+    unrealized_intraday_pl: float = 0.0    # today's P&L in $
+    unrealized_intraday_plpc: float = 0.0  # today's P&L as a fraction
+    current_price: float = 0.0      # latest price
+    lastday_price: float = 0.0      # prior session close
+    change_today: float = 0.0       # price move today as a fraction
 
 
 @dataclass(frozen=True)
@@ -117,6 +123,12 @@ class AlpacaPaperClient:
                 cost_basis=float(p.get("cost_basis", 0)),
                 unrealized_pl=float(p.get("unrealized_pl", 0)),
                 side=p.get("side", "long"),
+                unrealized_plpc=float(p.get("unrealized_plpc", 0) or 0),
+                unrealized_intraday_pl=float(p.get("unrealized_intraday_pl", 0) or 0),
+                unrealized_intraday_plpc=float(p.get("unrealized_intraday_plpc", 0) or 0),
+                current_price=float(p.get("current_price", 0) or 0),
+                lastday_price=float(p.get("lastday_price", 0) or 0),
+                change_today=float(p.get("change_today", 0) or 0),
             ))
         return positions
 
@@ -174,8 +186,8 @@ class AlpacaPaperClient:
         """
         if side not in ("buy", "sell"):
             raise ValueError(f"side must be 'buy' or 'sell', got {side}")
-        if (qty is None or qty <= 0) and (notional is None or notional <= 0):
-            raise ValueError("must pass either qty>0 or notional>0")
+        if qty is None and notional is None:
+            raise ValueError("must pass either qty or notional")
         body: dict[str, Any] = {
             "symbol": ticker,
             "side": side,
@@ -184,11 +196,7 @@ class AlpacaPaperClient:
             "client_order_id": client_order_id,
             "extended_hours": extended_hours,
         }
-        # Prefer qty when present and positive; otherwise use notional.
-        # (Fixes bug 2026-05-27: when the translator can't get a live price
-        # it leaves qty=None and writes target_notional. The old code would
-        # pass qty=0 here and Alpaca rejected with HTTP 422.)
-        if qty is not None and qty > 0:
+        if qty is not None:
             body["qty"] = str(qty)
         else:
             body["notional"] = str(notional)
