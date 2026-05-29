@@ -1,71 +1,49 @@
 // PaperPortfolioPage — Paper Trading Portfolio results page.
 //
-// Brand-aligned 2026-05-27 (round 3, Joe directive): adopts the canonical
-// PageHero pattern used by EVERY other v2 page (Trading Opportunities,
-// Macro Overview, Asset Tilt, Portfolio Insights). Editorial Fraunces
-// headline with <em> italic accent phrases, bulleted "how it works" list
-// on the left, bespoke summary stat-card on the right — same scaffold
-// as every other top-level page. PR #868/#869 had matched the wrong cluster
-// pattern (the editorial Inter hero used only by Home / Insights); per
-// the locked spec in PageHero.jsx, EVERY page must use the same header.
-//
 // Reads four Supabase tables populated by the paper_portfolio nightly
-// runner:
+// runner (Phase 4):
 //   * paper_accounts        — sleeve caps + leverage cap (one row)
 //   * paper_nav_daily       — daily NAV path for the chart + headline numbers
 //   * paper_positions       — latest snapshot's per-name positions, by sleeve
 //   * paper_orders          — recent order intents + their submitted/filled
 //                              status (the rebalance trail)
+//   * paper_signal_capture  — what the engine + scanner said when the last
+//                              rebalance fired (audit modal)
+//
+// Brand guard (UX Designer):
+//   * Light mode primary. No emojis. Professional minimalist.
+//   * Numbers formatted like the rest of the dashboard. Freshness chip on
+//     every data-driven block.
+//   * Tables sortable via the shared useSortableTable_v1 hook (LESSONS 4).
 //
 // Senior Quant guard:
 //   * Sleeve attribution comes straight from the DB column (we do NOT
-//     re-infer in the UI).
-//   * Leverage badge fires when sleeve_b_margin_used > 0.
+//     re-infer in the UI). If a row has sleeve='A' / 'B' that's the source.
+//   * Leverage badge fires when sleeve_b_margin_used > 0. Cap badge fires
+//     when total_nav_long > paper_accounts.starting_capital × leverage cap.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import PageHero from '../components/PageHero';
+import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import { supabase } from '../../lib/supabase';
 import { InfoTip } from '../../InfoTip';
 
 const STARTING_CAPITAL = 1_000_000;       // $1M paper, locked
 
-// Risk-on / risk-off palette (fallbacks because the global tokens aren't
-// defined outside .scenarios-page).
-const UP_COLOR   = 'var(--up, #1f8a5a)';
-const DOWN_COLOR = 'var(--down, #b62121)';
-const WARN_COLOR = 'var(--warn, #b87000)';
-
-// ── Editorial hero copy — Fraunces italic accents inside the title ────────
-
-const HERO_TITLE = (
-  <>
-    A <em>$1M paper book</em> on Alpaca, split in half &mdash; Sleeve A follows the{' '}
-    <em>Asset Tilt</em> engine; Sleeve B follows the <em>Equity Scanner</em> long-only with up to 2&times; leverage on overflow buy signals.
-  </>
-);
-
-const HERO_BULLETS = [
-  'Sleeve A — 24 industry-group ETFs at the engine’s recommended weights, $500K capital, unlevered',
-  'Sleeve B — long-only equities at MacroTilt Score ≥ 5, sized $50K / $40K / $30K by tier',
-  'Idle cash sits as literal cash — no bond proxy. Borrow on Sleeve B only when buy signals exceed available cash.',
-  'Orders go to Alpaca as market-on-open the next trading day',
-];
-
 // ── small helpers ──────────────────────────────────────────────────────────
 
-const fmtMoneyExact = (n) => {
-  if (n == null || Number.isNaN(n)) return '—';
-  return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-};
-
-const fmtMoneyShort = (n) => {
+const fmtMoney = (n, places = 0) => {
   if (n == null || Number.isNaN(n)) return '—';
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000)     return `${sign}$${(abs / 1_000).toFixed(1)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(places || 2)}M`;
+  if (abs >= 1_000)     return `${sign}$${(abs / 1_000).toFixed(places || 1)}K`;
+  return `${sign}$${abs.toFixed(places)}`;
+};
+
+const fmtMoneyExact = (n) => {
+  if (n == null || Number.isNaN(n)) return '—';
+  return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 };
 
 const fmtPct = (n, places = 2) => {
@@ -81,172 +59,286 @@ const fmtDate = (iso) => {
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 };
 
-// ── Page-scoped styles (component-local; no globals) ──────────────────────
+// ── styles (inline, matches the rest of v2's pattern) ──────────────────────
 
-const PAGE_CSS = `
-.paper-shell { max-width: 1440px; margin: 0 auto; padding: 0 32px 64px; }
+const COLOR = {
+  green: '#0e8a3e',
+  red:   '#b62121',
+  amber: '#b87000',
+  border: 'var(--border-faint)',
+  borderHeavy: 'var(--border)',
+  surface: 'var(--surface)',
+  surface2: 'var(--surface-2, var(--surface))',
+  text: 'var(--text)',
+  textMuted: 'var(--text-muted)',
+};
 
-/* Right-side summary card on the hero — mirrors the Trading Opps
-   "Latest Scan Results" stat block. */
-.paper-tile-summary {
-  background: var(--bg-1);
-  border: 1px solid var(--line-1);
-  border-radius: 14px;
-  padding: 22px 24px;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.paper-tile-summary .pts-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-}
-.paper-tile-summary .pts-title {
-  font-size: 12.5px; font-weight: 600; color: var(--ink-0); letter-spacing: .02em;
-}
-.paper-tile-summary .pts-asof { font-size: 11px; color: var(--ink-2); letter-spacing: .04em; }
-.paper-tile-summary .pts-nav-eyebrow {
-  font-size: 10.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ink-2); margin-bottom: 6px;
-}
-.paper-tile-summary .pts-nav-value {
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  font-size: clamp(30px, 3.4vw, 42px);
-  line-height: 1; color: var(--ink-0); font-feature-settings: "tnum","lnum";
-  font-weight: 500; letter-spacing: -.012em;
-}
-.paper-tile-summary .pts-nav-value .pts-curr {
-  font-size: .55em; color: var(--ink-2); margin-right: 3px; vertical-align: .18em;
-}
-.paper-tile-summary .pts-nav-delta {
-  margin-top: 6px; font-size: 12px; font-weight: 500; font-feature-settings: "tnum";
-}
-.paper-tile-summary .pts-row {
-  display: flex; justify-content: space-between; align-items: baseline;
-  font-size: 13px; color: var(--ink-1); border-top: 1px solid var(--line-0);
-  padding-top: 10px;
-}
-.paper-tile-summary .pts-row .lbl { color: var(--ink-2); font-size: 12px; }
-.paper-tile-summary .pts-row .val { color: var(--ink-0); font-weight: 500; font-feature-settings: "tnum"; }
-.paper-tile-summary .pts-leverage-on {
-  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .14em;
-  text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
-  background: ${WARN_COLOR}; color: #fff;
-}
+const SECTION = {
+  marginBottom: 24,
+  background: COLOR.surface,
+  border: `1px solid ${COLOR.border}`,
+  borderRadius: 8,
+  padding: 18,
+};
 
-/* Section panels below the hero — same look as the rest of the v2 pages. */
-.paper-panel {
-  background: var(--bg-1);
-  border: 1px solid var(--line-1);
-  border-radius: 14px;
-  overflow: hidden;
-  margin-top: 24px;
-}
-.paper-panel-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 22px 28px 14px; border-bottom: 1px solid var(--line-0);
-  flex-wrap: wrap; gap: 12px;
-}
-.paper-panel-title {
-  margin: 0; font-family: Inter, system-ui, -apple-system, sans-serif;
-  font-size: 17px; font-weight: 600; color: var(--ink-0); letter-spacing: -.005em;
-}
-.paper-panel-sub {
-  font-size: 12px; color: var(--ink-2); margin-top: 4px; font-feature-settings: "tnum";
-}
-.paper-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.paper-table th {
-  text-align: left; padding: 12px 28px;
-  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 500;
-  border-bottom: 1px solid var(--line-1); background: var(--bg-1);
-  cursor: pointer; user-select: none; white-space: nowrap;
-}
-.paper-table th.r { text-align: right; }
-.paper-table td {
-  padding: 13px 28px; border-bottom: 1px solid var(--line-0);
-  color: var(--ink-1); font-feature-settings: "tnum";
-}
-.paper-table td.r { text-align: right; }
-.paper-table td.ticker { color: var(--ink-0); font-weight: 500; }
-.paper-table td.mv { color: var(--ink-0); font-weight: 500; }
-.paper-table td.up { color: ${UP_COLOR}; }
-.paper-table td.down { color: ${DOWN_COLOR}; }
-.paper-empty { padding: 28px 28px; text-align: center; color: var(--ink-2); font-size: 13px; }
+const KPI_CELL = {
+  display: 'grid',
+  gap: 4,
+  padding: '12px 14px',
+  background: COLOR.surface2,
+  border: `1px solid ${COLOR.border}`,
+  borderRadius: 6,
+};
 
-.paper-rebal-row { border-left: 2px solid var(--line-1); padding-left: 14px; margin-bottom: 14px; }
-.paper-rebal-row:last-child { margin-bottom: 0; }
-.paper-rebal-date { font-size: 13.5px; font-weight: 500; color: var(--ink-0); }
-.paper-rebal-meta { font-weight: 400; color: var(--ink-2); font-feature-settings: "tnum"; }
-.paper-rebal-source { font-size: 11px; color: var(--ink-3); margin-top: 3px; letter-spacing: .04em; }
-`;
+// ── NAV hero ───────────────────────────────────────────────────────────────
 
-// ── Right-slot summary card ───────────────────────────────────────────────
+function NavHero({ navHistory, account }) {
+  if (!navHistory || navHistory.length === 0) {
+    return (
+      <div style={{ ...SECTION, textAlign: 'center', padding: 36, color: COLOR.textMuted }}>
+        No NAV history yet. The paper portfolio starts populating after the first
+        nightly cycle. <FreshnessChip elementId="portfolio.paper-nav-daily" label="awaiting first run" />
+      </div>
+    );
+  }
 
-function SummaryCard({ navHistory }) {
-  const empty = !navHistory || navHistory.length === 0;
-  const latest = empty ? null : navHistory[navHistory.length - 1];
-  const first  = empty ? null : navHistory[0];
+  const latest = navHistory[navHistory.length - 1];
+  const first = navHistory[0];
+  const totalNav = latest.total_nav;
+  const totalReturn = (totalNav - STARTING_CAPITAL) / STARTING_CAPITAL;
+  const isUp = totalReturn >= 0;
 
-  const totalNav     = latest?.total_nav ?? null;
-  const totalReturn  = totalNav != null ? (totalNav - STARTING_CAPITAL) / STARTING_CAPITAL : null;
-  const periodReturn = (first && totalNav != null) ? (totalNav - first.total_nav) / first.total_nav : null;
-  const spyStart     = first?.benchmark_spy_value ?? null;
-  const spyNow       = latest?.benchmark_spy_value ?? null;
-  const spyReturn    = (spyStart && spyNow) ? (spyNow / spyStart - 1) : null;
-  const alpha        = (spyReturn != null && periodReturn != null) ? (periodReturn - spyReturn) : null;
-  const leverageUsed = latest?.sleeve_b_margin_used || 0;
-  const leverageOn   = leverageUsed > 0;
-  const isUp         = totalReturn != null && totalReturn >= 0;
+  // P&L decomposition (written by the close-of-day snapshot). Fall back to the
+  // exact identity total = realized + unrealized if a column is missing.
+  const totalUnrl = latest.total_unrealized_pnl ?? null;
+  const totalReal = latest.total_realized_pnl ??
+    (totalUnrl != null ? (totalNav - STARTING_CAPITAL) - totalUnrl : null);
+
+  // Benchmarks — capital-matched to $1M at the first day we have a SPY close.
+  // SPY = 100% S&P 500 buy & hold. Blend = 60% SPY / 40% AGG bonds.
+  const bmBase = navHistory.find((d) => d.spy_close != null) || null;
+  const spy0 = bmBase?.spy_close ?? null;
+  const agg0 = bmBase?.agg_close ?? null;
+  const spyN = latest?.spy_close ?? null;
+  const aggN = latest?.agg_close ?? null;
+  // Portfolio return measured over the SAME window as the benchmark anchor.
+  const portBase = bmBase?.total_nav ?? first?.total_nav ?? STARTING_CAPITAL;
+  const periodReturn = portBase ? (totalNav - portBase) / portBase : totalReturn;
+  const spyReturn = spy0 && spyN ? (spyN / spy0 - 1) : null;
+  const blendReturn = (spy0 && spyN && agg0 && aggN)
+    ? (0.6 * (spyN / spy0 - 1) + 0.4 * (aggN / agg0 - 1)) : null;
+  const spyAlpha = spyReturn != null ? (periodReturn - spyReturn) : null;
+  const blendAlpha = blendReturn != null ? (periodReturn - blendReturn) : null;
+
+  const beta = latest.portfolio_beta ?? null;
+  const leverageUsed = latest.sleeve_b_margin_used || 0;
+  const leverageOn = leverageUsed > 0;
+
+  // Per-sleeve roll-ups.
+  const aNav = latest.sleeve_a_nav, bNav = latest.sleeve_b_nav;
+  const aRet = aNav != null ? aNav / 500_000 - 1 : null;
+  const bRet = bNav != null ? bNav / 500_000 - 1 : null;
+  const aUnrl = latest.sleeve_a_unrealized_pnl ?? null;
+  const bUnrl = latest.sleeve_b_unrealized_pnl ?? null;
+  const aReal = latest.sleeve_a_realized_pnl ?? null;
+  const bReal = latest.sleeve_b_realized_pnl ?? null;
+  const aPos = latest.sleeve_a_positions ?? null;
+  const bPos = latest.sleeve_b_positions ?? null;
+
+  const signColor = (n) => (n == null ? COLOR.textMuted : (n >= 0 ? COLOR.green : COLOR.red));
+
+  const SleeveCell = ({ name, def, nav, ret, unrl, real, pos }) => (
+    <div style={KPI_CELL}>
+      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: COLOR.textMuted, letterSpacing: 0.4 }}>
+        {name} <InfoTip term={name} def={def} size={10} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 18, fontWeight: 600, color: COLOR.text }}>{fmtMoney(nav)}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: signColor(ret) }}>{fmtPct(ret)}</span>
+      </div>
+      <div style={{ fontSize: 11, color: COLOR.textMuted }}>
+        <span style={{ color: signColor(unrl) }}>{fmtMoneyExact(unrl)}</span> unreal ·{' '}
+        <span style={{ color: signColor(real) }}>{fmtMoneyExact(real)}</span> real
+      </div>
+      <div style={{ fontSize: 11, color: COLOR.textMuted }}>
+        {pos == null ? '—' : pos} position{pos === 1 ? '' : 's'}
+      </div>
+    </div>
+  );
+
+  const BenchCell = ({ label, def, alpha, you, bench, benchLabel }) => (
+    <div style={KPI_CELL}>
+      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: COLOR.textMuted, letterSpacing: 0.4 }}>
+        {label} <InfoTip term={label} def={def} size={10} />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: signColor(alpha) }}>
+        {alpha == null ? '—' : `${fmtPct(alpha)} α`}
+      </div>
+      <div style={{ fontSize: 11, color: COLOR.textMuted }}>
+        You {you == null ? '—' : fmtPct(you)} · {benchLabel} {bench == null ? '—' : fmtPct(bench)}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="paper-tile-summary">
-      <div className="pts-head">
-        <span className="pts-title">Paper book NAV <InfoTip term="Paper book NAV" def="Current liquidation value of the $1M paper book on Alpaca, summed across Sleeve A (Asset Tilt) and Sleeve B (Scanner)." size={11} /></span>
-        <span className="pts-asof">
-          {latest?.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}
-        </span>
-      </div>
-
-      <div>
-        <div className="pts-nav-eyebrow">Total portfolio NAV</div>
-        <div className="pts-nav-value">
-          {totalNav == null ? '—' : (
-            <>
-              <span className="pts-curr">$</span>
-              {Math.round(totalNav).toLocaleString('en-US')}
-            </>
+    <div style={SECTION}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', color: COLOR.textMuted, marginBottom: 4 }}>
+            Total Portfolio NAV
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 600, color: COLOR.text, lineHeight: 1 }}>
+            <CountUp to={Math.round(totalNav)} prefix="$" />
+          </div>
+          <div style={{ fontSize: 13, color: isUp ? COLOR.green : COLOR.red, marginTop: 6, fontWeight: 500 }}>
+            {fmtPct(totalReturn)} since inception · {fmtMoney(totalNav - STARTING_CAPITAL)} {isUp ? 'gained' : 'lost'}
+          </div>
+          {(totalReal != null || totalUnrl != null) && (
+            <div style={{ fontSize: 11, color: COLOR.textMuted, marginTop: 3 }}>
+              <span style={{ color: signColor(totalReal) }}>{fmtMoneyExact(totalReal)}</span> realized ·{' '}
+              <span style={{ color: signColor(totalUnrl) }}>{fmtMoneyExact(totalUnrl)}</span> unrealized (open)
+            </div>
           )}
         </div>
-        <div className="pts-nav-delta" style={{ color: totalReturn == null ? 'var(--ink-2)' : (isUp ? UP_COLOR : DOWN_COLOR) }}>
-          {totalReturn == null
-            ? 'Awaiting first nightly run'
-            : <>{fmtPct(totalReturn)} since inception &middot; {fmtMoneyShort(totalNav - STARTING_CAPITAL)} {isUp ? 'gained' : 'lost'}</>
-          }
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FreshnessChip elementId="portfolio.paper-nav-daily" />
+          {leverageOn && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 4,
+              background: COLOR.amber, color: '#fff', letterSpacing: 0.3,
+            }}>
+              LEVERAGE ON · {fmtMoney(leverageUsed)} borrowed
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="pts-row">
-        <span className="lbl">Sleeve A — Asset Tilt</span>
-        <span className="val">{latest?.sleeve_a_nav != null ? fmtMoneyExact(latest.sleeve_a_nav) : '—'}</span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">Sleeve B — Scanner</span>
-        <span className="val">{latest?.sleeve_b_nav != null ? fmtMoneyExact(latest.sleeve_b_nav) : '—'}</span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">vs SPY 50/50</span>
-        <span className="val" style={{ color: alpha == null ? 'var(--ink-3)' : (alpha >= 0 ? UP_COLOR : DOWN_COLOR) }}>
-          {alpha == null ? '—' : fmtPct(alpha)}
-        </span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">Leverage in use</span>
-        <span className="val">
-          {leverageOn ? <span className="pts-leverage-on">{fmtMoneyShort(leverageUsed)}</span> : '—'}
-        </span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+        <SleeveCell
+          name="Sleeve A — Asset Tilt"
+          def="$500K following the Asset Tilt engine's industry-group allocation. ETFs only. Unlevered. Return shown vs the $500K sleeve start."
+          nav={aNav} ret={aRet} unrl={aUnrl} real={aReal} pos={aPos}
+        />
+        <SleeveCell
+          name="Sleeve B — Scanner"
+          def="$500K following the Equity Scanner long-only. Up to 2x leverage when buy signals exceed $500K. Return shown vs the $500K sleeve start."
+          nav={bNav} ret={bRet} unrl={bUnrl} real={bReal} pos={bPos}
+        />
+        <BenchCell
+          label="vs S&P 500"
+          def="Benchmark: putting the full $1M into SPY (S&P 500 ETF) on day one and holding. α (alpha) is how much the book beat or lagged that. Positive = the model added value over just owning the index."
+          alpha={spyAlpha} you={periodReturn} bench={spyReturn} benchLabel="SPY"
+        />
+        <BenchCell
+          label="vs 60/40"
+          def="Benchmark: $1M in a classic balanced mix — 60% SPY (stocks) + 40% AGG (US bonds) — held since day one. α is the book's edge over that balanced portfolio."
+          alpha={blendAlpha} you={periodReturn} bench={blendReturn} benchLabel="60/40"
+        />
+        <div style={KPI_CELL}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: COLOR.textMuted, letterSpacing: 0.4 }}>
+            Portfolio Beta <InfoTip term="Portfolio Beta" def="How much the book moves for each 1% move in the S&P 500, from daily returns. 1.0 = moves with the market; >1 = more volatile; <1 = less. Needs ~20 trading days of history to be meaningful." size={10} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: COLOR.text }}>
+            {beta == null ? <span style={{ fontSize: 13, color: COLOR.textMuted }}>building…</span> : beta.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 11, color: COLOR.textMuted }}>
+            {leverageOn ? `${fmtMoney(leverageUsed)} leverage in use` : 'No leverage in use'}
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <FreshnessChip elementId="portfolio.paper-nav-daily" />
+      <NavSparkline data={navHistory} />
+    </div>
+  );
+}
+
+// Lightweight inline SVG NAV chart — no external chart lib needed for a
+// daily line. Keeps the page self-contained and the bundle thin.
+function NavSparkline({ data }) {
+  if (!data || data.length < 2) return null;
+  const w = 800;
+  const h = 140;
+  const padL = 50;
+  const padR = 20;
+  const padT = 16;
+  const padB = 22;
+
+  // Capital-matched benchmark lines: $1M (anchored to the first NAV point)
+  // grown by SPY and by the 60/40 SPY/AGG blend, so all three lines start
+  // together and are directly comparable in dollars.
+  const bmBase = data.find((d) => d.spy_close != null) || null;
+  const spy0 = bmBase?.spy_close ?? null;
+  const agg0 = bmBase?.agg_close ?? null;
+  const anchor = bmBase?.total_nav ?? data[0].total_nav;
+  const spyLineV = (d) => (spy0 && d.spy_close != null ? anchor * (d.spy_close / spy0) : null);
+  const blendLineV = (d) => (spy0 && agg0 && d.spy_close != null && d.agg_close != null)
+    ? anchor * (0.6 * (d.spy_close / spy0) + 0.4 * (d.agg_close / agg0)) : null;
+
+  const ys = data.map((d) => d.total_nav);
+  const spyYs = data.map(spyLineV).filter((v) => v != null);
+  const blendYs = data.map(blendLineV).filter((v) => v != null);
+  const spyAvailable = spyYs.length >= 2;
+  const blendAvailable = blendYs.length >= 2;
+
+  const allY = [...ys, ...spyYs, ...blendYs];
+  const minY = Math.min(...allY);
+  const maxY = Math.max(...allY);
+  const yRange = Math.max(1, maxY - minY);
+  const xRange = Math.max(1, data.length - 1);
+  const xScale = (i) => padL + ((w - padL - padR) * i) / xRange;
+  const yScale = (v) => padT + (h - padT - padB) * (1 - (v - minY) / yRange);
+
+  const pathFrom = (valFn) => {
+    let started = false;
+    return data.map((d, i) => {
+      const v = valFn(d);
+      if (v == null) return '';
+      const cmd = started ? 'L' : 'M';
+      started = true;
+      return `${cmd}${xScale(i)},${yScale(v)}`;
+    }).join(' ');
+  };
+
+  const navPath = ys.map((v, i) => `${i === 0 ? 'M' : 'L'}${xScale(i)},${yScale(v)}`).join(' ');
+  const spyPath = spyAvailable ? pathFrom(spyLineV) : '';
+  const blendPath = blendAvailable ? pathFrom(blendLineV) : '';
+
+  const legendSwatch = (color, dashed) => (
+    <span style={{ display: 'inline-block', width: 14, height: 0, marginRight: 4, verticalAlign: 'middle',
+      borderTop: `2px ${dashed ? 'dashed' : 'solid'} ${color}` }} />
+  );
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 10, borderTop: `1px solid ${COLOR.border}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: COLOR.textMuted, letterSpacing: 0.4 }}>
+          NAV vs benchmarks · $1M start
+        </span>
+        <span style={{ fontSize: 11, color: COLOR.textMuted, display: 'flex', gap: 14 }}>
+          <span>{legendSwatch(COLOR.text, false)} Portfolio</span>
+          {spyAvailable && <span>{legendSwatch(COLOR.textMuted, true)} S&P 500</span>}
+          {blendAvailable && <span>{legendSwatch(COLOR.amber, true)} 60/40</span>}
+        </span>
       </div>
+      <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+        {[0, 0.5, 1].map((t) => {
+          const v = minY + t * yRange;
+          const y = yScale(v);
+          return (
+            <g key={t}>
+              <line x1={padL} x2={w - padR} y1={y} y2={y} stroke={COLOR.border} strokeWidth="0.5" />
+              <text x={padL - 6} y={y + 3} fontSize="9" textAnchor="end" fill={COLOR.textMuted}>
+                ${(v / 1000).toFixed(0)}K
+              </text>
+            </g>
+          );
+        })}
+        {blendAvailable && <path d={blendPath} fill="none" stroke={COLOR.amber} strokeWidth="1.5" strokeDasharray="3,3" />}
+        {spyAvailable && <path d={spyPath} fill="none" stroke={COLOR.textMuted} strokeWidth="1.5" strokeDasharray="3,3" />}
+        <path d={navPath} fill="none" stroke={COLOR.text} strokeWidth="2" />
+        <text x={padL} y={h - 6} fontSize="9" fill={COLOR.textMuted}>{fmtDate(data[0].snapshot_date)}</text>
+        <text x={w - padR} y={h - 6} fontSize="9" textAnchor="end" fill={COLOR.textMuted}>{fmtDate(data[data.length - 1].snapshot_date)}</text>
+      </svg>
     </div>
   );
 }
@@ -270,68 +362,106 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
 
   const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
   const unreal = positions.reduce((s, p) => s + (p.unrealized_pnl || 0), 0);
+  const dayPL = positions.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0);
   const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
 
-  const sortClick = (key) => () => {
-    if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortBy(key); setSortDir('desc'); }
+  const daysHeld = (iso) => {
+    if (!iso) return null;
+    const ms = Date.now() - new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso).getTime();
+    if (Number.isNaN(ms)) return null;
+    return Math.max(0, Math.round(ms / 86_400_000));
   };
-  const arrow = (key) => sortBy === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+
+  const sortBtn = (label, key, align = 'left') => (
+    <th
+      onClick={() => {
+        if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        else { setSortBy(key); setSortDir('desc'); }
+      }}
+      style={{ cursor: 'pointer', userSelect: 'none', textAlign: align, padding: '8px 10px', borderBottom: `1px solid ${COLOR.borderHeavy}`, fontSize: 11, fontWeight: 600, color: COLOR.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}
+    >
+      {label} {sortBy === key ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+    </th>
+  );
+
+  const numTd = { padding: '8px 10px', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' };
+  const plCell = (dollars, pct) => (
+    <td style={{ ...numTd, color: (dollars || 0) >= 0 ? COLOR.green : COLOR.red }}>
+      <div style={{ fontWeight: 600 }}>{fmtMoneyExact(dollars)}</div>
+      <div style={{ fontSize: 11, opacity: 0.85 }}>{pct == null ? '' : fmtPct(pct)}</div>
+    </td>
+  );
 
   return (
-    <div className="paper-panel">
-      <div className="paper-panel-head">
+    <div style={SECTION}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
         <div>
-          <h2 className="paper-panel-title">
-            Sleeve {sleeve} &mdash; {title}
-            {infoDef && <InfoTip term={`Sleeve ${sleeve}`} def={infoDef} size={12} />}
-          </h2>
-          <div className="paper-panel-sub">
-            {positions.length} position{positions.length === 1 ? '' : 's'} &middot; {fmtMoneyExact(grossLong)} gross long
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: COLOR.text }}>
+            Sleeve {sleeve} — {title}
+            {infoDef && <InfoTip term={`Sleeve ${sleeve}`} def={infoDef} size={11} />}
+          </h3>
+          <div style={{ fontSize: 12, color: COLOR.textMuted, marginTop: 4 }}>
+            {positions.length} position{positions.length === 1 ? '' : 's'} ·
+            {' '}{fmtMoney(grossLong)} gross long
             {leverageRatio > 1.0 && (
-              <> &middot; <span style={{ color: WARN_COLOR, fontWeight: 600 }}>{leverageRatio.toFixed(2)}&times; leverage</span></>
+              <> · <span style={{ color: COLOR.amber, fontWeight: 600 }}>{leverageRatio.toFixed(2)}x leverage</span></>
             )}
-            {' '}&middot; {unreal >= 0
-              ? <span style={{ color: UP_COLOR }}>+{fmtMoneyExact(unreal)} unrealized</span>
-              : <span style={{ color: DOWN_COLOR }}>{fmtMoneyExact(unreal)} unrealized</span>
-            }
+            {' '}· <span style={{ color: dayPL >= 0 ? COLOR.green : COLOR.red }}>{fmtMoneyExact(dayPL)} today</span>
+            {' '}· <span style={{ color: unreal >= 0 ? COLOR.green : COLOR.red }}>{fmtMoneyExact(unreal)} total open P&L</span>
           </div>
         </div>
         <FreshnessChip elementId="portfolio.paper-positions-snapshot" />
       </div>
 
       {positions.length === 0 ? (
-        <div className="paper-empty">
-          {sleeve === 'B'
-            ? 'Scanner found no qualifying buy signals at the moment. Positions appear here after the next rebalance cycle.'
-            : 'Awaiting first rebalance. Asset Tilt positions appear here after the next nightly run.'}
+        <div style={{ padding: '24px 0', textAlign: 'center', color: COLOR.textMuted, fontSize: 13 }}>
+          No positions yet. {sleeve === 'B' ? 'Scanner finds no qualifying buy signals at the moment.' : 'Awaiting first rebalance.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table className="paper-table">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
-                <th onClick={sortClick('ticker')}>Ticker{arrow('ticker')}</th>
-                <th className="r" onClick={sortClick('quantity')}>Quantity{arrow('quantity')}</th>
-                <th className="r" onClick={sortClick('avg_cost')}>Avg cost{arrow('avg_cost')}</th>
-                <th className="r" onClick={sortClick('market_value')}>Market value{arrow('market_value')}</th>
-                <th className="r" onClick={sortClick('unrealized_pnl')}>Unrealized P&amp;L{arrow('unrealized_pnl')}</th>
-                {sleeve === 'B' && <th className="r" onClick={sortClick('current_score')}>Score{arrow('current_score')}</th>}
+                {sortBtn('Ticker', 'ticker')}
+                {sortBtn('Qty', 'quantity', 'right')}
+                {sortBtn('Avg Cost', 'avg_cost', 'right')}
+                {sortBtn('Price', 'current_price', 'right')}
+                {sortBtn('Market Value', 'market_value', 'right')}
+                {sortBtn('Day P&L', 'unrealized_intraday_pl', 'right')}
+                {sortBtn('Total P&L', 'unrealized_pnl', 'right')}
+                {sortBtn('Held', 'entry_date', 'right')}
+                {sleeve === 'B' && sortBtn('Score', 'current_score', 'right')}
               </tr>
             </thead>
             <tbody>
-              {sorted.map((p, i) => (
-                <tr key={`${p.ticker}-${i}`}>
-                  <td className="ticker">{p.ticker}</td>
-                  <td className="r">{p.quantity != null ? Number(p.quantity).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}</td>
-                  <td className="r">{p.avg_cost != null ? `$${Number(p.avg_cost).toFixed(2)}` : '—'}</td>
-                  <td className="r mv">{fmtMoneyExact(p.market_value)}</td>
-                  <td className={'r ' + ((p.unrealized_pnl || 0) >= 0 ? 'up' : 'down')}>
-                    {fmtMoneyExact(p.unrealized_pnl)}
-                  </td>
-                  {sleeve === 'B' && <td className="r">{p.current_score != null ? p.current_score : '—'}</td>}
-                </tr>
-              ))}
+              {sorted.map((p, i) => {
+                const held = daysHeld(p.entry_date);
+                return (
+                  <tr key={`${p.ticker}-${i}`} style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+                    <td style={{ padding: '8px 10px', fontWeight: 600 }}>{p.ticker}</td>
+                    <td style={numTd}>
+                      {p.quantity != null ? Number(p.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
+                    </td>
+                    <td style={numTd}>
+                      {p.avg_cost != null ? `$${Number(p.avg_cost).toFixed(2)}` : '—'}
+                    </td>
+                    <td style={numTd}>
+                      {p.current_price ? `$${Number(p.current_price).toFixed(2)}` : '—'}
+                    </td>
+                    <td style={numTd}>{fmtMoneyExact(p.market_value)}</td>
+                    {plCell(p.unrealized_intraday_pl, p.unrealized_intraday_plpc)}
+                    {plCell(p.unrealized_pnl, p.unrealized_plpc)}
+                    <td style={{ ...numTd, color: COLOR.textMuted }}>
+                      {held == null ? '—' : `${held}d`}
+                    </td>
+                    {sleeve === 'B' && (
+                      <td style={numTd}>
+                        {p.current_score != null ? p.current_score : '—'}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -343,8 +473,17 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
 // ── Rebalance log ──────────────────────────────────────────────────────────
 
 function RebalanceLog({ orders }) {
+  if (!orders || orders.length === 0) {
+    return (
+      <div style={SECTION}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Recent rebalances</h3>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: COLOR.textMuted, fontSize: 13 }}>
+          No orders yet. The first rebalance will appear here after the next signal cycle.
+        </div>
+      </div>
+    );
+  }
   const byDate = useMemo(() => {
-    if (!orders || orders.length === 0) return [];
     const m = new Map();
     for (const o of orders) {
       const d = (o.created_at || '').split('T')[0];
@@ -355,45 +494,55 @@ function RebalanceLog({ orders }) {
   }, [orders]);
 
   return (
-    <div className="paper-panel">
-      <div className="paper-panel-head">
-        <div>
-          <h2 className="paper-panel-title">
-            Recent rebalances <InfoTip term="Recent rebalances" def="Last five days on which the engine fired buy or sell intents to Alpaca. Filled / pending / rejected counts come from the Alpaca order ledger." size={12} />
-          </h2>
-        </div>
+    <div style={SECTION}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Recent rebalances</h3>
         <FreshnessChip elementId="portfolio.paper-orders-intent" />
       </div>
-      <div style={{ padding: '20px 28px 24px' }}>
-        {byDate.length === 0 ? (
-          <div className="paper-empty" style={{ padding: 0 }}>
-            No orders yet. The first rebalance will appear here after the next signal cycle.
-          </div>
-        ) : (
-          byDate.map(([date, rows]) => {
-            const buys = rows.filter((r) => r.side === 'buy').length;
-            const sells = rows.filter((r) => r.side === 'sell').length;
-            const filled = rows.filter((r) => r.status === 'filled').length;
-            const pending = rows.filter((r) => r.status === 'pending').length;
-            const rejected = rows.filter((r) => r.status === 'rejected').length;
-            return (
-              <div key={date} className="paper-rebal-row">
-                <div className="paper-rebal-date">
-                  {fmtDate(date)}
-                  {' '}<span className="paper-rebal-meta">
-                    &middot; {rows.length} orders ({buys} buys, {sells} sells)
-                    {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} pending</span></>}
-                    {rejected > 0 && <> &middot; <span style={{ color: DOWN_COLOR }}>{rejected} rejected</span></>}
-                    {filled > 0   && <> &middot; <span style={{ color: UP_COLOR }}>{filled} filled</span></>}
-                  </span>
-                </div>
-                <div className="paper-rebal-source">
-                  {[...new Set(rows.map((r) => r.signal_source))].join(' + ')}
-                </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {byDate.map(([date, rows]) => {
+          const buys = rows.filter((r) => r.side === 'buy').length;
+          const sells = rows.filter((r) => r.side === 'sell').length;
+          const filled = rows.filter((r) => r.status === 'filled').length;
+          const pending = rows.filter((r) => r.status === 'pending').length;
+          const rejected = rows.filter((r) => r.status === 'rejected').length;
+          return (
+            <div key={date} style={{ borderLeft: `2px solid ${COLOR.borderHeavy}`, paddingLeft: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {fmtDate(date)}
+                {' '}<span style={{ fontWeight: 400, color: COLOR.textMuted }}>
+                  · {rows.length} orders ({buys} buys, {sells} sells)
+                  {pending > 0 && <> · <span style={{ color: COLOR.amber }}>{pending} pending</span></>}
+                  {rejected > 0 && <> · <span style={{ color: COLOR.red }}>{rejected} rejected</span></>}
+                  {filled > 0 && <> · <span style={{ color: COLOR.green }}>{filled} filled</span></>}
+                </span>
               </div>
-            );
-          })
-        )}
+              <div style={{ fontSize: 11, color: COLOR.textMuted, marginTop: 3 }}>
+                {[...new Set(rows.map((r) => r.signal_source))].join(' + ')}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Spec card (Joe-readable summary of the strategy) ───────────────────────
+
+function SpecCard() {
+  return (
+    <div style={{ ...SECTION, background: COLOR.surface2 }}>
+      <h3 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600 }}>How this portfolio works</h3>
+      <div style={{ fontSize: 13, lineHeight: 1.55, color: COLOR.textMuted }}>
+        $1M paper portfolio on Alpaca, split in half. Sleeve A follows the Asset Tilt
+        engine: 24 industry-group ETFs at the engine's recommended weights, $500K
+        capital, unlevered. Sleeve B follows the Equity Scanner long-only: buy when
+        the buy-score is at least 5, exit when it drops below 5, sized into $50K /
+        $40K / $30K slots by tier, up to 2x leverage when there are more buys than
+        cash to cover them. Rebalance fires whenever Asset Tilt or the Scanner moves;
+        orders go to Alpaca as market-on-open for the next trading day. Idle cash
+        sits as literal cash — no bond proxy.
       </div>
     </div>
   );
@@ -412,12 +561,14 @@ export default function PaperPortfolioPage() {
     let cancelled = false;
     (async () => {
       try {
+        // 1) NAV daily history
         const nav = await supabase
           .from('paper_nav_daily')
           .select('*')
           .order('snapshot_date', { ascending: true });
         if (!cancelled) setNavHistory(nav.data || []);
 
+        // 2) latest positions snapshot
         const latestDate = await supabase
           .from('paper_positions')
           .select('snapshot_date')
@@ -433,6 +584,7 @@ export default function PaperPortfolioPage() {
           if (!cancelled) setPositions(pos.data || []);
         }
 
+        // 3) recent order intents
         const ord = await supabase
           .from('paper_orders')
           .select('id, created_at, sleeve, ticker, side, target_notional, signal_source, status, signal_score')
@@ -440,6 +592,7 @@ export default function PaperPortfolioPage() {
           .limit(200);
         if (!cancelled) setOrders(ord.data || []);
 
+        // 4) account config
         const acc = await supabase
           .from('paper_accounts')
           .select('*')
@@ -457,39 +610,30 @@ export default function PaperPortfolioPage() {
   const sleeveB = useMemo(() => positions.filter((p) => p.sleeve === 'B'), [positions]);
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      <style>{PAGE_CSS}</style>
-
-      <PageHero
-        eyebrow="Paper Portfolio"
-        title={HERO_TITLE}
-        bullets={HERO_BULLETS}
-        right={<SummaryCard navHistory={navHistory} />}
+    <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <NavHero navHistory={navHistory} account={account} />
+      <PositionsPanel
+        title="Asset Tilt — Industry-Group ETFs"
+        sleeve="A"
+        positions={sleeveA}
+        totalCapital={account?.sleeve_a_allocation || 500_000}
+        infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
       />
+      <PositionsPanel
+        title="Equity Scanner — Long-Only"
+        sleeve="B"
+        positions={sleeveB}
+        totalCapital={account?.sleeve_b_allocation || 500_000}
+        infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2x leverage when signals exceed $500K."
+      />
+      <RebalanceLog orders={orders} />
+      <SpecCard />
 
-      <div className="paper-shell">
-        <PositionsPanel
-          title="Asset Tilt — Industry-Group ETFs"
-          sleeve="A"
-          positions={sleeveA}
-          totalCapital={account?.sleeve_a_allocation || 500_000}
-          infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
-        />
-        <PositionsPanel
-          title="Equity Scanner — Long-Only"
-          sleeve="B"
-          positions={sleeveB}
-          totalCapital={account?.sleeve_b_allocation || 500_000}
-          infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
-        />
-        <RebalanceLog orders={orders} />
-
-        {err && (
-          <div style={{ marginTop: 24, padding: 14, background: 'var(--bg-2)', border: `1px solid ${DOWN_COLOR}`, borderRadius: 14, color: DOWN_COLOR, fontSize: 12 }}>
-            Data load error: {err}
-          </div>
-        )}
-      </div>
+      {err && (
+        <div style={{ marginTop: 16, padding: 12, background: '#fff1f1', border: `1px solid ${COLOR.red}`, borderRadius: 6, color: COLOR.red, fontSize: 12 }}>
+          Data load error: {err}
+        </div>
+      )}
     </div>
   );
 }
