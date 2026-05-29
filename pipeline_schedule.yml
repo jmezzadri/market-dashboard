@@ -281,39 +281,6 @@ bespoke:
         when Senior Quant kicks it off.
       review_at: 2026-06-12
 
-  - PAPER-PORTFOLIO-EOD-DAILY.yml:
-      schedule: "16:30 ET weekdays"
-      manifest_element: portfolio.paper-orders-intent (+ portfolio.paper-signal-capture)
-      reason: |
-        Order-intent phase. After the 16:00 ET close it translates the Asset
-        Tilt allocation + the Equity Scanner output into pending paper orders
-        and submits them market-on-open for the next session. Off-slot because
-        it must run after the close but before the evening compute chain.
-      review_at: 2026-06-12
-
-  - PAPER-PORTFOLIO-OPEN-DAILY.yml:
-      schedule: "09:45 ET weekdays"
-      manifest_element: portfolio.paper-fills-from-alpaca (+ paper-positions-snapshot / paper-nav-daily)
-      reason: |
-        Morning mirror — 15 min after the opening auction settles, pulls
-        overnight fills back from Alpaca and refreshes positions + NAV so the
-        page is current through the trading day. Intraday freshness only; the
-        authoritative daily record is written by the CLOSE job below.
-      review_at: 2026-06-12
-
-  - PAPER-PORTFOLIO-CLOSE-DAILY.yml:
-      schedule: "21:10 UTC weekdays (= 16:10 ET in winter / 17:10 ET in summer)"
-      manifest_element: portfolio.paper-positions-snapshot (+ paper-nav-daily / paper-benchmark-prices)
-      reason: |
-        AUTHORITATIVE end-of-day snapshot — the daily backtest record. Picks a
-        single UTC time (21:10) that is always after the 16:00 ET close so SPY
-        + AGG closing prices and position marks have settled, regardless of
-        DST. Overwrites the same dated row written by the OPEN job with
-        settled-price values. This is the row series used to evaluate the model
-        over quarters. Cannot use a normalized slot — must be tied to the
-        equity close, and a UTC-fixed cron drifts ET by an hour across DST.
-      review_at: 2026-06-12
-
   - MASSIVE-INITIAL-BACKFILL.yml:
       schedule: "manual (workflow_dispatch only)"
       manifest_element: infra.massive-initial-backfill
