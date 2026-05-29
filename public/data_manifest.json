@@ -611,7 +611,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 192,
+      "freshness_sla_hours": 480,
       "output_destination": "public/indicator_history.json[bank_credit]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -626,7 +626,8 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_note": "H.8 TOTBKCR data-date lags ~2 weeks behind the weekly Friday release; 480h covers lag + cadence + grace."
     },
     {
       "id": "indicator-jobless-weekly",
