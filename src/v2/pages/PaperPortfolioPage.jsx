@@ -22,7 +22,7 @@
 //     re-infer in the UI).
 //   * Leverage badge fires when sleeve_b_margin_used > 0.
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
 import FreshnessChip from '../components/FreshnessChip';
 import { supabase } from '../../lib/supabase';
@@ -176,74 +176,188 @@ const PAGE_CSS = `
 .paper-rebal-date { font-size: 13.5px; font-weight: 500; color: var(--ink-0); }
 .paper-rebal-meta { font-weight: 400; color: var(--ink-2); font-feature-settings: "tnum"; }
 .paper-rebal-source { font-size: 11px; color: var(--ink-3); margin-top: 3px; letter-spacing: .04em; }
+
+/* Summary matrix (top-right) — restrained, hairline, tabular. */
+.pmx { width: 100%; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
+.pmx th, .pmx td { padding: 8px 10px; text-align: right; white-space: nowrap; font-size: 12.5px; }
+.pmx thead th {
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2);
+  font-weight: 500; border-bottom: 1px solid var(--line-1);
+}
+.pmx thead th:first-child, .pmx tbody td:first-child { text-align: left; }
+.pmx tbody td { border-bottom: 1px solid var(--line-0); color: var(--ink-1); }
+.pmx tbody tr:last-child td { border-bottom: none; }
+.pmx .rlabel { color: var(--ink-0); font-weight: 500; }
+.pmx .rlabel small { display: block; color: var(--ink-3); font-weight: 400; font-size: 10.5px; }
+.pmx .rowval { color: var(--ink-0); font-weight: 500; }
+.pmx tr.vs td { border-top: 1px solid var(--line-1); }
+.pmx tr.vs .rlabel { color: var(--ink-1); }
+.pmx td.up { color: ${UP_COLOR}; }
+.pmx td.down { color: ${DOWN_COLOR}; }
+.pmx td.muted { color: var(--ink-3); }
+
+/* Column control popover + resizable/reorderable headers. */
+.pcol-wrap { position: relative; }
+.pcol-btn {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-1);
+  background: var(--bg-1); border: 1px solid var(--line-1); border-radius: 8px;
+  padding: 5px 10px; cursor: pointer;
+}
+.pcol-btn:hover { border-color: var(--line-2, var(--line-1)); background: var(--bg-2); }
+.pcol-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 220px;
+  background: var(--bg-1); border: 1px solid var(--line-1); border-radius: 12px;
+  padding: 10px 12px; box-shadow: 0 8px 28px rgba(14,17,21,.10);
+}
+.pcol-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 4px; font-size: 12.5px;
+  color: var(--ink-0); cursor: grab; border-radius: 6px;
+}
+.pcol-item:hover { background: var(--bg-2); }
+.pcol-item.dragging { opacity: .45; }
+.pcol-item .grip { color: var(--ink-3); cursor: grab; }
+.pcol-item input { accent-color: var(--accent, #0071e3); }
+.pcol-foot { display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid var(--line-0); margin-top: 8px; padding-top: 8px; }
+.pcol-reset { font-size: 11.5px; color: var(--accent, #0071e3); background: none; border: none; cursor: pointer; padding: 0; }
+.paper-table th { position: relative; }
+.paper-table th .rsz {
+  position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize; user-select: none;
+}
+.paper-table th.dragover { background: var(--bg-2); }
 `;
 
 // ── Right-slot summary card ───────────────────────────────────────────────
 
+// $K, integer, accounting-style parentheses for negatives.
+const fmtK = (n) => {
+  if (n == null || Number.isNaN(n)) return '—';
+  const k = Math.round(n / 1000);
+  const s = `$${Math.abs(k).toLocaleString('en-US')}K`;
+  return n < 0 ? `(${s})` : s;
+};
+// Percent, accounting-style parentheses for negatives.
+const fmtPctP = (n, places = 1) => {
+  if (n == null || Number.isNaN(n)) return '—';
+  const s = `${(Math.abs(n) * 100).toFixed(places)}%`;
+  return n < 0 ? `(${s})` : `+${s}`;
+};
+const dirClass = (n) => (n == null ? 'muted' : (n >= 0 ? 'up' : 'down'));
+
 function SummaryCard({ navHistory }) {
   const empty = !navHistory || navHistory.length === 0;
   const latest = empty ? null : navHistory[navHistory.length - 1];
-  const first  = empty ? null : navHistory[0];
+  const prev   = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
 
-  const totalNav     = latest?.total_nav ?? null;
-  const totalReturn  = totalNav != null ? (totalNav - STARTING_CAPITAL) / STARTING_CAPITAL : null;
-  const periodReturn = (first && totalNav != null) ? (totalNav - first.total_nav) / first.total_nav : null;
-  const spyStart     = first?.benchmark_spy_value ?? null;
-  const spyNow       = latest?.benchmark_spy_value ?? null;
-  const spyReturn    = (spyStart && spyNow) ? (spyNow / spyStart - 1) : null;
-  const alpha        = (spyReturn != null && periodReturn != null) ? (periodReturn - spyReturn) : null;
-  const leverageUsed = latest?.sleeve_b_margin_used || 0;
-  const leverageOn   = leverageUsed > 0;
-  const isUp         = totalReturn != null && totalReturn >= 0;
+  // Trailing-12-month anchor row (falls back to inception while the book is
+  // younger than a year — TTM == inception until then).
+  const ttmRow = useMemo(() => {
+    if (empty) return null;
+    const d = new Date((latest.snapshot_date || '') + 'T00:00:00Z');
+    const cutoff = new Date(d); cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 1);
+    let r = navHistory[0];
+    for (const row of navHistory) {
+      if (new Date(row.snapshot_date + 'T00:00:00Z') <= cutoff) r = row; else break;
+    }
+    return r;
+  }, [navHistory, empty, latest]);
+
+  if (empty) {
+    return (
+      <div className="paper-tile-summary">
+        <div className="pts-head"><span className="pts-title">Performance</span></div>
+        <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Awaiting first nightly run.</div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}><FreshnessChip elementId="portfolio.paper-nav-daily" /></div>
+      </div>
+    );
+  }
+
+  const CAP = 500_000, TOTAL_CAP = STARTING_CAPITAL;
+  const aVal = (r) => r?.sleeve_a_value ?? (r ? CAP + (r.sleeve_a_realized_pnl || 0) + (r.sleeve_a_unrealized_pnl || 0) : null);
+  const bVal = (r) => r?.sleeve_b_value ?? (r ? CAP + (r.sleeve_b_realized_pnl || 0) + (r.sleeve_b_unrealized_pnl || 0) : null);
+  const ret = (now, then) => (now != null && then) ? (now / then - 1) : null;
+
+  const spyNow = latest.spy_close ?? null;
+  const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
+
+  const rows = [
+    {
+      label: 'Sleeve A', sub: '$500K', cap: CAP,
+      value: aVal(latest),
+      daily: ret(aVal(latest), aVal(prev)),
+      ttm: ret(aVal(latest), aVal(ttmRow)),
+      incep: ret(aVal(latest), CAP),
+      beta: latest.sleeve_a_beta ?? null,
+    },
+    {
+      label: 'Sleeve B', sub: '$500K', cap: CAP,
+      value: bVal(latest),
+      daily: ret(bVal(latest), bVal(prev)),
+      ttm: ret(bVal(latest), bVal(ttmRow)),
+      incep: ret(bVal(latest), CAP),
+      beta: latest.sleeve_b_beta ?? null,
+    },
+    {
+      label: 'Total', sub: '$1M', cap: TOTAL_CAP, strong: true,
+      value: latest.total_nav,
+      daily: ret(latest.total_nav, prev?.total_nav),
+      ttm: ret(latest.total_nav, ttmRow?.total_nav),
+      incep: ret(latest.total_nav, TOTAL_CAP),
+      beta: latest.portfolio_beta ?? null,
+    },
+    {
+      label: 'S&P 500', sub: '$1M', benchmark: true,
+      value: spyVal,
+      daily: ret(spyNow, latest.spy_prev_close),
+      ttm: ret(spyNow, latest.spy_ttm_close),
+      incep: ret(spyNow, latest.spy_inception_close),
+      beta: 1.0,
+    },
+  ];
+  const total = rows[2], spy = rows[3];
+  const vs = {
+    label: 'Vs. S&P 500', vs: true,
+    value: (total.value != null && spy.value != null) ? total.value - spy.value : null,
+    daily: (total.daily != null && spy.daily != null) ? total.daily - spy.daily : null,
+    ttm: (total.ttm != null && spy.ttm != null) ? total.ttm - spy.ttm : null,
+    incep: (total.incep != null && spy.incep != null) ? total.incep - spy.incep : null,
+    beta: null,
+  };
+
+  const betaTd = (r) => {
+    if (r.vs) return <td className="muted"></td>;
+    if (r.beta == null) return <td className="muted">building…</td>;
+    return <td className="rowval">{r.beta.toFixed(2)}</td>;
+  };
+
+  const Row = (r) => (
+    <tr key={r.label} className={r.vs ? 'vs' : undefined}>
+      <td className="rlabel">{r.label}{r.sub && <small>{r.sub}</small>}</td>
+      <td className={r.vs ? dirClass(r.value) : 'rowval'}>{fmtK(r.value)}</td>
+      <td className={dirClass(r.daily)}>{fmtPctP(r.daily)}</td>
+      <td className={dirClass(r.ttm)}>{fmtPctP(r.ttm)}</td>
+      <td className={dirClass(r.incep)}>{fmtPctP(r.incep)}</td>
+      {betaTd(r)}
+    </tr>
+  );
 
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Paper book NAV <InfoTip term="Paper book NAV" def="Current liquidation value of the $1M paper book on Alpaca, summed across Sleeve A (Asset Tilt) and Sleeve B (Scanner)." size={11} /></span>
-        <span className="pts-asof">
-          {latest?.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}
-        </span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Value and return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Daily = today's move; TTM = trailing 12 months (equals inception until the book is a year old); Inception = since the book opened; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
+        <span className="pts-asof">{latest.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}</span>
       </div>
-
-      <div>
-        <div className="pts-nav-eyebrow">Total portfolio NAV</div>
-        <div className="pts-nav-value">
-          {totalNav == null ? '—' : (
-            <>
-              <span className="pts-curr">$</span>
-              {Math.round(totalNav).toLocaleString('en-US')}
-            </>
-          )}
-        </div>
-        <div className="pts-nav-delta" style={{ color: totalReturn == null ? 'var(--ink-2)' : (isUp ? UP_COLOR : DOWN_COLOR) }}>
-          {totalReturn == null
-            ? 'Awaiting first nightly run'
-            : <>{fmtPct(totalReturn)} since inception &middot; {fmtMoneyShort(totalNav - STARTING_CAPITAL)} {isUp ? 'gained' : 'lost'}</>
-          }
-        </div>
-      </div>
-
-      <div className="pts-row">
-        <span className="lbl">Sleeve A — Asset Tilt</span>
-        <span className="val">{latest?.sleeve_a_nav != null ? fmtMoneyExact(latest.sleeve_a_nav) : '—'}</span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">Sleeve B — Scanner</span>
-        <span className="val">{latest?.sleeve_b_nav != null ? fmtMoneyExact(latest.sleeve_b_nav) : '—'}</span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">vs SPY 50/50</span>
-        <span className="val" style={{ color: alpha == null ? 'var(--ink-3)' : (alpha >= 0 ? UP_COLOR : DOWN_COLOR) }}>
-          {alpha == null ? '—' : fmtPct(alpha)}
-        </span>
-      </div>
-      <div className="pts-row">
-        <span className="lbl">Leverage in use</span>
-        <span className="val">
-          {leverageOn ? <span className="pts-leverage-on">{fmtMoneyShort(leverageUsed)}</span> : '—'}
-        </span>
-      </div>
-
+      <table className="pmx">
+        <thead>
+          <tr>
+            <th></th><th>Value</th><th>Daily P&amp;L</th><th>TTM P&amp;L</th><th>Inception</th><th>Beta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(Row)}
+          {Row(vs)}
+        </tbody>
+      </table>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
         <FreshnessChip elementId="portfolio.paper-nav-daily" />
       </div>
@@ -253,30 +367,131 @@ function SummaryCard({ navHistory }) {
 
 // ── Positions panel (one per sleeve) ───────────────────────────────────────
 
+// All available columns for the sleeve tables (every Alpaca position field +
+// MacroTilt-computed weight & holding period). `def` = shown by default.
+const POS_COLUMNS = [
+  { key: 'ticker',                   label: 'Ticker',      w: 78,  align: 'left',  fmt: 'ticker', def: true },
+  { key: 'side',                     label: 'Side',        w: 64,  align: 'left',  fmt: 'side',   def: false },
+  { key: 'quantity',                 label: 'Qty',         w: 92,  align: 'right', fmt: 'qty',    def: true },
+  { key: 'avg_cost',                 label: 'Avg entry',   w: 92,  align: 'right', fmt: 'price',  def: true },
+  { key: 'current_price',            label: 'Price',       w: 84,  align: 'right', fmt: 'price',  def: true },
+  { key: 'lastday_price',            label: 'Prior close', w: 96,  align: 'right', fmt: 'price',  def: false },
+  { key: 'change_today',             label: 'Day chg %',   w: 90,  align: 'right', fmt: 'pctDir', def: false },
+  { key: 'market_value',             label: 'Market value',w: 120, align: 'right', fmt: 'money',  def: true, strong: true },
+  { key: 'cost_basis',               label: 'Cost basis',  w: 110, align: 'right', fmt: 'money',  def: false },
+  { key: 'unrealized_intraday_pl',   label: 'Day P&L',     w: 100, align: 'right', fmt: 'moneyDir', def: true },
+  { key: 'unrealized_intraday_plpc', label: 'Day P&L %',   w: 92,  align: 'right', fmt: 'pctDir', def: true },
+  { key: 'unrealized_pnl',           label: 'Total P&L',   w: 108, align: 'right', fmt: 'moneyDir', def: true },
+  { key: 'unrealized_plpc',          label: 'Total P&L %', w: 100, align: 'right', fmt: 'pctDir', def: true },
+  { key: 'weight',                   label: 'Weight %',    w: 84,  align: 'right', fmt: 'pctPlain', def: false },
+  { key: 'entry_date',               label: 'Held',        w: 72,  align: 'right', fmt: 'held',   def: true },
+  { key: 'current_score',            label: 'Score',       w: 70,  align: 'right', fmt: 'num',    def: true, sleeveOnly: 'B' },
+];
+
+const daysHeld = (iso) => {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso).getTime();
+  return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
+};
+
 function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
+  const available = useMemo(
+    () => POS_COLUMNS.filter((c) => !c.sleeveOnly || c.sleeveOnly === sleeve),
+    [sleeve]
+  );
+  const storeKey = `mt_paper_cols_v1_${sleeve}`;
+  const defaultCfg = () => available.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
+
+  const [cfg, setCfg] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
+      if (Array.isArray(saved) && saved.length) {
+        const known = new Set(available.map((c) => c.key));
+        const merged = saved.filter((s) => known.has(s.key));
+        for (const c of available) if (!merged.find((m) => m.key === c.key)) merged.push({ key: c.key, visible: c.def, w: c.w });
+        return merged;
+      }
+    } catch { /* ignore */ }
+    return defaultCfg();
+  });
+  useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify(cfg)); } catch { /* ignore */ } }, [cfg, storeKey]);
+
+  const [menuOpen, setMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState('market_value');
   const [sortDir, setSortDir] = useState('desc');
+  const meta = (k) => available.find((c) => c.key === k);
+  const visibleCols = cfg.filter((c) => c.visible);
+
+  const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
+  const unreal = positions.reduce((s, p) => s + (p.unrealized_pnl || 0), 0);
+  const dayPL = positions.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0);
+  const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
+
+  const cellValue = (p, key) => key === 'weight' ? (grossLong > 0 ? (p.market_value || 0) / grossLong : null) : p[key];
 
   const sorted = useMemo(() => {
     const a = [...positions];
     a.sort((x, y) => {
-      const xv = x[sortBy] ?? -Infinity;
-      const yv = y[sortBy] ?? -Infinity;
+      const xv = cellValue(x, sortBy) ?? -Infinity;
+      const yv = cellValue(y, sortBy) ?? -Infinity;
       if (typeof xv === 'string') return sortDir === 'asc' ? xv.localeCompare(yv) : yv.localeCompare(xv);
       return sortDir === 'asc' ? xv - yv : yv - xv;
     });
     return a;
-  }, [positions, sortBy, sortDir]);
+  }, [positions, sortBy, sortDir, grossLong]);
 
-  const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
-  const unreal = positions.reduce((s, p) => s + (p.unrealized_pnl || 0), 0);
-  const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
-
-  const sortClick = (key) => () => {
+  const sortClick = (key) => {
     if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortBy(key); setSortDir('desc'); }
   };
   const arrow = (key) => sortBy === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+
+  // ── resize ──
+  const resizing = useRef(null);
+  const onResizeDown = (key) => (e) => {
+    e.preventDefault(); e.stopPropagation();
+    resizing.current = { key, startX: e.clientX, startW: cfg.find((c) => c.key === key)?.w || 90 };
+    const move = (ev) => {
+      if (!resizing.current) return;
+      const w = Math.max(52, resizing.current.startW + (ev.clientX - resizing.current.startX));
+      setCfg((prev) => prev.map((c) => c.key === resizing.current.key ? { ...c, w } : c));
+    };
+    const up = () => { resizing.current = null; window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
+
+  // ── reorder (drag headers and menu rows) ──
+  const dragKey = useRef(null);
+  const [overKey, setOverKey] = useState(null);
+  const reorder = (from, to) => {
+    if (from === to) return;
+    setCfg((prev) => {
+      const arr = [...prev];
+      const fi = arr.findIndex((c) => c.key === from);
+      const ti = arr.findIndex((c) => c.key === to);
+      if (fi < 0 || ti < 0) return prev;
+      const [m] = arr.splice(fi, 1); arr.splice(ti, 0, m); return arr;
+    });
+  };
+  const toggle = (key) => setCfg((prev) => prev.map((c) => c.key === key ? { ...c, visible: !c.visible } : c));
+  const reset = () => setCfg(defaultCfg());
+
+  const fmtCell = (p, col) => {
+    const m = meta(col.key); const v = cellValue(p, col.key);
+    switch (m.fmt) {
+      case 'ticker': return <span style={{ color: 'var(--ink-0)', fontWeight: 500 }}>{p.ticker}</span>;
+      case 'side': return v || 'long';
+      case 'qty': return v != null ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
+      case 'price': return v != null ? `$${Number(v).toFixed(2)}` : '—';
+      case 'money': return fmtMoneyExact(v);
+      case 'num': return v != null ? v : '—';
+      case 'held': { const d = daysHeld(v); return d == null ? '—' : `${d}d`; }
+      case 'pctPlain': return v != null ? `${(v * 100).toFixed(1)}%` : '—';
+      case 'moneyDir': return <span className={(v || 0) >= 0 ? 'up' : 'down'}>{fmtMoneyExact(v)}</span>;
+      case 'pctDir': return <span className={(v || 0) >= 0 ? 'up' : 'down'}>{fmtPct(v)}</span>;
+      default: return v ?? '—';
+    }
+  };
 
   return (
     <div className="paper-panel">
@@ -291,13 +506,49 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
             {leverageRatio > 1.0 && (
               <> &middot; <span style={{ color: WARN_COLOR, fontWeight: 600 }}>{leverageRatio.toFixed(2)}&times; leverage</span></>
             )}
-            {' '}&middot; {unreal >= 0
-              ? <span style={{ color: UP_COLOR }}>+{fmtMoneyExact(unreal)} unrealized</span>
-              : <span style={{ color: DOWN_COLOR }}>{fmtMoneyExact(unreal)} unrealized</span>
-            }
+            {' '}&middot; <span style={{ color: dayPL >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(dayPL)} today</span>
+            {' '}&middot; <span style={{ color: unreal >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(unreal)} open P&amp;L</span>
           </div>
         </div>
-        <FreshnessChip elementId="portfolio.paper-positions-snapshot" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="pcol-wrap">
+            <button className="pcol-btn" onClick={() => setMenuOpen((o) => !o)} aria-label="Configure columns">
+              <span style={{ fontSize: 13, lineHeight: 1 }}>⋯</span> Columns
+            </button>
+            {menuOpen && (
+              <div className="pcol-pop" onMouseLeave={() => setMenuOpen(false)}>
+                {cfg.map((c) => {
+                  const m = meta(c.key);
+                  return (
+                    <div
+                      key={c.key}
+                      className={'pcol-item' + (overKey === c.key ? ' dragging' : '')}
+                      draggable
+                      onDragStart={() => { dragKey.current = c.key; }}
+                      onDragOver={(e) => { e.preventDefault(); setOverKey(c.key); }}
+                      onDrop={() => { reorder(dragKey.current, c.key); dragKey.current = null; setOverKey(null); }}
+                      onDragEnd={() => { dragKey.current = null; setOverKey(null); }}
+                    >
+                      <span className="grip">⠿</span>
+                      <input
+                        type="checkbox"
+                        checked={c.visible}
+                        disabled={c.key === 'ticker'}
+                        onChange={() => toggle(c.key)}
+                      />
+                      <span>{m ? m.label : c.key}</span>
+                    </div>
+                  );
+                })}
+                <div className="pcol-foot">
+                  <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>drag to reorder · saved per device</span>
+                  <button className="pcol-reset" onClick={reset}>Reset</button>
+                </div>
+              </div>
+            )}
+          </div>
+          <FreshnessChip elementId="portfolio.paper-positions-snapshot" />
+        </div>
       </div>
 
       {positions.length === 0 ? (
@@ -308,28 +559,38 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table className="paper-table">
+          <table className="paper-table" style={{ tableLayout: 'fixed', minWidth: visibleCols.reduce((s, c) => s + (c.w || 90), 0) }}>
+            <colgroup>{visibleCols.map((c) => <col key={c.key} style={{ width: (c.w || 90) + 'px' }} />)}</colgroup>
             <thead>
               <tr>
-                <th onClick={sortClick('ticker')}>Ticker{arrow('ticker')}</th>
-                <th className="r" onClick={sortClick('quantity')}>Quantity{arrow('quantity')}</th>
-                <th className="r" onClick={sortClick('avg_cost')}>Avg cost{arrow('avg_cost')}</th>
-                <th className="r" onClick={sortClick('market_value')}>Market value{arrow('market_value')}</th>
-                <th className="r" onClick={sortClick('unrealized_pnl')}>Unrealized P&amp;L{arrow('unrealized_pnl')}</th>
-                {sleeve === 'B' && <th className="r" onClick={sortClick('current_score')}>Score{arrow('current_score')}</th>}
+                {visibleCols.map((c) => {
+                  const m = meta(c.key);
+                  return (
+                    <th
+                      key={c.key}
+                      className={(m.align === 'right' ? 'r ' : '') + (overKey === c.key ? 'dragover' : '')}
+                      draggable
+                      onDragStart={() => { dragKey.current = c.key; }}
+                      onDragOver={(e) => { e.preventDefault(); setOverKey(c.key); }}
+                      onDrop={() => { reorder(dragKey.current, c.key); dragKey.current = null; setOverKey(null); }}
+                      onDragEnd={() => { dragKey.current = null; setOverKey(null); }}
+                      onClick={() => sortClick(c.key)}
+                    >
+                      {m.label}{arrow(c.key)}
+                      <span className="rsz" onMouseDown={onResizeDown(c.key)} onClick={(e) => e.stopPropagation()} />
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {sorted.map((p, i) => (
                 <tr key={`${p.ticker}-${i}`}>
-                  <td className="ticker">{p.ticker}</td>
-                  <td className="r">{p.quantity != null ? Number(p.quantity).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}</td>
-                  <td className="r">{p.avg_cost != null ? `$${Number(p.avg_cost).toFixed(2)}` : '—'}</td>
-                  <td className="r mv">{fmtMoneyExact(p.market_value)}</td>
-                  <td className={'r ' + ((p.unrealized_pnl || 0) >= 0 ? 'up' : 'down')}>
-                    {fmtMoneyExact(p.unrealized_pnl)}
-                  </td>
-                  {sleeve === 'B' && <td className="r">{p.current_score != null ? p.current_score : '—'}</td>}
+                  {visibleCols.map((c) => {
+                    const m = meta(c.key);
+                    const cls = (m.align === 'right' ? 'r ' : '') + (c.key === 'ticker' ? 'ticker' : '') + (m.strong ? ' mv' : '');
+                    return <td key={c.key} className={cls.trim()} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCell(p, c)}</td>;
+                  })}
                 </tr>
               ))}
             </tbody>
