@@ -6856,6 +6856,7 @@ return(
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
 {tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
 {/* PAPER PORTFOLIO — $1M paper book on Alpaca. Always v2; no V1 fallback. */}
+{/* rev 2026-05-29b: pass onOpenTicker so Sleeve A/B tickers open the detail modal (force chunk rebuild). */}
 {tab==="paper" && <V2ErrorBoundary><PaperPortfolioPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
 {V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
