@@ -28,6 +28,7 @@ import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import FreshnessChip from '../components/FreshnessChip';
 import Sparkline from '../components/Sparkline';
 import Tip from '../components/Tip';
+import SmartImport from '../components/SmartImport';
 
 const PF_COLORS = ['#0a5cd1', '#1f9d60', '#c08428', '#c1394f', '#5c34c9', '#0a8a8a'];
 
@@ -58,6 +59,8 @@ export default function PortfolioPage() {
   const portfolio = useUserPortfolio();
   const loading = portfolio?.loading;
   const isAuthed = portfolio?.isAuthed;
+  const userId = portfolio?.userId ?? null;
+  const [showImport, setShowImport] = useState(false);
 
   /* 2026-05-27 — data-shape adapter. useUserPortfolio returns a nested shape:
        { accounts: [{ id, label, color, positions: [{ ticker, value, quantity,
@@ -242,7 +245,7 @@ export default function PortfolioPage() {
             </div>
           </div>
           <div className="pf-headcta">
-            <button type="button" className="mt-btn">Upload transactions</button>
+            <button type="button" className="mt-btn" onClick={() => setShowImport(true)}>Upload transactions</button>
             <Tip content="Plaid coming soon — for now, import broker CSVs from Chase, Fidelity, Schwab.">
               <button type="button" className="mt-btn" disabled>
                 Connect brokerage via Plaid
@@ -579,6 +582,14 @@ export default function PortfolioPage() {
           </div>
         )}
       </section>
+
+      {showImport && (
+        <SmartImport
+          userId={userId}
+          onClose={() => setShowImport(false)}
+          onDone={async () => { await portfolio?.refetch?.(); }}
+        />
+      )}
     </div>
   );
 }
