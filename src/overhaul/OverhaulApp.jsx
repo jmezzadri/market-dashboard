@@ -33,6 +33,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from 'react-router-dom';
 
 import './styles/tokens.css';
@@ -79,6 +80,7 @@ import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
 import AdminBugs from '../AdminBugs';
 
 function Shell() {
+  const navigate = useNavigate();
   return (
     <div className="mt-overhaul">
       <div className="mt-app">
@@ -92,7 +94,7 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
-            <Route path="/paper" element={<PaperPortfolioPage />} />
+            <Route path="/paper" element={<PaperPortfolioPage onOpenTicker={(symbol) => { if (symbol && symbol !== 'CASH') navigate(`/ticker/${symbol}`); }} />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
@@ -117,3 +119,4 @@ export default function OverhaulApp() {
     </TweaksProvider>
   );
 }
+
