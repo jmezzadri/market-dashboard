@@ -1,4 +1,5 @@
 // PaperPortfolioPage — Paper Trading Portfolio results page.
+// rev: ticker-click + Score + Held (2026-05-29b) — cache-bust rebuild.
 //
 // Brand-aligned 2026-05-27 (round 3, Joe directive): adopts the canonical
 // PageHero pattern used by EVERY other v2 page (Trading Opportunities,
