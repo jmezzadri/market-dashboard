@@ -6782,7 +6782,7 @@ return(
 })()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
-{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="paper" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
+{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="indicators" && tab!=="readme" && tab!=="allocation" && tab!=="admin" && TAB_META[tab] && (
   <SectionHeader
     eyebrow={TAB_META[tab].eyebrow}
     title={TAB_META[tab].title}
@@ -6856,7 +6856,7 @@ return(
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
 {tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
 {/* PAPER PORTFOLIO — $1M paper book on Alpaca. Always v2; no V1 fallback. */}
-{tab==="paper" && <V2ErrorBoundary><PaperPortfolioPageV2 /></V2ErrorBoundary>}
+{tab==="paper" && <V2ErrorBoundary><PaperPortfolioPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
 {V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
 {!V2_ENABLED && tab==="insights" && !(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
