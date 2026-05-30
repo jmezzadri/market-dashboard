@@ -138,13 +138,56 @@ def ensure_paper_schema() -> None:
 
 
 def _entry_dates_by_ticker() -> dict[str, str]:
-    """First buy date per ticker (the lot open date), used for holding period.
-    Average-cost book, so we treat the earliest buy fill as the open date."""
-    rows = _supabase_query(
-        "select ticker, min(filled_at)::date::text as entry_date "
-        "from public.paper_fills where lower(side) = 'buy' group by ticker;"
-    )
-    return {r["ticker"]: r["entry_date"] for r in rows if r.get("entry_date")}
+    """Holding-period start date per ticker. Earliest of (first buy fill,
+    first daily snapshot the ticker appears in). The snapshot fallback matters
+    because the fills mirror was down during the book's first days, so some
+    held positions have no buy fill on record — without the fallback their
+    'Held' column renders blank."""
+    out: dict[str, str] = {}
+    try:
+        for r in _supabase_query(
+            "select ticker, min(filled_at)::date::text as d "
+            "from public.paper_fills where lower(side) = 'buy' group by ticker;"
+        ):
+            if r.get("d"):
+                out[r["ticker"]] = r["d"]
+    except Exception as e:
+        logger.warning("entry-date fill lookup failed (%s)", e)
+    try:
+        for r in _supabase_query(
+            "select ticker, min(snapshot_date)::text as d "
+            "from public.paper_positions group by ticker;"
+        ):
+            d = r.get("d")
+            if d and (r["ticker"] not in out or d < out[r["ticker"]]):
+                out[r["ticker"]] = d
+    except Exception as e:
+        logger.warning("entry-date snapshot lookup failed (%s)", e)
+    return out
+
+
+def _latest_scan_scores() -> dict[str, int]:
+    """Current MacroTilt buy score (0–10) per ticker from the latest scanner
+    run (signal_intel_v5_daily). buy_score = max(0, mt_score / 10), rounded —
+    same normalization the translator uses. Populates the Sleeve B Score column."""
+    try:
+        latest = _supabase_query("select max(scan_date)::text as d from public.signal_intel_v5_daily;")
+        d = latest[0]["d"] if latest and latest[0].get("d") else None
+        if not d:
+            return {}
+        rows = _supabase_query(
+            f"select ticker, mt_score from public.signal_intel_v5_daily where scan_date = '{d}';"
+        )
+        out: dict[str, int] = {}
+        for r in rows:
+            ms = r.get("mt_score")
+            if ms is None:
+                continue
+            out[r["ticker"]] = int(round(max(0.0, float(ms) / 10.0)))
+        return out
+    except Exception as e:
+        logger.warning("scan-score lookup failed (%s); Score column will be blank", e)
+        return {}
 
 
 def _realized_pnl_by_sleeve() -> dict[str, float]:
@@ -301,6 +344,7 @@ def mirror_positions(
     positions = alpaca.get_positions()
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
+    scan_scores = {} if dry_run else _latest_scan_scores()
 
     if dry_run:
         for p in positions:
@@ -317,6 +361,9 @@ def mirror_positions(
     for p in positions:
         sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
         ed = entry_dates.get(p.ticker)
+        # Score column applies to Sleeve B (Scanner) only; Sleeve A is ETFs.
+        sc = scan_scores.get(p.ticker)
+        score_sql = "NULL" if (sleeve != "B" or sc is None) else str(int(sc))
         sql_lines.append(
             "insert into public.paper_positions "
             "(snapshot_date, sleeve, ticker, quantity, avg_cost, market_value, "
@@ -337,7 +384,7 @@ def mirror_positions(
             f"{p.lastday_price}, "
             f"{p.cost_basis}, "
             f"{_sql_escape(ed)}, "
-            f"NULL, "
+            f"{score_sql}, "
             "now()"
             ");"
         )
