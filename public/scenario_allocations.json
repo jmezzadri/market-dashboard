@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-23T12:12:22.817134+00:00",
+  "as_of": "2026-05-30T12:47:03.782789+00:00",
   "status": "dormant",
   "reason": "composite_history_daily.json was retired by PR \u03bb (composite kill); the scenario engine inherits v9's dormancy until Asset Tilt rebuild ships.",
   "scenarios": {}
