@@ -227,6 +227,11 @@ const PAGE_CSS = `
   position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize; user-select: none;
 }
 .paper-table th.dragover { background: var(--bg-2); }
+.paper-ticker-link {
+  background: none; border: none; padding: 0; font: inherit; font-weight: 500;
+  color: var(--accent, #0071e3); cursor: pointer;
+}
+.paper-ticker-link:hover { text-decoration: underline; }
 `;
 
 // ── Right-slot summary card ───────────────────────────────────────────────
@@ -404,7 +409,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker }) {
   const available = useMemo(
     () => POS_COLUMNS.filter((c) => !c.sleeveOnly || c.sleeveOnly === sleeve),
     [sleeve]
@@ -489,7 +494,9 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef }) {
   const fmtCell = (p, col) => {
     const m = meta(col.key); const v = cellValue(p, col.key);
     switch (m.fmt) {
-      case 'ticker': return <span style={{ color: 'var(--ink-0)', fontWeight: 500 }}>{p.ticker}</span>;
+      case 'ticker': return onOpenTicker
+        ? <button type="button" className="paper-ticker-link" onClick={(e) => { e.stopPropagation(); onOpenTicker(p.ticker); }}>{p.ticker}</button>
+        : <span style={{ color: 'var(--ink-0)', fontWeight: 500 }}>{p.ticker}</span>;
       case 'side': return v || 'long';
       case 'qty': return v != null ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
       case 'price': return v != null ? `$${Number(v).toFixed(2)}` : '—';
@@ -672,7 +679,7 @@ function RebalanceLog({ orders }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
-export default function PaperPortfolioPage() {
+export default function PaperPortfolioPage({ onOpenTicker }) {
   const [navHistory, setNavHistory] = useState([]);
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -744,6 +751,7 @@ export default function PaperPortfolioPage() {
           sleeve="A"
           positions={sleeveA}
           totalCapital={account?.sleeve_a_allocation || 500_000}
+          onOpenTicker={onOpenTicker}
           infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
         />
         <PositionsPanel
@@ -751,6 +759,7 @@ export default function PaperPortfolioPage() {
           sleeve="B"
           positions={sleeveB}
           totalCapital={account?.sleeve_b_allocation || 500_000}
+          onOpenTicker={onOpenTicker}
           infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
         />
         <RebalanceLog orders={orders} />
