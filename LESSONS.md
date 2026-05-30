@@ -1,5 +1,4 @@
-new size: 106976
-MacroTilt
+# LESSONS.md — MacroTilt
 
 Binding behavioral rules for the agent council (UX Designer · Senior Quant ·
 Lead Developer · Data Steward) working on MacroTilt. Read at the start of
@@ -23,15 +22,25 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
-## 2026-05-28 — When diagnosing a bug, surface every regression in the same diff — not just the one Joe noticed
+## 2026-05-29 — Refer to every indicator ONLY by its exact on-site name; never shorthand
 
-**What happened:** Joe asked why Asset Tilt was breaking. I traced it to PR #864 and shipped a fix for the JSX crash. I had the full PR #864 diff open the whole time, and that diff also rewrote the hero from yesterday's descriptive sentence back to the giant "100% equity / 0% defensive" headline — a clean regression of b43030b that I'd shipped the day before. I said nothing about the hero. Joe loaded the patched page, saw the regressed hero, and had to ask "why is this back?" That's two trips to me for one bad PR.
+**What happened:** Repeatedly (3+ times in one session) referred to indicators
+by internal keys (`hy_ig`, `cpff`, `loan_syn`), FRED series IDs
+(`BAMLH0A0HYM2`), and factor-category jargon ("credit OAS", "valuation
+z-score") that are NOT what the user sees on the site. Joe: "stop fucking
+referring to indicators by anything EXCEPT THEIR FUCKING NAME ON THE SITE."
+This destroys trust and wastes his time decoding.
 
-**What you should do instead:** When investigating a reported bug, read the full diff of the offending PR and any other PRs that landed in the same window. List every change that touches user-visible behavior — not just the one matching the symptom. If anything else in the diff looks like an unrequested change or a regression of recent work, surface it in the same response as the bug fix, with a one-line "also noticed: X — should I revert this too?" Don't make Joe be the regression detector for changes I already had in front of me.
+**What you should do instead:** Every time you name an indicator to Joe, use
+the EXACT display name shown on the live site (e.g. "MOVE Index", "10Y TIPS",
+"HY OAS", "USD Funding", "CFNAI (3M Avg)"). Never use the internal registry
+key, the FRED/Yahoo series ID, the producer variable name, or a
+factor-category label that isn't a tile name. If you don't know the on-site
+name, open the live page and read it BEFORE writing the reply. When a concept
+(e.g. an engine factor) isn't itself an on-site indicator, say so plainly
+rather than dressing it up as if it were a tile. Binds every reply.
 
-**Applies to:** Every bug-fix task. Especially when the offending PR's stated scope is narrower than its actual diff.
-
----
+**Applies to:** All
 
 ## 2026-05-26 — Site-overhaul brief lives on disk; read it BEFORE any redesign work
 
@@ -1522,20 +1531,3 @@ g. After merge: actually load every URL in section 6 in Chrome via the
 **Applies to:** All four specialists. The Lead Developer owns building
 the map; every other specialist owns checking their domain on it
 before signing off.
-
-
----
-
-# Rule #N — Never tell Joe to "wait and check back" on a missed cron near a time-sensitive deadline
-
-**What happened (2026-05-28):** PR #870 shipped overnight, moving the rebalance pipeline (MASSIVE → Asset Tilt → Scanner → Paper Portfolio) to a next-morning 8:00 / 8:15 / 8:30 / 9:00 AM ET sequence so Paper Portfolio would queue MOO orders before the 9:30 open. GitHub Actions cron silently skipped the first morning invocation on the new schedule — none of the four expected slots fired. At 9:21 AM ET the Lead Developer agent detected the miss and told Joe "GitHub cron delays — worth checking again in 30 minutes." That recommendation was physically incompatible with the deadline: 9:21 + 30 = 9:51 AM, twenty-one minutes past the open. MOO orders submitted after roughly 9:28 AM ET cannot fill at the open. In the same report the agent wrote "If Massive still hasn't fired by 10:00 AM ET, manually dispatch it so the rest of the chain cascades and Paper Portfolio still has time to queue before the 9:30 open" — 10:00 > 9:30, the sentence is internally impossible. Two clock-arithmetic failures in a single time-sensitive recovery message. Joe correctly called the day a complete disaster.
-
-**What the agent should do instead:**
-
-1. When detecting a missed scheduled fire, before writing anything else: compute `now + chain_runtime_estimate` and compare against the downstream deadline.
-2. If the sum exceeds the deadline, the deadline is already lost. Say so explicitly. Do not pretend a wait will recover it.
-3. If there is any chance the chain can still beat the deadline: dispatch in the same response. No "checking back in 30." No invoking GitHub cron delays as a reason to wait. Manual dispatch is idempotent; waiting is irreversibly broken if it fails.
-4. Before writing any clock time relative to a deadline, do the arithmetic out loud: "is the time I'm recommending earlier than the deadline?" If not, the recommendation is broken — rewrite it before sending.
-5. Structural fix: a cron-miss watchdog at 8:45 AM ET that auto-dispatches the morning chain if MASSIVE has not fired in the prior 45 minutes. Ships separately from this lesson.
-
-**Applies to:** Lead Developer specifically; all four specialists when handling any time-sensitive scheduled job (market open, EOD cutoff, regulatory deadline).
