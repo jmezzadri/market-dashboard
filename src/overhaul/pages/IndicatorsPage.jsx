@@ -40,6 +40,32 @@ function fmtFreq(freq) {
   return freq || '—';
 }
 
+/* "Used for" — which engine actually consumes each indicator.
+   Sources of truth (keep in sync if those change):
+   - ASSET TILT: the factor maps in compute_v9_allocation.py
+     (PER_BUCKET_MV + UNIVERSAL_BG + DEFENSIVE_FACTORS). This is the engine
+     that picks sectors + the defensive sleeve on the /tilt page.
+   - MACRO OVERVIEW: the cycle-mechanism inputs in
+     methodology_calibration_v11.json (the regime read on the /macro page).
+   Anything in neither set is display-only → "Reference". */
+const ASSET_TILT_IDS = new Set([
+  'yield_curve', 'term_premium', 'real_rates', 'breakeven_10y', 'vix', 'skew',
+  'copper_gold', 'anfci', 'stlfsi', 'sloos_ci', 'sloos_cre', 'cpff',
+  'jobless', 'm2_yoy',
+]);
+const MACRO_OVERVIEW_IDS = new Set([
+  'hy_ig', 'ig_oas', 'hy_ig_ratio', 'cape', 'erp', 'buffett', 'ism',
+  'cfnai_3ma', 'bkx_spx', 'jobless',
+]);
+function usedFor(id) {
+  const tilt = ASSET_TILT_IDS.has(id);
+  const macro = MACRO_OVERVIEW_IDS.has(id);
+  if (tilt && macro) return 'Asset Tilt · Macro';
+  if (tilt) return 'Asset Tilt';
+  if (macro) return 'Macro Overview';
+  return 'Reference';
+}
+
 export default function IndicatorsPage() {
   const { active, loading } = useIndicators();
   const [domain, setDomain] = useState('All');
@@ -125,6 +151,7 @@ export default function IndicatorsPage() {
                   <th onClick={() => toggleSort('domain')}>Category{arrow('domain')}</th>
                   <th onClick={() => toggleSort('freq')}>Freq{arrow('freq')}</th>
                   <th onClick={() => toggleSort('typeLabel')}>Type{arrow('typeLabel')}</th>
+                  <th>Used for</th>
                   <th>Last refresh</th>
                   <th className="num" onClick={() => toggleSort('value')}>Current{arrow('value')}</th>
                   <th className="num" onClick={() => toggleSort('prior_3m')}>3M ago{arrow('prior_3m')}</th>
@@ -164,6 +191,23 @@ export default function IndicatorsPage() {
                           </span>
                         </td>
                         <td>
+                          {(() => {
+                            const role = usedFor(i.id);
+                            return (
+                              <span
+                                className="al-usedfor"
+                                style={{
+                                  fontSize: 11.5,
+                                  color: role === 'Reference' ? 'var(--mt-ink-3)' : 'var(--mt-ink-1)',
+                                  fontWeight: role === 'Reference' ? 400 : 500,
+                                }}
+                              >
+                                {role}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td>
                           {/* Anchor freshness to the data point actually plotted
                               (i.asOf) — never let a pipeline_health run that ran
                               later than the published file make a stale on-screen
@@ -186,7 +230,7 @@ export default function IndicatorsPage() {
                       </tr>
                       {isOpen && (
                         <tr className="al-drill">
-                          <td colSpan={10}>
+                          <td colSpan={11}>
                             <IndicatorDetail ind={i} onClose={() => setDrill(null)} />
                           </td>
                         </tr>
