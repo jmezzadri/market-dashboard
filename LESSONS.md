@@ -1531,3 +1531,36 @@ g. After merge: actually load every URL in section 6 in Chrome via the
 **Applies to:** All four specialists. The Lead Developer owns building
 the map; every other specialist owns checking their domain on it
 before signing off.
+
+---
+
+## "Merged but not surfacing" UI bug: confirm WHICH app layer renders the live route before touching anything (2026-05-30)
+
+**What happened:** The Paper Portfolio page tickers weren't clickable. Multiple
+prior sessions diagnosed it as a "stale Vercel deploy" / "App.jsx chunk not
+invalidating" and burned a full day force-rebuilding chunks and re-editing
+`src/App.jsx` (whose paper mount already passed `onOpenTicker` correctly). The
+live bundle was current the whole time. Real cause: production runs
+`OverhaulApp` (the default per `src/main.jsx`; `?v=2` is the legacy escape
+hatch), and the overhaul `/paper` route mounted `<PaperPortfolioPage />` with
+NO `onOpenTicker` prop. The page renders clickable ticker buttons only when
+that prop is truthy → otherwise plain spans. So "onOpenTicker undefined at
+runtime despite correct source" meant the page source was right but the
+ROUTE-level mount omitted the prop. The agents kept fixing the wrong app layer.
+
+**What you should do instead:** When a UI change is "merged but not surfacing,"
+do NOT jump to stale-deploy / cache / chunk-splitting theories. First establish
+which app actually renders the live URL (here: `main.jsx` selects
+`OverhaulApp` by default, legacy `App` only under `?v=2`). Then inspect the
+ROUTE-level mount in that app — the props passed at the `<Route element={...} />`
+site — not just the page component. Verify on the live rendered page via DOM
+(`document.querySelectorAll('.paper-ticker-link').length`) and an actual click,
+per the existing screenshot rule. Also note the repo has a stale nested
+`market-dashboard-live/` duplicate of the tree; the BUILT source is the
+repo-ROOT `src/`. Fix shipped in PR #906: the `/paper` route now passes
+`onOpenTicker={(symbol)=>navigate('/ticker/'+symbol)}`, matching the overhaul
+PortfolioPage pattern.
+
+**Applies to:** All four specialists. Lead Developer leads the layer/route check;
+UX Designer confirms the click target matches the overhaul's route-based ticker
+navigation (not the legacy modal).
