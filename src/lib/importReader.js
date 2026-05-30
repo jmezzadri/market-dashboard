@@ -81,13 +81,55 @@ export async function readTabularFile(file) {
   };
 }
 
-// Read text pasted into the box. SheetJS sniffs comma vs tab.
+// Detect the delimiter on a line: tab, comma, semicolon, or pipe (whichever
+// appears most). Falls back to comma.
+function detectDelimiter(line) {
+  const counts = {
+    "\t": (line.match(/\t/g) || []).length,
+    ",": (line.match(/,/g) || []).length,
+    ";": (line.match(/;/g) || []).length,
+    "|": (line.match(/\|/g) || []).length,
+  };
+  let best = ",";
+  let bestN = 0;
+  for (const [d, n] of Object.entries(counts)) if (n > bestN) { best = d; bestN = n; }
+  return best;
+}
+
+// Split one delimited line, honoring "quoted, cells" and "" escapes.
+function splitDelimitedLine(line, delim) {
+  const out = [];
+  let cur = "";
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') { q = false; }
+      else { cur += ch; }
+    } else {
+      if (ch === delim) { out.push(cur); cur = ""; }
+      else if (ch === '"') { q = true; }
+      else { cur += ch; }
+    }
+  }
+  out.push(cur);
+  return out.map((c) => c.trim());
+}
+
+// Read text pasted into the box. Parsed directly (not via SheetJS) so the
+// behavior is identical in every browser — pasted content is always
+// delimited text, and a deterministic split is the right tool for it.
 export async function readPastedText(text) {
   if (!text || !text.trim()) return { grid: [], headerRow: 0, format: "empty" };
-  const XLSX = await import("xlsx");
-  const wb = XLSX.read(text, { type: "string" });
-  const out = gridFromWorkbook(XLSX, wb);
-  return { ...out, format: "pasted" };
+  const stripped = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = stripped.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (!lines.length) return { grid: [], headerRow: 0, format: "empty" };
+  const delim = detectDelimiter(lines[0]);
+  const cleaned = normalizeGrid(lines.map((l) => splitDelimitedLine(l, delim)));
+  if (!cleaned.length) return { grid: [], headerRow: 0, format: "empty" };
+  const hr = findHeaderRow(cleaned);
+  return { grid: cleaned.slice(hr), headerRow: hr, format: "pasted" };
 }
 
 // Split a grid into { headers, dataRows }. Convenience for callers.
