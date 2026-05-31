@@ -494,6 +494,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
 
   const fmtCell = (p, col) => {
     const m = meta(col.key); const v = cellValue(p, col.key);
+    if (!m) return '—';
     switch (m.fmt) {
       case 'ticker': return onOpenTicker
         ? <button type="button" className="paper-ticker-link" onClick={(e) => { e.stopPropagation(); onOpenTicker(p.ticker); }}>{p.ticker}</button>
@@ -787,4 +788,5 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     </div>
   );
 }
+
 
