@@ -375,7 +375,7 @@ function SummaryCard({ navHistory }) {
         </tbody>
       </table>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <FreshnessChip elementId="portfolio.paper-nav-daily" />
+        <FreshnessChip elementId="portfolio.paper-nav-daily" fallback={{ asOfIso: latest.snapshot_date, calendar: 'nyse' }} />
       </div>
     </div>
   );
@@ -410,7 +410,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf }) {
   const available = useMemo(
     () => POS_COLUMNS.filter((c) => !c.sleeveOnly || c.sleeveOnly === sleeve),
     [sleeve]
@@ -565,7 +565,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
               </div>
             )}
           </div>
-          <FreshnessChip elementId="portfolio.paper-positions-snapshot" />
+          <FreshnessChip elementId="portfolio.paper-positions-snapshot" fallback={{ asOfIso: asOf, calendar: 'nyse' }} />
         </div>
       </div>
 
@@ -641,7 +641,7 @@ function RebalanceLog({ orders }) {
             Recent rebalances <InfoTip term="Recent rebalances" def="Last five days on which the engine fired buy or sell intents to Alpaca. Filled / pending / rejected counts come from the Alpaca order ledger." size={12} />
           </h2>
         </div>
-        <FreshnessChip elementId="portfolio.paper-orders-intent" />
+        <FreshnessChip elementId="portfolio.paper-orders-intent" fallback={{ asOfIso: orders?.[0]?.created_at, calendar: 'nyse' }} />
       </div>
       <div style={{ padding: '20px 28px 24px' }}>
         {byDate.length === 0 ? (
@@ -683,6 +683,7 @@ function RebalanceLog({ orders }) {
 export default function PaperPortfolioPage({ onOpenTicker }) {
   const [navHistory, setNavHistory] = useState([]);
   const [positions, setPositions] = useState([]);
+  const [posAsOf, setPosAsOf] = useState(null);
   const [orders, setOrders] = useState([]);
   const [account, setAccount] = useState(null);
   const [err, setErr] = useState(null);
@@ -709,7 +710,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             .select('*')
             .eq('snapshot_date', ld)
             .order('market_value', { ascending: false });
-          if (!cancelled) setPositions(pos.data || []);
+          // Day chg % is the security's daily price move. The mirror never
+          // wrote a `change_today` column, so this column read empty; derive
+          // it from the prior close + current price already on each row.
+          // Fraction form (current/lastday - 1) to match fmtPct (×100).
+          const posRows = (pos.data || []).map((r) => ({
+            ...r,
+            change_today: (r.lastday_price && r.current_price != null)
+              ? (r.current_price / r.lastday_price - 1)
+              : null,
+          }));
+          if (!cancelled) { setPositions(posRows); setPosAsOf(ld); }
         }
 
         const ord = await supabase
@@ -751,6 +762,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           title="Asset Tilt — Industry-Group ETFs"
           sleeve="A"
           positions={sleeveA}
+          asOf={posAsOf}
           totalCapital={account?.sleeve_a_allocation || 500_000}
           onOpenTicker={onOpenTicker}
           infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
@@ -759,6 +771,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           title="Equity Scanner — Long-Only"
           sleeve="B"
           positions={sleeveB}
+          asOf={posAsOf}
           totalCapital={account?.sleeve_b_allocation || 500_000}
           onOpenTicker={onOpenTicker}
           infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
@@ -774,3 +787,4 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     </div>
   );
 }
+
