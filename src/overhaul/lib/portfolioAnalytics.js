@@ -81,12 +81,26 @@ export function classifyPosition(pos) {
 }
 
 // ── 2) option decomposition ─────────────────────────────────────────────────
-// Rough delta from moneyness when no live greek is supplied. Not for pricing —
-// only so the decomposition is demonstrable offline. Live page passes real delta.
+// Standard normal CDF (Abramowitz & Stegun 7.1.26).
+function normCdf(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989422804014327 * Math.exp(-x * x / 2);
+  const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x >= 0 ? 1 - p : p;
+}
+
+// Black–Scholes option delta. Returns null if inputs are unusable.
+export function bsDelta(type, S, K, T, sigma, r = 0.045) {
+  if (!(S > 0) || !(K > 0) || !(T > 0) || !(sigma > 0)) return null;
+  const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+  const Nd1 = normCdf(d1);
+  return type === "put" ? Nd1 - 1 : Nd1;
+}
+
+// Crude moneyness fallback when IV/time aren't available but spot is.
 function estimateDelta(contractType, strike, spot) {
-  if (!spot || !strike) return contractType === "put" ? -0.4 : 0.5;
-  const m = spot / strike; // >1 = call ITM / put OTM
-  // crude logistic-ish mapping centered at the money
+  if (!spot || !strike) return contractType === "put" ? -0.3 : 0.5;
+  const m = spot / strike;
   let callDelta = 1 / (1 + Math.exp(-6 * (m - 1)));
   callDelta = Math.max(0.02, Math.min(0.98, callDelta));
   return contractType === "put" ? callDelta - 1 : callDelta;
@@ -99,29 +113,37 @@ export function decomposeOption(pos, mkt = {}) {
   const mult = Number(pos.multiplier) || 100;
   const strike = Number(pos.strike) || 0;
   const spot = (mkt.spots && mkt.spots[underlier]) || Number(pos.underlier_spot) || 0;
-  const optDelta = (mkt.deltas && mkt.deltas[underlier + ":" + strike + ":" + ct]) ??
-                   (pos.delta != null ? Number(pos.delta) : estimateDelta(ct, strike, spot));
+  const iv = (mkt.ivs && mkt.ivs[underlier]) || Number(pos.iv) || 0;
+
+  // time to expiry, in years
+  let T = 0;
+  if (pos.expiration) {
+    const exp = new Date(String(pos.expiration) + "T00:00:00");
+    const now = mkt.now ? new Date(mkt.now) : new Date();
+    T = Math.max(0, (exp - now) / (365.25 * 24 * 3600 * 1000));
+  }
+
+  // delta: explicit override > stored greek > Black–Scholes (spot+iv+T) > moneyness fallback
+  let optDelta;
+  const ov = mkt.deltas && mkt.deltas[underlier + ":" + strike + ":" + ct];
+  if (ov != null) optDelta = ov;
+  else if (pos.delta != null) optDelta = Number(pos.delta);
+  else { const bs = bsDelta(ct, spot, strike, T, iv); optDelta = bs != null ? bs : estimateDelta(ct, strike, spot); }
 
   const direction = qty >= 0 ? "long" : "short";
-  // position delta (signed shares of the underlier)
-  const deltaEquivShares = qty * mult * optDelta;
-  const deltaEquivNotional = spot ? deltaEquivShares * spot : null;
-  // a long put / short call hedges downside on |qty|*mult*strike of underlier
+  const deltaEquivShares = qty * mult * optDelta;              // signed shares of underlier
+  const deltaEquivNotional = spot ? deltaEquivShares * spot : null; // signed $; negative = short
   const isDownsideHedge = (ct === "put" && qty > 0) || (ct === "call" && qty < 0);
-  const protectionNotional = isDownsideHedge ? Math.abs(qty) * mult * strike : 0;
+  const protectionNotional = isDownsideHedge ? Math.abs(qty) * mult * strike : 0; // $ of underlier hedged
+  // how far out-of-the-money (+ = OTM): for a put, spot above strike
+  const otmPct = (spot && strike) ? (ct === "put" ? (spot - strike) / spot : (strike - spot) / spot) : null;
 
   return {
     kind: "option",
-    underlier,
-    contractType: ct,
-    direction,
-    label: `${direction} ${ct}`,                    // e.g. "long put"
-    optDelta,
-    deltaEquivShares,
-    deltaEquivNotional,                              // signed $; negative = short exposure
-    protectionNotional,                              // $ of underlier hedged
-    isDownsideHedge,
-    underlierAssetClass: "Equity",                   // QQQ/SPY/etc.; refine per underlier if needed
+    underlier, contractType: ct, direction, label: `${direction} ${ct}`,
+    spot, iv, T, optDelta, otmPct, strike, expiration: pos.expiration || null,
+    deltaEquivShares, deltaEquivNotional, protectionNotional, isDownsideHedge,
+    underlierAssetClass: "Equity",
   };
 }
 
@@ -172,7 +194,26 @@ export function buildBook(positions, mkt = {}) {
   risk.forEach((x) => { x.riskPct = x.rc / rcTot * 100; });
   risk.sort((a, b) => b.riskPct - a.riskPct);
 
-  return { total, rows, allocByClass: byClass, allocByEconomic: econ, riskContribution: risk };
+  // Exposure (delta-adjusted) — the standard PM long / short / gross / net,
+  // by asset class, with cash on its own line. Options contribute their
+  // delta-equivalent $ (a long put shows up as Short equity).
+  let longExp = 0, shortExp = 0, cashExp = 0;
+  const expByClass = {};
+  for (const r of rows) {
+    if (r.cls && r.cls.ac === "Cash") { cashExp += r.value; continue; }
+    let ac, expo;
+    if (r.option) { ac = r.option.underlierAssetClass; expo = (r.option.deltaEquivNotional != null ? r.option.deltaEquivNotional : 0); }
+    else { ac = r.cls.ac; expo = r.value; }
+    if (!expByClass[ac]) expByClass[ac] = { long: 0, short: 0 };
+    if (expo >= 0) { longExp += expo; expByClass[ac].long += expo; }
+    else { shortExp += expo; expByClass[ac].short += expo; }
+  }
+  const exposure = {
+    long: longExp, short: shortExp, gross: longExp + Math.abs(shortExp),
+    net: longExp + shortExp, cash: cashExp, byClass: expByClass,
+  };
+
+  return { total, rows, allocByClass: byClass, allocByEconomic: econ, riskContribution: risk, exposure };
 }
 
 function defaultBeta(ac) {
