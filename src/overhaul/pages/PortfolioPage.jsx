@@ -8,9 +8,10 @@
    Options are shown by underlier with long/short, delta-equivalent exposure,
    and downside-protection notional — and netted against equity longs. */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
+import { supabase } from '../../lib/supabase';
 import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import SmartImport from '../components/SmartImport';
@@ -99,12 +100,35 @@ export default function PortfolioPage() {
     return out;
   }, [accounts]);
 
-  const book = useMemo(() => buildBook(positions, {}), [positions]);
+  // Live underlier price + IV for any option positions (drives real delta).
+  const [mkt, setMkt] = useState({});
+  useEffect(() => {
+    const unds = [...new Set(positions.filter((p) => p.contract_type || String(p.asset_class).toLowerCase() === 'option').map((p) => String(p.ticker).toUpperCase()))];
+    if (!unds.length) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('universe_snapshots').select('ticker,close,iv30d').in('ticker', unds);
+        if (cancel || !data) return;
+        const spots = {}, ivs = {};
+        data.forEach((r) => { if (r.close) spots[r.ticker] = Number(r.close); if (r.iv30d) ivs[r.ticker] = Number(r.iv30d); });
+        setMkt({ spots, ivs, now: new Date().toISOString().slice(0, 10) });
+      } catch (e) { /* hedge falls back to a moneyness estimate */ }
+    })();
+    return () => { cancel = true; };
+  }, [positions]);
+
+  const book = useMemo(() => buildBook(positions, mkt), [positions, mkt]);
   const total = book.total;
   const cost = positions.reduce((s, p) => s + ((p.avgCost != null && p.quantity != null) ? p.avgCost * p.quantity : 0), 0);
   const unreal = total - cost;
   const cashTot = book.allocByClass['Cash'] || 0;
   const opt = book.rows.find((r) => r.option)?.option;
+  const exp = book.exposure;
+  const expRows = [
+    ...AC_ORDER.filter((ac) => exp.byClass[ac]).map((ac) => ({ name: ac, color: AC_COLOR[ac], long: exp.byClass[ac].long, short: exp.byClass[ac].short, net: exp.byClass[ac].long + exp.byClass[ac].short })),
+    { name: 'Cash', color: AC_COLOR.Cash, long: exp.cash, short: 0, net: exp.cash },
+  ];
 
   // metric groups
   const sortedRows = [...book.rows].sort((a, b) => b.value - a.value);
@@ -222,15 +246,35 @@ export default function PortfolioPage() {
         <div className="mt-sectionhead"><div><div className="mt-eyebrow">Allocation</div><div className="mt-h2">Where the money sits — and where the risk does.</div></div></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div style={card}>
-            <div className="mt-pillgroup" style={{ marginBottom: 10 }}>
-              {[['class', 'Asset class'], ['economic', 'Economic exposure'], ['sector', 'Equity sector'], ['account', 'Account']].map(([k, l]) => (
-                <button key={k} type="button" className={`mt-pill ${allocView === k ? 'on' : ''}`} onClick={() => setAllocView(k)}>{l}</button>
+            <div style={eyebrow}>Exposure · delta-adjusted, % of NAV</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 1, background: 'var(--mt-line-1)', border: '1px solid var(--mt-line-1)', borderRadius: 8, overflow: 'hidden', marginBottom: 14 }}>
+              {[['Long', exp.long], ['Short', exp.short], ['Gross', exp.gross], ['Net', exp.net], ['Cash', exp.cash]].map(([l, v]) => (
+                <div key={l} style={{ background: 'var(--mt-surface)', padding: '9px 11px' }}>
+                  <div style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 9, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)' }}>{l}</div>
+                  <div className="num" style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 15, fontWeight: 600, color: v < 0 ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{wpct(total ? v / total * 100 : 0)}</div>
+                  <div style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 10, color: 'var(--mt-ink-2)' }}>{f$(v)}</div>
+                </div>
               ))}
             </div>
-            {allocView === 'economic' && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginBottom: 8 }}>Options folded into their underlier — the QQQ put is short equity delta, so it nets your equity down.</div>}
-            {allocEntries.map(([k, v]) => (
-              <BarRow key={k} label={k} valueLabel={f$(v)} pct={Math.abs(v) / allocTotal * 100} pctLabel={`${v < 0 ? '-' : ''}${wpct(Math.abs(v) / total * 100)}`} color={allocColor(k)} neg={v < 0} />
-            ))}
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>
+                {['Asset class', 'Long', 'Short', 'Net', '% NAV'].map((h, i) => (
+                  <th key={h} style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 9, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: i ? 'right' : 'left', padding: '6px 8px', borderBottom: '1px solid var(--mt-line-1)' }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {expRows.map((r) => (
+                  <tr key={r.name}>
+                    <td style={{ padding: '7px 8px', fontSize: 12.5, color: 'var(--mt-ink-1)' }}><span style={{ width: 9, height: 9, borderRadius: 2, background: r.color, display: 'inline-block', marginRight: 7 }} />{r.name}</td>
+                    <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12 }}>{r.long ? f$(r.long) : '—'}</td>
+                    <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12, color: r.short ? 'var(--mt-down)' : 'var(--mt-ink-3)' }}>{r.short ? f$(r.short) : '—'}</td>
+                    <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12, fontWeight: 600 }}>{f$(r.net)}</td>
+                    <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12 }}>{wpct(total ? r.net / total * 100 : 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {opt && <div style={{ fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 8, lineHeight: 1.5 }}>Short equity = the {opt.underlier} {opt.contractType} ({opt.deltaEquivNotional != null ? f$(opt.deltaEquivNotional) : '—'} delta‑equiv); it can protect {f$(opt.protectionNotional)} of {opt.underlier} below ${opt.strike}.</div>}
           </div>
           <div style={card}>
             <div style={eyebrow}>Risk contribution · where volatility comes from</div>
@@ -242,30 +286,7 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* options / hedge decomposition */}
-      {opt && (
-        <section className="mt-pagesection">
-          <div style={{ ...card, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 22, alignItems: 'center' }}>
-            <div>
-              <div style={eyebrow}>Hedge · {opt.underlier} {opt.contractType} (decomposed)</div>
-              <div style={{ fontSize: 13, color: 'var(--mt-ink-1)', maxWidth: 360, lineHeight: 1.5 }}>
-                A <b>{opt.label}</b> on <b>{opt.underlier}</b> — short delta, i.e. downside protection. Shown by underlier and netted against your equity longs, not bucketed as "Options."
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: 'var(--mt-line-1)', border: '1px solid var(--mt-line-1)', borderRadius: 10, overflow: 'hidden' }}>
-              {[['Delta-equiv exposure', opt.deltaEquivNotional != null ? f$(opt.deltaEquivNotional) : `${Math.round(opt.deltaEquivShares)} sh`, 'short equity (est. delta)'],
-                ['Downside protected', f$(opt.protectionNotional), `${wpct(opt.protectionNotional / total * 100)} of book`],
-                ['Direction', opt.label, `${opt.underlier} index`]].map((m, i) => (
-                <div key={i} style={{ background: 'var(--mt-surface)', padding: '14px 16px' }}>
-                  <div style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 9.5, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', marginBottom: 5 }}>{m[0]}</div>
-                  <div className="num" style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 18, fontWeight: 600, color: i === 0 ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{m[1]}</div>
-                  <div style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginTop: 2 }}>{m[2]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* options are folded into the Exposure table above as short equity */}
 
       {/* scenario stress + income */}
       <section className="mt-pagesection">
