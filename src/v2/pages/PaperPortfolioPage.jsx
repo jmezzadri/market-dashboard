@@ -470,7 +470,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     const move = (ev) => {
       if (!resizing.current) return;
       const w = Math.max(52, resizing.current.startW + (ev.clientX - resizing.current.startX));
-      setCfg((prev) => prev.map((c) => c.key === resizing.current.key ? { ...c, w } : c));
+      setCfg((prev) => prev.map((c) => c.key === key ? { ...c, w } : c)); // use closed-over key, not resizing.current (which mouseup may have nulled before this deferred updater runs)
     };
     const up = () => { resizing.current = null; window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
     window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
@@ -788,5 +788,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     </div>
   );
 }
+
 
 
