@@ -77,6 +77,7 @@ import DataFlowPage from './pages/DataFlowPage';
 // dashboard. Mounted here as-is — no redesign yet, but wired so the
 // existing sidebar links actually resolve.
 import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
+import PageErrorBoundary from '../v2/components/ErrorBoundary';
 import AdminBugs from '../AdminBugs';
 
 function Shell() {
@@ -94,7 +95,7 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
-            <Route path="/paper" element={<PaperPortfolioPage onOpenTicker={(symbol) => { if (symbol && symbol !== 'CASH') navigate(`/ticker/${symbol}`); }} />} />
+            <Route path="/paper" element={<PageErrorBoundary><PaperPortfolioPage onOpenTicker={(symbol) => { if (symbol && symbol !== 'CASH') navigate(`/ticker/${symbol}`); }} /></PageErrorBoundary>} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
@@ -119,4 +120,5 @@ export default function OverhaulApp() {
     </TweaksProvider>
   );
 }
+
 
