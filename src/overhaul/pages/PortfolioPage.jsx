@@ -163,6 +163,18 @@ export default function PortfolioPage() {
 
   if (loading) return <div className="mt-pagebody"><div className="mt-card" style={{ padding: 40, textAlign: 'center', color: 'var(--mt-ink-2)' }}>Loading portfolio…</div></div>;
 
+  if (!positions.length) return (
+    <div className="mt-pagebody mt-fade">
+      <section className="mt-pagehero"><div>
+        <div className="mt-eyebrow">Portfolio insights</div>
+        <h1 className="mt-h1">Portfolio</h1>
+        <p className="mt-deck">No holdings loaded yet. Sign in and upload your positions or trades to see your full book — allocation done right, real risk, and every holding scored.</p>
+        <button type="button" className="mt-btn mt-btn--primary" onClick={() => setShowImport(true)}>Upload / import</button>
+      </div></section>
+      {showImport && <SmartImport userId={portfolio?.userId ?? null} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
+    </div>
+  );
+
   return (
     <div className="mt-pagebody mt-fade">
       {/* hero */}
