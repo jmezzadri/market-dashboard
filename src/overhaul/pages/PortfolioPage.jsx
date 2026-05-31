@@ -15,6 +15,8 @@ import { supabase } from '../../lib/supabase';
 import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import SmartImport from '../components/SmartImport';
+import PositionEditor from '../../components/PositionEditor';
+import CloseModal from '../../components/CloseModal';
 import { buildBook } from '../lib/portfolioAnalytics';
 
 const AC_COLOR = {
@@ -89,6 +91,9 @@ export default function PortfolioPage() {
   const [sortK, setSortK] = useState('value');
   const [sortDir, setSortDir] = useState(-1);
   const [showImport, setShowImport] = useState(false);
+  const [positionEditor, setPositionEditor] = useState(null);
+  const [closeModal, setCloseModal] = useState(null);
+  const userId = portfolio?.userId ?? null;
 
   // flatten positions w/ account label
   const positions = useMemo(() => {
@@ -120,6 +125,15 @@ export default function PortfolioPage() {
   }, [positions]);
 
   const book = useMemo(() => buildBook(positions, mkt), [positions, mkt]);
+
+  const heldPositions = useMemo(() => book.rows.filter((r) => !r.option).map((r) => ({ ...r, acctLabel: r.account_name })), [book]);
+  const deletePosition = async (row) => {
+    if (!row?.id) return;
+    if (!window.confirm(`Remove ${row.ticker} from ${row.account_name}? Data cleanup only — no cash is credited. Use Close to record a real sale.`)) return;
+    const { error } = await supabase.from('positions').delete().eq('id', row.id);
+    if (error) { window.alert(`Could not delete: ${error.message || 'error'}`); return; }
+    await portfolio?.refetch?.();
+  };
   const total = book.total;
   const cost = positions.reduce((s, p) => s + ((p.avgCost != null && p.quantity != null) ? p.avgCost * p.quantity : 0), 0);
   const unreal = total - cost;
@@ -320,7 +334,7 @@ export default function PortfolioPage() {
 
       {/* positions table */}
       <section className="mt-pagesection">
-        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Holdings</div><div className="mt-h2">All positions</div></div><button type="button" className="mt-btn" onClick={() => setShowImport(true)}>Upload / import</button></div>
+        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Holdings</div><div className="mt-h2">All positions</div></div><div style={{ display: 'flex', gap: 8 }}><button type="button" className="mt-btn mt-btn--primary" onClick={() => setPositionEditor({ mode: 'add' })}>+ Add position</button><button type="button" className="mt-btn" onClick={() => setShowImport(true)}>Upload / import</button></div></div>
         <div className="mt-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -328,7 +342,7 @@ export default function PortfolioPage() {
                 <th key={c.k} onClick={() => onSort(c.k)} style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: c.l2 ? 'left' : 'right', padding: '11px 14px', borderBottom: '1px solid var(--mt-line-1)', cursor: 'pointer', whiteSpace: 'nowrap', background: 'var(--mt-surface-2)' }}>
                   {c.l}{sortK === c.k ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}
                 </th>
-              ))}</tr>
+              ))}<th style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: 'right', padding: '11px 14px', borderBottom: '1px solid var(--mt-line-1)', whiteSpace: 'nowrap', background: 'var(--mt-surface-2)' }}>Actions</th></tr>
             </thead>
             <tbody>
               {tableRows.map((r, i) => {
@@ -351,6 +365,11 @@ export default function PortfolioPage() {
                     <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12 }}>{wpct(r.weight)}</td>
                     <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12, color: r.pl == null ? 'var(--mt-ink-3)' : r.pl >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{r.pl == null ? '—' : (r.pl >= 0 ? '+' : '') + f$full(r.pl)}</td>
                     <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: 'var(--mt-font-mono)', fontSize: 12 }}>{r.option ? '—' : (Number(r.beta) || 0).toFixed(2)}</td>
+                    <td style={{ padding: '7px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11 }} onClick={() => setPositionEditor({ mode: 'edit', existing: r })}>Edit</button>
+                      {!r.option && r.cls.ac !== 'Cash' && <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11, marginLeft: 5 }} onClick={() => setCloseModal({ position: r })}>Close</button>}
+                      <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11, marginLeft: 5 }} onClick={() => deletePosition(r)}>Delete</button>
+                    </td>
                   </tr>
                 );
               })}
@@ -364,6 +383,27 @@ export default function PortfolioPage() {
 
       {showImport && (
         <SmartImport userId={portfolio?.userId ?? null} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />
+      )}
+      {positionEditor && (
+        <PositionEditor
+          mode={positionEditor.mode}
+          existing={positionEditor.existing}
+          accounts={accounts}
+          userId={userId}
+          heldPositions={heldPositions}
+          onClose={() => setPositionEditor(null)}
+          onSaved={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }}
+          onDeleted={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }}
+          onClosePosition={(existing) => { setPositionEditor(null); setCloseModal({ position: existing }); }}
+        />
+      )}
+      {closeModal && (
+        <CloseModal
+          position={closeModal.position}
+          accounts={accounts}
+          onCancel={() => setCloseModal(null)}
+          onClosed={async () => { await portfolio?.refetch?.(); setCloseModal(null); }}
+        />
       )}
     </div>
   );
