@@ -25,7 +25,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
-import FreshnessChip from '../components/FreshnessChip';
+import FreshnessChip from '../../overhaul/components/FreshnessChip';
 import { supabase } from '../../lib/supabase';
 import { InfoTip } from '../../InfoTip';
 
@@ -375,7 +375,7 @@ function SummaryCard({ navHistory }) {
         </tbody>
       </table>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <FreshnessChip elementId="portfolio.paper-nav-daily" fallback={{ asOfIso: latest.snapshot_date, calendar: 'nyse' }} />
+        <FreshnessChip elementId="portfolio.paper-nav-daily" variant="label" fallback={{ asOfIso: latest.snapshot_date, calendar: 'nyse' }} />
       </div>
     </div>
   );
@@ -565,7 +565,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
               </div>
             )}
           </div>
-          <FreshnessChip elementId="portfolio.paper-positions-snapshot" fallback={{ asOfIso: asOf, calendar: 'nyse' }} />
+          <FreshnessChip elementId="portfolio.paper-positions-snapshot" variant="label" fallback={{ asOfIso: asOf, calendar: 'nyse' }} />
         </div>
       </div>
 
@@ -641,7 +641,7 @@ function RebalanceLog({ orders }) {
             Recent rebalances <InfoTip term="Recent rebalances" def="Last five days on which the engine fired buy or sell intents to Alpaca. Filled / pending / rejected counts come from the Alpaca order ledger." size={12} />
           </h2>
         </div>
-        <FreshnessChip elementId="portfolio.paper-orders-intent" fallback={{ asOfIso: orders?.[0]?.created_at, calendar: 'nyse' }} />
+        <FreshnessChip elementId="portfolio.paper-orders-intent" variant="label" fallback={{ asOfIso: orders?.[0]?.created_at, calendar: 'nyse' }} />
       </div>
       <div style={{ padding: '20px 28px 24px' }}>
         {byDate.length === 0 ? (
