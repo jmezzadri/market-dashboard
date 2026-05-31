@@ -108,10 +108,11 @@ export default function PortfolioPage() {
     let cancel = false;
     (async () => {
       try {
-        const { data } = await supabase.from('universe_snapshots').select('ticker,close,iv30d').in('ticker', unds);
+        const { data } = await supabase.from('universe_snapshots').select('ticker,close,iv30d,snapshot_ts').in('ticker', unds).order('snapshot_ts', { ascending: false });
         if (cancel || !data) return;
         const spots = {}, ivs = {};
-        data.forEach((r) => { if (r.close) spots[r.ticker] = Number(r.close); if (r.iv30d) ivs[r.ticker] = Number(r.iv30d); });
+        // newest snapshot per ticker wins (the table keeps history)
+        data.forEach((r) => { const t = r.ticker; if (!(t in spots) && r.close) spots[t] = Number(r.close); if (!(t in ivs) && r.iv30d) ivs[t] = Number(r.iv30d); });
         setMkt({ spots, ivs, now: new Date().toISOString().slice(0, 10) });
       } catch (e) { /* hedge falls back to a moneyness estimate */ }
     })();
