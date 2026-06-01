@@ -1,0 +1,38 @@
+name: PAPER-PORTFOLIO-REPAIR
+
+# One-off DB repair: today's manual market fills filled at the broker but the
+# rows stayed status='rejected' (the _mark_submitted update only touched
+# 'pending' rows). This corrects them to 'filled' based on real Alpaca state.
+# Manual only. dry_run=true shows what it would do; false applies.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (check only, no writes)'
+        required: false
+        default: 'true'
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Repair fill status
+        env:
+          SUPABASE_ACCESS_TOKEN:  ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          ALPACA_PAPER_KEY_ID:    ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:    ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:  ${{ secrets.ALPACA_PAPER_BASE_URL }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python -m scripts.paper_repair_fill_status
+          else
+            python -m scripts.paper_repair_fill_status --apply
+          fi
