@@ -1,15 +1,17 @@
 // useTradingOppsTop — fetch the highest-scoring names from the latest
-// nightly Trading Opportunities scan (public.trading_opps_signals) so the
-// Home page Equity Scanner tile reads the SAME engine that powers the
-// Trading Opportunities page. Re-pointed off the retired six-signal model
-// (useV5TopScans) on 2026-05-21 as Phase 6 of the screener overhaul, so
-// the Home tile and the Trading Opportunities page can never disagree.
+// nightly Trading Opportunities scan (public.trading_opps_signals).
 //
-// The rebuilt screener publishes a long-only launched list — one row per
-// launched name for each scan_date — so there are no sell-side counts.
+// 2026-06-01 rebuild: previously this hook SELECTed only
+// ticker,score,signal,sector and discarded everything else — which forced
+// the scanner UI to fabricate sparklines, prices, per-component scores, and
+// events. The scan table actually stores real values for every one of those
+// (price, change, volume, 52w range, market cap, a real spark series, the
+// per-component point fields that sum to the score, the plain-English
+// "so_what", and entry/stop/target). We now pull them all so the scanner,
+// the expanded drill, and the ticker page read the SAME real row.
 //
 // Returns {
-//   rows,        // [{ ticker, score, signal, sector, band }] — top N by score
+//   rows,        // enriched scan rows — see mapRow below
 //   bandCounts,  // { score5, score4, score3, total }
 //   scanDate,    // 'YYYY-MM-DD'
 //   loading, error,
@@ -22,15 +24,70 @@ let _cache = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let _inflight = null;
 
-// Score band — identical cutoffs to the Trading Opportunities page
-// (scoreBand in TradingOppsPage.jsx): 5 = score >= 4.5, 4 = 3.5-4.49,
-// 3 = everything that launched (the launch threshold is 3).
+// Score band — identical cutoffs to the Trading Opportunities page:
+// 5 = score >= 4.5, 4 = 3.5-4.49, 3 = everything that launched.
 function scoreBand(s) {
   const n = Number(s);
   if (!Number.isFinite(n)) return 3;
   if (n >= 4.5) return 5;
   if (n >= 3.5) return 4;
   return 3;
+}
+
+const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+
+// Map a raw scan row into the shape the UI components read. change_pct is
+// already stored in percent units (e.g. -0.072 == -0.072%), so it passes
+// straight through to `chg`.
+function mapRow(r) {
+  return {
+    ticker: r.ticker,
+    name: r.company_name || null,
+    sector: r.sector || null,
+    signal: r.signal || null,
+    score: num(r.score),
+    score_1w: num(r.score_1w),
+    score_1m: num(r.score_1m),
+    band: scoreBand(r.score),
+
+    // price block
+    price: num(r.price),
+    chg: num(r.change_pct),
+    chgUsd: num(r.change_usd),
+    volume: num(r.volume),
+    relVolume: num(r.rel_volume),
+    week52Low: num(r.week_52_low),
+    week52High: num(r.week_52_high),
+    marketCap: num(r.market_cap),
+
+    // real sparkline series (close prices) — null if the engine didn't store one
+    sparkData: Array.isArray(r.spark) && r.spark.length ? r.spark.map(Number) : null,
+
+    // per-component point fields (these SUM to score) — see scoreWeights.js
+    insider_pts: num(r.insider_pts),
+    insider_rules: Array.isArray(r.insider_rules) ? r.insider_rules : [],
+    insider_age_days: num(r.insider_age_days),
+    sma200_pct: num(r.sma200_pct),
+    sma200_pts: num(r.sma200_pts),
+    rsi: num(r.rsi),
+    rsi_pts: num(r.rsi_pts),
+    dark_pool_anchor: num(r.dark_pool_anchor),
+    dark_pool_pts: num(r.dark_pool_pts),
+    options_vol_shock: num(r.options_vol_shock),
+    options_pts: num(r.options_pts),
+
+    // context + trade plan
+    iv: num(r.iv),
+    iv_rank: num(r.iv_rank),
+    pc_ratio: num(r.pc_ratio),
+    implied_30d_pct: num(r.implied_30d_pct),
+    entry: num(r.entry),
+    stop: num(r.stop),
+    target: num(r.target),
+    so_what: r.so_what || null,
+    lastTradeTs: r.last_trade_ts || null,
+    scoringVersion: r.scoring_version || null,
+  };
 }
 
 async function fetchAll(limit) {
@@ -50,13 +107,10 @@ async function fetchAll(limit) {
     };
   }
 
-  // 2. Every launched row for that scan_date. The screener publishes one
-  //    row per launched name (~100), comfortably inside the default row
-  //    cap, so a single query covers both the top-N list and the band
-  //    counts.
+  // 2. Every launched row for that scan_date (~21), with the full column set.
   const scanRes = await supabase
     .from("trading_opps_signals")
-    .select("ticker,score,signal,sector")
+    .select("*")
     .eq("scan_date", latest)
     .order("score", { ascending: false, nullsFirst: false });
   if (scanRes.error) throw scanRes.error;
@@ -73,14 +127,7 @@ async function fetchAll(limit) {
     else counts.score3++;
   }
 
-  const rows = all.slice(0, limit).map((r) => ({
-    ticker: r.ticker,
-    score: Number(r.score),
-    signal: r.signal || null,
-    sector: r.sector || null,
-    band: scoreBand(r.score),
-  }));
-
+  const rows = all.slice(0, limit).map(mapRow);
   return { rows, bandCounts: counts, scanDate: latest };
 }
 
@@ -110,7 +157,7 @@ export default function useTradingOppsTop(limit = 6) {
 
     const p =
       _inflight ||
-      (_inflight = fetchAll(Math.max(limit, 12)).finally(() => {
+      (_inflight = fetchAll(Math.max(limit, 100)).finally(() => {
         _inflight = null;
       }));
 

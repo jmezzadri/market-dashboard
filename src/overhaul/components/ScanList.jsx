@@ -1,9 +1,19 @@
 /* ScanList — shared row component used by Scanner and Portfolio Positions.
    Ported from prototype/lm-shared.jsx ScanList + lm-scancard structure.
-   Row layout: ticker block + ScoreDial + price/change + sparkline + facets + chevron.
    Drill renders below via the ScanDrill component the caller passes in.
 
-   Score is on 0-5 scale (live scanner data; Joe directive 2026-05-27). */
+   Score is on a 0-5 scale (live scanner data; Joe directive 2026-05-27).
+
+   2026-06-01: every value here is now REAL — sparkline uses the engine's
+   stored `spark` close series (no more synthetic random walk), price/change
+   come straight off the scan row.
+
+   When `indicatorColumns` is set (Scanner page only — Joe ask 2026-06-01
+   "show all the columns for the indicators that feed the score"), each row
+   adds four numeric columns for the real per-indicator points that SUM to
+   the score: Insider, Technicals (200-day + RSI), Options, Dark-pool. A
+   header row labels them. Portfolio Positions leaves the prop off and keeps
+   the compact I/D/O facet dots. */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,17 +21,10 @@ import ScoreDial from './ScoreDial';
 import Sparkline from './Sparkline';
 import Tip from './Tip';
 
-function fakeSpark(seed, n = 30) {
-  let s = String(seed).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const out = [];
-  let v = 50 + (s % 30);
-  for (let i = 0; i < n; i++) {
-    s = (s * 9301 + 49297) % 233280;
-    v += ((s / 233280) - 0.5) * 4;
-    out.push(v);
-  }
-  return out;
-}
+const techPts = (r) => (Number(r.sma200_pts) || 0) + (Number(r.rsi_pts) || 0);
+
+const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
+const GRID_INDICATORS = '1fr 52px 84px 84px 52px 52px 52px 52px 22px';
 
 export default function ScanList({
   rows,
@@ -30,8 +33,10 @@ export default function ScanList({
   renderDrill,    // (row) => JSX for the drill body
   rowKey = (r) => r.ticker,
   showSparkline = true,
+  indicatorColumns = false,
 }) {
   const navigate = useNavigate();
+  const grid = indicatorColumns ? GRID_INDICATORS : GRID_FACETS;
 
   if (!rows?.length) {
     return (
@@ -62,15 +67,60 @@ export default function ScanList({
         overflow: 'hidden',
       }}
     >
+      {indicatorColumns && (
+        <li
+          style={{
+            display: 'grid',
+            gridTemplateColumns: grid,
+            gap: 14,
+            padding: '10px 18px',
+            borderBottom: '1px solid var(--mt-line-0)',
+            background: 'var(--mt-surface-2)',
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--mt-ink-3)',
+          }}
+        >
+          <span>Ticker</span>
+          <span style={{ textAlign: 'center' }}>Score</span>
+          <span>Last</span>
+          <span>30-day</span>
+          <ColHead tip="Insider Form-4 points (rules A/B/C, decayed by age)">Insider</ColHead>
+          <ColHead tip="Technicals points: above 200-day line + RSI penalty">Tech</ColHead>
+          <ColHead tip="Options-volume-shock points (not yet backtested)">Options</ColHead>
+          <ColHead tip="Dark-pool anchor points (not yet backtested)">Dark</ColHead>
+          <span />
+        </li>
+      )}
+
       {rows.map((r) => {
         const key = rowKey(r);
         const isOpen = drillOpenKey === key;
         const chg = Number(r.chg) || 0;
         const chgColor = chg >= 0 ? 'var(--mt-up)' : 'var(--mt-down)';
-        const insider = r.insider || [];
-        const dark = r.dark;
         const price = r.price;
-        const sparkData = r.sparkData || fakeSpark(r.ticker);
+        const sparkData = r.sparkData;     // real close series, or null
+
+        const insiderOn = (r.insider_pts ?? 0) > 0;
+        const darkOn = (r.dark_pool_pts ?? 0) > 0 || r.dark_pool_anchor != null;
+        const optionsOn = (r.options_pts ?? 0) > 0;
+        const tp = techPts(r);
+
+        const insiderTip = insiderOn
+          ? `Insider points ${r.insider_pts}${r.insider_rules?.length ? ` · rule${r.insider_rules.length > 1 ? 's' : ''} ${r.insider_rules.join(', ')}` : ''}${r.insider_age_days != null ? ` · ${r.insider_age_days}d old` : ''}`
+          : 'Insider layer scored 0 for this name';
+        const techTip = r.sma200_pct != null
+          ? `${r.sma200_pct >= 0 ? 'Above' : 'Below'} 200-day by ${Math.abs(r.sma200_pct).toFixed(1)}%${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`
+          : 'No technicals reading';
+        const darkTip = darkOn
+          ? `Dark-pool points ${r.dark_pool_pts ?? 0}${r.dark_pool_anchor != null ? ` · anchor $${Number(r.dark_pool_anchor).toFixed(2)}` : ''}`
+          : 'No dark-pool points scored';
+        const optionsTip = optionsOn
+          ? `Options points ${r.options_pts}${r.options_vol_shock != null ? ` · vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : ''}`
+          : 'Options layer scored 0 for this name';
+
         return (
           <li key={key} style={{ borderBottom: '1px solid var(--mt-line-0)' }}>
             <div
@@ -85,7 +135,7 @@ export default function ScanList({
               }}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 56px 90px 110px 130px 24px',
+                gridTemplateColumns: grid,
                 gap: 14,
                 padding: '14px 18px',
                 background: isOpen ? 'var(--mt-surface-2)' : 'transparent',
@@ -137,26 +187,36 @@ export default function ScanList({
               ) : (
                 <div />
               )}
-              {/* Sparkline */}
-              {showSparkline ? (
+              {/* Sparkline (real close series) */}
+              {showSparkline && sparkData?.length ? (
                 <div style={{ color: chgColor }}>
-                  <Sparkline data={sparkData} width={100} height={32} stroke={chgColor} area />
+                  <Sparkline data={sparkData} width={indicatorColumns ? 80 : 100} height={32} stroke={chgColor} area />
                 </div>
               ) : (
                 <div />
               )}
-              {/* Facets */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                <Tip content={insider.length ? `Insider activity (60d): ${insider.join(', ')}` : 'No recent insider activity'}>
-                  <Facet label="I" active={insider.length > 0} color="var(--mt-up)" />
-                </Tip>
-                <Tip content={dark != null ? `Dark-pool block at $${dark}` : 'No recent dark-pool prints'}>
-                  <Facet label="D" active={dark != null} color="var(--mt-accent)" />
-                </Tip>
-                <Tip content="Options flow signal">
-                  <Facet label="O" active={true} color="var(--mt-warn)" />
-                </Tip>
-              </div>
+
+              {indicatorColumns ? (
+                <>
+                  <PtsCell value={r.insider_pts} on={insiderOn} tip={insiderTip} />
+                  <PtsCell value={tp} on={tp > 0} tip={techTip} />
+                  <PtsCell value={r.options_pts} on={optionsOn} tip={optionsTip} />
+                  <PtsCell value={r.dark_pool_pts} on={darkOn} tip={darkTip} />
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                  <Tip content={insiderTip}>
+                    <Facet label="I" active={insiderOn} color="var(--mt-up)" />
+                  </Tip>
+                  <Tip content={darkTip}>
+                    <Facet label="D" active={darkOn} color="var(--mt-accent)" />
+                  </Tip>
+                  <Tip content={optionsTip}>
+                    <Facet label="O" active={optionsOn} color="var(--mt-warn)" />
+                  </Tip>
+                </div>
+              )}
+
               {/* Chevron */}
               <span
                 style={{
@@ -175,6 +235,26 @@ export default function ScanList({
         );
       })}
     </ul>
+  );
+}
+
+function ColHead({ children, tip }) {
+  return (
+    <span style={{ textAlign: 'right' }}>
+      <Tip content={tip}>{children}</Tip>
+    </span>
+  );
+}
+
+function PtsCell({ value, on, tip }) {
+  const v = Number(value);
+  const show = Number.isFinite(v) ? v.toFixed(v % 1 === 0 ? 0 : 2) : '—';
+  return (
+    <div className="num" style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: on ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
+      <Tip content={tip} bare>
+        {on ? `+${show}` : show}
+      </Tip>
+    </div>
   );
 }
 

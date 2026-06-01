@@ -26,7 +26,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
 import ScanList from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
-import { SCORE_WEIGHTS } from '../lib/scoreWeights';
+import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 
 function bucketFor(s) {
   if (s >= 4.5) return 'b5';
@@ -41,20 +41,18 @@ const BUCKETS = [
 ];
 
 const COLUMNS = [
-  ['Last trade',        true,  false],
-  ['Ticker',            true,  true],
-  ['Signal',            true,  false],
-  ['Score',             true,  true],
-  ['Score 1w',          true,  false],
-  ['Score 1m',          true,  false],
-  ['Insider activity',  true,  false],
-  ['Dark pool anchor',  true,  false],
-  ['Options vol shock', false, false],
-  ['Chart',             true,  false],
-  ['Price',             true,  false],
-  ['Change',            true,  false],
-  ['Volume',            true,  false],
-  ['52w range',         true,  false],
+  ['Ticker',          true,  true],
+  ['Score',           true,  true],
+  ['Last price',      true,  false],
+  ['30-day chart',    true,  false],
+  ['Insider pts',     true,  false],
+  ['Technicals pts',  true,  false],
+  ['Options pts',     true,  false],
+  ['Dark-pool pts',   true,  false],
+  ['Score 1w',        false, false],
+  ['Score 1m',        false, false],
+  ['Volume',          false, false],
+  ['52w range',       false, false],
 ];
 
 export default function ScannerPage() {
@@ -102,9 +100,11 @@ export default function ScannerPage() {
             to find trading opportunities.
           </h1>
           <p className="mt-deck">
-            Five signals — <b>insider activity</b>, <b>dark-pool prints</b>,{' '}
-            <b>options flow</b>, <b>congressional trades</b>, and{' '}
-            <b>technicals</b> — rolled into one MacroTilt Score (0–5).
+            Four signals — <b>insider activity</b>, <b>technicals</b>,{' '}
+            <b>options flow</b>, and <b>dark-pool prints</b> — added into one
+            MacroTilt Score (0–5). Today's scores are driven mainly by insider
+            activity and the 200-day trend; the options and dark-pool layers
+            are live but not yet contributing.
             Long alerts today <b className="num">{universeTotal}</b>.{' '}
             <a
               href="#"
@@ -212,6 +212,7 @@ export default function ScannerPage() {
             rows={filtered}
             drillOpenKey={drillOpenKey}
             setDrillOpenKey={setDrillOpenKey}
+            indicatorColumns
             renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
           />
         )}
@@ -224,7 +225,7 @@ export default function ScannerPage() {
           <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">How the score is built</div>
-              <div className="mt-h2">Six inputs · one number per ticker.</div>
+              <div className="mt-h2">Four inputs · added into one number per ticker.</div>
             </div>
             <button
               type="button"
@@ -235,12 +236,12 @@ export default function ScannerPage() {
             </button>
           </div>
           <div className="sc-buildgrid">
-            {SCORE_WEIGHTS.map((c) => (
+            {SCORE_COMPONENTS.map((c) => (
               <div key={c.key} className="sc-buildcell">
                 <div className="mt-eyebrow">{c.key}</div>
                 <div className="sc-buildwhy">{c.why}</div>
                 <div className="sc-buildw">
-                  weight <b className="num">{(c.weight * 100).toFixed(0)}%</b>
+                  contributes <b className="num">points</b>
                 </div>
               </div>
             ))}

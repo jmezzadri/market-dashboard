@@ -1,66 +1,64 @@
 /* ScanDrill — drill body that opens under a ScanList row.
    Ported from prototype/lm-shared.jsx ScanDrill.
-   Two-column body:
-     LEFT  = score-math table reconciling to headline (5 components × weight = total /5)
-     RIGHT = EventChart 90-day path + event list + 3 working buttons
-   Score scale is 0-5 (Joe directive 2026-05-27 — backend native scale).
-*/
 
-import React, { useMemo, useState } from 'react';
+   2026-06-01 rebuild — EVERYTHING here is now real, read off the scan row:
+     LEFT  = additive score composition. Each component shows its real
+             underlying reading and the real points it contributed; the four
+             component point totals SUM to the headline score exactly (no
+             fabricated weights, no synthesised per-component scores).
+     RIGHT = the engine's real recent-close spark series, the real signal
+             facts (insider rules + age, trend, dark-pool, options), the
+             plain-English "so_what", the real entry/stop/target trade plan,
+             and 3 working buttons.
+
+   The previous version invented all of this (hash-seeded component scores,
+   a random-walk chart, and four hardcoded events — incl. "BMO → Outperform"
+   — shown identically on every ticker). All removed.
+
+   Score scale is 0-5 (Joe directive 2026-05-27 — backend native scale). */
+
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EventChart from './EventChart';
-import { SCORE_WEIGHTS } from '../lib/scoreWeights';
-/* SCORE_WEIGHTS moved to ../lib/scoreWeights.js (2026-05-27) so the
-   "How the score is built" cards on ScannerPage and this drill body
-   read from the same source — previously a catalog violation. */
+import Sparkline from './Sparkline';
+import { buildScanBreakdown } from '../lib/scoreWeights';
 
-function breakdownFor(headlineScore5, ticker) {
-  // Stable per-(ticker, component) numbers that sum to the headline.
-  const meanFive = headlineScore5;
-  const offsets = [0.6, 0.4, 0.2, -0.1, -0.4, -0.6];
-  const seedNum = (s) => s.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const noisy = SCORE_WEIGHTS.map((c, i) => {
-    const tweak = ((seedNum(ticker + c.key) % 100) / 100 - 0.5) * 0.6;
-    const raw = Math.max(0.5, Math.min(5, meanFive + offsets[i] + tweak));
-    return { ...c, raw };
-  });
-  // Scale to make Σ contribution = headline exactly.
-  const naive = noisy.reduce((s, c) => s + (c.raw / 5) * c.weight * 5, 0);
-  const k = naive > 0 ? headlineScore5 / naive : 1;
-  return noisy.map((c) => {
-    const score5 = Math.max(0, Math.min(5, c.raw * k));
-    const contribution = (score5 / 5) * c.weight * 5;
-    return { ...c, score5, contribution };
-  });
-}
-
-function fakePath(ticker, price = 50) {
-  let s = ticker.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const out = [];
-  let v = price;
-  for (let i = 0; i < 90; i++) {
-    s = (s * 9301 + 49297) % 233280;
-    v += ((s / 233280) - 0.5) * (price * 0.04);
-    out.push(v);
+/* Human-readable underlying reading for each component, from real fields. */
+function readingFor(key, row) {
+  if (key === 'Insider') {
+    const rules = row.insider_rules?.length ? row.insider_rules.join(' + ') : '—';
+    const age = row.insider_age_days != null ? ` · ${row.insider_age_days}d old` : '';
+    return `Rules ${rules}${age}`;
   }
-  return out;
+  if (key === 'Technicals') {
+    const pct = row.sma200_pct;
+    const trend = pct == null ? '—'
+      : `${pct >= 0 ? 'above' : 'below'} 200-day by ${Math.abs(pct).toFixed(1)}%`;
+    const rsi = row.rsi != null ? ` · RSI ${row.rsi.toFixed(0)}` : '';
+    return `${trend}${rsi}`;
+  }
+  if (key === 'Options flow') {
+    return row.options_vol_shock != null
+      ? `Vol shock ${Number(row.options_vol_shock).toFixed(2)}×`
+      : 'No options shock';
+  }
+  if (key === 'Dark pool') {
+    return row.dark_pool_anchor != null
+      ? `Anchor $${Number(row.dark_pool_anchor).toFixed(2)}`
+      : 'No anchor print';
+  }
+  return '—';
 }
+
+const money = (v) => (v == null || !Number.isFinite(Number(v)) ? '—' : `$${Number(v).toFixed(2)}`);
 
 export default function ScanDrill({ row, onAct }) {
   const navigate = useNavigate();
-  const items = useMemo(() => breakdownFor(Number(row.score) || 0, row.ticker), [row.ticker, row.score]);
-  const total = items.reduce((s, x) => s + x.contribution, 0);
+  const { items, total } = useMemo(() => buildScanBreakdown(row), [row]);
   const accent = (row.chg ?? 0) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)';
+  const spark = Array.isArray(row.sparkData) ? row.sparkData : null;
 
-  // Event markers at specific day indices on a 0–89 path.
-  const events = [
-    { idx: 86, badge: 'A', label: `${row.ticker} insider buy`, when: '4d ago' },
-    { idx: 83, badge: 'B', label: `${row.ticker} CFO buy`, when: '7d ago' },
-    { idx: 79, badge: 'C', label: 'Block 142K at VWAP anchor', when: '11d ago' },
-    { idx: 76, badge: 'N', label: 'BMO → Outperform', when: '14d ago' },
-  ];
-
-  const series = useMemo(() => fakePath(row.ticker, row.price || 50), [row.ticker, row.price]);
+  const wk = row.score_1w;
+  const mo = row.score_1m;
 
   return (
     <div
@@ -73,10 +71,10 @@ export default function ScanDrill({ row, onAct }) {
         gap: 22,
       }}
     >
-      {/* LEFT — score math */}
+      {/* LEFT — real additive score composition */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-          <div className="mt-eyebrow">Signal composition</div>
+          <div className="mt-eyebrow">Signal composition · points sum to score</div>
           <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>
             = <b style={{ color: 'var(--mt-accent)' }}>{total.toFixed(2)}</b>
             <span style={{ color: 'var(--mt-ink-3)', marginLeft: 2 }}>/5</span>
@@ -86,29 +84,30 @@ export default function ScanDrill({ row, onAct }) {
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: '6px 8px 6px 0', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Component</th>
-              <th style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Weight</th>
-              <th style={{ textAlign: 'right', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Score /5</th>
-              <th style={{ textAlign: 'right', padding: '6px 0 6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Contribution</th>
+              <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Reading</th>
+              <th style={{ textAlign: 'right', padding: '6px 0 6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Points</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((c) => (
-              <tr key={c.key} style={{ borderTop: '1px solid var(--mt-line-0)' }}>
-                <td style={{ padding: '8px 8px 8px 0' }}>
-                  <div style={{ color: 'var(--mt-ink-0)', fontWeight: 500 }}>{c.key}</div>
-                  <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{c.why}</div>
-                </td>
-                <td className="num" style={{ textAlign: 'right' }}>{(c.weight * 100).toFixed(0)}%</td>
-                <td className="num" style={{ textAlign: 'right' }}>
-                  {c.score5.toFixed(2)}
-                </td>
-                <td className="num" style={{ textAlign: 'right', fontWeight: 600 }}>
-                  +{c.contribution.toFixed(2)}
-                </td>
-              </tr>
-            ))}
+            {items.map((c) => {
+              const zero = !(c.points > 0);
+              return (
+                <tr key={c.key} style={{ borderTop: '1px solid var(--mt-line-0)' }}>
+                  <td style={{ padding: '8px 8px 8px 0' }}>
+                    <div style={{ color: 'var(--mt-ink-0)', fontWeight: 500 }}>{c.key}</div>
+                    <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{c.why}</div>
+                  </td>
+                  <td style={{ padding: '8px', color: zero ? 'var(--mt-ink-3)' : 'var(--mt-ink-1)' }}>
+                    {readingFor(c.key, row)}
+                  </td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 600, color: zero ? 'var(--mt-ink-3)' : 'var(--mt-ink-0)' }}>
+                    {c.points > 0 ? '+' : ''}{c.points.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
             <tr style={{ borderTop: '2px solid var(--mt-line-1)' }}>
-              <td style={{ padding: '10px 8px 6px 0', fontWeight: 700 }} colSpan={3}>MacroTilt Score</td>
+              <td style={{ padding: '10px 8px 6px 0', fontWeight: 700 }} colSpan={2}>MacroTilt Score</td>
               <td
                 className="num"
                 style={{ textAlign: 'right', fontWeight: 700, color: 'var(--mt-accent)', fontSize: 14 }}
@@ -118,37 +117,43 @@ export default function ScanDrill({ row, onAct }) {
             </tr>
           </tbody>
         </table>
+
+        {/* Score trend — real prior-scan reads (— when no like-for-like) */}
+        <div style={{ marginTop: 12, display: 'flex', gap: 18, fontSize: 12, color: 'var(--mt-ink-2)' }}>
+          <span>1w ago <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{wk != null ? wk.toFixed(2) : '—'}</b></span>
+          <span>1m ago <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{mo != null ? mo.toFixed(2) : '—'}</b></span>
+        </div>
       </div>
 
-      {/* RIGHT — chart + events + actions */}
+      {/* RIGHT — real spark + facts + trade plan + actions */}
       <div>
-        <div className="mt-eyebrow" style={{ marginBottom: 8 }}>90-day path · events marked</div>
-        <EventChart data={series} accent={accent} events={events} />
-        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-          {events.map((e) => (
-            <div key={e.badge} style={{ display: 'grid', gridTemplateColumns: '24px 1fr 70px', gap: 8, alignItems: 'center' }}>
-              <span
-                style={{
-                  display: 'inline-grid',
-                  placeItems: 'center',
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  background: 'var(--mt-surface)',
-                  border: `1px solid ${accent}`,
-                  color: accent,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: 'var(--mt-font-mono)',
-                }}
-              >
-                {e.badge}
-              </span>
-              <span style={{ color: 'var(--mt-ink-1)' }}>{e.label}</span>
-              <span className="num" style={{ color: 'var(--mt-ink-2)', textAlign: 'right' }}>{e.when}</span>
+        <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Recent close path</div>
+        {spark?.length ? (
+          <div style={{ color: accent }}>
+            <Sparkline data={spark} width={460} height={90} stroke={accent} area />
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--mt-ink-3)', padding: '24px 0' }}>
+            No price series stored for this name.
+          </div>
+        )}
+
+        {row.so_what && (
+          <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}>
+            {row.so_what}
+          </div>
+        )}
+
+        {/* Trade plan — real entry / stop / target from the engine */}
+        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {[['Entry', row.entry], ['Stop', row.stop], ['Target', row.target]].map(([label, v]) => (
+            <div key={label} style={{ background: 'var(--mt-surface)', border: '1px solid var(--mt-line-0)', borderRadius: 8, padding: '8px 10px' }}>
+              <div className="mt-eyebrow">{label}</div>
+              <b className="num" style={{ fontSize: 13 }}>{money(v)}</b>
             </div>
           ))}
         </div>
+
         <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
           <button
             type="button"
