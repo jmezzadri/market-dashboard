@@ -55,8 +55,15 @@ function fmtStamp(iso, calendarDaysAgo) {
 
 function fmtExact(iso) {
   if (!iso) return null;
-  const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+  const dateOnly = iso.length === 10;
+  const dt = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
   if (Number.isNaN(dt.getTime())) return null;
+  // A date-only value (a session date like "2026-05-29") has no meaningful
+  // time-of-day. Showing it in ET turned "May 29" into a misleading
+  // "May 28, 8:00 PM EDT". Render date-only values as just the date in UTC.
+  if (dateOnly) {
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  }
   return dt.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',

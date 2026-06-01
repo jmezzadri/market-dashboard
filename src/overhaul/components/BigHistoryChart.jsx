@@ -151,6 +151,27 @@ export default function BigHistoryChart({
     return dt.toLocaleDateString('en-US', hoverDateOpts);
   };
 
+  const fmtCompact = (n) => {
+    n = Number(n);
+    if (!Number.isFinite(n)) return "—";
+    if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+    if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+    if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+    return String(Math.round(n));
+  };
+
+  // Aligned series for the hover readout, and events grouped by date index.
+  const overlaySeries = overlays.map((o) => ({
+    label: o.label, color: o.color || "var(--mt-ink-2)", values: overlayValues(o),
+  }));
+  const eventsByIdx = new Map();
+  for (const ev of events) {
+    const i = idxByDate.get(ev.date);
+    if (i == null) continue;
+    if (!eventsByIdx.has(i)) eventsByIdx.set(i, []);
+    eventsByIdx.get(i).push(ev);
+  }
+
   return (
     <div ref={wrapRef} style={{ width: '100%', position: 'relative' }}>
       <svg
@@ -199,19 +220,16 @@ export default function BigHistoryChart({
             strokeWidth="1.5" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
         )}
 
-        {/* event markers */}
-        {events.map((ev, k) => {
-          const i = idxByDate.get(ev.date);
-          if (i == null) return null;
-          const x = xOf(i);
-          return (
-            <g key={`e${k}`}>
-              <line x1={x} x2={x} y1={padT} y2={plotBot} stroke={ev.color || 'var(--mt-accent)'}
-                strokeWidth="1" strokeDasharray="2 3" opacity={0.5} />
-              <circle cx={x} cy={padT + 4} r="3" fill={ev.color || 'var(--mt-accent)'} />
-            </g>
-          );
-        })}
+        {/* event markers — one dot per date, ON the price line; multiple events
+            on the same day get a larger dot, with the full list shown on hover. */}
+        {[...eventsByIdx.entries()].map(([i, evs]) => (
+          <g key={`e${i}`}>
+            <line x1={xOf(i)} x2={xOf(i)} y1={padT} y2={plotBot} stroke={evs[0].color || 'var(--mt-accent)'}
+              strokeWidth="1" strokeDasharray="2 3" opacity={0.3} />
+            <circle cx={xOf(i)} cy={yOf(data[i].y)} r={evs.length > 1 ? 4.5 : 3.5}
+              fill={evs[0].color || 'var(--mt-accent)'} stroke="var(--mt-surface)" strokeWidth="1.5" />
+          </g>
+        ))}
 
         {/* x-axis labels */}
         {[0, Math.floor(data.length / 2), data.length - 1].map((i) => (
@@ -232,47 +250,66 @@ export default function BigHistoryChart({
         )}
       </svg>
 
-      {(overlays.length > 0 || compareSeries || volume) && (
+      {(overlays.length > 0 || compareSeries || volume || events.length > 0) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label="Price" />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
           {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
+          {events.length > 0 && <LegendSwatch color="var(--mt-up)" label="Insider event" dot />}
+          {events.length > 0 && <LegendSwatch color="var(--mt-accent)" label="Dark-pool event" dot />}
         </div>
       )}
 
-      {hover && (
-        <div
-          style={{
-            position: 'absolute',
-            left: hover.x,
-            top: hover.y - 48,
-            transform: 'translateX(-50%)',
-            background: 'var(--mt-surface)',
-            border: '1px solid var(--mt-line-1)',
-            borderRadius: 6,
-            padding: '4px 8px',
-            fontSize: 11.5,
-            color: 'var(--mt-ink-0)',
-            fontFamily: 'var(--mt-font-ui)',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-            pointerEvents: 'none',
-          }}
-          className="num"
-        >
-          <b>{yFormat(hover.d.y)}</b>{' '}
-          <span style={{ color: 'var(--mt-ink-2)' }}>· {hoverDateLabel(hover.i)}</span>
-        </div>
-      )}
+      {hover && (() => {
+        const i = hover.i;
+        const rows = [["Price", yFormat(hover.d.y), accent]];
+        overlaySeries.forEach((o) => { const v = o.values[i]; if (v != null) rows.push([o.label, yFormat(v), o.color]); });
+        if (compareSeries && compareSeries[i] != null) rows.push([compareLabel || "Compare", yFormat(compareSeries[i]), compareAccent]);
+        if (volByDate) { const vv = volByDate.get(data[i].x); if (vv != null) rows.push(["Volume", fmtCompact(vv), "var(--mt-ink-3)"]); }
+        const evs = eventsByIdx.get(i) || [];
+        const left = Math.max(80, Math.min(w - 80, hover.x));
+        return (
+          <div
+            style={{
+              position: 'absolute', left, top: Math.max(6, hover.y - 16),
+              transform: 'translate(-50%, -100%)',
+              background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)',
+              borderRadius: 6, padding: '7px 9px', fontSize: 11.5, minWidth: 150,
+              color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-font-ui)',
+              boxShadow: '0 6px 18px rgba(0,0,0,0.16)', pointerEvents: 'none', zIndex: 5,
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{hoverDateLabel(i)}</div>
+            {rows.map(([label, val, color], k) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, lineHeight: 1.5 }}>
+                <span style={{ color: 'var(--mt-ink-2)' }}>
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: color, marginRight: 5, verticalAlign: 'middle' }} />
+                  {label}
+                </span>
+                <span className="num" style={{ color: 'var(--mt-ink-0)' }}>{val}</span>
+              </div>
+            ))}
+            {evs.length > 0 && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--mt-line-0)' }}>
+                {evs.map((e, k) => (
+                  <div key={k} style={{ color: e.color || 'var(--mt-ink-1)', lineHeight: 1.5 }}>● {e.label}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
-function LegendSwatch({ color, label, dash, block }) {
+function LegendSwatch({ color, label, dash, block, dot }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-      {block ? (
+      {dot ? (
+        <span style={{ width: 8, height: 8, background: color, display: 'inline-block', borderRadius: '50%' }} />
+      ) : block ? (
         <span style={{ width: 9, height: 9, background: color, opacity: 0.4, display: 'inline-block', borderRadius: 1 }} />
       ) : (
         <span style={{ width: 14, height: 0, borderTop: `2px ${dash ? 'dashed' : 'solid'} ${color}`, display: 'inline-block' }} />

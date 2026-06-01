@@ -2,38 +2,22 @@
 
    Renders:
      - TweaksProvider (theme/accent/etc. persisted to localStorage)
-     - BrowserRouter with the page routes from the brief
+     - BrowserRouter with the 9 page routes from the brief
      - Sidebar (rail / collapsed-rail) + TopNav (top) chrome variants
      - PageHeader with date / search / freshness pill / theme / tweaks
      - TweaksPanel slide-over
 
    Activated by appending ?v=3 to any URL in the live app (legacy gate
    lives in src/App.jsx). When the overhaul is feature-complete, the
-   default render will flip to this shell.
+   default render will flip to this shell. */
 
-   2026-05-28 — Paper Portfolio + Admin · Bugs routes added (PR #880). The
-   sidebar has linked /paper and /admin/bugs since the overhaul shell
-   shipped, but the router never had a /paper route (catchall sent users
-   home) and /admin/bugs was a stub placeholder. Both pages already exist
-   on disk (src/v2/pages/PaperPortfolioPage.jsx and src/AdminBugs.jsx)
-   and are wired in here.
-
-   2026-05-28 — legacy-bridge.css imported here for the first time. The
-   file existed in the repo since 2026-05-27 but was never loaded, so the
-   token aliases it defines never applied — V2 pages mounted in the
-   overhaul shell rendered with light-mode colors regardless of the
-   active theme. v3 of the bridge also extends the alias set to cover
-   the V2 page token family (--bg-1, --ink-0, --line-0, etc.). Import
-   ORDER matters: the bridge must load AFTER tokens.css so the
-   .mt-overhaul-scoped aliases override the legacy :root tokens. */
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
-  useNavigate,
+  useLocation,
 } from 'react-router-dom';
 
 import './styles/tokens.css';
@@ -47,12 +31,6 @@ import './styles/pages.css';
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
-
-// Legacy-bridge — maps legacy theme tokens (--surface, --bg-1, --ink-0,
-// --line-0, etc.) to the overhaul --mt-* tokens so V2 / AdminBugs pages
-// mounted inside the overhaul shell pick up the active theme palette
-// in light, dark, and navy modes. Must load AFTER tokens.css.
-import './styles/legacy-bridge.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
@@ -71,17 +49,21 @@ import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
+import Stub from './pages/_Stub';
 
-// Pages that live outside the overhaul folder. PaperPortfolioPage is the
-// v2 Alpaca paper-trading page; AdminBugs is the legacy admin triage
-// dashboard. Mounted here as-is — no redesign yet, but wired so the
-// existing sidebar links actually resolve.
-import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
-import PageErrorBoundary from '../v2/components/ErrorBoundary';
-import AdminBugs from '../AdminBugs';
+// Reset scroll to the top on every route change — otherwise clicking a ticker
+// from a scrolled-down scanner opens the new page still scrolled to the bottom.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.mt-main')?.scrollTo(0, 0);
+    document.querySelector('.mt-overhaul')?.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function Shell() {
-  const navigate = useNavigate();
   return (
     <div className="mt-overhaul">
       <div className="mt-app">
@@ -89,19 +71,29 @@ function Shell() {
         <main className="mt-main">
           <TopNav />
           <PageHeader />
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/macro" element={<MacroPage />} />
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
-            <Route path="/paper" element={<PageErrorBoundary><PaperPortfolioPage onOpenTicker={(symbol) => { if (symbol && symbol !== 'CASH') navigate(`/ticker/${symbol}`); }} /></PageErrorBoundary>} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
-            <Route path="/admin/bugs" element={<AdminBugs />} />
+            <Route
+              path="/admin/bugs"
+              element={
+                <Stub
+                  eyebrow="Admin · Bugs"
+                  title={{ before: 'Operational, ', after: '.' }}
+                  accent="not redesigned"
+                  deck="The bug-report tooling stays in the legacy admin shell for now."
+                />
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -120,5 +112,3 @@ export default function OverhaulApp() {
     </TweaksProvider>
   );
 }
-
-
