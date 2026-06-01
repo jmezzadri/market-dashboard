@@ -18,6 +18,7 @@ import {
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import './styles/tokens.css';
@@ -51,6 +52,28 @@ import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
 import Stub from './pages/_Stub';
 
+// Paper Portfolio (Alpaca paper-trading page) lives in the v2 folder; mounted
+// here so the sidebar /paper link resolves. Restored 2026-06-01 after an
+// unrelated ticker-UX commit (e11bbb85) removed this route, which sent /paper
+// to the catch-all -> home redirect.
+import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
+import PageErrorBoundary from '../v2/components/ErrorBoundary';
+
+// Small wrapper so the /paper route can navigate to a ticker without needing
+// useNavigate at the top of Shell (keeps the route self-contained).
+function PaperRoute() {
+  const navigate = useNavigate();
+  return (
+    <PageErrorBoundary>
+      <PaperPortfolioPage
+        onOpenTicker={(symbol) => {
+          if (symbol && symbol !== 'CASH') navigate(`/ticker/${symbol}`);
+        }}
+      />
+    </PageErrorBoundary>
+  );
+}
+
 // Reset scroll to the top on every route change — otherwise clicking a ticker
 // from a scrolled-down scanner opens the new page still scrolled to the bottom.
 function ScrollToTop() {
@@ -78,6 +101,7 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
+            <Route path="/paper" element={<PaperRoute />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
