@@ -46,7 +46,9 @@ export default function PortfolioPage() {
   const [positionEditor, setPositionEditor] = useState(null);
   const [closeModal, setCloseModal] = useState(null);
   const [riskFeed, setRiskFeed] = useState(null);
+  const [wlInput, setWlInput] = useState('');
   const userId = portfolio?.userId ?? null;
+  const watchlist = portfolio?.watchlist || [];
 
   const positions = useMemo(() => {
     const out = [];
@@ -138,6 +140,24 @@ export default function PortfolioPage() {
     await portfolio?.refetch?.();
   };
   const heldPositions = useMemo(() => book.rows.filter((r) => !r.option), [book]);
+
+  const addWatch = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    const ticker = String(wlInput || '').toUpperCase().trim();
+    if (!ticker) return;
+    if (!userId) { window.alert('Sign in to manage your watchlist.'); return; }
+    const sort_order = (watchlist.reduce((m, w) => Math.max(m, w.sort_order || 0), 0)) + 1;
+    const { error } = await supabase.from('watchlist').insert({ user_id: userId, ticker, name: '', theme: '', sort_order });
+    if (error) { window.alert(`Could not add ${ticker}: ${error.message || 'error'}`); return; }
+    setWlInput('');
+    await portfolio?.refetch?.();
+  };
+  const removeWatch = async (ticker) => {
+    if (!userId) return;
+    const { error } = await supabase.from('watchlist').delete().match({ user_id: userId, ticker });
+    if (error) { window.alert(`Could not remove: ${error.message || 'error'}`); return; }
+    await portfolio?.refetch?.();
+  };
 
   if (loading) return <div className="mt-pagebody"><article className="mt-card" style={{ padding: 40, textAlign: 'center', color: 'var(--mt-ink-2)' }}>Loading portfolio…</article></div>;
 
@@ -375,6 +395,29 @@ export default function PortfolioPage() {
             {opt && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 10, lineHeight: 1.5 }}>Short line = the {opt.underlier} {opt.contractType} ({opt.deltaEquivNotional != null ? fk(opt.deltaEquivNotional) : '—'} delta-equivalent), protecting {fk(opt.protectionNotional)} below ${opt.strike}.</div>}
           </article>
         </div>
+      </section>
+
+      {/* ── watchlist ────────────────────────────────────────────────── */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Watchlist</div><div className="mt-h2">Names you're tracking.</div></div></div>
+        <article className="mt-card">
+          <form onSubmit={addWatch} style={{ display: 'flex', gap: 8, marginBottom: watchlist.length ? 16 : 0, flexWrap: 'wrap' }}>
+            <input value={wlInput} onChange={(e) => setWlInput(e.target.value)} placeholder="Add a ticker — e.g. NVDA"
+              style={{ flex: '0 1 240px', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface-2)', color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-font-mono)', fontSize: 13 }} />
+            <button type="submit" className="mt-btn mt-btn--primary">Add to watchlist</button>
+          </form>
+          {watchlist.length ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {watchlist.map((w) => (
+                <span key={w.ticker} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 12px', border: '1px solid var(--mt-line-1)', borderRadius: 999, background: 'var(--mt-surface-2)' }}>
+                  <span className="lm-tkmain lm-tkmain--link" style={{ fontSize: 15 }} onClick={() => navigate(`/ticker/${w.ticker}`)}>{w.ticker}</span>
+                  {w.name ? <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>{w.name}</span> : null}
+                  <button type="button" onClick={() => removeWatch(w.ticker)} aria-label={`Remove ${w.ticker}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mt-ink-3)', fontSize: 15, lineHeight: 1, padding: '0 2px' }}>✕</button>
+                </span>
+              ))}
+            </div>
+          ) : <div style={{ fontSize: 13, color: 'var(--mt-ink-3)' }}>No names yet — add a ticker above to start tracking it.</div>}
+        </article>
       </section>
 
       {showImport && <SmartImport userId={userId} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
