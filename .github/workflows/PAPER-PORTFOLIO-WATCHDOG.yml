@@ -35,4 +35,8 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          SMTP_USER:                    ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:                ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:                     ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:                   ${{ secrets.EMAIL_FROM }}
         run: python -m scripts.paper_fill_watchdog

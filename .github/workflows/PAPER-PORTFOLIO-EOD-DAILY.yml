@@ -116,6 +116,10 @@ jobs:
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
           PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+          SMTP_USER:                    ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:                ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:                     ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:                   ${{ secrets.EMAIL_FROM }}
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m paper_portfolio.runner --phase eod --dry-run

@@ -70,6 +70,16 @@ def file_alert(title: str, description: str, priority: str = "P1") -> None:
     except Exception as exc:  # noqa: BLE001 — alerting must never crash the runner
         logger.warning("failed to file alert (%s): %s", title, exc)
 
+    # The DB row alone does NOT reach Joe (nothing emails on a direct insert).
+    # Send a real email via the existing Gmail-SMTP secrets so the alert lands
+    # in his inbox. Best-effort; import is local so a missing emailer never
+    # breaks the run.
+    try:
+        from paper_portfolio.emailer import send_alert_email
+        send_alert_email(f"[MacroTilt paper {priority}] {title}", description)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("alert email hop failed (%s): %s", title, exc)
+
 
 @dataclass(frozen=True)
 class FreshnessResult:
