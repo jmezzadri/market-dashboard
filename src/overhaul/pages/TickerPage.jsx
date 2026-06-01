@@ -394,11 +394,6 @@ export default function TickerPage() {
                 ? `${(score - scanRow.score_1w) >= 0 ? '+' : ''}${(score - scanRow.score_1w).toFixed(2)}`
                 : '—'
             }</b>
-            <FreshnessChip
-              elementId="equity-latest_scan_data-daily"
-              variant="dot"
-              fallback={{ asOfIso: scanner.scanDate, calendar: 'nyse-trading-day' }}
-            />
           </div>
         </div>
       </section>
@@ -481,7 +476,9 @@ export default function TickerPage() {
       {/* Key stats grid */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead-tight">
-          <div className="mt-eyebrow">Key stats</div>
+          <div className="mt-eyebrow">
+            Key stats{priceAsOf ? ` · prior close ${fmtDateShort(priceAsOf)}` : ''}
+          </div>
           <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
         </div>
         <div className="tk-keygrid">
