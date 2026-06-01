@@ -22,6 +22,44 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-01 — Never ship synthetic/placeholder data dressed as real; un-wired = em-dash
+
+**What happened:** Large parts of the Scanner and Ticker Detail pages were
+rendering fabricated data as if it were live: the expanded-row "Signal
+composition" used hash-seeded per-component scores, sparklines were random
+walks, the ticker price chart was a synthetic `fakePath`, and four events
+(incl. "BMO → Outperform") were hardcoded identically on every ticker. The
+real values were sitting unused in `trading_opps_signals` and `prices_eod`
+the whole time. This is what drove Joe's "zero faith in the data."
+
+**What you should do instead:** Every value on a data surface must trace to a
+real stored field. If a field isn't available yet, render an em-dash (—) and
+say what's missing — NEVER a synthesized stand-in, random series, or hardcoded
+example. Any `fake*`, hash-seeded, or `Math.random`-style data generator in a
+production component is a defect, even as a "temporary placeholder." Before
+declaring a surface done, open the row/source it claims to show and confirm
+each rendered value matches.
+
+**Applies to:** All
+
+## 2026-06-01 — Finish every part the user named in one job; never manufacture a quality "pause"
+
+**What happened:** Asked to fix scanner columns, row-click correctness, the
+event marker, broken chart overlays, and the date/tooltip mess, I shipped the
+scanner half and then stopped — framing it as a deliberate "pause so the
+ticker chart gets its own focused pass." Joe: "Why did you stop at #5?" The
+remaining items were the same job, not a separate one, and there was no real
+blocker — only my own turn-budget hedging.
+
+**What you should do instead:** When the user lists N issues, all N belong to
+the current job. Do not stop after a subset and rationalize it as quality,
+focus, or session length. The only valid stop mid-job is a real external
+blocker (a decision the code can't answer, an approval, a missing credential) —
+state that blocker plainly. "I'll give the rest its own pass" is the forbidden
+manufactured-pause pattern.
+
+**Applies to:** All
+
 ## 2026-05-29 — Refer to every indicator ONLY by its exact on-site name; never shorthand
 
 **What happened:** Repeatedly (3+ times in one session) referred to indicators
@@ -1531,141 +1569,3 @@ g. After merge: actually load every URL in section 6 in Chrome via the
 **Applies to:** All four specialists. The Lead Developer owns building
 the map; every other specialist owns checking their domain on it
 before signing off.
-
----
-
-## "Merged but not surfacing" UI bug: confirm WHICH app layer renders the live route before touching anything (2026-05-30)
-
-**What happened:** The Paper Portfolio page tickers weren't clickable. Multiple
-prior sessions diagnosed it as a "stale Vercel deploy" / "App.jsx chunk not
-invalidating" and burned a full day force-rebuilding chunks and re-editing
-`src/App.jsx` (whose paper mount already passed `onOpenTicker` correctly). The
-live bundle was current the whole time. Real cause: production runs
-`OverhaulApp` (the default per `src/main.jsx`; `?v=2` is the legacy escape
-hatch), and the overhaul `/paper` route mounted `<PaperPortfolioPage />` with
-NO `onOpenTicker` prop. The page renders clickable ticker buttons only when
-that prop is truthy → otherwise plain spans. So "onOpenTicker undefined at
-runtime despite correct source" meant the page source was right but the
-ROUTE-level mount omitted the prop. The agents kept fixing the wrong app layer.
-
-**What you should do instead:** When a UI change is "merged but not surfacing,"
-do NOT jump to stale-deploy / cache / chunk-splitting theories. First establish
-which app actually renders the live URL (here: `main.jsx` selects
-`OverhaulApp` by default, legacy `App` only under `?v=2`). Then inspect the
-ROUTE-level mount in that app — the props passed at the `<Route element={...} />`
-site — not just the page component. Verify on the live rendered page via DOM
-(`document.querySelectorAll('.paper-ticker-link').length`) and an actual click,
-per the existing screenshot rule. Also note the repo has a stale nested
-`market-dashboard-live/` duplicate of the tree; the BUILT source is the
-repo-ROOT `src/`. Fix shipped in PR #906: the `/paper` route now passes
-`onOpenTicker={(symbol)=>navigate('/ticker/'+symbol)}`, matching the overhaul
-PortfolioPage pattern.
-
-**Applies to:** All four specialists. Lead Developer leads the layer/route check;
-UX Designer confirms the click target matches the overhaul's route-based ticker
-navigation (not the legacy modal).
-
----
-
-## 2026-05-31 — In a redesign, inventory and preserve EVERY existing feature before rebuilding
-
-**What happened:** The Portfolio page was rebuilt for presentation. The risk
-on a ground-up visual rebuild is silently dropping working features — the
-import flow, Add/Edit/Close/Delete position management, sortable holdings,
-the freshness chip, the live option-underlier price/IV feed, the
-options→short-equity decomposition, the ticker click-through. Any one of
-these going missing in a "redesign" is a regression the user discovers, not
-the agent.
-
-**What you should do instead:** Before writing a single line of a redesigned
-page, make a written inventory of every feature the current page has — every
-button, every modal, every data hook, every click target, every drill-down,
-every editing affordance. The rebuilt page must light up every item on that
-inventory. A redesign changes how things look and how facts are organized;
-it does not remove capability. After the rebuild, walk the inventory and
-confirm each item is present and wired. "It looks better" is not done if it
-does less.
-
-**Applies to:** UX Designer (leads) + Lead Developer. Every page redesign,
-overhaul, or "ground-up" rebuild.
-
----
-
-## 2026-05-31 — UAT a rebuilt page means exercising every interaction in BOTH themes, not eyeballing a static mock
-
-**What happened:** A static HTML mockup looks finished but proves nothing —
-its bars don't grow, its filters don't filter, its sort doesn't sort, and it
-never runs in dark mode. Claiming a React rebuild "verified" off a static
-mock (or a single light-mode screenshot) is the same UAT-by-claim failure
-the screenshot rule already bans.
-
-**What you should do instead:** Run the ACTUAL component against the user's
-real book shape and the real analytics engine, then exercise every claimed
-interaction and look at every theme. For an auth-gated page whose live data
-you cannot load: build a faithful local render that imports the real
-component + the real engine + the real shared components, feed it the user's
-real positions, render it in a headless browser, and (a) screenshot light
-AND dark and read both top to bottom, (b) simulate every click — lens
-switch, drill-down filter + breadcrumb, clear, column sort, every
-disclosure — and assert the DOM changed as expected, (c) confirm zero
-console errors and no `undefined`/`NaN` in the output, (d) audit that every
-color token used is actually defined in both light and dark. Only after all
-four does the page count as verified. State explicitly which part (the
-authenticated live view of the user's own data) you could not see and asked
-the user to confirm.
-
-**Applies to:** All. Every page rebuild or interaction-heavy change.
-
----
-
-## 2026-05-31 — One fact, one home: never restate a metric across coequal panels
-
-**What happened:** The prior Portfolio page stated the largest holding ~6
-times, asset-class allocation in 5 places, and cash in 4. The same number
-splattered across sibling panels with no hierarchy reads as clutter and
-makes the page feel padded rather than authoritative. The user's verdict was
-"repetition."
-
-**What you should do instead:** Give every metric exactly one canonical home.
-A headline KPI up top with a detailed breakdown below is a hierarchy
-(overview → detail) and is the *requested* progressive-disclosure pattern —
-that is allowed. What is forbidden is the same number appearing in two or
-more coequal panels (e.g. net/gross exposure in both a summary card and the
-exposure panel; cash dollars in a value card, an allocation lens, and the
-exposure strip). Before shipping any dashboard, list every scalar and where
-it appears; if a scalar appears more than once and the second appearance is
-not a strict drill-down of the first, delete it.
-
-**Applies to:** UX Designer (leads) + Senior Quant. Every metrics-dense
-surface — Portfolio, Macro Overview, Asset Tilt, any dashboard.
-
----
-
-## 2026-05-31 — Research the domain's best-in-class before designing a professional surface
-
-**What happened:** The Portfolio rebuild targets people who use Addepar and
-Bloomberg PORT all day. Designing from generic dashboard instinct instead of
-the conventions those tools have trained the audience on produces something
-that looks amateur to that audience even when it is internally consistent.
-
-**What you should do instead:** Before designing any surface aimed at a
-professional audience, spend a few minutes researching the category leaders'
-patterns and bring the relevant conventions in deliberately. For portfolio
-analytics that is Addepar (overview → drill-down to any holding, light/dark
-modes, customizable lenses) and Bloomberg PORT (multi-lens exposure, a
-factor/risk-contribution decomposition table, scenario stress as a
-first-class view). The point is not to copy chrome but to match the mental
-model the audience already has so the page feels native to their workflow.
-
-**Applies to:** UX Designer (leads). Any new or rebuilt professional-grade
-surface.
-
----
-
-## 2026-05-31 — A green checkmark is not proof of work; never assert an unverified cause to Joe
-
-**What happened:** Joe asked whether paper trades were queued for Monday's open; nothing had rebalanced since 2026-05-27 despite a daily cadence. The order-queuing job had run 37 times, all "success" — but each run hit a morning time-window guard (08:00-09:25 ET) and exited as a deliberate no-op, because GitHub scheduled-cron delivery was landing 1.5-4 hours late (observed 10:43 / 10:57 / 13:23 ET). "Success" and "did nothing on purpose" were indistinguishable in the run list. Compounding it, when a trade-preview file came back empty I told Joe a background bot was force-overwriting the master copy every 30 minutes — an alarming claim I had not verified. The push history showed zero force-pushes in 69 recent updates; the empty file was caused by my own un-merged change.
-
-**What you should do instead:** (1) For any "is the automation working?" question, open the actual run log and confirm the work step produced output (orders submitted, rows written) — never trust the exit-0 checkmark, because a job that no-ops by design shows success forever. (2) Before stating a cause to Joe — especially an alarming one — verify it with direct evidence (push history, file diffs, run logs). If the check hasn't been run, say "I don't yet know why," not a guess dressed as fact. (3) For unreliable scheduled triggers, widen the accept window and add redundant timers instead of depending on one on-time delivery; market-on-open orders route to the next open whenever submitted pre-open, so an early window start is safe, and the idempotency key makes redundant attempts no-ops.
-
-**Applies to:** All. Lead Developer + Data Steward on any scheduled pipeline.
