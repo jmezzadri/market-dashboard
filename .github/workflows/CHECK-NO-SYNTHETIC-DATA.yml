@@ -8,12 +8,11 @@ name: CHECK-NO-SYNTHETIC-DATA
 # a synthesized stand-in. This is the guard that would have caught the
 # fabricated Scanner/Ticker data on day one.
 
+# Runs on EVERY pull request (no path filter) so it always reports a status —
+# a required check that is path-filtered would hang PRs that don't touch the
+# filtered paths. The scan is a fast grep, so running it everywhere is cheap.
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "scripts/check_no_synthetic_data.py"
-      - ".github/workflows/CHECK-NO-SYNTHETIC-DATA.yml"
 
 jobs:
   no-synthetic-data:
