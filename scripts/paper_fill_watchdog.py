@@ -97,6 +97,14 @@ def main() -> int:
         problems.append(f"{n_submitted} orders were submitted but 0 filled at the "
                         "broker — orders may have been rejected at the open.")
 
+    # Email helper (best-effort) — used for BOTH the failure and the success path
+    def _email(subject: str, body: str):
+        try:
+            from paper_portfolio.emailer import send_alert_email
+            send_alert_email(subject, body)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("watchdog email failed: %s", exc)
+
     if problems:
         msg = " ".join(problems)
         logger.warning("WATCHDOG ALERT: %s", msg)
@@ -107,9 +115,26 @@ def main() -> int:
                          f"{n_submitted} filled={n_filled}."),
             priority="P1",
         )
+        _email(
+            "[MacroTilt paper P1] Rebalance did NOT complete today",
+            ("The post-open watchdog found a problem with today's rebalance.\n\n"
+             f"{msg}\n\n"
+             f"created={n_created}  submitted={n_submitted}  filled={n_filled}\n\n"
+             "No further action is automatic — investigate the pipeline."),
+        )
         return 0  # exit 0 so the alert is the signal, not a red workflow
 
+    # SUCCESS path — send the positive "trades executed" confirmation so a
+    # missing email is itself a red flag (the whole point of daily confirms).
     logger.info("watchdog OK — rebalance completed end-to-end (%d filled)", n_filled)
+    _email(
+        f"[MacroTilt paper] Rebalance executed — {n_filled} orders filled at the open",
+        ("Today's paper rebalance completed end-to-end.\n\n"
+         f"Orders created this morning: {n_created}\n"
+         f"Submitted to broker:        {n_submitted}\n"
+         f"Filled at the open:         {n_filled}\n\n"
+         "Everything that was queued executed. No action needed."),
+    )
     return 0
 
 
