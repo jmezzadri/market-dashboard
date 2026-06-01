@@ -1,0 +1,40 @@
+name: SCAN-INVARIANTS-DAILY
+
+# Value-correctness gate: after the daily scan runs, verify the numbers are
+# internally consistent — every row's component points sum to its score, the
+# score is in range, the trade plan is ordered, and the price is positive.
+# Catches a value that is wired to real data but computed WRONG (a plausible
+# number that's actually off) — the gap the fake-data and render gates can't
+# see. See LESSONS.md (2026-06-01).
+#
+# Reads the public scan table with the publishable (anon) key, so no secrets
+# are required. On failure the run goes red and WORKFLOW_FAILURE_ALERT surfaces
+# it in triage.
+
+on:
+  schedule:
+    # 20:30 UTC = 16:30 ET (DST) — ~1h after the 15:30 ET scan publishes.
+    - cron: "30 20 * * 1-5"
+  # Also re-check whenever the scoring engine changes on main.
+  push:
+    branches: [main]
+    paths:
+      - "trading-scanner/scanner/trading_opps/**"
+      - "scripts/check_scan_invariants.py"
+  workflow_dispatch:
+
+jobs:
+  invariants:
+    name: Scan value-correctness invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate scan invariants against live data
+        run: python scripts/check_scan_invariants.py
