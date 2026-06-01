@@ -388,9 +388,48 @@ def mirror_positions(
             "now()"
             ");"
         )
+    # ── SINGLE PRICE SOURCE (2026-06-01, Joe directive: every price on the
+    #    site comes from ONE place) ──────────────────────────────────────────
+    # Alpaca gives us QUANTITIES + cost basis (the account truth), but its last
+    # price differs from prices_eod (Polygon/Massive) — the feed the entire
+    # rest of the site uses (Ticker, Scanner, Portfolio, Asset Tilt). That gap
+    # made AMR read $217.09 here and $215.37 on the ticker page. Fix: after
+    # inserting Alpaca quantities, OVERWRITE the displayed price fields from
+    # prices_eod so the Paper page agrees with every other surface. Keep
+    # Alpaca cost_basis/avg_cost/qty; unify only the market PRICE.
+    # Tickers with no prices_eod row (rare new listings) keep the Alpaca value.
+    sql_lines.append(
+        f"""
+        with latest as (
+          select distinct on (ticker) ticker, close, trade_date
+            from public.prices_eod
+           where trade_date >= ((select max(trade_date) from public.prices_eod) - interval '10 days')
+           order by ticker, trade_date desc
+        ),
+        prior1 as (
+          select distinct on (pe.ticker) pe.ticker, pe.close
+            from public.prices_eod pe
+            join latest l on l.ticker = pe.ticker and pe.trade_date < l.trade_date
+           order by pe.ticker, pe.trade_date desc
+        )
+        update public.paper_positions p
+           set current_price = l.close,
+               lastday_price = coalesce(pr.close, p.lastday_price),
+               market_value  = p.quantity * l.close,
+               unrealized_pnl = (p.quantity * l.close) - p.cost_basis,
+               unrealized_intraday_pl = case when pr.close is not null
+                   then p.quantity * (l.close - pr.close) else p.unrealized_intraday_pl end,
+               last_updated = now()
+          from latest l
+          left join prior1 pr on pr.ticker = l.ticker
+         where p.snapshot_date = '{snapshot_date.isoformat()}'
+           and upper(p.ticker) = l.ticker;
+        """
+    )
     sql_lines.append("commit;")
     _supabase_exec("\n".join(sql_lines))
-    logger.info("mirrored %d positions for %s", len(positions), snapshot_date)
+    logger.info("mirrored %d positions for %s (prices unified from prices_eod)",
+                len(positions), snapshot_date)
     return len(positions)
 
 
