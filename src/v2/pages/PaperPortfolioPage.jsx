@@ -85,7 +85,10 @@ const fmtDate = (iso) => {
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
 const PAGE_CSS = `
-.paper-shell { max-width: 1440px; margin: 0 auto; padding: 0 32px 64px; }
+/* Match the PageHero's max-width (1280px in PageHero.css) so the tables align
+   with the hero above them. Was 1440 — 160px wider than the hero, which made
+   the hero look narrower than the tables. */
+.paper-shell { max-width: 1280px; margin: 0 auto; padding: 0 32px 64px; }
 
 /* Right-side summary card on the hero — mirrors the Trading Opps
    "Latest Scan Results" stat block. */

@@ -23,11 +23,25 @@ import { useFreshness } from '../../hooks/useFreshness';
 // "daily, green chip, 2d ago — that's an oxymoron.")
 function fmtStamp(iso, calendarDaysAgo) {
   if (!iso) return '—';
-  const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+  const dateOnly = iso.length === 10;   // 'YYYY-MM-DD' — no time-of-day component
+  const dt = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
   if (Number.isNaN(dt.getTime())) return '—';
   const wallMin = (Date.now() - dt.getTime()) / 60000;
   if (wallMin < -1440) {
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  }
+  // A date-only stamp carries NO time-of-day, so "24h ago" is meaningless and
+  // contradicts the date (the bug: "24h ago" shown for today's June 1 data).
+  // Measure it in WHOLE UTC calendar days and label accordingly: same date =
+  // "today", else "Nd ago" / the date. Never hours.
+  if (dateOnly && calendarDaysAgo == null) {
+    const todayUTC = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+    const stampUTC = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+    const days = Math.round((todayUTC - stampUTC) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 8) return `${days}d ago`;
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
   // Same ET session-date as today: show intraday wall-clock freshness.
   if (calendarDaysAgo != null && calendarDaysAgo <= 0) {
