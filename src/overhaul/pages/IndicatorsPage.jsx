@@ -7,6 +7,7 @@ import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
+import useCotPositioning from '../lib/useCotPositioning';
 
 const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Money', 'Economy'];
 
@@ -24,6 +25,17 @@ function fmtFreq(freq) {
   if (f === 'M') return 'Monthly';
   if (f === 'Q') return 'Quarterly';
   return freq || '—';
+}
+
+/* Compact crowding read for a COT row: "8%ile (−1.52σ)" with a real minus
+   sign. Observation-only — the percentile is each watch group's net position
+   ranked into its own trailing-3-year range; the z-score is how many standard
+   deviations from its 3-year average. No sign, no score, no call. */
+function fmtCotCell(pctile, z) {
+  const p = pctile == null || !Number.isFinite(pctile) ? '—' : `${Math.round(pctile)}%ile`;
+  if (z == null || !Number.isFinite(z)) return p;
+  const zStr = `${z.toFixed(2)}σ`.replace('-', '−');
+  return `${p} (${zStr})`;
 }
 
 /* "Used for" — does the indicator drive an Asset Tilt decision on the live
@@ -156,6 +168,81 @@ function sortVal(i, key) {
     return { extreme: 2, elevated: 1, calm: 0 }[i.state] ?? -1;
   }
   return i[key];
+}
+
+/* ── Market Positioning · COT ──────────────────────────────────────────────
+   A reference-only read of futures-market crowding from the weekly CFTC
+   report. It does NOT add to the indicator framework above, is NOT in the
+   indicator registry, and feeds no score — so it lives in its own section
+   and is rendered separately from the registry-driven rows. */
+function CotPositioningSection() {
+  const { rows, asOf, loading } = useCotPositioning();
+  if (loading || !rows.length) return null;
+  return (
+    <section className="mt-pagesection mt-pagesection--tight2">
+      <div className="mt-sectionhead">
+        <div>
+          <div className="mt-eyebrow">Market Positioning · COT</div>
+          <div className="mt-h2">Where the futures crowd is leaning, by market.</div>
+          <p className="mt-deck" style={{ marginTop: 8 }}>
+            A weekly reference read of how stretched each market's futures
+            positioning is versus its own three-year history. It feeds no
+            score and makes no call — it's backdrop only.
+          </p>
+        </div>
+      </div>
+      <div className="mt-tablecard" style={{ overflowX: 'auto' }}>
+        <table className="al-table" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              <th>Market</th>
+              <th>Type</th>
+              <th>Used for</th>
+              <th className="num">Current</th>
+              <th>Last refresh</th>
+              <th>3y trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const trendPts = (r.points || []).map((p) => p[1]).filter(Number.isFinite);
+              return (
+                <tr key={r.key} className="al-row-tr">
+                  <td>
+                    <div className="al-tk">
+                      <div className="al-tkname">{r.market}</div>
+                      {r.group && <div className="al-tkcode">{r.group}</div>}
+                    </div>
+                  </td>
+                  <td>
+                    <span className="al-type al-type--calm">LAG</span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11.5, color: 'var(--mt-ink-3)' }}>Reference</span>
+                  </td>
+                  <td className="num">
+                    <span className="al-current al-current--calm">{fmtCotCell(r.pctile3yr, r.z3yr)}</span>
+                  </td>
+                  <td>
+                    <FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: r.asOf || asOf }} variant="label" />
+                  </td>
+                  <td className="al-sparkcell">
+                    <Sparkline data={trendPts} width={140} height={22} stroke="var(--mt-ink-2)" showDot={false} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="al-tablefoot">
+        <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>
+          Observation only · a forward-return backtest is pending. Not a buy or
+          sell signal.
+        </span>
+      </div>
+    </section>
+  );
 }
 
 export default function IndicatorsPage() {
@@ -386,6 +473,10 @@ export default function IndicatorsPage() {
           {!loading && <FreshnessChip elementId="market-universe_master-daily" variant="label" />}
         </div>
       </section>
+
+      {/* Reference-only futures crowding read — separate from the framework
+          counts above; not in the indicator registry. */}
+      <CotPositioningSection />
     </div>
   );
 }

@@ -1082,6 +1082,25 @@
       "failure_mode": "Risk-metrics card shows 'Computing...' and the as-of stamp goes stale; portfolio-level stats are computed client-side so last-good feed keeps working.",
       "owner": "Data Steward",
       "notes": "Funds without clean daily history map to liquid proxies (JHYUX->HYG, NHXINT906->EFA, FXAIX->SPY, FSKAX->VTI, FBTC->BTC-USD, ETHE->ETH-USD; GLD/SLV/PLSE/RCAT/QQQ themselves; IEF=rates factor, SPY=market factor). Portfolio-level vol/Sharpe/Sortino/maxDD/VaR/betas computed client-side from these series + live weights. Risk-free = 13-week T-bill (^IRX). Validated against a Python backtest (vol 6.5%, Sharpe 1.25, beta-to-HY 0.94) 2026-05-31."
+    },
+    "indicator.cftc-cot-weekly": {
+      "category": "indicator",
+      "element": "CFTC Commitments of Traders \u2014 weekly net positioning percentile (7 markets)",
+      "sourcing_mode": "stp",
+      "source_vendor": "CFTC (publicreporting.cftc.gov)",
+      "license_tier": "free",
+      "cadence": "weekly",
+      "refresh_trigger": "github-actions: COT-POSITIONING-WEEKLY.yml",
+      "schedule_et": "Sat 07:00 ET",
+      "freshness_sla_hours": 192,
+      "consumer_surfaces": [
+        "Macro Overview \u2192 Market Crowding panel",
+        "All Indicators \u2192 Market Positioning (COT) rows"
+      ],
+      "target_storage": "public/indicator_history.json (keys cot_*)",
+      "failure_mode": "Per-market try/except; a missing market is omitted; rows render last-good with a stale freshness chip. Observation mode \u2014 feeds no score.",
+      "owner": "Senior Quant (calibration), Data Steward (freshness)",
+      "notes": "Observation mode: trailing-3yr percentile/z only, no score input until a forward-return backtest passes. Long/short sign discarded (structural bias). Markets: S&P/Yen/VIX (hedge funds), Gold/WTI (managed money), USD (speculators), plus S&P asset managers."
     }
   }
 }

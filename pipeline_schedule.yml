@@ -51,6 +51,7 @@ slots:
       - V9-ALLOCATION-WEEKLY.yml: scenario.v9-allocation-legacy
       - SCENARIO-PRECOMPUTE-WEEKLY.yml: scenario.allocations-precompute
       - CYCLE-V2-HISTORY-WEEKLY.yml: indicator.cycle-v2-history
+      - COT-POSITIONING-WEEKLY.yml: indicator.cftc-cot-weekly
       - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY.yml: commentary.zerohedge-premium
 
   monthly_1st:
