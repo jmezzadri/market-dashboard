@@ -57,14 +57,58 @@ function DomainFreshness({ inds }) {
   return <FreshnessChip elementId={oldest.manifestId || `indicator-${oldest.id}-daily`} variant="dot" />;
 }
 
+// Positioning read inside a domain tile. Observation layer (CFTC COT): one
+// plain-English "so what" plus a single-track read of the domain's headline
+// market — filled dot = the speculative crowd, open dot = commercial hedgers,
+// amber link = the two sit at opposite extremes (a divergence). Styled with
+// theme tokens only, so it follows light/dark like everything else.
+function DomainPositioning({ data }) {
+  if (!data) return null;
+  const wrap = { marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--mt-line-1)' };
+  const label = { fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 700, marginBottom: 5 };
+  if (data.none) {
+    return (
+      <div style={wrap}>
+        <div style={label}>Positioning</div>
+        <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', lineHeight: 1.4 }}>{data.takeaway}</div>
+      </div>
+    );
+  }
+  const h = data.headline || {};
+  const lo = Math.min(h.spec, h.comm);
+  const hi = Math.max(h.spec, h.comm);
+  const conn = h.div ? 'var(--mt-warn)' : 'var(--mt-ink-3)';
+  const dot = { position: 'absolute', top: '50%', width: 10, height: 10, borderRadius: '50%', transform: 'translate(-50%,-50%)' };
+  return (
+    <div style={wrap}>
+      <div style={label}>Positioning</div>
+      <div style={{ fontSize: 11.5, color: 'var(--mt-ink-1)', lineHeight: 1.4 }}>{data.takeaway}</div>
+      <div style={{ position: 'relative', height: 6, background: 'var(--mt-surface-3)', borderRadius: 4, marginTop: 8 }}>
+        <span style={{ position: 'absolute', top: '50%', height: 3, transform: 'translateY(-50%)', left: `${lo}%`, width: `${hi - lo}%`, background: conn, borderRadius: 2 }} />
+        <span style={{ ...dot, left: `${h.spec}%`, background: 'var(--mt-accent)' }} />
+        <span style={{ ...dot, left: `${h.comm}%`, background: 'var(--mt-bg)', border: '2px solid var(--mt-ink-3)' }} />
+      </div>
+    </div>
+  );
+}
+
 export default function MacroPage() {
   const { active: indicators, loading } = useIndicators();
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
   const [selected, setSelected] = useState(null);
+  const [cotPos, setCotPos] = useState(null);
 
   useEffect(() => { saveView(view); }, [view]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/cot_positioning.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setCotPos(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => {
     return indicators.filter(
@@ -156,6 +200,7 @@ export default function MacroPage() {
                       <span key={i.id} className={`mc-domsumdot mc-domsumdot--${i.state}`} />
                     ))}
                   </div>
+                  <DomainPositioning data={cotPos?.domains?.[dom]} />
                 </button>
               );
             })}

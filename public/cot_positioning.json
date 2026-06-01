@@ -1,0 +1,148 @@
+{
+ "as_of": "2026-05-26",
+ "domains": {
+  "Rates": {
+   "takeaway": "Speculators most short the long end in 3 yrs \u2014 crowded, squeeze risk.",
+   "headline": {
+    "market": "Ultra Bond",
+    "spec": 97,
+    "comm": 10,
+    "div": true
+   },
+   "markets": [
+    {
+     "market": "2Y Treasury",
+     "spec": 87,
+     "comm": 23,
+     "div": false
+    },
+    {
+     "market": "5Y Treasury",
+     "spec": 94,
+     "comm": 13,
+     "div": true
+    },
+    {
+     "market": "10Y Treasury",
+     "spec": 84,
+     "comm": 6,
+     "div": true
+    },
+    {
+     "market": "Ultra Bond",
+     "spec": 97,
+     "comm": 10,
+     "div": true
+    },
+    {
+     "market": "3M SOFR",
+     "spec": 1,
+     "comm": 100,
+     "div": true
+    }
+   ]
+  },
+  "Equities": {
+   "takeaway": "Speculators washed out \u2014 Nasdaq at a 3-year low (contrarian).",
+   "headline": {
+    "market": "Nasdaq 100",
+    "spec": 4,
+    "comm": 95,
+    "div": true
+   },
+   "markets": [
+    {
+     "market": "S&P 500",
+     "spec": 26,
+     "comm": 63,
+     "div": false
+    },
+    {
+     "market": "Nasdaq 100",
+     "spec": 4,
+     "comm": 95,
+     "div": true
+    },
+    {
+     "market": "Russell 2000",
+     "spec": 19,
+     "comm": 80,
+     "div": true
+    },
+    {
+     "market": "VIX",
+     "spec": 28,
+     "comm": 72,
+     "div": false
+    }
+   ]
+  },
+  "Money": {
+   "takeaway": "FX split \u2014 Aussie crowded long, Pound crowded short.",
+   "headline": {
+    "market": "Australian Dollar",
+    "spec": 92,
+    "comm": 9,
+    "div": true
+   },
+   "markets": [
+    {
+     "market": "US Dollar Index",
+     "spec": 40,
+     "comm": 54,
+     "div": false
+    },
+    {
+     "market": "Euro",
+     "spec": 25,
+     "comm": 75,
+     "div": false
+    },
+    {
+     "market": "Japanese Yen",
+     "spec": 40,
+     "comm": 58,
+     "div": false
+    },
+    {
+     "market": "British Pound",
+     "spec": 10,
+     "comm": 90,
+     "div": true
+    },
+    {
+     "market": "Canadian Dollar",
+     "spec": 67,
+     "comm": 35,
+     "div": false
+    },
+    {
+     "market": "Australian Dollar",
+     "spec": 92,
+     "comm": 9,
+     "div": true
+    },
+    {
+     "market": "Swiss Franc",
+     "spec": 59,
+     "comm": 49,
+     "div": false
+    },
+    {
+     "market": "Mexican Peso",
+     "spec": 32,
+     "comm": 68,
+     "div": false
+    }
+   ]
+  },
+  "Credit": {
+   "none": true,
+   "takeaway": "No futures market \u2014 read from the indicators above."
+  },
+  "Economy": {
+   "none": true,
+   "takeaway": "No futures market \u2014 read from the indicators above."
+  }
+ }
+}
