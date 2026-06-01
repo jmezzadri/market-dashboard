@@ -1,0 +1,56 @@
+name: BLAST-RADIUS-SMOKE
+
+# "Actually open each page and look" gate (Joe directive 2026-06-01: hard block).
+#
+# When Vercel finishes a preview deployment for a PR, this opens the live data
+# surfaces in a real headless browser and fails if any page is broken, blank,
+# or shows placeholders where real values belong. Because it reports a check on
+# the PR's commit, it can be made a REQUIRED status check in branch protection
+# so a broken surface blocks the merge.
+#
+# Also runnable on demand (workflow_dispatch) against any URL — used to prove
+# the gate works against production before it is switched on as required.
+
+on:
+  deployment_status: {}
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to smoke (e.g. https://macrotilt.com)"
+        required: true
+        default: "https://macrotilt.com"
+
+jobs:
+  smoke:
+    name: Open each surface and verify real content
+    runs-on: ubuntu-latest
+    # On deployment_status, only run for a successful PREVIEW deploy.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment_status.environment != 'Production')
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm install playwright@1.60.0
+          npx playwright install --with-deps chromium
+
+      - name: Resolve target URL
+        id: url
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "base=${{ github.event.inputs.base_url }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.deployment_status.environment_url }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open each surface and verify
+        run: node scripts/smoke_render.mjs "${{ steps.url.outputs.base }}"
