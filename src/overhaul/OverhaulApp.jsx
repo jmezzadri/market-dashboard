@@ -50,7 +50,10 @@ import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
-import Stub from './pages/_Stub';
+// Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
+// dropped /paper also swapped this route to a placeholder, breaking the
+// bugs page. The page itself lives at src/AdminBugs.jsx and still works.
+import AdminBugs from '../AdminBugs';
 
 // Paper Portfolio (Alpaca paper-trading page) lives in the v2 folder; mounted
 // here so the sidebar /paper link resolves. Restored 2026-06-01 after an
@@ -107,17 +110,7 @@ function Shell() {
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
-            <Route
-              path="/admin/bugs"
-              element={
-                <Stub
-                  eyebrow="Admin · Bugs"
-                  title={{ before: 'Operational, ', after: '.' }}
-                  accent="not redesigned"
-                  deck="The bug-report tooling stays in the legacy admin shell for now."
-                />
-              }
-            />
+            <Route path="/admin/bugs" element={<AdminBugs />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
