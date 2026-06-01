@@ -388,22 +388,32 @@ def mirror_positions(
             "now()"
             ");"
         )
+    sql_lines.append("commit;")
+    _supabase_exec("\n".join(sql_lines))
+    logger.info("mirrored %d positions for %s", len(positions), snapshot_date)
+
     # ── SINGLE PRICE SOURCE (2026-06-01, Joe directive: every price on the
     #    site comes from ONE place) ──────────────────────────────────────────
     # Alpaca gives us QUANTITIES + cost basis (the account truth), but its last
     # price differs from prices_eod (Polygon/Massive) — the feed the entire
     # rest of the site uses (Ticker, Scanner, Portfolio, Asset Tilt). That gap
-    # made AMR read $217.09 here and $215.37 on the ticker page. Fix: after
-    # inserting Alpaca quantities, OVERWRITE the displayed price fields from
-    # prices_eod so the Paper page agrees with every other surface. Keep
-    # Alpaca cost_basis/avg_cost/qty; unify only the market PRICE.
-    # Tickers with no prices_eod row (rare new listings) keep the Alpaca value.
-    sql_lines.append(
-        f"""
+    # made AMR read $217.09 here and $215.37 on the ticker page. After the
+    # insert COMMITS above, overwrite the displayed price fields from
+    # prices_eod so the Paper page agrees with every other surface.
+    #
+    # PERF: this runs as its OWN statement (not inside the insert transaction)
+    # and is SCOPED to only the tickers we hold (`pe.ticker = any(...)`), so the
+    # 1.4M-row prices_eod table is index-probed for ~35 symbols, not scanned.
+    # An earlier version inlined an unfiltered CTE in the insert txn and timed
+    # out at 30s, rolling back the whole snapshot. Keep the ticker filter.
+    held = sorted({p.ticker.upper() for p in positions})
+    if held:
+        tickers_sql = ", ".join(_sql_escape(t) for t in held)
+        price_sql = f"""
         with latest as (
           select distinct on (ticker) ticker, close, trade_date
             from public.prices_eod
-           where trade_date >= ((select max(trade_date) from public.prices_eod) - interval '10 days')
+           where ticker = any(array[{tickers_sql}])
            order by ticker, trade_date desc
         ),
         prior1 as (
@@ -425,11 +435,12 @@ def mirror_positions(
          where p.snapshot_date = '{snapshot_date.isoformat()}'
            and upper(p.ticker) = l.ticker;
         """
-    )
-    sql_lines.append("commit;")
-    _supabase_exec("\n".join(sql_lines))
-    logger.info("mirrored %d positions for %s (prices unified from prices_eod)",
-                len(positions), snapshot_date)
+        try:
+            _supabase_exec(price_sql)
+            logger.info("unified %d position prices from prices_eod for %s", len(held), snapshot_date)
+        except Exception as exc:  # never let the price-unify undo a good snapshot
+            logger.warning("price-unify step failed (%s) — positions kept Alpaca prices", exc)
+
     return len(positions)
 
 
