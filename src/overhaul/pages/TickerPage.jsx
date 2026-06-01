@@ -77,6 +77,15 @@ function sma(rows, period) {
 }
 
 const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
+
+/* Benchmark ETFs available to compare against (all carried in prices_eod). */
+const BENCHMARKS = [
+  ['SPY', 'S&P 500 (SPY)'],
+  ['QQQ', 'Nasdaq 100 (QQQ)'],
+  ['IWM', 'Russell 2000 (IWM)'],
+  ['DIA', 'Dow 30 (DIA)'],
+];
+const BENCH_LABEL = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', IWM: 'Russell 2000', DIA: 'Dow 30' };
 /* Detail feeds shown in the activity section. Score composition is NOT here —
    it's an always-visible section, not a per-source feed. */
 const TABS = [
@@ -460,7 +469,7 @@ export default function TickerPage() {
               volume={showVol ? volumeWin : null}
               events={showEvents ? chartEvents : []}
               compareData={compareSym ? compareSeries : null}
-              compareLabel={compareSym}
+              compareLabel={BENCH_LABEL[compareSym] || compareSym}
               yFormat={(v) => `$${fmt(v, 2)}`}
             />
           ) : (
@@ -487,12 +496,19 @@ export default function TickerPage() {
               onChange={(e) => setCompareSym(e.target.value)}
               style={{ cursor: 'pointer' }}
             >
-              <option value="">+ Compare ticker</option>
-              {(scanner.rows || [])
-                .filter((r) => r.ticker !== sym)
-                .map((r) => (
-                  <option key={r.ticker} value={r.ticker}>{r.ticker}</option>
+              <option value="">+ Compare</option>
+              <optgroup label="Benchmarks">
+                {BENCHMARKS.filter(([t]) => t !== sym).map(([t, label]) => (
+                  <option key={t} value={t}>{label}</option>
                 ))}
+              </optgroup>
+              <optgroup label="Scanner names">
+                {(scanner.rows || [])
+                  .filter((r) => r.ticker !== sym)
+                  .map((r) => (
+                    <option key={r.ticker} value={r.ticker}>{r.ticker}</option>
+                  ))}
+              </optgroup>
             </select>
           </div>
         </article>
