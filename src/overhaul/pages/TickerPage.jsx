@@ -42,6 +42,25 @@ import useV5ScanBatch from '../../hooks/useV5ScanBatch';
 import { useEarningsHistory } from '../../hooks/useEarningsHistory';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
+import { buildScanBreakdown } from '../lib/scoreWeights';
+
+/* Plain-English reading for each scanner score component, from the scan row.
+   Mirrors the Scanner drill so the ticker page and scanner never disagree. */
+function readingForScan(key, r) {
+  if (!r) return '—';
+  if (key === 'Insider') {
+    const rules = r.insider_rules?.length ? r.insider_rules.join(' + ') : '—';
+    return `Rules ${rules}${r.insider_age_days != null ? ` · ${r.insider_age_days}d old` : ''}`;
+  }
+  if (key === 'Technicals') {
+    const pct = r.sma200_pct;
+    const trend = pct == null ? '—' : `${pct >= 0 ? 'above' : 'below'} 200-day by ${Math.abs(pct).toFixed(1)}%`;
+    return `${trend}${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`;
+  }
+  if (key === 'Options flow') return r.options_vol_shock != null ? `Vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : 'No options shock';
+  if (key === 'Dark pool') return r.dark_pool_anchor != null ? `Anchor $${Number(r.dark_pool_anchor).toFixed(2)}` : 'No anchor print';
+  return '—';
+}
 
 /* Simple trailing moving average over a [{date, close}] series. Returns an
    array of [date, value|null] aligned 1:1 — null during the warm-up window
@@ -58,8 +77,9 @@ function sma(rows, period) {
 }
 
 const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
+/* Detail feeds shown in the activity section. Score composition is NOT here —
+   it's an always-visible section, not a per-source feed. */
 const TABS = [
-  ['score',   'Score breakdown'],
   ['insider', 'Insider'],
   ['options', 'Options flow'],
   ['dark',    'Dark pool'],
@@ -211,7 +231,7 @@ export default function TickerPage() {
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
 
-  const [tab, setTab] = useState('score');
+  const [tab, setTab] = useState('insider');
   const [tf, setTf]   = useState('1Y');
   const [show50, setShow50]       = useState(false);
   const [show200, setShow200]     = useState(false);
@@ -318,6 +338,11 @@ export default function TickerPage() {
   /* Dial score — scanner first (canonical 0-5), then the totalScore from the
      v5 breakdown (also 0-5). Never raw v5 mt_score (different scale). */
   const score = scanRow?.score ?? (v5Row ? totalScore : null);
+
+  /* Score composition — the SAME additive 4-input model as the scanner, so it
+     reconciles exactly to the headline dial (the old v5 weighted table summed
+     to a different number than the dial showed). */
+  const comp = useMemo(() => (scanRow ? buildScanBreakdown(scanRow) : null), [scanRow]);
 
   const related = (scanner.rows || []).filter((r) => r.ticker !== sym).slice(0, 4);
 
@@ -495,15 +520,78 @@ export default function TickerPage() {
           <KvCell label="Div yield" value="—" />
           <KvCell label="Beta"      value="—" />
         </div>
+
+        {/* Live technicals — moved here from the score tab; computed on the fly
+            from daily history (no scanner lag), so they live with the stats. */}
+        <div className="tk-techstrip">
+          <div className="mt-eyebrow">Live technicals · daily</div>
+          <div className="tk-techgrid">
+            <TechCell label="RSI(14)"      value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'} />
+            <TechCell label="MACD cross"   value={tech?.macd_cross || '—'} />
+            <TechCell label="vs SMA 50"    value={fmtPctFraction(tech?.pct_vs_50ma)} />
+            <TechCell label="vs SMA 200"   value={fmtPctFraction(tech?.pct_vs_200ma)} />
+            <TechCell label="Volume surge" value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'} />
+            <TechCell label="1w return"    value={fmtPctFraction(tech?.week_change)} />
+            <TechCell label="1m return"    value={fmtPctFraction(tech?.month_change)} />
+            <TechCell label="YTD return"   value={fmtPctFraction(tech?.ytd_change)} />
+            <TechCell label="1m vs S&P"    value={fmtPctFraction(tech?.spy_relative_month)} />
+          </div>
+        </div>
+
         <div className="tk-emptyfoot">
           Open / High / Low and average volume come from the daily price history;
-          52-week range, market cap, and IV come from the latest scan. P/E, dividend
-          yield, and beta require a fundamentals feed not yet wired.
+          52-week range, market cap, and IV come from the latest scan. Live technicals
+          are computed from daily history. P/E, dividend yield, and beta require a
+          fundamentals feed not yet wired.
         </div>
       </section>
 
-      {/* Tabs */}
+      {/* Score composition — always visible, ties out to the dial above */}
       <section className="mt-pagesection">
+        <article className="mt-card">
+          <div className="mt-sectionhead-tight">
+            <div className="mt-eyebrow">
+              Score composition{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
+            </div>
+          </div>
+          {comp ? (
+            <table className="lm-scoremath tk-scoretable">
+              <thead>
+                <tr><th>Component</th><th>Reading</th><th className="num">Points</th></tr>
+              </thead>
+              <tbody>
+                {comp.items.map((c) => {
+                  const zero = !(c.points > 0);
+                  return (
+                    <tr key={c.key}>
+                      <td>
+                        <div className="lm-scoreklabel">{c.key}</div>
+                        <div className="lm-scorekwhy">{c.why}</div>
+                      </td>
+                      <td style={{ color: zero ? 'var(--mt-ink-3)' : 'var(--mt-ink-1)' }}>{readingForScan(c.key, scanRow)}</td>
+                      <td className="num lm-scorecontr"><b>{c.points > 0 ? '+' : ''}{c.points.toFixed(2)}</b></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2}><b>MacroTilt Score</b></td>
+                  <td className="num lm-scorecontr"><b>{comp.total.toFixed(2)}<i>/5</i></b></td>
+                </tr>
+              </tfoot>
+            </table>
+          ) : (
+            <div className="tk-empty">This name isn't in today's scan, so there's no MacroTilt Score breakdown.</div>
+          )}
+        </article>
+      </section>
+
+      {/* Recent activity & filings — detail feeds, switched by source */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead-tight">
+          <div className="mt-eyebrow">Recent activity &amp; filings</div>
+        </div>
         <div className="mt-pillgroup tk-tabs">
           {TABS.map(([id, l]) => (
             <button
@@ -517,36 +605,11 @@ export default function TickerPage() {
           ))}
         </div>
 
-        {tab === 'score' && (
-          <ScoreBreakdownTab
-            breakdown={breakdown}
-            totalScore={totalScore}
-            headlineScore={score}
-            tech={tech}
-            v5Row={v5Row}
-            scanDate={scanner.scanDate}
-          />
-        )}
-
-        {tab === 'insider' && (
-          <InsiderTab events={insiderEvents} />
-        )}
-
-        {tab === 'options' && (
-          <OptionsTab snap={snap} />
-        )}
-
-        {tab === 'dark' && (
-          <DarkPoolTab events={darkEvents} />
-        )}
-
-        {tab === 'news' && (
-          <NewsTab events={newsEvents} />
-        )}
-
-        {tab === 'fund' && (
-          <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />
-        )}
+        {tab === 'insider' && <InsiderTab events={insiderEvents} />}
+        {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} />}
+        {tab === 'dark'    && <DarkPoolTab events={darkEvents} />}
+        {tab === 'news'    && <NewsTab events={newsEvents} />}
+        {tab === 'fund'    && <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />}
       </section>
 
       {/* Related names */}
@@ -609,86 +672,6 @@ function KvCell({ label, value }) {
   );
 }
 
-/* ---------- Score Breakdown tab ---------- */
-
-function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row, scanDate }) {
-  return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">
-          Composition · MacroTilt scoring framework
-        </div>
-        <FreshnessChip
-          elementId="equity-latest_scan_data-daily"
-          variant="dot"
-          fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
-        />
-      </div>
-      <table className="lm-scoremath tk-scoretable">
-        <thead>
-          <tr>
-            <th>Component</th>
-            <th className="num">Weight</th>
-            <th className="num">Score</th>
-            <th className="num">Contribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          {breakdown.map((c) => (
-            <tr key={c.name}>
-              <td>
-                <div className="lm-scoreklabel">{c.name}</div>
-                <div className="lm-scorekwhy">{c.why}</div>
-              </td>
-              <td className="num">
-                {(c.w * 100).toFixed(0)}<span className="lm-scoredim">%</span>
-              </td>
-              <td className="num">
-                {c.s5 != null ? c.s5.toFixed(1) : '—'}<i className="lm-scoredim">/5</i>
-              </td>
-              <td className="num lm-scorecontr">
-                <b>{c.contrib != null ? `+${c.contrib.toFixed(2)}` : '—'}</b>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={3}><b>MacroTilt Score</b></td>
-            <td className="num lm-scorecontr">
-              <b>{headlineScore != null ? Number(headlineScore).toFixed(1) : '—'}<i>/5</i></b>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-
-      {/* Live technicals strip — these read straight from Yahoo daily history
-          via useTickerTechnicalsLive, computed on the fly, no scanner lag. */}
-      <div className="tk-techstrip">
-        <div className="mt-eyebrow">Live technicals · daily</div>
-        <div className="tk-techgrid">
-          <TechCell label="RSI(14)"        value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'} />
-          <TechCell label="MACD cross"     value={tech?.macd_cross || '—'} />
-          <TechCell label="vs SMA 50"      value={fmtPctFraction(tech?.pct_vs_50ma)} />
-          <TechCell label="vs SMA 200"     value={fmtPctFraction(tech?.pct_vs_200ma)} />
-          <TechCell label="Volume surge"   value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'} />
-          <TechCell label="1w return"      value={fmtPctFraction(tech?.week_change)} />
-          <TechCell label="1m return"      value={fmtPctFraction(tech?.month_change)} />
-          <TechCell label="YTD return"     value={fmtPctFraction(tech?.ytd_change)} />
-          <TechCell label="1m vs S&P"      value={fmtPctFraction(tech?.spy_relative_month)} />
-        </div>
-      </div>
-
-      {v5Row?.ins_buys != null && (
-        <div className="tk-techfoot">
-          Insider activity (last scan): <b>{v5Row.ins_buys}</b> buys totalling{' '}
-          <b>{fmt$(v5Row.ins_buy_$, 0)}</b> in dollar value.
-        </div>
-      )}
-    </article>
-  );
-}
-
 function TechCell({ label, value }) {
   return (
     <div className="tk-techcell">
@@ -706,7 +689,6 @@ function InsiderTab({ events }) {
       <article className="mt-card mt-fade">
         <div className="tk-tabhead">
           <div className="mt-eyebrow">Recent insider activity · 90d</div>
-          <FreshnessChip elementId="equity-ticker_events-3xday" variant="label" />
         </div>
         <div className="tk-empty">
           No insider Form-4 activity reported in the last 90 days.
@@ -718,7 +700,6 @@ function InsiderTab({ events }) {
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Recent insider activity · 90d · {events.length} filings</div>
-        <FreshnessChip elementId="equity-ticker_events-3xday" variant="label" />
       </div>
       <div className="tk-tablewrap">
         <table className="tk-evttable">
@@ -772,20 +753,27 @@ function InsiderTab({ events }) {
 
 /* ---------- Options tab ---------- */
 
-function OptionsTab({ snap }) {
+function OptionsTab({ snap, scanRow }) {
+  // Snapshot covers large-caps only; for the scanner's discovery names fall back
+  // to the option fields stored on the scan row so the tab isn't all blanks.
+  const cpRatio = snap?.put_call_ratio ?? scanRow?.pc_ratio ?? null;
+  const ivRank = snap?.iv_rank ?? scanRow?.iv_rank ?? null;
+  const iv30 = snap?.iv30d != null ? fmtPctFraction(snap.iv30d)
+    : (scanRow?.iv != null ? `${Number(scanRow.iv).toFixed(1)}%` : '—');
+  const impMove = snap?.implied_move_perc_30 != null ? fmtPctFraction(snap.implied_move_perc_30)
+    : (scanRow?.implied_30d_pct != null ? `${Number(scanRow.implied_30d_pct).toFixed(1)}%` : '—');
   return (
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Options activity · latest snapshot</div>
-        <FreshnessChip elementId="equity-options_chain-on_demand" variant="label" />
       </div>
       <div className="tk-keygrid tk-keygrid--tight">
         <KvCell label="Call vol"     value={fmtVol(snap?.call_volume)} />
         <KvCell label="Put vol"      value={fmtVol(snap?.put_volume)} />
-        <KvCell label="C/P ratio"    value={snap?.put_call_ratio != null ? Number(snap.put_call_ratio).toFixed(2) : '—'} />
-        <KvCell label="IV rank"      value={snap?.iv_rank != null ? Math.round(snap.iv_rank) : '—'} />
-        <KvCell label="IV (30d)"     value={snap?.iv30d != null ? fmtPctFraction(snap.iv30d) : '—'} />
-        <KvCell label="Implied move 30d" value={snap?.implied_move_perc_30 != null ? fmtPctFraction(snap.implied_move_perc_30) : '—'} />
+        <KvCell label="C/P ratio"    value={cpRatio != null ? Number(cpRatio).toFixed(2) : '—'} />
+        <KvCell label="IV rank"      value={ivRank != null ? Math.round(ivRank) : '—'} />
+        <KvCell label="IV (30d)"     value={iv30} />
+        <KvCell label="Implied move 30d" value={impMove} />
       </div>
       <div className="tk-techstrip">
         <div className="mt-eyebrow">Premium flow (latest)</div>
@@ -814,7 +802,6 @@ function DarkPoolTab({ events }) {
       <article className="mt-card mt-fade">
         <div className="tk-tabhead">
           <div className="mt-eyebrow">Dark-pool prints · 90d</div>
-          <FreshnessChip elementId="equity-ticker_events-3xday" variant="label" />
         </div>
         <div className="tk-empty">
           No off-exchange anchor prints detected at material size in the last 90 days.
@@ -826,7 +813,6 @@ function DarkPoolTab({ events }) {
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Dark-pool prints · 90d · {events.length} prints</div>
-        <FreshnessChip elementId="equity-ticker_events-3xday" variant="label" />
       </div>
       <div className="tk-tablewrap">
         <table className="tk-evttable">
@@ -871,7 +857,6 @@ function NewsTab({ events }) {
       <article className="mt-card mt-fade">
         <div className="tk-tabhead">
           <div className="mt-eyebrow">Recent headlines</div>
-          <FreshnessChip elementId="equity-google_news_per_ticker-on_demand" variant="label" />
         </div>
         <div className="tk-empty">
           No recent headlines on file for this ticker.
@@ -883,7 +868,6 @@ function NewsTab({ events }) {
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Recent headlines · {events.length}</div>
-        <FreshnessChip elementId="equity-google_news_per_ticker-on_demand" variant="label" />
       </div>
       <ul className="tk-newslist">
         {events.slice(0, 30).map((r, i) => {
@@ -918,7 +902,6 @@ function FundamentalsTab({ earnings, deep, snap }) {
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Fundamentals</div>
-        <FreshnessChip elementId="equity-earnings_history-weekly" variant="label" />
       </div>
 
       <div className="tk-fundheader">
