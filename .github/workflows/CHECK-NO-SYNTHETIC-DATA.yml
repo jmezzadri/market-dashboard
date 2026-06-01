@@ -1,0 +1,32 @@
+name: CHECK-NO-SYNTHETIC-DATA
+
+# Anti-synthetic-data guard. Fires on any PR that touches the live React
+# surfaces (src/**) and fails if it finds fabricated/placeholder data dressed
+# as real — Math.random in app code, fake*/mock*/synth* generators, or
+# hardcoded ISO-date series templates. See LESSONS.md (2026-06-01): every value
+# must trace to a real stored field; render an em-dash when unavailable, never
+# a synthesized stand-in. This is the guard that would have caught the
+# fabricated Scanner/Ticker data on day one.
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "scripts/check_no_synthetic_data.py"
+      - ".github/workflows/CHECK-NO-SYNTHETIC-DATA.yml"
+
+jobs:
+  no-synthetic-data:
+    name: No synthetic/placeholder data in live surfaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Scan src/ for fabricated data patterns
+        run: python scripts/check_no_synthetic_data.py
