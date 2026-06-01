@@ -1,0 +1,52 @@
+name: PAPER-PORTFOLIO-FILL-NOW
+
+# ONE-OFF manual rebalance filler (2026-06-01).
+# Submits today's opg-rejected intents as ordinary market/day orders so they
+# fill immediately during regular trading hours. Manual dispatch only — no
+# schedule. Does not touch the daily pipeline. See scripts/paper_fill_now.py.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (compute, no submission)'
+        required: false
+        default: 'true'
+
+concurrency:
+  group: paper-portfolio-fill-now
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install requests pandas pyarrow numpy scipy
+
+      - name: Fill rejected intents at market
+        env:
+          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
+          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python -m scripts.paper_fill_now
+          else
+            python -m scripts.paper_fill_now --force-live
+          fi
