@@ -124,8 +124,12 @@ function fmtMcap(v) {
 function fmtDateShort(s) {
   if (!s) return '—';
   try {
-    const d = new Date(s);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    // Date-only values (YYYY-MM-DD, e.g. a trade_date) must be read in UTC,
+    // otherwise a browser west of UTC renders them one calendar day early
+    // ("May 29" close shows as "May 28"). Force UTC so the displayed day
+    // matches the stored session date.
+    const d = new Date(s.length === 10 ? `${s}T00:00:00Z` : s);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   } catch { return '—'; }
 }
 function fmtTimeAgo(s) {
