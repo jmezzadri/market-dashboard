@@ -82,6 +82,16 @@ def run_eod_phase(
         dry_run=dry_run,
     )
     logger.info("translator: %d order intents, dry_run=%s", len(t_result.intents), dry_run)
+    for _i in t_result.intents:
+        if _i.target_quantity is not None:
+            _sz = f"{_i.target_quantity:g} sh"
+        elif _i.target_notional is not None:
+            _sz = f"${_i.target_notional:,.0f}"
+        else:
+            _sz = "n/a"
+        logger.info("  INTENT | sleeve %s | %s %s | %s | src=%s | %s",
+                    _i.sleeve, _i.side, _i.ticker, _sz, _i.signal_source,
+                    _i.rebalance_trigger_reason or "")
 
     s_result = submit_pending_orders(dry_run=dry_run)
     logger.info("submitter: submitted=%d rejected=%d duplicates=%d",
