@@ -1569,3 +1569,14 @@ g. After merge: actually load every URL in section 6 in Chrome via the
 **Applies to:** All four specialists. The Lead Developer owns building
 the map; every other specialist owns checking their domain on it
 before signing off.
+
+
+---
+
+## 2026-06-01 - Required status checks on `main` silently freeze every nightly data bot
+
+**What happened:** Asset Tilt showed stale because the MacroTilt engine reading was stuck at May 26. The engine job computed fresh numbers every night but the final save to the site failed. Two stacked causes: (1) May 28-29, a plain `git push` lost the race to concurrent commits on `main` ("fetch first" rejection); (2) June 1, branch protection requiring two status checks ("No synthetic/placeholder data...", "Open each surface...") was switched on, and the daily bots push with the default `GITHUB_TOKEN` (not an admin), so every direct push to `main` was rejected with GH006 "protected branch hook declined." This blocks ALL nightly data refreshers (engine, v10 allocation, cycle), not just the engine.
+
+**Fix shipped:** (a) engine push now rebases onto latest `main` + retries 5x; (b) engine/v10/cycle workflows now check out + push with an admin PAT stored as repo secret `MACROTILT_BOT_PAT` - admins are exempt from the required checks (enforce_admins=false), so the bots' real-data commits write through, while the anti-synthetic guard stays required for human/code PRs. Verified: manual engine run succeeded, live macrotilt_engine.json advanced May 26 -> May 29.
+
+**Rule:** When adding required status checks / branch protection to `main`, the daily data-refresh workflows must push with `MACROTILT_BOT_PAT` (admin), never the default token, or they fail silently and freshness freezes with no visible error. If a data surface goes stale, check the producing workflow's last run for a GH006 / "fetch first" push failure before assuming the compute broke.
