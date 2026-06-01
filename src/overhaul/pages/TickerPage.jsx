@@ -243,8 +243,8 @@ export default function TickerPage() {
   const prevClose = eod?.prev_close ?? snap?.prev_close ?? null;
   const priceAsOf = eod?.trade_date || null;
   const exchange  = deep?.ref?.primary_exchange || info?.exchange || null;
-  const marketcap = snap?.marketcap ?? v5Row?.market_cap ?? null;
-  const stockVol  = snap?.stock_volume ?? null;
+  const marketcap = snap?.marketcap ?? scanRow?.marketCap ?? v5Row?.market_cap ?? null;
+  const stockVol  = snap?.stock_volume ?? scanRow?.volume ?? null;
 
   /* Signal pill — derive from scanner row only; hide otherwise. */
   const signal    = (scanRow?.signal || '').toString().toUpperCase();
@@ -256,6 +256,22 @@ export default function TickerPage() {
      toggled by the buttons under the chart. */
   const tfMap = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252, '5Y': 1260, Max: 100000 };
   const hist = histAll.rows || [];
+
+  /* Key stats — sourced from data that actually exists for the scanner's
+     discovery names. universe_snapshots only covers the large-cap universe, so
+     small-caps (NEWT, ANNX, XRN, …) have no snap row and every snap-sourced
+     stat blanked out. The real values are in prices_eod (the latest daily bar)
+     and the scan row (52-week range, market cap, IV). */
+  const lastBar = hist.length ? hist[hist.length - 1] : null;
+  const hi52 = scanRow?.week52High ?? snap?.week_52_high ??
+    (hist.length ? Math.max(...hist.slice(-252).map((r) => (r.high ?? r.close))) : null);
+  const lo52 = scanRow?.week52Low ?? snap?.week_52_low ??
+    (hist.length ? Math.min(...hist.slice(-252).map((r) => (r.low ?? r.close))) : null);
+  const avgVol = snap?.avg30_volume ??
+    (hist.length ? hist.slice(-30).reduce((s, r) => s + (r.volume || 0), 0) / Math.min(30, hist.length) : null);
+  const ivRankVal = snap?.iv_rank ?? scanRow?.iv_rank ?? null;
+  const iv30Display = snap?.iv30d != null ? fmtPctFraction(snap.iv30d)
+    : (scanRow?.iv != null ? `${Number(scanRow.iv).toFixed(1)}%` : '—');
   const sma50Full  = useMemo(() => sma(hist, 50), [hist]);
   const sma200Full = useMemo(() => sma(hist, 200), [hist]);
   const windowRows = useMemo(() => {
@@ -469,23 +485,23 @@ export default function TickerPage() {
           <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
         </div>
         <div className="tk-keygrid">
-          <KvCell label="Open"      value="—" />
-          <KvCell label="High"      value={snap?.high     != null ? `$${fmt(snap.high, 2)}`     : '—'} />
-          <KvCell label="Low"       value={snap?.low      != null ? `$${fmt(snap.low, 2)}`      : '—'} />
-          <KvCell label="52w high"  value={snap?.week_52_high != null ? `$${fmt(snap.week_52_high, 2)}` : '—'} />
-          <KvCell label="52w low"   value={snap?.week_52_low  != null ? `$${fmt(snap.week_52_low,  2)}` : '—'} />
-          <KvCell label="Avg vol"   value={fmtVol(snap?.avg30_volume)} />
+          <KvCell label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <KvCell label="High"      value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : (snap?.high != null ? `$${fmt(snap.high, 2)}` : '—')} />
+          <KvCell label="Low"       value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : (snap?.low  != null ? `$${fmt(snap.low, 2)}`  : '—')} />
+          <KvCell label="52w high"  value={hi52 != null ? `$${fmt(hi52, 2)}` : '—'} />
+          <KvCell label="52w low"   value={lo52 != null ? `$${fmt(lo52, 2)}` : '—'} />
+          <KvCell label="Avg vol"   value={fmtVol(avgVol)} />
           <KvCell label="Mkt cap"   value={fmtMcap(marketcap)} />
-          <KvCell label="IV rank"   value={snap?.iv_rank != null ? Math.round(snap.iv_rank) : '—'} />
-          <KvCell label="IV 30d"    value={snap?.iv30d   != null ? fmtPctFraction(snap.iv30d) : '—'} />
+          <KvCell label="IV rank"   value={ivRankVal != null ? Math.round(ivRankVal) : '—'} />
+          <KvCell label="IV 30d"    value={iv30Display} />
           <KvCell label="P/E"       value="—" />
           <KvCell label="Div yield" value="—" />
           <KvCell label="Beta"      value="—" />
         </div>
         <div className="tk-emptyfoot">
-          Open / P-E / Div yield / Beta require a fundamentals feed not yet wired.
-          OHLC and 52-week values come from the universe snapshot refreshed three times
-          per weekday; Mkt cap, IV rank, and IV 30d come from the same feed.
+          Open / High / Low and average volume come from the daily price history;
+          52-week range, market cap, and IV come from the latest scan. P/E, dividend
+          yield, and beta require a fundamentals feed not yet wired.
         </div>
       </section>
 

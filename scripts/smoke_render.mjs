@@ -39,8 +39,20 @@ const SURFACES = [
   {
     path: "/ticker/MTDR",
     name: "Ticker detail (MTDR)",
-    mustInclude: ["Price history", "MACROTILT SCORE"],
+    mustInclude: ["Price history", "MACROTILT SCORE", "Key stats"],
     mustMatch: [/\$\d[\d,.]*/],
+    mustNotInclude: ["No price history on file"],
+  },
+  {
+    // A scanner discovery name that is NOT in universe_snapshots — guards the
+    // 2026-06-01 regression where key stats (sourced only from the snapshot)
+    // blanked out for small-caps. A populated Key-stats grid shows several
+    // real prices (open/high/low/52w hi/lo + header), so require >=5.
+    path: "/ticker/NEWT",
+    name: "Ticker detail (NEWT, off-snapshot)",
+    mustInclude: ["Price history", "Key stats"],
+    mustMatch: [/\$\d[\d,.]*/],
+    minPriceHits: 5,
     mustNotInclude: ["No price history on file"],
   },
   { path: "/", name: "Home", mustMatch: [/\S/] },
