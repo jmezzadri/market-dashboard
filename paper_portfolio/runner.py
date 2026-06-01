@@ -49,6 +49,7 @@ def _live_trading_enabled() -> bool:
     return os.environ.get("PAPER_LIVE_TRADING_ENABLED", "").strip().lower() == "true"
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient
+from paper_portfolio.freshness import check_freshness, file_alert
 from paper_portfolio.mirror import (
     ensure_paper_schema,
     mirror_fills,
@@ -92,6 +93,41 @@ def run_eod_phase(
         logger.info("  INTENT | sleeve %s | %s %s | %s | src=%s | %s",
                     _i.sleeve, _i.side, _i.ticker, _sz, _i.signal_source,
                     _i.rebalance_trigger_reason or "")
+
+    # ── FRESHNESS GATE (added 2026-06-01) ──────────────────────────────────
+    # Before submitting, require BOTH sleeve signals to be current for the
+    # last closed trading session (per Alpaca's calendar). If either is
+    # stale, SKIP submission and file a P1 alert. This is the guard the old
+    # workflow comments falsely claimed existed. It runs in live mode only;
+    # a dry-run still reports what it WOULD have done.
+    a_as_of = t_result.asset_tilt_as_of
+    b_scan_date = t_result.scanner_scan_date
+    try:
+        fr = check_freshness(a_as_of, b_scan_date, AlpacaPaperClient())
+    except Exception as exc:  # calendar fetch must not crash the run
+        logger.warning("freshness check errored (%s) — BLOCKING submit to be safe", exc)
+        fr = None
+
+    if fr is None or not fr.fresh:
+        reasons = "; ".join(fr.reasons) if fr else "freshness check could not run"
+        logger.warning("FRESHNESS GATE BLOCKED submission — %s", reasons)
+        if not dry_run:
+            file_alert(
+                title="Paper rebalance skipped — stale signals",
+                description=(
+                    "The morning paper rebalance did NOT submit because signal "
+                    f"data was not current. {reasons}. Last closed session: "
+                    f"{getattr(fr, 'last_closed_session', 'unknown')}. "
+                    "No orders were placed; the account holds its prior positions. "
+                    "Investigate the upstream price/screener pipeline."
+                ),
+                priority="P1",
+            )
+        return {"translator": t_result, "submitter": None,
+                "blocked": True, "freshness": fr}
+
+    logger.info("FRESHNESS GATE PASSED — both sleeves current as of %s",
+                fr.last_closed_session)
 
     s_result = submit_pending_orders(dry_run=dry_run)
     logger.info("submitter: submitted=%d rejected=%d duplicates=%d",
