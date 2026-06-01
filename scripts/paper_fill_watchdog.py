@@ -116,6 +116,14 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             logger.warning("watchdog email failed: %s", exc)
 
+    # ── SINGLE EXECUTION-REPORT EMAIL (one outcome email per day) ──────────
+    # Email #2 of the day (Email #1 is the morning "queued" summary from the
+    # runner). This ALWAYS sends and reports both what executed and what
+    # failed in one place, rather than separate success/failure emails. The
+    # DB bug_reports row is still filed ONLY on a real problem — that's the
+    # admin-surface record; the email is the thing that reaches Joe.
+    n_not_filled = max(0, n_created - n_filled) if n_created >= 0 else 0
+
     if problems:
         msg = " ".join(problems)
         logger.warning("WATCHDOG ALERT: %s", msg)
@@ -126,25 +134,24 @@ def main() -> int:
                          f"{n_submitted} filled={n_filled}."),
             priority="P1",
         )
-        _email(
-            "[MacroTilt paper P1] Rebalance did NOT complete today",
-            ("The post-open watchdog found a problem with today's rebalance.\n\n"
-             f"{msg}\n\n"
-             f"created={n_created}  submitted={n_submitted}  filled={n_filled}\n\n"
-             "No further action is automatic — investigate the pipeline."),
-        )
-        return 0  # exit 0 so the alert is the signal, not a red workflow
+        subject = (f"[MacroTilt paper P1] Rebalance PROBLEM — "
+                   f"{n_filled} filled, {n_not_filled} did NOT execute")
+        body = ("ACTION MAY BE NEEDED — today's rebalance did not fully complete.\n\n"
+                f"What failed: {msg}\n\n"
+                f"Executed (filled at the open): {n_filled}\n"
+                f"Did NOT execute:               {n_not_filled}\n"
+                f"Orders computed this morning:  {n_created}\n\n"
+                "Investigate the pipeline.")
+    else:
+        logger.info("watchdog OK — rebalance completed end-to-end (%d filled)", n_filled)
+        subject = f"[MacroTilt paper] Rebalance executed — {n_filled} filled, 0 failed"
+        body = ("Today's rebalance completed. Nothing needs your attention.\n\n"
+                f"Executed (filled at the open): {n_filled}\n"
+                f"Failed:                        0\n"
+                f"Orders computed this morning:  {n_created}\n\n"
+                "Everything that was queued executed.")
 
-    # SUCCESS path — send the positive "trades executed" confirmation so a
-    # missing email is itself a red flag (the whole point of daily confirms).
-    logger.info("watchdog OK — rebalance completed end-to-end (%d filled)", n_filled)
-    _email(
-        f"[MacroTilt paper] Rebalance executed — {n_filled} orders filled at the open",
-        ("Today's paper rebalance completed end-to-end.\n\n"
-         f"Orders filled at the open:   {n_filled}\n"
-         f"Orders created this morning: {n_created}\n\n"
-         "Everything that was queued executed. No action needed."),
-    )
+    _email(subject, body)
     return 0
 
 
