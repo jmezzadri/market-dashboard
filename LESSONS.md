@@ -1659,3 +1659,13 @@ model the audience already has so the page feels native to their workflow.
 
 **Applies to:** UX Designer (leads). Any new or rebuilt professional-grade
 surface.
+
+---
+
+## 2026-05-31 — A green checkmark is not proof of work; never assert an unverified cause to Joe
+
+**What happened:** Joe asked whether paper trades were queued for Monday's open; nothing had rebalanced since 2026-05-27 despite a daily cadence. The order-queuing job had run 37 times, all "success" — but each run hit a morning time-window guard (08:00-09:25 ET) and exited as a deliberate no-op, because GitHub scheduled-cron delivery was landing 1.5-4 hours late (observed 10:43 / 10:57 / 13:23 ET). "Success" and "did nothing on purpose" were indistinguishable in the run list. Compounding it, when a trade-preview file came back empty I told Joe a background bot was force-overwriting the master copy every 30 minutes — an alarming claim I had not verified. The push history showed zero force-pushes in 69 recent updates; the empty file was caused by my own un-merged change.
+
+**What you should do instead:** (1) For any "is the automation working?" question, open the actual run log and confirm the work step produced output (orders submitted, rows written) — never trust the exit-0 checkmark, because a job that no-ops by design shows success forever. (2) Before stating a cause to Joe — especially an alarming one — verify it with direct evidence (push history, file diffs, run logs). If the check hasn't been run, say "I don't yet know why," not a guess dressed as fact. (3) For unreliable scheduled triggers, widen the accept window and add redundant timers instead of depending on one on-time delivery; market-on-open orders route to the next open whenever submitted pre-open, so an early window start is safe, and the idempotency key makes redundant attempts no-ops.
+
+**Applies to:** All. Lead Developer + Data Steward on any scheduled pipeline.
