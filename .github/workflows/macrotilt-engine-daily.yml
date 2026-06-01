@@ -75,10 +75,23 @@ jobs:
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
-          if [[ -n "$(git status --porcelain public/macrotilt_engine.json)" ]]; then
-            git add public/macrotilt_engine.json
-            git commit -m "MacroTilt engine daily refresh — $(date -u +%Y-%m-%d) [skip ci]"
-            git push
-          else
+          if [[ -z "$(git status --porcelain public/macrotilt_engine.json)" ]]; then
             echo "No change to public/macrotilt_engine.json"
+            exit 0
           fi
+          git add public/macrotilt_engine.json
+          git commit -m "MacroTilt engine daily refresh — $(date -u +%Y-%m-%d) [skip ci]"
+          # Other daily jobs push to main during our run window. A plain push loses
+          # the race ("fetch first" rejection) and silently drops the fresh snapshot.
+          # Rebase onto the latest main and retry before giving up.
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "pushed on attempt $i"
+              exit 0
+            fi
+            echo "push rejected (attempt $i) - rebasing onto latest origin/main"
+            git pull --rebase --autostash origin main || true
+            sleep 5
+          done
+          echo "::error::engine snapshot push failed after 5 attempts"
+          exit 1
