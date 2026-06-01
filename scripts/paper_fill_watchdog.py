@@ -84,18 +84,29 @@ def main() -> int:
     logger.info("watchdog: created=%d submitted=%d filled_at_alpaca=%d",
                 n_created, n_submitted, n_filled)
 
-    # 3 — alert conditions
+    # 3 — alert conditions.
+    # FILLS ARE THE SOURCE OF TRUTH (fixed 2026-06-01). The DB 'submitted'
+    # status is an intermediate marker that some paths (e.g. the manual
+    # fill-now route) set differently — judging success by it caused a
+    # false "0 submitted" alarm on a day when 30 orders actually filled.
+    # What matters to Joe is: did orders fill at the broker? So:
+    #   - 0 created           -> producer/translator failed (real problem)
+    #   - created>0 but 0 filled AND 0 submitted -> nothing reached the broker
+    #   - created>0, submitted>0, 0 filled       -> rejected at the open
+    #   - filled>0                                -> SUCCESS, whatever the status string
     problems = []
     if n_created == 0:
         problems.append("No paper orders were created this morning at all — the "
                         "translator/producer did not run or found no signals.")
-    elif n_submitted == 0:
-        problems.append(f"{n_created} orders were computed but 0 were submitted to "
-                        "the broker — submission was blocked or failed (check the "
-                        "freshness gate and the opg time-window).")
+    elif n_filled == 0 and n_submitted == 0:
+        problems.append(f"{n_created} orders were computed but none reached the "
+                        "broker (0 submitted, 0 filled) — submission was blocked "
+                        "or failed (check the freshness gate and the opg window).")
     elif n_filled == 0:
         problems.append(f"{n_submitted} orders were submitted but 0 filled at the "
                         "broker — orders may have been rejected at the open.")
+    # If n_filled > 0 we treat the day as a SUCCESS even if n_submitted reads 0,
+    # because the orders demonstrably executed (e.g. via the manual fill path).
 
     # Email helper (best-effort) — used for BOTH the failure and the success path
     def _email(subject: str, body: str):
@@ -130,9 +141,8 @@ def main() -> int:
     _email(
         f"[MacroTilt paper] Rebalance executed — {n_filled} orders filled at the open",
         ("Today's paper rebalance completed end-to-end.\n\n"
-         f"Orders created this morning: {n_created}\n"
-         f"Submitted to broker:        {n_submitted}\n"
-         f"Filled at the open:         {n_filled}\n\n"
+         f"Orders filled at the open:   {n_filled}\n"
+         f"Orders created this morning: {n_created}\n\n"
          "Everything that was queued executed. No action needed."),
     )
     return 0
