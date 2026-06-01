@@ -1,49 +1,70 @@
 name: PAPER-PORTFOLIO-EOD-DAILY
 
 # MacroTilt paper-portfolio EOD phase.
-#   1. Translator: Asset Tilt + Equity Scanner → pending paper_orders rows.
-#   2. Submitter:  pending → Alpaca paper MOO submissions (time_in_force=opg).
+#   1. Translator: Asset Tilt + Equity Scanner -> pending paper_orders rows.
+#   2. Submitter:  pending -> Alpaca paper MOO submissions (time_in_force=opg).
 #
 # Pipeline name (Data Steward convention): paper-portfolio-eod-daily
 # Pre-flight:
-#   * Sleeve A signal source — public/v10_allocation.json (refreshed by
+#   * Sleeve A signal source - public/v10_allocation.json (refreshed by
 #     INDICATOR-REFRESH_7AM_WEEKDAYS earlier in the day).
-#   * Sleeve B signal source — public.signal_intel_v5_daily (refreshed by
+#   * Sleeve B signal source - public.signal_intel_v5_daily (refreshed by
 #     SCAN workflows after the 3:30 PM close).
-# Both must be current as of today before this workflow runs.
+#   Both reflect the PRIOR day's close and are available all night, so an
+#   early-morning submission is correct, not premature.
 #
-# Schedule (Data Steward standard slot for portfolio surfaces):
-#   * 20:30 UTC = 4:30 PM EDT (UTC-4) / 3:30 PM EST (UTC-5) — after market close.
-#   * Submission is routed by Alpaca to NEXT trading day's opening auction.
-#   * Weekdays only. Holiday calendar handled by Alpaca's `is_open` clock —
-#     a non-trading day yields zero pending rows and the submitter is a no-op.
+# ---------------------------------------------------------------------------
+# 2026-05-31 RELIABILITY FIX (Data Steward + Lead Developer sign-off)
+# ---------------------------------------------------------------------------
+# Symptom: no live rebalance since 2026-05-27. The job ran daily and logged
+# "success" but never submitted, because GitHub's scheduled-cron delivery was
+# running 1.5-4 HOURS late (observed schedule runs landed 10:43 / 10:57 /
+# 13:23 ET) - always past the old 08:00-09:25 ET submit window, so every run
+# hit the window guard and exited as a no-op.
+#
+# Why the fix is safe: these are market-on-open ('opg' TIF) orders. Alpaca
+# routes them to the NEXT opening auction regardless of when they are
+# submitted before that open. So submitting any time from early-morning up
+# to ~09:25 ET still executes at the 09:30 open. We therefore:
+#   (a) widen the accept window to 04:00-09:25 ET, and
+#   (b) fire many redundant morning attempts (every 30 min, 08:30-13:30 UTC
+#       weekdays) so that even a multi-hour-delayed delivery still lands
+#       inside the accept window.
+# The first attempt that lands does the work; all later attempts are clean
+# no-ops via the paper_orders client_order_id idempotency key (duplicate
+# intents are repaired, never re-fired). This mirrors the proven multi-window
+# pattern already used by MASSIVE-DAILY for the same "GitHub drops crons"
+# failure (see pipeline_schedule.yml).
 #
 # Required GitHub secrets:
-#   SUPABASE_ACCESS_TOKEN     — read paper_accounts + signal_intel_v5_daily,
+#   SUPABASE_ACCESS_TOKEN     - read paper_accounts + signal_intel_v5_daily,
 #                                write paper_signal_capture + paper_orders.
-#   SUPABASE_URL              — Supabase project URL (used by sub-readers).
-#   ALPACA_PAPER_KEY_ID       — Alpaca paper API key.
-#   ALPACA_PAPER_SECRET       — Alpaca paper API secret.
-#   ALPACA_PAPER_BASE_URL     — default https://paper-api.alpaca.markets
+#   SUPABASE_URL              - Supabase project URL (used by sub-readers).
+#   ALPACA_PAPER_KEY_ID       - Alpaca paper API key.
+#   ALPACA_PAPER_SECRET       - Alpaca paper API secret.
+#   ALPACA_PAPER_BASE_URL     - default https://paper-api.alpaca.markets
+#   PAPER_LIVE_TRADING_ENABLED - must equal 'true' to submit live (ENABLED).
 
 on:
   schedule:
-    # 09:00 ET morning runs — between scanner completion (~08:30 ET) and
-    # market open (09:30 ET). Joe directive 2026-05-27: queue trades for
-    # the upcoming open ONCE both Asset Tilt and Trading Ops are fresh on
-    # the prior day's close. Was 20:30 UTC (16:30 ET same-day) which fired
-    # before Trading Ops had a complete close to scan against.
-    # 13:00 UTC = 09:00 ET (EDT), 14:00 UTC = 09:00 ET (EST). Idempotent
-    # via paper_orders client_order_id — duplicate intents are repaired,
-    # not re-fired.
-    - cron: '0 13 * * 2-6'
-    - cron: '0 14 * * 2-6'
-  # Chain off the Trading Ops scanner so the queue fires as soon as the
-  # morning scanner finishes. A pre-open WINDOW GUARD (see the first job
-  # step) means only the morning run (08:00-09:25 ET) actually submits;
-  # the scanner's evening re-runs trigger this workflow but exit as clean
-  # no-ops, so we "queue once" per Joe's directive without losing the
-  # reliability of firing the moment the morning panel is ready.
+    # Redundant morning attempts every 30 min. The ET window guard below
+    # filters them; the first one that lands in 04:00-09:25 ET submits and
+    # the rest are idempotent no-ops. Spanning 08:30-13:30 UTC covers both
+    # DST offsets and absorbs multi-hour GitHub scheduler delays.
+    - cron: '30 8 * * 1-5'
+    - cron: '0 9 * * 1-5'
+    - cron: '30 9 * * 1-5'
+    - cron: '0 10 * * 1-5'
+    - cron: '30 10 * * 1-5'
+    - cron: '0 11 * * 1-5'
+    - cron: '30 11 * * 1-5'
+    - cron: '0 12 * * 1-5'
+    - cron: '30 12 * * 1-5'
+    - cron: '0 13 * * 1-5'
+    - cron: '30 13 * * 1-5'
+  # Chain off the Trading Ops scanner so the queue can fire the moment the
+  # morning panel is ready. The ET window guard makes any out-of-window
+  # completion chain a harmless no-op.
   workflow_run:
     workflows: ["SCREENER_TRADING_OPPS_DAILY"]
     types: [completed]
@@ -69,25 +90,26 @@ jobs:
     steps:
       - name: Pre-open submit window guard
         id: window
-        # Only submit in the morning pre-open window (08:00-09:25 ET). This
-        # makes the scanner's evening completion chains harmless no-ops while
-        # keeping the morning trigger. Manual dry-runs always proceed.
+        # Accept any fire from 04:00 ET up to 09:25 ET. 'opg' orders route to
+        # the 09:30 open no matter when (pre-open) they are submitted, so an
+        # early or late-delivered timer still trades at the open. Manual
+        # dry-runs always proceed.
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
-            echo "Manual dispatch — proceeding."
+            echo "Manual dispatch - proceeding."
             exit 0
           fi
           H=$(TZ=America/New_York date +%H)
           M=$(TZ=America/New_York date +%M)
           MINS=$((10#$H * 60 + 10#$M))
-          # 08:00 ET = 480 minutes, 09:25 ET = 565 minutes.
-          if [ "$MINS" -ge 480 ] && [ "$MINS" -le 565 ]; then
+          # 04:00 ET = 240 minutes, 09:25 ET = 565 minutes.
+          if [ "$MINS" -ge 240 ] && [ "$MINS" -le 565 ]; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
-            echo "Pre-open window ($H:$M ET) — proceeding to queue trades."
+            echo "Pre-open window ($H:$M ET) - proceeding to queue trades."
           else
             echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "Outside pre-open window ($H:$M ET) — no-op (queue once in the morning)."
+            echo "Outside pre-open window ($H:$M ET) - no-op."
           fi
 
       - name: Check out market-dashboard
