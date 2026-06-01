@@ -259,7 +259,7 @@ export default function MTTable({
 
   function addColumnFilter() {
     if (!draftFilter || !draftFilter.value || String(draftFilter.value).trim() === "") return;
-    setColFilters(arr => [...arr, { id: Date.now() + Math.random(), ...draftFilter }]);
+    setColFilters(arr => [...arr, { id: Date.now() + Math.random(), ...draftFilter }]); // synthetic-ok: unique React key for a filter row, not displayed data
     setDraftFilter(null);
     setPopover(null);
   }
