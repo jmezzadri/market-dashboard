@@ -22,10 +22,14 @@ export default function Tip({
     setHover(true);
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
+    // Clamp the center-anchored tooltip so it never runs off either edge of
+    // the viewport (maxWidth 280 → ~144px half-width incl. margin).
+    const HALF = 144;
+    const clampC = (x) => Math.max(HALF, Math.min(window.innerWidth - HALF, x));
     if (side === 'right') setXY({ x: r.right + 8, y: r.top + r.height / 2, side });
     else if (side === 'left') setXY({ x: r.left - 8, y: r.top + r.height / 2, side });
-    else if (side === 'bottom') setXY({ x: r.left + r.width / 2, y: r.bottom + 6, side });
-    else setXY({ x: r.left + r.width / 2, y: r.top - 6, side: 'top' });
+    else if (side === 'bottom') setXY({ x: clampC(r.left + r.width / 2), y: r.bottom + 6, side });
+    else setXY({ x: clampC(r.left + r.width / 2), y: r.top - 6, side: 'top' });
   };
 
   const tr = {

@@ -104,7 +104,12 @@ export default function FreshnessChip({
     const el = ref.current;
     if (el) {
       const r = el.getBoundingClientRect();
-      setTipXY({ x: r.left + r.width / 2, y: r.top, below: r.top < 80 });
+      // Clamp center so the tooltip (maxWidth 320 → ~168px half-width incl.
+      // margin) never overflows the viewport edge — fixes the chip tooltip
+      // running off the right side of the screen.
+      const HALF = 168;
+      const cx = Math.max(HALF, Math.min(window.innerWidth - HALF, r.left + r.width / 2));
+      setTipXY({ x: cx, y: r.top, below: r.top < 80 });
     }
   };
   const onLeave = () => {

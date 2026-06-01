@@ -2,7 +2,17 @@
    hover crosshair, floating value tooltip. Measures its container via
    ResizeObserver so SVG viewBox matches actual rendered width — never use
    preserveAspectRatio="none" (it distorts text).
-   Ported from site-overhaul lm-core.jsx, adapted for real point arrays. */
+   Ported from site-overhaul lm-core.jsx, adapted for real point arrays.
+
+   2026-06-01: added working overlays for the Ticker Detail page —
+     overlays   : moving-average lines drawn on the price axis
+     volume     : faint volume bars in a band along the bottom
+     events     : dated vertical markers (insider / dark-pool prints)
+     compareData: a second ticker, rebased to the primary's start price so
+                  the two are comparable on one axis ("indexed to start").
+   All series are aligned to the primary series BY DATE, so a missing or
+   warm-up point (e.g. the first 199 days of a 200-day average) just leaves
+   a gap rather than shifting the line. */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 
@@ -10,7 +20,11 @@ export default function BigHistoryChart({
   points = [],          // [[isoDate, value], ...]
   accent = 'var(--mt-accent)',
   height = 300,
-  compareData = null,
+  overlays = [],        // [{ points:[[iso,val]], color, label, dash }]
+  volume = null,        // [[iso, vol], ...]
+  events = [],          // [{ date, label, color }]
+  compareData = null,   // [[iso, val], ...] — rebased to primary start
+  compareLabel = '',
   compareAccent = 'var(--mt-warn)',
   yFormat = (v) => v.toFixed(2),
   freq = '',            // 'D' | 'W' | 'M' | 'Q' — drives hover-date precision
@@ -36,6 +50,25 @@ export default function BigHistoryChart({
       .map((p) => ({ x: p[0], y: p[1] }));
   }, [points]);
 
+  // index of iso date -> position, so overlays/compare/events align by date
+  const idxByDate = useMemo(() => {
+    const m = new Map();
+    data.forEach((d, i) => m.set(d.x, i));
+    return m;
+  }, [data]);
+
+  // Rebase compare to the primary's first value (indexed performance).
+  const compareSeries = useMemo(() => {
+    if (!compareData?.length || !data.length) return null;
+    const cmpByDate = new Map(compareData.filter((p) => Array.isArray(p) && typeof p[1] === 'number').map((p) => [p[0], p[1]]));
+    // first date present in both
+    let base = null;
+    for (const d of data) { if (cmpByDate.has(d.x)) { base = cmpByDate.get(d.x); break; } }
+    if (!base) return null;
+    const scale = data[0].y / base;
+    return data.map((d) => (cmpByDate.has(d.x) ? cmpByDate.get(d.x) * scale : null));
+  }, [compareData, data]);
+
   if (!data.length) {
     return (
       <div ref={wrapRef} style={{ height, display: 'grid', placeItems: 'center',
@@ -46,7 +79,13 @@ export default function BigHistoryChart({
   }
 
   const padL = 56, padR = 16, padT = 16, padB = 28;
-  const yVals = data.map((d) => d.y);
+  const volBand = volume ? Math.round((height - padT - padB) * 0.18) : 0;
+  const plotBot = height - padB - volBand;   // price area sits above the volume band
+
+  // y-range spans price + overlays + rebased compare
+  let yVals = data.map((d) => d.y);
+  overlays.forEach((o) => (o.points || []).forEach((p) => { if (typeof p[1] === 'number') yVals.push(p[1]); }));
+  if (compareSeries) compareSeries.forEach((v) => { if (v != null) yVals.push(v); });
   const yMin = Math.min(...yVals);
   const yMax = Math.max(...yVals);
   const yRange = (yMax - yMin) || 1;
@@ -54,7 +93,7 @@ export default function BigHistoryChart({
   const yLo = yMin - yPad;
   const yHi = yMax + yPad;
   const xOf = (i) => padL + (i / Math.max(1, data.length - 1)) * (w - padL - padR);
-  const yOf = (v) => padT + (1 - (v - yLo) / (yHi - yLo)) * (height - padT - padB);
+  const yOf = (v) => padT + (1 - (v - yLo) / (yHi - yLo)) * (plotBot - padT);
 
   const ticks = 4;
   const tickVals = Array.from({ length: ticks + 1 }, (_, i) => yLo + (i / ticks) * (yHi - yLo));
@@ -62,7 +101,28 @@ export default function BigHistoryChart({
   const path = data
     .map((d, i) => `${i ? 'L' : 'M'}${xOf(i).toFixed(1)} ${yOf(d.y).toFixed(1)}`)
     .join(' ');
-  const areaPath = `${path} L${xOf(data.length - 1).toFixed(1)} ${(height - padB).toFixed(1)} L${xOf(0).toFixed(1)} ${(height - padB).toFixed(1)} Z`;
+  const areaPath = `${path} L${xOf(data.length - 1).toFixed(1)} ${plotBot.toFixed(1)} L${xOf(0).toFixed(1)} ${plotBot.toFixed(1)} Z`;
+
+  // Build a path for an overlay/compare series aligned by date (gaps allowed).
+  function seriesPath(values) {
+    let started = false;
+    const segs = [];
+    values.forEach((v, i) => {
+      if (v == null) { started = false; return; }
+      segs.push(`${started ? 'L' : 'M'}${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`);
+      started = true;
+    });
+    return segs.join(' ');
+  }
+  function overlayValues(o) {
+    const byDate = new Map((o.points || []).filter((p) => typeof p[1] === 'number').map((p) => [p[0], p[1]]));
+    return data.map((d) => (byDate.has(d.x) ? byDate.get(d.x) : null));
+  }
+
+  // volume bars
+  const volByDate = volume ? new Map(volume.filter((p) => typeof p[1] === 'number').map((p) => [p[0], p[1]])) : null;
+  const maxVol = volByDate ? Math.max(1, ...Array.from(volByDate.values())) : 1;
+  const volBarW = Math.max(1, (w - padL - padR) / Math.max(1, data.length) * 0.7);
 
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -72,8 +132,6 @@ export default function BigHistoryChart({
   };
   const onLeave = () => setHover(null);
 
-  // X-axis tick labels (begin / middle / end) stay month + year — those are
-  // span markers, not point reads, so the day would just be noise.
   const dateLabel = (i) => {
     const iso = data[i]?.x;
     if (!iso) return '';
@@ -81,10 +139,6 @@ export default function BigHistoryChart({
     return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
   };
 
-  // Hover tooltip date — frequency-aware. Daily and weekly series are read at
-  // a specific observation, so the user needs the exact date (month + day +
-  // year). Monthly and quarterly observations are period stamps where the day
-  // carries no meaning, so month + year is the right precision there.
   const f = String(freq || '').toUpperCase();
   const hoverDateOpts =
     f === 'M' || f === 'Q'
@@ -109,75 +163,84 @@ export default function BigHistoryChart({
         {/* horizontal grid lines */}
         {tickVals.map((v, i) => (
           <g key={i}>
-            <line
-              x1={padL}
-              x2={w - padR}
-              y1={yOf(v)}
-              y2={yOf(v)}
-              stroke="var(--mt-line-0)"
-              strokeWidth="1"
-            />
-            <text
-              x={padL - 8}
-              y={yOf(v)}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fill="var(--mt-ink-3)"
-              style={{ font: '11px var(--mt-font-ui)' }}
-              className="num"
-            >
+            <line x1={padL} x2={w - padR} y1={yOf(v)} y2={yOf(v)} stroke="var(--mt-line-0)" strokeWidth="1" />
+            <text x={padL - 8} y={yOf(v)} textAnchor="end" dominantBaseline="middle"
+              fill="var(--mt-ink-3)" style={{ font: '11px var(--mt-font-ui)' }} className="num">
               {yFormat(v)}
             </text>
           </g>
         ))}
-        {/* area fill */}
+
+        {/* volume bars */}
+        {volByDate && data.map((d, i) => {
+          const v = volByDate.get(d.x);
+          if (v == null) return null;
+          const h = (v / maxVol) * volBand;
+          return (
+            <rect key={`v${i}`} x={xOf(i) - volBarW / 2} y={height - padB - h}
+              width={volBarW} height={h} fill="var(--mt-ink-3)" opacity={0.28} />
+          );
+        })}
+
+        {/* area + price line */}
         <path d={areaPath} fill={accent} opacity={0.10} />
-        {/* line */}
-        <path
-          d={path}
-          fill="none"
-          stroke={accent}
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <path d={path} fill="none" stroke={accent} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* moving-average overlays */}
+        {overlays.map((o, k) => (
+          <path key={`o${k}`} d={seriesPath(overlayValues(o))} fill="none"
+            stroke={o.color || 'var(--mt-ink-2)'} strokeWidth="1.4"
+            strokeDasharray={o.dash || ''} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+        ))}
+
+        {/* compare line (rebased) */}
+        {compareSeries && (
+          <path d={seriesPath(compareSeries)} fill="none" stroke={compareAccent}
+            strokeWidth="1.5" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+        )}
+
+        {/* event markers */}
+        {events.map((ev, k) => {
+          const i = idxByDate.get(ev.date);
+          if (i == null) return null;
+          const x = xOf(i);
+          return (
+            <g key={`e${k}`}>
+              <line x1={x} x2={x} y1={padT} y2={plotBot} stroke={ev.color || 'var(--mt-accent)'}
+                strokeWidth="1" strokeDasharray="2 3" opacity={0.5} />
+              <circle cx={x} cy={padT + 4} r="3" fill={ev.color || 'var(--mt-accent)'} />
+            </g>
+          );
+        })}
+
         {/* x-axis labels */}
         {[0, Math.floor(data.length / 2), data.length - 1].map((i) => (
-          <text
-            key={i}
-            x={xOf(i)}
-            y={height - 8}
+          <text key={i} x={xOf(i)} y={height - 8}
             textAnchor={i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}
-            fill="var(--mt-ink-3)"
-            style={{ font: '10.5px var(--mt-font-ui)' }}
-          >
+            fill="var(--mt-ink-3)" style={{ font: '10.5px var(--mt-font-ui)' }}>
             {dateLabel(i)}
           </text>
         ))}
+
         {/* hover crosshair */}
         {hover && (
           <>
-            <line
-              x1={hover.x}
-              x2={hover.x}
-              y1={padT}
-              y2={height - padB}
-              stroke="var(--mt-ink-2)"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-              opacity="0.4"
-            />
-            <circle
-              cx={hover.x}
-              cy={hover.y}
-              r="4.5"
-              fill={accent}
-              stroke="var(--mt-surface)"
-              strokeWidth="2"
-            />
+            <line x1={hover.x} x2={hover.x} y1={padT} y2={plotBot}
+              stroke="var(--mt-ink-2)" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+            <circle cx={hover.x} cy={hover.y} r="4.5" fill={accent} stroke="var(--mt-surface)" strokeWidth="2" />
           </>
         )}
       </svg>
+
+      {(overlays.length > 0 || compareSeries || volume) && (
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
+          <LegendSwatch color={accent} label="Price" />
+          {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
+          {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
+          {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
+        </div>
+      )}
+
       {hover && (
         <div
           style={{
@@ -203,5 +266,18 @@ export default function BigHistoryChart({
         </div>
       )}
     </div>
+  );
+}
+
+function LegendSwatch({ color, label, dash, block }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      {block ? (
+        <span style={{ width: 9, height: 9, background: color, opacity: 0.4, display: 'inline-block', borderRadius: 1 }} />
+      ) : (
+        <span style={{ width: 14, height: 0, borderTop: `2px ${dash ? 'dashed' : 'solid'} ${color}`, display: 'inline-block' }} />
+      )}
+      {label}
+    </span>
   );
 }
