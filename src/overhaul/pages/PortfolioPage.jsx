@@ -18,6 +18,7 @@ import Tip from '../components/Tip';
 import SmartImport from '../components/SmartImport';
 import PositionEditor from '../../components/PositionEditor';
 import CloseModal from '../../components/CloseModal';
+import WatchlistTable from '../../components/WatchlistTable';
 import useEngineRegime from '../lib/useEngineRegime';
 import { buildBook } from '../lib/portfolioAnalytics';
 import { computeTrailingRisk } from '../lib/portfolioRisk';
@@ -397,27 +398,23 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* ── watchlist ────────────────────────────────────────────────── */}
+      {/* ── watchlist (real scored table, same as Trading Opportunities) ─ */}
       <section className="mt-pagesection">
-        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Watchlist</div><div className="mt-h2">Names you're tracking.</div></div></div>
-        <article className="mt-card">
-          <form onSubmit={addWatch} style={{ display: 'flex', gap: 8, marginBottom: watchlist.length ? 16 : 0, flexWrap: 'wrap' }}>
-            <input value={wlInput} onChange={(e) => setWlInput(e.target.value)} placeholder="Add a ticker — e.g. NVDA"
-              style={{ flex: '0 1 240px', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface-2)', color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-font-mono)', fontSize: 13 }} />
-            <button type="submit" className="mt-btn mt-btn--primary">Add to watchlist</button>
-          </form>
-          {watchlist.length ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {watchlist.map((w) => (
-                <span key={w.ticker} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 12px', border: '1px solid var(--mt-line-1)', borderRadius: 999, background: 'var(--mt-surface-2)' }}>
-                  <span className="lm-tkmain lm-tkmain--link" style={{ fontSize: 15 }} onClick={() => navigate(`/ticker/${w.ticker}`)}>{w.ticker}</span>
-                  {w.name ? <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>{w.name}</span> : null}
-                  <button type="button" onClick={() => removeWatch(w.ticker)} aria-label={`Remove ${w.ticker}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mt-ink-3)', fontSize: 15, lineHeight: 1, padding: '0 2px' }}>✕</button>
-                </span>
-              ))}
-            </div>
-          ) : <div style={{ fontSize: 13, color: 'var(--mt-ink-3)' }}>No names yet — add a ticker above to start tracking it.</div>}
-        </article>
+        <div className="mt-sectionhead">
+          <div><div className="mt-eyebrow">Watchlist</div><div className="mt-h2">Names you're tracking — scored like Trading Opportunities.</div></div>
+        </div>
+        <WatchlistTable
+          rows={watchlist}
+          onOpenTicker={(t) => t && navigate(`/ticker/${t}`)}
+          onRemoveFromWatchlist={removeWatch}
+          portfolioAuthed={!!userId}
+          emptyMessage="No names on your watchlist yet — add one below."
+        />
+        <form onSubmit={addWatch} style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <input value={wlInput} onChange={(e) => setWlInput(e.target.value)} placeholder="Add a ticker — e.g. NVDA"
+            style={{ flex: '0 1 240px', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface-2)', color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-font-mono)', fontSize: 13 }} />
+          <button type="submit" className="mt-btn mt-btn--primary">Add to watchlist</button>
+        </form>
       </section>
 
       {showImport && <SmartImport userId={userId} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
