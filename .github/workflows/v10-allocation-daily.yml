@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
 
       - uses: actions/setup-python@v5
         with:
