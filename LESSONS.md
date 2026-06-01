@@ -1564,3 +1564,98 @@ PortfolioPage pattern.
 **Applies to:** All four specialists. Lead Developer leads the layer/route check;
 UX Designer confirms the click target matches the overhaul's route-based ticker
 navigation (not the legacy modal).
+
+---
+
+## 2026-05-31 — In a redesign, inventory and preserve EVERY existing feature before rebuilding
+
+**What happened:** The Portfolio page was rebuilt for presentation. The risk
+on a ground-up visual rebuild is silently dropping working features — the
+import flow, Add/Edit/Close/Delete position management, sortable holdings,
+the freshness chip, the live option-underlier price/IV feed, the
+options→short-equity decomposition, the ticker click-through. Any one of
+these going missing in a "redesign" is a regression the user discovers, not
+the agent.
+
+**What you should do instead:** Before writing a single line of a redesigned
+page, make a written inventory of every feature the current page has — every
+button, every modal, every data hook, every click target, every drill-down,
+every editing affordance. The rebuilt page must light up every item on that
+inventory. A redesign changes how things look and how facts are organized;
+it does not remove capability. After the rebuild, walk the inventory and
+confirm each item is present and wired. "It looks better" is not done if it
+does less.
+
+**Applies to:** UX Designer (leads) + Lead Developer. Every page redesign,
+overhaul, or "ground-up" rebuild.
+
+---
+
+## 2026-05-31 — UAT a rebuilt page means exercising every interaction in BOTH themes, not eyeballing a static mock
+
+**What happened:** A static HTML mockup looks finished but proves nothing —
+its bars don't grow, its filters don't filter, its sort doesn't sort, and it
+never runs in dark mode. Claiming a React rebuild "verified" off a static
+mock (or a single light-mode screenshot) is the same UAT-by-claim failure
+the screenshot rule already bans.
+
+**What you should do instead:** Run the ACTUAL component against the user's
+real book shape and the real analytics engine, then exercise every claimed
+interaction and look at every theme. For an auth-gated page whose live data
+you cannot load: build a faithful local render that imports the real
+component + the real engine + the real shared components, feed it the user's
+real positions, render it in a headless browser, and (a) screenshot light
+AND dark and read both top to bottom, (b) simulate every click — lens
+switch, drill-down filter + breadcrumb, clear, column sort, every
+disclosure — and assert the DOM changed as expected, (c) confirm zero
+console errors and no `undefined`/`NaN` in the output, (d) audit that every
+color token used is actually defined in both light and dark. Only after all
+four does the page count as verified. State explicitly which part (the
+authenticated live view of the user's own data) you could not see and asked
+the user to confirm.
+
+**Applies to:** All. Every page rebuild or interaction-heavy change.
+
+---
+
+## 2026-05-31 — One fact, one home: never restate a metric across coequal panels
+
+**What happened:** The prior Portfolio page stated the largest holding ~6
+times, asset-class allocation in 5 places, and cash in 4. The same number
+splattered across sibling panels with no hierarchy reads as clutter and
+makes the page feel padded rather than authoritative. The user's verdict was
+"repetition."
+
+**What you should do instead:** Give every metric exactly one canonical home.
+A headline KPI up top with a detailed breakdown below is a hierarchy
+(overview → detail) and is the *requested* progressive-disclosure pattern —
+that is allowed. What is forbidden is the same number appearing in two or
+more coequal panels (e.g. net/gross exposure in both a summary card and the
+exposure panel; cash dollars in a value card, an allocation lens, and the
+exposure strip). Before shipping any dashboard, list every scalar and where
+it appears; if a scalar appears more than once and the second appearance is
+not a strict drill-down of the first, delete it.
+
+**Applies to:** UX Designer (leads) + Senior Quant. Every metrics-dense
+surface — Portfolio, Macro Overview, Asset Tilt, any dashboard.
+
+---
+
+## 2026-05-31 — Research the domain's best-in-class before designing a professional surface
+
+**What happened:** The Portfolio rebuild targets people who use Addepar and
+Bloomberg PORT all day. Designing from generic dashboard instinct instead of
+the conventions those tools have trained the audience on produces something
+that looks amateur to that audience even when it is internally consistent.
+
+**What you should do instead:** Before designing any surface aimed at a
+professional audience, spend a few minutes researching the category leaders'
+patterns and bring the relevant conventions in deliberately. For portfolio
+analytics that is Addepar (overview → drill-down to any holding, light/dark
+modes, customizable lenses) and Bloomberg PORT (multi-lens exposure, a
+factor/risk-contribution decomposition table, scenario stress as a
+first-class view). The point is not to copy chrome but to match the mental
+model the audience already has so the page feels native to their workflow.
+
+**Applies to:** UX Designer (leads). Any new or rebuilt professional-grade
+surface.
