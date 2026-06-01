@@ -66,15 +66,19 @@ async function checkSurface(page, s) {
   const deadline = Date.now() + 12000;
   do {
     text = await page.evaluate(() => document.body?.innerText || "");
-    const hasAll = (s.mustInclude || []).every((m) => text.includes(m));
+    const lc = text.toLowerCase();
+    const hasAll = (s.mustInclude || []).every((m) => lc.includes(m.toLowerCase()));
     if (text.length >= MIN_TEXT_CHARS && hasAll) break;
     await page.waitForTimeout(500);
   } while (Date.now() < deadline);
 
+  // Compare case-insensitively: many labels render in CSS uppercase
+  // (text-transform), which the browser reflects in innerText.
+  const lc = text.toLowerCase();
   if (text.length < MIN_TEXT_CHARS) failures.push(`page looks blank (only ${text.length} chars of text)`);
-  for (const sig of ERROR_SIGNATURES) if (text.includes(sig)) failures.push(`error signature on page: "${sig}"`);
-  for (const m of s.mustInclude || []) if (!text.includes(m)) failures.push(`missing expected text: "${m}"`);
-  for (const m of s.mustNotInclude || []) if (text.includes(m)) failures.push(`unexpected placeholder text: "${m}"`);
+  for (const sig of ERROR_SIGNATURES) if (lc.includes(sig.toLowerCase())) failures.push(`error signature on page: "${sig}"`);
+  for (const m of s.mustInclude || []) if (!lc.includes(m.toLowerCase())) failures.push(`missing expected text: "${m}"`);
+  for (const m of s.mustNotInclude || []) if (lc.includes(m.toLowerCase())) failures.push(`unexpected placeholder text: "${m}"`);
   for (const rx of s.mustMatch || []) if (!rx.test(text)) failures.push(`expected pattern not found: ${rx}`);
   if (s.minPriceHits) {
     const hits = (text.match(/\$\d[\d,.]*/g) || []).length;
