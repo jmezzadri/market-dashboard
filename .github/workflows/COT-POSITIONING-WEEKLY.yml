@@ -1,0 +1,66 @@
+# COT-POSITIONING-WEEKLY — weekly "Market Crowding" positioning read.
+#
+# WHY
+# ───
+# The CFTC publishes Commitments of Traders every Friday (as of the prior
+# Tuesday). For seven macro markets this producer measures the watch-group's
+# net position as a share of open interest and ranks it into that group's OWN
+# trailing-3-year percentile (the absolute long/short sign is discarded on
+# purpose — several groups sit in permanent structural positions). The
+# percentile/z is the only signal. Observation mode: it feeds no score until a
+# forward-return backtest passes.
+#
+# SCHEDULE
+# ────────
+# Saturday 11:00 UTC (07:00 ET) — inside the normalized weekly Saturday-AM
+# window, after Friday's CFTC release has fully settled. Weekly is enough; the
+# series only changes when a new Tuesday report publishes.
+#
+# OUTPUTS
+# ───────
+# public/indicator_history.json — keys cot_* (merged, never overwritten),
+#   consumed by:
+#   • Macro Overview · Market Crowding panel
+#   • All Indicators · Market Positioning (COT) rows
+# public/data_manifest.json — freshness stamp on element indicator-cftc-cot-weekly
+#
+# Pipeline name: indicator-cot-weekly
+
+name: COT-POSITIONING-WEEKLY
+
+on:
+  schedule:
+    - cron: "0 11 * * 6"      # Saturday 11:00 UTC = 07:00 ET
+  workflow_dispatch: {}
+
+concurrency:
+  group: cot-positioning-weekly
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install python deps
+        run: |
+          pip install --break-system-packages numpy pandas requests
+      - name: Run COT positioning producer
+        run: python3 scripts/fetch_cftc_cot.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/indicator_history.json public/data_manifest.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/indicator_history.json public/data_manifest.json
+            git commit -m "COT positioning weekly refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi

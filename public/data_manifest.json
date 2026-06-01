@@ -3062,6 +3062,41 @@
       ],
       "failure_mode": "Event-driven; chip shows last order date, no stale grading.",
       "release_calendar": "wall-clock"
+    },
+    {
+      "id": "indicator-cftc-cot-weekly",
+      "category": "indicator",
+      "name": "cot",
+      "description": "CFTC Commitments of Traders \u2014 each market's futures positioning ranked into its own 3-year percentile (sign discarded). Observation mode.",
+      "sourcing_mode": "STP",
+      "source_vendor": "CFTC",
+      "source_endpoint": "publicreporting.cftc.gov (Socrata)",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "Sat 07:00",
+      "refresh_trigger": "GH workflow COT-POSITIONING-WEEKLY (cron 0 11 * * 6 UTC)",
+      "freshness_sla_hours": 192,
+      "output_destination": "public/indicator_history.json[cot_*]",
+      "producer_script": "scripts/fetch_cftc_cot.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Market Crowding panel"
+        },
+        {
+          "tab": "indicators",
+          "tile": "Market Positioning (COT) rows"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-market try/except; missing market omitted; row shows last-good. Observation mode, feeds no score.",
+      "owner": "Senior Quant (calibration), Data Steward (freshness)",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "last_success_utc": "2026-06-01T10:32:35+00:00",
+      "data_as_of": "2026-05-26",
+      "next_expected_utc": "2026-06-06T09:00:00+00:00"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

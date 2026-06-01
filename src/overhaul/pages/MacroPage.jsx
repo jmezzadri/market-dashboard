@@ -22,7 +22,9 @@ import FreshnessChip from '../components/FreshnessChip';
 import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
+import Sparkline from '../components/Sparkline';
 import useIndicators from '../lib/useIndicators';
+import useCotPositioning from '../lib/useCotPositioning';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Money', 'Economy'];
 // Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
@@ -45,6 +47,22 @@ function saveView(v) {
   try { window.localStorage.setItem('mt.overhaul.macro.view', v); } catch {}
 }
 
+// Plain-English ordinal for a 0–100 percentile: "8th percentile of its
+// 3-year range". Observation copy only — never a call.
+function pctileInWords(p) {
+  if (p == null || !Number.isFinite(p)) return null;
+  const n = Math.round(p);
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  let suffix = 'th';
+  if (mod100 < 11 || mod100 > 13) {
+    if (mod10 === 1) suffix = 'st';
+    else if (mod10 === 2) suffix = 'nd';
+    else if (mod10 === 3) suffix = 'rd';
+  }
+  return `${n}${suffix} percentile of its 3-year range`;
+}
+
 // Domain-level freshness chip: bind to the oldest indicator in the domain
 // (the one most likely to fail SLA first). useFreshness can't be called in
 // a loop, so this is the cleanest one-chip aggregation we can do safely.
@@ -55,6 +73,90 @@ function DomainFreshness({ inds }) {
   }, [inds]);
   if (!oldest) return null;
   return <FreshnessChip elementId={oldest.manifestId || `indicator-${oldest.id}-daily`} variant="dot" />;
+}
+
+/* ── Market Crowding ───────────────────────────────────────────────────────
+   Observation-only read of where any futures market is at a positioning
+   extreme this week (its watch group's net position is in the bottom or top
+   tenth of its own 3-year range). Additive section below the domain strip —
+   it does NOT touch the hero or the strip, feeds no score, and makes no
+   buy/sell or predictive claim. */
+function MarketCrowdingSection() {
+  const { extremes, asOf, loading } = useCotPositioning();
+  if (loading) return null;
+  return (
+    <section className="mt-pagesection mt-pagesection--tight">
+      <div className="mt-sectionhead">
+        <div>
+          <div className="mt-eyebrow">Market crowding</div>
+          <div className="mt-h2">Where the futures crowd is at an extreme.</div>
+          <p className="mt-deck" style={{ marginTop: 8 }}>
+            "Crowded" means a market's futures positioning is stretched versus
+            its own history — leaving it fragile to a reversal if the crowd
+            unwinds.
+          </p>
+        </div>
+      </div>
+
+      {extremes.length === 0 ? (
+        <div className="mt-card" style={{ padding: '18px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: asOf }} variant="dot" />
+            <span style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>
+              No market is at a positioning extreme this week.
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="mc-grid">
+          {extremes.map((r) => {
+            const sparkPts = (r.points || []).map((p) => p[1]).filter(Number.isFinite);
+            return (
+              <div key={r.key} className="mt-card" style={{ padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--mt-ink-0)' }}>
+                      {r.market}
+                    </div>
+                    {r.group && (
+                      <div style={{ fontSize: 12, color: 'var(--mt-ink-2)', marginTop: 2 }}>
+                        {r.group}
+                      </div>
+                    )}
+                  </div>
+                  <FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: r.asOf || asOf }} variant="dot" />
+                </div>
+                {pctileInWords(r.pctile3yr) && (
+                  <div style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', marginTop: 10 }}>
+                    {pctileInWords(r.pctile3yr)}
+                  </div>
+                )}
+                {r.read && (
+                  <div style={{ fontSize: 13, color: 'var(--mt-ink-1)', marginTop: 6, lineHeight: 1.4 }}>
+                    {r.read}
+                  </div>
+                )}
+                {sparkPts.length > 1 && (
+                  <div style={{ marginTop: 12 }}>
+                    <Sparkline data={sparkPts} width={220} height={28} stroke="var(--mt-ink-2)" showDot={false} />
+                    <div style={{ fontSize: 10.5, color: 'var(--mt-ink-3)', marginTop: 4 }}>
+                      Net position as a share of open interest · 3-year history
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ marginTop: 12, fontSize: 11, color: 'var(--mt-ink-3)', lineHeight: 1.5 }}>
+        Observation only — this is a reference read of futures positioning. It
+        feeds no score and is not a buy or sell signal; a forward-return
+        backtest is pending.
+      </div>
+    </section>
+  );
 }
 
 export default function MacroPage() {
@@ -162,6 +264,9 @@ export default function MacroPage() {
           </div>
         </section>
       )}
+
+      {/* Market crowding — additive, below the domain strip. Extremes only. */}
+      <MarketCrowdingSection />
 
       {/* Filter bar + view toggle */}
       <section className="mt-pagesection mt-pagesection--tight">
