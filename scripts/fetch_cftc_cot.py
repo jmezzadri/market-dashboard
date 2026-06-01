@@ -111,16 +111,22 @@ def zscore_latest(s: pd.Series, window: int) -> float:
 
 
 def read_for(pct: float) -> str:
-    """One-sentence 'so what' from the percentile alone."""
+    """One-sentence 'so what' from the percentile alone.
+
+    Sign-neutral on purpose: a low percentile means 'near the most bearish this
+    group has been in 3 years' relative to its OWN history, NOT that the book is
+    net-short in absolute terms (some watch groups are structurally net-long).
+    So the copy talks about position-in-range and fragility, never long/short.
+    """
     if pct <= TAIL_LOW:
-        return "Crowded short — positioning stretched; fragile to a squeeze."
+        return "Near the bottom of its 3-year range — positioning stretched; fragile to a reversal."
     if pct >= TAIL_HIGH:
-        return "Crowded long — positioning stretched; fragile to an unwind."
+        return "Near the top of its 3-year range — positioning stretched; fragile to a reversal."
     if pct <= 25:
-        return "Below-average length; room to add."
+        return "Toward the low end of its 3-year range."
     if pct >= 75:
-        return "Upper-normal length; not yet extreme."
-    return "Neutral positioning within its 3-year range."
+        return "Toward the high end of its 3-year range; not yet extreme."
+    return "Mid-range within its 3-year history."
 
 
 # --------------------------------------------------------------------------

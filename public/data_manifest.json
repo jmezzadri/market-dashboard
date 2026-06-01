@@ -3094,7 +3094,7 @@
       "owner": "Senior Quant (calibration), Data Steward (freshness)",
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
-      "last_success_utc": "2026-06-01T10:23:00+00:00",
+      "last_success_utc": "2026-06-01T10:32:35+00:00",
       "data_as_of": "2026-05-26",
       "next_expected_utc": "2026-06-06T09:00:00+00:00"
     }
