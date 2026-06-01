@@ -119,7 +119,11 @@ export default function ScannerPage() {
             <div className="mt-eyebrow">
               Today's scan{scanDate ? ` · ${scanDate}` : ''}
             </div>
-            <FreshnessChip elementId="equity-latest_scan_data-daily" variant="label" />
+            <FreshnessChip
+              elementId="equity-latest_scan_data-daily"
+              variant="label"
+              fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
+            />
           </div>
           <div className="sc-buckets">
             {BUCKETS.map((b) => {
