@@ -12,9 +12,11 @@
      • Every number carries a hover tooltip (Tip) explaining the "so what".
      • Real motion — NAV + headline values count up (AnimatedNumber); bars
        and the allocation stack grow in.
-     • Only real, engine-derived numbers are shown. Trailing return-based
-       stats (volatility, Sharpe, VaR) need a returns engine that is not in
-       scope here, so they are intentionally omitted rather than faked.
+     • Only real numbers are shown. Trailing return-based stats (volatility,
+       Sharpe, Sortino, drawdown, value-at-risk, factor betas) are computed
+       client-side from the proxy market feed (public/risk_proxies.json) and
+       the live weights — see ../lib/portfolioRisk — and labelled a
+       proxy-based estimate. Nothing is hardcoded or faked.
 
    Preserved end-to-end: SmartImport, Add/Edit/Close/Delete position
    management, sortable holdings, freshness chips, live option underlier
@@ -32,6 +34,7 @@ import PositionEditor from '../../components/PositionEditor';
 import CloseModal from '../../components/CloseModal';
 import useEngineRegime from '../lib/useEngineRegime';
 import { buildBook } from '../lib/portfolioAnalytics';
+import { computeTrailingRisk } from '../lib/portfolioRisk';
 
 /* ── asset-class brand colors (legend hues; readable on both themes) ──── */
 const AC_COLOR = {
@@ -106,6 +109,7 @@ export default function PortfolioPage() {
   const [positionEditor, setPositionEditor] = useState(null);
   const [closeModal, setCloseModal] = useState(null);
   const [showExpoDetail, setShowExpoDetail] = useState(false);
+  const [riskFeed, setRiskFeed] = useState(null);
   const userId = portfolio?.userId ?? null;
   const tableRef = useRef(null);
 
@@ -136,8 +140,17 @@ export default function PortfolioPage() {
     return () => { cancel = true; };
   }, [positions]);
 
+  // Trailing-risk proxy feed (≈3y daily returns for liquid look-alikes).
+  useEffect(() => {
+    if (typeof fetch !== 'function') return undefined;
+    let cancel = false;
+    fetch('/risk_proxies.json').then((r) => (r.ok ? r.json() : null)).then((d) => { if (!cancel) setRiskFeed(d); }).catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+
   const book = useMemo(() => buildBook(positions, mkt), [positions, mkt]);
   const total = book.total;
+  const trisk = useMemo(() => computeTrailingRisk(book.rows, total, riskFeed), [book, total, riskFeed]);
 
   const heldPositions = useMemo(() => book.rows.filter((r) => !r.option).map((r) => ({ ...r, acctLabel: r.account_name })), [book]);
 
@@ -387,9 +400,36 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* ── engine read + exposure detail (progressive disclosure) ────── */}
+      {/* ── trailing risk metrics + engine read ─────────────────────── */}
       <section className="mt-pagesection">
+        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Risk &amp; statistics</div><div className="mt-h2">Trailing risk — measured, not guessed.</div></div></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={card}>
+            <Tip content="Computed from ~3 years of daily returns, weighted by your live positions. Funds without clean daily history use a liquid look-alike, so these are solid estimates."><div style={eyebrow}>Risk metrics · trailing</div></Tip>
+            {!trisk ? (
+              <div style={{ color: 'var(--mt-ink-3)', fontSize: 12.5, padding: '10px 0' }}>Computing from the market feed…</div>
+            ) : (
+              <>
+                {[
+                  ['Volatility (annualized)', wpct(trisk.vol * 100), null, null, "How much the book's value swings over a year. Low here because high-yield bonds and cash dominate."],
+                  ['Sharpe ratio', trisk.sharpe != null ? trisk.sharpe.toFixed(2) : '—', null, null, 'Return earned per unit of risk, above cash. Above 1 is strong.'],
+                  ['Sortino ratio', trisk.sortino != null ? trisk.sortino.toFixed(2) : '—', null, null, 'Like Sharpe, but only counts downside moves as risk.'],
+                  ['Max drawdown (12m)', wpct(trisk.maxDD * 100), null, 'down', 'The worst peak-to-trough drop over the last year.'],
+                  ['Value at risk (95% · 1-day)', f$(trisk.var95Dollar), wpct(trisk.var95 * 100), 'down', 'On a rough day — about one in twenty — the book would be expected to lose at least this much.'],
+                  ['Beta to high-yield credit', trisk.betaHY != null ? trisk.betaHY.toFixed(2) : '—', null, null, 'How much the book moves when high-yield bonds move — your dominant risk factor.'],
+                  ['Beta to rates', trisk.betaRates != null ? trisk.betaRates.toFixed(2) : '—', null, null, 'Sensitivity to interest-rate moves, measured against Treasuries.'],
+                ].map((r, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, padding: '8px 0', borderTop: '1px solid var(--mt-line-0)' }}>
+                    <Tip content={r[4]}><span style={{ color: 'var(--mt-ink-1)', fontSize: 12.5 }}>{r[0]}</span></Tip>
+                    <span style={{ ...mono, fontWeight: 600, fontSize: 13.5, textAlign: 'right', whiteSpace: 'nowrap', color: r[3] === 'down' ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{r[1]}{r[2] ? <span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 500 }}>{r[2]}</span> : null}</span>
+                  </div>
+                ))}
+                <Tip block content="Funds without clean daily history are shown through liquid look-alikes — your high-yield fund via the high-yield bond ETF, the 529 international fund via a developed-international ETF, the index funds via the S&P 500. The index put enters as its delta-equivalent. So these are solid estimates, not exact figures.">
+                  <div style={{ fontSize: 10.5, color: 'var(--mt-ink-3)', marginTop: 10, lineHeight: 1.5, borderTop: '1px solid var(--mt-line-0)', paddingTop: 9 }}>Proxy-based estimate · {trisk.windowYears}-yr daily returns · as of {trisk.asOf}</div>
+                </Tip>
+              </>
+            )}
+          </div>
           <div style={card}>
             <div style={eyebrow}>MacroTilt engine read</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -408,6 +448,12 @@ export default function PortfolioPage() {
               </Tip>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── exposure + income ───────────────────────────────────────── */}
+      <section className="mt-pagesection">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: 16 }}>
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Tip content="Long minus short (net) and long plus short (gross), after the option hedge is decomposed into its equity-equivalent."><div style={{ ...eyebrow, marginBottom: 0 }}>Exposure · delta-adjusted</div></Tip>
@@ -441,12 +487,6 @@ export default function PortfolioPage() {
             )}
             {opt && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 10, lineHeight: 1.5 }}>The short equity line is the {opt.underlier} {opt.contractType} ({opt.deltaEquivNotional != null ? f$(opt.deltaEquivNotional) : '—'} delta-equivalent) — it protects {f$(opt.protectionNotional)} of {opt.underlier} below ${opt.strike}.</div>}
           </div>
-        </div>
-      </section>
-
-      {/* ── income + scenario stress ─────────────────────────────────── */}
-      <section className="mt-pagesection">
-        <div style={{ display: 'grid', gridTemplateColumns: '.85fr 1.15fr', gap: 16 }}>
           <div style={card}>
             <Tip content="Projected forward annual income from yields on what you hold — not a realized figure."><div style={eyebrow}>Income &amp; yield · projected annual</div></Tip>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px 12px' }}>
@@ -459,7 +499,12 @@ export default function PortfolioPage() {
               <span style={{ ...mono, textAlign: 'right', fontSize: 13 }}>{wpct(agg.income / total * 100)}</span>
             </div>
           </div>
-          <div style={card}>
+        </div>
+      </section>
+
+      {/* ── scenario stress (full width) ────────────────────────────── */}
+      <section className="mt-pagesection">
+        <div style={card}>
             <Tip content="First-order P/L estimates from factor sensitivities — a quick read on what hurts the book, not a full revaluation."><div style={eyebrow}>Scenario stress · first-order P/L estimate</div></Tip>
             <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginBottom: 8, lineHeight: 1.5 }}>Your dominant risk is high-yield credit spreads (the {wpct(fi / total * 100)} bond fund), not equities — a spread blowout hurts far more than a stock selloff.</div>
             {scenarios.map((s) => (
@@ -470,7 +515,6 @@ export default function PortfolioPage() {
               </div>
             ))}
           </div>
-        </div>
       </section>
 
       {/* ── holdings table (with drill-down breadcrumb) ──────────────── */}
