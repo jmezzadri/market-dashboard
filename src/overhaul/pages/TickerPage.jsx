@@ -400,7 +400,17 @@ export default function TickerPage() {
           <div className="tk-priceblock">
             <div className="tk-price num">${fmt(price, 2)}</div>
             <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
-              {chgPct >= 0 ? '▲' : '▼'} ${Math.abs((price * chgPct) / 100).toFixed(2)}{' '}
+              {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(
+                /* actual price move = price − prior close. The old code used
+                   price × pct/100, which bases the $ move on the CURRENT price
+                   instead of the prior close, so the dollar figure and the %
+                   disagreed ($17.75 shown when the real move was $16.40).
+                   If prevClose is missing, derive the move from price and pct
+                   consistently: move = price·pct/(100+pct). */
+                prevClose != null
+                  ? (price - prevClose)
+                  : (price * chgPct) / (100 + chgPct)
+              ).toFixed(2)}{' '}
               ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
             </div>
             <div className="tk-pricemeta num">
