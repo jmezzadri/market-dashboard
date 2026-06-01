@@ -55,6 +55,8 @@ class TranslatorResult:
     signal_capture_id: str | None = None
     orders_written: int = 0
     dry_run: bool = False
+    asset_tilt_as_of: str = ""       # sector-sleeve signal date (for freshness gate)
+    scanner_scan_date: str = ""      # stock-sleeve signal date (for freshness gate)
 
 
 def run(
@@ -188,6 +190,8 @@ def run(
         signal_capture_id=capture_id,
         orders_written=orders_written,
         dry_run=dry_run,
+        asset_tilt_as_of=asset_tilt.as_of,
+        scanner_scan_date=scanner.scan_date,
     )
 
 
