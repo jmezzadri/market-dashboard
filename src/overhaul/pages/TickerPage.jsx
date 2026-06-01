@@ -372,9 +372,17 @@ export default function TickerPage() {
             </span>
           )}
           <div className="tk-scoredelta">
-            <span>Score change · 14 days</span>
-            <b className="num">—</b>
-            <FreshnessChip elementId="equity-latest_scan_data-daily" variant="dot" />
+            <span>Score change · 1 week</span>
+            <b className="num">{
+              (score != null && scanRow?.score_1w != null)
+                ? `${(score - scanRow.score_1w) >= 0 ? '+' : ''}${(score - scanRow.score_1w).toFixed(2)}`
+                : '—'
+            }</b>
+            <FreshnessChip
+              elementId="equity-latest_scan_data-daily"
+              variant="dot"
+              fallback={{ asOfIso: scanner.scanDate, calendar: 'nyse-trading-day' }}
+            />
           </div>
         </div>
       </section>
@@ -503,6 +511,7 @@ export default function TickerPage() {
             headlineScore={score}
             tech={tech}
             v5Row={v5Row}
+            scanDate={scanner.scanDate}
           />
         )}
 
@@ -589,14 +598,18 @@ function KvCell({ label, value }) {
 
 /* ---------- Score Breakdown tab ---------- */
 
-function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row }) {
+function ScoreBreakdownTab({ breakdown, totalScore, headlineScore, tech, v5Row, scanDate }) {
   return (
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">
           Composition · MacroTilt scoring framework
         </div>
-        <FreshnessChip elementId="equity-latest_scan_data-daily" variant="dot" />
+        <FreshnessChip
+          elementId="equity-latest_scan_data-daily"
+          variant="dot"
+          fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
+        />
       </div>
       <table className="lm-scoremath tk-scoretable">
         <thead>
