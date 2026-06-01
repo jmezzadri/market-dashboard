@@ -156,7 +156,9 @@ export default function PortfolioPage() {
     for (const r of rows) {
       if (r.cls?.ac === 'Cash') continue;
       if (r.option) { betaDollars += (r.option.deltaEquivNotional || 0) * 1.0; }
-      else { betaDollars += r.value * (Number.isFinite(Number(r.beta)) ? Number(r.beta) : (DEFAULT_BETA[r.cls.ac] ?? 1)); }
+      // Stored beta is often unset (0/null) for funds — fall back to the
+      // asset-class default, matching the engine's risk-contribution math.
+      else { betaDollars += r.value * (Number(r.beta) || (DEFAULT_BETA[r.cls.ac] ?? 1)); }
     }
     const pBeta = total ? betaDollars / total : 0;
     const withYield = rows.reduce((s, r) => s + r.value * ((r.cls?.yld || 0) / 100), 0);
@@ -522,7 +524,7 @@ export default function PortfolioPage() {
                     <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{wpct(r.weight)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: r.pl == null ? 'var(--mt-ink-3)' : r.pl >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{r.pl == null ? '—' : (r.pl >= 0 ? '+' : '') + f$full(r.pl)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: r.plp == null ? 'var(--mt-ink-3)' : r.plp >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{r.plp == null ? '—' : fpct(r.plp)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{r.option ? '—' : (Number(r.beta) || 0).toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{r.option ? '—' : r.cls.ac === 'Cash' ? '0.00' : (Number(r.beta) || (DEFAULT_BETA[r.cls.ac] ?? 1)).toFixed(2)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: 'var(--mt-ink-2)' }}>{r.cls?.yld ? r.cls.yld.toFixed(1) + '%' : '—'}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11 }} onClick={() => setPositionEditor({ mode: 'edit', existing: r })}>Edit</button>
