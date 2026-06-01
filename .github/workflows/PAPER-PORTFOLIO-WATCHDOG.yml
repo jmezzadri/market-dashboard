@@ -1,0 +1,38 @@
+name: PAPER-PORTFOLIO-WATCHDOG
+
+# Post-open fill verification (2026-06-01). Confirms the daily rebalance
+# actually completed end-to-end; files a P1 alert if 0 orders were created,
+# 0 submitted, or 0 filled on a trading day. This is the safety net that
+# turns a silent failure into a visible one. See scripts/paper_fill_watchdog.py.
+
+on:
+  schedule:
+    - cron: '0 14 * * 1-5'   # 10:00 ET (EDT), ~30 min after the open
+    - cron: '0 15 * * 1-5'   # 10:00 ET (EST) coverage
+  workflow_dispatch:
+
+concurrency:
+  group: paper-portfolio-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run fill watchdog
+        env:
+          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+        run: python -m scripts.paper_fill_watchdog
