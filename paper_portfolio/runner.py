@@ -135,6 +135,53 @@ def run_eod_phase(
     if s_result.errors:
         for e in s_result.errors[:5]:
             logger.warning("submit error: %s", e)
+
+    # ── QUEUED-CONFIRMATION EMAIL (added 2026-06-01) ───────────────────────
+    # On a real (non-dry) run, email Joe a plain-English summary of what was
+    # queued for the open. Silence had hidden a week of failure; a positive
+    # "here's what's queued" every morning makes a MISSING email itself a
+    # red flag. Best-effort; never crash the run.
+    if not dry_run:
+        try:
+            from paper_portfolio.emailer import send_alert_email
+            buys = [i for i in t_result.intents if i.side == "buy"]
+            sells = [i for i in t_result.intents if i.side == "sell"]
+            def _notional(i):
+                if i.target_notional is not None:
+                    return abs(float(i.target_notional))
+                return 0.0
+            buy_val = sum(_notional(i) for i in buys)
+            sell_val = sum(_notional(i) for i in sells)
+            lines = [
+                f"Paper rebalance queued for the next open ({fr.last_closed_session} signals).",
+                "",
+                f"Orders submitted to broker: {s_result.submitted}"
+                f" (rejected {s_result.rejected}, duplicates {s_result.duplicates})",
+                f"Buys: {len(buys)}  (~${buy_val:,.0f})    Sells: {len(sells)}  (~${sell_val:,.0f})",
+                "",
+                "Detail:",
+            ]
+            for i in t_result.intents:
+                if i.target_quantity is not None:
+                    sz = f"{i.target_quantity:g} sh"
+                elif i.target_notional is not None:
+                    sz = f"${abs(i.target_notional):,.0f}"
+                else:
+                    sz = "n/a"
+                lines.append(f"  {i.side.upper():4} {i.ticker:6} {sz:>10}  (sleeve {i.sleeve})")
+            if s_result.errors:
+                lines += ["", "Submit errors:"] + [f"  {e}" for e in s_result.errors[:8]]
+            lines += ["", "These execute at the 9:30am ET opening auction. "
+                          "A separate confirmation follows after the open."]
+            status = "queued" if s_result.submitted else "NO ORDERS submitted"
+            send_alert_email(
+                f"[MacroTilt paper] Morning rebalance {status} — "
+                f"{s_result.submitted} orders for the open",
+                "\n".join(lines),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("queued-confirmation email failed: %s", exc)
+
     return {"translator": t_result, "submitter": s_result}
 
 
