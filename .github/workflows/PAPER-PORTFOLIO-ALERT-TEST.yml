@@ -1,0 +1,26 @@
+name: PAPER-PORTFOLIO-ALERT-TEST
+
+# One-off: prove the paper-pipeline alert email actually reaches Joe's inbox.
+# Manual dispatch only. Sends a single test email via the same path the
+# watchdog/freshness gate use. Delete after confirming receipt.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+      - name: Send test alert email
+        env:
+          SMTP_USER:     ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:    ${{ secrets.EMAIL_FROM }}
+        run: |
+          python -c "from paper_portfolio.emailer import send_alert_email; import sys; ok = send_alert_email('[MacroTilt paper TEST] alert channel check', 'This is a one-off test confirming the paper-rebalance alert email reaches your inbox. If you are reading this, failure alerts and the daily watchdog can now reach you here. — automated check'); print('SENT_OK' if ok else 'SEND_FAILED'); sys.exit(0 if ok else 1)"
