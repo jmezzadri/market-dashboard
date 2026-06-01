@@ -171,6 +171,11 @@ export default function BigHistoryChart({
     if (!eventsByIdx.has(i)) eventsByIdx.set(i, []);
     eventsByIdx.get(i).push(ev);
   }
+  // Only list an event type in the legend when at least one of that type is
+  // actually plotted (an event whose date falls inside the visible window).
+  const plotted = [...eventsByIdx.values()].flat();
+  const hasInsiderEv = plotted.some((e) => (e.label || '').toLowerCase().includes('insider'));
+  const hasDarkEv = plotted.some((e) => (e.label || '').toLowerCase().includes('dark'));
 
   return (
     <div ref={wrapRef} style={{ width: '100%', position: 'relative' }}>
@@ -250,14 +255,14 @@ export default function BigHistoryChart({
         )}
       </svg>
 
-      {(overlays.length > 0 || compareSeries || volume || events.length > 0) && (
+      {(overlays.length > 0 || compareSeries || volume || hasInsiderEv || hasDarkEv) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label="Price" />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
           {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
-          {events.length > 0 && <LegendSwatch color="var(--mt-up)" label="Insider event" dot />}
-          {events.length > 0 && <LegendSwatch color="var(--mt-accent)" label="Dark-pool event" dot />}
+          {hasInsiderEv && <LegendSwatch color="var(--mt-up)" label="Insider event" dot />}
+          {hasDarkEv && <LegendSwatch color="var(--mt-accent)" label="Dark-pool event" dot />}
         </div>
       )}
 
