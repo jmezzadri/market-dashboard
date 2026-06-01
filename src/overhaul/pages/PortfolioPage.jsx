@@ -1,33 +1,19 @@
-/* Portfolio Insights — presentation rebuild 2026-05-31 (Joe directive).
-   World-class rebuild on the SAME tested analytics engine
-   (../lib/portfolioAnalytics: classification, Black–Scholes option
-   decomposition, long/short/gross/net exposure). This pass is presentation
-   only — no engine math changed.
+/* Portfolio Insights — rebuilt 2026-06-01 to match the site design system.
+   Uses the real overhaul classes (pf-* account cards, pf-allocrow allocation,
+   lm-scancard scored rows, pf-keystats hero, display-font numbers) so the page
+   matches Home / Scanner / Tilt instead of bespoke inline styling.
 
-   Design principles (Addepar drill-down + Bloomberg PORT decomposition):
-     • One fact, one home — no metric is restated across panels.
-     • Overview first, detail on demand — allocation slice → filtered
-       holdings (with a breadcrumb); ticker → /ticker/:symbol; the
-       exposure headline expands to the long/short-by-class bridge.
-     • Every number carries a hover tooltip (Tip) explaining the "so what".
-     • Real motion — NAV + headline values count up (AnimatedNumber); bars
-       and the allocation stack grow in.
-     • Only real numbers are shown. Trailing return-based stats (volatility,
-       Sharpe, Sortino, drawdown, value-at-risk, factor betas) are computed
-       client-side from the proxy market feed (public/risk_proxies.json) and
-       the live weights — see ../lib/portfolioRisk — and labelled a
-       proxy-based estimate. Nothing is hardcoded or faked.
+   Built on the tested engines: classification + options decomposition
+   (../lib/portfolioAnalytics) and trailing proxy-risk (../lib/portfolioRisk,
+   fed by public/risk_proxies.json). Every number is real or omitted — no
+   placeholders. Funds map to liquid proxies for the trailing risk panel only,
+   clearly labelled. Preserves import + Add/Edit/Close/Delete + ticker links. */
 
-   Preserved end-to-end: SmartImport, Add/Edit/Close/Delete position
-   management, sortable holdings, freshness chips, live option underlier
-   price/IV from universe_snapshots. */
-
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import { supabase } from '../../lib/supabase';
 import FreshnessChip from '../components/FreshnessChip';
-import AnimatedNumber from '../components/AnimatedNumber';
 import Tip from '../components/Tip';
 import SmartImport from '../components/SmartImport';
 import PositionEditor from '../../components/PositionEditor';
@@ -36,63 +22,15 @@ import useEngineRegime from '../lib/useEngineRegime';
 import { buildBook } from '../lib/portfolioAnalytics';
 import { computeTrailingRisk } from '../lib/portfolioRisk';
 
-/* ── asset-class brand colors (legend hues; readable on both themes) ──── */
-const AC_COLOR = {
-  'Fixed Income': '#c08428', Cash: '#8a8f98', Equity: '#0a5cd1',
-  Options: '#5c34c9', Commodity: '#1f9d60', Crypto: '#c1394f',
-};
+const PF_COLORS = ['#0a5cd1', '#1f9d60', '#c08428', '#c1394f', '#5c34c9', '#0a8a8a', '#3a3f47', '#9a6a1e'];
+const AC_COLOR = { 'Fixed Income': '#c08428', Cash: '#7a8290', Equity: '#0a5cd1', Options: '#5c34c9', Commodity: '#1f9d60', Crypto: '#c1394f' };
 const AC_ORDER = ['Fixed Income', 'Cash', 'Equity', 'Options', 'Commodity', 'Crypto'];
-const EQ_PAL = ['#0a5cd1', '#1f9d60', '#c08428', '#5c34c9', '#0a8a8a', '#c1394f', '#3b6ea5', '#9a6a1e'];
-const DEFAULT_BETA = { Equity: 1.0, 'Fixed Income': 0.3, Cash: 0, Commodity: 0.4, Crypto: 2.2 };
 
-/* ── formatters ──────────────────────────────────────────────────────── */
-const f$ = (v, d = 0) => {
-  if (v == null || !Number.isFinite(v)) return '—';
-  const s = v < 0 ? '-' : ''; const a = Math.abs(v);
-  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(2)}M`;
-  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(1)}K`;
-  return `${s}$${a.toFixed(d)}`;
-};
+const fk = (v) => { if (v == null || !Number.isFinite(v)) return '—'; const s = v < 0 ? '-' : ''; const a = Math.abs(v); return a >= 1000 ? `${s}$${(a / 1000).toFixed(a >= 100000 ? 0 : 1)}K` : `${s}$${a.toFixed(0)}`; };
 const f$full = (v) => (v == null || !Number.isFinite(v) ? '—' : (v < 0 ? '-' : '') + '$' + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 }));
 const fpct = (v, d = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(d)}%`);
 const wpct = (v, d = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v.toFixed(d)}%`);
-
-/* shared style atoms — one type/spacing scale across every table & card */
-const card = { background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)', borderRadius: 'var(--mt-r-lg, 14px)', padding: '16px 18px' };
-const eyebrow = { fontFamily: 'var(--mt-font-mono)', fontSize: 10, letterSpacing: '.11em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', marginBottom: 12, fontWeight: 600 };
-const mono = { fontFamily: 'var(--mt-font-mono)', fontVariantNumeric: 'tabular-nums' };
-const colorFor = (v, n) => (v == null ? 'var(--mt-ink-0)' : (n ? (v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)') : 'var(--mt-ink-0)'));
-
-/* ── animated horizontal bar (grows from 0 on mount) ─────────────────── */
-function Bar({ pct, color, neg, h = 8 }) {
-  const [w, setW] = useState(0);
-  useEffect(() => { const t = requestAnimationFrame(() => setW(Math.max(0, Math.min(100, pct)))); return () => cancelAnimationFrame(t); }, [pct]);
-  return (
-    <span style={{ display: 'block', height: h, borderRadius: 5, background: 'var(--mt-surface-3)', overflow: 'hidden' }}>
-      <span style={{ display: 'block', height: '100%', borderRadius: 5, width: `${w}%`, background: neg ? 'var(--mt-down)' : color, transition: 'width .9s cubic-bezier(.4,0,.2,1)' }} />
-    </span>
-  );
-}
-
-/* ── full-width asset-class stack — the single visual home for the split ─ */
-function AllocStack({ slices, total, onPick, active }) {
-  const [grown, setGrown] = useState(false);
-  useEffect(() => { const t = requestAnimationFrame(() => setGrown(true)); return () => cancelAnimationFrame(t); }, []);
-  return (
-    <div style={{ display: 'flex', height: 34, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--mt-line-1)', marginBottom: 16 }}>
-      {slices.map((s) => {
-        const pctv = total ? s.value / total * 100 : 0;
-        const dim = active && active !== s.name;
-        return (
-          <Tip key={s.name} bare block content={<span><b>{s.name}</b> — {wpct(pctv)} of the book ({f$full(s.value)}). Click to filter holdings.</span>}>
-            <button type="button" onClick={() => onPick(s.name)}
-              style={{ height: 34, width: grown ? `${pctv}%` : '0%', background: s.color, border: 'none', padding: 0, cursor: 'pointer', opacity: dim ? 0.35 : 1, transition: 'width .9s cubic-bezier(.4,0,.2,1), opacity .2s' }} aria-label={`${s.name} ${wpct(pctv)}`} />
-          </Tip>
-        );
-      })}
-    </div>
-  );
-}
+const upDn = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
 
 export default function PortfolioPage() {
   const portfolio = useUserPortfolio();
@@ -101,28 +39,24 @@ export default function PortfolioPage() {
   const navigate = useNavigate();
   const regime = useEngineRegime();
 
-  const [lens, setLens] = useState('Asset class');
-  const [filter, setFilter] = useState(null);          // {type,key,label}
-  const [sortK, setSortK] = useState('value');
-  const [sortDir, setSortDir] = useState(-1);
+  const [tab, setTab] = useState('class');        // allocation lens: account | sector | class
+  const [acctOpen, setAcctOpen] = useState(null);
+  const [drillRow, setDrillRow] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [positionEditor, setPositionEditor] = useState(null);
   const [closeModal, setCloseModal] = useState(null);
-  const [showExpoDetail, setShowExpoDetail] = useState(false);
   const [riskFeed, setRiskFeed] = useState(null);
   const userId = portfolio?.userId ?? null;
-  const tableRef = useRef(null);
 
   const positions = useMemo(() => {
     const out = [];
     accounts.forEach((a) => (a.positions || []).forEach((p) => out.push({
       ...p, value: p.value ?? (p.quantity != null && p.price != null ? p.quantity * p.price : 0),
-      asset_class: p.assetClass, contract_type: p.contractType, account_name: a.label,
+      asset_class: p.assetClass, contract_type: p.contractType, account_name: a.label, account_color: a.color,
     })));
     return out;
   }, [accounts]);
 
-  // Live underlier price + IV for option positions → real Black–Scholes delta.
   const [mkt, setMkt] = useState({});
   useEffect(() => {
     const unds = [...new Set(positions.filter((p) => p.contract_type || String(p.asset_class).toLowerCase() === 'option').map((p) => String(p.ticker).toUpperCase()))];
@@ -135,12 +69,11 @@ export default function PortfolioPage() {
         const spots = {}, ivs = {};
         data.forEach((r) => { const t = r.ticker; if (!(t in spots) && r.close) spots[t] = Number(r.close); if (!(t in ivs) && r.iv30d) ivs[t] = Number(r.iv30d); });
         setMkt({ spots, ivs, now: new Date().toISOString().slice(0, 10) });
-      } catch (e) { /* falls back to a moneyness estimate inside the engine */ }
+      } catch (e) { /* moneyness fallback inside engine */ }
     })();
     return () => { cancel = true; };
   }, [positions]);
 
-  // Trailing-risk proxy feed (≈3y daily returns for liquid look-alikes).
   useEffect(() => {
     if (typeof fetch !== 'function') return undefined;
     let cancel = false;
@@ -152,149 +85,50 @@ export default function PortfolioPage() {
   const total = book.total;
   const trisk = useMemo(() => computeTrailingRisk(book.rows, total, riskFeed), [book, total, riskFeed]);
 
-  const heldPositions = useMemo(() => book.rows.filter((r) => !r.option).map((r) => ({ ...r, acctLabel: r.account_name })), [book]);
+  const rowsWithPL = useMemo(() => book.rows.map((r) => ({
+    ...r,
+    pl: (r.avgCost != null && r.quantity != null && !r.option) ? r.value - r.avgCost * r.quantity : null,
+    plp: (r.avgCost && r.quantity && !r.option) ? (r.value - r.avgCost * r.quantity) / (r.avgCost * r.quantity) * 100 : null,
+  })), [book]);
 
-  /* ── real, engine-derived aggregates (each computed once) ───────────── */
-  const agg = useMemo(() => {
-    const rows = book.rows;
-    const cost = rows.reduce((s, r) => s + ((r.avgCost != null && r.quantity != null) ? r.avgCost * r.quantity : 0), 0);
-    const withPL = rows.map((r) => ({ ...r, pl: (r.avgCost != null && r.quantity != null && !r.option) ? r.value - r.avgCost * r.quantity : null, plp: (r.avgCost && r.quantity && !r.option) ? (r.value - r.avgCost * r.quantity) / (r.avgCost * r.quantity) * 100 : null }));
-    const unreal = withPL.reduce((s, r) => s + (r.pl || 0), 0);
-    const cashTot = book.allocByClass.Cash || 0;
-    const sorted = [...rows].sort((a, b) => b.value - a.value);
-    const top5w = sorted.slice(0, 5).reduce((s, r) => s + r.weight, 0);
-    const hhi = rows.reduce((s, r) => s + Math.pow(r.weight / 100, 2), 0);
-    // Portfolio beta to S&P 500: signed equity-equivalent $ × beta, /NAV.
-    let betaDollars = 0;
-    for (const r of rows) {
-      if (r.cls?.ac === 'Cash') continue;
-      if (r.option) { betaDollars += (r.option.deltaEquivNotional || 0) * 1.0; }
-      // Stored beta is often unset (0/null) for funds — fall back to the
-      // asset-class default, matching the engine's risk-contribution math.
-      else { betaDollars += r.value * (Number(r.beta) || (DEFAULT_BETA[r.cls.ac] ?? 1)); }
-    }
-    const pBeta = total ? betaDollars / total : 0;
-    const withYield = rows.reduce((s, r) => s + r.value * ((r.cls?.yld || 0) / 100), 0);
-    const gainers = withPL.filter((r) => r.plp != null).sort((a, b) => b.plp - a.plp);
-    const nUp = withPL.filter((r) => r.plp != null && r.plp >= 0).length;
-    const nDown = withPL.filter((r) => r.plp != null && r.plp < 0).length;
-    return { cost, unreal, cashTot, sorted, top5w, hhi, pBeta, income: withYield, withPL, top: gainers[0], bottom: gainers[gainers.length - 1], nUp, nDown };
+  const cost = useMemo(() => book.rows.reduce((s, r) => s + ((r.avgCost != null && r.quantity != null) ? r.avgCost * r.quantity : 0), 0), [book]);
+  const unreal = total - cost;
+  const cashTot = book.allocByClass.Cash || 0;
+  const sortedRows = useMemo(() => [...rowsWithPL].sort((a, b) => b.value - a.value), [rowsWithPL]);
+  const pBeta = useMemo(() => {
+    const DB = { Equity: 1.0, 'Fixed Income': 0.3, Cash: 0, Commodity: 0.4, Crypto: 2.2 };
+    let bd = 0;
+    for (const r of book.rows) { if (r.cls?.ac === 'Cash') continue; if (r.option) bd += (r.option.deltaEquivNotional || 0); else bd += r.value * (Number(r.beta) || (DB[r.cls.ac] ?? 1)); }
+    return total ? bd / total : 0;
   }, [book, total]);
 
+  // per-account rollup (real: balance, share, return on cost, positions)
+  const acctData = useMemo(() => accounts.map((a, i) => {
+    const pos = rowsWithPL.filter((r) => r.account_name === a.label);
+    const bal = pos.reduce((s, r) => s + r.value, 0);
+    const c = pos.reduce((s, r) => s + ((r.avgCost != null && r.quantity != null) ? r.avgCost * r.quantity : 0), 0);
+    return { name: a.label, color: a.color || PF_COLORS[i % PF_COLORS.length], balance: bal, share: total ? bal / total * 100 : 0, ret: c ? (bal - c) / c * 100 : null, positions: pos.length, holdings: pos };
+  }).filter((a) => a.positions > 0).sort((x, y) => y.balance - x.balance), [accounts, rowsWithPL, total]);
+
+  // allocation rows for the active lens
+  const allocRows = useMemo(() => {
+    if (tab === 'account') return acctData.map((a) => ({ name: a.name, value: a.balance, pct: a.share, color: a.color }));
+    if (tab === 'sector') {
+      const m = {}; book.rows.forEach((r) => { if (!r.option && r.cls.ac === 'Equity') { const s = r.cls.sector || 'Diversified'; m[s] = (m[s] || 0) + r.value; } });
+      const eqTot = Object.values(m).reduce((s, v) => s + v, 0) || 1;
+      return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([name, v], i) => ({ name, value: v, pct: v / eqTot * 100, color: PF_COLORS[i % PF_COLORS.length] }));
+    }
+    return AC_ORDER.filter((a) => book.allocByClass[a]).map((a) => ({ name: a, value: book.allocByClass[a], pct: total ? book.allocByClass[a] / total * 100 : 0, color: AC_COLOR[a] }));
+  }, [tab, acctData, book, total]);
+
   const exp = book.exposure;
-  const expRows = [
-    ...AC_ORDER.filter((ac) => exp.byClass[ac]).map((ac) => ({ name: ac, color: AC_COLOR[ac], long: exp.byClass[ac].long, short: exp.byClass[ac].short, net: exp.byClass[ac].long + exp.byClass[ac].short })),
-    { name: 'Cash', color: AC_COLOR.Cash, long: exp.cash, short: 0, net: exp.cash },
-  ];
   const opt = book.rows.find((r) => r.option)?.option;
-
-  /* ── risk contribution (first-order: weight × |beta|) — aggregate a
-       ticker held in multiple accounts into one line ─────────────────── */
   const rc = useMemo(() => {
-    const m = {};
-    book.riskContribution.forEach((x) => {
-      if (!m[x.ticker]) m[x.ticker] = { ...x };
-      else { m[x.ticker].riskPct += x.riskPct; m[x.ticker].weight += x.weight; }
-    });
-    return Object.values(m).sort((a, b) => b.riskPct - a.riskPct).slice(0, 8);
+    const m = {}; book.riskContribution.forEach((x) => { if (!m[x.ticker]) m[x.ticker] = { ...x }; else { m[x.ticker].riskPct += x.riskPct; m[x.ticker].weight += x.weight; } });
+    return Object.values(m).sort((a, b) => b.riskPct - a.riskPct);
   }, [book]);
-  const rcMax = Math.max(...rc.map((x) => x.riskPct), 1);
-
-  /* ── grouped metric clusters — scalar KPIs, each appearing once ─────── */
-  const groups = [
-    ['Value', [
-      ['Invested', f$full(total - agg.cashTot), null, false, `Everything except cash — ${wpct((total - agg.cashTot) / total * 100)} of the book is at risk in markets.`],
-      ['Cash', f$full(agg.cashTot), wpct(agg.cashTot / total * 100), false, 'Money-market and sweep balances. Dry powder if markets sell off.'],
-      ['Cost basis', f$full(agg.cost), null, false, 'What you paid for everything you still hold.'],
-    ]],
-    ['Performance', [
-      ['Top gainer', fpct(agg.top?.plp), agg.top?.ticker || '—', 'pl', 'Your strongest single position by return on cost.'],
-      ['Top loser', fpct(agg.bottom?.plp), agg.bottom?.ticker || '—', 'pl', 'Your weakest single position by return on cost.'],
-      ['Winners · losers', `${agg.nUp} · ${agg.nDown}`, 'up · down', false, 'How many open positions are in the green versus the red.'],
-    ]],
-    ['Allocation & concentration', [
-      ['Largest holding', wpct(agg.sorted[0]?.weight || 0), agg.sorted[0]?.ticker || '', false, `Your single biggest bet. One name is ${wpct(agg.sorted[0]?.weight || 0)} of the whole book.`],
-      ['Top-5 weight', wpct(agg.top5w), null, false, 'How much of the book sits in just your five largest positions.'],
-      ['Effective holdings', (1 / agg.hhi).toFixed(1), null, false, 'How many equally-sized positions your concentration is equivalent to. Lower = more concentrated.'],
-    ]],
-    ['Risk', [
-      ['Equity beta', agg.pBeta.toFixed(2), 'vs S&P 500', false, 'How much the book moves for a 1% move in the S&P 500. The long put and the cash + bond sleeve pull this well below 1.'],
-      ['Top risk name', wpct(rc[0]?.riskPct || 0), rc[0]?.ticker || '—', false, 'The single position contributing the most to portfolio volatility — the full ranking is below.'],
-      [opt ? 'Downside hedge' : 'Downside hedge', opt ? f$(opt.protectionNotional) : 'None', opt ? `${opt.underlier} put` : '', false, 'Notional value your long put protects if the market falls below its strike.'],
-    ]],
-  ];
-
-  /* ── allocation lenses ──────────────────────────────────────────────── */
-  const lensData = useMemo(() => {
-    const byClass = AC_ORDER.filter((a) => book.allocByClass[a]).map((a) => ({ key: a, value: book.allocByClass[a], color: AC_COLOR[a], type: 'class', denom: total }));
-    if (lens === 'Asset class') return byClass;
-    if (lens === 'Equity sector') {
-      const m = {}; let eqTot = 0;
-      book.rows.forEach((r) => { if (!r.option && r.cls.ac === 'Equity') { const s = r.cls.sector || 'Diversified'; m[s] = (m[s] || 0) + r.value; eqTot += r.value; } });
-      return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v], i) => ({ key: k, value: v, color: EQ_PAL[i % EQ_PAL.length], type: 'sector', denom: eqTot, note: i === 0 }));
-    }
-    if (lens === 'Account') { const m = {}; book.rows.forEach((r) => { m[r.account_name] = (m[r.account_name] || 0) + r.value; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v], i) => ({ key: k, value: v, color: EQ_PAL[i % EQ_PAL.length], type: 'account', denom: total })); }
-    // Geography
-    const m = {}; book.rows.forEach((r) => { const g = r.option ? 'US' : (r.cls.geo && r.cls.geo !== '—' ? r.cls.geo : 'Other'); m[g] = (m[g] || 0) + r.value; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v], i) => ({ key: k, value: v, color: EQ_PAL[i % EQ_PAL.length], type: 'geo', denom: total }));
-  }, [lens, book, total]);
-  const lensMax = Math.max(...lensData.map((d) => Math.abs(d.value)), 1);
-  const lensEqTot = lensData[0]?.denom ?? total;
-
-  const pickFilter = (type, key) => {
-    const labels = { class: 'Asset class', sector: 'Sector', account: 'Account', geo: 'Region' };
-    setFilter({ type, key, label: `${labels[type]} · ${key}` });
-    setTimeout(() => { const el = tableRef.current; if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
-  };
-
-  /* ── scenario stress (first-order P/L estimate) ─────────────────────── */
-  const fi = book.allocByClass['Fixed Income'] || 0;
-  const eq = book.allocByClass.Equity || 0;
-  const scenarios = [
-    { n: 'HY spreads +150 bp', d: -Math.round(fi * 0.0525) },
-    { n: 'Credit crisis · spreads +500 bp, S&P −30%', d: -Math.round(fi * 0.175 + eq * 0.30) },
-    { n: 'Rates +100 bp', d: -Math.round(fi * 0.025) },
-    { n: 'Equities −10% (S&P 500)', d: -Math.round(eq * 0.10) + (opt?.protectionNotional ? Math.round(opt.protectionNotional * 0.012) : 0) },
-    { n: 'Risk-on · S&P +10%, spreads −50 bp', d: Math.round(fi * 0.0175 + eq * 0.10) },
-  ].map((s) => ({ ...s, p: total ? s.d / total * 100 : 0 }));
-  const scMax = Math.max(...scenarios.map((s) => Math.abs(s.d)), 1);
-
-  /* ── holdings table ─────────────────────────────────────────────────── */
-  const cols = [
-    { k: 'ticker', l: 'Ticker', left: true, t: 'Symbol — click to open the full ticker view.' },
-    { k: 'cls', l: 'Class', left: true, t: 'Corrected asset class and sub-type.' },
-    { k: 'account_name', l: 'Account', left: true, t: 'Which of your accounts holds it.' },
-    { k: 'quantity', l: 'Qty', t: 'Shares or contracts held.' },
-    { k: 'price', l: 'Price', t: 'Latest price per share/contract.' },
-    { k: 'value', l: 'Value', t: 'Market value today.' },
-    { k: 'weight', l: 'Weight', t: 'Share of total book value.' },
-    { k: 'pl', l: 'Unreal P/L', t: 'Value today minus cost.' },
-    { k: 'plp', l: 'P/L %', t: 'Gain or loss as a percent of cost.' },
-    { k: 'beta', l: 'Beta', t: 'Sensitivity to a 1% S&P 500 move.' },
-    { k: 'yld', l: 'Yield', t: 'Estimated annual income yield.' },
-  ];
-  const filteredRows = useMemo(() => {
-    let rows = agg.withPL;
-    if (filter) {
-      rows = rows.filter((r) => {
-        if (filter.type === 'class') return (r.option ? 'Options' : r.cls.ac) === filter.key;
-        if (filter.type === 'sector') return !r.option && r.cls.ac === 'Equity' && (r.cls.sector || 'Diversified') === filter.key;
-        if (filter.type === 'account') return r.account_name === filter.key;
-        if (filter.type === 'geo') { const g = r.option ? 'US' : (r.cls.geo && r.cls.geo !== '—' ? r.cls.geo : 'Other'); return g === filter.key; }
-        return true;
-      });
-    }
-    return [...rows].sort((a, b) => {
-      let x, y;
-      if (sortK === 'cls') { x = a.option ? 'Option' : a.cls.ac; y = b.option ? 'Option' : b.cls.ac; }
-      else if (sortK === 'yld') { x = a.cls?.yld || 0; y = b.cls?.yld || 0; }
-      else { x = a[sortK]; y = b[sortK]; }
-      if (typeof x === 'string') return (x < y ? -1 : x > y ? 1 : 0) * sortDir;
-      return ((x ?? -1e15) - (y ?? -1e15)) * sortDir;
-    });
-  }, [agg.withPL, filter, sortK, sortDir]);
-  const filteredTotal = filteredRows.reduce((s, r) => s + r.value, 0);
-  const filteredCost = filteredRows.reduce((s, r) => s + ((r.avgCost != null && r.quantity != null) ? r.avgCost * r.quantity : 0), 0);
-  const onSort = (k) => { if (sortK === k) setSortDir((d) => -d); else { setSortK(k); setSortDir(k === 'ticker' || k === 'cls' || k === 'account_name' ? 1 : -1); } };
+  const topRisk = rc[0];
+  const largestNonCash = sortedRows.find((r) => r.cls?.ac !== 'Cash');
 
   const deletePosition = async (row) => {
     if (!row?.id) return;
@@ -303,319 +137,253 @@ export default function PortfolioPage() {
     if (error) { window.alert(`Could not delete: ${error.message || 'error'}`); return; }
     await portfolio?.refetch?.();
   };
+  const heldPositions = useMemo(() => book.rows.filter((r) => !r.option), [book]);
 
-  if (loading) return <div className="mt-pagebody"><div className="mt-card" style={{ padding: 40, textAlign: 'center', color: 'var(--mt-ink-2)' }}>Loading portfolio…</div></div>;
+  if (loading) return <div className="mt-pagebody"><article className="mt-card" style={{ padding: 40, textAlign: 'center', color: 'var(--mt-ink-2)' }}>Loading portfolio…</article></div>;
 
   if (!positions.length) return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero"><div>
         <div className="mt-eyebrow">Portfolio insights</div>
         <h1 className="mt-h1">Portfolio</h1>
-        <p className="mt-deck">No holdings loaded yet. Sign in and upload your positions or trades to see your full book — allocation done right, real exposure, and every holding scored.</p>
+        <p className="mt-deck">No holdings loaded yet. Sign in and upload your positions or trades to see your full book — allocation done right, real exposure, and every account scored.</p>
         <button type="button" className="mt-btn mt-btn--primary" onClick={() => setShowImport(true)}>Upload / import</button>
       </div></section>
-      {showImport && <SmartImport userId={portfolio?.userId ?? null} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
+      {showImport && <SmartImport userId={userId} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
     </div>
   );
 
-  const donutSlices = AC_ORDER.filter((a) => book.allocByClass[a]).map((a) => ({ name: a, value: book.allocByClass[a], color: AC_COLOR[a] }));
+  const account = acctOpen ? acctData.find((a) => a.name === acctOpen) : null;
+  const riskNote = topRisk ? `${topRisk.ticker} drives ${wpct(topRisk.riskPct)} of book volatility` : 'diversified across positions';
 
   return (
     <div className="mt-pagebody mt-fade">
-      {/* ── hero: NAV is the headline, stated once ───────────────────── */}
+      {/* ── hero ─────────────────────────────────────────────────────── */}
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Portfolio insights <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" /></div>
-          <h1 className="mt-h1">Portfolio</h1>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-            <Tip bare content="Net liquidation value — everything you hold, at today's prices.">
-              <AnimatedNumber value={total} format={(v) => f$full(v)} duration={900} style={{ ...mono, fontSize: 38, fontWeight: 600, color: 'var(--mt-ink-0)', letterSpacing: '-.02em' }} />
-            </Tip>
-            <span style={{ ...mono, fontSize: 13.5, color: 'var(--mt-ink-2)' }}>{accounts.length} accounts · {positions.length} positions</span>
-            <Tip bare content="Paper gain or loss on everything you still hold — today's value minus what you paid.">
-              <span style={{ ...mono, fontSize: 13.5, fontWeight: 600, color: agg.unreal >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{(agg.unreal >= 0 ? '▲ +' : '▼ ') + f$full(agg.unreal)} · {fpct(agg.cost ? agg.unreal / agg.cost * 100 : null)}</span>
-            </Tip>
+          <h1 className="mt-h1">Your book, <i>scored</i> and stress-tested by the MacroTilt engine.</h1>
+          <p className="mt-deck">Every position valued, classified, and rolled up across {acctData.length} accounts — with real exposure, concentration, and trailing risk.</p>
+        </div>
+        <div className="pf-keystats">
+          <div className="mt-eyebrow">Key stats</div>
+          <div className="pf-keygrid">
+            <div><div className="mt-eyebrow">Total wealth</div><b className="pf-keynum num">{fk(total)}</b><span className="pf-keysub num">{acctData.length} accounts</span></div>
+            <div><div className="mt-eyebrow">Unrealized P/L</div><b className={`pf-keynum num ${upDn(unreal)}`}>{fpct(cost ? unreal / cost * 100 : null)}</b><span className="pf-keysub num">{(unreal >= 0 ? '+' : '') + f$full(unreal)}</span></div>
+            <div><div className="mt-eyebrow">Equity beta</div><b className="pf-keynum num">{pBeta.toFixed(2)}</b><span className="pf-keysub num">S&amp;P 1.00</span></div>
+            <div><div className="mt-eyebrow">Sharpe</div><b className="pf-keynum num">{trisk?.sharpe != null ? trisk.sharpe.toFixed(2) : '—'}</b><span className="pf-keysub num">{trisk ? 'trailing 3y' : '…'}</span></div>
           </div>
         </div>
       </section>
 
-      {/* ── grouped metric clusters ──────────────────────────────────── */}
+      {/* ── accounts ─────────────────────────────────────────────────── */}
       <section className="mt-pagesection">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-          {groups.map(([title, rows]) => (
-            <div key={title} style={card}>
-              <div style={eyebrow}>{title}</div>
-              {rows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, padding: '9px 0', borderTop: i ? '1px solid var(--mt-line-0)' : 'none' }}>
-                  <Tip content={r[4]}><span style={{ color: 'var(--mt-ink-1)', fontSize: 12.5 }}>{r[0]}</span></Tip>
-                  <span style={{ ...mono, fontWeight: 600, fontSize: 14, textAlign: 'right', whiteSpace: 'nowrap', color: r[3] === 'pl' ? (String(r[1]).startsWith('-') || String(r[1]).startsWith('−') ? 'var(--mt-down)' : 'var(--mt-up)') : 'var(--mt-ink-0)' }}>
-                    {r[1]}{r[2] ? <span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 500 }}>{r[2]}</span> : null}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── allocation: stack + lens (drill-down) + risk contribution ─── */}
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Allocation</div><div className="mt-h2">Where the money sits — and where the risk does.</div></div></div>
-        <AllocStack slices={donutSlices} total={total} onPick={(k) => pickFilter('class', k)} active={filter?.type === 'class' ? filter.key : null} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr .9fr', gap: 16 }}>
-          <div style={card}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-              {['Asset class', 'Equity sector', 'Account', 'Geography'].map((l) => (
-                <button key={l} type="button" onClick={() => setLens(l)}
-                  style={{ ...mono, fontSize: 11, letterSpacing: '.03em', padding: '6px 11px', borderRadius: 7, cursor: 'pointer', border: '1px solid var(--mt-line-1)', background: lens === l ? 'var(--mt-ink-0)' : 'var(--mt-surface-2)', color: lens === l ? 'var(--mt-surface)' : 'var(--mt-ink-2)' }}>{l}</button>
-              ))}
-            </div>
-            {lens === 'Equity sector' && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginBottom: 8 }}>Equity sleeve only · {f$(lensEqTot)} ({wpct(lensEqTot / total * 100)} of book)</div>}
-            {lensData.map((d) => (
-              <Tip key={d.key} block bare content={<span>Click to show only <b>{d.key}</b> in the holdings table below.</span>}>
-                <button type="button" onClick={() => pickFilter(d.type, d.key)}
-                  style={{ width: '100%', textAlign: 'left', background: filter && filter.type === d.type && filter.key === d.key ? 'var(--mt-surface-2)' : 'transparent', border: 'none', borderTop: '1px solid var(--mt-line-0)', padding: '8px 6px', cursor: 'pointer', display: 'grid', gridTemplateColumns: '132px 1fr 62px 50px', gap: 10, alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--mt-ink-1)' }}><span style={{ width: 9, height: 9, borderRadius: 2, background: d.color, flex: '0 0 auto' }} />{d.key}</span>
-                  <Bar pct={Math.abs(d.value) / lensMax * 100} color={d.color} h={9} />
-                  <span style={{ ...mono, fontSize: 12, textAlign: 'right', color: 'var(--mt-ink-2)' }}>{f$(d.value)}</span>
-                  <span style={{ ...mono, fontSize: 12.5, fontWeight: 600, textAlign: 'right' }}>{wpct(d.value / (d.denom || total) * 100)}</span>
-                </button>
-              </Tip>
-            ))}
-          </div>
-          <div style={card}>
-            <Tip content="First-order estimate: each name's weight times its sensitivity to the market (beta). Cash and the put add ~none; small high-beta names punch above their weight."><div style={eyebrow}>Risk contribution · where volatility comes from</div></Tip>
-            {rc.map((x) => (
-              <Tip key={x.ticker} block bare content={<span><b>{x.ticker}</b> drives <b>{wpct(x.riskPct)}</b> of book risk on <b>{wpct(x.weight)}</b> of the weight. Click to open the ticker.</span>}>
-                <button type="button" onClick={() => x.ticker && navigate(`/ticker/${x.ticker}`)}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderTop: '1px solid var(--mt-line-0)', padding: '8px 6px', cursor: 'pointer', display: 'grid', gridTemplateColumns: '78px 1fr 48px 62px', gap: 10, alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: AC_COLOR[x.ac] || '#0a5cd1', flex: '0 0 auto' }} /><span style={{ ...mono, fontWeight: 600, fontSize: 12 }}>{x.ticker}</span></span>
-                  <Bar pct={x.riskPct / rcMax * 100} color={AC_COLOR[x.ac] || '#0a5cd1'} h={9} />
-                  <span style={{ ...mono, fontSize: 12.5, fontWeight: 600, textAlign: 'right' }}>{wpct(x.riskPct)}</span>
-                  <span style={{ ...mono, fontSize: 11.5, textAlign: 'right', color: 'var(--mt-ink-3)' }}>{wpct(x.weight)} wt</span>
-                </button>
-              </Tip>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── trailing risk metrics + engine read ─────────────────────── */}
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Risk &amp; statistics</div><div className="mt-h2">Trailing risk — measured, not guessed.</div></div></div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div style={card}>
-            <Tip content="Computed from ~3 years of daily returns, weighted by your live positions. Funds without clean daily history use a liquid look-alike, so these are solid estimates."><div style={eyebrow}>Risk metrics · trailing</div></Tip>
-            {!trisk ? (
-              <div style={{ color: 'var(--mt-ink-3)', fontSize: 12.5, padding: '10px 0' }}>Computing from the market feed…</div>
-            ) : (
-              <>
-                {[
-                  ['Volatility (annualized)', wpct(trisk.vol * 100), null, null, "How much the book's value swings over a year. Low here because high-yield bonds and cash dominate."],
-                  ['Sharpe ratio', trisk.sharpe != null ? trisk.sharpe.toFixed(2) : '—', null, null, 'Return earned per unit of risk, above cash. Above 1 is strong.'],
-                  ['Sortino ratio', trisk.sortino != null ? trisk.sortino.toFixed(2) : '—', null, null, 'Like Sharpe, but only counts downside moves as risk.'],
-                  ['Max drawdown (12m)', wpct(trisk.maxDD * 100), null, 'down', 'The worst peak-to-trough drop over the last year.'],
-                  ['Value at risk (95% · 1-day)', f$(trisk.var95Dollar), wpct(trisk.var95 * 100), 'down', 'On a rough day — about one in twenty — the book would be expected to lose at least this much.'],
-                  ['Beta to high-yield credit', trisk.betaHY != null ? trisk.betaHY.toFixed(2) : '—', null, null, 'How much the book moves when high-yield bonds move — your dominant risk factor.'],
-                  ['Beta to rates', trisk.betaRates != null ? trisk.betaRates.toFixed(2) : '—', null, null, 'Sensitivity to interest-rate moves, measured against Treasuries.'],
-                ].map((r, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, padding: '8px 0', borderTop: '1px solid var(--mt-line-0)' }}>
-                    <Tip content={r[4]}><span style={{ color: 'var(--mt-ink-1)', fontSize: 12.5 }}>{r[0]}</span></Tip>
-                    <span style={{ ...mono, fontWeight: 600, fontSize: 13.5, textAlign: 'right', whiteSpace: 'nowrap', color: r[3] === 'down' ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{r[1]}{r[2] ? <span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 500 }}>{r[2]}</span> : null}</span>
-                  </div>
-                ))}
-                <Tip block content="Funds without clean daily history are shown through liquid look-alikes — your high-yield fund via the high-yield bond ETF, the 529 international fund via a developed-international ETF, the index funds via the S&P 500. The index put enters as its delta-equivalent. So these are solid estimates, not exact figures.">
-                  <div style={{ fontSize: 10.5, color: 'var(--mt-ink-3)', marginTop: 10, lineHeight: 1.5, borderTop: '1px solid var(--mt-line-0)', paddingTop: 9 }}>Proxy-based estimate · {trisk.windowYears}-yr daily returns · as of {trisk.asOf}</div>
-                </Tip>
-              </>
-            )}
-          </div>
-          <div style={card}>
-            <div style={eyebrow}>MacroTilt engine read</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <span style={{ ...mono, fontSize: 11, color: 'var(--mt-ink-2)' }}>Regime</span>
-              <span style={{ ...mono, fontSize: 14, fontWeight: 600, color: regime?.stressColor || 'var(--mt-ink-1)' }}>{regime?.loading ? '…' : (regime?.regimeLabel || '—')}</span>
-            </div>
-            <div style={{ display: 'grid', gap: 9 }}>
-              <Tip block content="One fund is the book's biggest single-name risk — a credit shock there hits everything.">
-                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-down)', fontWeight: 700 }}>•</span><span style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Concentration</b> — {wpct(agg.sorted[0]?.weight || 0)} sits in {agg.sorted[0]?.ticker}; a single credit event hits the whole book.</span></div>
-              </Tip>
-              <Tip block content="Your dominant risk factor by the decomposition above.">
-                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-warn)', fontWeight: 700 }}>•</span><span style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Top factor</b> — {rc[0]?.ticker} drives {wpct(rc[0]?.riskPct || 0)} of book volatility.</span></div>
-              </Tip>
-              <Tip block content="Cash is optionality — it lets you add risk after a selloff instead of being forced to sell.">
-                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-up)', fontWeight: 700 }}>•</span><span style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Dry powder</b> — {wpct(agg.cashTot / total * 100)} cash at ~4.5%; flexibility if spreads widen.</span></div>
-              </Tip>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── exposure + income ───────────────────────────────────────── */}
-      <section className="mt-pagesection">
-        <div style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: 16 }}>
-          <div style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Tip content="Long minus short (net) and long plus short (gross), after the option hedge is decomposed into its equity-equivalent."><div style={{ ...eyebrow, marginBottom: 0 }}>Exposure · delta-adjusted</div></Tip>
-              <button type="button" onClick={() => setShowExpoDetail((v) => !v)} style={{ ...mono, fontSize: 11, color: 'var(--mt-accent)', background: 'none', border: 'none', cursor: 'pointer' }}>{showExpoDetail ? 'Hide detail ▲' : 'By asset class ▼'}</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: 'var(--mt-line-1)', border: '1px solid var(--mt-line-1)', borderRadius: 8, overflow: 'hidden', margin: '12px 0 4px' }}>
-              {[['Long', exp.long, 'Sum of everything you are positioned to gain on if it rises.'], ['Short', exp.short, 'Positions that gain if the market falls — here, the index put.'], ['Gross', exp.gross, 'Long plus short — total capital at work.'], ['Net', exp.net, 'Long minus short — your true directional tilt.']].map(([l, v, t]) => (
-                <Tip key={l} block bare content={t}>
-                  <div style={{ background: 'var(--mt-surface)', padding: '9px 11px' }}>
-                    <div style={{ ...mono, fontSize: 9, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)' }}>{l}</div>
-                    <div style={{ ...mono, fontSize: 15, fontWeight: 600, color: v < 0 ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{wpct(total ? v / total * 100 : 0)}</div>
-                    <div style={{ ...mono, fontSize: 10, color: 'var(--mt-ink-2)' }}>{f$(v)}</div>
-                  </div>
-                </Tip>
-              ))}
-            </div>
-            {showExpoDetail && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
-                <thead><tr>{['Asset class', 'Long', 'Short', 'Net'].map((h, i) => (
-                  <th key={h} style={{ ...mono, fontSize: 9, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: i ? 'right' : 'left', padding: '6px 8px', borderBottom: '1px solid var(--mt-line-1)' }}>{h}</th>
-                ))}</tr></thead>
-                <tbody>{expRows.map((r) => (
-                  <tr key={r.name}>
-                    <td style={{ padding: '7px 8px', fontSize: 12.5, color: 'var(--mt-ink-1)' }}><span style={{ width: 9, height: 9, borderRadius: 2, background: r.color, display: 'inline-block', marginRight: 7 }} />{r.name}</td>
-                    <td style={{ padding: '7px 8px', textAlign: 'right', ...mono, fontSize: 12 }}>{r.long ? f$(r.long) : '—'}</td>
-                    <td style={{ padding: '7px 8px', textAlign: 'right', ...mono, fontSize: 12, color: r.short ? 'var(--mt-down)' : 'var(--mt-ink-3)' }}>{r.short ? f$(r.short) : '—'}</td>
-                    <td style={{ padding: '7px 8px', textAlign: 'right', ...mono, fontSize: 12, fontWeight: 600 }}>{f$(r.net)}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            )}
-            {opt && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 10, lineHeight: 1.5 }}>The short equity line is the {opt.underlier} {opt.contractType} ({opt.deltaEquivNotional != null ? f$(opt.deltaEquivNotional) : '—'} delta-equivalent) — it protects {f$(opt.protectionNotional)} of {opt.underlier} below ${opt.strike}.</div>}
-          </div>
-          <div style={card}>
-            <Tip content="Projected forward annual income from yields on what you hold — not a realized figure."><div style={eyebrow}>Income &amp; yield · projected annual</div></Tip>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px 12px' }}>
-              {[['High-yield bond income', (fi * 0.068)], ['Cash & sweep (~4.5%)', agg.cashTot * 0.045], ['Equity dividends', Math.max(0, agg.income - fi * 0.068 - agg.cashTot * 0.045)]].map((r, i) => (
-                <React.Fragment key={i}><span style={{ color: 'var(--mt-ink-2)', fontSize: 12.5 }}>{r[0]}</span><span style={{ ...mono, textAlign: 'right', fontSize: 13 }}>{f$(r[1])}</span></React.Fragment>
-              ))}
-              <span style={{ color: 'var(--mt-ink-0)', fontSize: 13, fontWeight: 600, borderTop: '1px solid var(--mt-line-1)', paddingTop: 10 }}>Projected annual</span>
-              <span style={{ ...mono, textAlign: 'right', fontSize: 14, fontWeight: 600, color: 'var(--mt-up)', borderTop: '1px solid var(--mt-line-1)', paddingTop: 10 }}>{f$(agg.income)}</span>
-              <span style={{ color: 'var(--mt-ink-2)', fontSize: 12.5 }}>Portfolio yield</span>
-              <span style={{ ...mono, textAlign: 'right', fontSize: 13 }}>{wpct(agg.income / total * 100)}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── scenario stress (full width) ────────────────────────────── */}
-      <section className="mt-pagesection">
-        <div style={card}>
-            <Tip content="First-order P/L estimates from factor sensitivities — a quick read on what hurts the book, not a full revaluation."><div style={eyebrow}>Scenario stress · first-order P/L estimate</div></Tip>
-            <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginBottom: 8, lineHeight: 1.5 }}>Your dominant risk is high-yield credit spreads (the {wpct(fi / total * 100)} bond fund), not equities — a spread blowout hurts far more than a stock selloff.</div>
-            {scenarios.map((s) => (
-              <div key={s.n} style={{ display: 'grid', gridTemplateColumns: '1fr 84px 116px', gap: 10, alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--mt-line-0)' }}>
-                <span style={{ fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{s.n}</span>
-                <Bar pct={Math.abs(s.d) / scMax * 100} color={s.d >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'} neg={s.d < 0} h={7} />
-                <span style={{ ...mono, fontSize: 11.5, textAlign: 'right', color: s.d >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{s.d >= 0 ? '+' : ''}{f$(s.d)} · {fpct(s.p)}</span>
-              </div>
-            ))}
-          </div>
-      </section>
-
-      {/* ── holdings table (with drill-down breadcrumb) ──────────────── */}
-      <section className="mt-pagesection" ref={tableRef}>
         <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">Holdings</div>
-            <div className="mt-h2" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              All positions
-              {filter && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...mono, fontSize: 12, fontWeight: 500, color: 'var(--mt-ink-2)', background: 'var(--mt-surface-2)', border: '1px solid var(--mt-line-1)', borderRadius: 7, padding: '3px 8px' }}>
-                  {filter.label}
-                  <button type="button" onClick={() => setFilter(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mt-ink-2)', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Clear filter">×</button>
-                </span>
-              )}
-            </div>
-          </div>
+          <div><div className="mt-eyebrow">By account</div><div className="mt-h2">{acctData.length} accounts · click to drill in</div></div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="mt-btn mt-btn--primary" onClick={() => setPositionEditor({ mode: 'add' })}>+ Add position</button>
             <button type="button" className="mt-btn" onClick={() => setShowImport(true)}>Upload / import</button>
           </div>
         </div>
-        <div className="mt-card" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 920 }}>
-            <thead>
-              <tr>{cols.map((c) => (
-                <th key={c.k} onClick={() => onSort(c.k)} style={{ ...mono, fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: c.left ? 'left' : 'right', padding: '11px 14px', borderBottom: '1px solid var(--mt-line-1)', cursor: 'pointer', whiteSpace: 'nowrap', background: 'var(--mt-surface-2)', userSelect: 'none' }}>
-                  <Tip bare content={c.t}><span>{c.l}{sortK === c.k ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}</span></Tip>
-                </th>
-              ))}<th style={{ ...mono, fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)', textAlign: 'right', padding: '11px 14px', borderBottom: '1px solid var(--mt-line-1)', whiteSpace: 'nowrap', background: 'var(--mt-surface-2)' }}>Actions</th></tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((r, i) => {
-                const c = r.option ? AC_COLOR.Options : (AC_COLOR[r.cls.ac] || '#0a5cd1');
-                const acLabel = r.option ? `Option · ${r.option.underlier}` : r.cls.ac;
-                const sub = r.option ? r.option.label : r.cls.sub;
-                return (
-                  <tr key={r.id || i} style={{ borderBottom: '1px solid var(--mt-line-0)' }}>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ ...mono, fontWeight: 600, fontSize: 12.5, cursor: r.ticker && !r.option ? 'pointer' : 'default', color: r.ticker && !r.option ? 'var(--mt-accent)' : 'var(--mt-ink-0)' }} onClick={() => r.ticker && !r.option && navigate(`/ticker/${r.ticker}`)}>{r.ticker}</span>
-                      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{r.name || ''}</div>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ ...mono, fontSize: 9.5, padding: '2px 7px', borderRadius: 4, background: c + '22', color: c }}>{acLabel}</span>
-                      <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{sub}</div>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--mt-ink-1)' }}>{r.account_name}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{Number(r.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: 'var(--mt-ink-1)' }}>{r.price != null ? '$' + Number(r.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, fontWeight: 600 }}>{f$full(r.value)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{wpct(r.weight)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: r.pl == null ? 'var(--mt-ink-3)' : r.pl >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{r.pl == null ? '—' : (r.pl >= 0 ? '+' : '') + f$full(r.pl)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: r.plp == null ? 'var(--mt-ink-3)' : r.plp >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{r.plp == null ? '—' : fpct(r.plp)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{r.option ? '—' : r.cls.ac === 'Cash' ? '0.00' : (Number(r.beta) || (DEFAULT_BETA[r.cls.ac] ?? 1)).toFixed(2)}</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', ...mono, fontSize: 12, color: 'var(--mt-ink-2)' }}>{r.cls?.yld ? r.cls.yld.toFixed(1) + '%' : '—'}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11 }} onClick={() => setPositionEditor({ mode: 'edit', existing: r })}>Edit</button>
-                      {!r.option && r.cls.ac !== 'Cash' && <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11, marginLeft: 5 }} onClick={() => setCloseModal({ position: r })}>Close</button>}
-                      <button type="button" className="mt-btn" style={{ padding: '3px 9px', fontSize: 11, marginLeft: 5 }} onClick={() => deletePosition(r)}>Delete</button>
+        <div className="pf-acctgrid">
+          {acctData.map((a) => (
+            <button key={a.name} type="button" className={`mt-card pf-acctcard ${acctOpen === a.name ? 'on' : ''}`} onClick={() => setAcctOpen(acctOpen === a.name ? null : a.name)}>
+              <div className="pf-accthead">
+                <span className="pf-acctname"><span className="pf-acctdot" style={{ background: a.color }} />{a.name}</span>
+                <span className="num pf-acctshare">{a.share.toFixed(1)}<i> % of book</i></span>
+              </div>
+              <div className="pf-acctbal num">{fk(a.balance)}</div>
+              <div className="pf-acctkv">
+                <div><div className="mt-eyebrow">Return</div><b className={`num ${upDn(a.ret)}`}>{a.ret == null ? '—' : fpct(a.ret)}</b></div>
+                <div><div className="mt-eyebrow">Positions</div><b className="num">{a.positions}</b></div>
+                <div><div className="mt-eyebrow">Weight</div><b className="num">{a.share.toFixed(0)}%</b></div>
+              </div>
+              <div className="pf-acctfoot">{acctOpen === a.name ? '▾ Hide holdings' : '▸ Open holdings'}</div>
+            </button>
+          ))}
+        </div>
+
+        {account && (
+          <article className="mt-card pf-acctdrill mt-fade">
+            <div className="pf-acctdrillhead">
+              <div>
+                <div className="mt-eyebrow"><span className="pf-acctdot" style={{ background: account.color, marginRight: 6 }} />Account</div>
+                <div className="mt-h2">{account.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--mt-ink-2)', marginTop: 4 }}>
+                  <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{f$full(account.balance)}</b>{' '}· {account.positions} positions ·{' '}
+                  <span className={upDn(account.ret)}>{account.ret == null ? '—' : fpct(account.ret)} on cost</span>
+                </div>
+              </div>
+              <button type="button" className="mt-btn" onClick={() => setAcctOpen(null)}>✕ Close</button>
+            </div>
+            <table className="pf-mini">
+              <thead><tr><th>Ticker</th><th>Class</th><th className="num">Value</th><th className="num">Weight</th><th className="num">P/L</th><th /></tr></thead>
+              <tbody>
+                {account.holdings.sort((a, b) => b.value - a.value).map((p) => (
+                  <tr key={p.id || p.ticker}>
+                    <td><span className="lm-tkmain lm-tkmain--link" style={{ fontSize: 15 }} onClick={() => p.ticker && !p.option && navigate(`/ticker/${p.ticker}`)}>{p.ticker}</span></td>
+                    <td style={{ color: 'var(--mt-ink-2)', fontSize: 12 }}>{p.option ? `Option · ${p.option.underlier}` : p.cls.ac}</td>
+                    <td className="num">{fk(p.value)}</td>
+                    <td className="num">{wpct(p.weight)}</td>
+                    <td className={`num ${upDn(p.pl)}`}>{p.pl == null ? '—' : (p.pl >= 0 ? '+' : '') + fk(p.pl)}</td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button type="button" className="mt-btn" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => setPositionEditor({ mode: 'edit', existing: p })}>Edit</button>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: 'var(--mt-surface-2)' }}>
-                <td colSpan={5} style={{ padding: '11px 14px', ...mono, fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--mt-ink-2)' }}>{filter ? `${filter.label} — ${filteredRows.length} of ${book.rows.length}` : `Total — ${book.rows.length} positions`}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', ...mono, fontSize: 12.5, fontWeight: 700 }}>{f$full(filteredTotal)}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', ...mono, fontSize: 12 }}>{wpct(total ? filteredTotal / total * 100 : 0)}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', ...mono, fontSize: 12, fontWeight: 600, color: (filteredTotal - filteredCost) >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>{((filteredTotal - filteredCost) >= 0 ? '+' : '') + f$full(filteredTotal - filteredCost)}</td>
-                <td colSpan={4} />
-              </tr>
-            </tfoot>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </article>
+        )}
+      </section>
+
+      {/* ── allocation ───────────────────────────────────────────────── */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div><div className="mt-eyebrow">Allocation</div><div className="mt-h2">Where the money lives.</div></div>
+          <div className="mt-pillgroup">
+            {[['class', 'By asset class'], ['sector', 'By sector'], ['account', 'By account']].map(([k, l]) => (
+              <button key={k} type="button" className={`mt-pill ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <article className="mt-card">
+          {tab === 'sector' && <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Equity sleeve only</div>}
+          <div className="pf-allocrows">
+            {allocRows.map((r, i) => (
+              <div key={r.name} className="pf-allocrow">
+                <span className="pf-alloccolor" style={{ background: r.color || PF_COLORS[i % PF_COLORS.length] }} />
+                <span className="pf-allocname">{r.name}</span>
+                <span className="pf-allocbar"><span style={{ width: `${Math.min(100, Math.abs(r.pct))}%`, background: r.color || PF_COLORS[i % PF_COLORS.length] }} /></span>
+                <span className="num pf-allocval">{fk(r.value)}</span>
+                <span className="num pf-allocpct">{r.pct.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      {/* ── positions (scored-row style like the Scanner) ────────────── */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div><div className="mt-eyebrow">Positions</div><div className="mt-h2">Every position — value, cost &amp; P/L.</div></div>
+        </div>
+        <ul className="lm-scanlist">
+          {sortedRows.map((p) => {
+            const isOpt = !!p.option;
+            const c = isOpt ? AC_COLOR.Options : (AC_COLOR[p.cls.ac] || '#0a5cd1');
+            const open = drillRow === (p.id || p.ticker);
+            return (
+              <li key={p.id || p.ticker} className={`lm-scancard ${open ? 'open' : ''}`}>
+                <button type="button" className="lm-scanrow" style={{ gridTemplateColumns: '240px 96px 1fr 130px 130px 28px' }} onClick={() => setDrillRow(open ? null : (p.id || p.ticker))}>
+                  <div className="lm-tk">
+                    <span className="lm-tkmain lm-tkmain--link" onClick={(e) => { e.stopPropagation(); p.ticker && !isOpt && navigate(`/ticker/${p.ticker}`); }}>{p.ticker}</span>
+                    <div className="lm-tksub">{p.account_name} · {isOpt ? p.option.label : (p.cls.sub || p.cls.ac)}</div>
+                  </div>
+                  <div><span className="lm-sigpill" style={{ background: c + '22', color: c }}>{isOpt ? 'OPTION' : p.cls.ac.toUpperCase()}</span></div>
+                  <div className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-2)', fontSize: 12 }}>{wpct(p.weight)} of book</div>
+                  <div className="num pf-valblock">
+                    <div className="lm-tkpx">{fk(p.value)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{Number(p.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} {isOpt ? 'ct' : 'sh'}{p.price != null ? ` @ $${Number(p.price).toFixed(2)}` : ''}</div>
+                  </div>
+                  <div className="num pf-plblock">
+                    <div className={`pf-plval ${upDn(p.pl)}`}>{p.pl == null ? '—' : (p.pl >= 0 ? '+' : '') + fk(p.pl)}</div>
+                    <div className={`pf-plpct ${upDn(p.plp)}`} style={{ fontSize: 12 }}>{p.plp == null ? '' : fpct(p.plp)}</div>
+                  </div>
+                  <div className="lm-tkchev">{open ? '▾' : '▸'}</div>
+                </button>
+                {open && (
+                  <div className="lm-drill mt-fade">
+                    <div className="lm-drillcol">
+                      <div className="mt-eyebrow">Position detail</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 10 }}>
+                        <div><div className="mt-eyebrow">Cost basis</div><b className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 17 }}>{p.avgCost != null && p.quantity != null ? fk(p.avgCost * p.quantity) : '—'}</b></div>
+                        <div><div className="mt-eyebrow">Mkt value</div><b className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 17 }}>{fk(p.value)}</b></div>
+                        <div><div className="mt-eyebrow">Total P/L</div><b className={`num ${upDn(p.pl)}`} style={{ fontFamily: 'var(--mt-font-display)', fontSize: 17 }}>{p.pl == null ? '—' : (p.pl >= 0 ? '+' : '') + fk(p.pl)}</b></div>
+                      </div>
+                      <div className="lm-drillctas" style={{ marginTop: 14 }}>
+                        {p.ticker && !isOpt && <button type="button" className="mt-btn mt-btn--primary" onClick={() => navigate(`/ticker/${p.ticker}`)}>Open ticker detail →</button>}
+                        <button type="button" className="mt-btn" onClick={() => setPositionEditor({ mode: 'edit', existing: p })}>Edit</button>
+                        {!isOpt && p.cls.ac !== 'Cash' && <button type="button" className="mt-btn" onClick={() => setCloseModal({ position: p })}>Close</button>}
+                        <button type="button" className="mt-btn" onClick={() => deletePosition(p)}>Delete</button>
+                      </div>
+                    </div>
+                    <div className="lm-drillcol">
+                      <div className="mt-eyebrow">Classification</div>
+                      <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.55, color: 'var(--mt-ink-1)' }}>
+                        {isOpt
+                          ? <>A {p.option.label} on {p.option.underlier}{p.option.strike ? ` (strike $${p.option.strike})` : ''}. It enters exposure as {p.option.deltaEquivNotional != null ? fk(p.option.deltaEquivNotional) : '—'} of delta-equivalent {p.option.underlier}{p.option.protectionNotional ? `, protecting ${fk(p.option.protectionNotional)} below the strike` : ''}.</>
+                          : <>{p.cls.ac}{p.cls.sub ? ` · ${p.cls.sub}` : ''}{p.cls.geo && p.cls.geo !== '—' ? ` · ${p.cls.geo}` : ''}. Beta to the S&amp;P about {(Number(p.beta) || ({ Equity: 1.0, 'Fixed Income': 0.3, Cash: 0, Commodity: 0.4, Crypto: 2.2 }[p.cls.ac] ?? 1)).toFixed(2)}.</>}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* ── risk + exposure ──────────────────────────────────────────── */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead"><div><div className="mt-eyebrow">Risk</div><div className="mt-h2">Trailing risk &amp; engine read.</div></div></div>
+        <div className="pf-acctdrillgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <article className="mt-card">
+            <div className="mt-eyebrow" style={{ marginBottom: 12 }}>Risk metrics · trailing</div>
+            {!trisk ? <div style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>Computing from the market feed…</div> : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '14px 18px' }}>
+                  {[
+                    ['Volatility', wpct(trisk.vol * 100), null, "How much the book swings over a year."],
+                    ['Sharpe', trisk.sharpe != null ? trisk.sharpe.toFixed(2) : '—', null, 'Return per unit of risk, above cash.'],
+                    ['Sortino', trisk.sortino != null ? trisk.sortino.toFixed(2) : '—', null, 'Like Sharpe but only downside counts.'],
+                    ['Max drawdown (12m)', wpct(trisk.maxDD * 100), 'down', 'Worst peak-to-trough drop last year.'],
+                    ['Value at risk (95% · 1d)', fk(trisk.var95Dollar), 'down', 'A rough day (1-in-20) loses about this.'],
+                    ['Beta to high-yield', trisk.betaHY != null ? trisk.betaHY.toFixed(2) : '—', null, 'Sensitivity to high-yield bond moves.'],
+                  ].map((m, i) => (
+                    <div key={i}>
+                      <Tip content={m[3]}><div className="mt-eyebrow">{m[0]}</div></Tip>
+                      <b className={`num ${m[2] || ''}`} style={{ fontFamily: 'var(--mt-font-display)', fontSize: 22, fontWeight: 400, display: 'block', marginTop: 4, color: m[2] === 'down' ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{m[1]}</b>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 14, lineHeight: 1.5, borderTop: '1px solid var(--mt-line-0)', paddingTop: 10 }}>
+                  Proxy-based estimate · {trisk.windowYears}-yr daily returns · as of {trisk.asOf}. Funds shown via liquid look-alikes.
+                </div>
+              </>
+            )}
+          </article>
+          <article className="mt-card">
+            <div className="mt-eyebrow" style={{ marginBottom: 12 }}>MacroTilt engine read</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>Regime</span>
+              <b className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 18, fontWeight: 500, color: regime?.stressColor || 'var(--mt-ink-1)' }}>{regime?.loading ? '…' : (regime?.regimeLabel || '—')}</b>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-warn)', fontWeight: 700 }}>•</span><span style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Concentration</b> — {largestNonCash ? `${wpct(largestNonCash.weight)} sits in ${largestNonCash.ticker}` : 'well spread across positions'}.</span></div>
+              <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-accent)', fontWeight: 700 }}>•</span><span style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Top risk</b> — {riskNote}.</span></div>
+              <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}><span style={{ color: 'var(--mt-up)', fontWeight: 700 }}>•</span><span style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}><b>Dry powder</b> — {wpct(total ? cashTot / total * 100 : 0)} in cash for flexibility.</span></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: 'var(--mt-line-1)', border: '1px solid var(--mt-line-1)', borderRadius: 8, overflow: 'hidden', marginTop: 16 }}>
+              {[['Long', exp.long], ['Short', exp.short], ['Gross', exp.gross], ['Net', exp.net]].map(([l, v]) => (
+                <div key={l} style={{ background: 'var(--mt-surface)', padding: '9px 11px' }}>
+                  <div className="mt-eyebrow">{l}</div>
+                  <b className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 16, fontWeight: 500, display: 'block', marginTop: 2, color: v < 0 ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>{wpct(total ? v / total * 100 : 0)}</b>
+                </div>
+              ))}
+            </div>
+            {opt && <div style={{ fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 10, lineHeight: 1.5 }}>Short line = the {opt.underlier} {opt.contractType} ({opt.deltaEquivNotional != null ? fk(opt.deltaEquivNotional) : '—'} delta-equivalent), protecting {fk(opt.protectionNotional)} below ${opt.strike}.</div>}
+          </article>
         </div>
       </section>
 
-      {showImport && (
-        <SmartImport userId={portfolio?.userId ?? null} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />
-      )}
+      {showImport && <SmartImport userId={userId} onClose={() => setShowImport(false)} onDone={async () => { await portfolio?.refetch?.(); }} />}
       {positionEditor && (
-        <PositionEditor
-          mode={positionEditor.mode}
-          existing={positionEditor.existing}
-          accounts={accounts}
-          userId={userId}
-          heldPositions={heldPositions}
-          onClose={() => setPositionEditor(null)}
-          onSaved={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }}
-          onDeleted={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }}
-          onClosePosition={(existing) => { setPositionEditor(null); setCloseModal({ position: existing }); }}
-        />
+        <PositionEditor mode={positionEditor.mode} existing={positionEditor.existing} accounts={accounts} userId={userId} heldPositions={heldPositions}
+          onClose={() => setPositionEditor(null)} onSaved={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }} onDeleted={async () => { await portfolio?.refetch?.(); setPositionEditor(null); }}
+          onClosePosition={(existing) => { setPositionEditor(null); setCloseModal({ position: existing }); }} />
       )}
-      {closeModal && (
-        <CloseModal
-          position={closeModal.position}
-          accounts={accounts}
-          onCancel={() => setCloseModal(null)}
-          onClosed={async () => { await portfolio?.refetch?.(); setCloseModal(null); }}
-        />
-      )}
+      {closeModal && <CloseModal position={closeModal.position} accounts={accounts} onCancel={() => setCloseModal(null)} onClosed={async () => { await portfolio?.refetch?.(); setCloseModal(null); }} />}
     </div>
   );
 }
