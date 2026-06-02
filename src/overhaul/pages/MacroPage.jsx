@@ -229,7 +229,10 @@ function PositioningDetail({ item, onClose }) {
           <div style={{ marginTop: 6 }}><FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="label" /></div>
         </div>
       </header>
-      <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 14 }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {read}.</div>
+      <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 6 }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {read}.</div>
+      <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
+        Where the speculative crowd's net futures position sits in its own 3-year range. Near the top (90th+) the crowd is heavily long — a crowded trade, fragile to a reversal down; near the bottom (10th-) heavily short — squeeze risk to the upside. {isDealer ? 'The dealers shown are the commercial hedgers, who take the other side.' : 'The commercial hedgers (overlaid) take the other side.'} An extreme flags fragility, not timing.
+      </p>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="mt-pillgroup">
           {['1Y', '3Y', 'Max'].map((k) => (<button key={k} type="button" className={`mt-pill ${tf === k ? 'on' : ''}`} onClick={() => setTf(k)}>{k}</button>))}
@@ -278,7 +281,7 @@ export default function MacroPage() {
     if (!cotPos || !cotPos.domains) return 0;
     let n = 0;
     Object.values(cotPos.domains).forEach((d) => {
-      n += (d.markets ? d.markets.length : 0) + (d.dealer ? 2 : 0);
+      n += (d.markets ? d.markets.length : 0);
     });
     return n;
   }, [cotPos]);
@@ -324,18 +327,19 @@ export default function MacroPage() {
             Where every market sits <i>in its own range</i>.
           </h1>
           <p className="mt-deck">
-            Every market's indicators — and, where it trades, its futures
-            positioning — ranked against its own 3-year history. Green is calm,
-            amber stretched, red at an extreme. The backdrop for the regime call,
-            which lives on Asset Tilt.
+            A macro read across asset classes — indicators and futures positioning
+            for rates, credit, equities, commodities, FX, and the economy, each
+            ranked against its own 3-year history. Green is calm, amber stretched,
+            red at a 3-year extreme.
           </p>
         </div>
         <div className="mc-onthispage">
           <div className="mt-eyebrow">On this page</div>
           <div className="mc-otpval num">{indicators.length || '—'}</div>
           <div className="mc-otpsub">indicators</div>
+          <div className="mc-otpval num" style={{ marginTop: 12 }}>{posCount || '—'}</div>
+          <div className="mc-otpsub">positioning signals</div>
           <div className="mt-divider" />
-          <div className="mc-otprow"><span>Positioning signals</span><b className="num">{posCount || '—'}</b></div>
           <div className="mc-otprow"><span>Asset classes</span><b className="num">5</b></div>
           <FreshnessChip elementId="market-universe_master-daily" variant="label" />
         </div>
@@ -363,15 +367,8 @@ export default function MacroPage() {
                     <div className="mc-domname">{dom}</div>
                     <DomainFreshness inds={inds} />
                   </div>
-                  <div className="mc-domnum num">
-                    {ext}<span className="mc-domof">/{inds.length}</span>
-                    <span className="mc-domlabel">extreme</span>
-                  </div>
-                  {elev > 0 && (
-                    <div className="mc-domsub">+ <b>{elev}</b> elevated</div>
-                  )}
                   <div style={{ marginTop: 12 }}>
-                    <div className="mt-eyebrow" style={{ fontSize: 9.5, marginBottom: 6 }}>Indicators</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                       {inds.map((i) => (
                         <button key={i.id} type="button" title={i.name}
@@ -385,7 +382,7 @@ export default function MacroPage() {
                     </div>
                     {(cotPos?.domains?.[dom]?.markets || []).length > 0 && (
                       <>
-                        <div className="mt-eyebrow" style={{ fontSize: 9.5, margin: '12px 0 6px' }}>Positioning · speculators</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', margin: '16px 0 8px', paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>Positioning signals</div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                           {cotPos.domains[dom].markets.map((m) => (
                             <button key={m.market} type="button" title={`${m.market} \u00b7 positioning`}

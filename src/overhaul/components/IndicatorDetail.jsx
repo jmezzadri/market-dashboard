@@ -131,6 +131,12 @@ export default function IndicatorDetail({ ind, onClose }) {
         </div>
       </header>
 
+      {ind.description && (
+        <p style={{ fontSize: 13.5, color: 'var(--mt-ink-1)', lineHeight: 1.65, margin: '0 0 18px' }}>
+          {ind.description}
+        </p>
+      )}
+
       {/* TF pills */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="mt-pillgroup">
