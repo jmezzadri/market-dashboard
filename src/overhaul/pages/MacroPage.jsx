@@ -98,6 +98,38 @@ function DomainPositioning({ data }) {
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
+const SHORT = {
+  'Inflation expectations (10-year)': '10y breakeven',
+  'High-yield spread over Treasuries': 'HY vs UST',
+  'Investment-grade spread over Treasuries': 'IG vs UST',
+  'Business lending standards': 'C&I lending stds',
+  'Real-estate lending standards': 'CRE lending stds',
+  'Corporate-bond distress': 'Corp bond distress',
+  'High-yield total yield': 'HY total yield',
+  'High-yield vs investment-grade': 'HY vs IG',
+  'Dollar funding stress': 'USD funding',
+  'Bank credit growth': 'Bank credit',
+  '10-year real yield': '10y real yield',
+  'Yield curve slope': 'Yield curve',
+  'Stock volatility': 'Stock vol (VIX)',
+  'Crash risk (options)': 'Crash risk (SKEW)',
+  'Stocks vs credit': 'Stock-credit corr',
+  'Stock valuation': 'Stock val (CAPE)',
+  'Manufacturing activity': 'Mfg activity (ISM)',
+  'Copper-to-gold ratio': 'Copper / gold',
+  'Financial conditions (Chicago Fed)': 'Fin conditions',
+  'Financial stress (St. Louis Fed)': 'Fin stress',
+  'Treasury General Account': 'Treasury acct (TGA)',
+  'US dollar index': 'Dollar index',
+  'US Dollar Index': 'Dollar index',
+  'Australian Dollar': 'Aussie dollar',
+  'Investment-grade bonds': 'IG bonds',
+  'High-yield bonds': 'HY bonds',
+};
+function shortLabel(n) {
+  if (SHORT[n]) return SHORT[n];
+  return n.length > 20 ? n.slice(0, 19) + '\u2026' : n;
+}
 function posRead(p){ return p>=90?'crowded long':p<=10?'crowded short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
 function posAccent(p){ const x=posState(p); return x==='extreme'?'var(--mt-down)':x==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 
@@ -310,7 +342,7 @@ export default function MacroPage() {
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection">
-          <div className="mc-domstrip">
+          <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
               const ext = inds.filter((i) => i.state === 'extreme').length;
@@ -323,7 +355,7 @@ export default function MacroPage() {
                   tabIndex={0}
                   className={`mc-domcell ${isActive ? 'on' : ''}`}
                   onClick={() => setDomain(isActive ? 'All' : dom)}
-                  style={{ cursor: 'pointer', ...(dom === 'Financial Conditions & Economy' ? { gridColumn: 'span 2' } : {}) }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
@@ -336,21 +368,21 @@ export default function MacroPage() {
                   {elev > 0 && (
                     <div className="mc-domsub">+ <b>{elev}</b> elevated</div>
                   )}
-                  <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                     {inds.map((i) => (
-                      <button key={i.id} type="button"
+                      <button key={i.id} type="button" title={i.name}
                         className={`mt-tag mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
                         onClick={(e) => { e.stopPropagation(); setSelected(i); }}
-                        style={{ cursor: 'pointer', border: 'none', font: 'inherit' }}>
-                        {i.name}
+                        style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                        {shortLabel(i.name)}
                       </button>
                     ))}
                     {(cotPos?.domains?.[dom]?.markets || []).map((m) => (
-                      <button key={m.market} type="button"
+                      <button key={m.market} type="button" title={`${m.market} \u00b7 positioning`}
                         className={`mt-tag mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
                         onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
-                        style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit' }}>
-                        {m.market}
+                        style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                        {shortLabel(m.market)}
                       </button>
                     ))}
                   </div>
