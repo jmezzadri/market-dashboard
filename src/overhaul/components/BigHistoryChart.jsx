@@ -28,6 +28,8 @@ export default function BigHistoryChart({
   compareAccent = 'var(--mt-warn)',
   yFormat = (v) => v.toFixed(2),
   freq = '',            // 'D' | 'W' | 'M' | 'Q' — drives hover-date precision
+  rsi = null,           // [[iso, rsiValue 0-100], ...] — drawn in its own sub-pane
+  rsiLabel = 'RSI(14)',
 }) {
   const wrapRef = useRef(null);
   const [w, setW] = useState(800);
@@ -79,8 +81,12 @@ export default function BigHistoryChart({
   }
 
   const padL = 56, padR = 16, padT = 16, padB = 28;
-  const volBand = volume ? Math.round((height - padT - padB) * 0.18) : 0;
-  const plotBot = height - padB - volBand;   // price area sits above the volume band
+  const usable = height - padT - padB;
+  const volBand = volume ? Math.round(usable * 0.14) : 0;
+  const rsiBand = rsi ? Math.round(usable * 0.22) : 0;
+  const plotBot = height - padB - volBand - rsiBand;   // price area sits above the sub-panes
+  const rsiTop = plotBot + volBand;                    // volume band: [plotBot, rsiTop]; rsi pane below it
+  const rsiY = (v) => rsiTop + (1 - Math.max(0, Math.min(100, v)) / 100) * rsiBand;
 
   // y-range spans price + overlays + rebased compare
   let yVals = data.map((d) => d.y);
@@ -123,6 +129,19 @@ export default function BigHistoryChart({
   const volByDate = volume ? new Map(volume.filter((p) => typeof p[1] === 'number').map((p) => [p[0], p[1]])) : null;
   const maxVol = volByDate ? Math.max(1, ...Array.from(volByDate.values())) : 1;
   const volBarW = Math.max(1, (w - padL - padR) / Math.max(1, data.length) * 0.7);
+
+  // RSI sub-pane series, aligned to the primary by date (gaps allowed).
+  const rsiByDate = rsi ? new Map(rsi.filter((p) => typeof p[1] === 'number').map((p) => [p[0], p[1]])) : null;
+  const rsiValues = rsiByDate ? data.map((d) => (rsiByDate.has(d.x) ? rsiByDate.get(d.x) : null)) : null;
+  function rsiSegPath(values) {
+    let started = false; const segs = [];
+    values.forEach((v, i) => {
+      if (v == null) { started = false; return; }
+      segs.push(`${started ? 'L' : 'M'}${xOf(i).toFixed(1)} ${rsiY(v).toFixed(1)}`);
+      started = true;
+    });
+    return segs.join(' ');
+  }
 
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -203,10 +222,26 @@ export default function BigHistoryChart({
           if (v == null) return null;
           const h = (v / maxVol) * volBand;
           return (
-            <rect key={`v${i}`} x={xOf(i) - volBarW / 2} y={height - padB - h}
+            <rect key={`v${i}`} x={xOf(i) - volBarW / 2} y={rsiTop - h}
               width={volBarW} height={h} fill="var(--mt-ink-3)" opacity={0.28} />
           );
         })}
+
+        {/* RSI sub-pane — 30/50/70 guides + line */}
+        {rsiValues && (
+          <g>
+            {[70, 50, 30].map((lv) => (
+              <line key={`rg${lv}`} x1={padL} x2={w - padR} y1={rsiY(lv)} y2={rsiY(lv)}
+                stroke="var(--mt-line-0)" strokeWidth="1" strokeDasharray={lv === 50 ? '' : '3 3'} />
+            ))}
+            <text x={padL - 8} y={rsiY(70)} textAnchor="end" dominantBaseline="middle"
+              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-font-ui)' }}>70</text>
+            <text x={padL - 8} y={rsiY(30)} textAnchor="end" dominantBaseline="middle"
+              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-font-ui)' }}>30</text>
+            <path d={rsiSegPath(rsiValues)} fill="none" stroke="var(--mt-ink-1)" strokeWidth="1.3"
+              strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        )}
 
         {/* area + price line */}
         <path d={areaPath} fill={accent} opacity={0.10} />
@@ -255,12 +290,13 @@ export default function BigHistoryChart({
         )}
       </svg>
 
-      {(overlays.length > 0 || compareSeries || volume || hasInsiderEv || hasDarkEv) && (
+      {(overlays.length > 0 || compareSeries || volume || rsi || hasInsiderEv || hasDarkEv) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label="Price" />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
           {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
+          {rsi && <LegendSwatch color="var(--mt-ink-1)" label={rsiLabel} />}
           {hasInsiderEv && <LegendSwatch color="var(--mt-up)" label="Insider event" dot />}
           {hasDarkEv && <LegendSwatch color="var(--mt-accent)" label="Dark-pool event" dot />}
         </div>
@@ -272,6 +308,7 @@ export default function BigHistoryChart({
         overlaySeries.forEach((o) => { const v = o.values[i]; if (v != null) rows.push([o.label, yFormat(v), o.color]); });
         if (compareSeries && compareSeries[i] != null) rows.push([compareLabel || "Compare", yFormat(compareSeries[i]), compareAccent]);
         if (volByDate) { const vv = volByDate.get(data[i].x); if (vv != null) rows.push(["Volume", fmtCompact(vv), "var(--mt-ink-3)"]); }
+        if (rsiValues && rsiValues[i] != null) rows.push([rsiLabel, rsiValues[i].toFixed(0), "var(--mt-ink-1)"]);
         const evs = eventsByIdx.get(i) || [];
         const left = Math.max(80, Math.min(w - 80, hover.x));
         return (
