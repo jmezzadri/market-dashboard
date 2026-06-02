@@ -8,7 +8,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 
-const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Economy', 'Financial Conditions'];
+const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 
 function fmtNum(v, decimals = 2) {
   if (v == null || !Number.isFinite(v)) return '—';

@@ -24,9 +24,9 @@ const FAMILY_LABEL = {
   equity: 'Equities',
   credit: 'Credit',
   rates: 'Rates',
-  fincond: 'Financial Conditions',
+  fincond: 'Financial Conditions & Economy',
   bank: 'Credit',
-  labor: 'Economy',
+  labor: 'Financial Conditions & Economy',
   commodities: 'Commodities',
   fx: 'FX',
 };

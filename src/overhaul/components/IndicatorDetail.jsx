@@ -55,6 +55,12 @@ export default function IndicatorDetail({ ind, onClose }) {
     const z = sd > 0 ? (ind.value - mean) / sd : null;
     return { mean, median, sd, z };
   }, [sliced, ind.value]);
+  const slicePct = useMemo(() => {
+    const vals = sliced.map((p) => p[1]).filter((v) => Number.isFinite(v));
+    if (!vals.length || ind.value == null) return ind.pct;
+    const below = vals.filter((v) => v < ind.value).length;
+    return Math.round((below / vals.length) * 100);
+  }, [sliced, ind.value, ind.pct]);
 
   const accent =
     ind.state === 'extreme'
@@ -165,10 +171,10 @@ export default function IndicatorDetail({ ind, onClose }) {
         >
           <div className="mt-eyebrow">Where today sits in the {tf} distribution</div>
           <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
-            <b className="num">{ind.pct != null ? ind.pct : '—'}</b>th percentile
+            <b className="num">{slicePct != null ? slicePct : '—'}</b>th percentile
           </div>
         </div>
-        <PercentileBar pct={ind.pct} direction={ind.direction} />
+        <PercentileBar pct={slicePct} direction={ind.direction} />
       </div>
 
       {/* Stats grid */}

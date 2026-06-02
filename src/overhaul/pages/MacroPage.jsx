@@ -27,7 +27,7 @@ import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
 import Sparkline from '../components/Sparkline';
 
-const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Economy', 'Financial Conditions'];
+const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 // Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
 const DOMAIN_TITLE = {
   Rates: 'The cost and shape of money.',
@@ -35,8 +35,7 @@ const DOMAIN_TITLE = {
   Equities: 'Valuation, volatility, breadth.',
   Commodities: 'Metals, energy, and grains.',
   FX: 'The dollar and major currencies.',
-  Economy: 'Real growth and the labor market.',
-  'Financial Conditions': 'Liquidity and broad conditions.',
+  'Financial Conditions & Economy': 'Growth, jobs, and broad financial conditions.',
 };
 
 function loadView() {
@@ -98,6 +97,7 @@ function DomainPositioning({ data }) {
 }
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
+function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function posRead(p){ return p>=90?'crowded long':p<=10?'crowded short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
 function posAccent(p){ const x=posState(p); return x==='extreme'?'var(--mt-down)':x==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 
@@ -275,7 +275,7 @@ export default function MacroPage() {
     const out = {};
     DOMAINS.forEach((d) => { out[d] = []; });
     indicators.forEach((i) => {
-      const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions';
+      const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions & Economy';
       out[d].push(i);
     });
     return out;
@@ -322,6 +322,7 @@ export default function MacroPage() {
                   type="button"
                   className={`mc-domcell ${isActive ? 'on' : ''}`}
                   onClick={() => setDomain(isActive ? 'All' : dom)}
+                  style={dom === 'Financial Conditions & Economy' ? { gridColumn: 'span 2' } : undefined}
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
@@ -334,16 +335,20 @@ export default function MacroPage() {
                   {elev > 0 && (
                     <div className="mc-domsub">+ <b>{elev}</b> elevated</div>
                   )}
-                  <div className="mc-domsumbar">
-                    {inds.map((i) => (
-                      <span key={i.id} className={`mc-domsumdot mc-domsumdot--${i.state}`} style={{ width: 8, height: 8, borderRadius: '50%' }} />
-                    ))}
-                  </div>
-                  {cotPos?.domains?.[dom]?.takeaway && (
-                    <div className="mc-domtake" style={{ marginTop: 10, paddingTop: 9, borderTop: '1px solid var(--mt-line-1)', fontSize: 11.5, lineHeight: 1.4, color: 'var(--mt-ink-2)' }}>
-                      {cotPos.domains[dom].takeaway}
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {inds.map((i) => (
+                        <span key={i.id} title={i.name} style={{ width: 9, height: 9, borderRadius: '50%', background: stColor(i.state), display: 'inline-block' }} />
+                      ))}
                     </div>
-                  )}
+                    {(cotPos?.domains?.[dom]?.markets || []).length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {cotPos.domains[dom].markets.map((m) => (
+                          <span key={m.market} title={`${m.market} · positioning`} style={{ width: 9, height: 9, borderRadius: '50%', border: `2px solid ${stColor(posState(m.spec))}`, boxSizing: 'border-box', display: 'inline-block' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -353,13 +358,18 @@ export default function MacroPage() {
 
 
 
+      {!loading && domain === 'All' && (
+        <section className="mt-pagesection mt-pagesection--tight">
+          <div style={{ textAlign: 'center', color: 'var(--mt-ink-3)', fontSize: 13 }}>Select a bucket above to open its indicators and positioning.</div>
+        </section>
+      )}
       {loading ? (
         <section className="mt-pagesection">
           <div className="mt-loadingcard">Loading indicators…</div>
         </section>
       ) : (
         <>
-          {DOMAINS.filter((d) => domain === 'All' || domain === d).map((dom) => {
+          {DOMAINS.filter((d) => domain !== 'All' && domain === d).map((dom) => {
             const inds = (byDomain[dom] || []).filter(
               (i) => stateF === 'all' || i.state === stateF,
             );
