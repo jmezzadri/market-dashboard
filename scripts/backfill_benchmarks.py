@@ -59,16 +59,38 @@ def supabase_upsert(rows):
     urlopen(req).read()
 
 
+def fetch_scanner_universe():
+    """Distinct tickers that have appeared in the scanner over the last ~90
+    days — the names a user can actually land on at /ticker/<sym>. The scanner
+    backfills a name ~16 months deep when it first launches; this deepens them
+    to the full 6-year window so the chart's 5Y / Max presets are real, not a
+    16-month stub. Self-maintaining: whatever the scanner has surfaced recently
+    gets deepened, no static list to keep in sync."""
+    since = (date.today() - timedelta(days=90)).isoformat()
+    url = (f"{SUPABASE_URL}/rest/v1/trading_opps_signals"
+           f"?select=ticker&scan_date=gte.{since}&limit=20000")
+    req = Request(url, headers={"apikey": SR_KEY, "Authorization": f"Bearer {SR_KEY}"})
+    try:
+        data = json.loads(urlopen(req).read())
+        names = sorted({r["ticker"] for r in data if r.get("ticker")})
+        print(f"Scanner universe: {len(names)} distinct names from the last 90 days")
+        return names
+    except Exception as e:
+        print(f"  scanner-universe fetch failed (continuing with overlay list only): {e}")
+        return []
+
+
 def main():
     import yfinance as yf
     end = date.today()
     start = end - timedelta(days=YEARS_BACK * 366)
-    print(f"Backfilling {len(TICKERS)} overlay tickers, {start} → {end} …")
+    tickers = sorted(set(TICKERS) | set(fetch_scanner_universe()))
+    print(f"Backfilling {len(tickers)} tickers (overlay universe + scanner names), {start} → {end} …")
 
     BATCH = 25
     total = 0
-    for i in range(0, len(TICKERS), BATCH):
-        batch = TICKERS[i:i + BATCH]
+    for i in range(0, len(tickers), BATCH):
+        batch = tickers[i:i + BATCH]
         print(f"  batch {i//BATCH + 1}: {batch}")
         try:
             df = yf.download(
