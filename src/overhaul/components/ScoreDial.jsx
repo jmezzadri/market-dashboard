@@ -4,7 +4,7 @@
 
 import React from 'react';
 
-export default function ScoreDial({ score, max = 5, size = 44 }) {
+export default function ScoreDial({ score, max = 10, size = 44 }) {
   const safe = score == null || !Number.isFinite(score) ? 0 : score;
   const pct = Math.max(0, Math.min(1, safe / max));
   const r = (size - 8) / 2;

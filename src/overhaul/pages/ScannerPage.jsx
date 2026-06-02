@@ -101,10 +101,12 @@ export default function ScannerPage() {
           </h1>
           <p className="mt-deck">
             Four signals — <b>insider activity</b>, <b>technicals</b>,{' '}
-            <b>options flow</b>, and <b>dark-pool prints</b> — added into one
-            MacroTilt Score (0–5). Today's scores are driven mainly by insider
-            activity and the 200-day trend; the options and dark-pool layers
-            are live but not yet contributing.
+            <b>options flow</b>, and <b>dark-pool prints</b> — sum into one
+            MacroTilt Score (0–10). A name has to earn at least 3 points from
+            the two backtested layers — insider buying and the 200-day / RSI
+            trend — to make the list; options flow and dark-pool prints can
+            lift it toward 10 but are still being validated and add nothing
+            today, so current scores top out around 5.
             Long alerts today <b className="num">{universeTotal}</b>.{' '}
             <a
               href="#"
@@ -229,7 +231,7 @@ export default function ScannerPage() {
           <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">How the score is built</div>
-              <div className="mt-h2">Four inputs · added into one number per ticker.</div>
+              <div className="mt-h2">Four inputs, summed into one 0–10 score · a name needs ≥3 from the backtested layers to launch.</div>
             </div>
             <button
               type="button"
@@ -240,15 +242,35 @@ export default function ScannerPage() {
             </button>
           </div>
           <div className="sc-buildgrid">
-            {SCORE_COMPONENTS.map((c) => (
-              <div key={c.key} className="sc-buildcell">
-                <div className="mt-eyebrow">{c.key}</div>
-                <div className="sc-buildwhy">{c.why}</div>
-                <div className="sc-buildw">
-                  contributes <b className="num">points</b>
+            {SCORE_COMPONENTS.map((c) => {
+              const d = {
+                'Insider': {
+                  max: '+4',
+                  rule: "Open-market buys filed in the last 30 days. Points fire on the rules — not a raw buy count: a C-suite officer lifting their own stake ≥10% (≥$100k), combined buying worth ≥0.05% of the company, or 3+ different insiders buying. Capped at +4 and faded for age — full weight ≤15 days, gone by 31.",
+                },
+                'Technicals': {
+                  max: '+1 / −2',
+                  rule: '+1 when it trades above its 200-day line, −2 below; a further −2 if the 14-day RSI is overbought (above 65).',
+                },
+                'Options flow': {
+                  max: '+4',
+                  rule: "An unusual surge in call buying versus the stock's own baseline. Live but not yet backtested — 0 for every name today.",
+                },
+                'Dark pool': {
+                  max: '+2',
+                  rule: "Large off-exchange block prints clustered near the day's average price. Live but not yet backtested — 0 for every name today.",
+                },
+              }[c.key] || { max: '', rule: c.why };
+              return (
+                <div key={c.key} className="sc-buildcell">
+                  <div className="mt-eyebrow">{c.key}</div>
+                  <div className="sc-buildwhy">{d.rule}</div>
+                  <div className="sc-buildw">
+                    up to <b className="num">{d.max}</b>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
