@@ -40,12 +40,12 @@ export const SCORE_COMPONENTS = [
   },
   {
     key: 'Options flow',
-    why: 'Unusual options-volume shock (not yet backtested)',
+    why: 'Unusual options-volume shock',
     fields: ['options_pts'],
   },
   {
     key: 'Dark pool',
-    why: 'Block prints anchored near VWAP (not yet backtested)',
+    why: 'Block prints anchored near VWAP',
     fields: ['dark_pool_pts'],
   },
 ];

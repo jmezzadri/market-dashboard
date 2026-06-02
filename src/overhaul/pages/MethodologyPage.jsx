@@ -212,20 +212,23 @@ export default function MethodologyPage() {
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Trading scanner</div>
-            <h2 className="me-h2">Five signals · one MacroTilt Score</h2>
+            <h2 className="me-h2">Four signals · one MacroTilt Score (0–10)</h2>
             <p className="me-body-p">
-              Each ticker is scored on six components, each on a 0–5 scale. The headline score is the
-              weighted sum on the same 0–5 scale. Weights are calibrated to historical alpha contribution.
+              Each ticker earns points from four inputs. They are added together — not weighted — into a
+              single score from 0 to 10. A name needs at least 3 points to make the list.
             </p>
             <div className="me-formula">
-              Technicals × 0.25 · Insider × 0.20 · Analyst × 0.20<br />
-              Options vol × 0.15 · Congress × 0.10 · Dark pool × 0.10<br />
-              MacroTilt Score = Σ (component_score / 5) × weight × 5
+              Insider (up to +4) + Technicals (+1 / −2) + Options flow (up to +4) + Dark pool (up to +2)<br />
+              MacroTilt Score = the sum, capped at 10
             </div>
             <p className="me-body-p">
-              The dark-pool and options layers are live but not yet backtested — treat them as developing
-              signals. <b>Universe scan</b> runs once per trading day. <b>Event firehoses</b> (insider Form
-              4, congressional disclosures, dark-pool prints, news) refresh 3× daily.
+              <b>Insider</b> fires on open-market buys in the last 30 days — a C-suite officer lifting their
+              own stake ≥10% (≥$100k), combined buying ≥0.05% of the company, or 3+ different insiders —
+              capped at +4 and faded with age. <b>Technicals</b> add +1 above the 200-day line (−2 below) and
+              −2 if the 14-day RSI is overbought. <b>Options flow</b> rewards an unusual surge in call buying,
+              and <b>dark pool</b> rewards large prints near the day's average price. <b>Universe scan</b> runs
+              once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
+              refresh 3× daily.
             </p>
           </div>
         </article>

@@ -102,11 +102,8 @@ export default function ScannerPage() {
           <p className="mt-deck">
             Four signals — <b>insider activity</b>, <b>technicals</b>,{' '}
             <b>options flow</b>, and <b>dark-pool prints</b> — sum into one
-            MacroTilt Score (0–10). A name has to earn at least 3 points from
-            the two backtested layers — insider buying and the 200-day / RSI
-            trend — to make the list; options flow and dark-pool prints can
-            lift it toward 10 but are still being validated and add nothing
-            today, so current scores top out around 5.
+            live MacroTilt Score from 0 to 10. A name needs at least 3 to make
+            the list.
             Long alerts today <b className="num">{universeTotal}</b>.{' '}
             <a
               href="#"
@@ -203,9 +200,8 @@ export default function ScannerPage() {
         )}
         <div className="sc-note">
           <b>Scoring update.</b>{' '}
-          The dark-pool and options layers are now live, raising the score
-          ceiling. These two layers are not yet backtested — treat them as
-          developing signals.
+          Dark-pool prints and options flow are now live inputs to the 0–10
+          MacroTilt Score.
         </div>
       </section>
 
@@ -254,11 +250,11 @@ export default function ScannerPage() {
                 },
                 'Options flow': {
                   max: '+4',
-                  rule: "An unusual surge in call buying versus the stock's own baseline. Live but not yet backtested — 0 for every name today.",
+                  rule: "An unusual surge in call buying versus the stock's own baseline.",
                 },
                 'Dark pool': {
                   max: '+2',
-                  rule: "Large off-exchange block prints clustered near the day's average price. Live but not yet backtested — 0 for every name today.",
+                  rule: "Large off-exchange block prints clustered near the day's average price.",
                 },
               }[c.key] || { max: '', rule: c.why };
               return (
