@@ -94,6 +94,34 @@ function DomainPositioning({ data }) {
   );
 }
 
+function BucketPositioning({ data }) {
+  if (!data) return null;
+  const items = [];
+  if (data.markets) data.markets.forEach((m) => items.push({ name: m.market, p: m.spec }));
+  else if (data.dealer) {
+    items.push({ name: 'Investment-grade bonds', p: data.dealer.ig_pct });
+    items.push({ name: 'High-yield bonds', p: data.dealer.hy_pct });
+  }
+  if (!items.length) return null;
+  const stateOf = (p) => (p <= 10 || p >= 90) ? 'extreme' : (p <= 25 || p >= 75) ? 'elevated' : 'calm';
+  const readOf = (p) => p >= 90 ? 'crowded long' : p <= 10 ? 'crowded short' : p >= 75 ? 'leaning long' : p <= 25 ? 'leaning short' : 'neutral';
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div className="mt-eyebrow" style={{ marginBottom: 4 }}>Positioning signals</div>
+      {data.takeaway && <p className="mt-deck" style={{ marginTop: 0, marginBottom: 12 }}>{data.takeaway}</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0 22px' }}>
+        {items.map((it) => (
+          <div key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--mt-line-1)' }}>
+            <span className={`mc-domsumdot mc-domsumdot--${stateOf(it.p)}`} style={{ width: 11, height: 11, borderRadius: '50%', flex: '0 0 auto', display: 'inline-block' }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', flex: 1 }}>{it.name}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>{readOf(it.p)} · {Math.round(it.p)}th</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function MacroPage() {
   const { active: indicators, loading } = useIndicators();
   const [view, setView] = useState(loadView);
@@ -111,6 +139,14 @@ export default function MacroPage() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+  const posCount = useMemo(() => {
+    if (!cotPos || !cotPos.domains) return 0;
+    let n = 0;
+    Object.values(cotPos.domains).forEach((d) => {
+      n += (d.markets ? d.markets.length : 0) + (d.dealer ? 2 : 0);
+    });
+    return n;
+  }, [cotPos]);
 
   const filtered = useMemo(() => {
     return indicators.filter(
@@ -147,9 +183,9 @@ export default function MacroPage() {
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Macro overview · today's read</div>
+          <div className="mt-eyebrow">Macro overview</div>
           <h1 className="mt-h1">
-            The five things you should know <i>about the tape</i> today.
+            Where every market sits <i>in its own range</i>.
           </h1>
           <p className="mt-deck">
             {indicators.length || '—'} indicators across <b>Rates</b>, <b>Credit</b>,{' '}
@@ -161,11 +197,10 @@ export default function MacroPage() {
         <div className="mc-onthispage">
           <div className="mt-eyebrow">On this page</div>
           <div className="mc-otpval num">{indicators.length || '—'}</div>
-          <div className="mc-otpsub">indicators · seven domains</div>
+          <div className="mc-otpsub">indicators</div>
           <div className="mt-divider" />
-          <div className="mc-otprow"><span>Leading</span><b className="num">{typeCounts.lead}</b></div>
-          <div className="mc-otprow"><span>Coincident</span><b className="num">{typeCounts.coinc}</b></div>
-          <div className="mc-otprow"><span>Lagging</span><b className="num">{typeCounts.lag}</b></div>
+          <div className="mc-otprow"><span>Positioning signals</span><b className="num">{posCount || '—'}</b></div>
+          <div className="mc-otprow"><span>Asset classes</span><b className="num">5</b></div>
           <FreshnessChip elementId="market-universe_master-daily" variant="label" />
         </div>
       </section>
@@ -199,10 +234,14 @@ export default function MacroPage() {
                   )}
                   <div className="mc-domsumbar">
                     {inds.map((i) => (
-                      <span key={i.id} className={`mc-domsumdot mc-domsumdot--${i.state}`} />
+                      <span key={i.id} className={`mc-domsumdot mc-domsumdot--${i.state}`} style={{ width: 8, height: 8, borderRadius: '50%' }} />
                     ))}
                   </div>
-                  <DomainPositioning data={cotPos?.domains?.[dom]} />
+                  {cotPos?.domains?.[dom]?.takeaway && (
+                    <div className="mc-domtake" style={{ marginTop: 10, paddingTop: 9, borderTop: '1px solid var(--mt-line-1)', fontSize: 11.5, lineHeight: 1.4, color: 'var(--mt-ink-2)' }}>
+                      {cotPos.domains[dom].takeaway}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -243,13 +282,6 @@ export default function MacroPage() {
               ))}
             </div>
           </div>
-          <div className="mc-legend mc-legend--push">
-            <div className="mt-eyebrow">View</div>
-            <div className="mt-pillgroup">
-              <button type="button" className={`mt-pill ${view === 'map' ? 'on' : ''}`} onClick={() => setView('map')}>Map</button>
-              <button type="button" className={`mt-pill ${view === 'grid' ? 'on' : ''}`} onClick={() => setView('grid')}>Grid</button>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -257,33 +289,6 @@ export default function MacroPage() {
         <section className="mt-pagesection">
           <div className="mt-loadingcard">Loading indicators…</div>
         </section>
-      ) : view === 'map' ? (
-        <>
-          <section className="mt-pagesection">
-            <div className="lm-canvas">
-              <RegimeCanvas
-                indicators={filtered}
-                onSelect={setSelected}
-                selected={selected}
-              />
-              <div className="lm-canvaslegend">
-                <div className="lm-legrow">
-                  <span className="lm-legdot lm-legdot--extreme" /> extreme
-                  <span className="lm-legdot lm-legdot--elevated" /> elevated
-                  <span className="lm-legdot lm-legdot--calm" /> calm
-                </div>
-                <div className="lm-legrow lm-legrow--dim">
-                  showing {filtered.length} of {indicators.length} · click any dot to drill
-                </div>
-              </div>
-            </div>
-          </section>
-          {selected && (
-            <section className="mt-pagesection mt-pagesection--tight2">
-              <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
-            </section>
-          )}
-        </>
       ) : (
         <>
           {DOMAINS.filter((d) => domain === 'All' || domain === d).map((dom) => {
@@ -309,11 +314,13 @@ export default function MacroPage() {
                     {c.calm > 0 && <span className="mt-tag mt-tag--calm">{c.calm} calm</span>}
                   </div>
                 </div>
+                <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Indicators</div>
                 <div className="mc-grid">
                   {inds.map((i) => (
                     <IndicatorCard key={i.id} ind={i} onClick={() => setSelected(i)} />
                   ))}
                 </div>
+                <BucketPositioning data={cotPos?.domains?.[dom]} />
               </section>
             );
           })}
