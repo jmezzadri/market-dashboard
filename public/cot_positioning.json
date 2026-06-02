@@ -77,8 +77,8 @@
     }
    ]
   },
-  "Money": {
-   "takeaway": "FX split \u2014 Aussie crowded long, Pound crowded short.",
+  "FX": {
+   "takeaway": "Mixed \u2014 Aussie crowded long, Pound crowded short.",
    "headline": {
     "market": "Australian Dollar",
     "spec": 92,
@@ -136,13 +136,90 @@
     }
    ]
   },
-  "Credit": {
-   "none": true,
-   "takeaway": "No futures market \u2014 read from the indicators above."
+  "Commodities": {
+   "takeaway": "Speculators crowded long across metals and grains.",
+   "headline": {
+    "market": "Copper",
+    "spec": 98,
+    "comm": 2,
+    "div": true
+   },
+   "markets": [
+    {
+     "market": "WTI Crude",
+     "spec": 25,
+     "comm": 71,
+     "div": false
+    },
+    {
+     "market": "Natural Gas",
+     "spec": 100,
+     "comm": 100,
+     "div": false
+    },
+    {
+     "market": "Gold",
+     "spec": 46,
+     "comm": 49,
+     "div": false
+    },
+    {
+     "market": "Silver",
+     "spec": 34,
+     "comm": 50,
+     "div": false
+    },
+    {
+     "market": "Copper",
+     "spec": 98,
+     "comm": 2,
+     "div": true
+    },
+    {
+     "market": "Platinum",
+     "spec": 85,
+     "comm": 13,
+     "div": true
+    },
+    {
+     "market": "Corn",
+     "spec": 89,
+     "comm": 12,
+     "div": true
+    },
+    {
+     "market": "Soybeans",
+     "spec": 87,
+     "comm": 15,
+     "div": true
+    },
+    {
+     "market": "Wheat",
+     "spec": 97,
+     "comm": 3,
+     "div": true
+    },
+    {
+     "market": "Sugar",
+     "spec": 24,
+     "comm": 74,
+     "div": false
+    },
+    {
+     "market": "Coffee",
+     "spec": 15,
+     "comm": 86,
+     "div": true
+    }
+   ]
   },
-  "Economy": {
-   "none": true,
-   "takeaway": "No futures market \u2014 read from the indicators above."
+  "Credit": {
+   "takeaway": "Dealers hold investment-grade corporate bonds at the 84th percentile of 3 yrs; high-yield at the 100th.",
+   "dealer": {
+    "ig_pct": 84.0,
+    "hy_pct": 100.0
+   },
+   "as_of": "2026-05-20"
   }
  }
 }

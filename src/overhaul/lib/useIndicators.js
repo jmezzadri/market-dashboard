@@ -24,17 +24,21 @@ const FAMILY_LABEL = {
   equity: 'Equities',
   credit: 'Credit',
   rates: 'Rates',
-  fincond: 'Money',
-  bank: 'Money',
+  fincond: 'Financial Conditions',
+  bank: 'Credit',
   labor: 'Economy',
+  commodities: 'Commodities',
+  fx: 'FX',
 };
 const FAMILY_FULL = {
   equity: 'Equity / Volatility',
   credit: 'Credit Risk',
   rates: 'Rates Curve',
   fincond: 'Financial conditions',
-  bank: 'Bank & Money',
-  labor: 'Labor & Growth',
+  bank: 'Credit & Banking',
+  labor: 'Economy',
+  commodities: 'Commodities',
+  fx: 'Currencies',
 };
 
 function pctRank(value, points) {

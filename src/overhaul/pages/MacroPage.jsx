@@ -24,14 +24,16 @@ import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 
-const DOMAINS = ['Rates', 'Credit', 'Equities', 'Money', 'Economy'];
+const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Economy', 'Financial Conditions'];
 // Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
 const DOMAIN_TITLE = {
   Rates: 'The cost and shape of money.',
   Credit: 'Stress in lending markets.',
   Equities: 'Valuation, volatility, breadth.',
-  Money: 'Reserves, liquidity, and the dollar.',
+  Commodities: 'Metals, energy, and grains.',
+  FX: 'The dollar and major currencies.',
   Economy: 'Real growth and the labor market.',
+  'Financial Conditions': 'Liquidity and broad conditions.',
 };
 
 function loadView() {
@@ -135,7 +137,7 @@ export default function MacroPage() {
     const out = {};
     DOMAINS.forEach((d) => { out[d] = []; });
     indicators.forEach((i) => {
-      const d = DOMAINS.includes(i.domain) ? i.domain : 'Money';
+      const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions';
       out[d].push(i);
     });
     return out;
@@ -151,15 +153,15 @@ export default function MacroPage() {
           </h1>
           <p className="mt-deck">
             {indicators.length || '—'} indicators across <b>Rates</b>, <b>Credit</b>,{' '}
-            <b>Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>.
-            No regime call lives on this page — that's Asset Tilt. This is the
-            indicator backdrop.
+            <b>Equities</b>, <b>Commodities</b>, <b>FX</b>, the <b>Economy</b>, and{' '}
+            <b>Financial Conditions</b> — each with its positioning. No regime call
+            lives on this page; that's Asset Tilt. This is the indicator backdrop.
           </p>
         </div>
         <div className="mc-onthispage">
           <div className="mt-eyebrow">On this page</div>
           <div className="mc-otpval num">{indicators.length || '—'}</div>
-          <div className="mc-otpsub">indicators · five domains</div>
+          <div className="mc-otpsub">indicators · seven domains</div>
           <div className="mt-divider" />
           <div className="mc-otprow"><span>Leading</span><b className="num">{typeCounts.lead}</b></div>
           <div className="mc-otprow"><span>Coincident</span><b className="num">{typeCounts.coinc}</b></div>
