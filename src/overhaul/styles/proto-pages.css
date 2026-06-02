@@ -869,3 +869,45 @@
   .mt-overhaul .hm-statgrid { width: 100%; }
   .mt-overhaul .at-keystats, .mt-overhaul .pf-keystats, .mt-overhaul .sc-results, .mt-overhaul .sn-picker, .mt-overhaul .mc-onthispage, .mt-overhaul .al-summary { width: 100%; }
 }
+/* ── Ticker score drill-down + company overview (rebuild 2026-06-02) ────── */
+.mt-overhaul .tk-scorecards { display: flex; flex-direction: column; }
+.mt-overhaul .tk-scard { border-top: 1px solid var(--mt-line-0); }
+.mt-overhaul .tk-scard:first-child { border-top: 0; }
+.mt-overhaul .tk-scard-head {
+  width: 100%; display: grid;
+  grid-template-columns: 18px 132px minmax(0, 1fr) 150px 72px;
+  align-items: center; gap: 12px;
+  background: none; border: 0; cursor: pointer;
+  padding: 13px 4px; text-align: left; color: var(--mt-ink-1);
+}
+.mt-overhaul .tk-scard-head:hover { background: var(--mt-surface-3); }
+.mt-overhaul .tk-scard-caret { color: var(--mt-ink-3); font-size: 11px; }
+.mt-overhaul .tk-scard-name { font-weight: 600; color: var(--mt-ink-0); font-size: 14px; }
+.mt-overhaul .tk-scard-why { color: var(--mt-ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-overhaul .tk-scard-bar { height: 6px; border-radius: 3px; background: var(--mt-line-1); overflow: hidden; }
+.mt-overhaul .tk-scard-bar i { display: block; height: 100%; background: var(--mt-accent); border-radius: 3px; }
+.mt-overhaul .tk-scard-pts { text-align: right; font-size: 15px; }
+.mt-overhaul .tk-scard-pts.is-zero { color: var(--mt-ink-3); }
+.mt-overhaul .tk-scard-pts.up { color: var(--mt-up); }
+.mt-overhaul .tk-scard-pts.down { color: var(--mt-down); }
+.mt-overhaul .tk-scard-body {
+  padding: 2px 4px 16px 30px; font-size: 13px; color: var(--mt-ink-1);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.mt-overhaul .tk-rulelist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.mt-overhaul .tk-rulelist li { color: var(--mt-ink-1); }
+.mt-overhaul .tk-drill-math { display: flex; flex-direction: column; gap: 6px; }
+.mt-overhaul .tk-drill-line { color: var(--mt-ink-1); }
+.mt-overhaul .tk-drill-note { color: var(--mt-ink-2); font-size: 12px; }
+.mt-overhaul .tk-drill-total { color: var(--mt-ink-0); font-weight: 600; }
+.mt-overhaul .tk-drill-evidence { margin-top: 2px; }
+.mt-overhaul .tk-drill-evidence .mt-eyebrow { margin-bottom: 6px; }
+.mt-overhaul .tk-scoretotal {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 12px 4px 2px; border-top: 1px solid var(--mt-line-1); margin-top: 4px;
+  color: var(--mt-ink-2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+}
+.mt-overhaul .tk-scoretotal b { font-family: var(--mt-font-display); font-size: 20px; color: var(--mt-ink-0); text-transform: none; }
+.mt-overhaul .tk-scoretotal b i { font-size: 13px; color: var(--mt-ink-3); font-style: normal; }
+.mt-overhaul .tk-about { color: var(--mt-ink-1); font-size: 13.5px; line-height: 1.55; margin: 0 0 14px; max-width: 74ch; }
+.mt-overhaul .tk-aboutlink { margin-top: 10px; font-size: 13px; }

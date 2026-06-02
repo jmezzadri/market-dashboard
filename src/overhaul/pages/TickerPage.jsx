@@ -96,18 +96,6 @@ const TABS = [
   ['fund',    'Fundamentals'],
 ];
 
-/* Framework score weights (published MacroTilt scoring methodology). The
-   per-row Score and Contribution values are derived from real sub-scores
-   below when available. */
-const SCORE_WEIGHTS = [
-  { key: 'sub_technicals',     name: 'Technicals',  why: '200d trend, RSI, MACD',         w: 0.25 },
-  { key: 'insider',            name: 'Insider',     why: 'C-suite buys / sells',          w: 0.20 },
-  { key: 'sub_analyst',        name: 'Analyst',     why: 'Upgrades, raised PTs',          w: 0.20 },
-  { key: 'sub_options',        name: 'Options vol', why: 'Calls/puts, IV rank',           w: 0.15 },
-  { key: 'sub_congress',       name: 'Congress',    why: 'Senate + House disclosures',    w: 0.10 },
-  { key: 'sub_short_interest', name: 'Short int.',  why: 'Short interest read',           w: 0.10 },
-];
-
 /* ---------- formatters ---------- */
 
 function fmt(v, decimals = 2) {
@@ -174,35 +162,28 @@ function fmtTimeAgo(s) {
   } catch { return '—'; }
 }
 
-/* ---------- score helpers ---------- */
+/* ---------- score model (canonical — mirrors the nightly engine) ----------
 
-/* Convert a raw sub-score (-10..+10 typical range from v5 scorer) into a
-   0-5 display value. Negative scores clamp to 0 — the breakdown shows
-   how MUCH each category contributed, not direction. */
-function subTo5(v) {
-  if (v == null || !Number.isFinite(Number(v))) return null;
-  const n = Number(v);
-  // The v5 sub_scores roughly land in -3..+3; map to 0..5 with 0 → 2.5.
-  return Math.max(0, Math.min(5, 2.5 + n * 0.85));
-}
+   The displayed MacroTilt Score is the engine's ADDITIVE score, not a
+   weighted average. The four components contribute points that sum to the
+   badge. The rule text and thresholds below are the engine's own calibrated
+   values, so the page can never disagree with how a name was actually scored. */
+const INSIDER_RULES = {
+  A: 'A C-suite officer bought on the open market, lifting their personal stake by at least 10% and worth at least $100,000.',
+  B: "Open-market insider buying over the last 30 days added up to at least 0.05% of the company's market value.",
+  C: 'Three or more different insiders bought on the open market within the 30-day window.',
+};
+/* Positive ceiling each component can contribute — used only to size its bar. */
+const SCORE_CAPS = { Insider: 4, Technicals: 1, 'Options flow': 4, 'Dark pool': 2 };
 
-/* Build the breakdown rows from v5 sub-scores + insider counts. */
-function buildBreakdown(v5Row) {
-  return SCORE_WEIGHTS.map((spec) => {
-    let raw = null;
-    if (spec.key === 'insider') {
-      // Insider has no direct sub_insider field in v5 — derive from buy count.
-      const n = v5Row?.ins_buys;
-      if (n != null && Number.isFinite(Number(n))) {
-        raw = n === 0 ? 0 : Math.min(3, Math.log2(Number(n) + 1));
-      }
-    } else {
-      raw = v5Row?.[spec.key];
-    }
-    const s5 = subTo5(raw);
-    const contrib = s5 != null ? (s5 / 5) * spec.w * 5 : null;
-    return { ...spec, s5, contrib };
-  });
+/* The engine fades insider points for age: full weight through day 15, then a
+   straight line down to zero at day 31. Returns the share of full weight left. */
+function insiderAgeWeight(ageDays) {
+  if (ageDays == null || !Number.isFinite(Number(ageDays))) return null;
+  const a = Number(ageDays);
+  if (a <= 15) return 1;
+  if (a >= 31) return 0;
+  return (31 - a) / (31 - 15);
 }
 
 /* Format insider Form-4 transaction code (P=open-market buy, S=open-market
@@ -254,11 +235,9 @@ export default function TickerPage() {
   const v5Row = v5Map?.byTicker?.[sym] || null;
   const eventsForSym = events.byTicker?.get?.(sym) || { news: [], insider: [], congress: [], darkpool: [] };
 
-  /* Composite price / score — scanner row is canonical 0-5. When the scanner
-     doesn't carry this ticker (it ranks only the top discovery names), fall
-     back to the totalScore from the v5 breakdown below — which is also 0-5
-     because every sub-score is mapped to 0-5 first. v5's raw mt_score uses a
-     different scale and would over-rotate the dial. */
+  /* The scanner row is the canonical 0–5 MacroTilt Score. If the scanner
+     doesn't carry this ticker (it ranks only the top discovery names), there
+     is simply no score for it — handled below. */
   const sector  = scanRow?.sector || snap?.sector || 'Equity';
   /* Single price anchor: prices_eod (real last close + its trade_date) is
      canonical so the header price, the chart, and the freshness chip all
@@ -339,14 +318,10 @@ export default function TickerPage() {
   if (show50)  overlays.push({ points: sma50Win,  color: 'var(--mt-accent)', label: '50d SMA', dash: '5 3' });
   if (show200) overlays.push({ points: sma200Win, color: 'var(--mt-warn)',   label: '200d SMA', dash: '5 3' });
 
-  const breakdown  = useMemo(() => buildBreakdown(v5Row), [v5Row]);
-  const totalScore = useMemo(() => breakdown.reduce(
-    (s, c) => s + (c.contrib ?? 0), 0
-  ), [breakdown]);
-
-  /* Dial score — scanner first (canonical 0-5), then the totalScore from the
-     v5 breakdown (also 0-5). Never raw v5 mt_score (different scale). */
-  const score = scanRow?.score ?? (v5Row ? totalScore : null);
+  /* Dial score — the scanner row is the single canonical 0–5. If a name isn't
+     in today's scan there is no MacroTilt Score (the old fallback to a second
+     scoring engine disagreed with this dial, so it was removed). */
+  const score = scanRow?.score ?? null;
 
   /* Score composition — the SAME additive 4-input model as the scanner, so it
      reconciles exactly to the headline dial (the old v5 weighted table summed
@@ -441,6 +416,14 @@ export default function TickerPage() {
           </div>
         </div>
       </section>
+
+      {/* The verdict — expandable score drill-down, right under the identity */}
+      <ScoreDrillSection
+        scanRow={scanRow}
+        comp={comp}
+        score={score}
+        insiderEvents={insiderEvents}
+      />
 
       {/* Price chart */}
       <section className="mt-pagesection mt-pagesection--tight2">
@@ -572,46 +555,8 @@ export default function TickerPage() {
         </div>
       </section>
 
-      {/* Score composition — always visible, ties out to the dial above */}
-      <section className="mt-pagesection">
-        <article className="mt-card">
-          <div className="mt-sectionhead-tight">
-            <div className="mt-eyebrow">
-              Score composition{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
-            </div>
-          </div>
-          {comp ? (
-            <table className="lm-scoremath tk-scoretable">
-              <thead>
-                <tr><th>Component</th><th>Reading</th><th className="num">Points</th></tr>
-              </thead>
-              <tbody>
-                {comp.items.map((c) => {
-                  const zero = !(c.points > 0);
-                  return (
-                    <tr key={c.key}>
-                      <td>
-                        <div className="lm-scoreklabel">{c.key}</div>
-                        <div className="lm-scorekwhy">{c.why}</div>
-                      </td>
-                      <td style={{ color: zero ? 'var(--mt-ink-3)' : 'var(--mt-ink-1)' }}>{readingForScan(c.key, scanRow)}</td>
-                      <td className="num lm-scorecontr"><b>{c.points > 0 ? '+' : ''}{c.points.toFixed(2)}</b></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2}><b>MacroTilt Score</b></td>
-                  <td className="num lm-scorecontr"><b>{comp.total.toFixed(2)}<i>/5</i></b></td>
-                </tr>
-              </tfoot>
-            </table>
-          ) : (
-            <div className="tk-empty">This name isn't in today's scan, so there's no MacroTilt Score breakdown.</div>
-          )}
-        </article>
-      </section>
+      {/* Company overview — restored from the old detail view */}
+      <CompanyOverview deep={deep} sector={sector} exchange={exchange} />
 
       {/* Recent activity & filings — detail feeds, switched by source */}
       <section className="mt-pagesection">
@@ -1018,6 +963,292 @@ function FundamentalsTab({ earnings, deep, snap }) {
         weekly earnings + Polygon corporate-actions pipelines.
       </div>
     </article>
+  );
+}
+
+/* ---------- Score drill-down (the centerpiece) ----------
+
+   The 0–5 badge expands here into its four engine components. Each card shows
+   its points, the rule that fired, and the raw drivers behind it. Every value
+   reads from the scan row, so the cards always reconcile to the badge above. */
+function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
+  const [open, setOpen] = useState('Insider');
+  if (!scanRow || !comp) {
+    return (
+      <section className="mt-pagesection">
+        <article className="mt-card">
+          <div className="mt-sectionhead-tight">
+            <div className="mt-eyebrow">How the score is built</div>
+          </div>
+          <div className="tk-empty">
+            This name isn't in today's scan, so there's no MacroTilt Score breakdown.
+          </div>
+        </article>
+      </section>
+    );
+  }
+  return (
+    <section className="mt-pagesection">
+      <article className="mt-card">
+        <div className="mt-sectionhead-tight">
+          <div className="mt-eyebrow">
+            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
+          </div>
+        </div>
+        <div className="tk-scorecards">
+          {comp.items.map((c) => (
+            <ScoreCard
+              key={c.key}
+              comp={c}
+              scanRow={scanRow}
+              insiderEvents={insiderEvents}
+              open={open === c.key}
+              onToggle={() => setOpen(open === c.key ? null : c.key)}
+            />
+          ))}
+        </div>
+        <div className="tk-scoretotal">
+          <span>Components add up to</span>
+          <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
+        </div>
+        <div className="tk-emptyfoot">
+          A name makes the list on its insider + trend score (3.0 or higher).
+          Options-flow and dark-pool points add on top toward a ceiling of 10 —
+          both read 0 for every name today and are not yet backtested.
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function ScoreCard({ comp, scanRow, insiderEvents, open, onToggle }) {
+  const pts = comp.points;
+  const cap = SCORE_CAPS[comp.key] || 4;
+  const zero = !(pts > 0);
+  const neg = pts < 0;
+  const fill = Math.max(0, Math.min(1, pts / cap));
+  return (
+    <div className={`tk-scard ${open ? 'on' : ''}`}>
+      <button type="button" className="tk-scard-head" onClick={onToggle}>
+        <span className="tk-scard-caret">{open ? '▾' : '▸'}</span>
+        <span className="tk-scard-name">{comp.key}</span>
+        <span className="tk-scard-why">{comp.why}</span>
+        <span className="tk-scard-bar"><i style={{ width: `${fill * 100}%` }} /></span>
+        <b className={`num tk-scard-pts ${zero ? 'is-zero' : neg ? 'down' : 'up'}`}>
+          {pts > 0 ? '+' : ''}{pts.toFixed(2)}
+        </b>
+      </button>
+      {open && (
+        <div className="tk-scard-body">
+          {comp.key === 'Insider'      && <InsiderDrill scanRow={scanRow} pts={pts} events={insiderEvents} />}
+          {comp.key === 'Technicals'   && <TechnicalsDrill scanRow={scanRow} pts={pts} />}
+          {comp.key === 'Options flow' && <OptionsDrill scanRow={scanRow} pts={pts} />}
+          {comp.key === 'Dark pool'    && <DarkDrill scanRow={scanRow} pts={pts} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InsiderDrill({ scanRow, pts, events }) {
+  const rules = scanRow.insider_rules || [];
+  const age = scanRow.insider_age_days;
+  const w = insiderAgeWeight(age);
+  // Open-market buys are exactly what the engine scores — show them as evidence.
+  const buys = (events || []).filter((e) => insiderActionLabel(e.payload || {}).label === 'BUY');
+  const totalUsd = buys.reduce((s, e) => {
+    const p = e.payload || {};
+    const v = Number(p.value) || (Number(p.amount) && Number(p.price) ? Number(p.amount) * Number(p.price) : 0);
+    return s + (Number.isFinite(v) ? v : 0);
+  }, 0);
+  const dates = buys
+    .map((e) => (e.payload?.transaction_date || e.event_ts || '').slice(0, 10))
+    .filter(Boolean)
+    .sort();
+  const range = dates.length ? `${fmtDateShort(dates[0])}–${fmtDateShort(dates[dates.length - 1])}` : null;
+  return (
+    <>
+      {rules.length ? (
+        <ul className="tk-rulelist">
+          {rules.map((r) => (
+            <li key={r}><b>Rule {r}</b> — {INSIDER_RULES[r] || 'qualifying open-market insider buying.'}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="tk-empty">No insider rule fired.</div>
+      )}
+      {rules.length > 0 && (
+        <div className="tk-drill-math">
+          Rule points are capped at +4, then weighted for age:{' '}
+          {age != null ? `most recent qualifying buy ${age} day${age === 1 ? '' : 's'} ago — ` : ''}
+          {w == null ? '' : w >= 1 ? 'fresh, full weight' : `aging, about ${Math.round(w * 100)}% weight left`}
+          {' '}→ <b className="num up">+{pts.toFixed(2)}</b>.
+        </div>
+      )}
+      <div className="tk-drill-note">
+        Counts open-market purchases over the last 30 days. Routine pre-scheduled
+        (10b5-1) trades and 10%+ owners are excluded.
+      </div>
+      {buys.length > 0 && (
+        <div className="tk-drill-evidence">
+          <div className="mt-eyebrow">
+            {buys.length} open-market buy{buys.length === 1 ? '' : 's'} on record
+            {totalUsd > 0 ? ` · ${fmt$(totalUsd, 0)}` : ''}{range ? ` · ${range}` : ''}
+          </div>
+          <InsiderFilingsTable events={buys} />
+        </div>
+      )}
+    </>
+  );
+}
+
+function TechnicalsDrill({ scanRow, pts }) {
+  const pct = scanRow.sma200_pct;
+  const smaPts = Number(scanRow.sma200_pts) || 0;
+  const rsi = scanRow.rsi;
+  const rsiPts = Number(scanRow.rsi_pts) || 0;
+  return (
+    <div className="tk-drill-math">
+      <div className="tk-drill-line">
+        <b>200-day trend:</b>{' '}
+        {pct == null ? 'no reading' : `${pct >= 0 ? 'above' : 'below'} its 200-day line by ${Math.abs(pct).toFixed(1)}%`}
+        {' '}→ <b className={`num ${smaPts >= 0 ? 'up' : 'down'}`}>{smaPts >= 0 ? '+' : ''}{smaPts}</b>
+        <span className="tk-drill-note"> above the line +1, below −2</span>
+      </div>
+      <div className="tk-drill-line">
+        <b>RSI(14):</b>{' '}
+        {rsi == null ? 'no reading' : `${Number(rsi).toFixed(0)} — ${Number(rsi) > 65 ? 'overbought (above the 65 line)' : 'not overbought (below the 65 line)'}`}
+        {' '}→ <b className={`num ${rsiPts >= 0 ? 'up' : 'down'}`}>{rsiPts >= 0 ? '+' : ''}{rsiPts}</b>
+        <span className="tk-drill-note"> a hot 14-day Wilder RSI subtracts 2</span>
+      </div>
+      <div className="tk-drill-total">Trend total → <b className="num">{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b></div>
+    </div>
+  );
+}
+
+function OptionsDrill({ scanRow, pts }) {
+  const shock = scanRow.options_vol_shock;
+  return (
+    <div className="tk-drill-math">
+      <div className="tk-drill-line">
+        Unusual options-volume shock versus the stock's own baseline:{' '}
+        {shock == null ? 'no qualifying flow detected' : `${Number(shock).toFixed(2)}× baseline`}
+        {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
+      </div>
+      <div className="tk-drill-note">
+        {pts > 0 ? '' : 'No qualifying unusual options flow today. '}
+        Adds up to +4 when unusually heavy call buying shows up on moderately
+        out-of-the-money, near-dated contracts. Not yet backtested.
+      </div>
+    </div>
+  );
+}
+
+function DarkDrill({ scanRow, pts }) {
+  const anchor = scanRow.dark_pool_anchor;
+  return (
+    <div className="tk-drill-math">
+      <div className="tk-drill-line">
+        Large off-exchange block prints clustered near the day's average price:{' '}
+        {anchor == null ? 'none detected' : `anchored around $${fmt(anchor, 2)}`}
+        {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
+      </div>
+      <div className="tk-drill-note">
+        {pts > 0 ? '' : 'No qualifying block prints near the average price today. '}
+        Adds up to +2 when big institutional prints stack within ~1.5% of the
+        volume-weighted average price over a 72-hour window. Not yet backtested.
+      </div>
+    </div>
+  );
+}
+
+function InsiderFilingsTable({ events }) {
+  return (
+    <div className="tk-tablewrap">
+      <table className="tk-evttable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Insider</th><th>Role</th><th>Action</th>
+            <th className="num">Shares</th><th className="num">Price</th><th className="num">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.slice(0, 50).map((r) => {
+            const p = r.payload || {};
+            const act = insiderActionLabel(p);
+            const role = insiderRoleLabel(p);
+            const shares = Number(p.amount) || null;
+            const value = Number(p.value) || (shares && p.price ? shares * Number(p.price) : null);
+            const isBuy = act.label === 'BUY';
+            return (
+              <tr key={`${r.event_ts}-${p.owner_name}-${shares}`}>
+                <td className="num">{fmtDateShort(p.transaction_date || r.event_ts)}</td>
+                <td>
+                  {p.owner_name || '—'}
+                  {p.is_10b5_1 && <Tip content="Rule 10b5-1 — automatic preset plan, not discretionary"><span className="tk-tag-soft">10b5-1</span></Tip>}
+                </td>
+                <td>{role}</td>
+                <td><span className={`mt-tag ${act.cls}`}>{act.label}</span></td>
+                <td className={`num ${isBuy ? 'up' : 'down'}`}>
+                  {shares != null ? (isBuy ? '+' : '−') + fmtVol(Math.abs(shares)) : '—'}
+                </td>
+                <td className="num">{p.price != null ? `$${fmt(p.price, 2)}` : '—'}</td>
+                <td className={`num ${isBuy ? 'up' : 'down'}`}>
+                  {value != null ? fmt$(Math.abs(value), 0) : '—'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {events.length > 50 && (
+        <div className="tk-techfoot">Showing 50 of {events.length} buys.</div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Company overview (restored) ---------- */
+
+function CompanyOverview({ deep, sector, exchange }) {
+  const ref = deep?.ref || null;
+  const desc = ref?.description || null;
+  const industry = ref?.sic_description || null;
+  const city = ref?.address_city || null;
+  const state = ref?.address_state || null;
+  const hq = city ? `${city}${state ? `, ${state}` : ''}` : null;
+  const employees = ref?.total_employees || null;
+  const listed = ref?.list_date || null;
+  const site = ref?.homepage_url || null;
+  return (
+    <section className="mt-pagesection">
+      <article className="mt-card">
+        <div className="mt-sectionhead-tight">
+          <div className="mt-eyebrow">Company overview</div>
+        </div>
+        {desc ? (
+          <p className="tk-about">{desc}</p>
+        ) : (
+          <div className="tk-empty">No company description on file for this ticker.</div>
+        )}
+        <div className="tk-keygrid">
+          <KvCell label="Sector"    value={sector || '—'} />
+          <KvCell label="Industry"  value={industry || '—'} />
+          <KvCell label="Exchange"  value={exchange || '—'} />
+          <KvCell label="HQ"        value={hq || '—'} />
+          <KvCell label="Employees" value={employees != null ? Number(employees).toLocaleString() : '—'} />
+          <KvCell label="Listed"    value={listed ? `${fmtDateShort(listed)}, ${String(listed).slice(0, 4)}` : '—'} />
+        </div>
+        {site && (
+          <div className="tk-aboutlink">
+            <a href={site} target="_blank" rel="noopener noreferrer" className="tk-newslink">
+              {site.replace(/^https?:\/\//, '')}
+            </a>
+          </div>
+        )}
+        <div className="tk-emptyfoot">Company profile from the reference data feed (Polygon).</div>
+      </article>
+    </section>
   );
 }
 
