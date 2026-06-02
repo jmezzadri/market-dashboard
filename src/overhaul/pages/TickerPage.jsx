@@ -440,7 +440,7 @@ export default function TickerPage() {
           <div className="mt-eyebrow">MacroTilt Score</div>
           <div className="tk-bigdial">
             {score != null
-              ? <ScoreDial score={score} max={5} size={96} />
+              ? <ScoreDial score={score} max={10} size={96} />
               : <div className="tk-noscore">No score<span>not in today's scan</span></div>}
           </div>
           {signal && (
@@ -655,7 +655,7 @@ export default function TickerPage() {
             >
               <div className="tk-relhead">
                 <span className="lm-tkmain">{r.ticker}</span>
-                <ScoreDial score={r.score} max={5} size={36} />
+                <ScoreDial score={r.score} max={10} size={36} />
               </div>
               <div className="tk-relsub">{r.sector || '—'}</div>
               <div className="tk-relstats num">
@@ -1055,7 +1055,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
       <article className="mt-card">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">
-            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
+            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 10` : ''}
           </div>
         </div>
         <div className="tk-scorecards">
@@ -1072,7 +1072,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
         </div>
         <div className="tk-scoretotal">
           <span>Components add up to</span>
-          <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
+          <b className="num">{comp.total.toFixed(2)}<i> / 10</i></b>
         </div>
         <div className="tk-emptyfoot">
           A name makes the list on its insider + trend score (3.0 or higher).

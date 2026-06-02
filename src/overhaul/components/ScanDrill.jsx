@@ -77,7 +77,7 @@ export default function ScanDrill({ row, onAct }) {
           <div className="mt-eyebrow">Signal composition · points sum to score</div>
           <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>
             = <b style={{ color: 'var(--mt-accent)' }}>{total.toFixed(2)}</b>
-            <span style={{ color: 'var(--mt-ink-3)', marginLeft: 2 }}>/5</span>
+            <span style={{ color: 'var(--mt-ink-3)', marginLeft: 2 }}>/10</span>
           </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
@@ -112,7 +112,7 @@ export default function ScanDrill({ row, onAct }) {
                 className="num"
                 style={{ textAlign: 'right', fontWeight: 700, color: 'var(--mt-accent)', fontSize: 14 }}
               >
-                {total.toFixed(2)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 2 }}>/5</span>
+                {total.toFixed(2)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 2 }}>/10</span>
               </td>
             </tr>
           </tbody>

@@ -172,8 +172,8 @@ export default function ScanList({
                   {r.name ? `${r.name} · ` : ''}{r.sector || ''}
                 </span>
               </div>
-              {/* Score dial (0-5) */}
-              <ScoreDial score={r.score} max={5} size={44} />
+              {/* Score dial (0-10 engine ceiling) */}
+              <ScoreDial score={r.score} max={10} size={44} />
               {/* Price + change */}
               {price != null ? (
                 <div>
