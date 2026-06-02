@@ -317,12 +317,13 @@ export default function MacroPage() {
               const elev = inds.filter((i) => i.state === 'elevated').length;
               const isActive = domain === dom;
               return (
-                <button
+                <div
                   key={dom}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   className={`mc-domcell ${isActive ? 'on' : ''}`}
                   onClick={() => setDomain(isActive ? 'All' : dom)}
-                  style={dom === 'Financial Conditions & Economy' ? { gridColumn: 'span 2' } : undefined}
+                  style={{ cursor: 'pointer', ...(dom === 'Financial Conditions & Economy' ? { gridColumn: 'span 2' } : {}) }}
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
@@ -335,21 +336,25 @@ export default function MacroPage() {
                   {elev > 0 && (
                     <div className="mc-domsub">+ <b>{elev}</b> elevated</div>
                   )}
-                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                      {inds.map((i) => (
-                        <span key={i.id} title={i.name} style={{ width: 9, height: 9, borderRadius: '50%', background: stColor(i.state), display: 'inline-block' }} />
-                      ))}
-                    </div>
-                    {(cotPos?.domains?.[dom]?.markets || []).length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                        {cotPos.domains[dom].markets.map((m) => (
-                          <span key={m.market} title={`${m.market} · positioning`} style={{ width: 9, height: 9, borderRadius: '50%', border: `2px solid ${stColor(posState(m.spec))}`, boxSizing: 'border-box', display: 'inline-block' }} />
-                        ))}
-                      </div>
-                    )}
+                  <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {inds.map((i) => (
+                      <button key={i.id} type="button"
+                        className={`mt-tag mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
+                        onClick={(e) => { e.stopPropagation(); setSelected(i); }}
+                        style={{ cursor: 'pointer', border: 'none', font: 'inherit' }}>
+                        {i.name}
+                      </button>
+                    ))}
+                    {(cotPos?.domains?.[dom]?.markets || []).map((m) => (
+                      <button key={m.market} type="button"
+                        className={`mt-tag mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
+                        onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
+                        style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit' }}>
+                        {m.market}
+                      </button>
+                    ))}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
