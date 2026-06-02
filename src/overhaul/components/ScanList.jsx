@@ -89,8 +89,8 @@ export default function ScanList({
           <span>30-day</span>
           <ColHead tip="Insider Form-4 points (rules A/B/C, decayed by age)">Insider</ColHead>
           <ColHead tip="Technicals points: above 200-day line + RSI penalty">Tech</ColHead>
-          <ColHead tip="Options-volume-shock points (not yet backtested)">Options</ColHead>
-          <ColHead tip="Dark-pool anchor points (not yet backtested)">Dark</ColHead>
+          <ColHead tip="Options-volume-shock points">Options</ColHead>
+          <ColHead tip="Dark-pool anchor points">Dark</ColHead>
           <span />
         </li>
       )}

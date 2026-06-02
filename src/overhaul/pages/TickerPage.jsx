@@ -1076,8 +1076,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
         </div>
         <div className="tk-emptyfoot">
           A name makes the list on its insider + trend score (3.0 or higher).
-          Options-flow and dark-pool points add on top toward a ceiling of 10 —
-          both read 0 for every name today and are not yet backtested.
+          Options-flow and dark-pool points add on top, toward a ceiling of 10.
         </div>
       </article>
     </section>
@@ -1199,9 +1198,9 @@ function OptionsDrill({ scanRow, pts }) {
         {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
       </div>
       <div className="tk-drill-note">
-        {pts > 0 ? '' : 'No qualifying unusual options flow today. '}
+        {pts > 0 ? '' : 'No qualifying unusual options flow right now. '}
         Adds up to +4 when unusually heavy call buying shows up on moderately
-        out-of-the-money, near-dated contracts. Not yet backtested.
+        out-of-the-money, near-dated contracts.
       </div>
     </div>
   );
@@ -1217,9 +1216,9 @@ function DarkDrill({ scanRow, pts }) {
         {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
       </div>
       <div className="tk-drill-note">
-        {pts > 0 ? '' : 'No qualifying block prints near the average price today. '}
+        {pts > 0 ? '' : 'No qualifying block prints near the average price right now. '}
         Adds up to +2 when big institutional prints stack within ~1.5% of the
-        volume-weighted average price over a 72-hour window. Not yet backtested.
+        volume-weighted average price over a 72-hour window.
       </div>
     </div>
   );
