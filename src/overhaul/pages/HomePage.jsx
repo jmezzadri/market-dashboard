@@ -225,8 +225,8 @@ export default function HomePage() {
           <FeatureCard
             num="01"
             label="Trading scanner"
-            title="Five signals into one score"
-            body="Insider, dark-pool prints, options flow, congressional trades and technicals — cleared liquidity gate."
+            title="Four signals into one 0–10 score"
+            body="Insider buying, technicals, options flow and dark-pool prints — added into one score, cleared the liquidity gate."
             stat={scannerStat}
             freshnessId="equity-latest_scan_data-daily"
             onClick={() => navigate('/scanner')}
