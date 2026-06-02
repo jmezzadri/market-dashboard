@@ -94,29 +94,85 @@ function DomainPositioning({ data }) {
   );
 }
 
-function BucketPositioning({ data }) {
+function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
+function posRead(p){ return p>=90?'crowded long':p<=10?'crowded short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
+
+function BucketPositioning({ data, onSelect }) {
   if (!data) return null;
-  const items = [];
-  if (data.markets) data.markets.forEach((m) => items.push({ name: m.market, p: m.spec }));
-  else if (data.dealer) {
-    items.push({ name: 'Investment-grade bonds', p: data.dealer.ig_pct });
-    items.push({ name: 'High-yield bonds', p: data.dealer.hy_pct });
-  }
+  const items = data.markets || [];
   if (!items.length) return null;
-  const stateOf = (p) => (p <= 10 || p >= 90) ? 'extreme' : (p <= 25 || p >= 75) ? 'elevated' : 'calm';
-  const readOf = (p) => p >= 90 ? 'crowded long' : p <= 10 ? 'crowded short' : p >= 75 ? 'leaning long' : p <= 25 ? 'leaning short' : 'neutral';
   return (
     <div style={{ marginTop: 22 }}>
       <div className="mt-eyebrow" style={{ marginBottom: 4 }}>Positioning signals</div>
       {data.takeaway && <p className="mt-deck" style={{ marginTop: 0, marginBottom: 12 }}>{data.takeaway}</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0 22px' }}>
-        {items.map((it) => (
-          <div key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--mt-line-1)' }}>
-            <span className={`mc-domsumdot mc-domsumdot--${stateOf(it.p)}`} style={{ width: 11, height: 11, borderRadius: '50%', flex: '0 0 auto', display: 'inline-block' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', flex: 1 }}>{it.name}</span>
-            <span style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>{readOf(it.p)} · {Math.round(it.p)}th</span>
-          </div>
+        {items.map((m) => (
+          <button key={m.market} type="button" onClick={() => onSelect && onSelect(m)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px', border: 'none', borderBottom: '1px solid var(--mt-line-1)', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}>
+            <span className={`mc-domsumdot mc-domsumdot--${posState(m.spec)}`} style={{ width: 11, height: 11, borderRadius: '50%', flex: '0 0 auto', display: 'inline-block' }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', flex: 1 }}>{m.market}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>{posRead(m.spec)} · {Math.round(m.spec)}th</span>
+            <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>›</span>
+          </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PosStat({ label, v }) {
+  return (<div><div style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>{label}</div><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--mt-ink-0)' }}>{v}</div></div>);
+}
+
+function PositioningDetail({ item, onClose }) {
+  if (!item) return null;
+  const h = item.history || [];
+  const isDealer = item.comm == null;
+  const specs = h.map((r) => r[1]).filter((v) => v != null);
+  const comms = h.map((r) => r[2]).filter((v) => v != null);
+  const all = (isDealer ? specs : specs.concat(comms)).concat([0]);
+  const mn = Math.min(...all), mx = Math.max(...all);
+  const W = 680, Hh = 150, pad = 8, rng = (mx - mn) || 1;
+  const xx = (i) => pad + (i / Math.max(1, h.length - 1)) * (W - 2 * pad);
+  const yy = (v) => Hh - pad - ((v - mn) / rng) * (Hh - 2 * pad);
+  const path = (idx) => h.map((r, i) => (r[idx] == null ? null : `${i ? 'L' : 'M'}${xx(i).toFixed(1)} ${yy(r[idx]).toFixed(1)}`)).filter(Boolean).join(' ');
+  const read = item.spec >= 90 ? 'the most bullish in 3 years — crowded long, fragile to an unwind'
+    : item.spec <= 10 ? 'the most bearish in 3 years — crowded short, fragile to a squeeze'
+    : item.spec >= 75 ? 'in the upper part of its 3-year range'
+    : item.spec <= 25 ? 'in the lower part of its 3-year range' : 'mid-range over the last 3 years';
+  const unit = isDealer ? (item.dealerUnit || '$bn net') : '% of open interest';
+  return (
+    <div className="mt-card" style={{ padding: '20px 24px', marginTop: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div className="mt-eyebrow">Positioning detail</div>
+          <div className="mt-h2" style={{ margin: '2px 0' }}>{item.market}</div>
+          <div style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {Math.round(item.spec)}th percentile · {read}</div>
+        </div>
+        <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 22, color: 'var(--mt-ink-3)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+      </div>
+      <svg viewBox={`0 0 ${W} ${Hh}`} width="100%" height="150" preserveAspectRatio="none" style={{ marginTop: 14 }}>
+        <line x1={pad} x2={W - pad} y1={yy(0)} y2={yy(0)} stroke="var(--mt-line-1)" strokeWidth="1" strokeDasharray="3 3" />
+        {!isDealer && <path d={path(2)} fill="none" stroke="var(--mt-ink-3)" strokeWidth="1.5" />}
+        <path d={path(1)} fill="none" stroke="var(--mt-accent)" strokeWidth="1.8" />
+      </svg>
+      <div style={{ display: 'flex', gap: 18, fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 6 }}>
+        <span><span style={{ color: 'var(--mt-accent)' }}>●</span> Speculators</span>
+        {!isDealer && <span><span style={{ color: 'var(--mt-ink-3)' }}>●</span> Commercials (hedgers)</span>}
+        <span style={{ marginLeft: 'auto' }}>net position, {unit} · 3-year weekly history</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>
+        <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
+        <PosStat label="Speculator percentile" v={`${Math.round(item.spec)}th`} />
+        {!isDealer && item.commNet != null && <PosStat label="Commercials net" v={`${item.commNet}%`} />}
+        {item.oi != null && <PosStat label="Open interest" v={Number(item.oi).toLocaleString()} />}
+      </div>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--mt-line-1)', fontSize: 11.5, color: 'var(--mt-ink-2)', lineHeight: 1.8 }}>
+        <b>Source</b> {isDealer ? 'New York Fed primary-dealer statistics' : 'CFTC Commitments of Traders (futures + options)'}<br />
+        <b>Frequency</b> Weekly · {isDealer ? 'Wednesday snapshot' : 'Tuesday snapshot'}<br />
+        <b>Timing</b> {isDealer ? 'Thursday, after release' : 'Saturday 07:00 ET'}<br />
+        <b>Service-level target</b> {isDealer ? '14 days' : '8 days (192 hours)'}<br />
+        <b>Last update</b> {item.asof}
       </div>
     </div>
   );
@@ -129,6 +185,7 @@ export default function MacroPage() {
   const [domain, setDomain] = useState('All');
   const [selected, setSelected] = useState(null);
   const [cotPos, setCotPos] = useState(null);
+  const [selectedPos, setSelectedPos] = useState(null);
 
   useEffect(() => { saveView(view); }, [view]);
   useEffect(() => {
@@ -320,13 +377,18 @@ export default function MacroPage() {
                     <IndicatorCard key={i.id} ind={i} onClick={() => setSelected(i)} />
                   ))}
                 </div>
-                <BucketPositioning data={cotPos?.domains?.[dom]} />
+                <BucketPositioning data={cotPos?.domains?.[dom]} onSelect={setSelectedPos} />
               </section>
             );
           })}
           {selected && (
             <section className="mt-pagesection mt-pagesection--flush">
               <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
+            </section>
+          )}
+          {selectedPos && (
+            <section className="mt-pagesection mt-pagesection--flush">
+              <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} />
             </section>
           )}
         </>
