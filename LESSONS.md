@@ -22,6 +22,24 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-02 — Every data chip shows Source, Frequency, Timing, SLA, and Last update — no exceptions
+
+**What happened:** Freshness chips across MacroTilt show a green/red dot and a relative age, but not the full provenance. A user can't tell, from the chip, where the number comes from, how often it should refresh and on what calendar, when it is scheduled to pull, what staleness threshold turns it red, or the exact last-update timestamp. Joe: "I want every piece of data to have a chip that explains all of it." Half-explained chips are how data problems stay hidden.
+
+**What you should do instead:** Every freshness chip on the entire site — every indicator, every positioning read, every tile, every risk-map dot, every grid row, every drill panel, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Trading Scanner, Portfolio, Paper, Ticker, Scenario) — must expose ALL FIVE of these on hover/click, with no exceptions:
+
+  1. **Source** — the vendor/feed the value comes from (e.g., "FRED", "Yahoo", "CFTC", "NY Fed").
+  2. **Frequency** — the cadence AND its calendar (e.g., "Daily · NYSE trading days", "Weekly · Saturday", "Monthly").
+  3. **Timing** — the scheduled fetch time of day in ET (e.g., "16:45 ET").
+  4. **SLA** — the staleness threshold that turns the chip red, in hours (e.g., "25 hours").
+  5. **Last update** — the exact date AND time of the last successful refresh.
+
+All five are read from the data manifest + `pipeline_health` — never hardcoded. No chip ships without all five. No data element renders on any surface without a chip. The manifest entry for every element must therefore carry source_vendor, cadence, release_calendar, scheduled_fetch_time_et, and freshness_sla_hours, and every producer must upsert `pipeline_health` so "Last update" is real (a producer that skips the upsert produces a fake-green chip and is not done).
+
+**Applies to:** All. Data Steward owns enforcement. Every PR that adds, moves, or renders a data-driven value must satisfy this before merge. Roll out now for indicators, positioning, and Macro Overview, then extend to every page on the site.
+
+---
+
 ## 2026-06-01 — Never ship synthetic/placeholder data dressed as real; un-wired = em-dash
 
 **What happened:** Large parts of the Scanner and Ticker Detail pages were
