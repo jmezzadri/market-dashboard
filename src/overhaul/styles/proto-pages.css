@@ -911,3 +911,19 @@
 .mt-overhaul .tk-scoretotal b i { font-size: 13px; color: var(--mt-ink-3); font-style: normal; }
 .mt-overhaul .tk-about { color: var(--mt-ink-1); font-size: 13.5px; line-height: 1.55; margin: 0 0 14px; max-width: 74ch; }
 .mt-overhaul .tk-aboutlink { margin-top: 10px; font-size: 13px; }
+
+/* ── Ticker chart controls + stat tooltips (rebuild 2026-06-02) ─────────── */
+.mt-overhaul .tk-compareinput { min-width: 210px; cursor: text; }
+.mt-overhaul .tk-daterange { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.mt-overhaul .tk-daterange .mt-eyebrow { margin: 0 2px 0 0; }
+.mt-overhaul .tk-daterange-sep { color: var(--mt-ink-3); font-size: 12px; }
+.mt-overhaul .tk-dateinput { cursor: pointer; font-size: 12px; color: var(--mt-ink-1); }
+.mt-overhaul .tk-kvlabel { display: inline-flex; align-items: center; gap: 5px; }
+.mt-overhaul .tk-info { color: var(--mt-ink-3); font-size: 11px; cursor: help; line-height: 1; }
+.mt-overhaul .tk-info:hover { color: var(--mt-accent); }
+.mt-overhaul .tk-noscore {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 96px; height: 96px; border-radius: 50%; border: 1px dashed var(--mt-line-1);
+  color: var(--mt-ink-2); font-size: 13px; font-weight: 600; text-align: center;
+}
+.mt-overhaul .tk-noscore span { font-size: 9.5px; font-weight: 400; color: var(--mt-ink-3); text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; max-width: 80px; }

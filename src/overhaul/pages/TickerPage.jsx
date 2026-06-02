@@ -76,16 +76,43 @@ function sma(rows, period) {
   return out;
 }
 
+/* Wilder 14-day RSI over a [{date, close}] series. Returns [date, rsi|null]
+   aligned 1:1 — null during the warm-up window. Same method as the engine. */
+function rsiWilder(rows, period = 14) {
+  const out = rows.map((r) => [r.date, null]);
+  if (rows.length <= period) return out;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const ch = rows[i].close - rows[i - 1].close;
+    if (ch >= 0) gain += ch; else loss -= ch;
+  }
+  let avgGain = gain / period, avgLoss = loss / period;
+  const rsiNow = () => (avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+  out[period] = [rows[period].date, rsiNow()];
+  for (let i = period + 1; i < rows.length; i++) {
+    const ch = rows[i].close - rows[i - 1].close;
+    const g = ch >= 0 ? ch : 0, l = ch < 0 ? -ch : 0;
+    avgGain = (avgGain * (period - 1) + g) / period;
+    avgLoss = (avgLoss * (period - 1) + l) / period;
+    out[i] = [rows[i].date, rsiNow()];
+  }
+  return out;
+}
+
 const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
 
-/* Benchmark ETFs available to compare against (all carried in prices_eod). */
-const BENCHMARKS = [
-  ['SPY', 'S&P 500 (SPY)'],
-  ['QQQ', 'Nasdaq 100 (QQQ)'],
-  ['IWM', 'Russell 2000 (IWM)'],
-  ['DIA', 'Dow 30 (DIA)'],
+/* Curated overlay universe for the compare box (all carried in prices_eod with
+   ~6y of history), grouped for the dropdown. The user can also type ANY ticker
+   into the box — it isn't limited to this list. */
+const OVERLAY_UNIVERSE = [
+  ['Indexes', [['SPY', 'S&P 500'], ['QQQ', 'Nasdaq 100'], ['IWM', 'Russell 2000'], ['DIA', 'Dow 30'], ['VTI', 'US total market'], ['EFA', 'Developed ex-US'], ['EEM', 'Emerging markets']]],
+  ['Sectors', [['XLK', 'Technology'], ['XLF', 'Financials'], ['XLE', 'Energy'], ['XLV', 'Health care'], ['XLI', 'Industrials'], ['XLY', 'Consumer disc.'], ['XLP', 'Consumer staples'], ['XLU', 'Utilities'], ['XLB', 'Materials'], ['XLRE', 'Real estate'], ['XLC', 'Communications']]],
+  ['Commodities & FX', [['GLD', 'Gold'], ['SLV', 'Silver'], ['USO', 'Crude oil'], ['UNG', 'Natural gas'], ['DBC', 'Commodities'], ['UUP', 'US dollar']]],
+  ['Bonds & rates', [['TLT', '20y+ Treasuries'], ['IEF', '7-10y Treasuries'], ['AGG', 'US agg bonds'], ['HYG', 'High-yield'], ['LQD', 'Inv-grade credit'], ['TIP', 'TIPS']]],
+  ['Volatility', [['VIXY', 'VIX futures']]],
+  ['Mega-caps', [['AAPL', 'Apple'], ['MSFT', 'Microsoft'], ['NVDA', 'Nvidia'], ['AMZN', 'Amazon'], ['GOOGL', 'Alphabet'], ['META', 'Meta'], ['TSLA', 'Tesla'], ['JPM', 'JPMorgan'], ['V', 'Visa'], ['UNH', 'UnitedHealth'], ['XOM', 'Exxon'], ['JNJ', 'J&J'], ['WMT', 'Walmart'], ['PG', 'P&G']]],
 ];
-const BENCH_LABEL = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', IWM: 'Russell 2000', DIA: 'Dow 30' };
+const BENCH_LABEL = Object.fromEntries(OVERLAY_UNIVERSE.flatMap(([, items]) => items));
 /* Detail feeds shown in the activity section. Score composition is NOT here —
    it's an always-visible section, not a per-source feed. */
 const TABS = [
@@ -227,7 +254,10 @@ export default function TickerPage() {
   const [show200, setShow200]     = useState(false);
   const [showVol, setShowVol]     = useState(false);
   const [showEvents, setShowEvents] = useState(false);
+  const [showRsi, setShowRsi]       = useState(false);
   const [compareSym, setCompareSym] = useState('');
+  const [fromDate, setFromDate]     = useState('');   // custom range start (YYYY-MM-DD)
+  const [toDate, setToDate]         = useState('');    // custom range end
   const compareHist = useTickerEodHistory(compareSym || null);
 
   const scanRow = (scanner.rows || []).find((r) => r.ticker === sym);
@@ -282,14 +312,20 @@ export default function TickerPage() {
     : (scanRow?.iv != null ? `${Number(scanRow.iv).toFixed(1)}%` : '—');
   const sma50Full  = useMemo(() => sma(hist, 50), [hist]);
   const sma200Full = useMemo(() => sma(hist, 200), [hist]);
+  const rsiFull    = useMemo(() => rsiWilder(hist, 14), [hist]);
+  const customRange = Boolean(fromDate || toDate);
   const windowRows = useMemo(() => {
+    if (customRange) {
+      return hist.filter((r) => (!fromDate || r.date >= fromDate) && (!toDate || r.date <= toDate));
+    }
     const n = tfMap[tf] || 252;
     return hist.slice(Math.max(0, hist.length - n));
-  }, [hist, tf]);
+  }, [hist, tf, customRange, fromDate, toDate]);
   const windowDates = useMemo(() => new Set(windowRows.map((r) => r.date)), [windowRows]);
   const series   = useMemo(() => windowRows.map((r) => [r.date, r.close]), [windowRows]);
   const sma50Win  = useMemo(() => sma50Full.filter(([d]) => windowDates.has(d)), [sma50Full, windowDates]);
   const sma200Win = useMemo(() => sma200Full.filter(([d]) => windowDates.has(d)), [sma200Full, windowDates]);
+  const rsiWin    = useMemo(() => rsiFull.filter(([d]) => windowDates.has(d)), [rsiFull, windowDates]);
   const volumeWin = useMemo(() => windowRows.map((r) => [r.date, r.volume]), [windowRows]);
   const compareSeries = useMemo(() => (compareHist.rows || []).map((r) => [r.date, r.close]), [compareHist.rows]);
   const chartEvents = useMemo(() => {
@@ -303,14 +339,18 @@ export default function TickerPage() {
       return best;
     };
     const evs = [];
-    (eventsForSym.insider || []).forEach((e) => {
-      const d = snapDate(e.payload?.transaction_date || e.event_ts);
-      if (d) evs.push({ date: d, label: 'Insider', color: 'var(--mt-up)' });
-    });
-    (eventsForSym.darkpool || []).forEach((e) => {
-      const d = snapDate(e.payload?.executed_at || e.event_ts);
-      if (d) evs.push({ date: d, label: 'Dark pool', color: 'var(--mt-accent)' });
-    });
+    // Only the score-driving open-market BUYS — the same filings shown inside
+    // the Insider score card, so the chart, the score, and the table agree.
+    (eventsForSym.insider || [])
+      .filter((e) => insiderActionLabel(e.payload || {}).label === 'BUY')
+      .forEach((e) => {
+        const p = e.payload || {};
+        const d = snapDate(p.transaction_date || e.event_ts);
+        if (!d) return;
+        const shares = Number(p.amount) || null;
+        const val = Number(p.value) || (shares && p.price ? shares * Number(p.price) : null);
+        evs.push({ date: d, label: `Insider buy${val ? ` ${fmt$(val, 0)}` : ''}`, color: 'var(--mt-up)' });
+      });
     return evs;
   }, [windowRows, eventsForSym]);
 
@@ -399,7 +439,9 @@ export default function TickerPage() {
         <div className="tk-scoreblock">
           <div className="mt-eyebrow">MacroTilt Score</div>
           <div className="tk-bigdial">
-            <ScoreDial score={score != null ? score : 0} max={5} size={96} />
+            {score != null
+              ? <ScoreDial score={score} max={5} size={96} />
+              : <div className="tk-noscore">No score<span>not in today's scan</span></div>}
           </div>
           {signal && (
             <span className="mt-tag mt-tag--accent tk-sigpill">
@@ -432,7 +474,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">· {tf} window{priceAsOf ? ` · close ${fmtDateShort(priceAsOf)}` : ''}</span>
+                ${fmt(price, 2)} <span className="tk-windowlabel">· {customRange ? 'custom range' : `${tf} window`}{priceAsOf ? ` · close ${fmtDateShort(priceAsOf)}` : ''}</span>
               </div>
             </div>
             <div className="mt-pillgroup">
@@ -440,8 +482,8 @@ export default function TickerPage() {
                 <button
                   key={k}
                   type="button"
-                  className={`mt-pill ${tf === k ? 'on' : ''}`}
-                  onClick={() => setTf(k)}
+                  className={`mt-pill ${(!customRange && tf === k) ? 'on' : ''}`}
+                  onClick={() => { setTf(k); setFromDate(''); setToDate(''); }}
                 >
                   {k}
                 </button>
@@ -456,10 +498,11 @@ export default function TickerPage() {
             <BigHistoryChart
               points={series}
               accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-              height={320}
+              height={showRsi ? 400 : 320}
               freq="D"
               overlays={overlays}
               volume={showVol ? volumeWin : null}
+              rsi={showRsi ? rsiWin : null}
               events={showEvents ? chartEvents : []}
               compareData={compareSym ? compareSeries : null}
               compareLabel={BENCH_LABEL[compareSym] || compareSym}
@@ -472,37 +515,48 @@ export default function TickerPage() {
           )}
           <div className="tk-overlay">
             <button type="button" className={`mt-btn ${show50 ? 'on' : ''}`} onClick={() => setShow50((v) => !v)}>
-              {show50 ? '✓ ' : '+ '}50d SMA
+              {show50 ? '✓ ' : '+ '}50-day avg
             </button>
             <button type="button" className={`mt-btn ${show200 ? 'on' : ''}`} onClick={() => setShow200((v) => !v)}>
-              {show200 ? '✓ ' : '+ '}200d SMA
+              {show200 ? '✓ ' : '+ '}200-day avg
             </button>
             <button type="button" className={`mt-btn ${showVol ? 'on' : ''}`} onClick={() => setShowVol((v) => !v)}>
               {showVol ? '✓ ' : '+ '}Volume
             </button>
-            <button type="button" className={`mt-btn ${showEvents ? 'on' : ''}`} onClick={() => setShowEvents((v) => !v)}>
-              {showEvents ? '✓ ' : '+ '}Events
+            <button type="button" className={`mt-btn ${showRsi ? 'on' : ''}`} onClick={() => setShowRsi((v) => !v)}>
+              {showRsi ? '✓ ' : '+ '}RSI
             </button>
-            <select
-              className="mt-btn"
+            <button type="button" className={`mt-btn ${showEvents ? 'on' : ''}`} onClick={() => setShowEvents((v) => !v)}>
+              {showEvents ? '✓ ' : '+ '}Insider buys
+            </button>
+            <input
+              list="tk-overlay-list"
+              className="mt-btn tk-compareinput"
+              placeholder="+ Compare (type any ticker)"
               value={compareSym}
-              onChange={(e) => setCompareSym(e.target.value)}
-              style={{ cursor: 'pointer' }}
-            >
-              <option value="">+ Compare</option>
-              <optgroup label="Benchmarks">
-                {BENCHMARKS.filter(([t]) => t !== sym).map(([t, label]) => (
-                  <option key={t} value={t}>{label}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Scanner names">
-                {(scanner.rows || [])
-                  .filter((r) => r.ticker !== sym)
-                  .map((r) => (
-                    <option key={r.ticker} value={r.ticker}>{r.ticker}</option>
-                  ))}
-              </optgroup>
-            </select>
+              onChange={(e) => setCompareSym(e.target.value.toUpperCase().trim())}
+            />
+            <datalist id="tk-overlay-list">
+              {OVERLAY_UNIVERSE.flatMap(([group, items]) =>
+                items.filter(([t]) => t !== sym).map(([t, label]) => (
+                  <option key={t} value={t}>{`${label} · ${group}`}</option>
+                )),
+              )}
+            </datalist>
+            {compareSym && (
+              <button type="button" className="mt-btn" onClick={() => setCompareSym('')}>✕ {compareSym}</button>
+            )}
+          </div>
+          <div className="tk-daterange">
+            <span className="mt-eyebrow">Custom range</span>
+            <input type="date" className="mt-btn tk-dateinput" value={fromDate}
+              max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} />
+            <span className="tk-daterange-sep">to</span>
+            <input type="date" className="mt-btn tk-dateinput" value={toDate}
+              min={fromDate || undefined} onChange={(e) => setToDate(e.target.value)} />
+            {customRange && (
+              <button type="button" className="mt-btn" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
+            )}
           </div>
         </article>
       </section>
@@ -516,18 +570,18 @@ export default function TickerPage() {
           <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
         </div>
         <div className="tk-keygrid">
-          <KvCell label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-          <KvCell label="High"      value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : (snap?.high != null ? `$${fmt(snap.high, 2)}` : '—')} />
-          <KvCell label="Low"       value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : (snap?.low  != null ? `$${fmt(snap.low, 2)}`  : '—')} />
-          <KvCell label="52w high"  value={hi52 != null ? `$${fmt(hi52, 2)}` : '—'} />
-          <KvCell label="52w low"   value={lo52 != null ? `$${fmt(lo52, 2)}` : '—'} />
-          <KvCell label="Avg vol"   value={fmtVol(avgVol)} />
-          <KvCell label="Mkt cap"   value={fmtMcap(marketcap)} />
-          <KvCell label="IV rank"   value={ivRankVal != null ? Math.round(ivRankVal) : '—'} />
-          <KvCell label="IV 30d"    value={iv30Display} />
-          <KvCell label="P/E"       value="—" />
-          <KvCell label="Div yield" value="—" />
-          <KvCell label="Beta"      value="—" />
+          <KvCell label="Open"      tip={`Opening price of the last completed session${priceAsOf ? ` (${fmtDateShort(priceAsOf)})` : ''}.`} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <KvCell label="Day high"  tip="Intraday high of the last completed session — not the 52-week high below." value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : (snap?.high != null ? `$${fmt(snap.high, 2)}` : '—')} />
+          <KvCell label="Day low"   tip="Intraday low of the last completed session — not the 52-week low below." value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : (snap?.low  != null ? `$${fmt(snap.low, 2)}`  : '—')} />
+          <KvCell label="52w high"  tip="Highest intraday price over the trailing ~252 trading days (about one year)." value={hi52 != null ? `$${fmt(hi52, 2)}` : '—'} />
+          <KvCell label="52w low"   tip="Lowest intraday price over the trailing ~252 trading days (about one year)." value={lo52 != null ? `$${fmt(lo52, 2)}` : '—'} />
+          <KvCell label="Avg vol"   tip="Average daily share volume over the last 30 trading sessions." value={fmtVol(avgVol)} />
+          <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding." value={fmtMcap(marketcap)} />
+          <KvCell label="IV rank"   tip="Where current options-implied volatility sits in its own 52-week range, 0–100. Blank when this name has no options data." value={ivRankVal != null ? Math.round(ivRankVal) : '—'} />
+          <KvCell label="IV 30d"    tip="Options-implied volatility for about 30-day expiries, annualized." value={iv30Display} />
+          <KvCell label="P/E"       tip="Price-to-earnings. Needs a fundamentals feed that isn't wired yet." value="—" />
+          <KvCell label="Div yield" tip="Annual dividend as a percent of price. Needs a fundamentals feed that isn't wired yet." value="—" />
+          <KvCell label="Beta"      tip="Sensitivity to the broad market. Needs a fundamentals feed that isn't wired yet." value="—" />
         </div>
 
         {/* Live technicals — moved here from the score tab; computed on the fly
@@ -535,23 +589,24 @@ export default function TickerPage() {
         <div className="tk-techstrip">
           <div className="mt-eyebrow">Live technicals · daily</div>
           <div className="tk-techgrid">
-            <TechCell label="RSI(14)"      value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'} />
-            <TechCell label="MACD cross"   value={tech?.macd_cross || '—'} />
-            <TechCell label="vs SMA 50"    value={fmtPctFraction(tech?.pct_vs_50ma)} />
-            <TechCell label="vs SMA 200"   value={fmtPctFraction(tech?.pct_vs_200ma)} />
-            <TechCell label="Volume surge" value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'} />
-            <TechCell label="1w return"    value={fmtPctFraction(tech?.week_change)} />
-            <TechCell label="1m return"    value={fmtPctFraction(tech?.month_change)} />
-            <TechCell label="YTD return"   value={fmtPctFraction(tech?.ytd_change)} />
-            <TechCell label="1m vs S&P"    value={fmtPctFraction(tech?.spy_relative_month)} />
+            <TechCell label="RSI(14)"      tip="14-day Wilder RSI. Above 70 is overbought, below 30 oversold." value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'} />
+            <TechCell label="MACD cross"   tip="Whether the trend line sits above its signal line (bullish) or below it (bearish)." value={tech?.macd_cross || '—'} />
+            <TechCell label="vs SMA 50"    tip="Percent the price sits above or below its 50-day average." value={fmtPctFraction(tech?.pct_vs_50ma)} />
+            <TechCell label="vs SMA 200"   tip="Percent the price sits above or below its 200-day average." value={fmtPctFraction(tech?.pct_vs_200ma)} />
+            <TechCell label="Volume surge" tip="Today's volume divided by the trailing 30-day average. Above 1.0 means heavier-than-usual trading." value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'} />
+            <TechCell label="1w return"    tip="Price change over the last 5 trading days." value={fmtPctFraction(tech?.week_change)} />
+            <TechCell label="1m return"    tip="Price change over the last ~21 trading days." value={fmtPctFraction(tech?.month_change)} />
+            <TechCell label="YTD return"   tip="Price change since the start of the calendar year." value={fmtPctFraction(tech?.ytd_change)} />
+            <TechCell label="1m vs S&P"    tip="This name's 1-month return minus the S&P 500's over the same period." value={fmtPctFraction(tech?.spy_relative_month)} />
           </div>
         </div>
 
         <div className="tk-emptyfoot">
-          Open / High / Low and average volume come from the daily price history;
-          52-week range, market cap, and IV come from the latest scan. Live technicals
-          are computed from daily history. P/E, dividend yield, and beta require a
-          fundamentals feed not yet wired.
+          Open, day high/low and average volume come from the daily price history;
+          52-week range, market cap, and implied volatility come from the latest scan.
+          Live technicals are computed from daily history. Hover the ⓘ on any tile for
+          its definition. P/E, dividend yield, and beta require a fundamentals feed not
+          yet wired.
         </div>
       </section>
 
@@ -634,19 +689,25 @@ function badgeForTab(id, events, earnings) {
   return <span className="sc-colcount num"> {ct}</span>;
 }
 
-function KvCell({ label, value }) {
+function KvCell({ label, value, tip }) {
   return (
     <div className="tk-kvcell">
-      <div className="mt-eyebrow">{label}</div>
+      <div className="mt-eyebrow tk-kvlabel">
+        {label}
+        {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
+      </div>
       <b className="num">{value ?? '—'}</b>
     </div>
   );
 }
 
-function TechCell({ label, value }) {
+function TechCell({ label, value, tip }) {
   return (
     <div className="tk-techcell">
-      <div className="mt-eyebrow">{label}</div>
+      <div className="mt-eyebrow tk-kvlabel">
+        {label}
+        {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
+      </div>
       <b className="num">{value}</b>
     </div>
   );
