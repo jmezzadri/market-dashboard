@@ -246,12 +246,19 @@ class AlpacaPaperClient:
         notional: float | None = None,
         extended_hours: bool = False,
     ) -> dict:
-        """Submit a market-on-open order. Alpaca routes 'opg' TIF orders to
-        the next opening auction.
+        """Submit a market order timed for the open.
 
-        Either `qty` (whole shares) OR `notional` (dollar amount) must be
-        non-None. Alpaca accepts notional orders for many symbols, which
-        is convenient when the translator carries a target dollar value.
+        ORDER TYPE: market, time_in_force='day' (NOT 'opg').
+        Why not opg: Alpaca rejects opg orders for FRACTIONAL share quantities
+        ("fractional orders must be DAY orders"), and this book sizes by dollars
+        so positions are fractional everywhere. A market/day order submitted in
+        the pre-open window is QUEUED by Alpaca and fills within seconds of the
+        9:30 ET open — so we keep "executes at the open" while accepting the
+        fractional quantities opg refuses. (Verified 2026-06-01: opg rejected
+        all 25 fractional orders; a market/day batch filled all 30 the same day.)
+
+        Either `qty` (may be fractional) OR `notional` (dollar amount) must be
+        non-None.
 
         Returns Alpaca's order JSON. The caller MUST update paper_orders
         with the returned `id` field as alpaca_order_id.
@@ -264,7 +271,7 @@ class AlpacaPaperClient:
             "symbol": ticker,
             "side": side,
             "type": "market",
-            "time_in_force": "opg",         # opening auction
+            "time_in_force": "day",         # queued pre-open, fills at the open; fractional-safe
             "client_order_id": client_order_id,
             "extended_hours": extended_hours,
         }
