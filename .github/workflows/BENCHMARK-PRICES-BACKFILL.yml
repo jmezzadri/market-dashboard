@@ -1,0 +1,32 @@
+name: BENCHMARK-PRICES-BACKFILL
+
+# One-shot backfill of full multi-year daily history for benchmark indices,
+# sector/commodity/bond ETFs, and mega-caps into prices_eod — so the ticker
+# chart can compare against and overlay them over real timeframes. The
+# benchmarks (SPY/QQQ/IWM/DIA) only had ~24 days, breaking "compare to S&P 500".
+# Idempotent on (ticker, trade_date). Re-run anytime.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: benchmark-prices-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install yfinance + pandas
+        run: pip install --upgrade pip yfinance pandas
+      - name: Run benchmark backfill
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED:          "1"
+        run: python3 scripts/backfill_benchmarks.py
