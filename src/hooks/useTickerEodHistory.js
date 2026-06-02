@@ -17,7 +17,7 @@ import { supabase } from "../lib/supabase";
 
 const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
-export default function useTickerEodHistory(ticker, maxRows = 1300) {
+export default function useTickerEodHistory(ticker, maxRows = 1700) {
   const [state, setState] = useState({ rows: [], lastDate: null, loading: !!ticker, error: null });
 
   useEffect(() => {
@@ -31,13 +31,24 @@ export default function useTickerEodHistory(ticker, maxRows = 1300) {
 
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("prices_eod")
-          .select("trade_date, open, high, low, close, volume")
-          .eq("ticker", upper)
-          .order("trade_date", { ascending: false })
-          .limit(maxRows);
-        if (error) throw new Error(error.message || String(error));
+        // Supabase caps each response at ~1000 rows, so page through with
+        // range() until we've pulled everything up to maxRows — otherwise a
+        // 6-year history silently truncates to ~4 years on the Max view.
+        const PAGE = 1000;
+        let data = [];
+        for (let from = 0; from < maxRows; from += PAGE) {
+          const to = Math.min(from + PAGE - 1, maxRows - 1);
+          const { data: page, error } = await supabase
+            .from("prices_eod")
+            .select("trade_date, open, high, low, close, volume")
+            .eq("ticker", upper)
+            .order("trade_date", { ascending: false })
+            .range(from, to);
+          if (error) throw new Error(error.message || String(error));
+          const arr = Array.isArray(page) ? page : [];
+          data = data.concat(arr);
+          if (arr.length < (to - from + 1)) break;  // last page reached
+        }
         if (cancelled) return;
 
         const rows = (Array.isArray(data) ? data : [])
