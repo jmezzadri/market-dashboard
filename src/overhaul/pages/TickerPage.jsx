@@ -115,8 +115,8 @@ const OVERLAY_UNIVERSE = [
 const BENCH_LABEL = Object.fromEntries(OVERLAY_UNIVERSE.flatMap(([, items]) => items));
 /* Detail feeds shown in the activity section. Score composition is NOT here —
    it's an always-visible section, not a per-source feed. */
+/* Insider lives inside the score card now — not duplicated here. */
 const TABS = [
-  ['insider', 'Insider'],
   ['options', 'Options flow'],
   ['dark',    'Dark pool'],
   ['news',    'News'],
@@ -248,7 +248,7 @@ export default function TickerPage() {
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
 
-  const [tab, setTab] = useState('insider');
+  const [tab, setTab] = useState('news');
   const [tf, setTf]   = useState('1Y');
   const [show50, setShow50]       = useState(false);
   const [show200, setShow200]     = useState(false);
@@ -631,7 +631,6 @@ export default function TickerPage() {
           ))}
         </div>
 
-        {tab === 'insider' && <InsiderTab events={insiderEvents} />}
         {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} />}
         {tab === 'dark'    && <DarkPoolTab events={darkEvents} />}
         {tab === 'news'    && <NewsTab events={newsEvents} />}
@@ -1033,7 +1032,10 @@ function FundamentalsTab({ earnings, deep, snap }) {
    its points, the rule that fired, and the raw drivers behind it. Every value
    reads from the scan row, so the cards always reconcile to the badge above. */
 function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
-  const [open, setOpen] = useState('Insider');
+  // Collapsed by default — the page opens to a clean 4-row summary; the raw
+  // drivers (rule text, filings table, readings) appear only when a row is
+  // clicked. No data dumped in your face on load.
+  const [open, setOpen] = useState(null);
   if (!scanRow || !comp) {
     return (
       <section className="mt-pagesection">
@@ -1143,7 +1145,7 @@ function InsiderDrill({ scanRow, pts, events }) {
           Rule points are capped at +4, then weighted for age:{' '}
           {age != null ? `most recent qualifying buy ${age} day${age === 1 ? '' : 's'} ago — ` : ''}
           {w == null ? '' : w >= 1 ? 'fresh, full weight' : `aging, about ${Math.round(w * 100)}% weight left`}
-          {' '}→ <b className="num up">+{pts.toFixed(2)}</b>.
+          {' '}→ <b className="num up">+{pts.toFixed(2)}</b>
         </div>
       )}
       <div className="tk-drill-note">
