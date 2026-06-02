@@ -156,6 +156,41 @@ def _supabase_query(sql: str) -> list[dict[str, Any]]:
     return resp.json()
 
 
+def load_eod_price_map(tickers: list[str]) -> dict[str, float]:
+    """Return {TICKER: latest prices_eod close} for the given tickers.
+
+    THE GOLD PRICE SOURCE (2026-06-02, Joe directive): every price the
+    rebalancer uses — position market value, dollar→share sizing, exit
+    notionals — must come from prices_eod (Polygon/Massive), the SAME feed
+    that drives the rest of the site (Ticker, Scanner, Portfolio, Asset Tilt).
+    The rebalancer previously read Alpaca's live/drifting mark, which made the
+    paper book disagree with the gold source (AMRZ $53.85 Alpaca vs $53.79
+    EOD) and made the trade list drift run-to-run on intraday price moves.
+
+    Scoped to the held/target tickers so the 1.4M-row table is index-probed,
+    not scanned. Tickers with no prices_eod row are absent from the map; the
+    caller falls back to Alpaca only for those (rare new listings)."""
+    if not tickers:
+        return {}
+    uniq = sorted({t.upper() for t in tickers if t})
+    in_list = ", ".join("'" + t.replace("'", "''") + "'" for t in uniq)
+    rows = _supabase_query(
+        "select distinct on (ticker) ticker, close "
+        "from public.prices_eod "
+        f"where ticker in ({in_list}) "
+        "order by ticker, trade_date desc;"
+    )
+    out: dict[str, float] = {}
+    for r in rows:
+        try:
+            c = float(r["close"])
+            if c > 0:
+                out[r["ticker"].upper()] = c
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def load_equity_scanner_snapshot(
     scan_date: str | None = None,
     buy_threshold: float = 5.0,

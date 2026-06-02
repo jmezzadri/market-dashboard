@@ -39,14 +39,19 @@ SLEEVE_B_TIER_BANDS = [
     ("tier3", 5.0,  7.0,  30_000.0),  # [5, 7)
 ]
 
-# Tolerance band for Sleeve A — only rebalance an IG ETF if the dollar diff
-# is large enough to be worth a round-trip. Two checks; OR.
-SLEEVE_A_REBALANCE_DOLLAR_MIN = 250.0     # min absolute notional diff
-SLEEVE_A_REBALANCE_PCT_MIN    = 0.005     # 0.5 % of sleeve A capital
+# Tolerance band — a holding only rebalances when it has drifted from its
+# target by MORE than max(dollar floor, pct × the position's own target).
+# Widened 2026-06-02 (Joe: "not so sensitive a $0.10 move triggers a
+# rebalance"). pct is now measured against the POSITION's target (see
+# diff._below_tolerance), so 3% of a $30K Sleeve-B name = ~$900 of drift
+# before it trades; the $500 floor covers small Sleeve-A lines. Combined with
+# prices pinned to the daily EOD close, intraday wiggle never triggers a trade
+# and day-over-day only a real ~3%+ drift does.
+SLEEVE_A_REBALANCE_DOLLAR_MIN = 500.0     # dollar floor (small lines)
+SLEEVE_A_REBALANCE_PCT_MIN    = 0.03      # 3% of THIS position's target
 
-# Sleeve B per-name tolerance — same shape.
-SLEEVE_B_REBALANCE_DOLLAR_MIN = 250.0
-SLEEVE_B_REBALANCE_PCT_MIN    = 0.005
+SLEEVE_B_REBALANCE_DOLLAR_MIN = 500.0
+SLEEVE_B_REBALANCE_PCT_MIN    = 0.03
 
 # Order type defaults — never changed in v1.
 ORDER_TYPE_DEFAULT = "market_on_open"

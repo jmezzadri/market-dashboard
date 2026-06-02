@@ -33,6 +33,7 @@ from paper_portfolio.diff import OrderIntent, build_order_intents
 from paper_portfolio.signals import (
     load_asset_tilt_snapshot,
     load_equity_scanner_snapshot,
+    load_eod_price_map,
 )
 from paper_portfolio.sleeves import (
     SleeveTarget,
@@ -131,11 +132,26 @@ def run(
         f"{sleeve_b.idle_cash:,.0f}", len(sleeve_b.lines),
     )
 
-    # 6 — diff
+    # 6 — diff (signal-only). Load the EOD price map (gold source) for every
+    # ticker we either hold or target, so share sizing uses prices_eod, never
+    # Alpaca. Alpaca supplies only held qty + cost basis inside the engine.
+    price_tickers = (
+        [l.ticker for l in sleeve_a.lines]
+        + [l.ticker for l in sleeve_b.lines]
+        + [p.ticker for p in live_positions]
+    )
+    try:
+        eod_prices = load_eod_price_map(price_tickers)
+        logger.info("loaded %d EOD prices (gold source) for sizing", len(eod_prices))
+    except Exception as exc:
+        logger.warning("EOD price map load failed (%s) — sizing falls back per-ticker", exc)
+        eod_prices = {}
+
     intents = build_order_intents(
         sleeve_a, sleeve_b, live_positions,
         alpaca=alpaca, asset_tilt_snapshot=asset_tilt,
         suppress_buys=suppress_buys,
+        eod_prices=eod_prices,
     )
     logger.info("diff produced %d order intents", len(intents))
 
