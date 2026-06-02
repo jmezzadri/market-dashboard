@@ -227,7 +227,7 @@ export default function ScannerPage() {
           <div className="mt-sectionhead">
             <div>
               <div className="mt-eyebrow">How the score is built</div>
-              <div className="mt-h2">Four inputs, summed into one 0–10 score · a name needs ≥3 from the backtested layers to launch.</div>
+              <div className="mt-h2">Four inputs, summed into one 0–10 score · a name needs ≥3 from insider + trend to launch.</div>
             </div>
             <button
               type="button"
