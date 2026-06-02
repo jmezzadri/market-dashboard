@@ -198,7 +198,7 @@ function PositioningDetail({ item, onClose }) {
         </div>
         <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}><b className="num">{spec.length}</b> weekly reports</div>
       </div>
-      <BigHistoryChart points={spec} accent={accent} height={280} freq="W"
+      <BigHistoryChart points={spec} accent={accent} height={280} freq="W" primaryLabel="Speculators"
         overlays={isDealer ? [] : [{ points: comm, color: 'var(--mt-ink-3)', label: 'Commercials (hedgers)', dash: '4 3' }]}
         yFormat={(v) => `${v.toFixed(1)}${isDealer ? '' : '%'}`} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
@@ -346,41 +346,7 @@ export default function MacroPage() {
         </section>
       )}
 
-      {/* Filter bar + view toggle */}
-      <section className="mt-pagesection mt-pagesection--tight">
-        <div className="mc-filterbar">
-          <div className="mc-legend">
-            <div className="mt-eyebrow">Filter</div>
-            <div className="mt-pillgroup">
-              {[['all', 'All'], ['extreme', 'Extreme'], ['elevated', 'Elevated'], ['calm', 'Calm']].map(([k, l]) => (
-                <button
-                  key={k}
-                  type="button"
-                  className={`mt-pill ${stateF === k ? 'on' : ''}`}
-                  onClick={() => setStateF(k)}
-                >
-                  {l} <span className="mc-pillcount num">{counts[k]}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="mc-legend">
-            <div className="mt-eyebrow">Domain</div>
-            <div className="mt-pillgroup">
-              {['All', ...DOMAINS].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`mt-pill ${domain === d ? 'on' : ''}`}
-                  onClick={() => setDomain(d)}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {loading ? (
         <section className="mt-pagesection">
