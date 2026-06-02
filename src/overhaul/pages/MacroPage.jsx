@@ -23,6 +23,8 @@ import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
+import BigHistoryChart from '../components/BigHistoryChart';
+import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Economy', 'Financial Conditions'];
 // Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
@@ -96,6 +98,48 @@ function DomainPositioning({ data }) {
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function posRead(p){ return p>=90?'crowded long':p<=10?'crowded short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
+function posAccent(p){ const x=posState(p); return x==='extreme'?'var(--mt-down)':x==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
+
+function DetailModal({ onClose, children }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
+  }, [onClose]);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,23,28,.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '40px 20px' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: 'min(1080px, 95vw)', background: 'var(--mt-card, #fff)', borderRadius: 18, boxShadow: '0 24px 70px rgba(20,30,45,.32)' }}>
+        <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', top: 14, right: 16, border: 'none', background: 'none', fontSize: 26, lineHeight: 1, color: 'var(--mt-ink-3)', cursor: 'pointer', zIndex: 2 }}>×</button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PositioningCard({ item, onClick }) {
+  const accent = posAccent(item.spec);
+  const isDealer = item.comm == null;
+  const trend = (item.history || []).slice(-90).map((r) => r[1]).filter((v) => Number.isFinite(v));
+  return (
+    <button type="button" onClick={onClick} className="mt-card ind-card"
+      style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--mt-surface)', border: '1px solid var(--mt-line-0)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.market}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', marginTop: 2 }}>{isDealer ? 'Dealer inventory' : 'Futures positioning'}</div>
+        </div>
+        <FreshnessChip elementId="indicator-cftc-cot-weekly" variant="dot" />
+      </header>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <div className="num" style={{ fontSize: 22, fontWeight: 500, color: accent }}>{Math.round(item.spec)}<span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 3, fontWeight: 400 }}>th pct</span></div>
+        <span className={`mt-tag mt-tag--${posState(item.spec) === 'extreme' ? 'extreme' : posState(item.spec) === 'elevated' ? 'elev' : 'calm'}`}>{posRead(item.spec)}</span>
+      </div>
+      <div style={{ color: accent }}><Sparkline data={trend} width={240} height={28} stroke={accent} showDot /></div>
+      <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)' }}>speculators · net {item.specNet}{isDealer ? '' : '%'}</div>
+    </button>
+  );
+}
 
 function BucketPositioning({ data, onSelect }) {
   if (!data) return null;
@@ -105,71 +149,67 @@ function BucketPositioning({ data, onSelect }) {
     <div style={{ marginTop: 22 }}>
       <div className="mt-eyebrow" style={{ marginBottom: 4 }}>Positioning signals</div>
       {data.takeaway && <p className="mt-deck" style={{ marginTop: 0, marginBottom: 12 }}>{data.takeaway}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0 22px' }}>
-        {items.map((m) => (
-          <button key={m.market} type="button" onClick={() => onSelect && onSelect(m)}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px', border: 'none', borderBottom: '1px solid var(--mt-line-1)', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}>
-            <span className={`mc-domsumdot mc-domsumdot--${posState(m.spec)}`} style={{ width: 11, height: 11, borderRadius: '50%', flex: '0 0 auto', display: 'inline-block' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', flex: 1 }}>{m.market}</span>
-            <span style={{ fontSize: 11.5, color: 'var(--mt-ink-2)' }}>{posRead(m.spec)} · {Math.round(m.spec)}th</span>
-            <span style={{ color: 'var(--mt-ink-3)', fontSize: 13 }}>›</span>
-          </button>
-        ))}
+      <div className="mc-grid">
+        {items.map((m) => (<PositioningCard key={m.market} item={m} onClick={() => onSelect && onSelect(m)} />))}
       </div>
     </div>
   );
 }
 
-function PosStat({ label, v }) {
-  return (<div><div style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>{label}</div><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--mt-ink-0)' }}>{v}</div></div>);
+function slicePos(points, tf) {
+  if (!points || !points.length || tf === 'Max') return points || [];
+  const last = new Date(points[points.length - 1][0]).getTime();
+  const days = tf === '1Y' ? 365 : 3 * 365;
+  const cutoff = last - days * 86400000;
+  return points.filter((pt) => new Date(pt[0]).getTime() >= cutoff);
 }
-
+function PosStat({ label, v }) {
+  return (<div><div style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>{label}</div><div className="num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--mt-ink-0)' }}>{v}</div></div>);
+}
 function PositioningDetail({ item, onClose }) {
-  if (!item) return null;
-  const h = item.history || [];
+  const [tf, setTf] = useState('3Y');
   const isDealer = item.comm == null;
-  const specs = h.map((r) => r[1]).filter((v) => v != null);
-  const comms = h.map((r) => r[2]).filter((v) => v != null);
-  const all = (isDealer ? specs : specs.concat(comms)).concat([0]);
-  const mn = Math.min(...all), mx = Math.max(...all);
-  const W = 680, Hh = 150, pad = 8, rng = (mx - mn) || 1;
-  const xx = (i) => pad + (i / Math.max(1, h.length - 1)) * (W - 2 * pad);
-  const yy = (v) => Hh - pad - ((v - mn) / rng) * (Hh - 2 * pad);
-  const path = (idx) => h.map((r, i) => (r[idx] == null ? null : `${i ? 'L' : 'M'}${xx(i).toFixed(1)} ${yy(r[idx]).toFixed(1)}`)).filter(Boolean).join(' ');
+  const h = item.history || [];
+  const specAll = useMemo(() => h.map((r) => [r[0], r[1]]), [h]);
+  const commAll = useMemo(() => h.map((r) => [r[0], r[2]]).filter((pt) => pt[1] != null), [h]);
+  const spec = useMemo(() => slicePos(specAll, tf), [specAll, tf]);
+  const comm = useMemo(() => (isDealer ? [] : slicePos(commAll, tf)), [commAll, tf, isDealer]);
+  const accent = posAccent(item.spec);
   const read = item.spec >= 90 ? 'the most bullish in 3 years — crowded long, fragile to an unwind'
     : item.spec <= 10 ? 'the most bearish in 3 years — crowded short, fragile to a squeeze'
     : item.spec >= 75 ? 'in the upper part of its 3-year range'
     : item.spec <= 25 ? 'in the lower part of its 3-year range' : 'mid-range over the last 3 years';
-  const unit = isDealer ? (item.dealerUnit || '$bn net') : '% of open interest';
   return (
-    <div className="mt-card" style={{ padding: '20px 24px', marginTop: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div className="mt-eyebrow">Positioning detail</div>
-          <div className="mt-h2" style={{ margin: '2px 0' }}>{item.market}</div>
-          <div style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {Math.round(item.spec)}th percentile · {read}</div>
+    <div style={{ padding: 24 }}>
+      <header style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ flex: 1 }}>
+          <div className="mt-eyebrow">Positioning · {isDealer ? 'dealer inventory' : 'futures'}</div>
+          <div style={{ fontFamily: 'var(--mt-font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', margin: '4px 0 0', lineHeight: 1.1 }}>{item.market}</div>
         </div>
-        <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 22, color: 'var(--mt-ink-3)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div style={{ textAlign: 'right' }}>
+          <div className="num" style={{ fontSize: 32, fontWeight: 500, color: accent, lineHeight: 1 }}>{Math.round(item.spec)}<span style={{ fontSize: 14, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>th pct</span></div>
+          <div style={{ marginTop: 6 }}><FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="label" /></div>
+        </div>
+      </header>
+      <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 14 }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {read}.</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div className="mt-pillgroup">
+          {['1Y', '3Y', 'Max'].map((k) => (<button key={k} type="button" className={`mt-pill ${tf === k ? 'on' : ''}`} onClick={() => setTf(k)}>{k}</button>))}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}><b className="num">{spec.length}</b> weekly reports</div>
       </div>
-      <svg viewBox={`0 0 ${W} ${Hh}`} width="100%" height="150" preserveAspectRatio="none" style={{ marginTop: 14 }}>
-        <line x1={pad} x2={W - pad} y1={yy(0)} y2={yy(0)} stroke="var(--mt-line-1)" strokeWidth="1" strokeDasharray="3 3" />
-        {!isDealer && <path d={path(2)} fill="none" stroke="var(--mt-ink-3)" strokeWidth="1.5" />}
-        <path d={path(1)} fill="none" stroke="var(--mt-accent)" strokeWidth="1.8" />
-      </svg>
-      <div style={{ display: 'flex', gap: 18, fontSize: 11.5, color: 'var(--mt-ink-2)', marginTop: 6 }}>
-        <span><span style={{ color: 'var(--mt-accent)' }}>●</span> Speculators</span>
-        {!isDealer && <span><span style={{ color: 'var(--mt-ink-3)' }}>●</span> Commercials (hedgers)</span>}
-        <span style={{ marginLeft: 'auto' }}>net position, {unit} · 3-year weekly history</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>
+      <BigHistoryChart points={spec} accent={accent} height={280} freq="W"
+        overlays={isDealer ? [] : [{ points: comm, color: 'var(--mt-ink-3)', label: 'Commercials (hedgers)', dash: '4 3' }]}
+        yFormat={(v) => `${v.toFixed(1)}${isDealer ? '' : '%'}`} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
         <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
         <PosStat label="Speculator percentile" v={`${Math.round(item.spec)}th`} />
         {!isDealer && item.commNet != null && <PosStat label="Commercials net" v={`${item.commNet}%`} />}
         {item.oi != null && <PosStat label="Open interest" v={Number(item.oi).toLocaleString()} />}
       </div>
-      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--mt-line-1)', fontSize: 11.5, color: 'var(--mt-ink-2)', lineHeight: 1.8 }}>
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)', fontSize: 12, color: 'var(--mt-ink-2)', lineHeight: 1.9 }}>
         <b>Source</b> {isDealer ? 'New York Fed primary-dealer statistics' : 'CFTC Commitments of Traders (futures + options)'}<br />
-        <b>Frequency</b> Weekly · {isDealer ? 'Wednesday snapshot' : 'Tuesday snapshot'}<br />
+        <b>Frequency</b> Weekly · NYSE trading days · {isDealer ? 'Wednesday snapshot' : 'Tuesday snapshot'}<br />
         <b>Timing</b> {isDealer ? 'Thursday, after release' : 'Saturday 07:00 ET'}<br />
         <b>Service-level target</b> {isDealer ? '14 days' : '8 days (192 hours)'}<br />
         <b>Last update</b> {item.asof}
@@ -382,14 +422,14 @@ export default function MacroPage() {
             );
           })}
           {selected && (
-            <section className="mt-pagesection mt-pagesection--flush">
+            <DetailModal onClose={() => setSelected(null)}>
               <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
-            </section>
+            </DetailModal>
           )}
           {selectedPos && (
-            <section className="mt-pagesection mt-pagesection--flush">
+            <DetailModal onClose={() => setSelectedPos(null)}>
               <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} />
-            </section>
+            </DetailModal>
           )}
         </>
       )}
