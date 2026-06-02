@@ -68,6 +68,20 @@ function stateFor(pct, direction) {
   return 'calm';
 }
 
+const DEF = {
+  vix: 'VIX Index', skew: 'CBOE SKEW', eq_cr_corr: 'SPY-HYG correlation', cape: 'Shiller CAPE',
+  hy_ig: 'High-yield OAS', ig_oas: 'Investment-grade OAS', loan_syn: 'High-yield effective yield',
+  cmdi: 'Corp-bond distress (NFCI proxy)', cpff: '3m commercial paper - Fed funds',
+  sloos_ci: 'SLOOS, C&I net tightening', sloos_cre: 'SLOOS, CRE net tightening',
+  bank_credit: 'Bank credit, YoY (H.8)', credit_3y: 'Bank credit, 3-yr growth',
+  bank_unreal: 'Unrealized losses / Tier-1', bkx_spx: 'KBW banks / S&P 500',
+  yield_curve: '10-yr minus 2-yr Treasury', move: 'MOVE Index', real_rates: '10-yr TIPS yield',
+  term_premium: 'Kim-Wright 10-yr term premium', breakeven_10y: '10-yr UST minus 10-yr TIPS',
+  anfci: 'Chicago Fed ANFCI', stlfsi: 'St. Louis Fed STLFSI4',
+  ism: 'ISM Manufacturing PMI', jobless: 'Initial jobless claims', copper_gold: 'Copper / gold ratio',
+  usd: 'Dollar index (DXY)',
+};
+
 export default function useIndicators() {
   const [hist, setHist] = useState(null);
   const [manifest, setManifest] = useState(null);
@@ -180,7 +194,7 @@ export default function useIndicators() {
         name: meta[0],
         familyId,
         familyLabel: FAMILY_LABEL[familyId] || familyId,
-        familyFull: FAMILY_FULL[familyId] || familyId,
+        familyFull: DEF[id] || FAMILY_FULL[familyId] || familyId,
         domain: FAMILY_LABEL[familyId] || familyId,
         unit: h.unit || meta[4] || '',
         decimals: meta[5],

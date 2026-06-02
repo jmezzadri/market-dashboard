@@ -98,6 +98,7 @@ function DomainPositioning({ data }) {
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
+function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
 const SHORT = {
   'Inflation expectations (10-year)': '10y breakeven',
   'High-yield spread over Treasuries': 'HY vs UST',
@@ -315,6 +316,7 @@ export default function MacroPage() {
 
   return (
     <div className="mt-pagebody mt-fade">
+      <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}`}</style>
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Macro overview</div>
@@ -322,10 +324,10 @@ export default function MacroPage() {
             Where every market sits <i>in its own range</i>.
           </h1>
           <p className="mt-deck">
-            {indicators.length || '—'} indicators across <b>Rates</b>, <b>Credit</b>,{' '}
-            <b>Equities</b>, <b>Commodities</b>, <b>FX</b>, the <b>Economy</b>, and{' '}
-            <b>Financial Conditions</b> — each with its positioning. No regime call
-            lives on this page; that's Asset Tilt. This is the indicator backdrop.
+            Every market's indicators — and, where it trades, its futures
+            positioning — ranked against its own 3-year history. Green is calm,
+            amber stretched, red at an extreme. The backdrop for the regime call,
+            which lives on Asset Tilt.
           </p>
         </div>
         <div className="mc-onthispage">
@@ -368,23 +370,35 @@ export default function MacroPage() {
                   {elev > 0 && (
                     <div className="mc-domsub">+ <b>{elev}</b> elevated</div>
                   )}
-                  <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-                    {inds.map((i) => (
-                      <button key={i.id} type="button" title={i.name}
-                        className={`mt-tag mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
-                        onClick={(e) => { e.stopPropagation(); setSelected(i); }}
-                        style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                        {shortLabel(i.name)}
-                      </button>
-                    ))}
-                    {(cotPos?.domains?.[dom]?.markets || []).map((m) => (
-                      <button key={m.market} type="button" title={`${m.market} \u00b7 positioning`}
-                        className={`mt-tag mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
-                        onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
-                        style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                        {shortLabel(m.market)}
-                      </button>
-                    ))}
+                  <div style={{ marginTop: 12 }}>
+                    <div className="mt-eyebrow" style={{ fontSize: 9.5, marginBottom: 6 }}>Indicators</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                      {inds.map((i) => (
+                        <button key={i.id} type="button" title={i.name}
+                          className={`mt-tag mc-pill mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
+                          onClick={(e) => { e.stopPropagation(); setSelected(i); }}
+                          style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(i.name)}</span>
+                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{signedPct(i.pct)}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {(cotPos?.domains?.[dom]?.markets || []).length > 0 && (
+                      <>
+                        <div className="mt-eyebrow" style={{ fontSize: 9.5, margin: '12px 0 6px' }}>Positioning · speculators</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                          {cotPos.domains[dom].markets.map((m) => (
+                            <button key={m.market} type="button" title={`${m.market} \u00b7 positioning`}
+                              className={`mt-tag mc-pill mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
+                              onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
+                              style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(m.market)}</span>
+                              <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{signedPct(m.spec)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );
