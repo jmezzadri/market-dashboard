@@ -215,6 +215,10 @@ function statusForElement(elementId, fallback) {
     label: manifestEl?.name || phRow?.label || elementId,
     description: manifestEl?.description || null,
     sourceVendor: manifestEl?.source_vendor || phRow?.source || null,
+    // Frequency + scheduled fetch time — so every chip can show all five
+    // governance fields (Source, Frequency+calendar, Timing ET, SLA, Last update).
+    cadence: manifestEl?.cadence || phRow?.cadence || null,
+    scheduledFetchET: manifestEl?.scheduled_fetch_time_et || null,
     reason,
     // Phase 2 of the Data Steward overhaul. dataAsOf is the trading day the
     // value represents — the chip's "Last close: <date>" copy uses this,

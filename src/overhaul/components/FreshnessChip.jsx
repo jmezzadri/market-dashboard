@@ -246,25 +246,20 @@ export default function FreshnessChip({
                   ? 'Checking data freshness…'
                   : 'Within freshness SLA.'}
             </div>
-            {exactStamp && (
-              <div style={{ marginTop: 6, color: 'var(--mt-ink-2)' }}>
-                <span style={{ color: 'var(--mt-ink-1)' }}>Last update:</span>{' '}
-                {exactStamp}
-              </div>
-            )}
-            {f?.slaHours > 0 && (
-              <div style={{ color: 'var(--mt-ink-2)' }}>
-                <span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span>{' '}
-                {f.slaHours}h
-                {f?.calendar ? ` · ${f.calendar}` : ''}
-              </div>
-            )}
-            {f?.sourceVendor && (
-              <div style={{ color: 'var(--mt-ink-2)' }}>
-                <span style={{ color: 'var(--mt-ink-1)' }}>Source:</span>{' '}
-                {f.sourceVendor}
-              </div>
-            )}
+            {/* The five governance fields shown on EVERY chip (Data Steward
+                hard rule 2026-06-02) — all read from the manifest + pipeline
+                health, never hardcoded. A missing value shows an em-dash so
+                the gap is visible rather than hidden. */}
+            <div style={{ marginTop: 6 }}>
+              <TipRow label="Source" value={f?.sourceVendor} />
+              <TipRow
+                label="Frequency"
+                value={f?.cadence ? `${f.cadence}${f?.calendar ? ` · ${f.calendar}` : ''}` : f?.calendar}
+              />
+              <TipRow label="Timing (ET)" value={f?.scheduledFetchET} />
+              <TipRow label="SLA" value={f?.slaHours > 0 ? `${f.slaHours}h` : null} />
+              <TipRow label="Last update" value={exactStamp} />
+            </div>
             {f?.cause?.element && f.cause.kind === 'input' && (
               <div style={{ marginTop: 6, color: 'var(--mt-down)' }}>
                 Upstream failing: <b>{f.cause.element.label || f.cause.element.elementId}</b>
@@ -274,5 +269,16 @@ export default function FreshnessChip({
           document.body,
         )}
     </span>
+  );
+}
+
+/* One labelled line in the chip tooltip. Shows an em-dash when the value is
+   missing so every chip visibly carries all five governance fields. */
+function TipRow({ label, value }) {
+  return (
+    <div style={{ color: 'var(--mt-ink-2)' }}>
+      <span style={{ color: 'var(--mt-ink-1)' }}>{label}:</span>{' '}
+      {value || '—'}
+    </div>
   );
 }
