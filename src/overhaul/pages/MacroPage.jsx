@@ -17,9 +17,10 @@
      domain (most likely to fail SLA first).
    - View toggle persists to localStorage. */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import FreshnessChip from '../components/FreshnessChip';
+import { useFreshness } from '../../hooks/useFreshness';
 import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
@@ -99,8 +100,42 @@ function DomainPositioning({ data }) {
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
-function isFreshSla(asOf, slaHours){ if (!asOf) return false; const h = (Date.now() - new Date(String(asOf).slice(0,10) + 'T00:00:00Z').getTime()) / 3600000; return h <= ((slaHours || 1200) * 1.15); }
-function bucketFresh(inds, markets){ const i = (inds || []).every((x) => isFreshSla(x.asOf, x.slaHours)); const m = (markets || []).every((x) => isFreshSla(x.asof, 192)); return i && m; }
+// Per-element freshness probe. Calls the canonical useFreshness hook once and
+// reports its status up. Rendering one probe per element is the only
+// React-safe way to aggregate N hook results, and it guarantees the tile
+// rollup dot uses the SAME staleness logic (trading-calendar aware,
+// pipeline_health-anchored) as every individual chip — so the tile and its
+// chips can never disagree.
+function ElemProbe({ elementId, onStatus }) {
+  const f = useFreshness(elementId);
+  useEffect(() => { onStatus(elementId, f.status); }, [elementId, f.status, onStatus]);
+  return null;
+}
+
+// Tile rollup dot: green only when every indicator AND the positioning feed in
+// the bucket are within SLA. Grey while the first read is still loading.
+function BucketRollupDot({ inds, positioningElementId }) {
+  const ids = useMemo(() => {
+    const a = (inds || []).map((i) => i.manifestId || `indicator-${i.id}-daily`);
+    if (positioningElementId) a.push(positioningElementId);
+    return a;
+  }, [inds, positioningElementId]);
+  const [statuses, setStatuses] = useState({});
+  const onStatus = useCallback((id, s) => {
+    setStatuses((p) => (p[id] === s ? p : { ...p, [id]: s }));
+  }, []);
+  const vals = ids.map((id) => statuses[id]).filter((s) => s && s !== 'loading');
+  const ready = ids.length > 0 && vals.length >= ids.length;
+  const anyRed = vals.some((s) => s === 'red');
+  const color = !ready ? 'var(--mt-ink-3)' : anyRed ? 'var(--mt-down)' : 'var(--mt-up)';
+  const title = !ready ? 'Checking feeds…' : anyRed ? 'A feed in this group is past its freshness target' : 'All feeds within SLA';
+  return (
+    <>
+      {ids.map((id) => <ElemProbe key={id} elementId={id} onStatus={onStatus} />)}
+      <span title={title} style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: color }} />
+    </>
+  );
+}
 const SHORT = {
   'Inflation expectations (10-year)': '10y breakeven',
   'High-yield spread over Treasuries': 'HY vs UST',
@@ -384,7 +419,7 @@ export default function MacroPage() {
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
-                    <span title={bucketFresh(inds, cotPos && cotPos.domains && cotPos.domains[dom] ? cotPos.domains[dom].markets : null) ? 'All feeds within SLA' : 'A feed is stale'} style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: bucketFresh(inds, cotPos && cotPos.domains && cotPos.domains[dom] ? cotPos.domains[dom].markets : null) ? 'var(--mt-up)' : 'var(--mt-down)' }} />
+                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} />
                   </div>
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
