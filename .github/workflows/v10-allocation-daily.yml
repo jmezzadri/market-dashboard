@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.MACROTILT_BOT_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
@@ -57,6 +57,18 @@ jobs:
           assert audit['all_6_mechanisms_used'], 'not all 6 mechanisms feeding'
           print('v10 audit OK |', d['as_of'], '| equity', d['equity_pct'], '| defensive', d['defensive_pct'], '| leverage', d['leverage'])
           "
+
+      - name: Stamp pipeline_health freshness
+        # The freshness chip grades against pipeline_health.data_as_of. The
+        # edge function does NOT touch in-house recompute rows, so without this
+        # the chip froze at a fake "6D ago" while the file was current
+        # (Joe 2026-06-03). Stamp our own row to the published as_of.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python -c "import json;print(json.load(open('public/v10_allocation.json'))['as_of'])")
+          python scripts/upsert_pipeline_health.py v10_allocation "$AS_OF" green
 
       - name: Commit if changed
         run: |
