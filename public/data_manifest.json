@@ -1415,7 +1415,7 @@
       "name": "latest_scan",
       "description": "Composite scanner output: buy_opportunities, watch_items, signals (technicals/screener/news/etc), config.",
       "sourcing_mode": "computed",
-      "source_vendor": "Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares",
+      "source_vendor": "Unusual Whales (insider, options, dark pool) + Polygon/Massive (prices & technicals)",
       "source_endpoint": "trading-scanner/main.py intraday",
       "license_tier": "paid (UW)",
       "monthly_cost_usd": 0,
