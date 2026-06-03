@@ -57,7 +57,7 @@ MARKETS = [
     ("FX", "Aussie dollar", "AUSTRALIAN DOLLAR"),
     ("FX", "Mexican Peso", "MEXICAN PESO"),
     ("Commodities", "WTI Crude", "CRUDE OIL, LIGHT SWEET - NEW YORK"),
-    ("Commodities", "Natural Gas", "NATURAL GAS - NEW YORK"),
+    ("Commodities", "Natural Gas", "NAT GAS NYME"),
     ("Commodities", "Gold", "GOLD"),
     ("Commodities", "Silver", "SILVER"),
     ("Commodities", "Copper", "COPPER"),
