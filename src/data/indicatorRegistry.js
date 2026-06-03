@@ -123,4 +123,7 @@ cfnai_3ma:["Economic activity (Chicago Fed)","CFNAI 3-Month Moving Average","lab
 hy_ig_etf:["High-yield vs investment-grade","LQD ÷ HYG Price Ratio","credit",2,"ratio",4,null,null,null,null,null,false,
 "LQD (investment-grade corporate bond ETF) divided by HYG (high-yield ETF) — a Yahoo-sourced proxy for HY-IG spread that backfills the 2007–2023 window where FRED's ICE BofA OAS series is licensed-out. Higher ratio = HY underperforming = wider spreads. Source: Yahoo Finance (daily). Reference indicator only — NOT a substitute for the FRED OAS series in composite math; the FRED series is preserved as-is via curated anchors.",
 ""],
+adv_dec:["Market breadth (A/D)","Advance-Decline Breadth","equity",1,"issues",0,null,null,null,null,null,false,
+"Advance\u2013decline breadth \u2014 the 50-day cumulative net of advancers minus decliners across ~5,358 active US common stocks (Polygon EOD closes joined to universe_master common stock). Each session a stock counts +1 if it closed above its prior close and \u22121 if below; the daily net is summed over a trailing 50 sessions and ranked into its own 3-year range. So what: it tells a PM whether an index move is broad or carried by a narrow set of leaders \u2014 a rising index with a falling cumulative (a breadth divergence) has preceded most major tops, while a strong positive reading confirms healthy participation. Higher = broader/healthier (low is worse). Source: computed in-house by MacroTilt from the Supabase RPC compute_advance_decline_50d over Polygon prices_eod.",
+""],
 };
