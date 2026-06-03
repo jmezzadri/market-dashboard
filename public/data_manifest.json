@@ -3508,7 +3508,7 @@
    "cadence": "weekly",
    "scheduled_fetch_time_et": "07:00",
    "refresh_trigger": "GH workflow CFTC-COT-WEEKLY (Saturday 07:00 ET, after Friday 15:30 ET CFTC release)",
-   "freshness_sla_hours": 200,
+   "freshness_sla_hours": 336,
    "output_destination": "public/cot_positioning.json",
    "producer_script": "fetch_cftc_cot.py / cot_crossasset.py",
    "consumer_surfaces": [
@@ -3528,7 +3528,7 @@
    "current_status": "live",
    "failure_mode": "Per-market resolve try/except; missing market omitted; tile positioning section hidden.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
-   "release_calendar": "weekly-saturday",
+   "release_calendar": "wall-clock",
    "dependencies": []
   }
  ],
