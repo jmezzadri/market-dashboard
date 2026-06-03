@@ -407,39 +407,44 @@ const POS_COLUMNS = [
   { key: 'current_score',            label: 'Score',       w: 70,  align: 'right', fmt: 'num',    def: true, sleeveOnly: 'B' },
 ];
 
+// ONE shared column config (visibility + order + width) for BOTH sleeve
+// tables. Set once, persists once, applies to A and B. (Sleeve A simply
+// hides columns that don't apply to it, e.g. Score.)
+const PAPER_COLS_KEY = 'mt_paper_cols_v2_shared';
+const posDefaultCfg = () => POS_COLUMNS.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
+function loadPaperCols() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PAPER_COLS_KEY) || 'null');
+    if (Array.isArray(saved) && saved.length) {
+      const known = new Set(POS_COLUMNS.map((c) => c.key));
+      const merged = saved.filter((s) => known.has(s.key));
+      for (const c of POS_COLUMNS) if (!merged.find((m) => m.key === c.key)) merged.push({ key: c.key, visible: c.def, w: c.w });
+      return merged;
+    }
+  } catch { /* ignore */ }
+  return posDefaultCfg();
+}
+
 const daysHeld = (iso) => {
   if (!iso) return null;
   const ms = Date.now() - new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso).getTime();
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf }) {
-  const available = useMemo(
-    () => POS_COLUMNS.filter((c) => !c.sleeveOnly || c.sleeveOnly === sleeve),
-    [sleeve]
-  );
-  const storeKey = `mt_paper_cols_v1_${sleeve}`;
-  const defaultCfg = () => available.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
-
-  const [cfg, setCfg] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
-      if (Array.isArray(saved) && saved.length) {
-        const known = new Set(available.map((c) => c.key));
-        const merged = saved.filter((s) => known.has(s.key));
-        for (const c of available) if (!merged.find((m) => m.key === c.key)) merged.push({ key: c.key, visible: c.def, w: c.w });
-        return merged;
-      }
-    } catch { /* ignore */ }
-    return defaultCfg();
-  });
-  useEffect(() => { try { localStorage.setItem(storeKey, JSON.stringify(cfg)); } catch { /* ignore */ } }, [cfg, storeKey]);
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, cfg, setCfg }) {
+  // Column visibility / order / widths come from ONE shared config (lifted to
+  // the parent, persisted once). This table renders only the columns that
+  // apply to its sleeve — Sleeve A has no Score, so it's filtered out here.
+  const appliesToSleeve = (key) => {
+    const m = POS_COLUMNS.find((c) => c.key === key);
+    return !!m && (!m.sleeveOnly || m.sleeveOnly === sleeve);
+  };
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState('market_value');
   const [sortDir, setSortDir] = useState('desc');
-  const meta = (k) => available.find((c) => c.key === k);
-  const visibleCols = cfg.filter((c) => c.visible);
+  const meta = (k) => POS_COLUMNS.find((c) => c.key === k);
+  const visibleCols = cfg.filter((c) => c.visible && appliesToSleeve(c.key));
 
   const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
   const unreal = positions.reduce((s, p) => s + (p.unrealized_pnl || 0), 0);
@@ -493,7 +498,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     });
   };
   const toggle = (key) => setCfg((prev) => prev.map((c) => c.key === key ? { ...c, visible: !c.visible } : c));
-  const reset = () => setCfg(defaultCfg());
+  const reset = () => setCfg(posDefaultCfg());
 
   const fmtCell = (p, col) => {
     const m = meta(col.key); const v = cellValue(p, col.key);
@@ -539,7 +544,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
             </button>
             {menuOpen && (
               <div className="pcol-pop" onMouseLeave={() => setMenuOpen(false)}>
-                {cfg.map((c) => {
+                {cfg.filter((c) => appliesToSleeve(c.key)).map((c) => {
                   const m = meta(c.key);
                   return (
                     <div
@@ -750,6 +755,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const sleeveA = useMemo(() => positions.filter((p) => p.sleeve === 'A'), [positions]);
   const sleeveB = useMemo(() => positions.filter((p) => p.sleeve === 'B'), [positions]);
 
+  // One shared column config for both sleeve tables — set once, persists for both.
+  const [colCfg, setColCfg] = useState(loadPaperCols);
+  useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <style>{PAGE_CSS}</style>
@@ -769,6 +778,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           asOf={posAsOf}
           totalCapital={account?.sleeve_a_allocation || 500_000}
           onOpenTicker={onOpenTicker}
+          cfg={colCfg}
+          setCfg={setColCfg}
           infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
         />
         <PositionsPanel
@@ -778,6 +789,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           asOf={posAsOf}
           totalCapital={account?.sleeve_b_allocation || 500_000}
           onOpenTicker={onOpenTicker}
+          cfg={colCfg}
+          setCfg={setColCfg}
           infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
         />
         <RebalanceLog orders={orders} />
