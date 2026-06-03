@@ -116,7 +116,7 @@ function ElemProbe({ item, onStatus }) {
 // the bucket are within SLA. Each probe is anchored to the served data date
 // (asOfIso), so the dot reflects the actual freshness of the published value
 // against the manifest SLA — never a fake-green from an untracked element.
-function BucketRollupDot({ inds, positioningElementId, positioningAsOf }) {
+function BucketRollupDot({ inds, positioningElementId, positioningAsOf, onTip, onHideTip }) {
   const items = useMemo(() => {
     const a = (inds || []).map((i) => ({ id: i.manifestId || `indicator-${i.id}-daily`, asOf: i.asOf }));
     if (positioningElementId) a.push({ id: positioningElementId, asOf: positioningAsOf });
@@ -134,7 +134,10 @@ function BucketRollupDot({ inds, positioningElementId, positioningAsOf }) {
   return (
     <>
       {items.map((it) => <ElemProbe key={it.id} item={it} onStatus={onStatus} />)}
-      <span title={title} style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: color }} />
+      <span
+        onMouseEnter={onTip ? (e) => onTip(e, title) : undefined}
+        onMouseLeave={onHideTip}
+        style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: color }} />
     </>
   );
 }
@@ -323,6 +326,9 @@ export default function MacroPage() {
   const [cotPos, setCotPos] = useState(null);
   const [selectedPos, setSelectedPos] = useState(null);
   const [selectedBucket, setSelectedBucket] = useState(null);
+  const [tip, setTip] = useState(null);
+  const showTip = (e, text) => { const r = e.currentTarget.getBoundingClientRect(); setTip({ text, x: r.left + r.width / 2, y: r.top }); };
+  const hideTip = () => setTip(null);
 
   useEffect(() => { saveView(view); }, [view]);
   useEffect(() => {
@@ -376,6 +382,10 @@ export default function MacroPage() {
   return (
     <div className="mt-pagebody mt-fade">
       <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}`}</style>
+      {tip && createPortal(
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '5px 9px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.35, maxWidth: 280, whiteSpace: 'normal', textAlign: 'center', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
+        document.querySelector('.mt-overhaul') || document.body,
+      )}
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Macro overview</div>
@@ -421,18 +431,20 @@ export default function MacroPage() {
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
-                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} />
+                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} onTip={showTip} onHideTip={hideTip} />
                   </div>
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                       {inds.map((i) => (
-                        <button key={i.id} type="button" title={i.name}
+                        <button key={i.id} type="button"
                           className={`mt-tag mc-pill mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
                           onClick={(e) => { e.stopPropagation(); setSelected(i); }}
+                          onMouseEnter={(e) => showTip(e, `${i.name} — ${Math.round(i.pct)}th percentile of its 3-year range`)}
+                          onMouseLeave={hideTip}
                           style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(i.name)}</span>
-                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{signedPct(i.pct)}</span>
+                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{Math.round(i.pct)}</span>
                         </button>
                       ))}
                     </div>
@@ -441,12 +453,14 @@ export default function MacroPage() {
                         <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', margin: '16px 0 8px', paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>Positioning signals</div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                           {cotPos.domains[dom].markets.map((m) => (
-                            <button key={m.market} type="button" title={`${m.market} \u00b7 positioning`}
+                            <button key={m.market} type="button"
                               className={`mt-tag mc-pill mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
                               onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
+                              onMouseEnter={(e) => showTip(e, `${m.market} \u2014 speculators at the ${Math.round(m.spec)}th percentile of 3 years`)}
+                              onMouseLeave={hideTip}
                               style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(m.market)}</span>
-                              <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{signedPct(m.spec)}</span>
+                              <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{Math.round(m.spec)}</span>
                             </button>
                           ))}
                         </div>
