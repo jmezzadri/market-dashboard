@@ -44,6 +44,32 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Snapshot prior sector weights (for the Prev column)
+        # Capture the sector weights we are about to overwrite into a rolling
+        # history so the Asset Tilt table can show last-week's recommended
+        # allocation. Deduped by as_of, capped at 60 entries. (Joe 2026-06-03)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cur = Path("public/v10_allocation.json")
+          hist = Path("public/v10_sector_history.json")
+          if not cur.exists():
+              raise SystemExit(0)
+          d = json.loads(cur.read_text())
+          snap = {
+              "as_of": d.get("as_of"),
+              "sectors": [{"sector": s["sector"], "dollar": s.get("dollar")} for s in d.get("sectors", [])],
+          }
+          h = json.loads(hist.read_text()) if hist.exists() else {"snapshots": []}
+          snaps = h.get("snapshots", [])
+          snaps = [x for x in snaps if x.get("as_of") != snap["as_of"]]
+          snaps.append(snap)
+          snaps = snaps[-60:]
+          hist.write_text(json.dumps({"snapshots": snaps}, indent=2) + "\n")
+          print(f"sector-history: {len(snaps)} snapshots, latest {snap['as_of']}")
+          PY
+
       - name: Run v10 allocator
         run: python scripts/compute_v10_allocation.py
 
@@ -76,7 +102,7 @@ jobs:
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
-          git add public/v10_allocation.json
+          git add public/v10_allocation.json public/v10_sector_history.json
           if git diff --cached --quiet; then
             echo "No changes — skipping."
           else

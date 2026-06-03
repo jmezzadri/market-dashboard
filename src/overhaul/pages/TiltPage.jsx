@@ -74,7 +74,6 @@ export default function TiltPage() {
   const [history, setHistory] = useState(null);
   const [expandedSectors, setExpandedSectors] = useState(new Set());
   const [expandedIGs, setExpandedIGs] = useState(new Set());
-  const [sectorView, setSectorView] = useState('tilt');
   /* Sparkline hover state — { idx, value, date } when the user is hovering,
      null otherwise. Lets the gauge "Now" line swap to the hovered week so the
      24-week history reads like a real tooltip instead of a decorative curve. */
@@ -99,11 +98,51 @@ export default function TiltPage() {
   const defPct = allocation?.defensive_pct ?? null;
   const sleeve = regime.sleeveMix;
 
+  /* Sort control for the sector table. Default = by recommended allocation
+     (largest book weight on top), per Joe 2026-06-03. The pills let him re-sort
+     by tilt-vs-cap. Defensive-sleeve rows are always rendered AFTER the equity
+     rows regardless of this sort (handled in SectorFlow). */
+  const [sectorSort, setSectorSort] = useState('recommended'); // 'recommended' | 'tilt'
+
   const sectors = useMemo(() => {
-    return (allocation?.sectors || [])
-      .slice()
-      .sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
-  }, [allocation]);
+    const arr = (allocation?.sectors || []).slice();
+    if (sectorSort === 'tilt') {
+      arr.sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
+    } else {
+      // Recommended allocation = dollar (% of total portfolio), largest first.
+      arr.sort((a, b) => (b.dollar ?? 0) - (a.dollar ?? 0));
+    }
+    return arr;
+  }, [allocation, sectorSort]);
+
+  /* Prior-week sector weights for the "Prev" column. Captured weekly into
+     v10_sector_history.json (starts empty — column shows "—" until a prior
+     snapshot exists). We pick the snapshot closest to 7 days before the
+     current as_of. */
+  const [sectorHist, setSectorHist] = useState(null);
+  useEffect(() => {
+    let c = false;
+    fetch('/v10_sector_history.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!c) setSectorHist(j); })
+      .catch(() => {});
+    return () => { c = true; };
+  }, []);
+
+  const prevBySector = useMemo(() => {
+    const snaps = Array.isArray(sectorHist?.snapshots) ? sectorHist.snapshots : [];
+    const curAsOf = allocation?.as_of;
+    if (!snaps.length || !curAsOf) return {};
+    const cur = new Date(curAsOf).getTime();
+    const target = cur - 7 * 86400000;
+    // Prefer the snapshot nearest 7 days back that is strictly before current.
+    const prior = snaps.filter((s) => new Date(s.as_of).getTime() < cur - 86400000);
+    if (!prior.length) return {};
+    prior.sort((a, b) => Math.abs(new Date(a.as_of).getTime() - target) - Math.abs(new Date(b.as_of).getTime() - target));
+    const map = {};
+    (prior[0].sectors || []).forEach((s) => { map[s.sector] = s.dollar; });
+    return map;
+  }, [sectorHist, allocation]);
 
   const igsBySector = useMemo(() => {
     const out = {};
@@ -196,6 +235,23 @@ export default function TiltPage() {
       cash:     def100 * ((sleeve.cash ?? 0) + (sleeve.shy ?? 0)),
     };
   }, [sleeve, defPct]);
+
+  /* Defensive-sleeve rows for the sector table. When the sleeve is ACTIVE the
+     allocator emits allocation.defensive (ticker/name/dollar, % of total). On
+     STANDBY (Risk On) that array is empty, so we synthesize 0% rows from the
+     engine sleeve composition so the line items are always visible under the
+     equity rows (Joe 2026-06-03). */
+  const sleeveRows = useMemo(() => {
+    const active = allocation?.defensive;
+    if (Array.isArray(active) && active.length) {
+      return active.map((d) => ({ ticker: d.ticker, name: d.name, dollar: d.dollar }));
+    }
+    return [
+      { ticker: 'TLT', name: 'Long Treasuries', dollar: sleeveAllocPct.treasury || 0 },
+      { ticker: 'GLD', name: 'Gold', dollar: sleeveAllocPct.gold || 0 },
+      { ticker: 'SHY', name: 'Cash / T-Bills', dollar: sleeveAllocPct.cash || 0 },
+    ];
+  }, [allocation, sleeveAllocPct]);
 
   /* Backtest validation numbers — never hardcoded. */
   const at = backtest?.validation?.asset_tilt;
@@ -303,7 +359,10 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {stressHist.length === 0 && (
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+                )}
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -382,7 +441,10 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {yieldHist.length === 0 && (
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+                )}
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -494,12 +556,12 @@ export default function TiltPage() {
             <div className="mt-h2">Where the engine wants overweight — and what's underneath.</div>
           </div>
           <div className="mt-pillgroup">
-            {[['tilt', 'Tilt vs cap'], ['weight', 'Weight'], ['score', 'Score']].map(([k, l]) => (
+            {[['recommended', 'Recommended'], ['tilt', 'Tilt vs cap']].map(([k, l]) => (
               <button
                 key={k}
                 type="button"
-                className={`mt-pill ${sectorView === k ? 'on' : ''}`}
-                onClick={() => setSectorView(k)}
+                className={`mt-pill ${sectorSort === k ? 'on' : ''}`}
+                onClick={() => setSectorSort(k)}
               >
                 {l}
               </button>
@@ -516,7 +578,9 @@ export default function TiltPage() {
             expandedIGs={expandedIGs}
             toggleSector={toggleSector}
             toggleIG={toggleIG}
-            view={sectorView}
+            sortKey={sectorSort}
+            sleeveRows={sleeveRows}
+            prevBySector={prevBySector}
           />
         )}
         <div className="lm-flowfoot">
@@ -543,7 +607,10 @@ export default function TiltPage() {
           <div>
             <div className="mt-eyebrow">Regime history · 24 weeks</div>
             <div className="mt-h2">
-              When the engine moved.
+              When the engine moved.{' '}
+              {weeklyTail24.length === 0 && (
+                {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+              )}
             </div>
           </div>
         </div>
