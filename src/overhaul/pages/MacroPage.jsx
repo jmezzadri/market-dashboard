@@ -99,8 +99,8 @@ function DomainPositioning({ data }) {
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
-function isFresh(asOf, freq){ if (!asOf) return false; const d = (Date.now() - new Date(String(asOf).slice(0,10) + 'T00:00:00Z').getTime()) / 86400000; const limit = freq === 'D' ? 8 : freq === 'W' ? 18 : freq === 'M' ? 75 : freq === 'Q' ? 210 : 75; return d <= limit; }
-function bucketFresh(inds, markets){ const i = (inds || []).every((x) => isFresh(x.asOf, x.freq)); const m = (markets || []).every((x) => isFresh(x.asof, 'W')); return i && m; }
+function isFreshSla(asOf, slaHours){ if (!asOf) return false; const h = (Date.now() - new Date(String(asOf).slice(0,10) + 'T00:00:00Z').getTime()) / 3600000; return h <= ((slaHours || 1200) * 1.15); }
+function bucketFresh(inds, markets){ const i = (inds || []).every((x) => isFreshSla(x.asOf, x.slaHours)); const m = (markets || []).every((x) => isFreshSla(x.asof, 192)); return i && m; }
 const SHORT = {
   'Inflation expectations (10-year)': '10y breakeven',
   'High-yield spread over Treasuries': 'HY vs UST',

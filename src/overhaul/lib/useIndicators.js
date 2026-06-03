@@ -121,6 +121,7 @@ export default function useIndicators() {
         cadence: String(e.cadence || '').toLowerCase() || null,
         // How the displayed series relates to the raw vendor feed.
         sourcingMode: e.sourcing_mode || null,
+        sla: Number(e.freshness_sla_hours) || null,
       };
     });
     return out;
@@ -223,6 +224,7 @@ export default function useIndicators() {
         // their manifest entries. The chip then rendered "—" for the Last
         // Refresh time on every one of those rows. Now: pick the suffix from
         // the indicator's actual frequency.
+        slaHours: src.sla || ({ D: 49, W: 192, M: 1200, Q: 3600 }[freqCode] || 1200),
         manifestId: `indicator-${id}-${
           freqCode === 'W' ? 'weekly'
           : freqCode === 'M' ? 'monthly'
