@@ -19,6 +19,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 export default function BigHistoryChart({
   points = [],          // [[isoDate, value], ...]
   accent = 'var(--mt-accent)',
+  primaryLabel = 'Price',
   height = 300,
   overlays = [],        // [{ points:[[iso,val]], color, label, dash }]
   volume = null,        // [[iso, vol], ...]
@@ -292,7 +293,7 @@ export default function BigHistoryChart({
 
       {(overlays.length > 0 || compareSeries || volume || rsi || hasInsiderEv || hasDarkEv) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
-          <LegendSwatch color={accent} label="Price" />
+          <LegendSwatch color={accent} label={primaryLabel} />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
           {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
@@ -304,7 +305,7 @@ export default function BigHistoryChart({
 
       {hover && (() => {
         const i = hover.i;
-        const rows = [["Price", yFormat(hover.d.y), accent]];
+        const rows = [[primaryLabel, yFormat(hover.d.y), accent]];
         overlaySeries.forEach((o) => { const v = o.values[i]; if (v != null) rows.push([o.label, yFormat(v), o.color]); });
         if (compareSeries && compareSeries[i] != null) rows.push([compareLabel || "Compare", yFormat(compareSeries[i]), compareAccent]);
         if (volByDate) { const vv = volByDate.get(data[i].x); if (vv != null) rows.push(["Volume", fmtCompact(vv), "var(--mt-ink-3)"]); }

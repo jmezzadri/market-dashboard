@@ -1,0 +1,60 @@
+# MARKET-INDICATORS-EOD — daily commodity + FX market levels for Macro Overview.
+#
+# WHY
+# ───
+# The Commodities and FX asset-class tiles read daily market prices (gold,
+# silver, copper, uranium, oil, natural gas, grains; euro, yen, pound) ranked
+# into each series' own trailing 3-year range. This job pulls them from Yahoo
+# and MERGES them into public/indicator_history.json (never overwrites — the
+# producer refuses to drop any existing key).
+#
+# SCHEDULE
+# ────────
+# Weekdays 20:45 UTC (16:45 ET EDT) — after the US equity/futures close.
+# Uranium is weekly by nature; it is pulled on every run and simply ranks
+# once enough history accrues.
+#
+# OUTPUTS
+# ───────
+# public/indicator_history.json keys cmdty_* and fx_* — consumed by the
+# Macro Overview Commodities + FX tiles, All Indicators, and Methodology.
+# Freshness: registered in data_manifest.json (daily, 49h SLA, nyse calendar;
+# uranium weekly). Chips read manifest SLA + served as_of.
+
+name: MARKET-INDICATORS-EOD
+
+on:
+  schedule:
+    - cron: "45 20 * * 1-5"      # weekdays 20:45 UTC = 16:45 ET (EDT)
+  workflow_dispatch: {}
+
+concurrency:
+  group: market-indicators-eod
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests numpy
+      - name: Pull commodity + FX market levels (merge into indicator_history.json)
+        run: python3 scripts/fetch_market_indicators.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/indicator_history.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/indicator_history.json
+            git commit -m "Market indicators (commodities + FX) EOD refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi

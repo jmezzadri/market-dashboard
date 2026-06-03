@@ -1,0 +1,55 @@
+# CFTC-COT-WEEKLY — weekly futures positioning for the Macro Overview tiles.
+#
+# WHY
+# ───
+# Every Friday 15:30 ET the CFTC publishes Commitments of Traders (as of the
+# prior Tuesday). This job pulls it Saturday morning, ranks each market's
+# speculator + commercial-hedger net position into its own 3-year range, and
+# writes the bucketed public/cot_positioning.json the asset-class tiles read.
+#
+# SCHEDULE
+# ────────
+# Saturday 11:00 UTC (07:00 ET) — after the Friday CFTC release.
+#
+# OUTPUTS
+# ───────
+# public/cot_positioning.json (+ manifest freshness stamp for
+# indicator-cftc-cot-weekly). Free source (CFTC public reporting); no key.
+
+name: CFTC-COT-WEEKLY
+
+on:
+  schedule:
+    - cron: "0 11 * * 6"        # Saturday 11:00 UTC = 07:00 ET
+  workflow_dispatch: {}
+
+concurrency:
+  group: cftc-cot-weekly
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests pandas numpy
+      - name: Build cross-asset positioning file
+        run: python3 scripts/build_cot_positioning.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/cot_positioning.json public/data_manifest.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/cot_positioning.json public/data_manifest.json
+            git commit -m "CFTC COT weekly positioning refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
