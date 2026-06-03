@@ -2526,7 +2526,7 @@
       "freshness_sla_hours": 49,
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[adv_dec] (PENDING)",
+      "output_destination": "public/indicator_history.json[adv_dec]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
