@@ -106,32 +106,34 @@ function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d 
 // rollup dot uses the SAME staleness logic (trading-calendar aware,
 // pipeline_health-anchored) as every individual chip — so the tile and its
 // chips can never disagree.
-function ElemProbe({ elementId, onStatus }) {
-  const f = useFreshness(elementId);
-  useEffect(() => { onStatus(elementId, f.status); }, [elementId, f.status, onStatus]);
+function ElemProbe({ item, onStatus }) {
+  const f = useFreshness(item.id, item.asOf ? { asOfIso: item.asOf } : undefined);
+  useEffect(() => { onStatus(item.id, f.status); }, [item.id, f.status, onStatus]);
   return null;
 }
 
 // Tile rollup dot: green only when every indicator AND the positioning feed in
-// the bucket are within SLA. Grey while the first read is still loading.
-function BucketRollupDot({ inds, positioningElementId }) {
-  const ids = useMemo(() => {
-    const a = (inds || []).map((i) => i.manifestId || `indicator-${i.id}-daily`);
-    if (positioningElementId) a.push(positioningElementId);
+// the bucket are within SLA. Each probe is anchored to the served data date
+// (asOfIso), so the dot reflects the actual freshness of the published value
+// against the manifest SLA — never a fake-green from an untracked element.
+function BucketRollupDot({ inds, positioningElementId, positioningAsOf }) {
+  const items = useMemo(() => {
+    const a = (inds || []).map((i) => ({ id: i.manifestId || `indicator-${i.id}-daily`, asOf: i.asOf }));
+    if (positioningElementId) a.push({ id: positioningElementId, asOf: positioningAsOf });
     return a;
-  }, [inds, positioningElementId]);
+  }, [inds, positioningElementId, positioningAsOf]);
   const [statuses, setStatuses] = useState({});
   const onStatus = useCallback((id, s) => {
     setStatuses((p) => (p[id] === s ? p : { ...p, [id]: s }));
   }, []);
-  const vals = ids.map((id) => statuses[id]).filter((s) => s && s !== 'loading');
-  const ready = ids.length > 0 && vals.length >= ids.length;
+  const vals = items.map((it) => statuses[it.id]).filter((s) => s && s !== 'loading');
+  const ready = items.length > 0 && vals.length >= items.length;
   const anyRed = vals.some((s) => s === 'red');
   const color = !ready ? 'var(--mt-ink-3)' : anyRed ? 'var(--mt-down)' : 'var(--mt-up)';
   const title = !ready ? 'Checking feeds…' : anyRed ? 'A feed in this group is past its freshness target' : 'All feeds within SLA';
   return (
     <>
-      {ids.map((id) => <ElemProbe key={id} elementId={id} onStatus={onStatus} />)}
+      {items.map((it) => <ElemProbe key={it.id} item={it} onStatus={onStatus} />)}
       <span title={title} style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: color }} />
     </>
   );
@@ -419,7 +421,7 @@ export default function MacroPage() {
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
-                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} />
+                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} />
                   </div>
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
