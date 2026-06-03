@@ -100,6 +100,32 @@ def merge(updates):
     return len(hist)
 
 
+
+def _sync_pipeline_health(updates):
+    """Upsert a pipeline_health row per commodity/FX key so each new feed is
+    tracked (shows on Admin·Data, watched by the freshness watchdog) instead
+    of being fake-green. Mirrors fetch_history.py's proven upsert. Silent no-op
+    if Supabase env is absent."""
+    import os as _os, urllib.request as _ur, json as _json, urllib.error as _ue
+    url=_os.environ.get("SUPABASE_URL"); key=_os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not (url and key): return
+    n=0
+    for k,e in updates.items():
+        pts=e.get("points") or []
+        if not pts: continue
+        st=e.get("stats") or {}
+        das=f"{pts[-1][0]}T20:00:00+00:00"
+        row={"indicator_id":k,"label":st.get("label") or k,"source":"Yahoo Finance",
+             "cadence":e.get("freq") or "D","expected_cadence_minutes":10080 if e.get("freq")=="W" else 1440,
+             "data_as_of":das,"last_good_at":das,"status":"green","last_error":None,"coverage_pct":100.0}
+        req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
+            headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json","Prefer":"return=minimal,resolution=merge-duplicates"})
+        try:
+            with _ur.urlopen(req,timeout=10) as r: r.read(); n+=1
+        except Exception as ex: print(f"  pipeline_health upsert {k}: {ex}")
+    print(f"  pipeline_health: {n} commodity/FX rows upserted")
+
+
 def run():
     updates = {}
     for key, ticker, name, bucket, unit in TARGETS:
@@ -128,6 +154,7 @@ def run():
     total = merge(updates)
     _ = total
     print(f"\nMerged {len(updates)} market indicators ({total} keys total).")
+    _sync_pipeline_health(updates)
 
 
 def selftest():

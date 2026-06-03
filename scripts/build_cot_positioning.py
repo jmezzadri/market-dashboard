@@ -200,6 +200,25 @@ def run():
         json.dump(out, f, separators=(",", ":"))
     print(f"\nWrote {OUT_PATH}: {sum(len(d.get('markets', [])) for d in domains.values())} markets across {len(domains)} buckets, as_of {latest}")
     stamp_manifest(latest)
+    _sync_pipeline_health(latest)
+
+
+
+def _sync_pipeline_health(as_of):
+    """Upsert the cftc-cot pipeline_health row so positioning is tracked on
+    Admin·Data + the watchdog. Silent no-op without Supabase env."""
+    import os as _os, urllib.request as _ur, json as _json
+    url=_os.environ.get("SUPABASE_URL"); key=_os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not (url and key and as_of): return
+    das=f"{as_of}T20:00:00+00:00"
+    row={"indicator_id":"cftc-cot","label":"CFTC positioning","source":"cftc","cadence":"W",
+         "expected_cadence_minutes":10080,"data_as_of":das,"last_good_at":das,
+         "status":"green","last_error":None,"coverage_pct":100.0}
+    req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
+        headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json","Prefer":"return=minimal,resolution=merge-duplicates"})
+    try:
+        with _ur.urlopen(req,timeout=10) as r: r.read(); print("  pipeline_health: cftc-cot upserted")
+    except Exception as ex: print(f"  pipeline_health upsert cftc-cot: {ex}")
 
 
 def stamp_manifest(as_of):
