@@ -335,6 +335,8 @@ export function useFreshness(elementId, fallback) {
     sourceVendor: rolled.sourceVendor,
     slaHours: rolled.slaHours,
     calendar: rolled.calendar,
+    cadence: rolled.cadence,
+    scheduledFetchET: rolled.scheduledFetchET,
     // Phase 2 — exposed to chips/tooltips so they can render the actual
     // trading day the value is from, the coverage ratio, and the next
     // expected refresh time.
