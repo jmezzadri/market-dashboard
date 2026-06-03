@@ -44,12 +44,12 @@ jobs:
         run: python3 scripts/build_cot_positioning.py
       - name: Commit if updated
         run: |
-          if [[ -n "$(git status --porcelain public/cot_positioning.json public/data_manifest.json)" ]]; then
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git add public/cot_positioning.json public/data_manifest.json
-            git commit -m "CFTC COT weekly positioning refresh — $(date -u +%Y-%m-%d)"
-            git push
-          else
+          if git diff --quiet -- public/cot_positioning.json public/data_manifest.json; then
             echo "No changes to commit."
+          else
+            git config user.name  "Market Dashboard Bot"
+            git config user.email "bot@github-actions"
+            git add public/cot_positioning.json public/data_manifest.json
+            git commit -m "CFTC COT weekly positioning refresh [skip ci]"
+            git push || echo "Push failed (non-fatal); next scheduled run will retry."
           fi
