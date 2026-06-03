@@ -62,7 +62,7 @@ export default function IndicatorCard({ ind, onClick }) {
             {ind.familyFull || ind.domain}
           </div>
         </div>
-        <FreshnessChip elementId={ind.id} variant="dot" />
+        <FreshnessChip elementId={ind.manifestId || ind.id} fallback={{ asOfIso: ind.asOf }} variant="dot" />
       </header>
       <div
         style={{

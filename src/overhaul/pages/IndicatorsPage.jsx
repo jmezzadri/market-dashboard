@@ -8,7 +8,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 
-const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Money', 'Economy'];
+const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 
 function fmtNum(v, decimals = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -80,14 +80,6 @@ const COLUMNS = [
   {
     key: 'freq', label: 'Freq', sortKey: 'freq', width: 92,
     render: (i) => <span className="al-freq">{fmtFreq(i.freq)}</span>,
-  },
-  {
-    key: 'typeLabel', label: 'Type', sortKey: 'typeLabel', width: 84,
-    render: (i) => (
-      <span className={`al-type al-type--${i.typeLabel === 'LEAD' ? 'extreme' : i.typeLabel === 'COINC' ? 'elevated' : 'calm'}`}>
-        {i.typeLabel}
-      </span>
-    ),
   },
   {
     key: 'refresh', label: 'Last refresh', sortKey: 'asOf', width: 120,
@@ -256,8 +248,8 @@ export default function IndicatorsPage() {
             Every indicator tracked on <i>MacroTilt</i> — what it is, why it matters, how it's used.
           </h1>
           <p className="mt-deck">
-            Sourced live from the data registry. <b>Leading</b>, <b>coincident</b>, and <b>lagging</b> indicators
-            across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>.
+            Sourced live from the data registry, across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>,
+            <b> Commodities</b>, <b>FX</b>, the <b>Economy</b>, and <b>Financial Conditions</b>.
           </p>
         </div>
       </section>

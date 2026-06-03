@@ -1620,3 +1620,31 @@ before signing off.
 **What you should do instead:** When Joe asks for something, do it in the same session unless there is a real blocker, and if there is, state the blocker explicitly and let Joe decide — never silently downgrade scope to "later." "Build it now" means now. The only legitimate pause is a genuine decision that's Joe's to make, surfaced as a direct question, not a unilateral deferral.
 
 **Applies to:** All.
+
+---
+
+## HARD DATA RULE #1 — every data element carries a 5-field freshness chip (Joe, 2026-06-02, restated, binding)
+
+**What happened:** Joe has stated this repeatedly. Agents keep shipping data values with no chip, half-explained chips, or chips that are green only because the element is untracked. On 2026-06-02 the new commodity/FX/positioning feeds rendered green purely because the freshness system had no record of them ("fake green"), and known-stale feeds (term premium) were left red without being fixed.
+
+**The rule — no exceptions, every page, every element:** Every single piece of data on MacroTilt — every indicator, positioning signal, tile, map dot, grid row, drill panel, KPI, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Scanner, Portfolio, Paper, Ticker, Scenario, Admin·Data) — must carry a freshness chip that exposes all FIVE fields:
+1. **Source** — FRED / Yahoo / CFTC / NY Fed / etc.
+2. **Frequency + calendar** — "Daily · NYSE trading days", "Weekly · every Friday", "Monthly · 15th".
+3. **Timing** — the time of day the fetch runs (ET).
+4. **SLA** — the freshness target in hours (e.g. "25 hours").
+5. **Last update** — exact date AND time of the last successful refresh.
+
+All five read from the data manifest + the freshness-tracking table — never hardcoded. **No data value renders without a chip. No chip ships without all five fields. No chip is allowed to be green merely because the element is untracked** — an element with no manifest entry and no tracking row is NOT done; it must be registered and seeded so the chip is genuinely green (within SLA) or genuinely red (stale). A green chip must mean "the system is watching this and it is fresh," never "the system has never heard of this."
+
+**Applies to:** All. Binding on every PR that adds, moves, or renders any data element.
+
+## HARD DATA RULE #2 — all data work needs full blast-radius + Data Steward sign-off + source-to-target mapping + the three pages updated (Joe, 2026-06-02, binding)
+
+**What happened:** Data changes keep shipping that touch only the surface Joe pointed at, with no end-to-end mapping and without updating the governance pages, so the data system drifts out of sync with what's actually live.
+
+**The rule:** Any change that touches data — a new feed, a renamed element, a re-bucketing, a vendor swap, a schedule change — is not done until ALL of the following are satisfied in the same PR, with explicit **Data Steward sign-off**:
+1. **Source-to-target mapping for every single data element** — every element has a documented path from its source (vendor + endpoint) through its storage to every consumer surface that renders it. No element without a complete map.
+2. **Full blast-radius check** — enumerate every surface, producer, consumer, and downstream reader the change touches; verify each.
+3. **The three governance pages are updated to match:** **Admin·Data** (the element appears and is monitored with a real chip), **All Indicators** (the element is a visible, filterable row), and **Methodology** (the element is documented in the sources/method tables). A data change that leaves any of these three stale is not done.
+
+**Applies to:** All. Data Steward owns the map and the three-page check; no "looks good" counts as sign-off without them.
