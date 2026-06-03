@@ -1,0 +1,22 @@
+name: DIAG-SUPABASE-CREDS
+on: { workflow_dispatch: {} }
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: report secret presence (lengths only)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          echo "SUPABASE_URL len=${#SUPABASE_URL}"
+          echo "SERVICE_ROLE_KEY len=${#SUPABASE_SERVICE_ROLE_KEY}"
+          echo "DB_URL len=${#SUPABASE_DB_URL}"
+          echo "ACCESS_TOKEN len=${#SUPABASE_ACCESS_TOKEN}"
+          echo "DB_PASSWORD len=${#SUPABASE_DB_PASSWORD}"
+          echo "PROJECT_REF len=${#SUPABASE_PROJECT_REF}"
+          command -v psql && psql --version || echo "no psql preinstalled"
