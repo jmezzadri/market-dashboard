@@ -42,3 +42,9 @@ AS $$
   ORDER BY trade_date;
 $$;
 GRANT EXECUTE ON FUNCTION public.compute_advance_decline_50d() TO service_role;
+
+-- Backend producer calls this RPC via PostgREST as service_role, whose default
+-- statement_timeout (~8s) cancels the ~37s breadth computation. Raise it for the
+-- backend role only (anon/authenticated stay short) and reload PostgREST config.
+ALTER ROLE service_role SET statement_timeout = '120s';
+NOTIFY pgrst, 'reload config';
