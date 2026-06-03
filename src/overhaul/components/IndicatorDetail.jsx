@@ -40,11 +40,18 @@ function fmtDate(iso) {
   });
 }
 
-export default function IndicatorDetail({ ind, onClose }) {
+export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
   const [tf, setTf] = useState('5Y');
+  const [overlayKey, setOverlayKey] = useState('');
   const navigate = useNavigate();
 
   const sliced = useMemo(() => sliceByTimeframe(ind.points, tf), [ind.points, tf]);
+  const overlay = useMemo(() => {
+    if (!overlayKey) return null;
+    const c = catalog.find((x) => x.key === overlayKey);
+    if (!c || !c.points?.length) return null;
+    return { points: sliceByTimeframe(c.points, tf), label: c.label };
+  }, [overlayKey, catalog, tf]);
   const stats = useMemo(() => {
     const vals = sliced.map((p) => p[1]).filter((v) => Number.isFinite(v));
     if (!vals.length) return { mean: null, median: null, sd: null, z: null };
@@ -156,6 +163,21 @@ export default function IndicatorDetail({ ind, onClose }) {
         </div>
       </div>
 
+      {/* Overlay picker — compare another series (indexed to the same start) */}
+      {catalog.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12, color: 'var(--mt-ink-2)' }}>
+          <span>Overlay:</span>
+          <select value={overlayKey} onChange={(e) => setOverlayKey(e.target.value)}
+            style={{ font: 'inherit', fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
+            <option value="">None</option>
+            {catalog.filter((c) => c.label !== ind.name).map((c) => (
+              <option key={c.key} value={c.key}>{c.label}</option>
+            ))}
+          </select>
+          {overlay && <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
+        </div>
+      )}
+
       {/* History chart */}
       <BigHistoryChart
         points={sliced}
@@ -163,6 +185,8 @@ export default function IndicatorDetail({ ind, onClose }) {
         height={260}
         freq={ind.freq}
         yFormat={(v) => fmtNum(v, ind.decimals ?? 2)}
+        compareData={overlay ? overlay.points : null}
+        compareLabel={overlay ? overlay.label : ''}
       />
 
       {/* Percentile bar */}

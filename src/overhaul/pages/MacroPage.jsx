@@ -246,14 +246,21 @@ function slicePos(points, tf) {
 function PosStat({ label, v }) {
   return (<div><div style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>{label}</div><div className="num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--mt-ink-0)' }}>{v}</div></div>);
 }
-function PositioningDetail({ item, onClose }) {
+function PositioningDetail({ item, onClose, catalog = [] }) {
   const [tf, setTf] = useState('3Y');
+  const [overlayKey, setOverlayKey] = useState('');
   const isDealer = item.comm == null;
   const h = item.history || [];
   const specAll = useMemo(() => h.map((r) => [r[0], r[1]]), [h]);
   const commAll = useMemo(() => h.map((r) => [r[0], r[2]]).filter((pt) => pt[1] != null), [h]);
   const spec = useMemo(() => slicePos(specAll, tf), [specAll, tf]);
   const comm = useMemo(() => (isDealer ? [] : slicePos(commAll, tf)), [commAll, tf, isDealer]);
+  const overlay = useMemo(() => {
+    if (!overlayKey) return null;
+    const c = catalog.find((x) => x.key === overlayKey);
+    if (!c || !c.points?.length) return null;
+    return { points: slicePos(c.points, tf), label: c.label };
+  }, [overlayKey, catalog, tf]);
   const accent = posAccent(item.spec);
   const read = item.spec >= 90 ? 'the most bullish in 3 years — crowded long, fragile to an unwind'
     : item.spec <= 10 ? 'the most bearish in 3 years — crowded short, fragile to a squeeze'
@@ -281,8 +288,23 @@ function PositioningDetail({ item, onClose }) {
         </div>
         <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}><b className="num">{spec.length}</b> weekly reports</div>
       </div>
+      {catalog.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12, color: 'var(--mt-ink-2)' }}>
+          <span>Overlay price / indicator:</span>
+          <select value={overlayKey} onChange={(e) => setOverlayKey(e.target.value)}
+            style={{ font: 'inherit', fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
+            <option value="">None</option>
+            {catalog.filter((c) => c.label !== item.market).map((c) => (
+              <option key={c.key} value={c.key}>{c.label}</option>
+            ))}
+          </select>
+          {overlay && <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
+        </div>
+      )}
       <BigHistoryChart points={spec} accent={accent} height={280} freq="W" primaryLabel="Speculators"
         overlays={isDealer ? [] : [{ points: comm, color: 'var(--mt-ink-3)', label: 'Commercials (hedgers)', dash: '4 3' }]}
+        compareData={overlay ? overlay.points : null}
+        compareLabel={overlay ? overlay.label : ''}
         yFormat={(v) => `${v.toFixed(1)}${isDealer ? '' : '%'}`} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
         <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
@@ -294,7 +316,7 @@ function PositioningDetail({ item, onClose }) {
         <b>Source</b> {isDealer ? 'New York Fed primary-dealer statistics' : 'CFTC Commitments of Traders (futures + options)'}<br />
         <b>Frequency</b> Weekly · NYSE trading days · {isDealer ? 'Wednesday snapshot' : 'Tuesday snapshot'}<br />
         <b>Timing</b> {isDealer ? 'Thursday, after release' : 'Saturday 07:00 ET'}<br />
-        <b>Service-level target</b> {isDealer ? '14 days' : '8 days (192 hours)'}<br />
+        <b>Service-level target</b> {isDealer ? '14 days' : '14 days (336 hours)'}<br />
         <b>Last update</b> {item.asof}
       </div>
     </div>
@@ -378,6 +400,18 @@ export default function MacroPage() {
     });
     return out;
   }, [indicators]);
+
+  // Catalog of every series (price/indicator + positioning) that can be
+  // overlaid on any chart. Lets you put positioning on a price chart and
+  // price on a positioning chart (indexed, since the scales differ).
+  const overlayCatalog = useMemo(() => {
+    const out = [];
+    (indicators || []).forEach((i) => { if (i.points?.length) out.push({ key: 'ind:' + i.id, label: i.name, points: i.points }); });
+    if (cotPos?.domains) Object.values(cotPos.domains).forEach((d) => (d.markets || []).forEach((m) => {
+      if (m.history?.length) out.push({ key: 'pos:' + m.market, label: m.market + ' (positioning)', points: m.history.map((r) => [r[0], r[1]]) });
+    }));
+    return out;
+  }, [indicators, cotPos]);
 
   return (
     <div className="mt-pagebody mt-fade">
@@ -497,12 +531,12 @@ export default function MacroPage() {
       )}
       {selected && (
         <DetailModal onClose={() => setSelected(null)}>
-          <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
+          <IndicatorDetail ind={selected} onClose={() => setSelected(null)} catalog={overlayCatalog} />
         </DetailModal>
       )}
       {selectedPos && (
         <DetailModal onClose={() => setSelectedPos(null)}>
-          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} />
+          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} catalog={overlayCatalog} />
         </DetailModal>
       )}
     </div>
