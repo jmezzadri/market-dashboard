@@ -85,6 +85,7 @@ DIRECTION = {
     # New series added 2026-04-24 (PR feat/all-indicators-redesign-plus-new-data):
     "m2_yoy":"hw","fed_bs":"lw","rrp":"hw","bank_reserves":"lw","tga":"hw",
     "breakeven_10y":"hw","cfnai":"lw","cfnai_3ma":"lw","hy_ig_etf":"hw",
+    "adv_dec":"lw",  # breadth: LOW (narrow/declining) is worse
 }
 
 fred = Fred(api_key=FRED_API_KEY)
@@ -118,6 +119,7 @@ DAILY_FRESHNESS_SLA = {
     # 2026-05-27 after observing the actual publication cadence.
     "term_premium":  5,
     "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
+    "adv_dec":       2,  # Supabase RPC over Polygon prices_eod (EOD T+1)
 }
 
 
