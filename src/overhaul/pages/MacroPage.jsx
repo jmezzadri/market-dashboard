@@ -99,6 +99,8 @@ function DomainPositioning({ data }) {
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
+function isFresh(asOf, freq){ if (!asOf) return false; const d = (Date.now() - new Date(String(asOf).slice(0,10) + 'T00:00:00Z').getTime()) / 86400000; const limit = freq === 'W' ? 12 : freq === 'M' ? 50 : freq === 'Q' ? 130 : 5; return d <= limit; }
+function bucketFresh(inds, markets){ const i = (inds || []).every((x) => isFresh(x.asOf, x.freq)); const m = (markets || []).every((x) => isFresh(x.asof, 'W')); return i && m; }
 const SHORT = {
   'Inflation expectations (10-year)': '10y breakeven',
   'High-yield spread over Treasuries': 'HY vs UST',
@@ -259,6 +261,22 @@ function PositioningDetail({ item, onClose }) {
   );
 }
 
+function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectPos }) {
+  return (
+    <DetailModal onClose={onClose}>
+      <div style={{ padding: '24px 28px' }}>
+        <div className="mt-eyebrow">{dom}</div>
+        <div className="mt-h2" style={{ margin: '2px 0 18px' }}>{title}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 12 }}>Indicators</div>
+        <div className="mc-grid">
+          {inds.map((i) => (<IndicatorCard key={i.id} ind={i} onClick={() => onSelectInd(i)} />))}
+        </div>
+        <BucketPositioning data={cotPos && cotPos.domains ? cotPos.domains[dom] : null} onSelect={onSelectPos} />
+      </div>
+    </DetailModal>
+  );
+}
+
 export default function MacroPage() {
   const { active: indicators, loading } = useIndicators();
   const [view, setView] = useState(loadView);
@@ -267,6 +285,7 @@ export default function MacroPage() {
   const [selected, setSelected] = useState(null);
   const [cotPos, setCotPos] = useState(null);
   const [selectedPos, setSelectedPos] = useState(null);
+  const [selectedBucket, setSelectedBucket] = useState(null);
 
   useEffect(() => { saveView(view); }, [view]);
   useEffect(() => {
@@ -359,13 +378,13 @@ export default function MacroPage() {
                   key={dom}
                   role="button"
                   tabIndex={0}
-                  className={`mc-domcell ${isActive ? 'on' : ''}`}
-                  onClick={() => setDomain(isActive ? 'All' : dom)}
+                  className="mc-domcell"
+                  onClick={() => setSelectedBucket(dom)}
                   style={{ cursor: 'pointer' }}
                 >
                   <div className="mc-domhead">
                     <div className="mc-domname">{dom}</div>
-                    <DomainFreshness inds={inds} />
+                    <span title={bucketFresh(inds, cotPos && cotPos.domains && cotPos.domains[dom] ? cotPos.domains[dom].markets : null) ? 'All feeds within SLA' : 'A feed is stale'} style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: bucketFresh(inds, cotPos && cotPos.domains && cotPos.domains[dom] ? cotPos.domains[dom].markets : null) ? 'var(--mt-up)' : 'var(--mt-down)' }} />
                   </div>
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
@@ -394,6 +413,9 @@ export default function MacroPage() {
                             </button>
                           ))}
                         </div>
+                        {cotPos?.domains?.[dom]?.takeaway && (
+                          <p style={{ marginTop: 12, fontSize: 12, lineHeight: 1.5, color: 'var(--mt-ink-2)' }}>{cotPos.domains[dom].takeaway}</p>
+                        )}
                       </>
                     )}
                   </div>
@@ -406,61 +428,31 @@ export default function MacroPage() {
 
 
 
-      {!loading && domain === 'All' && (
-        <section className="mt-pagesection mt-pagesection--tight">
-          <div style={{ textAlign: 'center', color: 'var(--mt-ink-3)', fontSize: 13 }}>Select a bucket above to open its indicators and positioning.</div>
+      {loading && (
+        <section className="mt-pagesection">
+          <div className="mt-loadingcard">Loading…</div>
         </section>
       )}
-      {loading ? (
-        <section className="mt-pagesection">
-          <div className="mt-loadingcard">Loading indicators…</div>
-        </section>
-      ) : (
-        <>
-          {DOMAINS.filter((d) => domain !== 'All' && domain === d).map((dom) => {
-            const inds = (byDomain[dom] || []).filter(
-              (i) => stateF === 'all' || i.state === stateF,
-            );
-            if (!inds.length) return null;
-            const c = {
-              extreme: inds.filter((i) => i.state === 'extreme').length,
-              elevated: inds.filter((i) => i.state === 'elevated').length,
-              calm: inds.filter((i) => i.state === 'calm').length,
-            };
-            return (
-              <section key={dom} className="mt-pagesection">
-                <div className="mt-sectionhead">
-                  <div>
-                    <div className="mt-eyebrow">{dom}</div>
-                    <div className="mt-h2">{DOMAIN_TITLE[dom]}</div>
-                  </div>
-                  <div className="mc-domstate">
-                    {c.extreme > 0 && <span className="mt-tag mt-tag--extreme">{c.extreme} extreme</span>}
-                    {c.elevated > 0 && <span className="mt-tag mt-tag--elev">{c.elevated} elevated</span>}
-                    {c.calm > 0 && <span className="mt-tag mt-tag--calm">{c.calm} calm</span>}
-                  </div>
-                </div>
-                <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Indicators</div>
-                <div className="mc-grid">
-                  {inds.map((i) => (
-                    <IndicatorCard key={i.id} ind={i} onClick={() => setSelected(i)} />
-                  ))}
-                </div>
-                <BucketPositioning data={cotPos?.domains?.[dom]} onSelect={setSelectedPos} />
-              </section>
-            );
-          })}
-          {selected && (
-            <DetailModal onClose={() => setSelected(null)}>
-              <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
-            </DetailModal>
-          )}
-          {selectedPos && (
-            <DetailModal onClose={() => setSelectedPos(null)}>
-              <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} />
-            </DetailModal>
-          )}
-        </>
+      {selectedBucket && (
+        <BucketModal
+          dom={selectedBucket}
+          title={DOMAIN_TITLE[selectedBucket] || ''}
+          inds={byDomain[selectedBucket] || []}
+          cotPos={cotPos}
+          onClose={() => setSelectedBucket(null)}
+          onSelectInd={setSelected}
+          onSelectPos={setSelectedPos}
+        />
+      )}
+      {selected && (
+        <DetailModal onClose={() => setSelected(null)}>
+          <IndicatorDetail ind={selected} onClose={() => setSelected(null)} />
+        </DetailModal>
+      )}
+      {selectedPos && (
+        <DetailModal onClose={() => setSelectedPos(null)}>
+          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} />
+        </DetailModal>
       )}
     </div>
   );
