@@ -32,6 +32,8 @@ jobs:
                   with urllib.request.urlopen(req,timeout=240) as r:
                       d=json.loads(r.read().decode()); return("OK",round(time.time()-t,1),len(d),d[-1] if d else None)
               except urllib.error.HTTPError as e: return("HTTP%s"%e.code,round(time.time()-t,1),e.read().decode()[:300])
+          import time as _t
           print("DDL apply:", mgmt(open('supabase/migrations/061_fix_breadth_adv_dec_rpc.sql').read())[0:2])
+          _t.sleep(8)
           print("PostgREST RPC (producer path):", rest_rpc())
           PY
