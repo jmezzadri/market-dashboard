@@ -1,0 +1,49 @@
+name: DIAG-BREADTH
+on: { workflow_dispatch: {} }
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: introspect
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          echo "creds: URL=${#SUPABASE_URL} SRK=${#SUPABASE_SERVICE_ROLE_KEY} DBURL=${#SUPABASE_DB_URL} ACCTOK=${#SUPABASE_ACCESS_TOKEN}"
+          python3 - <<'PY'
+          import os,urllib.request,urllib.parse,json
+          U=os.environ['SUPABASE_URL']; K=os.environ['SUPABASE_SERVICE_ROLE_KEY']
+          H={"apikey":K,"Authorization":"Bearer "+K}
+          def get(path):
+              req=urllib.request.Request(U+"/rest/v1/"+path,headers=H)
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      return r.status, r.headers.get('content-range'), r.read(800).decode()
+              except Exception as e:
+                  body=getattr(e,'read',lambda:b'')() 
+                  return getattr(e,'code','ERR'), None, (str(e)+' :: '+body.decode('utf-8','ignore'))[:800]
+          def rpc(name):
+              req=urllib.request.Request(U+"/rest/v1/rpc/"+name,data=b'{}',method='POST',
+                  headers={**H,"Content-Type":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=120) as r: 
+                      return r.status, r.read(300).decode()
+              except Exception as e:
+                  body=getattr(e,'read',lambda:b'')()
+                  return getattr(e,'code','ERR'), (str(e)+' :: '+body.decode('utf-8','ignore'))[:600]
+          print("== RPC compute_advance_decline_50d ==", rpc("compute_advance_decline_50d"))
+          for t in ["prices_eod","ticker_state_day","ticker_reference","universe_master"]:
+              # count via head + content-range
+              req=urllib.request.Request(U+"/rest/v1/%s?select=*&limit=1"%t,headers={**H,"Prefer":"count=exact","Range-Unit":"items","Range":"0-0"})
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      print(f"== {t} ==", r.headers.get('content-range'), "| sample:", r.read(500).decode())
+              except Exception as e:
+                  body=getattr(e,'read',lambda:b'')()
+                  print(f"== {t} == ERR", getattr(e,'code','?'), body.decode('utf-8','ignore')[:300])
+          # max trade_date in prices_eod
+          print("== prices_eod latest ==", get("prices_eod?select=trade_date&order=trade_date.desc&limit=1"))
+          print("== ticker_state_day cols ==", get("ticker_state_day?select=*&limit=1"))
+          PY
