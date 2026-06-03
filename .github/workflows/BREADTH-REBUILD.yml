@@ -5,33 +5,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: deploy + test breadth RPC via Management API
+      - name: deploy + test breadth RPC (Management API DDL, PostgREST read)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python3 - <<'PY'
           import os,json,urllib.request,re,time
-          url=os.environ['SUPABASE_URL']; tok=os.environ['SUPABASE_ACCESS_TOKEN']
+          url=os.environ['SUPABASE_URL']; tok=os.environ['SUPABASE_ACCESS_TOKEN']; srk=os.environ['SUPABASE_SERVICE_ROLE_KEY']
           ref=re.sub(r'^https?://','',url).split('.')[0]
-          print("project ref:",ref)
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          def q(sql,timeout=240):
-              req=urllib.request.Request(
-                f"https://api.supabase.com/v1/projects/{ref}/database/query",
+          def mgmt(sql,timeout=240):
+              req=urllib.request.Request(f"https://api.supabase.com/v1/projects/{ref}/database/query",
                 data=json.dumps({"query":sql}).encode(),method="POST",
-                headers={"Authorization":"Bearer "+tok,"Content-Type":"application/json",
-                         "User-Agent":UA,"Accept":"application/json"})
+                headers={"Authorization":"Bearer "+tok,"Content-Type":"application/json","User-Agent":UA})
               t=time.time()
               try:
-                  with urllib.request.urlopen(req,timeout=timeout) as r:
-                      return ("OK",round(time.time()-t,1),json.loads(r.read().decode()))
-              except urllib.error.HTTPError as e:
-                  return ("HTTP%s"%e.code,round(time.time()-t,1),e.read().decode()[:400])
-              except Exception as e:
-                  return ("ERR",round(time.time()-t,1),str(e)[:400])
-          print("type dist:", q("select type, count(*) c, count(*) filter (where active) act from public.universe_master group by type order by c desc limit 12"))
-          ddl=open('supabase/migrations/061_fix_breadth_adv_dec_rpc.sql').read()
-          print("DDL apply:", q(ddl)[0:2])
-          print("RPC test:", q("set statement_timeout='200s'; select count(*) n, min(trade_date) mn, max(trade_date) mx, (array_agg(net_50d order by trade_date desc))[1] last_net from public.compute_advance_decline_50d()"))
+                  with urllib.request.urlopen(req,timeout=timeout) as r: return("OK",round(time.time()-t,1),json.loads(r.read().decode()))
+              except urllib.error.HTTPError as e: return("HTTP%s"%e.code,round(time.time()-t,1),e.read().decode()[:300])
+          def rest_rpc():
+              req=urllib.request.Request(url+"/rest/v1/rpc/compute_advance_decline_50d",data=b'{}',method="POST",
+                headers={"apikey":srk,"Authorization":"Bearer "+srk,"Content-Type":"application/json"})
+              t=time.time()
+              try:
+                  with urllib.request.urlopen(req,timeout=240) as r:
+                      d=json.loads(r.read().decode()); return("OK",round(time.time()-t,1),len(d),d[-1] if d else None)
+              except urllib.error.HTTPError as e: return("HTTP%s"%e.code,round(time.time()-t,1),e.read().decode()[:300])
+          print("DDL apply:", mgmt(open('supabase/migrations/061_fix_breadth_adv_dec_rpc.sql').read())[0:2])
+          print("PostgREST RPC (producer path):", rest_rpc())
           PY
