@@ -40,6 +40,18 @@ function fmtDate(iso) {
   });
 }
 
+// Turn FRED series codes inside a source string into clickable links to the
+// FRED series page, so you can verify a value at the source in one click
+// (e.g. confirm whether a stale reading is FRED's lag or our feed). Joe 2026-06-03.
+function linkifyFred(text) {
+  if (!text) return text;
+  return String(text).split(/(\b[A-Z][A-Z0-9]{2,}\b)/g).map((p, i) =>
+    (/^[A-Z][A-Z0-9]{2,}$/.test(p) && p !== 'FRED')
+      ? <a key={i} href={`https://fred.stlouisfed.org/series/${p}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--mt-accent)', textDecoration: 'underline' }}>{p}</a>
+      : p,
+  );
+}
+
 export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
   const [tf, setTf] = useState('5Y');
   const [overlayKey, setOverlayKey] = useState('');
@@ -276,7 +288,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
       {ind.sourceVendor && (
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--mt-ink-2)' }}>
           Source: <b style={{ color: 'var(--mt-ink-1)' }}>{ind.sourceVendor}</b>
-          {ind.sourceEndpoint ? ` · ${ind.sourceEndpoint}` : ''}
+          {ind.sourceEndpoint ? <> · {/FRED/i.test(ind.sourceVendor || '') ? linkifyFred(ind.sourceEndpoint) : ind.sourceEndpoint}</> : ''}
           {sourcingNote && (
             <span style={{ color: 'var(--mt-ink-1)' }}> · {sourcingNote}</span>
           )}
