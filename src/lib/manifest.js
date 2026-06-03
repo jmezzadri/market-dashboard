@@ -25,11 +25,15 @@ const listeners = new Set();
 function notify() { listeners.forEach((fn) => fn()); }
 
 async function fetchManifest() {
-  // Cache-bust gently with the build-time hash if available; falls back to
-  // the natural HTTP cache (max-age=300 on raw GH content, similar on Vercel).
+  // Always revalidate against the server (conditional GET → 304 when unchanged).
+  // The registry is a small, non-hashed static file that changes whenever an
+  // element is added or re-registered; with plain HTTP caching the page kept
+  // showing an older registry (e.g. tooltips missing the newly-added Frequency
+  // and fetch-time fields) until the cache happened to expire. "no-cache"
+  // keeps it current for every visitor without a hard refresh.
   let resp;
   try {
-    resp = await fetch(MANIFEST_URL, { cache: "default" });
+    resp = await fetch(MANIFEST_URL, { cache: "no-cache" });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[manifest] fetch failed:", e?.message || e);
