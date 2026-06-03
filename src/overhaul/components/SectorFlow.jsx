@@ -22,9 +22,6 @@ function fmtPercent(v, digits = 1) {
   return (v * 100).toFixed(digits);
 }
 
-// Shared column template: Sector(1fr) | Rating | Recommended % | Prev wk | vs SPY
-const GRID = '1fr 64px 120px 110px 96px';
-
 export default function SectorFlow({
   sectors,
   igsBySector,
@@ -32,34 +29,10 @@ export default function SectorFlow({
   expandedIGs,
   toggleSector,
   toggleIG,
-  sortKey = 'recommended',
-  sleeveRows = [],
-  prevBySector = {},
+  view = 'tilt', // 'tilt' | 'weight' | 'score'
 }) {
   return (
     <div style={{ background: 'var(--mt-surface)', border: '1px solid var(--mt-line-0)', borderRadius: 14 }}>
-      {/* Column header */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: GRID,
-          gap: 16,
-          padding: '10px 18px',
-          fontSize: 10.5,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'var(--mt-ink-2)',
-          fontWeight: 600,
-          borderBottom: '1px solid var(--mt-line-0)',
-        }}
-      >
-        <span>Sector</span>
-        <span style={{ textAlign: 'right' }}>Rating</span>
-        <span style={{ textAlign: 'right' }}>Recommended{sortKey === 'recommended' ? ' ▾' : ''}</span>
-        <span style={{ textAlign: 'right' }}>Prev wk</span>
-        <span style={{ textAlign: 'right' }}>vs SPY{sortKey === 'tilt' ? ' ▾' : ''}</span>
-      </div>
-
       {sectors.map((s) => {
         const isExpanded = expandedSectors.has(s.sector);
         const igs = igsBySector[s.sector] || [];
@@ -69,7 +42,7 @@ export default function SectorFlow({
               s={s}
               isExpanded={isExpanded}
               onToggle={() => toggleSector(s.sector)}
-              prevDollar={prevBySector[s.sector]}
+              view={view}
             />
             {isExpanded && (
               <SectorDrillBody
@@ -82,67 +55,15 @@ export default function SectorFlow({
           </div>
         );
       })}
-
-      {/* Defensive sleeve — always rendered under the equity rows. */}
-      {sleeveRows.length > 0 && (
-        <div style={{ background: 'var(--mt-surface-2)' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: GRID,
-              gap: 16,
-              padding: '8px 18px',
-              fontSize: 10.5,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--mt-ink-2)',
-              fontWeight: 600,
-              borderTop: '1px solid var(--mt-line-0)',
-            }}
-          >
-            <span>Defensive sleeve</span>
-            <span /><span /><span /><span />
-          </div>
-          {sleeveRows.map((d) => (
-            <div
-              key={d.ticker}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: GRID,
-                gap: 16,
-                alignItems: 'center',
-                padding: '12px 18px',
-                borderTop: '1px solid var(--mt-line-0)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 22 }}>
-                <span style={{ fontFamily: 'var(--mt-font-mono)', fontSize: 11, color: 'var(--mt-ink-2)', fontWeight: 600, minWidth: 36 }}>
-                  {d.ticker}
-                </span>
-                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--mt-ink-0)' }}>{d.name}</span>
-              </div>
-              <span style={{ textAlign: 'right', color: 'var(--mt-ink-3)', fontSize: 12 }}>
-                {(d.dollar ?? 0) > 0 ? '—' : 'standby'}
-              </span>
-              <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-1)', fontWeight: 600 }}>
-                {fmtPct(d.dollar ?? 0, 1)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 1 }}>%</span>
-              </span>
-              <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-3)', fontSize: 13 }}>—</span>
-              <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-3)', fontSize: 13 }}>—</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-function SectorRow({ s, isExpanded, onToggle, prevDollar }) {
+function SectorRow({ s, isExpanded, onToggle, view }) {
   const tilt = s.vs_spy_pp ?? 0;
   const isOver = tilt > 0;
-  const recPct = s.dollar ?? ((s.weight ?? 0) * 100); // % of total portfolio
-  const hasPrev = prevDollar != null && Number.isFinite(prevDollar);
-  const delta = hasPrev ? recPct - prevDollar : null;
+  const w = Math.max(28, Math.abs(tilt) * 18);
+  const weightPct = (s.weight ?? 0) * 100;
 
   return (
     <button
@@ -154,7 +75,7 @@ function SectorRow({ s, isExpanded, onToggle, prevDollar }) {
         background: isExpanded ? 'var(--mt-surface-2)' : 'transparent',
         width: '100%',
         display: 'grid',
-        gridTemplateColumns: GRID,
+        gridTemplateColumns: '1fr 220px 70px 70px',
         gap: 16,
         alignItems: 'center',
         padding: '14px 18px',
@@ -187,37 +108,41 @@ function SectorRow({ s, isExpanded, onToggle, prevDollar }) {
         </span>
         <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--mt-ink-0)' }}>{s.sector}</span>
       </div>
-
-      {/* Rating */}
-      <span style={{ textAlign: 'right' }}>
-        <span className={`mt-tag ${s.rating === 'OW' ? 'mt-tag--calm' : s.rating === 'UW' ? 'mt-tag--extreme' : 'mt-tag--range'}`}>
-          {s.rating || '—'}
-        </span>
-      </span>
-
-      {/* Recommended % of total portfolio */}
-      <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-0)', fontWeight: 600 }}>
-        {fmtPct(recPct, 1)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 1 }}>%</span>
-      </span>
-
-      {/* Prev week + delta */}
-      <span className="num" style={{ textAlign: 'right', color: 'var(--mt-ink-2)', fontSize: 13 }}>
-        {hasPrev ? (
-          <>
-            {fmtPct(prevDollar, 1)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11 }}>%</span>
-            {delta != null && Math.abs(delta) >= 0.05 && (
-              <span style={{ color: delta > 0 ? 'var(--mt-up)' : 'var(--mt-down)', fontSize: 11, marginLeft: 5 }}>
-                {delta > 0 ? '+' : ''}{fmtPct(delta, 1)}
-              </span>
-            )}
-          </>
-        ) : '—'}
-      </span>
-
-      {/* Tilt vs SPY */}
-      <span className="num" style={{ textAlign: 'right', color: isOver ? 'var(--mt-up)' : 'var(--mt-down)', fontWeight: 600 }}>
+      {/* Centered ±bar — center is 50%, bar extends in tilt direction */}
+      <div style={{ position: 'relative', height: 18 }}>
+        <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'var(--mt-line-1)' }} />
+        <span
+          style={{
+            position: 'absolute',
+            top: 4,
+            bottom: 4,
+            left: isOver ? '50%' : `calc(50% - ${w}px)`,
+            width: w,
+            background: isOver ? 'var(--mt-up)' : 'var(--mt-down)',
+            borderRadius: 3,
+          }}
+        />
+      </div>
+      <div
+        className="num"
+        style={{
+          textAlign: 'right',
+          color: isOver ? 'var(--mt-up)' : 'var(--mt-down)',
+          fontWeight: 600,
+        }}
+      >
         {isOver ? '+' : ''}{fmtPct(tilt, 1)}pp
-      </span>
+      </div>
+      <div
+        className="num"
+        style={{
+          textAlign: 'right',
+          color: 'var(--mt-ink-1)',
+          fontSize: 13,
+        }}
+      >
+        {fmtPct(weightPct, 1)}<span style={{ color: 'var(--mt-ink-3)', fontSize: 11, marginLeft: 1 }}>%</span>
+      </div>
     </button>
   );
 }
