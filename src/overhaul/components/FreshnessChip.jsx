@@ -89,6 +89,27 @@ function fmtExact(iso) {
   });
 }
 
+/* Plain-English Frequency, e.g. "Daily, trading days". */
+function freqLabel(cadence, calendar) {
+  const cal = calendar === 'nyse-trading-day' ? 'trading days'
+    : calendar === 'us-business-day' ? 'business days' : null;
+  const cad = cadence ? cadence.charAt(0).toUpperCase() + cadence.slice(1) : null;
+  if (cad && cal) return `${cad}, ${cal}`;
+  return cad || cal || '—';
+}
+
+/* Plain-English ET fetch time, e.g. "15:30" or "18:00 (UTC 22:00)" → "3:30 PM". */
+function etLabel(raw) {
+  if (!raw) return '—';
+  const t = String(raw).split('(')[0].trim();
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return t;
+  let h = Number(m[1]);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m[2]} ${ap}`;
+}
+
 export default function FreshnessChip({
   elementId,
   fallback,
@@ -236,35 +257,15 @@ export default function FreshnessChip({
               zIndex: 100000,
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {f?.label || elementId}
-            </div>
-            <div style={{ color: 'var(--mt-ink-2)' }}>
-              {status === 'stale'
-                ? (f?.reason || 'Past freshness SLA')
-                : status === 'checking'
-                  ? 'Checking data freshness…'
-                  : 'Within freshness SLA.'}
-            </div>
-            {/* The five governance fields shown on EVERY chip (Data Steward
-                hard rule 2026-06-02) — all read from the manifest + pipeline
-                health, never hardcoded. A missing value shows an em-dash so
-                the gap is visible rather than hidden. */}
-            <div style={{ marginTop: 6 }}>
-              <TipRow label="Source" value={f?.sourceVendor} />
-              <TipRow
-                label="Frequency"
-                value={f?.cadence ? `${f.cadence}${f?.calendar ? ` · ${f.calendar}` : ''}` : f?.calendar}
-              />
-              <TipRow label="Timing (ET)" value={f?.scheduledFetchET} />
-              <TipRow label="SLA" value={f?.slaHours > 0 ? `${f.slaHours}h` : null} />
-              <TipRow label="Last update" value={exactStamp} />
-            </div>
-            {f?.cause?.element && f.cause.kind === 'input' && (
-              <div style={{ marginTop: 6, color: 'var(--mt-down)' }}>
-                Upstream failing: <b>{f.cause.element.label || f.cause.element.elementId}</b>
-              </div>
-            )}
+            {/* Exactly the five fields, plain English, nothing else
+                (Joe directive 2026-06-02). */}
+            <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.55 }}>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {freqLabel(f?.cadence, f?.calendar)}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Timing (ET):</span> {etLabel(f?.scheduledFetchET)}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {f?.slaHours > 0 ? `${f.slaHours} hours` : '—'}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last update:</span> {exactStamp || '—'}</li>
+            </ol>
           </div>,
           document.body,
         )}

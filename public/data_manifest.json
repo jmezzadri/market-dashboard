@@ -1423,7 +1423,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "15:30",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS (filename misleading; actually runs at 15:30)",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "output_destination": "public/latest_scan_data.json (committed back to repo) + Supabase user_scan_data",
       "producer_script": "trading-scanner/main.py + scanner/reporter.py",
       "consumer_surfaces": [
