@@ -478,7 +478,7 @@ export default function MacroPage() {
                           onMouseLeave={hideTip}
                           style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(i.name)}</span>
-                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{Math.round(i.pct)}</span>
+                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{i.pct == null ? '\u2014' : Math.round(i.pct)}</span>
                         </button>
                       ))}
                     </div>

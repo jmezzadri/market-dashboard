@@ -44,7 +44,9 @@ const FAMILY_FULL = {
 function pctRank(value, points) {
   if (value == null || !points?.length) return null;
   const vs = points.map((p) => p[1]).filter((v) => typeof v === 'number');
-  if (!vs.length) return null;
+  // Not enough history to rank — return null so the UI shows '—' instead of a
+  // meaningless percentile (e.g. uranium with 1 weekly point read as 0th).
+  if (vs.length < 20) return null;
   const below = vs.filter((v) => v < value).length;
   return Math.round((below / vs.length) * 100);
 }
