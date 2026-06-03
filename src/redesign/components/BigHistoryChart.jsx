@@ -57,7 +57,7 @@ export default function BigHistoryChart({
   const [hover, setHover] = useState(null);
   const svgRef = useRef(null);
   const ticks = 4;
-  const gradId = useMemo(() => `lm-area-${Math.random().toString(36).slice(2, 8)}`, []);
+  const gradId = useMemo(() => `lm-area-${Math.random().toString(36).slice(2, 8)}`, []);  // synthetic-ok: unique gradient element id, not displayed data
 
   const onMove = (e) => {
     if (!svgRef.current) return;
