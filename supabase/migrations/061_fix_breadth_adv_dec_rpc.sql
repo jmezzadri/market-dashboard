@@ -1,17 +1,19 @@
 -- 061 (2026-06-03): Fix compute_advance_decline_50d — the 039 version scanned
 -- ALL of prices_eod (~12.8k tickers incl. ETFs/funds, full history) with window
 -- functions and timed out (error 57014). Fix: restrict to ACTIVE COMMON STOCKS
--- via universe_master, floor the window to the trailing 4 years (enough for a
--- 3-year percentile rank on the displayed tail), and keep the same output shape.
+-- (universe_master.type='CS', ~5,358 names), floor the window to the trailing 4
+-- years, and give the function its own 180s statement_timeout so the PostgREST
+-- producer call (short default timeout) doesn't cancel the ~37s computation.
 CREATE OR REPLACE FUNCTION public.compute_advance_decline_50d()
 RETURNS TABLE (trade_date DATE, net_50d INTEGER)
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
+SET statement_timeout TO '180000'
 AS $$
   WITH universe AS (
     SELECT ticker FROM public.universe_master
-    WHERE active = TRUE AND type = 'CS'      -- common stocks only (exclude ETF/fund/ADR/warrant)
+    WHERE active = TRUE AND type = 'CS'
   ),
   px AS (
     SELECT p.ticker, p.trade_date, p.close
