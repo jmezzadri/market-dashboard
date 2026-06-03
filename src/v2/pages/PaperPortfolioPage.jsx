@@ -157,7 +157,7 @@ const PAGE_CSS = `
 }
 .paper-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .paper-table th {
-  text-align: left; padding: 12px 28px;
+  text-align: left; padding: 10px 12px;
   font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--ink-2); font-weight: 500;
   border-bottom: 1px solid var(--line-1); background: var(--bg-1);
@@ -165,7 +165,7 @@ const PAGE_CSS = `
 }
 .paper-table th.r { text-align: right; }
 .paper-table td {
-  padding: 13px 28px; border-bottom: 1px solid var(--line-0);
+  padding: 11px 12px; border-bottom: 1px solid var(--line-0);
   color: var(--ink-1); font-feature-settings: "tnum";
 }
 .paper-table td.r { text-align: right; }
