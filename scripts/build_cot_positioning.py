@@ -183,14 +183,17 @@ def run():
             prior = json.load(open(OUT_PATH)).get("domains", {})
         except Exception:
             prior = {}
+    fresh_buckets = set(domains.keys())          # only the CFTC-built buckets
     if "Credit" in prior and "Credit" not in domains:
-        domains["Credit"] = prior["Credit"]
-    # headline + takeaway per bucket
-    for b, d in domains.items():
-        if "markets" not in d:
+        domains["Credit"] = prior["Credit"]      # keep its existing headline + takeaway as-is
+    # headline + takeaway only for freshly built buckets (preserved buckets keep
+    # theirs). Defensive .get so a market missing a field can never crash the run.
+    for b in fresh_buckets:
+        d = domains[b]
+        if not d.get("markets"):
             continue
-        hot = max(d["markets"], key=lambda m: abs(m["spec"] - 50))
-        d["headline"] = {"market": hot["market"], "spec": hot["spec"], "comm": hot["comm"], "div": hot["div"]}
+        hot = max(d["markets"], key=lambda m: abs(m.get("spec", 50) - 50))
+        d["headline"] = {"market": hot.get("market"), "spec": hot.get("spec"), "comm": hot.get("comm"), "div": hot.get("div", False)}
         d["takeaway"] = takeaway_for(b, d["markets"])
     out = {"as_of": latest, "domains": domains}
     with open(OUT_PATH, "w") as f:
