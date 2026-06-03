@@ -151,7 +151,12 @@ export default function FreshnessChip({
       // running off the right side of the screen.
       const HALF = 168;
       const cx = Math.max(HALF, Math.min(window.innerWidth - HALF, r.left + r.width / 2));
-      setTipXY({ x: cx, y: r.top, below: r.top < 80 });
+      // Flip the tooltip BELOW the chip whenever there isn't a full tooltip's
+      // height of room above it (the 5-field chip is ~150px tall). Without this
+      // the tooltip rendered above a modal-header chip ran off the top of the
+      // screen and was unreadable (Joe 2026-06-03, Natural Gas modal).
+      const below = r.top < 170;
+      setTipXY({ x: cx, y: below ? r.bottom : r.top, below });
     }
   };
   const onLeave = () => {
