@@ -67,6 +67,11 @@ export default function TiltPage() {
   const { allocation, loading } = useAllocation();
   const regime = useEngineRegime();
   const [backtest, setBacktest] = useState(null);
+  // Live weekly observation history (MOVE / ΔY-3M / regime). Separate from the
+  // locked strategy backtest so the 24W history sparklines + Regime History
+  // strip keep advancing every week instead of freezing at the calibration
+  // lock date. (Joe 2026-06-03: history frozen at May 15.)
+  const [history, setHistory] = useState(null);
   const [expandedSectors, setExpandedSectors] = useState(new Set());
   const [expandedIGs, setExpandedIGs] = useState(new Set());
   const [sectorView, setSectorView] = useState('tilt');
@@ -82,6 +87,10 @@ export default function TiltPage() {
     fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setBacktest(j); })
+      .catch(() => {});
+    fetch('/macrotilt_engine_history.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setHistory(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -139,28 +148,33 @@ export default function TiltPage() {
     { key: 'max', label: 'Max', weeks: null }, // null = all available
   ];
 
+  /* Weekly observation series powering the history sparklines + Regime History
+     strip. Prefer the LIVE history file (refreshed weekly by the engine); fall
+     back to the locked backtest's weekly array only if the live file hasn't
+     loaded, so the strip never goes blank. (Fix 2026-06-03 — the locked
+     backtest froze at May 15.) */
+  const histWeekly = useMemo(() => {
+    if (Array.isArray(history?.weekly) && history.weekly.length) return history.weekly;
+    return Array.isArray(backtest?.weekly) ? backtest.weekly : [];
+  }, [history, backtest]);
+
   /* Real 24-week history (still used by the Regime History strip — cells
      need readable width so that stays at 24 cells). */
-  const weeklyTail24 = useMemo(() => {
-    const w = backtest?.weekly;
-    if (!Array.isArray(w)) return [];
-    return w.slice(-24);
-  }, [backtest]);
+  const weeklyTail24 = useMemo(() => histWeekly.slice(-24), [histWeekly]);
 
   /* Sparkline windows — slice the weekly series to the selected range.
      Empty array degrades gracefully via the "pending wire" placeholder. */
   const weeklyHistRange = useMemo(() => {
-    const w = backtest?.weekly;
-    if (!Array.isArray(w)) return [];
+    if (!histWeekly.length) return [];
     const cfg = HIST_WINDOWS.find((c) => c.key === histRange) ?? HIST_WINDOWS[0];
-    return cfg.weeks ? w.slice(-cfg.weeks) : w;
-  }, [backtest, histRange]);
+    return cfg.weeks ? histWeekly.slice(-cfg.weeks) : histWeekly;
+  }, [histWeekly, histRange]);
 
   const stressHist = useMemo(() => weeklyHistRange.map((w) => w.move).filter(Number.isFinite), [weeklyHistRange]);
   const yieldHist  = useMemo(() => weeklyHistRange.map((w) => w.delta_y_3m_bp).filter(Number.isFinite), [weeklyHistRange]);
   const stressDates = useMemo(() => weeklyHistRange.filter((w) => Number.isFinite(w.move)).map((w) => w.date), [weeklyHistRange]);
   const yieldDates  = useMemo(() => weeklyHistRange.filter((w) => Number.isFinite(w.delta_y_3m_bp)).map((w) => w.date), [weeklyHistRange]);
-  const totalWeeks = backtest?.weekly?.length ?? 0;
+  const totalWeeks = histWeekly.length;
 
   /* Defensive sleeve weights as a portion of the TOTAL portfolio, expressed
      as a percentage (0–100). Used to render the 4-bar allocation
@@ -193,11 +207,17 @@ export default function TiltPage() {
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Asset Tilt</div>
+          <div className="mt-eyebrow">Asset Tilt · today's call</div>
           <h1 className="mt-h1">
-            A <i>back-tested</i> asset allocation tool that seeks to beat
-            the S&amp;P 500 on a risk-adjusted basis over the long run.
+            <span className="at-headalloc">
+              <span><span className="num">{fmtPercent(equityPct, 0)}</span><i>% equity</i></span>
+              <span className="at-headalloc-sep">·</span>
+              <span className="at-headalloc--dim"><span className="num">{fmtPercent(defPct, 0)}</span><i>% defensive</i></span>
+            </span>
           </h1>
+          <div className="at-regimetag">
+            {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i> regime
+          </div>
         </div>
         <div className="at-keystats at-keystats--compact">
           <div className="mt-eyebrow">Backtest · {validatedRange}</div>
@@ -283,7 +303,10 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {stressHist.length === 0 && (
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+                )}
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -362,7 +385,10 @@ export default function TiltPage() {
             </div>
             <div className="at-gauge-histhead">
               <div className="mt-eyebrow at-gauge-eyebrow">
-                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history
+                {HIST_WINDOWS.find((c) => c.key === histRange)?.label ?? '24W'} history{' '}
+                {yieldHist.length === 0 && (
+                  {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+                )}
               </div>
               <div className="mt-pillgroup at-rangepills">
                 {HIST_WINDOWS.map((c) => (
@@ -408,7 +434,11 @@ export default function TiltPage() {
           <article className="mt-card at-stance">
             <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span>Recommended allocation</span>
-              <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+              <FreshnessChip
+                elementId="v10-allocation-daily"
+                variant="label"
+                fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
+              />
             </div>
             <div className="at-allocbars">
               {(() => {
@@ -461,7 +491,11 @@ export default function TiltPage() {
           <div>
             <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span>Equity bucket · sector tilts</span>
-              <FreshnessChip elementId="v10-allocation-daily" variant="label" />
+              <FreshnessChip
+                elementId="v10-allocation-daily"
+                variant="label"
+                fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
+              />
             </div>
             <div className="mt-h2">Where the engine wants overweight — and what's underneath.</div>
           </div>
@@ -515,7 +549,10 @@ export default function TiltPage() {
           <div>
             <div className="mt-eyebrow">Regime history · 24 weeks</div>
             <div className="mt-h2">
-              When the engine moved.
+              When the engine moved.{' '}
+              {weeklyTail24.length === 0 && (
+                {/* removed 2026-05-27 — was a stale cycle-mechanism reference */}
+              )}
             </div>
           </div>
         </div>
