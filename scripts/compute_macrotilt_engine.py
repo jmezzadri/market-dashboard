@@ -17,12 +17,9 @@ Writes:
                                      attribution — consumed by Macro Overview
                                      page, Asset Tilt page, and the home tile)
 
-Schedule: Daily 15:45 ET weekdays (19:45 UTC standard time / 20:45 UTC during
-DST) via .github/workflows/macrotilt-engine-daily.yml. Joe directive 2026-05-27:
-engine switched from weekly Friday close to daily close — see the same-date
-patch to to_weekly_friday() and the .shift(13)→.shift(63) edit. The locked
-calibration (1986-2026, Sharpe 0.61, max DD 35.0%) was on weekly data so
-daily-cadence Sharpe/drawdown are untested.
+Schedule: Friday 15:45 ET (19:45 UTC standard time / 20:45 UTC during DST)
+via .github/workflows/macrotilt-engine-daily.yml. Also runs daily on weekdays
+to keep the as-of stamp current and catch mid-week vol spikes.
 
 ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
 
@@ -32,7 +29,7 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
                       Z-score-standardized. Not used in live production
                       (live engine only reads trailing 5y, which is well
                       inside the 2002+ actual MOVE window).
-    Rule:             trailing 5-year percentile, daily close (2026-05-27)
+    Rule:             trailing 5-year percentile, weekly Friday close
                         < 75th pctile  -> Risk On     (100% equity)
                        75-85th pctile  -> Watch       (80% equity / 20% defensive)
                         >= 85th pctile -> Risk Off    (50% equity / 50% defensive)
@@ -40,7 +37,7 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
   AXIS 2 — YIELD DIRECTION (selects defensive sleeve when de-risked)
     Source:           10Y Treasury yield (FRED DGS10)
     Computation:      trailing 3-month change in yield (in basis points)
-    Rule:             trailing 5-year percentile of the 3-month change (daily; 63 bday shift)
+    Rule:             trailing 5-year percentile of the 3-month change
                         >= 70th pctile -> Inflationary
                         <= 30th pctile -> Deflationary
                         in between     -> Neutral
@@ -55,9 +52,7 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
     Neutral:        50% cash, 25% GLD, 0% SHY, 25% TLT  (balanced)
 
   REBALANCE
-    Cadence: daily close (changed 2026-05-27), execute following open.
-             Original validated cadence was weekly Friday — daily fires
-             more often and may oversample the noisier distribution.
+    Cadence: weekly Friday close, execute following Monday open.
 """
 from __future__ import annotations
 
@@ -75,6 +70,16 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INDICATOR_HISTORY = REPO_ROOT / "public" / "indicator_history.json"
 SNAPSHOT_OUT = REPO_ROOT / "public" / "macrotilt_engine.json"
+# Live-refreshed weekly observation history (MOVE / ΔY-3M / regime per Friday
+# close). This is the OBSERVATIONAL market-data series that drives the Asset
+# Tilt "24W history" sparklines and the Regime History strip — it must keep
+# flowing every week. It is deliberately SEPARATE from
+# macrotilt_engine_backtest.json, which is the point-in-time STRATEGY backtest
+# locked 2026-05-13 (CAGR / Sharpe / max-drawdown / strategy cumulative curves)
+# and is correctly frozen. Bundling the two in one file is what made the live
+# history freeze at the lock date. Real-MOVE coverage (2002-11-12+), so the
+# percentile-graded series begins ~2007 once a trailing 5y window exists.
+HISTORY_OUT = REPO_ROOT / "public" / "macrotilt_engine_history.json"
 
 # ── Engine constants (LOCKED) ────────────────────────────────────────
 WATCH_PCTILE = 0.75
@@ -82,10 +87,7 @@ RISK_OFF_PCTILE = 0.85
 INFLATIONARY_PCTILE = 0.70
 DEFLATIONARY_PCTILE = 0.30
 ROLLING_YEARS = 5
-MIN_OBS_WEEKLY = 252  # ≥1 year of DAILY observations before producing a read
-                       # (Joe directive 2026-05-27: switched from weekly Friday
-                       # to daily close. Constant name kept for downstream
-                       # JSON field compat; value is now trading days, not weeks.)
+MIN_OBS_WEEKLY = 52  # at least one year of weekly data before producing a read
 
 ALLOCATION = {
     "Risk On":  {"equity_pct": 100, "defensive_pct": 0},
@@ -146,12 +148,12 @@ def fetch_dgs10_series(api_key: str, since: str = "2018-01-01") -> pd.Series:
 # ── Transforms ───────────────────────────────────────────────────────
 
 def to_weekly_friday(s: pd.Series) -> pd.Series:
-    """DAILY-close series (Joe directive 2026-05-27: engine switched from
-    weekly Friday to daily close — see top-of-file comment). Function name
-    kept to minimize the diff against the previous engine; what it actually
-    returns now is the business-day-frequency forward-filled daily series.
-    """
-    return s.asfreq("B").ffill().dropna()
+    """Resample a daily series to weekly Friday close. If a Friday is missing
+    (holiday), fall back to the most-recent prior business day."""
+    # forward-fill within the week, then take Friday
+    daily = s.asfreq("B").ffill()
+    weekly = daily.resample("W-FRI").last().dropna()
+    return weekly
 
 
 def trailing_pctile(weekly: pd.Series, asof: pd.Timestamp,
@@ -194,20 +196,12 @@ def classify_yield_regime(delta_pctile: float) -> str:
     return "Neutral"
 
 
-def next_business_day_after(d: dt.date) -> dt.date:
-    """Next business day strictly after `d`. Skips weekends. Does NOT skip
-    US holidays — those just produce a forward-filled value in the daily
-    series, so an extra day in next_refresh is harmless."""
-    nd = d + dt.timedelta(days=1)
-    while nd.weekday() >= 5:
-        nd += dt.timedelta(days=1)
-    return nd
-
-
 def next_friday_after(d: dt.date) -> dt.date:
-    """DEPRECATED 2026-05-27 (kept as a thin alias to avoid breaking the
-    `compute_engine()` call site below). Returns next_business_day_after(d)."""
-    return next_business_day_after(d)
+    """Next Friday strictly after `d`. If d is a Friday, returns d+7."""
+    days_ahead = (4 - d.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7
+    return d + dt.timedelta(days=days_ahead)
 
 
 def compute_engine() -> dict:
@@ -220,9 +214,8 @@ def compute_engine() -> dict:
     # Pull enough history for a 5y + 3-month rolling window with comfortable buffer
     dgs10_daily = fetch_dgs10_series(api_key, since="2018-01-01")
     dgs10_weekly = to_weekly_friday(dgs10_daily)
-    # 3-month change in yield = current minus value ~3 months (63 business
-    # days) ago, in bp (yield is in pct). 63 = 252 * 3/12.
-    delta_y_3m = (dgs10_weekly - dgs10_weekly.shift(63)) * 100.0  # pct -> bp
+    # 3-month change in yield = current minus value 13 weeks ago, in bp (yield is in pct)
+    delta_y_3m = (dgs10_weekly - dgs10_weekly.shift(13)) * 100.0  # pct -> bp
     delta_y_3m = delta_y_3m.dropna()
 
     # ── Live (daily) ΔY-3M — display headline only ───────────────────────
@@ -246,13 +239,14 @@ def compute_engine() -> dict:
             delta_y_3m_live_bp = round((live_yield - anchor_yield) * 100.0, 1)
             live_as_of_iso = live_date.date().isoformat()
 
-    # Determine the most-recent COMPLETED close common to both series
-    # (changed 2026-05-27: previously weekly Friday — now daily).
+    # Determine the most-recent COMPLETED Friday common to both series.
+    # We deliberately exclude the in-progress current week so a mid-week run
+    # reports the same regime that the prior Friday's production run did.
     today = pd.Timestamp(dt.date.today())
     common_idx = move_weekly.index.intersection(delta_y_3m.index)
     common_idx = common_idx[common_idx <= today]
     if len(common_idx) == 0:
-        raise RuntimeError("No completed daily close common to MOVE and DGS10 ΔY-3M")
+        raise RuntimeError("No completed Friday close common to MOVE and DGS10 ΔY-3M")
     asof = common_idx.max()
 
     # Percentile reads
@@ -323,11 +317,71 @@ def compute_engine() -> dict:
     return snapshot
 
 
+def compute_history() -> dict:
+    """Build the live weekly OBSERVATION history (MOVE / ΔY-3M / regime per
+    Friday close) using the same locked engine logic as the snapshot, for every
+    completed week where a trailing 5y percentile is computable. Powers the
+    Asset Tilt 24W history sparklines + Regime History strip. Does NOT touch the
+    locked strategy backtest (macrotilt_engine_backtest.json)."""
+    move_daily = load_move_series()
+    move_weekly = to_weekly_friday(move_daily)
+
+    api_key = os.environ.get("FRED_API_KEY", FRED_API_KEY_DEFAULT)
+    dgs10_daily = fetch_dgs10_series(api_key, since="2001-01-01")
+    dgs10_weekly = to_weekly_friday(dgs10_daily)
+    delta_y_3m = ((dgs10_weekly - dgs10_weekly.shift(13)) * 100.0).dropna()
+
+    today = pd.Timestamp(dt.date.today())
+    common_idx = move_weekly.index.intersection(delta_y_3m.index)
+    common_idx = common_idx[common_idx <= today]
+
+    rows = []
+    for asof in common_idx:
+        move_pct, _ = trailing_pctile(move_weekly, asof)
+        delta_pct, _ = trailing_pctile(delta_y_3m, asof)
+        if move_pct is None or delta_pct is None:
+            continue  # not enough trailing window yet (pre-~2007)
+        stress_state = classify_stress(move_pct)
+        yield_regime_state = classify_yield_regime(delta_pct)
+        alloc = ALLOCATION[stress_state]
+        rows.append({
+            "date": asof.date().isoformat(),
+            "move": round(float(move_weekly.loc[asof]), 1),
+            "move_pctile_5y": round(move_pct, 4),
+            "watch_threshold": round(threshold_value(move_weekly, asof, WATCH_PCTILE), 1),
+            "risk_off_threshold": round(threshold_value(move_weekly, asof, RISK_OFF_PCTILE), 1),
+            "delta_y_3m_bp": round(float(delta_y_3m.loc[asof]), 1),
+            "delta_y_3m_pctile_5y": round(delta_pct, 4),
+            "inflationary_threshold_bp": round(threshold_value(delta_y_3m, asof, INFLATIONARY_PCTILE), 1),
+            "deflationary_threshold_bp": round(threshold_value(delta_y_3m, asof, DEFLATIONARY_PCTILE), 1),
+            "stress_state": stress_state,
+            "yield_regime": yield_regime_state,
+            "equity_pct": alloc["equity_pct"],
+            "defensive_pct": alloc["defensive_pct"],
+        })
+
+    return {
+        "_doc": (
+            "Live weekly observation history for the MacroTilt 2-axis engine "
+            "(MOVE value + percentile, ΔY-3M + percentile, classified regime per "
+            "Friday close). Refreshed by scripts/compute_macrotilt_engine.py / "
+            "macrotilt-engine-daily. Separate from the locked strategy backtest."
+        ),
+        "as_of": rows[-1]["date"] if rows else None,
+        "calibration_label": "1986-2026 validated (locked 2026-05-13)",
+        "weekly": rows,
+    }
+
+
 def main() -> None:
     snapshot = compute_engine()
     SNAPSHOT_OUT.parent.mkdir(parents=True, exist_ok=True)
     SNAPSHOT_OUT.write_text(json.dumps(snapshot, indent=2) + "\n")
     print(f"Wrote {SNAPSHOT_OUT}")
+
+    history = compute_history()
+    HISTORY_OUT.write_text(json.dumps(history, indent=2) + "\n")
+    print(f"Wrote {HISTORY_OUT}  ({len(history['weekly'])} weeks, latest {history['as_of']})")
     s = snapshot
     print(f"  As of: {s['as_of']}  (next refresh: {s['next_refresh']})")
     print(f"  Stress state:    {s['stress']['state']:<10}  "

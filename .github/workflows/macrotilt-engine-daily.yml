@@ -6,17 +6,15 @@ name: macrotilt-engine-daily
 # Overview page, Asset Tilt page, and the home page tile.
 #
 # Schedule:
-#   - Daily 22:30 UTC weekdays = 18:30 ET (EDT) / 17:30 ET (EST).
-#     Joe directive 2026-05-27 evening: moved from 19:45 UTC (15:45 ET, BEFORE market
-#     close) → 22:30 UTC (18:30 ET, AFTER the 18:00 ET evening INDICATOR-REFRESH that
-#     publishes same-day MOVE + late-publish FRED series). Previously the engine was
-#     reading STALE morning macro data; now it sees the full day's close.
+#   - Daily 19:45 UTC weekdays (≈ 15:45 ET standard / 14:45 ET DST)
+#     so the snapshot is current before market close. The weekly Friday read
+#     drives Monday-open execution per the engine spec.
 #
 # Pattern: cycle-mechanisms-daily.yml.
 
 on:
   schedule:
-    - cron: "30 22 * * 1-5"
+    - cron: "45 19 * * 1-5"
   workflow_dispatch:
 
 concurrency:
@@ -33,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.MACROTILT_BOT_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
@@ -71,27 +69,26 @@ jobs:
           print('OK', d['as_of'], stress['state'], yr['state'], f'{alloc[\"equity_pct\"]}% equity')
           "
 
-      - name: Commit snapshot if changed
+      - name: Verify live history series advanced
+        run: |
+          test -s public/macrotilt_engine_history.json
+          python -c "
+          import json
+          h = json.load(open('public/macrotilt_engine_history.json'))
+          w = h.get('weekly', [])
+          assert len(w) > 500, f'history too short: {len(w)}'
+          assert h.get('as_of') == w[-1]['date'], 'as_of must equal last weekly date'
+          print('history OK', len(w), 'weeks, latest', h['as_of'])
+          "
+
+      - name: Commit snapshot + history if changed
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
-          if [[ -z "$(git status --porcelain public/macrotilt_engine.json)" ]]; then
-            echo "No change to public/macrotilt_engine.json"
-            exit 0
+          git add public/macrotilt_engine.json public/macrotilt_engine_history.json
+          if [[ -n "$(git diff --cached --name-only)" ]]; then
+            git commit -m "MacroTilt engine daily refresh — $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          else
+            echo "No change to engine snapshot or history"
           fi
-          git add public/macrotilt_engine.json
-          git commit -m "MacroTilt engine daily refresh — $(date -u +%Y-%m-%d) [skip ci]"
-          # Other daily jobs push to main during our run window. A plain push loses
-          # the race ("fetch first" rejection) and silently drops the fresh snapshot.
-          # Rebase onto the latest main and retry before giving up.
-          for i in 1 2 3 4 5; do
-            if git push; then
-              echo "pushed on attempt $i"
-              exit 0
-            fi
-            echo "push rejected (attempt $i) - rebasing onto latest origin/main"
-            git pull --rebase --autostash origin main || true
-            sleep 5
-          done
-          echo "::error::engine snapshot push failed after 5 attempts"
-          exit 1
