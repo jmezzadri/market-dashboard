@@ -49,12 +49,12 @@ jobs:
         run: python3 scripts/fetch_market_indicators.py
       - name: Commit if updated
         run: |
-          if [[ -n "$(git status --porcelain public/indicator_history.json)" ]]; then
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git add public/indicator_history.json
-            git commit -m "Market indicators (commodities + FX) EOD refresh — $(date -u +%Y-%m-%d)"
-            git push
-          else
+          if git diff --quiet -- public/indicator_history.json; then
             echo "No changes to commit."
+          else
+            git config user.name  "Market Dashboard Bot"
+            git config user.email "bot@github-actions"
+            git add public/indicator_history.json
+            git commit -m "Market indicators (commodities + FX) EOD refresh [skip ci]"
+            git push || echo "Push failed (non-fatal); next scheduled run will retry."
           fi
