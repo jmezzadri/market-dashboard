@@ -3,24 +3,24 @@
   "framework": "MacroTilt 2-axis engine",
   "calibration_label": "1986-2026 validated (locked 2026-05-13)",
   "as_of": "2026-05-29",
-  "next_refresh": "2026-06-01",
+  "next_refresh": "2026-06-05",
   "stress": {
     "state": "Risk On",
     "move_value": 70.2,
-    "move_percentile_5y": 0.149,
-    "watch_threshold_value": 118.6,
-    "risk_off_threshold_value": 127.1,
-    "trailing_window_weeks": 1305
+    "move_percentile_5y": 0.157,
+    "watch_threshold_value": 115.8,
+    "risk_off_threshold_value": 123.7,
+    "trailing_window_weeks": 261
   },
   "yield_regime": {
     "state": "Inflationary",
-    "delta_y_3m_bp": 39.0,
+    "delta_y_3m_bp": 48.0,
     "delta_y_3m_bp_live": 42.0,
     "live_as_of": "2026-06-01",
-    "delta_y_3m_percentile_5y": 0.749,
-    "inflationary_threshold_bp": 32.8,
-    "deflationary_threshold_bp": -12.8,
-    "trailing_window_weeks": 1305
+    "delta_y_3m_percentile_5y": 0.789,
+    "inflationary_threshold_bp": 33.0,
+    "deflationary_threshold_bp": -11.0,
+    "trailing_window_weeks": 261
   },
   "allocation": {
     "equity_pct": 100,
