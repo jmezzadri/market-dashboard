@@ -1541,18 +1541,21 @@ def main():
                           f"file (fresh fetch failed): {', '.join(carried)}")
         except Exception as _ce:
             print(f"  carry-forward step skipped: {_ce}")
-        # ── Fail-loud staleness gate (Joe directive 2026-05-27) ───────────────
-        # Before this gate existed, individual safe_fred() / safe_yf() / safe_treasury()
-        # failures returned None and were quietly dropped. The workflow logged
-        # "success" while the on-disk JSON went days stale. Now: any daily
-        # indicator that is more than N trading days behind today fails the
-        # whole run with a visible exception, so the workflow goes red on
-        # GitHub Actions and an issue is auto-filed by the watchdog.
-        try:
-            _check_daily_freshness_or_raise(data)
-        except StalenessError as _se:
-            print(f"\nFRESHNESS GATE FAILED: {_se}")
-            raise
+        # ── Publish healthy data FIRST, then flag staleness per-element ───────
+        # 2026-06-02 incident: the old all-or-nothing gate raised BEFORE this
+        # write, so when ONE indicator went stale (adv_dec — its Supabase RPC
+        # compute_advance_decline_50d returned HTTP 500) the run aborted and
+        # 50+ perfectly fresh indicators never got committed. The entire macro
+        # board froze at the prior day while every chip went red.
+        #
+        # The gate was created (2026-05-27) to catch SILENT staleness back when
+        # chips weren't trustworthy. Freshness is now surfaced per element by
+        # the FreshnessChip (manifest SLA + served as_of) and the 30-minute
+        # pipeline-health watchdog, which emails Joe on any green->red and
+        # auto-files a bug. So we no longer freeze the whole board on one bad
+        # feed: we write + commit the healthy data, sync pipeline_health (which
+        # marks the stale one red → watchdog alerts), and report violations
+        # loudly in the run log without aborting the publish.
         with open(OUT_PATH, "w") as f:
             json.dump(data, f, separators=(",", ":"))
         size_kb = os.path.getsize(OUT_PATH) / 1024
@@ -1563,6 +1566,14 @@ def main():
         # 2026-05-27 evening incident: all daily-indicator chips on
         # /indicators showed Stale while values were correct.
         _sync_pipeline_health_from_result(data)
+        # Loud per-element staleness report — NON-fatal (does not block the
+        # publish above). The red chip + watchdog are the system of record.
+        try:
+            _check_daily_freshness_or_raise(data)
+        except StalenessError as _se:
+            print(f"\nFRESHNESS NOTICE — published healthy data; the following "
+                  f"indicator(s) are stale and now show RED on their own chip "
+                  f"(watchdog will alert):\n{_se}")
         # Summary per indicator
         n_indicators = 0
         for k, v in sorted(data.items()):
