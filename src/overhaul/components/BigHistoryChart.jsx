@@ -60,16 +60,16 @@ export default function BigHistoryChart({
     return m;
   }, [data]);
 
-  // Rebase compare to the primary's first value (indexed performance).
-  const compareSeries = useMemo(() => {
+  // Align compare to the primary BY DATE, keeping RAW values. Drawing is
+  // normalized to its own range below, so a series on a wildly different scale
+  // (e.g. reserves in $bn vs a ~70 index) shows its SHAPE without blowing up
+  // the primary axis (2026-06-04 fix — old rebase-to-start exploded the scale).
+  const compareRaw = useMemo(() => {
     if (!compareData?.length || !data.length) return null;
     const cmpByDate = new Map(compareData.filter((p) => Array.isArray(p) && typeof p[1] === 'number').map((p) => [p[0], p[1]]));
-    // first date present in both
-    let base = null;
-    for (const d of data) { if (cmpByDate.has(d.x)) { base = cmpByDate.get(d.x); break; } }
-    if (!base) return null;
-    const scale = data[0].y / base;
-    return data.map((d) => (cmpByDate.has(d.x) ? cmpByDate.get(d.x) * scale : null));
+    let any = false;
+    const out = data.map((d) => { if (cmpByDate.has(d.x)) { any = true; return cmpByDate.get(d.x); } return null; });
+    return any ? out : null;
   }, [compareData, data]);
 
   if (!data.length) {
@@ -92,13 +92,23 @@ export default function BigHistoryChart({
   // y-range spans price + overlays + rebased compare
   let yVals = data.map((d) => d.y);
   overlays.forEach((o) => (o.points || []).forEach((p) => { if (typeof p[1] === 'number') yVals.push(p[1]); }));
-  if (compareSeries) compareSeries.forEach((v) => { if (v != null) yVals.push(v); });
   const yMin = Math.min(...yVals);
   const yMax = Math.max(...yVals);
   const yRange = (yMax - yMin) || 1;
   const yPad = yRange * 0.1;
   const yLo = yMin - yPad;
   const yHi = yMax + yPad;
+
+  // Compare overlay drawn on its OWN normalized scale (min..max -> full height),
+  // mapped into the primary's value-space so yOf() positions it correctly.
+  let compareSeries = null;
+  if (compareRaw) {
+    const cv = compareRaw.filter((v) => v != null);
+    if (cv.length) {
+      const cMin = Math.min(...cv), cMax = Math.max(...cv), cR = (cMax - cMin) || 1;
+      compareSeries = compareRaw.map((v) => (v == null ? null : yLo + ((v - cMin) / cR) * (yHi - yLo)));
+    }
+  }
   const xOf = (i) => padL + (i / Math.max(1, data.length - 1)) * (w - padL - padR);
   const yOf = (v) => padT + (1 - (v - yLo) / (yHi - yLo)) * (plotBot - padT);
 
@@ -307,7 +317,7 @@ export default function BigHistoryChart({
         const i = hover.i;
         const rows = [[primaryLabel, yFormat(hover.d.y), accent]];
         overlaySeries.forEach((o) => { const v = o.values[i]; if (v != null) rows.push([o.label, yFormat(v), o.color]); });
-        if (compareSeries && compareSeries[i] != null) rows.push([compareLabel || "Compare", yFormat(compareSeries[i]), compareAccent]);
+        if (compareSeries && compareRaw[i] != null) rows.push([compareLabel || "Compare", yFormat(compareRaw[i]), compareAccent]);
         if (volByDate) { const vv = volByDate.get(data[i].x); if (vv != null) rows.push(["Volume", fmtCompact(vv), "var(--mt-ink-3)"]); }
         if (rsiValues && rsiValues[i] != null) rows.push([rsiLabel, rsiValues[i].toFixed(0), "var(--mt-ink-1)"]);
         const evs = eventsByIdx.get(i) || [];
