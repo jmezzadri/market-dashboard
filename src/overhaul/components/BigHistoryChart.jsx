@@ -66,9 +66,20 @@ export default function BigHistoryChart({
   // the primary axis (2026-06-04 fix — old rebase-to-start exploded the scale).
   const compareRaw = useMemo(() => {
     if (!compareData?.length || !data.length) return null;
-    const cmpByDate = new Map(compareData.filter((p) => Array.isArray(p) && typeof p[1] === 'number').map((p) => [p[0], p[1]]));
-    let any = false;
-    const out = data.map((d) => { if (cmpByDate.has(d.x)) { any = true; return cmpByDate.get(d.x); } return null; });
+    // Forward-fill onto the primary's dates: each primary date carries the most
+    // recent compare value at or before it. This draws a CONTINUOUS line even
+    // when the overlay is a lower frequency than the primary (e.g. a weekly
+    // series on a daily chart), instead of isolated, invisible points.
+    const sorted = compareData
+      .filter((p) => Array.isArray(p) && typeof p[1] === 'number')
+      .slice().sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    if (!sorted.length) return null;
+    let j = 0, last = null, any = false;
+    const out = data.map((d) => {
+      while (j < sorted.length && sorted[j][0] <= d.x) { last = sorted[j][1]; j++; }
+      if (last != null) { any = true; return last; }
+      return null;
+    });
     return any ? out : null;
   }, [compareData, data]);
 
