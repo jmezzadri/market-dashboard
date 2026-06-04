@@ -177,7 +177,32 @@ def submit_pending_orders(
 
     logger.info("found %d pending paper_orders rows", len(pending))
 
+    # TICKER-LEVEL IDEMPOTENCY (2026-06-04): even if duplicate pending rows
+    # exist (e.g. from earlier same-day fires before the diff guard shipped),
+    # never submit a second working order for a ticker+side that already has a
+    # live order at the broker. Fetch the open set once.
+    open_ticker_sides: set[tuple[str, str]] = set()
+    try:
+        for o in alpaca.list_orders(status="open", limit=500):
+            sym = (o.get("symbol") or "").upper()
+            sd = (o.get("side") or "").lower()
+            if sym and sd:
+                open_ticker_sides.add((sym, sd))
+        logger.info("open orders at broker: %d", len(open_ticker_sides))
+    except Exception as exc:
+        logger.warning("could not list open orders (%s) — proceeding without ticker guard", exc)
+
+    submitted_this_run: set[tuple[str, str]] = set()
+
     for row in pending:
+        key = (row.ticker.upper(), row.side.lower())
+        if key in open_ticker_sides or key in submitted_this_run:
+            logger.info("row %s: %s %s already has a working order — skipping (idempotent)",
+                        row.id, row.side, row.ticker)
+            if not dry_run:
+                _mark_rejected(row.id, "skipped — open order already working for this ticker/side")
+            result.duplicates += 1
+            continue
         # Step 1 — idempotency pre-check.
         try:
             existing = alpaca.get_order_by_client_id(row.id)
@@ -209,6 +234,7 @@ def submit_pending_orders(
                 "[dry-run] would submit %s %s qty=%s notional=%s (sleeve %s)",
                 row.side, row.ticker, qty, notional, row.sleeve,
             )
+            submitted_this_run.add(key)
             result.submitted += 1
             continue
 
@@ -261,6 +287,7 @@ def submit_pending_orders(
             continue
 
         _mark_submitted(row.id, alpaca_id)
+        submitted_this_run.add(key)
         result.submitted += 1
         logger.info("submitted %s %s qty=%s alpaca_order_id=%s",
                     row.side, row.ticker, qty or f"${notional}", alpaca_id)
@@ -270,3 +297,4 @@ def submit_pending_orders(
         result.submitted, result.rejected, result.duplicates,
     )
     return result
+
