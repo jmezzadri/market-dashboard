@@ -3096,6 +3096,64 @@
    "dependencies": [
     "portfolio.paper-positions-snapshot"
    ]
+  },
+  {
+   "id": "indicator-cftc-cot-weekly",
+   "category": "indicator",
+   "name": "cftc-cot",
+   "description": "CFTC Commitments of Traders — cross-asset speculative positioning (net non-commercial) by domain.",
+   "sourcing_mode": "computed",
+   "source_vendor": "CFTC",
+   "source_endpoint": "CFTC COT report → cot_positioning.py cross-asset build",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "weekly",
+   "scheduled_fetch_time_et": "07:00 (Sat)",
+   "refresh_trigger": "CFTC-COT-WEEKLY",
+   "freshness_sla_hours": 264,
+   "output_destination": "public/cot_positioning.json",
+   "producer_script": "cot_positioning.py",
+   "consumer_surfaces": [
+    {
+     "tab": "macro",
+     "tile": "Cross-asset positioning rollup"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "CFTC publishes Friday for Tuesday-dated data; the chip shows the report date, so a ~1-week lag is normal (SLA widened to match).",
+   "owner": "Senior Quant",
+   "release_calendar": "us-business-day",
+   "dependencies": []
+  },
+  {
+   "id": "indicator_history",
+   "category": "indicator",
+   "name": "indicator_history",
+   "description": "Consolidated indicator-history file backing the All Indicators grid and Methodology page (every FRED/Yahoo series).",
+   "sourcing_mode": "computed",
+   "source_vendor": "FRED + Yahoo Finance",
+   "source_endpoint": "fetch_history.py → public/indicator_history.json",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "indicators"
+    },
+    {
+     "tab": "methodology"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Individual series skip on an upstream outage; the file retains last-good values.",
+   "owner": "Senior Quant",
+   "release_calendar": "us-business-day",
+   "dependencies": []
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

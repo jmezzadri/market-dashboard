@@ -20,7 +20,7 @@ export default function Stub({ eyebrow, title, accent, deck, phaseLabel = 'Found
         <div className="mt-card" style={{ minWidth: 220, maxWidth: 280 }}>
           <div className="mt-eyebrow" style={{ marginBottom: 8 }}>Status</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FreshnessChip elementId="universe-master-daily" variant="dot" />
+            <FreshnessChip elementId="market-universe_master-daily" variant="dot" />
             <span style={{ fontSize: 13, color: 'var(--mt-ink-1)' }}>{phaseLabel}</span>
           </div>
         </div>
