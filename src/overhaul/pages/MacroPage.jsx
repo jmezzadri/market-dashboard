@@ -439,9 +439,6 @@ export default function MacroPage() {
           <div className="mc-otpsub">indicators</div>
           <div className="mc-otpval num" style={{ marginTop: 12 }}>{posCount || '—'}</div>
           <div className="mc-otpsub">positioning signals</div>
-          <div className="mt-divider" />
-          <div className="mc-otprow"><span>Asset classes</span><b className="num">5</b></div>
-          <FreshnessChip elementId="market-universe_master-daily" variant="label" />
         </div>
       </section>
 
