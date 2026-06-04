@@ -83,6 +83,7 @@ def build_order_intents(
     asset_tilt_snapshot: AssetTiltSnapshot | None = None,
     suppress_buys: bool = False,
     eod_prices: dict[str, float] | None = None,
+    open_order_tickers: set[str] | None = None,
 ) -> list[OrderIntent]:
     """Signal-only diff. Trades on entry / exit / signal-driven resize only.
 
@@ -91,6 +92,17 @@ def build_order_intents(
     map (rare new listings); never for the rebalance decision itself.
     """
     eod_prices = eod_prices or {}
+
+    # IDEMPOTENCY GUARD (2026-06-04 fix): a ticker that already has an order
+    # working at the broker must NOT get a second order this run. The EOD job
+    # fires many times each morning; without this, every fire re-bought every
+    # name (orders queued-but-unfilled don't show as a held position yet), which
+    # stacked single names to ~6x their target. We skip ANY new intent for a
+    # ticker that already has a live order.
+    open_order_tickers = {t.upper() for t in (open_order_tickers or set())}
+
+    def _has_open_order(ticker: str) -> bool:
+        return ticker.upper() in open_order_tickers
 
     def _eod_price(ticker: str) -> float | None:
         p = eod_prices.get(ticker.upper())
@@ -123,7 +135,7 @@ def build_order_intents(
         held = _basis(ticker)
         if held <= 0:
             # NEW signal — buy in.
-            if suppress_buys:
+            if suppress_buys or _has_open_order(ticker):
                 continue
             qty = _qty_from_notional(line.notional, _eod_price(ticker))
             intents.append(OrderIntent(
@@ -134,6 +146,8 @@ def build_order_intents(
             ))
             continue
         # HELD — resize ONLY if the signal moved the target past the band.
+        if _has_open_order(ticker):
+            continue
         if not _resize_exceeds_band(line.notional, held, "A"):
             continue
         diff = line.notional - held
@@ -153,7 +167,7 @@ def build_order_intents(
         held = _basis(ticker)
         score_int = int(round(line.score)) if line.score is not None else None
         if held <= 0:
-            if suppress_buys:
+            if suppress_buys or _has_open_order(ticker):
                 continue
             qty = _qty_from_notional(line.notional, _eod_price(ticker))
             intents.append(OrderIntent(
@@ -162,6 +176,8 @@ def build_order_intents(
                 signal_score=score_int, signal_source="equity_scanner",
                 rebalance_trigger_reason=f"New scanner buy signal — {line.rationale}",
             ))
+            continue
+        if _has_open_order(ticker):
             continue
         if not _resize_exceeds_band(line.notional, held, "B"):
             continue
@@ -183,6 +199,8 @@ def build_order_intents(
             continue
         if pos.qty == 0:
             continue
+        if _has_open_order(ticker):
+            continue
         is_sleeve_a = ticker in a_etf_universe
         intents.append(OrderIntent(
             sleeve="A" if is_sleeve_a else "B",
@@ -199,3 +217,4 @@ def build_order_intents(
         ))
 
     return intents
+
