@@ -1,0 +1,128 @@
+/* responsive.css — mobile / small-screen layout for the MacroTilt overhaul shell.
+ *
+ * Why this file exists: the overhaul shell (chrome.css) was authored desktop-only.
+ * `.mt-app` is a fixed `232px 1fr` two-column grid (sidebar + main) with NO media
+ * queries, so on a phone the sidebar never collapses and the fixed-width inner
+ * grids force the layout viewport out to ~1700px. iPhone Safari then zooms the
+ * whole page out to fit, which is the "everything is tiny / looks awful" report,
+ * and it also makes the Portfolio nav item (the only route to the sign-in card)
+ * an un-tappable few-pixel target — the "can't sign in" report.
+ *
+ * The design already ships an alternate top-nav mode (`data-mt-sidebar='top'`):
+ * a sticky horizontal nav (`.mt-topnav`) with the sidebar hidden. Below the
+ * breakpoint we simply switch the shell into that layout directly, independent of
+ * the (JS-set) sidebar attribute, then collapse the page-level multi-column grids
+ * to a single column and cap the oversized display headlines.
+ *
+ * Imported LAST in OverhaulApp so it wins the cascade. Scoped under .mt-overhaul
+ * like every other overhaul rule, so nothing leaks to the legacy app.
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TABLET / LARGE PHONE — ≤ 900px : collapse the shell to a single column.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Shell: drop the sidebar column, stack into one column. */
+  .mt-overhaul .mt-app { grid-template-columns: 1fr !important; }
+  .mt-overhaul .mt-sidebar { display: none !important; }
+
+  /* Reveal the existing top-nav regardless of the data-mt-sidebar attribute. */
+  .mt-overhaul .mt-topnav {
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: color-mix(in oklab, var(--mt-surface) 80%, transparent);
+    border-bottom: 1px solid var(--mt-line-0);
+    backdrop-filter: blur(20px);
+    padding: 10px 16px;
+  }
+  /* Keep nav pills from squishing — let the row scroll horizontally instead. */
+  .mt-overhaul .mt-topnav .mt-pill { flex: 0 0 auto; white-space: nowrap; }
+
+  /* Tighten the global page padding token so content gets the full width. */
+  .mt-overhaul { --mt-pad-page: 18px; }
+
+  /* Header: let it wrap instead of forcing a 3-column auto/1fr/auto row. */
+  .mt-overhaul .mt-header {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px var(--mt-pad-page);
+  }
+  /* The search box had a 280px min-width that overflows narrow screens. */
+  .mt-overhaul .mt-search { min-width: 0 !important; width: 100%; }
+
+  /* Page hero blocks: single column. */
+  .mt-overhaul .mt-pagehero { grid-template-columns: 1fr !important; }
+  .mt-overhaul .mt-pagesection { padding: 22px var(--mt-pad-page); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PHONE — ≤ 640px : collapse every remaining multi-column page grid to one
+   column, cap the oversized display headlines, and let dense data tables
+   scroll horizontally inside their own card instead of blowing out the page.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .mt-overhaul { --mt-pad-page: 14px; }
+
+  /* Home */
+  .mt-overhaul .hm-todaygrid,
+  .mt-overhaul .hm-featgrid,
+  .mt-overhaul .hm-featgrid--three { grid-template-columns: 1fr !important; }
+
+  /* Macro overview */
+  .mt-overhaul .mc-domstrip,
+  .mt-overhaul .mc-grid { grid-template-columns: 1fr !important; }
+
+  /* Asset Tilt */
+  .mt-overhaul .at-keygrid,
+  .mt-overhaul .at-engineread { grid-template-columns: 1fr !important; }
+
+  /* Scanner */
+  .mt-overhaul .sc-buckets,
+  .mt-overhaul .sc-colgrid,
+  .mt-overhaul .sc-buildgrid { grid-template-columns: 1fr !important; }
+
+  /* Portfolio */
+  .mt-overhaul .pf-keygrid,
+  .mt-overhaul .pf-acctgrid,
+  .mt-overhaul .pf-acctkv,
+  .mt-overhaul .pf-acctdrillgrid { grid-template-columns: 1fr !important; }
+
+  /* Scenarios */
+  .mt-overhaul .sn-scengrid,
+  .mt-overhaul .sn-splitcard,
+  .mt-overhaul .sn-headstats,
+  .mt-overhaul .al-summarygrid { grid-template-columns: 1fr !important; }
+
+  /* Ticker detail */
+  .mt-overhaul .tk-keygrid,
+  .mt-overhaul .tk-keygrid--fund,
+  .mt-overhaul .tk-relatedgrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .mt-overhaul .tk-hero { grid-template-columns: 1fr !important; }
+
+  /* Cap the big editorial display headlines so they don't overflow / wrap ugly. */
+  .mt-overhaul .mt-pagehero h1,
+  .mt-overhaul .at-headalloc,
+  .mt-overhaul [data-type="monumental"] .at-headalloc,
+  .mt-overhaul .tk-hero h1 {
+    font-size: clamp(30px, 9vw, 44px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  /* Dense fixed-px data-table rows: keep their column shape but let the card
+     scroll sideways rather than expanding the whole page width. The page
+     sections already clip to the viewport, so the table scrolls in place. */
+  .mt-overhaul .mt-pagesection,
+  .mt-overhaul .mt-main { overflow-x: hidden; }
+
+  /* Stat cards on the home hero ribbon: stack. */
+  .mt-overhaul .hm-statrow,
+  .mt-overhaul .hm-keystats { grid-template-columns: 1fr !important; }
+}
