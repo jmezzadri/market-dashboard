@@ -1553,7 +1553,7 @@
   },
   "indicator-adv_dec-daily": {
    "category": "indicator",
-   "element": "Advance-decline breadth (50-day cumulative)",
+   "element": "Advance-Decline Line (cumulative)",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "MacroTilt (Polygon prices_eod)",
    "license_tier": "free",

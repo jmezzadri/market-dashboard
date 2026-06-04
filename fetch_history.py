@@ -1288,18 +1288,19 @@ def fetch_all():
     # killed from the indicator framework on 2026-05-11; no longer produced.
 
 
-    print("Advance-Decline 50d cumulative (adv_dec) — Polygon prices_eod count up vs down ...")
-    # PR ζ (2026-05-02): real breadth from prices_eod. Count tickers up vs down
-    # each day across the liquid US equity universe (~3-4k tickers after $1B+ filter).
-    # 50-day cumulative net = sum of daily (advancers − decliners) over trailing 50 days.
-    ad_rows = _supabase_rpc("compute_advance_decline_50d", {})
+    print("Advance-Decline Line (adv_dec) — standard cumulative A/D line from Polygon prices_eod ...")
+    # 2026-06-04: switched from a 50-day rolling cumulative (non-standard, hard to
+    # read) to the STANDARD Advance-Decline Line: an ever-running cumulative sum of
+    # daily (advancers − decliners) across active US common stocks. The level is the
+    # classic A/D line; its signal is the trend + divergence vs the index (overlay SPX).
+    ad_rows = _supabase_rpc("compute_ad_line", {})
     if ad_rows and isinstance(ad_rows, list):
-        pts = [[r.get("trade_date"), int(r.get("net_50d"))]
-               for r in ad_rows if r.get("trade_date") and r.get("net_50d") is not None]
+        pts = [[r.get("trade_date"), int(r.get("ad_line"))]
+               for r in ad_rows if r.get("trade_date") and r.get("ad_line") is not None]
         if pts:
-            result["adv_dec"] = {"freq": "D", "unit": "issues",
+            result["adv_dec"] = {"freq": "D", "unit": "net issues",
                                   "points": pts}
-            print(f"  adv_dec: {len(pts)} daily points from Polygon prices_eod")
+            print(f"  adv_dec (A/D line): {len(pts)} daily points from Polygon prices_eod")
 
 
     # Belt-and-suspenders: strip any future-dated point before stats/as_of are
