@@ -2,18 +2,21 @@
    Ported from prototype/lm-shared.jsx ScanList + lm-scancard structure.
    Drill renders below via the ScanDrill component the caller passes in.
 
-   Score is on a 0-5 scale (live scanner data; Joe directive 2026-05-27).
+   Score is on a 0-10 scale (live scanner data).
 
    2026-06-01: every value here is now REAL — sparkline uses the engine's
    stored `spark` close series (no more synthetic random walk), price/change
    come straight off the scan row.
 
-   When `indicatorColumns` is set (Scanner page only — Joe ask 2026-06-01
-   "show all the columns for the indicators that feed the score"), each row
-   adds four numeric columns for the real per-indicator points that SUM to
-   the score: Insider, Technicals (200-day + RSI), Options, Dark-pool. A
-   header row labels them. Portfolio Positions leaves the prop off and keeps
-   the compact I/D/O facet dots. */
+   When `indicatorColumns` is set (Scanner page only), each row adds numeric
+   columns for the real per-indicator points that SUM to the score: Insider,
+   Technicals (200-day + RSI), Options, Dark-pool.
+
+   2026-06-04: the Scanner column picker is now LIVE. The caller passes an
+   ordered `columns` array of column keys (a subset/reordering of
+   INDICATOR_COL_KEYS). The header, grid template, and each row's cells are
+   built dynamically from that list. Ticker + Score always render. Portfolio
+   Positions leaves both props off and keeps the compact I/D/O facet dots. */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +27,22 @@ import Tip from './Tip';
 const techPts = (r) => (Number(r.sma200_pts) || 0) + (Number(r.rsi_pts) || 0);
 
 const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
-const GRID_INDICATORS = '1fr 52px 84px 84px 52px 52px 52px 52px 22px';
+
+// Column registry for the indicator (Scanner) view. `w` is the grid track
+// width. `head` is the short column header label. Ticker + Score are locked
+// on by the picker, so they always appear; the rest are toggleable.
+export const INDICATOR_COLS = {
+  ticker:  { key: 'ticker',  label: 'Ticker',         head: 'Ticker',  w: '1fr',  locked: true },
+  score:   { key: 'score',   label: 'Score',          head: 'Score',   w: '52px', locked: true },
+  price:   { key: 'price',   label: 'Last price',     head: 'Last',    w: '84px' },
+  spark:   { key: 'spark',   label: '30-day chart',   head: '30-day',  w: '84px' },
+  insider: { key: 'insider', label: 'Insider pts',    head: 'Insider', w: '52px' },
+  tech:    { key: 'tech',    label: 'Technicals pts', head: 'Tech',    w: '52px' },
+  options: { key: 'options', label: 'Options pts',    head: 'Options', w: '52px' },
+  dark:    { key: 'dark',    label: 'Dark-pool pts',  head: 'Dark',    w: '52px' },
+};
+
+export const INDICATOR_COL_KEYS = ['ticker', 'score', 'price', 'spark', 'insider', 'tech', 'options', 'dark'];
 
 export default function ScanList({
   rows,
@@ -34,9 +52,25 @@ export default function ScanList({
   rowKey = (r) => r.ticker,
   showSparkline = true,
   indicatorColumns = false,
+  columns,        // optional ordered array of indicator column keys
 }) {
   const navigate = useNavigate();
-  const grid = indicatorColumns ? GRID_INDICATORS : GRID_FACETS;
+
+  // Resolve the active, ordered list of indicator columns. Ticker + Score
+  // are always present (locked). If no `columns` prop is passed we fall back
+  // to the full default set so older callers keep working.
+  const activeKeys = indicatorColumns
+    ? (() => {
+        const requested = (columns && columns.length ? columns : INDICATOR_COL_KEYS)
+          .filter((k) => INDICATOR_COLS[k]);
+        const withLocks = ['ticker', 'score', ...requested.filter((k) => k !== 'ticker' && k !== 'score')];
+        return Array.from(new Set(withLocks));
+      })()
+    : null;
+
+  const grid = indicatorColumns
+    ? `${activeKeys.map((k) => INDICATOR_COLS[k].w).join(' ')} 22px`
+    : GRID_FACETS;
 
   if (!rows?.length) {
     return (
@@ -83,14 +117,20 @@ export default function ScanList({
             color: 'var(--mt-ink-3)',
           }}
         >
-          <span>Ticker</span>
-          <span style={{ textAlign: 'center' }}>Score</span>
-          <span>Last</span>
-          <span>30-day</span>
-          <ColHead tip="Insider Form-4 points (rules A/B/C, decayed by age)">Insider</ColHead>
-          <ColHead tip="Technicals points: above 200-day line + RSI penalty">Tech</ColHead>
-          <ColHead tip="Options-volume-shock points">Options</ColHead>
-          <ColHead tip="Dark-pool anchor points">Dark</ColHead>
+          {activeKeys.map((k) => {
+            const col = INDICATOR_COLS[k];
+            if (k === 'score') return <span key={k} style={{ textAlign: 'center' }}>Score</span>;
+            if (['insider', 'tech', 'options', 'dark'].includes(k)) {
+              const tips = {
+                insider: 'Insider Form-4 points (rules A/B/C, decayed by age)',
+                tech: 'Technicals points: above 200-day line + RSI penalty',
+                options: 'Options-volume-shock points',
+                dark: 'Dark-pool anchor points',
+              };
+              return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
+            }
+            return <span key={k}>{col.head}</span>;
+          })}
           <span />
         </li>
       )}
@@ -121,6 +161,54 @@ export default function ScanList({
           ? `Options points ${r.options_pts}${r.options_vol_shock != null ? ` · vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : ''}`
           : 'Options layer scored 0 for this name';
 
+        const cellFor = (k) => {
+          switch (k) {
+            case 'ticker':
+              return (
+                <div key={k} style={{ minWidth: 0 }}>
+                  <span
+                    onClick={(e) => { e.stopPropagation(); navigate(`/ticker/${r.ticker}`); }}
+                    style={{ fontWeight: 700, fontSize: 16, color: 'var(--mt-accent)', cursor: 'pointer', marginRight: 8 }}
+                  >
+                    {r.ticker}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--mt-ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.name ? `${r.name} · ` : ''}{r.sector || ''}
+                  </span>
+                </div>
+              );
+            case 'score':
+              return <ScoreDial key={k} score={r.score} max={10} size={44} />;
+            case 'price':
+              return price != null ? (
+                <div key={k}>
+                  <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-0)', fontWeight: 600 }}>
+                    ${Number(price).toFixed(2)}
+                  </div>
+                  <div className="num" style={{ fontSize: 11, color: chgColor, fontWeight: 500 }}>
+                    {chg > 0 ? '+' : ''}{chg.toFixed(2)}%
+                  </div>
+                </div>
+              ) : <div key={k} />;
+            case 'spark':
+              return showSparkline && sparkData?.length ? (
+                <div key={k} style={{ color: chgColor }}>
+                  <Sparkline data={sparkData} width={80} height={32} stroke={chgColor} area />
+                </div>
+              ) : <div key={k} />;
+            case 'insider':
+              return <PtsCell key={k} value={r.insider_pts} on={insiderOn} tip={insiderTip} />;
+            case 'tech':
+              return <PtsCell key={k} value={tp} on={tp > 0} tip={techTip} />;
+            case 'options':
+              return <PtsCell key={k} value={r.options_pts} on={optionsOn} tip={optionsTip} />;
+            case 'dark':
+              return <PtsCell key={k} value={r.dark_pool_pts} on={darkOn} tip={darkTip} />;
+            default:
+              return <div key={k} />;
+          }
+        };
+
         return (
           <li key={key} style={{ borderBottom: '1px solid var(--mt-line-0)' }}>
             <div
@@ -143,78 +231,26 @@ export default function ScanList({
                 alignItems: 'center',
               }}
             >
-              {/* Ticker + sub */}
-              <div style={{ minWidth: 0 }}>
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/ticker/${r.ticker}`);
-                  }}
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 16,
-                    color: 'var(--mt-accent)',
-                    cursor: 'pointer',
-                    marginRight: 8,
-                  }}
-                >
-                  {r.ticker}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--mt-ink-2)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {r.name ? `${r.name} · ` : ''}{r.sector || ''}
-                </span>
-              </div>
-              {/* Score dial (0-10 engine ceiling) */}
-              <ScoreDial score={r.score} max={10} size={44} />
-              {/* Price + change */}
-              {price != null ? (
-                <div>
-                  <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-0)', fontWeight: 600 }}>
-                    ${Number(price).toFixed(2)}
-                  </div>
-                  <div className="num" style={{ fontSize: 11, color: chgColor, fontWeight: 500 }}>
-                    {chg > 0 ? '+' : ''}{chg.toFixed(2)}%
-                  </div>
-                </div>
-              ) : (
-                <div />
-              )}
-              {/* Sparkline (real close series) */}
-              {showSparkline && sparkData?.length ? (
-                <div style={{ color: chgColor }}>
-                  <Sparkline data={sparkData} width={indicatorColumns ? 80 : 100} height={32} stroke={chgColor} area />
-                </div>
-              ) : (
-                <div />
-              )}
-
               {indicatorColumns ? (
-                <>
-                  <PtsCell value={r.insider_pts} on={insiderOn} tip={insiderTip} />
-                  <PtsCell value={tp} on={tp > 0} tip={techTip} />
-                  <PtsCell value={r.options_pts} on={optionsOn} tip={optionsTip} />
-                  <PtsCell value={r.dark_pool_pts} on={darkOn} tip={darkTip} />
-                </>
+                activeKeys.map((k) => cellFor(k))
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                  <Tip content={insiderTip}>
-                    <Facet label="I" active={insiderOn} color="var(--mt-up)" />
-                  </Tip>
-                  <Tip content={darkTip}>
-                    <Facet label="D" active={darkOn} color="var(--mt-accent)" />
-                  </Tip>
-                  <Tip content={optionsTip}>
-                    <Facet label="O" active={optionsOn} color="var(--mt-warn)" />
-                  </Tip>
-                </div>
+                <>
+                  {cellFor('ticker')}
+                  {cellFor('score')}
+                  {cellFor('price')}
+                  {cellFor('spark')}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                    <Tip content={insiderTip}>
+                      <Facet label="I" active={insiderOn} color="var(--mt-up)" />
+                    </Tip>
+                    <Tip content={darkTip}>
+                      <Facet label="D" active={darkOn} color="var(--mt-accent)" />
+                    </Tip>
+                    <Tip content={optionsTip}>
+                      <Facet label="O" active={optionsOn} color="var(--mt-warn)" />
+                    </Tip>
+                  </div>
+                </>
               )}
 
               {/* Chevron */}
