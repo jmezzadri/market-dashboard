@@ -1,0 +1,27 @@
+name: PRICE-FRESHNESS-DIAG
+on: { workflow_dispatch: {} }
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: query price freshness by type
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,re,urllib.request
+          U=os.environ['SUPABASE_URL']; TOK=os.environ['SUPABASE_ACCESS_TOKEN']
+          ref=re.sub(r'^https?://','',U).split('.')[0]
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          def q(sql):
+              req=urllib.request.Request(f"https://api.supabase.com/v1/projects/{ref}/database/query",
+                data=json.dumps({"query":sql}).encode(),method="POST",
+                headers={"Authorization":"Bearer "+TOK,"Content-Type":"application/json","User-Agent":UA})
+              with urllib.request.urlopen(req,timeout=120) as r: return json.loads(r.read().decode())
+          print("overall max trade_date:", q("select max(trade_date) mx from public.prices_eod"))
+          print("max date by type:", q("select u.type, max(p.trade_date) mx, count(*) filter (where p.trade_date >= current_date-1) recent from public.prices_eod p join public.universe_master u using(ticker) where u.active group by u.type order by mx desc limit 8"))
+          print("CS rows on Jun3:", q("select count(*) n from public.prices_eod p join public.universe_master u using(ticker) where u.active and u.type='CS' and p.trade_date='2026-06-03'"))
+          print("CS rows on Jun2:", q("select count(*) n from public.prices_eod p join public.universe_master u using(ticker) where u.active and u.type='CS' and p.trade_date='2026-06-02'"))
+          print("breadth RPC max:", q("set statement_timeout='150s'; select max(trade_date) mx from public.compute_advance_decline_50d()"))
+          PY
