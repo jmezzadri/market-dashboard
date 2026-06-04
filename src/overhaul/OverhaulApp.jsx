@@ -32,6 +32,7 @@ import './styles/pages.css';
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
+import './styles/responsive.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
@@ -39,6 +40,8 @@ import TweaksPanel from './tweaks/TweaksPanel';
 import Sidebar from './chrome/Sidebar';
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
+import LoginScreen from '../auth/LoginScreen';
+import { useSession } from '../auth/useSession';
 
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
@@ -114,6 +117,20 @@ function VersionWatch() {
   return null;
 }
 
+// SignInRoute — mounts the shared LoginScreen INSIDE the modern app so phone
+// users get the responsive sign-in card instead of being bounced to the old
+// (non-responsive) app. Signing in flips the Supabase session via
+// onAuthStateChange; once signed in we send the user to their portfolio.
+function SignInRoute() {
+  const { session } = useSession();
+  if (session) return <Navigate to="/portfolio" replace />;
+  return (
+    <main className="mt-main-wrap">
+      <LoginScreen />
+    </main>
+  );
+}
+
 function Shell() {
   return (
     <div className="mt-overhaul">
@@ -130,6 +147,7 @@ function Shell() {
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
+            <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />

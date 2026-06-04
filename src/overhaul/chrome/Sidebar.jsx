@@ -135,12 +135,7 @@ export default function Sidebar() {
             </button>
           </>
         ) : (
-          <a
-            href="/?v=2"
-            style={{ color: 'var(--mt-accent)', fontWeight: 500, textDecoration: 'none' }}
-          >
-            Sign in →
-          </a>
+          <NavLink to="/signin" style={{ color: 'var(--mt-accent)', fontWeight: 500, textDecoration: 'none' }}>Sign in →</NavLink>
         )}
       </div>
     </aside>
