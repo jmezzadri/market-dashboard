@@ -99,6 +99,19 @@ def run(
         live_positions = []
         logger.info("dry-run with live_prices=False — using empty Alpaca state")
 
+    # Open orders working at the broker. A ticker with a live (unfilled) order
+    # must not get a second order this run — this is what stops the EOD job's
+    # many morning fires from stacking the same name 6x (2026-06-04 fix).
+    open_order_tickers: set[str] = set()
+    if alpaca is not None:
+        try:
+            _open = alpaca.list_orders(status="open", limit=500)
+            open_order_tickers = {o.get("symbol", "").upper() for o in _open if o.get("symbol")}
+            logger.info("alpaca open orders: %d (tickers: %s)",
+                        len(_open), ", ".join(sorted(open_order_tickers)) or "none")
+        except Exception as exc:  # never crash the run on this read
+            logger.warning("could not list open orders (%s) — proceeding without open-order guard", exc)
+
     # 3 — Asset Tilt
     asset_tilt = load_asset_tilt_snapshot(asset_tilt_path)
     logger.info(
@@ -152,6 +165,7 @@ def run(
         alpaca=alpaca, asset_tilt_snapshot=asset_tilt,
         suppress_buys=suppress_buys,
         eod_prices=eod_prices,
+        open_order_tickers=open_order_tickers,
     )
     logger.info("diff produced %d order intents", len(intents))
 
@@ -243,3 +257,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
