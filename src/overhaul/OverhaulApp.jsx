@@ -89,6 +89,31 @@ function ScrollToTop() {
   return null;
 }
 
+// Auto-update: when a new build has been deployed, reload the tab the next
+// time it regains focus — so an open tab never shows a stale version and you
+// never have to hard-refresh. Safe by design: it only reloads when it has read
+// a real current build id AND later reads a DIFFERENT one; any fetch failure
+// is ignored (so it can never loop or reload spuriously).
+function VersionWatch() {
+  useEffect(() => {
+    let current = null, cancelled = false;
+    const readBuildId = () =>
+      fetch('/', { cache: 'no-store' })
+        .then((r) => r.text())
+        .then((h) => (h.match(/\/assets\/index-[\w-]+\.js/) || [null])[0])
+        .catch(() => null);
+    readBuildId().then((id) => { if (!cancelled) current = id; });
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible' || !current) return;
+      const id = await readBuildId();
+      if (!cancelled && id && id !== current) window.location.reload();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); };
+  }, []);
+  return null;
+}
+
 function Shell() {
   return (
     <div className="mt-overhaul">
@@ -98,6 +123,7 @@ function Shell() {
           <TopNav />
           <PageHeader />
           <ScrollToTop />
+          <VersionWatch />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/macro" element={<MacroPage />} />
