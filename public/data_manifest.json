@@ -3010,6 +3010,92 @@
    "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
    "owner": "Data Steward",
    "registered_date": "2026-06-03"
+  },
+  {
+   "id": "portfolio.paper-nav-daily",
+   "category": "portfolio",
+   "name": "paper-nav-daily",
+   "description": "Paper portfolio daily NAV and per-sleeve values, from the Alpaca paper account.",
+   "sourcing_mode": "computed",
+   "source_vendor": "Alpaca (paper)",
+   "source_endpoint": "Alpaca account equity + positions → paper_nav_daily",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "09:45",
+   "refresh_trigger": "PAPER-PORTFOLIO-OPEN-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "Supabase public.paper_nav_daily",
+   "producer_script": "paper_portfolio/mirror.py (write_nav_daily)",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Performance card"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Holds prior NAV row if the Alpaca read fails.",
+   "owner": "Lead Developer",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": []
+  },
+  {
+   "id": "portfolio.paper-positions-snapshot",
+   "category": "portfolio",
+   "name": "paper-positions-snapshot",
+   "description": "Paper portfolio per-name holdings snapshot (both sleeves), mirrored from Alpaca.",
+   "sourcing_mode": "STP",
+   "source_vendor": "Alpaca (paper)",
+   "source_endpoint": "Alpaca /v2/positions → paper_positions",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "09:45",
+   "refresh_trigger": "PAPER-PORTFOLIO-OPEN-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "Supabase public.paper_positions",
+   "producer_script": "paper_portfolio/mirror.py (mirror_positions)",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Sleeve A / Sleeve B holdings tables"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Retains the prior snapshot if the Alpaca read fails.",
+   "owner": "Lead Developer",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": []
+  },
+  {
+   "id": "portfolio.paper-orders-intent",
+   "category": "portfolio",
+   "name": "paper-orders-intent",
+   "description": "Paper rebalance order intents queued for the next open (Asset Tilt + Equity Scanner diff).",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt engine",
+   "source_endpoint": "Asset Tilt + Equity Scanner diff → paper_orders",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "04:00 (pre-open window to 09:25)",
+   "refresh_trigger": "PAPER-PORTFOLIO-EOD-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "Supabase public.paper_orders",
+   "producer_script": "paper_portfolio/translator.py + submitter.py",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Recent rebalances"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Skips submission and files a P1 alert if signals are stale (freshness gate).",
+   "owner": "Lead Developer",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [
+    "portfolio.paper-positions-snapshot"
+   ]
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
