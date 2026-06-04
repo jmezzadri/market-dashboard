@@ -3278,6 +3278,378 @@
    "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
    "owner": "Senior Quant",
    "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_gold-daily",
+   "category": "indicator",
+   "name": "cmdty_gold",
+   "description": "Gold futures (GC=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API GC=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_gold]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_silver-daily",
+   "category": "indicator",
+   "name": "cmdty_silver",
+   "description": "Silver futures (SI=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API SI=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_silver]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_copper-daily",
+   "category": "indicator",
+   "name": "cmdty_copper",
+   "description": "Copper futures (HG=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API HG=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_copper]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_uranium-weekly",
+   "category": "indicator",
+   "name": "cmdty_uranium",
+   "description": "Uranium spot (UX=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API UX=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "weekly",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 240,
+   "output_destination": "public/indicator_history.json[cmdty_uranium]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "weekly-friday",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_oil-daily",
+   "category": "indicator",
+   "name": "cmdty_oil",
+   "description": "WTI crude futures (CL=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API CL=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_oil]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_natgas-daily",
+   "category": "indicator",
+   "name": "cmdty_natgas",
+   "description": "Henry Hub natural gas futures (NG=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API NG=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_natgas]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_corn-daily",
+   "category": "indicator",
+   "name": "cmdty_corn",
+   "description": "Corn futures (ZC=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ZC=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_corn]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_soybeans-daily",
+   "category": "indicator",
+   "name": "cmdty_soybeans",
+   "description": "Soybean futures (ZS=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ZS=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_soybeans]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-cmdty_wheat-daily",
+   "category": "indicator",
+   "name": "cmdty_wheat",
+   "description": "Wheat futures (ZW=F), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ZW=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[cmdty_wheat]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-fx_eur-daily",
+   "category": "indicator",
+   "name": "fx_eur",
+   "description": "Euro / US dollar (EURUSD=X), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API EURUSD=X",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[fx_eur]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-fx_jpy-daily",
+   "category": "indicator",
+   "name": "fx_jpy",
+   "description": "US dollar / Japanese yen (JPY=X), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API JPY=X",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[fx_jpy]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-fx_gbp-daily",
+   "category": "indicator",
+   "name": "fx_gbp",
+   "description": "British pound / US dollar (GBPUSD=X), ranked into its own 3-year range.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API GBP=X",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "16:45",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[fx_gbp]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": []
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
