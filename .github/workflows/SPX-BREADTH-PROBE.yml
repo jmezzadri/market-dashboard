@@ -1,0 +1,68 @@
+name: SPX-BREADTH-PROBE
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install requests openpyxl pandas -q
+      - name: fetch SPY membership, map to prices, compute % > EMA
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import requests,io,os,re,json,urllib.request
+          from openpyxl import load_workbook
+          URL="https://www.ssga.com/us/en/intermediary/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
+          r=requests.get(URL,headers={"User-Agent":"Mozilla/5.0"},timeout=60); print("ssga http",r.status_code,"bytes",len(r.content))
+          wb=load_workbook(io.BytesIO(r.content),read_only=True,data_only=True)
+          ws=wb.active
+          rows=[[c for c in row] for row in ws.iter_rows(values_only=True)]
+          # find header row containing 'Ticker'
+          hdr=None
+          for i,row in enumerate(rows[:12]):
+              if row and any(str(c).strip().lower()=='ticker' for c in row if c): hdr=i; break
+          cols=[str(c).strip() if c else '' for c in rows[hdr]]
+          ti=cols.index('Ticker'); 
+          tickers=[]
+          for row in rows[hdr+1:]:
+              if not row or ti>=len(row): continue
+              t=row[ti]
+              if t and isinstance(t,str) and t.strip() and t.strip()!='-': tickers.append(t.strip())
+          print("header row",hdr,"cols",cols[:8])
+          print("SSGA tickers parsed:",len(tickers),"sample",tickers[:8])
+          # normalize for Polygon (Polygon uses dot class shares e.g. BRK.B)
+          norm=sorted(set(tickers))
+          U=os.environ['SUPABASE_URL']; TOK=os.environ['SUPABASE_ACCESS_TOKEN']; ref=re.sub(r'^https?://','',U).split('.')[0]
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+          def q(sql,t=300):
+              rq=urllib.request.Request(f"https://api.supabase.com/v1/projects/{ref}/database/query",
+                data=json.dumps({"query":sql}).encode(),method="POST",
+                headers={"Authorization":"Bearer "+TOK,"Content-Type":"application/json","User-Agent":UA})
+              with urllib.request.urlopen(rq,timeout=t) as x: return json.loads(x.read().decode())
+          arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in norm)+"]"
+          m=q(f"select count(distinct ticker) n from public.prices_eod where ticker = ANY({arr})")
+          print("members matched in prices_eod:",m)
+          sql=f"""
+          with recursive px as (
+            select ticker,trade_date,close::float8 close,row_number() over(partition by ticker order by trade_date) rn
+            from public.prices_eod where ticker = ANY({arr}) and trade_date>=current_date-interval '5 years' and close is not null),
+          ema as (
+            select ticker,trade_date,close,rn,close e50,close e200 from px where rn=1
+            union all
+            select p.ticker,p.trade_date,p.close,p.rn, p.close*(2.0/51)+e.e50*(1-2.0/51), p.close*(2.0/201)+e.e200*(1-2.0/201)
+            from ema e join px p on p.ticker=e.ticker and p.rn=e.rn+1)
+          select to_char(trade_date,'YYYY-MM-DD') d,
+            round(100.0*avg((close>e50)::int) filter(where rn>=50),1) p50,
+            round(100.0*avg((close>e200)::int) filter(where rn>=200),1) p200,
+            count(*) filter(where rn>=200) n200
+          from ema where trade_date>=current_date-interval '10 days'
+          group by trade_date order by trade_date desc limit 6
+          """
+          import time; t0=time.time()
+          res=q("set statement_timeout='290s'; "+sql)
+          print("compute secs",round(time.time()-t0,1))
+          for row in res: print(row)
+          PY
