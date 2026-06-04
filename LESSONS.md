@@ -22,6 +22,31 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-03 — STALE LOCAL COPY: never edit/commit a repo file from the Cowork-mounted disk; fetch origin/main FIRST (HARD RULE #1)
+
+**What happened:** The Cowork-mounted `market-dashboard-live` folder is a FROZEN
+git worktree — its `.git` points at a dead session path, so it can never pull
+and every file in it is a stale snapshot. Editing a file there and committing it
+via the GitHub API silently REVERTS whatever newer commits touched that file.
+This has caused regressions multiple times a day: the descriptive Asset Tilt
+hero got reverted to the old %-equity version, the `{cond && ({/* */})}`
+empty-object crash blocks were reintroduced (blank page), and more. Joe keeps
+finding these himself — the agent does not self-catch.
+
+**What you should do instead:** Treat the mounted disk as UNTRUSTED for any
+file you will commit. Before editing ANY repo file, fetch its current content
+from origin/main and edit THAT copy:
+`curl -H "Authorization: Bearer $PAT" -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/jmezzadri/market-dashboard/contents/<path>?ref=main"`
+Then PUT it back via the Contents API (which carries the latest blob sha).
+Never `grep`/edit the on-disk `src/**` as the source of truth. After ANY deploy
+to a user-visible surface, hard-reload (cache-bust) the page and read the
+console for `Minified React error` BEFORE telling Joe it is done. If a commit
+could plausibly touch a file someone else changed, diff your version against
+origin/main and confirm every difference is an intended change.
+
+---
+
 ## 2026-06-01 — Never ship synthetic/placeholder data dressed as real; un-wired = em-dash
 
 **What happened:** Large parts of the Scanner and Ticker Detail pages were
