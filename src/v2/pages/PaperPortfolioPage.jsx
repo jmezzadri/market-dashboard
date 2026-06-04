@@ -231,6 +231,8 @@ const PAGE_CSS = `
   position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize; user-select: none;
 }
 .paper-table th.dragover { background: var(--bg-2); }
+.paper-cash-row td { border-top: 1px solid var(--line-1); color: var(--ink-2); font-style: italic; }
+.paper-cash-row td.mv { font-style: normal; font-weight: 500; color: var(--ink-1); }
 .paper-ticker-link {
   background: none; border: none; padding: 0; font: inherit; font-weight: 500;
   color: var(--accent, #0071e3); cursor: pointer;
@@ -254,6 +256,47 @@ const fmtPctP = (n, places = 1) => {
   return n < 0 ? `(${s})` : `+${s}`;
 };
 const dirClass = (n) => (n == null ? 'muted' : (n >= 0 ? 'up' : 'down'));
+
+const PAPER_SLEEVE_CAP = 500_000;
+
+// Split the shared Alpaca account into two sleeve values that ALWAYS sum to
+// the broker total (total_nav). The account shares one cash pool and one
+// margin balance, so per-sleeve value = the sleeve's holdings + its share of
+// the book's idle cash (or minus its share of borrowing). Handles BOTH
+// regimes:
+//   • net idle cash (book under-invested): cash goes to the sleeve(s) with
+//     unused capacity below their $500K cap — a fully-invested sleeve holds
+//     none. (Earlier bug: the levered-only formula dumped ALL idle cash on
+//     whichever sleeve was $1 over cap, inventing a fake +35% sleeve.)
+//   • net borrowing (book levered): the loan is charged to the sleeve(s) that
+//     exceeded their cap.
+// Returns dollar value AND cash for each sleeve so the tables can show cash.
+function reconcileSleeves(row) {
+  const CAP = PAPER_SLEEVE_CAP;
+  if (!row || row.total_nav == null) return { aValue: null, bValue: null, aCash: null, bCash: null };
+  const tn = row.total_nav;
+  const ag = row.sleeve_a_equity, bg = row.sleeve_b_equity;
+  if (ag == null || bg == null) {
+    const av = row.sleeve_a_value, bv = row.sleeve_b_value;
+    if (av != null && bv != null && (av + bv) > 0) { const k = tn / (av + bv); return { aValue: av * k, bValue: bv * k, aCash: null, bCash: null }; }
+    return { aValue: tn / 2, bValue: tn / 2, aCash: null, bCash: null };
+  }
+  const gross = ag + bg;
+  const totalCash = tn - gross;                 // + = idle cash, − = net borrowing
+  let aCash, bCash;
+  if (totalCash >= 0) {
+    const capA = Math.max(0, CAP - ag), capB = Math.max(0, CAP - bg);
+    const base = capA + capB;
+    if (base > 0) { aCash = totalCash * capA / base; bCash = totalCash * capB / base; }
+    else { aCash = totalCash / 2; bCash = totalCash / 2; }
+  } else {
+    const borA = Math.max(0, ag - CAP), borB = Math.max(0, bg - CAP);
+    const base = borA + borB;
+    if (base > 0) { aCash = totalCash * borA / base; bCash = totalCash * borB / base; }
+    else { aCash = totalCash / 2; bCash = totalCash / 2; }
+  }
+  return { aValue: ag + aCash, bValue: bg + bCash, aCash, bCash };
+}
 
 function SummaryCard({ navHistory }) {
   const empty = !navHistory || navHistory.length === 0;
@@ -286,35 +329,10 @@ function SummaryCard({ navHistory }) {
   const CAP = 500_000, TOTAL_CAP = STARTING_CAPITAL;
   const ret = (now, then) => (now != null && then) ? (now / then - 1) : null;
 
-  // ── Sleeve value, reconciled so the parts ALWAYS sum to the broker total ──
-  // The book is levered (Sleeve B borrows on overflow buys; Sleeve A may carry
-  // incidental margin). The only true account value is Alpaca's reported
-  // equity (total_nav). Each sleeve's value here is its net equity: the market
-  // value of its holdings minus its share of the account's borrowing. Defined
-  // this way, Sleeve A + Sleeve B === Total, by construction — no more
-  // parts-don't-add mismatch. (The old page summed an unreconciled per-sleeve
-  // realized-P&L estimate that overstated the book.)
-  const sleeves = (r) => {
-    if (!r || r.total_nav == null) return { a: null, b: null };
-    const tn = r.total_nav;
-    const ag = r.sleeve_a_equity, bg = r.sleeve_b_equity;
-    if (ag == null || bg == null) {
-      const av = r.sleeve_a_value, bv = r.sleeve_b_value;
-      if (av != null && bv != null && (av + bv) > 0) { const k = tn / (av + bv); return { a: av * k, b: bv * k }; }
-      return { a: tn / 2, b: tn / 2 };
-    }
-    const gross = ag + bg;
-    const margin = gross - tn;                       // total borrowing across the book
-    const aB = Math.max(0, ag - CAP), bB = Math.max(0, bg - CAP);
-    const base = aB + bB;
-    if (base <= 0) {                                  // unlevered: split idle cash evenly
-      const cash = tn - gross;
-      return { a: ag + cash / 2, b: bg + cash / 2 };
-    }
-    return { a: ag - margin * (aB / base), b: bg - margin * (bB / base) };
-  };
-
-  const sLatest = sleeves(latest), sPrev = sleeves(prev), sTtm = sleeves(ttmRow);
+  // Sleeve values reconciled so Sleeve A + Sleeve B === Total (broker NAV),
+  // in both the idle-cash and levered regimes. See reconcileSleeves above.
+  const sLatest = reconcileSleeves(latest);
+  const sLatestA = sLatest.aValue, sLatestB = sLatest.bValue;
 
   const spyNow = latest.spy_close ?? null;
   const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
@@ -322,18 +340,18 @@ function SummaryCard({ navHistory }) {
   const rows = [
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
-      value: sLatest.a,
+      value: sLatestA,
       daily: null,   // sleeve-level daily/TTM omitted: net-equity attribution
       ttm: null,     // shifts with leverage day-to-day; book-level is the clean series
-      incep: ret(sLatest.a, CAP),
+      incep: ret(sLatestA, CAP),
       beta: latest.sleeve_a_beta ?? null,
     },
     {
       label: 'Sleeve B', sub: 'Equity Scanner · $500K',
-      value: sLatest.b,
+      value: sLatestB,
       daily: null,
       ttm: null,
-      incep: ret(sLatest.b, CAP),
+      incep: ret(sLatestB, CAP),
       beta: latest.sleeve_b_beta ?? null,
     },
     {
@@ -406,7 +424,7 @@ function SummaryCard({ navHistory }) {
         </tbody>
       </table>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <FreshnessChip elementId="portfolio.paper-nav-daily" variant="label" fallback={{ asOfIso: latest.snapshot_date, calendar: 'nyse' }} />
+        <FreshnessChip elementId="portfolio.paper-nav-daily" variant="label" fallback={{ asOfIso: latest.created_at || latest.snapshot_date, calendar: 'nyse' }} />
       </div>
     </div>
   );
@@ -460,7 +478,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, cfg, setCfg }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). This table renders only the columns that
   // apply to its sleeve — Sleeve A has no Score, so it's filtered out here.
@@ -621,7 +639,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
               </div>
             )}
           </div>
-          <FreshnessChip elementId="portfolio.paper-positions-snapshot" variant="label" fallback={{ asOfIso: asOf, calendar: 'nyse' }} />
+          <FreshnessChip elementId="portfolio.paper-positions-snapshot" variant="label" fallback={{ asOfIso: updatedAt || asOf, calendar: 'nyse' }} />
         </div>
       </div>
 
@@ -667,6 +685,19 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
                   })}
                 </tr>
               ))}
+              {cashValue != null && (
+                <tr className="paper-cash-row">
+                  {visibleCols.map((c) => {
+                    const m = meta(c.key);
+                    const cls = (m.align === 'right' ? 'r ' : '') + (c.key === 'ticker' ? 'ticker' : '') + (m.strong ? ' mv' : '');
+                    let content = '';
+                    if (c.key === 'ticker') content = 'Cash (idle)';
+                    else if (c.key === 'market_value') content = fmtMoneyExact(cashValue);
+                    else if (c.key === 'weight') content = grossLong + cashValue > 0 ? `${(cashValue / (grossLong + cashValue) * 100).toFixed(1)}%` : '';
+                    return <td key={c.key} className={cls.trim()} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{content}</td>;
+                  })}
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -802,6 +833,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const sleeveA = useMemo(() => positions.filter((p) => p.sleeve === 'A'), [positions]);
   const sleeveB = useMemo(() => positions.filter((p) => p.sleeve === 'B'), [positions]);
 
+  // Reconciled per-sleeve cash (idle) so each table can show a Cash line that
+  // ties the sleeve's holdings + cash to the broker NAV.
+  const latestNav = navHistory.length ? navHistory[navHistory.length - 1] : null;
+  const recon = useMemo(() => reconcileSleeves(latestNav), [latestNav]);
+  // Precise last-update timestamp for the positions snapshot (has time-of-day,
+  // so the freshness tooltip shows date AND time, not just a date).
+  const posUpdatedAt = positions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
+
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
   useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
@@ -823,6 +862,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           sleeve="A"
           positions={sleeveA}
           asOf={posAsOf}
+          updatedAt={posUpdatedAt}
+          cashValue={recon.aCash}
           totalCapital={account?.sleeve_a_allocation || 500_000}
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
@@ -834,6 +875,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           sleeve="B"
           positions={sleeveB}
           asOf={posAsOf}
+          updatedAt={posUpdatedAt}
+          cashValue={recon.bCash}
           totalCapital={account?.sleeve_b_allocation || 500_000}
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
