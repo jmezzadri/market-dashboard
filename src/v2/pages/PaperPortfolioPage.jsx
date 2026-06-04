@@ -323,16 +323,16 @@ function SummaryCard({ navHistory }) {
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
       value: sLatest.a,
-      daily: ret(sLatest.a, sPrev.a),
-      ttm: ret(sLatest.a, sTtm.a),
+      daily: null,   // sleeve-level daily/TTM omitted: net-equity attribution
+      ttm: null,     // shifts with leverage day-to-day; book-level is the clean series
       incep: ret(sLatest.a, CAP),
       beta: latest.sleeve_a_beta ?? null,
     },
     {
       label: 'Sleeve B', sub: 'Equity Scanner · $500K',
       value: sLatest.b,
-      daily: ret(sLatest.b, sPrev.b),
-      ttm: ret(sLatest.b, sTtm.b),
+      daily: null,
+      ttm: null,
       incep: ret(sLatest.b, CAP),
       beta: latest.sleeve_b_beta ?? null,
     },
@@ -383,7 +383,7 @@ function SummaryCard({ navHistory }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Time-weighted return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Total book = the live Alpaca account value (your real equity, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings minus its share of the book's leverage. Daily = today's move; TTM = trailing 12 months (equals inception until the book is a year old); Inception = since the book opened; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Time-weighted return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Total book = the live Alpaca account value (your real equity, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings minus its share of the book's leverage. Daily & TTM are shown at the book level only — a single sleeve's day-to-day return isn't clean while the book shares one margin balance. Inception = since the book opened, anchored to each sleeve's $500K start; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
         <span className="pts-asof">{latest.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}</span>
       </div>
       <table className="pmx">
