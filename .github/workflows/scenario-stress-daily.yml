@@ -75,7 +75,7 @@ jobs:
           if [[ -n "$(git status --porcelain public/scenario_stress.json)" ]]; then
             git add public/scenario_stress.json
             git commit -m "scenario-stress-daily: refresh scenario_stress.json [skip ci]"
-            git push origin HEAD:main
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
           else
             echo "No change in public/scenario_stress.json"
           fi
