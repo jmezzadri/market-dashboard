@@ -57,7 +57,7 @@ export default function TopNav() {
             </button>
           </>
         ) : (
-          <a className="mt-topnav-signin" href="/?v=2">Sign in →</a>
+          <NavLink className="mt-topnav-signin" to="/signin">Sign in →</NavLink>
         )}
       </div>
     </div>
