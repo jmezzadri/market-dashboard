@@ -4,18 +4,18 @@
  * `.mt-app` is a fixed `232px 1fr` two-column grid (sidebar + main) with NO media
  * queries, so on a phone the sidebar never collapses and the fixed-width inner
  * grids force the layout viewport out to ~1700px. iPhone Safari then zooms the
- * whole page out to fit, which is the "everything is tiny / looks awful" report,
- * and it also makes the Portfolio nav item (the only route to the sign-in card)
- * an un-tappable few-pixel target — the "can't sign in" report.
+ * whole page out to fit (the "everything is tiny / looks awful" report), and the
+ * sidebar — the ONLY place the Sign in / Sign out control lives — gets hidden off
+ * the zoomed-out canvas (the "can't sign in" report).
  *
- * The design already ships an alternate top-nav mode (`data-mt-sidebar='top'`):
- * a sticky horizontal nav (`.mt-topnav`) with the sidebar hidden. Below the
- * breakpoint we simply switch the shell into that layout directly, independent of
- * the (JS-set) sidebar attribute, then collapse the page-level multi-column grids
- * to a single column and cap the oversized display headlines.
+ * Below the breakpoint we switch the shell into the design's existing top-nav
+ * layout (sidebar hidden, `.mt-topnav` shown), collapse the page-level
+ * multi-column grids to a single column, cap the oversized display headlines,
+ * and neutralise the `min-width:auto` overflow that grid/flex items get by
+ * default (which let long headlines and dense tables push past the screen edge).
+ * The top-nav carries the auth control on mobile (see TopNav.jsx).
  *
- * Imported LAST in OverhaulApp so it wins the cascade. Scoped under .mt-overhaul
- * like every other overhaul rule, so nothing leaks to the legacy app.
+ * Imported LAST in OverhaulApp so it wins the cascade. Scoped under .mt-overhaul.
  */
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -26,24 +26,57 @@
   .mt-overhaul .mt-app { grid-template-columns: 1fr !important; }
   .mt-overhaul .mt-sidebar { display: none !important; }
 
-  /* Reveal the existing top-nav regardless of the data-mt-sidebar attribute. */
+  /* Reveal the existing top-nav regardless of the (JS-set) sidebar attribute.
+     Wrap the pills onto multiple rows so every destination — including the
+     Sign in control — is visible without horizontal hunting. */
   .mt-overhaul .mt-topnav {
     display: flex !important;
     position: sticky;
     top: 0;
     z-index: 10;
     align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    background: color-mix(in oklab, var(--mt-surface) 80%, transparent);
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    background: color-mix(in oklab, var(--mt-surface) 88%, transparent);
     border-bottom: 1px solid var(--mt-line-0);
     backdrop-filter: blur(20px);
-    padding: 10px 16px;
+    padding: 8px 14px;
   }
-  /* Keep nav pills from squishing — let the row scroll horizontally instead. */
   .mt-overhaul .mt-topnav .mt-pill { flex: 0 0 auto; white-space: nowrap; }
+
+  /* Auth slot: push to the right edge of the nav row. */
+  .mt-overhaul .mt-topnav-auth {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mt-overhaul .mt-topnav-signin {
+    color: var(--mt-accent);
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .mt-overhaul .mt-topnav-email {
+    font-family: var(--mt-font-mono);
+    font-size: 11px;
+    color: var(--mt-ink-2);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mt-overhaul .mt-topnav-signout {
+    background: transparent;
+    border: 1px solid var(--mt-line-1);
+    border-radius: 6px;
+    color: var(--mt-ink-2);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
 
   /* Tighten the global page padding token so content gets the full width. */
   .mt-overhaul { --mt-pad-page: 18px; }
@@ -54,18 +87,31 @@
     gap: 10px;
     padding: 12px var(--mt-pad-page);
   }
-  /* The search box had a 280px min-width that overflows narrow screens. */
   .mt-overhaul .mt-search { min-width: 0 !important; width: 100%; }
 
-  /* Page hero blocks: single column. */
   .mt-overhaul .mt-pagehero { grid-template-columns: 1fr !important; }
   .mt-overhaul .mt-pagesection { padding: 22px var(--mt-pad-page); }
+
+  /* ── Overflow containment (the "overhangs") ────────────────────────────
+     Grid and flex items default to `min-width:auto`, so a long headline or a
+     wide table can balloon its track past the screen edge. Force children to
+     be allowed to shrink, let headlines wrap, and let genuinely-wide data
+     tables scroll inside their own card rather than blowing out the page. */
+  .mt-overhaul .mt-pagebody > *,
+  .mt-overhaul .mt-pagehero > *,
+  .mt-overhaul .mt-pagesection > * { min-width: 0 !important; }
+  .mt-overhaul .mt-h1,
+  .mt-overhaul .mt-deck { overflow-wrap: anywhere; }
+  .mt-overhaul .mt-pagebody,
+  .mt-overhaul .mt-pagesection { overflow-x: hidden; }
+  .mt-overhaul [class*="-results"],
+  .mt-overhaul [class*="-table"],
+  .mt-overhaul .mt-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
    PHONE — ≤ 640px : collapse every remaining multi-column page grid to one
-   column, cap the oversized display headlines, and let dense data tables
-   scroll horizontally inside their own card instead of blowing out the page.
+   column and cap the oversized display headlines.
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .mt-overhaul { --mt-pad-page: 14px; }
@@ -107,22 +153,13 @@
   .mt-overhaul .tk-hero { grid-template-columns: 1fr !important; }
 
   /* Cap the big editorial display headlines so they don't overflow / wrap ugly. */
+  .mt-overhaul .mt-h1,
   .mt-overhaul .mt-pagehero h1,
   .mt-overhaul .at-headalloc,
   .mt-overhaul [data-type="monumental"] .at-headalloc,
   .mt-overhaul .tk-hero h1 {
-    font-size: clamp(30px, 9vw, 44px) !important;
-    line-height: 1.08 !important;
+    font-size: clamp(28px, 8vw, 40px) !important;
+    line-height: 1.1 !important;
     letter-spacing: -0.02em !important;
   }
-
-  /* Dense fixed-px data-table rows: keep their column shape but let the card
-     scroll sideways rather than expanding the whole page width. The page
-     sections already clip to the viewport, so the table scrolls in place. */
-  .mt-overhaul .mt-pagesection,
-  .mt-overhaul .mt-main { overflow-x: hidden; }
-
-  /* Stat cards on the home hero ribbon: stack. */
-  .mt-overhaul .hm-statrow,
-  .mt-overhaul .hm-keystats { grid-template-columns: 1fr !important; }
 }
