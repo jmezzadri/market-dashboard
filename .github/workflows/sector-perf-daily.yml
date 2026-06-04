@@ -53,5 +53,5 @@ jobs:
             echo "No changes — skipping."
           else
             git commit -m "sector-perf-daily: refresh sector_perf.json [skip ci]"
-            git push
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
           fi
