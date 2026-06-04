@@ -284,32 +284,60 @@ function SummaryCard({ navHistory }) {
   }
 
   const CAP = 500_000, TOTAL_CAP = STARTING_CAPITAL;
-  const aVal = (r) => r?.sleeve_a_value ?? (r ? CAP + (r.sleeve_a_realized_pnl || 0) + (r.sleeve_a_unrealized_pnl || 0) : null);
-  const bVal = (r) => r?.sleeve_b_value ?? (r ? CAP + (r.sleeve_b_realized_pnl || 0) + (r.sleeve_b_unrealized_pnl || 0) : null);
   const ret = (now, then) => (now != null && then) ? (now / then - 1) : null;
+
+  // ── Sleeve value, reconciled so the parts ALWAYS sum to the broker total ──
+  // The book is levered (Sleeve B borrows on overflow buys; Sleeve A may carry
+  // incidental margin). The only true account value is Alpaca's reported
+  // equity (total_nav). Each sleeve's value here is its net equity: the market
+  // value of its holdings minus its share of the account's borrowing. Defined
+  // this way, Sleeve A + Sleeve B === Total, by construction — no more
+  // parts-don't-add mismatch. (The old page summed an unreconciled per-sleeve
+  // realized-P&L estimate that overstated the book.)
+  const sleeves = (r) => {
+    if (!r || r.total_nav == null) return { a: null, b: null };
+    const tn = r.total_nav;
+    const ag = r.sleeve_a_equity, bg = r.sleeve_b_equity;
+    if (ag == null || bg == null) {
+      const av = r.sleeve_a_value, bv = r.sleeve_b_value;
+      if (av != null && bv != null && (av + bv) > 0) { const k = tn / (av + bv); return { a: av * k, b: bv * k }; }
+      return { a: tn / 2, b: tn / 2 };
+    }
+    const gross = ag + bg;
+    const margin = gross - tn;                       // total borrowing across the book
+    const aB = Math.max(0, ag - CAP), bB = Math.max(0, bg - CAP);
+    const base = aB + bB;
+    if (base <= 0) {                                  // unlevered: split idle cash evenly
+      const cash = tn - gross;
+      return { a: ag + cash / 2, b: bg + cash / 2 };
+    }
+    return { a: ag - margin * (aB / base), b: bg - margin * (bB / base) };
+  };
+
+  const sLatest = sleeves(latest), sPrev = sleeves(prev), sTtm = sleeves(ttmRow);
 
   const spyNow = latest.spy_close ?? null;
   const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
 
   const rows = [
     {
-      label: 'Sleeve A', sub: '$500K', cap: CAP,
-      value: aVal(latest),
-      daily: ret(aVal(latest), aVal(prev)),
-      ttm: ret(aVal(latest), aVal(ttmRow)),
-      incep: ret(aVal(latest), CAP),
+      label: 'Sleeve A', sub: 'Asset Tilt · $500K',
+      value: sLatest.a,
+      daily: ret(sLatest.a, sPrev.a),
+      ttm: ret(sLatest.a, sTtm.a),
+      incep: ret(sLatest.a, CAP),
       beta: latest.sleeve_a_beta ?? null,
     },
     {
-      label: 'Sleeve B', sub: '$500K', cap: CAP,
-      value: bVal(latest),
-      daily: ret(bVal(latest), bVal(prev)),
-      ttm: ret(bVal(latest), bVal(ttmRow)),
-      incep: ret(bVal(latest), CAP),
+      label: 'Sleeve B', sub: 'Equity Scanner · $500K',
+      value: sLatest.b,
+      daily: ret(sLatest.b, sPrev.b),
+      ttm: ret(sLatest.b, sTtm.b),
+      incep: ret(sLatest.b, CAP),
       beta: latest.sleeve_b_beta ?? null,
     },
     {
-      label: 'Total', sub: '$1M', cap: TOTAL_CAP, strong: true,
+      label: 'Total book', sub: '$1M start', strong: true,
       value: latest.total_nav,
       daily: ret(latest.total_nav, prev?.total_nav),
       ttm: ret(latest.total_nav, ttmRow?.total_nav),
@@ -317,7 +345,7 @@ function SummaryCard({ navHistory }) {
       beta: latest.portfolio_beta ?? null,
     },
     {
-      label: 'S&P 500', sub: '$1M', benchmark: true,
+      label: 'S&P 500', sub: '$1M buy & hold', benchmark: true,
       value: spyVal,
       daily: ret(spyNow, latest.spy_prev_close),
       ttm: ret(spyNow, latest.spy_ttm_close),
@@ -327,7 +355,7 @@ function SummaryCard({ navHistory }) {
   ];
   const total = rows[2], spy = rows[3];
   const vs = {
-    label: 'Vs. S&P 500', vs: true,
+    label: 'Excess vs S&P 500', vs: true,
     value: (total.value != null && spy.value != null) ? total.value - spy.value : null,
     daily: (total.daily != null && spy.daily != null) ? total.daily - spy.daily : null,
     ttm: (total.ttm != null && spy.ttm != null) ? total.ttm - spy.ttm : null,
@@ -355,15 +383,15 @@ function SummaryCard({ navHistory }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Value and return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Daily = today's move; TTM = trailing 12 months (equals inception until the book is a year old); Inception = since the book opened; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Time-weighted return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Total book = the live Alpaca account value (your real equity, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings minus its share of the book's leverage. Daily = today's move; TTM = trailing 12 months (equals inception until the book is a year old); Inception = since the book opened; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
         <span className="pts-asof">{latest.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}</span>
       </div>
       <table className="pmx">
         <colgroup>
-          <col style={{ width: '23%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '15%' }} />
-          <col style={{ width: '15%' }} />
+          <col style={{ width: '27%' }} />
+          <col style={{ width: '16%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '14%' }} />
           <col style={{ width: '15%' }} />
           <col style={{ width: '14%' }} />
         </colgroup>
@@ -384,6 +412,7 @@ function SummaryCard({ navHistory }) {
   );
 }
 
+
 // ── Positions panel (one per sleeve) ───────────────────────────────────────
 
 // All available columns for the sleeve tables (every Alpaca position field +
@@ -395,11 +424,11 @@ const POS_COLUMNS = [
   { key: 'avg_cost',                 label: 'Avg entry',   w: 92,  align: 'right', fmt: 'price',  def: true },
   { key: 'current_price',            label: 'Price',       w: 84,  align: 'right', fmt: 'price',  def: true },
   { key: 'lastday_price',            label: 'Prior close', w: 96,  align: 'right', fmt: 'price',  def: false },
-  { key: 'change_today',             label: 'Day chg %',   w: 90,  align: 'right', fmt: 'pctDir', def: false },
+  { key: 'change_today',             label: 'Day chg %',   w: 90,  align: 'right', fmt: 'pctDir', def: true },
   { key: 'market_value',             label: 'Market value',w: 120, align: 'right', fmt: 'money',  def: true, strong: true },
   { key: 'cost_basis',               label: 'Cost basis',  w: 110, align: 'right', fmt: 'money',  def: false },
   { key: 'unrealized_intraday_pl',   label: 'Day P&L',     w: 100, align: 'right', fmt: 'moneyDir', def: true },
-  { key: 'unrealized_intraday_plpc', label: 'Day P&L %',   w: 92,  align: 'right', fmt: 'pctDir', def: true },
+  { key: 'unrealized_intraday_plpc', label: 'Day P&L %',   w: 92,  align: 'right', fmt: 'pctDir', def: false },
   { key: 'unrealized_pnl',           label: 'Total P&L',   w: 108, align: 'right', fmt: 'moneyDir', def: true },
   { key: 'unrealized_plpc',          label: 'Total P&L %', w: 100, align: 'right', fmt: 'pctDir', def: true },
   { key: 'weight',                   label: 'Weight %',    w: 84,  align: 'right', fmt: 'pctPlain', def: false },
@@ -410,7 +439,7 @@ const POS_COLUMNS = [
 // ONE shared column config (visibility + order + width) for BOTH sleeve
 // tables. Set once, persists once, applies to A and B. (Sleeve A simply
 // hides columns that don't apply to it, e.g. Score.)
-const PAPER_COLS_KEY = 'mt_paper_cols_v2_shared';
+const PAPER_COLS_KEY = 'mt_paper_cols_v3_shared';
 const posDefaultCfg = () => POS_COLUMNS.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
 function loadPaperCols() {
   try {
@@ -451,7 +480,25 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
   const dayPL = positions.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0);
   const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
 
-  const cellValue = (p, key) => key === 'weight' ? (grossLong > 0 ? (p.market_value || 0) / grossLong : null) : p[key];
+  // Percentages are computed from the dollar P&L and cost basis we trust.
+  // Alpaca's raw unrealized_plpc / unrealized_intraday_plpc arrive on a stale,
+  // mismatched basis (they disagreed in SIGN with the dollar P&L — e.g. a
+  // +$346 gain showing as -0.2%), so we derive them here instead.
+  const cellValue = (p, key) => {
+    if (key === 'weight') return grossLong > 0 ? (p.market_value || 0) / grossLong : null;
+    if (key === 'unrealized_plpc') {                 // Total P&L %  = total P&L / cost basis
+      const cb = p.cost_basis ?? ((p.avg_cost != null && p.quantity != null) ? p.avg_cost * p.quantity : null);
+      return (p.unrealized_pnl != null && cb) ? p.unrealized_pnl / cb : null;
+    }
+    if (key === 'unrealized_intraday_plpc') {         // Day P&L %  = day P&L / prior market value
+      const prior = (p.market_value != null && p.unrealized_intraday_pl != null) ? p.market_value - p.unrealized_intraday_pl : null;
+      return (p.unrealized_intraday_pl != null && prior) ? p.unrealized_intraday_pl / prior : null;
+    }
+    if (key === 'change_today') {                     // Day chg %  = price / prior close - 1
+      return (p.current_price != null && p.lastday_price) ? p.current_price / p.lastday_price - 1 : (p.change_today ?? null);
+    }
+    return p[key];
+  };
 
   const sorted = useMemo(() => {
     const a = [...positions];
