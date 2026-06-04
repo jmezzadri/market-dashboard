@@ -121,9 +121,18 @@
   .mt-overhaul .hm-featgrid,
   .mt-overhaul .hm-featgrid--three { grid-template-columns: 1fr !important; }
 
-  /* Macro overview */
-  .mt-overhaul .mc-domstrip,
+  /* Macro overview. The dominance strip packs several nowrap data cells; on a
+     phone we keep it a tidy swipeable row contained inside its own card rather
+     than squashing the cells illegibly. */
   .mt-overhaul .mc-grid { grid-template-columns: 1fr !important; }
+  .mt-overhaul .mc-domstrip {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+  }
+  .mt-overhaul .mc-domcell { flex: 0 0 auto; min-width: 150px; }
 
   /* Asset Tilt */
   .mt-overhaul .at-keygrid,
@@ -145,6 +154,20 @@
   .mt-overhaul .sn-splitcard,
   .mt-overhaul .sn-headstats,
   .mt-overhaul .al-summarygrid { grid-template-columns: 1fr !important; }
+
+  /* Let the cells of every collapsed strip shrink to the column (grid/flex
+     items default to min-width:auto, which otherwise re-opens the track to the
+     content's intrinsic width and pushes past the screen edge). */
+  .mt-overhaul .mc-grid > *,
+  .mt-overhaul .at-keygrid > *,
+  .mt-overhaul .sc-buckets > *,
+  .mt-overhaul .sc-colgrid > *,
+  .mt-overhaul .sc-buildgrid > *,
+  .mt-overhaul .pf-keygrid > *,
+  .mt-overhaul .pf-acctgrid > *,
+  .mt-overhaul .pf-acctkv > *,
+  .mt-overhaul .sn-headstats > *,
+  .mt-overhaul .al-summarygrid > * { min-width: 0 !important; }
 
   /* Ticker detail */
   .mt-overhaul .tk-keygrid,
