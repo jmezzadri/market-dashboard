@@ -61,5 +61,5 @@ jobs:
             git config user.email "bot@github-actions"
             git add public/indicator_history.json
             git commit -m "Market indicators (commodities + FX) EOD refresh [skip ci]"
-            git push || echo "Push failed (non-fatal); next scheduled run will retry."
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
           fi
