@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-29T23:56:34+00:00",
+  "as_of": "2026-06-04T23:54:30+00:00",
   "version": "v2",
   "method": {
     "proxy": "Primary Select Sector SPDR ETF per GICS sector.",
@@ -9,357 +9,357 @@
   },
   "sectors": {
     "Information Technology": {
-      "perf_1m": 16.37,
-      "perf_3m": 30.66,
-      "perf_ttm": 64.76,
-      "vol_ttm": 20.6,
+      "perf_1m": 21.09,
+      "perf_3m": 40.32,
+      "perf_ttm": 68.47,
+      "vol_ttm": 20.8,
       "proxy": "XLK",
-      "last_close": 186.85,
-      "last_date": "2026-05-28"
+      "last_close": 196.23,
+      "last_date": "2026-06-03"
     },
     "Communication Services": {
-      "perf_1m": 0.74,
-      "perf_3m": 0.15,
-      "perf_ttm": 16.45,
-      "vol_ttm": 13.1,
+      "perf_1m": -3.46,
+      "perf_3m": -5.65,
+      "perf_ttm": 9.99,
+      "vol_ttm": 13.2,
       "proxy": "XLC",
-      "last_close": 116.67,
-      "last_date": "2026-05-28"
+      "last_close": 112.08,
+      "last_date": "2026-06-03"
     },
     "Financials": {
-      "perf_1m": -1.12,
-      "perf_3m": -2.34,
-      "perf_ttm": 0.67,
-      "vol_ttm": 14.3,
+      "perf_1m": -1.38,
+      "perf_3m": -1.22,
+      "perf_ttm": -0.22,
+      "vol_ttm": 14.4,
       "proxy": "XLF",
-      "last_close": 51.27,
-      "last_date": "2026-05-28"
+      "last_close": 50.87,
+      "last_date": "2026-06-03"
     },
     "Health Care": {
-      "perf_1m": 4.89,
-      "perf_3m": -4.15,
-      "perf_ttm": 14.16,
-      "vol_ttm": 14.5,
+      "perf_1m": 1.95,
+      "perf_3m": -6.05,
+      "perf_ttm": 11.17,
+      "vol_ttm": 14.6,
       "proxy": "XLV",
-      "last_close": 150.88,
-      "last_date": "2026-05-28"
+      "last_close": 147.55,
+      "last_date": "2026-06-03"
     },
     "Consumer Discretionary": {
-      "perf_1m": 4.32,
-      "perf_3m": 4.28,
-      "perf_ttm": 12.57,
-      "vol_ttm": 17.9,
+      "perf_1m": -0.84,
+      "perf_3m": 0.29,
+      "perf_ttm": 8.94,
+      "vol_ttm": 18.1,
       "proxy": "XLY",
-      "last_close": 122.06,
-      "last_date": "2026-05-28"
+      "last_close": 116.73,
+      "last_date": "2026-06-03"
     },
     "Consumer Staples": {
-      "perf_1m": 1.62,
-      "perf_3m": -4.99,
-      "perf_ttm": 2.54,
-      "vol_ttm": 12.6,
+      "perf_1m": -1.65,
+      "perf_3m": -5.74,
+      "perf_ttm": -0.87,
+      "vol_ttm": 12.7,
       "proxy": "XLP",
-      "last_close": 84.43,
-      "last_date": "2026-05-28"
+      "last_close": 82.16,
+      "last_date": "2026-06-03"
     },
     "Industrials": {
-      "perf_1m": 1.65,
-      "perf_3m": -1.64,
-      "perf_ttm": 21.28,
+      "perf_1m": 1.8,
+      "perf_3m": -1.09,
+      "perf_ttm": 22.02,
       "vol_ttm": 15.3,
       "proxy": "XLI",
-      "last_close": 173.8,
-      "last_date": "2026-05-28"
+      "last_close": 174.05,
+      "last_date": "2026-06-03"
     },
     "Energy": {
-      "perf_1m": -1.32,
-      "perf_3m": 3.45,
-      "perf_ttm": 37.73,
-      "vol_ttm": 20.6,
+      "perf_1m": -1.14,
+      "perf_3m": 4.48,
+      "perf_ttm": 42.15,
+      "vol_ttm": 20.7,
       "proxy": "XLE",
-      "last_close": 56.95,
-      "last_date": "2026-05-28"
+      "last_close": 58.71,
+      "last_date": "2026-06-03"
     },
     "Materials": {
-      "perf_1m": -0.08,
-      "perf_3m": -3.09,
-      "perf_ttm": 17.8,
+      "perf_1m": 1.93,
+      "perf_3m": -0.56,
+      "perf_ttm": 18.89,
       "vol_ttm": 16.7,
       "proxy": "XLB",
-      "last_close": 51.36,
-      "last_date": "2026-05-28"
+      "last_close": 51.63,
+      "last_date": "2026-06-03"
     },
     "Real Estate": {
-      "perf_1m": 2.12,
-      "perf_3m": 2.23,
-      "perf_ttm": 9.28,
-      "vol_ttm": 13.3,
+      "perf_1m": -1.29,
+      "perf_3m": -0.57,
+      "perf_ttm": 4.12,
+      "vol_ttm": 13.4,
       "proxy": "XLRE",
-      "last_close": 44.41,
-      "last_date": "2026-05-28"
+      "last_close": 43.51,
+      "last_date": "2026-06-03"
     },
     "Utilities": {
-      "perf_1m": -3.5,
-      "perf_3m": -5.4,
-      "perf_ttm": 9.29,
-      "vol_ttm": 14.2,
+      "perf_1m": -5.74,
+      "perf_3m": -7.53,
+      "perf_ttm": 6.38,
+      "vol_ttm": 14.5,
       "proxy": "XLU",
-      "last_close": 44.63,
-      "last_date": "2026-05-28"
+      "last_close": 43.71,
+      "last_date": "2026-06-03"
     },
     "BIL": {
-      "perf_1m": 0.0,
-      "perf_3m": 0.03,
-      "perf_ttm": -0.07,
+      "perf_1m": -0.01,
+      "perf_3m": 0.0,
+      "perf_ttm": -0.03,
       "vol_ttm": 1.1,
       "proxy": "BIL",
-      "last_close": 91.63,
-      "last_date": "2026-05-28"
+      "last_close": 91.41,
+      "last_date": "2026-06-03"
     },
     "TLT": {
-      "perf_1m": 0.07,
-      "perf_3m": -5.57,
-      "perf_ttm": 0.47,
-      "vol_ttm": 10.0,
+      "perf_1m": 0.08,
+      "perf_3m": -3.71,
+      "perf_ttm": 0.58,
+      "vol_ttm": 9.9,
       "proxy": "TLT",
-      "last_close": 85.76,
-      "last_date": "2026-05-29"
+      "last_close": 85.5,
+      "last_date": "2026-06-04"
     },
     "GLD": {
-      "perf_1m": -0.07,
-      "perf_3m": -13.77,
-      "perf_ttm": 37.3,
+      "perf_1m": -1.67,
+      "perf_3m": -11.77,
+      "perf_ttm": 33.14,
       "vol_ttm": 26.9,
       "proxy": "GLD",
-      "last_close": 417.12,
-      "last_date": "2026-05-29"
+      "last_close": 411.27,
+      "last_date": "2026-06-04"
     },
     "LQD": {
-      "perf_1m": -0.07,
-      "perf_3m": -2.2,
-      "perf_ttm": 1.88,
-      "vol_ttm": 5.6,
+      "perf_1m": 0.34,
+      "perf_3m": -2.12,
+      "perf_ttm": 1.45,
+      "vol_ttm": 5.5,
       "proxy": "LQD",
-      "last_close": 109.26,
-      "last_date": "2026-05-28"
+      "last_close": 108.62,
+      "last_date": "2026-06-03"
     }
   },
   "industry_groups": {
     "semis": {
-      "perf_1m": 29.81,
-      "perf_3m": 59.6,
-      "perf_ttm": 172.1,
-      "vol_ttm": 33.8,
+      "perf_1m": 33.25,
+      "perf_3m": 80.27,
+      "perf_ttm": 195.96,
+      "vol_ttm": 34.1,
       "proxy": "SOXX",
-      "last_close": 569.47,
-      "last_date": "2026-05-28"
+      "last_close": 615.68,
+      "last_date": "2026-06-03"
     },
     "software": {
-      "perf_1m": 12.56,
-      "perf_3m": 15.84,
-      "perf_ttm": -7.82,
-      "vol_ttm": 25.9,
+      "perf_1m": 13.3,
+      "perf_3m": 16.99,
+      "perf_ttm": -3.6,
+      "vol_ttm": 27.7,
       "proxy": "IGV",
-      "last_close": 95.68,
-      "last_date": "2026-05-28"
+      "last_close": 100.2,
+      "last_date": "2026-06-03"
     },
     "hardware": {
-      "perf_1m": 14.24,
-      "perf_3m": 27.32,
-      "perf_ttm": 60.84,
+      "perf_1m": 16.53,
+      "perf_3m": 36.34,
+      "perf_ttm": 62.76,
       "vol_ttm": 20.1,
       "proxy": "IYW",
-      "last_close": 249.53,
-      "last_date": "2026-05-28"
+      "last_close": 257.56,
+      "last_date": "2026-06-03"
     },
     "intmedia": {
-      "perf_1m": 0.74,
-      "perf_3m": 0.15,
-      "perf_ttm": 16.45,
-      "vol_ttm": 13.1,
+      "perf_1m": -3.46,
+      "perf_3m": -5.65,
+      "perf_ttm": 9.99,
+      "vol_ttm": 13.2,
       "proxy": "XLC",
-      "last_close": 116.67,
-      "last_date": "2026-05-28"
+      "last_close": 112.08,
+      "last_date": "2026-06-03"
     },
     "telecom": {
-      "perf_1m": 9.58,
-      "perf_3m": 14.78,
-      "perf_ttm": 57.46,
-      "vol_ttm": 17.4,
+      "perf_1m": 4.94,
+      "perf_3m": 9.99,
+      "perf_ttm": 57.51,
+      "vol_ttm": 18.0,
       "proxy": "IYZ",
-      "last_close": 44.72,
-      "last_date": "2026-05-28"
+      "last_close": 44.59,
+      "last_date": "2026-06-03"
     },
     "banks": {
-      "perf_1m": -1.4,
-      "perf_3m": -0.49,
-      "perf_ttm": 20.5,
-      "vol_ttm": 21.5,
+      "perf_1m": -1.94,
+      "perf_3m": 0.91,
+      "perf_ttm": 16.67,
+      "vol_ttm": 21.6,
       "proxy": "KBE",
-      "last_close": 63.48,
-      "last_date": "2026-05-28"
+      "last_close": 62.07,
+      "last_date": "2026-06-03"
     },
     "insurance": {
-      "perf_1m": -3.7,
-      "perf_3m": -2.71,
-      "perf_ttm": -3.59,
-      "vol_ttm": 16.2,
+      "perf_1m": -3.59,
+      "perf_3m": -6.63,
+      "perf_ttm": -8.29,
+      "vol_ttm": 16.0,
       "proxy": "KIE",
-      "last_close": 55.65,
-      "last_date": "2026-05-28"
+      "last_close": 54.24,
+      "last_date": "2026-06-03"
     },
     "divfin": {
-      "perf_1m": 1.09,
-      "perf_3m": 3.6,
-      "perf_ttm": 17.22,
-      "vol_ttm": 19.0,
+      "perf_1m": 1.75,
+      "perf_3m": 4.6,
+      "perf_ttm": 15.85,
+      "vol_ttm": 19.1,
       "proxy": "IAI",
-      "last_close": 179.58,
-      "last_date": "2026-05-28"
+      "last_close": 179.04,
+      "last_date": "2026-06-03"
     },
     "capgoods": {
-      "perf_1m": 1.65,
-      "perf_3m": -1.64,
-      "perf_ttm": 21.28,
+      "perf_1m": 1.8,
+      "perf_3m": -1.09,
+      "perf_ttm": 22.02,
       "vol_ttm": 15.3,
       "proxy": "XLI",
-      "last_close": 173.8,
-      "last_date": "2026-05-28"
+      "last_close": 174.05,
+      "last_date": "2026-06-03"
     },
     "transport": {
-      "perf_1m": 2.92,
-      "perf_3m": 4.4,
-      "perf_ttm": 28.76,
-      "vol_ttm": 20.3,
+      "perf_1m": 7.67,
+      "perf_3m": 2.39,
+      "perf_ttm": 27.79,
+      "vol_ttm": 20.2,
       "proxy": "IYT",
-      "last_close": 83.98,
-      "last_date": "2026-05-28"
+      "last_close": 83.56,
+      "last_date": "2026-06-03"
     },
     "defense": {
-      "perf_1m": 9.04,
-      "perf_3m": -2.34,
-      "perf_ttm": 37.72,
-      "vol_ttm": 20.7,
+      "perf_1m": 4.93,
+      "perf_3m": -8.2,
+      "perf_ttm": 26.88,
+      "vol_ttm": 20.8,
       "proxy": "ITA",
-      "last_close": 235.57,
-      "last_date": "2026-05-28"
+      "last_close": 224.89,
+      "last_date": "2026-06-03"
     },
     "pharma": {
-      "perf_1m": 6.31,
-      "perf_3m": -4.07,
-      "perf_ttm": 22.49,
-      "vol_ttm": 16.9,
+      "perf_1m": -0.56,
+      "perf_3m": -6.47,
+      "perf_ttm": 15.41,
+      "vol_ttm": 17.0,
       "proxy": "PPH",
-      "last_close": 105.71,
-      "last_date": "2026-05-28"
+      "last_close": 101.55,
+      "last_date": "2026-06-03"
     },
     "devices": {
-      "perf_1m": -6.39,
-      "perf_3m": -17.3,
-      "perf_ttm": -18.71,
-      "vol_ttm": 17.1,
+      "perf_1m": -2.8,
+      "perf_3m": -17.75,
+      "perf_ttm": -21.59,
+      "vol_ttm": 17.0,
       "proxy": "IHI",
-      "last_close": 49.35,
-      "last_date": "2026-05-28"
+      "last_close": 48.53,
+      "last_date": "2026-06-03"
     },
     "biotech": {
-      "perf_1m": 2.64,
-      "perf_3m": -0.94,
-      "perf_ttm": 40.2,
-      "vol_ttm": 19.7,
+      "perf_1m": -1.56,
+      "perf_3m": -3.16,
+      "perf_ttm": 35.4,
+      "vol_ttm": 19.9,
       "proxy": "IBB",
-      "last_close": 172.24,
-      "last_date": "2026-05-28"
+      "last_close": 167.5,
+      "last_date": "2026-06-03"
     },
     "foodbev": {
-      "perf_1m": -2.36,
-      "perf_3m": -3.9,
-      "perf_ttm": 1.19,
+      "perf_1m": -4.27,
+      "perf_3m": -4.06,
+      "perf_ttm": -2.06,
       "vol_ttm": 12.5,
       "proxy": "PBJ",
-      "last_close": 48.34,
-      "last_date": "2026-05-28"
+      "last_close": 47.51,
+      "last_date": "2026-06-03"
     },
     "household": {
-      "perf_1m": 1.62,
-      "perf_3m": -4.99,
-      "perf_ttm": 2.54,
-      "vol_ttm": 12.6,
+      "perf_1m": -1.65,
+      "perf_3m": -5.74,
+      "perf_ttm": -0.87,
+      "vol_ttm": 12.7,
       "proxy": "XLP",
-      "last_close": 84.43,
-      "last_date": "2026-05-28"
+      "last_close": 82.16,
+      "last_date": "2026-06-03"
     },
     "retail": {
-      "perf_1m": 0.42,
-      "perf_3m": -1.25,
-      "perf_ttm": 14.64,
+      "perf_1m": -0.29,
+      "perf_3m": -2.66,
+      "perf_ttm": 9.8,
       "vol_ttm": 20.4,
       "proxy": "XRT",
-      "last_close": 85.61,
-      "last_date": "2026-05-28"
+      "last_close": 83.37,
+      "last_date": "2026-06-03"
     },
     "autos": {
-      "perf_1m": 19.14,
-      "perf_3m": 32.8,
-      "perf_ttm": 110.95,
-      "vol_ttm": 26.0,
+      "perf_1m": 19.08,
+      "perf_3m": 47.44,
+      "perf_ttm": 112.24,
+      "vol_ttm": 25.8,
       "proxy": "CARZ",
-      "last_close": 119.34,
-      "last_date": "2026-05-28"
+      "last_close": 122.72,
+      "last_date": "2026-06-03"
     },
     "oilgas": {
-      "perf_1m": -2.67,
-      "perf_3m": 11.17,
-      "perf_ttm": 36.51,
+      "perf_1m": -5.46,
+      "perf_3m": 7.64,
+      "perf_ttm": 43.15,
       "vol_ttm": 28.2,
       "proxy": "XOP",
-      "last_close": 164.96,
-      "last_date": "2026-05-28"
+      "last_close": 171.13,
+      "last_date": "2026-06-03"
     },
     "oilfield": {
-      "perf_1m": -4.26,
-      "perf_3m": 5.69,
-      "perf_ttm": 94.53,
-      "vol_ttm": 29.5,
+      "perf_1m": -2.77,
+      "perf_3m": 12.13,
+      "perf_ttm": 99.05,
+      "vol_ttm": 29.4,
       "proxy": "OIH",
-      "last_close": 420.68,
-      "last_date": "2026-05-28"
+      "last_close": 431.22,
+      "last_date": "2026-06-03"
     },
     "mining": {
-      "perf_1m": 5.2,
-      "perf_3m": 5.83,
-      "perf_ttm": 111.24,
-      "vol_ttm": 34.6,
+      "perf_1m": 9.89,
+      "perf_3m": 9.59,
+      "perf_ttm": 113.86,
+      "vol_ttm": 34.9,
       "proxy": "XME",
-      "last_close": 126.45,
-      "last_date": "2026-05-28"
+      "last_close": 128.53,
+      "last_date": "2026-06-03"
     },
     "chemicals": {
-      "perf_1m": 1.72,
-      "perf_3m": 0.02,
-      "perf_ttm": 50.14,
+      "perf_1m": 3.78,
+      "perf_3m": 3.23,
+      "perf_ttm": 50.2,
       "vol_ttm": 25.7,
       "proxy": "PYZ",
-      "last_close": 131.04,
-      "last_date": "2026-05-28"
+      "last_close": 131.99,
+      "last_date": "2026-06-03"
     },
     "reits": {
-      "perf_1m": 1.87,
-      "perf_3m": 1.77,
-      "perf_ttm": 10.86,
+      "perf_1m": -1.1,
+      "perf_3m": -1.06,
+      "perf_ttm": 5.7,
       "vol_ttm": 13.4,
       "proxy": "VNQ",
-      "last_close": 96.55,
-      "last_date": "2026-05-28"
+      "last_close": 94.41,
+      "last_date": "2026-06-03"
     },
     "electric": {
-      "perf_1m": -3.5,
-      "perf_3m": -5.4,
-      "perf_ttm": 9.29,
-      "vol_ttm": 14.2,
+      "perf_1m": -5.74,
+      "perf_3m": -7.53,
+      "perf_ttm": 6.38,
+      "vol_ttm": 14.5,
       "proxy": "XLU",
-      "last_close": 44.63,
-      "last_date": "2026-05-28"
+      "last_close": 43.71,
+      "last_date": "2026-06-03"
     }
   }
 }
