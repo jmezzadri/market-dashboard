@@ -1,0 +1,24 @@
+name: YF-BREADTH-PROBE
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install yfinance -q
+      - name: probe breadth symbols
+        run: |
+          python3 - <<'PY'
+          import yfinance as yf, warnings
+          warnings.filterwarnings("ignore")
+          syms=["^SPX200R","^SPX50R","^SPXA200R","^SPXA50R","^NDX200R","^NDXA200R","^ADD","^ADDN","^TICK","MMTH","^MMTH"]
+          for s in syms:
+              try:
+                  d=yf.download(s, period="1mo", progress=False, auto_adjust=False)
+                  n=len(d)
+                  last=(str(d.index[-1].date()), round(float(d['Close'].iloc[-1]),2)) if n else None
+                  print(f"{s:12} rows={n:4}  last={last}")
+              except Exception as e:
+                  print(f"{s:12} ERR {str(e)[:70]}")
+          PY
