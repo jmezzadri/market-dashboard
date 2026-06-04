@@ -3154,6 +3154,130 @@
    "owner": "Senior Quant",
    "release_calendar": "us-business-day",
    "dependencies": []
+  },
+  {
+   "id": "indicator-spx_above_50ema-daily",
+   "category": "indicator",
+   "name": "spx_above_50ema",
+   "description": "S&P 500 breadth — % of members above 50-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "source_endpoint": "SSGA SPY holdings ∩ Polygon prices_eod; compute_index_breadth_ema 50-day EMA",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "BREADTH-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[spx_above_50ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-spx_above_200ema-daily",
+   "category": "indicator",
+   "name": "spx_above_200ema",
+   "description": "S&P 500 breadth — % of members above 200-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "source_endpoint": "SSGA SPY holdings ∩ Polygon prices_eod; compute_index_breadth_ema 200-day EMA",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "BREADTH-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[spx_above_200ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-ndx_above_50ema-daily",
+   "category": "indicator",
+   "name": "ndx_above_50ema",
+   "description": "Nasdaq-100 breadth — % of members above 50-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "source_endpoint": "Invesco QQQ holdings ∩ Polygon prices_eod; compute_index_breadth_ema 50-day EMA",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "BREADTH-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[ndx_above_50ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": []
+  },
+  {
+   "id": "indicator-ndx_above_200ema-daily",
+   "category": "indicator",
+   "name": "ndx_above_200ema",
+   "description": "Nasdaq-100 breadth — % of members above 200-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "source_endpoint": "Invesco QQQ holdings ∩ Polygon prices_eod; compute_index_breadth_ema 200-day EMA",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "BREADTH-DAILY",
+   "freshness_sla_hours": 49,
+   "output_destination": "public/indicator_history.json[ndx_above_200ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": []
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

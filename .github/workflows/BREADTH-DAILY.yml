@@ -1,0 +1,97 @@
+name: BREADTH-DAILY
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 15 * * 1-5'   # 11:00 ET — after the EOD price load lands
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install requests openpyxl pandas -q
+      - name: compute index breadth (% > 50d/200d EMA) for S&P 500 + Nasdaq-100
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import requests,io,os,re,json,urllib.request,time
+          import pandas as pd
+          from openpyxl import load_workbook
+          U=os.environ['SUPABASE_URL']; TOK=os.environ['SUPABASE_ACCESS_TOKEN']; ref=re.sub(r'^https?://','',U).split('.')[0]
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          def mgmt(sql,t=300):
+              rq=urllib.request.Request(f"https://api.supabase.com/v1/projects/{ref}/database/query",
+                data=json.dumps({"query":sql}).encode(),method="POST",
+                headers={"Authorization":"Bearer "+TOK,"Content-Type":"application/json","User-Agent":UA})
+              with urllib.request.urlopen(rq,timeout=t) as x: return json.loads(x.read().decode())
+          def spy_members():
+              r=requests.get("https://www.ssga.com/us/en/intermediary/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx",headers={"User-Agent":UA},timeout=60)
+              wb=load_workbook(io.BytesIO(r.content),read_only=True,data_only=True); ws=wb.active
+              rows=[list(row) for row in ws.iter_rows(values_only=True)]
+              hi=next(i for i,row in enumerate(rows[:12]) if row and any(str(c).strip().lower()=='ticker' for c in row if c))
+              ti=[str(c).strip() if c else '' for c in rows[hi]].index('Ticker')
+              return sorted({row[ti].strip() for row in rows[hi+1:] if row and ti<len(row) and isinstance(row[ti],str) and row[ti].strip() and row[ti].strip()!='-'})
+          def qqq_members():
+              r=requests.get("https://www.invesco.com/us/financial-products/etfs/holdings/main/holdings/0?audienceType=Investor&action=download&ticker=QQQ",headers={"User-Agent":UA},timeout=60)
+              txt=r.content.decode('utf-8-sig',errors='ignore'); import csv
+              rdr=csv.reader(io.StringIO(txt)); rowsc=list(rdr)
+              hi=next(i for i,row in enumerate(rowsc[:8]) if any('ticker' in str(c).lower() for c in row))
+              hdr=[c.strip().lower() for c in rowsc[hi]]; ci=next(i for i,c in enumerate(hdr) if c=='holding ticker' or c=='ticker')
+              return sorted({row[ci].strip() for row in rowsc[hi+1:] if len(row)>ci and row[ci].strip() and row[ci].strip()!='-'})
+          def breadth(tickers):
+              arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers)+"]"
+              sql=f"""set statement_timeout='290s';
+              with recursive px as (
+                select ticker,trade_date,close::float8 close,row_number() over(partition by ticker order by trade_date) rn
+                from public.prices_eod where ticker = ANY({arr}) and trade_date>=current_date-interval '5 years' and close is not null),
+              ema as (
+                select ticker,trade_date,close,rn,close e50,close e200 from px where rn=1
+                union all
+                select p.ticker,p.trade_date,p.close,p.rn, p.close*(2.0/51)+e.e50*(1-2.0/51), p.close*(2.0/201)+e.e200*(1-2.0/201)
+                from ema e join px p on p.ticker=e.ticker and p.rn=e.rn+1)
+              select to_char(trade_date,'YYYY-MM-DD') d,
+                round(100.0*avg((close>e50)::int) filter(where rn>=50),1) p50,
+                round(100.0*avg((close>e200)::int) filter(where rn>=200),1) p200,
+                count(*) filter(where rn>=200) n200
+              from ema where trade_date>=current_date-interval '4 years'
+              group by trade_date order by trade_date"""
+              return mgmt(sql)
+          def stats(points,direction="lw",wy=3):
+              s=pd.Series([p[1] for p in points],index=[pd.Timestamp(p[0]) for p in points]).sort_index()
+              s=s[s.index>=s.index.max()-pd.Timedelta(days=365*wy)]
+              if len(s)>20: s=s.clip(lower=s.quantile(0.01),upper=s.quantile(0.99))
+              return {"mean":round(float(s.mean()),4),"sd":round(float(s.std()),4),"window":f"{wy}y","winsorize":"1%-99%","n":int(len(s)),"direction":direction}
+          out={}
+          for code,memfn,k50,k200 in [("SPX",spy_members,"spx_above_50ema","spx_above_200ema"),("NDX",qqq_members,"ndx_above_50ema","ndx_above_200ema")]:
+              try:
+                  mem=memfn(); print(code,"members",len(mem))
+                  rows=breadth(mem)
+                  nmax=max(int(r['n200']) for r in rows)
+                  rows=[r for r in rows if int(r['n200'])>=0.85*nmax]   # drop partial days
+                  p50=[[r['d'],float(r['p50'])] for r in rows if r['p50'] is not None]
+                  p200=[[r['d'],float(r['p200'])] for r in rows if r['p200'] is not None]
+                  out[k50]={"freq":"D","unit":"%","points":p50,"as_of":p50[-1][0],"stats":stats(p50)}
+                  out[k200]={"freq":"D","unit":"%","points":p200,"as_of":p200[-1][0],"stats":stats(p200)}
+                  print(code,"latest %>50d",p50[-1],"%>200d",p200[-1])
+              except Exception as e:
+                  print(code,"FAILED",repr(e))
+          fn="public/indicator_history.json"; d=json.load(open(fn)); d.update(out)
+          json.dump(d,open(fn,"w"),separators=(",",":"))
+          print("wrote keys:",list(out.keys()))
+          vals=",".join("('%s','%s','computed','D',1440,'green')"%(k,k) for k in out)
+          if vals:
+              mgmt("insert into public.pipeline_health (indicator_id,label,source,cadence,expected_cadence_minutes,status) values "+vals+" on conflict (indicator_id) do nothing;")
+              print("seeded pipeline_health")
+          PY
+      - name: commit
+        run: |
+          git config user.name "macrotilt-bot"; git config user.email "bot@macrotilt.com"
+          git add public/indicator_history.json
+          git commit -m "Index breadth (% > 50d/200d EMA) refresh [skip ci]" || echo "no change"
+          git push

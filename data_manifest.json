@@ -1569,6 +1569,78 @@
    "target_storage": "public/indicator_history.json[adv_dec]",
    "failure_mode": "Empty if prices_eod stale or RPC times out; chip flags red.",
    "owner": "Senior Quant"
+  },
+  "indicator-spx_above_50ema-daily": {
+   "category": "indicator",
+   "element": "S&P 500 breadth \u2014 % of members above 50-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "BREADTH-DAILY",
+   "schedule_et": "11:00",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Macro Overview \u2014 Equities bucket (indicator)",
+    "All Indicators"
+   ],
+   "target_storage": "public/indicator_history.json[spx_above_50ema]",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant"
+  },
+  "indicator-spx_above_200ema-daily": {
+   "category": "indicator",
+   "element": "S&P 500 breadth \u2014 % of members above 200-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "BREADTH-DAILY",
+   "schedule_et": "11:00",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Macro Overview \u2014 Equities bucket (indicator)",
+    "All Indicators"
+   ],
+   "target_storage": "public/indicator_history.json[spx_above_200ema]",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant"
+  },
+  "indicator-ndx_above_50ema-daily": {
+   "category": "indicator",
+   "element": "Nasdaq-100 breadth \u2014 % of members above 50-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "BREADTH-DAILY",
+   "schedule_et": "11:00",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Macro Overview \u2014 Equities bucket (indicator)",
+    "All Indicators"
+   ],
+   "target_storage": "public/indicator_history.json[ndx_above_50ema]",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant"
+  },
+  "indicator-ndx_above_200ema-daily": {
+   "category": "indicator",
+   "element": "Nasdaq-100 breadth \u2014 % of members above 200-day EMA",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (Polygon prices_eod)",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "BREADTH-DAILY",
+   "schedule_et": "11:00",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Macro Overview \u2014 Equities bucket (indicator)",
+    "All Indicators"
+   ],
+   "target_storage": "public/indicator_history.json[ndx_above_200ema]",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant"
   }
  }
 }
