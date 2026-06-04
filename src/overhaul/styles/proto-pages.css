@@ -927,3 +927,45 @@
   color: var(--mt-ink-2); font-size: 13px; font-weight: 600; text-align: center;
 }
 .mt-overhaul .tk-noscore span { font-size: 9.5px; font-weight: 400; color: var(--mt-ink-3); text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; max-width: 80px; }
+
+/* ── Scanner toolbar: live Columns + Filter (2026-06-04) ───────────── */
+.mt-overhaul .mt-btn.on {
+  background: var(--mt-accent-soft);
+  border-color: color-mix(in oklab, var(--mt-accent) 40%, transparent);
+  color: var(--mt-accent);
+}
+.mt-overhaul .sc-filterhead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.mt-overhaul .sc-linkbtn {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; color: var(--mt-accent);
+}
+.mt-overhaul .sc-linkbtn:hover { text-decoration: underline; }
+.mt-overhaul .sc-filtergrid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  align-items: start;
+}
+.mt-overhaul .sc-field { display: flex; flex-direction: column; gap: 6px; }
+.mt-overhaul .sc-input {
+  width: 100%; box-sizing: border-box;
+  padding: 7px 10px; border-radius: var(--mt-r-sm);
+  border: 1px solid var(--mt-line-0); background: var(--mt-surface-2);
+  color: var(--mt-ink-0); font-size: 13px;
+}
+.mt-overhaul .sc-input:focus {
+  outline: none; border-color: var(--mt-accent);
+  box-shadow: 0 0 0 2px var(--mt-accent-glow);
+}
+.mt-overhaul .sc-needrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.mt-overhaul .sc-needrow .sc-coltoggle {
+  border: 1px solid var(--mt-line-0); background: var(--mt-surface-2);
+}
+.mt-overhaul .sc-coltoggle.on {
+  background: var(--mt-accent-soft);
+  border-color: color-mix(in oklab, var(--mt-accent) 30%, transparent);
+}
+.mt-overhaul .sc-coltoggle.dragging { opacity: 0.5; }
+.mt-overhaul .sc-filterfoot { margin-top: 12px; }
+.mt-overhaul .sc-filterfoot b { color: var(--mt-ink-0); }
