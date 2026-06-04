@@ -596,11 +596,29 @@ def write_nav_daily(
     realized_by_sleeve = _realized_pnl_by_sleeve()
     beta = _portfolio_beta(snapshot_date)
 
-    # Mark each sleeve to market: value = $500K start + its realized + open P&L.
-    # (sleeve_*_nav is a cash-plug pinned to $500K and must NOT be used here.)
+    # Sleeve value = NET EQUITY: the sleeve's gross holdings minus its share of
+    # the account's borrowing. Defined this way, sleeve_a_value + sleeve_b_value
+    # == total_nav (Alpaca's reported account equity — the only true value),
+    # so the page's Total always equals the sum of its sleeves.
+    #
+    # The earlier formula (500K + per-sleeve avg-cost realized + open P&L) used
+    # realized_by_sleeve, an informational lot estimate that did NOT reconcile
+    # to the account equity — it overstated the book by ~$33K and made the
+    # sleeves fail to sum to the total. realized_by_sleeve is still stored below
+    # for reference, but it must not drive the sleeve value.
     SLEEVE_CAP = 500_000.0
-    sleeve_a_value = SLEEVE_CAP + realized_by_sleeve.get("A", 0.0) + sleeve_a_unrl
-    sleeve_b_value = SLEEVE_CAP + realized_by_sleeve.get("B", 0.0) + sleeve_b_unrl
+    _gross = sleeve_a_equity + sleeve_b_equity
+    _margin = _gross - total_nav                      # total borrowing across the book
+    _a_borrow = max(0.0, sleeve_a_equity - SLEEVE_CAP)
+    _b_borrow = max(0.0, sleeve_b_equity - SLEEVE_CAP)
+    _borrow_base = _a_borrow + _b_borrow
+    if _borrow_base > 0:
+        sleeve_a_value = sleeve_a_equity - _margin * (_a_borrow / _borrow_base)
+        sleeve_b_value = sleeve_b_equity - _margin * (_b_borrow / _borrow_base)
+    else:
+        _idle_cash = total_nav - _gross               # unlevered: split idle cash evenly
+        sleeve_a_value = sleeve_a_equity + _idle_cash / 2.0
+        sleeve_b_value = sleeve_b_equity + _idle_cash / 2.0
     sleeve_a_beta = _beta_for("sleeve_a_value")
     sleeve_b_beta = _beta_for("sleeve_b_value")
 
