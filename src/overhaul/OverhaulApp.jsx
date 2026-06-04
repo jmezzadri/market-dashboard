@@ -32,6 +32,7 @@ import './styles/pages.css';
 import './styles/proto-lm-components.css';
 import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
+import './styles/responsive.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
