@@ -67,7 +67,7 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
   const out = [];
   rows.forEach((r) => {
     const ac = r.cls?.ac || r.assetClass || 'Equity';
-    if (ac === 'Cash') { out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, pnl: 0, pnlPct: 0, modeled: true, kind: 'cash' }); return; }
+    if (ac === 'Cash') { out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: r.value, pnl: 0, pnlPct: 0, modeled: true, kind: 'cash' }); return; }
 
     if (r.option) {
       const o = r.option;
@@ -85,13 +85,13 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
       const pnl = (scn - base) * qty * mult;                     // qty signed → short flips sign
       const notional = Math.abs(base * qty * mult) || null;
       out.push({ key: r.id ?? (o.label + o.underlier), ticker: o.underlier, label: `${o.label} ${o.underlier} $${o.strike}`,
-        value: r.value, pnl, pnlPct: notional ? (pnl / notional) * 100 : null, modeled: o.spot > 0, kind: 'option' });
+        value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: r.value ? (pnl / r.value) * 100 : null, modeled: o.spot > 0, kind: 'option' });
       return;
     }
 
     const movePct = moveForSector(r.sector, ac, r.beta, sectRet, marketPct);
     const pnl = (r.value || 0) * (movePct / 100);
-    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, pnl, pnlPct: movePct, modeled: true, kind: 'equity' });
+    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: 'equity' });
   });
 
   const totalPnl = out.reduce((s, p) => s + (Number.isFinite(p.pnl) ? p.pnl : 0), 0);
