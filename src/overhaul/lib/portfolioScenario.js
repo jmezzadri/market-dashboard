@@ -32,6 +32,61 @@ const HORIZON_YEARS = { '1mo': 1 / 12, '3mo': 0.25, '6mo': 0.5 };
 // generic asset-class betas for holdings with no sector match (mirrors PortfolioPage pBeta DB)
 const AC_BETA = { Equity: 1.0, 'Fixed Income': 0.3, Cash: 0, Commodity: 0.4, Crypto: 2.2, Option: 1.0 };
 
+// Map a company's SIC code to one of the engine's equity sectors so each
+// holding moves by its real sector under a scenario (not the broad market).
+// SIC divisions are coarser than GICS but give a sound sector for stress math.
+export function sicToSector(sic) {
+  const n = parseInt(String(sic || '').trim().slice(0, 4), 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n >= 2833 && n <= 2836) return 'Healthcare';        // biotech/pharma
+  if (n >= 3840 && n <= 3851) return 'Healthcare';        // medical devices
+  if (n >= 8000 && n <= 8099) return 'Healthcare';        // health services
+  if (n >= 7370 && n <= 7379) return 'Technology';        // software / IT services
+  if (n >= 3570 && n <= 3579) return 'Technology';        // computers
+  if ((n >= 3600 && n <= 3699) || (n >= 3670 && n <= 3679)) return 'Technology'; // electronics/semis
+  if (n >= 4800 && n <= 4899) return 'Communication Services';
+  if (n >= 2700 && n <= 2799) return 'Communication Services'; // publishing/media
+  if (n >= 6000 && n <= 6299) return 'Financials';        // banks + capital markets
+  if (n >= 6300 && n <= 6499) return 'Financials';        // insurance
+  if (n >= 6790 && n <= 6799) return 'Real Estate';       // REITs
+  if (n >= 6500 && n <= 6599) return 'Real Estate';
+  if (n >= 6700 && n <= 6799) return 'Financials';        // holding/investment
+  if (n >= 4900 && n <= 4999) return 'Utilities';
+  if (n >= 2900 && n <= 2999) return 'Energy';            // petroleum refining
+  if (n >= 1300 && n <= 1399) return 'Energy';            // oil & gas extraction
+  if ((n >= 1000 && n <= 1099) || (n >= 1400 && n <= 1499)) return 'Materials'; // metal/nonmetal mining
+  if (n >= 2800 && n <= 2899) return 'Materials';         // chemicals
+  if ((n >= 3300 && n <= 3399) || (n >= 1000 && n <= 1499)) return 'Materials'; // primary metals
+  if (n >= 2000 && n <= 2199) return 'Staples';           // food & beverage
+  if (n >= 2100 && n <= 2199) return 'Staples';
+  if (n >= 5400 && n <= 5499) return 'Staples';           // grocery
+  if (n >= 3710 && n <= 3719) return 'Discretionary';     // autos
+  if (n >= 2300 && n <= 2399) return 'Discretionary';     // apparel
+  if ((n >= 5200 && n <= 5999)) return 'Discretionary';   // retail
+  if (n >= 7000 && n <= 7999) return 'Discretionary';     // consumer services
+  if (n >= 3400 && n <= 3999) return 'Industrials';       // machinery, aerospace/defense, instruments
+  if (n >= 1500 && n <= 1799) return 'Industrials';       // construction
+  if (n >= 4000 && n <= 4799) return 'Industrials';       // transportation
+  return null;
+}
+
+// Common sector-name aliases -> engine sector names (for position.sector text).
+const SECTOR_ALIAS = {
+  'information technology': 'Technology', 'tech': 'Technology', 'technology': 'Technology',
+  'communication services': 'Communication Services', 'communications': 'Communication Services', 'telecom': 'Communication Services',
+  'financials': 'Financials', 'financial services': 'Financials', 'banks': 'Financials',
+  'consumer discretionary': 'Discretionary', 'discretionary': 'Discretionary',
+  'consumer staples': 'Staples', 'staples': 'Staples',
+  'industrials': 'Industrials', 'aerospace & defense': 'Industrials', 'capital goods': 'Industrials',
+  'materials': 'Materials', 'basic materials': 'Materials',
+  'energy': 'Energy', 'health care': 'Healthcare', 'healthcare': 'Healthcare',
+  'utilities': 'Utilities', 'real estate': 'Real Estate',
+};
+function aliasSector(name) {
+  if (!name) return null;
+  return SECTOR_ALIAS[String(name).trim().toLowerCase()] || name;
+}
+
 function normCdf(x) {
   const k = 1 / (1 + 0.2316419 * Math.abs(x));
   const d = 0.3989422804014327 * Math.exp(-x * x / 2);
@@ -58,7 +113,7 @@ function moveForSector(sectorName, assetClass, beta, sectRet, marketPct) {
   return (marketPct || 0) * b;
 }
 
-export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3mo', vixCurrentSigma = 0, marketPct = 0 }) {
+export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3mo', vixCurrentSigma = 0, marketPct = 0, sectorMap = {} }) {
   if (!rows || !rows.length) return null;
   const sectRet = sectorReturns(shocks, horizonKey);            // % per sector id
   const horizonYears = HORIZON_YEARS[horizonKey] ?? 0.25;
@@ -76,7 +131,8 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
       const qty = Number(r.quantity) || 0;                       // signed contracts
       const iv = o.iv > 0 ? o.iv : 0.35;                         // snapshot IV; fallback 35% if missing
       const T = o.T > 0 ? o.T : 0;
-      const movePct = moveForSector(r.sector, 'Equity', null, sectRet, marketPct);
+      const secName = aliasSector(sectorMap[r.ticker] || r.sector);
+      const movePct = moveForSector(secName, 'Equity', null, sectRet, marketPct);
       const S2 = o.spot * (1 + movePct / 100);
       const iv2 = iv * volMult;
       const T2 = Math.max(0, T - horizonYears);
@@ -89,7 +145,8 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
       return;
     }
 
-    const movePct = moveForSector(r.sector, ac, r.beta, sectRet, marketPct);
+    const secName = aliasSector(sectorMap[r.ticker] || r.sector);
+    const movePct = moveForSector(secName, ac, r.beta, sectRet, marketPct);
     const pnl = (r.value || 0) * (movePct / 100);
     out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: 'equity' });
   });
