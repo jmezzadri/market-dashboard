@@ -1,6 +1,6 @@
 {
   "_doc": "Phase 2 scenario-stress mechanism scores. For each scenario, each calibrated indicator's peak-stress value is percentiled against the indicator's full live sample (post-2011) and direction-corrected 0-100 (higher = more stress) using the same convention as the live v11 cycle-mechanism scorer. Mechanism score = simple-average of available indicator scores; composite = simple-average of mechanism scores. Indicators with value=null (e.g. RRP pre-2013) or no historical sample are dropped from the denominator and listed in indicators_dropped per scenario. Refreshed nightly by scripts/compute_scenario_mechanism_stress.py at 23:00 UTC weekdays.",
-  "as_of": "2026-06-04",
+  "as_of": "2026-06-05",
   "framework": "v11 cycle mechanisms",
   "calibration_version": "phase2b-decisions-locked-2026-05-08",
   "calibration_as_of": "2026-05-08",
