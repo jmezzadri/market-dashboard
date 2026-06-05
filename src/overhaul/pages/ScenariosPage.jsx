@@ -55,6 +55,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import FreshnessChip from '../components/FreshnessChip';
 import useAllocation from '../lib/useAllocation';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
+import { supabase } from '../../lib/supabase';
+import { buildBook } from '../lib/portfolioAnalytics';
+import { computePortfolioScenario } from '../lib/portfolioScenario';
 import {
   FACTORS,
   FACTOR_IDS,
@@ -154,7 +157,52 @@ export default function ScenariosPage() {
     setDriver(null);
   };
   const { allocation } = useAllocation();
-  const { isAuthed } = useUserPortfolio();
+  const portfolio = useUserPortfolio();
+  const { isAuthed } = portfolio;
+  const accounts = useMemo(() => portfolio?.accounts || [], [portfolio?.accounts]);
+
+  /* Flatten holdings + fetch option-underlier spot/IV, then build the same
+     tested book the Portfolio Insights page uses (classification + options
+     decomposition). Reused, not rebuilt. */
+  const positions = useMemo(() => {
+    const out = [];
+    accounts.forEach((a) => (a.positions || []).forEach((pp) => out.push({
+      ...pp,
+      value: pp.value ?? (pp.quantity != null && pp.price != null ? pp.quantity * pp.price : 0),
+      asset_class: pp.assetClass, contract_type: pp.contractType,
+      account_name: a.label, account_color: a.color,
+    })));
+    return out;
+  }, [accounts]);
+
+  const [mkt, setMkt] = useState({});
+  useEffect(() => {
+    const unds = [...new Set(positions
+      .filter((pp) => pp.contract_type || String(pp.asset_class).toLowerCase() === 'option')
+      .map((pp) => String(pp.ticker).toUpperCase()))];
+    if (!unds.length) return undefined;
+    let cancel = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('universe_snapshots')
+          .select('ticker,close,iv30d,snapshot_ts')
+          .in('ticker', unds)
+          .order('snapshot_ts', { ascending: false });
+        if (cancel || !data) return;
+        const spots = {}; const ivs = {};
+        data.forEach((r) => {
+          const t = r.ticker;
+          if (!(t in spots) && r.close) spots[t] = Number(r.close);
+          if (!(t in ivs) && r.iv30d) ivs[t] = Number(r.iv30d);
+        });
+        setMkt({ spots, ivs });
+      } catch (e) { /* engine has moneyness fallback */ }
+    })();
+    return () => { cancel = true; };
+  }, [positions]);
+
+  const book = useMemo(() => buildBook(positions, mkt), [positions, mkt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,6 +260,43 @@ export default function ScenariosPage() {
   /* Strategy rows. Canned: reads STRAT_RETURNS_MAP via scen.stress_stress_key.
      Custom: uses customRet.spy / customRet.engine.
      60-40 cash row uses legacy formula: engine + (spy - engine) × 0.25. */
+  /* Active 12-factor shock vector for the portfolio impact: custom sliders,
+     or the canned scenario's factor vector. */
+  const activeShocks = useMemo(() => {
+    if (activeId === 'custom') return customInitialized ? customShocks : null;
+    const k = scen?.stress_stress_key;
+    return (k && SCENARIOS[k]) ? SCENARIOS[k].factors : null;
+  }, [activeId, customInitialized, customShocks, scen]);
+
+  const vixCurrentSigma = useMemo(
+    () => (indicatorHistory ? (getCurrentReadings(indicatorHistory)?.vix ?? 0) : 0),
+    [indicatorHistory],
+  );
+
+  /* S&P scenario move — used as the market fallback for any holding with no
+     sector match (e.g. broad funds). */
+  const spyPct = useMemo(() => {
+    if (scen) {
+      const k = scen.stress_stress_key;
+      const ret = k ? STRAT_RETURNS_MAP[k] : null;
+      return drawdown ? drawdown.spy_depth * 100 : (ret?.spy ?? scen.peak_dd_pct ?? 0);
+    }
+    return customRet?.spy ?? 0;
+  }, [scen, drawdown, customRet]);
+
+  /* Position-level scenario P&L (full Black-Scholes options re-pricing). */
+  const portImpact = useMemo(() => {
+    if (!isAuthed || !activeShocks || !book?.rows?.length) return null;
+    return computePortfolioScenario({
+      rows: book.rows,
+      total: book.total,
+      shocks: activeShocks,
+      horizonKey: horizonEngineKey,
+      vixCurrentSigma,
+      marketPct: spyPct,
+    });
+  }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct]);
+
   const strategies = useMemo(() => {
     let spyDD = null;
     let engineDD = null;
@@ -267,9 +352,11 @@ export default function ScenariosPage() {
       {
         name: 'Your portfolio',
         equity: '—', cash: '—', gold: '—', tlt: '—',
-        ret: null, dd: null,
+        ret: portImpact ? portImpact.pct : null,
+        dd: portImpact ? portImpact.pct : null,
         you: true, mt: false,
-        note: isAuthed ? 'Position-level scenario impact not yet wired.' : 'Sign in to see portfolio impact.',
+        note: !isAuthed ? 'Sign in to see portfolio impact.'
+          : (portImpact ? null : 'Add holdings to see portfolio impact.'),
       },
       {
         name: 'MacroTilt Asset Tilt',
@@ -278,7 +365,7 @@ export default function ScenariosPage() {
         you: false, mt: true,
       },
     ];
-  }, [scen, drawdown, customRet, horizonMul, isAuthed]);
+  }, [scen, drawdown, customRet, horizonMul, isAuthed, portImpact]);
 
   /* Real per-sector stress matrix. Top 8 worst-performing sectors under the
      active shock. activeId === 'custom' uses customShocks; otherwise uses
@@ -610,11 +697,43 @@ export default function ScenariosPage() {
               </div>
               <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" />
             </div>
-            <div className="sn-section-note">
-              {isAuthed
-                ? 'Position-level scenario impact for your holdings is not yet wired into the overhaul.'
-                : 'Sign in to your portfolio to see position-level scenario impact.'}
-            </div>
+            {!isAuthed ? (
+              <div className="sn-section-note">
+                Sign in to your portfolio to see position-level scenario impact.
+              </div>
+            ) : !portImpact ? (
+              <div className="sn-section-note">
+                Add holdings to your portfolio to see position-level scenario impact.
+              </div>
+            ) : (
+              <>
+                <div className="sn-section-note">
+                  Projected book impact:{' '}
+                  <b className={portImpact.totalPnl >= 0 ? 'up' : 'down'}>
+                    {portImpact.totalPnl >= 0 ? '+' : ''}${Math.round(portImpact.totalPnl).toLocaleString()}
+                    {' '}({fmtPctSigned(portImpact.pct, 1)})
+                  </b>
+                </div>
+                <ul className="sn-engineimpact">
+                  {portImpact.positions.slice(0, 10).map((pp) => (
+                    <li key={pp.key}>
+                      <span className="sn-sectorcode">{pp.ticker}</span>
+                      <span className="sn-secname">{pp.kind === 'option' ? pp.label : pp.ticker}</span>
+                      <span className="num sn-proxy">${Math.round(pp.value).toLocaleString()}</span>
+                      <span className="sn-arrow">→</span>
+                      <span className={`num sn-stress ${pp.pnl >= 0 ? 'up' : 'down'}`}>
+                        {pp.pnl >= 0 ? '+' : ''}${Math.round(pp.pnl).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {portImpact.positions.length > 10 && (
+                  <div className="sn-section-note">
+                    +{portImpact.positions.length - 10} more positions
+                  </div>
+                )}
+              </>
+            )}
           </article>
         </div>
       </section>
