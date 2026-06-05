@@ -34,7 +34,9 @@ def _q(sql: str):
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={"query": sql}, timeout=30,
     )
-    r.raise_for_status()
+    if r.status_code >= 400:
+        print(f"  SQL error {r.status_code}: {r.text[:500]}", flush=True)
+        r.raise_for_status()
     return r.json()
 
 
@@ -59,14 +61,13 @@ def main():
     if not rows:
         sys.exit("no paper source dates found — nothing to stamp")
     ids = ", ".join(_esc(f[0]) for f in FEEDS)
-    sql = (
-        f"delete from public.pipeline_health where indicator_id in ({ids}); "
+    _q(f"delete from public.pipeline_health where indicator_id in ({ids});")
+    _q(
         "insert into public.pipeline_health "
         "(indicator_id, label, source, cadence, status, last_good_at, "
         " last_check_at, data_as_of, last_error, updated_at) values "
         + ", ".join(rows) + ";"
     )
-    _q(sql)
     print(f"done: stamped {len(rows)} paper pipeline_health rows")
 
 
