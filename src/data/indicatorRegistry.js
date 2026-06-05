@@ -8,6 +8,7 @@ cmdty_silver:["Silver","Commodity price","commodities",2,"$/oz",1,null,null,null
 cmdty_copper:["Copper","Commodity price","commodities",2,"$/lb",2,null,null,null,null,null,false,"Front-month copper futures, ranked into its own 3-year range.",""],
 cmdty_uranium:["Uranium","Commodity price","commodities",2,"$/lb",1,null,null,null,null,null,false,"Uranium price per pound (weekly spot); ranking builds as history accrues.",""],
 cmdty_oil:["Crude oil","Commodity price","commodities",2,"$/bbl",1,null,null,null,null,null,false,"Front-month WTI crude futures, ranked into its own 3-year range.",""],
+cmdty_brent:["Brent crude","Commodity price","commodities",2,"$/bbl",1,null,null,null,null,null,false,"Front-month Brent crude futures (ICE), the global oil benchmark, ranked into its own 3-year range.",""],
 cmdty_natgas:["Natural gas","Commodity price","commodities",2,"$/MMBtu",2,null,null,null,null,null,false,"Front-month Henry Hub natural gas futures, ranked into its own 3-year range.",""],
 cmdty_corn:["Corn","Commodity price","commodities",2,"c/bu",0,null,null,null,null,null,false,"Front-month corn futures, ranked into its own 3-year range.",""],
 cmdty_soybeans:["Soybeans","Commodity price","commodities",2,"c/bu",0,null,null,null,null,null,false,"Front-month soybean futures, ranked into its own 3-year range.",""],
