@@ -77,7 +77,7 @@ export const FACTOR_BASELINES = {
   real_rates:   { mean: 0.83,   std: 1.0,   fmt: (v) => v.toFixed(2) + '%' },
   term_premium: { mean: 29.2,   std: 39.5,  fmt: (v) => v.toFixed(0) + 'bps' },
   dxy:          { mean: 106.2,  std: 12.4,  fmt: (v) => v.toFixed(1) },
-  copper_gold:  { mean: 0.247,  std: 0.098, fmt: (v) => v.toFixed(3) },
+  copper_gold:  { mean: 2.468,  std: 0.981, fmt: (v) => v.toFixed(3) },  // recalib 2026-06-05: prior 0.247/0.098 was 10x too small (unit mismatch vs indicator_history copper_gold series, 2006-2026 n=5135 mean 2.468 std 0.981); seeded slider at +12σ→pinned. Senior Quant sign-off.
   hy:           { mean: 400,    std: 150,   fmt: (v) => v.toFixed(0) + 'bps' },
   stlfsi:       { mean: 0.0,    std: 1.18,  fmt: (v) => v.toFixed(2) },
   anfci:        { mean: -0.24,  std: 0.75,  fmt: (v) => v.toFixed(2) },
