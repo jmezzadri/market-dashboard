@@ -126,22 +126,20 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
 
     if (r.option) {
       const o = r.option;
-      const isCall = o.contractType === 'call';
-      const mult = Number(r.multiplier) || 100;
-      const qty = Number(r.quantity) || 0;                       // signed contracts
-      const iv = o.iv > 0 ? o.iv : 0.35;                         // snapshot IV; fallback 35% if missing
-      const T = o.T > 0 ? o.T : 0;
       const secName = aliasSector(sectorMap[r.ticker] || r.sector);
       const movePct = moveForSector(secName, 'Equity', null, sectRet, marketPct);
-      const S2 = o.spot * (1 + movePct / 100);
-      const iv2 = iv * volMult;
-      const T2 = Math.max(0, T - horizonYears);
-      const base = bsPrice(o.spot, o.strike, T, R_FREE, iv, isCall);
-      const scn = bsPrice(S2, o.strike, T2, R_FREE, iv2, isCall);
-      const pnl = (scn - base) * qty * mult;                     // qty signed → short flips sign
-      const notional = Math.abs(base * qty * mult) || null;
+      /* First-order (delta-equivalent) scenario P&L. An option contributes only
+         its delta-equivalent underlier exposure to the book — a long put with
+         -$63.5K delta-equivalent offsets ~$63.5K of longs, NOT its full convex
+         payoff. (Full BS repricing overstated deep hedges and could flip the
+         whole book positive — Joe 2026-06-05.) Convexity is intentionally
+         excluded; this is conservative on hedge protection, the safe direction
+         for a risk overview. */
+      const deltaNotional = Number(o.deltaEquivNotional) || 0;   // signed $; long put = negative
+      const pnl = deltaNotional * (movePct / 100);
       out.push({ key: r.id ?? (o.label + o.underlier), ticker: o.underlier, label: `${o.label} ${o.underlier} $${o.strike}`,
-        value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: r.value ? (pnl / r.value) * 100 : null, modeled: o.spot > 0, kind: 'option' });
+        value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: r.value ? (pnl / r.value) * 100 : null,
+        modeled: deltaNotional !== 0, kind: 'option' });
       return;
     }
 
