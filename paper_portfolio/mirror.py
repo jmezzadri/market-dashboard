@@ -144,7 +144,7 @@ def stamp_paper_pipeline_health(dry_run: bool = False) -> None:
         rows_sql.append(
             "(" + ", ".join([
                 _sql_escape(ind_id), _sql_escape(label), _sql_escape(source),
-                "'D'", "'green'", _sql_escape(as_of), "now()",
+                "'D'", "1440", "'green'", _sql_escape(as_of), "now()",
                 _sql_escape(as_of), "NULL", "now()",
             ]) + ")"
         )
@@ -152,15 +152,16 @@ def stamp_paper_pipeline_health(dry_run: bool = False) -> None:
         logger.warning("pipeline_health: no paper source dates found — nothing to stamp")
         return
     ids = ", ".join(_sql_escape(x[0]) for x in _PAPER_HEALTH)
-    sql = (
-        f"delete from public.pipeline_health where indicator_id in ({ids}); "
-        "insert into public.pipeline_health "
-        "(indicator_id, label, source, cadence, status, last_good_at, "
-        " last_check_at, data_as_of, last_error, updated_at) values "
-        + ", ".join(rows_sql) + ";"
-    )
     try:
-        _supabase_exec(sql)
+        _supabase_exec(
+            f"delete from public.pipeline_health where indicator_id in ({ids});"
+        )
+        _supabase_exec(
+            "insert into public.pipeline_health "
+            "(indicator_id, label, source, cadence, expected_cadence_minutes, status, "
+            " last_good_at, last_check_at, data_as_of, last_error, updated_at) values "
+            + ", ".join(rows_sql) + ";"
+        )
         logger.info("stamped pipeline_health for %d paper feeds", len(rows_sql))
     except Exception as exc:
         logger.warning("pipeline_health stamp failed (%s)", exc)

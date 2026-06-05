@@ -54,7 +54,7 @@ def main():
             continue
         as_of = f"{d}T00:00:00+00:00" if len(d) == 10 else d
         rows.append("(" + ", ".join([
-            _esc(ind_id), _esc(label), _esc(source), "'D'", "'green'",
+            _esc(ind_id), _esc(label), _esc(source), "'D'", "1440", "'green'",
             _esc(as_of), "now()", _esc(as_of), "NULL", "now()",
         ]) + ")")
         print(f"  stamp {ind_id}: data_as_of={as_of}")
@@ -64,8 +64,8 @@ def main():
     _q(f"delete from public.pipeline_health where indicator_id in ({ids});")
     _q(
         "insert into public.pipeline_health "
-        "(indicator_id, label, source, cadence, status, last_good_at, "
-        " last_check_at, data_as_of, last_error, updated_at) values "
+        "(indicator_id, label, source, cadence, expected_cadence_minutes, status, "
+        " last_good_at, last_check_at, data_as_of, last_error, updated_at) values "
         + ", ".join(rows) + ";"
     )
     print(f"done: stamped {len(rows)} paper pipeline_health rows")
