@@ -57,7 +57,7 @@ import useAllocation from '../lib/useAllocation';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import { supabase } from '../../lib/supabase';
 import { buildBook } from '../lib/portfolioAnalytics';
-import { computePortfolioScenario } from '../lib/portfolioScenario';
+import { computePortfolioScenario, sicToSector } from '../lib/portfolioScenario';
 import {
   FACTORS,
   FACTOR_IDS,
@@ -204,6 +204,28 @@ export default function ScenariosPage() {
 
   const book = useMemo(() => buildBook(positions, mkt), [positions, mkt]);
 
+  /* Per-holding sector from ticker_reference SIC codes, so each position moves
+     by its real sector under a scenario instead of the broad market. */
+  const [sectorMap, setSectorMap] = useState({});
+  useEffect(() => {
+    const tks = [...new Set(positions.map((pp) => String(pp.ticker || '').toUpperCase()).filter(Boolean))];
+    if (!tks.length) return undefined;
+    let cancel = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('ticker_reference')
+          .select('ticker,sic_code')
+          .in('ticker', tks);
+        if (cancel || !data) return;
+        const m = {};
+        data.forEach((r) => { const sec = sicToSector(r.sic_code); if (sec) m[String(r.ticker).toUpperCase()] = sec; });
+        setSectorMap(m);
+      } catch (e) { /* falls back to market move */ }
+    })();
+    return () => { cancel = true; };
+  }, [positions]);
+
   useEffect(() => {
     let cancelled = false;
     fetch('/scenario_definitions.json', { cache: 'no-cache' })
@@ -294,8 +316,9 @@ export default function ScenariosPage() {
       horizonKey: horizonEngineKey,
       vixCurrentSigma,
       marketPct: spyPct,
+      sectorMap,
     });
-  }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct]);
+  }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct, sectorMap]);
 
   /* Your portfolio's actual allocation mix (by economic asset class) for the
      strategy table row. Options fold into equity exposure; crypto sits outside
@@ -371,7 +394,7 @@ export default function ScenariosPage() {
         gold:   portAlloc ? `${portAlloc.gold}%`   : '—',
         tlt:    portAlloc ? `${portAlloc.tlt}%`    : '—',
         ret: portImpact ? portImpact.pct : null,
-        dd: portImpact ? portImpact.pct : null,
+        dd: null, // no intra-scenario path modeled for the live book; avoid a fake 'positive drawdown'
         you: true, mt: false,
         note: !isAuthed ? 'Sign in to see portfolio impact.'
           : (portImpact ? null : 'Add holdings to see portfolio impact.'),
