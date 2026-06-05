@@ -137,12 +137,21 @@ def run_eod_phase(
         for e in s_result.errors[:5]:
             logger.warning("submit error: %s", e)
 
-    # ── QUEUED-CONFIRMATION EMAIL (added 2026-06-01) ───────────────────────
-    # On a real (non-dry) run, email Joe a plain-English summary of what was
-    # queued for the open. Silence had hidden a week of failure; a positive
-    # "here's what's queued" every morning makes a MISSING email itself a
-    # red flag. Best-effort; never crash the run.
-    if not dry_run:
+    # ── QUEUED-CONFIRMATION EMAIL (added 2026-06-01; made idempotent 2026-06-05) ──
+    # Email Joe a plain-English summary ONLY on the run that actually placed a
+    # new order (s_result.submitted > 0).
+    #
+    # WHY THIS GATE EXISTS (2026-06-05 incident): the EOD workflow fires many
+    # redundant times each morning (04:00-08:30 ET) so a late GitHub cron still
+    # lands inside Alpaca's pre-open auction window. The submitter is idempotent
+    # — only the FIRST in-window fire places the order; the rest are no-ops
+    # (submitted=0). But the email used to fire on EVERY in-window run, so Joe
+    # got 5-6 identical "buy" emails per morning even though exactly one order
+    # was placed. Gating on submitted>0 makes the email idempotent too: exactly
+    # one email on a day a trade happens, and silence on a day nothing trades.
+    # Real pipeline failures still reach Joe via the freshness-gate P1 email
+    # above, so silence here never hides a broken pipeline.
+    if not dry_run and s_result.submitted > 0:
         try:
             from paper_portfolio.emailer import send_alert_email
             buys = [i for i in t_result.intents if i.side == "buy"]
@@ -174,14 +183,18 @@ def run_eod_phase(
                 lines += ["", "Submit errors:"] + [f"  {e}" for e in s_result.errors[:8]]
             lines += ["", "These execute at the 9:30am ET opening auction. "
                           "A separate confirmation follows after the open."]
-            status = "queued" if s_result.submitted else "NO ORDERS submitted"
             send_alert_email(
-                f"[MacroTilt paper] Morning rebalance {status} — "
-                f"{s_result.submitted} orders for the open",
+                f"[MacroTilt paper] Morning rebalance queued — "
+                f"{s_result.submitted} order(s) for the open",
                 "\n".join(lines),
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("queued-confirmation email failed: %s", exc)
+    elif not dry_run:
+        logger.info(
+            "no new orders placed this run (submitted=0) — skipping confirmation "
+            "email to stay idempotent across the morning's redundant fires"
+        )
 
     return {"translator": t_result, "submitter": s_result}
 
