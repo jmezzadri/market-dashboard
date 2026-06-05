@@ -48,12 +48,12 @@ const SECTIONS = [
    update both this constant AND the relevant manifest entries in the
    same PR (the project Data Steward sign-off rule catches this). */
 const VENDORS = [
-  ['U.S. Treasury (Treasury.gov)', 'Daily Treasury par + TIPS yield curves',       'Free', '10Y-2Y slope, 10Y TIPS real rate, 10Y breakeven'],
-  ['FRED',                          'St. Louis Fed economic data',                  'Free', 'Macro indicator family (jobless, M2, SLOOS, term premium, RRP, etc.)'],
+  ['U.S. Treasury (Treasury.gov)', 'Daily Treasury par + TIPS yield curves',       'Free', '10Y & 2Y nominal yields, 10Y-2Y slope, 10Y TIPS real rate, 10Y breakeven'],
+  ['FRED',                          'St. Louis Fed economic data',                  'Free', 'Macro indicator family (unemployment rate, nonfarm payrolls, jobless, M2, SLOOS, term premium, RRP, etc.)'],
   ['Polygon (Massive)',             'Daily prices, splits, dividends, fundamentals','Paid', 'Universe master, ticker reference'],
   ['Unusual Whales',                'Options flow, dark pool, insider, congress',   'Paid', 'Scanner facets, ticker events'],
   ['ICE BofA via FRED',             'Investment-grade & high-yield credit spreads', 'Free', 'Credit family (HY OAS, IG OAS)'],
-  ['Yahoo Finance',                 'VIX, MOVE, SKEW, USD, daily commodity + FX prices',  'Free', 'Equity volatility family; Commodities (gold, silver, copper, uranium, oil, natural gas, corn, soybeans, wheat); FX (euro, yen, pound, dollar index)'],
+  ['Yahoo Finance',                 'VIX, MOVE, SKEW, USD, daily commodity + FX prices',  'Free', 'Equity volatility family; Commodities (gold, silver, copper, uranium, WTI crude, Brent crude, natural gas, corn, soybeans, wheat); FX (euro, yen, pound, dollar index)'],
   ['CBOE',                          'VIX, SKEW (via Yahoo mirror)',                 'Free', 'Equity volatility family'],
   ['CFTC (Commitments of Traders)', 'Weekly futures positioning — speculators vs commercial hedgers, ranked into a 3-year range', 'Free', 'Positioning tiles across Rates, Equities, FX, Commodities'],
   ['NY Fed Primary Dealer Stats',   'Weekly dealer net positions in IG/HY corporate bonds', 'Free', 'Credit positioning'],

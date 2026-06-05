@@ -346,6 +346,8 @@ def fetch_all():
     t2  = safe_treasury("nominal", "2 Yr")
     if t10 and t2:
         results["yield_curve"] = (round((t10[0] - t2[0]) * 100, 0), t10[1])
+        results["ust_10y"] = (round(t10[0], 2), t10[1])
+        results["ust_2y"]  = (round(t2[0], 2), t2[1])
 
     print("  MOVE Index...")
     r = safe_yahoo("^MOVE")
@@ -448,6 +450,19 @@ def fetch_all():
     print("  Jobless Claims...")
     r = safe_fred("ICSA")
     if r: results["jobless"] = (round(r[0] / 1000, 0), r[1])
+
+    print("  Unemployment Rate (FRED UNRATE)...")
+    r = safe_fred("UNRATE")
+    if r: results["unrate"] = (round(r[0], 1), r[1])
+
+    print("  Nonfarm Payrolls MoM (FRED PAYEMS)...")
+    try:
+        _pe = fred.get_series("PAYEMS", observation_start="2018-01-01").dropna()
+        if len(_pe) >= 2:
+            _chg = round(float(_pe.iloc[-1]) - float(_pe.iloc[-2]), 0)
+            results["payrolls"] = (_chg, _pe.index[-1].strftime("%b %Y"))
+    except Exception as _e:
+        print(f"    warn PAYEMS: {_e}")
 
     print("  JOLTS Quits...")
     r = safe_fred("JTSQUR")
