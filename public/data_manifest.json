@@ -3797,7 +3797,7 @@
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[unrate]",
-      "producer_script": "fetch_indicators.py",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "indicators"
@@ -3831,7 +3831,7 @@
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[payrolls]",
-      "producer_script": "fetch_indicators.py",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "indicators"

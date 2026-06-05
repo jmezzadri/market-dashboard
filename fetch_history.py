@@ -86,6 +86,7 @@ DIRECTION = {
     "m2_yoy":"hw","fed_bs":"lw","rrp":"hw","bank_reserves":"lw","tga":"hw",
     "breakeven_10y":"hw","cfnai":"lw","cfnai_3ma":"lw","hy_ig_etf":"hw",
     "adv_dec":"lw",  # breadth: LOW (narrow/declining) is worse
+    "ust_10y":"hw","ust_2y":"hw","unrate":"hw","payrolls":"lw",  # 2026-06-05 data adds
 }
 
 fred = Fred(api_key=FRED_API_KEY)
@@ -109,6 +110,8 @@ DAILY_FRESHNESS_SLA = {
     "eq_cr_corr":    1,  # Yahoo SPY / HYG
     "hy_ig_etf":     1,  # Yahoo LQD / HYG
     "yield_curve":   1,  # Treasury.gov (was FRED T10Y2Y)
+    "ust_10y":       2,  # FRED DGS10 (T+1 publication)
+    "ust_2y":        2,  # FRED DGS2 (T+1 publication)
     "real_rates":    1,  # Treasury.gov (was FRED DFII10)
     "breakeven_10y": 1,  # Treasury.gov computed (was FRED T10YIE)
     "hy_ig":         2,  # FRED BAMLH0A0HYM2 (T+1 publication)
@@ -818,6 +821,30 @@ def fetch_all():
         # FRED reports in persons; dashboard shows in K
         result["jobless"] = {"freq": "W", "unit": "K",
                              "points": series_to_points(s / 1000.0, round_dp=1)}
+
+    print("10-Year Treasury Yield (ust_10y) — FRED DGS10 ...")
+    s = safe_fred("DGS10")
+    if s is not None:
+        result["ust_10y"] = {"freq": "D", "unit": "%",
+                             "points": series_to_points(s, round_dp=2)}
+
+    print("2-Year Treasury Yield (ust_2y) — FRED DGS2 ...")
+    s = safe_fred("DGS2")
+    if s is not None:
+        result["ust_2y"] = {"freq": "D", "unit": "%",
+                            "points": series_to_points(s, round_dp=2)}
+
+    print("Unemployment Rate (unrate) — FRED UNRATE ...")
+    s = safe_fred("UNRATE")
+    if s is not None:
+        result["unrate"] = {"freq": "M", "unit": "%",
+                            "points": series_to_points(s, round_dp=1)}
+
+    print("Nonfarm Payrolls MoM (payrolls) — FRED PAYEMS month-over-month change ...")
+    s = safe_fred("PAYEMS", transform=lambda x: x.diff())
+    if s is not None:
+        result["payrolls"] = {"freq": "M", "unit": "K",
+                              "points": series_to_points(s, round_dp=0)}
 
     print("CMDI (NFCI proxy) ...")
     s = safe_fred("NFCI")
