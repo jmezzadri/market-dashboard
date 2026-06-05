@@ -1,0 +1,35 @@
+name: SEED-DATA-ADDS
+# One-shot: insert pipeline_health rows for the 2026-06-05 data adds
+# (Brent, 10Y, 2Y, unemployment, payrolls) so each freshness chip is genuinely
+# tracked. The fetchers only UPDATE existing rows; new feeds need a seed.
+on:
+  workflow_dispatch:
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upsert pipeline_health seed rows
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request
+          url=os.environ["SUPABASE_URL"]; key=os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          rows=[
+            {"indicator_id":"cmdty_brent","label":"Brent crude","source":"Yahoo Finance","cadence":"D","expected_cadence_minutes":1440,"status":"green"},
+            {"indicator_id":"ust_10y","label":"10-year Treasury yield","source":"U.S. Treasury","cadence":"D","expected_cadence_minutes":1440,"status":"green"},
+            {"indicator_id":"ust_2y","label":"2-year Treasury yield","source":"U.S. Treasury","cadence":"D","expected_cadence_minutes":1440,"status":"green"},
+            {"indicator_id":"unrate","label":"Unemployment rate","source":"FRED","cadence":"M","expected_cadence_minutes":44640,"status":"green"},
+            {"indicator_id":"payrolls","label":"Nonfarm payrolls","source":"FRED","cadence":"M","expected_cadence_minutes":44640,"status":"green"},
+          ]
+          req=urllib.request.Request(
+            f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",
+            data=json.dumps(rows).encode(), method="POST",
+            headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json",
+                     "Prefer":"return=representation,resolution=merge-duplicates"})
+          with urllib.request.urlopen(req, timeout=30) as r:
+            out=json.loads(r.read().decode())
+          print("Seeded rows:", len(out))
+          for o in out: print(" ", o.get("indicator_id"), "->", o.get("status"))
+          PY
