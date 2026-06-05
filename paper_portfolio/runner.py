@@ -54,6 +54,7 @@ from paper_portfolio.mirror import (
     ensure_paper_schema,
     mirror_fills,
     mirror_positions,
+    stamp_paper_pipeline_health,
     write_nav_daily,
 )
 from paper_portfolio.submitter import submit_pending_orders
@@ -210,6 +211,9 @@ def run_open_phase(
         n_fills = -1
     n_pos = mirror_positions(alpaca=alpaca, snapshot_date=snapshot_date, dry_run=dry_run)
     nav = write_nav_daily(alpaca=alpaca, snapshot_date=snapshot_date, dry_run=dry_run)
+    # Stamp each paper feed's freshness row so the chips read real (not
+    # fake-green) status and the rebalance chip's positions dependency resolves.
+    stamp_paper_pipeline_health(dry_run=dry_run)
     return {"fills": n_fills, "positions": n_pos, "nav": nav}
 
 
