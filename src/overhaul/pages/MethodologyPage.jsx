@@ -21,7 +21,9 @@
    - Each article uses prototype .me-section (80/1fr grid) with .me-num
      left-column display number, .me-h2 right-column display title,
      .me-body-p paragraphs, .me-links button rows.
-   - TOC uses .me-toc (full-width card at top, no inline grid sidebar).
+   - TOC is a sticky left-rail nav (.me-toc.me-rail) inside a 2-col
+     .me-layout grid; scroll-spy highlights the active section. Collapses
+     to a stacked card above the content at <=900px (see pages.css).
    - Changelog uses .me-changelog list (prototype grid-templated).
    - Vendor table uses .me-vendors. */
 
@@ -77,6 +79,7 @@ export default function MethodologyPage() {
   const [backtest, setBacktest] = useState(null);
   const [scenarioCount, setScenarioCount] = useState(null);
   const [changelog, setChangelog] = useState(null);
+  const [activeId, setActiveId] = useState(SECTIONS[0][0]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +104,35 @@ export default function MethodologyPage() {
       const el = document.getElementById(hash);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }, []);
+
+  // Scroll-spy: highlight the left-rail link for whichever section is in view.
+  useEffect(() => {
+    const ids = SECTIONS.map(([id]) => id);
+    const els = ids
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    if (!els.length || typeof IntersectionObserver === 'undefined') return;
+
+    const visible = new Map();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) visible.set(e.target.id, e.intersectionRatio);
+          else visible.delete(e.target.id);
+        });
+        // Pick the section nearest the top of the viewport that is on screen.
+        let best = null;
+        for (const id of ids) {
+          if (visible.has(id)) { best = id; break; }
+        }
+        if (best) setActiveId(best);
+      },
+      // Trigger when a section crosses the upper third of the viewport.
+      { rootMargin: '-80px 0px -65% 0px', threshold: [0, 0.1, 0.5, 1] }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   const at = backtest?.validation?.asset_tilt;
@@ -137,17 +169,25 @@ export default function MethodologyPage() {
       </section>
 
       <section className="mt-pagesection">
-        <nav className="me-toc">
+       <div className="me-layout">
+        <nav className="me-toc me-rail" aria-label="Sections on this page">
           <div className="mt-eyebrow">Sections</div>
           <ol>
             {SECTIONS.map(([id, label]) => (
               <li key={id}>
-                <a href={`#${id}`}>{label}</a>
+                <a
+                  href={`#${id}`}
+                  className={activeId === id ? 'is-active' : undefined}
+                  aria-current={activeId === id ? 'true' : undefined}
+                >
+                  {label}
+                </a>
               </li>
             ))}
           </ol>
         </nav>
 
+        <div className="me-content">
         {/* 01 — Macro overview */}
         <article id="macro" className="me-section">
           <div className="me-num">01</div>
@@ -392,6 +432,8 @@ export default function MethodologyPage() {
             )}
           </div>
         </article>
+        </div>{/* /.me-content */}
+       </div>{/* /.me-layout */}
       </section>
     </div>
   );
