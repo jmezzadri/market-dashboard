@@ -30,6 +30,7 @@ TARGETS = [
     ("cmdty_copper",   "HG=F",       "Copper",            "Commodities", "$/lb"),
     ("cmdty_uranium",  "UX=F",       "Uranium",           "Commodities", "$/lb"),
     ("cmdty_oil",      "CL=F",       "Crude oil",         "Commodities", "$/bbl"),
+    ("cmdty_brent",    "BZ=F",       "Brent crude",       "Commodities", "$/bbl"),
     ("cmdty_natgas",   "NG=F",       "Natural gas",       "Commodities", "$/MMBtu"),
     ("cmdty_corn",     "ZC=F",       "Corn",              "Commodities", "c/bu"),
     ("cmdty_soybeans", "ZS=F",       "Soybeans",          "Commodities", "c/bu"),
