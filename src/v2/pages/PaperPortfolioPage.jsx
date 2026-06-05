@@ -271,11 +271,17 @@ const PAPER_SLEEVE_CAP = 500_000;
 //   • net borrowing (book levered): the loan is charged to the sleeve(s) that
 //     exceeded their cap.
 // Returns dollar value AND cash for each sleeve so the tables can show cash.
-function reconcileSleeves(row) {
+function reconcileSleeves(row, aGrossOverride = null, bGrossOverride = null) {
   const CAP = PAPER_SLEEVE_CAP;
   if (!row || row.total_nav == null) return { aValue: null, bValue: null, aCash: null, bCash: null };
   const tn = row.total_nav;
-  const ag = row.sleeve_a_equity, bg = row.sleeve_b_equity;
+  // Prefer the EOD-priced per-sleeve holdings summed from the positions the page
+  // actually displays, so the headline sleeve value equals the sleeve table.
+  // The nav row's sleeve_*_equity is priced from live Alpaca and disagrees with
+  // the prices_eod basis used everywhere else on the site; fall back to it only
+  // when the live positions have not loaded.
+  const ag = (aGrossOverride != null && Number.isFinite(aGrossOverride)) ? aGrossOverride : row.sleeve_a_equity;
+  const bg = (bGrossOverride != null && Number.isFinite(bGrossOverride)) ? bGrossOverride : row.sleeve_b_equity;
   if (ag == null || bg == null) {
     const av = row.sleeve_a_value, bv = row.sleeve_b_value;
     if (av != null && bv != null && (av + bv) > 0) { const k = tn / (av + bv); return { aValue: av * k, bValue: bv * k, aCash: null, bCash: null }; }
@@ -298,7 +304,7 @@ function reconcileSleeves(row) {
   return { aValue: ag + aCash, bValue: bg + bCash, aCash, bCash };
 }
 
-function SummaryCard({ navHistory }) {
+function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   const empty = !navHistory || navHistory.length === 0;
   const latest = empty ? null : navHistory[navHistory.length - 1];
   const prev   = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
@@ -331,7 +337,7 @@ function SummaryCard({ navHistory }) {
 
   // Sleeve values reconciled so Sleeve A + Sleeve B === Total (broker NAV),
   // in both the idle-cash and levered regimes. See reconcileSleeves above.
-  const sLatest = reconcileSleeves(latest);
+  const sLatest = reconcileSleeves(latest, sleeveAGross, sleeveBGross);
   const sLatestA = sLatest.aValue, sLatestB = sLatest.bValue;
 
   const spyNow = latest.spy_close ?? null;
@@ -836,7 +842,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // Reconciled per-sleeve cash (idle) so each table can show a Cash line that
   // ties the sleeve's holdings + cash to the broker NAV.
   const latestNav = navHistory.length ? navHistory[navHistory.length - 1] : null;
-  const recon = useMemo(() => reconcileSleeves(latestNav), [latestNav]);
+  // EOD-priced per-sleeve holdings, summed from the displayed positions, so the
+  // Performance card's sleeve value and each table's Cash line tie to the rows.
+  const sleeveAGross = useMemo(() => sleeveA.length ? sleeveA.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveA]);
+  const sleeveBGross = useMemo(() => sleeveB.length ? sleeveB.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveB]);
+  const recon = useMemo(() => reconcileSleeves(latestNav, sleeveAGross, sleeveBGross), [latestNav, sleeveAGross, sleeveBGross]);
   // Precise last-update timestamp for the positions snapshot (has time-of-day,
   // so the freshness tooltip shows date AND time, not just a date).
   const posUpdatedAt = positions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
@@ -853,7 +863,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         eyebrow="Paper Portfolio"
         title={HERO_TITLE}
         bullets={HERO_BULLETS}
-        right={<SummaryCard navHistory={navHistory} />}
+        right={<SummaryCard navHistory={navHistory} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} />}
       />
 
       <div className="paper-shell">
