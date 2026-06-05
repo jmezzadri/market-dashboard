@@ -139,7 +139,7 @@ export default function FreshnessChip({
   // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
   const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
-  const exactStamp = fmtExact(f?.lastGoodAt || f?.dataAsOf);
+  const exactStamp = fmtExact(f?.dataAsOf || f?.lastGoodAt);
 
   const onEnter = () => {
     setHover(true);

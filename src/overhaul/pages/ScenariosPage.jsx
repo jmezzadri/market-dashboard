@@ -297,6 +297,21 @@ export default function ScenariosPage() {
     });
   }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct]);
 
+  /* Your portfolio's actual allocation mix (by economic asset class) for the
+     strategy table row. Options fold into equity exposure; crypto sits outside
+     the four sleeve columns. */
+  const portAlloc = useMemo(() => {
+    const b = book?.allocByClass; const t = book?.total;
+    if (!isAuthed || !b || !t) return null;
+    const p = (x) => Math.round(((x || 0) / t) * 100);
+    return {
+      equity: p((b.Equity || 0) + (b.Options || 0)),
+      cash: p(b.Cash || 0),
+      gold: p(b.Commodity || 0),
+      tlt: p(b['Fixed Income'] || 0),
+    };
+  }, [isAuthed, book]);
+
   const strategies = useMemo(() => {
     let spyDD = null;
     let engineDD = null;
@@ -351,7 +366,10 @@ export default function ScenariosPage() {
       },
       {
         name: 'Your portfolio',
-        equity: '—', cash: '—', gold: '—', tlt: '—',
+        equity: portAlloc ? `${portAlloc.equity}%` : '—',
+        cash:   portAlloc ? `${portAlloc.cash}%`   : '—',
+        gold:   portAlloc ? `${portAlloc.gold}%`   : '—',
+        tlt:    portAlloc ? `${portAlloc.tlt}%`    : '—',
         ret: portImpact ? portImpact.pct : null,
         dd: portImpact ? portImpact.pct : null,
         you: true, mt: false,
@@ -365,7 +383,7 @@ export default function ScenariosPage() {
         you: false, mt: true,
       },
     ];
-  }, [scen, drawdown, customRet, horizonMul, isAuthed, portImpact]);
+  }, [scen, drawdown, customRet, horizonMul, isAuthed, portImpact, portAlloc]);
 
   /* Real per-sector stress matrix. Top 8 worst-performing sectors under the
      active shock. activeId === 'custom' uses customShocks; otherwise uses
@@ -695,7 +713,7 @@ export default function ScenariosPage() {
                 <div className="mt-eyebrow">Your portfolio impact</div>
                 <div className="mt-h2">Position-level P/L · {horizon} window.</div>
               </div>
-              <FreshnessChip elementId="portfolio-positions-on_change" variant="dot" />
+              <FreshnessChip elementId="portfolio-scenario-impact" variant="dot" fallback={{ asOfIso: new Date().toISOString() }} />
             </div>
             {!isAuthed ? (
               <div className="sn-section-note">
@@ -714,22 +732,38 @@ export default function ScenariosPage() {
                     {' '}({fmtPctSigned(portImpact.pct, 1)})
                   </b>
                 </div>
-                <ul className="sn-engineimpact">
-                  {portImpact.positions.slice(0, 10).map((pp) => (
-                    <li key={pp.key}>
-                      <span className="sn-sectorcode">{pp.ticker}</span>
-                      <span className="sn-secname">{pp.kind === 'option' ? pp.label : pp.ticker}</span>
-                      <span className="num sn-proxy">${Math.round(pp.value).toLocaleString()}</span>
-                      <span className="sn-arrow">→</span>
-                      <span className={`num sn-stress ${pp.pnl >= 0 ? 'up' : 'down'}`}>
-                        {pp.pnl >= 0 ? '+' : ''}${Math.round(pp.pnl).toLocaleString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {portImpact.positions.length > 10 && (
+                <div className="sn-strategytable">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th className="sn-thLeft">Position</th>
+                        <th className="sn-thNum">Current</th>
+                        <th className="sn-thNum">Stressed</th>
+                        <th className="sn-thNum">Loss %</th>
+                        <th className="sn-thNum">Loss $</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {portImpact.positions.slice(0, 12).map((pp) => (
+                        <tr key={pp.key}>
+                          <td className="sn-tdLeft">
+                            <b>{pp.ticker}</b>
+                            {pp.kind === 'option' && <span className="sn-row-note">{pp.label}</span>}
+                          </td>
+                          <td className="num sn-tdNum">${Math.round(pp.value).toLocaleString()}</td>
+                          <td className="num sn-tdNum">${Math.round(pp.stressedValue).toLocaleString()}</td>
+                          <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>{fmtPctSigned(pp.pnlPct, 1)}</td>
+                          <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>
+                            {pp.pnl >= 0 ? '+' : '-'}${Math.abs(Math.round(pp.pnl)).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {portImpact.positions.length > 12 && (
                   <div className="sn-section-note">
-                    +{portImpact.positions.length - 10} more positions
+                    +{portImpact.positions.length - 12} more positions
                   </div>
                 )}
               </>
