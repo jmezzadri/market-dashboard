@@ -95,6 +95,78 @@ def _sql_escape(s: str | None) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Freshness stamping — every paper feed must own a real pipeline_health row.
+# ─────────────────────────────────────────────────────────────────────────────
+# The freshness chip (useFreshness) grades each surface against
+# public.pipeline_health. The Supabase edge freshness-checker only refreshes
+# VENDOR feeds; in-house producers like this paper runner must stamp their own
+# rows or the chip lies. Two concrete failures this prevents:
+#   * fake-green: a leaf chip surviving only on an on-page fallback timestamp
+#     with no health row of its own (forbidden by the data rules).
+#   * dependency red-out: paper-orders-intent depends on
+#     paper-positions-snapshot; the dependency walk evaluates the dependency
+#     WITHOUT the page fallback, so a missing positions health row reads
+#     "never refreshed" and reds the Recent-rebalances chip even though orders
+#     landed 3h ago. (Root cause of the red rebalance chip, 2026-06-05.)
+# indicator_id MUST equal the manifest `name` the chip resolves to.
+_PAPER_HEALTH = [
+    ("paper-nav-daily",          "public.paper_nav_daily",  "snapshot_date",
+     "Paper Portfolio · Daily NAV",            "Alpaca paper account"),
+    ("paper-positions-snapshot", "public.paper_positions",  "snapshot_date",
+     "Paper Portfolio · Positions snapshot",   "Alpaca + prices_eod"),
+    ("paper-orders-intent",      "public.paper_orders",     "created_at",
+     "Paper Portfolio · Order intents",        "Paper engine + Alpaca"),
+]
+
+
+def stamp_paper_pipeline_health(dry_run: bool = False) -> None:
+    """Seed/refresh the pipeline_health rows for the three paper feeds.
+
+    Idempotent (DELETE + INSERT scoped to these three ids — no reliance on a
+    named conflict constraint). data_as_of anchors to the newest row actually
+    present in each source table, so the chip can never read greener than the
+    data. Never raises: a freshness-logging failure must not fail the run.
+    """
+    if dry_run:
+        logger.info("[dry-run] would stamp paper pipeline_health rows")
+        return
+    rows_sql = []
+    for ind_id, table, date_col, label, source in _PAPER_HEALTH:
+        try:
+            r = _supabase_query(f"select max({date_col})::text as d from {table};")
+            d = (r[0].get("d") if r else None)
+        except Exception as exc:
+            logger.warning("pipeline_health: could not read %s (%s) — skip", table, exc)
+            continue
+        if not d:
+            continue
+        as_of = f"{d}T00:00:00+00:00" if len(d) == 10 else d
+        rows_sql.append(
+            "(" + ", ".join([
+                _sql_escape(ind_id), _sql_escape(label), _sql_escape(source),
+                "'D'", "'green'", _sql_escape(as_of), "now()",
+                _sql_escape(as_of), "NULL", "now()",
+            ]) + ")"
+        )
+    if not rows_sql:
+        logger.warning("pipeline_health: no paper source dates found — nothing to stamp")
+        return
+    ids = ", ".join(_sql_escape(x[0]) for x in _PAPER_HEALTH)
+    sql = (
+        f"delete from public.pipeline_health where indicator_id in ({ids}); "
+        "insert into public.pipeline_health "
+        "(indicator_id, label, source, cadence, status, last_good_at, "
+        " last_check_at, data_as_of, last_error, updated_at) values "
+        + ", ".join(rows_sql) + ";"
+    )
+    try:
+        _supabase_exec(sql)
+        logger.info("stamped pipeline_health for %d paper feeds", len(rows_sql))
+    except Exception as exc:
+        logger.warning("pipeline_health stamp failed (%s)", exc)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Schema self-migration (idempotent — safe to run every cycle)
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,31 @@
+name: DATA-PAPER-HEALTH-SEED
+
+# One-shot, manual-only. Seeds/refreshes the pipeline_health rows for the three
+# paper-portfolio feeds (nav, positions, orders) so their freshness chips read
+# real status. No Alpaca, no trading, no vendor calls — touches only the
+# pipeline_health table via the Supabase Management API.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: data-paper-health-seed
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Seed paper pipeline_health rows
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+        run: python scripts/seed_paper_pipeline_health.py
