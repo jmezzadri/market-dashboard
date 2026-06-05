@@ -1,296 +1,245 @@
-/* Home — refactored 2026-05-27 per Joe Path-A directive.
-
-   Catalog violations resolved (5 of 5):
-   1. HEADLINES (6 fake news items) → ENTIRE news section DELETED per
-      Joe Path-B nuance ("Home news list — different beast. Either wire
-      a real news feed or delete the section entirely").
-   2. "0.86" portfolio beta — already removed in prior pass; deck now
-      reads regime + equity_pct off real hooks.
-   3. "standby" defensive sleeve literal — already removed; deck shows
-      real equity_pct/def_pct from useAllocation.
-   4. "Eight names cleared a 5-point score this morning" — removed.
-   5. FeatureCard stat pills — now bound to real counts:
-        Scanner: trading_opps band total (useTradingOppsTop)
-        Portfolio: accounts.length (useUserPortfolio), em-dash unauth
-        Scenarios: count from /scenario_definitions.json
-
-   Style refactor (zero inline style props on this file):
-   - Stat tiles use .hm-statgrid / .hm-stat / .hm-statval / .hm-statsub
-   - Today's read grid uses .hm-todaygrid
-   - Map card uses .hm-mapcard / .hm-mapcardhead / .hm-mapcardsub
-   - Engine call card uses .hm-tiltcard / .hm-tiltcardhead / .hm-tiltcall
-     / .hm-tiltsubcall / .hm-allocgroup / .hm-allocfoot / .hm-eyebrowrow
-   - Feature grid uses .hm-featgrid.hm-featgrid--three
-   - FeatureCard uses .hm-feat / .hm-feattop / .hm-feattitle /
-     .hm-featbody / .hm-featnum / .hm-featstat / .hm-featgo
-   - Canvas inset uses .hm-canvaswrap utility (chrome.css). */
-
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
-import RegimeCanvas from '../components/RegimeCanvas';
 import useIndicators from '../lib/useIndicators';
 import useAllocation from '../lib/useAllocation';
 import useEngineRegime from '../lib/useEngineRegime';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import { useUserPortfolio } from '../../hooks/useUserPortfolio';
+import { getUpcoming, fmtEventDate } from '../lib/econCalendar';
+import '../home-editorial.css';
 
-function fmtPercent(v, digits = 0) {
-  if (v == null || !Number.isFinite(v)) return '—';
-  return `${(v * 100).toFixed(digits)}%`;
+const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
+const DOMAIN_SHORT = { 'Financial Conditions & Economy': 'Fin Cond & Economy' };
+const MECH_LABEL = { valuation: 'valuations', credit: 'credit', funding: 'funding', growth: 'growth', liquidity_policy: 'liquidity & policy', positioning_breadth: 'positioning & breadth' };
+const SIGNAL_LABEL = { insider_pts: 'insider buying', sma200_pts: 'its 200-day trend', rsi_pts: 'momentum (RSI)', options_pts: 'options flow', dark_pool_pts: 'dark-pool accumulation' };
+
+/* ── value / delta helpers ─────────────────────────────────────────────── */
+function valueDaysAgo(points, days) {
+  if (!points || points.length < 2) return null;
+  const lastT = Date.parse(points[points.length - 1][0] + 'T00:00:00Z');
+  const target = lastT - days * 86400000;
+  for (let i = points.length - 1; i >= 0; i--) {
+    if (Date.parse(points[i][0] + 'T00:00:00Z') <= target) return points[i][1];
+  }
+  return points[0][1];
+}
+function deltas(ind) {
+  const p = ind.points || [];
+  if (p.length < 2) return { recent: null, wow: null };
+  const last = p[p.length - 1][1];
+  return { recent: last - p[p.length - 2][1], wow: (() => { const w = valueDaysAgo(p, 7); return w == null ? null : last - w; })() };
+}
+function freqLabel(freq) { return freq === 'W' ? 'w/w' : freq === 'M' ? 'm/m' : freq === 'Q' ? 'q/q' : 'd/d'; }
+function fmtVal(ind) {
+  const v = ind.value; if (v == null) return '—';
+  const d = Number.isFinite(ind.decimals) ? ind.decimals : 2;
+  const u = ind.unit || '';
+  if (u === '%') return `${v.toFixed(d)}%`;
+  if (!u || u === 'index' || u === 'ratio' || u === 'z-score') return v.toFixed(d);
+  return `${v.toFixed(d)} ${u}`;
+}
+function fmtDelta(x, ind) {
+  if (x == null) return null;
+  const d = Number.isFinite(ind.decimals) ? ind.decimals : 2;
+  const s = `${x > 0 ? '+' : ''}${x.toFixed(Math.min(d, 2))}`;
+  return { text: s, cls: Math.abs(x) < Math.pow(10, -(d + 1)) ? 'he-nu' : x > 0 ? 'he-up' : 'he-dn' };
+}
+function stanceFor(inds) {
+  const ext = inds.filter((i) => i.state === 'extreme').length;
+  const elev = inds.filter((i) => i.state === 'elevated').length;
+  if (ext > 0) return { label: 'Stretched', cls: 'extreme', stretched: ext + elev };
+  if (elev > 0) return { label: 'Elevated', cls: 'elev', stretched: elev };
+  return { label: 'Calm', cls: 'calm', stretched: 0 };
+}
+function pickHeadline(inds) {
+  if (!inds.length) return null;
+  const score = (i) => (i.state === 'extreme' ? 200 : i.state === 'elevated' ? 100 : 0) + (i.pct != null ? Math.abs(i.pct - 50) : 0);
+  return inds.slice().sort((a, b) => score(b) - score(a))[0];
+}
+function topDriver(s) {
+  const c = s.contributions || {}; let k = null, mv = -1;
+  Object.entries(c).forEach(([kk, vv]) => { const a = Math.abs(Number(vv) || 0); if (a > mv) { mv = a; k = kk; } });
+  return MECH_LABEL[k] || k || 'the engine score';
+}
+function topSignal(r) {
+  const f = { insider_pts: r.insider_pts, sma200_pts: r.sma200_pts, rsi_pts: r.rsi_pts, options_pts: r.options_pts, dark_pool_pts: r.dark_pool_pts };
+  let k = null, mv = -Infinity;
+  Object.entries(f).forEach(([kk, vv]) => { const n = Number(vv) || 0; if (n > mv) { mv = n; k = kk; } });
+  return SIGNAL_LABEL[k] || 'multiple signals';
+}
+
+/* ── positioning generators (fully derived from live engine state) ─────── */
+function macroPosition(regime, alloc, buckets) {
+  if (!regime || regime.loading) return 'Reading the tape…';
+  const zone = regime.stressZone || 'Neutral';
+  const eq = alloc ? Math.round((alloc.equity_pct || 0) * 100) : null;
+  const def = alloc ? Math.round((alloc.defensive_pct || 0) * 100) : null;
+  let worst = null, wv = -1;
+  buckets.forEach((b) => { const n = b.inds.filter((i) => i.state === 'extreme').length * 2 + b.inds.filter((i) => i.state === 'elevated').length; if (n > wv) { wv = n; worst = b; } });
+  const lean = zone === 'Risk On' ? 'lean risk-on' : zone === 'Risk Off' ? 'cut risk' : 'stay balanced and watch the data';
+  let s = `The engine reads ${regime.regimeLabel || zone}`;
+  if (eq != null) s += ` — ${eq}% equity, ${def}% defensive`;
+  s += `. The signal is to ${lean}`;
+  if (worst && wv > 0) s += `; ${(DOMAIN_SHORT[worst.name] || worst.name).toLowerCase()} is the bucket showing the most stress right now`;
+  return s + '.';
+}
+function tiltPosition(alloc) {
+  if (!alloc) return '';
+  const eq = Math.round((alloc.equity_pct || 0) * 100), def = Math.round((alloc.defensive_pct || 0) * 100);
+  const bands = alloc.mechanism_bands || {};
+  const order = { 'risk-off': 3, caution: 2, neutral: 1, 'risk-on': 0 };
+  let worst = null, wv = -1;
+  Object.entries(bands).forEach(([k, v]) => { const sv = order[v] ?? 0; if (sv > wv) { wv = sv; worst = k; } });
+  let s = `Engine stance: ${alloc.page_stance || '—'} — ${eq}% equity, ${def}% defensive`;
+  if (worst) s += `. The mechanism pulling hardest is ${MECH_LABEL[worst] || worst} (${bands[worst]})`;
+  return s + '. The moves below change which risk you own, not how much.';
+}
+function scannerPosition(bandCounts, top) {
+  if (!bandCounts) return '';
+  const names = top.slice(0, 3).map((r) => r.ticker).filter(Boolean).join(', ');
+  return `${bandCounts.total} names cleared the score gate${bandCounts.score5 ? `, ${bandCounts.score5} at top conviction` : ''}. The strongest setups right now: ${names || '—'}. Stage entries around the releases above — these are event-gated, not buy-and-holds.`;
 }
 
 export default function HomePage() {
-  const { active } = useIndicators();
+  const navigate = useNavigate();
+  const { active, loading: indLoading } = useIndicators();
   const { allocation } = useAllocation();
   const regime = useEngineRegime();
-  const { bandCounts } = useTradingOppsTop(20);
-  const { accounts, isAuthed } = useUserPortfolio();
-  const [scenarioCount, setScenarioCount] = useState(null);
-  const navigate = useNavigate();
+  const { rows: scanRows, bandCounts, scanDate } = useTradingOppsTop(20);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/scenario_definitions.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && Array.isArray(j?.scenarios)) setScenarioCount(j.scenarios.length); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const calendar = useMemo(() => getUpcoming(todayISO, 5), [todayISO]);
 
-  const stressed = active.filter((i) => i.state === 'extreme').length;
-  const elevated = active.filter((i) => i.state === 'elevated').length;
-  const calm = active.filter((i) => i.state === 'calm').length;
-  const total = active.length;
+  const buckets = useMemo(() => {
+    const map = {}; DOMAINS.forEach((d) => { map[d] = []; });
+    (active || []).forEach((i) => { const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions & Economy'; map[d].push(i); });
+    return DOMAINS.map((name) => ({ name, inds: map[name] }));
+  }, [active]);
 
-  const equityPct = allocation?.equity_pct ?? null;
-  const defPct = allocation?.defensive_pct ?? null;
-
-  const allocRows = useMemo(() => {
-    const rows = (allocation?.sectors || [])
-      .map((s) => ({
-        code: (s.etfs && s.etfs[0]) || s.sector,
-        name: s.sector,
-        weight: Number(s.weight) || 0,
-      }))
-      .filter((s) => s.weight > 0)
-      .sort((a, b) => b.weight - a.weight);
-    const maxW = rows.length ? rows[0].weight : 0;
-    return rows.map((r) => ({ ...r, fraction: maxW > 0 ? r.weight / maxW : 0 }));
+  const tiltMoves = useMemo(() => {
+    const s = (allocation?.sectors || []).slice().sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
+    const ow = s.filter((x) => (x.vs_spy_pp ?? 0) > 0).slice(0, 2);
+    const uw = s.filter((x) => (x.vs_spy_pp ?? 0) < 0).slice(-2).reverse();
+    return [...ow, ...uw];
   }, [allocation]);
 
-  const scannerStat = bandCounts?.total != null
-    ? `${bandCounts.total} long alerts`
-    : '— long alerts';
-  const portfolioStat = isAuthed
-    ? `${(accounts || []).length} accounts`
-    : '— accounts';
-  const scenarioStat = scenarioCount != null
-    ? `${scenarioCount} scenarios`
-    : '— scenarios';
+  const topBuys = useMemo(() => (scanRows || []).filter((r) => (r.band ?? 0) >= 4).slice(0, 3), [scanRows]);
+
+  const stretchedTotal = (active || []).filter((i) => i.state === 'extreme' || i.state === 'elevated').length;
 
   return (
     <div className="mt-pagebody mt-fade">
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Today's tape · MacroTilt</div>
-          <h1 className="mt-h1">
-            {regime.stressZone || 'Reading'},
-            <br />
-            <i>{(regime.yieldRegime || 'inflationary').toLowerCase()}</i>{' '}
-            — with <span className="num hm-nowrap">{stressed} of {total}</span> flashing.
-          </h1>
-          <p className="mt-deck">
-            Bond-market volatility set by{' '}
-            <b className="num">MOVE {regime.move != null ? regime.move.toFixed(1) : '—'}</b>{' '}
-            and the 3-month change in 10y rates at{' '}
-            <b className="num">{regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—'}</b>{' '}
-            put the engine in{' '}
-            <b>{equityPct != null ? `${(equityPct * 100).toFixed(0)}% equity` : 'reading…'}</b>.{' '}
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology'); }}>
-              Read the methodology →
-            </a>
-          </p>
-        </div>
-
-        <div className="hm-statgrid">
-          <StatTile
-            label="Stress signal"
-            value={regime.move != null ? regime.move.toFixed(1) : '—'}
-            sub={`MOVE · ${regime.movePct != null ? `${regime.movePct}th pctile` : '—'} · Watch ${regime.stressThresholds?.watch ?? 116}`}
-          />
-          <StatTile
-            label="Yield regime"
-            value={regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)}` : '—'}
-            unit="bp"
-            sub={`3M Δ 10y · ${regime.yieldPct != null ? `${regime.yieldPct}th pctile` : '—'} · ${(regime.yieldRegime || '—').toLowerCase()}`}
-          />
-          <StatTile
-            label="Indicators"
-            value={`${stressed + elevated}`}
-            unit={`/${total}`}
-            sub={
-              <>
-                <b className="num hm-stat-down">{stressed}</b> extreme · <b className="num hm-stat-warn">{elevated}</b> elevated · <b className="num hm-stat-up">{calm}</b> calm
-              </>
-            }
-          />
+      {/* ── Week-ahead calendar ── */}
+      <section className="he-week" aria-label="Economic calendar — week ahead">
+        <div className="he-weekhd"><span>What's coming · the releases the tape is trading around</span></div>
+        <div className="he-cal">
+          {calendar.map((e) => (
+            <div key={e.date + e.name} className={`he-ev${e.today ? ' today' : ''}`}>
+              <div className="he-ev-dt">{e.today ? 'TODAY · ' : ''}{fmtEventDate(e.date)} · {e.time}</div>
+              <div className="he-ev-nm">{e.name}</div>
+              <div className="he-ev-detail">{e.detail}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Today's read — Macro position (left) + Engine call + allocation (right) */}
-      <section className="mt-pagesection">
-        <div className="hm-todaygrid">
+      {/* ── Macro Overview ── */}
+      <section className="mt-pagesection he-section">
+        <div className="mt-eyebrow">Macro Overview · today's read</div>
+        <h1 className="mt-h1">{regime.loading ? 'Reading the tape' : <>{regime.stressZone || 'Neutral'} — <i>{(regime.yieldRegime || 'neutral').toLowerCase()}</i>.</>}</h1>
+        <p className="mt-deck">
+          A read across the six things we watch — rates, credit, equities, commodities, FX, and the economy — each ranked against its own three-year history. {stretchedTotal} of {(active || []).length} indicators are stretched right now.
+        </p>
 
-          {/* Map card */}
-          <div className="lm-canvas hm-mapcard">
-            <div className="hm-mapcardhead">
-              <div>
-                <div className="mt-eyebrow">Macro position</div>
-                <div className="mt-h2">Where the {total} indicators sit today.</div>
-                <div className="hm-mapcardsub">
-                  Hover any dot to read · click to drill into history
+        <div className="he-lanehd"><span>What's changed · across the six buckets</span></div>
+        <div className="he-buckets">
+          {indLoading ? <div className="mt-deck">Loading indicators…</div> : buckets.map((b) => {
+            const stance = stanceFor(b.inds);
+            const head = pickHeadline(b.inds);
+            const dd = head ? deltas(head) : { recent: null, wow: null };
+            const dRec = head ? fmtDelta(dd.recent, head) : null;
+            const dWow = head ? fmtDelta(dd.wow, head) : null;
+            return (
+              <button key={b.name} className="he-bk" onClick={() => navigate('/macro')}>
+                <div className="he-bk-top">
+                  <span className="he-bk-nm">{DOMAIN_SHORT[b.name] || b.name}</span>
+                  <span className={`he-chip ${stance.cls}`}><span className="he-dot" />{stance.label}</span>
                 </div>
-              </div>
-              <button type="button" className="mt-btn" onClick={() => navigate('/macro')}>
-                Open Macro →
+                {head && (
+                  <>
+                    <div className="he-met num">
+                      <span className="he-lv">{fmtVal(head)}</span>
+                      {dRec && <span className={`he-dl ${dRec.cls}`}>{dRec.text} {freqLabel(head.freq)}</span>}
+                      {dWow && head.freq === 'D' && <span className={`he-dl ${dWow.cls}`}>{dWow.text} w/w</span>}
+                    </div>
+                    <div className="he-rd"><b>{head.name}</b> — {head.state === 'calm' ? 'in its normal range' : `${head.state} vs its 3-year range`}.</div>
+                  </>
+                )}
+                <div className="he-tr"><b>{stance.stretched}</b> of {b.inds.length} indicators stretched · <FreshnessChip elementId={head?.manifestId} variant="dot" /></div>
               </button>
-            </div>
-            <div className="hm-canvaswrap">
-              <RegimeCanvas indicators={active} aspect={1.55} />
-            </div>
-            <div className="lm-canvaslegend">
-              <div className="lm-legrow">
-                <span className="lm-legdot lm-legdot--extreme" /> extreme
-                <span className="lm-legdot lm-legdot--elevated" /> elevated
-                <span className="lm-legdot lm-legdot--calm" /> calm
-              </div>
-              <div className="lm-legrow lm-legrow--dim">
-                {total} indicators · live · 5y normalized
-              </div>
-            </div>
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Engine Call card */}
-          <aside className="hm-tiltcard">
-            <div className="hm-tiltcardhead">
-              <div>
-                <div className="mt-eyebrow">Engine call · today</div>
-                <div className="hm-tiltcall">
-                  {regime.stressZone || '—'} · <i>{regime.yieldRegime || '—'}</i>
-                </div>
-                <div className="hm-tiltsubcall">
-                  <b className="num">{fmtPercent(equityPct, 0)}</b> equity ·{' '}
-                  <b className="num">{fmtPercent(defPct, 0)}</b> defensive ·{' '}
-                  <FreshnessChip elementId="v10-allocation-daily" variant="label" />
-                </div>
-              </div>
-              <button type="button" className="mt-btn" onClick={() => navigate('/tilt')}>
-                Open Tilt →
+        <div className="he-sowhat">
+          <div className="he-sowhat-lbl"><span>How to position</span></div>
+          <p>{macroPosition(regime, allocation, buckets)}</p>
+        </div>
+      </section>
+
+      {/* ── Asset Tilt ── */}
+      <section className="mt-pagesection he-section">
+        <div className="mt-eyebrow">Asset Tilt · rebalance</div>
+        <h1 className="mt-h1">Where the engine is <i>leaning the book</i>.</h1>
+        <p className="mt-deck">The biggest overweights and underweights versus the benchmark, and the mechanism driving each. <FreshnessChip elementId="v10-allocation-daily" fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }} variant="label" /></p>
+
+        <div className="he-lanehd"><span>What's changed · this morning's moves</span></div>
+        <div className="he-reb">
+          {tiltMoves.map((s) => {
+            const pp = s.vs_spy_pp ?? 0; const up = pp > 0;
+            return (
+              <button key={s.sector} className="he-rrow" onClick={() => navigate('/tilt')}>
+                <span className={`he-ar ${up ? 'he-up' : 'he-dn'}`}>{up ? '▲' : '▼'}</span>
+                <span className="he-rnm">{s.sector}<small>{s.rating === 'OW' ? 'Overweight' : s.rating === 'UW' ? 'Underweight' : 'Neutral'} · {(s.etfs && s.etfs[0]) || ''}</small></span>
+                <span className="he-wy">Driven mostly by {topDriver(s)}.</span>
+                <span className={`he-pp ${up ? 'he-up' : 'he-dn'}`}>{up ? '+' : ''}{pp.toFixed(1)}pp</span>
               </button>
-            </div>
+            );
+          })}
+        </div>
 
-            <div className="hm-allocgroup">
-              <div className="hm-eyebrowrow">
-                <span className="mt-eyebrow">Recommended allocation</span>
-                <span className="hm-allocfoot num">= 100%</span>
+        <div className="he-sowhat">
+          <div className="he-sowhat-lbl"><span>How to position</span></div>
+          <p>{tiltPosition(allocation)}</p>
+        </div>
+      </section>
+
+      {/* ── Equity Scanner ── */}
+      <section className="mt-pagesection he-section">
+        <div className="mt-eyebrow">Equity Scanner · {bandCounts ? bandCounts.total : ''} long alerts</div>
+        <h1 className="mt-h1">The names this setup <i>points at</i>.</h1>
+        <p className="mt-deck">Top-conviction longs from the five-signal scan, with the signal driving each. <FreshnessChip elementId="equity-latest_scan_data-daily" fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }} variant="label" /></p>
+
+        <div className="he-lanehd"><span>What's changed · today's top conviction</span></div>
+        {topBuys.length === 0 ? <div className="mt-deck">No names cleared the conviction gate today.</div> : topBuys.map((r) => {
+          const chg = (r.score != null && r.score_1m != null) ? r.score - r.score_1m : null;
+          return (
+            <button key={r.ticker} className="he-buy" onClick={() => navigate(`/ticker/${r.ticker}`)}>
+              <div className="he-buy-h">
+                <span className="he-tk">{r.ticker}</span>
+                <span className={`he-conv ${r.band >= 5 ? 'high' : 'med'}`}>{r.band >= 5 ? 'High' : 'Medium'}</span>
+                <span className="he-sc">Score <b>{r.score != null ? r.score.toFixed(1) : '—'}</b>{chg != null ? ` · ${chg >= 0 ? '▲' : '▼'} ${chg >= 0 ? '+' : ''}${chg.toFixed(1)} vs 1mo` : ''}</span>
               </div>
-              {allocRows.map((s) => (
-                <button
-                  key={s.code}
-                  type="button"
-                  onClick={() => navigate('/tilt')}
-                  className="hm-allocrow"
-                >
-                  <span className="hm-allocname">
-                    <span className="lm-flowcode">{s.code}</span>
-                    <span className="hm-allocnamelbl">{s.name}</span>
-                  </span>
-                  <span className="hm-allocbar">
-                    <span className="hm-allocbar-fill" style={{ width: `${(s.fraction * 100).toFixed(1)}%` }} />
-                  </span>
-                  <span className="num hm-allocpct">
-                    {(s.weight * 100).toFixed(1)}<i>%</i>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </aside>
+              <div className="he-wy"><b>Driver:</b> {r.so_what ? r.so_what : `Led by ${topSignal(r)}.`}{r.name ? ` (${r.name})` : ''}</div>
+            </button>
+          );
+        })}
+
+        <div className="he-sowhat">
+          <div className="he-sowhat-lbl"><span>How to position</span></div>
+          <p>{scannerPosition(bandCounts, topBuys)}</p>
         </div>
       </section>
-
-      {/* Feature cards */}
-      <section className="mt-pagesection">
-        <div className="hm-featgrid hm-featgrid--three">
-          <FeatureCard
-            num="01"
-            label="Trading scanner"
-            title="Four signals into one 0–10 score"
-            body="Insider buying, technicals, options flow and dark-pool prints — added into one score, cleared the liquidity gate."
-            stat={scannerStat}
-            freshnessId="equity-latest_scan_data-daily"
-            onClick={() => navigate('/scanner')}
-          />
-          <FeatureCard
-            num="02"
-            label="Portfolio insights"
-            title="Your book, augmented"
-            body="Every line scored, tilts compared to engine, freshness on every value. Chase / Fidelity / Schwab CSV import."
-            stat={portfolioStat}
-            freshnessId="portfolio-positions-on_change"
-            onClick={() => navigate('/portfolio')}
-          />
-          <FeatureCard
-            num="03"
-            label="Scenario analysis"
-            title="Stress-test the playbook"
-            body="Historical shocks plus a custom builder. See how each strategy responds."
-            stat={scenarioStat}
-            freshnessId="scenario-scenario_definitions-static"
-            onClick={() => navigate('/scenarios')}
-          />
-        </div>
-      </section>
-
-      {/* Market news section DELETED per Joe Path-B nuance 2026-05-27:
-          "Home news list — different beast. Either wire a real news feed or
-          delete the section entirely (Path B for this one). News is its own
-          product; an empty news list under a red chip looks wrong." */}
     </div>
-  );
-}
-
-function StatTile({ label, value, unit, sub }) {
-  return (
-    <div className="hm-stat">
-      <div className="mt-eyebrow">{label}</div>
-      <div className="hm-statval num">
-        {value}
-        {unit && <span>{unit}</span>}
-      </div>
-      <div className="hm-statsub">{sub}</div>
-    </div>
-  );
-}
-
-function FeatureCard({ num, label, title, body, stat, freshnessId, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="hm-feat"
-    >
-      <div className="hm-featnum">{num}</div>
-      <div className="hm-feattop">
-        <div className="mt-eyebrow">{label}</div>
-        <FreshnessChip elementId={freshnessId} variant="dot" />
-      </div>
-      <div className="hm-feattitle">{title}</div>
-      <p className="hm-featbody">{body}</p>
-      <div className="hm-featstat">
-        <span className="mt-tag mt-tag--accent">{stat}</span>
-        <span className="hm-featgo">Open →</span>
-      </div>
-    </button>
   );
 }
