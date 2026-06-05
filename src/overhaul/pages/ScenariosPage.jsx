@@ -101,6 +101,10 @@ export default function ScenariosPage() {
   const [scenarios, setScenarios] = useState([]);
   const [backtest, setBacktest] = useState(null);
   const [indicatorHistory, setIndicatorHistory] = useState(null);
+  /* Live published scenario-allocations file. Loaded only so the freshness
+     chip can anchor to the file's real as_of (Joe 2026-05-28: the chip must
+     reflect the file the user sees, not a lagging tracking row). */
+  const [scenAlloc, setScenAlloc] = useState(null);
   const [activeId, setActiveId] = useState('gfc');
   const [horizon, setHorizon] = useState('3M');
   /* Custom shock vector. Initialized to today's actual readings via
@@ -165,6 +169,10 @@ export default function ScenariosPage() {
     fetch('/indicator_history.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setIndicatorHistory(j); })
+      .catch(() => {});
+    fetch('/scenario_allocations.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && j && j.as_of) setScenAlloc(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -520,7 +528,7 @@ export default function ScenariosPage() {
             <div className="mt-eyebrow">Strategy allocations</div>
             <div className="mt-h2">How each strategy positions going in.</div>
           </div>
-          <FreshnessChip elementId="scenario-allocation_history-weekly" variant="label" />
+          <FreshnessChip elementId="scenario-allocation_history-weekly" variant="label" fallback={scenAlloc?.as_of ? { asOfIso: scenAlloc.as_of } : undefined} />
         </div>
         <div className="sn-strategytable">
           <table>
@@ -570,7 +578,7 @@ export default function ScenariosPage() {
                 <div className="mt-eyebrow">Asset Tilt engine response</div>
                 <div className="mt-h2">How sectors would move.</div>
               </div>
-              <FreshnessChip elementId="scenario-allocation_history-weekly" variant="dot" />
+              <FreshnessChip elementId="scenario-allocation_history-weekly" variant="dot" fallback={scenAlloc?.as_of ? { asOfIso: scenAlloc.as_of } : undefined} />
             </div>
             {sectorMatrix.length === 0 ? (
               <div className="sn-section-note">
