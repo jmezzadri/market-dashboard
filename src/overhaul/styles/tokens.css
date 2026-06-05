@@ -26,8 +26,8 @@
   --mt-surface-3: rgba(20, 23, 28, 0.04);
   --mt-ink-0: #15181d;
   --mt-ink-1: #3a3f47;
-  --mt-ink-2: #6b7280;
-  --mt-ink-3: #a1a6ad;
+  --mt-ink-2: #4d5560;  /* contrast: was #6b7280 */
+  --mt-ink-3: #5f6671;  /* contrast: was #a1a6ad (failed AA); now ~5.6:1 */
   --mt-line-0: rgba(20, 23, 28, 0.06);
   --mt-line-1: rgba(20, 23, 28, 0.14);
 
