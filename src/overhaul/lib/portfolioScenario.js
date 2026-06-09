@@ -150,11 +150,23 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
       return;
     }
 
-    const secName = aliasSector(sectorMap[r.ticker] || r.sector);
-    const nameBeta = (betaMap[r.ticker] != null) ? Number(betaMap[r.ticker]) : r.beta;
-    const movePct = moveForSector(secName, ac, nameBeta, sectRet, marketPct);
+    // Asset-class-aware move. Bonds are rate-driven (not equity-beta); crypto
+    // is a high-beta risk asset (Yahoo reports ~0 beta for crypto ETFs, which
+    // is wrong). Everything else = beta-adjusted sector move.
+    let movePct;
+    if (ac === 'Fixed Income') {
+      const ust = SECTOR_BY_NAME['USTs (20+yr)'];   // rate-sensitive Treasury proxy (rallies when rates fall)
+      movePct = (ust && Number.isFinite(sectRet[ust.id])) ? sectRet[ust.id] : 0;
+    } else if (ac === 'Crypto') {
+      movePct = (marketPct || 0) * (AC_BETA.Crypto ?? 2.2);
+    } else {
+      const secName = aliasSector(sectorMap[r.ticker] || r.sector);
+      const nameBeta = (betaMap[r.ticker] != null) ? Number(betaMap[r.ticker]) : r.beta;
+      movePct = moveForSector(secName, ac, nameBeta, sectRet, marketPct);
+    }
+    movePct = Math.max(movePct, -100);   // a long position can't lose more than 100%
     const pnl = (r.value || 0) * (movePct / 100);
-    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: 'equity' });
+    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: r.cls?.ac === 'Fixed Income' ? 'bond' : (r.cls?.ac === 'Crypto' ? 'crypto' : 'equity') });
   });
 
   const totalPnl = out.reduce((s, p) => s + (Number.isFinite(p.pnl) ? p.pnl : 0), 0);
