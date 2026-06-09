@@ -58,6 +58,7 @@ jobs:
         if: github.event_name == 'schedule'
         uses: actions/checkout@v4.2.2
         with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
           fetch-depth: 1
           path: repo-for-gate
 
@@ -106,6 +107,7 @@ jobs:
         if: env.SKIP_RUN != 'true'
         uses: actions/checkout@v4.2.2
         with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
           fetch-depth: 0
 
       - name: Set up Python
