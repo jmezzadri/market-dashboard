@@ -1863,7 +1863,7 @@ export default function AssetTilt({ onOpenTicker }) {
       .then(r => r.ok ? r.json() : null).then(setSectorPerf).catch(() => setSectorPerf(null));
   }, []);
 
-  const stance = v10?.page_stance;
+  const stance = null;
   const defensiveActive = (v10?.defensive_pct ?? 0) > 0;
   const stanceHeadline = useMemo(() => {
     if (stance === "Risk On") return "Risk on — full equity, modest leverage where conditions warrant.";

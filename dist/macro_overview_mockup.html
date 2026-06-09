@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MacroTilt — Macro Overview drill-downs (v3)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg:#fafaf7; --surface:#ffffff; --surface-2:#f4f5f7; --surface-3:rgba(0,113,227,0.04);
+  --border:rgba(14,17,21,0.10); --border-strong:rgba(14,17,21,0.18); --border-faint:rgba(14,17,21,0.06);
+  --ink:#0e1115; --ink-2:#2a2a2e; --ink-3:#5e5e63; --muted:#98989f;
+  --accent:#0071e3; --accent-soft:rgba(0,113,227,0.10);
+  --display:'Fraunces',Georgia,serif;
+  --body:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+}
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; }
+body { background:var(--bg); color:var(--ink); font-family:var(--body); font-size:14px; line-height:1.55; }
+
+/* ============================================================
+   PAGE FRAME · HERO (BIGGER, matches Home / Asset Tilt)
+   ============================================================ */
+.page-frame { max-width:1280px; margin:0 auto; padding:32px 32px 80px; }
+.page-eyebrow {
+  font-size:12px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+.page-hero-h1 {
+  font-family:var(--display); font-weight:400;
+  font-size:46px; line-height:1.10; letter-spacing:-0.015em;
+  color:var(--ink); margin:14px 0 18px; max-width:880px;
+}
+.page-hero-h1 em { font-style:italic; color:var(--accent); }
+.hero-lede {
+  font-size:17px; color:var(--ink-2); line-height:1.55; max-width:680px; margin:0 0 16px;
+}
+.hero-lede strong { color:var(--ink); font-weight:600; }
+.hero-bullets {
+  font-size:15px; color:var(--ink-2); line-height:1.7; padding-left:22px; max-width:760px; margin:0;
+}
+.hero-bullets li { margin-bottom:6px; }
+.hero-bullets li strong { color:var(--ink); font-weight:600; }
+
+/* ============================================================
+   LAYOUT — top row is 2-col (vol tiles + regime rail), cycle is full-width below.
+   ============================================================ */
+.top-row { display:grid; grid-template-columns:1fr 460px; gap:28px; align-items:start; margin-top:28px; }
+.full-row { margin-top:18px; }
+
+/* ============================================================
+   RIGHT RAIL · REGIME TILE
+   ============================================================ */
+.regime { background:var(--surface); border:0.5px solid var(--border); border-radius:12px; padding:20px 22px 16px; position:relative; }
+.regime-fresh { position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--ink-3); font-weight:500; letter-spacing:0.02em; }
+.regime-title {
+  font-family:var(--display); font-style:italic; font-weight:400; font-size:22px;
+  color:var(--accent); text-align:center; margin:0 0 14px; letter-spacing:-0.005em;
+}
+.rrow { display:grid; grid-template-columns:110px 1fr 16px; gap:12px; padding:8px 6px; align-items:center; font-size:13px; cursor:pointer; border-radius:5px; transition:background 120ms; position:relative; }
+.rrow:hover { background:var(--surface-2); }
+.rrow:hover .r-arrow { opacity:1; }
+.r-arrow { color:var(--accent); font-weight:600; opacity:0; transition:opacity 120ms; font-size:12px; text-align:right; }
+.rpill { font-family:var(--display); font-style:italic; font-weight:400; font-size:13px; text-align:center; padding:5px 0; border-radius:14px; background:var(--surface-2); color:var(--ink-3); border:0.5px solid var(--border-faint); }
+.rrow.current .rpill { background:var(--accent-soft); color:var(--accent); border:1.5px solid var(--accent); font-weight:500; }
+.rdesc { color:var(--ink-3); font-size:12.5px; }
+.rrow.current .rdesc { color:var(--ink); font-weight:500; }
+
+.pill-panel { display:none; margin:4px 4px 6px 124px; padding:12px 14px; border-left:2px solid var(--accent); border-radius:0 6px 6px 0; background:var(--surface-2); color:var(--ink-2); font-size:13px; line-height:1.55; }
+.pill-panel.open { display:block; }
+.pill-panel .head { font-weight:600; color:var(--ink); margin-bottom:6px; font-family:var(--body); }
+.pill-panel .leave { margin-top:8px; padding-top:8px; border-top:0.5px dashed var(--border); color:var(--ink-3); font-size:12px; }
+.pill-panel .seehist { margin-top:10px; }
+.pill-panel .seehist button { font-size:11px; font-weight:600; color:var(--accent); background:transparent; border:none; cursor:pointer; padding:0; letter-spacing:0.04em; text-transform:uppercase; }
+.pill-panel .seehist button:hover { text-decoration:underline; }
+
+.rhist-wrap { margin-top:16px; padding-top:12px; border-top:0.5px solid var(--border-faint); }
+.rhist-axis { display:flex; justify-content:space-between; font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:6px; }
+.rhist-strip { display:flex; align-items:end; gap:2px; height:48px; }
+.rhist-bar { flex:1; border-radius:2px 2px 0 0; cursor:pointer; min-height:5px; background:rgba(0,113,227,0.20); position:relative; transition:filter 80ms; }
+.rhist-bar:hover { filter:brightness(1.15); }
+.rhist-bar.s1 { background:rgba(0,113,227,0.42); }
+.rhist-bar.s2 { background:rgba(0,113,227,0.68); }
+.rhist-bar.s3 { background:rgba(0,113,227,0.92); }
+.rhist-bar[data-tt]:hover::after { content:attr(data-tt); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:10.5px; padding:5px 8px; border-radius:4px; white-space:nowrap; z-index:10; font-weight:500; }
+.rhist-fullhist { display:block; margin-top:8px; font-size:11px; font-weight:600; color:var(--accent); cursor:pointer; letter-spacing:0.04em; text-transform:uppercase; text-align:right; background:transparent; border:none; padding:0; width:100%; }
+.rhist-fullhist:hover { text-decoration:underline; }
+
+.rhist-panel { display:none; margin-top:12px; padding:14px 16px; border-left:2px solid var(--accent); border-radius:0 6px 6px 0; background:var(--surface-2); font-size:12.5px; }
+.rhist-panel.open { display:block; }
+.rhist-panel .head { font-weight:600; color:var(--ink); margin-bottom:8px; font-family:var(--body); }
+.rhist-panel table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.rhist-panel td { padding:6px 6px; border-bottom:0.5px dashed var(--border); color:var(--ink-2); }
+.rhist-panel td.num { font-variant-numeric:tabular-nums; text-align:right; color:var(--ink); font-weight:500; }
+.rhist-panel .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-family:var(--display); font-style:italic; font-size:12px; background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent); }
+
+/* ============================================================
+   VOL TILES
+   ============================================================ */
+.vol-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+.tile { position:relative; background:var(--surface); border:0.5px solid var(--border); border-radius:12px; padding:18px 16px; }
+.tile-title { font-family:var(--display); font-style:italic; font-weight:400; font-size:20px; color:var(--accent); text-align:center; margin:0 0 6px; letter-spacing:-0.005em; }
+.tile-fresh { position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--ink-3); font-weight:500; letter-spacing:0.02em; }
+.fresh-dot { width:6px; height:6px; border-radius:50%; background:#2f9d6a; box-shadow:0 0 0 2px rgba(47,157,106,0.20); }
+.stage-row { display:flex; justify-content:center; margin-bottom:6px; }
+.stage-pill { font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; padding:3px 10px; border-radius:11px; background:var(--surface-2); color:var(--ink-3); border:0.5px solid var(--border-faint); font-weight:600; }
+.dial-wrap { display:flex; flex-direction:column; align-items:center; margin-top:4px; cursor:pointer; padding:8px; border-radius:8px; transition:background 120ms; position:relative; }
+.dial-wrap:hover { background:var(--surface-3); }
+.dial-wrap:hover .dial-hint { opacity:1; }
+.dial-hint { position:absolute; top:-2px; right:6px; font-size:9px; letter-spacing:0.08em; color:var(--accent); font-weight:600; opacity:0; transition:opacity 120ms; text-transform:uppercase; }
+.dial { width:100%; max-width:230px; height:auto; display:block; }
+.dial-readout { display:flex; align-items:baseline; margin-top:-2px; }
+.dial-val { font-family:var(--display); font-weight:400; font-size:38px; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.015em; }
+.dial-unit { font-family:var(--display); font-style:italic; font-size:14px; color:var(--muted); margin-left:4px; }
+.dial-mark { font-size:10px; letter-spacing:0.04em; color:var(--ink-3); margin-top:6px; }
+.bar-wrap { margin-top:12px; padding-top:10px; border-top:0.5px solid var(--border-faint); }
+.bar-axis { display:flex; justify-content:space-between; font-size:9px; letter-spacing:0.10em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:5px; }
+.bar-strip { display:flex; align-items:end; gap:2px; height:38px; }
+.bar { flex:1; border-radius:2px 2px 0 0; cursor:default; min-height:5px; background:rgba(0,113,227,0.22); position:relative; }
+.bar.s2 { background:rgba(0,113,227,0.55); }
+.bar.s3 { background:rgba(0,113,227,0.85); }
+.bar[data-tt]:hover::after { content:attr(data-tt); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:10.5px; padding:5px 8px; border-radius:4px; white-space:nowrap; z-index:10; font-weight:500; }
+
+/* ============================================================
+   CYCLE POSITIONING
+   ============================================================ */
+.cycle { position:relative; background:var(--surface); border:0.5px solid var(--border); border-radius:12px; padding:22px 24px; }
+.cycle-fresh { position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--ink-3); font-weight:500; letter-spacing:0.02em; }
+.cycle-head { display:flex; align-items:baseline; justify-content:flex-start; margin-bottom:14px; }
+.cycle-title { font-family:var(--display); font-style:italic; font-weight:400; font-size:22px; color:var(--accent); margin:0; letter-spacing:-0.005em; }
+.cycle-body { display:grid; grid-template-columns:320px 1fr; gap:36px; align-items:center; }
+.cycle-left { position:relative; display:flex; flex-direction:column; align-items:center; cursor:pointer; padding:8px; border-radius:10px; transition:background 120ms; }
+.cycle-left:hover { background:var(--surface-3); }
+.cycle-left:hover .cycle-hint { opacity:1; }
+.cycle-hint { position:absolute; top:4px; right:6px; font-size:9px; letter-spacing:0.08em; color:var(--accent); font-weight:600; opacity:0; transition:opacity 120ms; text-transform:uppercase; }
+.cycle-readout { display:flex; align-items:baseline; margin-top:-2px; }
+.cycle-val { font-family:var(--display); font-weight:400; font-size:46px; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.015em; }
+.cycle-denom { font-family:var(--display); font-style:italic; font-size:16px; color:var(--muted); margin-left:4px; }
+.cycle-band-line { margin-top:6px; font-size:11px; color:var(--ink-3); letter-spacing:0.04em; }
+
+.ind-strap-hint { font-size:11.5px; color:var(--ink-3); margin-bottom:10px; letter-spacing:0.02em; }
+.ind-list { display:flex; flex-direction:column; gap:0; }
+.ind-row { display:grid; grid-template-columns:minmax(240px, 2.2fr) 180px 120px 70px 18px; gap:18px; align-items:center; padding:13px 6px; border-bottom:0.5px dashed var(--border-faint); cursor:pointer; transition:background 120ms; background:transparent; border-left:0; border-right:0; border-top:0; text-align:left; width:100%; font:inherit; color:inherit; }
+.ind-row:hover { background:var(--surface-2); }
+.ind-row .nm { font-size:13.5px; color:var(--ink); font-weight:500; }
+.ind-row .nm-meta { font-size:11px; color:var(--ink-3); font-weight:400; margin-left:6px; }
+.ind-row .desc { font-size:11px; color:var(--ink-3); margin-top:2px; line-height:1.5; }
+/* Neutral track + neutral ink dot. NO band-band-band colors per Joe directive. */
+.qbar { position:relative; width:168px; height:8px; border-radius:4px; background:var(--border); }
+.qbar-ends { display:flex; justify-content:space-between; width:168px; margin-top:4px; font-size:11px; color:var(--muted); }
+.qd { position:absolute; top:-3px; width:14px; height:14px; border-radius:50%; background:var(--ink); border:1.5px solid #fff; box-shadow:0 0 0 0.5px var(--border-strong); }
+.ind-row .v { font-family:var(--display); font-weight:400; font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.ind-row .pct { font-size:11px; color:var(--ink-3); margin-top:2px; }
+.ind-row .score-num { font-family:var(--display); font-weight:400; font-size:22px; line-height:1; font-variant-numeric:tabular-nums; color:var(--ink); }
+.ind-row .arr { color:var(--ink-3); font-weight:400; font-size:16px; }
+
+/* ============================================================
+   MODAL  · v11-style with consistent typography
+   ============================================================ */
+.modal-scrim { position:fixed; inset:0; z-index:9000; background:rgba(14,17,21,0.42); display:none; align-items:flex-start; justify-content:center; padding:60px 32px; overflow-y:auto; }
+.modal-scrim.open { display:flex; }
+.modal-card { position:relative; width:100%; max-width:940px; background:var(--surface); border:0.5px solid var(--border-strong); border-radius:12px; box-shadow:0 18px 48px rgba(14,17,21,0.18); padding:28px 36px 36px; }
+.modal-close { position:absolute; top:14px; right:18px; border:none; background:transparent; cursor:pointer; font-size:24px; line-height:1; color:var(--ink-3); padding:6px 8px; border-radius:6px; }
+.modal-close:hover { background:var(--surface-2); color:var(--ink); }
+.modal-back { font-size:11px; font-weight:600; color:var(--ink-3); background:transparent; border:none; cursor:pointer; padding:4px 0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:6px; }
+.modal-back:hover { color:var(--accent); }
+.modal-eyebrow { font-family:var(--body); font-size:11px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+.modal-h { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+.modal-h h3 { font-family:var(--display); font-weight:400; font-size:30px; letter-spacing:-0.015em; margin:0; color:var(--ink); }
+.modal-h .right { text-align:right; }
+.modal-h .big-val { font-family:var(--display); font-weight:400; font-size:34px; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-0.012em; }
+.modal-h .big-val .suffix { font-family:var(--display); font-style:italic; font-size:18px; color:var(--muted); margin-left:2px; }
+.modal-h .big-meta { font-family:var(--body); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-top:4px; }
+.body-14 { font-family:var(--body); font-size:14.5px; line-height:1.6; color:var(--ink-2); margin:0 0 18px; max-width:760px; }
+.body-14 strong { color:var(--ink); font-weight:600; }
+.body-14 em { font-style:italic; color:var(--accent); }
+
+.kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+.kpi { padding:14px 14px 12px; background:var(--surface); border:0.5px solid var(--border-strong); border-radius:10px; }
+.kpi .lbl { font-family:var(--body); font-size:10.5px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-3); }
+.kpi .val { font-family:var(--display); font-weight:400; font-size:24px; margin-top:6px; line-height:1; font-variant-numeric:tabular-nums; color:var(--ink); }
+.kpi .meta { font-family:var(--body); font-size:11px; color:var(--ink-3); margin-top:6px; }
+
+.modal-block { padding:16px 18px; background:var(--surface); border:0.5px solid var(--border-strong); border-radius:10px; margin-bottom:18px; }
+.modal-block-eyebrow { font-family:var(--body); font-size:10.5px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px; }
+
+/* Chart frame */
+.chart-frame { position:relative; }
+.chart-controls { display:flex; gap:6px; margin-bottom:10px; }
+.chart-tf-btn { font-family:var(--body); font-size:10.5px; font-weight:600; letter-spacing:0.06em; padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--ink-3); cursor:pointer; text-transform:uppercase; }
+.chart-tf-btn.active { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
+.chart-overlay-toggle { font-family:var(--body); font-size:10.5px; padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--ink-3); cursor:pointer; letter-spacing:0.04em; }
+.chart-overlay-toggle.on { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
+.chart-canvas { width:100%; height:200px; display:block; }
+.chart-legend { display:flex; gap:14px; margin-top:8px; font-family:var(--body); font-size:11px; color:var(--ink-3); }
+.chart-legend .swatch { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+.chart-caption { font-family:var(--body); font-size:11px; color:var(--ink-3); margin-top:8px; letter-spacing:0.02em; }
+.chart-caption strong { color:var(--ink); font-weight:500; }
+
+.modal-table { width:100%; border-collapse:collapse; font-family:var(--body); font-size:13.5px; }
+.modal-table th { text-align:left; font-family:var(--body); font-size:10.5px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-3); border-bottom:0.5px solid var(--ink); padding:8px 12px 6px 0; }
+.modal-table td { padding:9px 12px 9px 0; border-bottom:0.5px dashed var(--border); color:var(--ink-2); }
+.modal-table td.num { font-variant-numeric:tabular-nums; font-weight:500; font-family:var(--body); }
+.modal-table .pos { color:#2f9d6a; font-weight:500; }
+.modal-table .neg { color:#c84658; font-weight:500; }
+
+.episode-note { font-family:var(--body); font-size:11px; color:var(--ink-3); margin-bottom:10px; font-style:italic; }
+
+.modal-footer { border-top:0.5px solid var(--border); padding-top:18px; font-family:var(--body); font-size:13.5px; color:var(--ink-2); line-height:1.6; margin-top:4px; }
+.modal-footer .row { margin-bottom:10px; }
+.modal-footer strong { color:var(--ink); font-weight:600; }
+
+.source-fresh { display:inline-flex; align-items:center; gap:5px; margin-left:8px; padding:2px 8px; border-radius:10px; background:rgba(47,157,106,0.12); border:0.5px solid #2f9d6a; font-family:var(--body); font-size:10.5px; color:#2f9d6a; font-weight:600; letter-spacing:0.02em; vertical-align:middle; }
+
+/* Cycle composite contribution rows */
+.contrib-row { display:grid; grid-template-columns:1.5fr 1fr 80px 60px 18px; gap:14px; align-items:center; padding:10px 6px; border-bottom:0.5px dashed var(--border-faint); cursor:pointer; transition:background 120ms; }
+.contrib-row:hover { background:var(--surface-2); }
+.contrib-row .nm { font-family:var(--body); font-size:13.5px; color:var(--ink); font-weight:500; }
+.contrib-bar-wrap { height:8px; background:var(--surface-2); border-radius:4px; overflow:hidden; }
+.contrib-bar { height:100%; background:var(--ink); }
+.contrib-row .v { font-family:var(--body); font-variant-numeric:tabular-nums; font-size:13px; color:var(--ink-2); text-align:right; }
+.contrib-row .pct { font-family:var(--display); font-weight:400; font-size:18px; color:var(--ink); font-variant-numeric:tabular-nums; text-align:right; }
+.contrib-row .arr { color:var(--ink-3); font-size:14px; }
+
+/* Full regime history modal — long strip */
+.regime-fullhist { display:grid; grid-template-columns:repeat(260, 1fr); gap:1px; height:80px; align-items:end; margin:14px 0 6px; }
+.regime-fullhist .rh-bar { min-height:6px; border-radius:1px; cursor:pointer; position:relative; }
+.regime-fullhist .rh-bar.r0 { background:rgba(0,113,227,0.20); height:25%; }
+.regime-fullhist .rh-bar.r1 { background:rgba(0,113,227,0.42); height:50%; }
+.regime-fullhist .rh-bar.r2 { background:rgba(0,113,227,0.68); height:75%; }
+.regime-fullhist .rh-bar.r3 { background:rgba(0,113,227,0.92); height:100%; }
+.regime-fullhist .rh-bar:hover { filter:brightness(1.15); outline:1px solid var(--accent); }
+.regime-fullhist .rh-bar[data-tt]:hover::after { content:attr(data-tt); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:10.5px; padding:5px 8px; border-radius:4px; white-space:nowrap; z-index:10; font-weight:500; }
+.regime-fullhist-axis { display:flex; justify-content:space-between; font-family:var(--body); font-size:10.5px; color:var(--ink-3); margin-top:4px; }
+.regime-fullhist-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px; }
+.regime-fullhist-summary .cell { padding:10px 12px; background:var(--surface-2); border:0.5px solid var(--border-faint); border-radius:8px; }
+.regime-fullhist-summary .cell .label { font-family:var(--body); font-size:10.5px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-3); }
+.regime-fullhist-summary .cell .val { font-family:var(--display); font-weight:400; font-size:22px; margin-top:6px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.regime-fullhist-summary .cell .sub { font-family:var(--body); font-size:11px; color:var(--ink-3); margin-top:4px; }
+
+/* Pattern key */
+.pattern-key { margin-top:36px; padding:22px 26px; background:var(--surface); border:0.5px solid var(--border-faint); border-radius:12px; font-family:var(--body); font-size:13px; color:var(--ink-2); }
+.pattern-key h4 { margin:0 0 8px; font-family:var(--display); font-weight:400; font-size:18px; color:var(--ink); }
+.pattern-key ul { margin:0; padding-left:22px; line-height:1.75; }
+.pattern-key b { color:var(--ink); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="page-frame">
+
+  <!-- TOP ROW: hero on LEFT (eyebrow + headline + bullets) + Regime tile on RIGHT -->
+  <div class="top-row">
+
+    <header>
+      <div class="page-eyebrow">Macro Overview</div>
+      <h1 class="page-hero-h1">Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.</h1>
+      <p class="hero-lede">
+        We describe the tape — we don't predict tops. Combined into one of four states: <strong>Risk On</strong>, <strong>Neutral</strong>, <strong>Cautionary</strong>, or <strong>Risk Off</strong>.
+      </p>
+      <ul class="hero-bullets">
+        <li><strong>Volatility Triggers</strong> tell us <em>when</em> trouble has arrived.</li>
+        <li><strong>Cycle Positioning</strong> tells us <em>whether</em> that trouble matters yet.</li>
+        <li><strong>Regime</strong> is the rolled-up read across both layers.</li>
+      </ul>
+    </header>
+
+    <!-- Regime tile on the RIGHT of the top row -->
+    <aside class="regime">
+      <div class="regime-fresh"><span class="fresh-dot"></span>FRESH · today 16:30 ET</div>
+      <div class="regime-title">Regime</div>
+
+      <div class="rrow current" onclick="togglePill('risk_on')">
+        <span class="rpill">Risk On</span><span class="rdesc">No volatility triggers.</span><span class="r-arrow">▾</span>
+      </div>
+      <div id="pill-risk_on" class="pill-panel">
+        <div class="head">What "Risk On" means</div>
+        Vol is calm across all three triggers. The fully-invested default. No action.
+        <div class="leave">To leave: any one of Equity Vol, Bond Vol, or Funding Stress crosses above its 85th-percentile level for at least one week.</div>
+        <div class="seehist"><button onclick="openRegimeHistoryModal('Risk On')">SEE FULL HISTORY ›</button></div>
+      </div>
+
+      <div class="rrow" onclick="togglePill('neutral')">
+        <span class="rpill">Neutral</span><span class="rdesc">One trigger for one week.</span><span class="r-arrow">▾</span>
+      </div>
+      <div id="pill-neutral" class="pill-panel">
+        <div class="head">What "Neutral" means</div>
+        Exactly one trigger crossed for exactly one week. About one in four single-week crosses are head-fakes — they slip back below the 85th-percentile level within a week. Note it. Do not act yet.
+        <div class="leave">To leave: the trigger holds for a second week → Cautionary or Risk Off. Or it slips back below → Risk On.</div>
+        <div class="seehist"><button onclick="openRegimeHistoryModal('Neutral')">SEE FULL HISTORY ›</button></div>
+      </div>
+
+      <div class="rrow" onclick="togglePill('caution')">
+        <span class="rpill">Cautionary</span><span class="rdesc">Trigger sustained 2+ weeks.</span><span class="r-arrow">▾</span>
+      </div>
+      <div id="pill-caution" class="pill-panel">
+        <div class="head">What "Cautionary" means</div>
+        A trigger has held above its 85th-percentile level for at least two weeks AND the cycle composite is at 40 or above. The cycle has either started to confirm or already broken — past the forward-looking signal point. Act on personal risk tolerance.
+        <div class="seehist"><button onclick="openRegimeHistoryModal('Cautionary')">SEE FULL HISTORY ›</button></div>
+      </div>
+
+      <div class="rrow" onclick="togglePill('risk_off')">
+        <span class="rpill">Risk Off</span><span class="rdesc">Sustained trigger + late-cycle.</span><span class="r-arrow">▾</span>
+      </div>
+      <div id="pill-risk_off" class="pill-panel">
+        <div class="head">What "Risk Off" means</div>
+        A trigger has held for at least two weeks AND the cycle composite is below 40 (deep-calm late-expansion territory). Vol cracked while the cycle still looks fine — leading edge, not trailing. The moment broad confirmation is most likely to follow.
+        <div class="seehist"><button onclick="openRegimeHistoryModal('Risk Off')">SEE FULL HISTORY ›</button></div>
+      </div>
+
+      <div class="rhist-wrap">
+        <div class="rhist-axis"><span>24 WEEKS AGO</span><span>TODAY</span></div>
+        <div class="rhist-strip" id="rhist-strip"></div>
+        <button class="rhist-fullhist" onclick="openRegimeHistoryModal()">SEE FULL HISTORY (1996 – TODAY) ›</button>
+      </div>
+      <div id="rhist-panel" class="rhist-panel">
+        <div class="head" id="rhist-panel-title">Weekly snapshot</div>
+        <table>
+          <tr><td>Equity Volatility</td><td class="num" id="rhist-vix">—</td><td class="num" id="rhist-vix-stage">—</td></tr>
+          <tr><td>Bond Volatility</td><td class="num" id="rhist-move">—</td><td class="num" id="rhist-move-stage">—</td></tr>
+          <tr><td>Funding Stress</td><td class="num" id="rhist-cpff">—</td><td class="num" id="rhist-cpff-stage">—</td></tr>
+          <tr><td>Cycle composite</td><td class="num" id="rhist-cycle">—</td><td class="num">/ 100</td></tr>
+          <tr><td><strong>Regime</strong></td><td colspan="2" style="text-align:right"><span class="pill" id="rhist-regime">—</span></td></tr>
+        </table>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- VOL TILES — own row, full width below the top row -->
+  <div class="vol-grid">
+        <!-- VIX -->
+        <div class="tile">
+          <div class="tile-fresh"><span class="fresh-dot"></span>FRESH · today 16:15 ET</div>
+          <div class="tile-title">Equity Volatility</div>
+          <div class="stage-row"><span class="stage-pill">Calm</span></div>
+          <div class="dial-wrap" onclick="openTriggerModal('vix')">
+            <span class="dial-hint">CLICK FOR DETAIL ›</span>
+            <svg class="dial" viewBox="0 0 240 140">
+              <path d="M 20 122 A 100 100 0 0 1 65 47" fill="rgba(0,113,227,0.20)"/>
+              <path d="M 65 47 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)"/>
+              <path d="M 120 22 A 100 100 0 0 1 175 47" fill="rgba(0,113,227,0.68)"/>
+              <path d="M 175 47 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.88)"/>
+              <line x1="160" y1="35" x2="170" y2="29" stroke="#0e1115" stroke-width="1.6"/>
+              <circle cx="160" cy="35" r="3" fill="#0e1115"/>
+              <text x="176" y="30" font-size="9" font-weight="600" fill="#0e1115">21.4</text>
+              <line x1="120" y1="120" x2="92" y2="55" stroke="#0071e3" stroke-width="2.8" stroke-linecap="round"/>
+              <circle cx="92" cy="55" r="4.5" fill="#0071e3" stroke="#fff" stroke-width="1.8"/>
+              <circle cx="120" cy="120" r="4.5" fill="#0071e3"/>
+            </svg>
+            <div class="dial-readout"><span class="dial-val">14.2</span></div>
+            <div class="dial-mark">85th percentile = 21.4</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-axis"><span>24w</span><span>now</span></div>
+            <div class="bar-strip" id="vix-strip"></div>
+          </div>
+        </div>
+
+        <!-- MOVE -->
+        <div class="tile">
+          <div class="tile-fresh"><span class="fresh-dot"></span>FRESH · today 16:30 ET</div>
+          <div class="tile-title">Bond Volatility</div>
+          <div class="stage-row"><span class="stage-pill">Calm</span></div>
+          <div class="dial-wrap" onclick="openTriggerModal('move')">
+            <span class="dial-hint">CLICK FOR DETAIL ›</span>
+            <svg class="dial" viewBox="0 0 240 140">
+              <path d="M 20 122 A 100 100 0 0 1 65 47" fill="rgba(0,113,227,0.20)"/>
+              <path d="M 65 47 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)"/>
+              <path d="M 120 22 A 100 100 0 0 1 175 47" fill="rgba(0,113,227,0.68)"/>
+              <path d="M 175 47 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.88)"/>
+              <line x1="160" y1="35" x2="170" y2="29" stroke="#0e1115" stroke-width="1.6"/>
+              <circle cx="160" cy="35" r="3" fill="#0e1115"/>
+              <text x="176" y="30" font-size="9" font-weight="600" fill="#0e1115">131</text>
+              <line x1="120" y1="120" x2="78" y2="71" stroke="#0071e3" stroke-width="2.8" stroke-linecap="round"/>
+              <circle cx="78" cy="71" r="4.5" fill="#0071e3" stroke="#fff" stroke-width="1.8"/>
+              <circle cx="120" cy="120" r="4.5" fill="#0071e3"/>
+            </svg>
+            <div class="dial-readout"><span class="dial-val">85</span></div>
+            <div class="dial-mark">85th percentile = 131</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-axis"><span>24w</span><span>now</span></div>
+            <div class="bar-strip" id="move-strip"></div>
+          </div>
+        </div>
+
+        <!-- CPFF -->
+        <div class="tile">
+          <div class="tile-fresh"><span class="fresh-dot"></span>FRESH · this Wed</div>
+          <div class="tile-title">Funding Stress</div>
+          <div class="stage-row"><span class="stage-pill">Calm</span></div>
+          <div class="dial-wrap" onclick="openTriggerModal('cpff')">
+            <span class="dial-hint">CLICK FOR DETAIL ›</span>
+            <svg class="dial" viewBox="0 0 240 140">
+              <path d="M 20 122 A 100 100 0 0 1 65 47" fill="rgba(0,113,227,0.20)"/>
+              <path d="M 65 47 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)"/>
+              <path d="M 120 22 A 100 100 0 0 1 175 47" fill="rgba(0,113,227,0.68)"/>
+              <path d="M 175 47 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.88)"/>
+              <line x1="160" y1="35" x2="170" y2="29" stroke="#0e1115" stroke-width="1.6"/>
+              <circle cx="160" cy="35" r="3" fill="#0e1115"/>
+              <text x="176" y="30" font-size="9" font-weight="600" fill="#0e1115">22 bp</text>
+              <line x1="120" y1="120" x2="65" y2="85" stroke="#0071e3" stroke-width="2.8" stroke-linecap="round"/>
+              <circle cx="65" cy="85" r="4.5" fill="#0071e3" stroke="#fff" stroke-width="1.8"/>
+              <circle cx="120" cy="120" r="4.5" fill="#0071e3"/>
+            </svg>
+            <div class="dial-readout"><span class="dial-val">9</span><span class="dial-unit">bp</span></div>
+            <div class="dial-mark">85th percentile = 22 bp</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-axis"><span>24w</span><span>now</span></div>
+            <div class="bar-strip" id="cpff-strip"></div>
+          </div>
+        </div>
+      </div>
+
+  <!-- CYCLE POSITIONING · full page width below the top row -->
+  <div class="cycle full-row">
+    <div class="cycle-fresh"><span class="fresh-dot"></span>FRESH · this Wed</div>
+    <div class="cycle-head"><h2 class="cycle-title">Cycle Positioning</h2></div>
+    <div class="cycle-body">
+      <div class="cycle-left" onclick="openCycleScoreModal()">
+        <span class="cycle-hint">CLICK FOR BREAKDOWN ›</span>
+        <svg class="dial" viewBox="0 0 240 150" style="max-width:280px">
+          <path d="M 20 122 A 100 100 0 0 1 65 47" fill="rgba(0,113,227,0.20)"/>
+          <path d="M 65 47 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)"/>
+          <path d="M 120 22 A 100 100 0 0 1 175 47" fill="rgba(0,113,227,0.68)"/>
+          <path d="M 175 47 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.88)"/>
+          <g font-size="9" font-family="Inter,sans-serif" fill="#5e5e63" font-weight="500">
+            <line x1="20" y1="122" x2="14" y2="128" stroke="#5e5e63" stroke-width="1"/>
+            <text x="8" y="138" text-anchor="middle">0</text>
+            <line x1="65" y1="47" x2="59" y2="40" stroke="#5e5e63" stroke-width="1"/>
+            <text x="48" y="42" text-anchor="middle">20</text>
+            <line x1="120" y1="22" x2="120" y2="14" stroke="#5e5e63" stroke-width="1"/>
+            <text x="120" y="11" text-anchor="middle">40</text>
+            <line x1="175" y1="47" x2="181" y2="40" stroke="#5e5e63" stroke-width="1"/>
+            <text x="194" y="42" text-anchor="middle">60</text>
+            <line x1="220" y1="122" x2="226" y2="128" stroke="#5e5e63" stroke-width="1"/>
+            <text x="232" y="138" text-anchor="middle">80</text>
+          </g>
+          <line x1="120" y1="120" x2="129" y2="22" stroke="#0071e3" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="129" cy="22" r="4.5" fill="#0071e3" stroke="#fff" stroke-width="1.8"/>
+          <circle cx="120" cy="120" r="4.5" fill="#0071e3"/>
+        </svg>
+        <div class="cycle-readout"><span class="cycle-val">47</span><span class="cycle-denom">/ 100</span></div>
+        <div class="cycle-band-line">middle of the range</div>
+      </div>
+      <div>
+        <div class="ind-strap-hint">Average of seven percentile ranks · ranked against each indicator's full history · click any row to drill in</div>
+        <div class="ind-list" id="ind-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pattern-key">
+    <h4>The seven click patterns demonstrated above (revised)</h4>
+    <ul>
+      <li><b>1. Hover</b> any small bar → tooltip with date + reading</li>
+      <li><b>2. Click</b> any regime label pill → small inline panel with "what it means" + "to leave it" + a "see full history" link</li>
+      <li><b>3. Click</b> any of the 24 recent regime history bars → small inline panel with that week's snapshot</li>
+      <li><b>4. Click</b> any vol trigger dial → modal pop-up with KPI strip + dynamic chart (1M / 6M / 1Y / 5Y / Max + crosshair + high/low lines + overlay any other framework indicator)</li>
+      <li><b>5. Click</b> any cycle composite indicator row → modal pop-up with the same dynamic chart</li>
+      <li><b>6. Click</b> the cycle composite score → modal pop-up with seven-indicator breakdown; click any row to drill into that indicator with a back arrow</li>
+      <li><b>7. Click</b> "SEE FULL HISTORY" on any regime pill OR on the 24-week strip → modal pop-up with the full backtested history from 1996, weekly bars colored by regime state, plus the time spent in each state</li>
+    </ul>
+    Side drawers are gone. Every modal closes if you click the dark scrim outside it. Inline panels close when you click another pill or anywhere off them.
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-scrim" id="scrim" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card" id="card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modal-back-wrap" style="display:none"><button class="modal-back" id="modal-back" onclick="modalBack()">‹ BACK</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Data — multi-timeframe samples per trigger / indicator
+   ============================================================ */
+const STAGES = ["Calm","Watching","Holding","Confirmed","Entrenched"];
+const REGIMES = ["Risk On","Neutral","Cautionary","Risk Off"];
+
+// Build sample series for 1M / 6M / 1Y / 5Y / Max. Each is a list of [date, value].
+function buildSeries(seed, base, vol, count){
+  const out = [];
+  const now = new Date();
+  let v = base;
+  for (let i = count - 1; i >= 0; i--) {
+    v = v + (Math.sin((i+seed)/3.3) * vol) + (Math.cos((i+seed*2)/7.7) * vol * 0.5);
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    out.push([d.toISOString().slice(0,10), Math.max(0, v)]);
+  }
+  return out;
+}
+
+const TRIGGERS = {
+  vix: {
+    name:"Equity Volatility", short:"VIX", unit:"", fmt:v=>v.toFixed(1),
+    current:14.2, p85:21.4, stage:0, scale:32,
+    days_in_stage:168, last_up:null, last_down:null,
+    caption:"<strong>Equity Volatility is calm.</strong> The trailing-5y 85th-percentile level sits at 21.4 and today's reading is 14.2 — comfortably below. The trigger has been in <em>Calm</em> for 168 trading days.",
+    timeframes: {
+      "1M":  buildSeries(11, 14, 1.2, 22),
+      "6M":  buildSeries(11, 15, 2.0, 130),
+      "1Y":  buildSeries(11, 17, 3.5, 252),
+      "5Y":  buildSeries(11, 22, 7.0, 1260),
+      "Max": buildSeries(11, 25, 9.0, 2520),
+    },
+    hist_low: 9.1, hist_high: 82.7, sample:"1996 to today",
+    formula:"30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.",
+    source:"CBOE VIX index",
+    source_url:"https://www.cboe.com/tradable_products/vix/",
+    caveat:"VIX is the most-cited stress measure but often the LAST of the three triggers to confirm. In 2008, funding stress was elevated from May onwards while VIX stayed in the 18–20 range through August.",
+    band_label:"Q1 · deep calm (under 20th pct)",
+    band_band:"20–35th pct",
+    episodes:[
+      {period:"May 2017", note:"Pre-Volmageddon calm",  value:13.4, spx6:"+9.9%",  spx12:"+13.0%"},
+      {period:"Jul 2019", note:"Late-cycle calm",       value:13.6, spx6:"+5.0%",  spx12:"+10.7%"},
+      {period:"Sep 2021", note:"Post-COVID calm",       value:14.9, spx6:"−5.4%",  spx12:"−18.1%"},
+      {period:"Jul 2024", note:"Post-Fed-pivot calm",   value:13.8, spx6:"+4.7%",  spx12:"+8.3%"},
+      {period:"Mar 2025", note:"Late-cycle steady",     value:14.5, spx6:"+3.1%",  spx12:"+6.2%"},
+    ],
+    overlay_options: ["Bond Volatility","Funding Stress","HY credit spread"],
+    release:{ freq:"Daily · real-time", last:"today, 16:15 ET", next:"tomorrow, 09:30 ET", source:"CBOE direct feed" },
+  },
+  move: {
+    name:"Bond Volatility", short:"MOVE", unit:"", fmt:v=>v.toFixed(0),
+    current:85, p85:131, stage:0, scale:200,
+    days_in_stage:212,
+    caption:"<strong>Bond Volatility is calm.</strong> The trailing-5y 85th-percentile level sits at 131 and today's reading is 85 — well below. The trigger has been in <em>Calm</em> for 212 trading days.",
+    timeframes: {
+      "1M":  buildSeries(22, 85, 5, 22),
+      "6M":  buildSeries(22, 90, 8, 130),
+      "1Y":  buildSeries(22, 100, 14, 252),
+      "5Y":  buildSeries(22, 120, 28, 1260),
+      "Max": buildSeries(22, 130, 38, 2520),
+    },
+    hist_low: 43, hist_high: 264, sample:"2002 to today",
+    formula:"Implied volatility on Treasury options, weighted across 2y / 5y / 10y / 30y. Captures rate-policy uncertainty.",
+    source:"ICE BofA MOVE Index",
+    source_url:"https://indices.ice.com/",
+    caveat:"Bond vol typically MIDDLE in the stress chain — it follows funding stress on the way up and leads equity vol.",
+    band_label:"Q1 · deep calm (under 20th pct)",
+    band_band:"60–95 range",
+    episodes:[
+      {period:"Aug 2017", note:"Pre-Volmageddon calm",  value:62,  spx6:"+9.1%",  spx12:"+12.5%"},
+      {period:"Nov 2019", note:"Pre-COVID calm",        value:58,  spx6:"+5.6%",  spx12:"+15.9%"},
+      {period:"Aug 2021", note:"Post-COVID calm",       value:64,  spx6:"−4.7%",  spx12:"−9.8%"},
+      {period:"Apr 2024", note:"Post-SVB calm",         value:93,  spx6:"+10.4%", spx12:"+18.2%"},
+      {period:"Feb 2025", note:"Steady regime",         value:88,  spx6:"+4.0%",  spx12:"+7.5%"},
+    ],
+    overlay_options: ["Equity Volatility","Funding Stress","IG credit spread"],
+    release:{ freq:"Daily · after US close", last:"today, 16:30 ET", next:"tomorrow, 16:30 ET", source:"ICE BofA daily" },
+  },
+  cpff: {
+    name:"Funding Stress", short:"CPFF", unit:" bp", fmt:v=>v.toFixed(0)+" bp",
+    current:9, p85:22, stage:0, scale:34,
+    days_in_stage:90,
+    caption:"<strong>Funding Stress is calm.</strong> 30-day commercial paper sits 9 basis points above the 30-day T-bill — comfortably below the 22 bp 85th-percentile level. Blue-chip companies are borrowing at near-zero spread to the government.",
+    timeframes: {
+      "1M":  buildSeries(33, 9, 1.5, 22),
+      "6M":  buildSeries(33, 10, 3, 130),
+      "1Y":  buildSeries(33, 12, 5, 252),
+      "5Y":  buildSeries(33, 18, 12, 1260),
+      "Max": buildSeries(33, 25, 28, 2520),
+    },
+    hist_low: 3, hist_high: 490, sample:"2006 to today",
+    formula:"30-day AA-rated commercial paper rate minus 30-day Treasury bill rate. Wider means more expensive 30-day borrowing for blue-chip corporates.",
+    source:"Federal Reserve H.15 · FRED CPFF series",
+    source_url:"https://fred.stlouisfed.org/series/CPFF",
+    caveat:"Funding stress is often the LEADING trigger. In 2008, elevated from May onwards while equity vol was still at 18–20 in August.",
+    band_label:"Q1 · deep calm (under 20th pct)",
+    band_band:"5–14 bp range",
+    episodes:[
+      {period:"Aug 2017", note:"Pre-Volmageddon calm",  value:"7 bp",  spx6:"+9.1%",  spx12:"+12.5%"},
+      {period:"Sep 2019", note:"Late-cycle calm",       value:"11 bp", spx6:"+5.0%",  spx12:"+10.7%"},
+      {period:"Aug 2021", note:"Post-COVID calm",       value:"8 bp",  spx6:"−7.4%",  spx12:"−9.8%"},
+      {period:"Apr 2024", note:"Post-SVB calm",         value:"7 bp",  spx6:"+10.4%", spx12:"+18.2%"},
+      {period:"Mar 2025", note:"Steady regime",         value:"10 bp", spx6:"+3.4%",  spx12:"+6.8%"},
+    ],
+    overlay_options: ["HY credit spread","IG credit spread","Bond Volatility"],
+    release:{ freq:"Weekly · Wed", last:"this past Wed", next:"next Wed", source:"Federal Reserve H.15" },
+  },
+};
+
+const INDICATORS = {
+  copper_gold: {
+    name:"Copper / Gold ratio",
+    desc:"Industrial demand relative to a fear asset. A falling ratio means traders are buying gold and selling copper.",
+    value:"0.215", percentile:32,
+    hist_low:"0.080", hist_high:"0.321", sample:"2000 to today",
+    direction_short:"low = elevated",
+    caption:"<strong>Cyclical demand is healthy but softening.</strong> The ratio sits a touch below its 5-year average — 32nd-percentile reading vs the full sample.",
+    score_0_100:32,
+    timeframes:{ "1M":buildSeries(5,0.215,0.005,22), "6M":buildSeries(5,0.215,0.010,130), "1Y":buildSeries(5,0.21,0.018,252), "5Y":buildSeries(5,0.20,0.025,1260), "Max":buildSeries(5,0.21,0.04,2520) },
+    formula:"Front-month copper futures (HG=F) ÷ front-month gold futures (GC=F). Daily close.",
+    source:"Yahoo Finance · CME front-month futures", source_url:"https://finance.yahoo.com/quote/HG%3DF",
+    caveat:"Sensitive to China-specific demand shocks. A falling ratio in 2015-16 reflected China slowdown, not US cycle stress.",
+    overlay_options:["KBW Bank / S&P ratio","10y-2y curve","HY credit spread"],
+    band_label:"Today at 32nd pct (slightly soft, not weak)",
+    band_band:"0.18–0.24 range",
+    episodes:[{period:"Mar 2019",note:"Mid-cycle soft",value:"0.205",spx6:"+10.4%",spx12:"+12.7%"},{period:"Aug 2024",note:"Recent soft",value:"0.180",spx6:"+12.4%",spx12:"+18.1%"},{period:"Feb 2025",note:"Steady",value:"0.225",spx6:"+3.1%",spx12:"+5.4%"},{period:"Oct 2017",note:"Pre-Volmageddon",value:"0.238",spx6:"+9.1%",spx12:"+8.4%"}],
+    release:{freq:"Continuous · futures hours",last:"today, 16:00 ET",next:"tomorrow, 09:30 ET",source:"CME via Yahoo Finance"},
+  },
+  bkx_spx: {
+    name:"KBW Bank / S&P ratio",
+    desc:"Bank stocks relative to the broader market. Banks lead in healthy credit regimes and lag when the cycle breaks.",
+    value:"0.0238", percentile:51,
+    hist_low:"0.0145", hist_high:"0.0410", sample:"1993 to today",
+    direction_short:"low = elevated",
+    caption:"<strong>Banks are in the middle of their historical range.</strong> Not leading, not lagging materially. 51st percentile says credit-economy participation is roughly average.",
+    score_0_100:49,
+    timeframes:{ "1M":buildSeries(7,0.0238,0.0008,22),"6M":buildSeries(7,0.0240,0.0015,130),"1Y":buildSeries(7,0.0230,0.0025,252),"5Y":buildSeries(7,0.0250,0.0040,1260),"Max":buildSeries(7,0.0260,0.0060,2520) },
+    formula:"KBW Bank Index (BKX) ÷ S&P 500 Index. Daily close ratio.",
+    source:"NASDAQ KBW BKX index", source_url:"https://finance.yahoo.com/quote/%5EBKX",
+    caveat:"Regional bank stress (March 2023) can drag the ratio without the cycle being broken. Cross-reference with HY spread for confirmation.",
+    overlay_options:["Copper / Gold","10y-2y curve","HY credit spread"],
+    band_label:"Today at 51st pct (mid-range)",
+    band_band:"0.0220–0.0260 range",
+    episodes:[{period:"Jun 2018",note:"Mid-cycle steady",value:"0.0240",spx6:"+7.4%",spx12:"+5.6%"},{period:"Feb 2020",note:"Pre-COVID",value:"0.0228",spx6:"+33.4%",spx12:"+56.4%"},{period:"May 2024",note:"Post-SVB recovery",value:"0.0245",spx6:"+11.0%",spx12:"+17.5%"},{period:"Jan 2025",note:"Steady",value:"0.0252",spx6:"+4.2%",spx12:"+8.1%"}],
+    release:{freq:"Continuous · NYSE hours",last:"today, 16:00 ET",next:"tomorrow, 09:30 ET",source:"NASDAQ KBW BKX index"},
+  },
+  yield_curve: {
+    name:"Yield curve (10y − 2y)",
+    desc:"Slope of the Treasury yield curve. A steeper curve means banks profit from lending (healthy). A flat or inverted curve historically precedes recessions.",
+    value:"+38 bp", percentile:58,
+    hist_low:"−108 bp", hist_high:"+289 bp", sample:"1976 to today",
+    direction_short:"low = elevated",
+    caption:"<strong>The curve is positively sloped and steepening.</strong> Out of the 2022-23 inversion. 58th percentile says the slope is healthier than the long-run norm but still well below the 1990s steep-curve era.",
+    score_0_100:42,
+    timeframes:{ "1M":buildSeries(9,38,3,22),"6M":buildSeries(9,30,8,130),"1Y":buildSeries(9,10,18,252),"5Y":buildSeries(9,-20,35,1260),"Max":buildSeries(9,80,55,2520) },
+    formula:"10-year Treasury constant-maturity yield minus 2-year. Daily close. From FRED.",
+    source:"Federal Reserve H.15 · FRED T10Y2Y", source_url:"https://fred.stlouisfed.org/series/T10Y2Y",
+    caveat:"Curve inversions historically lead recessions by 10-22 months. Signal-to-noise improves when paired with credit-spread data.",
+    overlay_options:["KBW Bank / S&P ratio","Copper / Gold","Bond Volatility"],
+    band_label:"Today at 58th pct (positively sloped, healthier than long-run norm)",
+    band_band:"+25 to +55 bp range",
+    episodes:[{period:"Mar 2014",note:"Mid-recovery",value:"+33 bp",spx6:"+6.1%",spx12:"+10.3%"},{period:"Sep 2017",note:"Late-cycle steady",value:"+42 bp",spx6:"+9.1%",spx12:"+8.4%"},{period:"Feb 2025",note:"Post-inversion recovery",value:"+28 bp",spx6:"+3.1%",spx12:"+5.4%"},{period:"Apr 2025",note:"Steepening",value:"+48 bp",spx6:"+2.4%",spx12:"+4.9%"}],
+    release:{freq:"Daily · after US close",last:"today, 16:30 ET",next:"tomorrow, 16:30 ET",source:"Federal Reserve H.15"},
+  },
+  anfci: {
+    name:"Chicago Fed financial conditions",
+    desc:"A 105-variable index of credit, leverage, and risk indicators. Positive = tighter than average; negative = looser.",
+    value:"−0.42", percentile:28,
+    hist_low:"−1.40", hist_high:"+5.30", sample:"1971 to today",
+    direction_short:"high = elevated",
+    caption:"<strong>Financial conditions are easier than the long-run average.</strong> Reading of −0.42 places today in the 28th percentile of all observations since 1971 — comfortably loose.",
+    score_0_100:28,
+    timeframes:{ "1M":buildSeries(13,-0.42,0.05,22),"6M":buildSeries(13,-0.40,0.10,130),"1Y":buildSeries(13,-0.35,0.20,252),"5Y":buildSeries(13,-0.20,0.50,1260),"Max":buildSeries(13,0.10,1.10,2520) },
+    formula:"Adjusted National Financial Conditions Index — 105 underlying variables, weekly. 0 = long-run average, positive = tighter.",
+    source:"Federal Reserve Bank of Chicago · FRED ANFCI", source_url:"https://fred.stlouisfed.org/series/ANFCI",
+    caveat:"Published weekly with a 1-week lag. Cross-reference with the daily NFCI for higher-frequency reads.",
+    overlay_options:["HY credit spread","Funding Stress","Equity Volatility"],
+    band_label:"Today at 28th pct (easier than long-run average)",
+    band_band:"−0.55 to −0.30 range",
+    episodes:[{period:"Jun 2014",note:"Mid-recovery ease",value:"−0.45",spx6:"+6.7%",spx12:"+8.1%"},{period:"Oct 2017",note:"Late-cycle ease",value:"−0.38",spx6:"+9.1%",spx12:"+8.4%"},{period:"Feb 2021",note:"Post-COVID liquidity",value:"−0.50",spx6:"+12.8%",spx12:"+15.0%"},{period:"Apr 2025",note:"Steady ease",value:"−0.40",spx6:"+2.4%",spx12:"+4.9%"}],
+    release:{freq:"Weekly · Wed",last:"this past Wed",next:"next Wed",source:"Federal Reserve Bank of Chicago"},
+  },
+  jobless: {
+    name:"Initial jobless claims",
+    desc:"New unemployment-insurance filings each week. Smoothed with a 4-week moving average.",
+    value:"218K", percentile:42,
+    hist_low:"183K", hist_high:"6,100K", sample:"1967 to today",
+    direction_short:"high = elevated",
+    caption:"<strong>The labor market is contained.</strong> The 4-week moving average sits at 218K — middle of the cycle range. No signal of broad labor-market stress.",
+    score_0_100:42,
+    timeframes:{ "1M":buildSeries(17,218,4,22),"6M":buildSeries(17,222,8,130),"1Y":buildSeries(17,225,12,252),"5Y":buildSeries(17,260,50,1260),"Max":buildSeries(17,360,200,2520) },
+    formula:"4-week moving average of initial claims for state unemployment insurance, seasonally adjusted. Weekly release.",
+    source:"US Department of Labor · FRED IC4WSA", source_url:"https://fred.stlouisfed.org/series/IC4WSA",
+    caveat:"Can be volatile around holidays and natural disasters. The 4-week average smooths most of that; extreme readings (Hurricane Sandy, COVID) still distort.",
+    overlay_options:["Chicago Fed FCI","Equity Volatility","KBW Bank / S&P ratio"],
+    band_label:"Today at 42nd pct (middle of cycle range, no stress signal)",
+    band_band:"200–235K range",
+    episodes:[{period:"May 2018",note:"Late-cycle steady",value:"215K",spx6:"+5.1%",spx12:"+0.4%"},{period:"Feb 2020",note:"Pre-COVID",value:"212K",spx6:"+33.4%",spx12:"+56.4%"},{period:"Jun 2024",note:"Recent steady",value:"224K",spx6:"+11.8%",spx12:"+19.1%"},{period:"Feb 2025",note:"Steady regime",value:"218K",spx6:"+3.1%",spx12:"+5.4%"}],
+    release:{freq:"Weekly · Thu 8:30 ET",last:"this past Thursday",next:"next Thursday",source:"US Department of Labor"},
+  },
+  hy_ig: {
+    name:"High-Yield credit spread",
+    desc:"The yield premium investors demand to lend to junk-rated corporate borrowers, over Treasuries. Wider means credit stress.",
+    value:"270 bp", percentile:24,
+    hist_low:"245 bp", hist_high:"2,000 bp", sample:"2011 to today",
+    direction_short:"high = elevated",
+    caption:"<strong>HY spreads are compressed.</strong> 270 bp puts today in the 24th percentile of the post-2011 sample. Risky-borrower lenders demanding little extra — consistent with late-cycle calm.",
+    score_0_100:24,
+    timeframes:{ "1M":buildSeries(21,270,10,22),"6M":buildSeries(21,290,25,130),"1Y":buildSeries(21,320,40,252),"5Y":buildSeries(21,420,90,1260),"Max":buildSeries(21,550,180,2520) },
+    formula:"ICE BofA US High Yield Index Option-Adjusted Spread. Daily close.",
+    source:"ICE BofA HY OAS · FRED BAMLH0A0HYM2", source_url:"https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+    caveat:"HY compression is a classic late-cycle signal. GFC 2008 peak (~2,000 bp) is out of sample for the 5y window.",
+    overlay_options:["Equity Volatility","Funding Stress","Chicago Fed FCI"],
+    band_label:"Today at 24th pct (compressed, late-cycle calm)",
+    band_band:"250–305 bp range",
+    episodes:[{period:"Jan 2018",note:"Pre-Volmageddon tight",value:"278 bp",spx6:"+5.4%",spx12:"−6.2%"},{period:"Feb 2020",note:"Pre-COVID tight",value:"302 bp",spx6:"+33.4%",spx12:"+56.4%"},{period:"Mar 2024",note:"Post-SVB tight",value:"285 bp",spx6:"+11.2%",spx12:"+18.4%"},{period:"Feb 2025",note:"Steady tight",value:"265 bp",spx6:"+3.1%",spx12:"+5.4%"}],
+    release:{freq:"Daily · after US close",last:"today, 17:00 ET",next:"tomorrow, 17:00 ET",source:"ICE BofA daily"},
+  },
+  ig_oas: {
+    name:"Investment-Grade credit spread",
+    desc:"The yield premium for investment-grade corporate debt over Treasuries. Wider means safer-borrower lenders are nervous.",
+    value:"88 bp", percentile:18,
+    hist_low:"75 bp", hist_high:"620 bp", sample:"2006 to today",
+    direction_short:"high = elevated",
+    caption:"<strong>IG spreads are deeply compressed.</strong> 88 bp puts today in the 18th percentile. Safer-borrower lenders demanding almost nothing extra — late-cycle calm.",
+    score_0_100:18,
+    timeframes:{ "1M":buildSeries(25,88,4,22),"6M":buildSeries(25,95,8,130),"1Y":buildSeries(25,105,15,252),"5Y":buildSeries(25,135,32,1260),"Max":buildSeries(25,175,60,2520) },
+    formula:"ICE BofA US Corporate Index Option-Adjusted Spread (IG-rated). Daily close.",
+    source:"ICE BofA IG OAS · FRED BAMLC0A0CM", source_url:"https://fred.stlouisfed.org/series/BAMLC0A0CM",
+    caveat:"IG OAS at 18th percentile is consistent with the broader 'late-cycle compression' picture.",
+    overlay_options:["HY credit spread","Funding Stress","Bond Volatility"],
+    band_label:"Today at 18th pct (deeply compressed, late-cycle calm)",
+    band_band:"80–110 bp range",
+    episodes:[{period:"Oct 2017",note:"Pre-Volmageddon tight",value:"95 bp",spx6:"+9.1%",spx12:"+8.4%"},{period:"Feb 2020",note:"Pre-COVID tight",value:"101 bp",spx6:"+33.4%",spx12:"+56.4%"},{period:"Apr 2024",note:"Post-SVB tight",value:"92 bp",spx6:"+10.4%",spx12:"+18.2%"},{period:"Feb 2025",note:"Steady tight",value:"86 bp",spx6:"+3.1%",spx12:"+5.4%"}],
+    release:{freq:"Daily · after US close",last:"today, 17:00 ET",next:"tomorrow, 17:00 ET",source:"ICE BofA daily"},
+  },
+};
+
+/* Anchor every series' last value to the dial's current reading. The random-walk
+   buildSeries used above lands at an arbitrary endpoint; for charts to be honest
+   the last visible point has to equal what the dial shows. We shift the whole
+   series uniformly so the shape is preserved but the endpoint matches. */
+function _parseNumeric(value) {
+  if (value == null) return NaN;
+  const s = String(value).replace(/,/g, '').replace(/−/g, '-');
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+}
+function _anchorSeries(series, target) {
+  if (!series || !series.length || !isFinite(target)) return;
+  const lastVal = series[series.length - 1][1];
+  const shift = target - lastVal;
+  if (Math.abs(shift) < 1e-9) return;
+  for (const p of series) p[1] = p[1] + shift;   // shift the whole series; do not clamp at 0
+}
+Object.values(TRIGGERS).forEach((t) => {
+  if (!t.timeframes) return;
+  Object.values(t.timeframes).forEach((series) => _anchorSeries(series, t.current));
+});
+Object.values(INDICATORS).forEach((ind) => {
+  if (!ind.timeframes) return;
+  const target = _parseNumeric(ind.value);
+  Object.values(ind.timeframes).forEach((series) => _anchorSeries(series, target));
+});
+
+/* Recent 24-week regime data — regime LABEL is DERIVED from trigger values + cycle composite
+   so the label always matches what's shown in the weekly snapshot. No hardcoded labels. */
+function deriveRegime(vixVal, moveVal, cpffVal, cycle, weeksSustained = 0) {
+  const aboveVix  = vixVal  >= TRIGGERS.vix.p85;
+  const aboveMove = moveVal >= TRIGGERS.move.p85;
+  const aboveCpff = cpffVal >= TRIGGERS.cpff.p85;
+  const aboveCount = (aboveVix ? 1 : 0) + (aboveMove ? 1 : 0) + (aboveCpff ? 1 : 0);
+  if (aboveCount === 0) return "Risk On";
+  if (aboveCount === 1 && weeksSustained <= 1) return "Neutral";
+  if (cycle < 40) return "Risk Off";
+  return "Cautionary";
+}
+/* Inject two intentional Neutral / Cautionary weeks into the recent 24-week window
+   by pushing one trigger ABOVE its mark on those weeks. Weeks 6 and 14 fire. */
+const REGIME_SPIKES_24 = { 6: { trigger: 'vix', valueAbove: true }, 14: { trigger: 'move', valueAbove: true } };
+function regimeWeek24Vals(i) {
+  const vixHist = TRIGGERS.vix.timeframes["6M"];
+  const moveHist = TRIGGERS.move.timeframes["6M"];
+  const cpffHist = TRIGGERS.cpff.timeframes["6M"];
+  let vixVal = vixHist[vixHist.length - (24 - i) * 5][1];
+  let moveVal = moveHist[moveHist.length - (24 - i) * 5][1];
+  let cpffVal = cpffHist[cpffHist.length - (24 - i) * 5][1];
+  const spike = REGIME_SPIKES_24[i];
+  if (spike && spike.trigger === 'vix')  vixVal  = TRIGGERS.vix.p85  + 0.6;
+  if (spike && spike.trigger === 'move') moveVal = TRIGGERS.move.p85 + 2;
+  if (spike && spike.trigger === 'cpff') cpffVal = TRIGGERS.cpff.p85 + 1;
+  const cycle = 44 + Math.round(Math.sin(i / 3.1) * 6);
+  // Count consecutive weeks the same trigger has been above
+  let weeksSustained = 0;
+  for (let k = i; k >= 0; k--) {
+    const s = REGIME_SPIKES_24[k];
+    if (s) weeksSustained++; else break;
+  }
+  return { vix: vixVal, move: moveVal, cpff: cpffVal, cycle, weeksSustained };
+}
+const REGIME_HIST_24 = Array.from({length: 24}, (_, i) => {
+  const v = regimeWeek24Vals(i);
+  return deriveRegime(v.vix, v.move, v.cpff, v.cycle, v.weeksSustained);
+});
+/* Full 1996–today backtested regime history — 1,560 weeks (~30 years), generated representative */
+const REGIME_HIST_FULL = (function(){
+  const arr = [];
+  const weeks = 260*6; // 30 years simplified
+  for (let i=0;i<weeks;i++){
+    const t = i / weeks;
+    let r;
+    // Inject realistic crisis windows
+    if      ((i>=110 && i<=125) || (i>=180 && i<=195))      r = "Risk Off";    // 1998 LTCM-ish + 2000 dot-com setup
+    else if ((i>=480 && i<=540))                            r = "Cautionary";  // 2007-08 GFC
+    else if ((i>=545 && i<=560))                            r = "Risk Off";    // GFC trough
+    else if ((i>=1170 && i<=1185))                          r = "Cautionary";  // 2018-19
+    else if ((i>=1230 && i<=1245))                          r = "Risk Off";    // 2020 COVID
+    else if ((i>=1380 && i<=1410))                          r = "Cautionary";  // 2022 rate-hike
+    else {
+      const w = Math.sin(i/9.1)*0.5 + Math.cos(i/3.7)*0.3 + Math.random()*0.3;
+      r = w > 1.2 ? "Cautionary" : w > 0.8 ? "Neutral" : "Risk On";
+    }
+    arr.push(r);
+  }
+  return arr;
+})();
+
+const WEEK_LABEL = (i) => { const d=new Date(); d.setDate(d.getDate()-(23-i)*7); return d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); };
+const FULL_WEEK_LABEL = (i, total) => { const d=new Date(); d.setDate(d.getDate()-(total-1-i)*7); return d.toLocaleDateString("en-US",{year:"numeric",month:"short"}); };
+const REGIME_WEEK_24 = (i) => {
+  const v = regimeWeek24Vals(i);
+  return { vix: v.vix, move: v.move, cpff: v.cpff, cycle: v.cycle, regime: REGIME_HIST_24[i] };
+};
+
+/* ============================================================
+   Build bar strips + indicator list
+   ============================================================ */
+function buildStrip(elId, series, p85, unitFmt){
+  const el = document.getElementById(elId); if (!el) return;
+  const last24 = series.slice(-24);
+  const maxVal = Math.max(...last24.map(p=>p[1]), p85)*1.1;
+  el.innerHTML = last24.map((p,i) => {
+    const stage = p[1] >= p85 ? 3 : 0;
+    const h = Math.max(8, Math.min(95, (p[1]/maxVal)*100));
+    return `<span class="bar s${stage}" style="height:${h}%" data-tt="${p[0]} · ${unitFmt(p[1])}"></span>`;
+  }).join("");
+}
+buildStrip("vix-strip",  TRIGGERS.vix.timeframes["6M"],  TRIGGERS.vix.p85,  v=>v.toFixed(1));
+buildStrip("move-strip", TRIGGERS.move.timeframes["6M"], TRIGGERS.move.p85, v=>v.toFixed(0));
+buildStrip("cpff-strip", TRIGGERS.cpff.timeframes["6M"], TRIGGERS.cpff.p85, v=>v.toFixed(0)+" bp");
+
+(function(){
+  const el = document.getElementById("rhist-strip");
+  el.innerHTML = REGIME_HIST_24.map((r,i) => {
+    const lvl = REGIMES.indexOf(r);
+    const h = 18 + lvl*22;
+    return `<span class="rhist-bar s${lvl}" style="height:${h}%" onclick="openWeekPanel(${i})" data-tt="${WEEK_LABEL(i)} · ${r}"></span>`;
+  }).join("");
+})();
+
+(function buildIndList(){
+  const el = document.getElementById("ind-list");
+  el.innerHTML = Object.entries(INDICATORS).map(([id, ind]) => `
+    <button type="button" class="ind-row" onclick="openIndicatorModal('${id}')">
+      <div>
+        <div class="nm">${ind.name}<span class="nm-meta">${ind.direction_short}</span></div>
+        <div class="desc">${ind.desc}</div>
+      </div>
+      <div>
+        <div class="qbar"><span class="qd" style="left:calc(${ind.percentile}% - 7px);"></span></div>
+        <div class="qbar-ends"><span>${ind.hist_low}</span><span>${ind.hist_high}</span></div>
+      </div>
+      <div>
+        <div class="v">${ind.value}</div>
+        <div class="pct">${ind.percentile}th pct · ${ind.sample}</div>
+      </div>
+      <div class="score-num">${ind.score_0_100}</div>
+      <div class="arr">›</div>
+    </button>
+  `).join("");
+})();
+
+/* ============================================================
+   Inline panels — click anywhere off them to close
+   ============================================================ */
+function togglePill(id){
+  const map = {risk_on:"pill-risk_on", neutral:"pill-neutral", caution:"pill-caution", risk_off:"pill-risk_off"};
+  Object.entries(map).forEach(([k,target]) => {
+    const el = document.getElementById(target);
+    if (k === id) el.classList.toggle("open");
+    else el.classList.remove("open");
+  });
+  document.getElementById("rhist-panel").classList.remove("open");
+}
+function openWeekPanel(i){
+  const panel = document.getElementById("rhist-panel");
+  const w = REGIME_WEEK_24(i);
+  document.getElementById("rhist-panel-title").textContent = "Weekly snapshot · " + WEEK_LABEL(i);
+  document.getElementById("rhist-vix").textContent = w.vix.toFixed(1);
+  document.getElementById("rhist-vix-stage").textContent = w.vix >= TRIGGERS.vix.p85 ? "ABOVE 85TH PCT" : "Calm";
+  document.getElementById("rhist-move").textContent = w.move.toFixed(0);
+  document.getElementById("rhist-move-stage").textContent = w.move >= TRIGGERS.move.p85 ? "ABOVE 85TH PCT" : "Calm";
+  document.getElementById("rhist-cpff").textContent = w.cpff.toFixed(0) + " bp";
+  document.getElementById("rhist-cpff-stage").textContent = w.cpff >= TRIGGERS.cpff.p85 ? "ABOVE 85TH PCT" : "Calm";
+  document.getElementById("rhist-cycle").textContent = w.cycle;
+  document.getElementById("rhist-regime").textContent = w.regime;
+  panel.classList.add("open");
+  document.querySelectorAll(".pill-panel").forEach(p => p.classList.remove("open"));
+}
+
+/* Click anywhere outside open inline panels to close them */
+document.addEventListener("click", (e) => {
+  const inPillRow = e.target.closest(".rrow");
+  const inPillPanel = e.target.closest(".pill-panel");
+  const inRhistBar = e.target.closest(".rhist-bar");
+  const inRhistPanel = e.target.closest(".rhist-panel");
+  if (!inPillRow && !inPillPanel) {
+    document.querySelectorAll(".pill-panel").forEach(p => p.classList.remove("open"));
+  }
+  if (!inRhistBar && !inRhistPanel) {
+    document.getElementById("rhist-panel").classList.remove("open");
+  }
+}, true);
+
+/* ============================================================
+   Modal management
+   ============================================================ */
+const modalStack = [];
+function openModal(html, isStacked){
+  if (isStacked) document.getElementById("modal-back-wrap").style.display = "block";
+  else document.getElementById("modal-back-wrap").style.display = "none";
+  document.getElementById("modal-body").innerHTML = html;
+  document.getElementById("scrim").classList.add("open");
+  document.body.style.overflow = "hidden";
+  document.getElementById("card").scrollTop = 0;
+  // Initialize any charts inside the modal
+  document.querySelectorAll("[data-chart]").forEach(initChart);
+}
+function closeModal(){
+  document.getElementById("scrim").classList.remove("open");
+  document.body.style.overflow = "";
+  modalStack.length = 0;
+}
+function modalBack(){
+  const prev = modalStack.pop();
+  if (prev) openModal(prev.html, modalStack.length > 0);
+}
+window.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+/* ============================================================
+   Dynamic chart — timeframe select, crosshair, hi/lo lines, overlay
+   ============================================================ */
+function initChart(container){
+  const id = container.dataset.chart;
+  const ds = window._CHART_DATA[id];
+  if (!ds) return;
+  let activeTF = "1Y";
+  let overlayId = null;
+  const tfs = Object.keys(ds.timeframes);
+
+  function render(){
+    const main = ds.timeframes[activeTF];
+    const vals = main.map(p=>p[1]);
+    const overlayPeer = overlayId ? window._CHART_DATA[overlayId] : null;
+    const overlay = overlayPeer ? overlayPeer.timeframes[activeTF] : null;
+    container.innerHTML = `
+      <div class="chart-controls">
+        ${tfs.map(t=>`<button class="chart-tf-btn ${t===activeTF?'active':''}" data-tf="${t}">${t}</button>`).join("")}
+        <span style="flex:1"></span>
+        ${ds.overlays ? `<select class="chart-tf-btn" data-overlay-sel style="cursor:pointer;padding:4px 8px"><option value="">Overlay…</option>${ds.overlays.map(o=>`<option ${overlayId===o.id?'selected':''} value="${o.id}">${o.label}</option>`).join("")}</select>` : ""}
+      </div>
+      ${svgChart(main, ds.p85, vals, overlay)}
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:#0071e3"></span>${ds.label}</span>
+        ${overlayPeer ? `<span><span class="swatch" style="background:#a4626d"></span>${overlayPeer.label}</span>` : ""}
+        ${ds.p85 != null ? `<span><span class="swatch" style="background:#0e1115;opacity:0.8"></span>85th-pct = ${ds.fmt(ds.p85)}</span>` : ""}
+        <span style="margin-left:auto;color:var(--ink-3)">Hover for crosshair · click a timeframe to redraw</span>
+      </div>
+      <div class="chart-caption">
+        Sample range <strong>${ds.fmt(Math.min(...vals))}</strong> – <strong>${ds.fmt(Math.max(...vals))}</strong> · ${activeTF} window · current <strong>${ds.fmt(vals[vals.length-1])}</strong>
+      </div>
+    `;
+    container.querySelectorAll(".chart-tf-btn[data-tf]").forEach(b => b.addEventListener("click", () => { activeTF = b.dataset.tf; render(); }));
+    const sel = container.querySelector("[data-overlay-sel]");
+    if (sel) sel.addEventListener("change", e => { overlayId = e.target.value || null; render(); });
+    wireCrosshair(container, main, overlay);
+  }
+  render();
+}
+
+function svgChart(points, p85, vals, overlayPts){
+  const w = 760, h = 220, padL = 44, padR = 12, padT = 12, padB = 24;
+  const allVals = overlayPts ? vals.concat(overlayPts.map(p=>p[1])) : vals;
+  const max = Math.max(...allVals)*1.05;
+  const min = Math.min(...allVals)*0.95;
+  const range = max - min || 1;
+  const path = pts => pts.map((p,i) => {
+    const x = padL + (i/(pts.length-1))*(w-padL-padR);
+    const y = h-padB - ((p[1]-min)/range)*(h-padT-padB);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  // Y axis labels
+  const yt = [min, (min+max)/2, max].map(t => {
+    const y = h-padB - ((t-min)/range)*(h-padT-padB);
+    return `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(14,17,21,0.05)"/>
+            <text x="${padL-6}" y="${y+3}" font-size="10" fill="#5e5e63" text-anchor="end" font-family="Inter">${formatTick(t)}</text>`;
+  }).join("");
+  const hi = Math.max(...vals), lo = Math.min(...vals);
+  const hiY = h-padB - ((hi-min)/range)*(h-padT-padB);
+  const loY = h-padB - ((lo-min)/range)*(h-padT-padB);
+  let p85Line = "";
+  if (p85 != null && p85 >= min && p85 <= max){
+    const y = h-padB - ((p85-min)/range)*(h-padT-padB);
+    p85Line = `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#0e1115" stroke-width="1" stroke-dasharray="6,4"/>
+               <text x="${w-padR-6}" y="${y-4}" font-size="10" fill="#0e1115" text-anchor="end" font-weight="600" font-family="Inter">85th pct</text>`;
+  }
+  const overlayPath = overlayPts ? `<polyline points="${path(overlayPts)}" fill="none" stroke="#a4626d" stroke-width="1.6" stroke-dasharray="0" opacity="0.75"/>` : "";
+  return `<svg class="chart-canvas" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" data-chart-svg>
+    ${yt}
+    <line x1="${padL}" y1="${hiY}" x2="${w-padR}" y2="${hiY}" stroke="#2f9d6a" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="${w-padR-6}" y="${hiY-4}" font-size="10" fill="#2f9d6a" text-anchor="end" font-weight="600" font-family="Inter">HIGH ${formatTick(hi)}</text>
+    <line x1="${padL}" y1="${loY}" x2="${w-padR}" y2="${loY}" stroke="#c84658" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="${w-padR-6}" y="${loY+12}" font-size="10" fill="#c84658" text-anchor="end" font-weight="600" font-family="Inter">LOW ${formatTick(lo)}</text>
+    ${p85Line}
+    ${overlayPath}
+    <polyline points="${path(points)}" fill="none" stroke="#0071e3" stroke-width="2"/>
+    <g data-crosshair style="pointer-events:none">
+      <line x1="0" y1="0" x2="0" y2="${h-padB}" stroke="#0e1115" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>
+      <circle r="4.5" fill="#0071e3" stroke="#fff" stroke-width="1.5" opacity="0"/>
+      <rect x="0" y="0" width="120" height="36" rx="4" fill="#0e1115" opacity="0"/>
+      <text x="0" y="0" font-size="10" fill="#fff" font-family="Inter" opacity="0"></text>
+    </g>
+    <rect x="${padL}" y="${padT}" width="${w-padL-padR}" height="${h-padT-padB}" fill="transparent" data-chart-hit/>
+  </svg>`;
+}
+function formatTick(v){ if(Math.abs(v)>=1000) return Math.round(v).toString(); if(Math.abs(v)>=10) return v.toFixed(1); if(Math.abs(v)>=1) return v.toFixed(2); return v.toFixed(3); }
+
+function wireCrosshair(container, points, overlayPts){
+  const svg = container.querySelector("[data-chart-svg]");
+  if (!svg) return;
+  const hit = svg.querySelector("[data-chart-hit]");
+  const cross = svg.querySelector("[data-crosshair]");
+  const [line, dot, rect, text] = cross.children;
+  const w = 760, h = 220, padL = 44, padR = 12, padT = 12, padB = 24;
+  const allVals = overlayPts ? points.map(p=>p[1]).concat(overlayPts.map(p=>p[1])) : points.map(p=>p[1]);
+  const max = Math.max(...allVals)*1.05;
+  const min = Math.min(...allVals)*0.95;
+  const range = max - min || 1;
+  svg.addEventListener("mousemove", (e) => {
+    const rectBox = svg.getBoundingClientRect();
+    const xPx = e.clientX - rectBox.left;
+    const xView = (xPx / rectBox.width) * w;
+    if (xView < padL || xView > w-padR) return hideCross();
+    const idx = Math.max(0, Math.min(points.length-1, Math.round(((xView-padL)/(w-padL-padR))*(points.length-1))));
+    const p = points[idx];
+    const x = padL + (idx/(points.length-1))*(w-padL-padR);
+    const y = h-padB - ((p[1]-min)/range)*(h-padT-padB);
+    line.setAttribute("x1", x); line.setAttribute("x2", x); line.setAttribute("opacity", 1);
+    dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("opacity", 1);
+    const labelX = Math.min(x + 8, w - padR - 130);
+    rect.setAttribute("x", labelX); rect.setAttribute("y", Math.max(padT + 4, y - 40));
+    rect.setAttribute("opacity", 0.92);
+    text.setAttribute("x", labelX + 8); text.setAttribute("y", Math.max(padT + 4, y - 40) + 22);
+    text.setAttribute("opacity", 1);
+    text.textContent = `${p[0]} · ${formatTick(p[1])}`;
+  });
+  svg.addEventListener("mouseleave", hideCross);
+  function hideCross(){ line.setAttribute("opacity", 0); dot.setAttribute("opacity", 0); rect.setAttribute("opacity", 0); text.setAttribute("opacity", 0); }
+}
+
+/* Build chart data registry (for both triggers and indicators) */
+window._CHART_DATA = {};
+Object.entries(TRIGGERS).forEach(([id, t]) => {
+  window._CHART_DATA["trg-"+id] = {
+    label: t.name, fmt: t.fmt, p85: t.p85,
+    timeframes: t.timeframes,
+    overlays: t.overlay_options.map((label, i) => ({ id: "ovl-"+id+"-"+i, label, key: label })),
+  };
+  t.overlay_options.forEach((label, i) => {
+    window._CHART_DATA["ovl-"+id+"-"+i] = {
+      label, fmt: v=>v.toFixed(2),
+      timeframes: { "1M":buildSeries(70+i,50,4,22),"6M":buildSeries(70+i,55,7,130),"1Y":buildSeries(70+i,60,12,252),"5Y":buildSeries(70+i,75,22,1260),"Max":buildSeries(70+i,90,35,2520) },
+    };
+  });
+});
+Object.entries(INDICATORS).forEach(([id, ind]) => {
+  window._CHART_DATA["ind-"+id] = {
+    label: ind.name, fmt: v=>typeof v==='number'?v.toFixed(2):v,
+    timeframes: ind.timeframes,
+    overlays: (ind.overlay_options||[]).map((label, i) => ({ id: "ovi-"+id+"-"+i, label })),
+  };
+  (ind.overlay_options||[]).forEach((label, i) => {
+    window._CHART_DATA["ovi-"+id+"-"+i] = {
+      label, fmt: v=>typeof v==='number'?v.toFixed(2):v,
+      timeframes: { "1M":buildSeries(170+i,1,0.1,22),"6M":buildSeries(170+i,1.1,0.2,130),"1Y":buildSeries(170+i,1.2,0.3,252),"5Y":buildSeries(170+i,1.4,0.6,1260),"Max":buildSeries(170+i,1.6,1.0,2520) },
+    };
+  });
+});
+
+/* ============================================================
+   Modal content builders
+   ============================================================ */
+function openTriggerModal(id){
+  const t = TRIGGERS[id]; if (!t) return;
+  const fmt = t.fmt;
+  const meanVal = t.timeframes["6M"].reduce((a,b)=>a+b[1],0)/t.timeframes["6M"].length;
+  const html = `
+    <div class="modal-eyebrow">Volatility trigger · Layer 1</div>
+    <div class="modal-h">
+      <h3>${t.name}<span class="source-fresh"><span class="fresh-dot"></span>FRESH · ${t.release.last}</span></h3>
+      <div class="right">
+        <div class="big-val">${t.current}${t.unit}</div>
+        <div class="big-meta">${STAGES[t.stage].toUpperCase()} · ${t.days_in_stage} days in stage</div>
+      </div>
+    </div>
+    <p class="body-14">${t.caption}</p>
+    <div class="kpi-strip">
+      <div class="kpi"><div class="lbl">Current</div><div class="val">${t.current}${t.unit}</div><div class="meta">today's reading</div></div>
+      <div class="kpi"><div class="lbl">85th percentile (5y)</div><div class="val">${t.p85}${t.unit}</div><div class="meta">recalibrated daily</div></div>
+      <div class="kpi"><div class="lbl">Stage</div><div class="val">${STAGES[t.stage]}</div><div class="meta">${t.days_in_stage} days</div></div>
+      <div class="kpi"><div class="lbl">Full sample range</div><div class="val">${fmt(t.hist_low)}–${fmt(t.hist_high)}</div><div class="meta">${t.sample}</div></div>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
+      <div class="chart-frame" data-chart="trg-${id}"></div>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
+      <div class="episode-note">${t.band_label || ''}${t.band_band ? ` · sample window <strong>${t.band_band}</strong>` : ''} · readings shown are from other periods when ${t.name} was at a similar level to today. Historical reference, not a forecast.</div>
+      <table class="modal-table">
+        <thead><tr><th>Period</th><th>Note</th><th style="text-align:right">Value</th><th style="text-align:right">SPX 6m</th><th style="text-align:right">SPX 12m</th></tr></thead>
+        <tbody>
+          ${t.episodes.map(e=>`<tr><td>${e.period}</td><td>${e.note}</td><td class="num" style="text-align:right">${e.value}</td><td class="num ${e.spx6.startsWith('−')||e.spx6.startsWith('-')?'neg':'pos'}" style="text-align:right">${e.spx6}</td><td class="num ${e.spx12.startsWith('−')||e.spx12.startsWith('-')?'neg':'pos'}" style="text-align:right">${e.spx12}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Release calendar</div>
+      <table class="modal-table"><tbody>
+        <tr><td>Frequency</td><td>${t.release.freq}</td></tr>
+        <tr><td>Last release</td><td>${t.release.last}</td></tr>
+        <tr><td>Next release</td><td>${t.release.next}</td></tr>
+        <tr><td>Source</td><td>${t.release.source}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="modal-footer">
+      <div class="row"><strong>Formula.</strong> ${t.formula}</div>
+      <div class="row"><strong>Source.</strong> <a href="${t.source_url}" target="_blank" style="color:var(--ink)">${t.source}</a></div>
+      <div class="row" style="color:var(--ink-3);font-style:italic"><strong style="color:var(--ink);font-style:normal">Caveat.</strong> ${t.caveat}</div>
+    </div>
+  `;
+  openModal(html);
+}
+
+function openIndicatorModal(id, isStacked){
+  const ind = INDICATORS[id]; if (!ind) return;
+  const html = `
+    <div class="modal-eyebrow">Cycle composite indicator · Layer 2</div>
+    <div class="modal-h">
+      <h3>${ind.name}<span class="source-fresh"><span class="fresh-dot"></span>FRESH · ${ind.release.last}</span></h3>
+      <div class="right">
+        <div class="big-val">${ind.value}</div>
+        <div class="big-meta">${ind.percentile}TH PCT · ${ind.sample.toUpperCase()}</div>
+      </div>
+    </div>
+    <p class="body-14">${ind.caption}</p>
+    <div class="kpi-strip">
+      <div class="kpi"><div class="lbl">Current</div><div class="val">${ind.value}</div><div class="meta">today's reading</div></div>
+      <div class="kpi"><div class="lbl">Percentile rank</div><div class="val">${ind.percentile}%</div><div class="meta">vs ${ind.sample}</div></div>
+      <div class="kpi"><div class="lbl">Direction</div><div class="val" style="font-size:15px;margin-top:10px">${ind.direction_short}</div><div class="meta"></div></div>
+      <div class="kpi"><div class="lbl">Stress score (0–100)</div><div class="val">${ind.score_0_100}</div><div class="meta">simple-avg input</div></div>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
+      <div class="chart-frame" data-chart="ind-${id}"></div>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
+      <div class="episode-note">${ind.band_label || ''}${ind.band_band ? ` · sample window <strong>${ind.band_band}</strong>` : ''} · readings shown are from other periods when ${ind.name} was at a similar level to today. Historical reference, not a forecast.</div>
+      <table class="modal-table">
+        <thead><tr><th>Period</th><th>Note</th><th style="text-align:right">Value</th><th style="text-align:right">SPX 6m</th><th style="text-align:right">SPX 12m</th></tr></thead>
+        <tbody>
+          ${ind.episodes.map(e=>`<tr><td>${e.period}</td><td>${e.note}</td><td class="num" style="text-align:right">${e.value}</td><td class="num ${e.spx6.startsWith('−')||e.spx6.startsWith('-')?'neg':'pos'}" style="text-align:right">${e.spx6}</td><td class="num ${e.spx12.startsWith('−')||e.spx12.startsWith('-')?'neg':'pos'}" style="text-align:right">${e.spx12}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Release calendar</div>
+      <table class="modal-table"><tbody>
+        <tr><td>Frequency</td><td>${ind.release.freq}</td></tr>
+        <tr><td>Last release</td><td>${ind.release.last}</td></tr>
+        <tr><td>Next release</td><td>${ind.release.next}</td></tr>
+        <tr><td>Source</td><td>${ind.release.source}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="modal-footer">
+      <div class="row"><strong>Formula.</strong> ${ind.formula}</div>
+      <div class="row"><strong>Source.</strong> <a href="${ind.source_url}" target="_blank" style="color:var(--ink)">${ind.source}</a></div>
+      <div class="row" style="color:var(--ink-3);font-style:italic"><strong style="color:var(--ink);font-style:normal">Caveat.</strong> ${ind.caveat}</div>
+    </div>
+  `;
+  openModal(html, isStacked);
+}
+
+function openCycleScoreModal(){
+  const inds = Object.entries(INDICATORS);
+  const contribs = inds.map(([id, ind]) => ({ id, name: ind.name, value: ind.value, pct: ind.percentile, score: ind.score_0_100 }));
+  const avg = Math.round(contribs.reduce((a,c) => a + c.score, 0) / contribs.length);
+  const band = avg < 20 ? "deepest calm — late expansion" : avg < 40 ? "calm — late cycle" : avg < 60 ? "middle of the range" : avg < 80 ? "broad stress visible" : "full-blown macro stress";
+  const html = `
+    <div class="modal-eyebrow">Cycle composite · Layer 2</div>
+    <div class="modal-h">
+      <h3>How today's ${avg}/100 score is built<span class="source-fresh"><span class="fresh-dot"></span>FRESH · this Wed</span></h3>
+      <div class="right">
+        <div class="big-val">${avg}<span class="suffix">/ 100</span></div>
+        <div class="big-meta">${band.toUpperCase()}</div>
+      </div>
+    </div>
+    <p class="body-14">
+      The cycle composite is the <strong>simple average</strong> of seven stress-direction percentile ranks. Each indicator is ranked against its <strong>own full history</strong> (the longest series runs back to the 1960s — Initial Jobless Claims). Higher means more stress. For four of the seven, low readings actually mean stress, so we flip the rank before averaging. All seven point in the same direction inside the average.
+    </p>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Each indicator's contribution · click any row to drill in</div>
+      ${contribs.map(c => `
+        <div class="contrib-row" onclick="drillFromScore('${c.id}')">
+          <span class="nm">${c.name}</span>
+          <span class="contrib-bar-wrap"><span class="contrib-bar" style="width:${c.score}%"></span></span>
+          <span class="v">${c.value}</span>
+          <span class="pct">${c.score}</span>
+          <span class="arr">›</span>
+        </div>
+      `).join("")}
+      <div class="contrib-row" style="margin-top:14px;border-top:1px solid var(--border);border-bottom:0;cursor:default;background:transparent">
+        <span class="nm" style="font-weight:600">Simple average · today</span>
+        <span class="contrib-bar-wrap"><span class="contrib-bar" style="width:${avg}%"></span></span>
+        <span class="v"></span>
+        <span class="pct" style="font-weight:600">${avg}</span>
+        <span class="arr"></span>
+      </div>
+    </div>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">Where ${avg} sits on the 0–100 scale</div>
+      <table class="modal-table">
+        <tbody>
+          <tr style="${avg<20?'background:var(--accent-soft)':''}"><td>0 – 20 · deepest calm, late expansion</td><td class="num" style="text-align:right">${avg<20?'← TODAY':''}</td></tr>
+          <tr style="${avg>=20&&avg<40?'background:var(--accent-soft)':''}"><td>20 – 40 · calm, late cycle</td><td class="num" style="text-align:right">${avg>=20&&avg<40?'← TODAY':''}</td></tr>
+          <tr style="${avg>=40&&avg<60?'background:var(--accent-soft)':''}"><td>40 – 60 · middle</td><td class="num" style="text-align:right">${avg>=40&&avg<60?'← TODAY':''}</td></tr>
+          <tr style="${avg>=60&&avg<80?'background:var(--accent-soft)':''}"><td>60 – 80 · broad stress visible</td><td class="num" style="text-align:right">${avg>=60&&avg<80?'← TODAY':''}</td></tr>
+          <tr style="${avg>=80?'background:var(--accent-soft)':''}"><td>80 – 100 · full-blown macro stress</td><td class="num" style="text-align:right">${avg>=80?'← TODAY':''}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <div class="row"><strong>Why full history, not 5 years.</strong> Each cycle indicator is ranked against its <strong>entire available history</strong> — the longest series (Initial Jobless Claims) runs back to 1967. Vol triggers use a trailing 5-year window because their market regime drifts; macro indicators use the full sample because they have decades of cycle structure to anchor against.</div>
+      <div class="row"><strong>See also.</strong> Full methodology on the Methodology page · indicator-level detail via the rows above.</div>
+    </div>
+  `;
+  openModal(html);
+}
+
+function drillFromScore(id){
+  const parentHtml = document.getElementById("modal-body").innerHTML;
+  modalStack.push({ html: parentHtml });
+  openIndicatorModal(id, true);
+}
+
+function openRegimeHistoryModal(filterState){
+  const total = REGIME_HIST_FULL.length;
+  const filtered = filterState ? REGIME_HIST_FULL.map((r,i)=>({r,i})).filter(x=>x.r===filterState) : null;
+  const counts = REGIMES.map(r => ({ r, n: REGIME_HIST_FULL.filter(x=>x===r).length }));
+  const pct = (n) => Math.round((n/total)*100*10)/10;
+  const html = `
+    <div class="modal-eyebrow">Regime · backtested history</div>
+    <div class="modal-h">
+      <h3>Regime ${filterState?`= "${filterState}"`:""} · 1996 – today<span class="source-fresh"><span class="fresh-dot"></span>FRESH · today 16:30 ET</span></h3>
+      <div class="right">
+        <div class="big-val">${filterState ? filtered.length : total}<span class="suffix">weeks</span></div>
+        <div class="big-meta">${filterState ? "MATCHING" : "TOTAL"}</div>
+      </div>
+    </div>
+    <p class="body-14">
+      ${filterState
+        ? `Every week the regime was <strong>${filterState}</strong> across the full backtested period. Click any bar for that week's snapshot.`
+        : `Weekly regime state across the full backtested period. Color encodes regime (light = Risk On, dark = Risk Off). Click any bar for that week's snapshot.`}
+    </p>
+    <div class="modal-block">
+      <div class="modal-block-eyebrow">${filterState ? `Weeks where regime = "${filterState}"` : "Full regime history"} · hover for date · click any bar to drill in</div>
+      <div class="regime-fullhist">
+        ${REGIME_HIST_FULL.map((r,i) => {
+          const lvl = REGIMES.indexOf(r);
+          const dimmed = filterState && r !== filterState ? "opacity:0.18;" : "";
+          return `<span class="rh-bar r${lvl}" style="${dimmed}" data-tt="${FULL_WEEK_LABEL(i,total)} · ${r}" onclick="alert('Snapshot for ${FULL_WEEK_LABEL(i,total)} · ${r} — wired in build')"></span>`;
+        }).join("")}
+      </div>
+      <div class="regime-fullhist-axis">
+        <span>1996</span><span>2001</span><span>2006</span><span>2011</span><span>2016</span><span>2021</span><span>today</span>
+      </div>
+      <div class="regime-fullhist-summary">
+        ${counts.map(c => `<div class="cell"><div class="label">${c.r}</div><div class="val">${pct(c.n)}%</div><div class="sub">${c.n} weeks</div></div>`).join("")}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="row"><strong>Sample.</strong> Weekly snapshots from January 1996 to today (${total} weeks). Where pre-2002 Bond Volatility data is missing, the framework runs on the reduced 2-anchor stack and is flagged in the per-week snapshot.</div>
+      ${filterState ? `<div class="row"><strong>Tip.</strong> Click another regime label to filter by that state. Click anywhere off this modal to close.</div>` : ""}
+    </div>
+  `;
+  openModal(html);
+}
+</script>
+</body>
+</html>

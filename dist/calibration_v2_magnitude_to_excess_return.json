@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "source": "placeholder",
+  "description": "Magnitude bucket center \u2192 mean historical 21-day excess return vs SPY (in %).",
+  "rows": [
+    {
+      "magnitude_center": -100,
+      "mean_excess_pct": -5.5,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": -75,
+      "mean_excess_pct": -4.0,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": -50,
+      "mean_excess_pct": -2.5,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": -25,
+      "mean_excess_pct": -1.0,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": 0,
+      "mean_excess_pct": 0.0,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": 25,
+      "mean_excess_pct": 1.0,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": 50,
+      "mean_excess_pct": 2.5,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": 75,
+      "mean_excess_pct": 4.0,
+      "n_obs": 0
+    },
+    {
+      "magnitude_center": 100,
+      "mean_excess_pct": 5.5,
+      "n_obs": 0
+    }
+  ]
+}

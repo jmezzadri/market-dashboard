@@ -83,16 +83,12 @@ function macroPosition(regime, alloc, buckets) {
   if (worst && wv > 0) s += `; ${(DOMAIN_SHORT[worst.name] || worst.name).toLowerCase()} is the bucket showing the most stress right now`;
   return s + '.';
 }
-function tiltPosition(alloc) {
-  if (!alloc) return '';
+function tiltPosition(regime, alloc) {
+  if (!alloc || !regime) return '';
   const eq = Math.round((alloc.equity_pct || 0) * 100), def = Math.round((alloc.defensive_pct || 0) * 100);
-  const bands = alloc.mechanism_bands || {};
-  const order = { 'risk-off': 3, caution: 2, neutral: 1, 'risk-on': 0 };
-  let worst = null, wv = -1;
-  Object.entries(bands).forEach(([k, v]) => { const sv = order[v] ?? 0; if (sv > wv) { wv = sv; worst = k; } });
-  let s = `Engine stance: ${alloc.page_stance || '—'} — ${eq}% equity, ${def}% defensive`;
-  if (worst) s += `. The mechanism pulling hardest is ${MECH_LABEL[worst] || worst} (${bands[worst]})`;
-  return s + '. The moves below change which risk you own, not how much.';
+  const zone = regime.regimeLabel || regime.stressZone || '\u2014';
+  const sleeve = regime.sleeveMix ? 'firing' : 'on standby';
+  return `The engine reads ${zone} \u2014 ${eq}% equity, ${def}% defensive (defensive sleeve ${sleeve}). The moves below change which sectors you own, not how much risk you carry.`;
 }
 function scannerPosition(bandCounts, top) {
   if (!bandCounts) return '';
@@ -210,7 +206,7 @@ export default function HomePage() {
 
         <div className="he-sowhat">
           <div className="he-sowhat-lbl"><span>How to position</span></div>
-          <p>{tiltPosition(allocation)}</p>
+          <p>{tiltPosition(regime, allocation)}</p>
         </div>
       </section>
 

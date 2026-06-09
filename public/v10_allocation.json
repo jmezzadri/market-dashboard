@@ -4,7 +4,6 @@
   "engine": "v10.2 \u2014 asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
   "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
   "engine_as_of": "2026-06-05",
-  "page_stance": "Cautious",
   "mechanism_scores": {
     "valuation": 100,
     "credit": 68,
