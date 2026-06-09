@@ -1,0 +1,29 @@
+# MONITOR-RECONCILE — keeps the pipeline_health monitor truthful.
+#
+# Re-derives every feed's freshness from its ACTUAL data (the served JSON the
+# site renders + the source tables in Supabase), writes a real status back with
+# last_check_at=now, and marks anything it can't resolve as "unknown" — never
+# fake green. Runs every 6 hours, every day, so Admin·Data always reflects
+# reality and the hook never has to grey out a feed that is genuinely fresh.
+name: MONITOR-RECONCILE
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # every 6 hours, daily
+  workflow_dispatch: {}
+concurrency:
+  group: monitor-reconcile
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Reconcile pipeline_health against real data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/reconcile_pipeline_health.py --commit
