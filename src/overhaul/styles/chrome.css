@@ -413,6 +413,8 @@
   align-items: center; padding: 10px 0; border-top: 1px solid var(--mt-line-0);
   font-size: 13px;
 }
+.mt-overhaul .sn-acctgroup { margin-top: 18px; }
+.mt-overhaul .sn-acctgroup:first-of-type { margin-top: 10px; }
 .mt-overhaul .sn-sectorcode { font-family: var(--mt-font-mono); font-size: 11px; color: var(--mt-ink-2); font-weight: 600; }
 .mt-overhaul .sn-arrow      { text-align: center; color: var(--mt-ink-3); }
 .mt-overhaul .sn-proxy, .mt-overhaul .sn-stress { text-align: right; color: var(--mt-ink-3); }
