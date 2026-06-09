@@ -16,16 +16,28 @@
   color: var(--mt-ink-2); font-weight: 500; margin-bottom: 12px;
   display: flex; align-items: center; gap: 7px;
 }
-.mt-overhaul .he-cal { display: flex; gap: 9px; flex-wrap: wrap; }
-.mt-overhaul .he-ev {
-  flex: 1 1 130px; background: var(--mt-surface); border: .5px solid var(--mt-line-0);
-  border-radius: var(--mt-r-md, 10px); padding: 9px 11px;
+.mt-overhaul .he-weekhd { justify-content: space-between; }
+.mt-overhaul .he-calmonth { color: var(--mt-ink-2); font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 12px; }
+.mt-overhaul .he-calhdr,
+.mt-overhaul .he-calgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.mt-overhaul .he-calhdr { margin-bottom: 6px; }
+.mt-overhaul .he-calwd { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 500; padding: 0 2px; }
+.mt-overhaul .he-calcell {
+  min-height: 80px; background: var(--mt-surface); border: .5px solid var(--mt-line-0);
+  border-radius: var(--mt-r-md, 10px); padding: 7px 8px;
 }
-.mt-overhaul .he-ev.today { border-color: var(--mt-accent); background: var(--mt-accent-soft); }
-.mt-overhaul .he-ev-dt { font-size: 10.5px; font-weight: 500; color: var(--mt-ink-2); letter-spacing: .03em; }
-.mt-overhaul .he-ev.today .he-ev-dt { color: var(--mt-accent); }
-.mt-overhaul .he-ev-nm { font-size: 13px; font-weight: 500; margin: 3px 0 2px; line-height: 1.15; }
-.mt-overhaul .he-ev-detail { font-size: 11px; color: var(--mt-ink-2); line-height: 1.3; }
+.mt-overhaul .he-calcell.past { opacity: .45; }
+.mt-overhaul .he-calcell.today { border-color: var(--mt-accent); background: var(--mt-accent-soft); }
+.mt-overhaul .he-calday { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; min-height: 16px; }
+.mt-overhaul .he-caldaynum { font-size: 13px; font-weight: 500; color: var(--mt-ink-1); font-variant-numeric: tabular-nums; }
+.mt-overhaul .he-calcell.today .he-caldaynum { color: var(--mt-accent); }
+.mt-overhaul .he-caltoday { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--mt-accent); }
+.mt-overhaul .he-calev {
+  display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--mt-ink-0);
+  background: var(--mt-surface-2); border: .5px solid var(--mt-line-0); border-radius: var(--mt-r-sm, 6px);
+  padding: 3px 6px; margin-top: 4px; line-height: 1.15; cursor: default;
+}
+.mt-overhaul .he-caldot { width: 6px; height: 6px; border-radius: 50%; background: var(--mt-accent); flex: none; }
 
 /* ── Lane header ───────────────────────────────────────────────────────── */
 .mt-overhaul .he-lanehd {

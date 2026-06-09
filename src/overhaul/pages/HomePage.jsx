@@ -5,7 +5,7 @@ import useIndicators from '../lib/useIndicators';
 import useAllocation from '../lib/useAllocation';
 import useEngineRegime from '../lib/useEngineRegime';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import { getUpcoming, fmtEventDate } from '../lib/econCalendar';
+import { getWeekGrid, WEEKDAYS } from '../lib/econCalendar';
 import '../home-editorial.css';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -104,7 +104,7 @@ export default function HomePage() {
   const { rows: scanRows, bandCounts, scanDate } = useTradingOppsTop(20);
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const calendar = useMemo(() => getUpcoming(todayISO, 5), [todayISO]);
+  const weeks = useMemo(() => getWeekGrid(todayISO, 2), [todayISO]);
 
   const buckets = useMemo(() => {
     const map = {}; DOMAINS.forEach((d) => { map[d] = []; });
@@ -126,14 +126,23 @@ export default function HomePage() {
   return (
     <div className="mt-pagebody mt-fade">
       {/* ── Week-ahead calendar ── */}
-      <section className="he-week" aria-label="Economic calendar — week ahead">
-        <div className="he-weekhd"><span>What's coming · the releases the tape is trading around</span></div>
-        <div className="he-cal">
-          {calendar.map((e) => (
-            <div key={e.date + e.name} className={`he-ev${e.today ? ' today' : ''}`}>
-              <div className="he-ev-dt">{e.today ? 'TODAY · ' : ''}{fmtEventDate(e.date)} · {e.time}</div>
-              <div className="he-ev-nm">{e.name}</div>
-              <div className="he-ev-detail">{e.detail}</div>
+      <section className="he-week" aria-label="Economic data calendar \u2014 next two weeks">
+        <div className="he-weekhd"><span>What's coming \u00b7 the data calendar</span><span className="he-calmonth">{weeks[0][0].month} {todayISO.slice(0,4)}</span></div>
+        <div className="he-calhdr">
+          {WEEKDAYS.map((d) => <div key={d} className="he-calwd">{d}</div>)}
+        </div>
+        <div className="he-calgrid">
+          {weeks.flat().map((day) => (
+            <div key={day.iso} className={`he-calcell${day.isToday ? ' today' : ''}${day.isPast ? ' past' : ''}${day.events.length ? ' has' : ''}`}>
+              <div className="he-calday">
+                <span className="he-caldaynum">{day.firstOfMonth ? `${day.month} ${day.dayNum}` : day.dayNum}</span>
+                {day.isToday && <span className="he-caltoday">Today</span>}
+              </div>
+              {day.events.map((e) => (
+                <div key={e.name} className="he-calev" title={`${e.name} \u00b7 ${e.time} \u2014 ${e.detail}`}>
+                  <span className="he-caldot" />{e.short}
+                </div>
+              ))}
             </div>
           ))}
         </div>
