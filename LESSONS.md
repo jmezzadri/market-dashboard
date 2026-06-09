@@ -22,6 +22,14 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-09 — Scheduled notification emails must be once-per-day even when their workflow fires many times
+
+**What happened:** Joe received 7-8 paper-rebalance emails in one day instead of 2. The morning submit workflow deliberately fires every 30 minutes pre-open (insurance against GitHub's late cron delivery) and the post-open watchdog runs on two timers for daylight-saving coverage; order submission was rerun-safe but every fire re-sent its email.
+
+**What you should do instead:** Any email wired into a workflow that can fire more than once a day must go through `send_alert_email_once(email_type, ...)` in the paper emailer (ledger table `paper_email_log`, one send per email type per ET day, fail-open). Redundant timers are for reliability — they must never multiply notifications. Joe's inbox contract: exactly one morning queued/no-orders summary and one execution report per trading day.
+
+---
+
 ## 2026-06-03 — STALE LOCAL COPY: never edit/commit a repo file from the Cowork-mounted disk; fetch origin/main FIRST (HARD RULE #1)
 
 **What happened:** The Cowork-mounted `market-dashboard-live` folder is a FROZEN
