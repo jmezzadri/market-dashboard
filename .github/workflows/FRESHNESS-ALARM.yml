@@ -1,15 +1,17 @@
 # FRESHNESS-ALARM — the single loud check over actually-served data.
 #
-# Runs scripts/freshness_alarm.py once each morning. It reads the served JSON
-# files on macrotilt.com, computes a trading-day-aware age for each, and emails
-# Joe (via Resend) only when a file is stale beyond its budget — catching frozen
-# feeds even when the producing workflow reported success. Conservative by
-# design: it skips files it can't confidently timestamp and never alarms on a
-# normal weekend, so it does not spam.
+# Runs every morning. Reads the served JSON files on macrotilt.com, computes a
+# trading-day-aware age for each, and emails Joe (via Resend) only when a file is
+# stale beyond its budget — catching frozen feeds even when the producing
+# workflow reported success. It also writes a real, verified status back to the
+# pipeline_health monitor table for the core feeds it checks, so Admin·Data shows
+# those as genuinely green/red instead of fake-green. Runs daily (incl. weekends)
+# so the monitor's last-check stays current. Conservative by design: skips files
+# it cannot confidently timestamp and never alarms on a normal weekend.
 name: FRESHNESS-ALARM
 on:
   schedule:
-    - cron: "30 12 * * 1-5"   # 12:30 UTC = 08:30 ET, weekdays, after morning feeds land
+    - cron: "30 12 * * *"   # 12:30 UTC = 08:30 ET, every day, after morning feeds land
   workflow_dispatch: {}
 concurrency:
   group: freshness-alarm
@@ -23,7 +25,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Check served-data freshness and alert if stale
+      - name: Check served-data freshness, alert if stale, refresh monitor
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 scripts/freshness_alarm.py
