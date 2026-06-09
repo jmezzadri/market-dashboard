@@ -28,6 +28,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
 import ScoreDial from '../components/ScoreDial';
 import FreshnessChip from '../components/FreshnessChip';
@@ -280,6 +281,15 @@ export default function TickerPage() {
         : (scanRow?.chg ?? 0));
   const prevClose = eod?.prev_close ?? snap?.prev_close ?? null;
   const priceAsOf = eod?.trade_date || null;
+  // A prices_eod row dated later than the latest COMPLETED NYSE session is an
+  // in-progress (intraday) print from the same-day Yahoo fallback — it is NOT
+  // a close yet. Label it "intraday" until the 4 PM ET bell, then "close".
+  const _completedSession = latestTradingSessionDate();
+  const _completedIso = _completedSession
+    ? _completedSession.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+    : null;
+  const isIntraday = !!(priceAsOf && _completedIso && priceAsOf > _completedIso);
+  const asOfVerb = isIntraday ? 'intraday' : 'close';
   const exchange  = deep?.ref?.primary_exchange || info?.exchange || null;
   const marketcap = snap?.marketcap ?? scanRow?.marketCap ?? v5Row?.market_cap ?? null;
   const stockVol  = snap?.stock_volume ?? scanRow?.volume ?? null;
@@ -429,7 +439,7 @@ export default function TickerPage() {
               ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
             </div>
             <div className="tk-pricemeta num">
-              {priceAsOf ? <>close {fmtDateShort(priceAsOf)} · </> : null}
+              {priceAsOf ? <>{asOfVerb} {fmtDateShort(priceAsOf)} · </> : null}
               {prevClose != null
                 ? <>prev close ${fmt(prevClose, 2)}</>
                 : <>prev close —</>}
@@ -474,7 +484,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">· {customRange ? 'custom range' : `${tf} window`}{priceAsOf ? ` · close ${fmtDateShort(priceAsOf)}` : ''}</span>
+                ${fmt(price, 2)} <span className="tk-windowlabel">· {customRange ? 'custom range' : `${tf} window`}{priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}</span>
               </div>
             </div>
             <div className="mt-pillgroup">
@@ -565,7 +575,7 @@ export default function TickerPage() {
       <section className="mt-pagesection">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">
-            Key stats{priceAsOf ? ` · prior close ${fmtDateShort(priceAsOf)}` : ''}
+            Key stats{priceAsOf ? ` · ${isIntraday ? 'intraday' : 'prior close'} ${fmtDateShort(priceAsOf)}` : ''}
           </div>
           <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
         </div>
