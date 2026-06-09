@@ -226,6 +226,23 @@ export default function ScenariosPage() {
     return () => { cancel = true; };
   }, [positions]);
 
+  /* Per-name betas (Yahoo + prices_eod fallback) so equity shocks scale by
+     each holding's beta, not just its sector. */
+  const [betaMap, setBetaMap] = useState({});
+  useEffect(() => {
+    let cancel = false;
+    fetch('/ticker_betas.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (cancel || !j || !j.betas) return;
+        const m = {};
+        Object.entries(j.betas).forEach(([t, v]) => { if (v && v.beta != null) m[String(t).toUpperCase()] = Number(v.beta); });
+        setBetaMap(m);
+      })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetch('/scenario_definitions.json', { cache: 'no-cache' })
@@ -317,8 +334,9 @@ export default function ScenariosPage() {
       vixCurrentSigma,
       marketPct: spyPct,
       sectorMap,
+      betaMap,
     });
-  }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct, sectorMap]);
+  }, [isAuthed, activeShocks, book, horizonEngineKey, vixCurrentSigma, spyPct, sectorMap, betaMap]);
 
   /* Your portfolio's actual allocation mix (by economic asset class) for the
      strategy table row. Options fold into equity exposure; crypto sits outside
