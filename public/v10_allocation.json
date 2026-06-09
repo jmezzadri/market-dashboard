@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-08",
+  "as_of": "2026-06-09",
   "version": "v10.2",
   "engine": "v10.2 \u2014 asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
   "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
@@ -7,7 +7,7 @@
   "mechanism_scores": {
     "valuation": 100,
     "credit": 68,
-    "funding": 49,
+    "funding": 50,
     "growth": 47,
     "liquidity_policy": 62,
     "positioning_breadth": 72
@@ -15,7 +15,7 @@
   "mechanism_bands": {
     "valuation": "risk-off",
     "credit": "caution",
-    "funding": "neutral",
+    "funding": "caution",
     "growth": "neutral",
     "liquidity_policy": "caution",
     "positioning_breadth": "caution"
@@ -29,7 +29,7 @@
   "sectors": [
     {
       "sector": "Information Technology",
-      "tilt_score": -0.862,
+      "tilt_score": -0.868,
       "rating": "UW",
       "spy_weight": 0.27,
       "raw_weight": 0.2025,
@@ -41,7 +41,7 @@
       "contributions": {
         "valuation": -0.8,
         "credit": -0.036,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.24,
         "positioning_breadth": -0.308
@@ -52,7 +52,7 @@
     },
     {
       "sector": "Communication Services",
-      "tilt_score": -0.72,
+      "tilt_score": -0.724,
       "rating": "UW",
       "spy_weight": 0.09,
       "raw_weight": 0.0675,
@@ -64,7 +64,7 @@
       "contributions": {
         "valuation": -0.6,
         "credit": -0.036,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": 0.012,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.22
@@ -75,7 +75,7 @@
     },
     {
       "sector": "Financials",
-      "tilt_score": 0.168,
+      "tilt_score": 0.14,
       "rating": "MW",
       "spy_weight": 0.13,
       "raw_weight": 0.13,
@@ -87,7 +87,7 @@
       "contributions": {
         "valuation": 0.7,
         "credit": -0.54,
-        "funding": 0.028,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -98,7 +98,7 @@
     },
     {
       "sector": "Health Care",
-      "tilt_score": 0.646,
+      "tilt_score": 0.642,
       "rating": "OW",
       "spy_weight": 0.13,
       "raw_weight": 0.156,
@@ -110,7 +110,7 @@
       "contributions": {
         "valuation": 0.6,
         "credit": -0.072,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": -0.018,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.132
@@ -121,7 +121,7 @@
     },
     {
       "sector": "Consumer Discretionary",
-      "tilt_score": -0.88,
+      "tilt_score": -0.888,
       "rating": "UW",
       "spy_weight": 0.11,
       "raw_weight": 0.0825,
@@ -133,7 +133,7 @@
       "contributions": {
         "valuation": -0.5,
         "credit": -0.216,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.06,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.352
@@ -144,7 +144,7 @@
     },
     {
       "sector": "Industrials",
-      "tilt_score": -0.058,
+      "tilt_score": -0.068,
       "rating": "MW",
       "spy_weight": 0.09,
       "raw_weight": 0.09,
@@ -156,7 +156,7 @@
       "contributions": {
         "valuation": 0.3,
         "credit": -0.396,
-        "funding": 0.01,
+        "funding": -0.0,
         "growth": 0.084,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -167,7 +167,7 @@
     },
     {
       "sector": "Consumer Staples",
-      "tilt_score": 0.836,
+      "tilt_score": 0.834,
       "rating": "OW",
       "spy_weight": 0.06,
       "raw_weight": 0.072,
@@ -179,7 +179,7 @@
       "contributions": {
         "valuation": 0.7,
         "credit": 0.0,
-        "funding": 0.002,
+        "funding": -0.0,
         "growth": -0.042,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -190,7 +190,7 @@
     },
     {
       "sector": "Energy",
-      "tilt_score": 0.066,
+      "tilt_score": 0.06,
       "rating": "MW",
       "spy_weight": 0.04,
       "raw_weight": 0.04,
@@ -202,7 +202,7 @@
       "contributions": {
         "valuation": 0.5,
         "credit": -0.468,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.072,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.044
@@ -213,7 +213,7 @@
     },
     {
       "sector": "Materials",
-      "tilt_score": -0.074,
+      "tilt_score": -0.082,
       "rating": "MW",
       "spy_weight": 0.02,
       "raw_weight": 0.02,
@@ -225,7 +225,7 @@
       "contributions": {
         "valuation": 0.3,
         "credit": -0.36,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.066,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.088
@@ -236,7 +236,7 @@
     },
     {
       "sector": "Real Estate",
-      "tilt_score": -1.002,
+      "tilt_score": -1.022,
       "rating": "UW",
       "spy_weight": 0.03,
       "raw_weight": 0.0225,
@@ -248,7 +248,7 @@
       "contributions": {
         "valuation": -0.3,
         "credit": -0.324,
-        "funding": 0.02,
+        "funding": -0.0,
         "growth": 0.006,
         "liquidity_policy": -0.36,
         "positioning_breadth": -0.044
@@ -271,7 +271,7 @@
       "contributions": {
         "valuation": 0.5,
         "credit": 0.036,
-        "funding": -0.0,
+        "funding": 0.0,
         "growth": -0.048,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -291,12 +291,12 @@
         "SMH",
         "PSI"
       ],
-      "tilt_score": -0.97,
+      "tilt_score": -0.976,
       "rating": "UW",
       "contributions": {
         "valuation": -0.8,
         "credit": -0.036,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.06,
         "liquidity_policy": 0.24,
         "positioning_breadth": -0.44
@@ -314,12 +314,12 @@
         "XSW",
         "CLOU"
       ],
-      "tilt_score": -1.014,
+      "tilt_score": -1.02,
       "rating": "UW",
       "contributions": {
         "valuation": -1.0,
         "credit": -0.036,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.288,
         "positioning_breadth": -0.308
@@ -336,12 +336,12 @@
         "IYW",
         "XLK"
       ],
-      "tilt_score": -0.862,
+      "tilt_score": -0.868,
       "rating": "UW",
       "contributions": {
         "valuation": -0.8,
         "credit": -0.036,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.24,
         "positioning_breadth": -0.308
@@ -358,12 +358,12 @@
         "XLC",
         "PNQI"
       ],
-      "tilt_score": -0.948,
+      "tilt_score": -0.952,
       "rating": "UW",
       "contributions": {
         "valuation": -0.9,
         "credit": -0.036,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": 0.012,
         "liquidity_policy": 0.192,
         "positioning_breadth": -0.22
@@ -380,12 +380,12 @@
         "IYZ",
         "FCOM"
       ],
-      "tilt_score": -0.432,
+      "tilt_score": -0.436,
       "rating": "UW",
       "contributions": {
         "valuation": -0.4,
         "credit": -0.036,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": 0.012,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.132
@@ -403,12 +403,12 @@
         "KRE",
         "IAT"
       ],
-      "tilt_score": 0.068,
+      "tilt_score": 0.032,
       "rating": "MW",
       "contributions": {
         "valuation": 0.7,
         "credit": -0.648,
-        "funding": 0.036,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -425,12 +425,12 @@
         "KIE",
         "IAK"
       ],
-      "tilt_score": 0.158,
+      "tilt_score": 0.14,
       "rating": "MW",
       "contributions": {
         "valuation": 0.7,
         "credit": -0.54,
-        "funding": 0.018,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -447,12 +447,12 @@
         "IAI",
         "KCE"
       ],
-      "tilt_score": -0.032,
+      "tilt_score": -0.06,
       "rating": "MW",
       "contributions": {
         "valuation": 0.5,
         "credit": -0.54,
-        "funding": 0.028,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -469,12 +469,12 @@
         "XLI",
         "VIS"
       ],
-      "tilt_score": -0.046,
+      "tilt_score": -0.056,
       "rating": "MW",
       "contributions": {
         "valuation": 0.3,
         "credit": -0.396,
-        "funding": 0.01,
+        "funding": -0.0,
         "growth": 0.096,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -491,12 +491,12 @@
         "IYT",
         "XTN"
       ],
-      "tilt_score": -0.04,
+      "tilt_score": -0.05,
       "rating": "MW",
       "contributions": {
         "valuation": 0.3,
         "credit": -0.396,
-        "funding": 0.01,
+        "funding": -0.0,
         "growth": 0.102,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -514,12 +514,12 @@
         "XAR",
         "PPA"
       ],
-      "tilt_score": 0.05,
+      "tilt_score": 0.04,
       "rating": "MW",
       "contributions": {
         "valuation": 0.3,
         "credit": -0.396,
-        "funding": 0.01,
+        "funding": -0.0,
         "growth": 0.06,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.044
@@ -537,12 +537,12 @@
         "IHE",
         "XPH"
       ],
-      "tilt_score": 0.934,
+      "tilt_score": 0.93,
       "rating": "OW",
       "contributions": {
         "valuation": 0.8,
         "credit": -0.072,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": -0.018,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.22
@@ -559,12 +559,12 @@
         "IHI",
         "XHE"
       ],
-      "tilt_score": 0.634,
+      "tilt_score": 0.63,
       "rating": "OW",
       "contributions": {
         "valuation": 0.6,
         "credit": -0.072,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": -0.03,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.132
@@ -582,12 +582,12 @@
         "XBI",
         "BBH"
       ],
-      "tilt_score": 0.114,
+      "tilt_score": 0.11,
       "rating": "MW",
       "contributions": {
         "valuation": 0.2,
         "credit": -0.072,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": -0.018,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.0
@@ -604,12 +604,12 @@
         "PBJ",
         "XLP"
       ],
-      "tilt_score": 0.836,
+      "tilt_score": 0.834,
       "rating": "OW",
       "contributions": {
         "valuation": 0.7,
         "credit": 0.0,
-        "funding": 0.002,
+        "funding": -0.0,
         "growth": -0.042,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -626,12 +626,12 @@
         "XLP",
         "VDC"
       ],
-      "tilt_score": 0.836,
+      "tilt_score": 0.834,
       "rating": "OW",
       "contributions": {
         "valuation": 0.7,
         "credit": 0.0,
-        "funding": 0.002,
+        "funding": -0.0,
         "growth": -0.042,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -648,12 +648,12 @@
         "XRT",
         "RTH"
       ],
-      "tilt_score": -0.868,
+      "tilt_score": -0.876,
       "rating": "UW",
       "contributions": {
         "valuation": -0.5,
         "credit": -0.216,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.072,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.352
@@ -670,12 +670,12 @@
         "CARZ",
         "DRIV"
       ],
-      "tilt_score": -0.97,
+      "tilt_score": -0.978,
       "rating": "UW",
       "contributions": {
         "valuation": -0.5,
         "credit": -0.324,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.078,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.352
@@ -693,12 +693,12 @@
         "IEO",
         "XLE"
       ],
-      "tilt_score": 0.066,
+      "tilt_score": 0.06,
       "rating": "MW",
       "contributions": {
         "valuation": 0.5,
         "credit": -0.468,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.072,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.044
@@ -716,12 +716,12 @@
         "IEZ",
         "XES"
       ],
-      "tilt_score": 0.09,
+      "tilt_score": 0.084,
       "rating": "MW",
       "contributions": {
         "valuation": 0.5,
         "credit": -0.468,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.096,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.044
@@ -739,12 +739,12 @@
         "GDX",
         "SLX"
       ],
-      "tilt_score": -0.056,
+      "tilt_score": -0.064,
       "rating": "MW",
       "contributions": {
         "valuation": 0.3,
         "credit": -0.36,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.084,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.088
@@ -761,12 +761,12 @@
         "PYZ",
         "XLB"
       ],
-      "tilt_score": -0.062,
+      "tilt_score": -0.07,
       "rating": "MW",
       "contributions": {
         "valuation": 0.3,
         "credit": -0.36,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.078,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.088
@@ -784,12 +784,12 @@
         "XLRE",
         "MORT"
       ],
-      "tilt_score": -1.002,
+      "tilt_score": -1.022,
       "rating": "UW",
       "contributions": {
         "valuation": -0.3,
         "credit": -0.324,
-        "funding": 0.02,
+        "funding": -0.0,
         "growth": 0.006,
         "liquidity_policy": -0.36,
         "positioning_breadth": -0.044
@@ -812,7 +812,7 @@
       "contributions": {
         "valuation": 0.5,
         "credit": 0.036,
-        "funding": -0.0,
+        "funding": 0.0,
         "growth": -0.048,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -827,7 +827,7 @@
       "Information Technology": {
         "valuation": -0.8,
         "credit": -0.036,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.24,
         "positioning_breadth": -0.308
@@ -835,7 +835,7 @@
       "Communication Services": {
         "valuation": -0.6,
         "credit": -0.036,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": 0.012,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.22
@@ -843,7 +843,7 @@
       "Financials": {
         "valuation": 0.7,
         "credit": -0.54,
-        "funding": 0.028,
+        "funding": -0.0,
         "growth": 0.036,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -851,7 +851,7 @@
       "Health Care": {
         "valuation": 0.6,
         "credit": -0.072,
-        "funding": 0.004,
+        "funding": -0.0,
         "growth": -0.018,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.132
@@ -859,7 +859,7 @@
       "Consumer Discretionary": {
         "valuation": -0.5,
         "credit": -0.216,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.06,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.352
@@ -867,7 +867,7 @@
       "Industrials": {
         "valuation": 0.3,
         "credit": -0.396,
-        "funding": 0.01,
+        "funding": -0.0,
         "growth": 0.084,
         "liquidity_policy": 0.12,
         "positioning_breadth": -0.176
@@ -875,7 +875,7 @@
       "Consumer Staples": {
         "valuation": 0.7,
         "credit": 0.0,
-        "funding": 0.002,
+        "funding": -0.0,
         "growth": -0.042,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -883,7 +883,7 @@
       "Energy": {
         "valuation": 0.5,
         "credit": -0.468,
-        "funding": 0.006,
+        "funding": -0.0,
         "growth": 0.072,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.044
@@ -891,7 +891,7 @@
       "Materials": {
         "valuation": 0.3,
         "credit": -0.36,
-        "funding": 0.008,
+        "funding": -0.0,
         "growth": 0.066,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.088
@@ -899,7 +899,7 @@
       "Real Estate": {
         "valuation": -0.3,
         "credit": -0.324,
-        "funding": 0.02,
+        "funding": -0.0,
         "growth": 0.006,
         "liquidity_policy": -0.36,
         "positioning_breadth": -0.044
@@ -907,7 +907,7 @@
       "Utilities": {
         "valuation": 0.5,
         "credit": 0.036,
-        "funding": -0.0,
+        "funding": 0.0,
         "growth": -0.048,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.176
@@ -920,7 +920,7 @@
         "contributions": {
           "valuation": -0.8,
           "credit": -0.036,
-          "funding": 0.006,
+          "funding": -0.0,
           "growth": 0.06,
           "liquidity_policy": 0.24,
           "positioning_breadth": -0.44
@@ -932,7 +932,7 @@
         "contributions": {
           "valuation": -1.0,
           "credit": -0.036,
-          "funding": 0.006,
+          "funding": -0.0,
           "growth": 0.036,
           "liquidity_policy": 0.288,
           "positioning_breadth": -0.308
@@ -944,7 +944,7 @@
         "contributions": {
           "valuation": -0.8,
           "credit": -0.036,
-          "funding": 0.006,
+          "funding": -0.0,
           "growth": 0.036,
           "liquidity_policy": 0.24,
           "positioning_breadth": -0.308
@@ -956,7 +956,7 @@
         "contributions": {
           "valuation": -0.9,
           "credit": -0.036,
-          "funding": 0.004,
+          "funding": -0.0,
           "growth": 0.012,
           "liquidity_policy": 0.192,
           "positioning_breadth": -0.22
@@ -968,7 +968,7 @@
         "contributions": {
           "valuation": -0.4,
           "credit": -0.036,
-          "funding": 0.004,
+          "funding": -0.0,
           "growth": 0.012,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.132
@@ -980,7 +980,7 @@
         "contributions": {
           "valuation": 0.7,
           "credit": -0.648,
-          "funding": 0.036,
+          "funding": -0.0,
           "growth": 0.036,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.176
@@ -992,7 +992,7 @@
         "contributions": {
           "valuation": 0.7,
           "credit": -0.54,
-          "funding": 0.018,
+          "funding": -0.0,
           "growth": 0.036,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.176
@@ -1004,7 +1004,7 @@
         "contributions": {
           "valuation": 0.5,
           "credit": -0.54,
-          "funding": 0.028,
+          "funding": -0.0,
           "growth": 0.036,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.176
@@ -1016,7 +1016,7 @@
         "contributions": {
           "valuation": 0.3,
           "credit": -0.396,
-          "funding": 0.01,
+          "funding": -0.0,
           "growth": 0.096,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.176
@@ -1028,7 +1028,7 @@
         "contributions": {
           "valuation": 0.3,
           "credit": -0.396,
-          "funding": 0.01,
+          "funding": -0.0,
           "growth": 0.102,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.176
@@ -1040,7 +1040,7 @@
         "contributions": {
           "valuation": 0.3,
           "credit": -0.396,
-          "funding": 0.01,
+          "funding": -0.0,
           "growth": 0.06,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.044
@@ -1052,7 +1052,7 @@
         "contributions": {
           "valuation": 0.8,
           "credit": -0.072,
-          "funding": 0.004,
+          "funding": -0.0,
           "growth": -0.018,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.22
@@ -1064,7 +1064,7 @@
         "contributions": {
           "valuation": 0.6,
           "credit": -0.072,
-          "funding": 0.004,
+          "funding": -0.0,
           "growth": -0.03,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.132
@@ -1076,7 +1076,7 @@
         "contributions": {
           "valuation": 0.2,
           "credit": -0.072,
-          "funding": 0.004,
+          "funding": -0.0,
           "growth": -0.018,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.0
@@ -1088,7 +1088,7 @@
         "contributions": {
           "valuation": 0.7,
           "credit": 0.0,
-          "funding": 0.002,
+          "funding": -0.0,
           "growth": -0.042,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.176
@@ -1100,7 +1100,7 @@
         "contributions": {
           "valuation": 0.7,
           "credit": 0.0,
-          "funding": 0.002,
+          "funding": -0.0,
           "growth": -0.042,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.176
@@ -1112,7 +1112,7 @@
         "contributions": {
           "valuation": -0.5,
           "credit": -0.216,
-          "funding": 0.008,
+          "funding": -0.0,
           "growth": 0.072,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.352
@@ -1124,7 +1124,7 @@
         "contributions": {
           "valuation": -0.5,
           "credit": -0.324,
-          "funding": 0.008,
+          "funding": -0.0,
           "growth": 0.078,
           "liquidity_policy": 0.12,
           "positioning_breadth": -0.352
@@ -1136,7 +1136,7 @@
         "contributions": {
           "valuation": 0.5,
           "credit": -0.468,
-          "funding": 0.006,
+          "funding": -0.0,
           "growth": 0.072,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.044
@@ -1148,7 +1148,7 @@
         "contributions": {
           "valuation": 0.5,
           "credit": -0.468,
-          "funding": 0.006,
+          "funding": -0.0,
           "growth": 0.096,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.044
@@ -1160,7 +1160,7 @@
         "contributions": {
           "valuation": 0.3,
           "credit": -0.36,
-          "funding": 0.008,
+          "funding": -0.0,
           "growth": 0.084,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.088
@@ -1172,7 +1172,7 @@
         "contributions": {
           "valuation": 0.3,
           "credit": -0.36,
-          "funding": 0.008,
+          "funding": -0.0,
           "growth": 0.078,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.088
@@ -1184,7 +1184,7 @@
         "contributions": {
           "valuation": -0.3,
           "credit": -0.324,
-          "funding": 0.02,
+          "funding": -0.0,
           "growth": 0.006,
           "liquidity_policy": -0.36,
           "positioning_breadth": -0.044
@@ -1196,7 +1196,7 @@
         "contributions": {
           "valuation": 0.5,
           "credit": 0.036,
-          "funding": -0.0,
+          "funding": 0.0,
           "growth": -0.048,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.176
