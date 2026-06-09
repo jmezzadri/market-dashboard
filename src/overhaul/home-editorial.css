@@ -33,11 +33,24 @@
 .mt-overhaul .he-calcell.today .he-caldaynum { color: var(--mt-accent); }
 .mt-overhaul .he-caltoday { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--mt-accent); }
 .mt-overhaul .he-calev {
-  display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--mt-ink-0);
+  position: relative; display: flex; flex-direction: column; gap: 2px; font-size: 11px; font-weight: 500; color: var(--mt-ink-0);
   background: var(--mt-surface-2); border: .5px solid var(--mt-line-0); border-radius: var(--mt-r-sm, 6px);
-  padding: 3px 6px; margin-top: 4px; line-height: 1.15; cursor: default;
+  padding: 4px 7px; margin-top: 4px; line-height: 1.2; cursor: default;
 }
+.mt-overhaul .he-calev-top { display: flex; align-items: center; gap: 5px; }
+.mt-overhaul .he-calev-sub { font-size: 9.5px; font-weight: 400; color: var(--mt-ink-2); padding-left: 11px; }
 .mt-overhaul .he-caldot { width: 6px; height: 6px; border-radius: 50%; background: var(--mt-accent); flex: none; }
+.mt-overhaul .he-caltip {
+  position: absolute; top: calc(100% + 6px); left: 0; width: 212px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--mt-surface); border: .5px solid var(--mt-line-1); border-radius: var(--mt-r-md, 10px); padding: 10px 12px;
+  box-shadow: 0 6px 22px rgba(20,23,28,.16); z-index: 60; opacity: 0; visibility: hidden;
+  transition: opacity 60ms var(--mt-ease, ease); pointer-events: none; text-align: left;
+}
+.mt-overhaul .he-calev:hover .he-caltip { opacity: 1; visibility: visible; }
+.mt-overhaul .he-caltip-nm { font-size: 12.5px; font-weight: 500; color: var(--mt-ink-0); }
+.mt-overhaul .he-caltip-time { font-size: 10.5px; font-weight: 500; color: var(--mt-accent); }
+.mt-overhaul .he-caltip-row { font-size: 11px; color: var(--mt-ink-1); font-variant-numeric: tabular-nums; }
+.mt-overhaul .he-caltip-detail { font-size: 11px; color: var(--mt-ink-2); line-height: 1.35; margin-top: 2px; }
 
 /* ── Lane header ───────────────────────────────────────────────────────── */
 .mt-overhaul .he-lanehd {
