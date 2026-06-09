@@ -126,8 +126,8 @@ export default function HomePage() {
   return (
     <div className="mt-pagebody mt-fade">
       {/* ── Week-ahead calendar ── */}
-      <section className="he-week" aria-label="Economic data calendar \u2014 next two weeks">
-        <div className="he-weekhd"><span>What's coming \u00b7 the data calendar</span><span className="he-calmonth">{weeks[0][0].month} {todayISO.slice(0,4)}</span></div>
+      <section className="he-week" aria-label="Economic data calendar — next two weeks">
+        <div className="he-weekhd"><span>What's coming · the data calendar</span><span className="he-calmonth">{weeks[0][0].month} {todayISO.slice(0,4)}</span></div>
         <div className="he-calhdr">
           {WEEKDAYS.map((d) => <div key={d} className="he-calwd">{d}</div>)}
         </div>
