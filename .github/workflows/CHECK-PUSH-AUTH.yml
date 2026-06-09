@@ -1,0 +1,25 @@
+# CHECK-PUSH-AUTH — guardrail that stops the recurring "frozen data" bug.
+#
+# Any workflow that pushes to the protected main branch MUST use the admin
+# token (MACROTILT_BOT_PAT) or its commit is rejected (GH006) and its data
+# silently freezes. This check fails the build if any workflow runs `git push`
+# without that token — so the bug can never reach main again.
+name: CHECK-PUSH-AUTH
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "scripts/check_push_auth.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+  workflow_dispatch: {}
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify every git-push workflow uses the admin token
+        run: python3 scripts/check_push_auth.py
