@@ -1,8 +1,9 @@
 name: PAPER-PORTFOLIO-ALERT-TEST
 
-# One-off: prove the paper-pipeline alert email actually reaches Joe's inbox.
-# Manual dispatch only. Sends a single test email via the same path the
-# watchdog/freshness gate use. Delete after confirming receipt.
+# Manual-dispatch test of the paper-pipeline email channel AND the
+# once-per-day dedupe guard (added 2026-06-09 after Joe received 7
+# rebalance emails in one day). Sends exactly ONE test email, then
+# proves a second send of the same type is suppressed.
 
 on:
   workflow_dispatch:
@@ -16,11 +17,29 @@ jobs:
       - uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
-      - name: Send test alert email
+      - name: Install dependencies
+        run: pip install requests
+      - name: Send test alert email twice — second must be suppressed
         env:
-          SMTP_USER:     ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
-          EMAIL_FROM:    ${{ secrets.EMAIL_FROM }}
+          SMTP_USER:             ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:         ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:              ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:            ${{ secrets.EMAIL_FROM }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          python -c "from paper_portfolio.emailer import send_alert_email; import sys; ok = send_alert_email('[MacroTilt paper TEST] alert channel check', 'This is a one-off test confirming the paper-rebalance alert email reaches your inbox. If you are reading this, failure alerts and the daily watchdog can now reach you here. — automated check'); print('SENT_OK' if ok else 'SEND_FAILED'); sys.exit(0 if ok else 1)"
+          python - <<'EOF'
+          import sys, datetime
+          from zoneinfo import ZoneInfo
+          from paper_portfolio.emailer import send_alert_email_once, _sb_query
+
+          # Unique type per dispatch so the test is repeatable across days.
+          t = "dedupe_test_" + datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%H%M%S")
+          first = send_alert_email_once(t, "[MacroTilt paper TEST] dedupe guard check",
+              "Testing the once-per-day email guard. You should receive exactly ONE copy of this.")
+          second = send_alert_email_once(t, "[MacroTilt paper TEST] dedupe guard check",
+              "DUPLICATE — if you are reading this the dedupe guard FAILED.")
+          print(f"first_sent={first} second_sent={second}")
+          if not (first and not second):
+              print("DEDUPE TEST FAILED"); sys.exit(1)
+          print("DEDUPE TEST PASSED — exactly one email sent")
+          EOF
