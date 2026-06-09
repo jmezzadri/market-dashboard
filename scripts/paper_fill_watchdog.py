@@ -110,9 +110,11 @@ def main() -> int:
 
     # Email helper (best-effort) — used for BOTH the failure and the success path
     def _email(subject: str, body: str):
+        # Once per ET day ("execution_report") — the watchdog runs on two
+        # timers (DST coverage), which double-sent the confirmation email.
         try:
-            from paper_portfolio.emailer import send_alert_email
-            send_alert_email(subject, body)
+            from paper_portfolio.emailer import send_alert_email_once
+            send_alert_email_once("execution_report", subject, body)
         except Exception as exc:  # noqa: BLE001
             logger.warning("watchdog email failed: %s", exc)
 

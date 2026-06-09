@@ -144,7 +144,7 @@ def run_eod_phase(
     # red flag. Best-effort; never crash the run.
     if not dry_run:
         try:
-            from paper_portfolio.emailer import send_alert_email
+            from paper_portfolio.emailer import send_alert_email_once
             buys = [i for i in t_result.intents if i.side == "buy"]
             sells = [i for i in t_result.intents if i.side == "sell"]
             def _notional(i):
@@ -175,7 +175,11 @@ def run_eod_phase(
             lines += ["", "These execute at the 9:30am ET opening auction. "
                           "A separate confirmation follows after the open."]
             status = "queued" if s_result.submitted else "NO ORDERS submitted"
-            send_alert_email(
+            # Once per ET day: the workflow fires redundantly on purpose
+            # (cron-lateness insurance) and reruns are no-op duplicates of
+            # the same decision, so only the first run of the day emails.
+            send_alert_email_once(
+                "morning_summary",
                 f"[MacroTilt paper] Morning rebalance {status} — "
                 f"{s_result.submitted} orders for the open",
                 "\n".join(lines),
