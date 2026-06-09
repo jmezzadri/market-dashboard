@@ -1,0 +1,29 @@
+# FRESHNESS-ALARM — the single loud check over actually-served data.
+#
+# Runs scripts/freshness_alarm.py once each morning. It reads the served JSON
+# files on macrotilt.com, computes a trading-day-aware age for each, and emails
+# Joe (via Resend) only when a file is stale beyond its budget — catching frozen
+# feeds even when the producing workflow reported success. Conservative by
+# design: it skips files it can't confidently timestamp and never alarms on a
+# normal weekend, so it does not spam.
+name: FRESHNESS-ALARM
+on:
+  schedule:
+    - cron: "30 12 * * 1-5"   # 12:30 UTC = 08:30 ET, weekdays, after morning feeds land
+  workflow_dispatch: {}
+concurrency:
+  group: freshness-alarm
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check served-data freshness and alert if stale
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python3 scripts/freshness_alarm.py
