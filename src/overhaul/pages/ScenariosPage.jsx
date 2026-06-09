@@ -353,6 +353,37 @@ export default function ScenariosPage() {
     };
   }, [isAuthed, book]);
 
+  /* Per-account breakout of the scenario impact (Joe has multiple accounts;
+     show each as its own row + grouped position list). */
+  const accountGroups = useMemo(() => {
+    if (!portImpact?.positions?.length) return [];
+    const m = new Map();
+    portImpact.positions.forEach((pp) => {
+      const a = pp.account || 'Portfolio';
+      if (!m.has(a)) m.set(a, { label: a, positions: [], totalPnl: 0, totalValue: 0, byClass: {} });
+      const g = m.get(a);
+      g.positions.push(pp);
+      g.totalPnl += Number.isFinite(pp.pnl) ? pp.pnl : 0;
+      g.totalValue += pp.value || 0;
+      const cls = pp.assetClass || 'Equity';
+      g.byClass[cls] = (g.byClass[cls] || 0) + (pp.value || 0);
+    });
+    return [...m.values()].map((g) => {
+      const t = g.totalValue || 1;
+      const pc = (x) => Math.round(((x || 0) / t) * 100);
+      return {
+        ...g,
+        pct: g.totalValue ? (g.totalPnl / g.totalValue) * 100 : null,
+        alloc: {
+          equity: pc((g.byClass.Equity || 0) + (g.byClass.Option || 0) + (g.byClass.Options || 0)),
+          cash: pc(g.byClass.Cash || 0),
+          gold: pc(g.byClass.Commodity || 0),
+          tlt: pc(g.byClass['Fixed Income'] || 0),
+        },
+      };
+    });
+  }, [portImpact]);
+
   const strategies = useMemo(() => {
     let spyDD = null;
     let engineDD = null;
@@ -392,6 +423,16 @@ export default function ScenariosPage() {
     }
     const pct = (v) => (v == null ? '—' : v < 1 ? '0%' : `${Math.round(v)}%`);
 
+    const youRows = !isAuthed
+      ? [{ name: 'Your portfolio', equity: '—', cash: '—', gold: '—', tlt: '—', ret: null, dd: null, you: true, mt: false, note: 'Sign in to see portfolio impact.' }]
+      : (accountGroups.length
+        ? accountGroups.map((g) => ({
+            name: `Your portfolio \u00b7 ${g.label}`,
+            equity: `${g.alloc.equity}%`, cash: `${g.alloc.cash}%`, gold: `${g.alloc.gold}%`, tlt: `${g.alloc.tlt}%`,
+            ret: g.pct, dd: null, you: true, mt: false,
+          }))
+        : [{ name: 'Your portfolio', equity: '—', cash: '—', gold: '—', tlt: '—', ret: null, dd: null, you: true, mt: false, note: 'Add holdings to see portfolio impact.' }]);
+
     return [
       {
         name: 'S&P 500',
@@ -405,18 +446,7 @@ export default function ScenariosPage() {
         ret: apply(cashDD), dd: cashDD,
         you: false, mt: false,
       },
-      {
-        name: 'Your portfolio',
-        equity: portAlloc ? `${portAlloc.equity}%` : '—',
-        cash:   portAlloc ? `${portAlloc.cash}%`   : '—',
-        gold:   portAlloc ? `${portAlloc.gold}%`   : '—',
-        tlt:    portAlloc ? `${portAlloc.tlt}%`    : '—',
-        ret: portImpact ? portImpact.pct : null,
-        dd: null, // no intra-scenario path modeled for the live book; avoid a fake 'positive drawdown'
-        you: true, mt: false,
-        note: !isAuthed ? 'Sign in to see portfolio impact.'
-          : (portImpact ? null : 'Add holdings to see portfolio impact.'),
-      },
+      ...youRows,
       {
         name: 'MacroTilt Asset Tilt',
         equity: pct(eqPct), cash: pct(cashPct), gold: pct(gldPct), tlt: pct(tltPct),
@@ -424,7 +454,7 @@ export default function ScenariosPage() {
         you: false, mt: true,
       },
     ];
-  }, [scen, drawdown, customRet, horizonMul, isAuthed, portImpact, portAlloc]);
+  }, [scen, drawdown, customRet, horizonMul, isAuthed, portImpact, portAlloc, accountGroups]);
 
   /* Real per-sector stress matrix. Top 8 worst-performing sectors under the
      active shock. activeId === 'custom' uses customShocks; otherwise uses
@@ -773,40 +803,45 @@ export default function ScenariosPage() {
                     {' '}({fmtPctSigned(portImpact.pct, 1)})
                   </b>
                 </div>
-                <div className="sn-strategytable">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th className="sn-thLeft">Position</th>
-                        <th className="sn-thNum">Current</th>
-                        <th className="sn-thNum">Stressed</th>
-                        <th className="sn-thNum">Loss %</th>
-                        <th className="sn-thNum">Loss $</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {portImpact.positions.slice(0, 12).map((pp) => (
-                        <tr key={pp.key}>
-                          <td className="sn-tdLeft">
-                            <b>{pp.ticker}</b>
-                            {pp.kind === 'option' && <span className="sn-row-note">{pp.label}</span>}
-                          </td>
-                          <td className="num sn-tdNum">${Math.round(pp.value).toLocaleString()}</td>
-                          <td className="num sn-tdNum">${Math.round(pp.stressedValue).toLocaleString()}</td>
-                          <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>{fmtPctSigned(pp.pnlPct, 1)}</td>
-                          <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>
-                            {pp.pnl >= 0 ? '+' : '-'}${Math.abs(Math.round(pp.pnl)).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {portImpact.positions.length > 12 && (
-                  <div className="sn-section-note">
-                    +{portImpact.positions.length - 12} more positions
+                {accountGroups.map((g) => (
+                  <div className="sn-acctgroup" key={g.label}>
+                    <div className="sn-section-note">
+                      <b>{g.label}</b> — projected{' '}
+                      <b className={g.totalPnl >= 0 ? 'up' : 'down'}>
+                        {g.totalPnl >= 0 ? '+' : ''}${Math.round(g.totalPnl).toLocaleString()} ({fmtPctSigned(g.pct, 1)})
+                      </b>
+                    </div>
+                    <div className="sn-strategytable">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th className="sn-thLeft">Position</th>
+                            <th className="sn-thNum">Current</th>
+                            <th className="sn-thNum">Stressed</th>
+                            <th className="sn-thNum">Loss %</th>
+                            <th className="sn-thNum">Loss $</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {g.positions.map((pp) => (
+                            <tr key={pp.key}>
+                              <td className="sn-tdLeft">
+                                <b>{pp.ticker}</b>
+                                {pp.kind === 'option' && <span className="sn-row-note">{pp.label}</span>}
+                              </td>
+                              <td className="num sn-tdNum">${Math.round(pp.value).toLocaleString()}</td>
+                              <td className="num sn-tdNum">${Math.round(pp.stressedValue).toLocaleString()}</td>
+                              <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>{fmtPctSigned(pp.pnlPct, 1)}</td>
+                              <td className={`num sn-tdNum ${pp.pnl >= 0 ? 'up' : 'down'}`}>
+                                {pp.pnl >= 0 ? '+' : '-'}${Math.abs(Math.round(pp.pnl)).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                )}
+                ))}
               </>
             )}
           </article>
