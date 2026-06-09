@@ -108,12 +108,19 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // Resolve a holding's underlying scenario move (%) from its sector, with fallbacks.
 function moveForSector(sectorName, assetClass, beta, sectRet, marketPct) {
   const s = sectorName ? SECTOR_BY_NAME[sectorName] : null;
-  if (s && Number.isFinite(sectRet[s.id])) return sectRet[s.id];
-  const b = Number.isFinite(beta) && beta != null ? beta : (AC_BETA[assetClass] ?? 1);
+  if (s && Number.isFinite(sectRet[s.id])) {
+    // The sector move already embeds the sector's own beta to the factors, so
+    // scale by the NAME's beta relative to the sector beta (avoids double
+    // counting). A 2.5-beta name in a ~1.15-beta sector moves ~2.2x the sector.
+    const sb = Number(s.beta) || 1;
+    const b = (Number.isFinite(beta) && beta != null) ? beta : sb;
+    return sectRet[s.id] * (b / sb);
+  }
+  const b = (Number.isFinite(beta) && beta != null) ? beta : (AC_BETA[assetClass] ?? 1);
   return (marketPct || 0) * b;
 }
 
-export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3mo', vixCurrentSigma = 0, marketPct = 0, sectorMap = {} }) {
+export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3mo', vixCurrentSigma = 0, marketPct = 0, sectorMap = {}, betaMap = {} }) {
   if (!rows || !rows.length) return null;
   const sectRet = sectorReturns(shocks, horizonKey);            // % per sector id
   const horizonYears = HORIZON_YEARS[horizonKey] ?? 0.25;
@@ -144,7 +151,8 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
     }
 
     const secName = aliasSector(sectorMap[r.ticker] || r.sector);
-    const movePct = moveForSector(secName, ac, r.beta, sectRet, marketPct);
+    const nameBeta = (betaMap[r.ticker] != null) ? Number(betaMap[r.ticker]) : r.beta;
+    const movePct = moveForSector(secName, ac, nameBeta, sectRet, marketPct);
     const pnl = (r.value || 0) * (movePct / 100);
     out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: 'equity' });
   });
