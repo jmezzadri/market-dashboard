@@ -22,13 +22,13 @@ TODAY = NOW.date()
 
 # SLA in hours by series frequency. Generous enough that a normal release cadence
 # never false-reds; trading-day awareness handles weekends for daily series.
-SLA_BY_FREQ = {"D": 49, "W": 200, "M": 1200, "Q": 3600}
+SLA_BY_FREQ = {"D": 49, "W": 200, "M": 1200, "Q": 4800}
 # Slow official data with long publication lags — explicit calendar budgets (h).
 LONG_LAG = {
     "jolts_quits": 1920, "sloos_ci": 3600, "sloos_cre": 3600, "bank_credit": 480,
     "term_premium": 384, "cfnai": 2000, "cfnai_3ma": 2000, "m2_yoy": 2000,
-    "unrate": 1200, "payrolls": 1200, "ism": 1200, "cape": 1320, "buffett": 1320,
-    "bank_unreal": 3600, "erp": 400, "real_fedfunds": 1200, "credit_3y": 400,
+    "unrate": 1200, "payrolls": 1200, "ism": 1200, "cape": 1320,
+    "erp": 400, "real_fedfunds": 1200,
 }
 # File-backed feeds: ph id -> (served file, mode, sla_hours, daily?)
 FILE_FEEDS = {
