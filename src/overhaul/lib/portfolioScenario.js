@@ -129,7 +129,7 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
   const out = [];
   rows.forEach((r) => {
     const ac = r.cls?.ac || r.assetClass || 'Equity';
-    if (ac === 'Cash') { out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: r.value, pnl: 0, pnlPct: 0, modeled: true, kind: 'cash' }); return; }
+    if (ac === 'Cash') { out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: r.value, pnl: 0, pnlPct: 0, account: r.account_name || null, assetClass: r.cls?.ac || 'Cash', modeled: true, kind: 'cash' }); return; }
 
     if (r.option) {
       const o = r.option;
@@ -146,7 +146,7 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
       const pnl = deltaNotional * (movePct / 100);
       out.push({ key: r.id ?? (o.label + o.underlier), ticker: o.underlier, label: `${o.label} ${o.underlier} $${o.strike}`,
         value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: r.value ? (pnl / r.value) * 100 : null,
-        modeled: deltaNotional !== 0, kind: 'option' });
+        account: r.account_name || null, assetClass: r.cls?.ac || 'Option', modeled: deltaNotional !== 0, kind: 'option' });
       return;
     }
 
@@ -166,7 +166,7 @@ export function computePortfolioScenario({ rows, total, shocks, horizonKey = '3m
     }
     movePct = Math.max(movePct, -100);   // a long position can't lose more than 100%
     const pnl = (r.value || 0) * (movePct / 100);
-    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, modeled: true, kind: r.cls?.ac === 'Fixed Income' ? 'bond' : (r.cls?.ac === 'Crypto' ? 'crypto' : 'equity') });
+    out.push({ key: r.id ?? r.ticker, ticker: r.ticker, label: r.ticker, value: r.value, stressedValue: (r.value || 0) + pnl, pnl, pnlPct: movePct, account: r.account_name || null, assetClass: ac, modeled: true, kind: r.cls?.ac === 'Fixed Income' ? 'bond' : (r.cls?.ac === 'Crypto' ? 'crypto' : 'equity') });
   });
 
   const totalPnl = out.reduce((s, p) => s + (Number.isFinite(p.pnl) ? p.pnl : 0), 0);
