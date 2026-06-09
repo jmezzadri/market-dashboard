@@ -155,6 +155,25 @@ async function fetchSnapshot() {
   }
 }
 
+// ─── Truthful status reconciliation ─────────────────────────────────────────
+// The stored `status` column is only trustworthy if the freshness monitor
+// actually re-checked the feed recently. Many rows went "fake green": the
+// monitor stopped updating them weeks ago, so a stale green here was meaningless
+// and hid real staleness. Rule: NEVER show green on a feed the monitor has not
+// verified inside VERIFY_WINDOW_H. Known red/amber always surface unchanged; an
+// unverifiable green is downgraded to "unverified" (grey) with its real check age.
+const VERIFY_WINDOW_H = 30;
+function reconcileRow(r) {
+  const checkMs = r.last_check_at ? Date.parse(r.last_check_at) : NaN;
+  const checkAgeH = Number.isNaN(checkMs) ? Infinity : (Date.now() - checkMs) / 3.6e6;
+  if (r.status === "red" || r.status === "amber") return r; // never hide a known problem
+  if (checkAgeH > VERIFY_WINDOW_H) {
+    return { ...r, status: "unverified", _storedStatus: r.status, _monitorAgeH: Math.round(checkAgeH) };
+  }
+  return r;
+}
+function reconcileRows(rows) { return (rows || []).map(reconcileRow); }
+
 // ─── Supabase fetch ─────────────────────────────────────────────────────────
 async function fetchRows() {
   const { data, error } = await supabase
@@ -170,7 +189,7 @@ async function fetchRows() {
     // Fall back to the snapshot so admin pages still render under
     // RLS-blocked / network-failure conditions (preview deploys).
     const snap = await fetchSnapshot();
-    cachedRows = snap;
+    cachedRows = reconcileRows(snap);
     lastFetchAt = Date.now();
     return cachedRows;
   }
@@ -181,7 +200,7 @@ async function fetchRows() {
     const snap = await fetchSnapshot();
     if (snap.length > 0) rows = snap;
   }
-  cachedRows = rows;
+  cachedRows = reconcileRows(rows);
   lastFetchAt = Date.now();
   return cachedRows;
 }
@@ -244,3 +263,4 @@ export function useDataHealth() {
 
 // Convenience export for non-hook contexts.
 export { canonicalVendor as _canonicalVendor };
+

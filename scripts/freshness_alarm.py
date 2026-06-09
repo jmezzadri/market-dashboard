@@ -86,6 +86,40 @@ def file_asof(spec, data):
         return None
     return None
 
+
+# ── Write verified status back to the pipeline_health monitor table ──────────
+# Admin·Data reads pipeline_health. Most rows there went "fake green" because no
+# producer kept them current. For the core feeds this alarm actually verifies,
+# we PATCH the existing row (never insert) with a real status + last_check_at=now,
+# so those rows are genuinely green/red — not stale guesses.
+PH_ID = {
+    "cycle_v2.json": "cycle_board",
+    "indicator_history.json": "indicator_history",
+}
+
+def write_pipeline_health(spec, asof, is_stale):
+    url = os.environ.get("SUPABASE_URL"); key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    pid = PH_ID.get(spec["path"])
+    if not (url and key and pid and asof):
+        return
+    now = dt.datetime.now(dt.timezone.utc).isoformat()
+    patch = {
+        "status": "red" if is_stale else "green",
+        "last_check_at": now,
+        "last_good_at": f"{asof}T00:00:00+00:00",
+        "last_error": None if not is_stale else "stale beyond budget (freshness_alarm)",
+    }
+    endpoint = f"{url}/rest/v1/pipeline_health?indicator_id=eq.{pid}"
+    req = urllib.request.Request(endpoint, data=json.dumps(patch).encode(), method="PATCH",
+        headers={"apikey": key, "Authorization": f"Bearer {key}",
+                 "Content-Type": "application/json", "Prefer": "return=minimal"})
+    try:
+        urllib.request.urlopen(req, timeout=15)
+        print(f"  pipeline_health[{pid}] <- {patch['status']} (checked now)")
+    except Exception as e:
+        print(f"  pipeline_health write failed for {pid}: {e}")
+
+
 def main():
     today = dt.date.today()
     stale = []
@@ -110,6 +144,7 @@ def main():
             over = age_days > round(spec["budget_h"] / 24)
             detail = f"as_of {asof} · {age_days} days old"
         checked.append((spec["path"], detail, "RED" if over else "ok"))
+        write_pipeline_health(spec, asof, over)
         if over:
             stale.append((spec, asof, detail))
     return stale, checked
