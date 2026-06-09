@@ -139,8 +139,18 @@ export default function HomePage() {
                 {day.isToday && <span className="he-caltoday">Today</span>}
               </div>
               {day.events.map((e) => (
-                <div key={e.name} className="he-calev" title={`${e.name} \u00b7 ${e.time} \u2014 ${e.detail}`}>
-                  <span className="he-caldot" />{e.short}
+                <div key={e.name} className="he-calev">
+                  <span className="he-calev-top"><span className="he-caldot" />{e.short}</span>
+                  {(e.expected || e.prior) && (
+                    <span className="he-calev-sub">{e.expected ? `exp ${e.expected}` : ''}{e.expected && e.prior ? ' · ' : ''}{e.prior ? `prev ${e.prior}` : ''}</span>
+                  )}
+                  <span className="he-caltip" role="tooltip">
+                    <span className="he-caltip-nm">{e.name}</span>
+                    <span className="he-caltip-time">{e.time}</span>
+                    {e.expected ? <span className="he-caltip-row">Expected · {e.expected}</span> : null}
+                    {e.prior ? <span className="he-caltip-row">Prior · {e.prior}</span> : null}
+                    <span className="he-caltip-detail">{e.detail}</span>
+                  </span>
                 </div>
               ))}
             </div>
