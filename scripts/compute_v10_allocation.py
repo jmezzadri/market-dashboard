@@ -348,19 +348,12 @@ def main() -> None:
                     "dollar": round(float(w) * defensive_pct * 100, 2),
                 })
 
-    # Page-level stance label
-    if stress_score >= 5: page_stance = "Risk Off"
-    elif stress_score >= 3: page_stance = "Cautious"
-    elif stress_score >= 1: page_stance = "Neutral"
-    else: page_stance = "Risk On"
-
     out = {
         "as_of": snapshot["as_of"],
         "version": "v10.2",
         "engine": "v10.2 — asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
         "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
         "engine_as_of": engine.get("as_of"),
-        "page_stance": page_stance,
         "mechanism_scores": mechs,
         "mechanism_bands": bands,
         "stress_score": stress_score,

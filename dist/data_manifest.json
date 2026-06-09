@@ -62,8 +62,8 @@
       "consumer_surfaces_updated": 10,
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     },
-    "last_updated": "2026-05-04",
-    "last_change": "Added cycle-mechanism-board-daily and v10-allocation-daily (Phase 6 Data Steward registration of v10.1c Asset Tilt pipeline)"
+    "last_updated": "2026-05-27",
+    "last_change": "2026-05-27 — renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run."
   },
   "elements": [
     {
@@ -187,9 +187,9 @@
       "category": "indicator",
       "name": "yield_curve",
       "description": "10Y-2Y Treasury slope (bps) — recession early-warning gauge.",
-      "sourcing_mode": "STP",
-      "source_vendor": "FRED",
-      "source_endpoint": "FRED T10Y2Y (×100)",
+      "sourcing_mode": "computed",
+      "source_vendor": "Treasury.gov",
+      "source_endpoint": "Treasury.gov daily yield curve (10Y minus 2Y, ×100 → bps)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -213,7 +213,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Skipped on FRED outage.",
+      "failure_mode": "Workflow raises StalenessError if Treasury.gov fetch returns no fresh observation. Was on FRED T10Y2Y until 2026-05-27 — migrated to Treasury.gov for same-day publication.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -260,8 +260,8 @@
       "name": "real_rates",
       "description": "10-year TIPS real yield (%) — risk-free real rate.",
       "sourcing_mode": "STP",
-      "source_vendor": "FRED",
-      "source_endpoint": "FRED DFII10",
+      "source_vendor": "Treasury.gov",
+      "source_endpoint": "Treasury.gov daily TIPS yield curve (10Y)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -285,10 +285,42 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Skipped on FRED outage.",
+      "failure_mode": "Workflow raises StalenessError if Treasury.gov fetch returns no fresh observation. Was on FRED DFII10 until 2026-05-27 — migrated to Treasury.gov for same-day publication (FRED DFII10 published ~20:00 UTC, after our morning workflow; Treasury.gov publishes ~16:00 ET, captured by our afternoon workflow).",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
       "dependencies": []
+    },
+    {
+      "id": "indicator-breakeven_10y-daily",
+      "category": "indicator",
+      "name": "breakeven_10y",
+      "description": "10-year inflation breakeven (%) — market-implied inflation expectation; nominal 10Y yield minus 10Y TIPS real yield.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Treasury.gov (computed)",
+      "source_endpoint": "Treasury.gov daily curve (10Y nominal − 10Y TIPS)",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "06:00",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[breakeven_10y]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Workflow raises StalenessError if either Treasury.gov input is missing. Was on FRED T10YIE (which is just DGS10 − DFII10) until 2026-05-27 — migrated to in-house compute from Treasury.gov for same-day publication.",
+      "owner": "Senior Quant",
+      "release_calendar": "us-business-day",
+      "dependencies": [
+        "indicator-real_rates-daily"
+      ]
     },
     {
       "id": "indicator-copper_gold-daily",
@@ -579,7 +611,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 192,
+      "freshness_sla_hours": 480,
       "output_destination": "public/indicator_history.json[bank_credit]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -594,7 +626,8 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_note": "H.8 TOTBKCR data-date lags ~2 weeks behind the weekly Friday release; 480h covers lag + cadence + grace."
     },
     {
       "id": "indicator-jobless-weekly",
@@ -670,10 +703,10 @@
       "source_endpoint": "FRED THREEFYTP10 (×100)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "weekly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 384,
+      "freshness_sla_hours": 150,
       "output_destination": "public/indicator_history.json[term_premium]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -692,7 +725,8 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace."
     },
     {
       "id": "indicator-cape-monthly",
@@ -775,7 +809,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 1200,
+      "freshness_sla_hours": 1920,
       "output_destination": "public/indicator_history.json[jolts_quits]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -1052,7 +1086,7 @@
     {
       "id": "scenario-v9_allocation-weekly",
       "category": "scenario",
-      "name": "v9_allocation",
+      "name": "v10_allocation",
       "description": "Current week v9 allocation (regime, alpha, equity_share, leverage, picks, defensive sleeve).",
       "sourcing_mode": "computed",
       "source_vendor": "n/a",
@@ -1084,7 +1118,7 @@
     {
       "id": "scenario-allocation_history-weekly",
       "category": "scenario",
-      "name": "allocation_history",
+      "name": "scenarios",
       "description": "Rolling 26-entry history of prior v9 allocations (picks, leverage, equity_share, defensive).",
       "sourcing_mode": "derived",
       "source_vendor": "n/a",
@@ -1114,7 +1148,7 @@
     {
       "id": "scenario-scenario_allocations-weekly",
       "category": "scenario",
-      "name": "scenario_allocations",
+      "name": "scenarios",
       "description": "Pre-computed v9 allocations under 8 historical CCAR-anchored stress scenarios.",
       "sourcing_mode": "computed",
       "source_vendor": "n/a",
@@ -1169,7 +1203,7 @@
     {
       "id": "market-universe_master-daily",
       "category": "market",
-      "name": "universe_master",
+      "name": "massive-universe",
       "description": "Canonical ticker universe (~12,500 active US stocks + ETFs + ADRs). Replaces UW screener as ticker master.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1202,7 +1236,7 @@
     {
       "id": "market-prices_eod-daily",
       "category": "market",
-      "name": "prices_eod",
+      "name": "massive-eod",
       "description": "Full-market end-of-day OHLCV + VWAP + transactions count for all US stocks.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1232,7 +1266,7 @@
     {
       "id": "market-ticker_reference-rolling",
       "category": "market",
-      "name": "ticker_reference",
+      "name": "massive-ticker-details",
       "description": "Per-ticker rich metadata: description, logo URL, SIC code, market cap, employees, address, refresh_priority.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1259,7 +1293,7 @@
     {
       "id": "market-dividends-daily",
       "category": "market",
-      "name": "dividends",
+      "name": "massive-corporate-actions",
       "description": "Per-ticker dividend ex/pay/record/declared dates + cash amount + frequency.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1286,7 +1320,7 @@
     {
       "id": "market-splits-daily",
       "category": "market",
-      "name": "splits",
+      "name": "massive-corporate-actions",
       "description": "Per-ticker stock-split execution date + from/to ratio.",
       "sourcing_mode": "STP",
       "source_vendor": "Polygon (Massive)",
@@ -1313,7 +1347,7 @@
     {
       "id": "equity-universe_snapshots-3xday",
       "category": "equity",
-      "name": "universe_snapshots",
+      "name": "uw-universe-snapshots",
       "description": "3x-weekday UW screener snapshot (~50 fields × ~1,694 tickers ≥$1B mcap).",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales",
@@ -1346,7 +1380,7 @@
     {
       "id": "equity-ticker_events-3xday",
       "category": "equity",
-      "name": "ticker_events",
+      "name": "uw-universe-snapshots",
       "description": "3x-weekday UW firehose: per-ticker news, insider transactions, congress trades, dark pool prints.",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales",
@@ -1378,7 +1412,7 @@
     {
       "id": "equity-latest_scan_data-daily",
       "category": "equity",
-      "name": "latest_scan_data",
+      "name": "latest_scan",
       "description": "Composite scanner output: buy_opportunities, watch_items, signals (technicals/screener/news/etc), config.",
       "sourcing_mode": "computed",
       "source_vendor": "Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares",
@@ -2170,7 +2204,7 @@
       "category": "indicator",
       "name": "erp",
       "description": "Equity Risk Premium — S&P 500 earnings yield minus 10-year Treasury yield.",
-      "sourcing_mode": "STP+derived",
+      "sourcing_mode": "computed",
       "source_vendor": "FRED + Shiller",
       "source_endpoint": "(1/CAPE) - DGS10 derived",
       "license_tier": "free",
@@ -2231,10 +2265,10 @@
       "source_endpoint": "FRED BAA - DGS10 (long-history proxy)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "monthly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1680,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
@@ -2259,10 +2293,10 @@
       "source_endpoint": "FRED BAMLH0A0HYM2 / (BAA - DGS10)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "monthly",
+      "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1680,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-hy_ig-daily",
@@ -2480,10 +2514,10 @@
       "id": "indicator-adv_dec-daily",
       "category": "indicator",
       "name": "adv_dec",
-      "description": "NYSE advance-decline 50-day cumulative — breadth gauge. Positive = participation broad, negative = narrow rally.",
+      "description": "Standard Advance-Decline Line — ever-running cumulative total of daily advancers minus decliners across active US common stocks. Read via trend and divergence vs the index.",
       "sourcing_mode": "computed",
       "source_vendor": "Polygon (prices_eod aggregate)",
-      "source_endpoint": "public.compute_advance_decline_50d() RPC — Polygon prices_eod, 50-day rolling net",
+      "source_endpoint": "public.compute_ad_line() RPC — Polygon prices_eod, cumulative advancers-minus-decliners over active common stocks",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2492,7 +2526,7 @@
       "freshness_sla_hours": 49,
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[adv_dec] (PENDING)",
+      "output_destination": "public/indicator_history.json[adv_dec]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2545,7 +2579,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 480,
+      "freshness_sla_hours": 192,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[naaim] (PENDING)",
@@ -2573,7 +2607,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 480,
+      "freshness_sla_hours": 192,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ic4wsa]",
@@ -2674,12 +2708,14 @@
     },
     {
       "id": "v10-allocation-daily",
+      "name": "v10_allocation",
       "category": "scenario",
-      "description": "v10.1c Asset Tilt allocator output. Reads cycle_board_snapshot.json, applies decision rules (defensive activation at stress >= 4, leverage 1.25x in calm regimes, all 4 hard caps), produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
-      "sourcing_mode": "derived from cycle-mechanism-board-daily",
+      "description": "v10.2 Asset Tilt allocator output. The asset-class split (equity %, defensive %, defensive-sleeve composition) is read from the 2-axis MacroTilt engine (macrotilt_engine.json); the 6 cycle mechanisms drive only the sector / industry-group tilts. Leverage 1.25x in calm regimes; all 4 hard caps enforced. Produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
+      "sourcing_mode": "derived from macrotilt-engine-daily (equity/defensive split + defensive sleeve) and cycle-mechanism-board-daily (sector/IG tilts)",
       "cadence": "daily (22:45 UTC weekdays)",
+      "release_calendar": "us-business-day",
       "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
-      "freshness_sla_hours": 30,
+      "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "src/App.jsx home Asset Tilt preview card",
         "src/pages/AssetAllocation.jsx full page"
@@ -2691,6 +2727,1128 @@
       "tuned_in_pr": 416,
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
       "shipped_date": "2026-05-04"
+    },
+    {
+      "id": "macrotilt-engine-daily",
+      "name": "macrotilt_engine",
+      "category": "indicator",
+      "description": "MacroTilt 2-axis regime engine snapshot. Weekly regime call (stress state, MOVE percentile, yield regime, equity %, defensive sleeve) plus a daily-moving live ΔY-3M display value (delta_y_3m_bp_live / live_as_of) so the dial headline updates every trading day.",
+      "sourcing_mode": "computed in-house from raw",
+      "cadence": "daily (19:45 UTC weekdays)",
+      "release_calendar": "us-business-day",
+      "refresh_trigger": ".github/workflows/macrotilt-engine-daily.yml",
+      "freshness_sla_hours": 120,
+      "consumer_surfaces": [
+        "src/App.jsx home Asset Tilt preview tile",
+        "src/pages/AssetAllocation.jsx Today's Engine Read",
+        "scripts/compute_v10_allocation.py (v10 allocator — reads equity %, defensive %, active_sleeve_composition for the Recommended Allocations asset-class split)"
+      ],
+      "output_path": "public/macrotilt_engine.json",
+      "producer_script": "scripts/compute_macrotilt_engine.py",
+      "owner": "Data Steward",
+      "registered_date": "2026-05-21",
+      "registered_note": "The regime CALL inside the snapshot rebalances weekly (Friday close); the snapshot also carries delta_y_3m_bp_live + live_as_of, a daily-moving display value. Freshness chips grade against live_as_of. SLA is 120h (not 49h) because live_as_of tracks the latest FRED DGS10 print, which lags 1-2 business days behind the engine run; with the us-business-day calendar plus a Friday-run / Monday-look gap a perfectly healthy feed can read ~110h old. 120h absorbs that without false-reds while a genuine multi-day engine outage still trips red. Do not tighten below ~108h."
+    },
+    {
+      "id": "scenario-scenario_definitions-static",
+      "category": "scenario",
+      "name": "scenario_definitions",
+      "description": "Canonical list of the 8 historical shock scenarios (Black Monday '87 through AI Correction '24) — id, name, peak window, peak drawdown, regime call, and one-line blurb. Stable academic references; the Scenarios page reads this list to render the picker and per-scenario header.",
+      "sourcing_mode": "curated",
+      "source_vendor": "n/a (curated by Data Steward + Senior Quant)",
+      "source_endpoint": "public/scenario_definitions.json",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "static",
+      "scheduled_fetch_time_et": "n/a (hand-maintained)",
+      "refresh_trigger": "Manual PR by Data Steward when a new scenario is added",
+      "freshness_sla_hours": 26280,
+      "output_destination": "public/scenario_definitions.json",
+      "producer_script": "n/a (hand-maintained JSON)",
+      "consumer_surfaces": [
+        {
+          "tab": "scenarios",
+          "tile": "Scenario picker + per-scenario header card + blurb"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Static file; if missing, Scenarios page shows an em-dash scenario picker and a red FreshnessChip on the picker.",
+      "owner": "Data Steward (curation), Senior Quant (regime calls)",
+      "release_calendar": "wall-clock",
+      "dependencies": []
+    },
+    {
+      "id": "site-methodology_changelog-static",
+      "category": "ops",
+      "name": "methodology_changelog",
+      "description": "Reference list of material changes to the engine, indicator framework, or scoring math. Methodology page Changelog section reads this file.",
+      "sourcing_mode": "curated",
+      "source_vendor": "n/a (curated by Senior Quant + Data Steward)",
+      "source_endpoint": "public/methodology_changelog.json",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "static",
+      "scheduled_fetch_time_et": "n/a (hand-maintained)",
+      "refresh_trigger": "Manual PR when a model/calibration ships",
+      "freshness_sla_hours": 26280,
+      "output_destination": "public/methodology_changelog.json",
+      "producer_script": "n/a (hand-maintained JSON)",
+      "consumer_surfaces": [
+        {
+          "tab": "methodology",
+          "tile": "Changelog section (08)"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Static file; if missing, Methodology changelog section renders an empty list and a red FreshnessChip.",
+      "owner": "Senior Quant (notes), Data Steward (curation)",
+      "release_calendar": "wall-clock",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-fed_bs-weekly",
+      "name": "fed_bs",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WALCL (YoY % change)",
+      "sourcing_mode": "computed",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[fed_bs]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Fed Balance Sheet"
+        }
+      ],
+      "description": "Fed total assets YoY change (WALCL) — QE/QT direction.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-rrp-daily",
+      "name": "rrp",
+      "category": "indicator",
+      "cadence": "daily",
+      "freshness_sla_hours": 49,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED RRPONTSYD",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[rrp]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Reverse Repo"
+        }
+      ],
+      "description": "Overnight reverse-repo take-up at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-bank_reserves-weekly",
+      "name": "bank_reserves",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WRESBAL",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[bank_reserves]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Bank Reserves"
+        }
+      ],
+      "description": "Reserve balances of depository institutions at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-tga-weekly",
+      "name": "tga",
+      "category": "indicator",
+      "cadence": "weekly",
+      "freshness_sla_hours": 192,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WTREGEN",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[tga]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — Treasury General Account"
+        }
+      ],
+      "description": "Treasury General Account cash held at the Fed.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-cfnai-monthly",
+      "name": "cfnai",
+      "category": "indicator",
+      "cadence": "monthly",
+      "freshness_sla_hours": 1200,
+      "release_calendar": "us-business-day",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED CFNAI",
+      "sourcing_mode": "STP",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[cfnai]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — CFNAI"
+        }
+      ],
+      "description": "Chicago Fed National Activity Index — 85-component activity composite.",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "indicator-hy_ig_etf-daily",
+      "name": "hy_ig_etf",
+      "category": "indicator",
+      "cadence": "daily",
+      "freshness_sla_hours": 49,
+      "release_calendar": "nyse-trading-day",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "LQD / HYG price ratio",
+      "sourcing_mode": "computed",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "dependencies": [],
+      "producer_script": "fetch_history.py",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "scheduled_fetch_time_et": "07:00",
+      "output_destination": "public/indicator_history.json[hy_ig_etf]",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "All Indicators — HY-IG ETF Proxy"
+        }
+      ],
+      "description": "LQD÷HYG price ratio — Yahoo-sourced HY-IG spread proxy (reference only).",
+      "failure_mode": "All Indicators row + freshness chip show stale data.",
+      "current_status": "live",
+      "owner": "Data Steward, Lead Dev"
+    },
+    {
+      "id": "macrotilt-engine-history-daily",
+      "name": "macrotilt_engine_history",
+      "category": "indicator",
+      "description": "Live weekly observation history (MOVE value+percentile, ΔY-3M+percentile, classified stress/yield regime per Friday close) powering the Asset Tilt 24W history sparklines + Regime History strip. Separate from the locked strategy backtest (macrotilt_engine_backtest.json) so the displayed history keeps advancing weekly instead of freezing at the calibration-lock date.",
+      "sourcing_mode": "computed in-house from raw",
+      "cadence": "daily (19:45 UTC weekdays)",
+      "release_calendar": "us-business-day",
+      "refresh_trigger": ".github/workflows/macrotilt-engine-daily.yml",
+      "freshness_sla_hours": 120,
+      "consumer_surfaces": [
+        "src/overhaul/pages/TiltPage.jsx 24W history sparklines",
+        "src/overhaul/pages/TiltPage.jsx Regime History strip"
+      ],
+      "output_path": "public/macrotilt_engine_history.json",
+      "producer_script": "scripts/compute_macrotilt_engine.py",
+      "owner": "Data Steward",
+      "registered_date": "2026-06-03",
+      "registered_note": "Same producer as macrotilt-engine-daily; real-MOVE coverage means the percentile-graded series begins ~2007. Chips on the sparkline cards continue to grade the upstream atomic feeds (indicator-move-daily / indicator-yield_curve-daily)."
+    },
+    {
+      "id": "v10-sector-history-daily",
+      "name": "v10_sector_history",
+      "category": "scenario",
+      "description": "Rolling weekly snapshots of v10 sector recommended weights (% of total portfolio). Powers the 'Prev wk' column in the Asset Tilt sector table. Captured each v10-allocation-daily run before overwrite; deduped by as_of, capped 60.",
+      "sourcing_mode": "derived from v10_allocation snapshot-before-overwrite",
+      "cadence": "daily (12:15/13:15 UTC weekdays)",
+      "release_calendar": "us-business-day",
+      "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "src/overhaul/pages/TiltPage.jsx sector table Prev wk column"
+      ],
+      "output_path": "public/v10_sector_history.json",
+      "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
+      "owner": "Data Steward",
+      "registered_date": "2026-06-03"
+    },
+    {
+      "id": "portfolio.paper-nav-daily",
+      "category": "portfolio",
+      "name": "paper-nav-daily",
+      "description": "Paper portfolio daily NAV and per-sleeve values, from the Alpaca paper account.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca account equity + positions → paper_nav_daily",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "09:45",
+      "refresh_trigger": "PAPER-PORTFOLIO-OPEN-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "Supabase public.paper_nav_daily",
+      "producer_script": "paper_portfolio/mirror.py (write_nav_daily)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Performance card"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Holds prior NAV row if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": []
+    },
+    {
+      "id": "portfolio.paper-positions-snapshot",
+      "category": "portfolio",
+      "name": "paper-positions-snapshot",
+      "description": "Paper portfolio per-name holdings snapshot (both sleeves), mirrored from Alpaca.",
+      "sourcing_mode": "STP",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca /v2/positions → paper_positions",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "09:45",
+      "refresh_trigger": "PAPER-PORTFOLIO-OPEN-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "Supabase public.paper_positions",
+      "producer_script": "paper_portfolio/mirror.py (mirror_positions)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Sleeve A / Sleeve B holdings tables"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Retains the prior snapshot if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": []
+    },
+    {
+      "id": "portfolio.paper-orders-intent",
+      "category": "portfolio",
+      "name": "paper-orders-intent",
+      "description": "Paper rebalance order intents queued for the next open (Asset Tilt + Equity Scanner diff).",
+      "sourcing_mode": "computed",
+      "source_vendor": "MacroTilt engine",
+      "source_endpoint": "Asset Tilt + Equity Scanner diff → paper_orders",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "04:00 (pre-open window to 09:25)",
+      "refresh_trigger": "PAPER-PORTFOLIO-EOD-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "Supabase public.paper_orders",
+      "producer_script": "paper_portfolio/translator.py + submitter.py",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Recent rebalances"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Skips submission and files a P1 alert if signals are stale (freshness gate).",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [
+        "portfolio.paper-positions-snapshot"
+      ]
+    },
+    {
+      "id": "indicator-cftc-cot-weekly",
+      "category": "indicator",
+      "name": "cftc-cot",
+      "description": "CFTC Commitments of Traders — cross-asset speculative positioning (net non-commercial) by domain.",
+      "sourcing_mode": "computed",
+      "source_vendor": "CFTC",
+      "source_endpoint": "CFTC COT report → cot_positioning.py cross-asset build",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "07:00 (Sat)",
+      "refresh_trigger": "CFTC-COT-WEEKLY",
+      "freshness_sla_hours": 264,
+      "output_destination": "public/cot_positioning.json",
+      "producer_script": "cot_positioning.py",
+      "consumer_surfaces": [
+        {
+          "tab": "macro",
+          "tile": "Cross-asset positioning rollup"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "CFTC publishes Friday for Tuesday-dated data; the chip shows the report date, so a ~1-week lag is normal (SLA widened to match).",
+      "owner": "Senior Quant",
+      "release_calendar": "us-business-day",
+      "dependencies": []
+    },
+    {
+      "id": "indicator_history",
+      "category": "indicator",
+      "name": "indicator_history",
+      "description": "Consolidated indicator-history file backing the All Indicators grid and Methodology page (every FRED/Yahoo series).",
+      "sourcing_mode": "computed",
+      "source_vendor": "FRED + Yahoo Finance",
+      "source_endpoint": "fetch_history.py → public/indicator_history.json",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators"
+        },
+        {
+          "tab": "methodology"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Individual series skip on an upstream outage; the file retains last-good values.",
+      "owner": "Senior Quant",
+      "release_calendar": "us-business-day",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-spx_above_50ema-daily",
+      "category": "indicator",
+      "name": "spx_above_50ema",
+      "description": "S&P 500 breadth — % of members above 50-day EMA",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "MacroTilt (Polygon prices_eod)",
+      "source_endpoint": "SSGA SPY holdings ∩ Polygon prices_eod; compute_index_breadth_ema 50-day EMA",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "11:00",
+      "refresh_trigger": "BREADTH-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[spx_above_50ema]",
+      "producer_script": "BREADTH-DAILY workflow",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Equities bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+      "owner": "Senior Quant",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-spx_above_200ema-daily",
+      "category": "indicator",
+      "name": "spx_above_200ema",
+      "description": "S&P 500 breadth — % of members above 200-day EMA",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "MacroTilt (Polygon prices_eod)",
+      "source_endpoint": "SSGA SPY holdings ∩ Polygon prices_eod; compute_index_breadth_ema 200-day EMA",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "11:00",
+      "refresh_trigger": "BREADTH-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[spx_above_200ema]",
+      "producer_script": "BREADTH-DAILY workflow",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Equities bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+      "owner": "Senior Quant",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-ndx_above_50ema-daily",
+      "category": "indicator",
+      "name": "ndx_above_50ema",
+      "description": "Nasdaq-100 breadth — % of members above 50-day EMA",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "MacroTilt (Polygon prices_eod)",
+      "source_endpoint": "Invesco QQQ holdings ∩ Polygon prices_eod; compute_index_breadth_ema 50-day EMA",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "11:00",
+      "refresh_trigger": "BREADTH-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[ndx_above_50ema]",
+      "producer_script": "BREADTH-DAILY workflow",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Equities bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+      "owner": "Senior Quant",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-ndx_above_200ema-daily",
+      "category": "indicator",
+      "name": "ndx_above_200ema",
+      "description": "Nasdaq-100 breadth — % of members above 200-day EMA",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "MacroTilt (Polygon prices_eod)",
+      "source_endpoint": "Invesco QQQ holdings ∩ Polygon prices_eod; compute_index_breadth_ema 200-day EMA",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "11:00",
+      "refresh_trigger": "BREADTH-DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[ndx_above_200ema]",
+      "producer_script": "BREADTH-DAILY workflow",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Equities bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+      "owner": "Senior Quant",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_gold-daily",
+      "category": "indicator",
+      "name": "cmdty_gold",
+      "description": "Gold futures (GC=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API GC=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_gold]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_silver-daily",
+      "category": "indicator",
+      "name": "cmdty_silver",
+      "description": "Silver futures (SI=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API SI=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_silver]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_copper-daily",
+      "category": "indicator",
+      "name": "cmdty_copper",
+      "description": "Copper futures (HG=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API HG=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_copper]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_uranium-weekly",
+      "category": "indicator",
+      "name": "cmdty_uranium",
+      "description": "Uranium spot (UX=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API UX=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 240,
+      "output_destination": "public/indicator_history.json[cmdty_uranium]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "weekly-friday",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_oil-daily",
+      "category": "indicator",
+      "name": "cmdty_oil",
+      "description": "WTI crude futures (CL=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API CL=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_oil]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_natgas-daily",
+      "category": "indicator",
+      "name": "cmdty_natgas",
+      "description": "Henry Hub natural gas futures (NG=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API NG=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_natgas]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_corn-daily",
+      "category": "indicator",
+      "name": "cmdty_corn",
+      "description": "Corn futures (ZC=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API ZC=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_corn]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_soybeans-daily",
+      "category": "indicator",
+      "name": "cmdty_soybeans",
+      "description": "Soybean futures (ZS=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API ZS=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_soybeans]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_wheat-daily",
+      "category": "indicator",
+      "name": "cmdty_wheat",
+      "description": "Wheat futures (ZW=F), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API ZW=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_wheat]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-fx_eur-daily",
+      "category": "indicator",
+      "name": "fx_eur",
+      "description": "Euro / US dollar (EURUSD=X), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API EURUSD=X",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[fx_eur]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-fx_jpy-daily",
+      "category": "indicator",
+      "name": "fx_jpy",
+      "description": "US dollar / Japanese yen (JPY=X), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API JPY=X",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[fx_jpy]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-fx_gbp-daily",
+      "category": "indicator",
+      "name": "fx_gbp",
+      "description": "British pound / US dollar (GBPUSD=X), ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API GBP=X",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[fx_gbp]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "portfolio-scenario-impact",
+      "category": "portfolio",
+      "name": "portfolio-scenario-impact",
+      "description": "Position-level scenario P&L computed live from your holdings when you run a scenario.",
+      "sourcing_mode": "computed in-house",
+      "source_vendor": "Your portfolio",
+      "source_endpoint": "Client-side, from your saved positions",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "on-demand",
+      "scheduled_fetch_time_et": "When you run a scenario",
+      "refresh_trigger": "User opens or changes a scenario",
+      "freshness_sla_hours": null,
+      "output_destination": "Scenario Analysis -> Your portfolio impact panel + Your portfolio row",
+      "producer_script": "src/overhaul/lib/portfolioScenario.js (client)",
+      "consumer_surfaces": [
+        {
+          "tab": "scenarios",
+          "tile": "Your portfolio impact panel + Your portfolio row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Shows 'add holdings' if no positions; 'sign in' if logged out.",
+      "owner": "Lead Dev + Senior Quant",
+      "release_calendar": "wall-clock",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-cmdty_brent-daily",
+      "category": "indicator",
+      "name": "cmdty_brent",
+      "description": "Brent crude front-month futures (BZ=F) — the global oil benchmark, ranked into its own 3-year range.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "Yahoo chart API BZ=F",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "16:45",
+      "refresh_trigger": "MARKET-INDICATORS-EOD",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[cmdty_brent]",
+      "producer_script": "scripts/fetch_market_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "Commodities/FX bucket — indicator"
+        },
+        {
+          "tab": "indicators"
+        }
+      ],
+      "current_status": "live",
+      "release_calendar": "nyse-trading-day",
+      "failure_mode": "Falls back to last good close on Yahoo outage.",
+      "owner": "Data Steward",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-ust_10y-daily",
+      "category": "indicator",
+      "name": "ust_10y",
+      "description": "Nominal 10-year US Treasury par yield — the benchmark long-term interest rate.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Treasury.gov",
+      "source_endpoint": "Treasury.gov daily par yield curve — 10 Yr nominal",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[ust_10y]",
+      "producer_script": "fetch_history.py / fetch_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "home"
+        },
+        {
+          "tab": "overview"
+        },
+        {
+          "tab": "indicators"
+        },
+        {
+          "tab": "readme"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-ust_2y-daily",
+      "category": "indicator",
+      "name": "ust_2y",
+      "description": "Nominal 2-year US Treasury par yield — most sensitive to Fed policy expectations.",
+      "sourcing_mode": "STP from vendor",
+      "source_vendor": "Treasury.gov",
+      "source_endpoint": "Treasury.gov daily par yield curve — 2 Yr nominal",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/indicator_history.json[ust_2y]",
+      "producer_script": "fetch_history.py / fetch_indicators.py",
+      "consumer_surfaces": [
+        {
+          "tab": "home"
+        },
+        {
+          "tab": "overview"
+        },
+        {
+          "tab": "indicators"
+        },
+        {
+          "tab": "readme"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-unrate-monthly",
+      "category": "indicator",
+      "name": "unrate",
+      "description": "US unemployment rate (U-3) — headline monthly jobless rate.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED UNRATE",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "monthly",
+      "scheduled_fetch_time_et": "07:00 (read daily)",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 1200,
+      "output_destination": "public/indicator_history.json[unrate]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators"
+        },
+        {
+          "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal — indicator row"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Skipped on FRED outage; tile shows last good value.",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": []
+    },
+    {
+      "id": "indicator-payrolls-monthly",
+      "category": "indicator",
+      "name": "payrolls",
+      "description": "Monthly change in US nonfarm payroll employment (jobs added or lost).",
+      "sourcing_mode": "computed",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED PAYEMS (month-over-month change)",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "monthly",
+      "scheduled_fetch_time_et": "07:00 (read daily)",
+      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
+      "freshness_sla_hours": 1200,
+      "output_destination": "public/indicator_history.json[payrolls]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators"
+        },
+        {
+          "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal — indicator row"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Skipped on FRED outage; tile shows last good value.",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": []
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

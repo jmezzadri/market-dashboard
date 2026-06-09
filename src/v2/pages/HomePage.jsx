@@ -196,7 +196,7 @@ export default function HomePage() {
   // to AssetTiltPage so the Home preview tile and the Asset Tilt page agree
   // (Bug #1159 follow-up — the tile was showing the raw word 'Cautious').
   const STANCE_MAP = { 'Cautious': 'Watch', 'Watch': 'Watch', 'Cautionary': 'Watch', 'Stressed': 'Risk Off', 'Distressed': 'Risk Off', 'Concerning': 'Watch', 'Complacent': 'Watch', 'Normal': 'Risk On', 'Neutral': 'Watch', 'Risk On': 'Risk On', 'Risk Off': 'Risk Off' };
-  const rawStance = v10?.page_stance || '—';
+  const rawStance = '—';
   const stance = STANCE_MAP[rawStance] || rawStance;
   const sectors = v10?.sectors || [];
   const ow = sectors.filter((s) => s.rating === 'OW').slice(0, 3);
