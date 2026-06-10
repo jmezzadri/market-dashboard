@@ -167,7 +167,7 @@ export default function FreshnessChip({
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
   const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
   const asOfExact = fmtAsOf(f?.dataAsOf, f?.asOfCutoffEt);
-  const fetchedExact = fmtFetched(f?.lastGoodAt);
+  const fetchedExact = fmtFetched(f?.lastRefreshedAt || f?.lastGoodAt);
 
   const onEnter = () => {
     setHover(true);
