@@ -210,7 +210,7 @@ function PositioningCard({ item, onClick }) {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--mt-ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.market}</div>
           <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', marginTop: 2 }}>{isDealer ? 'Dealer inventory' : 'Futures positioning'}</div>
         </div>
-        <FreshnessChip elementId="indicator-cftc-cot-weekly" variant="dot" />
+        <FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="dot" />
       </header>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <div className="num" style={{ fontSize: 22, fontWeight: 500, color: accent }}>{Math.round(item.spec)}<span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 3, fontWeight: 400 }}>th pct</span></div>
