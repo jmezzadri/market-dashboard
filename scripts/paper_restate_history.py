@@ -36,10 +36,29 @@ import logging
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from paper_portfolio.mirror import _supabase_exec, _supabase_query
+import requests
+
+from paper_portfolio.mirror import _supabase_exec as _raw_exec
+from paper_portfolio.mirror import _supabase_query as _raw_query
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("paper_restate")
+
+
+def _supabase_query(sql):
+    """Wrap the shared helper so a rejected statement logs the SERVER's error
+    body (the Management API 400 says exactly which token it choked on) before
+    re-raising — a bare HTTPError cost a debug round-trip on first run."""
+    try:
+        return _raw_query(sql)
+    except requests.HTTPError as e:
+        body = getattr(e.response, "text", "")[:500]
+        logger.error("management API rejected statement: %s\nSQL was:\n%s", body, sql[:1200])
+        raise
+
+
+def _supabase_exec(sql):
+    _supabase_query(sql)
 
 ET = ZoneInfo("America/New_York")
 SLEEVE_CAP = 500_000.0
