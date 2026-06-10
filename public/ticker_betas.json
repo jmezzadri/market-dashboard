@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-09T11:17:44+00:00",
+  "as_of": "2026-06-10T14:27:55+00:00",
   "window": "yahoo ~3y monthly; computed = prices_eod 1y daily vs SPY; default 1.6",
   "betas": {
     "AA": {
@@ -51,7 +51,7 @@
       "source": "yahoo"
     },
     "BOBS": {
-      "beta": 2.19,
+      "beta": 2.15,
       "source": "computed"
     },
     "CASH": {
@@ -103,7 +103,7 @@
       "source": "yahoo"
     },
     "FLY": {
-      "beta": 3.07,
+      "beta": 3.09,
       "source": "computed"
     },
     "FSKAX": {
@@ -211,7 +211,7 @@
       "source": "yahoo"
     },
     "STRZ": {
-      "beta": 1.24,
+      "beta": 1.23,
       "source": "computed"
     },
     "TENB": {
