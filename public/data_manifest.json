@@ -2284,66 +2284,6 @@
       "as_of_cutoff_note": "observation period figure"
     },
     {
-      "id": "indicator-margin_debt-monthly",
-      "category": "indicator",
-      "name": "margin_debt",
-      "description": "FINRA margin debt YoY % growth \u2014 leverage in retail/institutional brokerage accounts.",
-      "sourcing_mode": "STP",
-      "source_vendor": "FINRA (HTML scrape)",
-      "source_endpoint": "finra.org/investors/learn-to-invest/advanced-investing/margin-statistics \u2014 public table, scraped via Mon-YY regex",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "monthly",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1800,
-      "release_calendar": "us-business-day",
-      "dependencies": [],
-      "output_destination": "public/indicator_history.json[margin_debt] (PENDING)",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
-        }
-      ],
-      "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward",
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
-    },
-    {
-      "id": "indicator-spx_200dma-daily",
-      "category": "indicator",
-      "name": "spx_200dma",
-      "description": "% of S&P 500 stocks above their 200-day moving average \u2014 breadth measure.",
-      "sourcing_mode": "computed",
-      "source_vendor": "Polygon (prices_eod aggregate)",
-      "source_endpoint": "public.compute_breadth_above_200dma() RPC \u2014 % of liquid US equities above 200-day MA",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [],
-      "output_destination": "public/indicator_history.json[spx_200dma] (PENDING)",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
-        }
-      ],
-      "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "Falls back to SPY single-ticker proxy until prices_eod accumulates 200d history per ticker.",
-      "owner": "Senior Quant, Lead Dev, Data Steward",
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
-    },
-    {
       "id": "indicator-adv_dec-daily",
       "category": "indicator",
       "name": "adv_dec",
@@ -2514,27 +2454,6 @@
       "tuned_in_pr": 416,
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
       "shipped_date": "2026-05-04"
-    },
-    {
-      "id": "macrotilt-engine-daily",
-      "name": "macrotilt_engine",
-      "category": "indicator",
-      "description": "MacroTilt 2-axis regime engine snapshot. Weekly regime call (stress state, MOVE percentile, yield regime, equity %, defensive sleeve) plus a daily-moving live \u0394Y-3M display value (delta_y_3m_bp_live / live_as_of) so the dial headline updates every trading day.",
-      "sourcing_mode": "computed in-house from raw",
-      "cadence": "daily (19:45 UTC weekdays)",
-      "release_calendar": "us-business-day",
-      "refresh_trigger": ".github/workflows/macrotilt-engine-daily.yml",
-      "freshness_sla_hours": 120,
-      "consumer_surfaces": [
-        "src/App.jsx home Asset Tilt preview tile",
-        "src/pages/AssetAllocation.jsx Today's Engine Read",
-        "scripts/compute_v10_allocation.py (v10 allocator \u2014 reads equity %, defensive %, active_sleeve_composition for the Recommended Allocations asset-class split)"
-      ],
-      "output_path": "public/macrotilt_engine.json",
-      "producer_script": "scripts/compute_macrotilt_engine.py",
-      "owner": "Data Steward",
-      "registered_date": "2026-05-21",
-      "registered_note": "The regime CALL inside the snapshot rebalances weekly (Friday close); the snapshot also carries delta_y_3m_bp_live + live_as_of, a daily-moving display value. Freshness chips grade against live_as_of. SLA is 120h (not 49h) because live_as_of tracks the latest FRED DGS10 print, which lags 1-2 business days behind the engine run; with the us-business-day calendar plus a Friday-run / Monday-look gap a perfectly healthy feed can read ~110h old. 120h absorbs that without false-reds while a genuine multi-day engine outage still trips red. Do not tighten below ~108h."
     },
     {
       "id": "scenario-scenario_definitions-static",
@@ -2777,26 +2696,6 @@
       "as_of_cutoff_note": "US market close"
     },
     {
-      "id": "macrotilt-engine-history-daily",
-      "name": "macrotilt_engine_history",
-      "category": "indicator",
-      "description": "Live weekly observation history (MOVE value+percentile, \u0394Y-3M+percentile, classified stress/yield regime per Friday close) powering the Asset Tilt 24W history sparklines + Regime History strip. Separate from the locked strategy backtest (macrotilt_engine_backtest.json) so the displayed history keeps advancing weekly instead of freezing at the calibration-lock date.",
-      "sourcing_mode": "computed in-house from raw",
-      "cadence": "daily (19:45 UTC weekdays)",
-      "release_calendar": "us-business-day",
-      "refresh_trigger": ".github/workflows/macrotilt-engine-daily.yml",
-      "freshness_sla_hours": 120,
-      "consumer_surfaces": [
-        "src/overhaul/pages/TiltPage.jsx 24W history sparklines",
-        "src/overhaul/pages/TiltPage.jsx Regime History strip"
-      ],
-      "output_path": "public/macrotilt_engine_history.json",
-      "producer_script": "scripts/compute_macrotilt_engine.py",
-      "owner": "Data Steward",
-      "registered_date": "2026-06-03",
-      "registered_note": "Same producer as macrotilt-engine-daily; real-MOVE coverage means the percentile-graded series begins ~2007. Chips on the sparkline cards continue to grade the upstream atomic feeds (indicator-move-daily / indicator-yield_curve-daily)."
-    },
-    {
       "id": "v10-sector-history-daily",
       "name": "v10_sector_history",
       "category": "scenario",
@@ -2939,38 +2838,6 @@
       "data_as_of": "2026-06-02"
     },
     {
-      "id": "indicator_history",
-      "category": "indicator",
-      "name": "indicator_history",
-      "description": "Consolidated indicator-history file backing the All Indicators grid and Methodology page (every FRED/Yahoo series).",
-      "sourcing_mode": "computed",
-      "source_vendor": "FRED + Yahoo Finance",
-      "source_endpoint": "fetch_history.py \u2192 public/indicator_history.json",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
-      "output_destination": "public/indicator_history.json",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "indicators"
-        },
-        {
-          "tab": "methodology"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Individual series skip on an upstream outage; the file retains last-good values.",
-      "owner": "Senior Quant",
-      "release_calendar": "us-business-day",
-      "dependencies": [],
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
-    },
-    {
       "id": "indicator-spx_above_50ema-daily",
       "category": "indicator",
       "name": "spx_above_50ema",
@@ -3018,72 +2885,6 @@
       "refresh_trigger": "BREADTH-DAILY",
       "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[spx_above_200ema]",
-      "producer_script": "BREADTH-DAILY workflow",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "Equities bucket \u2014 indicator"
-        },
-        {
-          "tab": "indicators"
-        }
-      ],
-      "current_status": "live",
-      "release_calendar": "nyse-trading-day",
-      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant",
-      "dependencies": [],
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
-    },
-    {
-      "id": "indicator-ndx_above_50ema-daily",
-      "category": "indicator",
-      "name": "ndx_above_50ema",
-      "description": "Nasdaq-100 breadth \u2014 % of members above 50-day EMA",
-      "sourcing_mode": "computed in-house from raw",
-      "source_vendor": "MacroTilt (Polygon prices_eod)",
-      "source_endpoint": "Invesco QQQ holdings \u2229 Polygon prices_eod; compute_index_breadth_ema 50-day EMA",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
-      "refresh_trigger": "BREADTH-DAILY",
-      "freshness_sla_hours": 73,
-      "output_destination": "public/indicator_history.json[ndx_above_50ema]",
-      "producer_script": "BREADTH-DAILY workflow",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "Equities bucket \u2014 indicator"
-        },
-        {
-          "tab": "indicators"
-        }
-      ],
-      "current_status": "live",
-      "release_calendar": "nyse-trading-day",
-      "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant",
-      "dependencies": [],
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
-    },
-    {
-      "id": "indicator-ndx_above_200ema-daily",
-      "category": "indicator",
-      "name": "ndx_above_200ema",
-      "description": "Nasdaq-100 breadth \u2014 % of members above 200-day EMA",
-      "sourcing_mode": "computed in-house from raw",
-      "source_vendor": "MacroTilt (Polygon prices_eod)",
-      "source_endpoint": "Invesco QQQ holdings \u2229 Polygon prices_eod; compute_index_breadth_ema 200-day EMA",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
-      "refresh_trigger": "BREADTH-DAILY",
-      "freshness_sla_hours": 73,
-      "output_destination": "public/indicator_history.json[ndx_above_200ema]",
       "producer_script": "BREADTH-DAILY workflow",
       "consumer_surfaces": [
         {
@@ -3214,7 +3015,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 504,
       "output_destination": "public/indicator_history.json[cmdty_uranium]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
