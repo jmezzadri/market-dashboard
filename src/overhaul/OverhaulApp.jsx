@@ -34,6 +34,16 @@ import './styles/proto-pages.css';
 import './styles/proto-methodology.css';
 import './styles/responsive.css';
 
+// Legacy-token bridge — re-maps the old V2 token families (--text / --ink-* /
+// --bg-* / --accent / --up / --down ...) onto the overhaul --mt-* tokens so the
+// V2 pages still mounted inside this shell (Paper Portfolio at /paper, Admin
+// Bugs, Admin Data Health) follow the active light / dark / navy theme.
+// HISTORY: loaded by PR #882 (2026-05-28); silently dropped by the ticker-UX
+// rewrite e11bbb85 (2026-06-01) — from then on /paper rendered light-palette
+// cards and a near-invisible headline in dark/navy. Restored 2026-06-10.
+// DO NOT REMOVE without checking every v2/* component mounted in this file.
+import './styles/legacy-bridge.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
 
