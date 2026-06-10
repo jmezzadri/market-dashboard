@@ -104,7 +104,9 @@
       "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'; no auto-bug.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "CBOE cash close"
     },
     {
       "id": "indicator-hy_ig-daily",
@@ -144,7 +146,9 @@
       "failure_mode": "Falls back to anchor-only (stale) on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-eq_cr_corr-daily",
@@ -180,7 +184,9 @@
       "failure_mode": "Skipped if either Yahoo fetch fails.",
       "owner": "Senior Quant",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-yield_curve-daily",
@@ -216,7 +222,9 @@
       "failure_mode": "Workflow raises StalenessError if Treasury.gov fetch returns no fresh observation. Was on FRED T10Y2Y until 2026-05-27 \u2014 migrated to Treasury.gov for same-day publication.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-move-daily",
@@ -252,7 +260,9 @@
       "failure_mode": "Curated anchor (stale) used when Yahoo blocks.",
       "owner": "Senior Quant",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "EOD index level"
     },
     {
       "id": "indicator-real_rates-daily",
@@ -288,7 +298,9 @@
       "failure_mode": "Workflow raises StalenessError if Treasury.gov fetch returns no fresh observation. Was on FRED DFII10 until 2026-05-27 \u2014 migrated to Treasury.gov for same-day publication (FRED DFII10 published ~20:00 UTC, after our morning workflow; Treasury.gov publishes ~16:00 ET, captured by our afternoon workflow).",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-breakeven_10y-daily",
@@ -320,7 +332,9 @@
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-real_rates-daily"
-      ]
+      ],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-copper_gold-daily",
@@ -356,7 +370,9 @@
       "failure_mode": "Skipped if either Yahoo fetch fails.",
       "owner": "Senior Quant",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-bkx_spx-daily",
@@ -396,7 +412,9 @@
       "failure_mode": "Skipped on Yahoo outage.",
       "owner": "Senior Quant",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-usd-daily",
@@ -432,7 +450,9 @@
       "failure_mode": "Per-indicator try/except. SD calibration in App.jsx (mean=99, sd=7) is DXY-scale.",
       "owner": "Senior Quant \u2014 Phase 2 review candidate",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-skew-daily",
@@ -468,7 +488,9 @@
       "failure_mode": "Skipped on Yahoo outage.",
       "owner": "Senior Quant",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "CBOE cash close"
     },
     {
       "id": "indicator-anfci-weekly",
@@ -502,7 +524,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-stlfsi-weekly",
@@ -532,7 +556,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-cpff-weekly",
@@ -566,7 +592,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-loan_syn-daily",
@@ -596,7 +624,9 @@
       "failure_mode": "Anchor-only fallback (stale).",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-bank_credit-weekly",
@@ -627,7 +657,9 @@
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "_sla_note": "H.8 TOTBKCR data-date lags ~2 weeks behind the weekly Friday release; 480h covers lag + cadence + grace."
+      "_sla_note": "H.8 TOTBKCR data-date lags ~2 weeks behind the weekly Friday release; 480h covers lag + cadence + grace.",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-jobless-weekly",
@@ -661,7 +693,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-cmdi-weekly",
@@ -691,7 +725,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-term_premium-daily",
@@ -726,7 +762,9 @@
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace."
+      "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace.",
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-cape-monthly",
@@ -760,7 +798,9 @@
       "failure_mode": "Falls back to _cape_fallback_monthly hardcoded anchor on scrape failure.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-ism-monthly",
@@ -794,7 +834,9 @@
       "failure_mode": "If TradingEconomics scrape fails, freshness chip will go stale (red) on next pipeline-health-check tick. Hardcoded anchors used as fallback for historical depth.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-jolts_quits-monthly",
@@ -824,7 +866,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-sloos_ci-quarterly",
@@ -854,7 +898,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-sloos_cre-quarterly",
@@ -884,7 +930,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-credit_3y-quarterly",
@@ -914,7 +962,9 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-bank_unreal-quarterly",
@@ -944,7 +994,9 @@
       "failure_mode": "Joe directive 2026-05-02: do not build a scraper. New QBP value publishes ~60d after quarter close; Joe pastes the new number into _bank_unreal_fallback_quarterly() once per quarter.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "scenario-v9_allocation-weekly",
@@ -1006,7 +1058,9 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [
         "scenario-v9_allocation-weekly"
-      ]
+      ],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "scenario-scenario_allocations-weekly",
@@ -1034,7 +1088,9 @@
       "dependencies": [
         "scenario-calibration-quarterly",
         "scenario-v9_allocation-weekly"
-      ]
+      ],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "scenario-calibration-quarterly",
@@ -1094,7 +1150,9 @@
       "failure_mode": "Soft-delist (active=false) for missing tickers; pipeline_health row 'massive-universe' flips amber/red.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "market-prices_eod-daily",
@@ -1124,7 +1182,9 @@
       "failure_mode": "pipeline_health 'massive-eod' flips red on UPSERT failure or empty response.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "market-ticker_reference-rolling",
@@ -1151,7 +1211,9 @@
       "failure_mode": "Rolling backfill priority queue; no immediate user-visible effect on transient failure.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "market-dividends-daily",
@@ -1178,7 +1240,9 @@
       "failure_mode": "pipeline_health row flips red on failure.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "market-splits-daily",
@@ -1205,7 +1269,9 @@
       "failure_mode": "pipeline_health row flips red on failure.",
       "owner": "Data Steward + Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "equity-universe_snapshots-3xday",
@@ -1238,7 +1304,9 @@
       "failure_mode": "UW 429/5xx retried 3\u00d7; supabase-py exception \u2192 workflow fails red, no auto-bug.",
       "owner": "Lead Dev \u2014 Phase 2 candidate to replace with Massive (now that Polygon covers universe master)",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "equity-ticker_events-3xday",
@@ -1270,7 +1338,9 @@
       "failure_mode": "Per-source try/except \u2014 one source can fail without sinking others (status='partial').",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "equity-latest_scan_data-daily",
@@ -1304,7 +1374,9 @@
       "failure_mode": "Push failure non-fatal (|| echo); email suppressed; no auto-bug.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "equity-user_scan_data-daily",
@@ -1338,7 +1410,9 @@
       "failure_mode": "Per-user write isolated; one user failure doesn't cascade.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "equity-earnings_history-weekly",
@@ -1366,7 +1440,9 @@
       "failure_mode": "Per-ticker write isolated.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "equity-options_chain-on_demand",
@@ -1620,7 +1696,9 @@
       "failure_mode": "Email alert via Resend on green\u2192red transition (24h debounce).",
       "owner": "Data Steward + UX Designer + Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "ops-bug_reports-event",
@@ -1647,7 +1725,9 @@
       "failure_mode": "Direct .insert() in ReportBug.jsx contradicts memory rule that public form should go through submit_bug_report RPC; verify RLS during Phase 2.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "ops-bug_status_log-event",
@@ -1674,7 +1754,9 @@
       "failure_mode": "Trigger fails silently; activity feed misses entries.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "ops-admin_users-static",
@@ -1764,7 +1846,9 @@
       "failure_mode": "User-edit failures bubble to UI.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "portfolio-positions-on_change",
@@ -1795,7 +1879,9 @@
       "failure_mode": "RPC throws on guard-rail violation.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "portfolio-watchlist-on_change",
@@ -1828,7 +1914,9 @@
       "failure_mode": "Insert fails \u2192 ticker not added.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "portfolio-transactions-on_change",
@@ -1859,7 +1947,9 @@
       "failure_mode": "Atomic with positions update \u2014 both succeed or both roll back.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "portfolio-portfolio_history-daily",
@@ -1889,7 +1979,9 @@
       "failure_mode": "Producer runs but neither hook is imported anywhere \u2014 Phase 2 candidate (consumer wiring or producer pause).",
       "owner": "Lead Dev \u2014 Phase 2 review",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "commentary-macro_commentary-daily",
@@ -1921,7 +2013,9 @@
       "failure_mode": "Threshold-gated; if no material moves, returns null and tile renders nothing.",
       "owner": "Senior Quant + Data Steward \u2014 Phase 2 cron audit",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "commentary-sector_commentary-daily",
@@ -1953,7 +2047,9 @@
       "failure_mode": "Per source: sector_rank_history table not wired; LLM gets no context, blurb stays null.",
       "owner": "Senior Quant + Lead Dev \u2014 Phase 2 fix",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "ops-bug_screenshots-event",
@@ -2020,7 +2116,9 @@
       "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-m2_yoy-monthly",
@@ -2060,7 +2158,9 @@
       "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-erp-monthly",
@@ -2088,7 +2188,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded -1.38% / 8th pct value; no live pipeline as of 2026-05-01.",
-      "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-buffett-quarterly",
@@ -2116,7 +2218,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded 232.7% / 100th pct value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-ig_oas-daily",
@@ -2144,7 +2248,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded 174 bp / 23rd pct.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-hy_ig_ratio-daily",
@@ -2175,7 +2281,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded ratio value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-fra_ois-daily",
@@ -2203,7 +2311,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value; no free source identified.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-real_fedfunds-monthly",
@@ -2231,7 +2341,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-margin_debt-monthly",
@@ -2259,7 +2371,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-put_call-daily",
@@ -2287,7 +2401,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-spx_200dma-daily",
@@ -2315,7 +2431,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "Falls back to SPY single-ticker proxy until prices_eod accumulates 200d history per ticker.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-adv_dec-daily",
@@ -2343,7 +2461,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-sofr_ois-daily",
@@ -2371,7 +2491,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal showed hardcoded mock value; wired in PR #2C.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-naaim-weekly",
@@ -2399,7 +2521,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "If naaim.org page structure changes, scrape returns 0 rows and chip goes stale (red).",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-ic4wsa-weekly",
@@ -2427,7 +2551,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "Per-indicator try/except.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-bkx_spx_v11-daily",
@@ -2455,7 +2581,9 @@
       ],
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "Per-indicator try/except.",
-      "owner": "Senior Quant, Lead Dev, Data Steward"
+      "owner": "Senior Quant, Lead Dev, Data Steward",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "v10-allocation-daily",
@@ -2526,7 +2654,9 @@
       "failure_mode": "Static file; if missing, Scenarios page shows an em-dash scenario picker and a red FreshnessChip on the picker.",
       "owner": "Data Steward (curation), Senior Quant (regime calls)",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "site-methodology_changelog-static",
@@ -2554,7 +2684,9 @@
       "failure_mode": "Static file; if missing, Methodology changelog section renders an empty list and a red FreshnessChip.",
       "owner": "Senior Quant (notes), Data Steward (curation)",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "indicator-fed_bs-weekly",
@@ -2582,7 +2714,9 @@
       "description": "Fed total assets YoY change (WALCL) \u2014 QE/QT direction.",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-rrp-daily",
@@ -2610,7 +2744,9 @@
       "description": "Overnight reverse-repo take-up at the Fed.",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-bank_reserves-weekly",
@@ -2638,7 +2774,9 @@
       "description": "Reserve balances of depository institutions at the Fed.",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-tga-weekly",
@@ -2666,7 +2804,9 @@
       "description": "Treasury General Account cash held at the Fed.",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-cfnai-monthly",
@@ -2694,7 +2834,9 @@
       "description": "Chicago Fed National Activity Index \u2014 85-component activity composite.",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-hy_ig_etf-daily",
@@ -2722,7 +2864,9 @@
       "description": "LQD\u00f7HYG price ratio \u2014 Yahoo-sourced HY-IG spread proxy (reference only).",
       "failure_mode": "All Indicators row + freshness chip show stale data.",
       "current_status": "live",
-      "owner": "Data Steward, Lead Dev"
+      "owner": "Data Steward, Lead Dev",
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "macrotilt-engine-history-daily",
@@ -2788,7 +2932,9 @@
       "failure_mode": "Holds prior NAV row if the Alpaca read fails.",
       "owner": "Lead Developer",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "portfolio.paper-positions-snapshot",
@@ -2816,7 +2962,9 @@
       "failure_mode": "Retains the prior snapshot if the Alpaca read fails.",
       "owner": "Lead Developer",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed"
     },
     {
       "id": "portfolio.paper-orders-intent",
@@ -2846,7 +2994,9 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [
         "portfolio.paper-positions-snapshot"
-      ]
+      ],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-cftc-cot-weekly",
@@ -2874,7 +3024,9 @@
       "failure_mode": "CFTC publishes Friday for Tuesday-dated data; the chip shows the report date, so a ~1-week lag is normal (SLA widened to match).",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator_history",
@@ -2904,7 +3056,9 @@
       "failure_mode": "Individual series skip on an upstream outage; the file retains last-good values.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-spx_above_50ema-daily",
@@ -2935,7 +3089,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
       "owner": "Senior Quant",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-spx_above_200ema-daily",
@@ -2966,7 +3122,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
       "owner": "Senior Quant",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-ndx_above_50ema-daily",
@@ -2997,7 +3155,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
       "owner": "Senior Quant",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-ndx_above_200ema-daily",
@@ -3028,7 +3188,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
       "owner": "Senior Quant",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     },
     {
       "id": "indicator-cmdty_gold-daily",
@@ -3059,7 +3221,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_silver-daily",
@@ -3090,7 +3254,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_copper-daily",
@@ -3121,7 +3287,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_uranium-weekly",
@@ -3152,7 +3320,9 @@
       "release_calendar": "weekly-friday",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_oil-daily",
@@ -3183,7 +3353,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_natgas-daily",
@@ -3214,7 +3386,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_corn-daily",
@@ -3245,7 +3419,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_soybeans-daily",
@@ -3276,7 +3452,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-cmdty_wheat-daily",
@@ -3307,7 +3485,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-fx_eur-daily",
@@ -3338,7 +3518,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-fx_jpy-daily",
@@ -3369,7 +3551,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-fx_gbp-daily",
@@ -3400,7 +3584,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "portfolio-scenario-impact",
@@ -3459,7 +3645,9 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "no single intraday cutoff"
     },
     {
       "id": "indicator-ust_10y-daily",
@@ -3495,7 +3683,9 @@
       "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-ust_2y-daily",
@@ -3531,7 +3721,9 @@
       "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:15",
+      "as_of_cutoff_note": "US rates close of business"
     },
     {
       "id": "indicator-unrate-monthly",
@@ -3565,7 +3757,9 @@
       "failure_mode": "Skipped on FRED outage; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "indicator-payrolls-monthly",
@@ -3599,7 +3793,9 @@
       "failure_mode": "Skipped on FRED outage; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "observation period figure"
     },
     {
       "id": "portfolio-ticker_betas-daily",
@@ -3627,7 +3823,9 @@
       "failure_mode": "Missing names fall back to sector move / 1.6 default.",
       "owner": "Senior Quant + Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "US market close"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

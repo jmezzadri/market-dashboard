@@ -219,6 +219,7 @@ function statusForElement(elementId, fallback) {
     // governance fields (Source, Frequency+calendar, Timing ET, SLA, Last update).
     cadence: manifestEl?.cadence || phRow?.cadence || null,
     scheduledFetchET: manifestEl?.scheduled_fetch_time_et || null,
+    asOfCutoffEt: manifestEl?.as_of_cutoff_et || null,
     reason,
     // Phase 2 of the Data Steward overhaul. dataAsOf is the trading day the
     // value represents — the chip's "Last close: <date>" copy uses this,
@@ -337,6 +338,7 @@ export function useFreshness(elementId, fallback) {
     calendar: rolled.calendar,
     cadence: rolled.cadence,
     scheduledFetchET: rolled.scheduledFetchET,
+    asOfCutoffEt: rolled.asOfCutoffEt,
     // Phase 2 — exposed to chips/tooltips so they can render the actual
     // trading day the value is from, the coverage ratio, and the next
     // expected refresh time.

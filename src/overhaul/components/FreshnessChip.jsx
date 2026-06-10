@@ -89,6 +89,33 @@ function fmtExact(iso) {
   });
 }
 
+function fmtAsOf(iso, cutoffEt) {
+  if (!iso) return '—';
+  const dateOnly = iso.length === 10;
+  if (!dateOnly) {
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return '—';
+    return dt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' });
+  }
+  const dt = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(dt.getTime())) return '—';
+  const dstr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  if (cutoffEt && /^\d{1,2}:\d{2}$/.test(cutoffEt)) {
+    const [hh, mm] = cutoffEt.split(':').map(Number);
+    const ap = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 || 12;
+    return `${dstr} \u00b7 ${h12}:${String(mm).padStart(2, '0')} ${ap} ET`;
+  }
+  return dstr; // date-only series carry no real intraday time — never fabricate one
+}
+
+function fmtFetched(iso) {
+  if (!iso) return '—';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' });
+}
+
 /* Plain-English Frequency, e.g. "Daily, trading days". */
 function freqLabel(cadence, calendar) {
   const cal = calendar === 'nyse-trading-day' ? 'trading days'
@@ -139,7 +166,8 @@ export default function FreshnessChip({
   // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
   const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
-  const exactStamp = fmtExact(f?.dataAsOf || f?.lastGoodAt);
+  const asOfExact = fmtAsOf(f?.dataAsOf, f?.asOfCutoffEt);
+  const fetchedExact = fmtFetched(f?.lastGoodAt);
 
   const onEnter = () => {
     setHover(true);
@@ -264,12 +292,12 @@ export default function FreshnessChip({
           >
             {/* Exactly the five fields, plain English, nothing else
                 (Joe directive 2026-06-02). */}
-            <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.55 }}>
+            <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {freqLabel(f?.cadence, f?.calendar)}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Timing (ET):</span> {etLabel(f?.scheduledFetchET)}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {f?.slaHours > 0 ? `${f.slaHours} hours` : '—'}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last update:</span> {exactStamp || '—'}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Updates:</span> {freqLabel(f?.cadence, f?.calendar)}</li>
+              <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>Data as of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last refreshed:</span> {fetchedExact}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {f?.slaHours > 0 ? `within ${f.slaHours} hours` : '—'}</li>
             </ol>
           </div>,
           document.body,
