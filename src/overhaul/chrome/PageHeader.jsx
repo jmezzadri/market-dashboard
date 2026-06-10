@@ -18,8 +18,9 @@ function AllFeedsPill() {
     Promise.all([
       fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
       fetch('/data_manifest.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+      fetch('/cot_positioning.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([d, man]) => {
+      .then(([d, man, cot]) => {
         if (off || !d || !man) return;
         const byName = {};
         for (const e of (Array.isArray(man.elements) ? man.elements : [])) {
@@ -32,6 +33,19 @@ function AllFeedsPill() {
           const sla = el && el.freshness_sla_hours;
           if (!sla || !s.as_of) continue;
           if (isStaleAgainstSLA(s.as_of, sla, el.release_calendar)) stale += 1;
+        }
+        // COT futures-positioning markets live in cot_positioning.json (not the
+        // indicator file). Count any whose own as-of is past the COT SLA so a
+        // stale positioning signal (e.g. frozen Credit dealer inventory) shows
+        // here too — matching the tile and the card dots.
+        const cotEl = (Array.isArray(man.elements) ? man.elements : []).find((e) => e && (e.name === 'cftc-cot' || String(e.id || '').includes('cftc-cot')));
+        const cotSla = (cotEl && cotEl.freshness_sla_hours) || 336;
+        if (cot && cot.domains) {
+          for (const dom of Object.values(cot.domains)) {
+            for (const mk of (dom.markets || [])) {
+              if (mk && mk.asof && isStaleAgainstSLA(mk.asof, cotSla, 'us-business-day')) stale += 1;
+            }
+          }
         }
         if (!off) setV({ status: stale > 0 ? 'red' : 'green', stale });
       })
