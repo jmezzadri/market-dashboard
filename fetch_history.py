@@ -79,7 +79,7 @@ DIRECTION = {
     "vix":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"nw",
     "move":"hw","anfci":"hw","stlfsi":"hw","real_rates":"hw",
     "sloos_ci":"hw","cape":"hw","ism":"lw","copper_gold":"lw",
-    "bkx_spx":"lw","bank_unreal":"hw","credit_3y":"hw","term_premium":"hw",
+    "bkx_spx":"lw","credit_3y":"hw","term_premium":"hw",
     "cmdi":"hw","loan_syn":"hw","usd":"hw","cpff":"hw","skew":"hw",
     "sloos_cre":"hw","bank_credit":"lw","jobless":"hw","jolts_quits":"lw",
     # New series added 2026-04-24 (PR feat/all-indicators-redesign-plus-new-data):
@@ -987,26 +987,6 @@ def fetch_all():
         result["credit_3y"] = {"freq": "Q", "unit": "% 3yr",
                                "points": series_to_points(g3q, round_dp=2)}
 
-    print("Bank Unrealized Losses (bank_unreal) ...")
-    # No free quarterly time-series; use curated FDIC-QBP anchor points
-    bank_unreal_anchor = [
-        ("2011-03-31", 1.5), ("2011-12-31", 1.0), ("2012-12-31", 0.8),
-        ("2013-03-31", 2.5), ("2013-12-31", 2.0), ("2014-12-31", 1.2),
-        ("2015-12-31", 0.8), ("2016-12-31", 1.0), ("2017-12-31", 1.5),
-        ("2018-12-31", 2.0), ("2019-12-31", 1.2), ("2020-12-31", 0.8),
-        ("2021-06-30", 2.0), ("2021-12-31", 4.5), ("2022-03-31", 9.0),
-        ("2022-06-30", 15.0), ("2022-09-30", 30.1), ("2022-12-31", 27.5),
-        ("2023-03-31", 28.6), ("2023-06-30", 27.2), ("2023-09-30", 25.5),
-        ("2023-12-31", 21.9), ("2024-03-31", 23.6), ("2024-06-30", 20.7),
-        ("2024-09-30", 16.4), ("2024-12-31", 18.5), ("2025-03-31", 19.8),
-        ("2025-06-30", 20.5), ("2025-09-30", 20.8), ("2025-12-31", 19.9),
-    ]
-    result["bank_unreal"] = {
-        "freq": "Q", "unit": "% T1",
-        "points": [[d, round(v, 2)] for d, v in bank_unreal_anchor],
-        "source": "FDIC QBP anchor (curated)",
-    }
-
 
     # ── NEW SERIES (2026-04-24) — Joe-validated FRED series + ETF proxy ─────
     print("M2 Money Supply YoY (m2_yoy) ...")
@@ -1237,39 +1217,6 @@ def fetch_all():
     except Exception as e:
         print(f"  NAAIM scrape failed: {e}")
 
-    print("Equity Put/Call Ratio (put_call) — UW universe_snapshots aggregate ...")
-    # PR ζ (2026-05-02): replaced the broken CBOE CSV scrape with an aggregation
-    # from data we already pay for. UW universe_snapshots holds per-ticker
-    # call_volume / put_volume × 3 snapshots/weekday × ~1700 tickers. Sum across
-    # the universe → market-aggregate put/call ratio. Same risk signal as
-    # CBOE's aggregate, computed from our covered universe.
-    pcr_rows = _supabase_query(
-        "universe_snapshots?"
-        "select=snapshot_ts,call_volume,put_volume"
-        "&snapshot_ts=gte.2024-01-01"
-        "&limit=200000"
-    )
-    if pcr_rows:
-        # Group by date, sum calls + puts, compute ratio
-        import collections
-        agg = collections.defaultdict(lambda: [0.0, 0.0])
-        for r in pcr_rows:
-            ts = r.get("snapshot_ts","")
-            d = ts[:10] if len(ts) >= 10 else None
-            if not d: continue
-            cv = float(r.get("call_volume") or 0)
-            pv = float(r.get("put_volume") or 0)
-            agg[d][0] += cv
-            agg[d][1] += pv
-        pcr_pts = []
-        for d in sorted(agg.keys()):
-            cv, pv = agg[d]
-            if cv > 0:
-                pcr_pts.append([d, round(pv / cv, 3)])
-        if pcr_pts:
-            result["put_call"] = {"freq": "D", "unit": "ratio",
-                                   "points": pcr_pts}
-            print(f"  put_call: {len(pcr_pts)} daily points from UW universe_snapshots")
 
 
     print("FINRA Margin Debt YoY (margin_debt) — finra.org monthly statistics page scrape ...")

@@ -395,7 +395,6 @@ def fetch_all():
         results["bkx_spx"] = (round(kbe[0] / spy[0], 3), kbe[1])
 
     print("  Bank Unrealized Losses (manual quarterly)...")
-    results["bank_unreal"] = (BANK_UNREAL_VALUE, BANK_UNREAL_AS_OF)
 
     print("  3Y Bank Credit Growth...")
     try:

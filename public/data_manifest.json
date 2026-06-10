@@ -967,38 +967,6 @@
       "as_of_cutoff_note": "observation period figure"
     },
     {
-      "id": "indicator-bank_unreal-quarterly",
-      "category": "indicator",
-      "name": "bank_unreal",
-      "description": "Bank unrealized losses on AFS+HTM, % of Tier-1 capital \u2014 banking system fragility.",
-      "sourcing_mode": "curated",
-      "source_vendor": "FDIC QBP (manual)",
-      "source_endpoint": "FDIC Quarterly Banking Profile \u2014 manual quarterly update (Joe pastes 1 number per quarter ~60 days after quarter close)",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "quarterly (manual)",
-      "scheduled_fetch_time_et": "manual",
-      "refresh_trigger": "manual edit by Joe per quarter",
-      "freshness_sla_hours": 2496,
-      "output_destination": "public/indicator_history.json[bank_unreal]",
-      "producer_script": "_bank_unreal_fallback_quarterly() in fetch_history.py \u2014 Joe edits the anchor list each quarter",
-      "consumer_surfaces": [
-        {
-          "tab": "indicators"
-        },
-        {
-          "tab": "readme"
-        }
-      ],
-      "current_status": "live_manual_quarterly",
-      "failure_mode": "Joe directive 2026-05-02: do not build a scraper. New QBP value publishes ~60d after quarter close; Joe pastes the new number into _bank_unreal_fallback_quarterly() once per quarter.",
-      "owner": "Senior Quant \u2014 Phase 2 priority",
-      "release_calendar": "us-business-day",
-      "dependencies": [],
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
-    },
-    {
       "id": "scenario-v9_allocation-weekly",
       "category": "scenario",
       "name": "v10_allocation",
@@ -2193,36 +2161,6 @@
       "as_of_cutoff_note": "observation period figure"
     },
     {
-      "id": "indicator-buffett-quarterly",
-      "category": "indicator",
-      "name": "buffett",
-      "description": "Buffett Indicator \u2014 US equity market cap as share of GDP. Wilshire 5000 / Nominal GDP.",
-      "sourcing_mode": "computed",
-      "source_vendor": "FRED",
-      "source_endpoint": "FRED NCBCEL / GDP",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "quarterly",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 3600,
-      "release_calendar": "us-business-day",
-      "dependencies": [],
-      "output_destination": "public/indicator_history.json[buffett] (PENDING)",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "v11 Valuation mechanism modal \u2014 indicator row"
-        }
-      ],
-      "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "v11 modal shows hardcoded 232.7% / 100th pct value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward",
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
-    },
-    {
       "id": "indicator-ig_oas-daily",
       "category": "indicator",
       "name": "ig_oas",
@@ -2374,36 +2312,6 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "observation period figure"
-    },
-    {
-      "id": "indicator-put_call-daily",
-      "category": "indicator",
-      "name": "put_call",
-      "description": "CBOE equity put/call ratio \u2014 equity put volume divided by call volume. Low values = complacent positioning.",
-      "sourcing_mode": "computed",
-      "source_vendor": "Unusual Whales (universe_snapshots aggregate)",
-      "source_endpoint": "public.universe_snapshots \u2014 sum(put_volume)/sum(call_volume) across our covered universe",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 49,
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [],
-      "output_destination": "public/indicator_history.json[put_call] (PENDING)",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
-        }
-      ],
-      "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "v11 modal shows hardcoded value.",
-      "owner": "Senior Quant, Lead Dev, Data Steward",
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
     },
     {
       "id": "indicator-spx_200dma-daily",
