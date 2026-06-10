@@ -112,6 +112,61 @@ def pctrank(series):
     return round(float((w <= cur).mean() * 100.0))
 
 
+NYFED_PD_URL = "https://markets.newyorkfed.org/api/pd/get/{}.json"
+IG_KEYS = ["PDPOSCSBND-L13", "PDPOSCSBND-G13", "PDPOSCSBND-G5L10", "PDPOSCSBND-G10"]
+HY_KEYS = ["PDPOSCSBND-BELL13", "PDPOSCSBND-BELG13", "PDPOSCSBND-BELG5L10", "PDPOSCSBND-BELG10"]
+
+
+def _nyfed_series(keyid):
+    """One NY Fed Primary Dealer weekly series -> pd.Series(index=date, value=$mm)."""
+    import requests
+    r = requests.get(NYFED_PD_URL.format(keyid), timeout=60)
+    r.raise_for_status()
+    rows = r.json().get("pd", {}).get("timeseries", [])
+    out = {}
+    for o in rows:
+        try:
+            out[str(o["asofdate"])[:10]] = float(o["value"])
+        except (TypeError, ValueError, KeyError):
+            continue
+    return pd.Series(out)
+
+
+def _dealer_market(disp, keys, start):
+    """Net primary-dealer inventory ($bn) summed across the 4 maturity buckets,
+    percentile-ranked in its own 3-year range. Dealer inventory, NOT speculators."""
+    s = None
+    for k in keys:
+        ser = _nyfed_series(k)
+        s = ser if s is None else s.add(ser, fill_value=0)
+    if s is None or s.empty:
+        return None
+    s = s.sort_index()
+    s = s[s.index >= start]
+    bn = (s / 1000.0).dropna()
+    if bn.empty:
+        return None
+    pct = pctrank(bn)
+    hist = [[str(d)[:10], round(float(v), 1), None] for d, v in bn.items()][-WINDOW:]
+    return {
+        "market": disp, "spec": pct, "comm": None,
+        "specNet": round(float(bn.iloc[-1]), 1),
+        "asof": str(bn.index[-1])[:10], "history": hist, "dealerUnit": "$bn net",
+    }
+
+
+def credit_takeaway(markets):
+    hot = max(markets, key=lambda m: m["spec"])
+    nm, p = hot["market"].lower(), hot["spec"]
+    if p >= 90:
+        return (f"Primary dealers are warehousing heavy credit inventory \u2014 {nm} at a 3-year peak "
+                f"(the {p}th percentile of dealers' net positions). Full balance sheets leave less room to absorb client selling.")
+    if p <= 10:
+        return (f"Primary dealers are carrying unusually light credit inventory \u2014 {nm} near a 3-year low "
+                f"(the {p}th percentile of dealers' net positions).")
+    return (f"Primary-dealer credit inventory sits mid-range \u2014 {nm} at the {p}th percentile of its 3-year net-position range.")
+
+
 def takeaway_for(domain, markets):
     """Data-true one-sentence read for a bucket. Anchored to the most stretched
     market so it can never contradict the numbers on the tiles."""
@@ -184,8 +239,29 @@ def run():
         except Exception:
             prior = {}
     fresh_buckets = set(domains.keys())          # only the CFTC-built buckets
-    if "Credit" in prior and "Credit" not in domains:
-        domains["Credit"] = prior["Credit"]      # keep its existing headline + takeaway as-is
+    # Credit bucket = live NY Fed Primary Dealer net inventory in IG / HY
+    # corporate bonds (dealer inventory; NOT CFTC speculators/hedgers).
+    try:
+        start4 = (dt.date.today() - dt.timedelta(days=365 * 4)).isoformat()
+        ig = _dealer_market("Investment-grade bonds", IG_KEYS, start4)
+        hy = _dealer_market("High-yield bonds", HY_KEYS, start4)
+        cmk = [m for m in (ig, hy) if m]
+        if cmk:
+            cr_asof = max(m["asof"] for m in cmk)
+            top = max(cmk, key=lambda m: m["spec"])
+            domains["Credit"] = {
+                "markets": cmk, "dealer": True, "as_of": cr_asof,
+                "takeaway": credit_takeaway(cmk),
+                "headline": {"market": top["market"], "spec": top["spec"], "comm": None, "div": False},
+            }
+            latest = max(latest, cr_asof) if latest else cr_asof
+            print(f"  Credit (NY Fed dealer) IG p{ig['spec'] if ig else '-'} HY p{hy['spec'] if hy else '-'} as_of {cr_asof}")
+        elif "Credit" in prior:
+            domains["Credit"] = prior["Credit"]; print("  Credit: NY Fed empty, kept prior")
+    except Exception as e:
+        print(f"  Credit NY Fed fetch failed: {e}")
+        if "Credit" in prior:
+            domains["Credit"] = prior["Credit"]
     # headline + takeaway only for freshly built buckets (preserved buckets keep
     # theirs). Defensive .get so a market missing a field can never crash the run.
     for b in fresh_buckets:

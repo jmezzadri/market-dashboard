@@ -217,7 +217,7 @@ function PositioningCard({ item, onClick }) {
         <span className={`mt-tag mt-tag--${posState(item.spec) === 'extreme' ? 'extreme' : posState(item.spec) === 'elevated' ? 'elev' : 'calm'}`}>{posRead(item.spec)}</span>
       </div>
       <div style={{ color: accent }}><Sparkline data={trend} width={240} height={28} stroke={accent} showDot /></div>
-      <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)' }}>speculators · net {item.specNet}{isDealer ? '' : '%'}</div>
+      <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)' }}>{isDealer ? `dealers · net $${item.specNet}bn` : `speculators · net ${item.specNet}%`}</div>
     </button>
   );
 }
@@ -279,9 +279,11 @@ function PositioningDetail({ item, onClose, catalog = [] }) {
           <div style={{ marginTop: 6 }}><FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="label" /></div>
         </div>
       </header>
-      <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 6 }}>Speculators net {item.specNet}{isDealer ? '' : '%'} — {read}.</div>
+      <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 6 }}>{isDealer ? `Dealers' net inventory $${item.specNet}bn` : `Speculators net ${item.specNet}%`} — {read}.</div>
       <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
-        Where the speculative crowd's net futures position sits in its own 3-year range. Near the top (90th+) the crowd is heavily long — a crowded trade, fragile to a reversal down; near the bottom (10th-) heavily short — squeeze risk to the upside. {isDealer ? 'The dealers shown are the commercial hedgers, who take the other side.' : 'The commercial hedgers (overlaid) take the other side.'} An extreme flags fragility, not timing.
+        {isDealer
+          ? "Where primary dealers' net inventory in these corporate bonds sits in its own 3-year range — from the NY Fed's weekly Primary Dealer Statistics. Near the top (90th+) dealers are warehousing a lot of credit risk, so balance sheets are full and there's less room to absorb client selling; near the bottom (10th-) dealers hold little inventory. This is dealer positioning — not speculators or commercial hedgers."
+          : "Where the speculative crowd's net futures position sits in its own 3-year range. Near the top (90th+) the crowd is heavily long — a crowded trade, fragile to a reversal down; near the bottom (10th-) heavily short — squeeze risk to the upside. The commercial hedgers (overlaid) take the other side. An extreme flags fragility, not timing."}
       </p>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="mt-pillgroup">
@@ -302,11 +304,11 @@ function PositioningDetail({ item, onClose, catalog = [] }) {
           {overlay && <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
         </div>
       )}
-      <BigHistoryChart points={spec} accent={accent} height={280} freq="W" primaryLabel="Speculators"
+      <BigHistoryChart points={spec} accent={accent} height={280} freq="W" primaryLabel={isDealer ? 'Dealer net inventory' : 'Speculators'}
         overlays={isDealer ? [] : [{ points: comm, color: 'var(--mt-ink-3)', label: 'Commercials (hedgers)', dash: '4 3' }]}
         compareData={overlay ? overlay.points : null}
         compareLabel={overlay ? overlay.label : ''}
-        yFormat={(v) => `${v.toFixed(1)}${isDealer ? '' : '%'}`} />
+        yFormat={(v) => (isDealer ? `$${v.toFixed(1)}bn` : `${v.toFixed(1)}%`)} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
         <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
         <PosStat label="Speculator percentile" v={`${Math.round(item.spec)}th`} />
