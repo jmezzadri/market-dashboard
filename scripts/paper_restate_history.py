@@ -109,7 +109,9 @@ def restate_date(d: str) -> None:
        set current_price = px.close,
            lastday_price = coalesce(prior.close, p.lastday_price),
            market_value  = p.quantity * px.close,
-           unrealized_pnl = (p.quantity * px.close) - p.cost_basis,
+           unrealized_pnl = case when p.cost_basis is not null
+               then (p.quantity * px.close) - p.cost_basis
+               else p.unrealized_pnl end,
            unrealized_intraday_pl = case when prior.close is not null
                then p.quantity * (px.close - prior.close)
                else p.unrealized_intraday_pl end,
