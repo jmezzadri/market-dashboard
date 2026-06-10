@@ -110,8 +110,8 @@ DAILY_FRESHNESS_SLA = {
     "eq_cr_corr":    1,  # Yahoo SPY / HYG
     "hy_ig_etf":     1,  # Yahoo LQD / HYG
     "yield_curve":   1,  # Treasury.gov (was FRED T10Y2Y)
-    "ust_10y":       2,  # FRED DGS10 (T+1 publication)
-    "ust_2y":        2,  # FRED DGS2 (T+1 publication)
+    "ust_10y":       1,  # Treasury.gov nominal 10Y (same-day)
+    "ust_2y":        1,  # Treasury.gov nominal 2Y (same-day)
     "real_rates":    1,  # Treasury.gov (was FRED DFII10)
     "breakeven_10y": 1,  # Treasury.gov computed (was FRED T10YIE)
     "hy_ig":         2,  # FRED BAMLH0A0HYM2 (T+1 publication)
@@ -822,17 +822,22 @@ def fetch_all():
         result["jobless"] = {"freq": "W", "unit": "K",
                              "points": series_to_points(s / 1000.0, round_dp=1)}
 
-    print("10-Year Treasury Yield (ust_10y) — FRED DGS10 ...")
-    s = safe_fred("DGS10")
+    # Same-day Treasury.gov nominal curve (FRED's upstream publisher). FRED's
+    # DGS10/DGS2 lag one business day, which left the 10Y/2Y a day behind their
+    # own siblings (yield_curve/real_rates already use Treasury.gov). 2026-06-09.
+    print("10-Year Treasury Yield (ust_10y) — Treasury.gov nominal 10Y (same-day) ...")
+    s = safe_treasury("nominal", "10 Yr")
     if s is not None:
         result["ust_10y"] = {"freq": "D", "unit": "%",
-                             "points": series_to_points(s, round_dp=2)}
+                             "points": series_to_points(s, round_dp=2),
+                             "source": "Treasury.gov daily yield curve (10Y nominal)"}
 
-    print("2-Year Treasury Yield (ust_2y) — FRED DGS2 ...")
-    s = safe_fred("DGS2")
+    print("2-Year Treasury Yield (ust_2y) — Treasury.gov nominal 2Y (same-day) ...")
+    s = safe_treasury("nominal", "2 Yr")
     if s is not None:
         result["ust_2y"] = {"freq": "D", "unit": "%",
-                            "points": series_to_points(s, round_dp=2)}
+                            "points": series_to_points(s, round_dp=2),
+                            "source": "Treasury.gov daily yield curve (2Y nominal)"}
 
     print("Unemployment Rate (unrate) — FRED UNRATE ...")
     s = safe_fred("UNRATE")
