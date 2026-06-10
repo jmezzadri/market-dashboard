@@ -203,14 +203,17 @@ function statusForElement(elementId, fallback) {
   // NO date at all is "freshness tracking not configured yet" — render green
   // and let the tooltip explain, rather than train the user to ignore a chip
   // that just says "no record".
-  let status = "green";
+  // GREEN only when a value is affirmatively graded within its SLA. Anything
+  // we cannot confirm is "unknown" (never green) — Joe 2026-06-02: untracked is
+  // never green; no fake-green anywhere on the site.
+  let status = "unknown";
   let reason = null;
 
   const isUntracked = !manifestEl && !phRow && !dataDate && !lastGoodAt;
 
   if (isUntracked) {
-    status = "green";
-    reason = "Freshness tracking not yet configured for this element";
+    status = "unknown";
+    reason = "Freshness not tracked for this element";
   } else if (lastError) {
     status = "red";
     reason = `Upstream error: ${lastError}`;
@@ -218,12 +221,14 @@ function statusForElement(elementId, fallback) {
     status = "red";
     reason = "No successful refresh on record";
   } else if (slaHours > 0) {
-    // Grade the DATA's as-of date against the SLA. Fall back to the cron-run
-    // time only when no data date is available at all.
-    if (isStaleAgainstSLA(dataDate || lastGoodAt, slaHours, calendar)) {
-      status = "red";
-      reason = "Past freshness SLA";
-    }
+    status = isStaleAgainstSLA(dataDate || lastGoodAt, slaHours, calendar)
+      ? "red"
+      : "green";
+    reason = status === "red" ? "Past freshness SLA" : null;
+  } else {
+    // Have a date but no SLA to grade against — cannot confirm fresh.
+    status = "unknown";
+    reason = "No freshness target configured — cannot confirm";
   }
 
   return {
