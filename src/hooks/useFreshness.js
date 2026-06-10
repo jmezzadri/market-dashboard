@@ -65,6 +65,8 @@ function mostRecentIso(a, b) {
 let cachedRows = null;        // Map<indicator_id, pipeline_health row>
 let lastFetchAt = 0;
 let inflight = null;
+let cachedGeneratedAt = null;   // indicator_history.json __meta__.generated_at_utc = the REAL build time
+let metaInflight = null;
 const listeners = new Set();
 
 function notify() { listeners.forEach((fn) => fn()); }
@@ -100,8 +102,27 @@ async function fetchRows() {
   return cachedRows;
 }
 
+async function fetchGeneratedAt() {
+  // Real "last refreshed" time for file-backed indicators. The pipeline_health
+  // last_good_at is an unreliable/synthetic value (it showed market-close 4PM,
+  // making "Data as of" and "Last refreshed" identical). The indicator file's
+  // __meta__.generated_at_utc is the actual moment the data was last written.
+  try {
+    const r = await fetch("/indicator_history.json", { cache: "no-cache" });
+    if (r.ok) {
+      const j = await r.json();
+      cachedGeneratedAt = j?.__meta__?.generated_at_utc || null;
+    }
+  } catch {
+    /* non-fatal — falls back to pipeline_health last_good_at */
+  }
+}
+
 function ensureFresh() {
   const now = Date.now();
+  if (!cachedGeneratedAt && !metaInflight) {
+    metaInflight = fetchGeneratedAt().finally(() => { metaInflight = null; notify(); });
+  }
   if (cachedRows && now - lastFetchAt < REFRESH_MS) return;
   if (inflight) return;
   inflight = fetchRows().finally(() => {
@@ -212,6 +233,12 @@ function statusForElement(elementId, fallback) {
     lastError,
     slaHours,
     calendar,
+    // Real fetch time: prefer the indicator file's true build timestamp for
+    // file-backed indicators; fall back to pipeline_health for everything else.
+    lastRefreshedAt:
+      (String(manifestEl?.output_destination || "").includes("indicator_history.json")
+        ? cachedGeneratedAt
+        : null) || lastGoodAt,
     label: manifestEl?.name || phRow?.label || elementId,
     description: manifestEl?.description || null,
     sourceVendor: manifestEl?.source_vendor || phRow?.source || null,
@@ -330,6 +357,7 @@ export function useFreshness(elementId, fallback) {
     indicatorId: elementId,            // legacy field name
     elementId,                          // new field name; same value
     lastGoodAt: rolled.lastGoodAt,
+    lastRefreshedAt: rolled.lastRefreshedAt,
     lastError: rolled.lastError,
     label: rolled.label,
     description: rolled.description,
