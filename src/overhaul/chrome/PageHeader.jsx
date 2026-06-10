@@ -5,6 +5,55 @@
 import React from 'react';
 import FreshnessChip from '../components/FreshnessChip';
 import { useTweaks } from '../tweaks/TweaksContext';
+import { isStaleAgainstSLA } from '../../lib/freshnessClock';
+
+// "All feeds" pill — a TRUE rollup across every indicator feed. (Was a single
+// universe_master check that read green regardless of other stale feeds.)
+// Red names how many feeds are past their freshness target; green only when
+// every indicator is current.
+function AllFeedsPill() {
+  const [v, setV] = React.useState({ status: 'checking', stale: 0 });
+  React.useEffect(() => {
+    let off = false;
+    Promise.all([
+      fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+      fetch('/data_manifest.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([d, man]) => {
+        if (off || !d || !man) return;
+        const byName = {};
+        for (const e of (Array.isArray(man.elements) ? man.elements : [])) {
+          if (e && e.name) byName[e.name] = e;
+        }
+        let stale = 0;
+        for (const [name, s] of Object.entries(d)) {
+          if (name === '__meta__' || !s || typeof s !== 'object') continue;
+          const el = byName[name];
+          const sla = el && el.freshness_sla_hours;
+          if (!sla || !s.as_of) continue;
+          if (isStaleAgainstSLA(s.as_of, sla, el.release_calendar)) stale += 1;
+        }
+        if (!off) setV({ status: stale > 0 ? 'red' : 'green', stale });
+      })
+      .catch(() => {});
+    return () => { off = true; };
+  }, []);
+  const color =
+    v.status === 'red' ? 'var(--mt-down)' : v.status === 'green' ? 'var(--mt-up)' : 'var(--mt-ink-3)';
+  const text =
+    v.status === 'checking' ? 'Checking feeds\u2026'
+      : v.status === 'red' ? `${v.stale} feed${v.stale > 1 ? 's' : ''} stale`
+        : 'All feeds current';
+  return (
+    <span
+      title={v.status === 'red' ? 'Open a red tile to see which feed is stale' : 'Every indicator feed is within its freshness target'}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      {text}
+    </span>
+  );
+}
 
 function nyseMarketState(now = new Date()) {
   // Lightweight client-side approximation. NYSE 9:30 ET → 16:00 ET on weekdays.
@@ -74,11 +123,7 @@ export default function PageHeader() {
             fictional ID resolved to "no manifest entry → green" which made
             the All-feeds chip permanently green regardless of actual
             pipeline state. */}
-        <FreshnessChip
-          elementId="market-universe_master-daily"
-          variant="pill"
-          label="All feeds"
-        />
+        <AllFeedsPill />
         <button
           type="button"
           className="mt-iconbtn"
