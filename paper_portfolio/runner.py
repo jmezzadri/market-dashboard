@@ -51,6 +51,9 @@ def _live_trading_enabled() -> bool:
 from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.freshness import check_freshness, file_alert
 from paper_portfolio.mirror import (
+    certify_snapshot_prices,
+    official_closes,
+    _et_today,
     ensure_paper_schema,
     mirror_fills,
     mirror_positions,
@@ -191,30 +194,67 @@ def run_eod_phase(
 
 
 def run_open_phase(
-    snapshot_date: date | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Fills + positions + NAV mirror. Used by both the morning OPEN refresh
-    and the authoritative CLOSE-of-day snapshot (same logic, different time —
-    the close run captures settled closing prices for the backtest record)."""
+    """Morning (post-open) phase — fills mirror + close-price certification.
+
+    Changed 2026-06-10 (Joe directive: the page shows close-of-business marks
+    only). This phase no longer creates a positions snapshot or NAV row — the
+    CLOSE phase owns those. The old behavior rewrote the display snapshot at
+    whatever clock time GitHub delivered the cron (12:49 PM on 2026-06-10),
+    which read as a midday intraday refresh. Now the morning run only:
+      1. mirrors overnight/opening fills (rebalance log + emails), and
+      2. certifies the latest close snapshot against prices_eod — Polygon's
+         full T+1 panel lands overnight, so by ~09:45 ET the canonical feed
+         can confirm (or correct) the broker closes written yesterday 16:50.
+    """
     logger.info("=" * 60)
-    logger.info("PHASE OPEN/CLOSE — fill + position + NAV mirror")
+    logger.info("PHASE OPEN — fills mirror + close-price certification")
     logger.info("=" * 60)
     if not dry_run:
         ensure_paper_schema()
     alpaca = AlpacaPaperClient()
-    # The fills mirror is the LEAST critical of the three writes (it feeds the
-    # trade-history table, not the NAV/P&L the page leads with). It must never
-    # take down the positions snapshot or the NAV write — that is exactly the
-    # failure that froze the Paper Portfolio page for two days (2026-05-27/28).
-    # Isolate it: log and continue rather than abort the whole phase.
     try:
         n_fills = mirror_fills(alpaca=alpaca, dry_run=dry_run)
     except Exception:
-        logger.exception("mirror_fills failed — continuing to positions + NAV mirror")
+        logger.exception("mirror_fills failed — continuing to certification")
         n_fills = -1
-    n_pos = mirror_positions(alpaca=alpaca, snapshot_date=snapshot_date, dry_run=dry_run)
-    nav = write_nav_daily(alpaca=alpaca, snapshot_date=snapshot_date, dry_run=dry_run)
+    if dry_run:
+        logger.info("[dry-run] would certify latest snapshot prices from prices_eod")
+        n_cert = 0
+    else:
+        n_cert = certify_snapshot_prices()
+    stamp_paper_pipeline_health(dry_run=dry_run)
+    return {"fills": n_fills, "certified": n_cert}
+
+
+def run_close_phase(
+    snapshot_date: date | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Close-of-business snapshot — THE daily record the page displays.
+
+    Runs ~16:50 ET. Values every holding, both sleeve tables, and the NAV row
+    at the session's OFFICIAL closing prices (daily bars), so a late cron
+    cannot contaminate the record with after-hours marks. Skips cleanly on
+    holidays/weekends (no SPY session bar = no session)."""
+    logger.info("=" * 60)
+    logger.info("PHASE CLOSE — official-close positions + NAV snapshot")
+    logger.info("=" * 60)
+    if not dry_run:
+        ensure_paper_schema()
+    alpaca = AlpacaPaperClient()
+    session = snapshot_date or _et_today()
+    if not official_closes(alpaca, ["SPY"], session):
+        logger.info("no SPY session bar for %s — market closed or bar not yet published; skipping", session)
+        return {"skipped": str(session)}
+    try:
+        n_fills = mirror_fills(alpaca=alpaca, dry_run=dry_run)
+    except Exception:
+        logger.exception("mirror_fills failed — continuing to positions + NAV snapshot")
+        n_fills = -1
+    n_pos = mirror_positions(alpaca=alpaca, snapshot_date=session, dry_run=dry_run, price_mode="close")
+    nav = write_nav_daily(alpaca=alpaca, snapshot_date=session, dry_run=dry_run, price_mode="close")
     # Stamp each paper feed's freshness row so the chips read real (not
     # fake-green) status and the rebalance chip's positions dependency resolves.
     stamp_paper_pipeline_health(dry_run=dry_run)
@@ -224,9 +264,10 @@ def run_open_phase(
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="MacroTilt paper-portfolio nightly runner.")
     p.add_argument("--phase", choices=["eod", "open", "close", "all"], default="eod",
-                   help="eod=order intent (16:30 ET); open=morning mirror (09:45 ET); "
-                        "close=authoritative end-of-day snapshot at settled close prices "
-                        "(16:10 ET) — the daily backtest record; all=eod+open.")
+                   help="eod=order intent (pre-open submit window); "
+                        "open=morning fills mirror + close-price certification (09:45 ET); "
+                        "close=official-close positions + NAV snapshot (16:50 ET) — "
+                        "the daily record the page displays; all=eod+close.")
     p.add_argument("--account", help="paper account_number override")
     p.add_argument("--asset-tilt-path", default="public/v10_allocation.json")
     p.add_argument("--scan-date", help="explicit scanner scan_date (YYYY-MM-DD)")
@@ -258,8 +299,10 @@ def main(argv: list[str] | None = None) -> int:
             scan_date=args.scan_date,
             dry_run=effective_dry_run,
         )
-    if args.phase in ("open", "close", "all"):
+    if args.phase == "open":
         run_open_phase(dry_run=effective_dry_run)
+    if args.phase in ("close", "all"):
+        run_close_phase(dry_run=effective_dry_run)
     logger.info("runner done — phase=%s dry_run=%s", args.phase, effective_dry_run)
     return 0
 

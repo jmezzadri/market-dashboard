@@ -88,6 +88,27 @@ def _supabase_exec(sql: str) -> None:
     _ = _supabase_query(sql)
 
 
+from zoneinfo import ZoneInfo
+
+_ET = ZoneInfo("America/New_York")
+
+
+def _et_today() -> date:
+    """Today's date in US-Eastern — the trading-session calendar. Using the
+    UTC date stamped evening EST runs (21:50 ET = 02:50 UTC next day) with
+    TOMORROW's date; every session label must be ET."""
+    return datetime.now(tz=_ET).date()
+
+
+def _session_close_iso(d_str: str) -> str:
+    """4:00 PM ET on the given YYYY-MM-DD, expressed as UTC ISO. Used to
+    stamp data_as_of so a date-only snapshot renders as 'Jun 10, 4:00 PM EDT'
+    instead of midnight-UTC (which displayed as 8:00 PM the PRIOR day in ET —
+    the 'last refresh was June 9?!' confusion of 2026-06-10)."""
+    d = date.fromisoformat(d_str)
+    return datetime(d.year, d.month, d.day, 16, 0, tzinfo=_ET).astimezone(timezone.utc).isoformat()
+
+
 def _sql_escape(s: str | None) -> str:
     if s is None:
         return "NULL"
@@ -140,11 +161,15 @@ def stamp_paper_pipeline_health(dry_run: bool = False) -> None:
             continue
         if not d:
             continue
-        as_of = f"{d}T00:00:00+00:00" if len(d) == 10 else d
+        # Date-only stamps (positions/nav snapshot_date) anchor to the 4:00 PM
+        # ET session close of that date; full timestamps (orders created_at)
+        # pass through. last_good_at = now(): this stamp only runs right after
+        # a successful produce, so "last refreshed" is the real run moment.
+        as_of = _session_close_iso(d) if len(d) == 10 else d
         rows_sql.append(
             "(" + ", ".join([
                 _sql_escape(ind_id), _sql_escape(label), _sql_escape(source),
-                "'D'", "1440", "'green'", _sql_escape(as_of), "now()",
+                "'D'", "1440", "'green'", "now()", "now()",
                 _sql_escape(as_of), "NULL", "now()",
             ]) + ")"
         )
@@ -398,6 +423,49 @@ def _sleeve_for(ticker: str, sleeve_a_universe: set[str]) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Official-close pricing (close phase)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def official_closes(alpaca: "AlpacaPaperClient", tickers, session_date: date) -> dict:
+    """Official daily-bar closes for session_date plus the prior session's
+    close, per ticker, from the market-data host. {TICKER: (close, prev)}.
+    Tickers whose latest bar is NOT session_date are omitted (no bar = the
+    session didn't trade, or the bar isn't published yet)."""
+    out: dict[str, tuple] = {}
+    start = (session_date - timedelta(days=15)).isoformat()
+    tgt = session_date.isoformat()
+    for t in tickers:
+        bars = [(d, c) for d, c in alpaca.get_daily_closes(t, start) if d <= tgt]
+        if not bars or bars[-1][0] != tgt:
+            continue
+        out[t.upper()] = (bars[-1][1], bars[-2][1] if len(bars) >= 2 else None)
+    return out
+
+
+def _reprice_positions_to_close(positions, closes: dict) -> int:
+    """Mutate broker position rows to official session closes so every value
+    written downstream (positions snapshot AND the NAV row) is marked at the
+    close — immune to after-hours drift when the run fires late. Names with
+    no session bar keep broker marks (logged by the caller)."""
+    n = 0
+    for p in positions:
+        cp = closes.get(p.ticker.upper())
+        if not cp:
+            continue
+        close, prev = cp
+        p.current_price = close
+        p.market_value = p.qty * close
+        p.unrealized_pl = p.market_value - p.cost_basis
+        p.unrealized_plpc = (p.unrealized_pl / p.cost_basis) if p.cost_basis else 0.0
+        if prev:
+            p.lastday_price = prev
+            p.unrealized_intraday_pl = p.qty * (close - prev)
+            p.unrealized_intraday_plpc = (close / prev - 1.0)
+        n += 1
+    return n
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 1) Positions mirror
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -405,6 +473,7 @@ def mirror_positions(
     alpaca: AlpacaPaperClient | None = None,
     snapshot_date: date | None = None,
     dry_run: bool = False,
+    price_mode: str = "live",
 ) -> int:
     """Rewrite today's paper_positions snapshot from live Alpaca state.
 
@@ -413,8 +482,13 @@ def mirror_positions(
     (snapshot_date, sleeve, ticker) — INSERT collides on rerun.
     """
     alpaca = alpaca or AlpacaPaperClient()
-    snapshot_date = snapshot_date or date.today()
+    snapshot_date = snapshot_date or _et_today()
     positions = alpaca.get_positions()
+    if price_mode == "close":
+        closes = official_closes(alpaca, sorted({p.ticker.upper() for p in positions}), snapshot_date)
+        n_re = _reprice_positions_to_close(positions, closes)
+        logger.info("close mode: %d/%d positions repriced to official %s closes",
+                    n_re, len(positions), snapshot_date)
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
     scan_scores = {} if dry_run else _latest_scan_scores()
@@ -479,6 +553,12 @@ def mirror_positions(
     # 1.4M-row prices_eod table is index-probed for ~35 symbols, not scanned.
     # An earlier version inlined an unfiltered CTE in the insert txn and timed
     # out at 30s, rolling back the whole snapshot. Keep the ticker filter.
+    if price_mode == "close":
+        # Close phase writes the broker's official session closes; the next
+        # morning's open phase certifies them against prices_eod once
+        # Polygon's full T+1 panel lands (see certify_snapshot_prices).
+        return len(positions)
+
     held = sorted({p.ticker.upper() for p in positions})
     if held:
         tickers_sql = ", ".join(_sql_escape(t) for t in held)
@@ -515,6 +595,71 @@ def mirror_positions(
             logger.warning("price-unify step failed (%s) — positions kept Alpaca prices", exc)
 
     return len(positions)
+
+
+def certify_snapshot_prices(snapshot_date: date | None = None) -> int:
+    """Re-price an EXISTING paper_positions snapshot from prices_eod — the
+    site's single canonical price source — without creating a new snapshot.
+    Defaults to the newest snapshot on record. The morning open phase calls
+    this after Polygon's full T+1 panel lands, certifying (and, in the rare
+    disagreement, correcting) the broker closes written by the close phase.
+    Returns the number of held tickers targeted; 0 when nothing to do."""
+    if snapshot_date is None:
+        try:
+            r = _supabase_query("select max(snapshot_date)::text as d from public.paper_positions;")
+            d = r[0].get("d") if r else None
+        except Exception as exc:
+            logger.warning("certify: could not read latest snapshot date (%s)", exc)
+            return 0
+        if not d:
+            return 0
+        snapshot_date = date.fromisoformat(d)
+    try:
+        rows = _supabase_query(
+            "select distinct upper(ticker) as t from public.paper_positions "
+            f"where snapshot_date = '{snapshot_date.isoformat()}';"
+        )
+    except Exception as exc:
+        logger.warning("certify: held-tickers query failed (%s)", exc)
+        return 0
+    held = sorted(r["t"] for r in rows if r.get("t"))
+    if not held:
+        return 0
+    tickers_sql = ", ".join(_sql_escape(t) for t in held)
+    price_sql = f"""
+    with latest as (
+      select distinct on (ticker) ticker, close, trade_date
+        from public.prices_eod
+       where ticker = any(array[{tickers_sql}])
+       order by ticker, trade_date desc
+    ),
+    prior1 as (
+      select distinct on (pe.ticker) pe.ticker, pe.close
+        from public.prices_eod pe
+        join latest l on l.ticker = pe.ticker and pe.trade_date < l.trade_date
+       order by pe.ticker, pe.trade_date desc
+    )
+    update public.paper_positions p
+       set current_price = l.close,
+           lastday_price = coalesce(pr.close, p.lastday_price),
+           market_value  = p.quantity * l.close,
+           unrealized_pnl = (p.quantity * l.close) - p.cost_basis,
+           unrealized_intraday_pl = case when pr.close is not null
+               then p.quantity * (l.close - pr.close) else p.unrealized_intraday_pl end,
+           last_updated = now()
+      from latest l
+      left join prior1 pr on pr.ticker = l.ticker
+     where p.snapshot_date = '{snapshot_date.isoformat()}'
+       and upper(p.ticker) = l.ticker
+       and l.trade_date = '{snapshot_date.isoformat()}';
+    """
+    try:
+        _supabase_exec(price_sql)
+        logger.info("certified %d position prices from prices_eod for %s", len(held), snapshot_date)
+        return len(held)
+    except Exception as exc:
+        logger.warning("certify step failed (%s) — snapshot keeps broker closes", exc)
+        return 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -615,14 +760,27 @@ def write_nav_daily(
     alpaca: AlpacaPaperClient | None = None,
     snapshot_date: date | None = None,
     dry_run: bool = False,
+    price_mode: str = "live",
 ) -> dict:
     """Compute today's sleeve A / sleeve B / total NAV and upsert one row
     into paper_nav_daily (PK on snapshot_date)."""
     alpaca = alpaca or AlpacaPaperClient()
-    snapshot_date = snapshot_date or date.today()
+    snapshot_date = snapshot_date or _et_today()
 
     account = alpaca.get_account()
     positions = alpaca.get_positions()
+    nav_closes: dict = {}
+    if price_mode == "close":
+        nav_closes = official_closes(
+            alpaca,
+            sorted({p.ticker.upper() for p in positions} | {"SPY", "AGG"}),
+            snapshot_date,
+        )
+        if "SPY" not in nav_closes:
+            logger.warning("close mode: no SPY bar for %s — not a settled session; skipping NAV write",
+                           snapshot_date)
+            return {}
+        _reprice_positions_to_close(positions, nav_closes)
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
 
     STARTING_CAPITAL = 1_000_000.0
@@ -650,13 +808,24 @@ def write_nav_daily(
     sleeve_b_margin_used = max(0.0, sleeve_b_equity - cap_b)
     sleeve_a_nav = sleeve_a_cash + sleeve_a_equity
     sleeve_b_nav = sleeve_b_cash + sleeve_b_equity - sleeve_b_margin_used
-    total_nav = float(account.equity)
+    # Close mode values the book at official session closes (cash is static
+    # after hours, so cash + Σ qty×close IS closing equity, to the cent, and
+    # ties exactly to the positions snapshot written the same run). Live mode
+    # keeps broker-reported equity.
+    if price_mode == "close":
+        total_nav = float(account.cash) + sum(p.market_value for p in positions)
+    else:
+        total_nav = float(account.equity)
 
     # Benchmarks — store the RAW closing prices for SPY and AGG. The page
     # normalizes both to a $1M capital-matched start (SPY buy-and-hold and a
     # 60/40 SPY/AGG blend), so the comparison is apples-to-apples in dollars.
-    spy_close = alpaca.get_close_price("SPY")
-    agg_close = alpaca.get_close_price("AGG")
+    if price_mode == "close":
+        spy_close = nav_closes["SPY"][0]
+        agg_close = nav_closes["AGG"][0] if "AGG" in nav_closes else alpaca.get_close_price("AGG")
+    else:
+        spy_close = alpaca.get_close_price("SPY")
+        agg_close = alpaca.get_close_price("AGG")
     # Back-compat: keep the old 100-share anchor column populated.
     spy_value = spy_close * 100 if spy_close else None
 

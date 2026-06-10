@@ -183,18 +183,22 @@ const PAGE_CSS = `
 
 /* Summary matrix (top-right) — restrained, hairline, tabular.
    table-layout:fixed + width:100% so it ALWAYS fits the card (never clips
-   Inception/Beta). Columns share the width via the colgroup. */
+   Inception/Beta). Columns share the width via the colgroup.
+   2026-06-10 (Joe): card enlarged — the hero grid's right slot widens to
+   540px on this page only (scoped: this <style> mounts with the page), and
+   the matrix type steps up from 11px to 12.5px. */
+.mt-page-hero-inner { grid-template-columns: minmax(0, 1fr) 540px; }
 .pmx { width: 100%; table-layout: fixed; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
-.pmx th, .pmx td { padding: 6px 3px; text-align: right; white-space: nowrap; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.pmx th, .pmx td { padding: 8px 5px; text-align: right; white-space: nowrap; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
 .pmx thead th {
-  font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2);
+  font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2);
   font-weight: 500; border-bottom: 1px solid var(--line-1);
 }
 .pmx thead th:first-child, .pmx tbody td:first-child { text-align: left; white-space: normal; }
 .pmx tbody td { border-bottom: 1px solid var(--line-0); color: var(--ink-1); }
 .pmx tbody tr:last-child td { border-bottom: none; }
 .pmx .rlabel { color: var(--ink-0); font-weight: 500; }
-.pmx .rlabel small { display: block; color: var(--ink-3); font-weight: 400; font-size: 10.5px; }
+.pmx .rlabel small { display: block; color: var(--ink-3); font-weight: 400; font-size: 11px; }
 .pmx .rowval { color: var(--ink-0); font-weight: 500; }
 .pmx tr.vs td { border-top: 1px solid var(--line-1); }
 .pmx tr.vs .rlabel { color: var(--ink-1); }
@@ -257,6 +261,35 @@ const fmtPctP = (n, places = 1) => {
 };
 const dirClass = (n) => (n == null ? 'muted' : (n >= 0 ? 'up' : 'down'));
 
+// Full dollars (no K-rounding) for P&L deltas — daily moves are hundreds of
+// dollars and would render as "$0K". Accounting parentheses for negatives.
+const fmt$Delta = (n) => {
+  if (n == null || Number.isNaN(n)) return '—';
+  const s = `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
+  return n < 0 ? `(${s})` : `+${s}`;
+};
+
+// Beta of a value series vs the SPY close series (daily returns,
+// cov/var). Needs minN return pairs before it reports — below that the
+// estimate is statistically meaningless noise.
+const seriesBeta = (vals, spys, minN = 6) => {
+  const br = [], sr = [];
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i] != null && vals[i - 1] && spys[i] != null && spys[i - 1]) {
+      br.push(vals[i] / vals[i - 1] - 1);
+      sr.push(spys[i] / spys[i - 1] - 1);
+    }
+  }
+  const n = Math.min(br.length, sr.length);
+  if (n < minN) return null;
+  const mb = br.reduce((a, x) => a + x, 0) / n;
+  const ms = sr.reduce((a, x) => a + x, 0) / n;
+  const varS = sr.reduce((a, x) => a + (x - ms) ** 2, 0) / n;
+  if (!varS) return null;
+  const cov = br.reduce((a, x, i) => a + (x - mb) * (sr[i] - ms), 0) / n;
+  return cov / varS;
+};
+
 const PAPER_SLEEVE_CAP = 500_000;
 
 // Split the shared Alpaca account into two sleeve values that ALWAYS sum to
@@ -309,18 +342,20 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   const latest = empty ? null : navHistory[navHistory.length - 1];
   const prev   = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
 
-  // Trailing-12-month anchor row (falls back to inception while the book is
-  // younger than a year — TTM == inception until then).
-  const ttmRow = useMemo(() => {
-    if (empty) return null;
-    const d = new Date((latest.snapshot_date || '') + 'T00:00:00Z');
-    const cutoff = new Date(d); cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 1);
-    let r = navHistory[0];
-    for (const row of navHistory) {
-      if (new Date(row.snapshot_date + 'T00:00:00Z') <= cutoff) r = row; else break;
-    }
-    return r;
-  }, [navHistory, empty, latest]);
+  // Betas computed from the same NAV history the card displays (daily
+  // returns of each reconciled series vs SPY). Self-updating; needs ≥6
+  // return pairs, indicative until ~20 sessions. (TTM column killed
+  // 2026-06-10, Joe directive — meaningless while the book is young.)
+  const betas = useMemo(() => {
+    if (!navHistory || navHistory.length < 2) return { a: null, b: null, total: null };
+    const spys = navHistory.map((r) => r.spy_close ?? null);
+    const recon = navHistory.map((r) => reconcileSleeves(r));
+    return {
+      a: seriesBeta(recon.map((x) => x.aValue), spys),
+      b: seriesBeta(recon.map((x) => x.bValue), spys),
+      total: seriesBeta(navHistory.map((r) => r.total_nav ?? null), spys),
+    };
+  }, [navHistory]);
 
   if (empty) {
     return (
@@ -334,46 +369,49 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
 
   const CAP = 500_000, TOTAL_CAP = STARTING_CAPITAL;
   const ret = (now, then) => (now != null && then) ? (now / then - 1) : null;
+  const dlt = (now, then) => (now != null && then != null) ? now - then : null;
 
   // Sleeve values reconciled so Sleeve A + Sleeve B === Total (broker NAV),
   // in both the idle-cash and levered regimes. See reconcileSleeves above.
+  // The latest row ties to the displayed sleeve tables (gross overrides);
+  // the prior row reconciles from its own stored equities, so sleeve daily
+  // P&L sums EXACTLY to the book's daily P&L on both days.
   const sLatest = reconcileSleeves(latest, sleeveAGross, sleeveBGross);
   const sLatestA = sLatest.aValue, sLatestB = sLatest.bValue;
+  const sPrev = reconcileSleeves(prev);
 
   const spyNow = latest.spy_close ?? null;
   const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
+  const spyValPrev = (latest.spy_prev_close && latest.spy_inception_close)
+    ? TOTAL_CAP * (latest.spy_prev_close / latest.spy_inception_close) : null;
 
   const rows = [
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
       value: sLatestA,
-      daily: null,   // sleeve-level daily/TTM omitted: net-equity attribution
-      ttm: null,     // shifts with leverage day-to-day; book-level is the clean series
-      incep: ret(sLatestA, CAP),
-      beta: latest.sleeve_a_beta ?? null,
+      daily$: dlt(sLatestA, sPrev.aValue), daily: ret(sLatestA, sPrev.aValue),
+      incep$: dlt(sLatestA, CAP),          incep: ret(sLatestA, CAP),
+      beta: betas.a ?? latest.sleeve_a_beta ?? null,
     },
     {
       label: 'Sleeve B', sub: 'Equity Scanner · $500K',
       value: sLatestB,
-      daily: null,
-      ttm: null,
-      incep: ret(sLatestB, CAP),
-      beta: latest.sleeve_b_beta ?? null,
+      daily$: dlt(sLatestB, sPrev.bValue), daily: ret(sLatestB, sPrev.bValue),
+      incep$: dlt(sLatestB, CAP),          incep: ret(sLatestB, CAP),
+      beta: betas.b ?? latest.sleeve_b_beta ?? null,
     },
     {
       label: 'Total book', sub: '$1M start', strong: true,
       value: latest.total_nav,
-      daily: ret(latest.total_nav, prev?.total_nav),
-      ttm: ret(latest.total_nav, ttmRow?.total_nav),
-      incep: ret(latest.total_nav, TOTAL_CAP),
-      beta: latest.portfolio_beta ?? null,
+      daily$: dlt(latest.total_nav, prev?.total_nav), daily: ret(latest.total_nav, prev?.total_nav),
+      incep$: dlt(latest.total_nav, TOTAL_CAP),       incep: ret(latest.total_nav, TOTAL_CAP),
+      beta: betas.total ?? latest.portfolio_beta ?? null,
     },
     {
       label: 'S&P 500', sub: '$1M buy & hold', benchmark: true,
       value: spyVal,
-      daily: ret(spyNow, latest.spy_prev_close),
-      ttm: ret(spyNow, latest.spy_ttm_close),
-      incep: ret(spyNow, latest.spy_inception_close),
+      daily$: dlt(spyVal, spyValPrev),  daily: ret(spyNow, latest.spy_prev_close),
+      incep$: dlt(spyVal, TOTAL_CAP),   incep: ret(spyNow, latest.spy_inception_close),
       beta: 1.0,
     },
   ];
@@ -381,24 +419,26 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   const vs = {
     label: 'Excess vs S&P 500', vs: true,
     value: (total.value != null && spy.value != null) ? total.value - spy.value : null,
+    daily$: (total.daily$ != null && spy.daily$ != null) ? total.daily$ - spy.daily$ : null,
     daily: (total.daily != null && spy.daily != null) ? total.daily - spy.daily : null,
-    ttm: (total.ttm != null && spy.ttm != null) ? total.ttm - spy.ttm : null,
+    incep$: (total.incep$ != null && spy.incep$ != null) ? total.incep$ - spy.incep$ : null,
     incep: (total.incep != null && spy.incep != null) ? total.incep - spy.incep : null,
     beta: null,
   };
 
   const betaTd = (r) => {
     if (r.vs) return <td className="muted"></td>;
-    if (r.beta == null) return <td className="muted" title="Beta builds over ~20 trading days">—</td>;
-    return <td className="rowval">{r.beta.toFixed(2)}</td>;
+    if (r.beta == null) return <td className="muted" title="Needs ~6 sessions of history; indicative until ~20">—</td>;
+    return <td className="rowval" title="Indicative until ~20 sessions of history">{r.beta.toFixed(2)}</td>;
   };
 
   const Row = (r) => (
     <tr key={r.label} className={r.vs ? 'vs' : undefined}>
       <td className="rlabel">{r.label}{r.sub && <small>{r.sub}</small>}</td>
       <td className={r.vs ? dirClass(r.value) : 'rowval'}>{fmtK(r.value)}</td>
+      <td className={dirClass(r.daily$)}>{fmt$Delta(r.daily$)}</td>
       <td className={dirClass(r.daily)}>{fmtPctP(r.daily)}</td>
-      <td className={dirClass(r.ttm)}>{fmtPctP(r.ttm)}</td>
+      <td className={dirClass(r.incep$)}>{fmt$Delta(r.incep$)}</td>
       <td className={dirClass(r.incep)}>{fmtPctP(r.incep)}</td>
       {betaTd(r)}
     </tr>
@@ -407,21 +447,22 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="Time-weighted return of each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark. Total book = the live Alpaca account value (your real equity, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings minus its share of the book's leverage. Daily & TTM are shown at the book level only — a single sleeve's day-to-day return isn't clean while the book shares one margin balance. Inception = since the book opened, anchored to each sleeve's $500K start; Beta = sensitivity to the S&P 500 (builds over ~20 trading days)." size={11} /></span>
-        <span className="pts-asof">{latest.snapshot_date ? fmtDate(latest.snapshot_date).toUpperCase() : '—'}</span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history." size={11} /></span>
+        <span className="pts-asof">{latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—'}</span>
       </div>
       <table className="pmx">
         <colgroup>
-          <col style={{ width: '27%' }} />
-          <col style={{ width: '16%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '13%' }} />
           <col style={{ width: '14%' }} />
-          <col style={{ width: '14%' }} />
+          <col style={{ width: '11%' }} />
           <col style={{ width: '15%' }} />
-          <col style={{ width: '14%' }} />
+          <col style={{ width: '11%' }} />
+          <col style={{ width: '8%' }} />
         </colgroup>
         <thead>
           <tr>
-            <th></th><th>Value</th><th>Daily</th><th>TTM</th><th>Incep.</th><th>Beta</th>
+            <th></th><th>Value</th><th>Daily $</th><th>Daily %</th><th>Incep. $</th><th>Incep. %</th><th>Beta</th>
           </tr>
         </thead>
         <tbody>
@@ -606,6 +647,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
             )}
             {' '}&middot; <span style={{ color: dayPL >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(dayPL)} today</span>
             {' '}&middot; <span style={{ color: unreal >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(unreal)} open P&amp;L</span>
+            {asOf && <> &middot; <span>as of {fmtDate(asOf)} close</span></>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
