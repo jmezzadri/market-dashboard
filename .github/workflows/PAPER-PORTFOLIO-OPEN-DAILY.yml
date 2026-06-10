@@ -1,9 +1,15 @@
 name: PAPER-PORTFOLIO-OPEN-DAILY
 
-# MacroTilt paper-portfolio post-open mirror phase.
-#   1. mirror_fills      — pull Alpaca fills since the last successful run.
-#   2. mirror_positions  — overwrite today's paper_positions snapshot.
-#   3. write_nav_daily   — write today's row to paper_nav_daily.
+# MacroTilt paper-portfolio post-open phase: fills mirror + close-price
+# certification. (Changed 2026-06-10 — the display snapshot is owned by
+# PAPER-PORTFOLIO-CLOSE-DAILY at official session closes; this morning run
+# no longer writes positions/NAV, so the page never shows a midday stamp.)
+#   1. mirror_fills              — pull Alpaca fills since the last run
+#                                  (rebalance log + execution email trail).
+#   2. certify_snapshot_prices   — re-verify yesterday's close snapshot
+#                                  against prices_eod, the site's single
+#                                  canonical price source (Polygon's full
+#                                  T+1 panel lands overnight).
 #
 # Pipeline name (Data Steward convention): paper-portfolio-open-daily
 #
@@ -50,7 +56,7 @@ jobs:
         run: |
           pip install requests pandas pyarrow numpy scipy
 
-      - name: Run open phase (fills + positions + NAV mirror)
+      - name: Run open phase (fills mirror + close-price certification)
         # Mirror phase has no live-submission risk — it only READS from
         # Alpaca and WRITES to Supabase snapshot tables. The live-trading
         # kill-switch governs the EOD phase; mirror always runs as-is.
