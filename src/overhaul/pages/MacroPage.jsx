@@ -129,8 +129,9 @@ function BucketRollupDot({ inds, positioningElementId, positioningAsOf, onTip, o
   const vals = items.map((it) => statuses[it.id]).filter((s) => s && s !== 'loading');
   const ready = items.length > 0 && vals.length >= items.length;
   const anyRed = vals.some((s) => s === 'red');
-  const color = !ready ? 'var(--mt-ink-3)' : anyRed ? 'var(--mt-down)' : 'var(--mt-up)';
-  const title = !ready ? 'Checking feeds…' : anyRed ? 'A feed in this group is past its freshness target' : 'All feeds within SLA';
+  const anyUnknown = vals.some((s) => s === 'unknown');
+  const color = !ready ? 'var(--mt-ink-3)' : anyRed ? 'var(--mt-down)' : anyUnknown ? 'var(--mt-ink-3)' : 'var(--mt-up)';
+  const title = !ready ? 'Checking feeds…' : anyRed ? 'A feed in this group is past its freshness target' : anyUnknown ? 'A feed in this group is not tracked yet' : 'All feeds within SLA';
   return (
     <>
       {items.map((it) => <ElemProbe key={it.id} item={it} onStatus={onStatus} />)}

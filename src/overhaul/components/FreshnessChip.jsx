@@ -151,20 +151,21 @@ export default function FreshnessChip({
 
   const status = f?.status === 'loading' ? 'checking'
     : f?.status === 'red' ? 'stale'
-    : 'fresh';
+    : f?.status === 'green' ? 'fresh'
+    : 'unknown';
 
   const color =
     status === 'stale'
       ? 'var(--mt-down)'
-      : status === 'checking'
-        ? 'var(--mt-ink-3)'
-        : 'var(--mt-up)';
+      : status === 'fresh'
+        ? 'var(--mt-up)'
+        : 'var(--mt-ink-3)';
 
   // Joe directive 2026-05-27 — drop the "Fresh"/"Stale"/"Checking" word.
   // The colored dot already carries the status; the relative time is what's
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
-  const word = status === 'stale' ? 'Stale' : status === 'checking' ? 'Checking' : 'Fresh';
+  const word = status === 'stale' ? 'Stale' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
   const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
   const asOfExact = fmtAsOf(f?.dataAsOf, f?.asOfCutoffEt);
   const fetchedExact = fmtFetched(f?.lastRefreshedAt || f?.lastGoodAt);
@@ -243,7 +244,9 @@ export default function FreshnessChip({
           background:
             status === 'stale'
               ? 'color-mix(in oklab, var(--mt-down) 14%, transparent)'
-              : 'color-mix(in oklab, var(--mt-up) 12%, transparent)',
+              : status === 'fresh'
+                ? 'color-mix(in oklab, var(--mt-up) 12%, transparent)'
+                : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
           color,
           letterSpacing: '0.04em',
           fontWeight: 500,
