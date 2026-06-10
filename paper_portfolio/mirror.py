@@ -442,27 +442,38 @@ def official_closes(alpaca: "AlpacaPaperClient", tickers, session_date: date) ->
     return out
 
 
-def _reprice_positions_to_close(positions, closes: dict) -> int:
-    """Mutate broker position rows to official session closes so every value
+def _reprice_positions_to_close(positions, closes: dict):
+    """Re-mark broker position rows at official session closes so every value
     written downstream (positions snapshot AND the NAV row) is marked at the
-    close — immune to after-hours drift when the run fires late. Names with
-    no session bar keep broker marks (logged by the caller)."""
-    n = 0
+    close — immune to after-hours drift when the run fires late. AlpacaPosition
+    is a FROZEN dataclass, so this builds replacements rather than mutating
+    (the 2026-06-10 first close run crashed on FrozenInstanceError). Returns
+    (new_positions, n_repriced); names with no session bar keep broker marks."""
+    from dataclasses import replace
+    out, n = [], 0
     for p in positions:
         cp = closes.get(p.ticker.upper())
         if not cp:
+            out.append(p)
             continue
         close, prev = cp
-        p.current_price = close
-        p.market_value = p.qty * close
-        p.unrealized_pl = p.market_value - p.cost_basis
-        p.unrealized_plpc = (p.unrealized_pl / p.cost_basis) if p.cost_basis else 0.0
+        mv = p.qty * close
+        upl = mv - p.cost_basis
+        kw = dict(
+            current_price=close,
+            market_value=mv,
+            unrealized_pl=upl,
+            unrealized_plpc=(upl / p.cost_basis) if p.cost_basis else 0.0,
+        )
         if prev:
-            p.lastday_price = prev
-            p.unrealized_intraday_pl = p.qty * (close - prev)
-            p.unrealized_intraday_plpc = (close / prev - 1.0)
+            kw.update(
+                lastday_price=prev,
+                unrealized_intraday_pl=p.qty * (close - prev),
+                unrealized_intraday_plpc=(close / prev - 1.0),
+            )
+        out.append(replace(p, **kw))
         n += 1
-    return n
+    return out, n
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -486,7 +497,7 @@ def mirror_positions(
     positions = alpaca.get_positions()
     if price_mode == "close":
         closes = official_closes(alpaca, sorted({p.ticker.upper() for p in positions}), snapshot_date)
-        n_re = _reprice_positions_to_close(positions, closes)
+        positions, n_re = _reprice_positions_to_close(positions, closes)
         logger.info("close mode: %d/%d positions repriced to official %s closes",
                     n_re, len(positions), snapshot_date)
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
@@ -780,7 +791,7 @@ def write_nav_daily(
             logger.warning("close mode: no SPY bar for %s — not a settled session; skipping NAV write",
                            snapshot_date)
             return {}
-        _reprice_positions_to_close(positions, nav_closes)
+        positions, _ = _reprice_positions_to_close(positions, nav_closes)
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
 
     STARTING_CAPITAL = 1_000_000.0
