@@ -17,7 +17,15 @@
 const MANIFEST_URL = "/data_manifest.json";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
-let cache = null;            // Map<name, element>
+function normKey(s) {
+  return String(s || "").toLowerCase()
+    .replace(/^(indicator|market|equity|scenario|portfolio|news|commentary|ops|site|v9|v10|v11)-/, "")
+    .replace(/-(daily|weekly|monthly|quarterly|intraday)$/, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+let cache = null;            // Map<name|id, element>
+let normCache = null;        // Map<normKey, element> — tolerant lookup
 let lastLoadedAt = 0;
 let inflight = null;
 const listeners = new Set();
@@ -52,15 +60,21 @@ async function fetchManifest() {
     return cache || new Map();
   }
   const map = new Map();
+  const nmap = new Map();
   const els = Array.isArray(data?.elements) ? data.elements : [];
   for (const el of els) {
     if (el && typeof el === "object" && typeof el.name === "string") {
       map.set(el.name, el);
-      // Also index by `id` for future callers that pass full IDs.
-      if (typeof el.id === "string") map.set(el.id, el);
+      if (!nmap.has(normKey(el.name))) nmap.set(normKey(el.name), el);
+      // Also index by `id` for callers that pass full IDs.
+      if (typeof el.id === "string") {
+        map.set(el.id, el);
+        if (!nmap.has(normKey(el.id))) nmap.set(normKey(el.id), el);
+      }
     }
   }
   cache = map;
+  normCache = nmap;
   lastLoadedAt = Date.now();
   return cache;
 }
@@ -84,7 +98,7 @@ if (typeof window !== "undefined") ensureLoaded();
 export function getElement(nameOrId) {
   ensureLoaded();
   if (!cache) return null;
-  return cache.get(nameOrId) || null;
+  return cache.get(nameOrId) || (normCache ? normCache.get(normKey(nameOrId)) : null) || null;
 }
 
 export function getSLAHours(nameOrId) {
