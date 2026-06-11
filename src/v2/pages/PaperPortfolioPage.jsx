@@ -385,18 +385,24 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   const spyValPrev = (latest.spy_prev_close && latest.spy_inception_close)
     ? TOTAL_CAP * (latest.spy_prev_close / latest.spy_inception_close) : null;
 
+  // Sleeve Daily $: prefer the writer's EXACT session P&L (holdings move +
+  // effect of trades executed at the open; A+B sums to the book's NAV change
+  // to the cent). Fall back to the net-equity delta for rows written before
+  // the column existed.
+  const aDay$ = latest.sleeve_a_day_pnl ?? dlt(sLatestA, sPrev.aValue);
+  const bDay$ = latest.sleeve_b_day_pnl ?? dlt(sLatestB, sPrev.bValue);
   const rows = [
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
       value: sLatestA,
-      daily$: dlt(sLatestA, sPrev.aValue), daily: ret(sLatestA, sPrev.aValue),
+      daily$: aDay$, daily: (aDay$ != null && sPrev.aValue) ? aDay$ / sPrev.aValue : null,
       incep$: dlt(sLatestA, CAP),          incep: ret(sLatestA, CAP),
       beta: betas.a ?? latest.sleeve_a_beta ?? null,
     },
     {
       label: 'Sleeve B', sub: 'Equity Scanner · $500K',
       value: sLatestB,
-      daily$: dlt(sLatestB, sPrev.bValue), daily: ret(sLatestB, sPrev.bValue),
+      daily$: bDay$, daily: (bDay$ != null && sPrev.bValue) ? bDay$ / sPrev.bValue : null,
       incep$: dlt(sLatestB, CAP),          incep: ret(sLatestB, CAP),
       beta: betas.b ?? latest.sleeve_b_beta ?? null,
     },
@@ -447,7 +453,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Note: a sleeve's Daily here is the change in sleeve VALUE (holdings + cash share, with trades at execution prices); the sleeve table's 'today' line sums the price moves of current holdings only — they converge on days with no trades. The table's 'open P&L since entry' is unrealized P&L on current positions from their entry prices; it excludes realized gains from closed trades, so it differs from Inception, which measures the whole sleeve against its $500K start." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Note: a sleeve's Daily is its exact session P&L — price moves of its holdings plus the effect of any trades executed at the open — so Sleeve A + Sleeve B equals the book's Daily to the cent, and on days with no trades each sleeve matches its table's 'today' line exactly. The table's 'open P&L since entry' is unrealized P&L on current positions from their entry prices; it excludes realized gains from closed trades, so it differs from Inception, which measures the whole sleeve against its $500K start." size={11} /></span>
         <span className="pts-asof">{latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—'}</span>
       </div>
       <table className="pmx">
