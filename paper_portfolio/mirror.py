@@ -227,6 +227,8 @@ def ensure_paper_schema() -> None:
       add column if not exists sleeve_b_value          double precision,
       add column if not exists sleeve_a_beta           double precision,
       add column if not exists sleeve_b_beta           double precision,
+      add column if not exists sleeve_a_day_pnl        double precision,
+      add column if not exists sleeve_b_day_pnl        double precision,
       add column if not exists spy_prev_close          double precision,
       add column if not exists spy_inception_close     double precision,
       add column if not exists spy_ttm_close           double precision;
@@ -767,6 +769,82 @@ def mirror_fills(
 # 3) NAV daily writer
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _sleeve_day_pnl(
+    alpaca: AlpacaPaperClient,
+    positions,
+    closes: dict,
+    session_date: date,
+    sleeve_a_etfs: set[str],
+) -> dict:
+    """EXACT per-sleeve session P&L, decomposed so it ties out three ways:
+      * held-through shares earn (close − prior close)
+      * shares BOUGHT today earn (close − fill price)
+      * shares SOLD today earn (fill price − prior close)
+    Cash earns nothing, so Sleeve A + Sleeve B == the book's NAV change
+    (close-over-close) to the cent, AND on no-trade days each sleeve equals
+    the sum of its table's Day P&L column. This is the number the page's
+    Performance card displays; the net-equity delta (which silently moves
+    idle-cash share between sleeves as their capacity gaps shift) is only
+    the fallback. (Joe 2026-06-10: card said +$809 while the table said
+    −$4,901 — never again.)"""
+    out = {"A": 0.0, "B": 0.0}
+    try:
+        fills = _supabase_query(
+            "select ticker, side, quantity, price from public.paper_fills "
+            f"where (filled_at at time zone 'America/New_York')::date = '{session_date.isoformat()}';"
+        )
+    except Exception as exc:
+        logger.warning("day-pnl: fills query failed (%s) — using holdings-only attribution", exc)
+        fills = []
+    bought: dict[str, list] = {}
+    sold: dict[str, list] = {}
+    for f in fills:
+        t = (f.get("ticker") or "").upper()
+        q = float(f.get("quantity") or 0)
+        px = float(f.get("price") or 0)
+        if q <= 0 or px <= 0:
+            continue
+        side = (f.get("side") or "").lower()
+        if side == "buy":
+            agg = bought.setdefault(t, [0.0, 0.0]); agg[0] += q; agg[1] += q * px
+        elif side == "sell":
+            agg = sold.setdefault(t, [0.0, 0.0]); agg[0] += q; agg[1] += q * px
+
+    # prior closes for names sold out today (not in the current position set)
+    missing = [t for t in sold if t not in closes]
+    if missing:
+        closes = {**closes, **official_closes(alpaca, missing, session_date)}
+
+    held = {p.ticker.upper() for p in positions}
+    for p in positions:
+        t = p.ticker.upper()
+        cp = closes.get(t)
+        if not cp or cp[1] is None:
+            continue
+        close, prev = cp
+        sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
+        bq, bnotional = bought.get(t, [0.0, 0.0])
+        bq = min(bq, p.qty)
+        carried = p.qty - bq
+        pnl = carried * (close - prev)
+        if bq > 0:
+            avg_fill = bnotional / bought[t][0]
+            pnl += bq * (close - avg_fill)
+        out[sleeve] = out.get(sleeve, 0.0) + pnl
+    for t, (sq, snotional) in sold.items():
+        cp = closes.get(t)
+        prev = cp[1] if cp else None
+        if prev is None:
+            continue
+        # for names still partially held the sold shares left at the fill;
+        # for full exits the same formula applies.
+        sleeve = _sleeve_for(t, sleeve_a_etfs)
+        avg_fill = snotional / sq
+        out[sleeve] = out.get(sleeve, 0.0) + sq * (avg_fill - prev)
+        _ = held  # clarity: sold qty is incremental to current holdings either way
+    return out
+
+
 def write_nav_daily(
     alpaca: AlpacaPaperClient | None = None,
     snapshot_date: date | None = None,
@@ -875,6 +953,15 @@ def write_nav_daily(
     sleeve_a_beta = _beta_for("sleeve_a_value")
     sleeve_b_beta = _beta_for("sleeve_b_value")
 
+    # Exact per-sleeve session P&L (close mode only — needs official closes).
+    day_pnl = {"A": None, "B": None}
+    if price_mode == "close":
+        try:
+            day_pnl = _sleeve_day_pnl(alpaca, positions, nav_closes, snapshot_date, sleeve_a_etfs)
+        except Exception:
+            logger.exception("sleeve day-pnl computation failed — storing NULLs (page falls back)")
+            day_pnl = {"A": None, "B": None}
+
     # SPY benchmark anchors (inception / trailing-12m / prior close) so the
     # S&P 500 + Vs rows are real on day one. Page computes returns from these.
     spy_anchor = _spy_anchor_closes(alpaca)
@@ -920,6 +1007,7 @@ def write_nav_daily(
         " sleeve_a_realized_pnl, sleeve_b_realized_pnl, "
         " sleeve_a_positions, sleeve_b_positions, portfolio_beta, "
         " sleeve_a_value, sleeve_b_value, sleeve_a_beta, sleeve_b_beta, "
+        " sleeve_a_day_pnl, sleeve_b_day_pnl, "
         " spy_prev_close, spy_inception_close, spy_ttm_close, created_at) "
         "values ("
         f"'{snapshot_date.isoformat()}', "
@@ -931,6 +1019,7 @@ def write_nav_daily(
         f"{realized_by_sleeve.get('A', 0.0)}, {realized_by_sleeve.get('B', 0.0)}, "
         f"{sleeve_a_n}, {sleeve_b_n}, {_num(beta)}, "
         f"{sleeve_a_value}, {sleeve_b_value}, {_num(sleeve_a_beta)}, {_num(sleeve_b_beta)}, "
+        f"{_num(day_pnl.get('A'))}, {_num(day_pnl.get('B'))}, "
         f"{_num(spy_prev_close)}, {_num(spy_inception_close)}, {_num(spy_ttm_close)}, "
         "now() "
         ") on conflict (snapshot_date) do update set "
@@ -958,6 +1047,8 @@ def write_nav_daily(
         "  sleeve_b_value = excluded.sleeve_b_value, "
         "  sleeve_a_beta = excluded.sleeve_a_beta, "
         "  sleeve_b_beta = excluded.sleeve_b_beta, "
+        "  sleeve_a_day_pnl = excluded.sleeve_a_day_pnl, "
+        "  sleeve_b_day_pnl = excluded.sleeve_b_day_pnl, "
         "  spy_prev_close = excluded.spy_prev_close, "
         "  spy_inception_close = excluded.spy_inception_close, "
         "  spy_ttm_close = excluded.spy_ttm_close, "
