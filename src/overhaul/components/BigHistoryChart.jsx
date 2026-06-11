@@ -27,6 +27,12 @@ export default function BigHistoryChart({
   compareData = null,   // [[iso, val], ...] — rebased to primary start
   compareLabel = '',
   compareAccent = 'var(--mt-warn)',
+  compares = [],        // [{ points:[[iso,val]], label, color, dash }] — extra
+                        // normalized compare lines (e.g. index overlays); same
+                        // shape-on-shape treatment as compareData
+  bands = [],           // [{ from, to, color, opacity, label }] — horizontal
+                        // value-space zones (amber/red pill thresholds); null
+                        // from/to clamps to the chart edge
   yFormat = (v) => v.toFixed(2),
   freq = '',            // 'D' | 'W' | 'M' | 'Q' — drives hover-date precision
   rsi = null,           // [[iso, rsiValue 0-100], ...] — drawn in its own sub-pane
@@ -60,28 +66,36 @@ export default function BigHistoryChart({
     return m;
   }, [data]);
 
-  // Align compare to the primary BY DATE, keeping RAW values. Drawing is
-  // normalized to its own range below, so a series on a wildly different scale
-  // (e.g. reserves in $bn vs a ~70 index) shows its SHAPE without blowing up
-  // the primary axis (2026-06-04 fix — old rebase-to-start exploded the scale).
-  const compareRaw = useMemo(() => {
-    if (!compareData?.length || !data.length) return null;
-    // Forward-fill onto the primary's dates: each primary date carries the most
-    // recent compare value at or before it. This draws a CONTINUOUS line even
-    // when the overlay is a lower frequency than the primary (e.g. a weekly
-    // series on a daily chart), instead of isolated, invisible points.
-    const sorted = compareData
-      .filter((p) => Array.isArray(p) && typeof p[1] === 'number')
-      .slice().sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-    if (!sorted.length) return null;
-    let j = 0, last = null, any = false;
-    const out = data.map((d) => {
-      while (j < sorted.length && sorted[j][0] <= d.x) { last = sorted[j][1]; j++; }
-      if (last != null) { any = true; return last; }
-      return null;
+  // All compare-style series (legacy single compareData + the compares array)
+  // share one treatment: align to the primary BY DATE keeping RAW values, then
+  // draw each normalized to its OWN range so a series on a wildly different
+  // scale shows its SHAPE without blowing up the primary axis (2026-06-04 fix
+  // — old rebase-to-start exploded the scale). Forward-fill onto the primary's
+  // dates so lower-frequency overlays draw a continuous line.
+  const compareList = useMemo(() => {
+    const list = [];
+    if (compareData?.length) list.push({ points: compareData, label: compareLabel || 'Compare', color: compareAccent, dash: '4 3' });
+    (compares || []).forEach((c) => {
+      if (c?.points?.length) list.push({ points: c.points, label: c.label || 'Overlay', color: c.color || 'var(--mt-ink-2)', dash: c.dash || '4 3' });
     });
-    return any ? out : null;
-  }, [compareData, data]);
+    return list;
+  }, [compareData, compareLabel, compareAccent, compares]);
+  const compareRaws = useMemo(() => {
+    if (!data.length) return [];
+    return compareList.map((c) => {
+      const sorted = c.points
+        .filter((p) => Array.isArray(p) && typeof p[1] === 'number')
+        .slice().sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      if (!sorted.length) return null;
+      let j = 0, last = null, any = false;
+      const out = data.map((d) => {
+        while (j < sorted.length && sorted[j][0] <= d.x) { last = sorted[j][1]; j++; }
+        if (last != null) { any = true; return last; }
+        return null;
+      });
+      return any ? out : null;
+    });
+  }, [compareList, data]);
 
   if (!data.length) {
     return (
@@ -100,9 +114,14 @@ export default function BigHistoryChart({
   const rsiTop = plotBot + volBand;                    // volume band: [plotBot, rsiTop]; rsi pane below it
   const rsiY = (v) => rsiTop + (1 - Math.max(0, Math.min(100, v)) / 100) * rsiBand;
 
-  // y-range spans price + overlays + rebased compare
+  // y-range spans price + overlays + band edges (so a threshold sitting just
+  // above the data window is still visible as a zone boundary)
   let yVals = data.map((d) => d.y);
   overlays.forEach((o) => (o.points || []).forEach((p) => { if (typeof p[1] === 'number') yVals.push(p[1]); }));
+  (bands || []).forEach((b) => {
+    if (Number.isFinite(b?.from)) yVals.push(b.from);
+    if (Number.isFinite(b?.to)) yVals.push(b.to);
+  });
   const yMin = Math.min(...yVals);
   const yMax = Math.max(...yVals);
   const yRange = (yMax - yMin) || 1;
@@ -110,16 +129,16 @@ export default function BigHistoryChart({
   const yLo = yMin - yPad;
   const yHi = yMax + yPad;
 
-  // Compare overlay drawn on its OWN normalized scale (min..max -> full height),
-  // mapped into the primary's value-space so yOf() positions it correctly.
-  let compareSeries = null;
-  if (compareRaw) {
-    const cv = compareRaw.filter((v) => v != null);
-    if (cv.length) {
-      const cMin = Math.min(...cv), cMax = Math.max(...cv), cR = (cMax - cMin) || 1;
-      compareSeries = compareRaw.map((v) => (v == null ? null : yLo + ((v - cMin) / cR) * (yHi - yLo)));
-    }
-  }
+  // Each compare series drawn on its OWN normalized scale (min..max -> full
+  // height), mapped into the primary's value-space so yOf() positions it.
+  const compareDrawn = compareRaws.map((raw) => {
+    if (!raw) return null;
+    const cv = raw.filter((v) => v != null);
+    if (!cv.length) return null;
+    const cMin = Math.min(...cv), cMax = Math.max(...cv), cR = (cMax - cMin) || 1;
+    return raw.map((v) => (v == null ? null : yLo + ((v - cMin) / cR) * (yHi - yLo)));
+  });
+  const anyCompare = compareDrawn.some((c) => c);
   const xOf = (i) => padL + (i / Math.max(1, data.length - 1)) * (w - padL - padR);
   const yOf = (v) => padT + (1 - (v - yLo) / (yHi - yLo)) * (plotBot - padT);
 
@@ -227,6 +246,20 @@ export default function BigHistoryChart({
         onMouseLeave={onLeave}
         style={{ display: 'block' }}
       >
+        {/* amber/red threshold zones — behind everything else */}
+        {(bands || []).map((b, k) => {
+          const hiV = b.to == null ? yHi : Math.min(yHi, b.to);
+          const loV = b.from == null ? yLo : Math.max(yLo, b.from);
+          if (!(hiV > loV)) return null;
+          const y = yOf(hiV);
+          const hPx = yOf(loV) - yOf(hiV);
+          if (!(hPx > 0)) return null;
+          return (
+            <rect key={`band${k}`} x={padL} y={y} width={w - padL - padR} height={hPx}
+              fill={b.color || 'var(--mt-warn)'} opacity={b.opacity ?? 0.09} />
+          );
+        })}
+
         {/* horizontal grid lines */}
         {tickVals.map((v, i) => (
           <g key={i}>
@@ -276,11 +309,11 @@ export default function BigHistoryChart({
             strokeDasharray={o.dash || ''} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
         ))}
 
-        {/* compare line (rebased) */}
-        {compareSeries && (
-          <path d={seriesPath(compareSeries)} fill="none" stroke={compareAccent}
-            strokeWidth="1.5" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
-        )}
+        {/* compare lines (each normalized to its own range) */}
+        {compareDrawn.map((cs, k) => cs && (
+          <path key={`c${k}`} d={seriesPath(cs)} fill="none" stroke={compareList[k].color}
+            strokeWidth="1.5" strokeDasharray={compareList[k].dash} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+        ))}
 
         {/* event markers — one dot per date, ON the price line; multiple events
             on the same day get a larger dot, with the full list shown on hover. */}
@@ -312,11 +345,14 @@ export default function BigHistoryChart({
         )}
       </svg>
 
-      {(overlays.length > 0 || compareSeries || volume || rsi || hasInsiderEv || hasDarkEv) && (
+      {(overlays.length > 0 || anyCompare || volume || rsi || hasInsiderEv || hasDarkEv || (bands || []).length > 0) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label={primaryLabel} />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
-          {compareSeries && <LegendSwatch color={compareAccent} label={`${compareLabel || 'Compare'} (indexed)`} dash />}
+          {compareDrawn.map((cs, k) => cs && <LegendSwatch key={`lc${k}`} color={compareList[k].color} label={`${compareList[k].label} (indexed)`} dash />)}
+          {[...new Map((bands || []).filter((b) => b.label).map((b) => [b.label, b])).values()].map((b, k) => (
+            <LegendSwatch key={`lb${k}`} color={b.color} label={b.label} block />
+          ))}
           {volume && <LegendSwatch color="var(--mt-ink-3)" label="Volume" block />}
           {rsi && <LegendSwatch color="var(--mt-ink-1)" label={rsiLabel} />}
           {hasInsiderEv && <LegendSwatch color="var(--mt-up)" label="Insider event" dot />}
@@ -328,7 +364,13 @@ export default function BigHistoryChart({
         const i = hover.i;
         const rows = [[primaryLabel, yFormat(hover.d.y), accent]];
         overlaySeries.forEach((o) => { const v = o.values[i]; if (v != null) rows.push([o.label, yFormat(v), o.color]); });
-        if (compareSeries && compareRaw[i] != null) rows.push([compareLabel || "Compare", yFormat(compareRaw[i]), compareAccent]);
+        compareRaws.forEach((raw, k) => {
+          if (compareDrawn[k] && raw && raw[i] != null) {
+            const v = raw[i];
+            const fmt = Math.abs(v) >= 1000 ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }) : yFormat(v);
+            rows.push([compareList[k].label, fmt, compareList[k].color]);
+          }
+        });
         if (volByDate) { const vv = volByDate.get(data[i].x); if (vv != null) rows.push(["Volume", fmtCompact(vv), "var(--mt-ink-3)"]); }
         if (rsiValues && rsiValues[i] != null) rows.push([rsiLabel, rsiValues[i].toFixed(0), "var(--mt-ink-1)"]);
         const evs = eventsByIdx.get(i) || [];

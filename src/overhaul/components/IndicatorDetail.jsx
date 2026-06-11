@@ -9,12 +9,14 @@ import { useNavigate } from 'react-router-dom';
 import BigHistoryChart from './BigHistoryChart';
 import PercentileBar from './PercentileBar';
 import FreshnessChip from './FreshnessChip';
+import IndexOverlayToggles from './IndexOverlayToggles';
 
 function sliceByTimeframe(points, tf) {
   if (!points?.length) return [];
   const last = new Date(points[points.length - 1][0]);
   let cutoff;
   if (tf === '1Y') cutoff = new Date(last.getTime() - 365 * 86400000);
+  else if (tf === '3Y') cutoff = new Date(last.getTime() - 3 * 365 * 86400000);
   else if (tf === '5Y') cutoff = new Date(last.getTime() - 5 * 365 * 86400000);
   else if (tf === '10Y') cutoff = new Date(last.getTime() - 10 * 365 * 86400000);
   else return points;
@@ -52,9 +54,10 @@ function linkifyFred(text) {
   );
 }
 
-export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
+export default function IndicatorDetail({ ind, onClose, catalog = [], indexSeries = [] }) {
   const [tf, setTf] = useState('5Y');
   const [overlayKey, setOverlayKey] = useState('');
+  const [idxOn, setIdxOn] = useState({});
   const navigate = useNavigate();
 
   const sliced = useMemo(() => sliceByTimeframe(ind.points, tf), [ind.points, tf]);
@@ -64,6 +67,54 @@ export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
     if (!c || !c.points?.length) return null;
     return { points: sliceByTimeframe(c.points, tf), label: c.label };
   }, [overlayKey, catalog, tf]);
+  // Amber/red pill zones, in value space. Computed from the SAME trailing
+  // 3-year distribution that colors the pill (useIndicators pctRank), so the
+  // shading and the pill can never disagree — and the bands stay FIXED as the
+  // timeframe changes, because the yardstick doesn't move when you zoom.
+  // Directions mirror stateFor() in useIndicators:
+  //   high-warns (default): amber 75th–85th percentile, red above 85th
+  //   low-warns:            amber 15th–25th percentile, red below 15th
+  //   both-ends:            both of the above
+  const bands = useMemo(() => {
+    const pts = ind.points || [];
+    if (!pts.length) return [];
+    const lastT = Date.parse(String(pts[pts.length - 1][0]).slice(0, 10) + 'T00:00:00Z');
+    if (!Number.isFinite(lastT)) return [];
+    const cutT = lastT - 3 * 365 * 86400000;
+    const vals = pts
+      .filter((p) => {
+        const t = Date.parse(String(p[0]).slice(0, 10) + 'T00:00:00Z');
+        return Number.isFinite(t) && t >= cutT && typeof p[1] === 'number';
+      })
+      .map((p) => p[1])
+      .sort((a, b) => a - b);
+    if (vals.length < 12) return [];
+    const q = (f) => {
+      const i = (vals.length - 1) * f;
+      const lo = Math.floor(i), hi = Math.ceil(i);
+      return vals[lo] + (vals[hi] - vals[lo]) * (i - lo);
+    };
+    const AMBER = 'var(--mt-warn)', RED = 'var(--mt-down)';
+    const top = [
+      { from: q(0.85), to: null, color: RED, opacity: 0.08, label: 'Red zone' },
+      { from: q(0.75), to: q(0.85), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+    ];
+    const bottom = [
+      { from: null, to: q(0.15), color: RED, opacity: 0.08, label: 'Red zone' },
+      { from: q(0.15), to: q(0.25), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+    ];
+    if (ind.direction === 'lw') return bottom;
+    if (ind.direction === 'bw') return [...top, ...bottom];
+    return top; // 'hw' and anything unmapped — mirrors stateFor's default
+  }, [ind.points, ind.direction]);
+
+  const idxCompares = useMemo(
+    () => indexSeries
+      .filter((x) => idxOn[x.key] && x.points?.length)
+      .map((x) => ({ points: sliceByTimeframe(x.points, tf), label: x.label, color: x.color })),
+    [indexSeries, idxOn, tf],
+  );
+
   const stats = useMemo(() => {
     const vals = sliced.map((p) => p[1]).filter((v) => Number.isFinite(v));
     if (!vals.length) return { mean: null, median: null, sd: null, z: null };
@@ -159,7 +210,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
       {/* TF pills */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="mt-pillgroup">
-          {['1Y', '5Y', '10Y', 'Max'].map((k) => (
+          {['1Y', '3Y', '5Y', '10Y', 'Max'].map((k) => (
             <button
               key={k}
               type="button"
@@ -190,6 +241,13 @@ export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
         </div>
       )}
 
+      {indexSeries.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <IndexOverlayToggles series={indexSeries} on={idxOn}
+            onToggle={(k) => setIdxOn((prev) => ({ ...prev, [k]: !prev[k] }))} />
+        </div>
+      )}
+
       {/* History chart */}
       <BigHistoryChart
         points={sliced}
@@ -199,7 +257,15 @@ export default function IndicatorDetail({ ind, onClose, catalog = [] }) {
         yFormat={(v) => fmtNum(v, ind.decimals ?? 2)}
         compareData={overlay ? overlay.points : null}
         compareLabel={overlay ? overlay.label : ''}
+        compares={idxCompares}
+        bands={bands}
       />
+      {bands.length > 0 && (
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mt-ink-3)' }}>
+          Shaded bands mark where this pill turns amber and red — fixed to the same
+          3-year basis that colors the pill, whatever timeframe you select.
+        </div>
+      )}
 
       {/* Percentile bar */}
       <div style={{ marginTop: 22, marginBottom: 16 }}>

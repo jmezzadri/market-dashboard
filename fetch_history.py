@@ -123,6 +123,9 @@ DAILY_FRESHNESS_SLA = {
     "term_premium":  5,
     "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
     "adv_dec":       2,  # Supabase RPC over Polygon prices_eod (EOD T+1)
+    "spx_index":     1,  # Yahoo ^GSPC (chart overlay series)
+    "ndx_index":     1,  # Yahoo ^IXIC (chart overlay series)
+    "dji_index":     1,  # Yahoo ^DJI  (chart overlay series)
 }
 
 
@@ -753,6 +756,33 @@ def fetch_all():
         result["usd"] = {"freq": "D", "unit": "index",
                          "points": series_to_points(s, round_dp=2),
                          "source": "Yahoo DX-Y.NYB"}
+
+    # ── Major-index overlay series (2026-06-10, Macro Overview chart work) ──
+    # S&P 500 / Nasdaq Composite / Dow daily closes. NOT indicators — they are
+    # never registered in src/data/indicatorRegistry.js, so they render no pill
+    # and join no composite. They exist solely so the Macro Overview indicator
+    # and positioning charts can overlay the major indexes. Full window back to
+    # START (2006) so 10Y/Max chart timeframes have overlay coverage.
+    print("S&P 500 index level (^GSPC, chart overlay) ...")
+    s = safe_yf("^GSPC")
+    if s is not None:
+        result["spx_index"] = {"freq": "D", "unit": "index",
+                               "points": series_to_points(s, round_dp=2),
+                               "source": "Yahoo ^GSPC"}
+
+    print("Nasdaq Composite index level (^IXIC, chart overlay) ...")
+    s = safe_yf("^IXIC")
+    if s is not None:
+        result["ndx_index"] = {"freq": "D", "unit": "index",
+                               "points": series_to_points(s, round_dp=2),
+                               "source": "Yahoo ^IXIC"}
+
+    print("Dow Jones Industrial Average level (^DJI, chart overlay) ...")
+    s = safe_yf("^DJI")
+    if s is not None:
+        result["dji_index"] = {"freq": "D", "unit": "index",
+                               "points": series_to_points(s, round_dp=2),
+                               "source": "Yahoo ^DJI"}
 
     print("SKEW Index ...")
     s = safe_yf("^SKEW")
