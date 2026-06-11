@@ -111,9 +111,15 @@ function statusFor(ageMinutes: number, row: HealthRow): "green" | "amber" | "red
 // cadences leave date-only at 00:00 UTC — their SLA budgets absorb the offset.
 function asOfToMs(iso: string | null | undefined, cadence: CadenceCode | undefined): number | null {
   if (!iso) return null;
-  if (iso.length === 10) {
+  // 2026-06-11: stamps stored at exactly midnight UTC are date-only INTENT
+  // (the honest-stamp rule writes business dates that way) — anchor them like
+  // date-only strings so daily age math doesn't run 20h hot.
+  const isoDateOnly = iso.length === 10
+    ? iso
+    : (/T00:00:00(\.0+)?(\+00:00|Z)$/.test(iso) ? iso.slice(0, 10) : null);
+  if (isoDateOnly) {
     const time = cadence === "D" ? "T20:00:00Z" : "T00:00:00Z";
-    const ms = new Date(iso + time).getTime();
+    const ms = new Date(isoDateOnly + time).getTime();
     return Number.isFinite(ms) ? ms : null;
   }
   const ms = new Date(iso).getTime();
@@ -448,9 +454,11 @@ async function handle(req: Request): Promise<Response> {
       cadence: row.cadence,
       expected_cadence_minutes: row.expected_cadence_minutes,
       last_check_at: now.toISOString(),
-      last_good_at: lastGoodIso
-        ? lastGoodIso
-        : (asOf ? new Date(asOfToMs(asOf, row.cadence) ?? Date.now()).toISOString() : row.last_good_at),
+      // Honest-stamp rule (2026-06-11): last_good_at only ever carries REAL
+      // run evidence (pipeline_runs). Deriving it from the data's as-of
+      // fabricated 4 PM closes — future stamps whenever the data was current.
+      // With no evidence, leave the producer's own stamp untouched.
+      last_good_at: lastGoodIso ?? row.last_good_at,
       // 2026-05-27 — write the trading-day data date the watchdog just
       // observed into data_as_of. The chip layer (useFreshness.js,
       // post-2026-05-12 Phase 2) anchors staleness off data_as_of, not

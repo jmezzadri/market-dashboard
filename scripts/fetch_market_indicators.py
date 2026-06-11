@@ -117,10 +117,14 @@ def _sync_pipeline_health(updates):
         pts=e.get("points") or []
         if not pts: continue
         st=e.get("stats") or {}
-        das=f"{pts[-1][0]}T20:00:00+00:00"
+        # Honest-stamp rule (2026-06-11): see fetch_history.py — real run time
+        # for last_good_at; business date (midnight UTC) for data_as_of.
+        import datetime as _dtm
+        _now_iso=_dtm.datetime.now(_dtm.timezone.utc).isoformat()
+        das=f"{min(str(pts[-1][0])[:10], _now_iso[:10])}T00:00:00+00:00"
         row={"indicator_id":k,"label":st.get("label") or k,"source":"Yahoo Finance",
              "cadence":e.get("freq") or "D","expected_cadence_minutes":10080 if e.get("freq")=="W" else 1440,
-             "data_as_of":das,"last_good_at":das,"status":"green","last_error":None,"coverage_pct":100.0}
+             "data_as_of":das,"last_good_at":_now_iso,"status":"green","last_error":None,"coverage_pct":100.0}
         req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
             headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json","Prefer":"return=minimal,resolution=merge-duplicates"})
         try:
@@ -134,6 +138,17 @@ def run():
     for key, ticker, name, bucket, unit in TARGETS:
         try:
             pts = fetch(ticker)
+            # In-progress-session guard (2026-06-11): drop a bar dated today
+            # until futures/FX settlement (17:05 ET) — an open session is a
+            # quote, not a daily close.
+            import datetime as _dtm
+            from zoneinfo import ZoneInfo as _zi
+            _et = _dtm.datetime.now(_zi("America/New_York"))
+            if pts and (_et.hour, _et.minute) < (17, 5) and pts[-1][0] >= _et.strftime("%Y-%m-%d"):
+                print(f"  in-progress guard: dropped open-session bar {pts[-1][0]} for {ticker}")
+                pts = pts[:-1]
+            if not pts:
+                raise RuntimeError("no completed-session bars")
             vals = [p[1] for p in pts]
             freq = "W" if key == "cmdty_uranium" else "D"
             thin = len(vals) < 60          # not enough history to rank yet

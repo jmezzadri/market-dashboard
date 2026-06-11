@@ -42,9 +42,11 @@ def upsert(indicator_id: str, data_as_of: str, status: str = "green") -> bool:
     # Normalise a date-only as_of to midnight UTC ISO.
     as_of = f"{data_as_of}T00:00:00+00:00" if len(data_as_of) == 10 else data_as_of
     now = datetime.now(timezone.utc).isoformat()
+    # Honest-stamp rule (2026-06-11): last_good_at = real run time, never the
+    # data's date dressed as a timestamp.
     body = json.dumps({
         "data_as_of": as_of,
-        "last_good_at": as_of,
+        "last_good_at": now,
         "last_check_at": now,
         "status": status,
         "last_error": None,

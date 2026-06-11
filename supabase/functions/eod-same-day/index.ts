@@ -157,8 +157,17 @@ serve(async (req) => {
     }
   });
 
+  // Forward-dated-bar guard (2026-06-11): never store a bar for a session
+  // that has not completed in New York (money-market funds like SPAXX return
+  // synthetic bars stamped with tomorrow's UTC date at ~3:30 AM ET). The DB
+  // trigger rejects these too; filtering here keeps the upsert clean.
+  const etNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const etToday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+  const sessionClosed = etNow.getHours() > 16 || (etNow.getHours() === 16 && etNow.getMinutes() >= 5);
+  const maxTradeDate = sessionClosed ? etToday : "0000-00-00"; // pre-close: only past dates
   const rows = results
     .filter((r) => r.ok && r.bar)
+    .filter((r) => sessionClosed ? r.bar!.trade_date <= maxTradeDate : r.bar!.trade_date < etToday)
     .map((r) => ({
       ticker:     r.ticker,
       trade_date: r.bar!.trade_date,

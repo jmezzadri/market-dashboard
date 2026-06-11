@@ -291,9 +291,13 @@ def _sync_pipeline_health(as_of):
     import os as _os, urllib.request as _ur, json as _json
     url=_os.environ.get("SUPABASE_URL"); key=_os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not (url and key and as_of): return
-    das=f"{as_of}T20:00:00+00:00"
+    # Honest-stamp rule (2026-06-11): the COT report is as of its Tuesday
+    # DATE — no invented 4 PM close; last_good_at = the real ingest time.
+    import datetime as _dtm
+    _now_iso=_dtm.datetime.now(_dtm.timezone.utc).isoformat()
+    das=f"{min(str(as_of)[:10], _now_iso[:10])}T00:00:00+00:00"
     row={"indicator_id":"cftc-cot","label":"CFTC positioning","source":"cftc","cadence":"W",
-         "expected_cadence_minutes":10080,"data_as_of":das,"last_good_at":das,
+         "expected_cadence_minutes":10080,"data_as_of":das,"last_good_at":_now_iso,
          "status":"green","last_error":None,"coverage_pct":100.0}
     req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
         headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json","Prefer":"return=minimal,resolution=merge-duplicates"})

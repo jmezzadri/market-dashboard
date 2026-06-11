@@ -53,9 +53,11 @@ def main():
             print(f"  skip {ind_id}: no rows in {table}")
             continue
         as_of = f"{d}T00:00:00+00:00" if len(d) == 10 else d
+        # Honest-stamp rule (2026-06-11): last_good_at = now() (the seed run is
+        # the verification event), data_as_of = the data's own date.
         rows.append("(" + ", ".join([
             _esc(ind_id), _esc(label), _esc(source), "'D'", "1440", "'green'",
-            _esc(as_of), "now()", _esc(as_of), "NULL", "now()",
+            "now()", "now()", _esc(as_of), "NULL", "now()",
         ]) + ")")
         print(f"  stamp {ind_id}: data_as_of={as_of}")
     if not rows:
