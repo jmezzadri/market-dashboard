@@ -110,6 +110,8 @@ const MARKET_BLURB = {
   '5Y Treasury': "Futures on 5-year Treasuries — the belly of the curve, where Fed path and growth views meet.",
   '10Y Treasury': "Futures on 10-year Treasuries — positioning on the benchmark long rate.",
   'Ultra Bond': "Futures on the longest-maturity Treasuries (25+ years) — the biggest duration bet on the board.",
+  'Investment-grade bonds': "Primary dealers' net inventory of investment-grade corporate bonds — how much quality credit risk Wall Street is warehousing.",
+  'High-yield bonds': "Primary dealers' net inventory of junk bonds — how much speculative credit risk Wall Street is warehousing.",
 };
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
@@ -158,15 +160,11 @@ function BucketRollupDot({ inds, positioningElementId, positioningAsOf, onTip, o
 }
 const SHORT = {
   '10-Year Breakeven': '10y breakeven',
-  'High-yield spread over Treasuries': 'HY vs UST',
-  'Investment-grade spread over Treasuries': 'IG vs UST',
-  'Business lending standards': 'C&I lending stds',
-  'Real-estate lending standards': 'CRE lending stds',
-  'Corporate-bond distress': 'Corp bond distress',
-  'High-yield total yield': 'HY total yield',
-  'High-yield vs investment-grade': 'HY vs IG',
-  'Dollar funding stress': 'USD funding',
-  'Bank credit growth': 'Bank credit',
+  'C&I Lending Standards': 'C&I lending stds',
+  'CRE Lending Standards': 'CRE lending stds',
+  'Credit Distress (proxy)': 'Credit distress',
+  'HY vs IG Ratio': 'HY vs IG',
+  'Bank Credit Growth': 'Bank credit',
   '10-Year Real Yield': '10y real yield',
   'Stock volatility': 'Stock vol (VIX)',
   'Crash risk (options)': 'Crash risk (SKEW)',
