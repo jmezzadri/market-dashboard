@@ -1,0 +1,52 @@
+name: REPAIR-HEALTH-STAMPS (one-shot, 2026-06-11)
+
+# One-shot repair of fabricated freshness stamps (Joe-approved). Order:
+#   1. Install the database guard (clamps future stamps; rejects forward-dated
+#      price bars) so stale code paths cannot re-pollute mid-repair.
+#   2. Redeploy the two edge functions whose stamp-writing was fixed.
+#   3. Rewrite every pipeline_health row with honest values + delete phantoms.
+# Safe to re-run; the repair is idempotent and only touches fabrication-shaped
+# values.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 1 — apply database stamp guard (migration)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          SQL=$(jq -Rs . < supabase/migrations/20260611120000_freshness_stamp_guard.sql)
+          HTTP=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
+            "https://api.supabase.com/v1/projects/yqaqqzseepebrocgibcw/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $SQL}")
+          cat /tmp/out.json; echo
+          if [ "$HTTP" -ge 300 ]; then echo "migration failed ($HTTP)"; exit 1; fi
+          echo "guard installed."
+
+      - name: 2 — redeploy fixed edge functions
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: 2b — deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy pipeline-health-check --project-ref yqaqqzseepebrocgibcw --no-verify-jwt
+          supabase functions deploy eod-same-day --project-ref yqaqqzseepebrocgibcw --no-verify-jwt
+
+      - name: 3 — repair all tracking rows (+ phantom price bars)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/repair_health_stamps.py            # dry-run print
+          python3 scripts/repair_health_stamps.py --commit
