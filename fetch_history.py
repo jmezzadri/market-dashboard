@@ -271,19 +271,31 @@ def _drop_future_points(result):
     future-dated observation ever reaches public/indicator_history.json,
     whatever any individual indicator block does upstream.
     """
-    from datetime import date as _date
+    from datetime import date as _date, datetime as _dtm
+    from zoneinfo import ZoneInfo as _zi
     today = _date.today().isoformat()
+    # In-progress-session guard (2026-06-11): a DAILY series must never
+    # publish a point for a session that has not closed in New York. The
+    # 7 AM refresh was catching a live intraday quote and stamping it with
+    # today's date — chips then showed "Data as of <today> 4:00 PM" hours
+    # before the close printed. Points dated today are dropped until
+    # 16:05 ET; the EOD chain (16:30 ET) restores today's real close.
+    _now_et = _dtm.now(_zi("America/New_York"))
+    _intraday = (_now_et.hour, _now_et.minute) < (16, 5)
     for ind_id, entry in result.items():
         if ind_id.startswith("__") or not isinstance(entry, dict):
             continue
         pts = entry.get("points")
         if not pts:
             continue
-        kept = [p for p in pts if p[0] <= today]
+        _cut = _now_et.strftime("%Y-%m-%d") if (_intraday and (entry.get("freq") or "D").upper().startswith("D")) else None
+        kept = [p for p in pts if p[0] <= today and (not _cut or p[0] < _cut)]
         if len(kept) != len(pts):
-            print(f"  future-date guard: dropped {len(pts) - len(kept)} "
-                  f"future-dated point(s) from {ind_id}")
+            print(f"  future/in-progress guard: dropped {len(pts) - len(kept)} "
+                  f"point(s) from {ind_id}")
             entry["points"] = kept
+            if kept:
+                entry["as_of"] = kept[-1][0]
     return result
 
 
@@ -317,7 +329,10 @@ def _sync_pipeline_health_from_result(result):
         if not pts:
             continue
         iso_date = pts[-1][0]
-        data_as_of = f"{iso_date}T20:00:00+00:00"
+        # Honest-stamp rule (2026-06-11): last_good_at/last_check_at = the REAL wall-clock run time, never derived from the data's date. data_as_of = the business DATE the data represents, stored at midnight UTC (date-only intent; the UI renders it as a plain date plus the official cutoff from the manifest) — never a fabricated close time, never the future.
+        _now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+        _now_iso = _now.isoformat()
+        data_as_of = f"{min(str(iso_date)[:10], _now_iso[:10])}T00:00:00+00:00"
         row = {
             "indicator_id":              ind_id,
             "label":                     entry.get("label") or ind_id,
@@ -325,7 +340,7 @@ def _sync_pipeline_health_from_result(result):
             "cadence":                   entry.get("freq") or "D",
             "expected_cadence_minutes":  1440,
             "data_as_of":                data_as_of,
-            "last_good_at":              data_as_of,
+            "last_good_at":              _now_iso,
             "status":                    "green",
             "last_error":                None,
             "coverage_pct":              100.0,
