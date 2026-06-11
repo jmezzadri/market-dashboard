@@ -106,7 +106,10 @@ def write_pipeline_health(spec, asof, is_stale):
     patch = {
         "status": "red" if is_stale else "green",
         "last_check_at": now,
-        "last_good_at": f"{asof}T00:00:00+00:00",
+        # Honest-stamp rule (2026-06-11): this job VERIFIES served files — it
+        # learns the data's date, not a refresh time. Write data_as_of, and
+        # never touch last_good_at with a derived value.
+        "data_as_of": f"{asof}T00:00:00+00:00",
         "last_error": None if not is_stale else "stale beyond budget (freshness_alarm)",
     }
     endpoint = f"{url}/rest/v1/pipeline_health?indicator_id=eq.{pid}"
