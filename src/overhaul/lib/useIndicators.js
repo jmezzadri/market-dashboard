@@ -89,7 +89,7 @@ function stateFor(pct, direction) {
 }
 
 const DEF = {
-  vix: 'VIX Index', skew: 'CBOE SKEW', eq_cr_corr: 'SPY-HYG correlation', cape: 'Shiller CAPE',
+  vix: 'Equity Volatility', skew: 'Options-Implied Tail Risk', eq_cr_corr: 'SPY-HYG correlation', cape: 'Shiller CAPE',
   hy_ig: 'High-Yield Credit Spread', ig_oas: 'Investment-Grade Credit Spread', loan_syn: 'High-yield effective yield',
   cmdi: 'Corp-bond distress (NFCI proxy)', cpff: '3m commercial paper - Fed funds',
   sloos_ci: 'SLOOS, C&I net tightening', sloos_cre: 'SLOOS, CRE net tightening',

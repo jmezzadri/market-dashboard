@@ -367,7 +367,10 @@ export default function BigHistoryChart({
         compareRaws.forEach((raw, k) => {
           if (compareDrawn[k] && raw && raw[i] != null) {
             const v = raw[i];
-            const fmt = Math.abs(v) >= 1000 ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }) : yFormat(v);
+            // Plain number — never borrow the primary axis unit. (A crude-oil
+            // overlay on a positioning chart was rendering "$91.30 as 91.3%",
+            // Joe 2026-06-10.)
+            const fmt = Number(v).toLocaleString(undefined, { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 2 });
             rows.push([compareList[k].label, fmt, compareList[k].color]);
           }
         });
