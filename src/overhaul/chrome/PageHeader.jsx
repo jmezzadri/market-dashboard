@@ -12,13 +12,18 @@ import { isStaleAgainstSLA } from '../../lib/freshnessClock';
 // Red names how many feeds are past their freshness target; green only when
 // every indicator is current.
 function AllFeedsPill() {
-  const [v, setV] = React.useState({ status: 'checking', stale: 0 });
+  const [v, setV] = React.useState({ status: 'checking', stale: 0, names: [] });
   React.useEffect(() => {
     let off = false;
+    // Cache-proof reads (2026-06-11): a CDN edge can hold an old copy of these
+    // files; grading a stale cached copy made this pill claim "1 feed stale"
+    // while every visible tile (built from the CURRENT file) was green. The
+    // timestamp param forces the edge to revalidate.
+    const bust = `?t=${Date.now()}`;
     Promise.all([
-      fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
-      fetch('/data_manifest.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
-      fetch('/cot_positioning.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/indicator_history.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/data_manifest.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/cot_positioning.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([d, man, cot]) => {
         if (off || !d || !man) return;
@@ -27,12 +32,16 @@ function AllFeedsPill() {
           if (e && e.name) byName[e.name] = e;
         }
         let stale = 0;
+        const names = [];
         for (const [name, s] of Object.entries(d)) {
           if (name === '__meta__' || !s || typeof s !== 'object') continue;
           const el = byName[name];
           const sla = el && el.freshness_sla_hours;
           if (!sla || !s.as_of) continue;
-          if (isStaleAgainstSLA(s.as_of, sla, el.release_calendar)) stale += 1;
+          if (isStaleAgainstSLA(s.as_of, sla, el.release_calendar)) {
+            stale += 1;
+            names.push((s.stats && s.stats.label) || s.label || name);
+          }
         }
         // COT futures-positioning markets live in cot_positioning.json (not the
         // indicator file). Count any whose own as-of is past the COT SLA so a
@@ -43,11 +52,11 @@ function AllFeedsPill() {
         if (cot && cot.domains) {
           for (const dom of Object.values(cot.domains)) {
             for (const mk of (dom.markets || [])) {
-              if (mk && mk.asof && isStaleAgainstSLA(mk.asof, cotSla, 'us-business-day')) stale += 1;
+              if (mk && mk.asof && isStaleAgainstSLA(mk.asof, cotSla, 'us-business-day')) { stale += 1; names.push(`${mk.market || 'positioning'} (COT)`); }
             }
           }
         }
-        if (!off) setV({ status: stale > 0 ? 'red' : 'green', stale });
+        if (!off) setV({ status: stale > 0 ? 'red' : 'green', stale, names });
       })
       .catch(() => {});
     return () => { off = true; };
@@ -60,7 +69,9 @@ function AllFeedsPill() {
         : 'All feeds current';
   return (
     <span
-      title={v.status === 'red' ? 'Open a red tile to see which feed is stale' : 'Every indicator feed is within its freshness target'}
+      title={v.status === 'red'
+        ? `Stale: ${(v.names || []).join(', ')} — find it on All Indicators or Admin · Data (the stale feed may not have a tile on this page)`
+        : 'Every indicator feed is within its freshness target'}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
     >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
