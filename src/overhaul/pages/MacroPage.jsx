@@ -116,6 +116,16 @@ const MARKET_BLURB = {
   'Nasdaq 100': "Futures on the Nasdaq-100 — speculative positioning in US mega-cap technology.",
   'Russell 2000': "Futures on the Russell 2000 — speculative positioning in US small-caps, the most domestically exposed segment.",
   'VIX': "Futures on the VIX index — positioning on future volatility itself. Large net-short positions have historically preceded sharp volatility spikes when short-volatility trades unwind (February 2018, August 2024).",
+  'WTI Crude': "Futures positioning in NYMEX WTI crude oil.",
+  'Natural Gas': "Futures positioning in NYMEX Henry Hub natural gas.",
+  'Gold': "Futures positioning in COMEX gold.",
+  'Silver': "Futures positioning in COMEX silver.",
+  'Copper': "Futures positioning in COMEX copper.",
+  'Corn': "Futures positioning in CBOT corn.",
+  'Soybeans': "Futures positioning in CBOT soybeans.",
+  'Wheat': "Futures positioning in CBOT soft red winter wheat.",
+  'Sugar': "Futures positioning in ICE Sugar No. 11 — world raw sugar.",
+  'Coffee': "Futures positioning in ICE Coffee C — arabica.",
 };
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
