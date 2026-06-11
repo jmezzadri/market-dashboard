@@ -815,33 +815,34 @@ def _sleeve_day_pnl(
     if missing:
         closes = {**closes, **official_closes(alpaca, missing, session_date)}
 
-    held = {p.ticker.upper() for p in positions}
+    # Base = the SAME per-position day P&L the sleeve table sums (already
+    # marked at official closes by the reprice step; names with no session
+    # bar keep broker marks — table, NAV and this number then agree on the
+    # same mark, which is the property that matters). Buys are corrected so
+    # today's bought shares earn (close − fill) instead of the full
+    # (close − prior close) the position-level number assumes.
     for p in positions:
         t = p.ticker.upper()
-        cp = closes.get(t)
-        if not cp or cp[1] is None:
-            continue
-        close, prev = cp
         sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
-        bq, bnotional = bought.get(t, [0.0, 0.0])
-        bq = min(bq, p.qty)
-        carried = p.qty - bq
-        pnl = carried * (close - prev)
-        if bq > 0:
-            avg_fill = bnotional / bought[t][0]
-            pnl += bq * (close - avg_fill)
-        out[sleeve] = out.get(sleeve, 0.0) + pnl
+        out[sleeve] = out.get(sleeve, 0.0) + float(p.unrealized_intraday_pl or 0.0)
+        bq_all = bought.get(t)
+        if bq_all and bq_all[0] > 0:
+            cp = closes.get(t)
+            prev = cp[1] if (cp and cp[1]) else (p.lastday_price or None)
+            if prev:
+                bq = min(bq_all[0], p.qty)
+                avg_fill = bq_all[1] / bq_all[0]
+                out[sleeve] += bq * (prev - avg_fill)
+    # Sells: sold shares earned (fill − prior close); they are absent from
+    # the position rows, so add them here.
     for t, (sq, snotional) in sold.items():
         cp = closes.get(t)
         prev = cp[1] if cp else None
         if prev is None:
+            logger.warning("day-pnl: no prior close for sold name %s — its sold-share P&L omitted", t)
             continue
-        # for names still partially held the sold shares left at the fill;
-        # for full exits the same formula applies.
         sleeve = _sleeve_for(t, sleeve_a_etfs)
-        avg_fill = snotional / sq
-        out[sleeve] = out.get(sleeve, 0.0) + sq * (avg_fill - prev)
-        _ = held  # clarity: sold qty is incremental to current holdings either way
+        out[sleeve] = out.get(sleeve, 0.0) + sq * (snotional / sq - prev)
     return out
 
 
