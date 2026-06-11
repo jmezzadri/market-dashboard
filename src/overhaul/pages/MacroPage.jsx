@@ -131,7 +131,7 @@ const MARKET_BLURB = {
   'S&P 500': "Futures on the S&P 500 — speculative positioning in US large-cap equities.",
   'Nasdaq 100': "Futures on the Nasdaq-100 — speculative positioning in US mega-cap technology.",
   'Russell 2000': "Futures on the Russell 2000 — speculative positioning in US small-caps, the most domestically exposed segment.",
-  'VIX': "Futures on the VIX index — positioning on future volatility itself. Large net-short positions have historically preceded sharp volatility spikes when short-volatility trades unwind (February 2018, August 2024).",
+  'VIX': "Futures on the VIX index — positioning on future volatility itself. Speculators are structurally net short VIX futures: the futures curve usually sits above spot, so the standing trade is selling futures to harvest the roll-down (the volatility risk premium). The raw sign is therefore always short — the percentile against its own range is the signal. Deeply stretched shorts have historically preceded sharp volatility spikes when the trade unwinds (February 2018, August 2024).",
   'WTI Crude': "Futures positioning in NYMEX WTI crude oil.",
   'Natural Gas': "Futures positioning in NYMEX Henry Hub natural gas.",
   'Gold': "Futures positioning in COMEX gold.",
