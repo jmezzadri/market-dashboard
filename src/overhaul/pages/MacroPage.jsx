@@ -27,6 +27,7 @@ import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
+import DomainBars from '../components/DomainBars';
 import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -39,6 +40,20 @@ const DOMAIN_TITLE = {
   FX: 'The dollar and major currencies.',
   'Financial Conditions & Economy': 'Growth, jobs, and broad financial conditions.',
 };
+
+// Tile visual: 'bars' (median-anchored percentile bars — default per Joe
+// 2026-06-11) or 'pills' (the name+number grid), persisted like the old view.
+function loadTiles() {
+  try {
+    const v = window.localStorage.getItem('mt.overhaul.macro.tiles');
+    return v === 'pills' ? 'pills' : 'bars';
+  } catch {
+    return 'bars';
+  }
+}
+function saveTiles(v) {
+  try { window.localStorage.setItem('mt.overhaul.macro.tiles', v); } catch {}
+}
 
 function loadView() {
   try {
@@ -449,6 +464,7 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
 export default function MacroPage() {
   const { active: indicators, loading, indexSeries } = useIndicators();
   const [view, setView] = useState(loadView);
+  const [tiles, setTiles] = useState(loadTiles);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -460,6 +476,18 @@ export default function MacroPage() {
   const hideTip = () => setTip(null);
 
   useEffect(() => { saveView(view); }, [view]);
+  useEffect(() => { saveTiles(tiles); }, [tiles]);
+  // Positioning freshness for the bars view: the CFTC report is Tuesday data
+  // pulled Saturday morning. Within 6 calendar days of the report date the
+  // print is current (weekend + Monday reads); after that the group dims
+  // until the next pull. Mirrors Joe's "no sense looking until the refresh".
+  const posDimmed = useMemo(() => {
+    const iso = cotPos?.as_of;
+    if (!iso) return true;
+    const t = Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z');
+    if (!Number.isFinite(t)) return true;
+    return (Date.now() - t) / 86400000 > 6;
+  }, [cotPos]);
   useEffect(() => {
     let cancelled = false;
     fetch('/cot_positioning.json', { cache: 'no-cache' })
@@ -552,6 +580,13 @@ export default function MacroPage() {
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+            <div className="mt-pillgroup">
+              {[['bars', 'Bars'], ['pills', 'Pills']].map(([k, lbl]) => (
+                <button key={k} type="button" className={`mt-pill ${tiles === k ? 'on' : ''}`} onClick={() => setTiles(k)}>{lbl}</button>
+              ))}
+            </div>
+          </div>
           <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
@@ -571,6 +606,19 @@ export default function MacroPage() {
                     <div className="mc-domname">{dom}</div>
                     <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} onTip={showTip} onHideTip={hideTip} />
                   </div>
+                  {tiles === 'bars' ? (
+                    <DomainBars
+                      inds={inds}
+                      markets={cotPos?.domains?.[dom]?.markets || []}
+                      shortLabel={shortLabel}
+                      posDimmed={posDimmed}
+                      posNextPrint="Sat 7:00a ET"
+                      onSelectInd={setSelected}
+                      onSelectPos={setSelectedPos}
+                      onTip={showTip}
+                      onHideTip={hideTip}
+                    />
+                  ) : (
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
@@ -608,6 +656,7 @@ export default function MacroPage() {
                       </>
                     )}
                   </div>
+                  )}
                 </div>
               );
             })}

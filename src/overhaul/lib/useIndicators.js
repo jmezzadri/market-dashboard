@@ -257,6 +257,22 @@ export default function useIndicators() {
         sourcingMode: src.sourcingMode,
       });
     });
+    // Δ percentile vs the previous print, for the bars view. The prior
+    // observation is ranked in ITS OWN trailing-3y window (ending at that
+    // observation), so the delta reflects the data moving, not the window
+    // sliding. Shown only for elements whose latest print is current (within
+    // 2 calendar days of the freshest series on the page) — a weekly or
+    // monthly series stops carrying a Δ once its print is old news.
+    const maxAsOf = out.reduce((m, i) => (i.asOf && String(i.asOf) > m ? String(i.asOf) : m), '');
+    const freshCutT = maxAsOf ? Date.parse(maxAsOf.slice(0, 10) + 'T00:00:00Z') - 2 * 86400000 : null;
+    out.forEach((i) => {
+      i.deltaPct = null;
+      if (!i.points || i.points.length < 2 || i.pct == null || freshCutT == null) return;
+      const ownT = Date.parse(String(i.asOf).slice(0, 10) + 'T00:00:00Z');
+      if (!Number.isFinite(ownT) || ownT < freshCutT) return;
+      const prevPct = pctRank(i.points[i.points.length - 2][1], i.points.slice(0, -1));
+      if (prevPct != null) i.deltaPct = i.pct - prevPct;
+    });
     return out;
   }, [hist, sourceFor]);
 
