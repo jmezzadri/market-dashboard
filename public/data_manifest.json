@@ -115,7 +115,7 @@
    "description": "ICE BofA HY OAS spread (bps) — credit spread compression vs Treasuries.",
    "sourcing_mode": "STP+anchor",
    "source_vendor": "FRED",
-   "source_endpoint": "FRED BAMLH0A0HYM2 (×100); pre-2023 in-script anchor _hy_ig_pre2023_anchor",
+   "source_endpoint": "FRED BAMLH0A0HYM2 (×100 → bps) · pre-2023 curated anchor splice maintained in the producer",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -3651,6 +3651,72 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "NYSE cash close"
+  },
+  {
+   "id": "indicator-ndx_above_50ema-daily",
+   "category": "indicator",
+   "name": "ndx_above_50ema",
+   "description": "Percentage of Nasdaq-100 members trading above their own 50-day EMA — index breadth. Membership: Invesco QQQ holdings (Wikipedia fallback); EMAs from Polygon EOD closes.",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "Invesco QQQ holdings + Polygon (computed in-house)",
+   "source_endpoint": "Invesco QQQ holdings CSV (Wikipedia Nasdaq-100 fallback); Supabase prices_eod",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
+   "freshness_sla_hours": 73,
+   "output_destination": "public/indicator_history.json[ndx_above_50ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:00",
+   "as_of_cutoff_note": "US market close"
+  },
+  {
+   "id": "indicator-ndx_above_200ema-daily",
+   "category": "indicator",
+   "name": "ndx_above_200ema",
+   "description": "Percentage of Nasdaq-100 members trading above their own 200-day EMA — index breadth. Membership: Invesco QQQ holdings (Wikipedia fallback); EMAs from Polygon EOD closes.",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "Invesco QQQ holdings + Polygon (computed in-house)",
+   "source_endpoint": "Invesco QQQ holdings CSV (Wikipedia Nasdaq-100 fallback); Supabase prices_eod",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "11:00",
+   "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
+   "freshness_sla_hours": 73,
+   "output_destination": "public/indicator_history.json[ndx_above_200ema]",
+   "producer_script": "BREADTH-DAILY workflow",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Equities bucket — indicator"
+    },
+    {
+     "tab": "indicators"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
+   "owner": "Senior Quant",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:00",
+   "as_of_cutoff_note": "US market close"
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

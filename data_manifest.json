@@ -1920,6 +1920,40 @@
    ],
    "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
    "owner": "Lead Dev (pipe), Data Steward (freshness)"
+  },
+  "indicator.ndx-above-50ema": {
+   "category": "indicator",
+   "element": "Nasdaq-100 % above 50-day EMA (breadth)",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "Invesco QQQ holdings (Wikipedia fallback) + Polygon prices_eod",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "github-actions: BREADTH-DAILY.yml",
+   "schedule_et": "11:00 ET weekdays",
+   "freshness_sla_hours": 73,
+   "consumer_surfaces": [
+    "Macro Overview → Equities tile",
+    "All Indicators table"
+   ],
+   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
+   "owner": "Lead Dev (pipe), Data Steward (freshness)"
+  },
+  "indicator.ndx-above-200ema": {
+   "category": "indicator",
+   "element": "Nasdaq-100 % above 200-day EMA (breadth)",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "Invesco QQQ holdings (Wikipedia fallback) + Polygon prices_eod",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "github-actions: BREADTH-DAILY.yml",
+   "schedule_et": "11:00 ET weekdays",
+   "freshness_sla_hours": 73,
+   "consumer_surfaces": [
+    "Macro Overview → Equities tile",
+    "All Indicators table"
+   ],
+   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
+   "owner": "Lead Dev (pipe), Data Steward (freshness)"
   }
  }
 }
