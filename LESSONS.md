@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-11 — A displayed value must read the SAME source the engine acts on; auditing a table means auditing EVERY column
+
+**What happened:** The Sleeve B Score column showed 1–3 for every holding (buy gate is ≥5). The trading engine switched its signal source from the retired v5 scanner to the live Trading Opportunities scanner on 2026-05-27, but the display helper that stamps scores onto the positions snapshot was never re-pointed — it kept reading the dead table and dividing by the old score scale for two weeks. Joe found it, not the agent, the night after the agent had "verified" the paper page three times while staring directly at the wrong scores.
+
+**What you should do instead:** (1) When a data source is retired or an engine changes sources, grep EVERY consumer of the old source in the same change — engine and display must read one source of truth. (2) Self-UAT of any data table means verifying EVERY column against its source of record (recompute it independently), not only the columns the current task touched. A plausibility pass is mandatory: a "score" column whose values sit below the documented buy threshold on every row is screaming. (3) Numbers a PM would act on get the Senior Quant plausibility check before the page is called verified.
+
+**Applies to:** All
+
+---
+
 ## 2026-06-09 — Scheduled notification emails must be once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7-8 paper-rebalance emails in one day instead of 2. The morning submit workflow deliberately fires every 30 minutes pre-open (insurance against GitHub's late cron delivery) and the post-open watchdog runs on two timers for daylight-saving coverage; order submission was rerun-safe but every fire re-sent its email.
