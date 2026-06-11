@@ -98,6 +98,19 @@ function DomainPositioning({ data }) {
   );
 }
 
+// 1 -> "1st", 22 -> "22nd", 13 -> "13th" — fixes the "1th percentile" bug.
+function ordSuffix(n){ const v=Math.abs(Math.round(n)), k=v%100; if(k>=11&&k<=13) return 'th'; return {1:'st',2:'nd',3:'rd'}[v%10]||'th'; }
+function ord(n){ return `${Math.round(n)}${ordSuffix(n)}`; }
+// One plain-English line on what each futures market IS, shown above the
+// standard speculator/hedger explanation in the positioning panel
+// (Joe-approved Rates batch 2026-06-10; other domains land with their batches).
+const MARKET_BLURB = {
+  '3M SOFR': "Futures on short-term US interest rates — the purest bet on the Fed's path.",
+  '2Y Treasury': "Futures on 2-year Treasuries — positioning on near-term Fed policy.",
+  '5Y Treasury': "Futures on 5-year Treasuries — the belly of the curve, where Fed path and growth views meet.",
+  '10Y Treasury': "Futures on 10-year Treasuries — positioning on the benchmark long rate.",
+  'Ultra Bond': "Futures on the longest-maturity Treasuries (25+ years) — the biggest duration bet on the board.",
+};
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
@@ -144,7 +157,7 @@ function BucketRollupDot({ inds, positioningElementId, positioningAsOf, onTip, o
   );
 }
 const SHORT = {
-  'Inflation expectations (10-year)': '10y breakeven',
+  '10-Year Breakeven': '10y breakeven',
   'High-yield spread over Treasuries': 'HY vs UST',
   'Investment-grade spread over Treasuries': 'IG vs UST',
   'Business lending standards': 'C&I lending stds',
@@ -154,8 +167,7 @@ const SHORT = {
   'High-yield vs investment-grade': 'HY vs IG',
   'Dollar funding stress': 'USD funding',
   'Bank credit growth': 'Bank credit',
-  '10-year real yield': '10y real yield',
-  'Yield curve slope': 'Yield curve',
+  '10-Year Real Yield': '10y real yield',
   'Stock volatility': 'Stock vol (VIX)',
   'Crash risk (options)': 'Crash risk (SKEW)',
   'Stocks vs credit': 'Stock-credit corr',
@@ -214,7 +226,7 @@ function PositioningCard({ item, onClick }) {
         <FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="dot" />
       </header>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-        <div className="num" style={{ fontSize: 22, fontWeight: 500, color: accent }}>{Math.round(item.spec)}<span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 3, fontWeight: 400 }}>th pct</span></div>
+        <div className="num" style={{ fontSize: 22, fontWeight: 500, color: accent }}>{Math.round(item.spec)}<span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 3, fontWeight: 400 }}>{ordSuffix(item.spec)} pct</span></div>
         <span className={`mt-tag mt-tag--${posState(item.spec) === 'extreme' ? 'extreme' : posState(item.spec) === 'elevated' ? 'elev' : 'calm'}`}>{posRead(item.spec)}</span>
       </div>
       <div style={{ color: accent }}><Sparkline data={trend} width={240} height={28} stroke={accent} showDot /></div>
@@ -307,7 +319,7 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
           <div style={{ fontFamily: 'var(--mt-font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', margin: '4px 0 0', lineHeight: 1.1 }}>{item.market}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="num" style={{ fontSize: 32, fontWeight: 500, color: accent, lineHeight: 1 }}>{Math.round(item.spec)}<span style={{ fontSize: 14, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>th pct</span></div>
+          <div className="num" style={{ fontSize: 32, fontWeight: 500, color: accent, lineHeight: 1 }}>{Math.round(item.spec)}<span style={{ fontSize: 14, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>{ordSuffix(item.spec)} pct</span></div>
           <div style={{ marginTop: 6 }}><FreshnessChip elementId="indicator-cftc-cot-weekly" fallback={{ asOfIso: item.asof }} variant="label" /></div>
         </div>
       </header>
@@ -321,6 +333,11 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
             </span>
           ))}
         </div>
+      )}
+      {MARKET_BLURB[item.market] && (
+        <p style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.6, margin: '0 0 6px', fontWeight: 500 }}>
+          {MARKET_BLURB[item.market]}
+        </p>
       )}
       <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
         {isDealer
@@ -367,7 +384,7 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
         <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
-        <PosStat label="Speculator percentile" v={`${Math.round(item.spec)}th`} />
+        <PosStat label="Speculator percentile" v={ord(item.spec)} />
         {!isDealer && item.commNet != null && <PosStat label="Commercials net" v={`${item.commNet}%`} />}
         {item.oi != null && <PosStat label="Open interest" v={Number(item.oi).toLocaleString()} />}
       </div>
@@ -530,7 +547,7 @@ export default function MacroPage() {
                         <button key={i.id} type="button"
                           className={`mt-tag mc-pill mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
                           onClick={(e) => { e.stopPropagation(); setSelected(i); }}
-                          onMouseEnter={(e) => showTip(e, `${i.name} — ${Math.round(i.pct)}th percentile of its 3-year range`)}
+                          onMouseEnter={(e) => showTip(e, i.pct == null ? i.name : `${i.name} — ${ord(i.pct)} percentile of its 3-year range`)}
                           onMouseLeave={hideTip}
                           style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(i.name)}</span>
@@ -546,7 +563,7 @@ export default function MacroPage() {
                             <button key={m.market} type="button"
                               className={`mt-tag mc-pill mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
                               onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
-                              onMouseEnter={(e) => showTip(e, `${m.market} \u2014 speculators at the ${Math.round(m.spec)}th percentile of 3 years`)}
+                              onMouseEnter={(e) => showTip(e, `${m.market} \u2014 speculators at the ${ord(m.spec)} percentile of 3 years`)}
                               onMouseLeave={hideTip}
                               style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(m.market)}</span>

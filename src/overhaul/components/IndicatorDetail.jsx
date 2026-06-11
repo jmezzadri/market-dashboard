@@ -31,6 +31,13 @@ function fmtNum(v, decimals = 2) {
   });
 }
 
+// 1 -> "1st", 22 -> "22nd", 13 -> "13th" — fixes the "1th percentile" class of bug.
+function ordSuffix(n) {
+  const v = Math.abs(Math.round(n)), k = v % 100;
+  if (k >= 11 && k <= 13) return 'th';
+  return { 1: 'st', 2: 'nd', 3: 'rd' }[v % 10] || 'th';
+}
+
 function fmtDate(iso) {
   if (!iso) return '—';
   const dt = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
@@ -279,7 +286,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         >
           <div className="mt-eyebrow">Where today sits in the {tf} distribution</div>
           <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
-            <b className="num">{slicePct != null ? slicePct : '—'}</b>th percentile
+            <b className="num">{slicePct != null ? slicePct : '—'}</b>{slicePct != null ? ordSuffix(slicePct) : ''} percentile
           </div>
         </div>
         <PercentileBar pct={slicePct} direction={ind.direction} />
@@ -319,7 +326,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           sourced live, never typed in. The methodology description below is
           static reference copy (formula, source, thresholds) — that does not
           go stale and stays. */}
-      {ind.description && (
+      {(ind.methodology || ind.description) && (
         <details style={{ marginTop: 12 }}>
           <summary
             style={{
@@ -341,7 +348,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
               color: 'var(--mt-ink-1)',
             }}
           >
-            {ind.description}
+            {ind.methodology || ind.description}
           </p>
         </details>
       )}

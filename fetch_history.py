@@ -75,8 +75,12 @@ STATS_WINDOW_YEARS = 15
 #   hw = "high is worse" (VIX up = bad)
 #   lw = "low is worse"  (ISM down = bad; bank_credit down = bad)
 #   nw = "near zero is worse" (yield curve inversion or flat = bad both sides)
+#   2026-06-10 (Joe sign-off, Rates batch): yield_curve moved nw -> lw. The UI
+#   state engine has no nw branch and was treating it as high-warns, so a
+#   STEEP curve read as the warning while inversion read calm. Low-warns makes
+#   inversion (low percentile of the trailing 3y range) drive amber/red.
 DIRECTION = {
-    "vix":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"nw",
+    "vix":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"lw",
     "move":"hw","anfci":"hw","stlfsi":"hw","real_rates":"hw",
     "sloos_ci":"hw","cape":"hw","ism":"lw","copper_gold":"lw",
     "bkx_spx":"lw","credit_3y":"hw","term_premium":"hw",

@@ -95,7 +95,7 @@ const DEF = {
   sloos_ci: 'SLOOS, C&I net tightening', sloos_cre: 'SLOOS, CRE net tightening',
   bank_credit: 'Bank credit, YoY (H.8)', credit_3y: 'Bank credit, 3-yr growth',
   bank_unreal: 'Unrealized losses / Tier-1', bkx_spx: 'KBW banks / S&P 500',
-  yield_curve: '10-yr minus 2-yr Treasury', move: 'MOVE Index', real_rates: '10-yr TIPS yield',
+  yield_curve: '10-yr minus 2-yr Treasury', move: 'Rates Volatility', real_rates: '10-yr TIPS yield',
   term_premium: 'Kim-Wright 10-yr term premium', breakeven_10y: '10-yr UST minus 10-yr TIPS',
   anfci: 'Chicago Fed ANFCI', stlfsi: 'St. Louis Fed STLFSI4',
   ism: 'ISM Manufacturing PMI', jobless: 'Initial jobless claims', copper_gold: 'Copper / gold ratio',
@@ -233,7 +233,7 @@ export default function useIndicators() {
         prior_1y: liveP1y != null ? liveP1y : meta[10],
         deprecated: meta[11] === true,
         description: meta[12] || '',
-        narrative: meta[13] || '',
+        methodology: meta[13] || '',  // 'How it's measured' text; falls back to description when empty
         registryTier,            // 1 / 2 / 3
         typeLabel,               // 'LEAD' | 'COINC' | 'LAG'
         // Indicator manifest id used by useFreshness lookups: matches
