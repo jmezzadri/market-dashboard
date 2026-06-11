@@ -603,7 +603,7 @@ export default function MacroPage() {
                     markets={cotPos?.domains?.[dom]?.markets || []}
                     shortLabel={shortLabel}
                     posDimmed={posDimmed}
-                    posNextPrint="Sat 7:00a ET"
+                    posNextPrint="CFTC Fri 3:30p ET · ingest Sat 7:00a"
                     onSelectInd={setSelected}
                     onSelectPos={setSelectedPos}
                     onTip={showTip}
