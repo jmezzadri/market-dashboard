@@ -126,6 +126,14 @@ const MARKET_BLURB = {
   'Wheat': "Futures positioning in CBOT soft red winter wheat.",
   'Sugar': "Futures positioning in ICE Sugar No. 11 — world raw sugar.",
   'Coffee': "Futures positioning in ICE Coffee C — arabica.",
+  'Dollar index': "Futures positioning in the ICE US Dollar Index.",
+  'Euro': "Futures positioning in euro FX — the largest currency-futures market.",
+  'Japanese Yen': "Futures positioning in yen FX. Crowded yen shorts have historically unwound violently when carry trades (borrowing cheap yen to buy higher-yielding assets) reverse — August 2024.",
+  'British Pound': "Futures positioning in sterling FX.",
+  'Canadian Dollar': "Futures positioning in Canadian dollar FX — oil-linked.",
+  'Swiss Franc': "Futures positioning in Swiss franc FX — a funding and haven currency.",
+  'Aussie dollar': "Futures positioning in Australian dollar FX — commodity- and China-linked.",
+  'Mexican Peso': "Futures positioning in peso FX — the most-traded emerging-market currency and a carry favorite.",
 };
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
@@ -188,11 +196,8 @@ const SHORT = {
   'Stock valuation': 'Stock val (CAPE)',
   'Manufacturing activity': 'Mfg activity (ISM)',
   'Copper-to-gold ratio': 'Copper / gold',
-  'Financial conditions (Chicago Fed)': 'Fin conditions',
-  'Financial stress (St. Louis Fed)': 'Fin stress',
   'Treasury General Account': 'Treasury acct (TGA)',
-  'US dollar index': 'Dollar index',
-  'US Dollar Index': 'Dollar index',
+  'Dollar Index (DXY)': 'Dollar index',
   'Australian Dollar': 'Aussie dollar',
   'Investment-grade bonds': 'IG bonds',
   'High-yield bonds': 'HY bonds',
