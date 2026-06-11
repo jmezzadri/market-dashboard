@@ -97,9 +97,9 @@ const DEF = {
   bank_unreal: 'Unrealized losses / Tier-1', bkx_spx: 'KBW banks / S&P 500',
   yield_curve: '10-yr minus 2-yr Treasury', move: 'Rates Volatility', real_rates: '10-yr TIPS yield',
   term_premium: 'Kim-Wright 10-yr term premium', breakeven_10y: '10-yr UST minus 10-yr TIPS',
-  anfci: 'Chicago Fed ANFCI', stlfsi: 'St. Louis Fed STLFSI4',
+  anfci: 'Chicago Fed Financial Conditions', stlfsi: 'St. Louis Fed Financial Stress',
   ism: 'ISM Manufacturing PMI', jobless: 'Initial jobless claims', copper_gold: 'Copper / gold ratio',
-  usd: 'Dollar index (DXY)',
+  usd: 'Dollar Strength',
 };
 
 export default function useIndicators() {

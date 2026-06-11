@@ -38,6 +38,8 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 **What you should do instead:** Every indicator header has exactly three factual parts: what the series is, how it is measured (one clause), and what levels or changes have historically meant — with numbers and named historical episodes, no metaphors, no trader-poetry. A market-standard nickname (e.g. "the fear gauge") is acceptable only when it is the series' actual common name. This binds all indicator, positioning, and methodology copy site-wide.
 
+**Extension (same day):** never name a statistical operation in a header — "regressed out", "winsorized", "principal component", "z-score" are all banned from headers. Describe in words what the operation does ("strips out what the economy's current state would predict"). Joe: "How is 'the business cycle regressed out'? What does that even mean." Operation names may appear only inside "How it's measured", and even there with a plain-words gloss.
+
 ---
 
 ## 2026-06-09 — Scheduled notification emails must be once-per-day even when their workflow fires many times
