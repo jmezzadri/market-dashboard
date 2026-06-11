@@ -28,6 +28,7 @@ import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';
+import MorningRead from '../components/MorningRead';
 import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -577,10 +578,21 @@ export default function MacroPage() {
         </div>
       </section>
 
+      {!loading && (
+        <section className="mt-pagesection">
+          <MorningRead indicators={indicators} cotPos={cotPos} indexSeries={indexSeries} />
+        </section>
+      )}
+
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+            {tiles === 'bars' ? (
+              <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)' }}>
+                Bar = above or below its own 3-year median · color = whether that stretch warns · length = how stretched
+              </div>
+            ) : <span />}
             <div className="mt-pillgroup">
               {[['bars', 'Bars'], ['pills', 'Pills']].map(([k, lbl]) => (
                 <button key={k} type="button" className={`mt-pill ${tiles === k ? 'on' : ''}`} onClick={() => setTiles(k)}>{lbl}</button>
