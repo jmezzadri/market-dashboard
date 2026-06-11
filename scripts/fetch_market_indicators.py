@@ -38,7 +38,9 @@ TARGETS = [
     ("fx_dollar",      "DX-Y.NYB",   "US dollar index",   "FX",          "index"),
     ("fx_eur",         "EURUSD=X",   "Euro",              "FX",          "$/€"),
     ("fx_jpy",         "JPY=X",       "Japanese yen",     "FX",          "¥/$"),
-    ("fx_gbp",         "GBP=X",       "British pound",    "FX",          "£/$"),
+    # 2026-06-11 (Joe): flipped from GBP=X (pounds per dollar, ~0.75) to
+    # GBPUSD=X — cable, dollars per pound (~1.33), the desk-standard quote.
+    ("fx_gbp",         "GBPUSD=X",    "British pound",    "FX",          "$/£"),
 ]
 
 
