@@ -39,9 +39,9 @@ function Bullets({ eyebrow, lines, quietText, overflow }) {
     <div style={{ minWidth: 0 }}>
       <div className="mt-eyebrow" style={{ marginBottom: 4 }}>{eyebrow}</div>
       {lines.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: 'var(--mt-ink-3)', lineHeight: 1.6 }}>{quietText}</div>
+        <div style={{ fontSize: 14, color: 'var(--mt-ink-3)', lineHeight: 1.65 }}>{quietText}</div>
       ) : (
-        <div style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14.5, color: 'var(--mt-ink-1)', lineHeight: 1.75 }}>
           {lines.map((l, k) => (
             <div key={k} style={{ display: 'flex', gap: 7 }}>
               <span style={{ color: 'var(--mt-ink-3)' }}>•</span>
@@ -49,7 +49,7 @@ function Bullets({ eyebrow, lines, quietText, overflow }) {
             </div>
           ))}
           {overflow > 0 && (
-            <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginTop: 2 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--mt-ink-3)', marginTop: 2 }}>
               +{overflow} more cleared the bar — the tiles below have them
             </div>
           )}
@@ -68,16 +68,16 @@ export default function MorningRead({ indicators, cotPos, indexSeries }) {
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   if (!indicators || indicators.length === 0) return null;
   return (
-    <div className="mt-card" style={{ padding: '16px 20px' }}>
+    <div className="mt-card" style={{ padding: '20px 26px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ fontFamily: 'var(--mt-font-display)', fontSize: 20, letterSpacing: '-0.01em' }}>
+        <div style={{ fontFamily: 'var(--mt-font-display)', fontSize: 27, letterSpacing: '-0.015em' }}>
           Since yesterday's close
         </div>
-        <div className="num" style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+        <div className="num" style={{ fontSize: 13, color: 'var(--mt-ink-2)' }}>
           {dateLabel} · {read.printed} of {read.total} printed · {read.flagged} flagged
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px 28px', marginTop: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px 32px', marginTop: 12 }}>
         <Bullets
           eyebrow="Indicators"
           lines={read.indicatorBullets}
@@ -91,7 +91,7 @@ export default function MorningRead({ indicators, cotPos, indexSeries }) {
           quietText={read.posFresh ? 'Fresh positioning print — nothing crossed a threshold.' : 'Awaiting next print — Sat 7:00a ET.'}
         />
       </div>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--mt-ink-3)', borderTop: '1px solid var(--mt-line-0)', marginTop: 12, paddingTop: 9 }}>
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--mt-ink-3)', borderTop: '1px solid var(--mt-line-0)', marginTop: 14, paddingTop: 10 }}>
         <span>Next prints:</span>
         {prints.map((p, k) => <span key={k}>{p}</span>)}
       </div>

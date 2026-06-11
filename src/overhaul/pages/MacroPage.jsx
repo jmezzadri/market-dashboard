@@ -556,25 +556,22 @@ export default function MacroPage() {
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '5px 9px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.35, maxWidth: 280, whiteSpace: 'normal', textAlign: 'center', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Macro overview</div>
-          <h1 className="mt-h1">
-            Where every market sits <i>in its own range</i>.
-          </h1>
-          <p className="mt-deck">
-            A macro read across asset classes — indicators and futures positioning
-            for rates, credit, equities, commodities, FX, and the economy, each
-            ranked against its own 3-year history. Green is calm, amber stretched,
-            red at a 3-year extreme.
-          </p>
-        </div>
-        <div className="mc-onthispage">
-          <div className="mt-eyebrow">On this page</div>
-          <div className="mc-otpval num">{indicators.length || '—'}</div>
-          <div className="mc-otpsub">indicators</div>
-          <div className="mc-otpval num" style={{ marginTop: 12 }}>{posCount || '—'}</div>
-          <div className="mc-otpsub">positioning signals</div>
+      {/* Compact header (Joe 2026-06-11: the old full hero + "On this page"
+          card burned ~a third of the viewport on static text; the morning
+          read is the real hero of this page now). One line: title left,
+          counts right. The color/range explanation lives in the legend line
+          above the tiles. */}
+      <section className="mt-pagesection" style={{ paddingBottom: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+            <div className="mt-eyebrow">Macro overview</div>
+            <h1 className="mt-h1" style={{ fontSize: 30, margin: 0, lineHeight: 1.1 }}>
+              Where every market sits <i>in its own range</i>.
+            </h1>
+          </div>
+          <div className="num" style={{ fontSize: 12.5, color: 'var(--mt-ink-2)' }}>
+            {indicators.length || '—'} indicators · {posCount || '—'} positioning signals
+          </div>
         </div>
       </section>
 
