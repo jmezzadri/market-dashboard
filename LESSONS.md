@@ -22,6 +22,41 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-11 — Never derive a refresh timestamp from a data date
+
+**What happened:** Joe caught tooltips claiming "Data as of June 10 · Last
+refreshed June 9, 8:00 PM" — impossible pairs — on the Scanner header, Home
+tiles, Paper holdings, and the Macro positioning cards, plus "Data as of
+Jun 11, 4:00 PM EDT" rendered hours before the close. Root cause: six writers
+(fetch_history.py, fetch_market_indicators.py, fetch_ticker_betas.py,
+build_cot_positioning.py, freshness_alarm.py, reconcile_pipeline_health.py,
+upsert_pipeline_health.py, seed_paper_pipeline_health.py, and the
+pipeline-health-check edge function) all DERIVED pipeline_health.last_good_at
+from the data's date — midnight UTC (renders as 8:00 PM the previous evening
+ET) or a fabricated "T20:00:00Z" 4 PM close (the future, whenever the job ran
+intraday). The nightly reconciler also never updated data_as_of, freezing
+eight rows in late May (false-stale). Nobody anywhere recorded the actual run
+time.
+
+**What you should do instead:** (1) last_good_at / last_check_at carry ONLY a
+real wall-clock run time (`now()` at write). (2) data_as_of carries the
+business date the data represents, stored at midnight UTC as date-only intent
+(display adds the official cutoff from the manifest) — or a real event
+timestamp where one exists; never a dressed-up close time, never the future.
+(3) A daily market series never publishes a point for a session that hasn't
+closed in New York (guards in fetch_history._drop_future_points and
+fetch_market_indicators). (4) The DB clamps future stamps via
+trg_clamp_health_stamps and rejects forward-dated price bars via
+trg_reject_future_trade_date — do not remove these triggers. (5) useFreshness
+turns any remaining as-of-newer-than-refresh pair red with an explicit
+reason. When adding ANY new producer, copy the honest-stamp comment block,
+and verify its first row in Admin·Data shows a real run time, not the data's
+own date.
+
+**Applies to:** All — every producer, every freshness surface.
+
+---
+
 ## 2026-06-11 — A displayed value must read the SAME source the engine acts on; auditing a table means auditing EVERY column
 
 **What happened:** The Sleeve B Score column showed 1–3 for every holding (buy gate is ≥5). The trading engine switched its signal source from the retired v5 scanner to the live Trading Opportunities scanner on 2026-05-27, but the display helper that stamps scores onto the positions snapshot was never re-pointed — it kept reading the dead table and dividing by the old score scale for two weeks. Joe found it, not the agent, the night after the agent had "verified" the paper page three times while staring directly at the wrong scores.
