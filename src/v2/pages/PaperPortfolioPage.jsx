@@ -391,6 +391,13 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   // the column existed.
   const aDay$ = latest.sleeve_a_day_pnl ?? dlt(sLatestA, sPrev.aValue);
   const bDay$ = latest.sleeve_b_day_pnl ?? dlt(sLatestB, sPrev.bValue);
+  // Total Daily = the sum of the sleeve session P&Ls when the exact numbers
+  // exist, so the card always foots on one consistent mark set (names whose
+  // official bar is late carry broker marks until the morning certification;
+  // summing keeps Total and sleeves on identical marks).
+  const totDay$ = (latest.sleeve_a_day_pnl != null && latest.sleeve_b_day_pnl != null)
+    ? latest.sleeve_a_day_pnl + latest.sleeve_b_day_pnl
+    : dlt(latest.total_nav, prev?.total_nav);
   const rows = [
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
@@ -409,7 +416,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
     {
       label: 'Total book', sub: '$1M start', strong: true,
       value: latest.total_nav,
-      daily$: dlt(latest.total_nav, prev?.total_nav), daily: ret(latest.total_nav, prev?.total_nav),
+      daily$: totDay$, daily: (totDay$ != null && prev?.total_nav) ? totDay$ / prev.total_nav : null,
       incep$: dlt(latest.total_nav, TOTAL_CAP),       incep: ret(latest.total_nav, TOTAL_CAP),
       beta: betas.total ?? latest.portfolio_beta ?? null,
     },
