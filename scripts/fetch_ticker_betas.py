@@ -89,9 +89,13 @@ def computed_beta(ticker, spy_returns):
 
 def sync_pipeline_health(as_of, n):
     if not (SUPABASE_URL and SUPABASE_KEY): return
-    das = f"{as_of}T06:00:00+00:00"
+    # Honest-stamp rule (2026-06-11): real run time for last_good_at;
+    # business date (midnight UTC) for data_as_of — no invented 6 AM stamps.
+    from datetime import datetime as _dtm, timezone as _tz
+    _now_iso = _dtm.now(_tz.utc).isoformat()
+    das = f"{min(str(as_of)[:10], _now_iso[:10])}T00:00:00+00:00"
     row = {"indicator_id": "ticker-betas", "label": "Per-name betas", "source": "Yahoo + prices_eod",
-        "cadence": "D", "expected_cadence_minutes": 1440, "data_as_of": das, "last_good_at": das,
+        "cadence": "D", "expected_cadence_minutes": 1440, "data_as_of": das, "last_good_at": _now_iso,
         "status": "green", "last_error": None, "coverage_pct": 100.0}
     req = urllib.request.Request(f"{SUPABASE_URL}/rest/v1/pipeline_health?on_conflict=indicator_id",
         data=json.dumps(row).encode(), method="POST",
