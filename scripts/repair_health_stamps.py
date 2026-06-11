@@ -134,6 +134,14 @@ def main():
         _req(f"prices_eod?trade_date=gt.{cutoff}", "DELETE")
         print("  deleted.")
     print()
+    # 0b) retire tracking rows for feeds killed on 2026-06-10 ("Kill phantom
+    #     feeds" commit): the producers are gone, the rows only resurrect
+    #     governance for dead elements (the 2026-06-11 registration mistake).
+    for dead in ("put_call", "buffett", "bank_unreal"):
+        if commit:
+            _req(f"pipeline_health?indicator_id=eq.{urllib.parse.quote(dead)}", "DELETE")
+        print(f"  retired tracking row: {dead}{'' if commit else ' (dry)'}")
+    print()
     rows = _req("pipeline_health?select=indicator_id,label,last_good_at,data_as_of,status,last_error&limit=500&order=indicator_id")
     print(f"{'COMMIT' if commit else 'DRY RUN'} — {len(rows)} rows · now={NOW.isoformat()}\n")
     fixed_lg = fixed_da = fixed_status = 0
