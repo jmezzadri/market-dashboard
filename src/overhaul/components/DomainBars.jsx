@@ -80,11 +80,16 @@ function Bar({ label, tipText, pct, state, dimmed, onClick, onTip, onHideTip, de
         className="mb-bar"
         style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          width: '55%', maxWidth: 12, minWidth: 3,
+          width: '55%', maxWidth: 12, minWidth: 4,
           top: mounted ? topPx : CHART_H / 2,
           height: mounted ? hPx : 2,
-          background: has ? stateColor(state) : 'var(--mt-ink-3)',
-          borderRadius: up ? '2px 2px 0 0' : '0 0 2px 2px',
+          // Same recipe as the pills (.mt-tag--*): soft color-mix tint fill
+          // with the full-strength state color as the outline (Joe 2026-06-11:
+          // "darker outline, lighter fill, like the pills").
+          background: has ? `color-mix(in oklab, ${stateColor(state)} 16%, transparent)` : 'var(--mt-surface-3)',
+          border: `1px solid ${has ? stateColor(state) : 'var(--mt-ink-3)'}`,
+          boxSizing: 'border-box',
+          borderRadius: up ? '3px 3px 0 0' : '0 0 3px 3px',
           opacity: has ? 1 : 0.35,
         }}
       />
