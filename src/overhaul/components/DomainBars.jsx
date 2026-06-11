@@ -37,7 +37,7 @@ function tagClass(state) {
 /* The median-anchored gauge inside a pill. Drawn with currentColor so it
    automatically takes the pill's state color in every theme. Animates from
    the center on mount, like the old bars grew from the baseline. */
-function Gauge({ pct }) {
+function Gauge({ pct, dimmed }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const t = requestAnimationFrame(() => setMounted(true));
@@ -47,7 +47,7 @@ function Gauge({ pct }) {
   const left = Math.min(pct, 50);
   const width = Math.abs(pct - 50);
   return (
-    <span style={{ position: 'relative', display: 'block', height: 4, marginTop: 5, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)' }}>
+    <span style={{ position: 'relative', display: 'block', height: 4, marginTop: 5, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)', opacity: dimmed ? 0.45 : 1, transition: 'opacity .25s ease' }}>
       <span style={{ position: 'absolute', left: '50%', top: -1, bottom: -1, width: 1.5, background: 'currentColor', opacity: 0.55 }} />
       <span
         style={{
@@ -72,7 +72,11 @@ function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick,
       style={{
         cursor: 'pointer', border: dashed ? '1px dashed currentColor' : 'none', font: 'inherit',
         width: '100%', display: 'block', textAlign: 'left',
-        opacity: dimmed ? 0.5 : 1, transition: 'opacity .25s ease',
+        // Off-print state (Joe 2026-06-11: "make the text more visible on the
+        // signals"): the old 50% whole-pill dim washed out the labels. Names
+        // and numbers stay at full strength; the GAUGE carries the dim, and
+        // the section header carries "next print Sat 7:00a ET".
+        opacity: dimmed ? 0.9 : 1, transition: 'opacity .25s ease',
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
@@ -84,7 +88,7 @@ function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick,
           <span className="num" style={{ opacity: 0.85 }}>{pct == null ? '—' : Math.round(pct)}</span>
         </span>
       </span>
-      <Gauge pct={pct} />
+      <Gauge pct={pct} dimmed={dimmed} />
     </button>
   );
 }
