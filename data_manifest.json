@@ -1486,7 +1486,7 @@
    "description": "British pound exchange rate ($ per £), ranked into its own trailing 3-year range.",
    "sourcing_mode": "STP",
    "source_vendor": "Yahoo Finance",
-   "source_endpoint": "Yahoo chart API GBP=X",
+   "source_endpoint": "Yahoo chart API GBPUSD=X",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
