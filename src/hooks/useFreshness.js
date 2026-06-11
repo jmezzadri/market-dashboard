@@ -191,7 +191,16 @@ function statusForElement(elementId, fallback) {
   // the plotted series was days old because the chip trusted pipeline_health
   // over the file.) When no consumer as-of is supplied, fall back to
   // pipeline_health's data_as_of as before.
-  const dataDate = fallback?.asOfIso || phRow?.data_as_of || null;
+  // Honest-stamp rule (2026-06-11): a data_as_of stored at exactly midnight
+  // UTC is date-only INTENT (the business date). Normalize it to a plain
+  // date string so display and session math treat it as a date — not as
+  // "8:00 PM the previous evening" in New York (the bug Joe caught: chips
+  // showing "Data as of Jun 10 · Last refreshed Jun 9").
+  let phAsOf = phRow?.data_as_of || null;
+  if (phAsOf && /T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(phAsOf))) {
+    phAsOf = String(phAsOf).slice(0, 10);
+  }
+  const dataDate = fallback?.asOfIso || phAsOf || null;
   const lastGoodAt = phRow?.last_good_at || null;
   const lastError = phRow?.last_error || null;
 
@@ -231,6 +240,35 @@ function statusForElement(elementId, fallback) {
     reason = "No freshness target configured — cannot confirm";
   }
 
+  // Real fetch time: prefer the indicator file's true build timestamp for
+  // file-backed indicators; fall back to pipeline_health for everything else.
+  const lastRefreshedAt =
+    (String(manifestEl?.output_destination || "").includes("indicator_history.json")
+      ? cachedGeneratedAt
+      : null) || lastGoodAt;
+
+  // Impossible-pair guard (2026-06-11): data can never be newer than the
+  // refresh that produced it. If it reads that way, a producer wrote a
+  // fabricated stamp — surface red with the reason instead of rendering an
+  // impossible tooltip. Date-only as-ofs compare by ET session date.
+  if (status !== "red" && dataDate && lastRefreshedAt) {
+    const refMs = new Date(lastRefreshedAt).getTime();
+    let impossible = false;
+    if (String(dataDate).length === 10) {
+      const refEtDate = Number.isFinite(refMs)
+        ? new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+        : null;
+      impossible = !!refEtDate && String(dataDate) > refEtDate;
+    } else {
+      const asOfMs = new Date(dataDate).getTime();
+      impossible = Number.isFinite(asOfMs) && Number.isFinite(refMs) && asOfMs > refMs + 5 * 60 * 1000;
+    }
+    if (impossible) {
+      status = "red";
+      reason = "Timestamps inconsistent — the data reports newer than its last refresh (stamp fabrication; flagged for repair)";
+    }
+  }
+
   return {
     elementId,
     status,
@@ -238,12 +276,7 @@ function statusForElement(elementId, fallback) {
     lastError,
     slaHours,
     calendar,
-    // Real fetch time: prefer the indicator file's true build timestamp for
-    // file-backed indicators; fall back to pipeline_health for everything else.
-    lastRefreshedAt:
-      (String(manifestEl?.output_destination || "").includes("indicator_history.json")
-        ? cachedGeneratedAt
-        : null) || lastGoodAt,
+    lastRefreshedAt,
     label: manifestEl?.name || phRow?.label || elementId,
     description: manifestEl?.description || null,
     sourceVendor: manifestEl?.source_vendor || phRow?.source || null,
