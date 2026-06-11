@@ -201,14 +201,16 @@ export default function MethodologyPage() {
               the business cycle.
             </p>
             <p className="me-body-p">
-              <b>State</b> (Calm / Elevated / Extreme) is set by where today's reading sits in the 5-year
-              percentile distribution of the same indicator. Cut-points are domain-specific; for most
-              two-sided indicators we use <code>[10, 25, 75, 90]</code> percentiles. The map's spatial
-              placement uses <i>state</i>, not raw percentile, so red dots always live in the stress quadrant
-              regardless of whether the extreme is high or low.
+              <b>State</b> (Calm / Elevated / Extreme) is set by where today's reading sits in the
+              indicator's own <b>trailing 3-year</b> percentile distribution — the same window the
+              positioning signals use. Cut-points depend on which tail of the indicator is unhealthy:
+              high-warns indicators go Elevated at the 75th percentile and Extreme at the 85th;
+              low-warns indicators go Elevated at the 25th and Extreme at the 15th; two-sided
+              indicators warn at both ends. The detail chart shades these same amber/red zones, so
+              the pill and the chart always agree.
             </p>
             <div className="me-formula">
-              state(today) = bin(percentile_5y(value), [10, 25, 75, 90])<br />
+              state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both)<br />
               stress_x  = state ∈ {`{extreme: +0.62, elevated: +0.18, calm: −0.55}`} + jitter<br />
               regime_y  = domain_anchor ∈ {`{Rates: +0.40, Equities: +0.10, Credit: −0.05, Money: −0.25, Economy: −0.42}`}
             </div>

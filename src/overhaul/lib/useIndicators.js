@@ -41,12 +41,30 @@ const FAMILY_FULL = {
   fx: 'Currencies',
 };
 
+// Percentile of today's value within the indicator's own TRAILING 3-YEAR
+// window — the same basis the positioning signals use (156 weeks) and the
+// basis every line of on-page copy promises ("its own 3-year range").
+// Until 2026-06-10 this ranked against the FULL history file (~20y for most
+// series), so the pill color and the page copy disagreed. Joe directive
+// 2026-06-10: the 3-year basis is canonical site-wide; chart band shading in
+// IndicatorDetail derives from this same window so pill and chart agree.
+export const PILL_WINDOW_DAYS = 3 * 365;
 function pctRank(value, points) {
   if (value == null || !points?.length) return null;
-  const vs = points.map((p) => p[1]).filter((v) => typeof v === 'number');
-  // Not enough history to rank — return null so the UI shows '—' instead of a
-  // meaningless percentile (e.g. uranium with 1 weekly point read as 0th).
-  if (vs.length < 20) return null;
+  const lastIso = String(points[points.length - 1][0]).slice(0, 10);
+  const lastT = Date.parse(lastIso + 'T00:00:00Z');
+  if (!Number.isFinite(lastT)) return null;
+  const cutT = lastT - PILL_WINDOW_DAYS * 86400000;
+  const vs = [];
+  for (const p of points) {
+    const t = Date.parse(String(p[0]).slice(0, 10) + 'T00:00:00Z');
+    if (Number.isFinite(t) && t >= cutT && typeof p[1] === 'number') vs.push(p[1]);
+  }
+  // Not enough in-window history to rank — return null so the UI shows '—'
+  // instead of a meaningless percentile. Floor of 12 admits quarterly series
+  // (12 obs in 3y) while still rejecting near-empty series (e.g. uranium with
+  // a handful of weekly points).
+  if (vs.length < 12) return null;
   const below = vs.filter((v) => v < value).length;
   return Math.round((below / vs.length) * 100);
 }
@@ -242,6 +260,24 @@ export default function useIndicators() {
     return out;
   }, [hist, sourceFor]);
 
+  // Major-index overlay series for the detail charts (S&P 500 / Nasdaq /
+  // Dow). These live in the history file but are NOT registry indicators —
+  // no pill, no composite. Defined here once so Macro Overview and All
+  // Indicators consume identical series, colors, and freshness ids.
+  const indexSeries = useMemo(() => {
+    const DEFS = [
+      { key: 'spx_index', label: 'S&P 500', color: 'var(--mt-accent)', elementId: 'market-spx_index-daily' },
+      { key: 'ndx_index', label: 'Nasdaq', color: 'var(--mt-ink-1)', elementId: 'market-ndx_index-daily' },
+      { key: 'dji_index', label: 'Dow', color: 'var(--mt-ink-3)', elementId: 'market-dji_index-daily' },
+    ];
+    if (!hist) return [];
+    return DEFS.map((c) => {
+      const h = hist[c.key];
+      if (!h?.points?.length) return null;
+      return { ...c, points: h.points, asOf: h.as_of || h.points[h.points.length - 1][0] };
+    }).filter(Boolean);
+  }, [hist]);
+
   // The brief promises "indicators across five domains". Deprecated entries
   // are kept in the registry for historical reference but should NOT be
   // surfaced as part of the active framework on Home / Macro / Indicators
@@ -253,6 +289,7 @@ export default function useIndicators() {
   return {
     indicators,        // raw set including deprecated — for the All Indicators table
     active,            // non-deprecated only — what the brief's counts mean
+    indexSeries,       // S&P 500 / Nasdaq / Dow overlay series for detail charts
     loading: hist == null,
     error: err,
   };

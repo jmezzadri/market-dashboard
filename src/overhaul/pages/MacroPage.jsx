@@ -26,6 +26,7 @@ import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
+import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -247,9 +248,10 @@ function slicePos(points, tf) {
 function PosStat({ label, v }) {
   return (<div><div style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>{label}</div><div className="num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--mt-ink-0)' }}>{v}</div></div>);
 }
-function PositioningDetail({ item, onClose, catalog = [] }) {
+function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
   const [tf, setTf] = useState('3Y');
   const [overlayKey, setOverlayKey] = useState('');
+  const [idxOn, setIdxOn] = useState({});
   const isDealer = item.comm == null;
   const h = item.history || [];
   const specAll = useMemo(() => h.map((r) => [r[0], r[1]]), [h]);
@@ -262,6 +264,36 @@ function PositioningDetail({ item, onClose, catalog = [] }) {
     if (!c || !c.points?.length) return null;
     return { points: slicePos(c.points, tf), label: c.label };
   }, [overlayKey, catalog, tf]);
+  // Amber/red zones in value space — from the SAME trailing 3-year (156-week)
+  // window the positioning percentile uses, so chart shading and pill agree.
+  // Positioning is two-sided: crowded long (>=75th amber, >=90th red) AND
+  // crowded short (<=25th amber, <=10th red) both warn.
+  const bands = useMemo(() => {
+    const vals = specAll
+      .map((pt) => pt[1])
+      .filter((v) => Number.isFinite(v))
+      .slice(-156)
+      .sort((a, b) => a - b);
+    if (vals.length < 30) return [];
+    const q = (f) => {
+      const i = (vals.length - 1) * f;
+      const lo = Math.floor(i), hi = Math.ceil(i);
+      return vals[lo] + (vals[hi] - vals[lo]) * (i - lo);
+    };
+    const AMBER = 'var(--mt-warn)', RED = 'var(--mt-down)';
+    return [
+      { from: q(0.90), to: null, color: RED, opacity: 0.08, label: 'Red zone' },
+      { from: q(0.75), to: q(0.90), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+      { from: q(0.10), to: q(0.25), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+      { from: null, to: q(0.10), color: RED, opacity: 0.08, label: 'Red zone' },
+    ];
+  }, [specAll]);
+  const idxCompares = useMemo(
+    () => indexSeries
+      .filter((x) => idxOn[x.key] && x.points?.length)
+      .map((x) => ({ points: slicePos(x.points, tf), label: x.label, color: x.color })),
+    [indexSeries, idxOn, tf],
+  );
   const accent = posAccent(item.spec);
   const read = item.spec >= 90 ? 'the most bullish in 3 years — crowded long, fragile to an unwind'
     : item.spec <= 10 ? 'the most bearish in 3 years — crowded short, fragile to a squeeze'
@@ -304,11 +336,25 @@ function PositioningDetail({ item, onClose, catalog = [] }) {
           {overlay && <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
         </div>
       )}
+      {indexSeries.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <IndexOverlayToggles series={indexSeries} on={idxOn}
+            onToggle={(k) => setIdxOn((prev) => ({ ...prev, [k]: !prev[k] }))} />
+        </div>
+      )}
       <BigHistoryChart points={spec} accent={accent} height={280} freq="W" primaryLabel={isDealer ? 'Dealer net inventory' : 'Speculators'}
         overlays={isDealer ? [] : [{ points: comm, color: 'var(--mt-ink-3)', label: 'Commercials (hedgers)', dash: '4 3' }]}
         compareData={overlay ? overlay.points : null}
         compareLabel={overlay ? overlay.label : ''}
+        compares={idxCompares}
+        bands={bands}
         yFormat={(v) => (isDealer ? `$${v.toFixed(1)}bn` : `${v.toFixed(1)}%`)} />
+      {bands.length > 0 && (
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mt-ink-3)' }}>
+          Shaded bands mark where this signal turns amber (leaning) and red (crowded) —
+          fixed to the same 3-year window that ranks the position, whatever timeframe you select.
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 14, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--mt-line-1)' }}>
         <PosStat label="Speculators net" v={`${item.specNet}${isDealer ? '' : '%'}`} />
         <PosStat label="Speculator percentile" v={`${Math.round(item.spec)}th`} />
@@ -343,7 +389,7 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
 }
 
 export default function MacroPage() {
-  const { active: indicators, loading } = useIndicators();
+  const { active: indicators, loading, indexSeries } = useIndicators();
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
@@ -531,12 +577,12 @@ export default function MacroPage() {
       )}
       {selected && (
         <DetailModal onClose={() => setSelected(null)}>
-          <IndicatorDetail ind={selected} onClose={() => setSelected(null)} catalog={overlayCatalog} />
+          <IndicatorDetail ind={selected} onClose={() => setSelected(null)} catalog={overlayCatalog} indexSeries={indexSeries} />
         </DetailModal>
       )}
       {selectedPos && (
         <DetailModal onClose={() => setSelectedPos(null)}>
-          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} catalog={overlayCatalog} />
+          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} catalog={overlayCatalog} indexSeries={indexSeries} />
         </DetailModal>
       )}
     </div>

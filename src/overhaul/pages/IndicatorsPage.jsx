@@ -151,7 +151,7 @@ function sortVal(i, key) {
 }
 
 export default function IndicatorsPage() {
-  const { active, loading } = useIndicators();
+  const { active, loading, indexSeries } = useIndicators();
   const [domain, setDomain] = useState('All');
   const [sort, setSort] = useState({ key: 'state', dir: 'desc' });
   const [drill, setDrill] = useState(null);
@@ -360,7 +360,7 @@ export default function IndicatorsPage() {
                       {isOpen && (
                         <tr className="al-drill">
                           <td colSpan={orderedCols.length}>
-                            <IndicatorDetail ind={i} onClose={() => setDrill(null)} />
+                            <IndicatorDetail ind={i} onClose={() => setDrill(null)} indexSeries={indexSeries} />
                           </td>
                         </tr>
                       )}
