@@ -34,19 +34,52 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
-      - name: Idempotency gate — only run at the expected America/New_York local hour
-        # DST guard: each workflow has two cron lines (one for EDT, one for EST).
-        # Both fire most of the year. This step skips whichever one isn't at the
-        # expected ET local hour, so the feed runs once a day, not twice.
+      - name: Run-slot gate — ET window + once-per-day ledger check
+        # Replaces the exact-hour DST guard (PR #828). That guard required the
+        # runner to START inside one specific ET hour, but GitHub's cron
+        # routinely delivers 1-4 hours late, so every scheduled run from
+        # 2026-05-26 to 2026-06-10 skipped and this feed silently flatlined
+        # while reporting green. Two rules now decide whether this fire runs:
+        #   1. WINDOW — run only if the current ET hour is inside [EXPECTED,
+        #      EXPECTED+4]. Late cron delivery is tolerated; the wrong-DST
+        #      cron line (1h early in winter) is still rejected; anything
+        #      more than 4h late is abandoned to tomorrow's slot.
+        #   2. LEDGER — skip if api_usage_log already holds a success row for
+        #      this feed since ET midnight (every real run writes one on
+        #      completion). This is what prevents a double-run when both DST
+        #      cron lines land inside the window. Fail-open: if the ledger
+        #      query errors, proceed — every ingest here is an idempotent
+        #      upsert, so a duplicate pass wastes API calls but cannot
+        #      corrupt data, and a feed that runs twice is far better than a
+        #      feed that never runs.
         if: github.event_name == 'schedule'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          ET_HOUR=$(TZ=America/New_York date +%H)
-          EXPECTED='16'
-          if [ "$ET_HOUR" != "$EXPECTED" ]; then
-            echo "::notice::Current ET hour is $ET_HOUR, expected $EXPECTED. The other DST cron line owns this slot. Skipping."
+          EXPECTED=16
+          SOURCE='options_eod'
+          ET_HOUR=$(TZ=America/New_York date +%-H)
+          LO=$EXPECTED; HI=$((EXPECTED+4))
+          if [ "$ET_HOUR" -lt "$LO" ] || [ "$ET_HOUR" -gt "$HI" ]; then
+            echo "::notice::ET hour $ET_HOUR is outside the run window ${LO}:00-${HI}:59. Skipping."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          ET_MIDNIGHT=$(TZ=America/New_York date -d 'today 00:00' --iso-8601=seconds)
+          ROWS=$(curl -sf -G "$SUPABASE_URL/rest/v1/api_usage_log" \
+            --data-urlencode "select=id" \
+            --data-urlencode "source=eq.$SOURCE" \
+            --data-urlencode "status=eq.success" \
+            --data-urlencode "started_at=gte.$ET_MIDNIGHT" \
+            --data-urlencode "limit=1" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" || echo "")
+          if [ -n "$ROWS" ] && [ "$ROWS" != "[]" ]; then
+            echo "::notice::$SOURCE already ran successfully today (ET) — this is the redundant DST line. Skipping."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
           else
-            echo "✓ ET hour matches expected ($EXPECTED) — proceeding."
+            echo "OK: in window (ET hour $ET_HOUR) and no successful $SOURCE run yet today — proceeding."
           fi
 
       - uses: actions/checkout@v4

@@ -11,10 +11,13 @@ from __future__ import annotations
 import json
 import os
 import time
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
+
+from scanner.api_usage_helper import log_run_summary
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
@@ -241,4 +244,32 @@ if __name__ == "__main__":
         if args.limit:
             ts = ts[:args.limit]
 
-    print(json.dumps(pull_and_upsert(ts, max_seconds=args.max_seconds), indent=2))
+    # One aggregate row per run into api_usage_log: powers the Admin API
+    # Usage chart AND the workflow run-slot gate's once-per-day ledger check.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(ts, max_seconds=args.max_seconds)
+        print(json.dumps(_result, indent=2))
+        log_run_summary(
+            source="analyst_ratings",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=int(_result.get("tickers_done") or 0),
+            status="success",
+            notes={
+                "tickers_done": _result.get("tickers_done"),
+                "tickers_with_data": _result.get("tickers_with_data"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="analyst_ratings",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise

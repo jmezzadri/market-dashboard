@@ -22,10 +22,13 @@ import json
 import os
 import re
 import time
-from datetime import date, datetime, timedelta
+import uuid
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterator
 
 import requests
+
+from scanner.api_usage_helper import log_run_summary
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
@@ -273,4 +276,34 @@ if __name__ == "__main__":
     p.add_argument("--days-back", type=int, default=14)
     p.add_argument("--max-seconds", type=float, default=1200.0)
     args = p.parse_args()
-    print(json.dumps(pull_and_upsert(args.days_back, args.max_seconds), indent=2))
+    # One aggregate row per run into api_usage_log: powers the Admin API
+    # Usage chart AND the workflow run-slot gate's once-per-day ledger check.
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        _result = pull_and_upsert(args.days_back, args.max_seconds)
+        print(json.dumps(_result, indent=2))
+        _calls = int((_result.get("events_fetched") or 0) // 500 + 2)
+        log_run_summary(
+            source="congress_trades",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            calls_made=_calls,
+            status="success",
+            notes={
+                "events_fetched": _result.get("events_fetched"),
+                "rows_upserted": _result.get("rows_upserted"),
+                "days_back": _result.get("days_back"),
+            },
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="congress_trades",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"error": str(_exc)[:500]},
+        )
+        raise
