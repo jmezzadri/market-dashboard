@@ -161,7 +161,11 @@ def patch(indicator_id, status, asof):
     if not (url and key): return False
     body = {"status": status, "last_check_at": NOW.isoformat()}
     if asof is not None:
-        body["last_good_at"] = f"{asof}T00:00:00+00:00"
+        # Honest-stamp rule (2026-06-11): the reconciler derives each feed's
+        # freshness from its DATA — that is data_as_of, never last_good_at.
+        # Writing the data date into last_good_at (midnight UTC) is what made
+        # every tooltip read "Last refreshed: 8:00 PM the previous evening".
+        body["data_as_of"] = f"{asof}T00:00:00+00:00"
     if status in ("green", "amber"):
         body["last_error"] = None
     ep = f"{url}/rest/v1/pipeline_health?indicator_id=eq.{urllib.parse.quote(indicator_id)}"
