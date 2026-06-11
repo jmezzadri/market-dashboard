@@ -124,7 +124,6 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
       <div style={{ position: 'relative', height: CHART_H + LABEL_H }}>
         {[75, 25].map((p) => gridline(p, false))}
         {gridline(50, true)}
-        <span style={{ position: 'absolute', right: 0, top: (1 - 50 / 100) * CHART_H - 14, fontSize: 9, letterSpacing: '.06em', color: 'var(--mt-ink-3)', pointerEvents: 'none' }}>3y median</span>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'stretch', gap: 2 }}>
           {inds.map((i) => (
             <Bar
