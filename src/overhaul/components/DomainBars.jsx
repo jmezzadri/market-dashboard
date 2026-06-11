@@ -1,29 +1,23 @@
-/* DomainBars — the "bars" view of a Macro Overview domain tile
-   (Joe-approved design, 2026-06-11 mock v3 iteration).
+/* DomainBars — the "bars" view of a Macro Overview domain tile.
 
-   One compact chart per domain: every indicator and positioning signal is a
-   thin vertical bar ANCHORED AT ITS OWN 3-YEAR MEDIAN (the 50th-percentile
-   line). Bar length = how far today sits from its normal; direction = above
-   or below; color = the SAME state that colors the pill (calm / stretched /
-   3-year extreme), so the two views can never disagree.
+   v2 (Joe 2026-06-11): the original thin vertical bars with rotated labels
+   lost every legibility comparison with the pill view ("toggling to bars it
+   just looks like shit"). This version IS the pill view — identical grid,
+   identical tag chrome, identical text — with one addition per pill: a slim
+   horizontal gauge anchored at the element's own 3-year median (center tick),
+   filling toward today's percentile in the pill's own state color. Length =
+   how stretched; side = above or below its normal; color = the same
+   calm / stretched / extreme state as everywhere else.
 
-   Joe's binding requirements baked in:
-   - Labels use shortLabel() — the exact sanctioned pill names. Never invent
-     abbreviations here.
-   - Full hover + click parity with pills: hover lifts the bar and shows the
-     page tooltip (name · value · percentile · Δ); click opens the same
-     indicator / positioning detail panel.
-   - NO text badges like "4 extreme" — the bars carry the message.
-   - Gridlines run the full width of the chart (25 / 50 / 75).
-   - Positioning group sits right of a dashed divider and dims between
-     prints (CFTC report older than 6 calendar days), with the next print
-     noted in its tooltip rather than text clutter.
-   - Theme tokens only; animates height on mount and on view toggle. */
+   Joe's binding requirements carried over:
+   - Labels via shortLabel() — sanctioned names only.
+   - Hover/click parity: same tooltip, same detail panels, same hover lift
+     (the .mc-pill class from the pill view drives the animation).
+   - No text badges; Δ vs prior print appears as a small marker on fresh
+     prints only.
+   - Positioning section dims between COT prints, tooltip notes next print. */
 
 import React, { useEffect, useState } from 'react';
-
-const CHART_H = 120;
-const LABEL_H = 64;
 
 function ordSfx(n) {
   const v = Math.abs(Math.round(n)), k = v % 100;
@@ -31,135 +25,122 @@ function ordSfx(n) {
   return { 1: 'st', 2: 'nd', 3: 'rd' }[v % 10] || 'th';
 }
 
-function stateColor(s) {
-  return s === 'extreme' ? 'var(--mt-down)' : s === 'elevated' ? 'var(--mt-warn)' : 'var(--mt-up)';
-}
-
 function fmtVal(v, decimals) {
   if (v == null || !Number.isFinite(v)) return '—';
   return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals ?? 2 });
 }
 
-/* One bar (indicator or positioning). Mounts at zero height and grows to its
-   value so the view "pops" in — same spirit as the pill hover transitions. */
-function Bar({ label, tipText, pct, state, dimmed, onClick, onTip, onHideTip, delta }) {
+function tagClass(state) {
+  return `mt-tag mc-pill mt-tag--${state === 'extreme' ? 'extreme' : state === 'elevated' ? 'elev' : 'calm'}`;
+}
+
+/* The median-anchored gauge inside a pill. Drawn with currentColor so it
+   automatically takes the pill's state color in every theme. Animates from
+   the center on mount, like the old bars grew from the baseline. */
+function Gauge({ pct }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const t = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(t);
   }, []);
-  const has = pct != null && Number.isFinite(pct);
-  const up = has && pct >= 50;
-  const frac = has ? Math.abs(pct - 50) / 100 : 0;
-  const hPx = Math.max(has ? 3 : 2, frac * CHART_H);
-  const topPx = up ? (1 - pct / 100) * CHART_H : CHART_H / 2;
+  if (pct == null || !Number.isFinite(pct)) return <span style={{ display: 'block', height: 4, marginTop: 5 }} />;
+  const left = Math.min(pct, 50);
+  const width = Math.abs(pct - 50);
   return (
-    <div
-      className="mb-col"
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClick && onClick(); } }}
-      onMouseEnter={(e) => onTip && onTip(e, tipText)}
-      onMouseLeave={onHideTip}
-      style={{ flex: 1, minWidth: 0, position: 'relative', height: CHART_H + LABEL_H, cursor: 'pointer', opacity: dimmed ? 0.45 : 1, transition: 'opacity .25s ease' }}
-    >
-      {delta != null && Math.abs(delta) >= 2 && (
-        <span
-          className="num"
-          style={{
-            position: 'absolute', left: 0, right: 0, textAlign: 'center',
-            top: Math.max(0, (up ? topPx : CHART_H / 2 + hPx) + (up ? -13 : 2)),
-            fontSize: 9.5, color: 'var(--mt-ink-3)', whiteSpace: 'nowrap', pointerEvents: 'none',
-          }}
-        >
-          {delta > 0 ? '▲' : '▼'}{Math.abs(Math.round(delta))}
-        </span>
-      )}
+    <span style={{ position: 'relative', display: 'block', height: 4, marginTop: 5, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)' }}>
+      <span style={{ position: 'absolute', left: '50%', top: -1, bottom: -1, width: 1.5, background: 'currentColor', opacity: 0.55 }} />
       <span
-        className="mb-bar"
         style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          width: '55%', maxWidth: 12, minWidth: 4,
-          top: mounted ? topPx : CHART_H / 2,
-          height: mounted ? hPx : 2,
-          // Same recipe as the pills (.mt-tag--*): soft color-mix tint fill
-          // with the full-strength state color as the outline (Joe 2026-06-11:
-          // "darker outline, lighter fill, like the pills").
-          background: has ? `color-mix(in oklab, ${stateColor(state)} 16%, transparent)` : 'var(--mt-surface-3)',
-          border: `1px solid ${has ? stateColor(state) : 'var(--mt-ink-3)'}`,
-          boxSizing: 'border-box',
-          borderRadius: up ? '3px 3px 0 0' : '0 0 3px 3px',
-          opacity: has ? 1 : 0.35,
+          position: 'absolute', top: 0, bottom: 0, borderRadius: 2, background: 'currentColor',
+          left: mounted ? `${left}%` : '50%',
+          width: mounted ? `${width}%` : 0,
+          transition: 'left .45s var(--mt-ease, ease), width .45s var(--mt-ease, ease)',
         }}
       />
-      <span
-        style={{
-          position: 'absolute', top: CHART_H + 6, left: 0, right: 0,
-          display: 'flex', justifyContent: 'center', height: LABEL_H - 8, overflow: 'hidden', pointerEvents: 'none',
-        }}
-      >
-        <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 10.5, lineHeight: 1.1, color: 'var(--mt-ink-2)', maxHeight: LABEL_H - 8, overflow: 'hidden' }}>
-          {label}
+    </span>
+  );
+}
+
+function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick, onTip, onHideTip }) {
+  return (
+    <button
+      type="button"
+      className={tagClass(state)}
+      onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
+      onMouseEnter={(e) => onTip && onTip(e, tipText)}
+      onMouseLeave={onHideTip}
+      style={{
+        cursor: 'pointer', border: dashed ? '1px dashed currentColor' : 'none', font: 'inherit',
+        width: '100%', display: 'block', textAlign: 'left',
+        opacity: dimmed ? 0.5 : 1, transition: 'opacity .25s ease',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+          {delta != null && Math.abs(delta) >= 2 && (
+            <span className="num" style={{ fontSize: 9.5, opacity: 0.75 }}>{delta > 0 ? '▲' : '▼'}{Math.abs(Math.round(delta))}</span>
+          )}
+          <span className="num" style={{ opacity: 0.85 }}>{pct == null ? '—' : Math.round(pct)}</span>
         </span>
       </span>
-    </div>
+      <Gauge pct={pct} />
+    </button>
   );
 }
 
 export default function DomainBars({ inds = [], markets = [], shortLabel, posDimmed, posNextPrint, onSelectInd, onSelectPos, onTip, onHideTip }) {
-  const gridline = (p, strong) => (
-    <div
-      key={p}
-      style={{
-        position: 'absolute', left: 0, right: 0, top: (1 - p / 100) * CHART_H,
-        borderTop: strong ? '1.5px solid var(--mt-line-1)' : '1px dashed var(--mt-line-0)',
-        pointerEvents: 'none',
-      }}
-    />
-  );
+  const head = {
+    fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
+    color: 'var(--mt-ink-1)', marginBottom: 8,
+  };
   return (
-    <div style={{ position: 'relative', marginTop: 10 }}>
-      <style>{`.mb-bar{transition:height .45s var(--mt-ease, ease), top .45s var(--mt-ease, ease), filter .12s ease}.mb-col:hover .mb-bar{filter:brightness(1.25)}.mb-col:hover{transform:translateY(-1px)}.mb-col{transition:transform .12s ease}`}</style>
-      <div style={{ position: 'relative', height: CHART_H + LABEL_H }}>
-        {[75, 25].map((p) => gridline(p, false))}
-        {gridline(50, true)}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'stretch', gap: 2 }}>
-          {inds.map((i) => (
-            <Bar
-              key={i.id}
-              label={shortLabel(i.name)}
-              tipText={
-                i.pct == null
-                  ? `${i.name} — not enough history to rank yet`
-                  : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range${i.deltaPct != null && Math.abs(i.deltaPct) >= 2 ? ` · ${i.deltaPct > 0 ? '+' : ''}${Math.round(i.deltaPct)} pts vs prior print` : ''}`
-              }
-              pct={i.pct}
-              state={i.state}
-              delta={i.deltaPct}
-              onClick={() => onSelectInd(i)}
-              onTip={onTip}
-              onHideTip={onHideTip}
-            />
-          ))}
-          {markets.length > 0 && (
-            <div style={{ width: 0, borderLeft: '1px dashed var(--mt-line-1)', margin: '0 4px', height: CHART_H + LABEL_H }} />
-          )}
-          {markets.map((m) => (
-            <Bar
-              key={m.market}
-              label={shortLabel(m.market)}
-              tipText={`${m.market} — speculators at the ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
-              pct={m.spec}
-              state={m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm'}
-              dimmed={posDimmed}
-              onClick={() => onSelectPos(m)}
-              onTip={onTip}
-              onHideTip={onHideTip}
-            />
-          ))}
-        </div>
+    <div style={{ marginTop: 12 }}>
+      <div style={head}>Indicators</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+        {inds.map((i) => (
+          <GaugePill
+            key={i.id}
+            label={shortLabel(i.name)}
+            tipText={
+              i.pct == null
+                ? `${i.name} — not enough history to rank yet`
+                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range${i.deltaPct != null && Math.abs(i.deltaPct) >= 2 ? ` · ${i.deltaPct > 0 ? '+' : ''}${Math.round(i.deltaPct)} pts vs prior print` : ''}`
+            }
+            pct={i.pct}
+            state={i.state}
+            delta={i.deltaPct}
+            onClick={() => onSelectInd(i)}
+            onTip={onTip}
+            onHideTip={onHideTip}
+          />
+        ))}
       </div>
+      {markets.length > 0 && (
+        <>
+          <div style={{ ...head, margin: '16px 0 8px', paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>
+            Positioning signals{posDimmed && posNextPrint ? (
+              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--mt-ink-3)', marginLeft: 8 }}>next print {posNextPrint}</span>
+            ) : null}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+            {markets.map((m) => (
+              <GaugePill
+                key={m.market}
+                label={shortLabel(m.market)}
+                tipText={`${m.market} — speculators at the ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
+                pct={m.spec}
+                state={m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm'}
+                dashed
+                dimmed={posDimmed}
+                onClick={() => onSelectPos(m)}
+                onTip={onTip}
+                onHideTip={onHideTip}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
