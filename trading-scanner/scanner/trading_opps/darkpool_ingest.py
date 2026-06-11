@@ -350,7 +350,10 @@ if __name__ == "__main__":
         # Estimate UW calls: roughly (tickers_done * days_queried), since the
         # ingest pulls GET /api/darkpool/{ticker}?date=... once per ticker per
         # day in the window.
-        _calls = int((_result.get("tickers_done") or 0) * (_result.get("days_queried") or 1))
+        _days = _result.get("days_queried")
+        _n_days = (len(_days) if isinstance(_days, (list, tuple))
+                   else int(_days or 1))
+        _calls = int((_result.get("tickers_done") or 0) * _n_days)
         log_run_summary(
             source="darkpool_prints",
             run_id=_run_id,
