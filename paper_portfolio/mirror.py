@@ -267,23 +267,29 @@ def _entry_dates_by_ticker() -> dict[str, str]:
 
 
 def _latest_scan_scores() -> dict[str, int]:
-    """Current MacroTilt buy score (0–10) per ticker from the latest scanner
-    run (signal_intel_v5_daily). buy_score = max(0, mt_score / 10), rounded —
-    same normalization the translator uses. Populates the Sleeve B Score column."""
+    """Current Equity Scanner buy score (0–10) per ticker from the LATEST
+    trading_opps_signals scan — the SAME source and scale the Sleeve B engine
+    trades on (signals.py). The engine switched sources on 2026-05-27 but this
+    display helper was left on the retired v5 scanner, dividing its
+    -100..+100 score by 10 — which painted every holding as a 1–3 (Joe caught
+    it 2026-06-11). WATCHLIST rows count too: a held name that decayed below
+    the buy gate shows its true current score rather than vanishing; names
+    absent from the latest scan render as an em-dash."""
     try:
-        latest = _supabase_query("select max(scan_date)::text as d from public.signal_intel_v5_daily;")
+        latest = _supabase_query("select max(scan_date)::text as d from public.trading_opps_signals;")
         d = latest[0]["d"] if latest and latest[0].get("d") else None
         if not d:
             return {}
         rows = _supabase_query(
-            f"select ticker, mt_score from public.signal_intel_v5_daily where scan_date = '{d}';"
+            "select ticker, max(score) as score from public.trading_opps_signals "
+            f"where scan_date = '{d}' and direction = 'long' group by ticker;"
         )
         out: dict[str, int] = {}
         for r in rows:
-            ms = r.get("mt_score")
-            if ms is None:
+            sc = r.get("score")
+            if sc is None:
                 continue
-            out[r["ticker"]] = int(round(max(0.0, float(ms) / 10.0)))
+            out[r["ticker"]] = int(round(max(0.0, float(sc))))
         return out
     except Exception as e:
         logger.warning("scan-score lookup failed (%s); Score column will be blank", e)
