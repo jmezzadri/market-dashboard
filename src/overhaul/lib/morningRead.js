@@ -146,13 +146,34 @@ export function analyzeIndicator(ind, endIdx) {
     sev = into;
     const zone = st === 'extreme' ? 'the red zone' : st === 'elevated' ? 'the amber zone' : 'calm';
     tail = `${st === 'calm' ? 'back to' : 'entered'} ${zone} — ${ord(pct)} pct, was ${ord(prevPct)}`;
+  } else if (prevPct != null && Math.abs(pct - prevPct) >= 30) {
+    // Percentile leap: the print moved ≥30 points of its own 3-year range in
+    // one observation — a third of the whole range — regardless of raw-value
+    // sigma. Added 2026-06-11 right-sizing round 2: S&P 500 Breadth (200d)
+    // jumped 33rd→66th in a day and the sigma gate alone missed it.
+    sev = 4;
+    tail = `jumped from the ${ord(prevPct)} to the ${ord(pct)} percentile of its 3-year range in one ${cadW === 'daily' ? 'day' : 'print'}`;
   } else if (sig && Math.abs(d1) >= 2.5 * sig) {
-    // 2.5σ AND must actually be the largest move in ≥60 prints — both gates
-    // from the right-sizing pass; the anchor date is then always true.
+    // 2.5σ AND must actually be the largest move in ≥60 prints — the anchor
+    // date is then always literally true.
     const since = lastMoveAsBig(pts, endIdx);
     if (since) {
       sev = Math.abs(d1) >= 3.5 * sig ? 4 : 2;
       tail = `largest ${cadW} move since ${monthLabel(since)} — ${ord(pct)} pct`;
+    } else if (Math.abs(d1) >= 3.5 * sig) {
+      // Round-2 fix: a ≥3.5σ move was being muzzled when a bigger one existed
+      // within the last 60 prints (Gold −3.8σ on 2026-06-11). If moves this
+      // size occurred ≤5 times in the trailing year, that is still a headline.
+      let bigger = 0;
+      const yearCut = t(pts[endIdx][0]) - 365 * DAY;
+      for (let i = endIdx - 1; i > 0; i--) {
+        if (t(pts[i][0]) < yearCut) break;
+        if (Math.abs(pts[i][1] - pts[i - 1][1]) >= Math.abs(d1)) bigger++;
+      }
+      if (bigger <= 5) {
+        sev = 3;
+        tail = `one of the sharpest ${cadW} moves of the past year — ${ord(pct)} pct`;
+      }
     }
   }
   if (!sev && freq !== 'D') {
