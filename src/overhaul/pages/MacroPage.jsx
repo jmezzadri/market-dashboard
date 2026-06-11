@@ -42,20 +42,6 @@ const DOMAIN_TITLE = {
   'Financial Conditions & Economy': 'Growth, jobs, and broad financial conditions.',
 };
 
-// Tile visual: 'bars' (median-anchored percentile bars — default per Joe
-// 2026-06-11) or 'pills' (the name+number grid), persisted like the old view.
-function loadTiles() {
-  try {
-    const v = window.localStorage.getItem('mt.overhaul.macro.tiles');
-    return v === 'pills' ? 'pills' : 'bars';
-  } catch {
-    return 'bars';
-  }
-}
-function saveTiles(v) {
-  try { window.localStorage.setItem('mt.overhaul.macro.tiles', v); } catch {}
-}
-
 function loadView() {
   try {
     return window.localStorage.getItem('mt.overhaul.macro.view') || 'map';
@@ -473,7 +459,6 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
 export default function MacroPage() {
   const { active: indicators, loading, indexSeries } = useIndicators();
   const [view, setView] = useState(loadView);
-  const [tiles, setTiles] = useState(loadTiles);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -485,7 +470,6 @@ export default function MacroPage() {
   const hideTip = () => setTip(null);
 
   useEffect(() => { saveView(view); }, [view]);
-  useEffect(() => { saveTiles(tiles); }, [tiles]);
   // Positioning freshness for the bars view: the CFTC report is Tuesday data
   // pulled Saturday morning. Within 6 calendar days of the report date the
   // print is current (weekend + Monday reads); after that the group dims
@@ -592,17 +576,8 @@ export default function MacroPage() {
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-            {tiles === 'bars' ? (
-              <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)' }}>
-                Bar = above or below its own 3-year median · color = whether that stretch warns · length = how stretched
-              </div>
-            ) : <span />}
-            <div className="mt-pillgroup">
-              {[['bars', 'Bars'], ['pills', 'Pills']].map(([k, lbl]) => (
-                <button key={k} type="button" className={`mt-pill ${tiles === k ? 'on' : ''}`} onClick={() => setTiles(k)}>{lbl}</button>
-              ))}
-            </div>
+          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 10 }}>
+            Gauge runs from each element's own 3-year median · fill length = how stretched · color = whether that stretch warns
           </div>
           <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             {DOMAINS.map((dom) => {
@@ -623,57 +598,17 @@ export default function MacroPage() {
                     <div className="mc-domname">{dom}</div>
                     <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} onTip={showTip} onHideTip={hideTip} />
                   </div>
-                  {tiles === 'bars' ? (
-                    <DomainBars
-                      inds={inds}
-                      markets={cotPos?.domains?.[dom]?.markets || []}
-                      shortLabel={shortLabel}
-                      posDimmed={posDimmed}
-                      posNextPrint="Sat 7:00a ET"
-                      onSelectInd={setSelected}
-                      onSelectPos={setSelectedPos}
-                      onTip={showTip}
-                      onHideTip={hideTip}
-                    />
-                  ) : (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 8 }}>Indicators</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-                      {inds.map((i) => (
-                        <button key={i.id} type="button"
-                          className={`mt-tag mc-pill mt-tag--${i.state === 'extreme' ? 'extreme' : i.state === 'elevated' ? 'elev' : 'calm'}`}
-                          onClick={(e) => { e.stopPropagation(); setSelected(i); }}
-                          onMouseEnter={(e) => showTip(e, i.pct == null ? i.name : `${i.name} — ${ord(i.pct)} percentile of its 3-year range`)}
-                          onMouseLeave={hideTip}
-                          style={{ cursor: 'pointer', border: 'none', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(i.name)}</span>
-                          <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{i.pct == null ? '\u2014' : Math.round(i.pct)}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {(cotPos?.domains?.[dom]?.markets || []).length > 0 && (
-                      <>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', margin: '16px 0 8px', paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>Positioning signals</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-                          {cotPos.domains[dom].markets.map((m) => (
-                            <button key={m.market} type="button"
-                              className={`mt-tag mc-pill mt-tag--${posState(m.spec) === 'extreme' ? 'extreme' : posState(m.spec) === 'elevated' ? 'elev' : 'calm'}`}
-                              onClick={(e) => { e.stopPropagation(); setSelectedPos(m); }}
-                              onMouseEnter={(e) => showTip(e, `${m.market} \u2014 speculators at the ${ord(m.spec)} percentile of 3 years`)}
-                              onMouseLeave={hideTip}
-                              style={{ cursor: 'pointer', border: '1px dashed currentColor', font: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortLabel(m.market)}</span>
-                              <span className="num" style={{ flex: '0 0 auto', opacity: 0.85 }}>{Math.round(m.spec)}</span>
-                            </button>
-                          ))}
-                        </div>
-                        {cotPos?.domains?.[dom]?.takeaway && (
-                          <p style={{ marginTop: 12, fontSize: 12, lineHeight: 1.5, color: 'var(--mt-ink-2)' }}>{cotPos.domains[dom].takeaway}</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  )}
+                  <DomainBars
+                    inds={inds}
+                    markets={cotPos?.domains?.[dom]?.markets || []}
+                    shortLabel={shortLabel}
+                    posDimmed={posDimmed}
+                    posNextPrint="Sat 7:00a ET"
+                    onSelectInd={setSelected}
+                    onSelectPos={setSelectedPos}
+                    onTip={showTip}
+                    onHideTip={hideTip}
+                  />
                 </div>
               );
             })}
