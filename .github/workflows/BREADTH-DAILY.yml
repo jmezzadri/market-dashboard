@@ -13,7 +13,7 @@ jobs:
           token: ${{ secrets.MACROTILT_BOT_PAT }}
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install requests openpyxl pandas -q
+      - run: pip install requests openpyxl pandas lxml -q
       - name: compute index breadth (% > 50d/200d EMA) for S&P 500 + Nasdaq-100
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -38,12 +38,37 @@ jobs:
               ti=[str(c).strip() if c else '' for c in rows[hi]].index('Ticker')
               return sorted({row[ti].strip() for row in rows[hi+1:] if row and ti<len(row) and isinstance(row[ti],str) and row[ti].strip() and row[ti].strip()!='-'})
           def qqq_members():
-              r=requests.get("https://www.invesco.com/us/financial-products/etfs/holdings/main/holdings/0?audienceType=Investor&action=download&ticker=QQQ",headers={"User-Agent":UA},timeout=60)
-              txt=r.content.decode('utf-8-sig',errors='ignore'); import csv
-              rdr=csv.reader(io.StringIO(txt)); rowsc=list(rdr)
-              hi=next(i for i,row in enumerate(rowsc[:8]) if any('ticker' in str(c).lower() for c in row))
-              hdr=[c.strip().lower() for c in rowsc[hi]]; ci=next(i for i,c in enumerate(hdr) if c=='holding ticker' or c=='ticker')
-              return sorted({row[ci].strip() for row in rowsc[hi+1:] if len(row)>ci and row[ci].strip() and row[ci].strip()!='-'})
+              # Hardened 2026-06-10: the old parser scanned 8 rows for an exact
+              # 'ticker' header and raised StopIteration on a format change, so
+              # the NDX leg silently skipped while SPX kept publishing (found in
+              # the Joe indicator walk-through). Primary: Invesco CSV with a
+              # tolerant scan. Fallback: Wikipedia constituents (same source the
+              # scanner's index-membership loader uses). Hard-fail if neither
+              # yields a full list — never compute breadth on a partial universe.
+              import csv
+              try:
+                  r=requests.get("https://www.invesco.com/us/financial-products/etfs/holdings/main/holdings/0?audienceType=Investor&action=download&ticker=QQQ",headers={"User-Agent":UA},timeout=60)
+                  txt=r.content.decode('utf-8-sig',errors='ignore')
+                  rowsc=list(csv.reader(io.StringIO(txt)))
+                  hi=next((i for i,row in enumerate(rowsc[:40]) if any('ticker' in str(c).lower() for c in row)),None)
+                  if hi is not None:
+                      hdr=[str(c).strip().lower() for c in rowsc[hi]]
+                      ci=next((i for i,c in enumerate(hdr) if 'ticker' in c),None)
+                      if ci is not None:
+                          syms=sorted({row[ci].strip() for row in rowsc[hi+1:] if len(row)>ci and row[ci].strip() and row[ci].strip()!='-'})
+                          if len(syms)>=90: return syms
+                  print("NDX: Invesco CSV yielded too few names — falling back to Wikipedia")
+              except Exception as e:
+                  print("NDX: Invesco fetch failed:",repr(e),"— falling back to Wikipedia")
+              r=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers={"User-Agent":UA},timeout=30)
+              r.raise_for_status()
+              for t in pd.read_html(io.StringIO(r.text)):
+                  for col in ("Ticker","Symbol"):
+                      if col in t.columns:
+                          syms=sorted({re.sub(r'[^A-Z.\-]','',str(x).upper()) for x in t[col].astype(str).tolist()})
+                          syms=[x for x in syms if 1<=len(x)<=6]
+                          if len(syms)>=90: return syms
+              raise RuntimeError("NDX membership unavailable from Invesco AND Wikipedia")
           def breadth(tickers):
               arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers)+"]"
               sql=f"""set statement_timeout='290s';

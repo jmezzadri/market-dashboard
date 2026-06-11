@@ -32,6 +32,14 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-10 — Indicator copy is factual and academic, never editorial
+
+**What happened:** Proposed indicator headers included invented color — "the signature of a true risk-off regime," "calm surface, nervous undercurrent." Joe: "please dont make up editorial nonsense… I want fact based what it is, how its measured, what it tells you. In academic terms."
+
+**What you should do instead:** Every indicator header has exactly three factual parts: what the series is, how it is measured (one clause), and what levels or changes have historically meant — with numbers and named historical episodes, no metaphors, no trader-poetry. A market-standard nickname (e.g. "the fear gauge") is acceptable only when it is the series' actual common name. This binds all indicator, positioning, and methodology copy site-wide.
+
+---
+
 ## 2026-06-09 — Scheduled notification emails must be once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7-8 paper-rebalance emails in one day instead of 2. The morning submit workflow deliberately fires every 30 minutes pre-open (insurance against GitHub's late cron delivery) and the post-open watchdog runs on two timers for daylight-saving coverage; order submission was rerun-safe but every fire re-sent its email.
