@@ -112,6 +112,10 @@ const MARKET_BLURB = {
   'Ultra Bond': "Futures on the longest-maturity Treasuries (25+ years) — the biggest duration bet on the board.",
   'Investment-grade bonds': "Primary dealers' net inventory of investment-grade corporate bonds — how much quality credit risk Wall Street is warehousing.",
   'High-yield bonds': "Primary dealers' net inventory of junk bonds — how much speculative credit risk Wall Street is warehousing.",
+  'S&P 500': "Futures on the S&P 500 — speculative positioning in US large-cap equities.",
+  'Nasdaq 100': "Futures on the Nasdaq-100 — speculative positioning in US mega-cap technology.",
+  'Russell 2000': "Futures on the Russell 2000 — speculative positioning in US small-caps, the most domestically exposed segment.",
+  'VIX': "Futures on the VIX index — positioning on future volatility itself. Large net-short positions have historically preceded sharp volatility spikes when short-volatility trades unwind (February 2018, August 2024).",
 };
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
@@ -166,9 +170,11 @@ const SHORT = {
   'HY vs IG Ratio': 'HY vs IG',
   'Bank Credit Growth': 'Bank credit',
   '10-Year Real Yield': '10y real yield',
-  'Stock volatility': 'Stock vol (VIX)',
-  'Crash risk (options)': 'Crash risk (SKEW)',
-  'Stocks vs credit': 'Stock-credit corr',
+  'Equity-Credit Correlation': 'Equity-credit corr',
+  'S&P 500 Breadth (50d)': 'SPX breadth (50d)',
+  'S&P 500 Breadth (200d)': 'SPX breadth (200d)',
+  'Nasdaq Breadth (50d)': 'NDX breadth (50d)',
+  'Nasdaq Breadth (200d)': 'NDX breadth (200d)',
   'Stock valuation': 'Stock val (CAPE)',
   'Manufacturing activity': 'Mfg activity (ISM)',
   'Copper-to-gold ratio': 'Copper / gold',
@@ -337,11 +343,23 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
           {MARKET_BLURB[item.market]}
         </p>
       )}
-      <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
-        {isDealer
-          ? "Net inventory in IG / HY corporate bonds is the balance-sheet risk that market-making banks are carrying — from the NY Fed's weekly Primary Dealer Statistics. Primary dealers are the shock absorbers of fixed income, so whether they're net long or net short reveals market liquidity, credit sentiment, and how much capital they can commit. Large net long: dealers are absorbing what institutions are dumping — a liquidity strain that's capital-expensive to hold and can widen bid-ask spreads. Flat or net short: lean inventory and low overnight risk, but little capacity to absorb heavy selling, leaving the market exposed to liquidity air pockets. IG is rate-sensitive, HY default-sensitive — dealers cutting HY while holding IG is a defensive pivot away from credit risk; cutting both is active de-risking that often precedes wider spreads. (This is a NET figure — long minus short; gross dealer books are far larger.)"
-          : "Where the speculative crowd's net futures position sits in its own 3-year range. Near the top (90th+) the crowd is heavily long — a crowded trade, fragile to a reversal down; near the bottom (10th-) heavily short — squeeze risk to the upside. The commercial hedgers (overlaid) take the other side. An extreme flags fragility, not timing."}
-      </p>
+      {/* How to read positioning — factual reference (Senior Quant, Joe
+          directive 2026-06-10: explain what the data says about the asset,
+          what extremes have meant, and why spec-vs-hedger gaps are normal).
+          Static reference copy — nothing here goes stale. The dealer text is
+          preserved from the NY Fed inventory PR (2026-06-10). */}
+      {isDealer ? (
+        <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
+          {"Net inventory in IG / HY corporate bonds is the balance-sheet risk that market-making banks are carrying — from the NY Fed's weekly Primary Dealer Statistics. Primary dealers are the shock absorbers of fixed income, so whether they're net long or net short reveals market liquidity, credit sentiment, and how much capital they can commit. Large net long: dealers are absorbing what institutions are dumping — a liquidity strain that's capital-expensive to hold and can widen bid-ask spreads. Flat or net short: lean inventory and low overnight risk, but little capacity to absorb heavy selling, leaving the market exposed to liquidity air pockets. IG is rate-sensitive, HY default-sensitive — dealers cutting HY while holding IG is a defensive pivot away from credit risk; cutting both is active de-risking that often precedes wider spreads. (This is a NET figure — long minus short; gross dealer books are far larger.)"}
+        </p>
+      ) : (
+        <div style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.65, margin: '0 0 14px', display: 'grid', gap: 6 }}>
+          <div><b style={{ color: 'var(--mt-ink-1)' }}>Who's in the data.</b> Speculators = hedge funds and managed money (CFTC non-commercial). Commercials = producers and merchants hedging physical exposure. The two sides roughly offset by construction — when speculators are net long, hedgers are net short — so a wide gap between the lines is normal, not a signal.</div>
+          <div><b style={{ color: 'var(--mt-ink-1)' }}>What's plotted.</b> Solid line: speculators' net position as a share of open interest, ranked into its own trailing 3-year range. Dashed line: the commercials' mirror position.</div>
+          <div><b style={{ color: 'var(--mt-ink-1)' }}>What extremes have meant.</b> Speculator positioning is trend-following — it rises with price, so positioning peaks usually coincide with or lag price peaks rather than lead them. At 3-year extremes the evidence is contrarian on average: crowded longs (90th+) have been followed by below-average forward returns and are exposed to forced unwinds; crowded shorts (10th−) carry squeeze risk. Academic tests find the standalone effect real but weak — an extreme measures the fuel available for a reversal, not its timing.</div>
+          <div><b style={{ color: 'var(--mt-ink-1)' }}>Reading it against price.</b> Use the Overlay picker below to draw this market's price on the chart. The historical warning configurations: positioning at an extreme while price stalls, and price rising while speculator net falls (the crowd exiting into strength). The strongest flag is both groups at their own 3-year extremes at once — the amber link on the card.</div>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div className="mt-pillgroup">
           {['1Y', '3Y', 'Max'].map((k) => (<button key={k} type="button" className={`mt-pill ${tf === k ? 'on' : ''}`} onClick={() => setTf(k)}>{k}</button>))}
