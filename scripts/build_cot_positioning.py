@@ -113,8 +113,8 @@ def pctrank(series):
 
 
 NYFED_PD_URL = "https://markets.newyorkfed.org/api/pd/get/{}.json"
-IG_KEYS = ["PDPOSCSBND-L13", "PDPOSCSBND-G13", "PDPOSCSBND-G5L10", "PDPOSCSBND-G10"]
-HY_KEYS = ["PDPOSCSBND-BELL13", "PDPOSCSBND-BELG13", "PDPOSCSBND-BELG5L10", "PDPOSCSBND-BELG10"]
+IG_BUCKETS = [("PDPOSCSBND-L13", "\u226413mo"), ("PDPOSCSBND-G13", "1\u20135yr"), ("PDPOSCSBND-G5L10", "5\u201310yr"), ("PDPOSCSBND-G10", "10yr+")]
+HY_BUCKETS = [("PDPOSCSBND-BELL13", "\u226413mo"), ("PDPOSCSBND-BELG13", "1\u20135yr"), ("PDPOSCSBND-BELG5L10", "5\u201310yr"), ("PDPOSCSBND-BELG10", "10yr+")]
 
 
 def _nyfed_series(keyid):
@@ -132,12 +132,16 @@ def _nyfed_series(keyid):
     return pd.Series(out)
 
 
-def _dealer_market(disp, keys, start):
+def _dealer_market(disp, buckets, start):
     """Net primary-dealer inventory ($bn) summed across the 4 maturity buckets,
-    percentile-ranked in its own 3-year range. Dealer inventory, NOT speculators."""
+    percentile-ranked in its own 3-year range, PLUS the per-bucket breakdown.
+    Dealer inventory, NOT speculators."""
     s = None
-    for k in keys:
+    bucket_out = []
+    for k, lab in buckets:
         ser = _nyfed_series(k)
+        if not ser.empty:
+            bucket_out.append({"label": lab, "net": round(float(ser.sort_index().iloc[-1]) / 1000.0, 1)})
         s = ser if s is None else s.add(ser, fill_value=0)
     if s is None or s.empty:
         return None
@@ -152,6 +156,7 @@ def _dealer_market(disp, keys, start):
         "market": disp, "spec": pct, "comm": None,
         "specNet": round(float(bn.iloc[-1]), 1),
         "asof": str(bn.index[-1])[:10], "history": hist, "dealerUnit": "$bn net",
+        "buckets": bucket_out,
     }
 
 
@@ -243,8 +248,8 @@ def run():
     # corporate bonds (dealer inventory; NOT CFTC speculators/hedgers).
     try:
         start4 = (dt.date.today() - dt.timedelta(days=365 * 4)).isoformat()
-        ig = _dealer_market("Investment-grade bonds", IG_KEYS, start4)
-        hy = _dealer_market("High-yield bonds", HY_KEYS, start4)
+        ig = _dealer_market("Investment-grade bonds", IG_BUCKETS, start4)
+        hy = _dealer_market("High-yield bonds", HY_BUCKETS, start4)
         cmk = [m for m in (ig, hy) if m]
         if cmk:
             cr_asof = max(m["asof"] for m in cmk)

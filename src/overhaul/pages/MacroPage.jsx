@@ -280,9 +280,19 @@ function PositioningDetail({ item, onClose, catalog = [] }) {
         </div>
       </header>
       <div style={{ fontSize: 14, color: 'var(--mt-ink-1)', marginBottom: 6 }}>{isDealer ? `Dealers' net inventory $${item.specNet}bn` : `Speculators net ${item.specNet}%`} — {read}.</div>
+      {isDealer && Array.isArray(item.buckets) && item.buckets.length > 0 && (
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'baseline', margin: '0 0 12px' }}>
+          <span style={{ color: 'var(--mt-ink-2)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10.5 }}>By maturity</span>
+          {item.buckets.map((b) => (
+            <span key={b.label} style={{ fontSize: 12.5, color: 'var(--mt-ink-2)' }}>
+              {b.label} <b className="num" style={{ color: b.net < 0 ? 'var(--mt-down)' : 'var(--mt-up)' }}>{b.net < 0 ? '\u2212$' : '+$'}{Math.abs(b.net)}bn</b>
+            </span>
+          ))}
+        </div>
+      )}
       <p style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.6, margin: '0 0 14px' }}>
         {isDealer
-          ? "Where primary dealers' net inventory in these corporate bonds sits in its own 3-year range — from the NY Fed's weekly Primary Dealer Statistics. Near the top (90th+) dealers are warehousing a lot of credit risk, so balance sheets are full and there's less room to absorb client selling; near the bottom (10th-) dealers hold little inventory. This is dealer positioning — not speculators or commercial hedgers."
+          ? "Net inventory in IG / HY corporate bonds is the balance-sheet risk that market-making banks are carrying — from the NY Fed's weekly Primary Dealer Statistics. Primary dealers are the shock absorbers of fixed income, so whether they're net long or net short reveals market liquidity, credit sentiment, and how much capital they can commit. Large net long: dealers are absorbing what institutions are dumping — a liquidity strain that's capital-expensive to hold and can widen bid-ask spreads. Flat or net short: lean inventory and low overnight risk, but little capacity to absorb heavy selling, leaving the market exposed to liquidity air pockets. IG is rate-sensitive, HY default-sensitive — dealers cutting HY while holding IG is a defensive pivot away from credit risk; cutting both is active de-risking that often precedes wider spreads. (This is a NET figure — long minus short; gross dealer books are far larger.)"
           : "Where the speculative crowd's net futures position sits in its own 3-year range. Near the top (90th+) the crowd is heavily long — a crowded trade, fragile to a reversal down; near the bottom (10th-) heavily short — squeeze risk to the upside. The commercial hedgers (overlaid) take the other side. An extreme flags fragility, not timing."}
       </p>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
