@@ -36,7 +36,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince } from "../lib/freshnessClock";
+import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, dailySessionGrade } from "../lib/freshnessClock";
 import {
   getElement,
   getSLAHours,
@@ -229,6 +229,25 @@ function statusForElement(elementId, fallback) {
   } else if (!dataDate && !lastGoodAt) {
     status = "red";
     reason = "No successful refresh on record";
+  } else if (String(manifestEl?.cadence || "").toLowerCase().startsWith("daily")) {
+    // Session-frontier doctrine (Joe 2026-06-12): dailies are graded in
+    // trading sessions against their publication frontier, not wall-clock
+    // hour budgets. The hour budgets tolerated 49-73h of true staleness on
+    // DAILY elements — long enough to hide a dead feed until the weekend.
+    // Green = at the frontier (the newest session the source can have
+    // published by its fetch deadline); amber = exactly one session behind
+    // (today's pull missed or late); red = two or more behind. Deadlines
+    // exist only on business days, so weekends/holidays never count.
+    const g = dailySessionGrade(dataDate || lastGoodAt, {
+      fetchTimeET: manifestEl?.scheduled_fetch_time_et,
+      graceHours: Number(manifestEl?.fetch_grace_hours) || 3,
+      lagSessions: Number(manifestEl?.lag_sessions) || 0,
+    });
+    status = g.grade;
+    reason =
+      g.grade === "amber" ? `1 session behind — expected data through ${g.expectedDate}` :
+      g.grade === "red" ? `${g.behind} sessions behind — expected data through ${g.expectedDate}` :
+      null;
   } else if (slaHours > 0) {
     status = isStaleAgainstSLA(dataDate || lastGoodAt, slaHours, calendar)
       ? "red"
