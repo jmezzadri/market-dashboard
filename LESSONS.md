@@ -133,6 +133,14 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 ---
 
+### 0.9 (2026-06-11) — Joe's freshness doctrine: stale = more than 24 hours PAST DUE
+
+**Joe, verbatim:** "I want daily data updated daily. Weekly updated weekly. If things are more than 24 hours past due, they're stale. It's that simple. For some of the monthly and quarterly data it's fine to have an extended SLA (maybe 1 week for quarterly), but other than that, I don't see why this is so hard."
+
+**Rule:** Every freshness budget derives from ONE formula — cadence + documented source publication lag + 24h grace — in calendar-aware hours from the close-anchored as-of. Same-evening dailies: 49h. Dailies whose SOURCE publishes T+1 (several FRED credit/funding series): 73h, basis written into the registry entry (`sla_basis`). Weekly: 192h. Monthly/quarterly: extended only for documented publication lags (~release + 1 week grace). Any budget that cannot be derived from this formula plus a documented lag is wrong. Structural follow-up queued: anchor staleness to DUE TIME (expected next update) so "24h past due" is literal for lagged feeds (COT) instead of approximated from data age.
+
+---
+
 # 1 · TALKING TO JOE
 
 ### 1.1 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name

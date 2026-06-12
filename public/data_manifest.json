@@ -66,7 +66,8 @@
     "last_change": "2026-05-27 — renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run.",
     "v_2026_06_11": "2026-06-11 one-shot stamp fix: registered 11 previously-untracked elements (cycle board, ISM keys, scanner V5 legacy feed, user positions, scenario impact, put/call, dollar index, Buffett, bank unrealized losses, sector perf, scenario stress, indicator-history aggregate).",
     "v_2026_06_11b": "Un-registered put_call/buffett/bank_unreal — these feeds were killed as phantoms on 2026-06-10 (commit 'Kill phantom feeds'); the 2026-06-11 stamp-fix registration pass resurrected them by mistake. Their tracking rows are deleted by the repair workflow. Registration must check kill history first.",
-    "v_2026_06_11c": " v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron)."
+    "v_2026_06_11c": " v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron).",
+    "v_2026_06_11d": " v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags — per-series calibration queued."
   },
   "elements": [
     {
@@ -109,7 +110,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "CBOE cash close"
+      "as_of_cutoff_note": "CBOE cash close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-hy_ig-daily",
@@ -124,7 +126,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[hy_ig]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -151,7 +153,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-eq_cr_corr-daily",
@@ -189,7 +192,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-yield_curve-daily",
@@ -227,7 +231,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-move-daily",
@@ -265,7 +270,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "EOD index level"
+      "as_of_cutoff_note": "EOD index level",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-real_rates-daily",
@@ -303,7 +309,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-breakeven_10y-daily",
@@ -337,7 +344,8 @@
         "indicator-real_rates-daily"
       ],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-copper_gold-daily",
@@ -375,7 +383,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-bkx_spx-daily",
@@ -417,7 +426,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-usd-daily",
@@ -432,7 +442,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[usd]",
       "producer_script": "fetch_history.py + fetch_indicators.py",
       "consumer_surfaces": [
@@ -455,7 +465,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-skew-daily",
@@ -493,7 +504,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "CBOE cash close"
+      "as_of_cutoff_note": "CBOE cash close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-anfci-weekly",
@@ -612,7 +624,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[loan_syn]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -629,7 +641,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-bank_credit-weekly",
@@ -1123,7 +1136,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-prices_eod-daily",
@@ -1155,7 +1169,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-ticker_reference-rolling",
@@ -1213,7 +1228,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-splits-daily",
@@ -1242,7 +1258,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "equity-universe_snapshots-3xday",
@@ -1347,7 +1364,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "equity-user_scan_data-daily",
@@ -1609,7 +1627,8 @@
       "failure_mode": "Skipped → discovery feed light.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "ops-api_usage_log-event",
@@ -1952,7 +1971,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "commentary-macro_commentary-daily",
@@ -1986,7 +2006,8 @@
       "release_calendar": "wall-clock",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "commentary-sector_commentary-daily",
@@ -2020,7 +2041,8 @@
       "release_calendar": "wall-clock",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "ops-bug_screenshots-event",
@@ -2176,7 +2198,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
@@ -2191,7 +2213,8 @@
       "failure_mode": "v11 modal shows hardcoded 174 bp / 23rd pct.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-hy_ig_ratio-daily",
@@ -2206,7 +2229,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-hy_ig-daily",
@@ -2224,7 +2247,8 @@
       "failure_mode": "v11 modal shows hardcoded ratio value.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-fra_ois-daily",
@@ -2239,7 +2263,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[fra_ois] (PENDING — needs paid source or proxy)",
@@ -2254,7 +2278,8 @@
       "failure_mode": "v11 modal shows hardcoded value; no free source identified.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-real_fedfunds-monthly",
@@ -2314,7 +2339,8 @@
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-sofr_ois-daily",
@@ -2329,7 +2355,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[sofr_ois]",
@@ -2344,7 +2370,8 @@
       "failure_mode": "v11 modal showed hardcoded mock value; wired in PR #2C.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-naaim-weekly",
@@ -2434,7 +2461,8 @@
       "failure_mode": "Per-indicator try/except.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "v10-allocation-daily",
@@ -2457,7 +2485,8 @@
       "tuned_in_pr": 416,
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
       "shipped_date": "2026-05-04",
-      "scheduled_fetch_time_et": "08:15"
+      "scheduled_fetch_time_et": "08:15",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "scenario-scenario_definitions-static",
@@ -2554,7 +2583,7 @@
       "name": "rrp",
       "category": "indicator",
       "cadence": "daily",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED RRPONTSYD",
@@ -2577,7 +2606,8 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
       "id": "indicator-bank_reserves-weekly",
@@ -2697,7 +2727,8 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "v10-sector-history-daily",
@@ -2715,7 +2746,8 @@
       "output_path": "public/v10_sector_history.json",
       "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
       "owner": "Data Steward",
-      "registered_date": "2026-06-03"
+      "registered_date": "2026-06-03",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "portfolio.paper-nav-daily",
@@ -2745,7 +2777,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "portfolio.paper-positions-snapshot",
@@ -2775,7 +2808,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "portfolio.paper-orders-intent",
@@ -2807,7 +2841,8 @@
         "portfolio.paper-positions-snapshot"
       ],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "as-of latest session close"
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cftc-cot-weekly",
@@ -2822,7 +2857,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (Sat)",
       "refresh_trigger": "CFTC-COT-WEEKLY",
-      "freshness_sla_hours": 504,
+      "freshness_sla_hours": 192,
       "output_destination": "public/cot_positioning.json",
       "producer_script": "cot_positioning.py",
       "consumer_surfaces": [
@@ -2839,7 +2874,8 @@
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "observation period figure",
       "last_success_utc": "2026-06-11T00:10:55+00:00",
-      "data_as_of": "2026-06-02"
+      "data_as_of": "2026-06-02",
+      "sla_basis": "Joe 2026-06-11 doctrine: weekly cadence + 24h grace = 192h (data dated Tuesday, CFTC publishes Friday 3:30 PM ET, site ingests Saturday 7:00 AM ET; due-time anchoring upgrade queued)"
     },
     {
       "id": "indicator-spx_above_50ema-daily",
@@ -2872,7 +2908,8 @@
       "owner": "Senior Quant",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-spx_above_200ema-daily",
@@ -2905,7 +2942,8 @@
       "owner": "Senior Quant",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_gold-daily",
@@ -2938,7 +2976,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_silver-daily",
@@ -2971,7 +3010,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_copper-daily",
@@ -3004,7 +3044,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_uranium-weekly",
@@ -3070,7 +3111,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_natgas-daily",
@@ -3103,7 +3145,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_corn-daily",
@@ -3136,7 +3179,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_soybeans-daily",
@@ -3169,7 +3213,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-cmdty_wheat-daily",
@@ -3202,7 +3247,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-fx_eur-daily",
@@ -3235,7 +3281,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-fx_jpy-daily",
@@ -3268,7 +3315,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-fx_gbp-daily",
@@ -3301,7 +3349,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "portfolio-scenario-impact",
@@ -3362,7 +3411,8 @@
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
+      "as_of_cutoff_note": "no single intraday cutoff",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-ust_10y-daily",
@@ -3400,7 +3450,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-ust_2y-daily",
@@ -3438,7 +3489,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-unrate-monthly",
@@ -3540,7 +3592,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-spx_index-daily",
@@ -3578,7 +3631,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "NYSE cash close"
+      "as_of_cutoff_note": "NYSE cash close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-ndx_index-daily",
@@ -3616,7 +3670,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "NYSE cash close"
+      "as_of_cutoff_note": "NYSE cash close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-dji_index-daily",
@@ -3654,7 +3709,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "NYSE cash close"
+      "as_of_cutoff_note": "NYSE cash close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-ndx_above_50ema-daily",
@@ -3687,7 +3743,8 @@
       "owner": "Senior Quant",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-ndx_above_200ema-daily",
@@ -3720,7 +3777,8 @@
       "owner": "Senior Quant",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "cycle-mechanism-board-daily",
@@ -3754,7 +3812,8 @@
       "failure_mode": "board renders last snapshot; chip ambers/reds by SLA",
       "owner": "Data Steward",
       "producer_script": "cycle board daily producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-fx_dollar-daily",
@@ -3787,7 +3846,8 @@
       "failure_mode": "chip reds by SLA",
       "owner": "Data Steward",
       "producer_script": "commodity/FX market indicators producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "indicator-ism_mfg-monthly",
@@ -3878,7 +3938,8 @@
       "failure_mode": "alarm emails Joe; Admin row reds",
       "owner": "Data Steward",
       "producer_script": "indicator history producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "scenario-scenario_stress-weekly",
@@ -3939,7 +4000,8 @@
       "failure_mode": "chip reds by SLA",
       "owner": "Data Steward",
       "producer_script": "sector performance producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "equity-scanner_v5-daily",
@@ -3970,7 +4032,8 @@
       "owner": "Data Steward",
       "producer_script": "V5 scanner runner",
       "current_status": "live (legacy consumer)",
-      "_review_note": "2026-06-11 audit: confirm whether the Ticker page batch read should move to trading_opps_signals; if so this feed and its two workflows can be retired."
+      "_review_note": "2026-06-11 audit: confirm whether the Ticker page batch read should move to trading_opps_signals; if so this feed and its two workflows can be retired.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "equity-short_interest-daily",
@@ -4004,7 +4067,8 @@
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface; the 49h SLA tracks the DAILY UW tape."
+      "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface; the 49h SLA tracks the DAILY UW tape.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "equity-options_flow-daily",
@@ -4038,7 +4102,8 @@
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) — a different element; this one is context-only and never scored."
+      "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) — a different element; this one is context-only and never scored.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
