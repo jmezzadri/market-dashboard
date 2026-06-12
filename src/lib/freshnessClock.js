@@ -177,6 +177,69 @@ export function isStaleAgainstSLA(asOfIso, slaHours, calendar, nowMs) {
   return age > slaHours;
 }
 
+
+// ─── Session-frontier grading for DAILY elements ────────────────────────────
+// Joe doctrine 2026-06-12 (supersedes hour-budget SLAs for daily cadence):
+// a daily element is GREEN only when it carries the newest session its source
+// can have published by now; AMBER when exactly one session behind that
+// (today's pull missed or is late); RED two or more sessions behind. The
+// reference is the element's FETCH DEADLINE (scheduled fetch ET + grace), and
+// deadlines only occur on business days — so weekends and holidays are the
+// only times a daily value may legitimately sit more than one session old,
+// and they never count against it.
+//
+//   expected(now) = last closed session as of the most recent passed fetch
+//                   deadline, walked back lag_sessions (documented source
+//                   publication lag, e.g. the NY Fed term-premium series)
+//   behind        = trading sessions from the data date up to expected
+//   grade         = 0 behind → green · 1 → amber · ≥2 → red
+export function dailySessionGrade(asOfIso, opts, nowMs) {
+  const o = opts || {};
+  const fetchTime = (typeof o.fetchTimeET === "string" && /^\d{1,2}:\d{2}$/.test(o.fetchTimeET)) ? o.fetchTimeET : "06:00";
+  const grace = Number.isFinite(o.graceHours) ? o.graceHours : 3;
+  const lag = Number.isFinite(o.lagSessions) ? o.lagSessions : 0;
+  const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+
+  // "now" as ET wall-clock (same convention as latestTradingSessionDate).
+  const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const parts = fetchTime.split(":");
+  const deadlineMins = Number(parts[0]) * 60 + Number(parts[1]) + Math.round(grace * 60);
+
+  // Most recent BUSINESS day whose fetch deadline has already passed.
+  const probe = new Date(etNow);
+  const nowMins = etNow.getHours() * 60 + etNow.getMinutes();
+  if (!(isUSBusinessDay(probe) && nowMins >= deadlineMins)) {
+    do { probe.setDate(probe.getDate() - 1); } while (!isUSBusinessDay(probe));
+  }
+  const refIsFetchDay = probe.getFullYear() === etNow.getFullYear()
+    && probe.getMonth() === etNow.getMonth() && probe.getDate() === etNow.getDate();
+  const refMins = refIsFetchDay ? deadlineMins : deadlineMins; // deadline time on the ref day
+
+  // Expected session: last NYSE session whose close (4 PM ET) precedes the
+  // ref deadline, then walked back lag sessions.
+  const exp = new Date(probe);
+  if (!(isNYSETradingDay(exp) && refMins >= 16 * 60)) {
+    do { exp.setDate(exp.getDate() - 1); } while (!isNYSETradingDay(exp));
+  }
+  for (let i = 0; i < lag; i++) {
+    do { exp.setDate(exp.getDate() - 1); } while (!isNYSETradingDay(exp));
+  }
+  const pad = (n) => String(n).padStart(2, "0");
+  const expectedDate = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+
+  const asOfDate = asOfIso ? String(asOfIso).slice(0, 10) : null;
+  if (!asOfDate) return { expectedDate, behind: null, grade: "unknown" };
+  if (asOfDate >= expectedDate) return { expectedDate, behind: 0, grade: "green" };
+  let behind = 0;
+  const walk = new Date(`${asOfDate}T12:00:00Z`);
+  const end = new Date(`${expectedDate}T12:00:00Z`);
+  while (walk < end && behind < 30) {
+    walk.setUTCDate(walk.getUTCDate() + 1);
+    if (isNYSETradingDay(walk)) behind++;
+  }
+  return { expectedDate, behind, grade: behind <= 0 ? "green" : behind === 1 ? "amber" : "red" };
+}
+
 // ─── Whole-day age for the relative-age label ───────────────────────────────
 // Counts the number of calendar-of-record days between the as-of DATE and
 // today, both taken as ET calendar dates. This is time-of-day independent: a
