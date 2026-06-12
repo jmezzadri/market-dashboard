@@ -42,7 +42,7 @@ OUT_PATH = REPO_ROOT / "public" / "indicator_drills_generated.json"
 # Targets — indicators that already have a hand-written DRILLS entry.
 # Skip these; they win against the generated entries at runtime.
 COVERED_BY_HAND = {
-    "adv_dec", "anfci", "bkx_spx", "buffett", "cape", "cdx_basis", "cfnai",
+    "anfci", "bkx_spx", "buffett", "cape", "cdx_basis", "cfnai",
     "cpff", "erp", "fed_bs", "fra_ois", "hy_ig", "hy_oas", "ig_oas", "ism",
     "jobless", "m2_yoy", "margin_debt", "naaim", "put_call", "real_fedfunds",
     "sofr_ois", "spx_200dma", "term_premium", "xccy_basis",
