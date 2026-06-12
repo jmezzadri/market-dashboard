@@ -1,10 +1,15 @@
 """
-Short Interest ingest — UW + Nasdaq/FINRA -> short_interest + short_interest_daily.
+Short Interest ingest — UW + FINRA -> short_interest + short_interest_daily.
 
 Per SHORT_INTEREST_DATA_FEED_DESIGN.md:
 
   FINRA bi-monthly settlements (gold standard SI level)
-    Source: api.nasdaq.com/api/quote/{ticker}/short-interest?type=monthly
+    Source: FINRA Query API (official, free, no credentials) — one bulk
+    POST api.finra.org/data/group/otcMarket/name/consolidatedShortInterest
+    per run, windowed on settlementDate, filtered to the scan universe.
+    (Until 2026-06-11 this arm scraped api.nasdaq.com once per ticker;
+    Nasdaq's bot protection blocks GitHub-hosted runners, so it silently
+    returned zero rows after the 2026-04-15 settlement.)
     -> short_interest table
 
   UW continuous metrics (CTB / borrow availability / FTDs / SVR)
@@ -31,7 +36,8 @@ from scanner.api_usage_helper import log_run_summary
 
 
 UW_BASE = "https://api.unusualwhales.com/api"
-NASDAQ_BASE = "https://api.nasdaq.com/api"
+FINRA_API_URL = ("https://api.finra.org/data/group/otcMarket/"
+                 "name/consolidatedShortInterest")
 
 TABLE_FINRA = "short_interest"
 TABLE_DAILY = "short_interest_daily"
@@ -120,61 +126,77 @@ def _uw_headers() -> dict[str, str]:
     }
 
 
-def _nasdaq_headers() -> dict[str, str]:
-    # Nasdaq's public JSON endpoint rejects non-browser UAs (HTTP 000 / blocked).
-    # A standard Mozilla UA with Accept: application/json works reliably.
-    return {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nasdaq.com/",
-    }
-
-
 # ─────────────────────────────────────────────────────────────────────────────
-# FINRA / Nasdaq SI history
+# FINRA SI history — official FINRA Query API, one bulk pull per run
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fetch_finra(ticker: str) -> list[dict[str, Any]]:
-    """Pull bi-monthly FINRA settlements via Nasdaq's free endpoint."""
-    sym = ticker.strip().upper()
-    url = f"{NASDAQ_BASE}/quote/{sym}/short-interest?type=monthly"
+def fetch_finra_bulk(since_iso: str, universe: set[str]
+                     ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    """Pull every consolidated short-interest settlement on/after `since_iso`
+    from FINRA's official Query API in pages of 5,000 and return
+    ({TICKER: [settlement dicts]}, meta).
+
+    Failures are LOUD: any HTTP/parse problem lands in meta["error"] and in
+    the run summary — never a silent empty list (the failure mode that hid
+    the dead Nasdaq scrape for two months).
+    """
+    meta: dict[str, Any] = {"rows_total_market": 0, "pages": 0,
+                            "settlement_dates": [], "error": None}
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
+    offset = 0
     try:
-        r = requests.get(url, headers=_nasdaq_headers(), timeout=20)
-        if r.status_code != 200:
-            return []
-        body = r.json() or {}
-    except Exception:
-        return []
-    rows = ((body.get("data") or {}).get("shortInterestTable") or {}).get("rows") or []
-    out = []
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        # Nasdaq column names: settlementDate, interest, avgDailyShareVolume,
-        # daysToCover (string format with commas)
-        try:
-            settlement = row.get("settlementDate") or row.get("settlement_date")
-            if not settlement:
-                continue
-            try:
-                d = datetime.strptime(settlement, "%m/%d/%Y").date()
-            except ValueError:
-                d = datetime.strptime(settlement[:10], "%Y-%m-%d").date()
-            shares = int(str(row.get("interest") or "0").replace(",", "") or "0")
-            adv = int(str(row.get("avgDailyShareVolume") or "0").replace(",", "") or "0")
-            d2c = float(str(row.get("daysToCover") or "0").replace(",", "") or "0")
-            out.append({
-                "as_of_date": d.isoformat(),
-                "short_interest_shares": shares,
-                "avg_daily_volume": adv,
-                "days_to_cover": d2c,
-                "raw": row,
-            })
-        except Exception:
-            continue
-    return out
+        while True:
+            body = {
+                "limit": 5000,
+                "offset": offset,
+                "compareFilters": [{
+                    "compareType": "GTE",
+                    "fieldName": "settlementDate",
+                    "fieldValue": since_iso,
+                }],
+            }
+            r = requests.post(
+                FINRA_API_URL,
+                headers={"Content-Type": "application/json",
+                         "Accept": "application/json"},
+                json=body, timeout=60,
+            )
+            if r.status_code != 200:
+                meta["error"] = f"HTTP {r.status_code}: {r.text[:200]}"
+                break
+            rows = r.json() or []
+            meta["pages"] += 1
+            meta["rows_total_market"] += len(rows)
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                sym = str(row.get("symbolCode") or "").strip().upper()
+                settlement = str(row.get("settlementDate") or "")[:10]
+                if not sym or not settlement or sym not in universe:
+                    continue
+                # One row per (ticker, settlement): revised rows overwrite, and
+                # in-batch duplicates would make the Postgres upsert error out.
+                seen[(sym, settlement)] = {
+                    "as_of_date": settlement,
+                    "short_interest_shares": int(row.get("currentShortPositionQuantity") or 0),
+                    "avg_daily_volume": int(row.get("averageDailyVolumeQuantity") or 0),
+                    "days_to_cover": float(row.get("daysToCoverQuantity") or 0),
+                    "raw": row,
+                }
+            if len(rows) < 5000:
+                break
+            offset += 5000
+            time.sleep(0.5)
+    except Exception as exc:
+        meta["error"] = f"{type(exc).__name__}: {exc}"
+
+    out: dict[str, list[dict[str, Any]]] = {}
+    dates: set[str] = set()
+    for (sym, settlement), srow in seen.items():
+        out.setdefault(sym, []).append(srow)
+        dates.add(settlement)
+    meta["settlement_dates"] = sorted(dates)
+    return out, meta
 
 
 def upsert_finra(ticker: str, settlements: list[dict[str, Any]]) -> int:
@@ -363,7 +385,8 @@ def upsert_daily(ticker: str,
 def pull_and_upsert(tickers: list[str],
                     today: date | None = None,
                     max_seconds: float = 1800.0,
-                    sleep_per_call: float = 0.35) -> dict[str, Any]:
+                    sleep_per_call: float = 0.35,
+                    finra_since_days: int = 45) -> dict[str, Any]:
     today = today or date.today()
     t0 = time.time()
     finra_rows = 0
@@ -372,19 +395,32 @@ def pull_and_upsert(tickers: list[str],
     tickers_finra = 0
     tickers_uw = 0
 
+    # FINRA — one bulk pull from the official API, then per-ticker upserts
+    # inside the loop (no per-ticker network call against FINRA/Nasdaq).
+    since_iso = (today - timedelta(days=finra_since_days)).isoformat()
+    finra_map, finra_meta = fetch_finra_bulk(
+        since_iso, {t.strip().upper() for t in tickers})
+    if finra_meta.get("error"):
+        print(f"[finra] BULK FETCH FAILED ({finra_meta['error']}) — "
+              f"FINRA arm upserts 0 rows this run; UW arm continues.")
+    else:
+        print(f"[finra] {finra_meta['rows_total_market']} market-wide rows in "
+              f"{finra_meta['pages']} pages; settlements "
+              f"{finra_meta['settlement_dates']}; matched "
+              f"{len(finra_map)} of {len(tickers)} universe tickers")
+
     for sym in tickers:
         if time.time() - t0 > max_seconds:
             break
 
-        # FINRA
+        # FINRA (from the bulk map — local lookup, no network fetch)
         try:
-            sets = fetch_finra(sym)
+            sets = finra_map.get(sym.strip().upper()) or []
             if sets:
                 finra_rows += upsert_finra(sym, sets)
                 tickers_finra += 1
-        except Exception:
-            pass
-        time.sleep(sleep_per_call)
+        except Exception as exc:
+            print(f"[finra] upsert failed for {sym}: {exc}")
 
         # UW continuous — Phase 1 (2026-05-26 Joe-approved): only cost-to-borrow
         # has a live reader. SVR (volume-and-ratio) and FTDs (fails-to-deliver)
@@ -409,6 +445,8 @@ def pull_and_upsert(tickers: list[str],
         "tickers_uw": tickers_uw,
         "finra_rows_upserted": finra_rows,
         "daily_rows_upserted": daily_rows,
+        "finra_settlement_dates": finra_meta.get("settlement_dates"),
+        "finra_error": finra_meta.get("error"),
         "elapsed_sec": round(time.time() - t0, 1),
     }
 
@@ -458,6 +496,8 @@ if __name__ == "__main__":
                 "tickers_finra": _result.get("tickers_finra"),
                 "tickers_uw": _result.get("tickers_uw"),
                 "daily_rows_upserted": _result.get("daily_rows_upserted"),
+                "finra_rows_upserted": _result.get("finra_rows_upserted"),
+                "finra_error": _result.get("finra_error"),
             },
         )
     except Exception as _exc:
