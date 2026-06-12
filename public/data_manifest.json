@@ -124,7 +124,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[hy_ig]",
@@ -154,7 +154,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-eq_cr_corr-daily",
@@ -622,7 +623,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 73,
       "output_destination": "public/indicator_history.json[loan_syn]",
@@ -642,7 +643,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-bank_credit-weekly",
@@ -780,7 +782,9 @@
       "dependencies": [],
       "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace.",
       "as_of_cutoff_et": "16:15",
-      "as_of_cutoff_note": "US rates close of business"
+      "as_of_cutoff_note": "US rates close of business",
+      "lag_sessions": 4,
+      "sla_basis": "2026-06-12 session doctrine: NY Fed ACM series runs ~4 business days behind by publication \u2014 lag_sessions=4; graded at that frontier, not a wall-clock budget."
     },
     {
       "id": "indicator-cape-monthly",
@@ -2196,7 +2200,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
@@ -2214,7 +2218,8 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-hy_ig_ratio-daily",
@@ -2227,7 +2232,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
@@ -2248,7 +2253,8 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-fra_ois-daily",
@@ -2261,7 +2267,7 @@
       "license_tier": "TBD",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
@@ -2279,7 +2285,8 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-real_fedfunds-monthly",
@@ -2322,7 +2329,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "07:00",
+      "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
@@ -2340,7 +2347,8 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "fetch_grace_hours": 3
     },
     {
       "id": "indicator-ic4wsa-weekly",
@@ -2828,7 +2836,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
+      "scheduled_fetch_time_et": "03:30",
       "refresh_trigger": "BREADTH-DAILY",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[spx_above_50ema]",
@@ -2849,7 +2857,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "fetch_grace_hours": 6
     },
     {
       "id": "indicator-spx_above_200ema-daily",
@@ -2862,7 +2871,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
+      "scheduled_fetch_time_et": "03:30",
       "refresh_trigger": "BREADTH-DAILY",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[spx_above_200ema]",
@@ -2883,7 +2892,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "fetch_grace_hours": 6
     },
     {
       "id": "indicator-cmdty_gold-daily",
@@ -3663,7 +3673,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
+      "scheduled_fetch_time_et": "03:30",
       "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ndx_above_50ema]",
@@ -3684,7 +3694,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "fetch_grace_hours": 6
     },
     {
       "id": "indicator-ndx_above_200ema-daily",
@@ -3697,7 +3708,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
-      "scheduled_fetch_time_et": "11:00",
+      "scheduled_fetch_time_et": "03:30",
       "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ndx_above_200ema]",
@@ -3718,7 +3729,8 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "fetch_grace_hours": 6
     },
     {
       "id": "cycle-mechanism-board-daily",
