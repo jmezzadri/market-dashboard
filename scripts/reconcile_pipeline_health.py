@@ -37,7 +37,7 @@ FILE_FEEDS = {
     "v10_allocation":   ("v10_allocation.json",    "top",        200, False),
     "scenario_stress":  ("scenario_stress.json",   "top",        200, False),
     "scenarios":        ("scenario_stress.json",   "top",        200, False),
-    "cftc-cot":         ("cot_positioning.json",   "top",        220, False),  # weekly COT
+    "cftc-cot":         ("cot_positioning.json",   "top",        432, False),  # weekly COT — full NY Fed dealer chain (manifest sla_basis)
     "indicator_history":("indicator_history.json", "max_series", 49,  True),
 }
 # Table-backed feeds: ph id -> (table, [candidate ts columns], sla_hours, daily?)
