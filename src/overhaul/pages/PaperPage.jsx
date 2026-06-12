@@ -321,18 +321,16 @@ export default function PaperPage() {
         <div>
           <div className="mt-eyebrow">Paper portfolio · MacroTilt</div>
           <h1 className="mt-h1">
-            A <i>$1M paper book</i> on Alpaca,
+            An <i>automated $1M paper portfolio</i>,
             <br />
-            split across <i>Asset Tilt</i> and <i>Equity Scanner</i> sleeves.
+            rebalanced daily on the open.
           </h1>
           <p className="mt-deck">
-            Sleeve A holds the <b>Asset Tilt engine's 24 industry-group ETFs</b>{' '}
-            at the recommended weights — <b className="num">$500K</b> capital,
-            unlevered. Sleeve B holds the <b>Equity Scanner long-only</b> book,
-            buy-when-score ≥ 5, sized into <b className="num">$50K / $40K / $30K</b>{' '}
-            tiers, with up to <b>2× leverage</b> on overflow buy signals. Orders go to{' '}
-            Alpaca as market-on-open the next trading day. Idle cash sits as literal
-            cash — no bond proxy.
+            <b>Sleeve A</b> — <b className="num">$500K</b> starting, follows{' '}
+            <b>Asset Tilt</b>, no leverage.
+            <br />
+            <b>Sleeve B</b> — <b className="num">$500K</b> starting, follows{' '}
+            <b>Trading Scanner</b>, max <b>2× leverage</b>.
           </p>
         </div>
 
