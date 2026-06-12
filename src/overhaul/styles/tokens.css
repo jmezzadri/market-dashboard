@@ -39,6 +39,7 @@
   /* — Semantic direction colors (never decorative) — */
   --mt-up: #1f9d60;
   --mt-down: #c1394f;
+  --mt-amber: #b3781f;
   --mt-warn: #c08428;
 
   /* — Type — */
@@ -84,6 +85,7 @@
   --mt-accent-glow: rgba(94, 162, 255, 0.22);
   --mt-up: #44c98d;
   --mt-down: #ef5d72;
+  --mt-amber: #e3a84a;
   --mt-warn: #d9a64a;
   color-scheme: dark;
 }
@@ -106,6 +108,7 @@
   --mt-accent-glow: rgba(28, 108, 255, 0.32);
   --mt-up: #00cc4b;
   --mt-down: #ff4433;
+  --mt-amber: #ffb340;
   --mt-warn: #fece4c;
   color-scheme: dark;
 }
