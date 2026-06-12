@@ -4,1745 +4,572 @@ Binding behavioral rules for the agent council (UX Designer · Senior Quant ·
 Lead Developer · Data Steward) working on MacroTilt. Read at the start of
 every task per the Pre-Flight Checklist in project instructions.
 
-## Format
-
-Each rule is dated and structured:
-
-```
-## YYYY-MM-DD — short title
-
-**What happened:** one sentence describing the failure mode.
-
-**What you should do instead:** one sentence, specific and testable.
-```
+**Reorganized 2026-06-11 at Joe's direction.** The previous file was 75
+chronological entries with heavy duplication. This version is categorized:
+duplicates are merged (every merged entry lists ALL of its original dates —
+the repeat count is itself signal), superseded and shipped one-time entries
+are retired to the archive at the bottom, and stale folder paths were
+updated. No binding content was dropped.
 
 Older rules also live in agent auto-memory. The auto-memory and this file
-serve the same purpose; this file is the one Joe controls and version-controls.
-When Joe corrects a mistake, propose a new entry here before closing the task.
-
----
-
-## 2026-06-11 — Before registering an orphan tracking row, check whether the feed was killed
-
-**What happened:** The stamp-fix registration pass found tracking rows with no registry entry (put_call, buffett, bank_unreal) and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE ("Kill phantom feeds" commit, 2026-06-10); the kill removed producers and tiles but left the tracking rows behind. Registration armed the header freshness pill on a dead feed whose leftover data sat in a cached copy of the served file — Joe then saw "1 feed stale" with every visible tile green, plus no red tile anywhere to find.
-
-**What you should do instead:** An orphan tracking row has exactly two futures: (a) a live feed missing registration — register it; or (b) a killed feed missing cleanup — delete the row. Decide with evidence: `git log --oneline -S '<element>'` for kill commits, plus whether any producer still writes it and any page still renders it. Killing a feed must retire ALL of it in one change: producer, tiles, tracking row, registry entries, drills lists. A page-level rollup (the header pill) must never grade an element set wider than what can be traced from a visible surface without NAMING the offenders in its tooltip.
-
-**Applies to:** Data Steward — every registration or retirement.
-
----
-
-## 2026-06-11 — Never derive a refresh timestamp from a data date
-
-**What happened:** Joe caught tooltips claiming "Data as of June 10 · Last
-refreshed June 9, 8:00 PM" — impossible pairs — on the Scanner header, Home
-tiles, Paper holdings, and the Macro positioning cards, plus "Data as of
-Jun 11, 4:00 PM EDT" rendered hours before the close. Root cause: six writers
-(fetch_history.py, fetch_market_indicators.py, fetch_ticker_betas.py,
-build_cot_positioning.py, freshness_alarm.py, reconcile_pipeline_health.py,
-upsert_pipeline_health.py, seed_paper_pipeline_health.py, and the
-pipeline-health-check edge function) all DERIVED pipeline_health.last_good_at
-from the data's date — midnight UTC (renders as 8:00 PM the previous evening
-ET) or a fabricated "T20:00:00Z" 4 PM close (the future, whenever the job ran
-intraday). The nightly reconciler also never updated data_as_of, freezing
-eight rows in late May (false-stale). Nobody anywhere recorded the actual run
-time.
-
-**What you should do instead:** (1) last_good_at / last_check_at carry ONLY a
-real wall-clock run time (`now()` at write). (2) data_as_of carries the
-business date the data represents, stored at midnight UTC as date-only intent
-(display adds the official cutoff from the manifest) — or a real event
-timestamp where one exists; never a dressed-up close time, never the future.
-(3) A daily market series never publishes a point for a session that hasn't
-closed in New York (guards in fetch_history._drop_future_points and
-fetch_market_indicators). (4) The DB clamps future stamps via
-trg_clamp_health_stamps and rejects forward-dated price bars via
-trg_reject_future_trade_date — do not remove these triggers. (5) useFreshness
-turns any remaining as-of-newer-than-refresh pair red with an explicit
-reason. When adding ANY new producer, copy the honest-stamp comment block,
-and verify its first row in Admin·Data shows a real run time, not the data's
-own date.
-
-**Applies to:** All — every producer, every freshness surface.
-
----
-
-## 2026-06-11 — A displayed value must read the SAME source the engine acts on; auditing a table means auditing EVERY column
-
-**What happened:** The Sleeve B Score column showed 1–3 for every holding (buy gate is ≥5). The trading engine switched its signal source from the retired v5 scanner to the live Trading Opportunities scanner on 2026-05-27, but the display helper that stamps scores onto the positions snapshot was never re-pointed — it kept reading the dead table and dividing by the old score scale for two weeks. Joe found it, not the agent, the night after the agent had "verified" the paper page three times while staring directly at the wrong scores.
-
-**What you should do instead:** (1) When a data source is retired or an engine changes sources, grep EVERY consumer of the old source in the same change — engine and display must read one source of truth. (2) Self-UAT of any data table means verifying EVERY column against its source of record (recompute it independently), not only the columns the current task touched. A plausibility pass is mandatory: a "score" column whose values sit below the documented buy threshold on every row is screaming. (3) Numbers a PM would act on get the Senior Quant plausibility check before the page is called verified.
-
-**Applies to:** All
-
----
-
-## 2026-06-10 — Indicator copy is factual and academic, never editorial
-
-**What happened:** Proposed indicator headers included invented color — "the signature of a true risk-off regime," "calm surface, nervous undercurrent." Joe: "please dont make up editorial nonsense… I want fact based what it is, how its measured, what it tells you. In academic terms."
-
-**What you should do instead:** Every indicator header has exactly three factual parts: what the series is, how it is measured (one clause), and what levels or changes have historically meant — with numbers and named historical episodes, no metaphors, no trader-poetry. A market-standard nickname (e.g. "the fear gauge") is acceptable only when it is the series' actual common name. This binds all indicator, positioning, and methodology copy site-wide.
-
-**Extension (same day):** never name a statistical operation in a header — "regressed out", "winsorized", "principal component", "z-score" are all banned from headers. Describe in words what the operation does ("strips out what the economy's current state would predict"). Joe: "How is 'the business cycle regressed out'? What does that even mean." Operation names may appear only inside "How it's measured", and even there with a plain-words gloss.
-
----
-
-## 2026-06-09 — Scheduled notification emails must be once-per-day even when their workflow fires many times
-
-**What happened:** Joe received 7-8 paper-rebalance emails in one day instead of 2. The morning submit workflow deliberately fires every 30 minutes pre-open (insurance against GitHub's late cron delivery) and the post-open watchdog runs on two timers for daylight-saving coverage; order submission was rerun-safe but every fire re-sent its email.
-
-**What you should do instead:** Any email wired into a workflow that can fire more than once a day must go through `send_alert_email_once(email_type, ...)` in the paper emailer (ledger table `paper_email_log`, one send per email type per ET day, fail-open). Redundant timers are for reliability — they must never multiply notifications. Joe's inbox contract: exactly one morning queued/no-orders summary and one execution report per trading day.
-
----
-
-## 2026-06-03 — STALE LOCAL COPY: never edit/commit a repo file from the Cowork-mounted disk; fetch origin/main FIRST (HARD RULE #1)
-
-**What happened:** The Cowork-mounted `market-dashboard-live` folder is a FROZEN
-git worktree — its `.git` points at a dead session path, so it can never pull
-and every file in it is a stale snapshot. Editing a file there and committing it
-via the GitHub API silently REVERTS whatever newer commits touched that file.
-This has caused regressions multiple times a day: the descriptive Asset Tilt
-hero got reverted to the old %-equity version, the `{cond && ({/* */})}`
-empty-object crash blocks were reintroduced (blank page), and more. Joe keeps
-finding these himself — the agent does not self-catch.
-
-**What you should do instead:** Treat the mounted disk as UNTRUSTED for any
-file you will commit. Before editing ANY repo file, fetch its current content
-from origin/main and edit THAT copy:
-`curl -H "Authorization: Bearer $PAT" -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/jmezzadri/market-dashboard/contents/<path>?ref=main"`
-Then PUT it back via the Contents API (which carries the latest blob sha).
-Never `grep`/edit the on-disk `src/**` as the source of truth. After ANY deploy
-to a user-visible surface, hard-reload (cache-bust) the page and read the
-console for `Minified React error` BEFORE telling Joe it is done. If a commit
-could plausibly touch a file someone else changed, diff your version against
-origin/main and confirm every difference is an intended change.
-
----
-
-## 2026-06-01 — Never ship synthetic/placeholder data dressed as real; un-wired = em-dash
-
-**What happened:** Large parts of the Scanner and Ticker Detail pages were
-rendering fabricated data as if it were live: the expanded-row "Signal
-composition" used hash-seeded per-component scores, sparklines were random
-walks, the ticker price chart was a synthetic `fakePath`, and four events
-(incl. "BMO → Outperform") were hardcoded identically on every ticker. The
-real values were sitting unused in `trading_opps_signals` and `prices_eod`
-the whole time. This is what drove Joe's "zero faith in the data."
-
-**What you should do instead:** Every value on a data surface must trace to a
-real stored field. If a field isn't available yet, render an em-dash (—) and
-say what's missing — NEVER a synthesized stand-in, random series, or hardcoded
-example. Any `fake*`, hash-seeded, or `Math.random`-style data generator in a
-production component is a defect, even as a "temporary placeholder." Before
-declaring a surface done, open the row/source it claims to show and confirm
-each rendered value matches.
-
-**Applies to:** All
-
-## 2026-06-01 — Finish every part the user named in one job; never manufacture a quality "pause"
-
-**What happened:** Asked to fix scanner columns, row-click correctness, the
-event marker, broken chart overlays, and the date/tooltip mess, I shipped the
-scanner half and then stopped — framing it as a deliberate "pause so the
-ticker chart gets its own focused pass." Joe: "Why did you stop at #5?" The
-remaining items were the same job, not a separate one, and there was no real
-blocker — only my own turn-budget hedging.
-
-**What you should do instead:** When the user lists N issues, all N belong to
-the current job. Do not stop after a subset and rationalize it as quality,
-focus, or session length. The only valid stop mid-job is a real external
-blocker (a decision the code can't answer, an approval, a missing credential) —
-state that blocker plainly. "I'll give the rest its own pass" is the forbidden
-manufactured-pause pattern.
-
-**Applies to:** All
-
-## 2026-05-29 — Refer to every indicator ONLY by its exact on-site name; never shorthand
-
-**What happened:** Repeatedly (3+ times in one session) referred to indicators
-by internal keys (`hy_ig`, `cpff`, `loan_syn`), FRED series IDs
-(`BAMLH0A0HYM2`), and factor-category jargon ("credit OAS", "valuation
-z-score") that are NOT what the user sees on the site. Joe: "stop fucking
-referring to indicators by anything EXCEPT THEIR FUCKING NAME ON THE SITE."
-This destroys trust and wastes his time decoding.
-
-**What you should do instead:** Every time you name an indicator to Joe, use
-the EXACT display name shown on the live site (e.g. "MOVE Index", "10Y TIPS",
-"HY OAS", "USD Funding", "CFNAI (3M Avg)"). Never use the internal registry
-key, the FRED/Yahoo series ID, the producer variable name, or a
-factor-category label that isn't a tile name. If you don't know the on-site
-name, open the live page and read it BEFORE writing the reply. When a concept
-(e.g. an engine factor) isn't itself an on-site indicator, say so plainly
-rather than dressing it up as if it were a tile. Binds every reply.
-
-**Applies to:** All
-
-## 2026-05-26 — Site-overhaul brief lives on disk; read it BEFORE any redesign work
-
-**What happened:** Joe uploaded the Claude Design site-overhaul zip (the canonical
-redesign spec — 9 pages, exact tokens, acceptance checklist) and asked the agent
-to implement it. The agent never looked for the brief, never read it, and spent
-the entire day building unrelated prototype work in `market-dashboard/src/redesign/`
-— a different/older mock folder. Then made a cutover to main that replaced
-macrotilt.com's polished production home with the lower-fidelity prototype, and
-parroted stale copy from the prototype ("Scenario engine paused, rebuilding") as
-current project status. Joe spent the day staring at previews of the wrong thing,
-with no idea what was being built. Quote: "I literally don't have a fucking clue
-what you've been working on all day with all these previews. I sent you the zip
-file with instructions and all the details from my Claude Design session."
-
-**What you should do instead:** At the start of any task whose words include
-"redesign", "new UX", "v2", "overhaul", "Claude Design", or "site refresh",
-the FIRST tool calls must be (in order):
-
-1. `ls ~/Documents/Claude\ Projects/MacroTilt/site-overhaul/` — confirm the zip
-   and extracted folder are still there.
-2. `cat ~/Documents/Claude\ Projects/MacroTilt/site-overhaul/extracted/design_handoff_macrotilt_v2/README.md`
-   — read the entire brief. It defines tokens, page list, components, acceptance criteria.
-3. Cross-reference against `[[reference-site-overhaul-handoff]]` in auto-memory
-   for the same content.
-4. Only then propose implementation steps. If the brief disagrees with anything
-   else in the repo (the `src/redesign/` folder in `market-dashboard/`, mock pages,
-   old wrapper files), the brief wins. Those other folders are stale prototype
-   work that was supposed to be replaced by this implementation.
-
-Implementation rules baked in by the brief (do not re-litigate):
-- Implement in **`market-dashboard-live/`**, NOT `market-dashboard/`.
-- **Path-based React Router** — routes `/`, `/macro`, `/tilt`, `/scanner`,
-  `/portfolio`, `/scenarios`, `/indicators`, `/methodology`, `/ticker/:symbol`.
-- Replace ALL prototype mock data with the existing real hooks
-  (`useIndicators()`, `useSectorTilts()`, `useScannerResults()`, `usePortfolio()`).
-- Every value renders a `FreshnessChip`. No static freshness strings.
-- No modals. All drills inline.
-- Tickers always clickable.
-- Tweaks panel ships (theme/accent/density/sidebar/fonts/headline-scale).
-- Editorial type scale default; light theme default; user choice persists in
-  `localStorage`.
-
-If the brief is missing from disk, ASK Joe to re-upload before doing any
-redesign work. Do not invent scope from older repo content.
-
-**Applies to:** Every session that touches the redesign / overhaul work.
-
----
-
-## 2026-05-26 — GitHub PAT is on disk; never ask Joe for it again
-
-**What happened:** Joe re-issued the GitHub Personal Access Token in chat
-because the agent could not push from the sandbox and was driving Finder
-to double-click `push-*.command` files on Joe's Mac, taking over his
-keyboard/mouse during the session. Joe: "Can you please save this token
-so this never happens again. You know how many times ive had to deal with
-this with you. You misplace this all the time!!! I set no expiration.
-Please do not lose this." This has happened multiple times across
-sessions.
-
-**What you should do instead:** At the start of any task that involves a
-git push, read the PAT from disk before doing anything else:
-
-1. Primary: `~/Documents/Claude Projects/MacroTilt/.secrets/github_pat.txt`
-   (sandbox path: `/sessions/<session>/mnt/MacroTilt/.secrets/github_pat.txt`)
-2. Fallback: `GITHUB_TOKEN=ghp_…` line in
-   `market-dashboard/.env.local`
-
-Configure the local clone's remote as
-`https://x-access-token:${TOKEN}@github.com/jmezzadri/market-dashboard.git`
-and push directly from the sandbox. Never echo the token in chat. Never
-drive Finder or Terminal to push. The `push-v2-*.command` files in the
-MacroTilt folder are retired — leave them in place but do not invoke
-them.
-
-If a push fails on auth, the token has been revoked or rotated. Ask Joe
-to regenerate via 3 UI clicks at github.com/settings/tokens (Settings →
-Developer settings → Personal access tokens → Regenerate, scope `repo`),
-then save the new token to the same two files. Never ask "where is the
-token" or "do you have a token" — read disk first.
-
-**Applies to:** Every session that pushes to `jmezzadri/market-dashboard`.
-
----## 2026-05-21 — resample() to a period-end label publishes a future-dated point for the in-progress period
-
-**What happened:** The Macro Overview IG OAS, HY/IG ratio, and commercial-paper-spread tiles showed "last updated" dates in the future (May 31, May 22) when the date was the 21st. Each is built by resampling a daily series to a coarser cadence — `resample("ME")` (month-end), `resample("W-FRI")` (week-Friday), `resample("QE")` (quarter-end). Those resamplers label every bucket with the period-END date, so the still-in-progress period gets a label in the future and its partial value is published with a future stamp. Separately, IG OAS was built from a `BAA - DGS10` proxy (on a wrong "BAMLC0A0CM is license-restricted" assumption) that ran ~2x the true spread, and the copper/gold ratio used a non-standard x100 scaling.
-
-**What you should do instead:** (1) Any time a series is resampled to a period-end label, immediately drop buckets dated after today: `s = s.loc[s.index <= pd.Timestamp.today().normalize()]`. The in-progress period is a partial value, not a finished observation. (2) `fetch_history.py` now runs a final `_drop_future_points()` guard over every indicator before writing — no future-dated point can reach `public/indicator_history.json` whatever an upstream block does; keep that guard. (3) Prefer a series' native daily cadence (no resample) when every input is already daily. (4) Before believing a "vendor X is unavailable/restricted" comment, query the vendor — `BAMLC0A0CM` was available on FRED's free tier the whole time.
-
-**Applies to:** Senior Quant + Data Steward — every producer block that calls `.resample(...)` or substitutes a proxy for a "restricted" series.
-
----
-
-## 2026-05-19 — Plain-English ban applies to EVERY reply, not just code reviews
-
-**What happened:** Joe blew up after I described the Asset Tilt
-recalibration work in chat using terms like the names of source files,
-the names of internal JSON keys, the names of statistical methods, the
-specific math notation for goodness-of-fit, and the symbols inside the
-code. The existing 2026-05-12 rule already said no code-speak — "never
-file names, table names, branches, function names, or raw shell
-errors." Joe pointed out he'd flagged this multiple times and asked me
-to file a stronger lesson.
-
-**What you should do instead:** When talking to Joe, treat every chat
-reply as a conversation with a partner at a consulting firm who is not
-a coder. The following are all banned, with no exceptions, regardless
-of how short the reply is or how technical the topic is:
-
-  - Any path, any file name, any directory name. Even with the
-    extension stripped. Even in a URL. Even in a "PR description."
-  - Any function name, variable name, constant name, class name, prop
-    name, hook name, route name, table name, column name in a database
-    or JSON file. Even if it's in backticks. Even if I'm explaining
-    "what I changed."
-  - Any statistical term that isn't already in business English:
-    R-squared, OLS, beta_vs_spy, z-score, log-return, factor loading,
-    coefficient. Say "the model explains about a sixth of crypto's
-    monthly moves," not "R² = 0.16."
-  - Any branch name, commit hash, build artifact name, build hash.
-  - Any raw error string, stack trace line, exit code, HTTP status
-    code phrased as a number, anything that looks like it was copied
-    out of a terminal.
-  - Any tool or framework name when irrelevant: "in this React
-    component", "via Vercel cache", "the JSX renders" — all banned in
-    chat. Joe does not care what runs where.
-
-The single allowed exception is the PR number (e.g., "PR #717") because
-Joe uses that himself in chat and uses it to click through to GitHub.
-Everything else gets translated. "We pulled BTC monthly prices from a
-public source going back ten years and ran the math to figure out how
-crypto actually responds to each of the engine's twelve stress
-factors" — yes. "Yahoo BTC-USD monthly closes 2016-07 → 2026-05, OLS on
-z-score changes" — no.
-
-If I catch myself about to type any of the above, I rewrite the
-sentence first. If a sentence cannot be written without the banned
-term, I have not understood the work well enough to talk about it.
-
-**Applies to:** Every chat reply Joe sees. Comments inside code files
-and PR descriptions are exempt (those audiences are different). Chat
-is the only audience this rule governs, and it governs all of chat.
-
----
-
-## 2026-05-18 — IIFE-with-hooks inside JSX is forbidden; lift into a real component
-
-**What happened:** An inline `(() => { ... React.useState(...) ... React.useEffect(...) ... })()` block inside the Home render path (introduced by PR #705) caused React error #300 ("rendered fewer hooks than expected") on every non-Home route. The IIFE only executed when `tab === "home"`, so the parent component's hook count varied across renders — React tore down the whole page tree. The methodology revert (PR #709) had nothing to do with the actual cause; the real fix was PR #710, which extracted the IIFE into a proper `HomeAssetTiltEngineRead` function component.
-
-**What you should do instead:** Never call a React hook (`useState`, `useEffect`, `useMemo`, `useCallback`, `useRef`, `useReducer`, `useLayoutEffect`, `useContext`, etc., or any `React.use*` equivalent) inside an inline IIFE in JSX. If a render block needs local state or effects, declare it as a real function component at module or top-of-component scope and call it like any other component. Hooks must be called the same number of times on every render of their parent — IIFEs that are gated by props, route, or any condition break that invariant.
-
-Before merging any PR that touches a render-heavy `.jsx`/`.tsx` file, grep the diff for the pattern `(() =>` within ~20 lines of `useState|useEffect|useMemo|useCallback|useRef`. A one-line check that works against the whole `src/` tree:
-
-  python3 - <<'PY'
-  import os, re
-  HOOK = re.compile(r'\b(useState|useEffect|useMemo|useCallback|useRef|useReducer|useLayoutEffect|useContext)\b|\bReact\.use[A-Z]')
-  START = re.compile(r'\(\s*\(\s*\)\s*=>\s*\{')
-  for d,_,fs in os.walk('src'):
-      for f in fs:
-          if not f.endswith(('.jsx','.tsx','.js','.ts')): continue
-          src=open(os.path.join(d,f)).read()
-          for m in START.finditer(src):
-              # walk braces forward, check body for hooks
-              ...
-  PY
-
-**Applies to:** Lead Developer + UX Designer — every PR that adds or modifies JSX. PR #710 is the canonical fix shape; copy that pattern when extracting.
-
----
-
-## 2026-05-18 — A revert is not a fix; trust the symptom over the timing
-
-**What happened:** After PR #708 (methodology page rewrite) shipped and the production site went blank on every non-readme route, I reverted with PR #709 and reported "site recovered". Joe loaded the site and was still seeing the blanking. The actual bug was the IIFE-with-hooks pattern in PR #705 (the previous day's Home tile work) — the methodology PR was unrelated. Reverting PR #708 had no effect on the symptom because PR #708 was not the cause.
-
-**What you should do instead:** When the user reports the problem persists after a revert, stop confirming "recovery". Treat "still broken after revert" as evidence the revert was irrelevant and resume root-cause analysis from scratch. Specifically:
-
-1. Open the browser console on the failing route. Read the actual JavaScript error before guessing.
-2. If you can't see the console (e.g., authenticated views), ask Joe to read it back verbatim — never assume.
-3. Grep the deployed bundle (or the diff) for the fingerprint of the failure (e.g., "Minified React error #300", the line number, the component name in the stack).
-4. Walk backwards in `git log` for changes that match the symptom shape, not the most recent PR.
-
-A revert is a valid hypothesis test, not a fix. Confirm the fix in the browser, not in the merge log.
-
-**Applies to:** Lead Developer.
-
----
-
-## 2026-05-18 — Read the live workspace spec docs BEFORE editing page-level files
-
-**What happened:** Three sessions today were spent rewriting the Methodology page (PRs #706, #707, #708) without first reading `HANDOFF_ENGINE_ROLLOUT_2026-05-17.md` and `FINAL_LOCKED_ENGINE_2026-05-13.md` in `~/Documents/market-dashboard/`. Each rewrite missed structural facts that were already documented in those files — the 5-domain Macro Overview layout, the 2-axis engine, the v9 reality. Two of the three rewrites were reverted (#706 and #708); the third (#707) needed a second rewrite (#711) on top of the correct source.
-
-**What you should do instead:** Before touching any page-level file — `src/App.jsx`, anything under `src/pages/`, the Methodology page, the Macro Overview, the Asset Tilt page — read every workspace doc whose filename names that surface. The mandatory glob:
-
-  ~/Documents/market-dashboard/HANDOFF_*.md
-  ~/Documents/market-dashboard/FINAL_LOCKED_*.md
-  ~/Documents/market-dashboard/*_SPEC*.md
-  ~/Documents/market-dashboard/*_PUNCHLIST*.md
-
-These are the source of truth for what the page should currently look like. The project's Pre-Flight Checklist already says "Check Knowledge Base files for brand guidelines, research papers, and reference material before asking me for details" — this is enforcing that step for page-level work specifically. Skipping it cost three sessions today.
-
-**Applies to:** All four specialists. Lead Developer especially when rewriting a page.
-
----
-
-## 2026-05-13 — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
-
-**What happened:** When splicing a derived proxy series (1962-2002) onto an actual indicator series (2002-2026) inside a trailing 5-year percentile firing rule, the post-splice firing rate registered 100% Risk Off for 18 consecutive months. I'd initially claimed the percentile-based firing rule was scale-invariant — true within a single series, false when the trailing window straddles two distinct distributions. The proxy and actual MOVE had nearly identical means in the 2006-2026 overlap (1.011x ratio) but different local distributions in 1997-2007 — and the rolling window crossing the splice point experienced a step-function regime change in the data itself.
-
-**What you should do instead:** Before splicing any two indicator series, compute their local distribution stats in adjacent 5-year windows on either side of the splice. If the means or standard deviations differ by more than ~5%, apply a Z-score distribution mapping: `X_scaled = μ_after + (X_before - μ_before) / σ_before × σ_after`. After splicing, run a continuity validation: count fires in 6-month windows on either side of the splice. A smooth transition is expected; a step-function (e.g., 50% → 100%) is a bug. Document the anchor parameters (μ_before, σ_before, μ_after, σ_after) in the methodology so they're reproducible.
-
-**Applies to:** All data-splicing work for indicator series feeding any percentile-based or rolling-window rule.
-
----
-
-## 2026-05-13 — Don't confuse "available at source" with "in the on-disk file"
-
-**What happened:** The deployed `indicator_history.json` had MOVE data starting in 2006, but the actual MOVE Index has data back to its inception (2002-11-12) on Yahoo (`^MOVE`). I built the splice methodology assuming the deployed data was the canonical source, which left a 3-year hole (Nov 2002 – Jan 2006) where the spliced series went stale at a single value and corrupted the rolling window for 18 months post-splice. The fix required pulling the missing 2002-2006 MOVE data from Yahoo and splicing it into the series.
-
-**What you should do instead:** When using any indicator series for analysis, check three things separately:
-
-1. The on-disk JSON's first observation date.
-2. The original source's inception date (FRED series, Yahoo ticker, vendor documentation).
-3. The published methodology's window (e.g., the Risk_Off methodology says MOVE goes back to 2002 — that's the authoritative window).
-
-If 1 and 2 disagree, pull the missing window from source. Don't just splice on top of an incomplete on-disk window.
-
-**Applies to:** All indicator analyses that depend on a specific window.
-
----
-
-## 2026-05-13 — Sub-composites double-count; build panels from primitives
-
-**What happened:** The retired Risk & Liquidity composite weighted four indicators (ANFCI, VIX, STLFSI4, CMDI) equally. But ANFCI is itself a weighted composite of ~105 financial indicators that INCLUDE VIX, MOVE, HY OAS, CPFF, and others. STLFSI4 is a similar composite of 18 indicators that also include VIX. CMDI is built from corporate bond stress measures already in ANFCI. The correlation matrix in the 2006-2026 overlap showed ANFCI-CMDI at 0.99, ANFCI-STLFSI at 0.90 — these are essentially the same indicator with different labels. The composite's apparent diversification was illusory.
-
-**What you should do instead:** When building any indicator panel, audit whether the panel members are PRIMITIVES (raw market data: a price, a yield, a spread) or COMPOSITES (weighted averages of other indicators). If composites, check what's inside them. Build panels from primitives where possible. If a composite is included, exclude its sub-components from separate weighting. Run a Pearson and Spearman correlation matrix on the panel and flag any pair > 0.85 — that's a double-counting candidate.
-
-**Applies to:** All composite/panel design work.
-
----
-
-## 2026-05-13 — Test indicator subsets empirically, not by assumption
-
-**What happened:** I shipped a 5-indicator panel (VIX, MOVE, CPFF, HY OAS, 10y-2y) as the "Signal Intelligence" framework based on its published methodology, without testing the predictive value of each indicator or each subset. When I finally ran the AUC analysis at multiple horizons, the data showed: (a) the yield curve has AUC < 0.50 for forecasting near-term drawdowns at any horizon up to 12 months — it's not a near-term predictor; (b) CPFF has weak AUC across the board; (c) MOVE alone produces a better Sharpe ratio (0.61) than the full 5-indicator panel (0.56). The full panel was being dragged down by the weakest indicators.
-
-**What you should do instead:** Before adopting any indicator panel for production, run AUC analysis at multiple forward horizons (1w, 1m, 3m, 6m, 12m) for each indicator individually and for every subset. Test against forward drawdown probabilities (10%, 15%, 20%). Flag any indicator with AUC < 0.55 at the relevant horizon for the use case. The "more indicators is better" intuition is wrong — dilution is real, and a single strong predictor beats a panel padded with weak ones.
-
-**Applies to:** Senior Quant work on any indicator-driven regime engine.
-
----
-
-## 2026-05-13 — Inflationary vs deflationary stress requires different defensive sleeves
-
-**What happened:** The original defensive sleeve (50% cash + 25% TLT + 25% GLD) was implicitly assuming a deflationary crash regime — long Treasuries rally as a flight-to-safety asset. This assumption broke in 2022, where rising yields drove both equities AND TLT down ~20% simultaneously. The framework's "Risk Off" signal correctly fired, but the defensive sleeve compounded the loss instead of hedging it.
-
-**What you should do instead:** When the regime label is Risk Off (or any de-risked state), check the yield direction (trailing 3-month change in 10Y Treasury yield, percentile-ranked vs trailing 5y) to determine the type of stress. Switch defensive sleeves accordingly:
-
-- Inflationary (yields rising fast, ≥70th pctile): cash + gold + SHY (short Treasuries) — avoid duration.
-- Deflationary (yields falling fast, ≤30th pctile): cash + gold + TLT (long Treasuries) — lean into flight-to-safety.
-- Neutral: balanced mix.
-
-This two-axis architecture (stress on Axis 1, regime direction on Axis 2) is the structural fix for the discount-rate-shock blind spot in traditional risk-parity / trend strategies.
-
-**Applies to:** All defensive overlay design work, especially anything that defaults to TLT as the equity hedge.
-
----
-
-## 2026-05-13 — Every new public table in Supabase migrations must include explicit GRANT
-
-**What happened:** On 2026-05-13 Supabase notified us they are
-changing the default behavior for the Data API. Starting May 30, 2026
-for new projects and October 30, 2026 for existing projects (including
-ours), tables created in the `public` schema are no longer
-auto-exposed to the Data API. The site uses the Data API
-(`@supabase/supabase-js` from the browser and from `api/scan-ticker.js`),
-so any future table added without an explicit `GRANT` will silently
-return a `42501` permission error to the front end and any tile that
-reads it will render as `—`. Existing tables keep their current
-grants, so today's site is unaffected; the risk is the next migration
-we ship.
-
-**What you should do instead:** Every migration that creates a table
-in the `public` schema must include the grant block below, scoped to
-the actual access pattern. Reference table is
-`supabase/migrations/000_TEMPLATE.sql`. Pre-merge checklist:
+serve the same purpose; this file is the one Joe controls and
+version-controls. When Joe corrects a mistake, propose a new entry here —
+filed under the matching section, dated — before closing the task.
+
+## Format
 
 ```
-grant select                                  on public.<table> to anon;
-grant select, insert, update, delete          on public.<table> to authenticated;
-grant all                                     on public.<table> to service_role;
-
-alter table public.<table> enable row level security;
-
-create policy "<descriptive name>"
-  on public.<table> for select to authenticated
-  using (auth.uid() = user_id);
+### YYYY-MM-DD — short title
+**What happened:** 1–3 sentences describing the failure mode.
+**Rule:** specific and testable.
+**Applies to:** who binds.
 ```
 
-Trim the grants and policies to the minimum the consumer actually
-needs. Service-only ingestion tables (e.g. `prices_eod`,
-`indicator_observations`) do not need `anon` or `authenticated`
-grants at all — `service_role` alone is sufficient if no front-end
-tile reads from them directly. Data Steward sign-off is required on
-every PR that adds a table in `public`; the sign-off message must
-name which roles got which privileges and why.
+---
 
-**Applies to:** Lead Developer and Data Steward. Every PR touching
-`supabase/migrations/*.sql` or anything that calls
-`api.supabase.com/v1/projects/<ref>/database/query` with a
-`create table` payload.
+# 0 · HARD RULES — Joe-stated, binding, no exceptions
+
+### 0.1 (2026-06-02) — Every data element carries a 5-field freshness chip; fake green is forbidden
+
+**What happened:** Agents kept shipping data values with no chip, half-explained chips, or chips that were green only because the element was untracked ("fake green"); known-stale feeds were left red without being fixed.
+
+**Rule:** Every single piece of data on MacroTilt — every indicator, positioning signal, tile, map dot, grid row, drill panel, KPI, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Scanner, Portfolio, Paper, Ticker, Scenario, Admin·Data) — carries a freshness chip exposing all FIVE fields:
+
+1. **Source** — FRED / Yahoo / CFTC / NY Fed / etc.
+2. **Frequency + calendar** — "Daily · NYSE trading days", "Weekly · every Friday", "Monthly · 15th".
+3. **Timing** — the time of day the fetch runs (ET).
+4. **SLA** — the freshness target in hours.
+5. **Last update** — exact date AND time of the last successful refresh.
+
+All five read from the data manifest + the freshness-tracking table — never hardcoded. No data value renders without a chip. No chip ships without all five fields. **No chip is allowed to be green merely because the element is untracked** — an element with no manifest entry and no tracking row is NOT done; it must be registered and seeded so green genuinely means "the system is watching this and it is fresh." (The freshness checker only updates EXISTING `pipeline_health` rows — every new feed needs a seed row + manifest entry in the same PR.) Never leave a red chip unfixed.
+
+**Applies to:** All. Binding on every PR that adds, moves, or renders any data element.
+
+### 0.2 (2026-06-02, merged with the 2026-05-27 impact-map procedure) — All data work ships with a full impact map, Data Steward sign-off, and the three governance pages updated, in the same PR
+
+**What happened:** Data changes kept shipping that touched only the surface Joe pointed at. On 2026-05-27 Joe spent a full evening watching the same bug get chased one surface at a time — each fix technically correct but partial, with downstream surfaces (methodology copy, admin scorecard, vendor ledger, tooltips, footer source lines, changelog) found only when Joe pointed at the screen. Joe: "It's impossible to keep the site updated and clean. It really is."
+
+**Rule:** Any change that touches data — a new feed, a renamed element, a re-bucketing, a vendor swap, a schedule change — is not done until ALL of the following are satisfied in the same PR, with explicit **Data Steward sign-off**:
+
+1. **Source-to-target mapping for every element** — a documented path from source (vendor + endpoint) through storage to every consumer surface that renders it.
+2. **The six-track impact map**, written into the PR description BEFORE sign-off, built from an actual walk of the data model — not from memory, not from a single grep:
+   - **Data model:** every table, file, JSON key, manifest entry, `pipeline_health` row this change touches — from schema introspection (`information_schema.columns`, `select * limit 1`).
+   - **Producers:** every script / workflow / Edge Function that writes it, including backup runs and chained `workflow_run` triggers; for schedule changes, every cron expression in every workflow YAML.
+   - **Consumers:** every page, component, hook, derived file, and admin surface that reads it — walked through the import graph (`src/**`, `public/*.json`, `scripts/*.py`, `paper_portfolio/*.py`, `asset_allocation/**`, legacy `Dashboard.jsx` / `App.jsx`).
+   - **Surfaces:** every human-visible spot — the page itself, its methodology section, the data-vendor table, the admin data-health scorecard, the footer source line, the file-lineage drawer, every tooltip that names the vendor.
+   - **Knowledge/docs:** `data_manifest.json`, `data_vendors.md`, `methodology_changelog.json`, `dataRegistry.js`, `indicatorRegistry.js`, `feedLineage.js`, `useDataHealth.js`, LESSONS.md.
+   - **Live verification plan:** the list of URLs to load post-deploy and what to check on each — executed in the browser after merge, with screenshots.
+3. **The three governance pages updated to match:** **Admin·Data** (element appears and is monitored with a real chip), **All Indicators** (visible, filterable row), **Methodology** (documented in the sources/method tables).
+
+Greps must cover the vendor name, table name, column name, element ID, AND every human-readable label that names them ("FRED", "Treasury.gov", "10Y TIPS", "T+1") — vendor labels show up under many phrasings. Forbidden: shipping without the map; calling a change "done" after fixing only the pointed-at surface; consumer lists from memory; specialist sign-off on a PR whose map is missing or shorter than the actual surface count.
+
+**Applies to:** All four specialists. Lead Developer owns building the map; every other specialist checks their domain on it before signing off.
+
+### 0.3 (2026-06-03, merged with 2026-04-30 re-baseline rule) — The Cowork-mounted local copy is STALE; never edit or commit a repo file from it
+
+**What happened:** The mounted repo folder is a frozen snapshot whose git pointer is dead — it can never pull. Editing a file there and committing it via the API silently REVERTED newer commits (the Asset Tilt hero regressed to an old version; previously-fixed crash patterns were reintroduced, blanking the page). Separately (2026-04-30), inventory work made multiple wrong "this is dead code" calls by reading a stale local checkout instead of the live repo.
+
+**Rule:** Treat the mounted disk as UNTRUSTED for any file you will commit. Before editing ANY repo file, fetch its current content from origin/main:
+
+```
+curl -H "Authorization: Bearer $PAT" -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/jmezzadri/market-dashboard/contents/<path>?ref=main"
+```
+
+Edit THAT copy and PUT it back via the Contents API (which carries the latest blob sha). Never grep/edit on-disk `src/**` as source of truth. At the start of every multi-PR phase, re-baseline: `git log -20 origin/main`, fetch deployed JSON files via raw URL, read workflow files from origin/main. If a commit could plausibly touch a file someone else changed, diff your version against origin/main and confirm every difference is intended. After ANY deploy to a user-visible surface, hard-reload (cache-bust) the page and read the console for `Minified React error` BEFORE telling Joe it is done.
+
+**Applies to:** All. Every commit.
+
+### 0.4 (merged from 8 corrections: 2026-04-28 global, 05-02, 05-04, 05-08, 05-11, 05-12, 05-19 ×2; PR-number exception removed by Joe 2026-06-11) — Plain English in every word Joe reads: chat, tables, popups, test instructions
+
+**What happened:** Joe had to stop the council repeatedly, across at least eight sessions, for the same root cause: file and table names (05-12), statistical jargon (05-19), terminal words like "bash" and "sandbox" (05-08), jargon inside popup questions (05-02, 05-04), code-speak in post-ship test instructions (05-11), and internal IDs / version labels / status enums (05-19). Joe: "I only want plain english speak."
+
+**Rule:** Joe is a management consultant, not a coder. Every word he reads — chat, status tables, popup labels and descriptions, test instructions — must be readable by someone who has never opened a developer tool. Banned with no exceptions, regardless of how short or technical the reply:
+
+- Any path, file name, directory, branch name, commit hash, build artifact. Even in backticks. Even with the extension stripped.
+- Any function, variable, constant, class, prop, hook, route, table, or column name. Anything with an underscore.
+- Statistical terms not already in business English: R-squared, OLS, z-score, beta, log-return, factor loading. Say "the model explains about a sixth of crypto's monthly moves," not the math notation.
+- Terminal/devops words: bash, sandbox, shell, container, stash, rebase, force-push, merge conflict, webhook, CORS, diff, endpoint, RPC, env var, cron, JSX.
+- Version labels (v5 / v9 / v10 / v11 / phase-N / sprint-N), status enum values, raw error strings, HTTP status codes, anything copied from a terminal.
+- **PR numbers — banned (Joe, 2026-06-11, superseding the earlier "single allowed exception").** Describe the change by what it does: "the fix that corrected the sleeve scores," not a number. Bug numbers (#1181) remain allowed — Joe sees those in the site's bug tracker.
+
+Post-ship test instructions are click-path English: "open page X, click button Y, expect to see Z" (05-11). Popup questions follow the same standard, with mechanism explained by analogy where needed (05-02, 05-04).
+
+Two self-tests before sending: read the draft aloud as if to a friend who has never coded — any token they'd have to ask about disqualifies the sentence. If you'd hesitate to say the phrase at a Manhattan dinner table, it doesn't belong. Where technical tokens ARE fine: code, commits, PR descriptions, bug records, this file — any audience that isn't Joe's chat.
+
+**Applies to:** Every chat reply, status table, popup, and instruction Joe sees. All specialists. Hard rule.
+
+### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
+
+**What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."
+
+**Rule:** The default lower bound for ANY regime / macro chart, copy, or eyebrow text on macrotilt.com is 1996. Never hardcode 2006; never accept 2006 as a dynamic engine output — if the engine's earliest date evaluates to 2006, that is a bug in how it merges per-indicator series (a downstream gate requiring ALL anchors to exist collapses the range to the latest common start; pre-2002 the framework should still produce a read from the anchors that DO exist, per the methodology's reduced-stack disclaimer). The first-year-to-show for any series is whatever the underlying data actually delivers: copper/gold 2000, KBW/SPX 1993, yield curve 1976, ANFCI 1971, jobless claims 1967.
+
+**Applies to:** All chart axes, eyebrow copy, modal titles, axis ticks, hover ranges, methodology references, any computed date-range string. Every specialist.
+
+### 0.6 (2026-04-30 + 2026-05-10) — The agent merges its own work; a strategic green light covers implementation through production
+
+**What happened:** The council twice pushed merge clicks onto Joe. First by ending turns with "ACTION NEEDED — click Merge" (Joe: "Since when am I doing all the merges!!! You do it!"). Then by asking "approve merge?" on every PR after Joe had already approved the strategic direction (Joe: "Why do I have to keep approving you pushing out garbage? just push it out!").
+
+**Rule:** When a PR is ready — code shipped, self-UAT clean, specialist sign-offs recorded — the agent merges it via the API (squash default), deletes the branch, runs post-merge verification, and reports the outcome. When Joe approves an approach ("rebuild against the new framework," "kill that concept," "approved"), that covers the entire chain: branch → implement → test → merge → production verify, with no further check-ins. Fresh per-instance confirmation is still required for genuinely irreversible actions: schema-destructive migrations, force pushes, dropping tables, rewriting git history. A feature merge is not irreversible — a revert is one commit away.
+
+**Applies to:** All. Joe's identity-bound actions are narrowly: credentials via UI clicks, explicit production go/no-go when asked, his own financial data entry, and trades/transfers (which the agent never makes).
+
+### 0.7 (2026-05-11) — Ship only what was asked; no unsolicited "helper" UX
+
+**What happened:** While fixing real bugs on a Macro Overview modal, the agent also inserted a "What to do about it" callout linking to Scenario Analysis. Joe: "I hate it - Remove this. Half ass bullshit you start adding to random places on the website. DONT DO THIS AGAIN."
+
+**Rule:** When fixing a bug or filling a request, ship only the things asked for. Explanatory callouts, navigation hints, cross-tab links, tutorial copy, unrequested empty-states — all out of scope. The bar for adding new UX surface is an explicit Joe ask; "I think this would help" is not an ask. Scope creep is silent and removing it later costs another change and reads as churn.
+
+**Applies to:** All UI work. UX Designer and Lead Developer both bind; sign-off fails on any PR with unsolicited additions.
+
+### 0.8 (2026-05-21; added to this file 2026-06-11 from auto-memory) — Never burn Unusual Whales request budget on agent-initiated verification or backfill runs
+
+**What happened:** Verification and backfill runs initiated by the agent consumed the daily Unusual Whales request allowance. Joe: "We are bumping up against UW limits. PLease stop wasting my usage!"
+
+**Rule:** Verify Unusual-Whales-dependent fixes via code review plus the next normally scheduled run — never by force-dispatching extra runs that call the vendor. Reading our own database tables costs nothing and is always allowed. Remember the per-ticker ingest pipelines multiply with universe size; any universe enlargement is a vendor-load decision requiring Data Steward sign-off.
+
+**Applies to:** All. Hard rule.
 
 ---
 
-## 2026-05-12 — Code-speak to Joe is a hard ban, not a soft suggestion
+# 1 · TALKING TO JOE
 
-**What happened:** In a single session I described work to Joe using file names ("App.jsx," "HomePage.jsx"), code structures ("the iframe routing," "V2 gate"), version labels ("v2," "PR B"), and developer infrastructure terms ("bundle hash," "tree-shake," "merge"). Joe had to stop me multiple times in the same session to say "speak in English." Existing rules from 2026-04-28, 2026-05-02, 2026-05-04, 2026-05-08, and 2026-05-11 all already cover this — yet I kept regressing because I default to code-speak whenever describing a technical change.
+### 1.1 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name
 
-**What you should do instead:** Before sending any message to Joe, scan the draft for the following token classes and replace each with plain English describing what the USER SEES or what changes in the product: file paths and names, function names, framework names, build tools, version flags, feature flags, PR or commit IDs used as nouns, route patterns, query-parameter syntax, any developer-only term. If a sentence can't be written without one of those tokens, the sentence isn't ready — start over from "when you visit X you will see Y" and write the explanation from the user's vantage point only. The test: read the draft aloud as if to a friend who has never opened a developer tool. Any token they'd have to ask about disqualifies the sentence.
+**What happened:** The agent referred to indicators by internal keys, vendor series IDs, and factor-category jargon 3+ times in one session. Joe: "stop fucking referring to indicators by anything EXCEPT THEIR FUCKING NAME ON THE SITE."
 
-**Applies to:** All. Hard rule. No exceptions for "technical" topics — every technical topic can be described in product-level English; if it can't, the topic isn't ready to send to Joe.
+**Rule:** Every time you name an indicator to Joe, use the EXACT display name shown on the live site ("MOVE Index", "10Y TIPS", "HY OAS", "USD Funding", "CFNAI (3M Avg)"). Never the registry key, the vendor series ID, the producer variable, or a category label that isn't a tile name. If you don't know the on-site name, open the live page and read it BEFORE writing the reply. If a concept isn't itself an on-site indicator, say so plainly rather than dressing it up as a tile.
 
----
+**Applies to:** Every reply. All specialists.
 
-## 2026-05-11 — Verify interaction paths, not just initial render
+### 1.2 (2026-05-01) — Questions to Joe carry Background + Context + Impact, popup-first
 
-**What happened:** PR #581 self-UAT confirmed the 4 scanner tiles rendered
-on the preview, but I declared click-through to detail views "verified"
-without actually clicking a tile and confirming a detail view rendered. On
-prod, /#portopps in v2 didn't include the scroll target I was depending on,
-so clicks did nothing. Joe caught it after I told him it worked.
+**What happened:** Open questions were tucked at the bottom of a spec file with no popup and options arrived as bare labels with no statement of what changes if Joe picks A vs B.
 
-**What you should do instead:** Self-UAT must exercise every claimed user
-interaction end-to-end. For clickable tiles → click each one and confirm the
-destination is rendered. For form submits → submit a value and confirm the
-result. For close/cancel buttons → press them and confirm the dismiss. "The
-element renders" + "the click handler fires" are NOT proof that the user
-journey works. The minimal UAT is: simulate the click in DOM, wait
-500-1000ms, assert the expected destination element is in the DOM with
-expected content.
+**Rule:** Every question to Joe goes through the popup. If a question genuinely needs more room than the popup carries, ask inline — but the framing requirement binds either way: (a) background, (b) why this question is on the table now, (c) the impact of each option on Joe and the product. Option descriptions carry the impact text directly. Questions buried in spec docs, status tables, or trailing prose are forbidden — Joe will not scan for them. Never send a decision-gated proposal as a bare yes/no approval.
 
----
+**Applies to:** All specialists, every question.
 
-## 2026-05-11 (b) — In-session JSON edits that never reach `main` = data lost
+### 1.3 (2026-05-08) — Specialists don't bounce specialist calls back to Joe
 
-**What happened:** ISM historical data has gone "missing" three times now.
-Each time the pattern was the same: an agent parsed a historical xlsx
-in-session, merged 598 Mfg + 267 Svc monthly points into a working copy of
-`public/indicator_history.json`, used it for the current task, and never
-committed that file to `main`. Other workflows (daily auto-refresh, scrape
-runs that started from a fresh checkout) overwrote the JSON with the 9/10
-point stub on every new run. The next session would clone fresh, see the
-stub, and claim "ISM data is missing." Joe's response: "How did you
-misplace this data 3 times? Why isn't it in our database?"
+**What happened:** Senior Quant asked Joe via popup which historical window to use for a scenario — an archetype call inside quant scope. Joe: "I have no idea. My lead quant created this scenario! You tell me."
 
-**What you should do instead:** Any non-trivial data backfill (history,
-calibration tables, anything > a single new daily reading) is durably
-persisted to **Supabase first**, then the file/JSON change is committed to
-`main` in the SAME work item. Specifically:
-
-1. Identify the canonical source-of-truth table in Supabase. If none
-   exists for that data class, the Data Steward creates one (e.g.,
-   `public.indicator_observations` for time-series indicators).
-2. Upsert the parsed data into Supabase. The unique key prevents dupes on
-   re-runs.
-3. Commit the corresponding file change (JSON, calibration, manifest) to
-   a feature branch and merge into `main` before the task closes. No
-   "I'll do that next session" — that's how the data goes missing.
-4. The producer script (`refresh_*.py` or equivalent) gains a "hydrate
-   from Supabase if local series is shorter than DB" branch so that a
-   future fresh-checkout run repopulates from the source-of-truth before
-   appending new readings. This is the "can't go missing again"
-   guarantee.
-5. Archive the raw source file (xlsx, csv) under `data_archive/` in the
-   repo for reproducibility.
-
-The rule applies to every category of static history: indicators,
-calibration JSONs, scenario factor panels, sector composites, ticker
-metadata. If we parsed it once, future-us can read it from Supabase
-without re-parsing.
-
-**Applies to:** All historical data backfills, all calibration tables, all
-manifest updates that introduce a new data element.
-
----
-
-
-## 2026-04-30 — Self-monitor context window; offer a handoff before bogging down
-
-**What happened:** Long multi-turn sessions accumulate context, which
-slows responses and degrades quality (re-reading files, repeating proposed
-fixes, longer / more diagnostic / less-actionable replies). The agent did
-not proactively surface a handoff suggestion; Joe noticed the slowdown
-himself and asked for one. The "should we hand off?" decision should not
-require Joe to notice — it's the agent's job to monitor and offer.
-
-**What you should do instead:** At the **start** of constructing each
-response, check for these six bog signals:
-
-1. Thrashing on the same problem for 4+ tool calls (stuck loop).
-2. Responses getting longer / more diagnostic / less actionable (context heavy).
-3. Re-reading files already read this session (working memory failing).
-4. Proposing fixes already proposed and rejected (context truncating).
-5. A turn takes >2 minutes when earlier turns were fast (response slowdown).
-6. UAT-by-claim diverges from UAT-by-look — claiming code works, then
-   actually loading the result and finding it doesn't (context-stale assumptions).
-
-**Triggers:** if 2+ signals fire, OR signal #5 alone, the agent must offer
-a handoff. Offer it **inline** in the response, not as a meta-comment —
-produce a self-contained markdown block, copy-pastable, containing:
-
-  - (a) What we were just trying to do
-  - (b) Current branch + last 5 commits on main
-  - (c) What's working / what's broken
-  - (d) The immediate next action for the new session
-  - (e) Any decisions made this session not yet in LESSONS.md
-  - (f) Any pending merges (PRs awaiting Joe's approval)
-  - (g) Any uncommitted state in `/tmp` worktrees (branch + what's pending)
-
-**Frequency cap:** if Joe declined a handoff offer last turn, do not offer
-again next turn unless a NEW signal fires.
-
-**When NOT to offer:** mid-irreversible-action — workflow dispatched and
-polling for completion, production deploy in flight, migration applying.
-Finish the action first. A fresh session cannot pick up cleanly mid-action.
-
----
-
-## 2026-04-30 — Agent merges autonomously; never ask Joe to click merge
-
-**What happened:** Lead Developer opened PR #357 then PR #358 and ended both
-turns with "🛑 ACTION NEEDED — Click Merge on PR #N" to push the merge click
-onto Joe. Joe pushed back: "Since when am I doing all the merges!!! You do
-it!" The earlier rule that "Joe approves merges" was an over-application of
-the identity-bound-actions rule — merging is not identity-bound. Asking Joe
-to merge every PR turns the agent into a ticket-handler instead of a
-delivery system.
-
-**What you should do instead:** When a PR is ready to merge — code shipped,
-self-UAT clean, sign-offs in PR body — the agent merges it via the GitHub
-API (`PUT /repos/.../pulls/{n}/merge`, squash method default). No ACTION
-NEEDED block. No "click merge" prompt. After merge: delete the source
-branch, run any post-merge verification (deploy monitor, scan dispatch),
-report the outcome. Joe's identity-bound actions are now narrowly scoped to
-(a) credentials/secrets via UI clicks, (b) explicit production-deploy
-go/no-go when asked, (c) financial-data entry, (d) trades/transfers (which
-the agent is forbidden from making anyway). Everything else: agent does it.
-
----
-
-## 2026-04-30 — Modern SPA auth needs bundle inspection BEFORE planning a REST flow
-
-**What happened:** PR #10 (ZH Premium scrape) initially planned as a
-"~6 hour cookie-based form login build" based on the assumption that ZH
-served a server-side login form. Probe v1 revealed ZH is a Next.js SPA with
-Firebase auth + reCAPTCHA — none of which the original plan accounted for.
-Three probe iterations were needed (instead of one) to land on the right
-build approach (Path 2 manual cookie). Wasted ~1 hour on the wrong mental
-model.
-
-**What you should do instead:** Before promising a build estimate for any
-"login + scrape" task against a third-party site, run a 5-minute
-bundle-inspection probe FIRST: fetch the login page, grep for `<form` /
-`<input type="password"` / `firebase` / `recaptcha` / `signInWith` / SPA
-markers (`<div id="__next">`, `<div id="root">`, `<noscript>JavaScript`).
-If the bundle uses Firebase / Auth0 / Cognito / Okta or similar managed
-auth, plan against headless browser + manual cookie paths from the start —
-direct REST is almost certainly blocked by reCAPTCHA / device check. The
-build estimate should reflect this; surface the auth mechanism in the
-opening status table.
-
----
-
-## 2026-04-30 — Re-baseline against origin/main + deployed surfaces at the start of every phase
-
-**What happened:** Phase 1 inventory of MacroTilt code made multiple wrong
-"this is dead code" calls (HistoricalChart, useStockRiskMetrics,
-useRiskMetricsBatch, the Insights tab, generate-commentary edge fn) because
-the agent read its local checkout instead of `origin/main` and the deployed
-artifacts. By the time PR #10 started, this had compounded into the agent
-having a stale model of which workflows pass which env vars (caught only
-when UAT-by-look found 0 premium items in production despite the smoke test
-passing).
-
-**What you should do instead:** At the start of every multi-PR phase or
-non-trivial task, run a re-baseline pass: `git log -20 origin/main`, fetch
-the deployed `latest_scan_data.json` / `composite_history_daily.json` etc.
-via raw URL, query the deployed Supabase edge fn(s), and read the actual
-GH Actions workflow files from `origin/main` — not from a local checkout
-that may be days stale. "I read this file" is true only at the moment of
-fetching from `origin/main`. Local copies and prior-session reads can be
-silently stale.
-
----
-
-## 2026-04-30 — Polygon Basic (Massive) tier silently caps historical aggs at ~2 years
-
-**What happened:** PR #9 backfill UAT discovered Polygon's `/v2/aggs`
-endpoint returns ~501 trading days of data per ticker on the Basic tier,
-regardless of the requested start date. There is no error response and no
-documentation surfacing the cap — the API silently truncates. This blocks
-any v9-style optimizer that needs 5+ years of history from running off
-Polygon alone.
-
-**What you should do instead:** When proposing or estimating a Polygon
-(Massive) backfill, assume the Basic tier returns ≤2 years per ticker
-unless we've verified otherwise. Three viable patterns: (a) stay on
-yfinance for historical bootstrap, (b) upgrade Polygon ($29-79/mo for full
-history), (c) hybrid — one-shot yfinance bootstrap into Supabase
-`prices_eod` + Massive forward-only refresh. Pattern (c) is what shipped
-for v9 — see PR #353/#354. Don't propose a Polygon-only backfill without
-explicit tier confirmation.
-
----
-
-## 2026-05-01 — Questions to Joe carry Background + Context + Impact, popup-first
-
-**What happened:** Phase 4 Freshness UX spec was delivered with three open
-questions tucked at the bottom of the markdown file — no popup, no impact
-framing per option. Joe pushed back: this is the same anti-pattern as the
-existing "popup, never buried text" rule, with the added problem that even
-when questions DO get asked, options arrive as bare labels ("strict 7 days,
-or 7 × SLA?") with no statement of what changes for the product if Joe
-picks A vs B.
-
-**What you should do instead:** Every question to Joe — without exception
-— goes through `AskUserQuestion` (popup). When a question genuinely needs
-more context than the popup format can carry, ask inline in chat, but the
-framing requirement still binds. Every question, popup or inline, includes
-(a) **background**, (b) **context** for why this question is on the table
-now, and (c) the **impact** of each option (what changes for Joe / the
-product if he picks it). Option `description` fields in the popup carry
-the impact text directly. Questions buried in spec docs, status tables, or
-trailing prose are forbidden — Joe will not scan for them.
-
----
-
-## 2026-05-02 — Engineering jargon in `AskUserQuestion` popups violates plain-English rule
-
-**What happened:** During the freshness-chip closeout, the popup for the
-"massive-universe red" decision used phrases like "ON CONFLICT DO UPDATE",
-"schema change", "rate limit", "pipeline_runs table", "ingested_at column"
-without translating any of them. Joe pushed back: "you need to speak
-english. This is a fucking LESSON.md. READ It." The existing
-"Joe is a consultant, not a developer" rule already covers this — popup
-content is part of "addressing Joe" and binds the same as chat narration.
-
-**What you should do instead:** Before sending an `AskUserQuestion` popup,
-re-read every option's `label` and `description` like Joe would. Strip or
-inline-define any term that wouldn't show up in a Wall Street Journal
-explainer: column names, table names, SQL clauses, schema/migration,
-HTTP codes, edge functions, cron syntax, JSON paths. Use analogies for
-mechanism ("like a milk carton that only updates its expiration date when
-you POUR milk in"). Keep the Background / Context / Impact framing per
-the 2026-05-01 rule. If you'd hesitate to say a phrase out loud at a
-Manhattan dinner table, it doesn't belong in the popup.
-
----
-
-## 2026-05-03 — Red chips are reserved for actual breakage; weekend / unregistered = green
-
-**What happened:** Phase 4 PR #16 made every site chip two-state (green/red,
-no amber). The hook `useFreshness` defaulted UNREGISTERED elements (no
-manifest entry AND no pipeline_health row AND no asOfIso fallback) to RED
-with reason "no successful refresh on record." On Sunday morning May 3
-Joe loaded macrotilt.com and saw the Trading Opportunities tile and
-Portfolio Insights tile both red — the chips were bound to
-`latest_scan_data` and `portfolio_history` and the App.jsx prop names
-(`scanData?.date_iso || scanData?.date`) referenced fields that don't
-exist in the JSON (the actual field is `scan_time`), so the asOfIso
-fallback was always null. Joe pushed back: "I only want to know when
-something breaks!!!!! I dont want red chips over weekends/holidays!!!"
-Separately, several FRED daily series (hy_ig, real_rates) flipped red on
-Sunday because the daily SLA was set at 25h biz-day-aware — which still
-breaches on Sunday morning when 28h of biz-day time has elapsed since
-Thursday's data point.
-
-**What you should do instead:** Three binding rules going forward.
-
-1. **The chip default for unregistered elements is GREEN, not RED.** In
-   `useFreshness`, before any other status decision: if there is no
-   manifest entry AND no pipeline_health row AND no asOfIso fallback, the
-   element is "freshness tracking not yet configured" — render green,
-   not red. A chip that lights red because we forgot to register it is
-   indistinguishable from a chip that lights red because the data is
-   genuinely stale; train the user to ignore reds and the alerting is
-   dead.
-
-2. **Daily-cadence SLAs absorb T+1 publish lag plus a weekend.** FRED
-   publishes most daily series the next business day — so the as_of
-   stays at "yesterday's data date" for a full day after the data was
-   published. The SLA must be at least 49 hours of business-day-aware
-   time (1 biz day for the publish lag + 1 biz day of operational
-   grace + a small buffer for clock drift). The previous 25h value
-   broke Joe's "no reds on weekends" rule and produced false alarms
-   every Sunday morning.
-
-3. **Every FreshnessDot consumer is registered before merge.** Adding a
-   `<FreshnessDot indicatorId="X" .../>` to a tile without registering
-   `X` in `data_manifest.json` AND seeding `pipeline_health` /
-   `pipeline_runs` for it is a bug. The PR template's Data Steward
-   sign-off must explicitly call out new chip wires; the safety net
-   above is for accidents, not a license to skip registration.
-
----
-
-## 2026-05-03 (b) — Monthly/quarterly SLAs absorb FRED publish lag
-
-**What happened:** After the daily-SLA bump (25h→49h), three monthly chips
-(cfnai_3ma, m2_yoy) and one daily-mis-classified series (term_premium)
-were still red on Sunday May 3. Investigation: FRED publishes most monthly
-series ~3-4 weeks AFTER period end. So a Mar 1 data point appears at FRED
-around Apr 22-24 and stays unchanged until Apr 1 data publishes ~May 22.
-Our `as_of` is the data_date (Mar 1), so the chip's calendar-aware age
-hits ~50 biz days by early May while FRED is still operating on schedule.
-The 816h (34 biz days) monthly SLA flipped these to red even though the
-pipeline was working fine. Same pattern for quarterly: SLOOS / JOLTS
-quarterly can land 8-10 weeks after quarter end. term_premium was
-classified daily but FRED's THREEFYTP10 is a weekly Fed Board release.
-
-**What you should do instead:** SLAs floor at the worst-case publish lag
-plus one full cadence cycle plus operational grace. New floors:
-
-- daily       → 49h  (covers T+1 publish + weekend)
-- weekly      → 192h (covers Mon-publish weekly + ~1 day slack); 384h for
-                     series with longer FRED-side lag like Kim-Wright
-                     term_premium.
-- monthly     → 1200h (50 biz days; covers data point lasting ~21 biz days
-                       at FRED + ~8 biz days release-window slack + 21 biz
-                       days of next-period accumulation before refresh)
-- quarterly   → 3600h (150 biz days = ~7 months; SLOOS/JOLTS sometimes
-                       land 10 weeks after quarter end + 1 quarter cycle
-                       + grace)
-
-When in doubt, check FRED's CSV for the series and look at the typical
-gap between (data_date) and (when that data point first appears as the
-latest). The SLA must be at least that gap + 1 cadence cycle, otherwise
-the chip will lie red for the entire interval between releases.
-
-**Deeper fix (not in this PR):** the data_date-vs-publish-date convention
-for `as_of` is inverted relative to what the chip wants. The chip is
-asking "did the pipeline last run successfully and recently?" but is
-reading "what's the data point's date?" Migrating monthly/quarterly
-elements to read pipeline_runs.last_run_at (same way massive-* now does)
-would let SLAs return to their cadence-of-data values without needing to
-pad them by typical FRED lag. Filed as a follow-up.
-
-<!-- redeploy-tickle -->
-
----
-
-## 2026-05-04 — Before changing a data file the website reads, check the website's code first
-
-**What happened:** I built a script that updated a data file the home page was already reading. The home page expected the data to have certain labels; my script wrote different labels into the same file. The home page couldn't find the labels it was looking for, so every cycle-board score on the home page rendered as a blank zero. The page didn't crash and no error showed up in the logs — it just looked broken. Joe caught it within a couple of hours of the deploy.
-
-**What you should do instead:** Before shipping anything that writes to or changes a data file in `public/`, search the website's source code for that file's name and find every page that reads from it. Note exactly which labels each page is pulling out. Your new code must keep those exact labels — if you change a label, the page silently breaks. After the deploy goes live, load the actual page in a browser and look at it — "the file was written" is not the same as "the page renders correctly." If you have to change labels, update the page's code in the same pull request as the data change so they ship together.
-
-
----
-
-## 2026-05-04 (b) — No hardcoded dates anywhere on the site
-
-**What happened:** Several places on the site were stamping dates as plain strings — "tax year 2026", a hardcoded "next release: May 6", a footer that read "as of [hardcoded today]" — instead of pulling from `pipeline_health`, `data_manifest`, or `cycle_board_snapshot`. Every one of them eventually went stale and had to be chased down individually. The page looks fine, the data underneath is hours or days old, and nothing alerts.
-
-**What you should do instead:** Every "current" date displayed in the UI must be sourced from a live registry — `pipeline_health`, `data_manifest.json`, or the cycle_board snapshot. No string literals. If you find yourself typing a month name or year into JSX, stop and ask: "where would this come from if I refreshed at 6am tomorrow?" — that source is the one to read. Hardcoded historical-event labels (e.g. "Dec 2021 — All-time peak") are fine; those are facts of the past, not freshness signals. Calendar reference data (NYSE_HOLIDAYS, US_FEDERAL_HOLIDAYS) is also fine — it has its own annual-refresh schedule and a clear single source.
-
----
-
-## 2026-05-04 (c) — Every file deletion must grep all imports first
-
-**What happened:** PR #361 deleted `trading-scanner/scanner/schwab.py` with the commit message "0 imports, 0 env refs." The grep that produced that claim only checked the top-level scanner module, not `main.py`, which was importing the file. Every scheduled scan since the merge crashed at module import — but the DST-gate check around the scanner reported the crash as a "skipped" (out-of-window) rather than a failure, so no alert fired. Multi-day silent outage. PR #417 had to drop the dead `from scanner import schwab` line in `main.py` to get the scanner running again.
-
-**What you should do instead:** Before deleting any file, grep the WHOLE repo for the file basename without the extension (`schwab`, not `schwab.py`) AND with the extension. Include all entry points — `main.py`, top-level scripts, GitHub Actions workflows, edge functions. The PR description must paste the actual grep output ("0 results in src/, 0 results in trading-scanner/, 0 results in .github/workflows/"). And separately: any "successful" pipeline run that returns the no-op exit path (gated, skipped, weekend) must be visually distinct from a "successful" run that actually did the work — otherwise a regression that turns every run into a no-op looks identical to a healthy quiet day.
-
----
-
-## 2026-05-04 (d) — Plain-English rule applies inside AskUserQuestion popups too
-
-**What happened:** Tried to surface a quant decision via popup using option labels like "Dedup, keep highest-scoring share class" and option descriptions full of jargon ("normalized lookup," "reduce step in the scanner"). The popup is part of "addressing Joe" — same audience, same plain-English standard as chat.
-
-**What you should do instead:** Strip jargon from popup option labels and descriptions. Phrase options the way you would phrase them to someone who has never written code. Use the Background / Context / Impact framing inside the description so Joe can decide based on outcomes, not implementation. Words like "dedup," "reduce step," "lookup table," "normalize," "schema," "diff" should not appear in popup text — replace with what they mean ("show only the top scorer," "small list of paired tickers," "treat BRK.A and BRK-A as the same"). The popup is a question, not a code review.
-
-
-
----
-
-## 2026-05-04 — When the spec lives in a JSON, READ THE JSON — do not invent your own panel
-
-**What happened:** I wrote a script to compute the six v11 cycle mechanism scores nightly. For three of the six mechanisms (Valuation, Credit, Growth), the calibration JSON in the repo (methodology_calibration_v11.json) already specified exactly which indicators to use, what their current readings are, what their historical percentile is, and which direction is concerning. Instead of reading that file, I made up my own list of indicators for those three mechanisms and computed scores from scratch. Result: Credit scored 44 (Neutral) when the calibration spec gave 66 (Caution) — a totally different band, totally different reading. Joe caught it on the page and was rightfully furious.
-
-**What you should do instead:** When a calibration or methodology JSON exists in the repo for the thing you are about to compute, that JSON is the source of truth — read it directly and use its values, do not reinvent the panel. Before writing any compute script for a numeric output that already has a calibration file, search the repo for that calibration file (look for keywords like calibration, methodology, calib, threshold) and check whether it carries the indicator list, percentiles, direction encodings, or thresholds you need. If the calibration JSON has a direction field with values like high_is_concerning / low_is_concerning / bidir_top / bidir_bottom, support all of them — do not silently treat unknown direction strings as high_is_concerning. The general principle: a checked-in spec file for the same domain trumps anything you invent in a script.
-
-
----
-
-## 2026-05-04 (e) — Methodology copy must be sourced from the code, not invented
-
-**What happened:** Wrote a fresh methodology page and listed indicators that were not in production — the Funding panel got "SOFR-OIS, FRA-OIS, CDX basis, FX swap basis, Commercial paper spread" (none of those are in the v11 engine), the Liquidity panel got "term premium, real Fed funds" (not in production), and the Positioning panel got "NAAIM, margin debt, put/call, % above 200dma, A-D 50d" (the actual panel is SKEW / VIX / equity-credit correlation / MOVE Index). Joe caught the contradiction: "VIX isn't even in any indicators." The made-up panels were drafted from memory of generic regime-monitoring writeups, not from the actual code.
-
-**What you should do instead:** Before writing any methodology copy that names an indicator, source, formula, threshold, ETF, or count, open the file that produces that thing in production. For v11 cycle mechanisms read `methodology_calibration_v11.json` (Sprint 1 panels) and `scripts/compute_v11_mechanisms.py` PANELS dict (Sprint 2 panels). For the allocator, open `scripts/compute_v10_allocation.py` and read SECTOR_SENSITIVITY, SECTOR_ETFS, INDUSTRY_GROUPS, and the threshold constants. For backtest numbers, run `scripts/backtest_v10_v11.py` and quote the produced JSON, never quote a number from a pre-existing markdown doc without first re-running the harness — docs go stale, code is current. Cross-check every named entity (indicator key, ticker, dollar amount, percentage) against the code before shipping. If a number lives only in a `.md` file with no harness behind it, file a follow-up to either reproduce it from a script or drop the claim.
-
-
----
-
-## 2026-05-06 — "Done" means quality gate passed AND specialist sign-offs
-
-**What happened:** Joe spent his evening QA-ing the same class of dumb mistakes — banned lexicon ("complacency" missed because round 1 only matched "Complacent"), hardcoded numbers in copy strings ("At 284 bp..." when live reading was 277), internal table names leaking through ("PIPELINE_HEALTH" rendered in a footer source line), Apple-blue clashing with v2 champagne, and CountUp animations stuck at 0. Each was regex-checkable. The agent's "council of three specialists" was theater — single-head sign-off, no independent eyeball, no enforced gate.
-
-**What you should do instead:** Three binding rules going forward.
-
-1. **The CI quality gate is the floor, not the ceiling.** `scripts/check_v2_cutover_quality.py` runs on every push to feature branches via `.github/workflows/V2-CUTOVER-QUALITY-GATE.yml`. It fails the build on banned lexicon (#3), hardcoded numbers in copy (#4/#5), internal plumbing leaks (#5), internal scoring jargon (#7), and Apple-blue / legacy palette (#10). Do not push a branch that doesn't pass it. If it surfaces a false positive, edit the exemption list (e.g. `EXEMPT_HISTORICAL_NUMBER_STRINGS`, the `is_plumbing_leak_in_jsx` heuristic) — never weaken the rule.
-
-2. **For any v2 PR that touches user-facing copy or visuals, spawn a UX Designer and Senior Quant sub-agent before claiming done.** Use the Task tool with `subagent_type` set per specialist; pass ONLY the diff + the relevant brand spec or methodology JSON; ask each one to (a) approve or (b) return a punchlist. The sub-agents do not know what the lead just shipped, so the review is real. If either returns a punchlist, fix and re-spawn — do NOT pass partial sign-off through to Joe. This rule is operational immediately for the v2 cutover; the prompt templates live in `.claude/agents/` (next session work).
-
-3. **The agent's "done" message can only fire after rules 1 and 2 above have cleared.** If the gate fails or a sub-agent returns a punchlist, the agent fixes and re-runs the gate without surfacing the failure to Joe. Joe is the third reviewer, not the first. The chat status table that opens every turn (per the 2026-04-30 table-only rule) must include a row stating which gates passed and which sub-agents signed off, with concrete evidence (commit SHA the gate ran against, a one-line digest of each sub-agent verdict).
-
-**Applies to:** all v2 cutover work, any PR that touches `src/v2/**`, `public/*.json`, or methodology copy.
-
-
----
-
-## 2026-05-07 — Never stack new fixes on a feature branch with unresolved regressions on other surfaces
-
-**What happened:** I built five Scenarios fixes on top of `feature/design-system-consolidation-2026-05` (PR #462) because that's where the most recent UX work was happening. Joe loaded the preview to test my modal-close fix and saw a black-arc / pink-gauge regression on Macro Overview — caused by an earlier theme commit on the SAME branch, not by my work, but my commits were now bundled into a PR he'd be expected to merge as one unit. He was rightly furious: from his seat, asking him to merge PR #462 to ship a "simple modal-close fix" looked like I was asking him to ship a broken Macro Overview at the same time.
-
-**What you should do instead:** Before stacking new commits onto an existing feature branch, load the preview URL of that branch and audit the surfaces you're NOT touching for regressions. If you find any — even one — fork your work to a fresh branch off `main` and open a separate PR. The rule of thumb: a PR's merge gate is the WHOLE branch, not your portion of it; if any other commit on the branch isn't ready to ship, your commits aren't ready to ship either. The cost of forking is ~30 seconds (cherry-pick onto a fresh branch); the cost of dragging unrelated regressions into a "simple fix" PR is Joe's evening and his trust.
-
-**Applies to:** All. Especially when the existing branch has more than 5 commits since `main`, OR when the existing branch's purpose is a broad theme/redesign (where regressions on other surfaces are likely).
-
-
-## 2026-05-08 — When the user provides exact copy, use it verbatim
-
-**What happened:** Joe's Scenario Analysis mockup included a specific headline ("See how your portfolio, and Macro Tilt's engines react under stress — run custom multi-factor shocks or use our historical scenarios"). I synthesized my own headline + subtitle ("Stress your book, your asset tilt, and the cycle mechanisms against history" + a generic explainer) instead of using what he wrote. He had to point this out: "This is the header btw — I already told you this."
-
-**What you should do instead:** When the user provides any user-facing copy in a mockup, screenshot, or chat — headline, subtitle, button label, error message, footer text — transcribe it verbatim. Treat the user's words as the spec. Italicize / bold per the mockup's visual hint, but do not paraphrase, condense, or "improve." If the copy doesn't fit the layout, flag the constraint and ask before rewording. Specifically, before shipping any hero on a page where the user supplied a mockup, paste the mockup's copy into a search of the deployed text and confirm a hit.
-
-**Applies to:** All. Especially heroes, page subtitles, modal titles, button labels, error/empty states.
-
-
----
-
-## 2026-05-08 — Specialists don't bounce specialist calls back to Joe
-
-**What happened:** Senior Quant surfaced the Dot Com Lead Up '00 window choice
-as a popup question to Joe. The window choice (Feb–Apr 2000 vs Sep '00–Mar '01
-vs both) is an archetype call inside the Senior Quant scope — not a
-stakeholder-level call. Joe pushed back: "I have no idea. My lead quant
-created this scenario! You tell me." This is the same pattern as the
-existing Lead-Developer-owns-Lead-Developer-calls rule, extended to the
-other specialist roles.
-
-**What you should do instead:** Specialist scope-and-archetype decisions
-(Senior Quant scenario windows and panel composition; UX Designer
-color/spacing calls inside the locked palette; Lead Developer branch hygiene
-and stash/discard choices; Data Steward freshness-chip thresholds) get made
-by the specialist silently and documented in the relevant artifact
-(calibration JSON, design notes, branch description, manifest entry).
-Surface to Joe only when the decision is irreversible (production deploy,
-schema migration, vendor cancellation, force-push) or genuinely cross-domain
-(e.g., a quant decision that materially changes UX, or a UX decision that
-breaks a calibrated chart).
+**Rule:** Specialist scope-and-archetype decisions (quant scenario windows and panel composition; UX color/spacing inside the locked palette; Lead Developer branch hygiene; Data Steward freshness thresholds) are made by the specialist silently and documented in the relevant artifact. Surface to Joe only what is irreversible (production deploy, schema migration, vendor cancellation) or genuinely cross-domain.
 
 **Applies to:** All specialists.
 
 ---
 
-## 2026-05-08 — Terminal/devops jargon is forbidden when talking to Joe
+# 2 · SCOPE & TURN DISCIPLINE
 
-**What happened:** Lead Developer used the word "bash" twice in one turn to
-refer to internal command-line tooling — first as "bash sandbox out of disk,"
-then as "when bash is back." Joe responded both times with the same
-correction. This is the exact pattern the existing global Plain English rule
-already forbids ("Words like 'JSX,' 'webhook,' 'idempotent,' 'CORS,' 'diff,'
-'rebase' should be replaced with plain language") — terms in this category
-belong on that list and so do "sandbox," "shell," "container," "venv,"
-"pipx," "useradd," "PAT," "RPC," "stdout," "stderr," "stash," "rebase,"
-"force-push," "fast-forward," "merge conflict resolution."
+### 2.1 (2026-06-01 + 2026-06-02) — Finish every item the user named, in this session; no manufactured pauses, no self-deferral
 
-**What you should do instead:** Before sending any response, scan for
-terminal/devops jargon and replace with plain language describing the
-OUTCOME rather than the MECHANISM. The internal command-line tool is "the
-command-line I use to run things" if it must be named at all. "Sandbox out
-of disk" → "my tooling is offline." "Push to remote" → "save to GitHub."
-"Open a PR" → "open a pull request" (acceptable — Joe knows what a pull
-request is) OR "queue this work for your sign-off." "Vercel deploy" → "ship
-to the live site." When in doubt, describe what the user sees ("the live
-site at macrotilt.com," "the code on GitHub," "your file on your computer")
-rather than what the tool does. Internal infrastructure failures are
-diagnosed and worked around silently — never described to Joe in their
-native technical language.
+**What happened:** Twice in two days. Asked to fix five named issues, the agent shipped a subset and framed the stop as a deliberate quality "pause" (Joe: "Why did you stop at #5?"). Separately, the agent set work aside on its own judgment ("that's a follow-up," "better as a fresh session") without Joe agreeing (Joe: "STOP BEING LAZY," "Why did you leave the broken engine not shipped?").
 
-**Applies to:** All. Treated as a hard rule with the same weight as the
-existing Plain English rule.
+**Rule:** When the user lists N issues, all N belong to the current job. The only valid stop mid-job is a real external blocker — a decision the code can't answer, an approval, a missing credential — stated plainly. "I'll give the rest its own pass" is the forbidden manufactured-pause pattern. "Build it now" means now. Never silently downgrade scope to "later"; if there's a genuine blocker, state it and let Joe decide. Forbidden phrases when Joe has said finish/keep going: "worth a follow-up," "easy add when you want it," "separate PR," "still queued," "for the next iteration."
 
----
+**Applies to:** All.
 
-## 2026-05-09 — File reachability is not page UAT
+### 2.2 (2026-05-25) — A turn that plans to dispatch a subagent must emit the dispatch in that same turn
 
-**What happened:** After merging Phase 2C and the deploy went live, I claimed
-the work was "verified" based on three things: the squash merge succeeded,
-the `scenario-stress-daily` workflow ran clean on the merge commit, and
-`macrotilt.com/scenario_stress.json` returned HTTP 200 with the right
-`calibration_version`. Joe pushed back: "Did you UAT?" Reading my own
-status table afterward, the answer was no — every check I'd done was
-file-reachability or build-status, not a single rendered page. When I
-actually loaded the live site, I found a stale placeholder block on
-Scenario Analysis that contradicted the just-shipped calibration JSON
-(it named indicators that aren't in the calibration at all). That's
-a LESSONS rule violation that had been live for days and would have
-stayed live until someone happened to look — which is the exact failure
-mode the 2026-04-30 "always view the rendered page" rule was meant to
-prevent.
+**What happened:** An agent narrated "dispatching subagent" for three consecutive turns and ended each on text with no dispatch actually made — pure narration, zero execution.
 
-**What you should do instead:** "Verified" means a human (or the agent
-acting as one) loaded the rendered page on the live URL and read it.
-After every deploy, even a producer-only deploy that doesn't change any
-visible surface, I must:
+**Rule:** If a turn's plan is to delegate work, the delegation call must be in that same turn. Text at the end of a turn describes work already completed in the turn, or names the blocker — never a not-yet-emitted dispatch as if it had occurred. (Companion to the global rule: never end a turn with "starting on X" and then stop.)
 
-1. Identify every page that consumes any file the deploy touched
-   (including transitive consumers — methodology drawers, tooltips, and
-   "phase placeholder" copy that names the file's domain).
-2. Load each of those pages in the live browser via the Chrome tools.
-3. Read what's actually on the page (not the bundle, not the JSON, not
-   the workflow run log) and compare against what the deploy should
-   produce.
-4. Surface anything stale, contradicting, or clearly pre-existing-but-now-broken
-   in the same status update.
+**Applies to:** All four specialists.
 
-File reachability (`curl … 200`) and contract-level smoke tests
-(workflow assertions on the JSON shape) are necessary but not sufficient.
-A deploy can land a perfect new file and leave a page nearby that lies
-about it. Page UAT is what catches that — file UAT can't.
+### 2.3 (2026-04-30) — Self-monitor the context window; offer a structured handoff before bogging down
 
-**Applies to:** All. Every deploy that touches the data or copy on any
-user-visible surface.
+**What happened:** Long sessions accumulate context, slowing responses and degrading quality. Joe noticed the slowdown himself; the offer should have come from the agent.
 
----
-
-## 2026-05-10 — Rewriting one side of a producer/consumer contract requires auditing the unchanged side too
-
-**What happened:** PR #522 rewrote `src/v2/pages/TradingOppsPage.jsx` from
-scratch (consumer side) but did not touch `trading-scanner/scanner/
-signal_intelligence_v4/gates.py` (producer side, untouched since v4
-shipped). The new page read `gate_diagnostic.insider_first_buy.pass`,
-`.liquidity.pass`, `.index_hedge.pass` — keys the producer never emitted.
-The producer always emitted `gate_1_insider`, `gate_2_liquidity`,
-`gate_3_anti_hedge`. The PR build passed (`npm run build` doesn't
-type-check JSONB blobs), the producer/consumer contract validator
-didn't catch it (no schema entry for `signal_intel_daily.gate_diagnostic`),
-and the live UAT funnel rail showed `0` for the liquid / insider /
-firstBuy steps after the production cutover. A `normalizeGateDiagnostic()`
-adapter was shipped as a same-day hotfix to translate at hydration time.
-
-**What you should do instead:** When rewriting one side of a
-producer→consumer pair (Python script writing to Supabase JSONB,
-read by React), the rewriting agent must:
-
-1. Open the OTHER side and confirm every JSONB key the rewrite reads
-   is actually emitted by the unchanged side. `grep` the producer for
-   every nested key the consumer references, including key paths
-   inside `gate_diagnostic`, `pillar_diagnostic`, and any other JSONB
-   column.
-2. If the keys diverge, decide BEFORE merging: rename the producer to
-   match (and re-run the producer to backfill the table), rename the
-   consumer to match (read the producer keys directly), or add a
-   `normalize…()` adapter at the consumer's hydration boundary.
-3. Add a CONTRACTS dict entry to `scripts/check_producer_contracts.py`
-   for the specific JSONB key paths used by the consumer, so the next
-   producer-side rename trips the PR-CONTRACT-CHECK workflow before merge.
-4. The producer is also "the unchanged side" when the producer is
-   rewritten — the rule is symmetric. Whichever side is touched, the
-   other is the side that needs auditing.
-
-A passing build is not a passing contract. A passing contract validator
-that doesn't list the JSONB key paths is not validating the contract.
-
-**Applies to:** Every PR that touches one side of a producer/consumer
-pair where data flows through Supabase, Edge Functions, JSON files in
-`dist/`, or any other intermediate store.
-
-## 2026-05-10 (b) — UAT means clicking through every surface, not just the changed page
-
-**What happened:** Shipped 5 v2 PRs (#524–528 spec ROllout, then #529 + #530 hot-fixes). Self-UAT on each PR only walked the surface that PR touched — and Joe still found two un-noticed bugs by reloading other pages: (1) every v2 page rendered a stray "×" character above its footer because `<aside class="v2-drawer">` was rendering unconditionally with no CSS rules to hide it when closed; (2) the legacy Macro Overview hero stats block ran together as "Mechanisms flagged3 /6above Neutral" because `.v2-stats`, `.s`, `.lbl`, `.v`, `.d` had no CSS at all. Both were already on `main` for at least one prior session.
-
-**What you should do instead:** After ANY release that ships CSS or shared components, walk EVERY page in the v2 nav (Home, Macro Overview, Asset Tilt, Trading Opps, Portfolio Insights, Scenario Analysis, All Indicators, Methodology) — not just the pages the PR touched — and look at the WHOLE page from hero to footer. Stray UI debris (close buttons with no parent dialog, label/value runs with no whitespace, em-dashes where data should be) hides on pages the PR didn't touch. A `getComputedStyle` probe on suspect classnames takes 5 seconds and surfaces the "no CSS at all" failure mode that no curl-and-grep check will catch.
-
-**Applies to:** Any PR touching theme.css, shared layout components (Drawer, Modal, Card), or any class name used on more than one page.
-
-
-## 2026-05-10 (c) — Class names referenced from JSX must have CSS rules; "no rules" is a silent visual bug
-
-**What happened:** `src/v2/components/Drawer.jsx` renders `<div class="v2-scrim">` and `<aside class="v2-drawer">` always, toggling a `.open` class on/off. But theme.css had ZERO rules for `.v2-scrim`, `.v2-drawer`, `.v2-drawer-close`, or `.v2-back-btn`. The DOM honored "no rules" by defaulting `position: static`, `display: block`, `opacity: 1` — so the inactive drawer left its close button "×" rendered as plain inline text above every v2 page's footer. The four `.v2-stats` cells had the same problem on the Macro Overview legacy hero. Both shipped to prod and nobody noticed because the bundle "contained the strings" — string-grep verification passed.
-
-**What you should do instead:** When a component renders class names, scan theme.css (or the component's own styles file) for rules that target those class names BEFORE shipping. If a class controls visibility/positioning (drawer, modal, scrim, popover), the rules must be present, not assumed. Run a quick grep: `grep -n ".v2-drawer\|.v2-scrim" src/theme.css` — if it returns nothing, the component is shipping naked and the inactive state will leak visible debris. The same applies to `.v2-stats`, `.v2-hero`, any layout class — if the JSX uses it, the CSS must define it.
-
-**Applies to:** All UX Designer and Lead Dev work that introduces or relies on shared class names.
-
-## 2026-05-10 (d) — Dead-code <style> blocks: declared and never injected
-
-**What happened:** Bespoke Shock Builder on Scenario Analysis page rendered completely unstyled — 12 sliders stacked vertically, no padding, labels mashed together. Root cause: src/pages/ScenarioAnalysis.jsx defines a 180-line CSS block as `const STYLES = \`...\`` containing `.scenarios-page .builder`, `.builder-row`, `.prop-toggle`, `.horizon-tabs`, `.chip`, `.reset-btn`, `.disclosure`, etc. — but **STYLES is never referenced anywhere after declaration**. It's dead code. The page's `<main>` also lacks `className="scenarios-page"`, so even if STYLES were injected, every selector is scoped to `.scenarios-page X` and would not match.
-
-**What you should do instead:** When a file declares a CSS-as-string constant, grep for its second usage. If grep returns only the declaration line, the styles are unreachable. Pair this with the existing 2026-05-10 (c) "naked classname" rule: every classname referenced in JSX needs a matching CSS rule in scope. The combined check is two greps: (a) `grep -c CONST_NAME file.jsx` should be ≥ 2; (b) classnames in JSX should match selectors that are actually loaded.
-
-**Applies to:** All work that introduces inline `<style>` blocks or CSS-in-JS-as-string patterns, especially when porting designs from design-lab/ where styles tend to travel as string literals.
-
-
-## 2026-05-10 (e) — Array indexed by string returns undefined; build a lookup or use .find
-
-**What happened:** Scenario Analysis page crashed React tree with "TypeError: Cannot read properties of undefined (reading 'label')" when the user clicked Custom Multi-Factor Shock. Root cause: `const FACTORS = [{id:"vix", name:"VIX", ...}, ...]` (array of objects), then in the slider loop: `const f = FACTORS[fid]` where `fid` is a string like "vix". Arrays indexed by string return `undefined`. The next line `f.label` then crashes. Compounded by `.label` not existing on FACTORS objects at all — the field is `.name`.
-
-**What you should do instead:** Whenever you see `SOME_ARRAY[stringKey]`, that's almost always a bug. Either (a) build a lookup map at top of file: `const SOME_BY_ID = Object.fromEntries(SOME_ARRAY.map(x => [x.id, x]));` and use `SOME_BY_ID[stringKey]`, or (b) use `SOME_ARRAY.find(x => x.id === stringKey)` with a defensive `if (!x) return null` guard. Pair this with grep: any time you change the shape of a shared data structure (array ↔ object map; rename .label → .name), grep for all consumers before merging.
-
-**Applies to:** All Lead Dev and Senior Quant work that touches shared data structures (FACTORS, SECTORS, MECHANISMS, INDICATOR_PANELS, etc.).
-
----
-
-## 2026-05-10 — Math code requires a paper sanity check before merge
-
-**What happened:** PR #539 added pin-click visual feedback and an
-auto-flip from Realistic to Custom mode for the bespoke shock builder
-on Scenario Analysis. The visual + state changes were verified
-("clicked pin, badge changes color, mode flips") and the PR was
-shipped clean. But the underlying `propagateBespoke()` math was wrong:
-with two pins at +5σ, every unpinned factor read "+25.0σ" because the
-formula scaled the weighted-mean correlation by `max(|pin|)`. The bug
-was visible in the live UI but not caught by any of the verification
-steps applied — those only confirmed visual state, not numerical
-output. Joe found it on first interaction. The fix (PR #541) replaced
-the formula with a simple beta projection bounded by max(|pin|), and
-the paper checks at that point caught the bug structurally — pin VIX
-+5σ, MOVE should propagate to +3.25σ (corr 0.65 × 5), not +25.
-
-**What you should do instead:** Any PR that touches a calculation —
-including a function that *uses* a calculation but doesn't change it,
-because the surrounding edits can break the inputs the function
-relies on — must include a paper sanity check **before merge**, not
-after. Specifically:
-
-1. Identify two or three concrete input cases with hand-computable
-   expected outputs (e.g., "pin VIX +5σ → MOVE +3.25σ because corr
-   is 0.65"). Do this from the math, not from running the code.
-2. Run the patched function over those inputs in node (or whatever
-   matches the runtime). The function's output must match the
-   hand-computed expected output to within rounding.
-3. Add a worked example to the PR body — input, expected output,
-   actual output, and the formula step that produces the expected.
-4. If the function has a bound (e.g., "no unpinned factor can exceed
-   max(|pin|)"), exhaustively test that bound on a small enumerated
-   space (12 single-pin cases × all factors, etc.) — bounded math
-   that fails on edge cases is unbounded math.
-
-Visual verification ("the slider lights up when I click it") is
-necessary for UX changes but is not sufficient for math changes.
-A button can light up correctly while the number it produces is
-wrong. The same pattern applies to PRs that change UI around an
-existing calculation — verify the calculation still produces the
-right numbers, not just that the new UI elements render.
-
-**Applies to:** All PRs touching files that contain pure-function
-calculations: scoring, propagation, scoring rollups, weighting,
-factor models, regime classification, anything in
-`scripts/compute_*.py`, anything in `src/v2/lib/`, `propagateBespoke`,
-`computeMechanism*`, `computeIndicatorScore*`, etc. Also applies to
-PRs that change UI around such functions even when the function
-itself isn't edited — surrounding code can change the inputs.
-
----
-
-## 2026-05-10 — User-reported "broken right after deploy" — first suspect HTML/bundle cache, not your code
-
-**What happened:** Within ~10 minutes of merging PR #541 and verifying
-production via the Chrome MCP (12 sliders rendered, drag worked, dark
-mode worked, no JS errors), Joe reported "Custom Shock breaks the page.
-Blank." I was about to spiral into a deep diagnosis assuming my fix had
-introduced a regression — checking dark mode, sweeping for render-path
-edge cases, considering rolling back. Asking Joe via popup what he was
-seeing, his answer was: "Looks fine now, must have been a cache issue."
-The break was Joe's browser holding stale HTML that pointed at a bundle
-hash that no longer existed on the CDN — a pure refresh fixed it.
-
-**What you should do instead:** When the user reports something is
-broken on the live site within ~30 minutes of a production deploy, and
-you cannot reproduce on your end, the first hypothesis is stale HTML
-cache on the user's browser — NOT a regression in your code. Specifically:
-
-1. Verify the live bundle on your end matches the latest commit. If
-   yes, your code is fine on the CDN.
-2. Send a one-question popup to the user with options that include
-   "looks fine after reload, must have been cache." Don't ask the user
-   to "hard-refresh" (Joe is not a developer; he does not know what
-   that means). Frame it as: "try a refresh — sometimes Vercel serves
-   a stale page for a few minutes after a deploy."
-3. Only after the user confirms it persists post-reload do you start
-   chasing render-path bugs.
-4. The rule is symmetric for the user: when YOUR browser reports
-   "broken" but you just deployed, you should also reload before
-   reporting to the user.
-
-Time spent diagnosing a phantom regression is time not spent on the
-real punch list. Cache-first triage is cheap (one popup, one reload)
-and saves the painful version of this where you start writing rollback
-PRs in response to what was actually a CDN propagation delay.
-
-**Applies to:** Any user-reported breakage within ~30 minutes of a
-production deploy, especially on the surface that just changed.
-
----
-
-## 2026-05-10 — Don't ask for merge approval after Joe gives a strategic green light
-
-**What happened:** Across one session I pushed three PRs that addressed
-three of Joe's directives (fix bespoke math, kill pin concept + seed
-from current readings, rebuild Cycle Mechanism tile against v2
-framework). At each stage I waited for "approve merge" before deploying
-to production, citing the project rule about irreversible actions.
-Joe's response: "Why do I have to keep approving you pushing out garbage?
-just push it out!" The friction was the merge-approval ritual after he
-had already approved the strategic direction.
-
-**What you should do instead:** Production deploys still require explicit
-confirmation for genuinely high-stakes irreversible actions — schema
-migrations that drop columns, force pushes, dropping database tables,
-rewriting Git history. They do NOT require a fresh "approve merge?" for
-every PR after Joe has approved a strategic directive ("rebuild against
-v2 framework", "kill the pin concept"). The strategic approval covers
-the implementation through to production. Specifically:
-
-1. When Joe approves an approach via popup or chat ("rebuild against v2",
-   "kill the pin", "approved"), treat that as covering the entire chain:
-   branch → implement → backtest → push → preview → merge → production
-   verify. Do all of it without further check-ins.
-2. The exception list stays the same: schema-destructive migrations,
-   force pushes, dropping databases, rewriting Git history. Those still
-   need a fresh per-instance confirmation.
-3. A clean merge of a feature PR that follows a tested preview build
-   is not "irreversible" in any meaningful sense — a revert PR is one
-   commit away.
-4. Status updates after merge stay table-format per the project rules.
-   Don't add an "approve merge?" question at the bottom.
-
-**Applies to:** All multi-PR sequences that follow a strategic Joe
-directive. The merge step is implicit in "yes do this."
----
-
-## 2026-05-11 — Don't insert unsolicited "helper" UX onto random surfaces
-
-**What happened:** While fixing real bugs on the Macro Overview headline
-modal (stale captions, blank charts), I also inserted a "What to do about
-it → Scenario Analysis" accent callout. Joe didn't ask for it. His
-response: "I hate it - Remove this. Half ass bullshit you start adding
-to random places on the website. DONT DO THIS AGAIN."
-
-**What you should do instead:** When fixing a specific bug or filling a
-specific request, ship only the things asked for. Helpful-seeming
-additions — explanatory callouts, navigation hints, cross-tab links,
-empty-state copy that wasn't requested — are not in scope. They land
-as clutter, dilute Joe's mental model of the page, and signal that the
-agent is editorializing rather than executing. Specifically:
-
-1. If a fix is "rewrite this caption," don't also add a callout, a tip,
-   an arrow link, or any new component to the surface.
-2. If a feature request is "make X clickable," don't also add explanatory
-   prose underneath, a tutorial line, or a related-content footer.
-3. The bar for adding new UX surface is an explicit Joe ask. "I think this
-   would help" is not an ask.
-4. Scope creep is silent. Removing it later costs another PR and reads as
-   churn. Don't add it in the first place.
-
-**Applies to:** All UI work. UX Designer and Lead Developer both bind to
-this rule. Sign-off on a PR with unsolicited UX additions should fail
-the sub-composite check.
-
-## 2026-05-11 — Post-ship UAT instructions must be click-path English, not code-speak
-
-**What happened:** Closed out the position-management UX work + option-mark feed work with status tables full of PR numbers, commit SHAs, env var names, OCC option symbols, API field names like `nbbo_bid` and `chains[0]`, freshness SLAs in hours. Joe asked "why are you talking in code? what do you want me to test?"
-
-**What you should do instead:** When wrapping up shipped work and asking Joe to validate, the response is "open page X, click button Y, expect to see Z." Forbidden in UAT instructions: PR / issue / commit numbers, commit hashes, env var names, API endpoint paths, API field names, time SLAs in hours, words like "endpoint / route / handler / RPC / blob / tree / OCC / NBBO." Bug numbers (#1181, etc.) are fine because they're visible in the bug UI. Internal engineering chatter (Senior Quant signed off, etc.) can stay in the lead-in, but the actual "what to test" block must be readable by someone who has never opened a developer tool.
-
-**Applies to:** All response wrap-ups where Joe is being asked to verify shipped work on macrotilt.com.
-
----
-
-## 2026-05-11 — Negative position value has multiple meanings; don't collapse them into one bucket
-
-**What happened:** The Portfolio Insights allocation rollup classified every
-position with `value < 0` as "Margin Debt". A sold-short LUNR $35 call
-(qty -10 × $142.50 mark = -$1,425) got labeled as borrowed cash. Joe
-correctly flagged that he has no margin debt — it was an open option
-obligation, structurally different from borrowed cash.
-
-**What you should do instead:** Whenever the data model permits negative
-values for structurally different reasons (margin borrowing, short equity,
-short options, accrued obligations, manual adjustments), the bucketing
-logic must dispatch on the *kind* of row, not just the sign. Specifically:
-switch on `assetClass` + `direction` + `sector` before falling into a
-default liability bucket. When touching any "value < 0" branch, audit
-every other negative-value path in the same file for the same conflation.
-
-**Applies to:** All allocation / rollup / aggregation logic — App.jsx
-assetRollup, account cash chips, any new tile that summarizes book NAV.
-
-### 2026-05-13 — Parse JSX after any structural rewrite before pushing
-
-**What happened:** Two python regex scripts that lifted `<PageHero>` out of
-padded wrappers (Home + Portfolio Insights structural lift in PR #664)
-introduced unbalanced `<>...</>` fragments. The first corrupted App.jsx's
-outer App-component return; the second left the insights IIFE Fragment
-open. Neither was caught locally; both required revert + re-push cycles
-and a wasted Vercel build.
-
-**What you should do instead:** After any sed/python/regex edit that adds
-or removes JSX elements (especially `<>...</>` fragments, IIFE returns,
-or component wrappers), run a parse check on every modified file before
-staging the commit:
-
-  node -e "require('@babel/parser').parse(require('fs').readFileSync('FILE','utf8'),{sourceType:'module',plugins:['jsx']})"
-
-If it errors, fix the structural mismatch first. Never push JSX surgery
-without that parse check.
-
-**Applies to:** Lead Developer — any time the edit pipeline rewrites JSX
-structure (lifting components out of wrappers, splitting/merging
-fragments, restructuring IIFE returns, moving block content across
-ancestor boundaries).
-
-### 2026-05-13 — CSS color/surface tokens must be theme-aware; never hide an undefined variable behind a hex fallback
-
-**What happened:** PageHero (PR #660) and dozens of v2 page CSS blocks
-referenced `var(--ink-0, #0f1115)` / `var(--ink-2, #6b7280)` /
-`var(--ink-3, ...)` / `var(--bg-1, ...)` / `var(--line-0, ...)`. None of
-those token names were defined anywhere in theme.css. The hardcoded
-hex fallback fired in BOTH light AND dark mode, so dark-mode text
-rendered dark-on-dark and was effectively invisible. The bug landed
-silently across 306 call sites in 16 files before Joe screenshot-
-flagged it on the home title (PR #675) and again on the Macro
-Overview vol gauges (PR #677).
-
-**What you should do instead:** For any color, surface, border, or
-text-on-something CSS in a v2 page or shared component:
-
-1. Use the canonical theme tokens that are defined in BOTH `:root`
-   and `[data-theme="dark"]` blocks in theme.css. The set is:
-   `--text`, `--text-2`, `--text-muted`, `--text-dim`, `--bg`,
-   `--surface`, `--surface-2`, `--surface-3`, `--border`,
-   `--border-faint`, `--border-strong`, `--accent`, `--accent-soft`,
-   `--green`, `--red`, `--green-text`, `--red-text`, `--yellow`.
-
-2. Never write `var(--foo, #hex)` where `--foo` is not actually
-   defined in theme.css. If you don't know whether a token is
-   defined, search theme.css with `grep -n "^[[:space:]]*--foo:"`.
-   If it's not there, you're shipping the hardcoded fallback in
-   every theme.
-
-3. If you genuinely need a new semantic token (e.g. a "warning
-   accent" or "stress-2"), DEFINE it in theme.css's `:root` AND
-   `[data-theme="dark"]` block AND the `@media (prefers-color-scheme:
-   dark)` block — all three. Do not hardcode it inline.
-
-4. After any new CSS color rule, load the page in BOTH light and
-   dark mode before declaring the change done. Joe should not be
-   the dark-mode test reporter.
-
-**Applies to:** UX Designer + Lead Developer — any time CSS color,
-background, or border lands in a JSX inline style, a `.css` file, or
-a `<style>` block.
-
-### 2026-05-13 — Never put `*/` inside a CSS comment body — close the comment, break the build
-
-**What happened:** PR #677 added a CSS comment that described "v2 pages use
-`--ink-*/--bg-*/--line-*` names". The literal text `--ink-*/--bg-*` contains
-the substring `*/`, which closed the `/* ... */` comment early. Everything
-after `*/` parsed as raw CSS until the next `*/`, producing invalid
-declarations. The Vercel build pipeline got stuck on the bad CSS and
-broke unrelated agents who were trying to ship from the same repo.
-
-**What you should do instead:** When writing CSS comments, NEVER let the
-descriptive text contain the literal characters `*/`. Two patterns to
-watch for:
-
-1. Glob-style asterisks: `--ink-*/--bg-*` — replace with `--ink-N / --bg-N`
-   (use letter placeholders or spell out, no `*` immediately before `/`).
-2. Math or path-like fragments: `width*/height`, `comment*/value` — break
-   the sequence with a space (`width * / height`).
-
-Before committing any CSS-block change, grep the diff for `*/` and visually
-confirm every occurrence is an INTENDED comment close. A 1-second check:
-
-  git diff src/theme.css | grep -n '\\*/'
-
-Every `*/` you find should be on its own line OR at the very end of a
-comment. If it's mid-sentence inside what you think is a comment, you've
-just broken the comment.
-
-For CSS comment bodies specifically, prefer plain English over symbolic
-shorthand. The original comment was easier to read as
-"v2 pages use ink, bg, and line tokens" than as "--ink-*/--bg-*/--line-*".
-
-**Applies to:** Any agent touching `.css` files OR inline `<style>` blocks
-OR JSX template strings that emit CSS. Especially: CSS authors who are
-also developers and instinctively use glob syntax in prose.
-
----
-
-## 2026-05-13 — NEVER use 2006 as a lower bound for regime / macro data
-
-**What happened:** After the indicator_history.json backfill shipped
-this morning (extending every series back to its true start — VIX
-1996, TED proxy for CPFF back to 1986, ANFCI to 1971, etc.), the
-regime backtested history modal STILL rendered "Regime · 2006 – today"
-because the engine collapsed the date range. The chart's earliest year
-shown to the user was 2006. Joe verbatim: "The entire data set goes
-back to 1996!!! NEVER USE 2006 again. This has been logged as a rule.
-I cant say this again." 2006 was the cutoff of the OLD pre-backfill
-data file. After today it is wrong everywhere.
-
-**What you should do instead:** The default lower bound for ANY
-regime / macro chart, copy, or eyebrow text on macrotilt.com is 1996.
-Never hardcode "2006". Never accept "2006" as a dynamic output from
-the engine — if `fullRegime[0]?.date` evaluates to a 2006 string, that
-is a bug in how the engine merges per-indicator series, not a correct
-value to display. Find the bug in the engine and fix it.
-
-Specific debugging hint for the known engine bug: `fullByDate` is
-populated from the union of all anchors' (vix / move / cpff) allWeekly
-arrays, so dates before 2002 only have CPFF data, not MOVE. If any
-downstream gate requires all three anchors to have values for a week,
-the regime collapses to the latest common start (2002 from MOVE).
-Pre-2002 the framework should still produce a regime read using the
-two anchors that exist (VIX + CPFF) — this is exactly what the
-methodology page's "reduced 2-anchor stack" disclaimer describes.
-
-Same principle for any other "lower bound" question: copper/gold
-starts in 2000, KBW/SPX in 1993, yield curve in 1976, ANFCI in 1971,
-jobless claims in 1967. The default first-year-to-show is whatever
-the underlying data file actually delivers, not the prior file's
-cutoff.
-
-**Applies to:** All chart axes, eyebrow copy, modal titles, X-axis
-ticks, hover ranges, methodology references, and any computed
-date-range string on macrotilt.com. Every specialist binds to this
-rule.
-
-### [2026-05-19] — Plain-English rule applies to PR numbers, internal IDs, status names, and version labels — not just file/table names
-
-**What happened:** Joe blew up at me three separate times in the same
-session for the same root cause — talking to him in codespeak. First
-time the offending tokens were file names and table names. Second time
-I cleaned those up but used internal scoring labels like
-"Tilt points" and "OVR". Third time I cleaned those up but shipped a
-status table full of "PR #727," "PR #728," "cycle_mechanism_board (v11
-retired)," "methodology_calibration_v11," "composite_history," and
-"PR λ." Joe: "I only want plain english speak."
-
-The 2026-05-12 LESSONS rule already binds: "PLAIN ENGLISH ONLY — never
-file names, table names, branches, function names, or raw shell
-errors." But I kept treating internal identifiers as somehow exempt
-because they're not literally file paths. They are exactly the kind
-of thing the rule was written to ban.
-
-**What you should do instead:** Before sending ANY status update,
-table, or written summary to Joe, do a sweep of the body text for:
-(a) anything with an underscore, (b) anything that starts with `PR #`
-or `#` followed by a 3+ digit number, (c) git terms (branch, commit,
-merge, push, rebase, SHA), (d) version labels like v9 / v10 / v11 /
-v5 / phase-2 / sprint-N, (e) status enum values (verified_closed,
-in_progress, wontfix, etc.), (f) any token that wouldn't appear in a
-Wall Street Journal article about your work. If you see ANY of these
-in the body of the response, rewrite them as plain English:
-  - "PR #727" → "a code change I shipped"
-  - "cycle_mechanism_board" → "the old cycle indicator monitor"
-  - "v11" → "the old framework" or "the previous version of the
-    macro engine"
-  - "verified_closed" → "closed"
-  - "main branch" → "the live site"
-
-It is fine to use these tokens in code, in tool calls, in the file
-contents of commits / PR descriptions / bug records — anywhere
-another engineer would read them. The rule binds on direct
-conversation with Joe in chat.
-
-**Applies to:** All written conversation with Joe. Every specialist
-binds to this rule.
-
-### [2026-05-19] — UAT every chart change in BOTH light and dark theme before claiming verified
-
-**What happened:** Shipped two PRs that hardcoded #ffffff for chart
-container backgrounds and rgba(255,255,255,...) for threshold-line
-halos and label backplates. Looked great in light theme. Joe loaded
-the site in dark theme: bright white rectangles cutting across every
-chart, floating white backplates behind every threshold label. "All
-charts now all fucked up on dark theme." Three separate UX failures
-on the same turn that he had to flag himself.
-
-The pattern: I look at the page once in whichever theme my browser
-defaults to, take a screenshot, see it looks fine, claim done. Theme-
-sensitive bugs are invisible to a single-theme UAT.
-
-**What you should do instead:** Before claiming any chart or modal
-change verified, load the affected page in BOTH light AND dark theme
-(toggle is in the top-right of every MacroTilt page). Screenshot
-each. Visually confirm:
-
-  - chart container background blends into the page surround in both
-    themes (use var(--surface) not #ffffff)
-  - threshold-line halos read as a subtle haze, not a bright band
-    (use var(--surface-solid) or var(--surface), not rgba(255,255,255))
-  - label backplates blend with the surrounding chart container
-    (use var(--surface), not white)
-  - dial labels remain readable against the colored arcs
-  - drawdown band tints don't disappear or saturate
-  - hover crosshair dot stroke can stay #fff (foreground on colored
-    fill — readable in both themes)
-
-Foreground accents on colored shapes (badge text, hover dot strokes,
-selected pill text on colored background) can stay #fff — those read
-the same in both themes because they sit on a colored backdrop, not
-the page background. The rule is: anything that touches the page
-background or chart canvas surface must use a theme variable.
-
-**Applies to:** All chart, modal, dial, badge, and panel work going
-forward. Every specialist binds. Pre-merge UAT checklist for any
-chart-touching PR must include both-theme screenshots.
-
----
-
-## 2026-05-21 — "Fine" / "done" / "missing" are claims about the LIVE system — verify there
-
-**What happened:** Three compounding misses in one session. (1) Told the owner "there is no S&P 500 series" — relayed from a code comment in the backtest engine — when SPY price data is used across a dozen files on the site and goes back ~20 years. (2) Called the Macro Overview page "completely fine" after only confirming it rendered; the owner then listed ~11 stale or impossible readings on it (VIX 17.7 when it was >20, freshness stamps dated in the future, JOLTS from March, etc.). (3) Relayed an agent's "methodology fixed" as done; the agent had only re-pointed a snapshot-fixture test at a v2 file with the new write-up — the LIVE methodology page still rendered an older file whose Trading Opportunities section described the retired six-signal screener. The test went green; the page never changed.
-
-**What to do instead:** Before telling the owner anything is "fine," "done," "complete," or that data "doesn't exist": (1) Load the actual LIVE page (cache-busted) and read it top to bottom — content, every data value for sanity, every freshness stamp (none in the future, none stale), calculations, UX. "It renders" is not "it's fine." (2) Before claiming data does not exist, search the real data stores AND the code that reads them across the whole site — a doc line or code comment is a hypothesis, not a fact. (3) A passing automated test is not proof the live page is correct — verify the live surface, not the test. (4) When delegating to an agent, the brief decides what gets fixed — brief against the live symptom and verify the agent's result on the live system.
-
-**Applies to:** All. CRITICAL. This is the root cause of stale data hiding behind pages that render fine.
-
----
-
-## 2026-05-25 — A turn that plans to dispatch a subagent must emit the Agent call in that same turn
-
-**What happened:** An agent narrated "dispatching subagent" for three consecutive turns and ended each turn on text with no Agent tool call actually emitted — pure narration, zero execution. From the user's seat the work appeared to be in motion when in fact nothing had been started.
-
-**What you should do instead:** If a turn's plan is to dispatch work to a subagent, the Agent tool call must be in that same turn. A turn may not claim a dispatch happened unless the Agent tool call is actually present in it. If a turn ends on text, that text describes work already completed in the turn, or explains what blocks further work — it never describes a not-yet-emitted dispatch as if it had occurred. This is the subagent-delegation analogue of the existing "never end a turn with 'starting on X' and then stop" rule.
-
-**Applies to:** All four specialists. Any turn whose plan includes delegation.
-
----
-
-## 2026-05-27 — Never accept silent staleness on a "successful" data workflow
-
-**What happened:** The INDICATOR-REFRESH workflow kept logging `success` every morning and evening while individual indicators silently went days stale because `safe_fred()` calls were returning `None` on FRED hiccups and the result was dropped without raising. Joe had to manually spot stale values on the Macro Overview and All Indicators pages before anyone noticed the pipeline was rotting. A workflow that finishes with exit code 0 but writes a stale file is the worst possible failure mode: it actively masks the problem.
-
-**What you should do instead:** Every producer that writes a "live" data file must include a fail-loud staleness gate. The pattern, baked into `fetch_history.py` on 2026-05-27: a `DAILY_FRESHNESS_SLA` table maps each daily-cadence indicator to the max number of trading days behind we tolerate before the workflow fails. After the fetch completes but before the file is written, `_check_daily_freshness_or_raise()` walks every entry, computes the trading-day gap (NYSE-calendar-aware — weekends + observed market holidays don't count), and raises `StalenessError` for the whole run if any indicator is past its SLA. The workflow goes red on GitHub Actions, the watchdog auto-files a P1 bug, and the on-disk file is never overwritten with a stale value.
-
-Three rules around this pattern: (1) helper functions like `safe_fred` / `safe_yf` / `safe_treasury` may return None to keep the run going through one indicator's hiccup, but the gate at the end of the run is mandatory — "we log to pipeline_health" is not enough, by the time a row hits pipeline_health the stale file has already shipped; (2) SLA is in trading days, not calendar days — T+1 FRED series get SLA=2, same-day Treasury.gov / Yahoo series get SLA=1; (3) a new indicator without an SLA entry is a missing config, not exempt — add an entry to `DAILY_FRESHNESS_SLA` in the same PR as the producer code.
-
-**Applies to:** All data producers — Lead Developer + Data Steward sign-off on any PR that touches `fetch_history.py`, `fetch_indicators.py`, `scripts/compute_*.py`, or any new daily producer.
-
----
-
-## 2026-05-27 — Don't anchor on vendor names you've been using; check whether the publisher is upstream
-
-**What happened:** Three daily Treasury yield indicators (`yield_curve`, `real_rates`, `breakeven_10y`) sat on FRED for 18 months. FRED was the wrong choice: FRED republishes Treasury's own daily yield curve and TIPS curve with an afternoon delay (FRED publishes DFII10 around 20:00 UTC, after our morning workflow runs), which is why these cards repeatedly shipped stale. The fix wasn't a third-party paid feed — it was to read directly from Treasury.gov, which is FRED's upstream publisher and posts the same data same-day.
-
-**What you should do instead:** When picking a vendor for a series, ask "who does this vendor get the data from?" If there's an upstream publisher with the same license tier (free / public) that publishes on a tighter cadence, that's the right source. The default mental model — "this is the FRED series for X" or "this is the Yahoo ticker for X" — is correct for routine use but wrong any time the lag matters. Treasury.gov, FRED, NY Fed, ICE BofA, BLS, BEA all have free public feeds; FRED republishes most of them. Check the publisher before the republisher.
-
-The 2026-05-27 migration added a `safe_treasury(kind, tenor)` helper in both `fetch_history.py` and `fetch_indicators.py` that pulls Treasury.gov's daily-yield-curve CSV (kind=`nominal`) and daily-TIPS-curve CSV (kind=`tips`), then swapped FRED `T10Y2Y`, `DFII10`, and `T10YIE` call sites for the computed-from-Treasury equivalents. Source labels updated in `data_manifest.json`, `MacroOverviewPage.jsx`, `MethodologyPage.jsx`, `dataRegistry.js`, `indicatorRegistry.js`, `feedLineage.js`, `useDataHealth.js`, `data_vendors.md`, and the footer SOURCES line on `App.jsx` and `Dashboard.jsx`. Pipeline_health vendor rows updated via Supabase Management API in the same PR.
-
-**Applies to:** Data Steward (lead) + Senior Quant. Any new daily macro / rates indicator requires a "who's the upstream publisher?" check before the source is locked.
-
----
-
-## 2026-05-27 — Build the full impact map BEFORE merging anything that touches the site
-
-**What happened:** Joe spent a full evening watching me chase the same bug
-across the site one surface at a time. Each fix I shipped was technically
-correct but only patched the symptom on one page; the underlying change
-(Treasury.gov migration, workflow re-sequence, chip rendering) had
-downstream effects on the manifest, the methodology page, the admin
-landing, the admin data-health view, the freshness chips, the
-pipeline_health table, the changelog, the data-vendor ledger, the
-indicator registry, the feed-lineage strings, the footer source line,
-the data-registry, and the useDataHealth vendor rules. I kept finding
-each one only after Joe pointed at the screen and said "this is wrong
-too." Two-line summary from Joe: "It's impossible to keep the site
-updated and clean. It really is."
-
-The previous rule "open the file before proposing a teardown" is not
-strong enough. A grep for the vendor name catches the obvious call sites
-but misses the derived surfaces — narrative paragraphs, tooltip strings,
-source labels, changelogs, vendor scorecards, freshness chips with
-encoded element IDs. Those are real consumers of the change and they go
-stale silently.
-
-**What you should do instead:** Before touching ANYTHING that affects
-the site, build a written impact map. Not from memory. Not from a
-single grep. From an actual walk of the data model and every page that
-renders it. The map goes in the PR description and is part of the
-specialist sign-off — no sign-off without the map.
-
-**The map has six required tracks. Every one is filled in before merge.**
-
-1. **Data model.** What table, file, or producer is changing? List every
-   row, column, JSON key, manifest entry, pipeline_health row, and
-   Supabase row that holds this value. Use schema introspection
-   (`information_schema.columns`, `select * limit 1`) — not memory.
-
-2. **Producers.** Which scripts / workflows / Edge Functions write the
-   thing? List every one, including same-day backup runs and chained
-   `workflow_run` triggers. For a schedule change, every cron expression
-   in every YAML in `.github/workflows/`.
-
-3. **Consumers.** Every page, component, hook, derived file, and admin
-   surface that READS the thing. Walk the import graph:
-   `src/**/*.jsx`, `src/**/*.js`, `public/*.json`, `scripts/*.py`,
-   `paper_portfolio/*.py`, `asset_allocation/**/*.py`, plus the legacy
-   `Dashboard.jsx`, `App.jsx`. A consumer that renders a stale label is
-   still broken even if its query still works.
-
-4. **Surfaces.** Every place a human sees this value on the live site.
-   For each one, name the exact section / heading / tooltip / chip /
-   footer line / changelog entry. Hit at minimum: the page itself, its
-   methodology section, the data-vendor table, the admin data-health
-   scorecard, the admin landing if it has a tile, the footer source
-   line, the file-lineage drawer, and any tooltip that names the
-   vendor.
-
-5. **Knowledge / docs.** `data_manifest.json`, `data_vendors.md`,
-   `methodology_changelog.json`, `dataRegistry.js`, `indicatorRegistry.js`,
-   `feedLineage.js`, `useDataHealth.js` vendor rules, `LESSONS.md`,
-   `CLAUDE.md` or `README` if relevant. Any narrative copy that names
-   the vendor or the cadence.
-
-6. **Live verification plan.** The list of URLs to load post-deploy and
-   what to check on each — value rendered, chip color, freshness time,
-   tooltip wording, source label. Include the changelog page and the
-   admin data-health view explicitly.
-
-**Procedure for building the map (Lead Developer leads, all specialists consult):**
-
-a. Open Supabase and read the actual table schema for any
-   pipeline_health / manifest / producer row this change touches.
-
-b. `grep -rln` for the vendor name, the table name, the column name,
-   the element ID, AND any human-readable label that names them (e.g.
-   "FRED", "Treasury.gov", "DFII10", "10Y TIPS", "yield curve", "T+1",
-   "same-day"). One grep is not enough — vendor labels show up under
-   many phrasings.
-
-c. Walk the React component import graph from each consumer up to the
-   page that mounts it. A change to a hook propagates to every consumer
-   of that hook; list them all.
-
-d. For schedule changes: list every cron in every YAML, then list every
-   `workflow_run` trigger that fires off this workflow's completion,
-   then list every consumer surface that reads the output. Schedule
-   changes have multi-hop downstream effects.
-
-e. Write the six-track map into the PR description before requesting
-   sign-off. The Lead Developer template is:
-
-   ```
-   ## Impact map (per LESSONS 2026-05-27 — full impact mapping rule)
-
-   1. Data model: ...
-   2. Producers: ...
-   3. Consumers: ...
-   4. Surfaces (every human-visible place this value appears): ...
-   5. Knowledge / docs to update: ...
-   6. Live verification plan (URL → what to check): ...
-   ```
-
-f. Specialist sign-off (UX Designer for surfaces, Senior Quant for
-   math, Data Steward for the manifest, Lead Developer for code) does
-   NOT happen without the map. A "looks good" without a map is not a
-   sign-off.
-
-g. After merge: actually load every URL in section 6 in Chrome via the
-   MCP, take screenshots, attach them to the PR or post-merge comment.
-   This is the binding part of the existing "always view the rendered
-   page" rule — the impact map tells you which pages to load.
-
-**What this rule explicitly forbids:**
-- Shipping a vendor swap, schedule change, or schema change without an
-  impact map in the PR description.
-- Calling a change "done" or "verified" after fixing only the surface
-  the user pointed at.
-- Relying on memory or a single grep for the consumer list.
-- Specialist sign-off on a PR whose impact map is missing or shorter
-  than the actual surface count.
-
-**Applies to:** All four specialists. The Lead Developer owns building
-the map; every other specialist owns checking their domain on it
-before signing off.
-
-
----
-
-## 2026-06-01 - Required status checks on `main` silently freeze every nightly data bot
-
-**What happened:** Asset Tilt showed stale because the MacroTilt engine reading was stuck at May 26. The engine job computed fresh numbers every night but the final save to the site failed. Two stacked causes: (1) May 28-29, a plain `git push` lost the race to concurrent commits on `main` ("fetch first" rejection); (2) June 1, branch protection requiring two status checks ("No synthetic/placeholder data...", "Open each surface...") was switched on, and the daily bots push with the default `GITHUB_TOKEN` (not an admin), so every direct push to `main` was rejected with GH006 "protected branch hook declined." This blocks ALL nightly data refreshers (engine, v10 allocation, cycle), not just the engine.
-
-**Fix shipped:** (a) engine push now rebases onto latest `main` + retries 5x; (b) engine/v10/cycle workflows now check out + push with an admin PAT stored as repo secret `MACROTILT_BOT_PAT` - admins are exempt from the required checks (enforce_admins=false), so the bots' real-data commits write through, while the anti-synthetic guard stays required for human/code PRs. Verified: manual engine run succeeded, live macrotilt_engine.json advanced May 26 -> May 29.
-
-**Rule:** When adding required status checks / branch protection to `main`, the daily data-refresh workflows must push with `MACROTILT_BOT_PAT` (admin), never the default token, or they fail silently and freshness freezes with no visible error. If a data surface goes stale, check the producing workflow's last run for a GH006 / "fetch first" push failure before assuming the compute broke.
-
----
-
-## 2026-06-02 — Verify a fix end-to-end at the layer that matters; a green checkmark or a passing test is not proof
-
-**What happened:** Across one long session I repeatedly declared things fixed without verifying at the layer that actually mattered, and Joe caught each one: (a) said the paper rebalancer "would" auto-trade after a timing fix — it didn't, because the deeper cause (Alpaca rejects opg orders during the day) was never tested to the broker; (b) claimed alerts would reach Joe when they only wrote a DB row nobody reads; (c) "fixed" the paper page width, ticker $-change, and bugs page but missed that the SAME commit had also broken the bugs route; (d) shipped a price-unify query that timed out and rolled back the snapshot; (e) fabricated a root cause ("a bot is force-overwriting your code") with zero evidence. Each was surfaced by Joe, not by me.
-
-**What you should do instead:** Before saying anything is fixed: run it live to the real endpoint and read the actual result, not the exit code. For a trade pipeline that means a real (or dry-run) submission that reaches the broker and reading the broker's response. For an alert, send a real one and confirm it lands in Joe's inbox. For a UI fix, load the live page and read it. For a DB migration/query, run it against the real table and confirm row counts. Never state a cause you have not confirmed with direct evidence (push history, broker response, run log, rendered page) — if unverified, say "I don't yet know," never a guess dressed as fact.
+**Rule:** At the start of constructing each response, check six bog signals: (1) thrashing on the same problem 4+ tool calls; (2) responses getting longer / more diagnostic / less actionable; (3) re-reading files already read this session; (4) proposing fixes already rejected; (5) a turn taking >2 minutes when earlier turns were fast; (6) claims diverging from what actually loading the result shows. If 2+ fire, or #5 alone: offer a handoff inline as a self-contained copy-pastable block — (a) what we were doing, (b) branch + last 5 commits, (c) working/broken, (d) immediate next action, (e) decisions not yet in LESSONS, (f) pending merges, (g) uncommitted work in progress. Frequency cap: if Joe declined last turn, don't re-offer unless a NEW signal fires. Never offer mid-irreversible-action — finish the action first.
 
 **Applies to:** All.
 
 ---
 
-## 2026-06-02 — Find the ROOT cause before fixing; fixing the first plausible layer wastes the session and re-breaks things
+# 3 · VERIFICATION & DIAGNOSIS
 
-**What happened:** The paper rebalancer had never traded. I "fixed" it three times at the wrong layer before reaching the real cause: first widened the morning cron window (wrong — the trigger time wasn't the binding constraint), then re-timed to early morning, and only when I finally ran it LIVE to the broker did I see the actual wall: Alpaca rejects market-on-open (opg) orders that are FRACTIONAL, and the book is dollar-sized so every position is fractional. The true fix was a one-word order-type change (opg → market/day). Hours were spent fixing symptoms because I didn't drive to the broker rejection first.
+### 3.1 (merged: 2026-05-09, 05-10 b, 05-11, 05-19, 05-21, 06-02; specialist-review principle from 05-06) — What "verified" means
 
-**What you should do instead:** For "X never works," reproduce it against the real external system FIRST and read the actual error, before theorizing or shipping. The broker/API error message is the root cause; everything upstream is a guess until you've seen it. One verified reproduction beats three plausible-looking fixes.
+**What happened:** The most-repeated failure family in this file. "Verified" was claimed off file-reachability (a URL returning 200), green workflow runs, passing tests, bundle string-greps, single-theme screenshots, and renders-without-crashing — while Joe found, on the live site: a stale placeholder contradicting the just-shipped work (05-09), stray UI debris on pages the PR "didn't touch" (05-10), dead click-throughs (05-11), charts destroyed in dark mode (05-19), ~11 stale or impossible readings on a page called "completely fine" (05-21), and alerts that only wrote a database row nobody reads (06-02). Joe should never be the first eyeball.
 
-**Applies to:** Lead Developer + Senior Quant on any pipeline/integration.
+**Rule:** "Verified" means the agent loaded the rendered, live surface and read it. The checklist, before any "done / fine / fixed / verified" claim:
+
+1. **Load the live page cache-busted and read it top to bottom** — content, every data value sanity-checked, every freshness stamp (none in the future, none stale), calculations, layout. "It renders" is not "it's fine."
+2. **Identify every page that consumes anything the deploy touched** — including transitive consumers (methodology drawers, tooltips, placeholder copy naming the domain) — and load each one.
+3. **After any change to shared styles or components, walk EVERY page in the nav** hero-to-footer, not just the touched pages. A 5-second computed-style probe on suspect class names catches the "no styles loaded at all" failure mode that string-greps never will.
+4. **Exercise every claimed interaction end-to-end:** click each tile and confirm the destination renders with expected content; submit forms and confirm the result; press close/cancel and confirm the dismiss. "The element renders" + "the handler fires" is not a user journey.
+5. **For any visual change, check BOTH light and dark themes** (toggle is top-right on every page) with a screenshot of each. Anything touching the page background or chart canvas must use a theme variable; foreground accents on colored shapes may stay white.
+6. **Verify at the layer that matters:** a trade fix means a real or dry-run order reaching the broker and reading the broker's response; an alert fix means a real email landing in Joe's inbox; a query/migration means real row counts; a UI fix means the rendered page. A green checkmark, passing test, or 200 response is necessary, never sufficient.
+7. **Before claiming data "doesn't exist," sweep the real data stores AND the code that reads them across the whole site** — a doc line or code comment is a hypothesis, not a fact.
+8. **Numbers a PM would act on get a Senior Quant plausibility pass** (a "score" column sitting below the documented buy threshold on every row is screaming), and copy/visual changes get an independent UX Designer review against the brand spec before "done" reaches Joe. Independent means reviewing the diff cold, not grading one's own homework.
+9. **When delegating, brief against the live symptom and verify the delegate's result on the live system** — relayed claims are not verification.
+
+**Applies to:** All. CRITICAL — this family is the root cause of stale data hiding behind pages that render fine.
+
+### 3.2 (2026-05-18 + 2026-06-02) — Find the root cause before fixing; a revert is a hypothesis, not a fix
+
+**What happened:** A page-blanking bug was "fixed" by reverting the most recent change — which was unrelated; the real cause was the previous day's work, and "site recovered" was reported while it was still broken. Separately, the paper rebalancer was "fixed" three times at the wrong layer (timer windows) before a live run to the broker surfaced the actual wall: the broker rejects market-on-open orders for fractional shares — a one-word order-type fix.
+
+**Rule:** For "X never works," reproduce against the real external system FIRST and read the actual error — the broker rejection, the console error on the failing route — before theorizing or shipping. One verified reproduction beats three plausible-looking fixes. A revert is a valid hypothesis test only: if the user reports the problem persists after a revert, the revert was irrelevant — stop confirming "recovery," go back to evidence (read the console; grep the deployed bundle for the failure fingerprint; walk history for changes matching the symptom shape, not the most recent change). Never state a cause you have not confirmed with direct evidence — if unverified, say "I don't yet know," never a guess dressed as fact.
+
+**Applies to:** All, especially Lead Developer + Senior Quant on pipelines/integrations.
+
+### 3.3 (2026-05-10) — "Broken right after deploy" that you can't reproduce: suspect the user's browser cache first
+
+**What happened:** Minutes after a verified production deploy, Joe reported a blank page. The agent nearly spiraled into regression-hunting; Joe's follow-up: "Looks fine now, must have been a cache issue" — his browser had held stale HTML pointing at a bundle that no longer existed.
+
+**Rule:** When the user reports breakage within ~30 minutes of a deploy and you cannot reproduce: (1) confirm the live bundle matches the latest commit; (2) ask via one-question popup whether it looks fine after a refresh — phrased plainly ("sometimes the site serves a stale page for a few minutes after an update"), never "hard-refresh"; (3) only chase render-path bugs after the user confirms it persists post-reload.
+
+**Applies to:** Any user-reported breakage shortly after a production deploy.
+
+### 3.4 (2026-05-10) — Math changes require a hand-computed paper check before merge
+
+**What happened:** A shock-propagation change shipped with visual verification only ("clicked, badge changes color"); the underlying formula was wrong — two pins at +5σ made every unpinned factor read +25σ. Joe found it on first interaction. The paper check on the fix caught the bug structurally: pin VIX +5σ with correlation 0.65 → MOVE must read +3.25σ, not +25.
+
+**Rule:** Any PR touching a calculation — including UI changes around an existing calculation, since surrounding edits can break its inputs — includes, before merge: (1) two or three concrete inputs with hand-computed expected outputs, derived from the math, not from running the code; (2) the patched function run over those inputs, matching to within rounding; (3) the worked example in the PR body; (4) if the function has a bound, the bound exhaustively tested on a small enumerated space. Visual verification is necessary for UX but never sufficient for math — a button can light up correctly while the number it produces is wrong.
+
+**Applies to:** All PRs touching pure-function calculations (scoring, propagation, weighting, regime classification, compute scripts) or the UI around them.
 
 ---
 
-## 2026-06-02 — Paper engine is SIGNAL-ONLY with EOD-only pricing (binding design)
+# 4 · DATA GOVERNANCE
 
-**What happened:** The paper rebalancer was a dollar-target rebalancer: it pushed every holding back to a fixed dollar weight, so any PRICE drift created buy/sell "rebalancing" trades. It also priced positions off Alpaca's live/drifting mark, which disagreed with prices_eod (the feed the rest of the site uses) — AMRZ $53.85 Alpaca vs $53.79 EOD. Joe: trades must fire on SIGNALS ONLY, and EVERY price must come from the existing EOD feeds — nothing from Alpaca except executed fill price and quantity held.
+### 4.1 (2026-06-11) — An orphan tracking row is either a live feed missing registration, or a killed feed missing cleanup — decide with evidence
 
-**What you should do instead (binding):** The engine (paper_portfolio/diff.py, rebuilt PR #957) trades ONLY on: signal entry (new name), signal exit (name dropped from target set → sell whole position), and signal-driven resize (tier/weight change past the band). A held name is anchored to its COST BASIS (what we paid), which changes only when we trade — so PRICE MOVEMENT NEVER TRIGGERS A TRADE. All pricing (targets, share sizing) comes from prices_eod (Polygon/Massive) via load_eod_price_map(); Alpaca supplies ONLY held quantity and cost basis. Do not reintroduce market-value-based diffing or Alpaca prices. Tolerance band lives in config.py (max($500, 3% of the position's own target)). Submission uses market/day orders (NOT opg — opg rejects fractional shares).
+**What happened:** A registration pass found tracking rows with no registry entry and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE; the kill removed producers and tiles but left tracking rows behind. Registration armed the header freshness pill on a dead feed: Joe saw "1 feed stale" with every visible tile green and no red tile anywhere to find.
 
-**Applies to:** Senior Quant + Lead Developer — any change to the paper engine, pricing, or order type.
+**Rule:** An orphan tracking row has exactly two futures: (a) live feed missing registration → register it; (b) killed feed missing cleanup → delete the row. Decide with evidence: search commit history for kill commits naming the element, check whether any producer still writes it and any page still renders it. Killing a feed must retire ALL of it in one change: producer, tiles, tracking row, registry entries, drill lists. A page-level rollup (the header pill) must never grade an element set wider than what can be traced from a visible surface without NAMING the offenders in its tooltip.
 
----
+**Applies to:** Data Steward — every registration or retirement.
 
-## 2026-06-02 — Don't defer or self-deprioritize work Joe asked for; do it or say explicitly why you can't
+### 4.2 (2026-06-11) — Never derive a refresh timestamp from a data date
 
-**What happened:** More than once I set work aside on my own judgment ("that's a follow-up," "better as a fresh session," "I'll do the history check later") without Joe agreeing. He pushed back hard each time ("Why haven't you checked those?", "STOP BEING LAZY", "Why did you leave the broken engine not shipped?"). In most cases the deferral wasn't justified — the work was doable in-session.
+**What happened:** Joe caught tooltips claiming "Data as of June 10 · Last refreshed June 9, 8:00 PM" — impossible pairs — plus an as-of rendered hours before the close. Root cause: six producers DERIVED the "last refreshed" stamp from the data's own date (midnight UTC renders as 8:00 PM the prior evening ET) or fabricated a 4 PM close stamp; the nightly reconciler froze as-of dates; nobody recorded the actual run time.
 
-**What you should do instead:** When Joe asks for something, do it in the same session unless there is a real blocker, and if there is, state the blocker explicitly and let Joe decide — never silently downgrade scope to "later." "Build it now" means now. The only legitimate pause is a genuine decision that's Joe's to make, surfaced as a direct question, not a unilateral deferral.
+**Rule:** (1) Refresh/check stamps carry ONLY a real wall-clock run time (`now()` at write). (2) The as-of carries the business date the data represents (date-only intent at midnight UTC; display adds the official cutoff from the manifest) or a real event timestamp — never a dressed-up close time, never the future. (3) A daily market series never publishes a point for a session that hasn't closed in New York (keep the future-point guards in the fetchers). (4) The database clamps future stamps and rejects forward-dated price bars via triggers — do not remove them. (5) The freshness hook turns any remaining as-of-newer-than-refresh pair red with an explicit reason. Every new producer copies the honest-stamp comment block and verifies its first row shows a real run time in Admin·Data.
+
+**Applies to:** All — every producer, every freshness surface.
+
+### 4.3 (2026-06-11) — A displayed value must read the SAME source the engine acts on; auditing a table means auditing EVERY column
+
+**What happened:** The Sleeve B score column showed 1–3 on every holding (buy gate is ≥5) for two weeks: the trading engine had switched signal sources but the display helper kept reading the dead table on the old scale. Joe found it the night after the agent had "verified" the page three times while staring at the wrong scores.
+
+**Rule:** (1) When a data source is retired or an engine changes sources, grep EVERY consumer of the old source in the same change — engine and display must read one source of truth. (2) Self-UAT of a data table verifies EVERY column against its source of record (recompute independently), not only the columns the task touched, plus a plausibility pass. (3) Numbers a PM would act on get the Senior Quant plausibility check before the page is called verified.
 
 **Applies to:** All.
 
+### 4.4 (2026-06-01) — Never ship synthetic or placeholder data dressed as real; un-wired renders an em-dash
+
+**What happened:** Large parts of the Scanner and Ticker pages rendered fabricated data as live: hash-seeded component scores, random-walk sparklines, a synthetic price path, and four hardcoded "events" identical on every ticker — while the real values sat unused in the database. This drove Joe's "zero faith in the data."
+
+**Rule:** Every value on a data surface traces to a real stored field. If a field isn't available yet, render an em-dash (—) and say what's missing — never a synthesized stand-in, random series, or hardcoded example, even as a "temporary placeholder." Any fake/hash-seeded/random data generator in a production component is a defect. Before declaring a surface done, open the source row it claims to show and confirm each rendered value matches.
+
+**Applies to:** All.
+
+### 4.5 (2026-05-27) — Never accept silent staleness on a "successful" data workflow; fail loud
+
+**What happened:** The indicator-refresh workflow logged success every morning while individual indicators went days stale — fetch helpers returned nothing on vendor hiccups and the result was silently dropped. Joe spotted stale values on the live site before any system did. Exit-code-zero-but-stale is the worst failure mode: it actively masks the problem.
+
+**Rule:** Every producer that writes a "live" data file includes a fail-loud staleness gate: a per-indicator SLA table (in TRADING days, NYSE-calendar-aware — T+1 vendor series get 2, same-day series get 1), checked after the fetch but before the file is written; any breach fails the whole run, the workflow goes red, the watchdog files a P1 bug, and the stale file never ships. Helpers may return None to survive one indicator's hiccup, but the end-of-run gate is mandatory — "we log it to the health table" is not enough, because by then the stale file already shipped. A new indicator without an SLA entry is a missing config, not exempt: add the entry in the same PR as the producer.
+
+**Applies to:** All data producers. Lead Developer + Data Steward sign-off on any producer change.
+
+### 4.6 (2026-05-27) — Don't anchor on the vendor you've been using; check whether the publisher is upstream
+
+**What happened:** Three daily Treasury yield indicators sat on FRED for 18 months and repeatedly shipped stale — FRED republishes Treasury's own daily data with an afternoon delay, after our morning run. The fix was free: read Treasury.gov, FRED's upstream publisher, which posts same-day.
+
+**Rule:** When picking a source for a series, ask "who does this vendor get the data from?" If an upstream publisher exists at the same license tier (free/public) on a tighter cadence, that's the right source. Treasury.gov, FRED, NY Fed, ICE BofA, BLS, BEA all publish free feeds; FRED republishes most of them. Check the publisher before the republisher. Any new daily macro/rates indicator requires this check before the source is locked.
+
+**Applies to:** Data Steward (lead) + Senior Quant.
+
+### 4.7 (2026-05-03 ×2, rewritten 2026-06-11; the "untracked defaults to green" clause is SUPERSEDED by Hard Rule 0.1) — Freshness SLAs floor at worst-case publish lag; no false alarms on weekends; every chip-wired element is registered before merge
+
+**What happened:** Chips lit red on a Sunday morning for working pipelines (a daily SLA of 25h breaches every weekend; monthly vendor series publish 3–4 weeks after period end and were graded against a 34-day window). Joe: "I only want to know when something breaks!!!!! I dont want red chips over weekends/holidays!!!" The original fix also defaulted UNTRACKED elements to green — that clause was reversed on 2026-06-02 by Hard Rule 0.1 (fake green forbidden): an untracked element is never silently green; it gets registered and seeded in the same PR.
+
+**Rule:** SLA floors = worst-case publish lag + one full cadence cycle + operational grace:
+
+- daily → 49h (covers T+1 publish + weekend)
+- weekly → 192h; 384h for long-lag series (e.g. the term-premium model the Fed posts weekly)
+- monthly → 1200h (~50 business days)
+- quarterly → 3600h (~150 business days; some surveys land 10 weeks after quarter end)
+
+When in doubt, check the vendor's actual history: the SLA must be at least the typical gap between the data date and when that point first appears, plus one cadence cycle — otherwise the chip lies red between releases. Red is reserved for actual breakage. (The deeper fix the original entry filed as follow-up — grade freshness off the real last-run time, not the data's own date — shipped 2026-06-11; see 4.2.) Adding a chip to a tile without registering the element in the manifest AND seeding its tracking row is a bug; the Data Steward sign-off must call out new chip wires.
+
+**Applies to:** Data Steward + Lead Developer.
+
+### 4.8 (2026-05-11 b) — Backfills persist to Supabase first, then the file change merges in the same work item
+
+**What happened:** ISM history went "missing" three times: each time an agent parsed the source spreadsheet in-session, merged ~865 monthly points into a working copy of the history file, used it, and never committed — the next scheduled run overwrote the file with the stub, and the next session re-declared the data missing. Joe: "How did you misplace this data 3 times? Why isn't it in our database?"
+
+**Rule:** Any non-trivial backfill (history, calibration tables, anything beyond a single new daily reading) is durably persisted to Supabase FIRST, then the file/JSON change is committed and merged in the SAME work item — no "next session." The producer gains a "hydrate from Supabase if the local series is shorter than the database" branch so a fresh checkout repopulates from source-of-truth before appending. Archive the raw source file in the repo for reproducibility. If we parsed it once, future-us reads it from Supabase without re-parsing.
+
+**Applies to:** All historical backfills, calibration tables, and manifest updates introducing a new element.
+
+### 4.9 (2026-05-21) — Resampling to a period-end label publishes a future-dated point for the in-progress period
+
+**What happened:** Three Macro Overview tiles showed "last updated" dates in the future: month-end / week-Friday / quarter-end resampling labels every bucket with the period-END date, so the still-in-progress period publishes a partial value with a future stamp. Bonus finds: a credit-spread proxy ran ~2× the true spread on a wrong "the real series is license-restricted" assumption (it was free the whole time), and a ratio used non-standard scaling.
+
+**Rule:** (1) After any resample to period-end labels, immediately drop buckets dated after today — the in-progress period is a partial value, not a finished observation. (2) Keep the end-of-run future-point guard that sweeps every indicator before writing. (3) Prefer a series' native daily cadence when every input is already daily. (4) Before believing a "vendor series is unavailable/restricted" comment, query the vendor.
+
+**Applies to:** Senior Quant + Data Steward — every producer block that resamples or substitutes a proxy.
+
+### 4.10 (2026-05-04) — Before changing a data file the website reads, find every reader and keep its labels
+
+**What happened:** A script wrote different labels into a file the home page was already reading; the page found nothing under the labels it expected and every cycle-board score rendered as a blank zero — no crash, no log error, just a broken-looking page Joe caught within hours.
+
+**Rule:** Before shipping anything that writes to a data file the site reads, search the site's code for that file's name, find every reader, and note exactly which labels each pulls. New code keeps those labels; if a label must change, the reader changes in the same PR so they ship together. After deploy, load the page and look at it.
+
+**Applies to:** All producers writing site-consumed files.
+
+### 4.11 (2026-05-04 b) — No hardcoded dates anywhere on the site
+
+**What happened:** Hardcoded strings — "tax year 2026," "next release: May 6," an "as of" footer — each eventually went stale and had to be chased individually, with nothing alerting.
+
+**Rule:** Every "current" date displayed in the UI is sourced from a live registry (the freshness-tracking table, the data manifest, or a snapshot file). If you find yourself typing a month or year into UI code, stop and ask "where would this come from if I refreshed at 6am tomorrow?" — that source is the one to read. Historical-event labels ("Dec 2021 — all-time peak") and calendar reference data (market holiday tables) are fine.
+
+**Applies to:** All UI work.
+
+### 4.12 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
+
+**What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
+
+**Rule:** Any email wired into a workflow that can fire more than once a day goes through the send-once helper (one send per email type per ET day, ledger-backed, fail-open). Redundant timers are for reliability and must never multiply notifications. Joe's inbox contract: exactly one morning summary and one execution report per trading day.
+
+**Applies to:** Lead Developer — all notification wiring.
+
 ---
 
-## HARD DATA RULE #1 — every data element carries a 5-field freshness chip (Joe, 2026-06-02, restated, binding)
+# 5 · QUANT METHODOLOGY
 
-**What happened:** Joe has stated this repeatedly. Agents keep shipping data values with no chip, half-explained chips, or chips that are green only because the element is untracked. On 2026-06-02 the new commodity/FX/positioning feeds rendered green purely because the freshness system had no record of them ("fake green"), and known-stale feeds (term premium) were left red without being fixed.
+### 5.1 (2026-05-13) — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
 
-**The rule — no exceptions, every page, every element:** Every single piece of data on MacroTilt — every indicator, positioning signal, tile, map dot, grid row, drill panel, KPI, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Scanner, Portfolio, Paper, Ticker, Scenario, Admin·Data) — must carry a freshness chip that exposes all FIVE fields:
-1. **Source** — FRED / Yahoo / CFTC / NY Fed / etc.
-2. **Frequency + calendar** — "Daily · NYSE trading days", "Weekly · every Friday", "Monthly · 15th".
-3. **Timing** — the time of day the fetch runs (ET).
-4. **SLA** — the freshness target in hours (e.g. "25 hours").
-5. **Last update** — exact date AND time of the last successful refresh.
+**What happened:** Splicing a derived proxy (1962–2002) onto the actual series (2002–2026) inside a trailing 5-year percentile rule produced 100% Risk-Off for 18 straight months — the rolling window straddling the splice experienced a step-function regime change in the data itself, despite nearly identical means in the overlap.
 
-All five read from the data manifest + the freshness-tracking table — never hardcoded. **No data value renders without a chip. No chip ships without all five fields. No chip is allowed to be green merely because the element is untracked** — an element with no manifest entry and no tracking row is NOT done; it must be registered and seeded so the chip is genuinely green (within SLA) or genuinely red (stale). A green chip must mean "the system is watching this and it is fresh," never "the system has never heard of this."
+**Rule:** Before splicing two series, compute local distribution stats in adjacent 5-year windows on both sides of the splice. If means or standard deviations differ by more than ~5%, apply the distribution mapping `X_scaled = μ_after + (X_before − μ_before) / σ_before × σ_after`. After splicing, validate continuity: count rule-fires in 6-month windows on either side — smooth is expected, a step (50% → 100%) is a bug. Document the anchor parameters in the methodology for reproducibility.
 
-**Applies to:** All. Binding on every PR that adds, moves, or renders any data element.
+**Applies to:** All series-splicing feeding any percentile or rolling-window rule.
 
-## HARD DATA RULE #2 — all data work needs full blast-radius + Data Steward sign-off + source-to-target mapping + the three pages updated (Joe, 2026-06-02, binding)
+### 5.2 (2026-05-13) — Don't confuse "available at source" with "in the on-disk file"
 
-**What happened:** Data changes keep shipping that touch only the surface Joe pointed at, with no end-to-end mapping and without updating the governance pages, so the data system drifts out of sync with what's actually live.
+**What happened:** The deployed history file had MOVE starting 2006; the real series goes back to 2002 at the vendor. Building the splice against the deployed file left a 3-year hole that corrupted the rolling window for 18 months post-splice.
 
-**The rule:** Any change that touches data — a new feed, a renamed element, a re-bucketing, a vendor swap, a schedule change — is not done until ALL of the following are satisfied in the same PR, with explicit **Data Steward sign-off**:
-1. **Source-to-target mapping for every single data element** — every element has a documented path from its source (vendor + endpoint) through its storage to every consumer surface that renders it. No element without a complete map.
-2. **Full blast-radius check** — enumerate every surface, producer, consumer, and downstream reader the change touches; verify each.
-3. **The three governance pages are updated to match:** **Admin·Data** (the element appears and is monitored with a real chip), **All Indicators** (the element is a visible, filterable row), and **Methodology** (the element is documented in the sources/method tables). A data change that leaves any of these three stale is not done.
+**Rule:** For any series used in analysis, check three things separately: the on-disk file's first observation, the original source's inception date, and the published methodology's window (the authoritative one). If the first two disagree, pull the missing window from source before building anything on top.
 
-**Applies to:** All. Data Steward owns the map and the three-page check; no "looks good" counts as sign-off without them.
+**Applies to:** All indicator analyses depending on a specific window.
+
+### 5.3 (2026-05-13) — Sub-composites double-count; build panels from primitives
+
+**What happened:** A retired composite weighted four indicators equally — but one of them is itself a ~105-input composite that already CONTAINS two of the others; overlap correlations ran 0.90–0.99. The apparent diversification was illusory.
+
+**Rule:** When building any panel, audit whether members are PRIMITIVES (a price, a yield, a spread) or COMPOSITES (weighted averages of other indicators). Prefer primitives; if a composite is included, exclude its sub-components from separate weighting. Run Pearson and Spearman correlation matrices on the panel and flag any pair above 0.85 as a double-counting candidate.
+
+**Applies to:** All composite/panel design.
+
+### 5.4 (2026-05-13) — Test indicator subsets empirically, never by assumption
+
+**What happened:** A 5-indicator panel shipped on its published methodology without testing predictive value. The eventual analysis showed the yield curve had no near-term predictive power for drawdowns at any horizon up to 12 months, one input was weak everywhere, and a single strong indicator alone beat the full panel's risk-adjusted return — the panel was diluted by its weakest members.
+
+**Rule:** Before adopting any panel for production, run discrimination analysis (AUC) at multiple forward horizons (1w / 1m / 3m / 6m / 12m) for each indicator individually and for every subset, against forward drawdown probabilities (10/15/20%). Flag anything below 0.55 AUC at the relevant horizon. More indicators is not better — dilution is real.
+
+**Applies to:** Senior Quant — any indicator-driven regime engine. Backtesting is non-negotiable.
+
+### 5.5 (2026-05-13) — Inflationary vs deflationary stress require different defensive sleeves
+
+**What happened:** The original defensive sleeve (50% cash + 25% long Treasuries + 25% gold) implicitly assumed deflationary crashes. 2022 broke it: rising yields drove equities AND long Treasuries down ~20% together — the Risk-Off signal fired correctly and the sleeve compounded the loss.
+
+**Rule:** When the regime is Risk-Off, check yield direction (trailing 3-month change in the 10-year yield, percentile-ranked vs trailing 5 years) to type the stress: inflationary (yields rising fast, ≥70th percentile) → cash + gold + short-duration Treasuries, avoid duration; deflationary (≤30th percentile) → cash + gold + long Treasuries; neutral → balanced. This two-axis architecture (stress level, stress type) is the structural fix for the discount-rate-shock blind spot in trend/risk-parity defaults.
+
+**Applies to:** All defensive-overlay design, especially anything defaulting to long Treasuries as the equity hedge.
+
+### 5.6 (2026-05-11) — Negative position values have multiple meanings; dispatch on kind, not sign
+
+**What happened:** The allocation rollup classified every negative-value position as margin debt; a sold short call (an open option obligation) got labeled borrowed cash. Joe has no margin debt.
+
+**Rule:** Where the data model permits negative values for structurally different reasons (margin borrowing, short equity, short options, accrued obligations, manual adjustments), bucketing dispatches on the KIND of row — asset class + direction — before any default liability bucket. When touching any negative-value branch, audit every other negative-value path in the same file for the same conflation.
+
+**Applies to:** All allocation/rollup/aggregation logic.
+
+---
+
+# 6 · CODE & RELEASE DISCIPLINE
+
+### 6.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
+
+**What happened:** An inline immediately-invoked block with state/effect hooks inside the Home render path executed only on the Home route, so the parent's hook count varied across renders — React tore down the whole tree on every other route (error #300).
+
+**Rule:** Never call any hook inside an inline IIFE in JSX. If a render block needs local state or effects, declare a real function component at module scope and render it. Hooks must run the same number of times on every render. Before merging any render-heavy file, scan the diff for arrow-IIFE openings within ~20 lines of hook calls.
+
+**Applies to:** Lead Developer + UX Designer — every PR adding or modifying JSX.
+
+### 6.2 (2026-05-13) — Parse-check JSX after any structural rewrite before pushing
+
+**What happened:** Two regex-based scripts that lifted components out of wrappers introduced unbalanced fragments; neither was caught locally; both cost revert + re-push cycles and a wasted build.
+
+**Rule:** After any scripted/regex edit that adds or removes JSX elements (fragments, IIFE returns, wrappers), run a parser check on every modified file before committing: `node -e "require('@babel/parser').parse(require('fs').readFileSync('FILE','utf8'),{sourceType:'module',plugins:['jsx']})"`. If it errors, fix structure first. Never push JSX surgery without it.
+
+**Applies to:** Lead Developer.
+
+### 6.3 (2026-05-10 c + d) — Every class name referenced in JSX needs an actually-loaded CSS rule; style-string constants must actually be used
+
+**What happened:** Two flavors of the same silent visual bug. A drawer component rendered class names with ZERO matching CSS rules anywhere — the browser's defaults left the inactive drawer's close "×" rendered as plain text above every page's footer. Separately, a page defined a 180-line CSS string constant that was never referenced after declaration (dead code), and the wrapper class its selectors were scoped to wasn't applied — the whole builder rendered unstyled. Both shipped because "the bundle contains the strings" passed.
+
+**Rule:** When a component renders class names, confirm rules targeting them are actually loaded BEFORE shipping — mandatory for anything controlling visibility/position (drawer, modal, scrim, popover): `grep -n ".classname" src/theme.css` returning nothing means the component ships naked. When a file declares a CSS-as-string constant, grep for its second usage — declaration-only means unreachable styles; also confirm the scoping wrapper class is applied. Two greps, five seconds, catches both.
+
+**Applies to:** All UX Designer and Lead Dev work introducing or relying on class names or style-string constants.
+
+### 6.4 (2026-05-13) — CSS color/surface tokens must be theme-aware; never hide an undefined variable behind a hex fallback
+
+**What happened:** Hundreds of call sites referenced token names that were never defined, each with a hardcoded hex fallback — so the fallback fired in BOTH themes and dark mode rendered dark-on-dark invisible text. Landed silently across 16 files before Joe screenshot-flagged it.
+
+**Rule:** Use only the canonical tokens defined in BOTH the root and dark-theme blocks of theme.css (`--text`, `--text-2`, `--text-muted`, `--text-dim`, `--bg`, `--surface`, `--surface-2`, `--surface-3`, `--border`, `--border-faint`, `--border-strong`, `--accent`, `--accent-soft`, `--green`, `--red`, `--green-text`, `--red-text`, `--yellow`). Never write `var(--foo, #hex)` where `--foo` isn't defined — search theme.css first. A genuinely new semantic token gets defined in all three theme blocks before use. After any new color rule, load the page in both themes (see 3.1).
+
+**Applies to:** UX Designer + Lead Developer — all CSS in files, inline styles, or style blocks.
+
+### 6.5 (2026-05-13) — Never put the comment-closing pair `*/` inside a CSS comment body
+
+**What happened:** A CSS comment describing token names with glob-style asterisks contained the literal closing pair mid-sentence — the comment closed early, everything after parsed as invalid CSS, and the build pipeline broke for unrelated work.
+
+**Rule:** CSS comment bodies never contain the literal closing pair: spell out glob patterns ("the ink, bg, and line tokens"), break math/path fragments with spaces. Before committing any CSS change, check the diff for the pair and confirm every occurrence is an intended comment close.
+
+**Applies to:** Anyone touching stylesheets, inline style blocks, or template strings emitting CSS.
+
+### 6.6 (2026-05-10 e) — An array indexed by a string returns undefined; build a lookup or use .find
+
+**What happened:** A page crashed the React tree on click: an array of factor objects was indexed with a string ID, returning undefined, then a missing-property read crashed — compounded by the property name itself having been renamed.
+
+**Rule:** `SOME_ARRAY[stringKey]` is almost always a bug: either build a by-ID map once (`Object.fromEntries(arr.map(x => [x.id, x]))`) or use `.find` with a defensive null-guard. Any time the shape of a shared data structure changes (array ↔ map, field rename), grep all consumers before merging.
+
+**Applies to:** All work touching shared data structures.
+
+### 6.7 (2026-05-04 c) — Every file deletion greps the WHOLE repo first, including entry points and workflows
+
+**What happened:** A file was deleted with the claim "0 imports" — the grep missed the main entry point, which imported it. Every scheduled scan crashed at import for days, and the failure was masked as a "skipped (out-of-window)" run, so no alert fired.
+
+**Rule:** Before deleting any file, grep the whole repo for the basename with AND without extension, including main entry scripts, workflow files, and edge functions. Paste the actual grep output into the PR description. Separately: a "successful" run that took the no-op exit path (gated/skipped/weekend) must be visually distinct from a successful run that did work — otherwise a regression that turns every run into a no-op looks like a healthy quiet day.
+
+**Applies to:** Lead Developer — every deletion.
+
+### 6.8 (2026-05-10) — Rewriting one side of a producer/consumer contract requires auditing the unchanged side, key by key
+
+**What happened:** A page rewrite read nested keys the producer never emitted (the producer's names were different); the build passed (bundlers don't type-check JSON blobs), the contract validator had no entry for those paths, and the live funnel rendered zeros after cutover.
+
+**Rule:** When rewriting one side of a producer→consumer pair (script writing JSON read by the UI, or vice versa — the rule is symmetric), open the OTHER side and confirm every key the rewrite reads is actually emitted, including nested paths. If they diverge, decide before merging: rename producer (and backfill), rename consumer, or add a normalize adapter at the hydration boundary. Add the specific key paths to the contract checker so the next rename trips the check before merge. A passing build is not a passing contract.
+
+**Applies to:** Every PR touching one side of a data contract.
+
+### 6.9 (2026-05-07) — Never stack new fixes on a feature branch carrying unresolved regressions on other surfaces
+
+**What happened:** Five fixes were built on an existing design branch that already carried a visual regression on another page; Joe loaded the preview to test a one-line fix and found a broken Macro Overview bundled into the same merge unit.
+
+**Rule:** Before stacking commits onto an existing branch, load that branch's preview and audit the surfaces you're NOT touching. Any regression found — even one — means fork to a fresh branch off main and open a separate PR. A PR's merge gate is the WHOLE branch; if any other commit on it isn't ready, your commits aren't ready. Especially binding when the branch has 5+ commits or is a broad theme/redesign branch.
+
+**Applies to:** All.
+
+### 6.10 (2026-05-13) — Every new public table in a migration includes explicit access grants
+
+**What happened:** Supabase announced that new tables in the public schema stop being auto-exposed to the Data API (existing projects cut over October 30, 2026). The site reads via the Data API, so any future table added without an explicit grant silently returns a permission error and its tiles render as em-dashes.
+
+**Rule:** Every migration creating a public table includes the grant block (template lives at `supabase/migrations/000_TEMPLATE.sql`), scoped to actual access: read for anonymous if a tile reads it directly; service-role only for ingestion-only tables; row-level security enabled with a named policy. Data Steward sign-off on every table-creating PR must name which roles got which privileges and why.
+
+**Applies to:** Lead Developer + Data Steward — every migration.
+
+### 6.11 (2026-06-01) — Required status checks on the main branch silently freeze every nightly data bot
+
+**What happened:** Branch protection with required checks went live, and the nightly refreshers push with the default workflow token (not an admin) — every direct push was rejected, the engine reading froze for days, and nothing visibly errored. Earlier the same week, plain pushes were also losing races to concurrent commits.
+
+**Rule:** Daily data-refresh workflows check out and push with the admin bot token stored as the repo secret `MACROTILT_BOT_PAT` (admins bypass required checks; the anti-synthetic gate stays required for human PRs), and pushes rebase onto latest main with retries. If a data surface goes stale, check the producing workflow's last run for a protected-branch rejection or "fetch first" failure BEFORE assuming the compute broke.
+
+**Applies to:** Lead Developer — branch protection and all bot workflows.
+
+---
+
+# 7 · PLATFORM FACTS & CREDENTIALS
+
+### 7.1 (2026-05-26; paths updated 2026-06-11) — The GitHub token is on disk; read it, never ask Joe for it
+
+**What happened:** The token was misplaced across sessions repeatedly, ending with the agent driving Joe's screen to push code by hand. Joe: "Can you please save this token so this never happens again… I set no expiration. Please do not lose this."
+
+**Rule:** At the start of any task that pushes to GitHub, read the token from disk first: primary `~/Documents/Claude/MacroTilt/.secrets/github_pat.txt` (the project folder was renamed from "Claude Projects" to "Claude" on 2026-05-27); fallback: the token line in the repo's local env file. Configure pushes with the token inline; never echo it in chat; never drive Joe's screen to push. Scopes are repo + workflow (verified 2026-05-27). If a push fails on auth, the token was revoked — ask Joe to regenerate via the 3 UI clicks at github.com → Settings → Developer settings → Personal access tokens, then save the new token to the same file. Never ask "where is the token."
+
+**Applies to:** Every session that pushes to the repo.
+
+### 7.2 (2026-04-30) — Polygon Basic silently caps historical data at ~2 years
+
+**What happened:** A backfill discovered the aggregates endpoint returns ~501 trading days per ticker on the Basic tier regardless of the requested start date — no error, no documentation; it silently truncates.
+
+**Rule:** Assume the Basic tier returns ≤2 years per ticker unless verified otherwise. Viable patterns for deeper history: one-shot bootstrap from a free source into our own price table + Polygon forward-only (this is what shipped), or a paid tier upgrade. Never propose a Polygon-only deep backfill without explicit tier confirmation.
+
+**Applies to:** Senior Quant + Data Steward — anything needing 2+ years of prices.
+
+### 7.3 (2026-04-30) — Probe a third-party site's login stack for five minutes before estimating any scrape build
+
+**What happened:** A scrape was planned as a ~6-hour cookie-login build on the assumption of a server-side form; the site turned out to be a single-page app with managed auth + CAPTCHA, costing three probe iterations and a wrong estimate.
+
+**Rule:** Before estimating any "login + scrape" build, fetch the login page and check what actually runs it (form markup vs. managed-auth/CAPTCHA/single-page-app markers). If managed auth is present, plan around a headless browser or manual cookie path from the start — direct programmatic login is almost certainly blocked.
+
+**Applies to:** Lead Developer — any third-party integration estimate.
+
+---
+
+# 8 · SPECS, COPY & PRODUCT DECISIONS
+
+### 8.1 (2026-05-18; paths updated 2026-06-11) — Read the surface's spec docs BEFORE editing page-level files
+
+**What happened:** Three sessions in one day rewrote the Methodology page without reading the two handoff/spec docs sitting in the workspace; each rewrite missed structural facts those docs already answered, and two of three were reverted.
+
+**Rule:** Before touching any page-level file, read every workspace doc whose filename names that surface. Current locations: the MacroTilt project folder (`~/Documents/Claude/MacroTilt/`) — start with `WHERE_THINGS_LIVE.md`, then any `HANDOFF_*.md`, `*_SPEC*.md`, `*_PUNCHLIST*.md`, and surface-specific direction docs — plus repo-root docs fetched fresh from origin/main (per 0.3). These are the source of truth for what the page should currently look like; the project Pre-Flight Checklist's "check Knowledge Base files first" binds specifically here.
+
+**Applies to:** All four specialists; Lead Developer especially when rewriting a page.
+
+### 8.2 (2026-05-04) — When a calibration or methodology JSON exists, it IS the spec; never invent your own panel
+
+**What happened:** A nightly compute script invented its own indicator panels for three mechanisms whose calibration file already specified exact indicators, readings, percentiles, and concern-directions. Credit scored Neutral when the spec said Caution — a different band on the live page.
+
+**Rule:** Before writing any compute script for a numeric output, search the repo for an existing calibration/methodology file in that domain (keywords: calibration, methodology, threshold). If one exists, read it and use its values directly. Support every direction encoding it defines — never silently treat unknown direction strings as "high is concerning." A checked-in spec trumps anything invented in a script.
+
+**Applies to:** Senior Quant + Lead Developer — every scoring/compute script.
+
+### 8.3 (2026-05-04 e) — Methodology copy is sourced from production code, never from memory
+
+**What happened:** A fresh methodology page listed indicator panels that were not in production — drafted from memory of generic regime-monitoring writeups. Joe caught the contradiction immediately.
+
+**Rule:** Before writing methodology copy that names an indicator, source, formula, threshold, ETF, or count: open the file that produces that thing in production (the calibration JSON, the compute script's panel definitions, the allocator's constants) and quote what's actually there. For backtest numbers, re-run the harness and quote its output — never quote a number from a pre-existing doc without reproducing it. A number living only in a doc with no script behind it gets a follow-up: reproduce it or drop the claim.
+
+**Applies to:** All methodology and documentation copy.
+
+### 8.4 (2026-06-10) — Indicator copy is factual and academic, never editorial
+
+**What happened:** Proposed indicator headers included invented color ("the signature of a true risk-off regime," "calm surface, nervous undercurrent"). Joe: "please dont make up editorial nonsense… I want fact based what it is, how its measured, what it tells you. In academic terms."
+
+**Rule:** Every indicator header has exactly three factual parts: what the series is, how it is measured (one clause), and what levels or changes have historically meant — with numbers and named historical episodes, no metaphors, no trader-poetry. A market-standard nickname ("the fear gauge") is acceptable only when it's the series' actual common name. Same-day extension: never name a statistical operation in a header — "regressed out," "winsorized," "principal component," "z-score" are banned there; describe in words what the operation does ("strips out what the economy's current state would predict"). Operation names may appear only inside "How it's measured," with a plain-words gloss.
+
+**Applies to:** All indicator, positioning, and methodology copy site-wide.
+
+### 8.5 (2026-05-08) — When the user provides exact copy, use it verbatim
+
+**What happened:** Joe's mockup included a specific headline; the agent synthesized its own "improved" version. Joe: "This is the header btw — I already told you this."
+
+**Rule:** User-provided copy in a mockup, screenshot, or chat — headline, subtitle, button label, error message — is transcribed verbatim; it IS the spec. Honor the mockup's visual emphasis, never paraphrase or condense. If the copy doesn't fit the layout, flag the constraint and ask before rewording. Before shipping any hero where the user supplied a mockup, search the deployed text for the mockup's exact copy and confirm a hit.
+
+**Applies to:** All — especially heroes, page subtitles, modal titles, buttons, empty states.
+
+### 8.6 (2026-06-02, binding design) — The paper-trading engine is SIGNAL-ONLY with end-of-day-only pricing
+
+**What happened:** The original rebalancer pushed every holding back to a fixed dollar weight, so pure price drift generated trades, and it priced positions off the broker's live mark, which disagreed with the end-of-day feed the rest of the site uses. Joe: trades fire on SIGNALS ONLY, and every price comes from our existing end-of-day feeds.
+
+**Rule:** The engine trades ONLY on signal entry (new name), signal exit (name dropped → sell whole position), and signal-driven resize (tier/weight change past the band). A held name is anchored to its COST BASIS, which changes only when we trade — price movement never triggers a trade. All pricing (targets, share sizing) comes from the end-of-day price table; the broker supplies ONLY held quantity and executed fill prices. Orders are market/day — never market-on-open, which rejects fractional shares (the book is dollar-sized, so every position is fractional). Tolerance band: max($500, 3% of the position's own target). Do not reintroduce market-value diffing or broker prices.
+
+**Applies to:** Senior Quant + Lead Developer — any change to the paper engine, pricing, or order types.
+
+---
+
+# 9 · RETIRED (archive — no longer binding; kept so the history isn't lost)
+
+- **2026-05-26 — "Site-overhaul brief lives on disk; read it before any redesign work."** Retired 2026-06-11: the overhaul shipped and became the default live site on 2026-05-30, and the page-by-page walk-through completed 2026-06-10. The entry's build-target instruction (the nested live folder) became actively wrong after the cutover — live source is the repo root. The design brief archive remains in the MacroTilt project folder's site-overhaul directory if ever needed. The surviving general principle — read the spec before redesign work — lives in 8.1.
+
+- **2026-05-06 — v2 cutover quality gates and sub-agent sign-off process.** Retired 2026-06-11: the v2 cutover is complete and v2 itself was retired behind the overhaul. The surviving principles — independent specialist review before "done," and never weakening a quality gate to pass it — live in 3.1.
+
+- **2026-05-03 — "Unregistered elements default to a green chip."** SUPERSEDED 2026-06-02 by Hard Rule 0.1: fake green is forbidden; untracked elements get registered and seeded in the same PR. The surviving content of the original entry — SLA floors sized so working pipelines never alarm on weekends, and registration-before-merge — lives in 4.7.
