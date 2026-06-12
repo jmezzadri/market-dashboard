@@ -1,5 +1,5 @@
 {
-  "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown — needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from “engine not yet built” to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily. v7 (2026-05-22) registers news.market-headlines-multisource, the Home market-news headlines feed, after a SCAN_345PM idempotency-gate shell syntax error silently froze it at 2026-05-19. v8 (2026-05-22) moves that feed from the once-a-day scanner bake to an on-demand endpoint (api/macro-news.js), fetched on page load and CDN-cached ~10 min. v9 (2026-05-25) records the #1208 fix to the Trading Opportunities screener's prices_eod cold pull: the cross-run resume now paginates one ticker at a time (index-served range scans, no PostgREST or= disjunction that timed out) and mirrors the completed price panel to a durable Supabase Storage backstop (bucket screener-cache). v10 (2026-06-11) honest-stamp one-shot: +12 previously-untracked elements registered; stamp semantics fixed across all producers (last_good_at = real run time; data_as_of = business date, never future). v11 (2026-06-11) un-registered put_call/buffett/bank_unreal (killed 2026-06-10; mistakenly re-registered same day). v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron).",
+  "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown — needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from “engine not yet built” to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily. v7 (2026-05-22) registers news.market-headlines-multisource, the Home market-news headlines feed, after a SCAN_345PM idempotency-gate shell syntax error silently froze it at 2026-05-19. v8 (2026-05-22) moves that feed from the once-a-day scanner bake to an on-demand endpoint (api/macro-news.js), fetched on page load and CDN-cached ~10 min. v9 (2026-05-25) records the #1208 fix to the Trading Opportunities screener's prices_eod cold pull: the cross-run resume now paginates one ticker at a time (index-served range scans, no PostgREST or= disjunction that timed out) and mirrors the completed price panel to a durable Supabase Storage backstop (bucket screener-cache). v10 (2026-06-11) honest-stamp one-shot: +12 previously-untracked elements registered; stamp semantics fixed across all producers (last_good_at = real run time; data_as_of = business date, never future). v11 (2026-06-11) un-registered put_call/buffett/bank_unreal (killed 2026-06-10; mistakenly re-registered same day). v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron). v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags — per-series calibration queued.",
   "version": 9,
   "_freshness_sla_basis": "Per LESSONS.md: daily=49h (covers T+1 publish + weekend), weekly=192h, monthly=1200h, quarterly=3600h. Real-time (Supabase reads with no producer) use null. Manual/one-shot use null.",
   "_open_questions": [
@@ -28,7 +28,8 @@
       ],
       "target_storage": "Supabase: prices_eod",
       "failure_mode": "Trading Opps + Portfolio Insights show stale prices and an amber/red freshness chip; day % change tile reads em-dash.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.ticker-reference-massive": {
       "category": "market",
@@ -48,7 +49,8 @@
       ],
       "target_storage": "Supabase: ticker_reference",
       "failure_mode": "Scanner rows render with raw ticker but blank sector / company name. Funnel 'All US-listed' counter goes stale.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.dividends-massive": {
       "category": "market",
@@ -118,7 +120,8 @@
       ],
       "target_storage": "Supabase: spy_sector_weights",
       "failure_mode": "Asset Tilt sector deltas freeze at prior day's benchmark; OW/UW pills off by < 30bps until refresh.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.sector-perf": {
       "category": "market",
@@ -136,7 +139,8 @@
       "target_storage": "public/sector_perf.json",
       "failure_mode": "Sector perf columns blank on Asset Tilt when expansion ships. No current user impact (page does not render these columns yet).",
       "owner": "Data Steward",
-      "notes": "Producer running but consumer code path not yet live — flagged in lineage gap #2."
+      "notes": "Producer running but consumer code path not yet live — flagged in lineage gap #2.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.indicator-history-fred-yahoo": {
       "category": "indicator",
@@ -156,7 +160,8 @@
       "target_storage": "public/indicator_history.json",
       "failure_mode": "Indicator tiles render last-good values with stale freshness chip; sparklines flatten on the last point.",
       "owner": "Data Steward",
-      "notes": "Pulls both FRED and Yahoo Finance series via the same script (scripts/fetch_history.py). FRED is the primary vendor; Yahoo covers DX-Y.NYB, HG, GC, BKX/SPX."
+      "notes": "Pulls both FRED and Yahoo Finance series via the same script (scripts/fetch_history.py). FRED is the primary vendor; Yahoo covers DX-Y.NYB, HG, GC, BKX/SPX.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.indicator-drills": {
       "category": "indicator",
@@ -173,7 +178,8 @@
       ],
       "target_storage": "public/indicator_drills.json",
       "failure_mode": "Drill panels show last-good payload with stale chip.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.ism-mfg": {
       "category": "indicator",
@@ -235,7 +241,8 @@
       "target_storage": "public/cycle_board_snapshot.json",
       "failure_mode": "Macro Overview Cycle Board freezes at prior snapshot; Home tile shows stale composite.",
       "owner": "Senior Quant",
-      "notes": "Composed from FRED + Yahoo + ICE BofA + Chicago Fed. Script: scripts/compute_v11_mechanisms.py."
+      "notes": "Composed from FRED + Yahoo + ICE BofA + Chicago Fed. Script: scripts/compute_v11_mechanisms.py.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.methodology-calibration-v11": {
       "category": "indicator",
@@ -253,7 +260,8 @@
       ],
       "target_storage": "public/methodology_calibration_v11.json",
       "failure_mode": "Drill percentiles + composite-share badges go stale; mechanism panels show last-good KPIs.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.cycle-v2-headline-cycle-value": {
       "category": "indicator",
@@ -273,7 +281,8 @@
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Headline gauge shows last-good score with stale chip.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.cycle-v2-headline-market-stress": {
       "category": "indicator",
@@ -293,7 +302,8 @@
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Stress gauge shows last-good score; stale chip.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.cycle-v2-headline-real-economy": {
       "category": "indicator",
@@ -314,7 +324,8 @@
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Real Economy gauge shows last-good score; stale chip.",
       "owner": "Senior Quant",
-      "notes": "Inputs include ISM scrape — failure cascades from indicator.ism-mfg / indicator.ism-svc."
+      "notes": "Inputs include ISM scrape — failure cascades from indicator.ism-mfg / indicator.ism-svc.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.cycle-v2-regime-label": {
       "category": "indicator",
@@ -334,7 +345,8 @@
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Regime label freezes at last-good 4-cell classification.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.cycle-v2-history": {
       "category": "indicator",
@@ -370,7 +382,8 @@
       ],
       "target_storage": "Supabase: signal_intel_v5_daily + public/latest_scan_data.json",
       "failure_mode": "Trading Opps band column reads em-dash; Home tile shows 0 / 0 counts.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.universe-snapshot-uw": {
       "category": "equity",
@@ -409,7 +422,8 @@
       ],
       "target_storage": "Supabase: insider_history",
       "failure_mode": "Insider sub-score reads em-dash; chip absent; modal tab empty.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.options-flow-uw": {
       "category": "equity",
@@ -427,7 +441,8 @@
       "target_storage": "Supabase: options_flow_daily",
       "failure_mode": "Options Flow sub-score reads em-dash.",
       "owner": "Data Steward",
-      "notes": "Workflow file referenced in lineage but not present in current worktree — needs reconciliation."
+      "notes": "Workflow file referenced in lineage but not present in current worktree — needs reconciliation.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.darkpool-prints-uw": {
       "category": "equity",
@@ -445,7 +460,8 @@
       "target_storage": "Supabase: darkpool_prints",
       "failure_mode": "The Trading Opportunities screener dark-pool scoring layer goes dark: launched names lose their institutional anchor price and dark-pool points (the Dark Pool Anchor column dashes, layer contributes 0). The launch decision is unaffected (insider + trend only).",
       "owner": "Data Steward",
-      "notes": "Service-only ingestion table (Pattern C) -- no front-end tile reads it directly; the Phase 2 screener engine reads it. Phase 1 of the Trading Opportunities overhaul. Rolling-window table: per-print UPSERT on tracking_id, prints older than 4 days pruned each run."
+      "notes": "Service-only ingestion table (Pattern C) -- no front-end tile reads it directly; the Phase 2 screener engine reads it. Phase 1 of the Trading Opportunities overhaul. Rolling-window table: per-print UPSERT on tracking_id, prints older than 4 days pruned each run.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.options-eod-uw": {
       "category": "equity",
@@ -464,7 +480,8 @@
       "target_storage": "Supabase: options_eod_daily",
       "failure_mode": "The Trading Opportunities screener options scoring layer goes dark: launched names lose their Options Vol Shock value and options points (the column dashes, layer contributes 0). The launch decision is unaffected (insider + trend only). The Group 3 options-sentiment columns also lose their inputs.",
       "owner": "Data Steward",
-      "notes": "Service-only ingestion table (Pattern C). Phase 1 of the Trading Opportunities overhaul. One row per (ticker, as_of_date); per-contract detail stored as a 7-60 DTE superset jsonb so the Phase 2 backtest can move its candidate window without a re-ingest. Confirmed available on the current Unusual Whales API tier at no extra cost (Decision 2, 2026-05-20)."
+      "notes": "Service-only ingestion table (Pattern C). Phase 1 of the Trading Opportunities overhaul. One row per (ticker, as_of_date); per-contract detail stored as a 7-60 DTE superset jsonb so the Phase 2 backtest can move its candidate window without a re-ingest. Confirmed available on the current Unusual Whales API tier at no extra cost (Decision 2, 2026-05-20).",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.congress-trades-uw": {
       "category": "equity",
@@ -482,7 +499,8 @@
       ],
       "target_storage": "Supabase: congress_trades_daily",
       "failure_mode": "Congress sub-score reads em-dash; modal tab empty.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.analyst-ratings-uw": {
       "category": "equity",
@@ -499,7 +517,8 @@
       ],
       "target_storage": "Supabase: analyst_ratings_daily",
       "failure_mode": "Analyst sub-score reads em-dash.",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.short-interest-finra-uw": {
       "category": "equity",
@@ -517,7 +536,8 @@
       "target_storage": "Supabase: short_interest + short_interest_daily",
       "failure_mode": "Short Interest sub-score reads em-dash.",
       "owner": "Data Steward",
-      "notes": "Two-vendor blend — FINRA for the official settlement print, UW for the continuous between-settlement estimate."
+      "notes": "Two-vendor blend — FINRA for the official settlement print, UW for the continuous between-settlement estimate.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scanner.ticker-events-uw": {
       "category": "equity",
@@ -590,7 +610,8 @@
       "target_storage": "Supabase: user_scan_data",
       "failure_mode": "No user-facing impact — superseded by signal_intel_v5_daily.",
       "owner": "Data Steward",
-      "notes": "Legacy daily scan. Kept for back-compat; consumer code path retired."
+      "notes": "Legacy daily scan. Kept for back-compat; consumer code path retired.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "portfolio.option-mark-uw": {
       "category": "portfolio",
@@ -609,7 +630,8 @@
       "target_storage": "Supabase: positions.price (overwritten)",
       "failure_mode": "Option position rows show last-good mark; NAL hero understates/overstates by option drift.",
       "owner": "Lead Developer",
-      "notes": "Vercel cron, not GitHub Actions. Schedule per vercel.json."
+      "notes": "Vercel cron, not GitHub Actions. Schedule per vercel.json.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "portfolio.transactions-broker-import": {
       "category": "portfolio",
@@ -717,7 +739,8 @@
       ],
       "target_storage": "public/scenario_stress.json",
       "failure_mode": "Cycle Mechanism Results table shows last-good payload with stale chip.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scenario.ccar-calibration": {
       "category": "scenario",
@@ -772,7 +795,8 @@
       ],
       "target_storage": "public/v10_allocation.json",
       "failure_mode": "Asset Tilt freezes at prior day's allocation; Home Asset Tilt tile + Macro stance chip go stale.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "news.market-headlines-multisource": {
       "category": "news",
@@ -1043,7 +1067,8 @@
       "upstream_inputs": [
         "indicator.indicator-history-fred-yahoo (MOVE series, spliced 2002-11-12+)",
         "FRED DGS10 (10-year Treasury constant maturity, pulled live)"
-      ]
+      ],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "screener.trading-opps-signals": {
       "category": "equity",
@@ -1062,7 +1087,8 @@
       "target_storage": "Supabase: trading_opps_signals",
       "failure_mode": "Trading Opportunities table holds the last good dated snapshot; freshness chip goes amber then red.",
       "owner": "Data Steward",
-      "notes": "Phase 2 dual-direction screener. Runs the backtest-calibrated engine (insider + trend layers, with the 15-day-plateau insider age-decay) over the eligible universe and appends one dated snapshot per launched name. Append-only: earlier scan_dates are never overwritten. The screener's prices_eod cold pull paginates one ticker at a time (index-served range scans) and caches the completed price panel to GitHub Actions cache plus a durable Supabase Storage backstop (bucket screener-cache, object trading_opps/prices.pkl) so a cache eviction cannot reproduce a cold-pull outage; steady-state nightly runs do a seconds-long incremental refresh of the latest trade day (#1208)."
+      "notes": "Phase 2 dual-direction screener. Runs the backtest-calibrated engine (insider + trend layers, with the 15-day-plateau insider age-decay) over the eligible universe and appends one dated snapshot per launched name. Append-only: earlier scan_dates are never overwritten. The screener's prices_eod cold pull paginates one ticker at a time (index-served range scans) and caches the completed price panel to GitHub Actions cache plus a durable Supabase Storage backstop (bucket screener-cache, object trading_opps/prices.pkl) so a cache eviction cannot reproduce a cold-pull outage; steady-state nightly runs do a seconds-long incremental refresh of the latest trade day (#1208).",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.portfolio-risk-proxies-daily": {
       "category": "market",
@@ -1117,7 +1143,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_silver-daily": {
       "id": "indicator-cmdty_silver-daily",
@@ -1153,7 +1180,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_copper-daily": {
       "id": "indicator-cmdty_copper-daily",
@@ -1189,7 +1217,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_oil-daily": {
       "id": "indicator-cmdty_oil-daily",
@@ -1225,7 +1254,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_natgas-daily": {
       "id": "indicator-cmdty_natgas-daily",
@@ -1261,7 +1291,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_corn-daily": {
       "id": "indicator-cmdty_corn-daily",
@@ -1297,7 +1328,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_soybeans-daily": {
       "id": "indicator-cmdty_soybeans-daily",
@@ -1333,7 +1365,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_wheat-daily": {
       "id": "indicator-cmdty_wheat-daily",
@@ -1369,7 +1402,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cmdty_uranium-weekly": {
       "id": "indicator-cmdty_uranium-weekly",
@@ -1441,7 +1475,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-fx_jpy-daily": {
       "id": "indicator-fx_jpy-daily",
@@ -1477,7 +1512,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-fx_gbp-daily": {
       "id": "indicator-fx_gbp-daily",
@@ -1513,7 +1549,8 @@
       "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-cftc-cot-weekly": {
       "id": "indicator-cftc-cot-weekly",
@@ -1528,7 +1565,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow CFTC-COT-WEEKLY (Saturday 07:00 ET, after Friday 15:30 ET CFTC release)",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 192,
       "output_destination": "public/cot_positioning.json",
       "producer_script": "fetch_cftc_cot.py / cot_crossasset.py",
       "consumer_surfaces": [
@@ -1549,7 +1586,8 @@
       "failure_mode": "Per-market resolve try/except; missing market omitted; tile positioning section hidden.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: weekly cadence + 24h grace = 192h (data dated Tuesday, CFTC publishes Friday 3:30 PM ET, site ingests Saturday 7:00 AM ET; due-time anchoring upgrade queued)"
     },
     "indicator-adv_dec-daily": {
       "category": "indicator",
@@ -1568,7 +1606,8 @@
       ],
       "target_storage": "public/indicator_history.json[adv_dec]",
       "failure_mode": "Empty if prices_eod stale or RPC times out; chip flags red.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-spx_above_50ema-daily": {
       "category": "indicator",
@@ -1586,7 +1625,8 @@
       ],
       "target_storage": "public/indicator_history.json[spx_above_50ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-spx_above_200ema-daily": {
       "category": "indicator",
@@ -1604,7 +1644,8 @@
       ],
       "target_storage": "public/indicator_history.json[spx_above_200ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-ndx_above_50ema-daily": {
       "category": "indicator",
@@ -1622,7 +1663,8 @@
       ],
       "target_storage": "public/indicator_history.json[ndx_above_50ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-ndx_above_200ema-daily": {
       "category": "indicator",
@@ -1640,7 +1682,8 @@
       ],
       "target_storage": "public/indicator_history.json[ndx_above_200ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
-      "owner": "Senior Quant"
+      "owner": "Senior Quant",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "portfolio-scenario-impact": {
       "category": "portfolio",
@@ -1698,7 +1741,8 @@
       "release_calendar": "nyse-trading-day",
       "failure_mode": "Falls back to last good close on Yahoo outage.",
       "owner": "Data Steward",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-ust_10y-daily": {
       "id": "indicator-ust_10y-daily",
@@ -1734,7 +1778,8 @@
       "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-ust_2y-daily": {
       "id": "indicator-ust_2y-daily",
@@ -1770,7 +1815,8 @@
       "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value.",
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-unrate-monthly": {
       "id": "indicator-unrate-monthly",
@@ -1865,7 +1911,8 @@
       "failure_mode": "Missing names fall back to sector move / 1.6 default.",
       "owner": "Senior Quant + Data Steward",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.spx-index-overlay": {
       "category": "market",
@@ -1883,7 +1930,8 @@
         "All Indicators → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
-      "owner": "Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Lead Dev (pipe), Data Steward (freshness)",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.ndx-index-overlay": {
       "category": "market",
@@ -1901,7 +1949,8 @@
         "All Indicators → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
-      "owner": "Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Lead Dev (pipe), Data Steward (freshness)",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.dji-index-overlay": {
       "category": "market",
@@ -1919,7 +1968,8 @@
         "All Indicators → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
-      "owner": "Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Lead Dev (pipe), Data Steward (freshness)",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.ndx-above-50ema": {
       "category": "indicator",
@@ -1936,7 +1986,8 @@
         "All Indicators table"
       ],
       "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
-      "owner": "Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Lead Dev (pipe), Data Steward (freshness)",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator.ndx-above-200ema": {
       "category": "indicator",
@@ -1953,7 +2004,8 @@
         "All Indicators table"
       ],
       "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
-      "owner": "Lead Dev (pipe), Data Steward (freshness)"
+      "owner": "Lead Dev (pipe), Data Steward (freshness)",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "cycle-mechanism-board-daily": {
       "element": "cycle_board",
@@ -1977,7 +2029,8 @@
       ],
       "failure_mode": "board renders last snapshot; chip ambers/reds by SLA",
       "target_storage": "public/cycle_v2.json",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-fx_dollar-daily": {
       "element": "fx_dollar",
@@ -2000,7 +2053,8 @@
       ],
       "failure_mode": "chip reds by SLA",
       "target_storage": "public/indicator_history.json",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "indicator-ism_mfg-monthly": {
       "element": "ism_mfg",
@@ -2061,7 +2115,8 @@
       ],
       "failure_mode": "alarm emails Joe; Admin row reds",
       "target_storage": "public/indicator_history.json",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "scenario-scenario_stress-weekly": {
       "element": "scenario_stress",
@@ -2102,7 +2157,8 @@
       ],
       "failure_mode": "chip reds by SLA",
       "target_storage": "public/sector_perf.json",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "equity-scanner_v5-daily": {
       "element": "scanner-v5-daily",
@@ -2122,7 +2178,8 @@
       ],
       "failure_mode": "Ticker score panes blank; chip reds",
       "target_storage": "Supabase signal-intel tables",
-      "owner": "Data Steward"
+      "owner": "Data Steward",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "portfolio-positions-on_change": {
       "element": "positions",
