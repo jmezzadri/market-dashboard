@@ -78,7 +78,13 @@ export function ageHoursAgainstCalendar(
   nowMs?: number,
 ): number {
   if (!asOfIso) return Number.NaN;
-  const tIso = asOfIso.length === 10 ? `${asOfIso}T00:00:00Z` : asOfIso;
+  // Close-of-business anchor (2026-06-11): a date-only as-of (or a timestamp
+  // at exactly midnight UTC — date-only intent) anchors at the date's 20:00
+  // UTC close. Midnight anchoring made hour-denominated SLAs expire ~20h
+  // early (the 2026-05-01 lesson). Mirrors src/lib/freshnessClock.js.
+  const _dOnly = asOfIso.length === 10 ? asOfIso
+    : (/T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(asOfIso)) ? String(asOfIso).slice(0, 10) : null);
+  const tIso = _dOnly ? `${_dOnly}T20:00:00Z` : asOfIso;
   const asOfMs = new Date(tIso).getTime();
   if (!Number.isFinite(asOfMs)) return Number.NaN;
   const end = (typeof nowMs === "number") ? nowMs : Date.now();
@@ -119,7 +125,13 @@ export function formatRelativeAge(
   nowMs?: number,
 ): string {
   if (!asOfIso) return "never";
-  const tIso = asOfIso.length === 10 ? `${asOfIso}T00:00:00Z` : asOfIso;
+  // Close-of-business anchor (2026-06-11): a date-only as-of (or a timestamp
+  // at exactly midnight UTC — date-only intent) anchors at the date's 20:00
+  // UTC close. Midnight anchoring made hour-denominated SLAs expire ~20h
+  // early (the 2026-05-01 lesson). Mirrors src/lib/freshnessClock.js.
+  const _dOnly = asOfIso.length === 10 ? asOfIso
+    : (/T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(asOfIso)) ? String(asOfIso).slice(0, 10) : null);
+  const tIso = _dOnly ? `${_dOnly}T20:00:00Z` : asOfIso;
   const t = new Date(tIso).getTime();
   if (!Number.isFinite(t)) return "never";
   const end = (typeof nowMs === "number") ? nowMs : Date.now();
