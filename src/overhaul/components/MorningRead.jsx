@@ -30,7 +30,7 @@ function nextPrints() {
   } catch {
     /* calendar unavailable — schedule line degrades to COT only */
   }
-  out.push('Positioning (COT) · Sat 7:00a');
+  out.push('Positioning (COT) · CFTC Fri 3:30p · ingest Sat 7:00a');
   return out.slice(0, 3);
 }
 
@@ -88,7 +88,7 @@ export default function MorningRead({ indicators, cotPos, indexSeries }) {
           eyebrow="Positioning signals"
           lines={read.positioningBullets}
           overflow={read.positioningOverflow}
-          quietText={read.posFresh ? 'Fresh positioning print — nothing crossed a threshold.' : 'Awaiting next print — Sat 7:00a ET.'}
+          quietText={read.posFresh ? 'Fresh positioning print — nothing crossed a threshold.' : 'Awaiting next print — CFTC releases Fri 3:30 PM ET; ingested Sat 7:00 AM ET.'}
         />
       </div>
       <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--mt-ink-3)', borderTop: '1px solid var(--mt-line-0)', marginTop: 14, paddingTop: 10 }}>

@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-06-11 — Before registering an orphan tracking row, check whether the feed was killed
+
+**What happened:** The stamp-fix registration pass found tracking rows with no registry entry (put_call, buffett, bank_unreal) and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE ("Kill phantom feeds" commit, 2026-06-10); the kill removed producers and tiles but left the tracking rows behind. Registration armed the header freshness pill on a dead feed whose leftover data sat in a cached copy of the served file — Joe then saw "1 feed stale" with every visible tile green, plus no red tile anywhere to find.
+
+**What you should do instead:** An orphan tracking row has exactly two futures: (a) a live feed missing registration — register it; or (b) a killed feed missing cleanup — delete the row. Decide with evidence: `git log --oneline -S '<element>'` for kill commits, plus whether any producer still writes it and any page still renders it. Killing a feed must retire ALL of it in one change: producer, tiles, tracking row, registry entries, drills lists. A page-level rollup (the header pill) must never grade an element set wider than what can be traced from a visible surface without NAMING the offenders in its tooltip.
+
+**Applies to:** Data Steward — every registration or retirement.
+
+---
+
 ## 2026-06-11 — Never derive a refresh timestamp from a data date
 
 **What happened:** Joe caught tooltips claiming "Data as of June 10 · Last
