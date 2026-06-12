@@ -32,6 +32,13 @@ on:
     # the morning indicator pull is settled before any 6:00-window consumer reads.
     # Catches series that publish overnight and prior-day morning releases.
     - cron: '0 10 * * 1-5'
+    # 2026-06-12 (Joe session doctrine) — second pull at 10:15 AM ET: the ICE
+    # BofA credit-spread family (and other next-morning FRED dailies) publish
+    # ~9:39 AM ET for the prior session, 3.5h AFTER the 6 AM pull — which left
+    # them a full session staler than necessary all day, every day. 14:15 UTC
+    # = 10:15 ET (EDT); 15:15 UTC sibling covers EST. Idempotent merge.
+    - cron: '15 14 * * 1-5'
+    - cron: '15 15 * * 1-5' 
     # 22:00 UTC = 6:00 PM EDT (UTC-4) / 5:00 PM EST (UTC-5).
     # Catches FRED daily series that publish in the late afternoon
     # (e.g. DFII10 around 20:00 UTC). See bug #1130.

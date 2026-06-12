@@ -151,22 +151,33 @@ export default function FreshnessChip({
 
   const status = f?.status === 'loading' ? 'checking'
     : f?.status === 'red' ? 'stale'
+    : f?.status === 'amber' ? 'lagging'
     : f?.status === 'green' ? 'fresh'
     : 'unknown';
 
   const color =
     status === 'stale'
       ? 'var(--mt-down)'
-      : status === 'fresh'
-        ? 'var(--mt-up)'
-        : 'var(--mt-ink-3)';
+      : status === 'lagging'
+        ? 'var(--mt-amber)'
+        : status === 'fresh'
+          ? 'var(--mt-up)'
+          : 'var(--mt-ink-3)';
 
   // Joe directive 2026-05-27 — drop the "Fresh"/"Stale"/"Checking" word.
   // The colored dot already carries the status; the relative time is what's
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
-  const word = status === 'stale' ? 'Stale' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
-  const asOf = fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
+  const word = status === 'stale' ? 'Stale' : status === 'lagging' ? 'Lagging' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
+  // Session-frontier display (Joe 2026-06-12): a green daily can honestly sit
+  // 2+ sessions back only when that IS the source's publication frontier
+  // (e.g. credit spreads publish next-morning). "2d ago" beside a green dot
+  // read as a contradiction — show the factual coverage date instead.
+  const frontierLabel =
+    status === 'fresh' && (f?.calendarDaysAgo ?? 0) >= 2 && f?.dataAsOf
+      ? `thru ${new Date(String(f.dataAsOf).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`
+      : null;
+  const asOf = frontierLabel || fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
   const asOfExact = fmtAsOf(f?.dataAsOf, f?.asOfCutoffEt);
   const fetchedExact = fmtFetched(f?.lastRefreshedAt || f?.lastGoodAt);
 
@@ -244,9 +255,11 @@ export default function FreshnessChip({
           background:
             status === 'stale'
               ? 'color-mix(in oklab, var(--mt-down) 14%, transparent)'
-              : status === 'fresh'
-                ? 'color-mix(in oklab, var(--mt-up) 12%, transparent)'
-                : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
+              : status === 'lagging'
+                ? 'color-mix(in oklab, var(--mt-amber) 14%, transparent)'
+                : status === 'fresh'
+                  ? 'color-mix(in oklab, var(--mt-up) 12%, transparent)'
+                  : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
           color,
           letterSpacing: '0.04em',
           fontWeight: 500,

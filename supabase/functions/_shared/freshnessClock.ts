@@ -145,3 +145,52 @@ export function formatRelativeAge(
   const months = Math.round(days / 30);
   return `${months} month${months === 1 ? "" : "s"} ago`;
 }
+
+// ─── Session-frontier grading for DAILY elements ────────────────────────────
+// Mirrors src/lib/freshnessClock.js dailySessionGrade EXACTLY — Joe doctrine
+// 2026-06-12. If you change one, change the other.
+export interface DailyGradeOpts {
+  fetchTimeET?: string;
+  graceHours?: number;
+  lagSessions?: number;
+}
+export function dailySessionGrade(
+  asOfIso: string | null | undefined,
+  opts?: DailyGradeOpts,
+  nowMs?: number,
+): { expectedDate: string; behind: number | null; grade: "green" | "amber" | "red" | "unknown" } {
+  const o = opts || {};
+  const fetchTime = (typeof o.fetchTimeET === "string" && /^\d{1,2}:\d{2}$/.test(o.fetchTimeET)) ? o.fetchTimeET : "06:00";
+  const grace = Number.isFinite(o.graceHours as number) ? (o.graceHours as number) : 3;
+  const lag = Number.isFinite(o.lagSessions as number) ? (o.lagSessions as number) : 0;
+  const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+  const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const parts = fetchTime.split(":");
+  const deadlineMins = Number(parts[0]) * 60 + Number(parts[1]) + Math.round(grace * 60);
+  const probe = new Date(etNow);
+  const nowMins = etNow.getHours() * 60 + etNow.getMinutes();
+  if (!(isUSBusinessDay(probe) && nowMins >= deadlineMins)) {
+    do { probe.setDate(probe.getDate() - 1); } while (!isUSBusinessDay(probe));
+  }
+  const refMins = deadlineMins;
+  const exp = new Date(probe);
+  if (!(isNYSETradingDay(exp) && refMins >= 16 * 60)) {
+    do { exp.setDate(exp.getDate() - 1); } while (!isNYSETradingDay(exp));
+  }
+  for (let i = 0; i < lag; i++) {
+    do { exp.setDate(exp.getDate() - 1); } while (!isNYSETradingDay(exp));
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const expectedDate = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+  const asOfDate = asOfIso ? String(asOfIso).slice(0, 10) : null;
+  if (!asOfDate) return { expectedDate, behind: null, grade: "unknown" };
+  if (asOfDate >= expectedDate) return { expectedDate, behind: 0, grade: "green" };
+  let behind = 0;
+  const walk = new Date(`${asOfDate}T12:00:00Z`);
+  const end = new Date(`${expectedDate}T12:00:00Z`);
+  while (walk < end && behind < 30) {
+    walk.setUTCDate(walk.getUTCDate() + 1);
+    if (isNYSETradingDay(walk)) behind++;
+  }
+  return { expectedDate, behind, grade: behind <= 0 ? "green" : behind === 1 ? "amber" : "red" };
+}

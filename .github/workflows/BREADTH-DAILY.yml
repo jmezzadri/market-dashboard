@@ -1,8 +1,17 @@
 name: BREADTH-DAILY
 on:
   workflow_dispatch: {}
+  # 2026-06-12 (Joe session doctrine) — chain off the overnight price load so
+  # breadth reaches the last closed session by ~3:30 AM ET instead of 11 AM.
+  # The evening fire computes a preliminary same-evening read; the post-panel
+  # morning fire recomputes on the complete panel (idempotent). The 11:00 ET
+  # cron stays as a backstop.
+  workflow_run:
+    workflows: ["MASSIVE-DAILY"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: '0 15 * * 1-5'   # 11:00 ET — after the EOD price load lands
+    - cron: '0 15 * * 1-5'   # 11:00 ET backstop
 jobs:
   run:
     runs-on: ubuntu-latest

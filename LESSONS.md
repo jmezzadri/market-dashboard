@@ -253,6 +253,15 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 # 4 · DATA GOVERNANCE
 
+### 2026-06-12 — Daily freshness is graded in trading sessions against the publication frontier, never in padded wall-clock hours
+
+**What happened:** Daily credit-spread indicators showed green at 7:30 AM Friday carrying Wednesday's data. The hour-budget doctrine (cadence + lag + 24h grace = 49–73h) was sized never to false-alarm — which meant it also tolerated 2–3 days of true staleness on DAILY elements, long enough to hide a dead feed until the weekend. Underneath it sat two producer-sequencing defects the padding had been absorbing: the only FRED pull ran 6:00 AM, 3.5 hours BEFORE the credit series publish (~9:39 AM ET, verified), so the site ran a full session staler than necessary every day; and index breadth computed at 11 AM from a price panel complete at ~3:15 AM. Joe: "We can't have a 70+ hour SLA on DAILY indicators. The only time they can be 70+ stale is over the weekend or holidays."
+
+**Rule:** A daily element is GREEN only when it carries the newest session its source can have published by now — "now" measured against the element's fetch deadline (scheduled fetch ET + grace, default 3h). AMBER at exactly one session behind that frontier (today's pull missed or late — visible the same morning). RED at two or more sessions behind, or on upstream error. Deadlines exist only on business days, so weekends and holidays are the only time a daily may sit more than one session old — and they never count against it. Hour budgets remain only for weekly/monthly/quarterly publication calendars. Corollaries: (1) producers must be scheduled so the frontier is reachable — pull AFTER the source publishes, compute AFTER inputs land; (2) each element's publish time in the manifest is evidence-based (checked against the source), not guessed; (3) the four graders (site clock, server clock, watchdog, chips) change in lockstep, always.
+
+**Applies to:** Data Steward owns the doctrine; Senior Quant signs per-element publication facts; Lead Developer keeps the graders synchronized.
+
+
 ### 2026-06-12 — Stamp after publish; the watchdog needs an evidence source for every row it grades
 
 **What happened:** The sector-sleeve allocator stamped its health row green BEFORE its publish step; the push was then rejected (data-commit race) and the freshly-stamped green row pointed at an allocation that never landed. The same night, the freshness watchdog clobbered three producer-stamped paper rows red with "indicator not present in indicator_history.json" — the third instance of the clobber bug (scanner-v5 2026-05-12, snapshot files 2026-05-19). Net effect: the one element that genuinely failed showed green, and three healthy elements showed red. The morning paper rebalance refused on the stale sleeve while the Asset Tilt chip stayed green. Compounding: the board producer wrote as_of from the runner wall clock (UTC "today" — after 8 PM ET that is tomorrow), and the failure-alert watchlist held a renamed (dead) workflow name, so the publish failure emailed nobody.
