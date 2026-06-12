@@ -1565,7 +1565,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow CFTC-COT-WEEKLY (Saturday 07:00 ET, after Friday 15:30 ET CFTC release)",
-      "freshness_sla_hours": 192,
+      "freshness_sla_hours": 432,
       "output_destination": "public/cot_positioning.json",
       "producer_script": "fetch_cftc_cot.py / cot_crossasset.py",
       "consumer_surfaces": [
@@ -1587,7 +1587,7 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "release_calendar": "wall-clock",
       "dependencies": [],
-      "sla_basis": "Joe 2026-06-11 doctrine: weekly cadence + 24h grace = 192h (data dated Tuesday, CFTC publishes Friday 3:30 PM ET, site ingests Saturday 7:00 AM ET; due-time anchoring upgrade queued)"
+      "sla_basis": "Joe 2026-06-11 doctrine, full publication chain: the element bundles two sources. CFTC futures (data Tue, published Fri 3:30 PM ET, ingested Sat 7 AM = 4-day chain; normal max age 11d) and NY Fed primary-dealer credit inventory (data Wed, published following Thu ~4:15 PM, ingested Sat = 10-day chain; normal max age 17d). Budget covers the longer chain: 7d cadence + 10d chain + 24h grace = 432h. QUEUED: split dealer-inventory into its own element so futures tighten to 288h and 'past due' anchors to due time."
     },
     "indicator-adv_dec-daily": {
       "category": "indicator",
