@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import json
 import datetime as dt
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -212,6 +213,40 @@ def load_calibration() -> dict:
     return {"tiles": []}
 
 
+
+def panel_as_of(indicators: dict) -> str:
+    """Honest business-date stamp for the board snapshot.
+
+    The board's as_of must be the most recent CLOSED trading session actually
+    reflected in the input panel — never a wall-clock date. GitHub runners are
+    UTC, so date.today() after 8 PM ET wrote TOMORROW's date (caught
+    2026-06-12: the board claimed Jun 12 while its freshest daily input was
+    Jun 10; the v10 allocator inherited the fabricated date and the paper
+    rebalance gate graded sector-sleeve freshness against fiction).
+
+    Definition: max last-point date across the panel's series, capped at the
+    last fully-closed US session by ET wall clock. Slow series (weekly /
+    monthly / quarterly publication lags) cannot drag the date backward, and
+    a forward-dated point cannot push it past a session that has actually
+    closed.
+    """
+    last_dates = []
+    for s in indicators.values():
+        if isinstance(s, dict) and isinstance(s.get("points"), list) and s["points"]:
+            last = s["points"][-1]
+            d = last[0] if isinstance(last, (list, tuple)) else (last.get("date") if isinstance(last, dict) else None)
+            if isinstance(d, str) and len(d) == 10:
+                last_dates.append(d)
+    now_et = dt.datetime.now(ZoneInfo("America/New_York"))
+    cap = now_et.date()
+    if now_et.hour < 16:
+        cap -= dt.timedelta(days=1)
+    while cap.weekday() >= 5:
+        cap -= dt.timedelta(days=1)
+    eligible = [d for d in last_dates if d <= cap.isoformat()]
+    return max(eligible) if eligible else cap.isoformat()
+
+
 def main() -> None:
     indicators = json.loads(INDICATOR_HISTORY.read_text())
     calib = load_calibration()
@@ -245,7 +280,7 @@ def main() -> None:
             "post-2011 sample. Refreshed nightly by scripts/compute_v11_mechanisms.py at "
             "22:30 UTC weekdays."
         ),
-        "as_of": dt.date.today().isoformat(),
+        "as_of": panel_as_of(indicators),
         "framework": "v11 — six cycle mechanisms",
         "calibration_label": "Sprint 1+2 calibration",
         "mechanisms": out_mechanisms,
