@@ -28,6 +28,33 @@ const techPts = (r) => (Number(r.sma200_pts) || 0) + (Number(r.rsi_pts) || 0);
 
 const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
 
+
+// Column registry for the indicator (Scanner) view. `w` is the grid track
+// width. `head` is the short column header label. Ticker + Score are locked
+// on by the picker, so they always appear; the rest are toggleable.
+export const INDICATOR_COLS = {
+  ticker:  { key: 'ticker',  label: 'Ticker',             head: 'Ticker',  w: '78px', locked: true },
+  name:    { key: 'name',    label: 'Company name',       head: 'Name',    w: '1fr' },
+  price:   { key: 'price',   label: 'Last price',         head: 'Last',    w: '74px' },
+  day:     { key: 'day',     label: 'Day change',         head: 'Day',     w: '66px' },
+  chg30:   { key: 'chg30',   label: '30-day change',      head: '30-Day',  w: '88px' },
+  insider: { key: 'insider', label: 'Insider pts',        head: 'Insider', w: '54px' },
+  tech:    { key: 'tech',    label: 'Technicals pts',     head: 'Tech',    w: '46px' },
+  options: { key: 'options', label: 'Options pts',        head: 'Options', w: '54px' },
+  dark:    { key: 'dark',    label: 'Dark-pool pts',      head: 'Dark',    w: '46px' },
+  short:   { key: 'short',   label: 'Short interest %',   head: 'Short %', w: '58px' },
+  flow:    { key: 'flow',    label: 'Options flow net $', head: 'Flow $',  w: '62px' },
+  score:   { key: 'score',   label: 'Score',              head: 'Score',   w: '54px', locked: true },
+};
+
+// Display order (Joe 2026-06-11): identity → price action → the six signal /
+// context indicators → Score pinned on the far right.
+export const INDICATOR_COL_KEYS = [
+  'ticker', 'name', 'price', 'day', 'chg30',
+  'insider', 'tech', 'options', 'dark', 'short', 'flow',
+  'score',
+];
+
 /* Signed compact dollars for the options-flow column: $1.2M / -$340k / $980. */
 function flowMoney(v) {
   const n = Number(v);
@@ -39,23 +66,37 @@ function flowMoney(v) {
   return `${sign}$${a.toFixed(0)}`;
 }
 
-// Column registry for the indicator (Scanner) view. `w` is the grid track
-// width. `head` is the short column header label. Ticker + Score are locked
-// on by the picker, so they always appear; the rest are toggleable.
-export const INDICATOR_COLS = {
-  ticker:  { key: 'ticker',  label: 'Ticker',         head: 'Ticker',  w: '1fr',  locked: true },
-  score:   { key: 'score',   label: 'Score',          head: 'Score',   w: '52px', locked: true },
-  price:   { key: 'price',   label: 'Last price',     head: 'Last',    w: '84px' },
-  spark:   { key: 'spark',   label: '30-day chart',   head: '30-day',  w: '84px' },
-  insider: { key: 'insider', label: 'Insider pts',    head: 'Insider', w: '52px' },
-  tech:    { key: 'tech',    label: 'Technicals pts', head: 'Tech',    w: '52px' },
-  options: { key: 'options', label: 'Options pts',    head: 'Options', w: '52px' },
-  dark:    { key: 'dark',    label: 'Dark-pool pts',  head: 'Dark',    w: '52px' },
-  short:   { key: 'short',   label: 'Short interest %', head: 'Short %', w: '62px' },
-  flow:    { key: 'flow',    label: 'Options flow net $', head: 'Flow $', w: '72px' },
-};
-
-export const INDICATOR_COL_KEYS = ['ticker', 'score', 'price', 'spark', 'insider', 'tech', 'options', 'dark', 'short', 'flow'];
+/* 30-day change cell: signed percent over a center-zero magnitude bar, so a
+   +28% and a +3% read differently at a glance (Joe 2026-06-11 — the spark
+   made magnitude unreadable). Bar saturates at ±30%. */
+function Chg30Cell({ value }) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) {
+    return <div className="num" style={{ textAlign: 'center', fontSize: 13, color: 'var(--mt-ink-3)' }}>—</div>;
+  }
+  const color = v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)';
+  const half = Math.min(Math.abs(v) / 30, 1) * 50;   // % of track, from center
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div className="num" style={{ fontSize: 13, fontWeight: 600, color }}>
+        {v > 0 ? '+' : ''}{v.toFixed(1)}%
+      </div>
+      <div style={{ position: 'relative', height: 3, marginTop: 3, background: 'var(--mt-line-0)', borderRadius: 2 }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            height: 3,
+            borderRadius: 2,
+            background: color,
+            left: v >= 0 ? '50%' : `${50 - half}%`,
+            width: `${half}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function ScanList({
   rows,
@@ -76,7 +117,8 @@ export default function ScanList({
     ? (() => {
         const requested = (columns && columns.length ? columns : INDICATOR_COL_KEYS)
           .filter((k) => INDICATOR_COLS[k]);
-        const withLocks = ['ticker', 'score', ...requested.filter((k) => k !== 'ticker' && k !== 'score')];
+        // Ticker leads, Score is pinned on the far right (Joe 2026-06-11).
+        const withLocks = ['ticker', ...requested.filter((k) => k !== 'ticker' && k !== 'score'), 'score'];
         return Array.from(new Set(withLocks));
       })()
     : null;
@@ -133,21 +175,18 @@ export default function ScanList({
           {activeKeys.map((k) => {
             const col = INDICATOR_COLS[k];
             if (k === 'score') return <span key={k} style={{ textAlign: 'center' }}>Score</span>;
-            if (['insider', 'tech', 'options', 'dark'].includes(k)) {
-              const tips = {
-                insider: 'Insider Form-4 points (rules A/B/C, decayed by age)',
-                tech: 'Technicals points: above 200-day line + RSI penalty',
-                options: 'Options-volume-shock points',
-                dark: 'Dark-pool anchor points',
-              };
-              return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
-            }
-            if (['short', 'flow'].includes(k)) {
-              const tips = {
-                short: 'FINRA short interest as % of shares outstanding — context only, not scored',
-                flow: 'Net call premium in the 30-day options flow-alert window — context only, not scored',
-              };
-              return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
+            const tips = {
+              insider: 'Insider Form-4 points (rules A/B/C, decayed by age)',
+              tech: 'Technicals points: above 200-day line + RSI penalty',
+              options: 'Options-volume-shock points',
+              dark: 'Dark-pool anchor points',
+              short: 'FINRA short interest as % of shares outstanding — context only, not scored',
+              flow: 'Net call premium in the 30-day options flow-alert window — context only, not scored',
+            };
+            if (tips[k]) return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
+            // price-action heads right-aligned over their number cells
+            if (['price', 'day', 'chg30'].includes(k)) {
+              return <span key={k} style={{ textAlign: 'right' }}>{col.head}</span>;
             }
             return <span key={k}>{col.head}</span>;
           })}
@@ -188,28 +227,65 @@ export default function ScanList({
                 <div key={k} style={{ minWidth: 0 }}>
                   <span
                     onClick={(e) => { e.stopPropagation(); navigate(`/ticker/${r.ticker}`); }}
-                    style={{ fontWeight: 700, fontSize: 16, color: 'var(--mt-accent)', cursor: 'pointer', marginRight: 8 }}
+                    style={{ fontWeight: 700, fontSize: 16, color: 'var(--mt-accent)', cursor: 'pointer' }}
                   >
                     {r.ticker}
                   </span>
-                  <span style={{ fontSize: 12, color: 'var(--mt-ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.name ? `${r.name} · ` : ''}{r.sector || ''}
-                  </span>
+                  {!indicatorColumns && (
+                    <span style={{ fontSize: 12, color: 'var(--mt-ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: 8 }}>
+                      {r.name ? `${r.name} · ` : ''}{r.sector || ''}
+                    </span>
+                  )}
+                </div>
+              );
+            case 'name':
+              return (
+                <div key={k} style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.name || '—'}
+                  </div>
+                  {r.sector ? (
+                    <div style={{ fontSize: 10.5, color: 'var(--mt-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.sector}
+                    </div>
+                  ) : null}
                 </div>
               );
             case 'score':
-              return <ScoreDial key={k} score={r.score} max={10} size={44} />;
+              return (
+                <div key={k} style={{ display: 'flex', justifyContent: 'center' }}>
+                  <ScoreDial score={r.score} max={10} size={42} />
+                </div>
+              );
             case 'price':
               return price != null ? (
-                <div key={k}>
+                <div key={k} style={{ textAlign: indicatorColumns ? 'right' : 'left' }}>
                   <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-0)', fontWeight: 600 }}>
                     ${Number(price).toFixed(2)}
                   </div>
-                  <div className="num" style={{ fontSize: 11, color: chgColor, fontWeight: 500 }}>
-                    {chg > 0 ? '+' : ''}{chg.toFixed(2)}%
-                  </div>
+                  {!indicatorColumns && (
+                    <div className="num" style={{ fontSize: 11, color: chgColor, fontWeight: 500 }}>
+                      {chg > 0 ? '+' : ''}{chg.toFixed(2)}%
+                    </div>
+                  )}
                 </div>
               ) : <div key={k} />;
+            case 'day':
+              return (
+                <div key={k} className="num" style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: chgColor }}>
+                  <Tip content={r.chgUsd != null ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}% · ${r.chgUsd >= 0 ? '+' : '-'}$${Math.abs(Number(r.chgUsd)).toFixed(2)} on the day` : 'Day change'} bare>
+                    {chg > 0 ? '+' : ''}{chg.toFixed(2)}%
+                  </Tip>
+                </div>
+              );
+            case 'chg30':
+              return (
+                <div key={k}>
+                  <Tip content={r.chg30 != null ? `${r.chg30 > 0 ? '+' : ''}${Number(r.chg30).toFixed(1)}% vs the close 21 trading days (~30 calendar days) earlier` : 'No 30-day reading yet — populates on the next nightly scan'} bare>
+                    <Chg30Cell value={r.chg30} />
+                  </Tip>
+                </div>
+              );
             case 'spark':
               return showSparkline && sparkData?.length ? (
                 <div key={k} style={{ color: chgColor }}>
@@ -233,8 +309,8 @@ export default function ScanList({
                   + (r.si_as_of ? ` · as of ${r.si_as_of}` : '')
                 : 'No short-interest reading stored for this name';
               return (
-                <div key={k}>
-                  <Tip content={tip}>
+                <div key={k} style={{ textAlign: 'center' }}>
+                  <Tip content={tip} bare>
                     <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v != null ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
                       {v != null ? `${Number(v).toFixed(1)}%` : '—'}
                     </span>
@@ -251,8 +327,8 @@ export default function ScanList({
                   + (r.flow_as_of ? ` · as of ${r.flow_as_of}` : '')
                 : 'No options flow alerts stored for this name';
               return (
-                <div key={k}>
-                  <Tip content={tip}>
+                <div key={k} style={{ textAlign: 'center' }}>
+                  <Tip content={tip} bare>
                     <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v == null ? 'var(--mt-ink-3)' : v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>
                       {v != null ? flowMoney(v) : '—'}
                     </span>
@@ -331,8 +407,10 @@ export default function ScanList({
 }
 
 function ColHead({ children, tip }) {
+  // centered — the six indicator heads sit directly over centered cells
+  // (Joe 2026-06-11: dashes/values must line up under their headers).
   return (
-    <span style={{ textAlign: 'right' }}>
+    <span style={{ textAlign: 'center' }}>
       <Tip content={tip}>{children}</Tip>
     </span>
   );
@@ -342,7 +420,7 @@ function PtsCell({ value, on, tip }) {
   const v = Number(value);
   const show = Number.isFinite(v) ? v.toFixed(v % 1 === 0 ? 0 : 2) : '—';
   return (
-    <div className="num" style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: on ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
+    <div className="num" style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: on ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
       <Tip content={tip} bare>
         {on ? `+${show}` : show}
       </Tip>

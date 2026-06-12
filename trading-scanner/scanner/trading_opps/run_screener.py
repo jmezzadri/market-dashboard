@@ -166,6 +166,11 @@ def price_extras(g: pd.DataFrame) -> dict:
     vol90 = vol.tail(90).mean()
     rel_vol = (vol_last / vol90) if (vol90 and vol90 > 0) else None
 
+    # 30-day change: latest close vs the close 21 trading days (~30 calendar
+    # days) earlier — the table's magnitude-readable replacement for the spark.
+    chg30 = (float((last / float(close.iloc[-22]) - 1.0) * 100.0)
+             if len(close) >= 22 and float(close.iloc[-22]) > 0 else None)
+
     win52 = close.tail(252)
     lo52, hi52 = float(win52.min()), float(win52.max())
 
@@ -187,6 +192,7 @@ def price_extras(g: pd.DataFrame) -> dict:
         "change_usd": round(chg_usd, 4) if chg_usd is not None else None,
         "volume": vol_last,
         "rel_volume": round(rel_vol, 3) if rel_vol is not None else None,
+        "chg_30d_pct": round(chg30, 3) if chg30 is not None else None,
         "week_52_low": round(lo52, 4),
         "week_52_high": round(hi52, 4),
         "ema9": round(ema9, 4),
@@ -512,6 +518,7 @@ def main():
             "price": price,
             "change_pct": ex.get("change_pct"),
             "change_usd": ex.get("change_usd"),
+            "chg_30d_pct": ex.get("chg_30d_pct"),
             "volume": ex.get("volume"),
             "rel_volume": ex.get("rel_volume"),
             "week_52_low": ex.get("week_52_low"),

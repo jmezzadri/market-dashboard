@@ -54,6 +54,7 @@ function mapRow(r) {
     price: num(r.price),
     chg: num(r.change_pct),
     chgUsd: num(r.change_usd),
+    chg30: num(r.chg_30d_pct),
     volume: num(r.volume),
     relVolume: num(r.rel_volume),
     week52Low: num(r.week_52_low),
