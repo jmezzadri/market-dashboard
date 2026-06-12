@@ -63,5 +63,13 @@ jobs:
             echo "No changes — skipping commit."
           else
             git commit -m "chore(data): refresh cycle_board_snapshot — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            git push
+            # Same push-race protection as v10-allocation-daily (2026-06-12):
+            # nightly data committers race on main; rebase + retry.
+            ok=""
+            for i in 1 2 3; do
+              if git push; then ok=1; break; fi
+              echo "push rejected (attempt $i) — rebasing onto latest main"
+              git pull --rebase origin main
+            done
+            if [ -z "$ok" ]; then echo "::error::push failed after 3 rebase retries"; exit 1; fi
           fi
