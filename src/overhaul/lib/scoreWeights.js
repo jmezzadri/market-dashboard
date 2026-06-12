@@ -20,7 +20,7 @@
 
      Technicals   = sma200_pts + rsi_pts
      Insider      = insider_pts
-     Options flow = options_pts
+     Options shock = options_pts
      Dark pool    = dark_pool_pts
 
    componentPoints(row) returns these four, in display order, and they sum
@@ -39,8 +39,8 @@ export const SCORE_COMPONENTS = [
     fields: ['sma200_pts', 'rsi_pts'],
   },
   {
-    key: 'Options flow',
-    why: 'Unusual options-volume shock',
+    key: 'Options shock',
+    why: 'Unusual options-volume shock (volume vs prior open interest)',
     fields: ['options_pts'],
   },
   {

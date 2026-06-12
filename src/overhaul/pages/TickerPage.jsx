@@ -35,6 +35,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
 import useMassiveTickerInfo from '../../hooks/useMassiveTickerInfo';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
+import useTickerPositioning from '../../hooks/useTickerPositioning';
 import { useTickerEvents } from '../../hooks/useTickerEvents';
 import { useUniverseSnapshot } from '../../hooks/useUniverseSnapshot';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
@@ -58,7 +59,7 @@ function readingForScan(key, r) {
     const trend = pct == null ? '—' : `${pct >= 0 ? 'above' : 'below'} 200-day by ${Math.abs(pct).toFixed(1)}%`;
     return `${trend}${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`;
   }
-  if (key === 'Options flow') return r.options_vol_shock != null ? `Vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : 'No options shock';
+  if (key === 'Options shock') return r.options_vol_shock != null ? `Vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : 'No options shock';
   if (key === 'Dark pool') return r.dark_pool_anchor != null ? `Anchor $${Number(r.dark_pool_anchor).toFixed(2)}` : 'No anchor print';
   return '—';
 }
@@ -120,6 +121,7 @@ const BENCH_LABEL = Object.fromEntries(OVERLAY_UNIVERSE.flatMap(([, items]) => i
 const TABS = [
   ['options', 'Options flow'],
   ['dark',    'Dark pool'],
+  ['short',   'Short interest'],
   ['news',    'News'],
   ['fund',    'Fundamentals'],
 ];
@@ -202,7 +204,7 @@ const INSIDER_RULES = {
   C: 'Three or more different insiders bought on the open market within the 30-day window.',
 };
 /* Positive ceiling each component can contribute — used only to size its bar. */
-const SCORE_CAPS = { Insider: 4, Technicals: 1, 'Options flow': 4, 'Dark pool': 2 };
+const SCORE_CAPS = { Insider: 4, Technicals: 1, 'Options shock': 4, 'Dark pool': 2 };
 
 /* The engine fades insider points for age: full weight through day 15, then a
    straight line down to zero at day 31. Returns the share of full weight left. */
@@ -248,6 +250,7 @@ export default function TickerPage() {
   const earnings = useEarningsHistory(sym);
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
+  const positioning = useTickerPositioning(sym);
 
   const [tab, setTab] = useState('news');
   const [tf, setTf]   = useState('1Y');
@@ -641,8 +644,9 @@ export default function TickerPage() {
           ))}
         </div>
 
-        {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} />}
+        {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} flow={positioning.flow} />}
         {tab === 'dark'    && <DarkPoolTab events={darkEvents} />}
+        {tab === 'short'   && <ShortInterestTab pos={positioning} />}
         {tab === 'news'    && <NewsTab events={newsEvents} />}
         {tab === 'fund'    && <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />}
       </section>
@@ -794,7 +798,7 @@ function InsiderTab({ events }) {
 
 /* ---------- Options tab ---------- */
 
-function OptionsTab({ snap, scanRow }) {
+function OptionsTab({ snap, scanRow, flow }) {
   // Snapshot covers large-caps only; for the scanner's discovery names fall back
   // to the option fields stored on the scan row so the tab isn't all blanks.
   const cpRatio = snap?.put_call_ratio ?? scanRow?.pc_ratio ?? null;
@@ -827,9 +831,106 @@ function OptionsTab({ snap, scanRow }) {
           <TechCell label="Bearish $"      value={fmt$(snap?.bearish_premium, 0)} />
         </div>
       </div>
+      <div className="tk-techstrip">
+        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Flow alerts · trailing 30-day window
+          <FreshnessChip
+            elementId="equity-options_flow-daily"
+            variant="dot"
+            fallback={{ asOfIso: flow?.as_of_date }}
+          />
+        </div>
+        {flow ? (
+          <div className="tk-techgrid">
+            <TechCell label="Net call $" value={netFlow$(flow)} />
+            <TechCell
+              label="At the ask"
+              value={askShare(flow) != null ? `${Math.round(askShare(flow) * 100)}%` : '—'}
+              tip="Share of alert premium that printed at the ask — buyers paying up"
+            />
+            <TechCell label="Sweeps" value={flow.sweep_count ?? '—'} />
+            <TechCell label="Unusual" value={flow.unusual_count ?? '—'} />
+            <TechCell label="Call alerts" value={flow.call_count ?? '—'} />
+            <TechCell label="Put alerts" value={flow.put_count ?? '—'} />
+          </div>
+        ) : (
+          <div className="tk-emptyfoot">
+            No flow alerts for this name in the trailing 30 days — the alert
+            feed covers names with notable options activity, so quiet tickers
+            are legitimately absent.
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/* Net call premium + ask-side share off an options_flow_daily row. */
+function netFlow$(flow) {
+  const cp = Number(flow?.call_premium ?? NaN);
+  const pp = Number(flow?.put_premium ?? NaN);
+  if (!Number.isFinite(cp) || !Number.isFinite(pp)) return '—';
+  const n = cp - pp; const a = Math.abs(n); const s = n < 0 ? '-' : '';
+  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(0)}k`;
+  return `${s}$${a.toFixed(0)}`;
+}
+function askShare(flow) {
+  const ask = Number(flow?.ask_side_premium ?? NaN);
+  const bid = Number(flow?.bid_side_premium ?? NaN);
+  if (!Number.isFinite(ask) || !Number.isFinite(bid) || ask + bid <= 0) return null;
+  return ask / (ask + bid);
+}
+
+/* ---------- Short interest tab ---------- */
+
+function ShortInterestTab({ pos }) {
+  const f = pos?.finra || null;
+  const d = pos?.daily || null;
+  const pct1 = (v) => (v == null ? '—' : `${Number(v).toFixed(1)}%`);
+  const ratioPct = (v) => (v == null ? '—' : `${(Number(v) * 100).toFixed(0)}%`);
+  return (
+    <article className="mt-card mt-fade">
+      <div className="tk-tabhead">
+        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Short interest
+          <FreshnessChip
+            elementId="equity-short_interest-daily"
+            variant="dot"
+            fallback={{ asOfIso: d?.as_of_date || f?.as_of_date }}
+          />
+        </div>
+      </div>
+      <div className="tk-keygrid tk-keygrid--tight">
+        <KvCell
+          label="% of shares out"
+          value={pct1(f?.short_interest_float_pct)}
+          tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
+        />
+        <KvCell label="Shares short" value={fmtVol(f?.short_interest_shares)} />
+        <KvCell
+          label="Days to cover"
+          value={f?.days_to_cover != null ? Number(f.days_to_cover).toFixed(1) : '—'}
+          tip="Shares short ÷ average daily volume at the same settlement date"
+        />
+        <KvCell
+          label="Short vol (daily)"
+          value={ratioPct(d?.short_volume_ratio)}
+          tip="Yesterday's short sale volume as a share of total volume (daily tape, not the FINRA settlement)"
+        />
+        <KvCell
+          label="Cost to borrow"
+          value={pct1(d?.cost_to_borrow_pct)}
+          tip="Annualized stock-borrow fee — elevated readings mark a hard-to-borrow, crowded short"
+        />
+        <KvCell label="Fails to deliver" value={fmtVol(d?.ftd_quantity)} />
+      </div>
       <div className="tk-emptyfoot">
-        Notable sweeps and ticker-level option chain not surfaced here yet —
-        the per-ticker options events firehose is a separate pipeline.
+        {f
+          ? `FINRA settlement as of ${fmtDateShort(f.as_of_date)}; bi-monthly with a reporting lag.`
+          : 'No FINRA settlement row in the last 45 days for this name.'}
+        {d ? ` Daily short-volume tape as of ${fmtDateShort(d.as_of_date)}.` : ' No daily short-volume row in the last 7 days.'}
+        {' '}Context only — short interest does not enter the MacroTilt Score.
       </div>
     </article>
   );
@@ -1114,7 +1215,7 @@ function ScoreCard({ comp, scanRow, insiderEvents, open, onToggle }) {
         <div className="tk-scard-body">
           {comp.key === 'Insider'      && <InsiderDrill scanRow={scanRow} pts={pts} events={insiderEvents} />}
           {comp.key === 'Technicals'   && <TechnicalsDrill scanRow={scanRow} pts={pts} />}
-          {comp.key === 'Options flow' && <OptionsDrill scanRow={scanRow} pts={pts} />}
+          {comp.key === 'Options shock' && <OptionsDrill scanRow={scanRow} pts={pts} />}
           {comp.key === 'Dark pool'    && <DarkDrill scanRow={scanRow} pts={pts} />}
         </div>
       )}

@@ -76,6 +76,18 @@ function mapRow(r) {
     options_vol_shock: num(r.options_vol_shock),
     options_pts: num(r.options_pts),
 
+    // positioning context (informational; not part of the score)
+    si_float_pct: num(r.si_float_pct),
+    si_days_to_cover: num(r.si_days_to_cover),
+    si_short_vol_ratio: num(r.si_short_vol_ratio),
+    si_cost_to_borrow_pct: num(r.si_cost_to_borrow_pct),
+    si_as_of: r.si_as_of || null,
+    flow_net_call_prem_usd: num(r.flow_net_call_prem_usd),
+    flow_ask_side_share: num(r.flow_ask_side_share),
+    flow_sweep_count: num(r.flow_sweep_count),
+    flow_unusual_count: num(r.flow_unusual_count),
+    flow_as_of: r.flow_as_of || null,
+
     // context + trade plan
     iv: num(r.iv),
     iv_rank: num(r.iv_rank),

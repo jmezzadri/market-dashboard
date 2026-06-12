@@ -383,9 +383,9 @@ export default function ScannerPage() {
                   max: '+1 / −2',
                   rule: '+1 when it trades above its 200-day line, −2 below; a further −2 if the 14-day RSI is overbought (above 65).',
                 },
-                'Options flow': {
+                'Options shock': {
                   max: '+4',
-                  rule: "An unusual surge in call buying versus the stock's own baseline.",
+                  rule: "An unusual surge in call buying versus the contract's own prior open interest.",
                 },
                 'Dark pool': {
                   max: '+2',

@@ -20,6 +20,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sparkline from './Sparkline';
+import FreshnessChip from './FreshnessChip';
 import { buildScanBreakdown } from '../lib/scoreWeights';
 
 /* Human-readable underlying reading for each component, from real fields. */
@@ -36,7 +37,7 @@ function readingFor(key, row) {
     const rsi = row.rsi != null ? ` · RSI ${row.rsi.toFixed(0)}` : '';
     return `${trend}${rsi}`;
   }
-  if (key === 'Options flow') {
+  if (key === 'Options shock') {
     return row.options_vol_shock != null
       ? `Vol shock ${Number(row.options_vol_shock).toFixed(2)}×`
       : 'No options shock';
@@ -50,6 +51,62 @@ function readingFor(key, row) {
 }
 
 const money = (v) => (v == null || !Number.isFinite(Number(v)) ? '—' : `$${Number(v).toFixed(2)}`);
+const dash = (v, f) => (v == null || !Number.isFinite(Number(v)) ? '—' : f(Number(v)));
+const compact$ = (v) => {
+  const a = Math.abs(v); const s = v < 0 ? '-' : '';
+  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(0)}k`;
+  return `${s}$${a.toFixed(0)}`;
+};
+
+/* Positioning context rows — informational reads from the short-interest and
+   options-flow feeds. NEVER part of the score: the composition table above
+   this block must keep summing to the headline score exactly. */
+function PositioningContext({ row }) {
+  const kv = (label, value) => (
+    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '4px 0', borderTop: '1px solid var(--mt-line-0)' }}>
+      <span style={{ color: 'var(--mt-ink-2)' }}>{label}</span>
+      <b className="num" style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{value}</b>
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="mt-eyebrow" style={{ marginBottom: 2 }}>
+        Positioning context · informational, not in the score
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 22px', fontSize: 12 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0 2px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--mt-ink-1)' }}>Short interest</span>
+            <FreshnessChip
+              elementId="equity-short_interest-daily"
+              variant="dot"
+              fallback={{ asOfIso: row.si_as_of }}
+            />
+          </div>
+          {kv('% of shares out', dash(row.si_float_pct, (v) => `${v.toFixed(1)}%`))}
+          {kv('Days to cover', dash(row.si_days_to_cover, (v) => v.toFixed(1)))}
+          {kv('Short vol (daily)', dash(row.si_short_vol_ratio, (v) => `${(v * 100).toFixed(0)}%`))}
+          {kv('Cost to borrow', dash(row.si_cost_to_borrow_pct, (v) => `${v.toFixed(1)}%`))}
+        </div>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0 2px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--mt-ink-1)' }}>Options flow · 30d window</span>
+            <FreshnessChip
+              elementId="equity-options_flow-daily"
+              variant="dot"
+              fallback={{ asOfIso: row.flow_as_of }}
+            />
+          </div>
+          {kv('Net call premium', dash(row.flow_net_call_prem_usd, compact$))}
+          {kv('Printed at the ask', dash(row.flow_ask_side_share, (v) => `${Math.round(v * 100)}%`))}
+          {kv('Sweep alerts', dash(row.flow_sweep_count, (v) => `${v.toFixed(0)}`))}
+          {kv('Unusual alerts', dash(row.flow_unusual_count, (v) => `${v.toFixed(0)}`))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ScanDrill({ row, onAct }) {
   const navigate = useNavigate();
@@ -123,6 +180,8 @@ export default function ScanDrill({ row, onAct }) {
           <span>1w ago <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{wk != null ? wk.toFixed(2) : '—'}</b></span>
           <span>1m ago <b className="num" style={{ color: 'var(--mt-ink-0)' }}>{mo != null ? mo.toFixed(2) : '—'}</b></span>
         </div>
+
+        <PositioningContext row={row} />
       </div>
 
       {/* RIGHT — real spark + facts + trade plan + actions */}
