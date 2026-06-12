@@ -3977,7 +3977,7 @@
       "description": "Per-ticker short positioning: FINRA bi-monthly settlement (shares short, % of shares outstanding, days to cover) + UW daily tape (short volume ratio, cost to borrow, borrow availability, fails to deliver).",
       "sourcing_mode": "STP",
       "source_vendor": "Unusual Whales + FINRA",
-      "source_endpoint": "/api/shorts/{ticker}/data, /shorts/{ticker}/volume-and-ratio, /shorts/{ticker}/ftds + FINRA file",
+      "source_endpoint": "/api/shorts/{ticker}/data, /shorts/{ticker}/volume-and-ratio, /shorts/{ticker}/ftds + FINRA Query API consolidatedShortInterest (bulk POST, settlementDate-windowed, no key)",
       "license_tier": "paid",
       "monthly_cost_usd": 0,
       "cost_shared_with": "single $150 UW seat",
