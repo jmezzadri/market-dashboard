@@ -33,7 +33,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { sendEmail } from "../_shared/email.ts";
-import { isStaleAgainstSLA, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
+import { isStaleAgainstSLA, dailySessionGrade, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
 
 const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.com";
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
@@ -409,6 +409,25 @@ async function handle(req: Request): Promise<Response> {
     let newStatus: "green" | "amber" | "red";
     if (ageMin == null) newStatus = "red";
     else newStatus = statusFor(ageMin, row);
+
+    // Session-frontier doctrine for DAILY rows (Joe 2026-06-12): grade in
+    // trading sessions against the element's publication frontier — exactly
+    // mirrors the site chips (shared clock function). Cadence-minute banding
+    // stays for non-daily rows. An upstream lastError still forces red below.
+    if (!lastError && asOf && String(row.cadence || "").toUpperCase().startsWith("D")) {
+      const mfAny = manifestByName[row.indicator_id] as unknown as Record<string, unknown> | undefined;
+      const g = dailySessionGrade(asOf, {
+        fetchTimeET: (mfAny?.scheduled_fetch_time_et as string) || undefined,
+        graceHours: Number(mfAny?.fetch_grace_hours) || 3,
+        lagSessions: Number(mfAny?.lag_sessions) || 0,
+      });
+      if (g.grade !== "unknown") {
+        newStatus = g.grade;
+        if (g.grade === "red") {
+          lastError = `${g.behind} sessions behind publication frontier (expected data through ${g.expectedDate})`;
+        }
+      }
+    }
 
     // Debounced alert on a green→red transition
     const wasGreen = row.status === "green";
