@@ -334,6 +334,33 @@ function reconcileSleeves(row, aGrossOverride = null, bGrossOverride = null) {
   return { aValue: ag + aCash, bValue: bg + bCash, aCash, bCash };
 }
 
+// ── ONE shared per-sleeve headline computation (Joe directive 2026-06-12) ──
+// The Performance card AND each sleeve table's header line render THESE
+// numbers — never a per-position re-sum. Any two surfaces saying "today" or
+// "since inception" for a sleeve must show the same dollar.
+// Daily $: the writer's exact session P&L when present (holdings move plus
+// the effect of trades executed at the open), else the net-equity delta.
+// Inception $/%: reconciled sleeve value vs its $500K start.
+function sleeveHeadlines(navHistory, sleeveAGross = null, sleeveBGross = null) {
+  const none = { value: null, prevValue: null, day$: null, incep$: null, incepPct: null };
+  if (!navHistory || navHistory.length === 0) return { a: none, b: none };
+  const latest = navHistory[navHistory.length - 1];
+  const prev   = navHistory.length >= 2 ? navHistory[navHistory.length - 2] : null;
+  const s = reconcileSleeves(latest, sleeveAGross, sleeveBGross);
+  const p = reconcileSleeves(prev);
+  const mk = (val, prevVal, exactDay) => ({
+    value: val,
+    prevValue: prevVal,
+    day$: exactDay ?? ((val != null && prevVal != null) ? val - prevVal : null),
+    incep$: val != null ? val - PAPER_SLEEVE_CAP : null,
+    incepPct: val != null ? val / PAPER_SLEEVE_CAP - 1 : null,
+  });
+  return {
+    a: mk(s.aValue, p.aValue, latest.sleeve_a_day_pnl ?? null),
+    b: mk(s.bValue, p.bValue, latest.sleeve_b_day_pnl ?? null),
+  };
+}
+
 function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   const empty = !navHistory || navHistory.length === 0;
   const latest = empty ? null : navHistory[navHistory.length - 1];
@@ -373,9 +400,8 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   // The latest row ties to the displayed sleeve tables (gross overrides);
   // the prior row reconciles from its own stored equities, so sleeve daily
   // P&L sums EXACTLY to the book's daily P&L on both days.
-  const sLatest = reconcileSleeves(latest, sleeveAGross, sleeveBGross);
-  const sLatestA = sLatest.aValue, sLatestB = sLatest.bValue;
-  const sPrev = reconcileSleeves(prev);
+  const heads = sleeveHeadlines(navHistory, sleeveAGross, sleeveBGross);
+  const sLatestA = heads.a.value, sLatestB = heads.b.value;
 
   const spyNow = latest.spy_close ?? null;
   const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
@@ -386,8 +412,8 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   // effect of trades executed at the open; A+B sums to the book's NAV change
   // to the cent). Fall back to the net-equity delta for rows written before
   // the column existed.
-  const aDay$ = latest.sleeve_a_day_pnl ?? dlt(sLatestA, sPrev.aValue);
-  const bDay$ = latest.sleeve_b_day_pnl ?? dlt(sLatestB, sPrev.bValue);
+  const aDay$ = heads.a.day$;
+  const bDay$ = heads.b.day$;
   // Total Daily = the sum of the sleeve session P&Ls when the exact numbers
   // exist, so the card always foots on one consistent mark set (names whose
   // official bar is late carry broker marks until the morning certification;
@@ -399,15 +425,15 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
     {
       label: 'Sleeve A', sub: 'Asset Tilt · $500K',
       value: sLatestA,
-      daily$: aDay$, daily: (aDay$ != null && sPrev.aValue) ? aDay$ / sPrev.aValue : null,
-      incep$: dlt(sLatestA, CAP),          incep: ret(sLatestA, CAP),
+      daily$: aDay$, daily: (aDay$ != null && heads.a.prevValue) ? aDay$ / heads.a.prevValue : null,
+      incep$: heads.a.incep$,          incep: heads.a.incepPct,
       beta: betas.a ?? latest.sleeve_a_beta ?? null,
     },
     {
       label: 'Sleeve B', sub: 'Equity Scanner · $500K',
       value: sLatestB,
-      daily$: bDay$, daily: (bDay$ != null && sPrev.bValue) ? bDay$ / sPrev.bValue : null,
-      incep$: dlt(sLatestB, CAP),          incep: ret(sLatestB, CAP),
+      daily$: bDay$, daily: (bDay$ != null && heads.b.prevValue) ? bDay$ / heads.b.prevValue : null,
+      incep$: heads.b.incep$,          incep: heads.b.incepPct,
       beta: betas.b ?? latest.sleeve_b_beta ?? null,
     },
     {
@@ -457,7 +483,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Note: a sleeve's Daily is its exact session P&L — price moves of its holdings plus the effect of any trades executed at the open — so Sleeve A + Sleeve B equals the book's Daily to the cent, and on days with no trades each sleeve matches its table's 'today' line exactly. The table's 'open P&L since entry' is unrealized P&L on current positions from their entry prices; it excludes realized gains from closed trades, so it differs from Inception, which measures the whole sleeve against its $500K start." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Note: a sleeve's Daily is its exact session P&L — price moves of its holdings plus the effect of any trades executed at the open — so Sleeve A + Sleeve B equals the book's Daily to the cent. Each sleeve table's header shows this same Daily and the same Inception figure, computed once from this snapshot, so the card and the tables always match." size={11} /></span>
         <span className="pts-asof">{latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—'}</span>
       </div>
       <table className="pmx">
@@ -535,7 +561,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). This table renders only the columns that
   // apply to its sleeve — Sleeve A has no Score, so it's filtered out here.
@@ -551,8 +577,11 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
   const visibleCols = cfg.filter((c) => c.visible && appliesToSleeve(c.key));
 
   const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
-  const unreal = positions.reduce((s, p) => s + (p.unrealized_pnl || 0), 0);
-  const dayPL = positions.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0);
+  // Header "today" / "since inception" come from the shared sleeveHeadlines
+  // computation — identical to the Performance card by construction (Joe
+  // directive 2026-06-12: the card and the tables must never disagree).
+  // Never re-sum per-position P&L here; if the snapshot hasn't loaded, show
+  // an em-dash rather than a divergent number.
   const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
 
   // Percentages are computed from the dollar P&L and cost basis we trust.
@@ -655,8 +684,8 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
             {leverageRatio > 1.0 && (
               <> &middot; <span style={{ color: WARN_COLOR, fontWeight: 600 }}>{leverageRatio.toFixed(2)}&times; leverage</span></>
             )}
-            {' '}&middot; <span style={{ color: dayPL >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(dayPL)} today</span>
-            {' '}&middot; <span style={{ color: unreal >= 0 ? UP_COLOR : DOWN_COLOR }}>{fmtMoneyExact(unreal)} open P&amp;L since entry</span>
+            {' '}&middot; <span style={{ color: (headline?.day$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.day$ != null ? fmtMoneyExact(headline.day$) : '\u2014'} today</span>
+            {' '}&middot; <span style={{ color: (headline?.incep$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.incep$ != null ? fmtMoneyExact(headline.incep$) : '\u2014'} since inception</span>
             {asOf && <> &middot; <span>as of {fmtDate(asOf)} close</span></>}
           </div>
         </div>
@@ -899,6 +928,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const sleeveAGross = useMemo(() => sleeveA.length ? sleeveA.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveA]);
   const sleeveBGross = useMemo(() => sleeveB.length ? sleeveB.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveB]);
   const recon = useMemo(() => reconcileSleeves(latestNav, sleeveAGross, sleeveBGross), [latestNav, sleeveAGross, sleeveBGross]);
+  // Shared headline stats — the SAME object family the Performance card renders.
+  const heads = useMemo(() => sleeveHeadlines(navHistory, sleeveAGross, sleeveBGross), [navHistory, sleeveAGross, sleeveBGross]);
   // Precise last-update timestamp for the positions snapshot (has time-of-day,
   // so the freshness tooltip shows date AND time, not just a date).
   const posUpdatedAt = positions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
@@ -930,6 +961,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
           setCfg={setColCfg}
+          headline={heads.a}
           infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
         />
         <PositionsPanel
@@ -943,6 +975,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
           setCfg={setColCfg}
+          headline={heads.b}
           infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
         />
         <RebalanceLog orders={orders} />

@@ -262,6 +262,14 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 **Applies to:** Lead Developer + Data Steward. Every producer workflow, every watchdog branch, every workflow rename.
 
 
+### 2026-06-12 b — Two surfaces showing the same concept render ONE shared computation; a tooltip explaining a mismatch is a defect, not a fix
+
+**What happened:** The Paper page's sleeve table headers summed per-position broker fields ("today" = sum of intraday P&L, "open P&L since entry" = sum of unrealized P&L) while the Performance card computed sleeve-level Daily and Inception P&L from the close-anchored snapshot. The numbers disagree whenever trades executed that session or realized P&L exists (Sleeve A: −$900 vs −$1,243; Sleeve B "today": $5,954 vs $3,592 the same day). A prior session had documented the difference in the Performance tooltip instead of fixing it. Fourth time Joe caught two surfaces on one page out of sync; he should never be the reconciliation engine.
+
+**Rule:** When two surfaces on one page (or one site) display the same concept — "today", "since inception", a sleeve value, a score — they must render the output of ONE shared function reading ONE source, so agreement holds by construction. Writing a tooltip, footnote, or methodology paragraph that explains why two visible numbers differ is the failure mode, not the remedy. A stat with a genuinely different basis must carry an unmistakably different name and must not sit beside its sibling in a header line. When the shared source has not loaded, render an em-dash — never a divergent fallback from another basis.
+
+**Applies to:** All. Senior Quant signs off on any header/summary stat addition; UX Designer rejects headers that juxtapose different bases.
+
 ### 4.1 (2026-06-11) — An orphan tracking row is either a live feed missing registration, or a killed feed missing cleanup — decide with evidence
 
 **What happened:** A registration pass found tracking rows with no registry entry and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE; the kill removed producers and tiles but left tracking rows behind. Registration armed the header freshness pill on a dead feed: Joe saw "1 feed stale" with every visible tile green and no red tile anywhere to find.
