@@ -153,7 +153,7 @@ export default function ScannerPage() {
           </h1>
           <p className="mt-deck">
             Four signals — <b>insider activity</b>, <b>technicals</b>,{' '}
-            <b>options flow</b>, and <b>dark-pool prints</b> — sum into one
+            <b>options shock</b>, and <b>dark-pool prints</b> — sum into one
             live MacroTilt Score from 0 to 10. A name needs at least 3 to make
             the list.
             Long alerts today <b className="num">{universeTotal}</b>.{' '}
@@ -334,7 +334,7 @@ export default function ScannerPage() {
 
         <div className="sc-note">
           <b>Scoring update.</b>{' '}
-          Dark-pool prints and options flow are now live inputs to the 0–10
+          Dark-pool prints and the options-shock layer are now live inputs to the 0–10
           MacroTilt Score.
         </div>
       </section>
