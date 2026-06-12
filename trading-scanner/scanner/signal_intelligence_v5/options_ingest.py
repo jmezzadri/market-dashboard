@@ -29,6 +29,34 @@ TABLE = "options_flow_daily"
 WINDOW_DAYS = 30
 
 
+
+def _pipeline_health_upsert(indicator_id: str, label: str,
+                            data_as_of: str | None) -> None:
+    """Mark this feed green in public.pipeline_health (chip source of truth).
+
+    Producers must upsert their own health row — the freshness checker only
+    UPDATES existing rows, and a chip with no row behind it is fake-green
+    (hard data rule, 2026-06-02). Never raises.
+    """
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+        now = _dt.now(_tz.utc).isoformat()
+        row = {"indicator_id": indicator_id, "label": label,
+               "source": "Unusual Whales", "cadence": "D",
+               "expected_cadence_minutes": 1440, "status": "green",
+               "last_good_at": now, "last_check_at": now}
+        if data_as_of:
+            row["data_as_of"] = f"{data_as_of}T00:00:00+00:00"
+        r = requests.post(
+            f"{_supa_url()}/rest/v1/pipeline_health?on_conflict=indicator_id",
+            headers={**_supa_headers(),
+                     "Prefer": "resolution=merge-duplicates,return=minimal"},
+            json=[row], timeout=30)
+        if r.status_code >= 400:
+            print(f"pipeline_health upsert failed: {r.status_code} {r.text[:200]}")
+    except Exception as exc:                           # noqa: BLE001
+        print(f"pipeline_health upsert failed: {exc}")
+
 def _uw_headers() -> dict[str, str]:
     return {
         "Authorization": f"Bearer {os.environ['UNUSUAL_WHALES_API_KEY']}",
@@ -249,6 +277,10 @@ if __name__ == "__main__":
         # gets within an order of magnitude of total page requests.
         _events = int(_result.get("events_fetched_first_pass") or 0)
         _calls = max(1, _events // 25) if _events else 0
+        _pipeline_health_upsert(
+            "equity-options_flow-daily",
+            "Options flow alerts (30-day window)",
+            _result.get("as_of"))
         log_run_summary(
             source="options_flow",
             run_id=_run_id,

@@ -245,6 +245,80 @@ def fetch_universe_extras(tickers: list, asof_iso: str) -> dict:
     return out
 
 
+def fetch_positioning(tickers: list, asof_iso: str) -> dict:
+    """Short-interest + options-flow CONTEXT for the launched names.
+
+    Informational only — these fields never enter the score (any scored use
+    needs a backtest first, per the Senior Quant rule). Reads three Supabase
+    tables that the 06:00/06:40 ET feeds already ingested, so this adds NO
+    vendor API calls. Staleness fences: the FINRA settlement is bi-monthly
+    (45-day fence); the two daily tables get a 7-calendar-day fence — older
+    rows are treated as missing rather than silently displayed.
+
+    Returns {ticker: {si_float_pct, si_days_to_cover, si_short_vol_ratio,
+    si_cost_to_borrow_pct, si_as_of, flow_net_call_prem_usd,
+    flow_ask_side_share, flow_sweep_count, flow_unusual_count, flow_as_of}}.
+    """
+    from datetime import date as _date, timedelta as _td
+    lo_finra = (_date.fromisoformat(asof_iso) - _td(days=45)).isoformat()
+    lo_daily = (_date.fromisoformat(asof_iso) - _td(days=7)).isoformat()
+    out: dict = {t: {} for t in tickers}
+
+    def _first_per_ticker(path):
+        got = {}
+        try:
+            rows = _supabase_get(path) or []
+        except Exception as exc:                       # noqa: BLE001
+            print(f"    positioning fetch failed for a batch: {exc}")
+            rows = []
+        for r in rows:
+            tk = r.get("ticker")
+            if tk and tk not in got:          # ordered desc -> first = freshest
+                got[tk] = r
+        return got
+
+    for i in range(0, len(tickers), 60):
+        chunk = ",".join(tickers[i:i + 60])
+        finra = _first_per_ticker(
+            "short_interest?select=ticker,as_of_date,short_interest_float_pct,"
+            f"days_to_cover&ticker=in.({chunk})&source=eq.finra"
+            f"&as_of_date=lte.{asof_iso}&as_of_date=gte.{lo_finra}"
+            "&order=as_of_date.desc&limit=1000")
+        daily = _first_per_ticker(
+            "short_interest_daily?select=ticker,as_of_date,short_volume_ratio,"
+            f"cost_to_borrow_pct&ticker=in.({chunk})"
+            f"&as_of_date=lte.{asof_iso}&as_of_date=gte.{lo_daily}"
+            "&order=as_of_date.desc&limit=1000")
+        flow = _first_per_ticker(
+            "options_flow_daily?select=ticker,as_of_date,call_premium,"
+            "put_premium,ask_side_premium,bid_side_premium,sweep_count,"
+            f"unusual_count&ticker=in.({chunk})"
+            f"&as_of_date=lte.{asof_iso}&as_of_date=gte.{lo_daily}"
+            "&order=as_of_date.desc&limit=1000")
+        for tk in tickers[i:i + 60]:
+            d = out[tk]
+            f, dd, fl = finra.get(tk), daily.get(tk), flow.get(tk)
+            if f:
+                d["si_float_pct"] = f.get("short_interest_float_pct")
+                d["si_days_to_cover"] = f.get("days_to_cover")
+            if dd:
+                d["si_short_vol_ratio"] = dd.get("short_volume_ratio")
+                d["si_cost_to_borrow_pct"] = dd.get("cost_to_borrow_pct")
+            d["si_as_of"] = (dd or {}).get("as_of_date") or (f or {}).get("as_of_date")
+            if fl:
+                cp = float(fl.get("call_premium") or 0.0)
+                pp = float(fl.get("put_premium") or 0.0)
+                ask = float(fl.get("ask_side_premium") or 0.0)
+                bid = float(fl.get("bid_side_premium") or 0.0)
+                d["flow_net_call_prem_usd"] = round(cp - pp, 2)
+                d["flow_ask_side_share"] = (round(ask / (ask + bid), 4)
+                                            if (ask + bid) > 0 else None)
+                d["flow_sweep_count"] = fl.get("sweep_count")
+                d["flow_unusual_count"] = fl.get("unusual_count")
+                d["flow_as_of"] = fl.get("as_of_date")
+    return out
+
+
 # ───────────────────────────────────────────────────────────────────────────
 # main
 # ───────────────────────────────────────────────────────────────────────────
@@ -373,6 +447,12 @@ def main():
     print("[5] fetching reference + earnings + price history for launches ...")
     ref = fetch_reference(launched_tickers)
     uni = fetch_universe_extras(launched_tickers, scan_iso)
+    pos = fetch_positioning(launched_tickers, scan_iso)
+    n_si = sum(1 for v in pos.values() if v.get("si_float_pct") is not None
+               or v.get("si_short_vol_ratio") is not None)
+    n_fl = sum(1 for v in pos.values() if v.get("flow_as_of") is not None)
+    print(f"    positioning context: short interest {n_si}/{len(launched_tickers)}, "
+          f"options flow {n_fl}/{len(launched_tickers)} (informational, not scored)")
     px_launched = px[px["ticker"].isin(launched_tickers)].sort_values(
         ["ticker", "trade_date"])
     extras_by_t = {t: price_extras(g)
@@ -415,6 +495,17 @@ def main():
             "options_vol_shock": opt_by_t[t]["shock_multiple"],
             "options_pts": opt_by_t[t]["points"],
             "options_shock_status": "live",
+            # positioning context (informational; not in the score)
+            "si_float_pct": pos.get(t, {}).get("si_float_pct"),
+            "si_days_to_cover": pos.get(t, {}).get("si_days_to_cover"),
+            "si_short_vol_ratio": pos.get(t, {}).get("si_short_vol_ratio"),
+            "si_cost_to_borrow_pct": pos.get(t, {}).get("si_cost_to_borrow_pct"),
+            "si_as_of": pos.get(t, {}).get("si_as_of"),
+            "flow_net_call_prem_usd": pos.get(t, {}).get("flow_net_call_prem_usd"),
+            "flow_ask_side_share": pos.get(t, {}).get("flow_ask_side_share"),
+            "flow_sweep_count": pos.get(t, {}).get("flow_sweep_count"),
+            "flow_unusual_count": pos.get(t, {}).get("flow_unusual_count"),
+            "flow_as_of": pos.get(t, {}).get("flow_as_of"),
             "sma200_pct": sma200_pct, "sma200_pts": r["sma200_pts"],
             "rsi": (round(r["rsi"], 1) if r["rsi"] is not None else None),
             "rsi_pts": r["rsi_pts"],

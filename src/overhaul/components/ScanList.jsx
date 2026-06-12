@@ -28,6 +28,17 @@ const techPts = (r) => (Number(r.sma200_pts) || 0) + (Number(r.rsi_pts) || 0);
 
 const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
 
+/* Signed compact dollars for the options-flow column: $1.2M / -$340k / $980. */
+function flowMoney(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(0)}k`;
+  return `${sign}$${a.toFixed(0)}`;
+}
+
 // Column registry for the indicator (Scanner) view. `w` is the grid track
 // width. `head` is the short column header label. Ticker + Score are locked
 // on by the picker, so they always appear; the rest are toggleable.
@@ -40,9 +51,11 @@ export const INDICATOR_COLS = {
   tech:    { key: 'tech',    label: 'Technicals pts', head: 'Tech',    w: '52px' },
   options: { key: 'options', label: 'Options pts',    head: 'Options', w: '52px' },
   dark:    { key: 'dark',    label: 'Dark-pool pts',  head: 'Dark',    w: '52px' },
+  short:   { key: 'short',   label: 'Short interest %', head: 'Short %', w: '62px' },
+  flow:    { key: 'flow',    label: 'Options flow net $', head: 'Flow $', w: '72px' },
 };
 
-export const INDICATOR_COL_KEYS = ['ticker', 'score', 'price', 'spark', 'insider', 'tech', 'options', 'dark'];
+export const INDICATOR_COL_KEYS = ['ticker', 'score', 'price', 'spark', 'insider', 'tech', 'options', 'dark', 'short', 'flow'];
 
 export default function ScanList({
   rows,
@@ -129,6 +142,13 @@ export default function ScanList({
               };
               return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
             }
+            if (['short', 'flow'].includes(k)) {
+              const tips = {
+                short: 'FINRA short interest as % of shares outstanding — context only, not scored',
+                flow: 'Net call premium in the 30-day options flow-alert window — context only, not scored',
+              };
+              return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
+            }
             return <span key={k}>{col.head}</span>;
           })}
           <span />
@@ -204,6 +224,42 @@ export default function ScanList({
               return <PtsCell key={k} value={r.options_pts} on={optionsOn} tip={optionsTip} />;
             case 'dark':
               return <PtsCell key={k} value={r.dark_pool_pts} on={darkOn} tip={darkTip} />;
+            case 'short': {
+              const v = r.si_float_pct;
+              const tip = v != null
+                ? `Short interest ${Number(v).toFixed(1)}% of shares outstanding`
+                  + (r.si_days_to_cover != null ? ` · ${Number(r.si_days_to_cover).toFixed(1)} days to cover` : '')
+                  + (r.si_cost_to_borrow_pct != null ? ` · ${Number(r.si_cost_to_borrow_pct).toFixed(1)}% to borrow` : '')
+                  + (r.si_as_of ? ` · as of ${r.si_as_of}` : '')
+                : 'No short-interest reading stored for this name';
+              return (
+                <div key={k}>
+                  <Tip content={tip}>
+                    <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v != null ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
+                      {v != null ? `${Number(v).toFixed(1)}%` : '—'}
+                    </span>
+                  </Tip>
+                </div>
+              );
+            }
+            case 'flow': {
+              const v = r.flow_net_call_prem_usd;
+              const tip = v != null
+                ? `Net call premium ${flowMoney(v)} over the 30-day flow-alert window`
+                  + (r.flow_ask_side_share != null ? ` · ${Math.round(r.flow_ask_side_share * 100)}% printed at the ask` : '')
+                  + (r.flow_sweep_count != null ? ` · ${r.flow_sweep_count} sweeps` : '')
+                  + (r.flow_as_of ? ` · as of ${r.flow_as_of}` : '')
+                : 'No options flow alerts stored for this name';
+              return (
+                <div key={k}>
+                  <Tip content={tip}>
+                    <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v == null ? 'var(--mt-ink-3)' : v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>
+                      {v != null ? flowMoney(v) : '—'}
+                    </span>
+                  </Tip>
+                </div>
+              );
+            }
             default:
               return <div key={k} />;
           }

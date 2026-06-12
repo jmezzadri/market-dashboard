@@ -3969,6 +3969,74 @@
       "producer_script": "V5 scanner runner",
       "current_status": "live (legacy consumer)",
       "_review_note": "2026-06-11 audit: confirm whether the Ticker page batch read should move to trading_opps_signals; if so this feed and its two workflows can be retired."
+    },
+    {
+      "id": "equity-short_interest-daily",
+      "name": "short_interest_uw_finra",
+      "category": "equity",
+      "description": "Per-ticker short positioning: FINRA bi-monthly settlement (shares short, % of shares outstanding, days to cover) + UW daily tape (short volume ratio, cost to borrow, borrow availability, fails to deliver).",
+      "sourcing_mode": "STP",
+      "source_vendor": "Unusual Whales + FINRA",
+      "source_endpoint": "/api/shorts/{ticker}/data, /shorts/{ticker}/volume-and-ratio, /shorts/{ticker}/ftds + FINRA file",
+      "license_tier": "paid",
+      "monthly_cost_usd": 0,
+      "cost_shared_with": "single $150 UW seat",
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "06:00",
+      "refresh_trigger": "SHORT_INTEREST_INGEST_DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public.short_interest (FINRA rows) + public.short_interest_daily (UW daily rows); context columns on public.trading_opps_signals",
+      "producer_script": "scanner/signal_intelligence_v5/short_interest_ingest.py",
+      "consumer_surfaces": [
+        {
+          "tab": "scanner",
+          "component": "Short % column + drill positioning context"
+        },
+        {
+          "tab": "ticker",
+          "component": "Short interest tab"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Run-slot gate retries on the second DST cron line; two consecutive missed days turn the chip amber via pipeline_health (equity-short_interest-daily).",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface; the 49h SLA tracks the DAILY UW tape."
+    },
+    {
+      "id": "equity-options_flow-daily",
+      "name": "options_flow_alerts",
+      "category": "equity",
+      "description": "Per-ticker aggregates of UW options flow alerts over the trailing 30-day window: call/put premium, ask-side vs bid-side premium, sweep count, unusual-alert count.",
+      "sourcing_mode": "STP",
+      "source_vendor": "Unusual Whales",
+      "source_endpoint": "/api/option-trades/flow-alerts",
+      "license_tier": "paid",
+      "monthly_cost_usd": 0,
+      "cost_shared_with": "single $150 UW seat",
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "06:40",
+      "refresh_trigger": "OPTIONS_FLOW_INGEST_DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public.options_flow_daily; context columns on public.trading_opps_signals",
+      "producer_script": "scanner/signal_intelligence_v5/options_ingest.py",
+      "consumer_surfaces": [
+        {
+          "tab": "scanner",
+          "component": "Flow $ column + drill positioning context"
+        },
+        {
+          "tab": "ticker",
+          "component": "Options flow tab · flow-alerts strip"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Run-slot gate retries on the second DST cron line; two consecutive missed days turn the chip amber via pipeline_health (equity-options_flow-daily). Alert feed covers only names with notable activity — absence for a quiet ticker is not staleness.",
+      "owner": "Data Steward",
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) — a different element; this one is context-only and never scored."
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

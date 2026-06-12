@@ -262,17 +262,25 @@ export default function MethodologyPage() {
               single score from 0 to 10. A name needs at least 3 points to make the list.
             </p>
             <div className="me-formula">
-              Insider (up to +4) + Technicals (+1 / −2) + Options flow (up to +4) + Dark pool (up to +2)<br />
+              Insider (up to +4) + Technicals (+1 / −2) + Options shock (up to +4) + Dark pool (up to +2)<br />
               MacroTilt Score = the sum, capped at 10
             </div>
             <p className="me-body-p">
               <b>Insider</b> fires on open-market buys in the last 30 days — a C-suite officer lifting their
               own stake ≥10% (≥$100k), combined buying ≥0.05% of the company, or 3+ different insiders —
               capped at +4 and faded with age. <b>Technicals</b> add +1 above the 200-day line (−2 below) and
-              −2 if the 14-day RSI is overbought. <b>Options flow</b> rewards an unusual surge in call buying,
+              −2 if the 14-day RSI is overbought. <b>Options shock</b> rewards an unusual surge in call buying,
               and <b>dark pool</b> rewards large prints near the day's average price. <b>Universe scan</b> runs
               once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
               refresh 3× daily.
+            </p>
+            <p>
+              Two context columns sit alongside the score and do not enter it: <b>Short interest</b> is the
+              FINRA bi-monthly short position as a percent of shares outstanding (with days-to-cover, the
+              daily short-volume ratio, and the annualized cost to borrow in the drill-down), and{' '}
+              <b>Options flow</b> is the net call-minus-put premium across Unusual Whales flow alerts in the
+              trailing 30-day window, with the share of premium printed at the ask and the sweep count.
+              Both refresh each weekday morning (06:00 / 06:40 ET).
             </p>
           </div>
         </article>
