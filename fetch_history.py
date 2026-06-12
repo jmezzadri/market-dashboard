@@ -472,8 +472,26 @@ def _supabase_rpc(rpc_name: str, params: dict) -> list:
                 "Accept": "application/json",
             },
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            return _json.loads(resp.read().decode("utf-8"))
+        # 2026-06-11: PAGINATE. The API layer silently caps any response at
+        # 1,000 rows. The A/D line function returns one row per trading day in
+        # ascending date order — the series crossed 1,000 days this week and
+        # the tail (the newest days!) started getting clipped, freezing the
+        # published line at 2026-06-09 while every run still reported success.
+        # Page with Range headers until a short page says we have everything.
+        out = []
+        page = 0
+        while True:
+            req.add_header("Range-Unit", "items")
+            req.remove_header("Range") if req.has_header("Range") else None
+            req.add_header("Range", f"{page * 1000}-{page * 1000 + 999}")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                chunk = _json.loads(resp.read().decode("utf-8"))
+            if not isinstance(chunk, list):
+                return chunk if not out else out
+            out.extend(chunk)
+            if len(chunk) < 1000 or page > 50:
+                return out
+            page += 1
     except Exception as e:
         print(f"  Supabase RPC failed ({rpc_name}): {e}")
         return []
