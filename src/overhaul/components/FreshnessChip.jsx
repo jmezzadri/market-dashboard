@@ -297,7 +297,7 @@ export default function FreshnessChip({
                 (Joe directive 2026-06-02). */}
             <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Updates:</span> {freqLabel(f?.cadence, f?.calendar)}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Updates:</span> {freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
               <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>Data as of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Last refreshed:</span> {fetchedExact}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {f?.slaHours > 0 ? `within ${f.slaHours} hours` : '—'}</li>

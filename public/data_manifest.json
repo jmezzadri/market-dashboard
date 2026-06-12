@@ -65,7 +65,8 @@
     "last_updated": "2026-05-27",
     "last_change": "2026-05-27 — renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run.",
     "v_2026_06_11": "2026-06-11 one-shot stamp fix: registered 11 previously-untracked elements (cycle board, ISM keys, scanner V5 legacy feed, user positions, scenario impact, put/call, dollar index, Buffett, bank unrealized losses, sector perf, scenario stress, indicator-history aggregate).",
-    "v_2026_06_11b": "Un-registered put_call/buffett/bank_unreal — these feeds were killed as phantoms on 2026-06-10 (commit 'Kill phantom feeds'); the 2026-06-11 stamp-fix registration pass resurrected them by mistake. Their tracking rows are deleted by the repair workflow. Registration must check kill history first."
+    "v_2026_06_11b": "Un-registered put_call/buffett/bank_unreal — these feeds were killed as phantoms on 2026-06-10 (commit 'Kill phantom feeds'); the 2026-06-11 stamp-fix registration pass resurrected them by mistake. Their tracking rows are deleted by the repair workflow. Registration must check kill history first.",
+    "v_2026_06_11c": " v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron)."
   },
   "elements": [
     {
@@ -81,7 +82,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[vix]; src/App.jsx IND[] literal (via fetch_indicators.py)",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -123,7 +124,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[hy_ig]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -165,7 +166,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[eq_cr_corr]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -241,7 +242,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[move]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -351,7 +352,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[copper_gold]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -389,7 +390,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[bkx_spx]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -431,7 +432,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[usd]",
       "producer_script": "fetch_history.py + fetch_indicators.py",
       "consumer_surfaces": [
@@ -469,7 +470,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[skew]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -611,7 +612,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[loan_syn]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -979,7 +980,7 @@
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "weekly",
-      "scheduled_fetch_time_et": "Saturday 08:00",
+      "scheduled_fetch_time_et": "08:15",
       "refresh_trigger": "V9-ALLOCATION-WEEKLY",
       "freshness_sla_hours": 192,
       "output_destination": "public/v9_allocation.json",
@@ -1324,7 +1325,7 @@
       "monthly_cost_usd": 0,
       "cost_shared_with": "single $150 UW seat",
       "cadence": "daily",
-      "scheduled_fetch_time_et": "15:30",
+      "scheduled_fetch_time_et": "03:30",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS (filename misleading; actually runs at 15:30)",
       "freshness_sla_hours": 49,
       "output_destination": "public/latest_scan_data.json (committed back to repo) + Supabase user_scan_data",
@@ -2175,7 +2176,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
@@ -2205,7 +2206,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-hy_ig-daily",
@@ -2238,7 +2239,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[fra_ois] (PENDING — needs paid source or proxy)",
@@ -2298,7 +2299,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[adv_dec]",
@@ -2328,7 +2329,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[sofr_ois]",
@@ -2418,7 +2419,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[bkx_spx_v11]",
@@ -2455,7 +2456,8 @@
       "shipped_in_pr": 411,
       "tuned_in_pr": 416,
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
-      "shipped_date": "2026-05-04"
+      "shipped_date": "2026-05-04",
+      "scheduled_fetch_time_et": "08:15"
     },
     {
       "id": "scenario-scenario_definitions-static",
@@ -2552,7 +2554,7 @@
       "name": "rrp",
       "category": "indicator",
       "cadence": "daily",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED RRPONTSYD",
@@ -2672,7 +2674,7 @@
       "name": "hy_ig_etf",
       "category": "indicator",
       "cadence": "daily",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "nyse-trading-day",
       "source_vendor": "Yahoo Finance",
       "source_endpoint": "LQD / HYG price ratio",
@@ -2852,7 +2854,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "11:00",
       "refresh_trigger": "BREADTH-DAILY",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[spx_above_50ema]",
       "producer_script": "BREADTH-DAILY workflow",
       "consumer_surfaces": [
@@ -2885,7 +2887,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "11:00",
       "refresh_trigger": "BREADTH-DAILY",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[spx_above_200ema]",
       "producer_script": "BREADTH-DAILY workflow",
       "consumer_surfaces": [
@@ -2918,7 +2920,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_gold]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -2951,7 +2953,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_silver]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -2984,7 +2986,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_copper]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3050,7 +3052,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_oil]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3083,7 +3085,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_natgas]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3116,7 +3118,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_corn]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3149,7 +3151,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_soybeans]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3182,7 +3184,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_wheat]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3215,7 +3217,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[fx_eur]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3248,7 +3250,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[fx_jpy]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3281,7 +3283,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[fx_gbp]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3342,7 +3344,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "16:45",
       "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdty_brent]",
       "producer_script": "scripts/fetch_market_indicators.py",
       "consumer_surfaces": [
@@ -3553,7 +3555,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 10,22 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[spx_index]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -3591,7 +3593,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 10,22 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ndx_index]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -3629,7 +3631,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 10,22 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[dji_index]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -3667,7 +3669,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "11:00",
       "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ndx_above_50ema]",
       "producer_script": "BREADTH-DAILY workflow",
       "consumer_surfaces": [
@@ -3700,7 +3702,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "11:00",
       "refresh_trigger": "GH workflow BREADTH-DAILY (cron 0 15 * * 1-5 UTC)",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ndx_above_200ema]",
       "producer_script": "BREADTH-DAILY workflow",
       "consumer_surfaces": [
@@ -3768,7 +3770,7 @@
       "scheduled_fetch_time_et": "16:30",
       "refresh_trigger": "market indicators EOD workflow",
       "release_calendar": "nyse-trading-day",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "as_of_cutoff_et": "17:00",
       "as_of_cutoff_note": "futures/FX settle",
       "output_destination": "public/indicator_history.json",
