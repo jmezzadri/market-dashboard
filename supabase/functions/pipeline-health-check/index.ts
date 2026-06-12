@@ -292,6 +292,18 @@ async function handle(req: Request): Promise<Response> {
         || row.last_good_at
         || null;
       if (!asOf) lastError = "scanner-v5-daily has not run yet";
+    } else if (row.indicator_id.startsWith("paper-")) {
+      // 2026-06-12 — producer-owned (THIRD instance of the clobber bug:
+      // scanner-v5 2026-05-12, snapshot files #1148 2026-05-19, now the
+      // paper rows after the 2026-06-11 registration sweep seeded them).
+      // The paper close/EOD runs stamp these rows nightly; they are not
+      // indicators in indicator_history.json and serve no public JSON file.
+      // Grade the producer's own stamp — never clobber red with
+      // "indicator not present".
+      asOf = (row as unknown as { data_as_of?: string }).data_as_of
+        || row.last_good_at
+        || null;
+      if (!asOf) lastError = `${row.indicator_id} has not run yet`;
     } else if (
       row.indicator_id === "latest_scan" ||
       row.indicator_id === "cycle_board" ||

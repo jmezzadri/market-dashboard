@@ -253,6 +253,15 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 # 4 · DATA GOVERNANCE
 
+### 2026-06-12 — Stamp after publish; the watchdog needs an evidence source for every row it grades
+
+**What happened:** The sector-sleeve allocator stamped its health row green BEFORE its publish step; the push was then rejected (data-commit race) and the freshly-stamped green row pointed at an allocation that never landed. The same night, the freshness watchdog clobbered three producer-stamped paper rows red with "indicator not present in indicator_history.json" — the third instance of the clobber bug (scanner-v5 2026-05-12, snapshot files 2026-05-19). Net effect: the one element that genuinely failed showed green, and three healthy elements showed red. The morning paper rebalance refused on the stale sleeve while the Asset Tilt chip stayed green. Compounding: the board producer wrote as_of from the runner wall clock (UTC "today" — after 8 PM ET that is tomorrow), and the failure-alert watchlist held a renamed (dead) workflow name, so the publish failure emailed nobody.
+
+**Rule:** (1) A producer stamps its health row green only AFTER its output is verifiably published (pushed / upserted / deployed) — never before; every producer workflow carries a red-stamp step on failure (status + error only; freshness fields untouched). (2) The watchdog may only grade a row it has an explicit evidence source for (indicator bundle, named file, named table); any row without one is producer-owned — leave the producer's stamp alone. (3) A data file's as_of is derived from the data itself, capped at the last closed session — never from the runner's wall clock. (4) Failure-alert watchlists are part of every workflow rename's blast radius; a watch entry pointing at a dead name is a silent-failure machine.
+
+**Applies to:** Lead Developer + Data Steward. Every producer workflow, every watchdog branch, every workflow rename.
+
+
 ### 4.1 (2026-06-11) — An orphan tracking row is either a live feed missing registration, or a killed feed missing cleanup — decide with evidence
 
 **What happened:** A registration pass found tracking rows with no registry entry and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE; the kill removed producers and tiles but left tracking rows behind. Registration armed the header freshness pill on a dead feed: Joe saw "1 feed stale" with every visible tile green and no red tile anywhere to find.

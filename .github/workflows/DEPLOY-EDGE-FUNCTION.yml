@@ -1,0 +1,29 @@
+name: DEPLOY-EDGE-FUNCTION
+
+# Deploys a single Supabase Edge Function from supabase/functions/<name>/.
+# Created 2026-06-12: the freshness watchdog needed a fix and there was NO
+# deterministic deploy path in the repo — function code in git could silently
+# diverge from what runs in production. Dispatch-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: "Folder name under supabase/functions/"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy "${{ github.event.inputs.function_name }}" \
+            --project-ref yqaqqzseepebrocgibcw
