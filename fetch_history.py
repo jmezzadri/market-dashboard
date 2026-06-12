@@ -472,8 +472,26 @@ def _supabase_rpc(rpc_name: str, params: dict) -> list:
                 "Accept": "application/json",
             },
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            return _json.loads(resp.read().decode("utf-8"))
+        # 2026-06-11: PAGINATE. The API layer silently caps any response at
+        # 1,000 rows. The A/D line function returns one row per trading day in
+        # ascending date order — the series crossed 1,000 days this week and
+        # the tail (the newest days!) started getting clipped, freezing the
+        # published line at 2026-06-09 while every run still reported success.
+        # Page with Range headers until a short page says we have everything.
+        out = []
+        page = 0
+        while True:
+            req.add_header("Range-Unit", "items")
+            req.remove_header("Range") if req.has_header("Range") else None
+            req.add_header("Range", f"{page * 1000}-{page * 1000 + 999}")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                chunk = _json.loads(resp.read().decode("utf-8"))
+            if not isinstance(chunk, list):
+                return chunk if not out else out
+            out.extend(chunk)
+            if len(chunk) < 1000 or page > 50:
+                return out
+            page += 1
     except Exception as e:
         print(f"  Supabase RPC failed ({rpc_name}): {e}")
         return []
@@ -1316,19 +1334,14 @@ def fetch_all():
     # killed from the indicator framework on 2026-05-11; no longer produced.
 
 
-    print("Advance-Decline Line (adv_dec) — standard cumulative A/D line from Polygon prices_eod ...")
-    # 2026-06-04: switched from a 50-day rolling cumulative (non-standard, hard to
-    # read) to the STANDARD Advance-Decline Line: an ever-running cumulative sum of
-    # daily (advancers − decliners) across active US common stocks. The level is the
-    # classic A/D line; its signal is the trend + divergence vs the index (overlay SPX).
-    ad_rows = _supabase_rpc("compute_ad_line", {})
-    if ad_rows and isinstance(ad_rows, list):
-        pts = [[r.get("trade_date"), int(r.get("ad_line"))]
-               for r in ad_rows if r.get("trade_date") and r.get("ad_line") is not None]
-        if pts:
-            result["adv_dec"] = {"freq": "D", "unit": "net issues",
-                                  "points": pts}
-            print(f"  adv_dec (A/D line): {len(pts)} daily points from Polygon prices_eod")
+    # Advance-Decline Line (adv_dec) RETIRED 2026-06-11 per Joe ("we don't use
+    # the Advance-Decline line anymore") — breadth is covered by the four
+    # %-above-EMA series (spx/ndx × 50d/200d). The producer block was removed
+    # after its half-retired remains (producer + registry + tracking row, no
+    # tile) froze at 2026-06-09 — the RPC response crossed PostgREST's silent
+    # 1,000-row cap — and tripped the header pill. Full retirement per LESSONS
+    # 4.1: producer, both manifests, tracking row, drills list, same change.
+    # (The RPC helper above now paginates past the cap for future callers.)
 
 
     # Belt-and-suspenders: strip any future-dated point before stats/as_of are
