@@ -41,16 +41,13 @@ const WARN_COLOR = 'var(--warn, #b87000)';
 
 const HERO_TITLE = (
   <>
-    A <em>$1M paper book</em> on Alpaca, split in half &mdash; Sleeve A follows the{' '}
-    <em>Asset Tilt</em> engine; Sleeve B follows the <em>Equity Scanner</em> long-only with up to 2&times; leverage on overflow buy signals.
+    An <em>automated $1M paper portfolio</em>, rebalanced <em>daily on the open</em>.
   </>
 );
 
 const HERO_BULLETS = [
-  'Sleeve A — 24 industry-group ETFs at the engine’s recommended weights, $500K capital, unlevered',
-  'Sleeve B — long-only equities at MacroTilt Score ≥ 5, sized $50K / $40K / $30K by tier',
-  'Idle cash sits as literal cash — no bond proxy. Borrow on Sleeve B only when buy signals exceed available cash.',
-  'Orders go to Alpaca as market-on-open the next trading day',
+  'Sleeve A — $500K starting, follows Asset Tilt, no leverage',
+  'Sleeve B — $500K starting, follows Trading Scanner, max 2× leverage',
 ];
 
 // ── small helpers ──────────────────────────────────────────────────────────
