@@ -221,8 +221,10 @@ def upsert_finra(ticker: str, settlements: list[dict[str, Any]]) -> int:
             "short_interest_shares": shares,
             "short_interest_float_pct": pct,
             "days_to_cover": s.get("days_to_cover"),
-            "float_shares": shares_out,
-            "shares_outstanding": shares_out,
+            # bigint columns — a float like 14687356000.0 is rejected by
+            # Postgres (22P02 invalid input syntax for type bigint), so cast.
+            "float_shares": int(shares_out) if shares_out else None,
+            "shares_outstanding": int(shares_out) if shares_out else None,
             "avg_daily_volume": s.get("avg_daily_volume"),
             "squeeze_score": None,
             "raw": s.get("raw"),
