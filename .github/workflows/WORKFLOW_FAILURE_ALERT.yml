@@ -44,7 +44,15 @@ on:
       - DAILY-HOME-SMOKE
       - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY
       - MASSIVE-V9-ETF-BACKFILL
-      - V10-ASSET-ALLOCATION
+      # 2026-06-12 — watchlist repair. V10-ASSET-ALLOCATION was a DEAD name
+      # (workflow renamed long ago), so the 2026-06-11 v10-allocation-daily
+      # push failure emailed nobody; Joe found out from the paper-gate
+      # refusal email the next morning. Live names below.
+      - v10-allocation-daily
+      - cycle-mechanisms-daily
+      - SCREENER_TRADING_OPPS_DAILY
+      - PAPER-PORTFOLIO-EOD-DAILY
+      - MARKET-INDICATORS-EOD
     types:
       - completed
 

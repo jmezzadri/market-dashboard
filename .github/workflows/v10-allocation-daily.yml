@@ -18,9 +18,13 @@ on:
     - cron: "15 12 * * 2-6"
     - cron: "15 13 * * 2-6"
   workflow_dispatch:
-  workflow_run:
-    workflows: ["cycle-mechanisms-daily"]
-    types: [completed]
+  # NOTE (2026-06-12): the workflow_run chain off cycle-mechanisms-daily was
+  # REMOVED. It was a leftover from the retired same-evening design: it
+  # recomputed at ~8 PM ET on a T-1 panel (no value), raced the cycle-board
+  # data commit on main (2026-06-11: this job's push was rejected, the
+  # allocation never published, and the next morning's paper rebalance
+  # refused on stale sector signals), and double-ran the job. The 08:15 ET
+  # crons above are the designed runs (Massive panel-complete).
 
 concurrency:
   group: v10-allocation-daily
@@ -86,18 +90,6 @@ jobs:
           print('v10 audit OK |', d['as_of'], '| equity', d['equity_pct'], '| defensive', d['defensive_pct'], '| leverage', d['leverage'])
           "
 
-      - name: Stamp pipeline_health freshness
-        # The freshness chip grades against pipeline_health.data_as_of. The
-        # edge function does NOT touch in-house recompute rows, so without this
-        # the chip froze at a fake "6D ago" while the file was current
-        # (Joe 2026-06-03). Stamp our own row to the published as_of.
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          AS_OF=$(python -c "import json;print(json.load(open('public/v10_allocation.json'))['as_of'])")
-          python scripts/upsert_pipeline_health.py v10_allocation "$AS_OF" green
-
       - name: Commit if changed
         run: |
           git config user.name "macrotilt-bot"
@@ -107,5 +99,35 @@ jobs:
             echo "No changes — skipping."
           else
             git commit -m "chore(data): refresh v10_allocation — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            git push
+            # Nightly data committers race each other on main (2026-06-11: the
+            # cycle-board commit landed first and this push was REJECTED — the
+            # refreshed allocation never published). Rebase + retry, then fail
+            # loudly so the red-stamp step and the failure alert both fire.
+            ok=""
+            for i in 1 2 3; do
+              if git push; then ok=1; break; fi
+              echo "push rejected (attempt $i) — rebasing onto latest main"
+              git pull --rebase origin main
+            done
+            if [ -z "$ok" ]; then echo "::error::push failed after 3 rebase retries"; exit 1; fi
           fi
+
+      - name: Stamp pipeline_health freshness (after publish)
+        # Stamp ONLY after the file is actually on main. The old order stamped
+        # green BEFORE the commit step — on 2026-06-11 the push was rejected
+        # and the row read green for a publish that never happened: fake-green
+        # (LESSONS 0.1). The chip grades pipeline_health, so stamp = publish.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python -c "import json;print(json.load(open('public/v10_allocation.json'))['as_of'])")
+          python scripts/upsert_pipeline_health.py v10_allocation "$AS_OF" green
+
+      - name: Stamp pipeline_health red on failure
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python scripts/upsert_pipeline_health.py v10_allocation - red "v10-allocation-daily failed before publish (Actions run ${{ github.run_id }})"

@@ -46,9 +46,13 @@ on:
     - cron: '30 12 * * 1-5'
     - cron: '0 13 * * 1-5'
     - cron: '30 13 * * 1-5'
-  # Chain off the morning screener so we fire the moment fresh signals land.
+  # Chain off BOTH morning signal producers so we fire the moment fresh
+  # signals land. v10-allocation-daily added 2026-06-12: its 08:15 ET cron can
+  # land after the last scheduled submit fire (GitHub cron lag), which left no
+  # submit attempt that could see the fresh sector sleeve. The accept-window
+  # guard (03:00–09:25 ET) + idempotent submitter make extra fires safe.
   workflow_run:
-    workflows: ["SCREENER_TRADING_OPPS_DAILY"]
+    workflows: ["SCREENER_TRADING_OPPS_DAILY", "v10-allocation-daily"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
