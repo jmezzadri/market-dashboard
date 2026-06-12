@@ -34,7 +34,9 @@ const BUCKETS = [
   { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
 ];
 
-const COLS_STORAGE_KEY = 'mt-scanner-cols-v1';
+// v2 (2026-06-11): Joe's column order — Ticker · Name · Last · Day · 30-Day ·
+// six indicators · Score pinned right. Key bump resets saved v1 layouts.
+const COLS_STORAGE_KEY = 'mt-scanner-cols-v2';
 const LOCKED = ['ticker', 'score'];
 
 // default column model: ordered, all on
