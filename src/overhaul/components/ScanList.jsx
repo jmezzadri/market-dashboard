@@ -184,9 +184,13 @@ export default function ScanList({
               flow: 'Net call premium in the 30-day options flow-alert window — context only, not scored',
             };
             if (tips[k]) return <ColHead key={k} tip={tips[k]}>{col.head}</ColHead>;
-            // price-action heads right-aligned over their number cells
-            if (['price', 'day', 'chg30'].includes(k)) {
+            // price-action heads sit over their number cells: Last/Day right,
+            // 30-Day centered (its value + magnitude bar are centered)
+            if (['price', 'day'].includes(k)) {
               return <span key={k} style={{ textAlign: 'right' }}>{col.head}</span>;
+            }
+            if (k === 'chg30') {
+              return <span key={k} style={{ textAlign: 'center' }}>{col.head}</span>;
             }
             return <span key={k}>{col.head}</span>;
           })}
