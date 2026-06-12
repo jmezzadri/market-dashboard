@@ -131,8 +131,17 @@ export function isCalendarDay(date, calendar) {
 // Returns NaN if asOfIso is unparseable.
 export function ageHoursAgainstCalendar(asOfIso, calendar, nowMs) {
   if (!asOfIso) return NaN;
-  // Append T00:00:00Z if the input is just a date string (FRED-style).
-  const tIso = asOfIso.length === 10 ? `${asOfIso}T00:00:00Z` : asOfIso;
+  // Anchor a date-only as-of at that day's US close of business (20:00 UTC),
+  // never midnight. A business-date observation exists "as of" its day's
+  // close, and every SLA in the manifest was calibrated against close-anchored
+  // ages — midnight anchoring makes a 49h daily budget expire ~9 PM ET the
+  // following evening, 20 hours early. (2026-05-01 server-side lesson,
+  // reintroduced by the 2026-06-11 midnight date stamps, re-fixed here at the
+  // clock itself so every caller gets the correct anchor.) A timestamp at
+  // exactly midnight UTC is date-only INTENT and gets the same anchor.
+  const _dOnly = asOfIso.length === 10 ? asOfIso
+    : (/T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(asOfIso)) ? String(asOfIso).slice(0, 10) : null);
+  const tIso = _dOnly ? `${_dOnly}T20:00:00Z` : asOfIso;
   const asOfMs = new Date(tIso).getTime();
   if (!Number.isFinite(asOfMs)) return NaN;
   const end = (typeof nowMs === "number") ? nowMs : Date.now();
@@ -198,7 +207,8 @@ export function calendarDaysSince(asOfIso, calendar, nowMs) {
 //   "just now" / "12 minutes ago" / "3 hours ago" / "2 days ago"
 export function formatRelativeAge(asOfIso, nowMs) {
   if (!asOfIso) return "never";
-  const tIso = asOfIso.length === 10 ? `${asOfIso}T00:00:00Z` : asOfIso;
+  const _d2 = asOfIso.length === 10 ? asOfIso : (/T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(asOfIso)) ? String(asOfIso).slice(0, 10) : null);
+  const tIso = _d2 ? `${_d2}T20:00:00Z` : asOfIso; // close-of-business anchor — see ageHoursAgainstCalendar
   const t = new Date(tIso).getTime();
   if (!Number.isFinite(t)) return "never";
   const end = (typeof nowMs === "number") ? nowMs : Date.now();
