@@ -19,7 +19,8 @@ recompute job.
 
 Usage
 ─────
-    python scripts/upsert_pipeline_health.py <indicator_id> <data_as_of_iso> [status]
+    python scripts/upsert_pipeline_health.py <indicator_id> <data_as_of_iso> [status] [error]
+    python scripts/upsert_pipeline_health.py <indicator_id> - red "what failed"   # failed-run stamp
 
 Auth: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from env.
 """
@@ -32,26 +33,33 @@ import urllib.error
 from datetime import datetime, timezone
 
 
-def upsert(indicator_id: str, data_as_of: str, status: str = "green") -> bool:
+def upsert(indicator_id: str, data_as_of: str, status: str = "green",
+           error: str | None = None) -> bool:
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not (url and key):
         print("[upsert_pipeline_health] WARN missing SUPABASE_URL/SERVICE_ROLE_KEY — skip", file=sys.stderr)
         return False
 
-    # Normalise a date-only as_of to midnight UTC ISO.
-    as_of = f"{data_as_of}T00:00:00+00:00" if len(data_as_of) == 10 else data_as_of
     now = datetime.now(timezone.utc).isoformat()
     # Honest-stamp rule (2026-06-11): last_good_at = real run time, never the
     # data's date dressed as a timestamp.
-    body = json.dumps({
-        "data_as_of": as_of,
-        "last_good_at": now,
+    # Failure stamping (2026-06-12): pass data_as_of="-" to record a FAILED
+    # run — status + last_error update only. data_as_of and last_good_at keep
+    # their last-published values: a failed run produced nothing, so it must
+    # not advance any freshness field (that was the fake-green of 2026-06-11,
+    # when a green stamp landed before a push that was then rejected).
+    fields = {
         "last_check_at": now,
         "status": status,
-        "last_error": None,
+        "last_error": error,
         "updated_at": now,
-    }).encode()
+    }
+    if data_as_of != "-":
+        as_of = f"{data_as_of}T00:00:00+00:00" if len(data_as_of) == 10 else data_as_of
+        fields["data_as_of"] = as_of
+        fields["last_good_at"] = now
+    body = json.dumps(fields).encode()
 
     endpoint = (
         f"{url}/rest/v1/pipeline_health?indicator_id=eq."
@@ -66,7 +74,8 @@ def upsert(indicator_id: str, data_as_of: str, status: str = "green") -> bool:
         with urllib.request.urlopen(req, timeout=20) as resp:
             rows = json.loads(resp.read().decode() or "[]")
         if rows:
-            print(f"[upsert_pipeline_health] {indicator_id} data_as_of -> {as_of} ({status})")
+            print(f"[upsert_pipeline_health] {indicator_id} -> {status}"
+                  + (f" data_as_of {data_as_of}" if data_as_of != "-" else " (failure stamp)"))
             return True
         print(f"[upsert_pipeline_health] WARN no existing row for '{indicator_id}' — seed it first", file=sys.stderr)
         return False
@@ -87,4 +96,5 @@ if __name__ == "__main__":
     _id = sys.argv[1]
     _as_of = sys.argv[2]
     _status = sys.argv[3] if len(sys.argv) > 3 else "green"
-    upsert(_id, _as_of, _status)
+    _error = sys.argv[4] if len(sys.argv) > 4 else None
+    upsert(_id, _as_of, _status, _error)
