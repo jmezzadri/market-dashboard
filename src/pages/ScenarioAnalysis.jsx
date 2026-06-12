@@ -1939,7 +1939,7 @@ const SUB_DRILL = {
   PositioningVol: {
     headline: "market_stress",
     what: "Investor positioning and volatility regime. VIX, MOVE (rates vol), SKEW, NAAIM exposure survey, S&P percent above its 200-day, and equity-credit correlation.",
-    indicators: ["vix", "move", "skew", "naaim", "spx_200dma", "eq_cr_corr"],
+    indicators: ["vix", "move", "skew", "eq_cr_corr"],
   },
   RealEconomy: {
     headline: "real_economy",
@@ -1977,8 +1977,6 @@ const INDICATOR_LABELS = {
   vix: "VIX (equity vol)",
   move: "MOVE (rates vol)",
   skew: "SKEW index",
-  naaim: "NAAIM exposure survey",
-  spx_200dma: "S&P % above 200-day",
   eq_cr_corr: "Equity-credit correlation",
   ism_mfg: "ISM Manufacturing",
   ism_svc: "ISM Services",

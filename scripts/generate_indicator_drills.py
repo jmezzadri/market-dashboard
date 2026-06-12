@@ -44,8 +44,8 @@ OUT_PATH = REPO_ROOT / "public" / "indicator_drills_generated.json"
 COVERED_BY_HAND = {
     "anfci", "bkx_spx", "buffett", "cape", "cdx_basis", "cfnai",
     "cpff", "erp", "fed_bs", "fra_ois", "hy_ig", "hy_oas", "ig_oas", "ism",
-    "jobless", "m2_yoy", "margin_debt", "naaim", "put_call", "real_fedfunds",
-    "sofr_ois", "spx_200dma", "term_premium", "xccy_basis",
+    "jobless", "m2_yoy", "margin_debt", "put_call", "real_fedfunds",
+    "sofr_ois", "term_premium", "xccy_basis",
     # Aliases — runtime falls back to these for renamed-but-same indicator.
     "cfnai_3ma", "hy_ig_ratio", "ism_mfg", "ism_svc",
 }

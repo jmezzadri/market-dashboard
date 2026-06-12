@@ -29,14 +29,13 @@ import { useDataHealth, VENDOR_MONTHLY_COST } from '../../hooks/useDataHealth';
 const EDGES = [
   // Sources -> Indicator History Compiler
   ['fred', 'ihc'], ['treasury', 'ihc'], ['yahoo', 'ihc'], ['multpl', 'ihc'],
-  ['naaim', 'ihc'], ['gdpnow', 'ihc'], ['ism', 'ihc'], ['fdic', 'ihc'],
+  ['gdpnow', 'ihc'], ['ism', 'ihc'], ['fdic', 'ihc'],
 
   // Sources -> Derived buckets (specific, no hub fan-out)
   ['fred', 'rates'], ['fred', 'credit'], ['fred', 'liquidity'], ['fred', 'growth'], ['fred', 'twoaxis'],
   ['treasury', 'rates'],
   ['yahoo', 'positioning'], ['yahoo', 'commodity'], ['yahoo', 'credit'], ['yahoo', 'twoaxis'],
   ['multpl', 'valuation'],
-  ['naaim', 'positioning'],
   ['gdpnow', 'growth'],
   ['ism', 'growth'],
   ['fdic', 'credit'],

@@ -1801,7 +1801,6 @@ const ASSET_TILT_OVERLAY_LABELS = {
   buffett:       "Buffett indicator",
   hy_ig_ratio:   "HY / IG spread ratio",
   breakeven_10y: "10y breakeven inflation",
-  spx_200dma:    "SPX vs 200-day MA",
   engine_cumulative: "Strategy $ (engine)",
 };
 

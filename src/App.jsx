@@ -1895,11 +1895,8 @@ const COMPOSITE_MAP = {
   term_premium:  { composite:"Liquidity & Policy", sprint:4 },
   fed_bs:        { composite:"Liquidity & Policy", sprint:4 },
   // ── Positioning & Breadth (Sprint 4 placeholder) ───────────────────────
-  naaim:       { composite:"Positioning & Breadth", sprint:4 },
   margin_debt: { composite:"Positioning & Breadth", sprint:4 },
   put_call:    { composite:"Positioning & Breadth", sprint:4 },
-  spx_200dma:  { composite:"Positioning & Breadth", sprint:4 },
-  adv_dec:     { composite:"Positioning & Breadth", sprint:4 },
 };
 
 const COMPOSITE_TOOLTIPS = {

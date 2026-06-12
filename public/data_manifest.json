@@ -2343,36 +2343,6 @@
       "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
     },
     {
-      "id": "indicator-naaim-weekly",
-      "category": "indicator",
-      "name": "naaim",
-      "description": "NAAIM Exposure Index — weekly survey of active investment managers reporting their average equity exposure (0-200%, 100=fully invested). Sentiment + positioning signal.",
-      "sourcing_mode": "STP",
-      "source_vendor": "NAAIM (free, scraped)",
-      "source_endpoint": "naaim.org/programs/naaim-exposure-index/ — public HTML table scrape",
-      "license_tier": "free (with scraper)",
-      "monthly_cost_usd": 0,
-      "cadence": "weekly",
-      "scheduled_fetch_time_et": "07:00",
-      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 336,
-      "release_calendar": "us-business-day",
-      "dependencies": [],
-      "output_destination": "public/indicator_history.json[naaim] (PENDING)",
-      "producer_script": "fetch_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "v11 Positioning & Breadth mechanism modal — indicator row"
-        }
-      ],
-      "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "If naaim.org page structure changes, scrape returns 0 rows and chip goes stale (red).",
-      "owner": "Senior Quant, Lead Dev, Data Steward",
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
-    },
-    {
       "id": "indicator-ic4wsa-weekly",
       "category": "indicator",
       "name": "ic4wsa",

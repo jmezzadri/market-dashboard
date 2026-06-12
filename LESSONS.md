@@ -141,6 +141,14 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 ---
 
+### 0.10 (2026-06-11, Joe, after the THIRD zombie feed in one night) — RETIRED MEANS DELETED. EVERYWHERE. SAME CHANGE.
+
+**Joe, verbatim:** "FUCKING DELETE SHIT THATS RETIRED!!!! THIS IS THE 3rd TIME YOUVE FUCKING DONE THIS. YOU KEEP READDING STALE OLD CODE AND CREATING THIS SAME FUCKING PROBLEM!!!!!"
+
+**Rule:** Killing an indicator or feed deletes ALL of it in the SAME change: producer block, both registry files, the tracking row, every UI reference (live app AND legacy app AND admin maps), drills lists, schedule entries. No dormant remains "for reference," no "queued for cleanup," no review notes on corpses. Before touching ANY element, check whether it was killed (`git log --oneline -S '<element>'`); never register, fix, paginate, or otherwise resuscitate one. The nightly reconciler now exits red on any tracking row without a registry entry — an orphan row is a defect, not a backlog item. Tonight's zombies: put_call/buffett/bank_unreal (killed 06-10, resurrected 06-11), adv_dec (retired from use, producer+registry+row survived, froze and tripped the banner), naaim (killed 05-11, its scraper ran nightly for a MONTH).
+
+---
+
 # 1 · TALKING TO JOE
 
 ### 1.1 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name

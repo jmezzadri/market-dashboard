@@ -137,7 +137,7 @@ def main():
     # 0b) retire tracking rows for feeds killed on 2026-06-10 ("Kill phantom
     #     feeds" commit): the producers are gone, the rows only resurrect
     #     governance for dead elements (the 2026-06-11 registration mistake).
-    for dead in ("put_call", "buffett", "bank_unreal", "adv_dec"):
+    for dead in ("put_call", "buffett", "bank_unreal", "adv_dec", "naaim"):
         if commit:
             _req(f"pipeline_health?indicator_id=eq.{urllib.parse.quote(dead)}", "DELETE")
         print(f"  retired tracking row: {dead}{'' if commit else ' (dry)'}")

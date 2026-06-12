@@ -192,6 +192,27 @@ def main():
         print(f"  {status:9} {iid:28} {detail}")
         if commit:
             if patch(iid, status, asof): wrote += 1
+    # Half-retirement detector (Joe 2026-06-11, after the third zombie feed in
+    # one night): every tracking row MUST have a registry entry. An orphan row
+    # is the signature of a half-retired feed (producer or row outlived the
+    # kill) or an unregistered new feed — both forbidden. Fail loudly so the
+    # nightly run goes red and emails instead of letting zombies sit silent.
+    try:
+        man = fetch_json("data_manifest.json") or {}
+        names = set()
+        for e in (man.get("elements") or []):
+            if isinstance(e, dict):
+                if e.get("name"): names.add(e["name"])
+                if e.get("id"): names.add(e["id"])
+        orphans = [r["indicator_id"] for r in rows if r["indicator_id"] not in names]
+        if orphans:
+            print(f"\nORPHAN TRACKING ROWS (no registry entry — half-retired or unregistered): {sorted(orphans)}")
+            print("Fix: delete the row (retired) or register the element (live). Exiting red.")
+            sys.exit(1)
+    except SystemExit:
+        raise
+    except Exception as e:
+        print(f"  orphan check skipped: {e}")
     print(f"\nResult: {dict(tally)}")
     if commit: print(f"Wrote {wrote} rows.")
     # Honest failure signal: if everything came back unknown, something is wrong.
