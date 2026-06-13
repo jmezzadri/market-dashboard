@@ -1008,5 +1008,19 @@
     "alpha": null,
     "picks": [],
     "methodology_version": null
+  },
+  {
+    "as_of": "2026-06-12T23:10:01.277490+00:00",
+    "snapshotted_at": "2026-06-13T11:57:15.753610+00:00",
+    "stance_label": "Defensive",
+    "equities_pct_capital": 0,
+    "other_pct_capital": 100,
+    "total_deployed_pct_capital": 100,
+    "cash_or_margin_pct_capital": 0,
+    "leverage": 0,
+    "equity_share": 0,
+    "alpha": null,
+    "picks": [],
+    "methodology_version": null
   }
 ]
