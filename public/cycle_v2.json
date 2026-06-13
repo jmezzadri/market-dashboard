@@ -1,6 +1,6 @@
 {
   "_doc": "v2 Cycle Mechanism panel \u2014 horizon-aware. Per CYCLE_MECHANISM_V2_SPEC.md (Joe approval 2026-05-10). Refreshed daily by scripts/compute_cycle_v2.py at 22:30 UTC weekdays. Runs alongside the v1 single-composite producer until 2026-05-31 cutover.",
-  "as_of": "2026-06-12",
+  "as_of": "2026-06-13",
   "framework": "v11 cycle mechanisms v2 \u2014 horizon-aware",
   "spec_doc": "/Users/joemezzadri/Documents/market-dashboard/CYCLE_MECHANISM_V2_SPEC.md",
   "horizons": [
@@ -22,8 +22,8 @@
       "history_key": "cape",
       "sub_composite": "Equities",
       "direction": "high_is_concerning",
-      "current_value": 41.2,
-      "current_value_as_of": "2026-06-11",
+      "current_value": 41.43,
+      "current_value_as_of": "2026-06-12",
       "current_score": 100,
       "ic_profile": {
         "1m": -0.04,
@@ -76,13 +76,13 @@
       "history_key": "buffett",
       "sub_composite": "Equities",
       "direction": "high_is_concerning",
-      "current_value": 229.8,
+      "current_value": 218.5,
       "current_value_as_of": "2026-01-01",
-      "current_score": 99,
+      "current_score": 96,
       "ic_profile": {
-        "1m": 0.103,
-        "3m": 0.043,
-        "6m": -0.016,
+        "1m": 0.116,
+        "3m": 0.039,
+        "6m": -0.014,
         "12m": -0.242
       },
       "signal_type_at_horizon": {
@@ -103,9 +103,9 @@
       "history_key": "bkx_spx",
       "sub_composite": "Equities",
       "direction": "low_is_concerning",
-      "current_value": 0.0894,
-      "current_value_as_of": "2026-06-11",
-      "current_score": 93,
+      "current_value": 0.0902,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 92,
       "ic_profile": {
         "1m": 0.052,
         "3m": 0.045,
@@ -123,16 +123,16 @@
       "passes_ic_gate": false,
       "scoring": "percentile",
       "lookback_start": "1986-01-01",
-      "sample_size": 5142
+      "sample_size": 5143
     },
     {
       "id": "hy_oas",
       "history_key": "hy_ig",
       "sub_composite": "Credit",
       "direction": "high_is_concerning",
-      "current_value": 280.0,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 15,
+      "current_value": 278.0,
+      "current_value_as_of": "2026-06-11",
+      "current_score": 13,
       "ic_profile": {
         "1m": 0.217,
         "3m": 0.323,
@@ -158,13 +158,13 @@
       "sub_composite": "Credit",
       "direction": "high_is_concerning",
       "current_value": 75.0,
-      "current_value_as_of": "2026-06-10",
+      "current_value_as_of": "2026-06-11",
       "current_score": 3,
       "ic_profile": {
-        "1m": 0.103,
-        "3m": 0.261,
+        "1m": 0.104,
+        "3m": 0.262,
         "6m": 0.174,
-        "12m": 0.237
+        "12m": 0.238
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -184,14 +184,14 @@
       "history_key": "hy_ig_ratio",
       "sub_composite": "Credit",
       "direction": "high_is_concerning",
-      "current_value": 3.73,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 92,
+      "current_value": 3.71,
+      "current_value_as_of": "2026-06-11",
+      "current_score": 90,
       "ic_profile": {
         "1m": 0.311,
         "3m": 0.263,
         "6m": 0.306,
-        "12m": 0.207
+        "12m": 0.206
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -238,14 +238,14 @@
       "history_key": "loan_syn",
       "sub_composite": "Credit",
       "direction": "high_is_concerning",
-      "current_value": 7.07,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 45,
+      "current_value": 6.97,
+      "current_value_as_of": "2026-06-11",
+      "current_score": 38,
       "ic_profile": {
         "1m": 0.222,
         "3m": 0.276,
-        "6m": 0.487,
-        "12m": 0.554
+        "6m": 0.486,
+        "12m": 0.553
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -265,11 +265,11 @@
       "history_key": "yield_curve",
       "sub_composite": "Rates",
       "direction": "low_is_concerning",
-      "current_value": 40.0,
-      "current_value_as_of": "2026-06-11",
+      "current_value": 39.0,
+      "current_value_as_of": "2026-06-12",
       "current_score": 68,
       "ic_profile": {
-        "1m": 0.036,
+        "1m": 0.037,
         "3m": 0.095,
         "6m": 0.15,
         "12m": 0.228
@@ -285,7 +285,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "1986-01-01",
-      "sample_size": 5115
+      "sample_size": 5116
     },
     {
       "id": "term_premium",
@@ -298,7 +298,7 @@
       "ic_profile": {
         "1m": -0.111,
         "3m": -0.22,
-        "6m": -0.244,
+        "6m": -0.243,
         "12m": -0.196
       },
       "signal_type_at_horizon": {
@@ -319,9 +319,9 @@
       "history_key": "breakeven_10y",
       "sub_composite": "Rates",
       "direction": "high_is_concerning",
-      "current_value": 2.29,
-      "current_value_as_of": "2026-06-11",
-      "current_score": 63,
+      "current_value": 2.31,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 66,
       "ic_profile": {
         "1m": -0.049,
         "3m": -0.075,
@@ -339,7 +339,7 @@
       "passes_ic_gate": false,
       "scoring": "percentile",
       "lookback_start": "1986-01-01",
-      "sample_size": 5115
+      "sample_size": 5116
     },
     {
       "id": "real_fedfunds",
@@ -454,9 +454,9 @@
       "history_key": "bank_credit",
       "sub_composite": "MoneyBanking",
       "direction": "low_is_concerning",
-      "current_value": 6.4,
-      "current_value_as_of": "2026-05-27",
-      "current_score": 31,
+      "current_value": 6.31,
+      "current_value_as_of": "2026-06-03",
+      "current_score": 32,
       "ic_profile": {
         "1m": 0.019,
         "3m": 0.064,
@@ -474,7 +474,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2008-01-01",
-      "sample_size": 961
+      "sample_size": 962
     },
     {
       "id": "bank_unreal",
@@ -485,9 +485,9 @@
       "current_value_as_of": "2025-12-31",
       "current_score": 66,
       "ic_profile": {
-        "1m": 0.124,
-        "3m": -0.014,
-        "6m": 0.169,
+        "1m": 0.121,
+        "3m": -0.015,
+        "6m": 0.171,
         "12m": null
       },
       "signal_type_at_horizon": {
@@ -508,14 +508,14 @@
       "history_key": "cpff",
       "sub_composite": "Funding",
       "direction": "high_is_concerning",
-      "current_value": 12.0,
-      "current_value_as_of": "2026-06-05",
-      "current_score": 62,
+      "current_value": 14.0,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 67,
       "ic_profile": {
         "1m": -0.073,
         "3m": -0.128,
-        "6m": -0.126,
-        "12m": -0.019
+        "6m": -0.127,
+        "12m": -0.02
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -528,7 +528,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 805
+      "sample_size": 806
     },
     {
       "id": "stlfsi",
@@ -541,7 +541,7 @@
       "ic_profile": {
         "1m": 0.132,
         "3m": 0.118,
-        "6m": 0.009,
+        "6m": 0.01,
         "12m": 0.211
       },
       "signal_type_at_horizon": {
@@ -589,9 +589,9 @@
       "history_key": "fra_ois",
       "sub_composite": "Funding",
       "direction": "high_is_concerning",
-      "current_value": -3.0,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 17,
+      "current_value": -2.0,
+      "current_value_as_of": "2026-06-11",
+      "current_score": 34,
       "ic_profile": {
         "1m": -0.01,
         "3m": 0.063,
@@ -609,16 +609,16 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 2991
+      "sample_size": 2992
     },
     {
       "id": "sofr_ois",
       "history_key": "sofr_ois",
       "sub_composite": "Funding",
       "direction": "high_is_concerning",
-      "current_value": -3.0,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 17,
+      "current_value": -2.0,
+      "current_value_as_of": "2026-06-11",
+      "current_score": 34,
       "ic_profile": {
         "1m": -0.01,
         "3m": 0.063,
@@ -636,7 +636,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 2991
+      "sample_size": 2992
     },
     {
       "id": "rrp",
@@ -644,12 +644,12 @@
       "sub_composite": "Funding",
       "direction": "low_is_concerning",
       "current_value": 0.5,
-      "current_value_as_of": "2026-06-11",
+      "current_value_as_of": "2026-06-12",
       "current_score": 91,
       "ic_profile": {
-        "1m": 0.077,
+        "1m": 0.078,
         "3m": 0.137,
-        "6m": 0.14,
+        "6m": 0.141,
         "12m": 0.209
       },
       "signal_type_at_horizon": {
@@ -663,7 +663,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3186
+      "sample_size": 3187
     },
     {
       "id": "tga",
@@ -674,7 +674,7 @@
       "current_value_as_of": "2026-06-10",
       "current_score": 87,
       "ic_profile": {
-        "1m": -0.011,
+        "1m": -0.01,
         "3m": 0.031,
         "6m": 0.023,
         "12m": 0.066
@@ -859,9 +859,9 @@
       "history_key": "copper_gold",
       "sub_composite": "RealEconomy",
       "direction": "low_is_concerning",
-      "current_value": 1.505,
-      "current_value_as_of": "2026-06-11",
-      "current_score": 40,
+      "current_value": 1.527,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 32,
       "ic_profile": {
         "1m": 0.032,
         "3m": 0.047,
@@ -879,16 +879,16 @@
       "passes_ic_gate": true,
       "scoring": "threshold",
       "lookback_start": null,
-      "scored_value": 4.08
+      "scored_value": 7.083
     },
     {
       "id": "vix",
       "history_key": "vix",
       "sub_composite": "PositioningVol",
       "direction": "high_is_concerning",
-      "current_value": 22.22,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 81,
+      "current_value": 17.68,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 60,
       "ic_profile": {
         "1m": 0.175,
         "3m": 0.241,
@@ -906,7 +906,7 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3883
+      "sample_size": 3885
     },
     {
       "id": "move",
@@ -914,7 +914,7 @@
       "sub_composite": "PositioningVol",
       "direction": "high_is_concerning",
       "current_value": 69.4,
-      "current_value_as_of": "2026-06-11",
+      "current_value_as_of": "2026-06-12",
       "current_score": 44,
       "ic_profile": {
         "1m": 0.037,
@@ -933,16 +933,16 @@
       "passes_ic_gate": false,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3802
+      "sample_size": 3803
     },
     {
       "id": "skew",
       "history_key": "skew",
       "sub_composite": "PositioningVol",
       "direction": "high_is_concerning",
-      "current_value": 143.1,
-      "current_value_as_of": "2026-06-10",
-      "current_score": 82,
+      "current_value": 142.6,
+      "current_value_as_of": "2026-06-12",
+      "current_score": 81,
       "ic_profile": {
         "1m": -0.087,
         "3m": -0.161,
@@ -960,21 +960,21 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3820
+      "sample_size": 3822
     },
     {
       "id": "eq_cr_corr",
       "history_key": "eq_cr_corr",
       "sub_composite": "PositioningVol",
       "direction": "high_is_concerning",
-      "current_value": 0.793,
-      "current_value_as_of": "2026-06-11",
+      "current_value": 0.791,
+      "current_value_as_of": "2026-06-12",
       "current_score": 78,
       "ic_profile": {
         "1m": 0.149,
         "3m": 0.23,
         "6m": 0.134,
-        "12m": 0.186
+        "12m": 0.187
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -987,17 +987,17 @@
       "passes_ic_gate": true,
       "scoring": "percentile",
       "lookback_start": "2011-01-01",
-      "sample_size": 3883
+      "sample_size": 3884
     }
   ],
   "subcomposites": {
     "Equities": {
       "label": "Equities",
       "scores_by_horizon": {
-        "1m": 1,
+        "1m": 4,
         "3m": null,
         "6m": null,
-        "12m": 100
+        "12m": 98
       },
       "n_scored_by_horizon": {
         "1m": 1,
@@ -1016,10 +1016,10 @@
     "Credit": {
       "label": "Credit",
       "scores_by_horizon": {
-        "1m": 61,
-        "3m": 61,
-        "6m": 69,
-        "12m": 69
+        "1m": 64,
+        "3m": 64,
+        "6m": 71,
+        "12m": 71
       },
       "n_scored_by_horizon": {
         "1m": 4,
@@ -1062,7 +1062,7 @@
       "scores_by_horizon": {
         "1m": 34,
         "3m": null,
-        "6m": 52,
+        "6m": 51,
         "12m": null
       },
       "n_scored_by_horizon": {
@@ -1083,9 +1083,9 @@
       "label": "Funding",
       "scores_by_horizon": {
         "1m": 99,
-        "3m": 57,
-        "6m": 36,
-        "12m": 63
+        "3m": 58,
+        "6m": 38,
+        "12m": 56
       },
       "n_scored_by_horizon": {
         "1m": 1,
@@ -1107,7 +1107,7 @@
         "1m": null,
         "3m": null,
         "6m": 20,
-        "12m": 55
+        "12m": 56
       },
       "n_scored_by_horizon": {
         "1m": 0,
@@ -1126,10 +1126,10 @@
     "PositioningVol": {
       "label": "Positioning / Vol",
       "scores_by_horizon": {
-        "1m": 20,
-        "3m": 41,
-        "6m": 41,
-        "12m": 41
+        "1m": 31,
+        "3m": 48,
+        "6m": 48,
+        "12m": 48
       },
       "n_scored_by_horizon": {
         "1m": 2,
@@ -1157,7 +1157,7 @@
         "MoneyBanking"
       ],
       "scores_by_horizon": {
-        "1m": 41,
+        "1m": 42,
         "3m": 89,
         "6m": 56,
         "12m": 74
@@ -1179,9 +1179,9 @@
         "PositioningVol"
       ],
       "scores_by_horizon": {
-        "1m": 60,
-        "3m": 53,
-        "6m": 49,
+        "1m": 65,
+        "3m": 57,
+        "6m": 52,
         "12m": 58
       },
       "n_subcomposites_by_horizon": {
@@ -1202,7 +1202,7 @@
         "1m": null,
         "3m": null,
         "6m": 20,
-        "12m": 55
+        "12m": 56
       },
       "n_subcomposites_by_horizon": {
         "1m": 0,
@@ -1217,8 +1217,8 @@
       "label": "Mixed regime",
       "recommended_action": "Neutral \u2014 wait for confirmation",
       "real_economy_caption": "real economy reading unavailable",
-      "setup": 41,
-      "stress": 60,
+      "setup": 42,
+      "stress": 65,
       "real_economy": null
     },
     "3m": {
@@ -1226,7 +1226,7 @@
       "recommended_action": "Neutral \u2014 wait for confirmation",
       "real_economy_caption": "real economy reading unavailable",
       "setup": 89,
-      "stress": 53,
+      "stress": 57,
       "real_economy": null
     },
     "6m": {
@@ -1234,7 +1234,7 @@
       "recommended_action": "Neutral \u2014 wait for confirmation",
       "real_economy_caption": "real economy expanding \u2014 market read confirmed for risk-on / fragile for risk-off",
       "setup": 56,
-      "stress": 49,
+      "stress": 52,
       "real_economy": 20
     },
     "12m": {
@@ -1243,7 +1243,7 @@
       "real_economy_caption": "real economy mid-range \u2014 market read uncorroborated",
       "setup": 74,
       "stress": 58,
-      "real_economy": 55
+      "real_economy": 56
     }
   }
 }
