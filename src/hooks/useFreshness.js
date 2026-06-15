@@ -474,14 +474,24 @@ export function useFreshnessRollup() {
   const amber = [];
   let greenCount = 0;
   for (const el of els) {
-    const id = el?.id || el?.name;
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
+    const name = el?.name;
+    const id = el?.id || name;
+    if (!name && !id) continue;
+    // Only count ACTIVELY-TRACKED feeds: ones with a pipeline_health row.
+    // The manifest is also a data catalog and registers backend tables
+    // (accounts, transactions, bug_reports, scenario definitions, …) that
+    // are not user-facing freshness-chipped feeds and have no tracking row;
+    // grading those would report "no successful refresh" red and balloon the
+    // count (38 vs the real handful). pipeline_health is keyed by the short
+    // name, so a row keyed by name (or id) means it's a real tracked feed.
+    const phKey = cachedRows.has(name) ? name : (cachedRows.has(id) ? id : null);
+    if (!phKey || seen.has(phKey)) continue;
+    seen.add(phKey);
     let r;
-    try { r = rollupStatus(el.id || el.name); } catch { continue; }
-    const label = r.label || el.name || id;
-    if (r.status === "red") red.push({ id, label, reason: r.reason || r.lastError || null });
-    else if (r.status === "amber") amber.push({ id, label });
+    try { r = rollupStatus(name || id); } catch { continue; }
+    const label = r.label || name || id;
+    if (r.status === "red") red.push({ id: phKey, label, reason: r.reason || r.lastError || null });
+    else if (r.status === "amber") amber.push({ id: phKey, label });
     else if (r.status === "green") greenCount += 1;
     // "unknown"/"loading" are not counted — untracked is not a breakage.
   }
