@@ -608,6 +608,18 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+### 6.12 (2026-06-15) — The repo was ~58% machine files + retired code; a cleanup ran in four phases. Keep it clean.
+
+**What happened:** The tracked repo had grown to ~988k lines / 3,066 files, of which only ~109k powered the live site. Installed packages and build output had been committed before the ignore rules existed; the entire legacy tab site shipped in every build via a ?v=2 back-door; an old local pipeline generation still sat at the root; and several killed feeds still had producer remnants. Agents kept grepping the repo, finding retired producers/registries/UI, and reviving them.
+
+**Rule:** (1) Never track installed packages, build output, logs, or OS files — the cruft guard enforces this. (2) The overhaul shell is the only site; there is no legacy app and no ?v=2. (3) Before registering, fixing, paginating, or wiring ANY element, check `killed_elements.json` at the repo root — a name there is dead; the action is to delete the remnant, not revive it (companion to 0.10). (4) The weekly dead-UI detector reports any src file the live site cannot reach; treat its bug as a real defect. (5) Reachability is judged by the BUNDLER (scripts/detect_dead_ui.mjs), never a hand-rolled grep — a regex importer under-counts live files and will mark live code dead (this exact bug nearly deleted ~60 live files in Phase 2; the build caught it).
+
+**Still open (next focused job, Data Steward + Senior Quant):** killed feeds with live producer residue — the Buffett Indicator (still computed nightly by fetch_history.py), Bank Unrealized Losses and Buffett (still fed into the cycle-v2 engine), and the Advance-Decline Line (still seeded by the breadth-rebuild job). Eradicating these changes computed scores, so it needs the backtest/paper-check loop (3.4, 5.x) — not a blind delete. Locations are in `killed_elements.json` under each concept's "residue". The automated resurrection guard stays unarmed until this residue is gone.
+
+**Applies to:** All.
+
+---
+
 # 9 · RETIRED (archive — no longer binding; kept so the history isn't lost)
 
 - **2026-05-26 — "Site-overhaul brief lives on disk; read it before any redesign work."** Retired 2026-06-11: the overhaul shipped and became the default live site on 2026-05-30, and the page-by-page walk-through completed 2026-06-10. The entry's build-target instruction (the nested live folder) became actively wrong after the cutover — live source is the repo root. The design brief archive remains in the MacroTilt project folder's site-overhaul directory if ever needed. The surviving general principle — read the spec before redesign work — lives in 8.1.
