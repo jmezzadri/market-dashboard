@@ -783,8 +783,8 @@
    "_sla_note": "THREEFYTP10 (ACM/KW term premium) is a daily FRED series published ~4 business days in arrears; 150h covers that lag + grace.",
    "as_of_cutoff_et": "16:15",
    "as_of_cutoff_note": "US rates close of business",
-   "lag_sessions": 4,
-   "sla_basis": "2026-06-12 session doctrine: NY Fed ACM series runs ~4 business days behind by publication \u2014 lag_sessions=4; graded at that frontier, not a wall-clock budget."
+   "lag_sessions": 8,
+   "sla_basis": "Kim-Wright THREEFYTP10 is an academic Fed research series that publishes ~5-8 trading days late; FRED's latest observation lags its 'Updated' release date. lag_sessions=8 matches the worst-case real publication lag so the chip doesn't false-flag when the source itself has no newer point (Joe 2026-06-15: site showed Jun 5 = FRED's true latest obs, not stale)."
   },
   {
    "id": "indicator-cape-monthly",
