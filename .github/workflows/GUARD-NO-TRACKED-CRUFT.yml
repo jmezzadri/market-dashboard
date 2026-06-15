@@ -1,0 +1,26 @@
+name: Guard — no tracked build output or packages
+
+# Fails if any file under an ignored path (installed packages, build output,
+# logs, OS files) has been committed. These regenerate on every deploy and
+# must never be tracked. Added 2026-06-15 cleanup Phase 1.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for tracked cruft
+        run: |
+          set -e
+          BAD=$(git ls-files | grep -E '(^|/)node_modules/|(^|/)dist/|(^|/)dist-new/|(^|/)dist-[^/]*/|\.DS_Store$|\.log$|\.patch$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::These files must not be tracked (build output / packages / logs):"
+            echo "$BAD"
+            exit 1
+          fi
+          echo "Clean — no tracked build output, packages, logs, or OS files."
