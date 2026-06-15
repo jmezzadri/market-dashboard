@@ -17,3 +17,8 @@ fire-brief.command
 brief-preview.html
 scripts/v4_harness/__pycache__/
 logs/
+
+# Cleanup 2026-06-15: never track build output, logs, patches
+dist/
+*.log
+*.patch
