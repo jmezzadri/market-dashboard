@@ -124,7 +124,7 @@ DAILY_FRESHNESS_SLA = {
     # (Federal Reserve research series, not a market series). Lag-bucket
     # indicator, so 5 trading days is acceptable. Bumped from 2 → 5 on
     # 2026-05-27 after observing the actual publication cadence.
-    "term_premium":  5,
+    "term_premium":  8,  # 2026-06-15: bumped 5->8; FRED obs genuinely lag the release date by ~5-8 trading days, so 5 false-flagged when our data already matched FRED's latest point
     "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
     "adv_dec":       2,  # Supabase RPC over Polygon prices_eod (EOD T+1)
     "spx_index":     1,  # Yahoo ^GSPC (chart overlay series)
