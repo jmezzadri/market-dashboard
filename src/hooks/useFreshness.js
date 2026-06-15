@@ -158,10 +158,19 @@ function statusForElement(elementId, fallback) {
   //       suffix or isn't registered at all — e.g. tga, loan_syn 2026-05-27),
   //   (c) the elementId itself (last resort).
   const slugMatch = /^indicator-([a-z0-9_]+)-(daily|weekly|monthly|quarterly)$/i.exec(elementId);
-  const phKey =
-    manifestEl?.name
-    || (slugMatch && slugMatch[1])
-    || elementId;
+  // Resolve the pipeline_health key by trying every candidate and picking the
+  // one that actually has a row. Most rows are keyed by the manifest short
+  // NAME, but some are keyed by the full element ID (e.g. the
+  // "equity-options_flow-daily" / "equity-short_interest-daily" rows whose
+  // manifest name is "options_flow_alerts" / "short_interest_uw_finra").
+  // Looking up by name alone missed those rows and rendered the chip red
+  // ("No successful refresh on record") even though the row was green. Order
+  // = name, full id, slug, elementId (name still wins when present).
+  const phCandidates = [manifestEl?.name, manifestEl?.id, slugMatch && slugMatch[1], elementId].filter(Boolean);
+  let phKey = phCandidates[0] || elementId;
+  if (cachedRows) {
+    for (const cand of phCandidates) { if (cachedRows.has(cand)) { phKey = cand; break; } }
+  }
 
   // 1. Pipeline-health row gives us last_good_at + last_error + label.
   const phRow = (cachedRows && cachedRows.get(phKey)) || null;
