@@ -310,6 +310,7 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "scenario_stress" ||
       row.indicator_id === "scenarios" ||
       row.indicator_id === "v10_allocation" ||
+      row.indicator_id === "ticker-betas" ||
       row.indicator_id === "indicator_history" ||
       row.indicator_id === "cftc-cot"
     ) {
@@ -323,6 +324,7 @@ async function handle(req: Request): Promise<Response> {
         scenario_stress:    { path: "/scenario_stress.json",      field: "as_of" },
         scenarios:          { path: "/scenario_allocations.json", field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
+        "ticker-betas":     { path: "/ticker_betas.json",         field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
       };
@@ -338,6 +340,14 @@ async function handle(req: Request): Promise<Response> {
           for (const p of parts) { v = v && typeof v === "object" ? (v as Record<string, unknown>)[p] : undefined; }
           if (typeof v === "string" && v.length > 0) {
             asOf = v;
+            // Honest last_good_at (kills the frozen-stamp impossible-pair red).
+            // If the file's stamp is a real wall-clock timestamp, that IS the
+            // build/run time -> use it. If it is date-only (no run time in the
+            // file), record the watchdog's own check time: a real timestamp
+            // meaning "verified current as of now" (never derived from the
+            // data date, never a fabricated close). Staleness is still judged
+            // off data_as_of, so this can't mask a dead feed.
+            lastGoodIso = /\dT\d\d:\d\d/.test(asOf) ? asOf : now.toISOString();
           } else {
             lastError = `${cfg.path} missing ${cfg.field}`;
           }
@@ -348,7 +358,9 @@ async function handle(req: Request): Promise<Response> {
     } else if (
       row.indicator_id === "uw-universe-snapshots" ||
       row.indicator_id === "portfolio_history" ||
-      row.indicator_id === "latest_scan"
+      row.indicator_id === "latest_scan" ||
+      row.indicator_id === "equity-options_flow-daily" ||
+      row.indicator_id === "equity-short_interest-daily"
     ) {
       // 2026-05-19 (#1148 fix) — these rows monitor Supabase tables, not
       // public JSON files. Read max ingested_at / as_of_date from the
@@ -368,6 +380,13 @@ async function handle(req: Request): Promise<Response> {
         // wrote -> last_good_at). Reading both every watchdog run keeps the
         // pair honest and self-heals with no dependency on REPAIR-HEALTH-STAMPS.
         "latest_scan":           { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        // 2026-06-15 — options flow + short interest were graded against
+        // indicator_history.json, where they do not exist, so they were
+        // permanently RED ("indicator not present"). They are Supabase
+        // tables: as_of_date is the session the data covers (-> data_as_of),
+        // ingested_at is the real ingest run time (-> last_good_at).
+        "equity-options_flow-daily":   { table: "options_flow_daily",   col: "as_of_date", runTsCol: "ingested_at" },
+        "equity-short_interest-daily": { table: "short_interest_daily", col: "as_of_date", runTsCol: "ingested_at" },
       };
       const cfg = TABLE_MAP[row.indicator_id];
       const sel = cfg.runTsCol ? `${cfg.col},${cfg.runTsCol}` : cfg.col;
@@ -383,14 +402,14 @@ async function handle(req: Request): Promise<Response> {
         lastError = `${cfg.table} has no rows`;
       } else {
         asOf = (data as Record<string, string>)[cfg.col];
-        // Honest-stamp rule (2026-06-11 / 4.2): last_good_at carries ONLY a
-        // real run timestamp. scan_run_ts is exactly that — when the scan
-        // actually wrote its rows. Setting it here makes last_good_at track
-        // the real refresh so it is never older than data_as_of.
-        if (cfg.runTsCol) {
-          const rt = (data as Record<string, string>)[cfg.runTsCol];
-          if (rt) lastGoodIso = rt;
-        }
+        // Honest last_good_at (kills the frozen-stamp impossible-pair red).
+        // Prefer an explicit real run-time column (e.g. ingested_at,
+        // scan_run_ts); else if the as-of column is itself a real timestamp
+        // use it; else record the watchdog's own verified-current check time.
+        const rt = cfg.runTsCol ? (data as Record<string, string>)[cfg.runTsCol] : null;
+        if (rt) lastGoodIso = rt;
+        else if (asOf && /\dT\d\d:\d\d/.test(String(asOf))) lastGoodIso = asOf;
+        else lastGoodIso = now.toISOString();
       }
     } else {
       const rec = indicators[row.indicator_id];
