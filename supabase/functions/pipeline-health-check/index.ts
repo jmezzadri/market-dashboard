@@ -305,7 +305,6 @@ async function handle(req: Request): Promise<Response> {
         || null;
       if (!asOf) lastError = `${row.indicator_id} has not run yet`;
     } else if (
-      row.indicator_id === "latest_scan" ||
       row.indicator_id === "cycle_board" ||
       row.indicator_id === "sector_perf" ||
       row.indicator_id === "scenario_stress" ||
@@ -319,7 +318,6 @@ async function handle(req: Request): Promise<Response> {
       // indicators in that bundle; they are snapshot JSON files served
       // alongside it. Read the file's own freshness stamp instead.
       const FILE_MAP: Record<string, { path: string; field: string }> = {
-        latest_scan:        { path: "/latest_scan_data.json",     field: "scan_time" },
         cycle_board:        { path: "/cycle_board_snapshot.json", field: "as_of" },
         sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
         scenario_stress:    { path: "/scenario_stress.json",      field: "as_of" },
@@ -349,19 +347,33 @@ async function handle(req: Request): Promise<Response> {
       }
     } else if (
       row.indicator_id === "uw-universe-snapshots" ||
-      row.indicator_id === "portfolio_history"
+      row.indicator_id === "portfolio_history" ||
+      row.indicator_id === "latest_scan"
     ) {
       // 2026-05-19 (#1148 fix) — these rows monitor Supabase tables, not
       // public JSON files. Read max ingested_at / as_of_date from the
       // table directly.
-      const TABLE_MAP: Record<string, { table: string; col: string }> = {
+      const TABLE_MAP: Record<string, { table: string; col: string; runTsCol?: string }> = {
         "uw-universe-snapshots": { table: "universe_snapshots", col: "snapshot_ts" },
         "portfolio_history":     { table: "portfolio_history",  col: "as_of" },
+        // 2026-06-15 — latest_scan graded off its source table, not the
+        // committed file. Before this change the watchdog read the file's
+        // scan_time into data_as_of and NEVER wrote last_good_at, so
+        // last_good_at froze at the last manual one-shot repair run while
+        // data_as_of marched forward each day — producing the impossible
+        // "data newer than its last refresh" pair (Data as of Jun 12, last
+        // refresh Jun 11) that turned the scanner chip red. trading_opps_signals
+        // carries BOTH honest stamps: scan_date (the session the scan covers
+        // -> data_as_of) and scan_run_ts (the real wall-clock time the scan
+        // wrote -> last_good_at). Reading both every watchdog run keeps the
+        // pair honest and self-heals with no dependency on REPAIR-HEALTH-STAMPS.
+        "latest_scan":           { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
       };
       const cfg = TABLE_MAP[row.indicator_id];
+      const sel = cfg.runTsCol ? `${cfg.col},${cfg.runTsCol}` : cfg.col;
       const { data, error } = await supabase
         .from(cfg.table)
-        .select(cfg.col)
+        .select(sel)
         .order(cfg.col, { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -371,6 +383,14 @@ async function handle(req: Request): Promise<Response> {
         lastError = `${cfg.table} has no rows`;
       } else {
         asOf = (data as Record<string, string>)[cfg.col];
+        // Honest-stamp rule (2026-06-11 / 4.2): last_good_at carries ONLY a
+        // real run timestamp. scan_run_ts is exactly that — when the scan
+        // actually wrote its rows. Setting it here makes last_good_at track
+        // the real refresh so it is never older than data_as_of.
+        if (cfg.runTsCol) {
+          const rt = (data as Record<string, string>)[cfg.runTsCol];
+          if (rt) lastGoodIso = rt;
+        }
       }
     } else {
       const rec = indicators[row.indicator_id];
