@@ -1,0 +1,21 @@
+name: Detector — dead UI files (weekly)
+
+# Weekly objective check for UI files the live site can no longer reach, so dead
+# code cannot silently re-accumulate. Files a bug if any are found. Added
+# 2026-06-15 cleanup Phase 4.
+
+on:
+  schedule:
+    - cron: '0 13 * * 6'   # Saturdays 13:00 UTC (~09:00 ET)
+  workflow_dispatch:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci --no-audit --no-fund
+      - name: Detect dead UI files
+        run: node scripts/detect_dead_ui.mjs
