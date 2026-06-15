@@ -3,6 +3,7 @@
    Ported from site-overhaul prototype lm-core.jsx. */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import { useTweaks } from '../tweaks/TweaksContext';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
@@ -15,8 +16,15 @@ import { useFreshnessRollup } from '../../hooks/useFreshness';
 // should read everything since it's on every page"). Reusing the chip grader
 // guarantees the header count matches the chips and never relies on the
 // watchdog's stored status (which can lag the true grade).
+// Hover opens a styled tooltip listing exactly which feeds are stale, by their
+// plain-English label (Joe 2026-06-15: "make the header have a tooltip for
+// what's stale"). Mirrors the FreshnessChip tooltip look so it feels native.
 function AllFeedsPill() {
   const { loading, red, amber } = useFreshnessRollup();
+  const [hover, setHover] = React.useState(false);
+  const [xy, setXY] = React.useState(null);
+  const ref = React.useRef(null);
+
   const status = loading ? 'checking' : red.length > 0 ? 'red' : amber.length > 0 ? 'amber' : 'green';
   const color =
     status === 'red' ? 'var(--mt-down)'
@@ -24,23 +32,93 @@ function AllFeedsPill() {
         : status === 'green' ? 'var(--mt-up)'
           : 'var(--mt-ink-3)';
   const text =
-    status === 'checking' ? 'Checking feeds\u2026'
+    status === 'checking' ? 'Checking feeds…'
       : status === 'red' ? `${red.length} feed${red.length > 1 ? 's' : ''} stale`
         : status === 'amber' ? `${amber.length} feed${amber.length > 1 ? 's' : ''} lagging`
           : 'All feeds current';
-  const title =
-    status === 'red'
-      ? `Stale: ${red.map((r) => r.label).join(', ')} \u2014 open All Indicators or Admin \u00b7 Data (a stale feed may not have a tile on this page)`
-      : status === 'amber'
-        ? `Lagging (today's update is late): ${amber.map((a) => a.label).join(', ')}`
-        : 'Every tracked feed across the whole site is within its freshness target';
+
+  const onEnter = () => {
+    setHover(true);
+    const el = ref.current;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      const HALF = 150;
+      const cx = Math.max(HALF, Math.min(window.innerWidth - HALF, r.left + r.width / 2));
+      setXY({ x: cx, y: r.bottom });
+    }
+  };
+  const onLeave = () => { setHover(false); setXY(null); };
+
+  const Row = ({ item }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-down)', flexShrink: 0, marginTop: 5 }} />
+      <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
+    </div>
+  );
+  const AmberRow = ({ item }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-amber)', flexShrink: 0, marginTop: 5 }} />
+      <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
+    </div>
+  );
+
+  const tip = hover && xy ? createPortal(
+    <div
+      role="tooltip"
+      style={{
+        position: 'fixed', left: xy.x, top: xy.y + 10, transform: 'translate(-50%,0)',
+        background: 'var(--mt-surface)', color: 'var(--mt-ink-0)',
+        border: '1px solid var(--mt-line-1)', borderRadius: 8,
+        padding: '10px 12px', fontSize: 11.5, fontFamily: 'var(--mt-font-ui)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: 300, width: 'max-content',
+        zIndex: 9999, pointerEvents: 'none',
+      }}
+    >
+      {status === 'green' ? (
+        <div style={{ color: 'var(--mt-ink-1)' }}>Every tracked feed across the whole site is within its freshness target.</div>
+      ) : status === 'checking' ? (
+        <div style={{ color: 'var(--mt-ink-2)' }}>Checking feeds…</div>
+      ) : (
+        <>
+          {red.length > 0 && (
+            <>
+              <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: 4 }}>
+                {red.length} feed{red.length > 1 ? 's' : ''} stale
+              </div>
+              {red.map((item) => <Row key={item.id} item={item} />)}
+            </>
+          )}
+          {amber.length > 0 && (
+            <>
+              <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', margin: '8px 0 4px' }}>
+                {amber.length} lagging (today's update is late)
+              </div>
+              {amber.map((item) => <AmberRow key={item.id} item={item} />)}
+            </>
+          )}
+          <div style={{ marginTop: 8, paddingTop: 7, borderTop: '1px solid var(--mt-line-1)', color: 'var(--mt-ink-2)', fontSize: 10.5 }}>
+            Full status on Admin · Data
+          </div>
+        </>
+      )}
+    </div>,
+    document.body,
+  ) : null;
+
   return (
     <span
-      title={title}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
+      ref={ref}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      onFocus={onEnter}
+      onBlur={onLeave}
+      tabIndex={0}
+      aria-label={status === 'red' ? `${red.length} feeds stale: ${red.map((r) => r.label).join(', ')}` : text}
+      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
     >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
       {text}
+      {tip}
     </span>
   );
 }
