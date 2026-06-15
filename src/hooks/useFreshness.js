@@ -39,6 +39,7 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, dailySessionGrade } from "../lib/freshnessClock";
 import {
   getElement,
+  getAllElements,
   getSLAHours,
   getReleaseCalendar,
   getDependencies,
@@ -437,6 +438,55 @@ export function useFreshness(elementId, fallback) {
     redInputs: rolled.redInputs || [],
     formatRelativeAge: () => formatRelativeAge(rolled.lastGoodAt),
   };
+}
+
+// ─── useFreshnessRollup — site-wide rollup for the global header pill ───────
+// Grades EVERY registered element with the exact same rollupStatus() the
+// per-element chips use, so the header count can never disagree with the
+// chips on the page (the old header read only indicator_history.json + COT,
+// so it stayed "All feeds current" while a scanner/equity chip was red).
+// Returns the list of genuinely-stale (red) feeds; amber is surfaced
+// separately as "lagging" and grey/unknown is ignored (untracked is not a
+// breakage). Joe 2026-06-15: "the header should read everything."
+export function useFreshnessRollup() {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const fn = () => setTick((n) => n + 1);
+    listeners.add(fn);
+    const unsubManifest = subscribeManifest(fn);
+    ensureFresh();
+    const id = setInterval(ensureFresh, REFRESH_MS);
+    return () => {
+      listeners.delete(fn);
+      unsubManifest();
+      clearInterval(id);
+    };
+  }, []);
+
+  if (!cachedRows || !isManifestLoaded()) {
+    return { loading: true, red: [], amber: [], greenCount: 0 };
+  }
+
+  const els = getAllElements() || [];
+  const seen = new Set();
+  const red = [];
+  const amber = [];
+  let greenCount = 0;
+  for (const el of els) {
+    const id = el?.id || el?.name;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    let r;
+    try { r = rollupStatus(el.id || el.name); } catch { continue; }
+    const label = r.label || el.name || id;
+    if (r.status === "red") red.push({ id, label, reason: r.reason || r.lastError || null });
+    else if (r.status === "amber") amber.push({ id, label });
+    else if (r.status === "green") greenCount += 1;
+    // "unknown"/"loading" are not counted — untracked is not a breakage.
+  }
+  red.sort((a, b) => a.label.localeCompare(b.label));
+  return { loading: false, red, amber, greenCount };
 }
 
 // ─── useFetchLog (from PR #15, kept) ───────────────────────────────────────

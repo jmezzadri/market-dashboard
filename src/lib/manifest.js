@@ -26,6 +26,7 @@ function normKey(s) {
 
 let cache = null;            // Map<name|id, element>
 let normCache = null;        // Map<normKey, element> — tolerant lookup
+let elementsList = [];       // de-duped array of every registered element (for site-wide rollups)
 let lastLoadedAt = 0;
 let inflight = null;
 const listeners = new Set();
@@ -75,6 +76,7 @@ async function fetchManifest() {
   }
   cache = map;
   normCache = nmap;
+  elementsList = els.filter((e) => e && typeof e === "object" && typeof e.name === "string");
   lastLoadedAt = Date.now();
   return cache;
 }
@@ -99,6 +101,14 @@ export function getElement(nameOrId) {
   ensureLoaded();
   if (!cache) return null;
   return cache.get(nameOrId) || (normCache ? normCache.get(normKey(nameOrId)) : null) || null;
+}
+
+// Every registered element, de-duped (one entry per manifest row). Used by the
+// site-wide freshness rollup so the global header pill grades the SAME set the
+// per-element chips do — header and chips can never disagree.
+export function getAllElements() {
+  ensureLoaded();
+  return elementsList;
 }
 
 export function getSLAHours(nameOrId) {

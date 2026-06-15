@@ -5,73 +5,38 @@
 import React from 'react';
 import FreshnessChip from '../components/FreshnessChip';
 import { useTweaks } from '../tweaks/TweaksContext';
-import { isStaleAgainstSLA } from '../../lib/freshnessClock';
+import { useFreshnessRollup } from '../../hooks/useFreshness';
 
-// "All feeds" pill — a TRUE rollup across every indicator feed. (Was a single
-// universe_master check that read green regardless of other stale feeds.)
-// Red names how many feeds are past their freshness target; green only when
-// every indicator is current.
+// "All feeds" pill — a TRUE site-wide rollup across EVERY registered data
+// element, graded with the exact same logic the per-element chips use
+// (useFreshnessRollup -> rollupStatus). The old version read only
+// indicator_history.json + COT, so it stayed "All feeds current" while a
+// scanner or equity chip on the page was red (Joe 2026-06-15: "the header
+// should read everything since it's on every page"). Reusing the chip grader
+// guarantees the header count matches the chips and never relies on the
+// watchdog's stored status (which can lag the true grade).
 function AllFeedsPill() {
-  const [v, setV] = React.useState({ status: 'checking', stale: 0, names: [] });
-  React.useEffect(() => {
-    let off = false;
-    // Cache-proof reads (2026-06-11): a CDN edge can hold an old copy of these
-    // files; grading a stale cached copy made this pill claim "1 feed stale"
-    // while every visible tile (built from the CURRENT file) was green. The
-    // timestamp param forces the edge to revalidate.
-    const bust = `?t=${Date.now()}`;
-    Promise.all([
-      fetch(`/indicator_history.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
-      fetch(`/data_manifest.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
-      fetch(`/cot_positioning.json${bust}`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)),
-    ])
-      .then(([d, man, cot]) => {
-        if (off || !d || !man) return;
-        const byName = {};
-        for (const e of (Array.isArray(man.elements) ? man.elements : [])) {
-          if (e && e.name) byName[e.name] = e;
-        }
-        let stale = 0;
-        const names = [];
-        for (const [name, s] of Object.entries(d)) {
-          if (name === '__meta__' || !s || typeof s !== 'object') continue;
-          const el = byName[name];
-          const sla = el && el.freshness_sla_hours;
-          if (!sla || !s.as_of) continue;
-          if (isStaleAgainstSLA(s.as_of, sla, el.release_calendar)) {
-            stale += 1;
-            names.push((s.stats && s.stats.label) || s.label || name);
-          }
-        }
-        // COT futures-positioning markets live in cot_positioning.json (not the
-        // indicator file). Count any whose own as-of is past the COT SLA so a
-        // stale positioning signal (e.g. frozen Credit dealer inventory) shows
-        // here too — matching the tile and the card dots.
-        const cotEl = (Array.isArray(man.elements) ? man.elements : []).find((e) => e && (e.name === 'cftc-cot' || String(e.id || '').includes('cftc-cot')));
-        const cotSla = (cotEl && cotEl.freshness_sla_hours) || 336;
-        if (cot && cot.domains) {
-          for (const dom of Object.values(cot.domains)) {
-            for (const mk of (dom.markets || [])) {
-              if (mk && mk.asof && isStaleAgainstSLA(mk.asof, cotSla, 'us-business-day')) { stale += 1; names.push(`${mk.market || 'positioning'} (COT)`); }
-            }
-          }
-        }
-        if (!off) setV({ status: stale > 0 ? 'red' : 'green', stale, names });
-      })
-      .catch(() => {});
-    return () => { off = true; };
-  }, []);
+  const { loading, red, amber } = useFreshnessRollup();
+  const status = loading ? 'checking' : red.length > 0 ? 'red' : amber.length > 0 ? 'amber' : 'green';
   const color =
-    v.status === 'red' ? 'var(--mt-down)' : v.status === 'green' ? 'var(--mt-up)' : 'var(--mt-ink-3)';
+    status === 'red' ? 'var(--mt-down)'
+      : status === 'amber' ? 'var(--mt-amber)'
+        : status === 'green' ? 'var(--mt-up)'
+          : 'var(--mt-ink-3)';
   const text =
-    v.status === 'checking' ? 'Checking feeds\u2026'
-      : v.status === 'red' ? `${v.stale} feed${v.stale > 1 ? 's' : ''} stale`
-        : 'All feeds current';
+    status === 'checking' ? 'Checking feeds\u2026'
+      : status === 'red' ? `${red.length} feed${red.length > 1 ? 's' : ''} stale`
+        : status === 'amber' ? `${amber.length} feed${amber.length > 1 ? 's' : ''} lagging`
+          : 'All feeds current';
+  const title =
+    status === 'red'
+      ? `Stale: ${red.map((r) => r.label).join(', ')} \u2014 open All Indicators or Admin \u00b7 Data (a stale feed may not have a tile on this page)`
+      : status === 'amber'
+        ? `Lagging (today's update is late): ${amber.map((a) => a.label).join(', ')}`
+        : 'Every tracked feed across the whole site is within its freshness target';
   return (
     <span
-      title={v.status === 'red'
-        ? `Stale: ${(v.names || []).join(', ')} — find it on All Indicators or Admin · Data (the stale feed may not have a tile on this page)`
-        : 'Every indicator feed is within its freshness target'}
+      title={title}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
     >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
