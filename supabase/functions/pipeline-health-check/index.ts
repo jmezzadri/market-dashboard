@@ -311,6 +311,7 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "scenarios" ||
       row.indicator_id === "v10_allocation" ||
       row.indicator_id === "ticker-betas" ||
+      row.indicator_id === "scenario_calibration_bundle" ||
       row.indicator_id === "indicator_history" ||
       row.indicator_id === "cftc-cot"
     ) {
@@ -325,6 +326,7 @@ async function handle(req: Request): Promise<Response> {
         scenarios:          { path: "/scenario_allocations.json", field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
         "ticker-betas":     { path: "/ticker_betas.json",         field: "as_of" },
+        scenario_calibration_bundle: { path: "/scenario_calibration/scenario_anchors.json", field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
       };
