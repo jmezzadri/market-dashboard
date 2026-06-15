@@ -1739,7 +1739,7 @@
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ust_10y]",
-      "producer_script": "fetch_history.py / fetch_indicators.py",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "home"
@@ -1776,7 +1776,7 @@
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
       "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ust_2y]",
-      "producer_script": "fetch_history.py / fetch_indicators.py",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "home"

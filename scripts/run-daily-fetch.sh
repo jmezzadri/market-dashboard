@@ -109,4 +109,9 @@ else
 	echo "run-daily-fetch: publish-scan-data.sh not found or not executable — skipping"
 fi
 
-exec "${PYTHON}" "${ROOT}/fetch_indicators.py"
+# Indicator values are now produced by the cloud pipeline (fetch_history.py via
+# the scheduled GitHub Actions refresh), which writes public/indicator_history.json.
+# The old local fetch_indicators.py patched the retired in-app indicator table and
+# was removed in the 2026-06-15 cleanup. This local script is legacy; the cloud
+# pipeline is authoritative.
+echo "run-daily-fetch: indicators are produced by the cloud pipeline now — nothing to do locally."

@@ -8,7 +8,7 @@ echo "=== LaunchAgent: ${LABEL} ==="
 if [[ -f "$PLIST" ]]; then
   echo "✓ Plist installed: $PLIST"
 else
-  echo "✗ Missing $PLIST — copy from market-dashboard/launchd/ and bootstrap (see fetch_indicators.py header)"
+  echo "✗ Missing $PLIST — copy from launchd/ and bootstrap (local legacy fetch; cloud pipeline is authoritative)"
   exit 1
 fi
 

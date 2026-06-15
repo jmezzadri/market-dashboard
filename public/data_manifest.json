@@ -84,8 +84,8 @@
    "scheduled_fetch_time_et": "07:00",
    "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
    "freshness_sla_hours": 49,
-   "output_destination": "public/indicator_history.json[vix]; src/App.jsx IND[] literal (via fetch_indicators.py)",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "output_destination": "public/indicator_history.json[vix]",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home",
@@ -128,7 +128,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 73,
    "output_destination": "public/indicator_history.json[hy_ig]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -211,7 +211,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 49,
    "output_destination": "public/indicator_history.json[yield_curve]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -289,7 +289,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 49,
    "output_destination": "public/indicator_history.json[real_rates]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -437,7 +437,7 @@
    "description": "Trade-weighted US Dollar broad index \u2014 global USD strength.",
    "sourcing_mode": "STP",
    "source_vendor": "Yahoo Finance (DX-Y.NYB ICE US Dollar Index)",
-   "source_endpoint": "yfinance DX-Y.NYB (both fetch_history.py and fetch_indicators.py \u2014 unified per PR #121 + PR #1.5)",
+   "source_endpoint": "yfinance DX-Y.NYB (fetch_history.py)",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -445,7 +445,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 73,
    "output_destination": "public/indicator_history.json[usd]",
-   "producer_script": "fetch_history.py + fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -523,7 +523,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 336,
    "output_destination": "public/indicator_history.json[anfci]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "indicators"
@@ -559,7 +559,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 336,
    "output_destination": "public/indicator_history.json[stlfsi]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "indicators"
@@ -627,7 +627,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 73,
    "output_destination": "public/indicator_history.json[loan_syn]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "indicators"
@@ -694,7 +694,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 336,
    "output_destination": "public/indicator_history.json[jobless]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "indicators"
@@ -762,7 +762,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 150,
    "output_destination": "public/indicator_history.json[term_premium]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "indicators"
@@ -3379,7 +3379,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 49,
    "output_destination": "public/indicator_history.json[ust_10y]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -3418,7 +3418,7 @@
    "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
    "freshness_sla_hours": 49,
    "output_destination": "public/indicator_history.json[ust_2y]",
-   "producer_script": "fetch_history.py / fetch_indicators.py",
+   "producer_script": "fetch_history.py",
    "consumer_surfaces": [
     {
      "tab": "home"
@@ -4060,8 +4060,8 @@
  ],
  "_known_gaps_surfaced_in_phase1": [
   "G1. compute_composite_history.py has no scheduled GH workflow. Bug #1036 root cause. Composites RL/GR/IR + SPX/DJI/NDX overlays are append-only and only run when somebody manually invokes the script. MUST wire to INDICATOR-REFRESH or its own daily workflow in Phase 3.",
-  "G2. CAPE / ISM / Bank Unrealized Losses are hardcoded constants in fetch_history.py + fetch_indicators.py. Stale-by-design. Phase 2: replace with live FRED/multpl/ISM/FDIC source or remove from indicator panel.",
-  "G3. USD source mismatch: fetch_history.py uses FRED DTWEXBGS while fetch_indicators.py uses Yahoo DX-Y.NYB. PR #121 fixed live tick, history may still misalign. Phase 2 spot-check.",
+  "G2. CAPE / Bank Unrealized Losses are hardcoded constants in fetch_history.py. Stale-by-design. Follow-up: replace with live FRED/multpl/FDIC source or remove from indicator panel. (ISM now live via refresh_ism.py.)",
+  "G3. USD now sourced solely from fetch_history.py (the old fetch_indicators.py Yahoo path was removed in the 2026-06-15 cleanup). Earlier dual-source mismatch resolved.",
   "G4. SCAN_345PM_WEEKDAYS.yml filename says 345PM but `name:` field says 330PM and DST gate fires at 15:30 ET. Misleading filename \u2014 rationalize naming convention in Phase 3 (<category>-<element>-<cadence>).",
   "G5. trigger-workflow edge function allowlist hardcoded to SCAN/INDICATOR-REFRESH/UNIVERSE_SNAPSHOT \u2014 does NOT include MASSIVE-DAILY.yml that mig 034 cron tries to dispatch. Either function source has been hot-patched in deployment or pg_cron job 034 will silently no-op. Verify.",
   "G6. generate-commentary cron source unknown. Source comment says 23:00 ET but no cron.schedule() in committed migrations. Either Supabase Studio direct entry, Cowork task, or unwired. Phase 2 confirm.",
