@@ -16,7 +16,6 @@ const NAV = [
   { to: '/macro', label: 'Macro overview', icon: 'macro' },
   { to: '/tilt', label: 'Asset Tilt', icon: 'tilt' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
-  { to: '/portfolio', label: 'Portfolio insights', icon: 'portfolio' },
   { to: '/paper', label: 'Paper Portfolio', icon: 'portfolio' },
   { to: '/scenarios', label: 'Scenario analysis', icon: 'scenarios' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },

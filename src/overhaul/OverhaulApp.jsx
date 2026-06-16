@@ -57,7 +57,6 @@ import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
 import TiltPage from './pages/TiltPage';
 import ScannerPage from './pages/ScannerPage';
-import PortfolioPage from './pages/PortfolioPage';
 import ScenariosPage from './pages/ScenariosPage';
 import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
@@ -130,10 +129,10 @@ function VersionWatch() {
 // SignInRoute — mounts the shared LoginScreen INSIDE the modern app so phone
 // users get the responsive sign-in card instead of being bounced to the old
 // (non-responsive) app. Signing in flips the Supabase session via
-// onAuthStateChange; once signed in we send the user to their portfolio.
+// onAuthStateChange; once signed in we send the user to the dashboard home.
 function SignInRoute() {
   const { session } = useSession();
-  if (session) return <Navigate to="/portfolio" replace />;
+  if (session) return <Navigate to="/" replace />;
   return (
     <main className="mt-main-wrap">
       <LoginScreen />
@@ -156,7 +155,6 @@ function Shell() {
             <Route path="/macro" element={<MacroPage />} />
             <Route path="/tilt" element={<TiltPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
-            <Route path="/portfolio" element={<PortfolioPage />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
             <Route path="/scenarios" element={<ScenariosPage />} />
