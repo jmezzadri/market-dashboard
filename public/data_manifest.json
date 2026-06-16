@@ -3852,47 +3852,6 @@
    "dependencies": [],
    "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) \u2014 a different element; this one is context-only and never scored.",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
-   "id": "allocation-asset_tilt_live-daily",
-   "category": "allocation",
-   "name": "asset_tilt_live",
-   "description": "Live Asset Tilt positioning read \u2014 the equity-vs-defensive engine (stress zone, equity %, rate-regime defensive sleeve) plus the macro-led sector and industry-group tilts, computed from the validated calibration.",
-   "sourcing_mode": "computed",
-   "source_vendor": "Computed (Asset Tilt engine)",
-   "source_endpoint": "scripts/compute_asset_tilt_live.py",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "07:30",
-   "refresh_trigger": "GH workflow ASSET-TILT-LIVE-DAILY (cron 30 11 * * 1-5 UTC)",
-   "freshness_sla_hours": 49,
-   "output_destination": "public/asset_tilt_live.json",
-   "producer_script": "scripts/compute_asset_tilt_live.py",
-   "consumer_surfaces": [
-    {
-     "tab": "asset-tilt",
-     "tile": "Hero positioning read + stress/rate gauges"
-    },
-    {
-     "tab": "asset-tilt",
-     "tile": "Sector tilt table"
-    },
-    {
-     "tab": "asset-tilt",
-     "tile": "Factor sleeve panel"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "If the compute fails the chip reds and the page renders em-dashes until the next successful run.",
-   "owner": "Senior Quant (model), Lead Dev (pipe), Data Steward (freshness)",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [
-    "indicator-history-fred-yahoo"
-   ],
-   "as_of_cutoff_et": "16:15",
-   "as_of_cutoff_note": "Read built on the last completed session's closes + latest macro",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful run."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
