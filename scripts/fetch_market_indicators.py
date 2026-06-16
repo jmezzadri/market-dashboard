@@ -35,7 +35,6 @@ TARGETS = [
     ("cmdty_corn",     "ZC=F",       "Corn",              "Commodities", "c/bu"),
     ("cmdty_soybeans", "ZS=F",       "Soybeans",          "Commodities", "c/bu"),
     ("cmdty_wheat",    "ZW=F",       "Wheat",             "Commodities", "c/bu"),
-    ("fx_dollar",      "DX-Y.NYB",   "US dollar index",   "FX",          "index"),
     ("fx_eur",         "EURUSD=X",   "Euro",              "FX",          "$/€"),
     ("fx_jpy",         "JPY=X",       "Japanese yen",     "FX",          "¥/$"),
     # 2026-06-11 (Joe): flipped from GBP=X (pounds per dollar, ~0.75) to

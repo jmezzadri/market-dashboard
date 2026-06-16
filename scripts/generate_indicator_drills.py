@@ -47,7 +47,7 @@ COVERED_BY_HAND = {
     "jobless", "m2_yoy", "margin_debt", "real_fedfunds",
     "sofr_ois", "term_premium", "xccy_basis",
     # Aliases — runtime falls back to these for renamed-but-same indicator.
-    "cfnai_3ma", "hy_ig_ratio", "ism_mfg", "ism_svc",
+    "cfnai_3ma", "ism_mfg", "ism_svc",
 }
 
 # Plain-English indicator labels + axis units. Match the lite-drawer label map
