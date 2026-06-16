@@ -23,6 +23,12 @@ TODAY = NOW.date()
 # SLA in hours by series frequency. Generous enough that a normal release cadence
 # never false-reds; trading-day awareness handles weekends for daily series.
 SLA_BY_FREQ = {"D": 49, "W": 200, "M": 1200, "Q": 4800}
+# Feeds retired end-to-end whose leftover tracking row must be deleted to
+# complete the retirement (LESSONS 0.10: retired = deleted everywhere). An
+# explicit allowlist — never auto-delete an unlisted orphan (a new feed not
+# yet registered must NOT be silently dropped). cmdty_uranium: source UX=F
+# discontinued, feed removed from producer + manifest + UI (2026-06-16).
+RETIRED_FEEDS = {"cmdty_uranium"}
 # Slow official data with long publication lags — explicit calendar budgets (h).
 LONG_LAG = {
     "jolts_quits": 1920, "sloos_ci": 3600, "sloos_cre": 3600, "bank_credit": 480,
@@ -154,6 +160,19 @@ def load_ph():
     req = urllib.request.Request(ep, headers={"apikey": key, "Authorization": f"Bearer {key}"})
     return json.loads(urllib.request.urlopen(req, timeout=20).read().decode())
 
+def delete_row(indicator_id):
+    """Delete a single pipeline_health row (used to finish retiring a feed)."""
+    url = os.environ.get("SUPABASE_URL"); key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not (url and key): return False
+    import urllib.parse
+    ep = f"{url}/rest/v1/pipeline_health?indicator_id=eq.{urllib.parse.quote(indicator_id)}"
+    req = urllib.request.Request(ep, method="DELETE",
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=minimal"})
+    try:
+        urllib.request.urlopen(req, timeout=15); return True
+    except Exception as e:
+        print(f"  DELETE failed {indicator_id}: {e}"); return False
+
 def patch(indicator_id, status, asof, cur_last_good=None):
     url = os.environ.get("SUPABASE_URL"); key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not (url and key): return False
@@ -216,6 +235,13 @@ def main():
                 if e.get("name"): names.add(e["name"])
                 if e.get("id"): names.add(e["id"])
         orphans = [r["indicator_id"] for r in rows if r["indicator_id"] not in names]
+        # Finish retirements: explicitly-retired feeds get their leftover row
+        # deleted (not perma-failed). Everything else still fails loudly.
+        retired_here = [o for o in orphans if o in RETIRED_FEEDS]
+        for iid in retired_here:
+            if commit and delete_row(iid):
+                print(f"  retired orphan row deleted: {iid}")
+        orphans = [o for o in orphans if o not in RETIRED_FEEDS]
         if orphans:
             print(f"\nORPHAN TRACKING ROWS (no registry entry — half-retired or unregistered): {sorted(orphans)}")
             print("Fix: delete the row (retired) or register the element (live). Exiting red.")
