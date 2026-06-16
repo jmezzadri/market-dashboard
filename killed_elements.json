@@ -86,6 +86,16 @@
       "reason": "Dead-end engine — not read by any user-facing page. Producers, workflows, output files, and UI references removed.",
       "status": "removed",
       "residue": []
+    },
+    {
+      "id": "portfolio_insights_page",
+      "name": "Portfolio Insights page (/portfolio)",
+      "killed": "2026-06-15",
+      "reason": "Killed at Joe directive. Removed the page, its 14 exclusive files (the real-portfolio import chain incl. Chase CSV import, position/close editors, the legacy Trading Opps page, portfolio analytics/risk hooks), the nav item, the route, the post-sign-in redirect (now -> Home), and the exclusive risk-proxies producer + workflow + output.",
+      "status": "frontend_removed",
+      "residue": [
+        "DB-aware pass still needed (Joe must approve dropping data): tables accounts/positions/transactions/portfolio_history + their pg_cron daily snapshot + manifest elements portfolio-accounts/positions/transactions/portfolio_history. KEPT (shared): watchlist (Scanner), scenario-impact + ticker-betas (Scenario analysis)."
+      ]
     }
   ]
 }
