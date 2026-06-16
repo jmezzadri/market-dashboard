@@ -1,0 +1,18 @@
+name: DEEP-UNIVERSE-BACKFILL
+# One-shot / re-runnable deep (~1996+) price backfill for the Asset Tilt backtest
+# universe into prices_eod from yfinance. Dispatch-only. Idempotent upsert.
+on: { workflow_dispatch: {} }
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install yfinance pandas openpyxl requests lxml -q
+      - name: Run deep universe backfill
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/backfill_deep_universe.py
