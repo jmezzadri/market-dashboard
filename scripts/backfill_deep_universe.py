@@ -85,7 +85,8 @@ def supabase_upsert(url,key,rows,chunk=500):
 
 def fetch_yf(ticker):
     import yfinance as yf, pandas as pd
-    df=yf.download(ticker,start=START_DATE,end=END_DATE,progress=False,auto_adjust=False,threads=False)
+    yf_sym=ticker.replace(".","-")  # class shares: BRK.B/BF.B -> BRK-B/BF-B for yfinance
+    df=yf.download(yf_sym,start=START_DATE,end=END_DATE,progress=False,auto_adjust=False,threads=False)
     if df is None or df.empty: return []
     if isinstance(df.columns,pd.MultiIndex): df.columns=df.columns.get_level_values(0)
     out=[]
@@ -105,6 +106,10 @@ def main():
     except Exception as e:
         print("MEMBER FETCH FAILED:",repr(e)); members=[]
     universe=sorted(set(SECTOR_ETFS+INDUSTRY_ETFS+ENGINE_ETFS+members))
+    only=os.environ.get("ONLY","").strip()
+    if only:
+        universe=[t.strip() for t in only.split(",") if t.strip()]
+        print("ONLY override — restricting universe to:",universe)
     print(f"Deep backfill {START_DATE}→{END_DATE}  |  {len(universe)} tickers "
           f"({len(members)} members + {len(set(SECTOR_ETFS+INDUSTRY_ETFS+ENGINE_ETFS))} ETFs)")
     grand=0; fails=[]; deep=0
