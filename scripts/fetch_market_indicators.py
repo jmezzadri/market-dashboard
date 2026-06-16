@@ -86,6 +86,18 @@ def fetch(ticker):
     return pts
 
 
+def fetch_uranium_spot():
+    """Live spot U3O8 ($/lb) from Numerco via Yellow Cake plc's public endpoint.
+    Not a Yahoo ticker — returns the single live spot value (updated daily); we
+    append today's reading onto the accumulating history. Returns float or None."""
+    import requests, re
+    r = requests.get("https://www.yellowcakeplc.com/api/spotUraniumPrice.php",
+                     headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
+    r.raise_for_status()
+    m = re.search(r"US\$([0-9.]+)/lb", r.text)
+    return float(m.group(1)) if m else None
+
+
 def merge(updates):
     hist = {}
     if os.path.exists(HISTORY_PATH):
@@ -120,7 +132,7 @@ def _sync_pipeline_health(updates):
         import datetime as _dtm
         _now_iso=_dtm.datetime.now(_dtm.timezone.utc).isoformat()
         das=f"{min(str(pts[-1][0])[:10], _now_iso[:10])}T00:00:00+00:00"
-        row={"indicator_id":k,"label":st.get("label") or k,"source":"Yahoo Finance",
+        row={"indicator_id":k,"label":st.get("label") or k,"source":st.get("source") or "Yahoo Finance",
              "cadence":e.get("freq") or "D","expected_cadence_minutes":10080 if e.get("freq")=="W" else 1440,
              "data_as_of":das,"last_good_at":_now_iso,"status":"green","last_error":None,"coverage_pct":100.0}
         req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
@@ -164,6 +176,36 @@ def run():
             print(f"  {bucket:11s} {name:16s} {ticker:10s} last={pts[-1][1]:>10}  {pctxt}")
         except Exception as e:
             print(f"  WARNING {name} ({ticker}): {e}")
+
+    # Spot uranium (U3O8) — Numerco via Yellow Cake plc. Daily live value appended
+    # onto accumulating history. Fail-loud: on any error we DON'T write, so the
+    # chip honestly goes stale (red) rather than fake-green on a frozen value.
+    try:
+        spot = fetch_uranium_spot()
+        if spot is None:
+            raise RuntimeError("could not parse spot U3O8 from source")
+        import datetime as _du
+        today = _du.date.today().isoformat()
+        existing = {}
+        if os.path.exists(HISTORY_PATH):
+            existing = (json.load(open(HISTORY_PATH)).get("cmdty_uranium") or {})
+        upts = [pt for pt in (existing.get("points") or []) if pt[0] != today]
+        upts.append([today, round(spot, 2)])
+        upts = upts[-WINDOW_DAYS:]
+        uvals = [pt[1] for pt in upts]
+        uthin = len(uvals) < 60
+        upct = None if uthin else pctrank_latest(uvals, WINDOW_DAYS)
+        uz = None if uthin else zscore_latest(uvals, WINDOW_DAYS)
+        updates["cmdty_uranium"] = {
+            "freq": "D", "unit": "$/lb", "as_of": today, "points": upts,
+            "stats": {"direction": "bw", "pctile_3yr": upct, "z_3yr": uz,
+                      "state": "calm" if uthin else state_for(upct), "bucket": "Commodities",
+                      "label": "Uranium", "source": "Numerco (spot U3O8)", "ranked": not uthin},
+        }
+        print(f"  Commodities Uranium          spot=US${spot}/lb  ({'history building' if uthin else f'{upct:.1f}%ile'})")
+    except Exception as e:
+        print(f"  WARNING Uranium (Numerco/Yellow Cake): {e} — not written; chip will read stale")
+
     if not updates:
         print("No market indicators produced; leaving file untouched.")
         sys.exit(1)
