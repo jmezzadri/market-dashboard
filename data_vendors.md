@@ -1,10 +1,12 @@
 # MacroTilt Data Vendor Ledger
 
-Last updated: 2026-05-27. Owner: Data Steward.
+Last updated: 2026-06-16. Owner: Data Steward.
 
-This is the cost + blast-radius ledger for every external data source that feeds the live site. Nine vendors total. Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
+This is the cost + blast-radius ledger for every external data source that feeds the live site. Twelve vendors total (all additions since the count was last written are free). Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
 
 **2026-05-27 update — Treasury.gov added.** Daily Treasury par yields and TIPS real yields were migrated from FRED to Treasury.gov (the upstream publisher) for same-day publication. FRED publishes these series ~20:00 UTC, after our morning workflow; Treasury.gov posts the same data ~16:00 ET, captured by our afternoon workflow. Three indicators moved: `yield_curve` (10Y-2Y slope), `real_rates` (10Y TIPS), and `breakeven_10y` (computed). FRED stays primary for the rest of the macro series.
+
+**2026-06-16 update — deep-history backfill + two free uranium sources registered.** The Asset Tilt rebuild's backtest needs multi-regime depth, so several short feeds were deepened in place: commodity levels (oil, brent, copper, gold, silver, natural gas, corn, wheat, soybeans) and FX crosses (euro, yen, pound) now carry full daily history (~20-26 years, back to ~2000-2003; yen to 1996) pulled from Yahoo and merge-preserved so daily runs never truncate. Index breadth (% of S&P 500 / Nasdaq-100 members above their 50- and 200-day averages) was recomputed from the deepened price store back to 2011 (S&P) / 2016 (Nasdaq) — as far back as today's membership had enough trading history under the representativeness filter. Uranium gained ~25 years of monthly spot history from **IndexMundi** behind its daily live value. **One vendor limit found:** the investment-grade credit spread (ICE BofA US Corporate OAS, series `ig_oas`) is only available with ~3 years of history on FRED — ICE restricts redistribution of the deep series. The displayed indicator stays at that real depth (its chip is green; the data is current, just short-history); the backtest's credit/financial-conditions factor uses the deep Chicago Fed financial-conditions index and the high-yield spread instead, not a fabricated deep IG series.
 
 If a vendor disappears, the "Removal blast radius" line tells Joe exactly what goes blank on the site. Manifest element IDs in each section link to the corresponding entry in `data_manifest.json`.
 
@@ -159,6 +161,28 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
+## 11. Numerco / Yellow Cake plc (spot uranium U3O8)
+
+- **Monthly cost:** $0 (free public endpoint).
+- **License tier:** Public JSON endpoint (`yellowcakeplc.com`), no key. Single live spot value, updated daily.
+- **What it powers (manifest elements):** `indicator-cmdty_uranium-daily` — the daily live uranium spot price on the Macro Overview Commodities tile, All Indicators, and Methodology.
+- **Alternatives evaluated:** UxC and TradeTech publish the benchmark spot but behind paywalls; Numerco's public value is the only free daily spot.
+- **Contract end date:** None (informal public endpoint).
+- **Removal blast radius:** Minor. The Uranium tile's live value goes stale; the ~25-year monthly history (IndexMundi, below) still renders.
+
+---
+
+## 12. IndexMundi (uranium monthly history — one-time seed)
+
+- **Monthly cost:** $0 (free public site).
+- **License tier:** Public. Used once to seed ~25 years of monthly U3O8 spot history behind the daily live value; not a recurring pull.
+- **What it powers (manifest elements):** the historical portion of `indicator-cmdty_uranium-daily` (monthly points 1996-2026).
+- **Alternatives evaluated:** None free with comparable monthly depth.
+- **Contract end date:** None.
+- **Removal blast radius:** None ongoing (one-time backfill; the seeded history is stored).
+
+---
+
 ## Monthly run-rate summary
 
 | Vendor | Monthly cost | Status |
@@ -173,6 +197,8 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 | State Street SPDR | $0 | Active |
 | GitHub unitedstates | $0 | Active |
 | ZeroHedge Premium | ~$30 | Active |
+| Numerco / Yellow Cake (uranium spot) | $0 | Active |
+| IndexMundi (uranium history) | $0 | One-time seed |
 | **Total active run-rate** | **~$71-121/month** | (~$852-1,452/year) |
 
 Plus Anthropic API at ~$125/month per Joe's auto-memory (separate line — used for site infra, not a data vendor). Including Anthropic, true MacroTilt data + infra run-rate is approximately **~$196-246/month** (~$2,352-2,952/year), comfortably under the $5,052 pre-audit baseline.
