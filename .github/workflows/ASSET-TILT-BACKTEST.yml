@@ -1,0 +1,43 @@
+name: ASSET-TILT-BACKTEST
+# Senior Quant — Asset Tilt calibration + validation harness (Phase A).
+# workflow_dispatch only. Runs scripts/asset_tilt_backtest.py against prices_eod
+# (Supabase Management API) + deep FRED/stored macro factors, prints the full
+# validation summary, and commits public/asset_tilt_calibration.json back to the
+# feature branch. No look-ahead by construction (see the script header).
+on:
+  workflow_dispatch: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install pandas numpy requests -q
+      - name: run asset tilt backtest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 -u scripts/asset_tilt_backtest.py
+      - name: commit calibration
+        run: |
+          if [[ -z "$(git status --porcelain public/asset_tilt_calibration.json)" ]]; then
+            echo "No change to calibration."
+            exit 0
+          fi
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          git add public/asset_tilt_calibration.json
+          git commit -m "Asset Tilt calibration refresh — $(date -u +%Y-%m-%d) [skip ci]"
+          # Rebase-retry to survive races with other nightly data bots.
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            echo "push attempt $i failed — rebasing onto latest branch"
+            git pull --rebase origin feature/quant-asset-tilt-phasea || true
+          done
+          echo "ERROR: could not push after 5 attempts"; exit 1

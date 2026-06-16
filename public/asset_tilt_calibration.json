@@ -1,0 +1,419 @@
+{
+  "_meta": {
+    "generated_utc": "2026-06-16T18:25:41.254161Z",
+    "methodology": "ASSET_TILT_METHODOLOGY.md v1",
+    "eval_window": {
+      "start": "1996-06-07",
+      "end": "2026-06-16",
+      "days": 7554
+    },
+    "sectors": [
+      "XLK",
+      "XLF",
+      "XLE",
+      "XLI",
+      "XLY",
+      "XLP",
+      "XLV",
+      "XLU",
+      "XLB",
+      "XLRE",
+      "XLC"
+    ],
+    "backtest_betas": "point-in-time expanding, annually re-estimated",
+    "calibration_betas": "full-sample sign-stable",
+    "beta_usage": "Two distinct beta sets, never conflated. 'sector_macro_betas' below are the FULL-SAMPLE sign-stable CALIBRATION betas (deployed model parameters). The 'validation' numbers are produced by the BACKTEST, which uses POINT-IN-TIME betas: an expanding-window panel re-estimated annually (each panel uses only data <= its Jan-1 asof, with a point-in-time two-half sign gate), applied as the most-recent panel <= each rebalance Friday. The full-sample betas are NOT used to compute the validation.",
+    "no_lookahead": "factors publication-lagged; expanding past-only z; BACKTEST betas use only data knowable at the annual asof (forward-window completed; point-in-time sign gate); weekly weights use only data<=Friday and trade the next bar",
+    "valuation_sleeve": "inactive in backtest (no historical forward-EY); weight redistributed pro-rata per spec",
+    "cap_weight_reference": "fixed current SPY GICS weights (dollar-neutral baseline)",
+    "data_notes": "prices from yfinance adjusted closes (== prices_eod) on the local run, prices_eod in production; HY OAS vendor-capped on FRED (2023+); deep stress credit leg uses BAA10Y; VIX deep via FRED VIXCLS(1990+); dollar spliced DTWEXB->DTWEXBGS"
+  },
+  "sector_macro_betas": {
+    "XLK": {
+      "realrate": 0.005905,
+      "oil": -0.009905
+    },
+    "XLF": {
+      "tenY": -0.023374,
+      "realrate": -0.011433,
+      "dollar": 0.010411,
+      "oil": -0.014763
+    },
+    "XLE": {
+      "tenY": 0.002541,
+      "realrate": -0.002745
+    },
+    "XLI": {
+      "oil": -0.000167
+    },
+    "XLY": {
+      "tenY": -0.026606,
+      "curve": 0.009432,
+      "anfci": 0.008174,
+      "credit": 0.010692,
+      "coppergold": -0.021564
+    },
+    "XLP": {
+      "oil": 0.022387
+    },
+    "XLV": {
+      "dollar": -0.011276,
+      "oil": 0.017777
+    },
+    "XLU": {
+      "tenY": 0.020387,
+      "curve": 0.005563,
+      "realrate": 0.004957,
+      "dollar": -0.005395,
+      "oil": 0.0156
+    },
+    "XLB": {
+      "tenY": -0.017651,
+      "curve": 0.002434,
+      "breakeven": -0.009594,
+      "anfci": 0.010316,
+      "credit": 0.00652,
+      "coppergold": -0.01964
+    },
+    "XLRE": {},
+    "XLC": {}
+  },
+  "sector_macro_betas_note": "FULL-SAMPLE sign-stable CALIBRATION betas (deployed). Backtest uses point-in-time betas; see backtest_beta_panels.",
+  "backtest_beta_panels": {
+    "method": "expanding window, re-estimated annually (asof = Jan 1 each year), point-in-time two-half sign gate",
+    "panels": [
+      {
+        "asof": "1996-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "1997-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "1998-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "1999-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2000-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2001-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2002-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2003-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2004-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2005-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2006-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2007-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2008-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2009-01-01",
+        "betas_kept": 0
+      },
+      {
+        "asof": "2010-01-01",
+        "betas_kept": 37
+      },
+      {
+        "asof": "2011-01-01",
+        "betas_kept": 32
+      },
+      {
+        "asof": "2012-01-01",
+        "betas_kept": 44
+      },
+      {
+        "asof": "2013-01-01",
+        "betas_kept": 44
+      },
+      {
+        "asof": "2014-01-01",
+        "betas_kept": 42
+      },
+      {
+        "asof": "2015-01-01",
+        "betas_kept": 39
+      },
+      {
+        "asof": "2016-01-01",
+        "betas_kept": 43
+      },
+      {
+        "asof": "2017-01-01",
+        "betas_kept": 38
+      },
+      {
+        "asof": "2018-01-01",
+        "betas_kept": 41
+      },
+      {
+        "asof": "2019-01-01",
+        "betas_kept": 42
+      },
+      {
+        "asof": "2020-01-01",
+        "betas_kept": 42
+      },
+      {
+        "asof": "2021-01-01",
+        "betas_kept": 53
+      },
+      {
+        "asof": "2022-01-01",
+        "betas_kept": 59
+      },
+      {
+        "asof": "2023-01-01",
+        "betas_kept": 60
+      },
+      {
+        "asof": "2024-01-01",
+        "betas_kept": 60
+      },
+      {
+        "asof": "2025-01-01",
+        "betas_kept": 54
+      },
+      {
+        "asof": "2026-01-01",
+        "betas_kept": 53
+      }
+    ],
+    "most_recent_asof": "2026-01-01",
+    "most_recent_kept": 53,
+    "total_sector_factor_pairs": 99,
+    "first_nonzero_asof": "2010-01-01"
+  },
+  "stress_signal": "blend",
+  "stress_cutpoints": {
+    "risk_on_max": -0.173,
+    "watch_max": 2.106,
+    "risk_on_pct": 0.45,
+    "watch_pct": 0.95
+  },
+  "stress_auc": {
+    "MOVE_only": {
+      "h1": 0.6481,
+      "h3": 0.6461,
+      "h6": 0.6703,
+      "h12": 0.6907
+    },
+    "blend": {
+      "h1": 0.7269,
+      "h3": 0.7121,
+      "h6": 0.7086,
+      "h12": 0.6566
+    }
+  },
+  "rate_regime_bands": {
+    "inflationary_pct": 70,
+    "deflationary_pct": 30,
+    "composition": {
+      "inflationary": {
+        "BIL": 0.5,
+        "GLD": 0.3,
+        "SHY": 0.2
+      },
+      "deflationary": {
+        "BIL": 0.2,
+        "GLD": 0.3,
+        "TLT": 0.5
+      },
+      "neutral": {
+        "BIL": 0.34,
+        "GLD": 0.33,
+        "IEF": 0.33
+      }
+    }
+  },
+  "sleeve_weights": {
+    "macro": 0.45,
+    "momentum": 0.25,
+    "relstr": 0.2,
+    "valuation": 0.1
+  },
+  "tilt_clip": {
+    "min": -0.04,
+    "max": 0.06
+  },
+  "validation": {
+    "_betas_used": "point-in-time expanding (annually re-estimated); NOT full-sample",
+    "tilted_gross": {
+      "cagr": 0.0851443983734792,
+      "sharpe": 0.5573245556619781,
+      "maxdd": -0.4928221614151359,
+      "n": 7554
+    },
+    "tilted_net": {
+      "cagr": 0.08449353023393491,
+      "sharpe": 0.5538707682985984,
+      "maxdd": -0.49319795354462537,
+      "n": 7554
+    },
+    "engine_net": {
+      "cagr": 0.08541559716257052,
+      "sharpe": 0.6806287599557898,
+      "maxdd": -0.37106354647040607,
+      "n": 7554
+    },
+    "spy": {
+      "cagr": 0.10260709884034158,
+      "sharpe": 0.6026848729128153,
+      "maxdd": -0.5518946803492013,
+      "n": 7554
+    },
+    "equal_weight": {
+      "cagr": 0.09303919667024796,
+      "sharpe": 0.5825538370721797,
+      "maxdd": -0.5253054945638618,
+      "n": 6911
+    },
+    "weekly_turnover": 0.023,
+    "cost_drag_annual": 0.00065,
+    "avg_equity_pct": 0.8747,
+    "defensive_2022_total": -0.0335,
+    "naive_tlt_2022_total": -0.3123,
+    "defensive_survived_2022": true,
+    "gates": {
+      "tilted_sharpe_gt_spy": false,
+      "tilted_sharpe_gt_ew": false,
+      "tilted_maxdd_le_spy": true,
+      "engine_sharpe_gt_spy": true,
+      "engine_maxdd_le_spy": true,
+      "calibration_betas_sign_stable_kept": 28,
+      "calibration_betas_total": 99,
+      "backtest_betas_pit_kept_latest": 53
+    }
+  },
+  "per_sleeve_auc": {
+    "macro": {
+      "h1": 0.5151,
+      "h3": 0.5204,
+      "h6": 0.532,
+      "h12": 0.5418
+    },
+    "momentum": {
+      "h1": 0.5082,
+      "h3": 0.5105,
+      "h6": 0.5147,
+      "h12": 0.5057
+    },
+    "relstr": {
+      "h1": 0.4963,
+      "h3": 0.5095,
+      "h6": 0.5249,
+      "h12": 0.5122
+    }
+  },
+  "per_sleeve_auc_note": "AUC computed on the full-sample deployed (calibration) betas \u2014 a diagnostic of the deployed model's factor loadings, not a tradable backtest.",
+  "per_factor_auc": {
+    "tenY": {
+      "h1": 0.5363,
+      "h3": 0.5442,
+      "h6": 0.5559,
+      "h12": 0.5592
+    },
+    "curve": {
+      "h1": 0.5487,
+      "h3": 0.5774,
+      "h6": 0.5896,
+      "h12": 0.5781
+    },
+    "realrate": {
+      "h1": 0.502,
+      "h3": 0.5001,
+      "h6": 0.498,
+      "h12": 0.5017
+    },
+    "breakeven": {
+      "h1": 0.5257,
+      "h3": 0.5537,
+      "h6": 0.5882,
+      "h12": 0.5261
+    },
+    "anfci": {
+      "h1": 0.5459,
+      "h3": 0.5399,
+      "h6": 0.5483,
+      "h12": 0.5643
+    },
+    "credit": {
+      "h1": 0.615,
+      "h3": 0.6613,
+      "h6": 0.6882,
+      "h12": 0.6891
+    },
+    "dollar": {
+      "h1": 0.5377,
+      "h3": 0.5602,
+      "h6": 0.5997,
+      "h12": 0.6399
+    },
+    "coppergold": {
+      "h1": 0.5205,
+      "h3": 0.5468,
+      "h6": 0.5636,
+      "h12": 0.545
+    },
+    "oil": {
+      "h1": 0.5211,
+      "h3": 0.5298,
+      "h6": 0.5469,
+      "h12": 0.5632
+    }
+  },
+  "sleeve_correlation": {
+    "macro~momentum": {
+      "pearson": 0.028,
+      "spearman": 0.021
+    },
+    "macro~relstr": {
+      "pearson": 0.031,
+      "spearman": 0.027
+    },
+    "momentum~relstr": {
+      "pearson": 0.716,
+      "spearman": 0.703
+    }
+  },
+  "beta_sign_stability": {
+    "calibration_full_sample": {
+      "kept": 28,
+      "dropped": 71,
+      "total": 99
+    },
+    "backtest_point_in_time_latest": {
+      "kept": 53,
+      "total": 99,
+      "asof": "2026-01-01"
+    }
+  }
+}
