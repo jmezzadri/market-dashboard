@@ -65,6 +65,12 @@ export default function MethodologyPage() {
   const { active } = useIndicators();
   const liveIndicatorCount = active.length || '—';
 
+
+  const [backtest, setBacktest] = useState(null);
+  const [changelog, setChangelog] = useState(null);
+  const [manifest, setManifest] = useState(null);
+  const [activeId, setActiveId] = useState(SECTIONS[0][0]);
+
   // Vendor table derived from the manifest (single source of truth) — never hardcoded.
   const vendorRows = useMemo(() => {
     const els = manifest?.elements || [];
@@ -84,11 +90,6 @@ export default function MethodologyPage() {
       [...by[v].tabs].sort().join(', ') || '—',
     ]);
   }, [manifest]);
-
-  const [backtest, setBacktest] = useState(null);
-  const [changelog, setChangelog] = useState(null);
-  const [manifest, setManifest] = useState(null);
-  const [activeId, setActiveId] = useState(SECTIONS[0][0]);
 
   useEffect(() => {
     let cancelled = false;
