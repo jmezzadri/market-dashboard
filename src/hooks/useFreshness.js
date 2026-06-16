@@ -1,42 +1,40 @@
-// useFreshness.js — site-wide data-freshness hook (PR #16 rebuild).
+// useFreshness.js — site-wide data-freshness hook.
 //
-// What changed in PR #16
-// ──────────────────────
-// 1. Two-state semantics. The chip is GREEN or RED — no amber. Joe sign-off
-//    2026-05-01: "I dont trust the system yet, I want to see if the data
-//    is stale (RED), or if its operating within SLA (Green)."
+// Grading: ONE CLOCK (FRESHNESS_CHIP_SPEC 2026-06-16)
+// ───────────────────────────────────────────────────
+// The chip grades off the LAST PULL — the producing job's real last successful
+// run time (pipeline_health.last_good_at) — versus its SLA, NEVER off the age
+// of the data. The SLA is sized to how often the JOB runs (cadence + grace),
+// not to the data's publication lag. Consequences:
+//   • a six-week-old monthly series is GREEN as long as its daily reader job
+//     keeps pulling (kills publication-lag false-reds);
+//   • a daily feed whose job stops pulling goes RED within one extra
+//     business-day cadence even if its last value still looks recent
+//     (kills fake-green — the Uranium failure mode);
+//   • data dated after its own last pull is an impossible pair → RED.
+// All of this lives in one shared function, gradeByLastPull (freshnessClock),
+// mirrored server-side so chips, the watchdog, and alerts grade identically.
 //
-// 2. Manifest-driven thresholds. Per-element freshness_sla_hours +
-//    release_calendar come from public/data_manifest.json (PR #13). The
-//    legacy CADENCE_TOLERANCE_MINUTES math is gone.
+// Two-state (green / red); "unknown" (grey) only when an element is genuinely
+// untracked — never silently green (Hard Rule 0.1: fake green forbidden).
 //
-// 3. Aggregate rollup. When the queried element has dependencies, the
-//    hook walks them and OR-reds. Tooltip names the specific failing
-//    dependency, or — if the aggregate's own calc is stale — the calc
-//    itself.
+// Calendar-aware: the last-pull clock skips weekend/holiday hours for the job's
+// run calendar, so a Friday pull is never "stale" on Monday morning
+// (Joe's "no red chips over weekends" rule).
 //
-// 4. Trading-calendar awareness comes via the freshnessClock utility
-//    (PR #14). isStaleAgainstSLA(asOf, sla, calendar) skips weekends +
-//    NYSE/business-day holidays as Joe's "Sunday-night-not-stale"
-//    requirement demands.
-//
-// What stayed the same
-// ────────────────────
-// - Reads public.pipeline_health for last_good_at + last_check_at +
-//   last_error per indicator. Edge function still owns the "did it
-//   refresh" data; chip owns the "is it stale" decision.
-// - Shared in-module subscription so 100 chips on one page hit Supabase
-//   exactly once. 60s refresh cadence + tab-focus refresh.
-//
-// Status semantics (post-PR-16)
-// ─────────────────────────────
-//   green  — within SLA per manifest AND no upstream pull error AND every
-//            dependency rolls up green
-//   red    — anything else: stale, missing, error, or any input red.
+// Other behaviour
+// ───────────────
+// - Manifest (public/data_manifest.json) supplies freshness_sla_hours,
+//   release_calendar, source_vendor, cadence, scheduled_fetch_time_et.
+// - Aggregate rollup: when the element has dependencies, the worst-case status
+//   wins and the tooltip names the failing input.
+// - Reads public.pipeline_health for last_good_at + data_as_of + last_error per
+//   element. Shared in-module subscription so 100 chips hit the DB once; 60s
+//   refresh + tab-focus refresh.
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { isStaleAgainstSLA, formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, dailySessionGrade } from "../lib/freshnessClock";
+import { formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, gradeByLastPull } from "../lib/freshnessClock";
 import {
   getElement,
   getAllElements,
@@ -214,88 +212,52 @@ function statusForElement(elementId, fallback) {
   const lastGoodAt = phRow?.last_good_at || null;
   const lastError = phRow?.last_error || null;
 
-  // 4. Two-state decision.
-  // Joe directive 2026-05-03: "I only want to know when something breaks."
-  // Red is reserved for: an upstream pull error, an element that has never
-  // refreshed, or an element whose DATA is past its freshness SLA on the
-  // calendar. An element with NO manifest entry, NO pipeline_health row and
-  // NO date at all is "freshness tracking not configured yet" — render green
-  // and let the tooltip explain, rather than train the user to ignore a chip
-  // that just says "no record".
-  // GREEN only when a value is affirmatively graded within its SLA. Anything
-  // we cannot confirm is "unknown" (never green) — Joe 2026-06-02: untracked is
-  // never green; no fake-green anywhere on the site.
-  let status = "unknown";
-  let reason = null;
-
-  const isUntracked = !manifestEl && !phRow && !dataDate && !lastGoodAt;
-
-  if (isUntracked) {
-    status = "unknown";
-    reason = "Freshness not tracked for this element";
-  } else if (lastError) {
-    status = "red";
-    reason = `Upstream error: ${lastError}`;
-  } else if (!dataDate && !lastGoodAt) {
-    status = "red";
-    reason = "No successful refresh on record";
-  } else if (String(manifestEl?.cadence || "").toLowerCase().startsWith("daily")) {
-    // Session-frontier doctrine (Joe 2026-06-12): dailies are graded in
-    // trading sessions against their publication frontier, not wall-clock
-    // hour budgets. The hour budgets tolerated 49-73h of true staleness on
-    // DAILY elements — long enough to hide a dead feed until the weekend.
-    // Green = at the frontier (the newest session the source can have
-    // published by its fetch deadline); amber = exactly one session behind
-    // (today's pull missed or late); red = two or more behind. Deadlines
-    // exist only on business days, so weekends/holidays never count.
-    const g = dailySessionGrade(dataDate || lastGoodAt, {
-      fetchTimeET: manifestEl?.scheduled_fetch_time_et,
-      graceHours: Number(manifestEl?.fetch_grace_hours) || 3,
-      lagSessions: Number(manifestEl?.lag_sessions) || 0,
-    });
-    status = g.grade;
-    reason =
-      g.grade === "amber" ? `1 session behind — expected data through ${g.expectedDate}` :
-      g.grade === "red" ? `${g.behind} sessions behind — expected data through ${g.expectedDate}` :
-      null;
-  } else if (slaHours > 0) {
-    status = isStaleAgainstSLA(dataDate || lastGoodAt, slaHours, calendar)
-      ? "red"
-      : "green";
-    reason = status === "red" ? "Past freshness SLA" : null;
-  } else {
-    // Have a date but no SLA to grade against — cannot confirm fresh.
-    status = "unknown";
-    reason = "No freshness target configured — cannot confirm";
-  }
-
-  // Real fetch time: prefer the indicator file's true build timestamp for
-  // file-backed indicators; fall back to pipeline_health for everything else.
+  // 4. ONE-CLOCK grade (FRESHNESS_CHIP_SPEC 2026-06-16). Grade off the LAST
+  // PULL — the producing job's real last successful run time — never off the
+  // age of the data. last_good_at is that run time (an honest wall-clock
+  // stamp); for file-backed indicators whose row may lag, the indicator file's
+  // own build time is an equally-real fallback. As-of feeds ONLY the hard
+  // invariant (data can never be dated after the pull that fetched it). This is
+  // what kills fake-green — a dead job stops advancing last_good_at and goes
+  // red within one extra business-day cadence — and lagged-feed false-red — a
+  // six-week-old monthly series stays green while its daily reader job pulls.
+  // Replaces the old two-clock design (session-frontier + data-age SLA).
   const lastRefreshedAt =
     (String(manifestEl?.output_destination || "").includes("indicator_history.json")
       ? cachedGeneratedAt
       : null) || lastGoodAt;
 
-  // Impossible-pair guard (2026-06-11): data can never be newer than the
-  // refresh that produced it. If it reads that way, a producer wrote a
-  // fabricated stamp — surface red with the reason instead of rendering an
-  // impossible tooltip. Date-only as-ofs compare by ET session date.
-  if (status !== "red" && dataDate && lastRefreshedAt) {
-    const refMs = new Date(lastRefreshedAt).getTime();
-    let impossible = false;
-    if (String(dataDate).length === 10) {
-      const refEtDate = Number.isFinite(refMs)
-        ? new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
-        : null;
-      impossible = !!refEtDate && String(dataDate) > refEtDate;
-    } else {
-      const asOfMs = new Date(dataDate).getTime();
-      impossible = Number.isFinite(asOfMs) && Number.isFinite(refMs) && asOfMs > refMs + 5 * 60 * 1000;
-    }
-    if (impossible) {
-      status = "red";
-      reason = "Timestamps inconsistent — the data reports newer than its last refresh (stamp fabrication; flagged for repair)";
-    }
+  // Last Pull = the job's real last successful run time; this is what we grade.
+  const lastPullIso = lastGoodAt || lastRefreshedAt || null;
+
+  // Grade against the JOB's run calendar so weekend/holiday hours are not
+  // counted (no Monday false-reds on weekday-only jobs). Every chip element
+  // carries a valid release_calendar in the manifest; coerce anything else to
+  // the business-day calendar the scheduled jobs actually run on.
+  const gradeCalendar =
+    (calendar === "nyse-trading-day" || calendar === "us-business-day" || calendar === "wall-clock")
+      ? calendar
+      : "us-business-day";
+
+  const isUntracked = !manifestEl && !phRow && !dataDate && !lastGoodAt;
+
+  let status;
+  let reason;
+  if (isUntracked) {
+    // No manifest entry, no tracking row, no dates — render grey and explain;
+    // never silently green (Hard Rule 0.1: fake green forbidden).
+    status = "unknown";
+    reason = "Freshness not tracked for this element";
+  } else {
+    const graded = gradeByLastPull({
+      lastPullIso,
+      asOfIso: dataDate,
+      slaHours,
+      calendar: gradeCalendar,
+      lastError,
+    });
+    status = graded.status;
+    reason = graded.reason;
   }
 
   return {

@@ -120,6 +120,78 @@ export function isStaleAgainstSLA(
   return age > slaHours;
 }
 
+// ─── ONE-CLOCK grade: did the JOB pull within SLA? (FRESHNESS_CHIP_SPEC 2026-06-16)
+// Mirrors src/lib/freshnessClock.js gradeByLastPull EXACTLY — change one,
+// change the other. Grades off the LAST PULL (the producing job's real last
+// successful run time), never off data age.
+export interface LastPullInput {
+  lastPullIso?: string | null;
+  asOfIso?: string | null;
+  slaHours?: number | null;
+  calendar?: ReleaseCalendar | null;
+  lastError?: string | null;
+}
+export function gradeByLastPull(
+  input: LastPullInput,
+  nowMs?: number,
+): { status: "green" | "red" | "unknown"; reason: string | null; ageHours: number | null } {
+  const o = input || {};
+  if (o.lastError) {
+    return { status: "red", reason: `Upstream error: ${o.lastError}`, ageHours: null };
+  }
+  const sla = Number(o.slaHours);
+  if (!Number.isFinite(sla) || sla <= 0) {
+    return { status: "unknown", reason: "No freshness target configured", ageHours: null };
+  }
+  if (!o.lastPullIso) {
+    return { status: "red", reason: "No successful pull on record", ageHours: null };
+  }
+  if (o.asOfIso && lastPullInvariantViolated(o.asOfIso, o.lastPullIso)) {
+    return {
+      status: "red",
+      reason: "Data is dated after its last successful pull — a producer stamp bug (flagged for repair)",
+      ageHours: null,
+    };
+  }
+  const age = ageHoursAgainstCalendar(o.lastPullIso, o.calendar, nowMs);
+  if (!Number.isFinite(age)) {
+    return { status: "red", reason: "Last-pull timestamp unreadable", ageHours: null };
+  }
+  if (age > sla) {
+    return {
+      status: "red",
+      reason: `No successful pull in ${Math.round(age)}h (SLA ${formatSlaDaysHours(sla)})`,
+      ageHours: age,
+    };
+  }
+  return { status: "green", reason: null, ageHours: age };
+}
+
+export function lastPullInvariantViolated(
+  asOfIso: string | null | undefined,
+  lastPullIso: string | null | undefined,
+): boolean {
+  if (!asOfIso || !lastPullIso) return false;
+  const refMs = new Date(lastPullIso).getTime();
+  if (!Number.isFinite(refMs)) return false;
+  if (String(asOfIso).length === 10) {
+    const refEtDate = new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    return String(asOfIso) > refEtDate;
+  }
+  const asOfMs = new Date(asOfIso).getTime();
+  return Number.isFinite(asOfMs) && asOfMs > refMs + 5 * 60 * 1000;
+}
+
+export function formatSlaDaysHours(hours: number | null | undefined): string {
+  const h0 = Number(hours);
+  if (!Number.isFinite(h0) || h0 <= 0) return "—";
+  const d = Math.floor(h0 / 24);
+  const h = Math.round(h0 - d * 24);
+  if (d > 0 && h > 0) return `${d}d ${h}h`;
+  if (d > 0) return `${d}d`;
+  return `${h}h`;
+}
+
 export function formatRelativeAge(
   asOfIso: string | null | undefined,
   nowMs?: number,

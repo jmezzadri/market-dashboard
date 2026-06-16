@@ -178,6 +178,94 @@ export function isStaleAgainstSLA(asOfIso, slaHours, calendar, nowMs) {
 }
 
 
+// ─── ONE-CLOCK grade: did the JOB pull within SLA? (FRESHNESS_CHIP_SPEC 2026-06-16)
+// ────────────────────────────────────────────────────────────────────────────
+// The single grading rule shared by every chip on the site, and mirrored
+// server-side in supabase/functions/_shared/freshnessClock.ts (change one,
+// change the other). It grades off the LAST PULL — the real time the producing
+// job last ran successfully (pipeline_health.last_good_at) — NOT off the age of
+// the data. A monthly series whose observation is six weeks old is GREEN as
+// long as its daily reader job pulled on schedule; a daily feed whose job
+// stopped goes RED within one extra business-day cadence even if its last value
+// still looks recent. This is the fix for fake-green (Uranium), false-red on
+// lagged feeds, and the "refresh older than data" impossible pair.
+//
+// Inputs (one object):
+//   lastPullIso  the job's last successful run time (a real wall-clock stamp)
+//   asOfIso      the data's own as-of date/datetime — used ONLY for the invariant
+//   slaHours     the job-cadence + grace budget in hours, sized to how often the
+//                JOB runs (not the data's publication lag)
+//   calendar     "nyse-trading-day" | "us-business-day" | "wall-clock" — the
+//                job's run calendar, so weekend/holiday hours are not counted
+//                (no Monday false-reds on weekday-only jobs)
+//   lastError    the upstream error string, if the last run errored
+//
+// Returns { status: "green" | "red" | "unknown", reason: string | null, ageHours }.
+export function gradeByLastPull(input, nowMs) {
+  const o = input || {};
+  if (o.lastError) {
+    return { status: "red", reason: `Upstream error: ${o.lastError}`, ageHours: null };
+  }
+  const sla = Number(o.slaHours);
+  if (!Number.isFinite(sla) || sla <= 0) {
+    // No freshness target configured — cannot confirm fresh. Never silently
+    // green (Hard Rule 0.1: fake green forbidden).
+    return { status: "unknown", reason: "No freshness target configured", ageHours: null };
+  }
+  if (!o.lastPullIso) {
+    return { status: "red", reason: "No successful pull on record", ageHours: null };
+  }
+  // Hard invariant: the data can never be dated after the pull that produced it.
+  if (o.asOfIso && lastPullInvariantViolated(o.asOfIso, o.lastPullIso)) {
+    return {
+      status: "red",
+      reason: "Data is dated after its last successful pull — a producer stamp bug (flagged for repair)",
+      ageHours: null,
+    };
+  }
+  const age = ageHoursAgainstCalendar(o.lastPullIso, o.calendar, nowMs);
+  if (!Number.isFinite(age)) {
+    return { status: "red", reason: "Last-pull timestamp unreadable", ageHours: null };
+  }
+  if (age > sla) {
+    return {
+      status: "red",
+      reason: `No successful pull in ${Math.round(age)}h (SLA ${formatSlaDaysHours(sla)})`,
+      ageHours: age,
+    };
+  }
+  return { status: "green", reason: null, ageHours: age };
+}
+
+// True when the data's as-of is later than the last successful pull — an
+// impossible pair (you cannot hold data dated after the run that fetched it).
+// Date-only as-ofs compare by ET session date so a same-day close stamp written
+// hours before the evening run does not trip it.
+export function lastPullInvariantViolated(asOfIso, lastPullIso) {
+  if (!asOfIso || !lastPullIso) return false;
+  const refMs = new Date(lastPullIso).getTime();
+  if (!Number.isFinite(refMs)) return false;
+  if (String(asOfIso).length === 10) {
+    const refEtDate = new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    return String(asOfIso) > refEtDate;
+  }
+  const asOfMs = new Date(asOfIso).getTime();
+  return Number.isFinite(asOfMs) && asOfMs > refMs + 5 * 60 * 1000;
+}
+
+// Format an hour budget as days + hours for the chip's SLA line: 49 → "2d 1h",
+// 192 → "8d", 480 → "20d" (FRESHNESS_CHIP_SPEC field 5: SLA in days & hours).
+export function formatSlaDaysHours(hours) {
+  const h0 = Number(hours);
+  if (!Number.isFinite(h0) || h0 <= 0) return "—";
+  const d = Math.floor(h0 / 24);
+  const h = Math.round(h0 - d * 24);
+  if (d > 0 && h > 0) return `${d}d ${h}h`;
+  if (d > 0) return `${d}d`;
+  return `${h}h`;
+}
+
+
 // ─── Session-frontier grading for DAILY elements ────────────────────────────
 // Joe doctrine 2026-06-12 (supersedes hour-budget SLAs for daily cadence):
 // a daily element is GREEN only when it carries the newest session its source
