@@ -17,8 +17,10 @@ name: PAPER-PORTFOLIO-EOD-DAILY
 #  (b) There was NO freshness gate despite comments claiming one.
 #
 # Data-availability facts (verified from run logs 2026-06-01):
-#  * Sector sleeve (Asset Tilt) refreshes in the evening (~7:40pm) — ready
-#    overnight.
+#  * Sector sleeve (Asset Tilt) publishes early morning (~3:00am ET). The
+#    v10-allocation-daily run was moved here 2026-06-16 so it lands BEFORE
+#    this window (was 08:15 ET — after this job gave up — which caused the
+#    2026-06-16 stale-sector refusal).
 #  * Stock sleeve (Screener) scores the prior close only AFTER the overnight
 #    full price batch lands (~2:30-3:00am ET).
 #  => Earliest both sleeves are simultaneously fresh = ~3:00am ET.
