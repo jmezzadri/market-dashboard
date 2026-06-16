@@ -78,7 +78,7 @@ jobs:
                           syms=[x for x in syms if 1<=len(x)<=6]
                           if len(syms)>=90: return syms
               raise RuntimeError("NDX membership unavailable from Invesco AND Wikipedia")
-          def breadth_counts(tickers, in_years=30, out_years=20):
+          def breadth_counts(tickers, in_years=22, out_years=20):
               arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers)+"]"
               sql=f"""set statement_timeout='570s';
               with recursive px as (
@@ -96,8 +96,13 @@ jobs:
                 count(*) filter(where rn>=200) n200
               from ema where trade_date>=current_date-interval '{out_years} years'
               group by trade_date order by trade_date"""
-              return mgmt(sql,t=590)
-          def breadth(tickers, batch=120):
+              last=None
+              for _try in range(3):
+                  try: return mgmt(sql,t=110)
+                  except Exception as e:
+                      last=e; time.sleep(5)
+              raise last
+          def breadth(tickers, batch=30):
               # 2026-06-16: process members in batches and aggregate raw counts so the
               # recursive EMA never exceeds the query timeout at the deepened 20y window.
               # Mathematically identical to one query: per-date % = sum(above)/sum(members).
