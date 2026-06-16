@@ -25,7 +25,7 @@
    - Changelog uses .me-changelog list (prototype grid-templated).
    - Vendor table uses .me-vendors. */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
 import FreshnessChip from '../components/FreshnessChip';
 
@@ -39,27 +39,17 @@ const SECTIONS = [
   ['change',    'Changelog'],
 ];
 
-/* Path-A exception #1 (Joe 2026-05-27): vendor table content is the
-   same whether read literally here or derived from the manifest, so we
-   keep this labeled list as design copy. If/when a vendor changes,
-   update both this constant AND the relevant manifest entries in the
-   same PR (the project Data Steward sign-off rule catches this). */
-const VENDORS = [
-  ['U.S. Treasury (Treasury.gov)', 'Daily Treasury par + TIPS yield curves',       'Free', '10Y & 2Y nominal yields, 10Y-2Y slope, 10Y TIPS real rate, 10Y breakeven'],
-  ['FRED',                          'St. Louis Fed economic data',                  'Free', 'Macro indicator family (unemployment rate, nonfarm payrolls, jobless, M2, SLOOS, term premium, RRP, etc.)'],
-  ['Polygon (Massive)',             'Daily prices, splits, dividends, fundamentals','Paid', 'Universe master, ticker reference'],
-  ['Unusual Whales',                'Options flow, dark pool, insider, congress',   'Paid', 'Scanner facets, ticker events'],
-  ['ICE BofA via FRED',             'Investment-grade & high-yield credit spreads', 'Free', 'Credit family (HY OAS; IG OAS — FRED licenses only ~3 years of history for the ICE OAS series)'],
-  ['Yahoo Finance',                 'VIX, MOVE, SKEW, USD, full daily commodity + FX history (~20–26 years)',  'Free', 'Equity volatility family; Commodities (gold, silver, copper, WTI crude, Brent crude, natural gas, corn, soybeans, wheat); FX (euro, yen, pound, dollar index)'],
-  ['Numerco (Yellow Cake plc)',     'Daily spot uranium (U3O8)',                    'Free', 'Commodities — uranium (live spot price)'],
-  ['IndexMundi',                    'Monthly uranium (U3O8) history (~25 years)',   'Free', 'Commodities — uranium (historical series behind the live spot)'],
-  ['CBOE',                          'VIX, SKEW (via Yahoo mirror)',                 'Free', 'Equity volatility family'],
-  ['CFTC (Commitments of Traders)', 'Weekly futures positioning — speculators vs commercial hedgers, ranked into a 3-year range', 'Free', 'Positioning tiles across Rates, Equities, FX, Commodities'],
-  ['NY Fed Primary Dealer Stats',   'Weekly dealer net positions in IG/HY corporate bonds', 'Free', 'Credit positioning'],
-  ['ISM',                           'Manufacturing & Services PMI',                 'Free', 'Economy family'],
-  ['FDIC Call Reports',             'Bank balance-sheet unrealized losses',         'Free', 'Bank family'],
-  ['Shiller (Yale)',                'CAPE ratio',                                   'Free', 'Equity valuation family'],
-];
+/* 2026-06-16 (Joe directive: nothing hardcoded): the vendor table is DERIVED
+   from public/data_manifest.json (the single source of truth) at runtime, so it
+   can never drift. Add or change a feed's source_vendor in the manifest and this
+   table updates itself. Plain-English column values come from the manifest's
+   category + consumer-surface fields, never raw element ids. */
+const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
+  readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
+  paper: 'Paper Portfolio', 'asset-tilt': 'Asset Tilt', ticker: 'Ticker', data: 'Admin / Data' };
+const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
+  scenario: 'Allocation', allocation: 'Allocation', portfolio: 'Portfolio', news: 'News',
+  commentary: 'Commentary', ops: 'Operations' };
 
 function fmtPct(v, digits = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -75,8 +65,29 @@ export default function MethodologyPage() {
   const { active } = useIndicators();
   const liveIndicatorCount = active.length || '—';
 
+  // Vendor table derived from the manifest (single source of truth) — never hardcoded.
+  const vendorRows = useMemo(() => {
+    const els = manifest?.elements || [];
+    const by = {};
+    for (const e of els) {
+      const v = (e.source_vendor || '').trim();
+      if (!v) continue;
+      if (!by[v]) by[v] = { paid: false, cats: new Set(), tabs: new Set() };
+      if (String(e.license_tier || '').toLowerCase().startsWith('paid')) by[v].paid = true;
+      if (e.category) by[v].cats.add(CAT_LABEL[e.category] || e.category);
+      (e.consumer_surfaces || []).forEach((su) => { if (su && su.tab) by[v].tabs.add(TAB_LABEL[su.tab] || su.tab); });
+    }
+    return Object.keys(by).sort().map((v) => [
+      v,
+      [...by[v].cats].join(', ') || '—',
+      by[v].paid ? 'Paid' : 'Free',
+      [...by[v].tabs].sort().join(', ') || '—',
+    ]);
+  }, [manifest]);
+
   const [backtest, setBacktest] = useState(null);
   const [changelog, setChangelog] = useState(null);
+  const [manifest, setManifest] = useState(null);
   const [activeId, setActiveId] = useState(SECTIONS[0][0]);
 
   useEffect(() => {
@@ -88,6 +99,10 @@ export default function MethodologyPage() {
     fetch('/methodology_changelog.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled && Array.isArray(j?.entries)) setChangelog(j.entries); })
+      .catch(() => {});
+    fetch('/data_manifest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setManifest(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -382,7 +397,7 @@ export default function MethodologyPage() {
                 </tr>
               </thead>
               <tbody>
-                {VENDORS.map(([v, c, t, w]) => (
+                {vendorRows.map(([v, c, t, w]) => (
                   <tr key={v}>
                     <td>{v}</td>
                     <td>{c}</td>
