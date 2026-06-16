@@ -173,13 +173,16 @@ bespoke:
       review_at: 2026-06-12
 
   - v10-allocation-daily.yml:
-      schedule: "18:45 ET weekdays"
+      schedule: "~03:00 ET (07:00 & 07:30 UTC) Tue-Sat"
       manifest_element: scenario.v10-allocation
       reason: |
-        Depends on cycle-mechanisms-daily (18:30) + CYCLE-V2-DAILY (18:30)
-        + MASSIVE-DAILY (18:00). Runs 15 minutes after upstream cycle
-        compute completes. Sole producer for Asset Tilt page.
-      review_at: 2026-06-12
+        Sole daily producer for the Asset Tilt page / sector sleeve. Input is
+        cycle_board_snapshot.json, final the prior evening (18:30 ET), so it can
+        run any time after that. Moved 2026-06-16 from 08:15 ET to ~03:00 ET so
+        the sector signal is fresh BEFORE the paper rebalancer's 04:00 ET submit
+        window — the 08:15 ET slot landed after the rebalancer gave up and caused
+        the 2026-06-16 stale-sector trade refusal. Same close as Trading Ops.
+      review_at: 2026-09-16
 
   - V10-ASSET-ALLOCATION.yml:
       schedule: "Fri 17:30 ET + Mon-Thu 07:30 ET"
@@ -187,7 +190,7 @@ bespoke:
       reason: |
         Weekly Friday refit (17:30 ET) of the v10 allocator parameters
         + a regime-watch sanity check Mon-Thu morning. Separate from
-        v10-allocation-daily.yml (which is the daily evening rerun).
+        v10-allocation-daily.yml (which is the daily early-morning run).
         Two-workflow split kept because the weekly refit reads more
         history and takes longer; the daily run reuses the refit output.
       review_at: 2026-06-12

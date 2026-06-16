@@ -2118,7 +2118,7 @@
       "freshness_sla_hours": 1800,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[erp] (PENDING — currently placeholder in v11 modal)",
+      "output_destination": "public/indicator_history.json[erp]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2148,7 +2148,7 @@
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
+      "output_destination": "public/indicator_history.json[ig_oas]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2180,7 +2180,7 @@
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[fra_ois] (PENDING — needs paid source or proxy)",
+      "output_destination": "public/indicator_history.json[fra_ois]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2212,7 +2212,7 @@
       "freshness_sla_hours": 1800,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[real_fedfunds] (PENDING)",
+      "output_destination": "public/indicator_history.json[real_fedfunds]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2341,8 +2341,9 @@
       "tuned_in_pr": 416,
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
       "shipped_date": "2026-05-04",
-      "scheduled_fetch_time_et": "08:15",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence; morning publish ~08:15 ET (Massive panel-complete) + grace = 49h"
+      "scheduled_fetch_time_et": "03:00",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence; morning publish ~08:15 ET (Massive panel-complete) + grace = 49h",
+      "schedule_note": "Moved 2026-06-16 from 08:15 ET to ~03:00 ET so the sector sleeve publishes before the paper rebalancer's 04:00 ET submit window."
     },
     {
       "id": "site-methodology_changelog-static",

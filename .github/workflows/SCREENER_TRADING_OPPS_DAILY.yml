@@ -104,3 +104,26 @@ jobs:
                   -H "Prefer: count=exact" \
                   "$SUPABASE_URL/rest/v1/trading_opps_signals?select=ticker&limit=1" \
                   -I 2>&1 | grep -i content-range || true
+
+      - name: Stamp latest_scan freshness (after publish)
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Record this run's refresh time on the latest_scan freshness row.
+          # Without it, data_as_of advanced every night while last_good_at
+          # stayed frozen, so the chip's impossible-pair guard (data newer than
+          # its own refresh) forced the scanner chip red even though the scan
+          # was current (2026-06-16 red-chip incident). Non-fatal by design:
+          # upsert_pipeline_health.py only PATCHes the existing row and always
+          # exits 0.
+          SCAN_DATE=$(curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  "$SUPABASE_URL/rest/v1/trading_opps_signals?select=scan_date&order=scan_date.desc&limit=1" \
+                  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['scan_date'] if d else '')" 2>/dev/null)
+          if [ -n "$SCAN_DATE" ]; then
+            python3 scripts/upsert_pipeline_health.py latest_scan "$SCAN_DATE" green
+          else
+            echo "no scan_date resolved — skipping latest_scan stamp"
+          fi
