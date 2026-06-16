@@ -1,0 +1,42 @@
+name: ASSET-TILT-LIVE-DAILY
+# Live Asset Tilt positioning read — turns the validated calibration into today's
+# sector tilts + engine read. Consumed by the rebuilt Asset Tilt page.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "30 11 * * 1-5"   # 07:30 ET, after the morning macro feeds land
+concurrency:
+  group: asset-tilt-live
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pandas numpy requests -q
+      - name: Compute live Asset Tilt read
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PYTHONPATH: scripts
+        run: python3 scripts/compute_asset_tilt_live.py
+      - name: Commit if updated
+        run: |
+          if git diff --quiet -- public/asset_tilt_live.json; then
+            echo "No changes to commit."
+          else
+            git config user.name "Market Dashboard Bot"
+            git config user.email "bot@github-actions"
+            git add public/asset_tilt_live.json
+            git commit -m "Asset Tilt live positioning read [skip ci]"
+            for i in 1 2 3 4 5; do git pull --rebase --autostash origin main && git push && break || sleep 5; done
+          fi
