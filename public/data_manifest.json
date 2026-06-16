@@ -2877,39 +2877,6 @@
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
-      "id": "indicator-cmdty_uranium-weekly",
-      "category": "indicator",
-      "name": "cmdty_uranium",
-      "description": "Uranium spot (UX=F), ranked into its own 3-year range.",
-      "sourcing_mode": "STP from vendor",
-      "source_vendor": "Yahoo Finance",
-      "source_endpoint": "Yahoo chart API UX=F",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "weekly",
-      "scheduled_fetch_time_et": "16:45",
-      "refresh_trigger": "MARKET-INDICATORS-EOD",
-      "freshness_sla_hours": 504,
-      "output_destination": "public/indicator_history.json[cmdty_uranium]",
-      "producer_script": "scripts/fetch_market_indicators.py",
-      "consumer_surfaces": [
-        {
-          "tab": "overview",
-          "tile": "Commodities/FX bucket — indicator"
-        },
-        {
-          "tab": "indicators"
-        }
-      ],
-      "current_status": "live",
-      "release_calendar": "weekly-friday",
-      "failure_mode": "Falls back to last good close on Yahoo outage.",
-      "owner": "Data Steward",
-      "dependencies": [],
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "no single intraday cutoff"
-    },
-    {
       "id": "indicator-cmdty_oil-daily",
       "category": "indicator",
       "name": "cmdty_oil",
