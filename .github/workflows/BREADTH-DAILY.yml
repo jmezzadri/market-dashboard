@@ -78,40 +78,48 @@ jobs:
                           syms=[x for x in syms if 1<=len(x)<=6]
                           if len(syms)>=90: return syms
               raise RuntimeError("NDX membership unavailable from Invesco AND Wikipedia")
-          def breadth_counts(tickers, in_years=22, out_years=20):
-              arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers)+"]"
-              sql=f"""set statement_timeout='570s';
-              with recursive px as (
-                select ticker,trade_date,close::float8 close,row_number() over(partition by ticker order by trade_date) rn
-                from public.prices_eod where ticker = ANY({arr}) and trade_date>=current_date-interval '{in_years} years' and close is not null),
-              ema as (
-                select ticker,trade_date,close,rn,close e50,close e200 from px where rn=1
-                union all
-                select p.ticker,p.trade_date,p.close,p.rn, p.close*(2.0/51)+e.e50*(1-2.0/51), p.close*(2.0/201)+e.e200*(1-2.0/201)
-                from ema e join px p on p.ticker=e.ticker and p.rn=e.rn+1)
-              select to_char(trade_date,'YYYY-MM-DD') d,
-                sum((close>e50)::int) filter(where rn>=50) a50,
-                count(*) filter(where rn>=50) n50,
-                sum((close>e200)::int) filter(where rn>=200) a200,
-                count(*) filter(where rn>=200) n200
-              from ema where trade_date>=current_date-interval '{out_years} years'
-              group by trade_date order by trade_date"""
-              last=None
-              for _try in range(3):
-                  try: return mgmt(sql,t=110)
-                  except Exception as e:
-                      last=e; time.sleep(5)
-              raise last
-          def breadth(tickers, batch=30):
-              # 2026-06-16: process members in batches and aggregate raw counts so the
-              # recursive EMA never exceeds the query timeout at the deepened 20y window.
-              # Mathematically identical to one query: per-date % = sum(above)/sum(members).
-              agg={}
+          def pull_closes(tickers, in_years=22, batch=25):
+              # Fast INDEXED pull of (ticker, date, close); no recursive CTE. EMA is
+              # computed in Python below — the recursion's cost scales with history
+              # DEPTH and was timing out at 20y; this does not.
+              rows=[]
               for i in range(0,len(tickers),batch):
-                  for r in breadth_counts(tickers[i:i+batch]):
-                      cur=agg.setdefault(r['d'],[0,0,0,0])
-                      cur[0]+=int(r['a50'] or 0); cur[1]+=int(r['n50'] or 0)
-                      cur[2]+=int(r['a200'] or 0); cur[3]+=int(r['n200'] or 0)
+                  arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers[i:i+batch])+"]"
+                  sql=f"""set statement_timeout='100s';
+                  select ticker, to_char(trade_date,'YYYY-MM-DD') d, close::float8 c
+                  from public.prices_eod
+                  where ticker = ANY({arr}) and trade_date >= current_date - interval '{in_years} years' and close is not null
+                  order by ticker, trade_date"""
+                  for _try in range(3):
+                      try: rows += mgmt(sql,t=110); break
+                      except Exception as e:
+                          if _try==2: raise
+                          time.sleep(5)
+              return rows
+          def breadth(tickers, out_years=20):
+              # % of members above their own 50d/200d EMA, per date. EMA via pandas
+              # ewm(adjust=False) == the recursive seed-at-first-bar formula exactly
+              # (alpha 2/51, 2/201). A member counts only after 50 (resp 200) bars.
+              from collections import defaultdict
+              byt=defaultdict(list)
+              for r in pull_closes(tickers):
+                  byt[r['ticker']].append((r['d'], float(r['c'])))
+              cutoff=(pd.Timestamp.today()-pd.DateOffset(years=out_years)).strftime("%Y-%m-%d")
+              agg={}
+              for t,series in byt.items():
+                  series.sort()
+                  cl=pd.Series([c for _,c in series])
+                  e50=cl.ewm(span=50,adjust=False).mean().tolist()
+                  e200=cl.ewm(span=200,adjust=False).mean().tolist()
+                  for j,(d,c) in enumerate(series):
+                      if d < cutoff: continue
+                      cur=agg.setdefault(d,[0,0,0,0])
+                      if j>=49:
+                          cur[1]+=1
+                          if c>e50[j]: cur[0]+=1
+                      if j>=199:
+                          cur[3]+=1
+                          if c>e200[j]: cur[2]+=1
               return agg
           def stats(points,direction="lw",wy=3):
               s=pd.Series([p[1] for p in points],index=[pd.Timestamp(p[0]) for p in points]).sort_index()
