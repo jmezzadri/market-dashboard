@@ -4,19 +4,28 @@ name: v10-allocation-daily
 # (refreshed nightly by cycle-mechanisms-daily) and writes
 # public/v10_allocation.json with today's recommended allocation.
 #
-# Schedule: 22:45 UTC weekdays — 15 minutes after cycle-mechanisms-daily so the
-# input file is fresh.
+# Schedule: ~03:00 ET (07:00 & 07:30 UTC) Tue-Sat. Runs early morning — after
+# the cycle board is final the prior evening (18:30 ET) and BEFORE the paper
+# rebalancer's 04:00 ET submit window — so the sector sleeve (Asset Tilt) is
+# fresh when the rebalancer reads it. (Was 08:15 ET, which landed after the
+# rebalancer gave up — the 2026-06-16 stale-sector refusal.)
 
 on:
   schedule:
-    # 08:15 ET morning runs (Joe directive 2026-05-27). Aligned with
-    # Massive's next-morning panel-complete window so Asset Tilt and the
-    # Trading Ops scanner are both based on the same close. Was 22:45 UTC
-    # (18:45 ET same-day) which produced Asset Tilt on T-close data while
-    # Trading Ops fell back to T-1 — the two engines disagreed by a day.
-    # 12:15 UTC = 08:15 ET (EDT), 13:15 UTC = 08:15 ET (EST). Idempotent.
-    - cron: "15 12 * * 2-6"
-    - cron: "15 13 * * 2-6"
+    # EARLY-MORNING runs (moved 2026-06-16, supersedes the 08:15 ET design).
+    # The sector sleeve (Asset Tilt) MUST publish before the paper rebalancer's
+    # submit window opens at 04:00 ET (08:00 UTC). The prior 08:15 ET schedule
+    # landed AFTER the rebalancer had already given up, so the rebalancer read
+    # a stale sector signal and refused to trade (2026-06-16 incident). The
+    # allocator's only input is public/cycle_board_snapshot.json, final the
+    # prior evening at 18:30 ET, so it can run any time after that. We run at
+    # ~03:00 ET — in step with the Trading Ops scanner (both reflect the prior
+    # close) and before the rebalancer window. Still aligned on the same close;
+    # only the clock time moved earlier, so the allocation math is unchanged.
+    # Tue-Sat = the morning after each trading day. 07:00 UTC = 03:00 ET (EDT)
+    # / 02:00 ET (EST); 07:30 UTC is a redundant second fire. Idempotent.
+    - cron: "0 7 * * 2-6"
+    - cron: "30 7 * * 2-6"
   workflow_dispatch:
   # NOTE (2026-06-12): the workflow_run chain off cycle-mechanisms-daily was
   # REMOVED. It was a leftover from the retired same-evening design: it
