@@ -4,18 +4,28 @@ Implements ASSET_TILT_METHODOLOGY.md (v1):
   * 4 sleeves: macro-regime 45 / momentum 25 / relative-strength 20 / valuation 10
   * cross-sectional z-ranking -> dollar-neutral active tilts clipped [-4%, +6%]
   * weekly (Friday) rebalance, 5 bps/side cost
-  * macro-regime sleeve: per-sector point-in-time betas (expanding window,
-    re-estimated annually using only PAST data), sign-stability gate across
-    1996-2007 / 2008-2015 / 2016-2026 (keep beta only if sign-stable)
+  * macro-regime sleeve has TWO distinct beta uses (never conflated):
+      - BACKTEST betas: per-sector point-in-time, EXPANDING window, re-estimated
+        at most ANNUALLY (once per calendar year, using only data <= that Jan 1)
+        with a point-in-time sign-stability gate (split the available history
+        <= the estimation date into two halves; keep beta only if its sign
+        agrees across both halves, else 0). The most-recent annual estimate
+        <= each rebalance Friday is applied. NO future data sizes any tilt.
+      - CALIBRATION betas: full-sample sign-stable (deployed model parameters,
+        gated across disjoint sub-periods 1996-2007/2008-2015/2016-2026). These
+        are written to the calibration JSON; they do NOT drive the validation.
   * 2-axis engine: stress = MOVE-alone vs blend(MOVE,VIX,credit) chosen by
     forward-drawdown AUC; Risk-On/Watch/Risk-Off cut-points refit on 1996+;
-    rate-regime defensive sleeve (cash/gold/short-vs-long Treasuries)
+    rate-regime defensive sleeve (cash/gold/short-vs-long Treasuries).
+    The engine is independent of the macro betas above and is unchanged.
   * per-sleeve + per-factor AUC at 1/3/6/12m (0.55 gate); sleeve correlation
   * benchmarks: SPY and equal-weight sectors; tilted-sector AND full engine
 
 NO look-ahead: macro factors publication-lagged; z-scores trailing/expanding
-(past-only); betas use only data available at estimation; weekly weights use
-only data through that Friday and trade the next bar.
+(past-only); BACKTEST betas use ONLY data with index <= the annual estimation
+date (expanding, point-in-time sign gate); weekly weights use only data through
+that Friday and trade the next bar. The full-sample betas are a separate
+calibration artifact and are never used to compute the validation numbers.
 """
 import os, re, json, io, sys, time, math
 import urllib.request
@@ -52,7 +62,8 @@ def mgmt(sql, t=180):
     with urllib.request.urlopen(rq, timeout=t) as x:
         return json.loads(x.read().decode())
 
-def pull_prices(tickers, batch=12):
+def pull_prices_supabase(tickers, batch=12):
+    """Production path: adjusted EOD closes from public.prices_eod (Supabase)."""
     frames = []
     for i in range(0, len(tickers), batch):
         chunk = tickers[i:i+batch]
@@ -75,11 +86,57 @@ def pull_prices(tickers, batch=12):
     px.index = pd.to_datetime(px.index)
     return px.sort_index()
 
+def pull_prices_yf(tickers):
+    """Local-run path: yfinance adjusted daily closes (same split/div-adjusted
+    series prices_eod stores). Used when Supabase env is absent."""
+    import yfinance as yf
+    df = yf.download(list(tickers), start=START, auto_adjust=True,
+                     progress=False, threads=True)
+    if df is None or len(df)==0: return pd.DataFrame()
+    if isinstance(df.columns, pd.MultiIndex):
+        lvl0 = df.columns.get_level_values(0)
+        close = df["Close"] if "Close" in lvl0 else df.xs("Adj Close", axis=1, level=0)
+    else:
+        # single ticker -> flat columns
+        col = "Close" if "Close" in df.columns else df.columns[0]
+        close = df[[col]].rename(columns={col: tickers[0]})
+    close.index = pd.to_datetime(close.index)
+    keep = [c for c in close.columns if c in set(tickers)]
+    return close[keep].sort_index()
+
+def pull_prices(tickers, batch=12):
+    """Prefer prices_eod (Supabase) when configured; otherwise yfinance.
+    yfinance closes are split/dividend-adjusted, matching prices_eod."""
+    if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_ACCESS_TOKEN"):
+        print("  price source: prices_eod (Supabase)")
+        px = pull_prices_supabase(tickers, batch)
+        if not px.empty: return px
+        print("  Supabase returned no rows; falling back to yfinance")
+    print("  price source: yfinance (adjusted closes, == prices_eod)")
+    return pull_prices_yf(tickers)
+
+def _http_get(url, timeout=30, tries=4):
+    """Resilient GET. urllib/requests and default curl can hang on this host's
+    egress (IPv6/HTTP-2 negotiation stalls), so fetch via curl forced to IPv4
+    with retries. Returns response bytes. Pure transport — does not alter the
+    data source (same FRED public csv / macrotilt.com json)."""
+    import subprocess
+    last=None
+    for k in range(tries):
+        try:
+            p=subprocess.run(["curl","-s4","--http1.1","-m",str(timeout),
+                              "-A","curl/8","-L",url],
+                             capture_output=True)
+            if p.returncode==0 and p.stdout:
+                return p.stdout
+            last=f"rc={p.returncode} stderr={p.stderr.decode('utf-8','replace')[:80]}"
+        except Exception as e:
+            last=repr(e)[:120]
+        time.sleep(2+2*k)
+    raise RuntimeError(f"GET failed after {tries} tries: {url} :: {last}")
+
 def _fred(series_id):
-    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-    rq = urllib.request.Request(url, headers={"User-Agent":UA})
-    with urllib.request.urlopen(rq, timeout=60) as x:
-        raw = x.read().decode()
+    raw = _http_get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}", timeout=30).decode("utf-8","replace")
     df = pd.read_csv(io.StringIO(raw)); df.columns = ["date","v"]
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["v"] = pd.to_numeric(df["v"], errors="coerce")
@@ -87,9 +144,7 @@ def _fred(series_id):
 
 def _site_series(key):
     if not hasattr(_site_series, "_cache"):
-        rq = urllib.request.Request("https://macrotilt.com/indicator_history.json", headers={"User-Agent":UA})
-        with urllib.request.urlopen(rq, timeout=90) as x:
-            _site_series._cache = json.loads(x.read().decode())
+        _site_series._cache = json.loads(_http_get("https://macrotilt.com/indicator_history.json", timeout=60).decode("utf-8","replace"))
     d = _site_series._cache.get(key)
     if d is None: return pd.Series(dtype=float)
     pts = d.get("points", []) if isinstance(d, dict) else d
@@ -217,12 +272,83 @@ def sign_stability_gate(px_sectors, spy, factors, sectors, fwd_days=63):
             else: dropped+=1
     return gated, {"kept":kept,"dropped":dropped,"total":total,"sub_betas":sub_betas,"examples":examples}
 
+# --------------- point-in-time betas for the BACKTEST (no look-ahead) ---------------
+def _pit_gated_betas(fwd, fac_df, factors, sectors, asof_ts,
+                     fwd_days=63, min_obs=504, min_half=150):
+    """Betas estimated using ONLY information knowable at asof_ts (expanding
+    window), with a point-in-time sign-stability gate: split the available
+    (past) history into two equal halves and keep the beta only if its sign
+    agrees in BOTH halves; otherwise 0. Sectors/factors with too little accrued
+    history -> 0. The forward-excess label at date t embeds returns through
+    t+fwd_days, so a row is only usable once its forward window has completed;
+    we therefore require t + fwd_days business days <= asof_ts (no peeking past
+    the estimation date). Returns (gated_dict, n_kept)."""
+    out={}; kept=0
+    # latest label-date whose 63d forward window has fully completed by asof
+    label_cutoff = asof_ts - pd.tseries.offsets.BDay(fwd_days)
+    avail=pd.concat([fwd.add_suffix("__y"), fac_df], axis=1)
+    avail=avail[avail.index<=label_cutoff]
+    for s in sectors:
+        ycol=f"{s}__y"
+        if ycol not in avail.columns: continue
+        sec=avail[[ycol]+[f for f in factors if f in avail.columns]].dropna()
+        n=len(sec)
+        if n<min_obs: continue            # not enough accrued history yet
+        mid=n//2
+        h1=sec.iloc[:mid]; h2=sec.iloc[mid:]
+        y_full=sec[ycol].values
+        for f in factors:
+            if f not in sec.columns: continue
+            xf=sec[f].values
+            if np.std(xf)<1e-9: continue
+            b_full=np.cov(xf,y_full,ddof=0)[0,1]/np.var(xf)
+            # point-in-time sign gate across the two halves of PAST history
+            ok=True
+            for h in (h1,h2):
+                if len(h)<min_half: ok=False; break
+                xh=h[f].values; yh=h[ycol].values
+                if np.std(xh)<1e-9: ok=False; break
+                bh=np.cov(xh,yh,ddof=0)[0,1]/np.var(xh)
+                if abs(bh)<=1e-9 or np.sign(bh)!=np.sign(b_full): ok=False; break
+            if ok:
+                out.setdefault(s,{})[f]=float(b_full); kept+=1
+    return out, kept
+
+def pit_beta_panels(px_sectors, spy, factors, sectors, fwd_days=63):
+    """Build one gated beta panel per calendar year, each estimated on data
+    <= that year's Jan 1 (expanding, point-in-time sign gate). Returns a list
+    of (asof_timestamp, gated_betas, n_kept) sorted ascending by date. The
+    weekly builder picks the most-recent panel <= each rebalance Friday."""
+    fwd=forward_excess(px_sectors,spy,fwd_days)
+    fac_df=pd.DataFrame({k:v for k,v in factors.items()})
+    yr0=int(max(px_sectors.index.min().year, pd.Timestamp(START).year))
+    yr1=int(px_sectors.index.max().year)
+    panels=[]
+    for y in range(yr0, yr1+1):
+        asof=pd.Timestamp(f"{y}-01-01")
+        gated, kept = _pit_gated_betas(fwd, fac_df, factors, sectors, asof, fwd_days=fwd_days)
+        panels.append((asof, gated, kept))
+    return panels
+
+def select_panel(panels, fri):
+    """Most-recent annual panel with asof <= fri (None if none yet)."""
+    chosen=None
+    for asof, gated, kept in panels:
+        if asof<=fri: chosen=gated
+        else: break
+    return chosen if chosen is not None else {}
+
 # --------------------------- sleeve scoring (weekly, PIT) ---------------------------
 def zscore_xs(d):
     v=d.astype(float); mu=v.mean(); sd=v.std(ddof=0)
     return v*0.0 if (not np.isfinite(sd) or sd==0) else (v-mu)/sd
 
-def build_weekly(px_all, spy, factors, gated_betas, sectors):
+def build_weekly(px_all, spy, factors, beta_panels, sectors):
+    """Weekly dollar-neutral tilts. The macro sleeve uses POINT-IN-TIME betas:
+    at each Friday the most-recent annual beta panel with asof <= Friday is
+    applied (each panel estimated only on data knowable by its asof). All other
+    sleeves, z-scoring, weights, clipping and dollar-neutralisation are
+    unchanged from the prior (full-sample-beta) build."""
     px=px_all[sectors].copy()
     ret_12_1=px.shift(21)/px.shift(252)-1.0
     dist200=px/px.rolling(200).mean()-1.0
@@ -239,6 +365,7 @@ def build_weekly(px_all, spy, factors, gated_betas, sectors):
             sub=df[df.index<=fri]; return sub.iloc[-1] if len(sub) else None
         mo_a=asof(ret_12_1); mo_b=asof(dist200); rs_a=asof(rs3); rs_b=asof(rs6); fz=asof(fac_df)
         if mo_a is None or rs_a is None or fz is None: continue
+        gated_betas=select_panel(beta_panels, fri)   # point-in-time: most-recent annual panel <= fri
         macro_raw={}
         for s in sectors:
             bs=gated_betas.get(s,{}); val=0.0; any_f=False
@@ -384,7 +511,7 @@ def main():
     t0=time.time()
     print("="*70); print("ASSET TILT BACKTEST — calibration + validation"); print("="*70)
 
-    print("\n[1] Loading prices from prices_eod ...")
+    print("\n[1] Loading prices (prices_eod if Supabase configured, else yfinance adjusted) ...")
     universe=sorted(set(SECTOR_ETFS+DEFENSIVES+BENCH))
     px_all=pull_prices(universe)
     if px_all.empty: print("FATAL: no prices"); sys.exit(1)
@@ -399,7 +526,8 @@ def main():
     print("\n[2] Loading macro factors (FRED deep + stored, lagged, expanding-z) ...")
     factors=load_macro()
 
-    print("\n[3] Sign-stability gate on sector*factor betas (3 sub-periods) ...")
+    print("\n[3] CALIBRATION betas: full-sample sign-stability gate (3 sub-periods) ...")
+    print("    [deployed model parameters -> calibration JSON; NOT used for validation]")
     gated,report=sign_stability_gate(px_all,spy,factors,sectors)
     print(f"  betas kept (sign-stable): {report['kept']}/{report['total']}  dropped: {report['dropped']}")
     notable=[f"{s}:{f}={b:+.4f}" for s,f,b in sorted(report["examples"],key=lambda x:-abs(x[2]))[:14]]
@@ -408,8 +536,20 @@ def main():
         b=gated.get(s,{}).get(f)
         print(f"    prior-check {s}~{f}: {('%+.4f'%b) if b is not None else 'dropped (sign-unstable)'}")
 
-    print("\n[4] Building weekly dollar-neutral tilts (point-in-time) ...")
-    tilts=build_weekly(px_all,spy,factors,gated,sectors).dropna(how="all")
+    print("\n[3b] BACKTEST betas: point-in-time, expanding, annually re-estimated ...")
+    print("    [each panel uses only data <= its Jan-1 asof; PIT two-half sign gate]")
+    beta_panels=pit_beta_panels(px_all,spy,factors,sectors)
+    pit_kept_final=beta_panels[-1][2] if beta_panels else 0
+    pit_asof_final=beta_panels[-1][0] if beta_panels else None
+    n_total=len(sectors)*len(factors)
+    first_live=next(((a,k) for a,g,k in beta_panels if k>0), (None,0))
+    print(f"  annual panels built: {len(beta_panels)} ({beta_panels[0][0].date()}..{beta_panels[-1][0].date()})")
+    print(f"  betas first become non-zero at asof {first_live[0].date() if first_live[0] is not None else 'n/a'} (kept={first_live[1]})")
+    print(f"  most-recent PIT panel (asof {pit_asof_final.date()}): {pit_kept_final}/{n_total} betas survive the point-in-time sign gate")
+    print("  PIT survivor count by panel:", {str(a.year):k for a,g,k in beta_panels})
+
+    print("\n[4] Building weekly dollar-neutral tilts (point-in-time betas) ...")
+    tilts=build_weekly(px_all,spy,factors,beta_panels,sectors).dropna(how="all")
     print(f"  weekly tilt matrix: {tilts.shape[0]} Fridays {tilts.index.min().date()}->{tilts.index.max().date()}")
     print(f"  mean |tilt|: {tilts.abs().mean().mean():.4f}; max {tilts.max().max():+.4f} min {tilts.min().min():+.4f}")
 
@@ -485,31 +625,55 @@ def main():
     print(f"  [{'PASS' if g_ed else 'FAIL'}] engine maxDD <= SPY        ({ps_eng['maxdd']:.4f} vs {ps_spy['maxdd']:.4f})")
     print(f"  [{'PASS' if all(sleeves_pass.values()) else 'PARTIAL'}] sleeves clear AUC 0.55: {sleeves_pass}")
     print(f"  [{'PASS' if survived_2022 else ('FAIL' if survived_2022 is not None else 'N/A')}] defensive beat naive long-Treasury 2022")
-    print(f"  betas sign-stable: {report['kept']}/{report['total']}")
+    print(f"  calibration betas sign-stable (full-sample): {report['kept']}/{report['total']}")
+    print(f"  backtest betas surviving PIT sign gate (latest panel {pit_asof_final.date() if pit_asof_final is not None else 'n/a'}): {pit_kept_final}/{len(sectors)*len(factors)}")
 
     out={
       "_meta":{"generated_utc":datetime.utcnow().isoformat()+"Z","methodology":"ASSET_TILT_METHODOLOGY.md v1",
         "eval_window":{"start":str(idx.min().date()),"end":str(idx.max().date()),"days":len(idx)},
         "sectors":sectors,
-        "no_lookahead":"factors publication-lagged; expanding past-only z; weekly weights use only data<=Friday and trade next bar; betas sign-gated on disjoint sub-periods",
+        "backtest_betas":"point-in-time expanding, annually re-estimated",
+        "calibration_betas":"full-sample sign-stable",
+        "beta_usage":("Two distinct beta sets, never conflated. 'sector_macro_betas' below are the "
+            "FULL-SAMPLE sign-stable CALIBRATION betas (deployed model parameters). The 'validation' "
+            "numbers are produced by the BACKTEST, which uses POINT-IN-TIME betas: an expanding-window "
+            "panel re-estimated annually (each panel uses only data <= its Jan-1 asof, with a "
+            "point-in-time two-half sign gate), applied as the most-recent panel <= each rebalance "
+            "Friday. The full-sample betas are NOT used to compute the validation."),
+        "no_lookahead":("factors publication-lagged; expanding past-only z; BACKTEST betas use only data "
+            "knowable at the annual asof (forward-window completed; point-in-time sign gate); weekly "
+            "weights use only data<=Friday and trade the next bar"),
         "valuation_sleeve":"inactive in backtest (no historical forward-EY); weight redistributed pro-rata per spec",
         "cap_weight_reference":"fixed current SPY GICS weights (dollar-neutral baseline)",
-        "data_notes":"HY OAS vendor-capped on FRED (2023+); deep stress credit leg uses BAA10Y; VIX deep via FRED VIXCLS(1990+); dollar spliced DTWEXB->DTWEXBGS"},
+        "data_notes":"prices from yfinance adjusted closes (== prices_eod) on the local run, prices_eod in production; HY OAS vendor-capped on FRED (2023+); deep stress credit leg uses BAA10Y; VIX deep via FRED VIXCLS(1990+); dollar spliced DTWEXB->DTWEXBGS"},
       "sector_macro_betas":{s:{f:round(b,6) for f,b in gated.get(s,{}).items()} for s in sectors},
+      "sector_macro_betas_note":"FULL-SAMPLE sign-stable CALIBRATION betas (deployed). Backtest uses point-in-time betas; see backtest_beta_panels.",
+      "backtest_beta_panels":{
+        "method":"expanding window, re-estimated annually (asof = Jan 1 each year), point-in-time two-half sign gate",
+        "panels":[{"asof":str(a.date()),"betas_kept":int(k)} for a,g,k in beta_panels],
+        "most_recent_asof":str(pit_asof_final.date()) if pit_asof_final is not None else None,
+        "most_recent_kept":int(pit_kept_final),
+        "total_sector_factor_pairs":int(len(sectors)*len(factors)),
+        "first_nonzero_asof":(str(first_live[0].date()) if first_live[0] is not None else None)},
       "stress_signal":chosen,
       "stress_cutpoints":{"risk_on_max":round(cut["risk_on_max"],4),"watch_max":round(cut["watch_max"],4),"risk_on_pct":cut["risk_on_pct"],"watch_pct":cut["watch_pct"]},
       "stress_auc":auc_tab,
       "rate_regime_bands":{"inflationary_pct":70,"deflationary_pct":30,"composition":bands},
       "sleeve_weights":SLEEVE_W,"tilt_clip":{"min":TILT_MIN,"max":TILT_MAX},
-      "validation":{"tilted_gross":ps_gross,"tilted_net":ps_net,"engine_net":ps_eng,"spy":ps_spy,"equal_weight":ps_ew,
+      "validation":{"_betas_used":"point-in-time expanding (annually re-estimated); NOT full-sample",
+        "tilted_gross":ps_gross,"tilted_net":ps_net,"engine_net":ps_eng,"spy":ps_spy,"equal_weight":ps_ew,
         "weekly_turnover":round(turn,4),"cost_drag_annual":round(cost_drag,5),"avg_equity_pct":round(float(eqpct.reindex(idx).mean()),4),
         "defensive_2022_total":(round(defensive_2022_total,4) if np.isfinite(defensive_2022_total) else None),
         "naive_tlt_2022_total":(round(tlt_2022_total,4) if np.isfinite(tlt_2022_total) else None),
         "defensive_survived_2022":(bool(survived_2022) if survived_2022 is not None else None),
         "gates":{"tilted_sharpe_gt_spy":bool(g_ss),"tilted_sharpe_gt_ew":bool(g_se),"tilted_maxdd_le_spy":bool(g_dd),
-          "engine_sharpe_gt_spy":bool(g_es),"engine_maxdd_le_spy":bool(g_ed),"betas_sign_stable_kept":report["kept"],"betas_total":report["total"]}},
-      "per_sleeve_auc":sl_auc,"per_factor_auc":fac_auc,"sleeve_correlation":corr,
-      "beta_sign_stability":{"kept":report["kept"],"dropped":report["dropped"],"total":report["total"]},
+          "engine_sharpe_gt_spy":bool(g_es),"engine_maxdd_le_spy":bool(g_ed),
+          "calibration_betas_sign_stable_kept":report["kept"],"calibration_betas_total":report["total"],
+          "backtest_betas_pit_kept_latest":int(pit_kept_final)}},
+      "per_sleeve_auc":sl_auc,"per_sleeve_auc_note":"AUC computed on the full-sample deployed (calibration) betas — a diagnostic of the deployed model's factor loadings, not a tradable backtest.",
+      "per_factor_auc":fac_auc,"sleeve_correlation":corr,
+      "beta_sign_stability":{"calibration_full_sample":{"kept":report["kept"],"dropped":report["dropped"],"total":report["total"]},
+        "backtest_point_in_time_latest":{"kept":int(pit_kept_final),"total":int(len(sectors)*len(factors)),"asof":str(pit_asof_final.date()) if pit_asof_final is not None else None}},
     }
     os.makedirs("public",exist_ok=True)
     json.dump(out,open("public/asset_tilt_calibration.json","w"),indent=2,default=str)
