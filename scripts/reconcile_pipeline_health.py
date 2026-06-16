@@ -150,11 +150,11 @@ def load_ph():
            or os.environ.get("SUPABASE_ANON_KEY")
            or "sb_publishable__q_l32rEdPZlC4Bxs6dFnA__NqouiGk")
     base = url or "https://yqaqqzseepebrocgibcw.supabase.co"
-    ep = f"{base}/rest/v1/pipeline_health?select=indicator_id,status,last_check_at&limit=500"
+    ep = f"{base}/rest/v1/pipeline_health?select=indicator_id,status,last_check_at,last_good_at&limit=500"
     req = urllib.request.Request(ep, headers={"apikey": key, "Authorization": f"Bearer {key}"})
     return json.loads(urllib.request.urlopen(req, timeout=20).read().decode())
 
-def patch(indicator_id, status, asof):
+def patch(indicator_id, status, asof, cur_last_good=None):
     url = os.environ.get("SUPABASE_URL"); key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not (url and key): return False
     body = {"status": status, "last_check_at": NOW.isoformat()}
@@ -166,6 +166,19 @@ def patch(indicator_id, status, asof):
         body["data_as_of"] = f"{asof}T00:00:00+00:00"
     if status in ("green", "amber"):
         body["last_error"] = None
+        # Refresh-stamp repair (2026-06-16): some producers advance their data
+        # but never stamp last_good_at, so this reconciler keeps moving
+        # data_as_of forward while last_good_at stays frozen. The chip then
+        # reds a genuinely-fresh feed because its data looks newer than its own
+        # refresh (the "impossible pair" guard). When we have CONFIRMED the
+        # feed is fresh from its real source, and its recorded refresh time is
+        # missing or older than the data it produced, stamp the confirmation
+        # time so the refresh record is at least as recent as the verified
+        # data. Honest: good data was confirmed present now. Healthy rows whose
+        # producer already stamps a correct last_good_at are left untouched.
+        cur = parse_date(cur_last_good)
+        if asof is not None and (cur is None or cur < asof):
+            body["last_good_at"] = NOW.isoformat()
     ep = f"{url}/rest/v1/pipeline_health?indicator_id=eq.{urllib.parse.quote(indicator_id)}"
     req = urllib.request.Request(ep, data=json.dumps(body).encode(), method="PATCH",
         headers={"apikey": key, "Authorization": f"Bearer {key}",
@@ -189,7 +202,7 @@ def main():
         tally[status] += 1
         print(f"  {status:9} {iid:28} {detail}")
         if commit:
-            if patch(iid, status, asof): wrote += 1
+            if patch(iid, status, asof, r.get("last_good_at")): wrote += 1
     # Half-retirement detector (Joe 2026-06-11, after the third zombie feed in
     # one night): every tracking row MUST have a registry entry. An orphan row
     # is the signature of a half-retired feed (producer or row outlived the
