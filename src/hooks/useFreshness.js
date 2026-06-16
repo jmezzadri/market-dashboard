@@ -222,13 +222,20 @@ function statusForElement(elementId, fallback) {
   // red within one extra business-day cadence — and lagged-feed false-red — a
   // six-week-old monthly series stays green while its daily reader job pulls.
   // Replaces the old two-clock design (session-frontier + data-age SLA).
-  const lastRefreshedAt =
+  // Last Pull = the job's own real last successful run time (per element).
+  // Prefer pipeline_health.last_good_at — an honest wall-clock run stamp since
+  // the 2026-06-11 honest-stamp fix — and fall back to the indicator file's
+  // build time only for a file-backed element that has no row stamp yet. We
+  // DISPLAY the same value we grade on, so a per-element pull (e.g. the 4:45 PM
+  // commodity job) never shows the earlier shared indicator-file build time and
+  // read as an impossible "data newer than its last pull" pair.
+  const lastPullIso =
+    lastGoodAt ||
     (String(manifestEl?.output_destination || "").includes("indicator_history.json")
       ? cachedGeneratedAt
-      : null) || lastGoodAt;
-
-  // Last Pull = the job's real last successful run time; this is what we grade.
-  const lastPullIso = lastGoodAt || lastRefreshedAt || null;
+      : null) ||
+    null;
+  const lastRefreshedAt = lastPullIso;
 
   // Grade against the JOB's run calendar so weekend/holiday hours are not
   // counted (no Monday false-reds on weekday-only jobs). Every chip element
