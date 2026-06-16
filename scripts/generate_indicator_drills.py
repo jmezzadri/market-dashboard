@@ -42,9 +42,9 @@ OUT_PATH = REPO_ROOT / "public" / "indicator_drills_generated.json"
 # Targets — indicators that already have a hand-written DRILLS entry.
 # Skip these; they win against the generated entries at runtime.
 COVERED_BY_HAND = {
-    "anfci", "bkx_spx", "buffett", "cape", "cdx_basis", "cfnai",
+    "anfci", "bkx_spx", "cape", "cdx_basis", "cfnai",
     "cpff", "erp", "fed_bs", "fra_ois", "hy_ig", "hy_oas", "ig_oas", "ism",
-    "jobless", "m2_yoy", "margin_debt", "put_call", "real_fedfunds",
+    "jobless", "m2_yoy", "margin_debt", "real_fedfunds",
     "sofr_ois", "term_premium", "xccy_basis",
     # Aliases — runtime falls back to these for renamed-but-same indicator.
     "cfnai_3ma", "hy_ig_ratio", "ism_mfg", "ism_svc",
@@ -59,7 +59,6 @@ INDICATOR_META = {
     "breakeven_10y": {"name": "10y breakeven inflation", "axis": "%", "freq": "Daily"},
     "bank_reserves": {"name": "Bank reserves at Fed", "axis": "$T", "freq": "Weekly"},
     "bank_credit":   {"name": "Bank credit (total)", "axis": "$B", "freq": "Weekly"},
-    "bank_unreal":   {"name": "Bank unrealized losses (HTM)", "axis": "$B", "freq": "Quarterly"},
     "stlfsi":        {"name": "St. Louis financial conditions", "axis": "index", "freq": "Weekly"},
     "rrp":           {"name": "Fed reverse repo balance", "axis": "$B", "freq": "Daily"},
     "tga":           {"name": "Treasury General Account", "axis": "$B", "freq": "Daily"},

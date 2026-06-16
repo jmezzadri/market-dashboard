@@ -1161,21 +1161,7 @@ def fetch_all():
     # showing hardcoded mock values in public/MacroTilt_Macro_Overview_Page_v11.html.
     # Each pulls from a free public source per G16 in data_manifest.json. ─────────────────────
     
-    print("Buffett Indicator (buffett, NCBCEL / GDP) — methodology-v11.md ...")
-    # Per methodology-v11.md: nonfinancial corporate equity market cap as a percentage of GDP.
-    # IMPORTANT — unit fix 2026-05-09 (bug surfaced by Phase 2D backtest harness):
-    # FRED NCBCEL is reported in MILLIONS of $; FRED GDP is reported in BILLIONS of $.
-    # The previous formula assumed both were in $bn and produced values 1000× too high
-    # (e.g. Q4 2018 stored as 133,514 instead of the correct ~133.5% of GDP). Convert
-    # NCBCEL to $bn first by dividing by 1000, then take the ratio. Matches the
-    # canonical formula in compute_v11_sprint1_calibration.py line 687.
-    ncbcel = safe_fred("NCBCEL")  # Millions of U.S. Dollars
-    gdp = safe_fred("GDP")          # Billions of U.S. Dollars
-    if ncbcel is not None and gdp is not None:
-        df = pd.concat([ncbcel.rename("e"), gdp.rename("g")], axis=1).ffill().dropna()
-        ratio = (df["e"] / 1000.0 / df["g"]) * 100.0  # NCBCEL ($M → $B) / GDP ($B) × 100
-        result["buffett"] = {"freq": "Q", "unit": "%",
-                              "points": series_to_points(ratio, round_dp=1)}
+    # Buffett Indicator removed 2026-06-15 (killed feed; not displayed, not consumed).
 
     print("Investment-Grade OAS (ig_oas) — ICE BofA US Corporate Index OAS ...")
     # BAMLC0A0CM (the canonical ICE BofA US Corporate Index OAS) IS available

@@ -21,10 +21,10 @@ const NAV = [
   { to: '/scenarios', label: 'Scenario analysis', icon: 'scenarios' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },
   { to: '/methodology', label: 'Methodology', icon: 'methodology' },
+  { to: '/admin/data', label: 'Data', icon: 'admin' },
 ];
 
 const ADMIN = [
-  { to: '/admin/data', label: 'Admin · Data', icon: 'admin' },
   { to: '/admin/bugs', label: 'Admin · Bugs', icon: 'bugs' },
 ];
 
