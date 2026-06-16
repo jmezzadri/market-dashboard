@@ -483,7 +483,7 @@ function Tile({ tile, role, selected, lit, dim, status, onClick }) {
       className={cls}
       onClick={(e) => { e.stopPropagation(); onClick(tile.id); }}
       data-id={tile.id}
-      title={`${tile.name} — ${tile.cd}. Click to trace its full upstream and downstream chain.`}
+      data-tip={`${tile.name} — ${tile.cd}. Click to trace its chain.`}
     >
       <span className={dotCls} aria-hidden />
       <span className="df-tile-name">{tile.name}</span>
@@ -906,6 +906,12 @@ export default function DataFlowPage() {
           transition: opacity 0.18s var(--mt-ease), background 0.15s var(--mt-ease), border-color 0.15s var(--mt-ease), transform 0.12s var(--mt-ease); }
         .df-tile:focus-visible { outline: 2px solid var(--mt-accent); outline-offset: 2px; }
         .df-tile:hover { background: var(--mt-accent-soft); transform: translateY(-1px); }
+        .df-tile[data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%;
+          bottom: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 240px;
+          background: var(--mt-surface); color: var(--mt-ink-0); border: 1px solid var(--mt-line-1);
+          border-radius: 8px; padding: 6px 9px; font-size: 11px; font-weight: 400; line-height: 1.4;
+          white-space: normal; box-shadow: 0 12px 32px rgba(0,0,0,.18); z-index: 100000; pointer-events: none; }
+        /* instant — no transition/delay on the tooltip itself */
         .df-tile--manual { border-left-color: var(--mt-warn); }
         .df-tile--derived { border-left-color: var(--mt-ink-3); }
         .df-tile--engine { border-left-color: var(--mt-accent); background: var(--mt-surface-2); }
