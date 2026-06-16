@@ -2175,7 +2175,7 @@
       "freshness_sla_hours": 1800,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[erp] (PENDING — currently placeholder in v11 modal)",
+      "output_destination": "public/indicator_history.json[erp]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2205,7 +2205,7 @@
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
+      "output_destination": "public/indicator_history.json[ig_oas]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2237,7 +2237,7 @@
       "freshness_sla_hours": 73,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[fra_ois] (PENDING — needs paid source or proxy)",
+      "output_destination": "public/indicator_history.json[fra_ois]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
@@ -2269,7 +2269,7 @@
       "freshness_sla_hours": 1800,
       "release_calendar": "us-business-day",
       "dependencies": [],
-      "output_destination": "public/indicator_history.json[real_fedfunds] (PENDING)",
+      "output_destination": "public/indicator_history.json[real_fedfunds]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
