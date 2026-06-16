@@ -3,7 +3,7 @@
    ----------------------------------------------------------------------------
    Single source of truth for every palette, surface, type, radius, shadow,
    and motion token. NO competing palette systems. NO data-mt-theme. NO
-   src/v2/styles/tokens.css. NO inline .scenarios-page block.
+   src/v2/styles/tokens.css.
 
    Two typefaces visible on the page:
      • Fraunces (serif, weight 300–500) — page H1 + hero numbers ONLY

@@ -1051,63 +1051,6 @@
       "as_of_cutoff_note": "observation period figure"
     },
     {
-      "id": "scenario-scenario_allocations-weekly",
-      "category": "scenario",
-      "name": "scenarios",
-      "description": "Pre-computed v9 allocations under 8 historical CCAR-anchored stress scenarios.",
-      "sourcing_mode": "computed",
-      "source_vendor": "n/a",
-      "source_endpoint": "scripts/precompute_scenario_allocations.py",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "weekly",
-      "scheduled_fetch_time_et": "Saturday morning (weekly normalization slot)",
-      "refresh_trigger": "SCENARIO-PRECOMPUTE-WEEKLY",
-      "freshness_sla_hours": 192,
-      "output_destination": "public/scenario_allocations.json",
-      "producer_script": "scripts/precompute_scenario_allocations.py via SCENARIO-PRECOMPUTE-WEEKLY workflow",
-      "consumer_surfaces": [
-        "Scenarios tab L4 panel (src/pages/ScenarioAnalysis.jsx, fetched via /scenario_allocations.json)"
-      ],
-      "current_status": "live (Sprint 2 Scenario Engine reads /scenario_allocations.json on Scenarios tab; regenerated weekly by SCENARIO-PRECOMPUTE-WEEKLY)",
-      "failure_mode": "ScenarioAnalysis.jsx is built but not imported or routed; produced data has no consumer. Phase 2: mount the page or kill the producer.",
-      "owner": "Senior Quant + Lead Dev — Phase 2 review",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [
-        "scenario-calibration-quarterly",
-        "scenario-v9_allocation-weekly"
-      ],
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
-    },
-    {
-      "id": "scenario-calibration-quarterly",
-      "category": "scenario",
-      "name": "scenario_calibration_bundle",
-      "description": "CCAR factor panel calibration: factor_panel_calibrated, factor_covariance, scenario_anchors, coherence_validation.",
-      "sourcing_mode": "computed",
-      "source_vendor": "FRED",
-      "source_endpoint": "scripts/calibrate_scenario_panel.py + asset_allocation/ccar_translation.py",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "quarterly",
-      "scheduled_fetch_time_et": "15th of Jan/Apr/Jul/Oct, 07:00–08:00",
-      "refresh_trigger": "PHASE1-CALIBRATION (DRAFT — uncommitted YAML in workspace folder)",
-      "freshness_sla_hours": 3600,
-      "output_destination": "public/scenario_calibration/*.json (4 files)",
-      "producer_script": "scripts/calibrate_scenario_panel.py",
-      "consumer_surfaces": [
-        {
-          "page": "pages/ScenarioAnalysis.jsx — UNMOUNTED"
-        }
-      ],
-      "current_status": "live-no-cron + unused-consumer",
-      "failure_mode": "DOUBLE GAP: PHASE1-CALIBRATION.yml not in .github/workflows/ (only in workspace folder); ScenarioAnalysis.jsx not mounted.",
-      "owner": "Senior Quant + Lead Dev — Phase 2 review",
-      "release_calendar": "us-business-day",
-      "dependencies": []
-    },
-    {
       "id": "market-universe_master-daily",
       "category": "market",
       "name": "massive-universe",
@@ -2403,36 +2346,6 @@
       "schedule_note": "Moved 2026-06-16 from 08:15 ET to ~03:00 ET so the sector sleeve publishes before the paper rebalancer's 04:00 ET submit window."
     },
     {
-      "id": "scenario-scenario_definitions-static",
-      "category": "scenario",
-      "name": "scenario_definitions",
-      "description": "Canonical list of the 8 historical shock scenarios (Black Monday '87 through AI Correction '24) — id, name, peak window, peak drawdown, regime call, and one-line blurb. Stable academic references; the Scenarios page reads this list to render the picker and per-scenario header.",
-      "sourcing_mode": "curated",
-      "source_vendor": "n/a (curated by Data Steward + Senior Quant)",
-      "source_endpoint": "public/scenario_definitions.json",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "static",
-      "scheduled_fetch_time_et": "n/a (hand-maintained)",
-      "refresh_trigger": "Manual PR by Data Steward when a new scenario is added",
-      "freshness_sla_hours": 26280,
-      "output_destination": "public/scenario_definitions.json",
-      "producer_script": "n/a (hand-maintained JSON)",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Scenario picker + per-scenario header card + blurb"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Static file; if missing, Scenarios page shows an em-dash scenario picker and a red FreshnessChip on the picker.",
-      "owner": "Data Steward (curation), Senior Quant (regime calls)",
-      "release_calendar": "wall-clock",
-      "dependencies": [],
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
-    },
-    {
       "id": "site-methodology_changelog-static",
       "category": "ops",
       "name": "methodology_changelog",
@@ -3269,34 +3182,6 @@
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
-      "id": "portfolio-scenario-impact",
-      "category": "portfolio",
-      "name": "portfolio-scenario-impact",
-      "description": "Position-level scenario P&L computed live from your holdings when you run a scenario.",
-      "sourcing_mode": "computed in-house",
-      "source_vendor": "Your portfolio",
-      "source_endpoint": "Client-side, from your saved positions",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "on-demand",
-      "scheduled_fetch_time_et": "When you run a scenario",
-      "refresh_trigger": "User opens or changes a scenario",
-      "freshness_sla_hours": null,
-      "output_destination": "Scenario Analysis -> Your portfolio impact panel + Your portfolio row",
-      "producer_script": "src/overhaul/lib/portfolioScenario.js (client)",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Your portfolio impact panel + Your portfolio row"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Shows 'add holdings' if no positions; 'sign in' if logged out.",
-      "owner": "Lead Dev + Senior Quant",
-      "release_calendar": "wall-clock",
-      "dependencies": []
-    },
-    {
       "id": "indicator-cmdty_brent-daily",
       "category": "indicator",
       "name": "cmdty_brent",
@@ -3479,37 +3364,6 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "observation period figure"
-    },
-    {
-      "id": "portfolio-ticker_betas-daily",
-      "category": "portfolio",
-      "name": "ticker-betas",
-      "description": "Per-name beta for held + watchlisted tickers; beta-adjusts equity scenario shocks.",
-      "sourcing_mode": "stp+computed",
-      "source_vendor": "Yahoo Finance (computed fallback from prices_eod)",
-      "source_endpoint": "yfinance .info beta; fallback regress vs SPY",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "06:00",
-      "refresh_trigger": "github-actions: TICKER-BETAS-DAILY.yml",
-      "freshness_sla_hours": 49,
-      "output_destination": "public/ticker_betas.json",
-      "producer_script": "scripts/fetch_ticker_betas.py",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Your portfolio impact - beta-adjusted position shocks"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Missing names fall back to sector move / 1.6 default.",
-      "owner": "Senior Quant + Data Steward",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [],
-      "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
       "id": "market-spx_index-daily",
@@ -3826,35 +3680,6 @@
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     {
-      "id": "scenario-scenario_stress-weekly",
-      "name": "scenario_stress",
-      "category": "scenario",
-      "description": "Stress-scenario engine output snapshot powering the Scenario analysis page.",
-      "sourcing_mode": "computed in-house",
-      "source_vendor": "MacroTilt engine",
-      "source_endpoint": "served scenario_stress.json",
-      "license_tier": "n/a (in-house)",
-      "monthly_cost_usd": 0,
-      "cadence": "weekly",
-      "scheduled_fetch_time_et": "Sat 07:00",
-      "refresh_trigger": "weekly scenario workflow",
-      "release_calendar": "us-business-day",
-      "freshness_sla_hours": 200,
-      "as_of_cutoff_et": null,
-      "as_of_cutoff_note": null,
-      "output_destination": "public/scenario_stress.json",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios"
-        }
-      ],
-      "dependencies": [],
-      "failure_mode": "chip ambers/reds by SLA",
-      "owner": "Data Steward",
-      "producer_script": "scenario stress producer",
-      "current_status": "live"
-    },
-    {
       "id": "market-sector_perf-daily",
       "name": "sector_perf",
       "category": "market",
@@ -3998,11 +3823,10 @@
     "G5. trigger-workflow edge function allowlist hardcoded to SCAN/INDICATOR-REFRESH/UNIVERSE_SNAPSHOT — does NOT include MASSIVE-DAILY.yml that mig 034 cron tries to dispatch. Either function source has been hot-patched in deployment or pg_cron job 034 will silently no-op. Verify.",
     "G6. generate-commentary cron source unknown. Source comment says 23:00 ET but no cron.schedule() in committed migrations. Either Supabase Studio direct entry, Cowork task, or unwired. Phase 2 confirm.",
     "G7. sector_commentary writes null with reason='sector_rank_history_not_wired'. The downstream table never got created. Sector Outlook blurb shows nothing. Phase 2: either wire sector_rank_history or remove the tile.",
-    "G8. ScenarioAnalysis.jsx + scenario_allocations.json + scenario_calibration/*.json are a fully-built unmounted feature tree. Either ship the page or kill the producer chain.",
     "G9. portfolio_history pg_cron writes daily NAV per account but no UI consumes the data. Either ship Portfolio Insights time-series view or pause the cron.",
     "G10. ZeroHedge Premium $300/yr is being charged with stub code returning []. RED kill candidate (Phase 5).",
     "G11. All workflows fail silently — no `if: failure()` step, no Slack/email/PagerDuty wire-in. Per project memory, failure-alert was claimed shipped 2026-04-28 but verification needed.",
-    "G12. Daily intraday clock-sequenced chain (15:30 SCAN → 15:45 UNIVERSE → 15:50 EVENTS) has no `needs:` or workflow_run dependency — relies on 15-minute clock buffer. Saturday weekly chain (12:00 V9 → 13:30 SCENARIO) has 90-minute buffer. Phase 3 normalize: either explicit dependency or single window.",
+    "G12. Daily intraday clock-sequenced chain (15:30 SCAN → 15:45 UNIVERSE → 15:50 EVENTS) has no `needs:` or workflow_run dependency — relies on 15-minute clock buffer. Phase 3 normalize: either explicit dependency or single window.",
     "G13. Two `LESSONS.md` references in project_instructions, but file does not exist in the repo. The corrections live only in Joe's auto-memory. Phase 2: create LESSONS.md and migrate auto-memory rules into it (binding, in-repo).",
     "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements — Phase 5 follow-up.",
     "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) — kept as placeholders pending vendor decision.",
@@ -4046,11 +3870,6 @@
       "artifact": "src/pages/TodayMacro.jsx.new + .fromfresh",
       "consumer": "Not modules (extension is .new/.fromfresh)",
       "verdict": "Dead drafts; delete"
-    },
-    {
-      "artifact": "src/pages/ScenarioAnalysis.jsx",
-      "consumer": "Built but not mounted anywhere",
-      "verdict": "Either wire it up (route+TAB_IDS) or kill it; same applies to scenario_allocations.json + scenario_calibration/*"
     },
     {
       "artifact": "src/components/HistoricalChart.jsx + src/hooks/useStockRiskMetrics.js + src/hooks/useRiskMetricsBatch.js",

@@ -9,7 +9,6 @@ const PATHS = {
   tilt: 'M4 4 V20 H20 M4 14 L9 8 L13 11 L20 6',
   scanner: 'M11 18 A7 7 0 1 1 11 4 A7 7 0 0 1 11 18 M16 16 L21 21',
   portfolio: 'M3 12 A9 9 0 1 1 12 21 V12 Z M12 3 A9 9 0 0 1 21 12 H12 Z',
-  scenarios: 'M4 20 L4 4 H20 V20 Z M4 14 L9 9 L13 13 L20 6',
   indicators: 'M4 6 H20 M4 12 H20 M4 18 H20',
   methodology: 'M5 4 H17 L19 6 V20 H5 Z M8 9 H14 M8 13 H14 M8 17 H12',
   admin: 'M12 4 L20 8 V12 C20 17 16 20 12 21 C8 20 4 17 4 12 V8 Z',

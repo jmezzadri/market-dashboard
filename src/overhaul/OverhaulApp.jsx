@@ -57,7 +57,6 @@ import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
 import TiltPage from './pages/TiltPage';
 import ScannerPage from './pages/ScannerPage';
-import ScenariosPage from './pages/ScenariosPage';
 import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
@@ -157,7 +156,6 @@ function Shell() {
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
-            <Route path="/scenarios" element={<ScenariosPage />} />
             <Route path="/indicators" element={<IndicatorsPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />

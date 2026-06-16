@@ -58,7 +58,6 @@ USER_FACING_JSON = [
     ROOT / "public" / "cycle_board_snapshot.json",
     ROOT / "public" / "v10_allocation.json",
     ROOT / "public" / "v9_allocation.json",
-    ROOT / "public" / "scenario_allocations.json",
 ]
 
 V2_PAGE_FILES = (

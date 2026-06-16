@@ -49,7 +49,6 @@ slots:
       history backfills, weekly back-tests, cookie-health canaries).
     pipelines:
       - V9-ALLOCATION-WEEKLY.yml: scenario.v9-allocation-legacy
-      - SCENARIO-PRECOMPUTE-WEEKLY.yml: scenario.allocations-precompute
       - CYCLE-V2-HISTORY-WEEKLY.yml: indicator.cycle-v2-history
       - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY.yml: commentary.zerohedge-premium
 
@@ -60,14 +59,6 @@ slots:
     pipelines:
       - REFRESH-CONGRESS-ROSTER.yml: scanner.congress-roster
 
-  quarterly_first_biz_day:
-    description: |
-      Quarterly calibration window — 15th of Jan / Apr / Jul / Oct at
-      08:00 ET. Tied to Federal Reserve CCAR public-release cadence,
-      not a generic first-biz-day-of-quarter slot, so it lives at the
-      15th rather than the 1st of the quarter month.
-    pipelines:
-      - PHASE1-CALIBRATION.yml: scenario.ccar-calibration
 
 # Pipelines deliberately NOT on a normalized slot, with reason.
 # Per Data Steward rule, every bespoke schedule needs a written justification
@@ -214,15 +205,6 @@ bespoke:
         chain wraps.
       review_at: 2026-06-12
 
-  - scenario-stress-daily.yml:
-      schedule: "19:00 ET weekdays"
-      manifest_element: scenario.stress-daily
-      reason: |
-        Depends on cycle-mechanisms-daily (18:30) + CYCLE-V2-DAILY (18:30)
-        for the mechanism scores it stresses. 19:00 ET is the earliest
-        all upstream inputs are guaranteed ready.
-      review_at: 2026-06-12
-
   - REFRESH-ISM-MONTHLY.yml:
       schedule: "5th of month + Mondays weeks 1-2, 10:00 ET"
       manifest_element: indicator.ism-mfg + indicator.ism-svc
@@ -250,7 +232,7 @@ bespoke:
       reason: |
         Earnings season pre-market refresh — Sunday lands the new week's
         earnings calendar before Monday open. Saturday is reserved for
-        the weekly compute slot (V9 / scenario precompute / cycle v2
+        the weekly compute slot (V9 / cycle v2
         history); Sunday is the next-best fixed window.
       review_at: 2026-06-12
 

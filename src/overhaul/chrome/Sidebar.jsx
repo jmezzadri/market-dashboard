@@ -17,7 +17,6 @@ const NAV = [
   { to: '/tilt', label: 'Asset Tilt', icon: 'tilt' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
   { to: '/paper', label: 'Paper Portfolio', icon: 'portfolio' },
-  { to: '/scenarios', label: 'Scenario analysis', icon: 'scenarios' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },
   { to: '/methodology', label: 'Methodology', icon: 'methodology' },
   { to: '/admin/data', label: 'Data', icon: 'admin' },

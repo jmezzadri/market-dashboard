@@ -179,7 +179,7 @@ export default function PageHeader() {
         <span><b>{today.split(', ')[0]}</b>, {today.split(', ').slice(1).join(', ')}</span>
       </div>
       {/* Header search removed 2026-05-27 — the prior static
-          "Search tickers, indicators, scenarios…" pill was unwired chrome
+          "Search tickers, indicators…" pill was unwired chrome
           ported from the prototype. If a real command palette is ever
           built, mount it here. */}
       <div className="mt-headstatus">

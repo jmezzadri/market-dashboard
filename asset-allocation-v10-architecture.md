@@ -683,7 +683,7 @@ ships to a staging environment for validation, then lands.
 
 ## 12. What's NOT in v10 (parked)
 
-Same as v9 — scenario panel (interactive sliders), historical playback,
+Same as v9 — historical playback,
 style-factor overlay, international equities, leverage > 1.5x.
 
 ---

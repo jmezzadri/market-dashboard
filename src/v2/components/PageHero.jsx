@@ -11,7 +11,7 @@
 //     via .mt-page-title em — italic + --accent + same weight).
 //
 // Right slot is optional — each page keeps its bespoke summary widget
-// (regime card, key stats, funnel, scenario picker, etc.) on the right.
+// (regime card, key stats, funnel, etc.) on the right.
 // The LEFT column is pixel-identical across every page on purpose.
 //
 // CSS lives in src/v2/components/PageHero.css (imported here) so the

@@ -307,11 +307,7 @@ async function handle(req: Request): Promise<Response> {
     } else if (
       row.indicator_id === "cycle_board" ||
       row.indicator_id === "sector_perf" ||
-      row.indicator_id === "scenario_stress" ||
-      row.indicator_id === "scenarios" ||
       row.indicator_id === "v10_allocation" ||
-      row.indicator_id === "ticker-betas" ||
-      row.indicator_id === "scenario_calibration_bundle" ||
       row.indicator_id === "indicator_history" ||
       row.indicator_id === "cftc-cot"
     ) {
@@ -322,11 +318,7 @@ async function handle(req: Request): Promise<Response> {
       const FILE_MAP: Record<string, { path: string; field: string }> = {
         cycle_board:        { path: "/cycle_board_snapshot.json", field: "as_of" },
         sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
-        scenario_stress:    { path: "/scenario_stress.json",      field: "as_of" },
-        scenarios:          { path: "/scenario_allocations.json", field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
-        "ticker-betas":     { path: "/ticker_betas.json",         field: "as_of" },
-        scenario_calibration_bundle: { path: "/scenario_calibration/scenario_anchors.json", field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
       };

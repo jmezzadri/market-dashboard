@@ -32,7 +32,7 @@ import { InfoTip } from '../../InfoTip';
 const STARTING_CAPITAL = 1_000_000;       // $1M paper, locked
 
 // Risk-on / risk-off palette (fallbacks because the global tokens aren't
-// defined outside .scenarios-page).
+// defined at the page scope).
 const UP_COLOR   = 'var(--up, #1f8a5a)';
 const DOWN_COLOR = 'var(--down, #b62121)';
 const WARN_COLOR = 'var(--warn, #b87000)';

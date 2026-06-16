@@ -165,10 +165,6 @@
   .mt-overhaul .pf-acctkv,
   .mt-overhaul .pf-acctdrillgrid { grid-template-columns: 1fr !important; }
 
-  /* Scenarios */
-  .mt-overhaul .sn-scengrid,
-  .mt-overhaul .sn-splitcard,
-  .mt-overhaul .sn-headstats,
   .mt-overhaul .al-summarygrid { grid-template-columns: 1fr !important; }
 
   /* Let the cells of every collapsed strip shrink to the column (grid/flex
@@ -182,7 +178,6 @@
   .mt-overhaul .pf-keygrid > *,
   .mt-overhaul .pf-acctgrid > *,
   .mt-overhaul .pf-acctkv > *,
-  .mt-overhaul .sn-headstats > *,
   .mt-overhaul .al-summarygrid > * { min-width: 0 !important; }
 
   /* Ticker detail */

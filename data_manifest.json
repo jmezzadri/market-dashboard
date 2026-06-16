@@ -193,7 +193,6 @@
       "freshness_sla_hours": 1200,
       "consumer_surfaces": [
         "Macro Overview → Real Economy headline",
-        "Scenario Analysis → Cycle Mechanism Results",
         "All Indicators → Real Economy sub-composite",
         "Home → Macro tile (regime classifier input)"
       ],
@@ -214,7 +213,6 @@
       "freshness_sla_hours": 1200,
       "consumer_surfaces": [
         "Macro Overview → Real Economy headline",
-        "Scenario Analysis → Cycle Mechanism Results",
         "All Indicators → Real Economy sub-composite",
         "Home → Macro tile (regime classifier input)"
       ],
@@ -276,7 +274,6 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card (3 headlines)",
         "Macro Overview → hero composite + Cycle & Value gauge",
-        "Scenario Analysis → headline view",
         "All Indicators → headline registry"
       ],
       "target_storage": "public/cycle_v2.json",
@@ -297,7 +294,6 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card",
         "Macro Overview → Market Stress gauge",
-        "Scenario Analysis",
         "All Indicators"
       ],
       "target_storage": "public/cycle_v2.json",
@@ -318,7 +314,6 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card",
         "Macro Overview → Real Economy gauge",
-        "Scenario Analysis",
         "All Indicators"
       ],
       "target_storage": "public/cycle_v2.json",
@@ -340,7 +335,6 @@
       "consumer_surfaces": [
         "Home macro tile",
         "Macro Overview",
-        "Scenario Analysis",
         "All Indicators"
       ],
       "target_storage": "public/cycle_v2.json",
@@ -706,59 +700,6 @@
       "failure_mode": "NAV chart truncates at last successful snapshot.",
       "owner": "Lead Developer",
       "notes": "Producer + schedule needs verification — see _open_questions."
-    },
-    "scenario.allocations-precompute": {
-      "category": "scenario",
-      "element": "8 historical CCAR-anchored scenarios + projected allocations",
-      "sourcing_mode": "computed",
-      "source_vendor": "FRED",
-      "license_tier": "free",
-      "cadence": "weekly",
-      "refresh_trigger": "github-actions: SCENARIO-PRECOMPUTE-WEEKLY.yml",
-      "schedule_et": "Saturday 07:30 ET",
-      "freshness_sla_hours": 192,
-      "consumer_surfaces": [
-        "Scenario Analysis → scenario list + per-scenario projected allocation"
-      ],
-      "target_storage": "public/scenario_allocations.json",
-      "failure_mode": "Scenario list freezes at last Saturday's allocation projections.",
-      "owner": "Senior Quant"
-    },
-    "scenario.stress-daily": {
-      "category": "scenario",
-      "element": "Per-mechanism stress score per scenario (Phase 2)",
-      "sourcing_mode": "computed",
-      "source_vendor": "FRED",
-      "license_tier": "free",
-      "cadence": "daily",
-      "refresh_trigger": "github-actions: scenario-stress-daily.yml",
-      "schedule_et": "19:00 ET weekdays",
-      "freshness_sla_hours": 49,
-      "consumer_surfaces": [
-        "Scenario Analysis → Cycle Mechanism Results table"
-      ],
-      "target_storage": "public/scenario_stress.json",
-      "failure_mode": "Cycle Mechanism Results table shows last-good payload with stale chip.",
-      "owner": "Senior Quant",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
-    },
-    "scenario.ccar-calibration": {
-      "category": "scenario",
-      "element": "CCAR factor panel calibration (16 US-Domestic factors)",
-      "sourcing_mode": "stp",
-      "source_vendor": "FRED",
-      "license_tier": "public",
-      "cadence": "quarterly",
-      "refresh_trigger": "github-actions: PHASE1-CALIBRATION.yml",
-      "schedule_et": "Jan/Apr/Jul/Oct 15, 08:00 ET",
-      "freshness_sla_hours": 3600,
-      "consumer_surfaces": [
-        "Scenario Analysis → CCAR calibration tile"
-      ],
-      "target_storage": "public/scenario_calibration/*.json (7 artifacts)",
-      "failure_mode": "Calibration tile shows last-good quarterly snapshot.",
-      "owner": "Senior Quant",
-      "notes": "Pulls Fed CCAR public release + FRED live values."
     },
     "scenario.v9-allocation-legacy": {
       "category": "scenario",
@@ -1665,33 +1606,6 @@
       "owner": "Senior Quant",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
-    "portfolio-scenario-impact": {
-      "category": "portfolio",
-      "name": "portfolio-scenario-impact",
-      "description": "Position-level scenario P&L computed live from your holdings when you run a scenario.",
-      "sourcing_mode": "computed in-house",
-      "source_vendor": "Your portfolio",
-      "source_endpoint": "Client-side, from your saved positions",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "on-demand",
-      "scheduled_fetch_time_et": "When you run a scenario",
-      "refresh_trigger": "User opens or changes a scenario",
-      "freshness_sla_hours": null,
-      "output_destination": "Scenario Analysis -> Your portfolio impact panel + Your portfolio row",
-      "producer_script": "src/overhaul/lib/portfolioScenario.js (client)",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Your portfolio impact panel + Your portfolio row"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Shows 'add holdings' if no positions; 'sign in' if logged out.",
-      "owner": "Lead Dev + Senior Quant",
-      "release_calendar": "wall-clock",
-      "dependencies": []
-    },
     "indicator-cmdty_brent-daily": {
       "id": "indicator-cmdty_brent-daily",
       "category": "indicator",
@@ -1865,34 +1779,6 @@
       "owner": "Data Steward",
       "release_calendar": "us-business-day",
       "dependencies": []
-    },
-    "portfolio-ticker_betas-daily": {
-      "category": "portfolio",
-      "name": "ticker-betas",
-      "description": "Per-name beta for held + watchlisted tickers; beta-adjusts equity scenario shocks.",
-      "sourcing_mode": "stp+computed",
-      "source_vendor": "Yahoo Finance (computed fallback from prices_eod)",
-      "source_endpoint": "yfinance .info beta; fallback regress vs SPY",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "06:00",
-      "refresh_trigger": "github-actions: TICKER-BETAS-DAILY.yml",
-      "freshness_sla_hours": 49,
-      "output_destination": "public/ticker_betas.json",
-      "producer_script": "scripts/fetch_ticker_betas.py",
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios",
-          "tile": "Your portfolio impact - beta-adjusted position shocks"
-        }
-      ],
-      "current_status": "live",
-      "failure_mode": "Missing names fall back to sector move / 1.6 default.",
-      "owner": "Senior Quant + Data Steward",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [],
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
     },
     "market.spx-index-overlay": {
       "category": "market",
@@ -2097,25 +1983,6 @@
       "target_storage": "public/indicator_history.json",
       "owner": "Data Steward",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
-    },
-    "scenario-scenario_stress-weekly": {
-      "element": "scenario_stress",
-      "category": "scenario",
-      "sourcing_mode": "computed in-house",
-      "source_vendor": "MacroTilt engine",
-      "license_tier": "n/a (in-house)",
-      "cadence": "weekly",
-      "schedule_et": "Sat 07:00",
-      "refresh_trigger": "weekly scenario workflow",
-      "freshness_sla_hours": 200,
-      "consumer_surfaces": [
-        {
-          "tab": "scenarios"
-        }
-      ],
-      "failure_mode": "chip ambers/reds by SLA",
-      "target_storage": "public/scenario_stress.json",
-      "owner": "Data Steward"
     },
     "market-sector_perf-daily": {
       "element": "sector_perf",
