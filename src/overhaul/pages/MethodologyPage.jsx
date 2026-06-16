@@ -302,10 +302,15 @@ export default function MethodologyPage() {
             <div className="mt-eyebrow">Data freshness contract</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
             <p className="me-body-p">
-              Every value, chart, gauge and table on MacroTilt sits next to a <b>freshness chip</b>. Green
-              means the data behind it is current; red means it's past its expected refresh window.
-              When a section depends on multiple inputs, the chip rolls up — if any single input is
-              stale, the section's chip turns red and the tooltip says which input is the problem.
+              Every value, chart, gauge and table on MacroTilt sits next to a <b>freshness chip</b>. The
+              chip grades off the <b>last successful pull</b> — the last time the job that feeds it ran —
+              measured against a target sized to how often that job runs plus a grace window. Green means
+              the job pulled on schedule; red means it has missed its window or errored. The grade is not
+              the age of the data: a monthly series whose latest reading is weeks old still reads green as
+              long as the daily job that fetches it keeps running. Each chip shows five things — the
+              source, how often it updates, the data's own as-of date, the job's last pull, and the target
+              after which it turns red. When a section depends on multiple inputs, the chip rolls up: if
+              any input's job has stalled, the section's chip turns red and names it.
             </p>
             <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full

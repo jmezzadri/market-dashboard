@@ -14,6 +14,7 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFreshness } from '../../hooks/useFreshness';
+import { formatSlaDaysHours } from '../../lib/freshnessClock';
 
 // Relative-age label. When the hook supplies a calendar-aware age (weekends +
 // holidays already removed for trading/business-day series), the day bucket
@@ -306,15 +307,32 @@ export default function FreshnessChip({
               zIndex: 100000,
             }}
           >
-            {/* Exactly the five fields, plain English, nothing else
-                (Joe directive 2026-06-02). */}
+            {/* The five governance fields, in the spec's order and plain
+                English (FRESHNESS_CHIP_SPEC 2026-06-16). "As of" is the data's
+                own date; "Last pull" is when the job actually ran. They are two
+                different real timestamps and the chip grades green/red off the
+                LAST PULL versus the SLA — never off the data's age. */}
             <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Updates:</span> {freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
-              <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>Data as of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last refreshed:</span> {fetchedExact}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {f?.slaHours > 0 ? `within ${f.slaHours} hours` : '—'}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
+              <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{fetchedExact}</span></li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA (turns red):</span> {f?.slaHours > 0 ? `within ${formatSlaDaysHours(f.slaHours)}` : '—'}</li>
             </ol>
+            {/* When red, say why right under the five fields (spec: "shows the
+                reason if red"). Reason comes from the shared grade function. */}
+            {status === 'stale' && f?.reason && (
+              <div style={{
+                marginTop: 7,
+                paddingTop: 7,
+                borderTop: '1px solid var(--mt-line-1)',
+                color: 'var(--mt-down)',
+                fontSize: 11,
+                lineHeight: 1.4,
+              }}>
+                {f.reason}
+              </div>
+            )}
           </div>,
           document.body,
         )}

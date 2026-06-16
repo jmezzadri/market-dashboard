@@ -67,7 +67,8 @@
     "v_2026_06_11": "2026-06-11 one-shot stamp fix: registered 11 previously-untracked elements (cycle board, ISM keys, scanner V5 legacy feed, user positions, scenario impact, put/call, dollar index, Buffett, bank unrealized losses, sector perf, scenario stress, indicator-history aggregate).",
     "v_2026_06_11b": "Un-registered put_call/buffett/bank_unreal — these feeds were killed as phantoms on 2026-06-10 (commit 'Kill phantom feeds'); the 2026-06-11 stamp-fix registration pass resurrected them by mistake. Their tracking rows are deleted by the repair workflow. Registration must check kill history first.",
     "v_2026_06_11c": " v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron).",
-    "v_2026_06_11d": " v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags — per-series calibration queued."
+    "v_2026_06_11d": " v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags — per-series calibration queued.",
+    "freshness_sla_basis": "One-clock (FRESHNESS_CHIP_SPEC 2026-06-16): freshness_sla_hours is the JOB's run cadence + grace, NOT the data's publication lag. The chip grades green/red off the LAST PULL (pipeline_health.last_good_at, the job's real last successful run) vs this SLA, calendar-aware so weekends/holidays never count. Daily job = 49h (~2 business days). Weekly job = 192h. Bi-monthly (FINRA) = 480h. Monthly job = 768h. Quarterly job = 2400h. A lagged data series (e.g. a monthly read by the daily job) stays GREEN while the daily job pulls — its weeks-old as_of no longer reds the chip."
   },
   "elements": [
     {
@@ -111,7 +112,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "CBOE cash close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-hy_ig-daily",
@@ -126,7 +127,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[hy_ig]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -154,7 +155,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 3
     },
     {
@@ -194,7 +195,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-yield_curve-daily",
@@ -233,7 +234,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-move-daily",
@@ -272,7 +273,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "EOD index level",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-real_rates-daily",
@@ -311,7 +312,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-breakeven_10y-daily",
@@ -346,7 +347,7 @@
       ],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-copper_gold-daily",
@@ -385,7 +386,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-bkx_spx-daily",
@@ -428,7 +429,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-usd-daily",
@@ -443,7 +444,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[usd]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -467,7 +468,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-skew-daily",
@@ -506,7 +507,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "CBOE cash close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-anfci-weekly",
@@ -521,7 +522,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily; FRED publishes weekly)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[anfci]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -542,7 +543,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-stlfsi-weekly",
@@ -557,7 +559,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[stlfsi]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -574,7 +576,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cpff-weekly",
@@ -589,7 +592,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cpff]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -610,7 +613,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-loan_syn-daily",
@@ -625,7 +629,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[loan_syn]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -643,7 +647,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 3
     },
     {
@@ -659,7 +663,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 480,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[bank_credit]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -677,7 +681,8 @@
       "dependencies": [],
       "_sla_note": "H.8 TOTBKCR data-date lags ~2 weeks behind the weekly Friday release; 480h covers lag + cadence + grace.",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-jobless-weekly",
@@ -692,7 +697,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[jobless]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -713,7 +718,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdi-weekly",
@@ -728,7 +734,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cmdi]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -745,7 +751,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-term_premium-daily",
@@ -760,7 +767,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 150,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[term_premium]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -784,7 +791,7 @@
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
       "lag_sessions": 8,
-      "sla_basis": "Kim-Wright THREEFYTP10 is an academic Fed research series that publishes ~5-8 trading days late; FRED's latest observation lags its 'Updated' release date. lag_sessions=8 matches the worst-case real publication lag so the chip doesn't false-flag when the source itself has no newer point (Joe 2026-06-15: site showed Jun 5 = FRED's true latest obs, not stale)."
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cape-monthly",
@@ -799,7 +806,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "06:00 ET on the 1st (or first business day after)",
       "refresh_trigger": "manual code edit",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cape]; src/App.jsx IND[]",
       "producer_script": "fetch_history.py (_fetch_cape_multpl)",
       "consumer_surfaces": [
@@ -820,7 +827,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ism-monthly",
@@ -835,7 +843,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "06:00 ET on the 1st (or first business day after)",
       "refresh_trigger": "manual code edit",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[ism]",
       "producer_script": "fetch_history.py — TradingEconomics scrape with anchor merge",
       "consumer_surfaces": [
@@ -856,7 +864,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-jolts_quits-monthly",
@@ -871,7 +880,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 1920,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[jolts_quits]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -888,7 +897,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-sloos_ci-quarterly",
@@ -903,7 +913,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 3600,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[sloos_ci]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -920,7 +930,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-sloos_cre-quarterly",
@@ -935,7 +946,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 3600,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[sloos_cre]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -952,7 +963,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-credit_3y-quarterly",
@@ -967,7 +979,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 3600,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[credit_3y]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -984,7 +996,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "scenario-v9_allocation-weekly",
@@ -1016,7 +1029,8 @@
         "composite-rl-daily",
         "composite-gr-daily",
         "composite-ir-daily"
-      ]
+      ],
+      "sla_basis": "Weekly v9 allocation job; SLA = weekly job cadence + grace"
     },
     {
       "id": "scenario-allocation_history-weekly",
@@ -1048,7 +1062,8 @@
         "scenario-v9_allocation-weekly"
       ],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Weekly allocation job (Saturday); SLA = weekly job cadence + grace"
     },
     {
       "id": "market-universe_master-daily",
@@ -1084,7 +1099,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-prices_eod-daily",
@@ -1117,7 +1132,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-ticker_reference-rolling",
@@ -1146,7 +1161,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
-      "as_of_cutoff_note": "US market close"
+      "as_of_cutoff_note": "US market close",
+      "sla_basis": "Rolling ticker-reference backfill cycles the universe over days; SLA = full-cycle + grace"
     },
     {
       "id": "market-dividends-daily",
@@ -1176,7 +1192,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-splits-daily",
@@ -1206,7 +1222,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-universe_snapshots-3xday",
@@ -1221,7 +1237,7 @@
       "cadence": "3x weekday (10:00, 13:00, 15:45 ET)",
       "scheduled_fetch_time_et": "10:00 / 13:00 / 15:45",
       "refresh_trigger": "UNIVERSE_SNAPSHOT_3X_WEEKDAYS",
-      "freshness_sla_hours": 4,
+      "freshness_sla_hours": 49,
       "output_destination": "Supabase public.universe_snapshots; pg_cron prune >30d",
       "producer_script": "trading-scanner/run_universe_snapshot.py + scanner/universe_snapshot.py",
       "consumer_surfaces": [
@@ -1241,7 +1257,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-ticker_events-3xday",
@@ -1257,7 +1274,7 @@
       "cadence": "3x weekday (10:05, 13:05, 15:50 ET)",
       "scheduled_fetch_time_et": "10:05 / 13:05 / 15:50",
       "refresh_trigger": "TICKER_EVENTS_3X_WEEKDAYS",
-      "freshness_sla_hours": 4,
+      "freshness_sla_hours": 49,
       "output_destination": "Supabase public.ticker_events; pg_cron prune >30d",
       "producer_script": "trading-scanner/run_ticker_events.py + scanner/ticker_events.py",
       "consumer_surfaces": [
@@ -1275,7 +1292,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "date-keyed"
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-latest_scan_data-daily",
@@ -1312,7 +1330,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-user_scan_data-daily",
@@ -1364,7 +1382,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "TBD",
       "refresh_trigger": "EARNINGS_HISTORY_WEEKLY.yml (in _v11-iter3-wt2 worktree; verify on main)",
-      "freshness_sla_hours": 192,
+      "freshness_sla_hours": 49,
       "output_destination": "Supabase public.earnings_history (PK ticker, report_date)",
       "producer_script": "trading-scanner/run_earnings_history.py",
       "consumer_surfaces": [
@@ -1378,7 +1396,8 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-options_chain-on_demand",
@@ -1394,7 +1413,7 @@
       "cadence": "during scan",
       "scheduled_fetch_time_et": "15:30",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 49,
       "output_destination": "embedded in latest_scan_data.json buy_opportunities[].covered_call",
       "producer_script": "scanner/covered_calls.py",
       "consumer_surfaces": [
@@ -1409,7 +1428,8 @@
       "failure_mode": "Skipped per-ticker; ticker just won't have CC suggestion.",
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-zerohedge_public-daily",
@@ -1424,7 +1444,7 @@
       "cadence": "daily (during scan)",
       "scheduled_fetch_time_et": "15:30",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 49,
       "output_destination": "latest_scan_data.json signals.market_news.zerohedge_public[]",
       "producer_script": "scanner/market_news.py::fetch_zerohedge_public",
       "consumer_surfaces": [
@@ -1437,7 +1457,8 @@
       "failure_mode": "RSS fetch fail → empty list, no headlines render.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-zerohedge_premium-live",
@@ -1452,7 +1473,7 @@
       "cadence": "on every scanner run (SCAN_345PM workflow, weekdays 15:45 ET)",
       "scheduled_fetch_time_et": "15:45 ET (with the rest of the scanner)",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS.yml",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 49,
       "output_destination": "latest_scan_data.json signals.market_news.zerohedge_premium[] AND signals.market_news.items[] (filter source_tier=\"premium\")",
       "producer_script": "scanner/market_news.py::fetch_zerohedge_premium (Path 2 — cookie session, PR #10 / 2026-04-30)",
       "consumer_surfaces": [
@@ -1462,7 +1483,8 @@
       "failure_mode": "ZEROHEDGE_COOKIE expires (Drupal default ~3 weeks) → fetch logs warning + returns []. Refresh: open zerohedge.com in Chrome → DevTools → Network tab → copy Cookie: header → re-paste as ZEROHEDGE_COOKIE secret.",
       "owner": "Lead Developer (Path 2 cookie maintenance is identity-bound to Joe)",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-google_news_per_ticker-on_demand",
@@ -1504,7 +1526,7 @@
       "cadence": "bi-monthly (15-day FINRA lag)",
       "scheduled_fetch_time_et": "during scan",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS",
-      "freshness_sla_hours": 360,
+      "freshness_sla_hours": 480,
       "output_destination": "embedded in per-ticker enrichment",
       "producer_script": "scanner/short_interest.py",
       "consumer_surfaces": [
@@ -1518,8 +1540,9 @@
       "current_status": "live",
       "failure_mode": "Skipped per-ticker on Yahoo error.",
       "owner": "Lead Dev",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": []
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace"
     },
     {
       "id": "equity-index_membership-daily",
@@ -1534,7 +1557,7 @@
       "cadence": "daily (per-day cache)",
       "scheduled_fetch_time_et": "15:30",
       "refresh_trigger": "SCAN_345PM_WEEKDAYS",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 49,
       "output_destination": "trading-scanner/reports/index_membership.json (per-day cache)",
       "producer_script": "scanner/indices.py",
       "consumer_surfaces": [
@@ -1546,7 +1569,8 @@
       "failure_mode": "Cache fallback to prior day.",
       "owner": "Lead Dev",
       "release_calendar": "wall-clock",
-      "dependencies": []
+      "dependencies": [],
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-wide_universe-daily",
@@ -1575,7 +1599,7 @@
       "owner": "Lead Dev",
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "ops-api_usage_log-event",
@@ -1919,7 +1943,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "commentary-macro_commentary-daily",
@@ -1954,7 +1978,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "date-keyed",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "commentary-sector_commentary-daily",
@@ -1989,7 +2013,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "date-keyed",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "ops-bug_screenshots-event",
@@ -2031,7 +2055,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[cfnai_3ma]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -2058,7 +2082,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-m2_yoy-monthly",
@@ -2073,7 +2098,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[m2_yoy]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -2100,7 +2125,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-erp-monthly",
@@ -2115,7 +2141,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[erp]",
@@ -2130,7 +2156,8 @@
       "failure_mode": "v11 modal shows hardcoded -1.38% / 8th pct value; no live pipeline as of 2026-05-01.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ig_oas-daily",
@@ -2145,7 +2172,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas]",
@@ -2161,7 +2188,7 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 3
     },
     {
@@ -2177,7 +2204,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[fra_ois]",
@@ -2193,7 +2220,7 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 3
     },
     {
@@ -2209,7 +2236,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[real_fedfunds]",
@@ -2224,7 +2251,8 @@
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-sofr_ois-daily",
@@ -2239,7 +2267,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "10:15",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[sofr_ois]",
@@ -2255,7 +2283,7 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: source publishes the prior session ~9:39 AM ET next business morning (verified against FRED release info 6/12). Pulled 6:00 AM + 10:15 AM ET. Green = at publication frontier; amber = 1 session behind it; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 3
     },
     {
@@ -2271,7 +2299,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ic4wsa]",
@@ -2286,7 +2314,8 @@
       "failure_mode": "Per-indicator try/except.",
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-bkx_spx_v11-daily",
@@ -2317,7 +2346,7 @@
       "owner": "Senior Quant, Lead Dev, Data Steward",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "v10-allocation-daily",
@@ -2342,7 +2371,7 @@
       "backtest_evidence": "PHASE2_V10_BACKTEST.md",
       "shipped_date": "2026-05-04",
       "scheduled_fetch_time_et": "03:00",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence; morning publish ~08:15 ET (Massive panel-complete) + grace = 49h",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "schedule_note": "Moved 2026-06-16 from 08:15 ET to ~03:00 ET so the sector sleeve publishes before the paper rebalancer's 04:00 ET submit window."
     },
     {
@@ -2380,7 +2409,7 @@
       "name": "fed_bs",
       "category": "indicator",
       "cadence": "weekly",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED WALCL (YoY % change)",
@@ -2403,14 +2432,15 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-rrp-daily",
       "name": "rrp",
       "category": "indicator",
       "cadence": "daily",
-      "freshness_sla_hours": 73,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED RRPONTSYD",
@@ -2434,14 +2464,14 @@
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: 24h cadence + 24h source publication lag (FRED publishes T+1) + 24h grace = 73h (1h rounding)"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-bank_reserves-weekly",
       "name": "bank_reserves",
       "category": "indicator",
       "cadence": "weekly",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED WRESBAL",
@@ -2464,14 +2494,15 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-tga-weekly",
       "name": "tga",
       "category": "indicator",
       "cadence": "weekly",
-      "freshness_sla_hours": 336,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED WTREGEN",
@@ -2494,14 +2525,15 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cfnai-monthly",
       "name": "cfnai",
       "category": "indicator",
       "cadence": "monthly",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "release_calendar": "us-business-day",
       "source_vendor": "FRED",
       "source_endpoint": "FRED CFNAI",
@@ -2524,7 +2556,8 @@
       "current_status": "live",
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-hy_ig_etf-daily",
@@ -2555,7 +2588,7 @@
       "owner": "Data Steward, Lead Dev",
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "v10-sector-history-daily",
@@ -2574,7 +2607,7 @@
       "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
       "owner": "Data Steward",
       "registered_date": "2026-06-03",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "portfolio.paper-nav-daily",
@@ -2605,7 +2638,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "portfolio.paper-positions-snapshot",
@@ -2636,7 +2669,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "date-keyed",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "portfolio.paper-orders-intent",
@@ -2669,7 +2702,7 @@
       ],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "as-of latest session close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cftc-cot-weekly",
@@ -2684,7 +2717,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (Sat)",
       "refresh_trigger": "CFTC-COT-WEEKLY",
-      "freshness_sla_hours": 432,
+      "freshness_sla_hours": 192,
       "output_destination": "public/cot_positioning.json",
       "producer_script": "cot_positioning.py",
       "consumer_surfaces": [
@@ -2702,7 +2735,7 @@
       "as_of_cutoff_note": "observation period figure",
       "last_success_utc": "2026-06-13T12:24:33+00:00",
       "data_as_of": "2026-06-09",
-      "sla_basis": "Joe 2026-06-11 doctrine, full publication chain: the element bundles two sources. CFTC futures (data Tue, published Fri 3:30 PM ET, ingested Sat 7 AM = 4-day chain; normal max age 11d) and NY Fed primary-dealer credit inventory (data Wed, published following Thu ~4:15 PM, ingested Sat = 10-day chain; normal max age 17d). Budget covers the longer chain: 7d cadence + 10d chain + 24h grace = 432h. QUEUED: split dealer-inventory into its own element so futures tighten to 288h and 'past due' anchors to due time."
+      "sla_basis": "COT producer runs weekly (Saturday batch); SLA = weekly job cadence + grace"
     },
     {
       "id": "indicator-spx_above_50ema-daily",
@@ -2736,7 +2769,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 6
     },
     {
@@ -2771,7 +2804,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 6
     },
     {
@@ -2806,7 +2839,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_uranium-daily",
@@ -2834,13 +2867,13 @@
         }
       ],
       "current_status": "live",
-      "release_calendar": "daily",
+      "release_calendar": "nyse-trading-day",
       "failure_mode": "Fail-loud: on source error nothing is written; chip reads stale (red).",
       "owner": "Data Steward",
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "daily spot, no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_silver-daily",
@@ -2874,7 +2907,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_copper-daily",
@@ -2908,7 +2941,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_oil-daily",
@@ -2942,7 +2975,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_natgas-daily",
@@ -2976,7 +3009,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_corn-daily",
@@ -3010,7 +3043,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_soybeans-daily",
@@ -3044,7 +3077,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_wheat-daily",
@@ -3078,7 +3111,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-fx_eur-daily",
@@ -3112,7 +3145,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-fx_jpy-daily",
@@ -3146,7 +3179,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-fx_gbp-daily",
@@ -3180,7 +3213,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-cmdty_brent-daily",
@@ -3214,7 +3247,7 @@
       "dependencies": [],
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "no single intraday cutoff",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ust_10y-daily",
@@ -3253,7 +3286,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ust_2y-daily",
@@ -3292,7 +3325,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:15",
       "as_of_cutoff_note": "US rates close of business",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-unrate-monthly",
@@ -3307,7 +3340,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[unrate]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -3328,7 +3361,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-payrolls-monthly",
@@ -3343,7 +3377,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 1800,
+      "freshness_sla_hours": 49,
       "output_destination": "public/indicator_history.json[payrolls]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -3364,7 +3398,8 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "as_of_cutoff_et": null,
-      "as_of_cutoff_note": "observation period figure"
+      "as_of_cutoff_note": "observation period figure",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-spx_index-daily",
@@ -3403,7 +3438,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "NYSE cash close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-ndx_index-daily",
@@ -3442,7 +3477,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "NYSE cash close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-dji_index-daily",
@@ -3481,7 +3516,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "NYSE cash close",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ndx_above_50ema-daily",
@@ -3515,7 +3550,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 6
     },
     {
@@ -3550,7 +3585,7 @@
       "dependencies": [],
       "as_of_cutoff_et": "16:00",
       "as_of_cutoff_note": "US market close",
-      "sla_basis": "Joe 2026-06-12 session doctrine: computed from the overnight price panel (complete ~3:15 AM ET; preliminary same-evening pass ~11 PM). Green = at frontier; amber = 1 session behind; red = 2+.",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
       "fetch_grace_hours": 6
     },
     {
@@ -3586,7 +3621,7 @@
       "owner": "Data Steward",
       "producer_script": "cycle board daily producer",
       "current_status": "live",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ism_mfg-monthly",
@@ -3602,7 +3637,7 @@
       "scheduled_fetch_time_et": "10:05",
       "refresh_trigger": "ISM refresh on release days",
       "release_calendar": "us-business-day",
-      "freshness_sla_hours": 1200,
+      "freshness_sla_hours": 49,
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "monthly release",
       "output_destination": "public/indicator_history.json",
@@ -3619,7 +3654,8 @@
       "failure_mode": "chip reds by SLA",
       "owner": "Data Steward",
       "producer_script": "ISM refresh producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "indicator-ism_svc-monthly",
@@ -3635,7 +3671,7 @@
       "scheduled_fetch_time_et": "10:05",
       "refresh_trigger": "ISM refresh on release days",
       "release_calendar": "us-business-day",
-      "freshness_sla_hours": 1200,
+      "freshness_sla_hours": 49,
       "as_of_cutoff_et": null,
       "as_of_cutoff_note": "monthly release",
       "output_destination": "public/indicator_history.json",
@@ -3648,7 +3684,8 @@
       "failure_mode": "chip reds by SLA",
       "owner": "Data Steward",
       "producer_script": "ISM refresh producer",
-      "current_status": "live"
+      "current_status": "live",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "site-indicator_history-aggregate",
@@ -3678,7 +3715,7 @@
       "owner": "Data Steward",
       "producer_script": "indicator history producer",
       "current_status": "live",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "market-sector_perf-daily",
@@ -3711,7 +3748,7 @@
       "owner": "Data Steward",
       "producer_script": "sector performance producer",
       "current_status": "live",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-scanner_v5-daily",
@@ -3743,7 +3780,7 @@
       "producer_script": "V5 scanner runner",
       "current_status": "live (legacy consumer)",
       "_review_note": "2026-06-11 audit: confirm whether the Ticker page batch read should move to trading_opps_signals; if so this feed and its two workflows can be retired.",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     },
     {
       "id": "equity-short_interest-daily",
@@ -3759,7 +3796,7 @@
       "cadence": "daily",
       "scheduled_fetch_time_et": "06:00",
       "refresh_trigger": "SHORT_INTEREST_INGEST_DAILY",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 480,
       "output_destination": "public.short_interest (FINRA rows) + public.short_interest_daily (UW daily rows); context columns on public.trading_opps_signals",
       "producer_script": "scanner/signal_intelligence_v5/short_interest_ingest.py",
       "consumer_surfaces": [
@@ -3778,7 +3815,7 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface; the 49h SLA tracks the DAILY UW tape.",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace"
     },
     {
       "id": "equity-options_flow-daily",
@@ -3813,7 +3850,7 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) — a different element; this one is context-only and never scored.",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h"
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
     }
   ],
   "_known_gaps_surfaced_in_phase1": [

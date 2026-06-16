@@ -33,7 +33,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { sendEmail } from "../_shared/email.ts";
-import { isStaleAgainstSLA, dailySessionGrade, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
+import { gradeByLastPull, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
 
 const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.com";
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
@@ -193,8 +193,9 @@ async function handle(req: Request): Promise<Response> {
     if (mr.ok) {
       const m = await mr.json();
       for (const e of (m.elements || []) as Array<Record<string, unknown>>) {
-        const nm = (e.name as string) || (e.id as string);
-        if (nm) manifestByName[nm] = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string };
+        const el = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string };
+        if (e.name) manifestByName[e.name as string] = el;
+        if (e.id)   manifestByName[e.id as string] = el;
       }
     }
   } catch (e) {
@@ -341,7 +342,7 @@ async function handle(req: Request): Promise<Response> {
             // meaning "verified current as of now" (never derived from the
             // data date, never a fabricated close). Staleness is still judged
             // off data_as_of, so this can't mask a dead feed.
-            lastGoodIso = /\dT\d\d:\d\d/.test(asOf) ? asOf : now.toISOString();
+            lastGoodIso = /\dT\d\d:\d\d/.test(asOf) ? asOf : (row.last_good_at || now.toISOString());
           } else {
             lastError = `${cfg.path} missing ${cfg.field}`;
           }
@@ -403,7 +404,7 @@ async function handle(req: Request): Promise<Response> {
         const rt = cfg.runTsCol ? (data as Record<string, string>)[cfg.runTsCol] : null;
         if (rt) lastGoodIso = rt;
         else if (asOf && /\dT\d\d:\d\d/.test(String(asOf))) lastGoodIso = asOf;
-        else lastGoodIso = now.toISOString();
+        else lastGoodIso = row.last_good_at || now.toISOString();
       }
     } else {
       const rec = indicators[row.indicator_id];
@@ -438,29 +439,26 @@ async function handle(req: Request): Promise<Response> {
       }
     }
 
-    const ageMin = ageMinutesFromIso(asOf, row.cadence);
-    let newStatus: "green" | "amber" | "red";
-    if (ageMin == null) newStatus = "red";
-    else newStatus = statusFor(ageMin, row);
+    const ageMin = ageMinutesFromIso(asOf, row.cadence);  // kept only for the fetch-log age column
 
-    // Session-frontier doctrine for DAILY rows (Joe 2026-06-12): grade in
-    // trading sessions against the element's publication frontier — exactly
-    // mirrors the site chips (shared clock function). Cadence-minute banding
-    // stays for non-daily rows. An upstream lastError still forces red below.
-    if (!lastError && asOf && String(row.cadence || "").toUpperCase().startsWith("D")) {
-      const mfAny = manifestByName[row.indicator_id] as unknown as Record<string, unknown> | undefined;
-      const g = dailySessionGrade(asOf, {
-        fetchTimeET: (mfAny?.scheduled_fetch_time_et as string) || undefined,
-        graceHours: Number(mfAny?.fetch_grace_hours) || 3,
-        lagSessions: Number(mfAny?.lag_sessions) || 0,
-      });
-      if (g.grade !== "unknown") {
-        newStatus = g.grade;
-        if (g.grade === "red") {
-          lastError = `${g.behind} sessions behind publication frontier (expected data through ${g.expectedDate})`;
-        }
-      }
-    }
+    // ONE-CLOCK grade (FRESHNESS_CHIP_SPEC 2026-06-16): grade off the LAST PULL
+    // — the job's real last successful run (lastGoodIso) — versus the manifest
+    // SLA, calendar-aware. Identical to the site chips (shared clock function),
+    // so the stored status, the green->red alert, and every chip agree. This
+    // fires on a job that stopped pulling, not on the age of lagged-but-healthy
+    // data (a monthly series read by the daily job stays green while it pulls).
+    const mfGrade = manifestByName[row.indicator_id];
+    const graded = gradeByLastPull({
+      lastPullIso: lastGoodIso ?? row.last_good_at,
+      asOfIso: asOf,
+      slaHours: Number(mfGrade?.freshness_sla_hours) || 0,
+      calendar: (mfGrade?.release_calendar as ReleaseCalendar) || "us-business-day",
+      lastError,
+    });
+    // Two-state stored status; a config gap (no manifest SLA) -> amber, which is
+    // visible in Admin·Data without firing the green->red alert.
+    const newStatus: "green" | "amber" | "red" =
+      graded.status === "green" ? "green" : graded.status === "red" ? "red" : "amber";
 
     // Debounced alert on a green→red transition
     const wasGreen = row.status === "green";
@@ -476,12 +474,8 @@ async function handle(req: Request): Promise<Response> {
     // frontend chip). The legacy newStatus above uses cadence + tolerance and
     // does not account for calendar awareness; using it for stuck-red would
     // fire false alarms on weekend FRED dailies.
-    const manifestEl = manifestByName[row.indicator_id];
-    const manifestSla = manifestEl?.freshness_sla_hours ?? 0;
-    const manifestCal = (manifestEl?.release_calendar as ReleaseCalendar) || "wall-clock";
-    const manifestStale = manifestSla > 0 && asOf
-      ? isStaleAgainstSLA(asOf, manifestSla, manifestCal)
-      : false;
+    // Stuck-red gate uses the SAME last-pull grade as the chip + stored status.
+    const manifestStale = graded.status === "red";
 
     // Rolling: when did this row first go red? Use last_alerted_at as proxy
     // (set on every green→red transition, including the very first one).
