@@ -28,7 +28,6 @@ TARGETS = [
     ("cmdty_gold",     "GC=F",       "Gold",              "Commodities", "$/oz"),
     ("cmdty_silver",   "SI=F",       "Silver",            "Commodities", "$/oz"),
     ("cmdty_copper",   "HG=F",       "Copper",            "Commodities", "$/lb"),
-    ("cmdty_uranium",  "UX=F",       "Uranium",           "Commodities", "$/lb"),
     ("cmdty_oil",      "CL=F",       "Crude oil",         "Commodities", "$/bbl"),
     ("cmdty_brent",    "BZ=F",       "Brent crude",       "Commodities", "$/bbl"),
     ("cmdty_natgas",   "NG=F",       "Natural gas",       "Commodities", "$/MMBtu"),
@@ -149,7 +148,7 @@ def run():
             if not pts:
                 raise RuntimeError("no completed-session bars")
             vals = [p[1] for p in pts]
-            freq = "W" if key == "cmdty_uranium" else "D"
+            freq = "D"
             thin = len(vals) < 60          # not enough history to rank yet
             pct = None if thin else pctrank_latest(vals, WINDOW_DAYS)
             z = None if thin else zscore_latest(vals, WINDOW_DAYS)
