@@ -25,7 +25,7 @@ After the deploy lands on macrotilt.com:
 
 1. **Page loads** — visit `https://macrotilt.com/#paper`. Confirm:
    - Sidebar shows "Paper Portfolio" entry with the radar icon between
-     Portfolio Insights and Scenario Analysis.
+     Portfolio Insights and Methodology.
    - Page renders without a blank screen / React error.
 2. **Initial empty state** — before any nightly run, the page should show:
    - NAV hero with "No NAV history yet" message.

@@ -33,7 +33,7 @@ filed under the matching section, dated — before closing the task.
 
 **What happened:** Agents kept shipping data values with no chip, half-explained chips, or chips that were green only because the element was untracked ("fake green"); known-stale feeds were left red without being fixed.
 
-**Rule:** Every single piece of data on MacroTilt — every indicator, positioning signal, tile, map dot, grid row, drill panel, KPI, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Scanner, Portfolio, Paper, Ticker, Scenario, Admin·Data) — carries a freshness chip exposing all FIVE fields:
+**Rule:** Every single piece of data on MacroTilt — every indicator, positioning signal, tile, map dot, grid row, drill panel, KPI, on every page (Macro Overview, All Indicators, Methodology, Home, Asset Tilt, Scanner, Portfolio, Paper, Ticker, Admin·Data) — carries a freshness chip exposing all FIVE fields:
 
 1. **Source** — FRED / Yahoo / CFTC / NY Fed / etc.
 2. **Frequency + calendar** — "Daily · NYSE trading days", "Weekly · every Friday", "Monthly · 15th".

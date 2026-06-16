@@ -17,7 +17,6 @@ const ITEMS = [
   { to: '/tilt', label: 'Tilt' },
   { to: '/scanner', label: 'Scanner' },
   { to: '/portfolio', label: 'Portfolio' },
-  { to: '/scenarios', label: 'Scenarios' },
   { to: '/indicators', label: 'All indicators' },
   { to: '/methodology', label: 'Methodology' },
 ];

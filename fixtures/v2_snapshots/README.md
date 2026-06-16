@@ -78,7 +78,6 @@ bar as the page itself.
 | Indicators     | (queued)                        | no     |
 | Insights       | (queued)                        | no     |
 | Methodology    | (queued)                        | no     |
-| Scenarios      | (queued)                        | no     |
 | Admin          | (queued)                        | no     |
 
 Each tab fixture is locked when both the UX Designer and the Senior

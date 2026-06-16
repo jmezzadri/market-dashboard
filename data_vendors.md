@@ -20,10 +20,10 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
   - `indicator.cycle-board-snapshot` — Valuation / Credit / Funding / Growth / Liquidity & Policy / Positioning & Breadth (6-mechanism Cycle Board)
   - `indicator.methodology-calibration-v11` — per-mechanism KPIs and percentiles
   - `indicator.cycle-v2-headline-cycle-value`, `cycle-v2-headline-market-stress`, `cycle-v2-headline-real-economy`, `cycle-v2-regime-label`, `cycle-v2-history` — v2 cycle composites
-  - `scenario.allocations-precompute`, `scenario.stress-daily`, `scenario.ccar-calibration`, `scenario.v9-allocation-legacy`, `scenario.v10-allocation`
+  - `scenario.v9-allocation-legacy`, `scenario.v10-allocation`
 - **Alternatives evaluated:** None — FRED is the canonical free source for US macro time series. Bloomberg + Haver Analytics are paid alternatives in the same data category ($24k+/year), not viable for personal-use MacroTilt.
 - **Contract end date:** None (API key is perpetual; St. Louis Fed has no commercial license tier).
-- **Removal blast radius:** Catastrophic. Macro Overview entirely breaks (all gauges, all mechanism scores, all drill panels). Asset Tilt breaks (allocator inputs vanish). Scenario Analysis breaks (CCAR calibration + stress framework). All 36+ Indicator tiles render em-dashes. Methodology page registry tiles go stale but page still loads.
+- **Removal blast radius:** Catastrophic. Macro Overview entirely breaks (all gauges, all mechanism scores, all drill panels). Asset Tilt breaks (allocator inputs vanish). All 36+ Indicator tiles render em-dashes. Methodology page registry tiles go stale but page still loads.
 
 ---
 
@@ -119,7 +119,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
   - `indicator.ism-svc` — ISM Services PMI
 - **Alternatives evaluated:** Direct ISM subscription ($1,895/year — not justified for personal-use site). FRED licenses only a small ISM subset (employment/prices sub-indices) and not the headline PMI.
 - **Contract end date:** None (scrape, not contract).
-- **Removal blast radius:** Moderate. Macro Overview Real Economy headline loses its primary input — the cycle-v2 real-economy gauge would fall back to claims + payrolls only, degrading signal quality. Scenario Analysis Cycle Mechanism Results table loses ISM-conditional scenarios.
+- **Removal blast radius:** Moderate. Macro Overview Real Economy headline loses its primary input — the cycle-v2 real-economy gauge would fall back to claims + payrolls only, degrading signal quality.
 
 ---
 

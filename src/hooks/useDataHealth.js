@@ -76,7 +76,7 @@ export const VENDOR_BLAST_RADIUS = {
   "Unusual Whales":
     "Options flow, insider buys, congress trades, analyst ratings, screener universe. Powers the v5 scanner, the Trading Opps composites, the Portfolio Insights option marks.",
   "FRED":
-    "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview, the Cycle Mechanism Board, indicator drilldowns, scenario analysis. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
+    "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview, the Cycle Mechanism Board, indicator drilldowns. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
   "U.S. Treasury":
     "Daily Treasury par yield curve (1Mo–30Y nominal) and daily TIPS real yield curve (5Y–30Y). Powers the 10Y-2Y slope, 10Y TIPS real rate, and 10Y inflation breakeven indicators. Free CSV feed at home.treasury.gov, same-day publication ~16:00 ET.",
   "Yahoo Finance":
@@ -102,7 +102,7 @@ export const VENDOR_BLAST_RADIUS = {
   "Nasdaq / FINRA":
     "Short interest reports. Powers the v5 scanner short interest score.",
   "MacroTilt in-house":
-    "Composite scorers + back-test artefacts computed daily from the external vendor feeds above. Powers v5/v9/v10/v11 scoring, scenario stress runs, Cycle Board snapshots.",
+    "Composite scorers + back-test artefacts computed daily from the external vendor feeds above. Powers v5/v9/v10/v11 scoring, Cycle Board snapshots.",
 };
 
 // Monthly cost per canonical vendor — matches data_vendors.md. "Free" for

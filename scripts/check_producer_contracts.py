@@ -103,11 +103,6 @@ CONTRACTS: dict = {
         "non_empty": True,
     },
 
-    # Scenario allocations — per-scenario v9 outputs feeding the L4 panel.
-    "scenario_allocations.json": {
-        "consumed_by": ["src/pages/ScenarioAnalysis.jsx L4 panel"],
-        "non_empty": True,
-    },
 
     # Composite weights — methodology page + TodayMacro.
 

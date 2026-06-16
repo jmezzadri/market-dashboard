@@ -171,7 +171,7 @@ def per_bucket_factors(name):
     return list(dict.fromkeys(UNIVERSAL_BG + PER_BUCKET_MV.get(name, [])))
 
 
-def fit_per_asset_forecast(asset_returns, factor_panel, factor_names, *, forecast_X_override=None):
+def fit_per_asset_forecast(asset_returns, factor_panel, factor_names):
     """Fit r[T] ~ factor[T-1] regression and forecast the next month's return.
 
     Parameters
@@ -182,12 +182,6 @@ def fit_per_asset_forecast(asset_returns, factor_panel, factor_names, *, forecas
         Monthly factor values; rows must be sorted by date.
     factor_names : list[str]
         Subset of columns to use as features.
-    forecast_X_override : dict[str, float] | None
-        If provided, the forecast feature row is taken from this dict (in
-        NATIVE units, same scale as factor_panel) instead of the last
-        observed feature row. Used by Scenario Analysis to apply a stressed
-        factor panel without re-fitting the regression on stressed data
-        (which would corrupt the calibration).
     """
     cols = [c for c in factor_names if c in factor_panel.columns]
     if not cols: return None
@@ -203,15 +197,7 @@ def fit_per_asset_forecast(asset_returns, factor_panel, factor_names, *, forecas
     try: coefs, *_ = np.linalg.lstsq(Xa, y_arr, rcond=None)
     except: return None
 
-    if forecast_X_override is not None:
-        # Use stressed feature vector — fall back to last observed for any factor
-        # not present in the override dict.
-        last_obs = aligned.drop(columns="r").iloc[-1]
-        last_X_raw = np.array([
-            float(forecast_X_override.get(c, last_obs[c])) for c in cols
-        ])
-    else:
-        last_X_raw = aligned.drop(columns="r").iloc[-1].values
+    last_X_raw = aligned.drop(columns="r").iloc[-1].values
 
     last_X_std = (last_X_raw - col_mean) / col_sd
     raw = coefs[0] + coefs[1:] @ last_X_std
@@ -369,9 +355,8 @@ def _load_etf_closes_from_supabase(tickers, start_date="2003-01-01"):
 def load_all_data():
     """Load every input compute_allocation_from_data needs.
 
-    Pulled out of main() so the Scenario Analysis precompute script can re-use
-    one data load across many stressed scenarios. Network calls happen here
-    (FRED + Supabase prices_eod), the compute path is pure.
+    Network calls happen here (FRED + Supabase prices_eod); the compute path
+    is pure.
     """
     print("  loading factor panel...")
     factors = load_factor_panel()
@@ -399,34 +384,16 @@ def compute_allocation_from_data(
     composites,
     monthly_ret,
     *,
-    factor_overrides=None,
-    composite_overrides=None,
-    scenario_id=None,
-    scenario_name=None,
     quiet=False,
 ):
     """Pure compute path. Same v9 logic as main(); inputs are pre-loaded.
-
-    Sprint 2 (Scenario Analysis L4 panel) calls this with `factor_overrides`
-    and `composite_overrides` populated to produce a stressed allocation.
 
     Parameters
     ----------
     factors, composites, monthly_ret
         Outputs of `load_all_data()`.
-    factor_overrides : dict[str, float] | None
-        Replaces the LAST monthly observation of each named factor before the
-        per-asset return regressions run. Use to apply a stressed v9 factor
-        panel produced by `asset_allocation.ccar_translation.translate_ccar_to_v9`.
-    composite_overrides : dict[str, float] | None
-        Optional keys 'RL' / 'GR' / 'IR' replace the latest composite values
-        used for equity_share + leverage sizing. Sprint 2 v1 leaves this None
-        (composites held at current); Sprint 2.5 will derive composite stress
-        from the factor stress.
-    scenario_id, scenario_name : str | None
-        If provided, recorded under `out["scenario"]` for downstream UI display.
     quiet : bool
-        Suppress print output (precompute loops over 8+ scenarios).
+        Suppress print output.
 
     Returns
     -------
@@ -448,15 +415,6 @@ def compute_allocation_from_data(
     monthly_factors = factors.resample("ME").last().dropna(how="all")
     wf = monthly_factors.loc[:last_complete_month].copy()
 
-    # Factor overrides flow into the forecast via fit_per_asset_forecast's
-    # `forecast_X_override` parameter — we do NOT mutate the factor panel itself
-    # because that would change the regression's mean/std (calibration). The
-    # regression coefficients stay fit on real history; only the forecast
-    # feature vector gets stressed.
-    if factor_overrides:
-        applied = [k for k in factor_overrides if k in wf.columns]
-        log(f"    factor overrides will be applied to {len(applied)} factors at forecast time")
-
     monthly_comp = composites.resample("ME").last().dropna()
 
     # Forecast each asset
@@ -466,14 +424,12 @@ def compute_allocation_from_data(
         if tkr not in win.columns or win[tkr].dropna().shape[0] < 24: continue
         f = fit_per_asset_forecast(
             win[tkr], wf, per_bucket_factors(EQUITY[tkr]["name"]),
-            forecast_X_override=factor_overrides,
         )
         if f is not None: mu[tkr] = f
     for tkr in DEFENSIVE:
         if tkr not in win.columns or win[tkr].dropna().shape[0] < 24: continue
         f = fit_per_asset_forecast(
             win[tkr], wf, DEFENSIVE_FACTORS[tkr],
-            forecast_X_override=factor_overrides,
         )
         if f is not None: mu[tkr] = f
 
@@ -496,12 +452,6 @@ def compute_allocation_from_data(
     rl_now = float(comp_t["RL"])
     gr_now = float(comp_t["GR"])
     ir_now = float(comp_t["IR"])
-
-    # Apply composite overrides (stressed scenario)
-    if composite_overrides:
-        rl_now = float(composite_overrides.get("RL", rl_now))
-        gr_now = float(composite_overrides.get("GR", gr_now))
-        ir_now = float(composite_overrides.get("IR", ir_now))
 
     # Regime flip
     rl_3mo_change = 0.0
@@ -594,9 +544,6 @@ def compute_allocation_from_data(
             "vs_spy_cagr_diff": 0.0282,
         },
     }
-
-    if scenario_id or scenario_name:
-        out["scenario"] = {"id": scenario_id, "name": scenario_name}
 
     return out
 

@@ -8,8 +8,6 @@
       −32.1%, 2056 weeks, vs-SPY 11.16%/0.47/−54.6%) → derived from
       /macrotilt_engine_backtest.json (validation.asset_tilt and
       validation.spy and validation.n_weeks).
-   3. "Eight canned historical scenarios" → bound to the live count
-      from /scenario_definitions.json.
    4. "Six sections. Plain English." → bound to SECTIONS.length (now 8).
    5. VENDORS table → kept as labeled DESIGN CONFIG with explicit
       Path-A exception #1 note (Joe: "Optional: derive from
@@ -36,7 +34,6 @@ const SECTIONS = [
   ['tilt',      'Asset Tilt engine'],
   ['scanner',   'Trading scanner'],
   ['portfolio', 'Portfolio insights'],
-  ['scenarios', 'Scenario analysis'],
   ['freshness', 'Data freshness contract'],
   ['sources',   'Data sources & vendors'],
   ['change',    'Changelog'],
@@ -77,7 +74,6 @@ export default function MethodologyPage() {
   const liveIndicatorCount = active.length || '—';
 
   const [backtest, setBacktest] = useState(null);
-  const [scenarioCount, setScenarioCount] = useState(null);
   const [changelog, setChangelog] = useState(null);
   const [activeId, setActiveId] = useState(SECTIONS[0][0]);
 
@@ -86,10 +82,6 @@ export default function MethodologyPage() {
     fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setBacktest(j); })
-      .catch(() => {});
-    fetch('/scenario_definitions.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && Array.isArray(j?.scenarios)) setScenarioCount(j.scenarios.length); })
       .catch(() => {});
     fetch('/methodology_changelog.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
@@ -149,7 +141,6 @@ export default function MethodologyPage() {
   const validatedWeeks = nWeeks ? nWeeks.toLocaleString() : '—';
   const validatedRange = backtest?.calibration_label || '—';
 
-  const scenariosLiteral = scenarioCount != null ? scenarioCount : '—';
   const sectionsLiteral  = SECTIONS.length;
 
   return (
@@ -304,28 +295,9 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 05 — Scenarios */}
-        <article id="scenarios" className="me-section">
-          <div className="me-num">05</div>
-          <div>
-            <div className="mt-eyebrow">Scenario analysis</div>
-            <h2 className="me-h2">{scenariosLiteral} historical · plus 4-factor custom shocks</h2>
-            <p className="me-body-p">
-              The {scenariosLiteral} canned scenarios are reference facts about historical stress windows
-              (Black Monday '87 through AI Correction '24). Each is a fixed historical window with
-              frozen factor moves replayed against today's portfolio.
-            </p>
-            <p className="me-body-p">
-              <b>Custom shocks</b> use a correlated factor-move framework — moving one factor automatically
-              nudges the others by their historical covariance. Independent factor sliders are not exposed
-              to prevent uncalibrated shock combinations.
-            </p>
-          </div>
-        </article>
-
-        {/* 06 — Freshness */}
+        {/* 05 — Freshness */}
         <article id="freshness" className="me-section">
-          <div className="me-num">06</div>
+          <div className="me-num">05</div>
           <div>
             <div className="mt-eyebrow">Data freshness contract</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
@@ -383,9 +355,9 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 07 — Sources */}
+        {/* 06 — Sources */}
         <article id="sources" className="me-section">
-          <div className="me-num">07</div>
+          <div className="me-num">06</div>
           <div>
             <div className="mt-eyebrow">Data sources &amp; vendors</div>
             <h2 className="me-h2">Where every number comes from</h2>
@@ -416,9 +388,9 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 08 — Changelog */}
+        {/* 07 — Changelog */}
         <article id="change" className="me-section">
-          <div className="me-num">08</div>
+          <div className="me-num">07</div>
           <div>
             <div className="mt-eyebrow">Changelog</div>
             <h2 className="me-h2">What changed, when</h2>

@@ -56,9 +56,8 @@ const EDGES = [
   ['ihc', 'indicators'], ['ihc', 'methodology'],
   ['v11', 'asset_tilt'], 
   ['twoaxis', 'asset_tilt'], ['twoaxis', 'overview'], ['twoaxis', 'allocation'],
-  ['asset_tilt', 'allocation'], ['asset_tilt', 'home'], ['asset_tilt', 'methodology'], ['asset_tilt', 'scenarios'],
+  ['asset_tilt', 'allocation'], ['asset_tilt', 'home'], ['asset_tilt', 'methodology'],
   ['scanner', 'ops'], ['scanner', 'home'], ['scanner', 'methodology'],
-  ['stress', 'scenarios'],
   ['sectorperf', 'allocation'], ['sectorperf', 'indicators'],
 
   // Engines -> Workflows
@@ -124,7 +123,6 @@ const COL3_ENGINES = [
   { id: 'twoaxis', name: '2-axis engine', cd: 'Stress · yield direction' },
   { id: 'asset_tilt', name: 'Asset tilt allocator', cd: 'Daily · 8:15 AM ET' },
   { id: 'scanner', name: 'Trading opps scanner', cd: '3:30 / 5:30 / 9:30 ET' },
-  { id: 'stress', name: 'Scenario stress (CCAR)', cd: 'Weekly' },
   { id: 'sectorperf', name: 'Sector performance compute', cd: 'Daily' },
 ];
 
@@ -134,7 +132,6 @@ const COL4_SURFACES = [
   { id: 'allocation', name: 'Asset tilt', cd: 'Sector / IG / defensive' },
   { id: 'ops', name: 'Trading ops', cd: 'Named tickers' },
   { id: 'paper', name: 'Paper portfolio', cd: 'Alpaca mirror' },
-  { id: 'scenarios', name: 'Scenario analysis', cd: 'CCAR stress' },
   { id: 'indicators', name: 'All indicators', cd: '36-indicator grid' },
   { id: 'methodology', name: 'Methodology', cd: 'Calibration tables' },
 ];
@@ -396,17 +393,6 @@ const TILE_DETAILS = {
       workflows: ['Alpaca paper queue (Sleeve B)'],
     },
   },
-  stress: {
-    role: 'engine',
-    desc: 'Scenario Stress engine. Translates Fed CCAR US-16 variables to the v9 factor panel and runs eight historical CCAR-anchored scenarios to project stressed allocations.',
-    owner: 'Senior Quant',
-    output: 'scenario_allocations.json',
-    consumers: {
-      engines: [],
-      surfaces: ['Scenario analysis'],
-      workflows: [],
-    },
-  },
   sectorperf: {
     role: 'engine',
     desc: 'Sector Performance Compute. 1-month, 3-month, and trailing-twelve-month return plus TTM volatility for each of the 11 GICS sector ETFs.',
@@ -425,7 +411,6 @@ const TILE_DETAILS = {
   allocation: { role: 'surface', desc: 'Asset Tilt page. Live sector allocation (11 sectors + 25 industry groups), the defensive sleeve, the page stance, and the vs-SPY deltas.' },
   ops: { role: 'surface', desc: 'Trading Opportunities page. Filterable grid of every scanner-scored ticker with MacroTilt Score, band, sub-scores, and named drivers.' },
   paper: { role: 'surface', desc: 'Paper Portfolio page. Alpaca-mirrored paper account: $1M total with two sleeves. NAV, fills, and positions update on the morning open and EOD chains.' },
-  scenarios: { role: 'surface', desc: 'Scenario Analysis page. CCAR-anchored historical stress scenarios plus a bespoke shock builder; projects allocation drift under stressed factor moves.' },
   indicators: { role: 'surface', desc: 'All Indicators page. Full 36-indicator grid with per-indicator percentile, history, and drill-down panels.' },
   methodology: { role: 'surface', desc: "Methodology page. Documents every engine's framework, calibration tables, formulae, and back-test results. Updated in the same PR as any model change." },
 
@@ -557,7 +542,6 @@ function SectorAllocationDrawer() {
               <li>Asset tilt page</li>
               <li>Home (asset tilt tile)</li>
               <li>Methodology page</li>
-              <li>Scenario analysis</li>
             </ul>
           </div>
           <div>

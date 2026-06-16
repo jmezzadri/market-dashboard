@@ -35,8 +35,6 @@ FILE_FEEDS = {
     "cycle_board":      ("cycle_v2.json",          "top",        49,  True),
     "sector_perf":      ("sector_perf.json",       "top",        49,  True),
     "v10_allocation":   ("v10_allocation.json",    "top",        200, False),
-    "scenario_stress":  ("scenario_stress.json",   "top",        200, False),
-    "scenarios":        ("scenario_stress.json",   "top",        200, False),
     "cftc-cot":         ("cot_positioning.json",   "top",        432, False),  # weekly COT — full NY Fed dealer chain (manifest sla_basis)
     "indicator_history":("indicator_history.json", "max_series", 49,  True),
 }

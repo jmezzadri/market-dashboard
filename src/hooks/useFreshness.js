@@ -488,7 +488,7 @@ export function useFreshnessRollup() {
     if (!name && !id) continue;
     // Only count ACTIVELY-TRACKED feeds: ones with a pipeline_health row.
     // The manifest is also a data catalog and registers backend tables
-    // (accounts, transactions, bug_reports, scenario definitions, …) that
+    // (accounts, transactions, bug_reports, …) that
     // are not user-facing freshness-chipped feeds and have no tracking row;
     // grading those would report "no successful refresh" red and balloon the
     // count (38 vs the real handful). pipeline_health is keyed by the short

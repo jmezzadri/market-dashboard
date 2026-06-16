@@ -228,7 +228,6 @@ Subtract from realized portfolio return.
 
 ## What's NOT in v9.1 (parked for future iterations)
 
-- Scenario panel (interactive sliders for macro factors)
 - Historical allocation playback / "what was I holding in 2020?"
 - Style-factor overlay (value/momentum/quality/low-vol)
 - International equity exposure (EAFE, EM)

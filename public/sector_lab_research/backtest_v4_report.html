@@ -270,7 +270,7 @@ Dot-com (2000): out of scope — indicator history starts 2006.</p>
 <li><b>Use the v4 quartile-based bucket cutoffs.</b> Drop the eyeballed -0.5/0.5/1.5 scheme. Every bucket should fire at calibrated frequency.</li>
 <li><b>Disclose the walk-forward limitation honestly</b> on the Methodology tab. The in-sample edge is real; the out-of-sample edge is not stable. Users should treat the framework as a calibrated lens for thinking about risk, not a forecast.</li>
 <li><b>Future iteration (v5):</b> bootstrap the per-indicator AUC across rolling 5y windows. Keep only indicators where AUC ≥ 0.55 in ≥ 70% of rolling windows. This kills overfitting while preserving signal stability.</li>
-<li><b>Stress-testing layer (deferred):</b> calibrate the factor covariance matrix and ship the user-defined scenario tool. This sits on top of the v4 framework and uses v4's per-indicator scores as the input vector users perturb.</li>
+<li><b>Stress-testing layer (deferred):</b> calibrate the factor covariance matrix and ship the user-defined stress tool. This sits on top of the v4 framework and uses v4's per-indicator scores as the input vector users perturb.</li>
 </ol>
 <h2>Methodology appendix</h2>
 <p><b>Indicator panel:</b> 25 indicators across D / W / M / Q frequencies, history loaded from <code>indicator_history.json</code> (the same source the live App.jsx uses).</p>
