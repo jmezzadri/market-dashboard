@@ -47,7 +47,6 @@ const EDGES = [
   ['congress', 'scanner'],
   ['spdr', 'asset_tilt'],
   ['zh', 'commentary'],
-  ['broker', 'insights'],
 
   // Derived -> Engines
   ['rates', 'v11'], ['credit', 'v11'], ['liquidity', 'v11'], ['growth', 'v11'], ['valuation', 'v11'], ['positioning', 'v11'], ['positioning', 'twoaxis'],
@@ -107,7 +106,6 @@ const COL1_MACRO = [
   { id: 'zh', name: 'ZeroHedge premium', cd: 'Weekly' },
   { id: 'congress', name: 'Congress roster', cd: 'Monthly' },
   { id: 'fdic', name: 'FDIC HTM losses', cd: 'Quarterly', manual: true },
-  { id: 'broker', name: 'Broker CSV (Chase)', cd: 'Ad-hoc', manual: true },
 ];
 
 const COL2_DERIVED = [
@@ -135,7 +133,6 @@ const COL4_SURFACES = [
   { id: 'overview', name: 'Macro overview', cd: 'Five-domain dashboard' },
   { id: 'allocation', name: 'Asset tilt', cd: 'Sector / IG / defensive' },
   { id: 'ops', name: 'Trading ops', cd: 'Named tickers' },
-  { id: 'insights', name: 'Portfolio insights', cd: 'Real positions' },
   { id: 'paper', name: 'Paper portfolio', cd: 'Alpaca mirror' },
   { id: 'scenarios', name: 'Scenario analysis', cd: 'CCAR stress' },
   { id: 'indicators', name: 'All indicators', cd: '36-indicator grid' },
@@ -165,7 +162,6 @@ const VENDOR_BY_TILE = {
   zh:       'ZeroHedge',
   congress: 'GitHub public roster',
   fdic:     'FDIC',
-  broker:   null,
 };
 
 // ---------- Per-tile drawer content ----------
@@ -285,15 +281,6 @@ const TILE_DETAILS = {
     consumers: {
       engines: ['Indicator history compiler'],
       surfaces: ['Macro overview', 'All indicators (bank stress)'],
-      workflows: [],
-    },
-  },
-  broker: {
-    role: 'source',
-    desc: 'Chase J.P. Morgan transaction CSV uploads. Joe uploads broker statements ad-hoc to reconcile Portfolio Insights against the real account. Wash-sale handling matches broker-reported realized P&L.',
-    consumers: {
-      engines: [],
-      surfaces: ['Portfolio insights (positions, trade history, realized P&L)'],
       workflows: [],
     },
   },
@@ -437,7 +424,6 @@ const TILE_DETAILS = {
   overview: { role: 'surface', desc: 'Macro Overview page. The five-domain indicator backdrop — each indicator graded against its own trailing 3-year range — plus the stress band, the yield-direction band, and the regime label. (It does not read the cycle mechanism board.)' },
   allocation: { role: 'surface', desc: 'Asset Tilt page. Live sector allocation (11 sectors + 25 industry groups), the defensive sleeve, the page stance, and the vs-SPY deltas.' },
   ops: { role: 'surface', desc: 'Trading Opportunities page. Filterable grid of every scanner-scored ticker with MacroTilt Score, band, sub-scores, and named drivers.' },
-  insights: { role: 'surface', desc: "Portfolio Insights page. Joe's real positions, watchlist, trade history, accounts, and realized P&L — reconciled to broker statements." },
   paper: { role: 'surface', desc: 'Paper Portfolio page. Alpaca-mirrored paper account: $1M total with two sleeves. NAV, fills, and positions update on the morning open and EOD chains.' },
   scenarios: { role: 'surface', desc: 'Scenario Analysis page. CCAR-anchored historical stress scenarios plus a bespoke shock builder; projects allocation drift under stressed factor moves.' },
   indicators: { role: 'surface', desc: 'All Indicators page. Full 36-indicator grid with per-indicator percentile, history, and drill-down panels.' },
