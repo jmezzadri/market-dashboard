@@ -71,9 +71,13 @@ def state_for(pct):
 
 
 def fetch(ticker):
-    import requests
-    r = requests.get(f"{YH}/{ticker}", params={"range": RANGE, "interval": "1d"},
-                     headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
+    import requests, time as _t
+    # Full DAILY history via explicit date range. range="max" downsamples old
+    # data to monthly; period1/period2 with interval=1d returns true daily bars
+    # all the way back to the contract's Yahoo inception (~2000 for futures).
+    params = {"period1": 788918400, "period2": int(_t.time()) + 86400, "interval": "1d"}
+    r = requests.get(f"{YH}/{ticker}", params=params,
+                     headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
     r.raise_for_status()
     res = r.json()["chart"]["result"]
     if not res:
@@ -214,7 +218,9 @@ def run():
             if not pts:
                 raise RuntimeError("no completed-session bars")
             stored = (hist0.get(key) or {}).get("points") or []
-            allpts = _merge_points(stored, pts)   # full retained history (~20y)
+            # MKT_RESEED replaces with the clean daily pull (one-time, wipes any prior
+            # coarse/monthly data); normal runs merge-preserve so depth never regresses.
+            allpts = pts if os.environ.get("MKT_RESEED") else _merge_points(stored, pts)
             vals = [p[1] for p in allpts]
             freq = "D"
             thin = len(vals) < 60          # not enough history to rank yet
