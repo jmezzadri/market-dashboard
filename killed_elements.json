@@ -96,6 +96,16 @@
       "residue": [
         "DB-aware pass still needed (Joe must approve dropping data): tables accounts/positions/transactions/portfolio_history + their pg_cron daily snapshot + manifest elements portfolio-accounts/positions/transactions/portfolio_history. KEPT (shared): watchlist (Scanner), scenario-impact + ticker-betas (Scenario analysis)."
       ]
+    },
+    {
+      "id": "duplicate_data_keys_purge_2026-06-16",
+      "name": "Duplicate / residual indicator_history keys",
+      "killed": "2026-06-16",
+      "reason": "Purged 6 keys read by zero live surfaces: fx_dollar (dup of usd/DXY), hy_ig_ratio (dup of the deep hy_ig_etf the modal shows), and killed residue adv_dec/bank_unreal/buffett/naaim. Removed from the store, their producers, and the manifest together so they cannot regenerate.",
+      "status": "removed",
+      "residue": [
+        "ism tile still wired to the sparse 38-pt ism key instead of the deep ism_mfg (56y)/ism_svc (29y) — REWIRE, do not delete the deep series. Flagged by the new daily reconciler."
+      ]
     }
   ]
 }

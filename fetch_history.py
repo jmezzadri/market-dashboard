@@ -89,7 +89,6 @@ DIRECTION = {
     # New series added 2026-04-24 (PR feat/all-indicators-redesign-plus-new-data):
     "m2_yoy":"hw","fed_bs":"lw","rrp":"hw","bank_reserves":"lw","tga":"hw",
     "breakeven_10y":"hw","cfnai":"lw","cfnai_3ma":"lw","hy_ig_etf":"hw",
-    "adv_dec":"lw",  # breadth: LOW (narrow/declining) is worse
     "ust_10y":"hw","ust_2y":"hw","unrate":"hw","payrolls":"lw",  # 2026-06-05 data adds
 }
 
@@ -126,7 +125,6 @@ DAILY_FRESHNESS_SLA = {
     # 2026-05-27 after observing the actual publication cadence.
     "term_premium":  8,  # 2026-06-15: bumped 5->8; FRED obs genuinely lag the release date by ~5-8 trading days, so 5 false-flagged when our data already matched FRED's latest point
     "rrp":           2,  # FRED RRPONTSYD    (T+1 publication)
-    "adv_dec":       2,  # Supabase RPC over Polygon prices_eod (EOD T+1)
     "spx_index":     1,  # Yahoo ^GSPC (chart overlay series)
     "ndx_index":     1,  # Yahoo ^IXIC (chart overlay series)
     "dji_index":     1,  # Yahoo ^DJI  (chart overlay series)
@@ -1185,8 +1183,7 @@ def fetch_all():
             df = pd.concat([(hy * 100.0).rename("hy"),
                             ig_bps.rename("ig")], axis=1).dropna()
             ratio = (df["hy"] / df["ig"]).dropna()
-            result["hy_ig_ratio"] = {"freq": "D", "unit": "ratio",
-                                     "points": series_to_points(ratio, round_dp=2)}
+            pass  # hy_ig_ratio removed 2026-06-16 — duplicate of the deep hy_ig_etf; never displayed
 
     print("FRA-OIS (fra_ois) — modern proxy: SOFR - Fed Funds ...")
     sofr = safe_fred("SOFR")
