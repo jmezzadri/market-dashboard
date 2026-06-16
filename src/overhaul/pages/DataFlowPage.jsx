@@ -50,18 +50,12 @@ const EDGES = [
   ['broker', 'insights'],
 
   // Derived -> Engines
-  ['rates', 'v11'], ['rates', 'cv2'],
-  ['credit', 'v11'], ['credit', 'cv2'],
-  ['liquidity', 'v11'], ['liquidity', 'cv2'],
-  ['growth', 'v11'], ['growth', 'cv2'],
-  ['valuation', 'v11'], ['valuation', 'cv2'],
-  ['positioning', 'v11'], ['positioning', 'cv2'], ['positioning', 'twoaxis'],
+  ['rates', 'v11'], ['credit', 'v11'], ['liquidity', 'v11'], ['growth', 'v11'], ['valuation', 'v11'], ['positioning', 'v11'], ['positioning', 'twoaxis'],
   ['commodity', 'v11'],
 
   // Engines -> Surfaces
   ['ihc', 'indicators'], ['ihc', 'methodology'],
-  ['v11', 'asset_tilt'], ['v11', 'overview'], ['v11', 'home'], ['v11', 'methodology'],
-  ['cv2', 'overview'], ['cv2', 'indicators'],
+  ['v11', 'asset_tilt'], 
   ['twoaxis', 'asset_tilt'], ['twoaxis', 'overview'], ['twoaxis', 'allocation'],
   ['asset_tilt', 'allocation'], ['asset_tilt', 'home'], ['asset_tilt', 'methodology'], ['asset_tilt', 'scenarios'],
   ['scanner', 'ops'], ['scanner', 'home'], ['scanner', 'methodology'],
@@ -108,7 +102,6 @@ const COL1_MACRO = [
   { id: 'fred', name: 'FRED', cd: 'Daily · ~30 series' },
   { id: 'treasury', name: 'US Treasury', cd: 'Daily · 4 PM ET' },
   { id: 'ism', name: 'ISM PMI release', cd: 'Monthly', manual: true },
-  { id: 'naaim', name: 'NAAIM exposure', cd: 'Weekly' },
   { id: 'gdpnow', name: 'Atlanta Fed GDPNow', cd: 'Bi-weekly' },
   { id: 'multpl', name: 'multpl.com CAPE', cd: 'Monthly' },
   { id: 'zh', name: 'ZeroHedge premium', cd: 'Weekly' },
@@ -130,7 +123,6 @@ const COL2_DERIVED = [
 const COL3_ENGINES = [
   { id: 'ihc', name: 'Indicator history compiler', cd: 'Daily · 6 AM & 6 PM' },
   { id: 'v11', name: 'Cycle mechanism board', cd: 'Nightly · 6 macro scores' },
-  { id: 'cv2', name: 'Cycle board (horizon-aware)', cd: 'Daily + Sat weekly' },
   { id: 'twoaxis', name: '2-axis engine', cd: 'Stress · yield direction' },
   { id: 'asset_tilt', name: 'Asset tilt allocator', cd: 'Daily · 8:15 AM ET' },
   { id: 'scanner', name: 'Trading opps scanner', cd: '3:30 / 5:30 / 9:30 ET' },
@@ -140,7 +132,7 @@ const COL3_ENGINES = [
 
 const COL4_SURFACES = [
   { id: 'home', name: 'Home', cd: 'Tile dashboard' },
-  { id: 'overview', name: 'Macro overview', cd: 'Cycle board page' },
+  { id: 'overview', name: 'Macro overview', cd: 'Five-domain dashboard' },
   { id: 'allocation', name: 'Asset tilt', cd: 'Sector / IG / defensive' },
   { id: 'ops', name: 'Trading ops', cd: 'Named tickers' },
   { id: 'insights', name: 'Portfolio insights', cd: 'Real positions' },
@@ -247,16 +239,7 @@ const TILE_DETAILS = {
     desc: 'Monthly Purchasing Managers Index release. Currently scraped from TradingEconomics. Feeds the Growth cycle mechanism — and only the Growth mechanism — despite being a high-attention release.',
     consumers: {
       engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (Growth mechanism)', 'All indicators (ISM PMI)'],
-      workflows: [],
-    },
-  },
-  naaim: {
-    role: 'source',
-    desc: 'Weekly NAAIM Active-Manager Exposure Index — a positioning indicator scraped from naaim.org. Feeds the Positioning & Breadth mechanism.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (Positioning mechanism)', 'All indicators'],
+      surfaces: ['Macro overview', 'All indicators (ISM PMI)'],
       workflows: [],
     },
   },
@@ -265,7 +248,7 @@ const TILE_DETAILS = {
     desc: 'Atlanta Fed GDPNow nowcast, ingested via the FRED GDPNOW series. Refreshes bi-weekly when the Atlanta Fed publishes an update.',
     consumers: {
       engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (Growth mechanism)', 'All indicators'],
+      surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
   },
@@ -274,7 +257,7 @@ const TILE_DETAILS = {
     desc: 'Shiller CAPE ratio, scraped monthly from multpl.com with a curated anchor fallback for missed scrapes. Feeds the Valuation mechanism and the Equity Risk Premium derived indicator.',
     consumers: {
       engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (Valuation mechanism)', 'All indicators (CAPE, ERP)'],
+      surfaces: ['Macro overview', 'All indicators (CAPE, ERP)'],
       workflows: [],
     },
   },
@@ -301,7 +284,7 @@ const TILE_DETAILS = {
     desc: 'FDIC Quarterly Banking Profile — bank unrealized HTM losses. Manually updated quarterly via a curated anchor list because the underlying FDIC publication is PDF-based.',
     consumers: {
       engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (Credit mechanism)', 'All indicators (bank stress)'],
+      surfaces: ['Macro overview', 'All indicators (bank stress)'],
       workflows: [],
     },
   },
@@ -320,7 +303,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Six rates-and-curve derived indicators: 10Y-2Y slope, 10Y breakeven inflation, term premium, real Fed funds rate, 3-month Δ 10Y in bps, and 10Y yield 5-year percentile.',
     consumers: {
-      engines: ['Cycle mechanism board (Funding mechanism)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Funding mechanism)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -329,7 +312,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Six credit derived indicators: HY-IG spread, HY/IG ratio, HY/IG ETF proxy (HYG/LQD), commercial paper minus Fed funds spread, FRA-OIS modern proxy, and the CMDI distress proxy.',
     consumers: {
-      engines: ['Cycle mechanism board (Credit mechanism)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Credit mechanism)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -338,7 +321,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Four liquidity-and-money derived indicators: M2 year-over-year, Fed balance sheet year-over-year, three-year bank credit growth, and bank credit year-over-year.',
     consumers: {
-      engines: ['Cycle mechanism board (Liquidity & Policy mechanism)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Liquidity & Policy mechanism)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -347,7 +330,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Growth bucket: two derived indicators (CFNAI 3-month moving average, jobless claims 4-week moving average) plus the direct ISM Manufacturing and Services PMI prints and the Atlanta Fed GDPNow nowcast.',
     consumers: {
-      engines: ['Cycle mechanism board (Growth mechanism)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Growth mechanism)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -356,7 +339,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Two valuation derived indicators: the Buffett indicator (corporate equities divided by GDP) and the Equity Risk Premium (1/CAPE minus 10Y yield).',
     consumers: {
-      engines: ['Cycle mechanism board (Valuation mechanism)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Valuation mechanism)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -365,7 +348,7 @@ const TILE_DETAILS = {
     role: 'derived',
     desc: 'Three positioning-and-volatility derived indicators: MOVE 5-year percentile, NAAIM exposure index, and 63-day rolling equity-credit correlation (SPY vs HYG).',
     consumers: {
-      engines: ['Cycle mechanism board (Positioning & Breadth)', '2-axis engine (MOVE)', 'Cycle board (horizon-aware)'],
+      engines: ['Cycle mechanism board (Positioning & Breadth)', '2-axis engine (MOVE)'],
       surfaces: ['Macro overview', 'All indicators'],
       workflows: [],
     },
@@ -387,7 +370,7 @@ const TILE_DETAILS = {
     owner: 'Senior Quant + Lead Dev',
     output: 'indicator_history.json',
     consumers: {
-      engines: ['Cycle mechanism board', 'Cycle board (horizon-aware)', '2-axis engine'],
+      engines: ['Cycle mechanism board', '2-axis engine'],
       surfaces: ['All indicators (36-indicator grid)', 'Methodology'],
       workflows: [],
     },
@@ -399,18 +382,7 @@ const TILE_DETAILS = {
     output: 'cycle_board_snapshot.json',
     consumers: {
       engines: ['Asset tilt allocator'],
-      surfaces: ['Macro overview (the anchor)', 'Home (cycle tile)', 'Methodology'],
-      workflows: [],
-    },
-  },
-  cv2: {
-    role: 'engine',
-    desc: 'Horizon-aware variant of the cycle board. Computes per-indicator Spearman information coefficients against SPY forward returns at 1, 3, 6, and 12-month horizons; produces seven sub-composites and three headline gauges (Cycle & Value, Market Stress, Real Economy).',
-    owner: 'Senior Quant',
-    output: 'cycle_v2.json',
-    consumers: {
-      engines: [],
-      surfaces: ['Macro overview (horizon panel)', 'All indicators (sub-composites)'],
+      surfaces: ['Asset tilt (sector / industry-group tilts)'],
       workflows: [],
     },
   },
@@ -462,7 +434,7 @@ const TILE_DETAILS = {
 
   // -- Surfaces --
   home: { role: 'surface', desc: 'Landing tile dashboard. Summarises the regime, the asset tilt, the top trading opportunities, and any urgent freshness alerts on a single screen.' },
-  overview: { role: 'surface', desc: 'Macro Overview page. Anchored on the Cycle Mechanism Board — six mechanism scores, the stress band, the yield direction band, and the regime label.' },
+  overview: { role: 'surface', desc: 'Macro Overview page. The five-domain indicator backdrop — each indicator graded against its own trailing 3-year range — plus the stress band, the yield-direction band, and the regime label. (It does not read the cycle mechanism board.)' },
   allocation: { role: 'surface', desc: 'Asset Tilt page. Live sector allocation (11 sectors + 25 industry groups), the defensive sleeve, the page stance, and the vs-SPY deltas.' },
   ops: { role: 'surface', desc: 'Trading Opportunities page. Filterable grid of every scanner-scored ticker with MacroTilt Score, band, sub-scores, and named drivers.' },
   insights: { role: 'surface', desc: "Portfolio Insights page. Joe's real positions, watchlist, trade history, accounts, and realized P&L — reconciled to broker statements." },
@@ -511,6 +483,7 @@ function Tile({ tile, role, selected, lit, dim, status, onClick }) {
       className={cls}
       onClick={(e) => { e.stopPropagation(); onClick(tile.id); }}
       data-id={tile.id}
+      title={`${tile.name} — ${tile.cd}. Click to trace its full upstream and downstream chain.`}
     >
       <span className={dotCls} aria-hidden />
       <span className="df-tile-name">{tile.name}</span>
@@ -848,7 +821,7 @@ export default function DataFlowPage() {
     <div className="mt-pagebody mt-fade df-page">
       <section className="mt-pagehero">
         <div>
-          <div className="mt-eyebrow">Admin · Data</div>
+          <div className="mt-eyebrow">Data</div>
           <h1 className="mt-h1">
             End-to-end <i>data flow</i>.
           </h1>
@@ -858,6 +831,23 @@ export default function DataFlowPage() {
           </p>
         </div>
       </section>
+
+      <div className="df-legend-top" role="note" aria-label="Legend">
+        <div className="df-legend-grp">
+          <span className="df-legend-grp-h">Freshness</span>
+          <span><span className="df-dot df-dot--inline df-dot--g" />Within target</span>
+          <span><span className="df-dot df-dot--inline df-dot--a" />Overdue</span>
+          <span><span className="df-dot df-dot--inline df-dot--r" />Stale or failed</span>
+        </div>
+        <div className="df-legend-grp">
+          <span className="df-legend-grp-h">Tile type</span>
+          <span><span className="df-legpip df-legpip--auto" />Automated source</span>
+          <span><span className="df-legpip df-legpip--manual" />Manual / workflow</span>
+          <span><span className="df-legpip df-legpip--derived" />Derived indicator</span>
+          <span><span className="df-legpip df-legpip--surface" />Engine / surface</span>
+        </div>
+        <span className="df-legend-hint">Hover a tile for detail · click to trace its chain · click again to clear</span>
+      </div>
 
       <div className="df-flow" ref={flowRef} onClick={() => setSelectedId(null)}>
         <svg className="df-svg" ref={svgRef} />
@@ -894,14 +884,6 @@ export default function DataFlowPage() {
           </div>
 
         </div>
-      </div>
-
-      <div className="df-legend">
-        <span><span className="df-legpip df-legpip--auto" />Auto</span>
-        <span><span className="df-legpip df-legpip--manual" />Manual</span>
-        <span><span className="df-legpip df-legpip--derived" />Derived</span>
-        <span><span className="df-legpip df-legpip--surface" />Surface</span>
-        <span className="df-legend-hint">Tap a tile to trace · tap again to clear</span>
       </div>
 
       {drawerForSelection()}
@@ -941,6 +923,12 @@ export default function DataFlowPage() {
         .df-dot--r { background: var(--mt-down); }
         .df-dot--inline { position: static; display: inline-block; vertical-align: 1px; margin-right: 6px; }
 
+        .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px;
+          margin: 0 0 16px; padding: 10px 14px; background: var(--mt-surface-2);
+          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); font-size: 11.5px; color: var(--mt-ink-1); }
+        .df-legend-grp { display: flex; align-items: center; gap: 14px; }
+        .df-legend-grp > span { display: inline-flex; align-items: center; }
+        .df-legend-grp-h { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
         .df-legend { display: flex; gap: 16px; justify-content: flex-end; align-items: center;
           font-size: 11px; color: var(--mt-ink-2); margin: 12px 0 0; flex-wrap: wrap; }
         .df-legpip { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; }
