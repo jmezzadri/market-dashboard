@@ -1,0 +1,22 @@
+name: Data reconciler — flag duplicate / orphan / mis-wired series
+
+# Daily single-source-of-truth check on the data store. FLAGS (never deletes)
+# orphan series, tiles wired to a sparse key when a deeper one exists, duplicate
+# series, stale PENDING tags, and killed-feed residue. Goes red on a P1 so the
+# discrepancy surfaces the same day instead of weeks later. Added 2026-06-16.
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # daily 12:00 UTC (~08:00 ET)
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'public/indicator_history.json'
+      - 'public/data_manifest.json'
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/reconcile_data_store.py
