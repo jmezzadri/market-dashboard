@@ -78,24 +78,36 @@ jobs:
                           syms=[x for x in syms if 1<=len(x)<=6]
                           if len(syms)>=90: return syms
               raise RuntimeError("NDX membership unavailable from Invesco AND Wikipedia")
-          def breadth(tickers):
+          def breadth_counts(tickers, in_years=30, out_years=20):
               arr="ARRAY["+",".join("'"+t.replace("'","''")+"'" for t in tickers)+"]"
-              sql=f"""set statement_timeout='290s';
+              sql=f"""set statement_timeout='570s';
               with recursive px as (
                 select ticker,trade_date,close::float8 close,row_number() over(partition by ticker order by trade_date) rn
-                from public.prices_eod where ticker = ANY({arr}) and trade_date>=current_date-interval '5 years' and close is not null),
+                from public.prices_eod where ticker = ANY({arr}) and trade_date>=current_date-interval '{in_years} years' and close is not null),
               ema as (
                 select ticker,trade_date,close,rn,close e50,close e200 from px where rn=1
                 union all
                 select p.ticker,p.trade_date,p.close,p.rn, p.close*(2.0/51)+e.e50*(1-2.0/51), p.close*(2.0/201)+e.e200*(1-2.0/201)
                 from ema e join px p on p.ticker=e.ticker and p.rn=e.rn+1)
               select to_char(trade_date,'YYYY-MM-DD') d,
-                round(100.0*avg((close>e50)::int) filter(where rn>=50),1) p50,
-                round(100.0*avg((close>e200)::int) filter(where rn>=200),1) p200,
+                sum((close>e50)::int) filter(where rn>=50) a50,
+                count(*) filter(where rn>=50) n50,
+                sum((close>e200)::int) filter(where rn>=200) a200,
                 count(*) filter(where rn>=200) n200
-              from ema where trade_date>=current_date-interval '4 years'
+              from ema where trade_date>=current_date-interval '{out_years} years'
               group by trade_date order by trade_date"""
-              return mgmt(sql)
+              return mgmt(sql,t=590)
+          def breadth(tickers, batch=120):
+              # 2026-06-16: process members in batches and aggregate raw counts so the
+              # recursive EMA never exceeds the query timeout at the deepened 20y window.
+              # Mathematically identical to one query: per-date % = sum(above)/sum(members).
+              agg={}
+              for i in range(0,len(tickers),batch):
+                  for r in breadth_counts(tickers[i:i+batch]):
+                      cur=agg.setdefault(r['d'],[0,0,0,0])
+                      cur[0]+=int(r['a50'] or 0); cur[1]+=int(r['n50'] or 0)
+                      cur[2]+=int(r['a200'] or 0); cur[3]+=int(r['n200'] or 0)
+              return agg
           def stats(points,direction="lw",wy=3):
               s=pd.Series([p[1] for p in points],index=[pd.Timestamp(p[0]) for p in points]).sort_index()
               s=s[s.index>=s.index.max()-pd.Timedelta(days=365*wy)]
@@ -105,14 +117,17 @@ jobs:
           for code,memfn,k50,k200 in [("SPX",spy_members,"spx_above_50ema","spx_above_200ema"),("NDX",qqq_members,"ndx_above_50ema","ndx_above_200ema")]:
               try:
                   mem=memfn(); print(code,"members",len(mem))
-                  rows=breadth(mem)
-                  nmax=max(int(r['n200']) for r in rows)
-                  rows=[r for r in rows if int(r['n200'])>=0.85*nmax]   # drop partial days
-                  p50=[[r['d'],float(r['p50'])] for r in rows if r['p50'] is not None]
-                  p200=[[r['d'],float(r['p200'])] for r in rows if r['p200'] is not None]
+                  agg=breadth(mem); dates=sorted(agg)
+                  nmax=max((agg[d][3] for d in dates), default=0)
+                  p50=[]; p200=[]
+                  for d in dates:
+                      a50,n50,a200,n200=agg[d]
+                      if n200 < 0.85*nmax: continue
+                      if n50>0:  p50.append([d, round(100.0*a50/n50,1)])
+                      if n200>0: p200.append([d, round(100.0*a200/n200,1)])
                   out[k50]={"freq":"D","unit":"%","points":p50,"as_of":p50[-1][0],"stats":stats(p50)}
                   out[k200]={"freq":"D","unit":"%","points":p200,"as_of":p200[-1][0],"stats":stats(p200)}
-                  print(code,"latest %>50d",p50[-1],"%>200d",p200[-1])
+                  print(code,"days",len(p200),"range",p200[0][0],"->",p200[-1][0],"latest %>50d",p50[-1],"%>200d",p200[-1])
               except Exception as e:
                   print(code,"FAILED",repr(e))
           fn="public/indicator_history.json"; d=json.load(open(fn)); d.update(out)
