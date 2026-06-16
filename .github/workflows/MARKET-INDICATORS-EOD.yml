@@ -32,6 +32,10 @@ on:
         description: "One-time: seed ~25y monthly uranium history from IndexMundi"
         type: boolean
         default: false
+      reseed:
+        description: "One-time: replace commodity/FX series with a clean full daily pull"
+        type: boolean
+        default: false
 
 concurrency:
   group: market-indicators-eod
@@ -57,6 +61,7 @@ jobs:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MKT_SEED_URANIUM:          ${{ inputs.seed_uranium && '1' || '' }}
+          MKT_RESEED:                ${{ inputs.reseed && '1' || '' }}
         run: python3 scripts/fetch_market_indicators.py
       - name: Commit if updated
         run: |
