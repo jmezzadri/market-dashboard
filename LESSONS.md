@@ -620,6 +620,16 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+### 6.13 (2026-06-15) — Tooltips must be INSTANT; never use the native title attribute
+
+**What happened:** On the Data page I added hover tooltips using the HTML `title` attribute. The browser delays `title` tooltips ~1 second before showing them. Joe: "Tooltips aren't instant. This is (should be a hard rule). I cant keep correcting you on simple things like this."
+
+**Rule (HARD):** Every tooltip MacroTilt renders appears the instant the pointer is over the element — zero perceptible delay. NEVER use the native HTML `title` attribute for a tooltip (it has a built-in ~1s delay that cannot be removed). Use the site's `Tip` component (portal-rendered, shows on mouseEnter) or an instant CSS tooltip (a `:hover::after` with NO transition-delay). Any tooltip with a show-delay is a defect. When adding tooltips, hover one before claiming done and confirm it appears immediately.
+
+**Applies to:** All UI work. UX Designer + Lead Developer.
+
+---
+
 # 9 · RETIRED (archive — no longer binding; kept so the history isn't lost)
 
 - **2026-05-26 — "Site-overhaul brief lives on disk; read it before any redesign work."** Retired 2026-06-11: the overhaul shipped and became the default live site on 2026-05-30, and the page-by-page walk-through completed 2026-06-10. The entry's build-target instruction (the nested live folder) became actively wrong after the cutover — live source is the repo root. The design brief archive remains in the MacroTilt project folder's site-overhaul directory if ever needed. The surviving general principle — read the spec before redesign work — lives in 8.1.
