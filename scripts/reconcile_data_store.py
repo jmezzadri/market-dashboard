@@ -43,14 +43,15 @@ for k in store:
     if k in KILLED_KEYS:
         flags.append(('P1', f"killed feed '{k}' still has rows in the store — purge producer+key"))
 
-# 3) manifest indicator wired to a SPARSE key when a deeper sibling exists
+# 3) a sparse key whose deeper sibling sits unused — reconcile (NOT a displayed-tile claim:
+#    registered in the manifest != rendered on the site; decide wire-or-purge by hand)
 def npts(k): return len(store.get(k,{}).get('points',[]) or [])
 SIBLINGS = {'ism':['ism_mfg','ism_svc']}  # extend as discovered
 for k, sibs in SIBLINGS.items():
     if k in store:
         best = max(sibs, key=lambda s: npts(s)) if any(s in store for s in sibs) else None
         if best and npts(best) > npts(k) * 3:
-            flags.append(('P1', f"displayed '{k}' uses {npts(k)} pts but deeper '{best}' has {npts(best)} — rewire the tile to the deep series"))
+            flags.append(('P2', f"'{k}' stored sparse ({npts(k)} pts) while deeper '{best}' ({npts(best)} pts) sits unused, and '{k}' is not a displayed indicator — decide: wire ISM as a real indicator off the deep series, or purge the sparse key + manifest entry"))
 
 # 4) stale PENDING tags on live, deep series (>500 pts = clearly live)
 for k in pending:
