@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "generated_utc": "2026-06-16T18:25:41.254161Z",
+    "generated_utc": "2026-06-16T18:30:41.646044Z",
     "methodology": "ASSET_TILT_METHODOLOGY.md v1",
     "eval_window": {
       "start": "1996-06-07",
-      "end": "2026-06-16",
-      "days": 7554
+      "end": "2026-06-15",
+      "days": 7553
     },
     "sectors": [
       "XLK",
@@ -30,50 +30,51 @@
   },
   "sector_macro_betas": {
     "XLK": {
-      "realrate": 0.005905,
-      "oil": -0.009905
+      "realrate": 0.006,
+      "oil": -0.0097
     },
     "XLF": {
-      "tenY": -0.023374,
-      "realrate": -0.011433,
-      "dollar": 0.010411,
-      "oil": -0.014763
+      "tenY": -0.024365,
+      "realrate": -0.011923,
+      "dollar": 0.010215,
+      "oil": -0.014993
     },
     "XLE": {
-      "tenY": 0.002541,
-      "realrate": -0.002745
+      "tenY": 0.001491,
+      "realrate": -0.003105
     },
     "XLI": {
-      "oil": -0.000167
+      "dollar": -0.000275,
+      "oil": 1.6e-05
     },
     "XLY": {
-      "tenY": -0.026606,
-      "curve": 0.009432,
-      "anfci": 0.008174,
-      "credit": 0.010692,
-      "coppergold": -0.021564
+      "tenY": -0.02671,
+      "curve": 0.009376,
+      "anfci": 0.008143,
+      "credit": 0.010686,
+      "coppergold": -0.021308
     },
     "XLP": {
-      "oil": 0.022387
+      "oil": 0.02267
     },
     "XLV": {
-      "dollar": -0.011276,
-      "oil": 0.017777
+      "dollar": -0.011474,
+      "oil": 0.017786
     },
     "XLU": {
-      "tenY": 0.020387,
-      "curve": 0.005563,
-      "realrate": 0.004957,
-      "dollar": -0.005395,
-      "oil": 0.0156
+      "tenY": 0.020749,
+      "curve": 0.005145,
+      "realrate": 0.005196,
+      "dollar": -0.005217,
+      "oil": 0.015627
     },
     "XLB": {
-      "tenY": -0.017651,
-      "curve": 0.002434,
-      "breakeven": -0.009594,
-      "anfci": 0.010316,
-      "credit": 0.00652,
-      "coppergold": -0.01964
+      "tenY": -0.018276,
+      "curve": 0.002527,
+      "breakeven": -0.009647,
+      "anfci": 0.010239,
+      "credit": 0.006596,
+      "coppergold": -0.019453
     },
     "XLRE": {},
     "XLC": {}
@@ -140,7 +141,7 @@
       },
       {
         "asof": "2010-01-01",
-        "betas_kept": 37
+        "betas_kept": 38
       },
       {
         "asof": "2011-01-01",
@@ -152,19 +153,19 @@
       },
       {
         "asof": "2013-01-01",
-        "betas_kept": 44
-      },
-      {
-        "asof": "2014-01-01",
         "betas_kept": 42
       },
       {
+        "asof": "2014-01-01",
+        "betas_kept": 43
+      },
+      {
         "asof": "2015-01-01",
-        "betas_kept": 39
+        "betas_kept": 40
       },
       {
         "asof": "2016-01-01",
-        "betas_kept": 43
+        "betas_kept": 44
       },
       {
         "asof": "2017-01-01",
@@ -176,11 +177,11 @@
       },
       {
         "asof": "2019-01-01",
-        "betas_kept": 42
+        "betas_kept": 43
       },
       {
         "asof": "2020-01-01",
-        "betas_kept": 42
+        "betas_kept": 41
       },
       {
         "asof": "2021-01-01",
@@ -200,37 +201,37 @@
       },
       {
         "asof": "2025-01-01",
-        "betas_kept": 54
+        "betas_kept": 53
       },
       {
         "asof": "2026-01-01",
-        "betas_kept": 53
+        "betas_kept": 54
       }
     ],
     "most_recent_asof": "2026-01-01",
-    "most_recent_kept": 53,
+    "most_recent_kept": 54,
     "total_sector_factor_pairs": 99,
     "first_nonzero_asof": "2010-01-01"
   },
   "stress_signal": "blend",
   "stress_cutpoints": {
-    "risk_on_max": -0.173,
-    "watch_max": 2.106,
+    "risk_on_max": -0.1732,
+    "watch_max": 2.1062,
     "risk_on_pct": 0.45,
     "watch_pct": 0.95
   },
   "stress_auc": {
     "MOVE_only": {
-      "h1": 0.6481,
-      "h3": 0.6461,
-      "h6": 0.6703,
-      "h12": 0.6907
+      "h1": 0.6473,
+      "h3": 0.6397,
+      "h6": 0.6712,
+      "h12": 0.6906
     },
     "blend": {
-      "h1": 0.7269,
-      "h3": 0.7121,
-      "h6": 0.7086,
-      "h12": 0.6566
+      "h1": 0.7276,
+      "h3": 0.7136,
+      "h6": 0.7093,
+      "h12": 0.6553
     }
   },
   "rate_regime_bands": {
@@ -267,151 +268,151 @@
   "validation": {
     "_betas_used": "point-in-time expanding (annually re-estimated); NOT full-sample",
     "tilted_gross": {
-      "cagr": 0.0851443983734792,
-      "sharpe": 0.5573245556619781,
-      "maxdd": -0.4928221614151359,
-      "n": 7554
+      "cagr": 0.07196632498923616,
+      "sharpe": 0.48639819307321064,
+      "maxdd": -0.504076552785709,
+      "n": 7553
     },
     "tilted_net": {
-      "cagr": 0.08449353023393491,
-      "sharpe": 0.5538707682985984,
-      "maxdd": -0.49319795354462537,
-      "n": 7554
+      "cagr": 0.07133116874509637,
+      "sharpe": 0.4829925591426039,
+      "maxdd": -0.5044400316946456,
+      "n": 7553
     },
     "engine_net": {
-      "cagr": 0.08541559716257052,
-      "sharpe": 0.6806287599557898,
-      "maxdd": -0.37106354647040607,
-      "n": 7554
+      "cagr": 0.07278867441746173,
+      "sharpe": 0.5919806133766716,
+      "maxdd": -0.38345313402674375,
+      "n": 7553
     },
     "spy": {
-      "cagr": 0.10260709884034158,
-      "sharpe": 0.6026848729128153,
-      "maxdd": -0.5518946803492013,
-      "n": 7554
+      "cagr": 0.08381984011416166,
+      "sharpe": 0.5130405444195781,
+      "maxdd": -0.5647366900495072,
+      "n": 7553
     },
     "equal_weight": {
-      "cagr": 0.09303919667024796,
-      "sharpe": 0.5825538370721797,
-      "maxdd": -0.5253054945638618,
-      "n": 6911
+      "cagr": 0.0713838306414627,
+      "sharpe": 0.4714323027815393,
+      "maxdd": -0.5392223823586825,
+      "n": 6910
     },
-    "weekly_turnover": 0.023,
-    "cost_drag_annual": 0.00065,
+    "weekly_turnover": 0.0227,
+    "cost_drag_annual": 0.00064,
     "avg_equity_pct": 0.8747,
-    "defensive_2022_total": -0.0335,
-    "naive_tlt_2022_total": -0.3123,
+    "defensive_2022_total": -0.0427,
+    "naive_tlt_2022_total": -0.3282,
     "defensive_survived_2022": true,
     "gates": {
       "tilted_sharpe_gt_spy": false,
-      "tilted_sharpe_gt_ew": false,
+      "tilted_sharpe_gt_ew": true,
       "tilted_maxdd_le_spy": true,
       "engine_sharpe_gt_spy": true,
       "engine_maxdd_le_spy": true,
-      "calibration_betas_sign_stable_kept": 28,
+      "calibration_betas_sign_stable_kept": 29,
       "calibration_betas_total": 99,
-      "backtest_betas_pit_kept_latest": 53
+      "backtest_betas_pit_kept_latest": 54
     }
   },
   "per_sleeve_auc": {
     "macro": {
-      "h1": 0.5151,
-      "h3": 0.5204,
-      "h6": 0.532,
-      "h12": 0.5418
+      "h1": 0.5155,
+      "h3": 0.5233,
+      "h6": 0.5354,
+      "h12": 0.5447
     },
     "momentum": {
-      "h1": 0.5082,
-      "h3": 0.5105,
-      "h6": 0.5147,
-      "h12": 0.5057
+      "h1": 0.5118,
+      "h3": 0.5161,
+      "h6": 0.52,
+      "h12": 0.5136
     },
     "relstr": {
-      "h1": 0.4963,
-      "h3": 0.5095,
-      "h6": 0.5249,
-      "h12": 0.5122
+      "h1": 0.4991,
+      "h3": 0.5129,
+      "h6": 0.5285,
+      "h12": 0.518
     }
   },
   "per_sleeve_auc_note": "AUC computed on the full-sample deployed (calibration) betas \u2014 a diagnostic of the deployed model's factor loadings, not a tradable backtest.",
   "per_factor_auc": {
     "tenY": {
-      "h1": 0.5363,
-      "h3": 0.5442,
-      "h6": 0.5559,
-      "h12": 0.5592
+      "h1": 0.5421,
+      "h3": 0.5523,
+      "h6": 0.5671,
+      "h12": 0.5727
     },
     "curve": {
-      "h1": 0.5487,
-      "h3": 0.5774,
-      "h6": 0.5896,
-      "h12": 0.5781
+      "h1": 0.5492,
+      "h3": 0.5746,
+      "h6": 0.5874,
+      "h12": 0.5787
     },
     "realrate": {
-      "h1": 0.502,
-      "h3": 0.5001,
-      "h6": 0.498,
-      "h12": 0.5017
+      "h1": 0.503,
+      "h3": 0.5039,
+      "h6": 0.5033,
+      "h12": 0.498
     },
     "breakeven": {
-      "h1": 0.5257,
-      "h3": 0.5537,
-      "h6": 0.5882,
-      "h12": 0.5261
+      "h1": 0.5249,
+      "h3": 0.5528,
+      "h6": 0.591,
+      "h12": 0.5335
     },
     "anfci": {
-      "h1": 0.5459,
-      "h3": 0.5399,
-      "h6": 0.5483,
-      "h12": 0.5643
+      "h1": 0.5439,
+      "h3": 0.5384,
+      "h6": 0.5453,
+      "h12": 0.5535
     },
     "credit": {
-      "h1": 0.615,
-      "h3": 0.6613,
-      "h6": 0.6882,
-      "h12": 0.6891
+      "h1": 0.6156,
+      "h3": 0.6595,
+      "h6": 0.6891,
+      "h12": 0.6926
     },
     "dollar": {
-      "h1": 0.5377,
-      "h3": 0.5602,
-      "h6": 0.5997,
-      "h12": 0.6399
+      "h1": 0.5435,
+      "h3": 0.5596,
+      "h6": 0.5911,
+      "h12": 0.6155
     },
     "coppergold": {
-      "h1": 0.5205,
-      "h3": 0.5468,
-      "h6": 0.5636,
-      "h12": 0.545
+      "h1": 0.5204,
+      "h3": 0.5454,
+      "h6": 0.5647,
+      "h12": 0.5469
     },
     "oil": {
-      "h1": 0.5211,
-      "h3": 0.5298,
-      "h6": 0.5469,
-      "h12": 0.5632
+      "h1": 0.5254,
+      "h3": 0.5426,
+      "h6": 0.5548,
+      "h12": 0.5608
     }
   },
   "sleeve_correlation": {
     "macro~momentum": {
-      "pearson": 0.028,
-      "spearman": 0.021
+      "pearson": 0.044,
+      "spearman": 0.034
     },
     "macro~relstr": {
-      "pearson": 0.031,
-      "spearman": 0.027
+      "pearson": 0.043,
+      "spearman": 0.037
     },
     "momentum~relstr": {
-      "pearson": 0.716,
-      "spearman": 0.703
+      "pearson": 0.721,
+      "spearman": 0.708
     }
   },
   "beta_sign_stability": {
     "calibration_full_sample": {
-      "kept": 28,
-      "dropped": 71,
+      "kept": 29,
+      "dropped": 70,
       "total": 99
     },
     "backtest_point_in_time_latest": {
-      "kept": 53,
+      "kept": 54,
       "total": 99,
       "asof": "2026-01-01"
     }
