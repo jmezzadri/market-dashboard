@@ -4,6 +4,11 @@ name: DEPLOY-EDGE-FUNCTION
 # Created 2026-06-12: the freshness watchdog needed a fix and there was NO
 # deterministic deploy path in the repo — function code in git could silently
 # diverge from what runs in production. Dispatch-only.
+#
+# no_verify_jwt: set "true" for internal functions invoked by pg_cron / pg_net
+# with a non-JWT bearer (e.g. pipeline-health-check). Without it, supabase CLI
+# defaults verify_jwt=true and the API gateway 401s every cron invocation, so
+# the function silently stops running on schedule (2026-06-16 incident).
 
 on:
   workflow_dispatch:
@@ -11,6 +16,10 @@ on:
       function_name:
         description: "Folder name under supabase/functions/"
         required: true
+      no_verify_jwt:
+        description: "Deploy without JWT verification (internal cron-invoked functions only)"
+        required: false
+        default: "false"
 
 jobs:
   deploy:
@@ -25,5 +34,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
+          FLAGS=""
+          if [ "${{ github.event.inputs.no_verify_jwt }}" = "true" ]; then
+            FLAGS="--no-verify-jwt"
+            echo "Deploying with --no-verify-jwt (internal cron-invoked function)."
+          fi
           supabase functions deploy "${{ github.event.inputs.function_name }}" \
-            --project-ref yqaqqzseepebrocgibcw
+            --project-ref yqaqqzseepebrocgibcw $FLAGS
