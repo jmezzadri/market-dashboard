@@ -29,9 +29,9 @@ jobs:
         # 2026-05-26 to 2026-06-10 skipped and this feed silently flatlined
         # while reporting green. Two rules now decide whether this fire runs:
         #   1. WINDOW — run only if the current ET hour is inside [EXPECTED,
-        #      EXPECTED+4]. Late cron delivery is tolerated; the wrong-DST
+        #      EXPECTED+9]. Late cron delivery is tolerated; the wrong-DST
         #      cron line (1h early in winter) is still rejected; anything
-        #      more than 4h late is abandoned to tomorrow's slot.
+        #      more than 9h late is abandoned to tomorrow's slot.
         #   2. LEDGER — skip if api_usage_log already holds a success row for
         #      this feed since ET midnight (every real run writes one on
         #      completion). This is what prevents a double-run when both DST
@@ -48,7 +48,7 @@ jobs:
           EXPECTED=6
           SOURCE='short_interest'
           ET_HOUR=$(TZ=America/New_York date +%-H)
-          LO=$EXPECTED; HI=$((EXPECTED+4))
+          LO=$EXPECTED; HI=$((EXPECTED+9))
           if [ "$ET_HOUR" -lt "$LO" ] || [ "$ET_HOUR" -gt "$HI" ]; then
             echo "::notice::ET hour $ET_HOUR is outside the run window ${LO}:00-${HI}:59. Skipping."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
