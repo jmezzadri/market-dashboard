@@ -1,0 +1,616 @@
+{
+  "as_of": "2026-06-15",
+  "last_pull": "2026-06-16T18:59:33.369318+00:00",
+  "engine": {
+    "stress_zone": "Risk-On",
+    "stress_value": -0.686,
+    "equity_pct": 100,
+    "rate_regime": "neutral",
+    "rate_3m_change_pctile": 61.5,
+    "defensive_sleeve": {
+      "BIL": 0.34,
+      "GLD": 0.33,
+      "IEF": 0.33
+    },
+    "positioning_read": "100% equity (Risk-On); when defensive, neutral sleeve"
+  },
+  "sectors": [
+    {
+      "sector": "Technology",
+      "etf": "XLK",
+      "cap_weight": 0.315,
+      "active_tilt_pct": 3.36,
+      "target_weight": 0.3486,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "real rates",
+            "contribution": 0.007,
+            "direction": "favors"
+          },
+          {
+            "factor": "oil",
+            "contribution": -0.0062,
+            "direction": "weighs on"
+          }
+        ],
+        "macro_z": -0.29,
+        "momentum_z": 2.57,
+        "relstr_z": 2.47
+      }
+    },
+    {
+      "sector": "Consumer Staples",
+      "etf": "XLP",
+      "cap_weight": 0.058,
+      "active_tilt_pct": 2.27,
+      "target_weight": 0.0807,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "oil",
+            "contribution": 0.0146,
+            "direction": "favors"
+          }
+        ],
+        "macro_z": 1.91,
+        "momentum_z": -0.53,
+        "relstr_z": -0.23
+      }
+    },
+    {
+      "sector": "Materials",
+      "etf": "XLB",
+      "cap_weight": 0.019,
+      "active_tilt_pct": 2.05,
+      "target_weight": 0.0395,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "copper/gold",
+            "contribution": 0.0192,
+            "direction": "favors"
+          },
+          {
+            "factor": "10-year yield",
+            "contribution": 0.0083,
+            "direction": "favors"
+          },
+          {
+            "factor": "credit spread",
+            "contribution": -0.0071,
+            "direction": "weighs on"
+          }
+        ],
+        "macro_z": 1.06,
+        "momentum_z": 0.23,
+        "relstr_z": 0.41
+      }
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "etf": "XLY",
+      "cap_weight": 0.103,
+      "active_tilt_pct": 1.83,
+      "target_weight": 0.1213,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "copper/gold",
+            "contribution": 0.021,
+            "direction": "favors"
+          },
+          {
+            "factor": "10-year yield",
+            "contribution": 0.0121,
+            "direction": "favors"
+          },
+          {
+            "factor": "credit spread",
+            "contribution": -0.0114,
+            "direction": "weighs on"
+          }
+        ],
+        "macro_z": 1.72,
+        "momentum_z": -0.51,
+        "relstr_z": -0.48
+      }
+    },
+    {
+      "sector": "Industrials",
+      "etf": "XLI",
+      "cap_weight": 0.082,
+      "active_tilt_pct": -0.14,
+      "target_weight": 0.0806,
+      "stance": "Neutral",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "US dollar",
+            "contribution": -0.0003,
+            "direction": "weighs on"
+          },
+          {
+            "factor": "oil",
+            "contribution": 0.0,
+            "direction": "favors"
+          }
+        ],
+        "macro_z": -0.46,
+        "momentum_z": 0.41,
+        "relstr_z": 0.32
+      }
+    },
+    {
+      "sector": "Energy",
+      "etf": "XLE",
+      "cap_weight": 0.036,
+      "active_tilt_pct": -0.82,
+      "target_weight": 0.0278,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "real rates",
+            "contribution": -0.0036,
+            "direction": "weighs on"
+          },
+          {
+            "factor": "10-year yield",
+            "contribution": -0.0007,
+            "direction": "weighs on"
+          }
+        ],
+        "macro_z": -1.1,
+        "momentum_z": 0.86,
+        "relstr_z": 0.17
+      }
+    },
+    {
+      "sector": "Real Estate",
+      "etf": "XLRE",
+      "cap_weight": 0.022,
+      "active_tilt_pct": -0.91,
+      "target_weight": 0.0129,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [],
+        "macro_z": -0.41,
+        "momentum_z": -0.41,
+        "relstr_z": 0.08
+      }
+    },
+    {
+      "sector": "Financials",
+      "etf": "XLF",
+      "cap_weight": 0.13,
+      "active_tilt_pct": -1.59,
+      "target_weight": 0.1141,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "real rates",
+            "contribution": -0.014,
+            "direction": "weighs on"
+          },
+          {
+            "factor": "US dollar",
+            "contribution": 0.0125,
+            "direction": "favors"
+          },
+          {
+            "factor": "10-year yield",
+            "contribution": 0.0111,
+            "direction": "favors"
+          }
+        ],
+        "macro_z": -0.42,
+        "momentum_z": -0.83,
+        "relstr_z": -0.4
+      }
+    },
+    {
+      "sector": "Communication Services",
+      "etf": "XLC",
+      "cap_weight": 0.095,
+      "active_tilt_pct": -1.83,
+      "target_weight": 0.0767,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [],
+        "macro_z": -0.41,
+        "momentum_z": -0.66,
+        "relstr_z": -0.98
+      }
+    },
+    {
+      "sector": "Utilities",
+      "etf": "XLU",
+      "cap_weight": 0.025,
+      "active_tilt_pct": -2.1,
+      "target_weight": 0.004,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "oil",
+            "contribution": 0.0101,
+            "direction": "favors"
+          },
+          {
+            "factor": "10-year yield",
+            "contribution": -0.0094,
+            "direction": "weighs on"
+          },
+          {
+            "factor": "US dollar",
+            "contribution": -0.0064,
+            "direction": "weighs on"
+          }
+        ],
+        "macro_z": -0.76,
+        "momentum_z": -0.58,
+        "relstr_z": -0.71
+      }
+    },
+    {
+      "sector": "Health Care",
+      "etf": "XLV",
+      "cap_weight": 0.105,
+      "active_tilt_pct": -2.12,
+      "target_weight": 0.0838,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "macro_top": [
+          {
+            "factor": "US dollar",
+            "contribution": -0.014,
+            "direction": "weighs on"
+          },
+          {
+            "factor": "oil",
+            "contribution": 0.0114,
+            "direction": "favors"
+          }
+        ],
+        "macro_z": -0.83,
+        "momentum_z": -0.55,
+        "relstr_z": -0.63
+      }
+    }
+  ],
+  "industry_groups": [
+    {
+      "group": "Semiconductors (SOXX)",
+      "etf": "SOXX",
+      "parent_sector": "Technology",
+      "active_tilt_pct": 4.09,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.29,
+        "momentum_z": 2.67,
+        "relstr_z": 3.24
+      }
+    },
+    {
+      "group": "Semiconductors",
+      "etf": "SMH",
+      "parent_sector": "Technology",
+      "active_tilt_pct": 2.9,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.29,
+        "momentum_z": 2.04,
+        "relstr_z": 2.24
+      }
+    },
+    {
+      "group": "Metals & Mining",
+      "etf": "XME",
+      "parent_sector": "Materials",
+      "active_tilt_pct": 2.15,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": 1.06,
+        "momentum_z": 0.41,
+        "relstr_z": -0.21
+      }
+    },
+    {
+      "group": "Retail",
+      "etf": "XRT",
+      "parent_sector": "Consumer Discretionary",
+      "active_tilt_pct": 2.06,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": 1.72,
+        "momentum_z": -0.76,
+        "relstr_z": -0.53
+      }
+    },
+    {
+      "group": "Homebuilders (XHB)",
+      "etf": "XHB",
+      "parent_sector": "Consumer Discretionary",
+      "active_tilt_pct": 1.98,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": 1.72,
+        "momentum_z": -0.83,
+        "relstr_z": -0.58
+      }
+    },
+    {
+      "group": "Homebuilders",
+      "etf": "ITB",
+      "parent_sector": "Consumer Discretionary",
+      "active_tilt_pct": 1.69,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": 1.72,
+        "momentum_z": -1.03,
+        "relstr_z": -0.76
+      }
+    },
+    {
+      "group": "Gold Miners",
+      "etf": "GDX",
+      "parent_sector": "Materials",
+      "active_tilt_pct": 1.25,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": 1.06,
+        "momentum_z": -0.06,
+        "relstr_z": -0.97
+      }
+    },
+    {
+      "group": "Telecom",
+      "etf": "XTL",
+      "parent_sector": "Industrials",
+      "active_tilt_pct": 0.94,
+      "stance": "Overweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.46,
+        "momentum_z": 1.27,
+        "relstr_z": 0.71
+      }
+    },
+    {
+      "group": "Cybersecurity",
+      "etf": "CIBR",
+      "parent_sector": "Technology",
+      "active_tilt_pct": -0.33,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.29,
+        "momentum_z": -0.32,
+        "relstr_z": 0.35
+      }
+    },
+    {
+      "group": "Infrastructure",
+      "etf": "PAVE",
+      "parent_sector": "Industrials",
+      "active_tilt_pct": -0.74,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.46,
+        "momentum_z": -0.14,
+        "relstr_z": -0.04
+      }
+    },
+    {
+      "group": "Airlines",
+      "etf": "JETS",
+      "parent_sector": "Industrials",
+      "active_tilt_pct": -0.87,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.46,
+        "momentum_z": -0.33,
+        "relstr_z": 0.0
+      }
+    },
+    {
+      "group": "Transports",
+      "etf": "IYT",
+      "parent_sector": "Industrials",
+      "active_tilt_pct": -0.89,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.46,
+        "momentum_z": -0.3,
+        "relstr_z": -0.07
+      }
+    },
+    {
+      "group": "Aerospace & Defense",
+      "etf": "XAR",
+      "parent_sector": "Industrials",
+      "active_tilt_pct": -0.92,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.46,
+        "momentum_z": -0.18,
+        "relstr_z": -0.27
+      }
+    },
+    {
+      "group": "Oil Services",
+      "etf": "OIH",
+      "parent_sector": "Energy",
+      "active_tilt_pct": -1.0,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -1.1,
+        "momentum_z": 0.61,
+        "relstr_z": 0.22
+      }
+    },
+    {
+      "group": "Regional Banks",
+      "etf": "KRE",
+      "parent_sector": "Financials",
+      "active_tilt_pct": -1.07,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.42,
+        "momentum_z": -0.45,
+        "relstr_z": -0.25
+      }
+    },
+    {
+      "group": "Solar",
+      "etf": "TAN",
+      "parent_sector": "Energy",
+      "active_tilt_pct": -1.1,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -1.1,
+        "momentum_z": 0.62,
+        "relstr_z": 0.05
+      }
+    },
+    {
+      "group": "Banks",
+      "etf": "KBE",
+      "parent_sector": "Financials",
+      "active_tilt_pct": -1.14,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.42,
+        "momentum_z": -0.51,
+        "relstr_z": -0.29
+      }
+    },
+    {
+      "group": "Biotech",
+      "etf": "XBI",
+      "parent_sector": "Health Care",
+      "active_tilt_pct": -1.25,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.83,
+        "momentum_z": 0.15,
+        "relstr_z": -0.27
+      }
+    },
+    {
+      "group": "Insurance",
+      "etf": "KIE",
+      "parent_sector": "Financials",
+      "active_tilt_pct": -1.73,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.42,
+        "momentum_z": -0.92,
+        "relstr_z": -0.66
+      }
+    },
+    {
+      "group": "Software",
+      "etf": "IGV",
+      "parent_sector": "Technology",
+      "active_tilt_pct": -1.84,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.29,
+        "momentum_z": -1.22,
+        "relstr_z": -0.8
+      }
+    },
+    {
+      "group": "Biotech (IBB)",
+      "etf": "IBB",
+      "parent_sector": "Health Care",
+      "active_tilt_pct": -1.94,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -0.83,
+        "momentum_z": -0.39,
+        "relstr_z": -0.63
+      }
+    },
+    {
+      "group": "Oil & Gas E&P",
+      "etf": "XOP",
+      "parent_sector": "Energy",
+      "active_tilt_pct": -2.25,
+      "stance": "Underweight",
+      "factor_breakdown": {
+        "parent_macro_z": -1.1,
+        "momentum_z": -0.33,
+        "relstr_z": -0.48
+      }
+    }
+  ],
+  "validation": {
+    "_betas_used": "point-in-time expanding (annually re-estimated); NOT full-sample",
+    "tilted_gross": {
+      "cagr": 0.07196632498923616,
+      "sharpe": 0.48639819307321064,
+      "maxdd": -0.504076552785709,
+      "n": 7553
+    },
+    "tilted_net": {
+      "cagr": 0.07133116874509637,
+      "sharpe": 0.4829925591426039,
+      "maxdd": -0.5044400316946456,
+      "n": 7553
+    },
+    "engine_net": {
+      "cagr": 0.07278867441746173,
+      "sharpe": 0.5919806133766716,
+      "maxdd": -0.38345313402674375,
+      "n": 7553
+    },
+    "spy": {
+      "cagr": 0.08381984011416166,
+      "sharpe": 0.5130405444195781,
+      "maxdd": -0.5647366900495072,
+      "n": 7553
+    },
+    "equal_weight": {
+      "cagr": 0.0713838306414627,
+      "sharpe": 0.4714323027815393,
+      "maxdd": -0.5392223823586825,
+      "n": 6910
+    },
+    "weekly_turnover": 0.0227,
+    "cost_drag_annual": 0.00064,
+    "avg_equity_pct": 0.8747,
+    "defensive_2022_total": -0.0427,
+    "naive_tlt_2022_total": -0.3282,
+    "defensive_survived_2022": true,
+    "gates": {
+      "tilted_sharpe_gt_spy": false,
+      "tilted_sharpe_gt_ew": true,
+      "tilted_maxdd_le_spy": true,
+      "engine_sharpe_gt_spy": true,
+      "engine_maxdd_le_spy": true,
+      "calibration_betas_sign_stable_kept": 29,
+      "calibration_betas_total": 99,
+      "backtest_betas_pit_kept_latest": 54
+    }
+  },
+  "methodology": {
+    "sleeves": {
+      "macro": 0.45,
+      "momentum": 0.25,
+      "relstr": 0.2,
+      "valuation": 0.1
+    },
+    "tilt_clip": {
+      "min": -0.04,
+      "max": 0.06
+    },
+    "betas": "full-sample sign-stable (deployed)",
+    "rebalance": "weekly"
+  }
+}
