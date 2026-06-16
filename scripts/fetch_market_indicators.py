@@ -20,7 +20,11 @@ import sys, os, json, time
 import numpy as np
 
 HISTORY_PATH = os.environ.get("MKT_HISTORY_PATH", "public/indicator_history.json")
-WINDOW_DAYS = 756        # ~3 trading years
+WINDOW_DAYS = 756        # trailing window for the percentile/z stats only (~3y)
+# 2026-06-16: pull FULL Yahoo history ("max") and MERGE-preserve the stored series
+# so the chart carries ~20y depth; daily runs extend it and never truncate. The
+# stats below still rank the latest value in its trailing 3y, unchanged.
+RANGE = os.environ.get("MKT_RANGE", "max")
 YH = "https://query1.finance.yahoo.com/v8/finance/chart"
 
 # id -> (yahoo ticker, plain display name, bucket, unit)
@@ -68,7 +72,7 @@ def state_for(pct):
 
 def fetch(ticker):
     import requests
-    r = requests.get(f"{YH}/{ticker}", params={"range": "5y", "interval": "1d"},
+    r = requests.get(f"{YH}/{ticker}", params={"range": RANGE, "interval": "1d"},
                      headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
     r.raise_for_status()
     res = r.json()["chart"]["result"]
@@ -143,8 +147,58 @@ def _sync_pipeline_health(updates):
     print(f"  pipeline_health: {n} commodity/FX rows upserted")
 
 
+def _load_hist():
+    if os.path.exists(HISTORY_PATH):
+        with open(HISTORY_PATH) as f:
+            return json.load(f)
+    return {}
+
+
+def _merge_points(stored_pts, fresh_pts):
+    """Full-history union: stored points kept, fresh points win on shared dates,
+    ascending by date. This is the 'hydrate-from-stored' preserve so a one-time
+    deep seed is never truncated by later runs (LESSONS 4.8)."""
+    m = {str(d): v for d, v in (stored_pts or [])}
+    for d, v in (fresh_pts or []):
+        m[str(d)] = v
+    return [[d, m[d]] for d in sorted(m)]
+
+
+def fetch_uranium_history_indexmundi():
+    """One-time deep seed: ~25y MONTHLY U3O8 spot ($/lb) from IndexMundi (free).
+    Returns [[YYYY-MM-01, price], ...] ascending, or raises. Tolerant HTML parse
+    (no extra deps): pull rows of 'Month YYYY' + a price from the data table."""
+    import requests, re, datetime as _dt
+    r = requests.get("https://www.indexmundi.com/commodities/?commodity=uranium&months=360",
+                     headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"}, timeout=30)
+    r.raise_for_status()
+    html = r.text
+    MON = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,"jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
+    out = {}
+    # Rows like: <td>Jan 2010</td><td>41.50</td>  (month name may be full or abbrev)
+    for mname, yr, price in re.findall(
+            r">\s*([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*<[^>]*>\s*</td>\s*<td[^>]*>\s*([0-9]+(?:\.[0-9]+)?)",
+            html):
+        mi = MON.get(mname[:3].lower())
+        if not mi:
+            continue
+        d = f"{int(yr):04d}-{mi:02d}-01"
+        out[d] = round(float(price), 2)
+    if len(out) < 24:
+        # Fallback: simpler pair scan across the whole page
+        for mname, yr, price in re.findall(
+                r"([A-Za-z]{3,9})\s+((?:19|20)\d{2})[^0-9]{1,40}?([0-9]{1,3}\.[0-9]{1,2})", html):
+            mi = MON.get(mname[:3].lower())
+            if mi and 1.0 <= float(price) <= 400.0:
+                out.setdefault(f"{int(yr):04d}-{mi:02d}-01", round(float(price), 2))
+    if len(out) < 24:
+        raise RuntimeError(f"IndexMundi parse yielded only {len(out)} months")
+    return [[d, out[d]] for d in sorted(out)]
+
+
 def run():
     updates = {}
+    hist0 = _load_hist()
     for key, ticker, name, bucket, unit in TARGETS:
         try:
             pts = fetch(ticker)
@@ -159,21 +213,23 @@ def run():
                 pts = pts[:-1]
             if not pts:
                 raise RuntimeError("no completed-session bars")
-            vals = [p[1] for p in pts]
+            stored = (hist0.get(key) or {}).get("points") or []
+            allpts = _merge_points(stored, pts)   # full retained history (~20y)
+            vals = [p[1] for p in allpts]
             freq = "D"
             thin = len(vals) < 60          # not enough history to rank yet
             pct = None if thin else pctrank_latest(vals, WINDOW_DAYS)
             z = None if thin else zscore_latest(vals, WINDOW_DAYS)
             state = "calm" if thin else state_for(pct)
             updates[key] = {
-                "freq": freq, "unit": unit, "as_of": pts[-1][0],
-                "points": pts[-WINDOW_DAYS:],
+                "freq": freq, "unit": unit, "as_of": allpts[-1][0],
+                "points": allpts,
                 "stats": {"direction": "bw", "pctile_3yr": pct, "z_3yr": z,
                           "state": state, "bucket": bucket, "label": name,
                           "ranked": not thin},
             }
             pctxt = "  history building" if thin else f"{pct:5.1f}%ile  z={z:+.2f}  [{state}]"
-            print(f"  {bucket:11s} {name:16s} {ticker:10s} last={pts[-1][1]:>10}  {pctxt}")
+            print(f"  {bucket:11s} {name:16s} {ticker:10s} pts={len(allpts):>5} {allpts[0][0]}->{allpts[-1][0]} last={allpts[-1][1]:>10}  {pctxt}")
         except Exception as e:
             print(f"  WARNING {name} ({ticker}): {e}")
 
@@ -186,12 +242,22 @@ def run():
             raise RuntimeError("could not parse spot U3O8 from source")
         import datetime as _du
         today = _du.date.today().isoformat()
-        existing = {}
-        if os.path.exists(HISTORY_PATH):
-            existing = (json.load(open(HISTORY_PATH)).get("cmdty_uranium") or {})
-        upts = [pt for pt in (existing.get("points") or []) if pt[0] != today]
+        existing = (hist0.get("cmdty_uranium") or {})
+        upts = [list(pt) for pt in (existing.get("points") or []) if pt[0] != today]
+        # One-time deep seed (set MKT_SEED_URANIUM): merge ~25y monthly U3O8 behind
+        # the daily live value; the live point stays the latest reading.
+        if os.environ.get("MKT_SEED_URANIUM"):
+            try:
+                monthly = fetch_uranium_history_indexmundi()
+                have = {p[0] for p in upts}
+                add = [m for m in monthly if m[0] not in have]
+                upts += add
+                print(f"  Uranium seed: +{len(add)} monthly points from IndexMundi ({monthly[0][0]}->{monthly[-1][0]})")
+            except Exception as se:
+                print(f"  WARNING Uranium IndexMundi seed: {se} — keeping existing history")
         upts.append([today, round(spot, 2)])
-        upts = upts[-WINDOW_DAYS:]
+        um = {p[0]: p[1] for p in upts}
+        upts = [[d, um[d]] for d in sorted(um)]   # dedupe + ascending; no truncation
         uvals = [pt[1] for pt in upts]
         uthin = len(uvals) < 60
         upct = None if uthin else pctrank_latest(uvals, WINDOW_DAYS)
