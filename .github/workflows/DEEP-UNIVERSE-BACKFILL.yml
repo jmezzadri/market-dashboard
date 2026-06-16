@@ -1,7 +1,13 @@
 name: DEEP-UNIVERSE-BACKFILL
 # One-shot / re-runnable deep (~1996+) price backfill for the Asset Tilt backtest
 # universe into prices_eod from yfinance. Dispatch-only. Idempotent upsert.
-on: { workflow_dispatch: {} }
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated tickers to restrict the run (blank = full universe)"
+        type: string
+        default: ""
 jobs:
   backfill:
     runs-on: ubuntu-latest
@@ -15,4 +21,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ONLY: ${{ inputs.only }}
         run: python3 scripts/backfill_deep_universe.py
