@@ -1078,6 +1078,20 @@ export default function DataFlowPage() {
   const vendorCost = selectedTile && selectedTile.vendor ? VENDOR_MONTHLY_COST[selectedTile.vendor] : null;
   const vendorBlast = selectedTile && selectedTile.vendor ? VENDOR_BLAST_RADIUS[selectedTile.vendor] : null;
 
+  // Plain-English "what it is / what it does" for the selected tile — shown on
+  // the page so engines (and any single-element tile) explain themselves.
+  // Comes straight from the manifest `description` (gold source), never hardcoded.
+  const selectedDesc = useMemo(() => {
+    if (!selectedTile) return null;
+    const ms = selectedTile.members || [];
+    const isEngine = !!selectedId && selectedId.startsWith('eng:');
+    if (isEngine || ms.length === 1) {
+      const m = ms.find((x) => x && x.description) || ms[0];
+      return m && m.description ? m.description : null;
+    }
+    return null;
+  }, [selectedTile, selectedId]);
+
   // Totals for the hero strip — computed, never literal.
   const totals = useMemo(() => ({
     elements: elements.length,
@@ -1176,6 +1190,7 @@ export default function DataFlowPage() {
                       {vendorCost ? <span className="df-detail-cost"> · {vendorCost}/mo</span> : null}
                     </div>
                     {vendorBlast && <p className="df-detail-blast">{vendorBlast}</p>}
+                    {selectedDesc && <p className="df-detail-desc">{selectedDesc}</p>}
                   </div>
 
                   <div className="df-table">
@@ -1268,6 +1283,7 @@ export default function DataFlowPage() {
         .df-detail-sub { font-size: 12px; color: var(--mt-ink-2); }
         .df-detail-cost { color: var(--mt-ink-1); font-weight: 600; }
         .df-detail-blast { font-size: 11.5px; color: var(--mt-ink-2); line-height: 1.5; margin: 8px 0 0; }
+        .df-detail-desc { font-size: 12.5px; color: var(--mt-ink-1); line-height: 1.55; margin: 10px 0 0; }
 
         /* ── Per-element table (indicator-by-indicator) ── */
         .df-table { display: flex; flex-direction: column; }
