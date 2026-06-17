@@ -254,6 +254,28 @@ const PAGE_CSS = `
   color: var(--accent, #0071e3); cursor: pointer;
 }
 .paper-ticker-link:hover { text-decoration: underline; }
+
+.paper-total-row td { border-top: 2px solid var(--line-1); border-bottom: none; font-weight: 600; color: var(--ink-0); padding-top: 12px; }
+.paper-total-row td.ticker { color: var(--ink-0); letter-spacing: .01em; }
+
+.paper-rebal-clickable { position: relative; cursor: pointer; border-radius: 6px; padding-right: 22px; transition: background .12s ease; }
+.paper-rebal-clickable:hover { background: var(--line-0); }
+.paper-rebal-clickable::after { content: '\203A'; position: absolute; right: 8px; top: 10px; color: var(--ink-3); font-size: 17px; opacity: .55; }
+
+.paper-drawer-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.30); z-index: 60; }
+.paper-drawer { position: fixed; top: 0; right: 0; height: 100%; width: 480px; max-width: 94vw; background: var(--bg-1); border-left: 1px solid var(--line-1); box-shadow: -10px 0 30px rgba(15,23,42,.16); z-index: 61; display: flex; flex-direction: column; }
+.paper-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--line-0); }
+.paper-drawer-title { font-size: 15px; font-weight: 600; color: var(--ink-0); letter-spacing: -.005em; }
+.paper-drawer-sub { font-size: 12px; color: var(--ink-2); margin-top: 4px; font-feature-settings: "tnum"; }
+.paper-drawer-close { background: none; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink-2); padding: 0 4px; }
+.paper-drawer-close:hover { color: var(--ink-0); }
+.paper-drawer-body { overflow-y: auto; padding: 10px 20px 28px; }
+.paper-drawer-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.paper-drawer-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-2); font-weight: 500; padding: 10px 8px 6px; border-bottom: 1px solid var(--line-1); }
+.paper-drawer-table th.r { text-align: right; }
+.paper-drawer-table td { padding: 9px 8px; border-bottom: 1px solid var(--line-0); color: var(--ink-1); font-feature-settings: "tnum"; }
+.paper-drawer-table td.r { text-align: right; }
+.paper-drawer-table td.ticker { color: var(--ink-0); font-weight: 500; }
 `;
 
 // ── Right-slot summary card ───────────────────────────────────────────────
@@ -800,6 +822,29 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
                   })}
                 </tr>
               )}
+              {sorted.length > 0 && (() => {
+                const sum = (k) => sorted.reduce((s, p) => s + (Number(cellValue(p, k)) || 0), 0);
+                const totMV = sum('market_value') + (cashValue || 0);
+                const totCost = sum('cost_basis');
+                const totDay = sum('unrealized_intraday_pl');
+                const totPL = sum('unrealized_pnl');
+                return (
+                  <tr className="paper-total-row">
+                    {visibleCols.map((c) => {
+                      const m = meta(c.key);
+                      const cls = (m.align === 'right' ? 'r ' : '') + (c.key === 'ticker' ? 'ticker' : '');
+                      let content = '';
+                      if (c.key === 'ticker') content = 'Total';
+                      else if (c.key === 'market_value') content = fmtMoneyExact(totMV);
+                      else if (c.key === 'cost_basis') content = fmtMoneyExact(totCost);
+                      else if (c.key === 'unrealized_intraday_pl') content = <span className={totDay >= 0 ? 'up' : 'down'}>{fmtMoneyExact(totDay)}</span>;
+                      else if (c.key === 'unrealized_pnl') content = <span className={totPL >= 0 ? 'up' : 'down'}>{fmtMoneyExact(totPL)}</span>;
+                      else if (c.key === 'weight') content = '100.0%';
+                      return <td key={c.key} className={cls.trim()}>{content}</td>;
+                    })}
+                  </tr>
+                );
+              })()}
             </tbody>
           </table>
         </div>
@@ -811,6 +856,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
 // ── Rebalance log ──────────────────────────────────────────────────────────
 
 function RebalanceLog({ orders, fills }) {
+  const [openDate, setOpenDate] = useState(null);
   const byDate = useMemo(() => {
     if (!orders || orders.length === 0) return [];
     const m = new Map();
@@ -840,6 +886,7 @@ function RebalanceLog({ orders, fills }) {
   }, [fills]);
 
   return (
+    <>
     <div className="paper-panel">
       <div className="paper-panel-head">
         <div>
@@ -867,7 +914,7 @@ function RebalanceLog({ orders, fills }) {
             const queuedAt = submits[0] || null;
             const filledAt = fillByDate.get(etDateKey(queuedAt) || date) || null;
             return (
-              <div key={date} className="paper-rebal-row">
+              <div key={date} className="paper-rebal-row paper-rebal-clickable" onClick={() => setOpenDate(date)} role="button" tabIndex={0}>
                 <div className="paper-rebal-date">
                   {fmtDate(date)}
                   {' '}<span className="paper-rebal-meta">
@@ -889,6 +936,58 @@ function RebalanceLog({ orders, fills }) {
         )}
       </div>
     </div>
+    {openDate && (() => {
+      const entry = byDate.find(([d]) => d === openDate);
+      const drows = entry ? entry[1] : [];
+      const fillKey = etDateKey(drows.map((r) => r.submitted_at).filter(Boolean).sort()[0]) || openDate;
+      const dayFills = (fills || []).filter((f) => etDateKey(f.filled_at) === fillKey);
+      const lines = drows.map((o) => {
+        const f = dayFills.find((x) => x.ticker === o.ticker && (x.side || '').toLowerCase() === (o.side || '').toLowerCase());
+        const qty = f ? Number(f.quantity) : null;
+        const price = f ? Number(f.price) : null;
+        return {
+          ticker: o.ticker, side: o.side, sleeve: o.sleeve, qty, price,
+          notional: (qty != null && price != null) ? qty * price : (o.target_notional != null ? Math.abs(Number(o.target_notional)) : null),
+          filled: !!f,
+        };
+      });
+      const nFilled = lines.filter((l) => l.filled).length;
+      return (
+        <>
+          <div className="paper-drawer-backdrop" onClick={() => setOpenDate(null)} />
+          <aside className="paper-drawer" role="dialog" aria-label="Rebalance trades">
+            <div className="paper-drawer-head">
+              <div>
+                <div className="paper-drawer-title">Trades &mdash; {fmtDate(openDate)}</div>
+                <div className="paper-drawer-sub">{lines.length} orders &middot; {nFilled} filled</div>
+              </div>
+              <button type="button" className="paper-drawer-close" onClick={() => setOpenDate(null)} aria-label="Close">&times;</button>
+            </div>
+            <div className="paper-drawer-body">
+              <table className="paper-drawer-table">
+                <thead>
+                  <tr><th>Ticker</th><th>Side</th><th>Sleeve</th><th className="r">Qty</th><th className="r">Fill price</th><th className="r">Value</th><th className="r">Status</th></tr>
+                </thead>
+                <tbody>
+                  {lines.map((l, i) => (
+                    <tr key={`${l.ticker}-${i}`}>
+                      <td className="ticker">{l.ticker}</td>
+                      <td><span className={l.side === 'buy' ? 'up' : 'down'}>{(l.side || '').toUpperCase()}</span></td>
+                      <td>{l.sleeve}</td>
+                      <td className="r">{l.qty != null ? l.qty.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '\u2014'}</td>
+                      <td className="r">{l.price != null ? `$${l.price.toFixed(2)}` : '\u2014'}</td>
+                      <td className="r">{l.notional != null ? fmtMoneyExact(l.notional) : '\u2014'}</td>
+                      <td className="r">{l.filled ? <span className="up">Filled</span> : <span style={{ color: 'var(--warn, #b87000)' }}>Queued</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </aside>
+        </>
+      );
+    })()}
+    </>
   );
 }
 
