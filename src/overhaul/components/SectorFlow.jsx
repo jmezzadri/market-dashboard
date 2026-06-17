@@ -22,6 +22,102 @@ function fmtPercent(v, digits = 1) {
   return (v * 100).toFixed(digits);
 }
 
+/* ── Cycle-mechanism transparency (2026-06-16) ────────────────────────────
+   Every sector and industry group carries a `contributions` object — six
+   numbers, one per cycle-board mechanism, that SUM to the tilt score. We
+   surface them so the tilt is traceable rather than a black box. Pure data
+   already in v10_allocation.json; nothing here is recomputed. */
+const MECH_ORDER = ['valuation', 'credit', 'funding', 'growth', 'liquidity_policy', 'positioning_breadth'];
+const MECH_NAME = {
+  valuation: 'Valuation',
+  credit: 'Credit',
+  funding: 'Funding',
+  growth: 'Growth',
+  liquidity_policy: 'Liquidity & Policy',
+  positioning_breadth: 'Positioning & Breadth',
+};
+
+// Largest absolute mechanism magnitude across a contributions object — used to
+// scale the breakdown bars so the dominant driver fills the channel.
+function maxAbsContribution(contributions) {
+  if (!contributions) return 1;
+  const vals = MECH_ORDER.map((k) => Math.abs(Number(contributions[k]) || 0));
+  return Math.max(0.0001, ...vals);
+}
+
+// Plain-English "why" sentence naming the top + and − mechanism drivers, so a
+// PM reads the tilt without parsing six numbers. e.g. "Technology underweight:
+// Valuation drags hardest, Liquidity & Policy partly offsets."
+function whyTilt(name, tiltScore, contributions) {
+  if (!contributions) return null;
+  const entries = MECH_ORDER
+    .map((k) => ({ k, name: MECH_NAME[k], v: Number(contributions[k]) || 0 }))
+    .filter((e) => Math.abs(e.v) >= 0.001);
+  if (!entries.length) return null;
+  const dir = tiltScore > 0 ? 'overweight' : tiltScore < 0 ? 'underweight' : 'market-weight';
+  // Driver = mechanism pushing in the SAME direction as the tilt (hardest).
+  // Offset = mechanism pushing the OTHER way (largest opposing pull).
+  const sign = tiltScore >= 0 ? 1 : -1;
+  const sameDir = entries.filter((e) => Math.sign(e.v) === sign).sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const oppDir = entries.filter((e) => Math.sign(e.v) === -sign).sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const verb = tiltScore > 0 ? 'lifts hardest' : 'drags hardest';
+  const parts = [];
+  if (sameDir.length) parts.push(`${sameDir[0].name} ${verb}`);
+  if (sameDir.length > 1) parts.push(`${sameDir[1].name} adds`);
+  if (oppDir.length) parts.push(`${oppDir[0].name} partly offsets`);
+  if (!parts.length) return `${name} ${dir} — drivers roughly balanced.`;
+  return `${name} ${dir}: ${parts.join(', ')}.`;
+}
+
+/* MechBreakdown — the six per-mechanism contributions as a compact bar table.
+   Each row: mechanism name · signed value · a center-anchored bar (green right
+   for +, red left for −). Reused for both sectors and industry groups. Shows
+   the mechanism's own band as a faint tag when bands are supplied. */
+function MechBreakdown({ contributions, tiltScore, mechBands }) {
+  if (!contributions) {
+    return <div style={{ color: 'var(--mt-ink-2)', fontSize: 12 }}>No mechanism breakdown for this row.</div>;
+  }
+  const maxAbs = maxAbsContribution(contributions);
+  const sum = MECH_ORDER.reduce((s, k) => s + (Number(contributions[k]) || 0), 0);
+  return (
+    <div className="at-mechbd">
+      {MECH_ORDER.map((k) => {
+        const v = Number(contributions[k]) || 0;
+        const isPos = v > 0;
+        const w = Math.max(2, (Math.abs(v) / maxAbs) * 50); // % of half-track
+        const band = mechBands && mechBands[k];
+        return (
+          <div key={k} className="at-mechbd-row">
+            <span className="at-mechbd-name">
+              {MECH_NAME[k]}
+              {band && <span className={`at-mechbd-band at-mechbd-band--${band === 'risk-off' ? 'off' : band === 'caution' ? 'watch' : 'on'}`} />}
+            </span>
+            <span className="at-mechbd-track">
+              <span className="at-mechbd-mid" />
+              <span
+                className={`at-mechbd-fill ${isPos ? 'at-mechbd-fill--pos' : 'at-mechbd-fill--neg'}`}
+                style={isPos ? { left: '50%', width: `${w}%` } : { right: '50%', width: `${w}%` }}
+              />
+            </span>
+            <span
+              className="num at-mechbd-val"
+              style={{ color: v > 0 ? 'var(--mt-up)' : v < 0 ? 'var(--mt-down)' : 'var(--mt-ink-2)' }}
+            >
+              {v > 0 ? '+' : ''}{v.toFixed(2)}
+            </span>
+          </div>
+        );
+      })}
+      <div className="at-mechbd-sum">
+        <span>Sum = tilt score</span>
+        <span className="num" style={{ color: sum > 0 ? 'var(--mt-up)' : sum < 0 ? 'var(--mt-down)' : 'var(--mt-ink-1)' }}>
+          {sum > 0 ? '+' : ''}{sum.toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Shared column template: Sector(1fr) | Rating | Recommended % | Prev wk | vs SPY
 const GRID = '1fr 64px 120px 110px 96px';
 
@@ -35,6 +131,7 @@ export default function SectorFlow({
   sortKey = 'recommended',
   sleeveRows = [],
   prevBySector = {},
+  mechBands = null,
 }) {
   return (
     <div style={{ background: 'var(--mt-surface)', border: '1px solid var(--mt-line-0)', borderRadius: 14 }}>
@@ -77,6 +174,7 @@ export default function SectorFlow({
                 igs={igs}
                 expandedIGs={expandedIGs}
                 toggleIG={toggleIG}
+                mechBands={mechBands}
               />
             )}
           </div>
@@ -222,7 +320,8 @@ function SectorRow({ s, isExpanded, onToggle, prevDollar }) {
   );
 }
 
-function SectorDrillBody({ s, igs, expandedIGs, toggleIG }) {
+function SectorDrillBody({ s, igs, expandedIGs, toggleIG, mechBands = null }) {
+  const why = whyTilt(s.sector, s.tilt_score ?? s.vs_spy_pp ?? 0, s.contributions);
   return (
     <div
       className="mt-fade"
@@ -262,6 +361,19 @@ function SectorDrillBody({ s, igs, expandedIGs, toggleIG }) {
         </div>
       </div>
 
+      {/* Why this sector tilts — mechanism breakdown traceable to the cycle
+          read above. The six contributions sum to the tilt score. */}
+      <div className="at-secwhy">
+        <div className="at-secwhy-left">
+          <div className="mt-eyebrow">Why the tilt</div>
+          {why && <p className="at-secwhy-sentence">{why}</p>}
+          <div className="at-secwhy-hint">Each mechanism's contribution to the sector tilt — they sum to the tilt score.</div>
+        </div>
+        <div className="at-secwhy-right">
+          <MechBreakdown contributions={s.contributions} tiltScore={s.tilt_score ?? s.vs_spy_pp ?? 0} mechBands={mechBands} />
+        </div>
+      </div>
+
       {igs.length === 0 && (
         <div style={{ color: 'var(--mt-ink-2)', fontSize: 12 }}>
           No industry-group detail for this sector.
@@ -294,7 +406,7 @@ function SectorDrillBody({ s, igs, expandedIGs, toggleIG }) {
             <span style={{ textAlign: 'right' }}>Rating</span>
             <span>Tilt vs cap</span>
             <span style={{ textAlign: 'right' }}>Tilt</span>
-            <span style={{ textAlign: 'right' }}>Score</span>
+            <span style={{ textAlign: 'right' }}>vs SPY</span>
             <span />
           </div>
           {igs.map((ig) => {
@@ -365,14 +477,24 @@ function SectorDrillBody({ s, igs, expandedIGs, toggleIG }) {
                   >
                     {isOver ? '+' : ''}{tiltScore.toFixed(2)}
                   </span>
-                  <span className="num" style={{ textAlign: 'right', fontSize: 12, color: 'var(--mt-ink-1)' }}>
-                    {ig.contributions ? '—' : '—'}
+                  <span
+                    className="num"
+                    style={{
+                      textAlign: 'right',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: ig.vs_spy_pp == null ? 'var(--mt-ink-3)'
+                        : ig.vs_spy_pp > 0 ? 'var(--mt-up)'
+                          : ig.vs_spy_pp < 0 ? 'var(--mt-down)' : 'var(--mt-ink-2)',
+                    }}
+                  >
+                    {ig.vs_spy_pp == null ? '—' : `${ig.vs_spy_pp > 0 ? '+' : ''}${fmtPct(ig.vs_spy_pp, 1)}pp`}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--mt-ink-3)' }}>
                     {igOpen ? '▾' : '▸'}
                   </span>
                 </button>
-                {igOpen && <IGDrill ig={ig} />}
+                {igOpen && <IGDrill ig={ig} mechBands={mechBands} />}
               </div>
             );
           })}
@@ -382,8 +504,9 @@ function SectorDrillBody({ s, igs, expandedIGs, toggleIG }) {
   );
 }
 
-function IGDrill({ ig }) {
+function IGDrill({ ig, mechBands = null }) {
   const navigate = useNavigate();
+  const why = whyTilt(ig.name, ig.tilt_score ?? 0, ig.contributions);
   return (
     <div
       className="mt-fade"
@@ -398,25 +521,17 @@ function IGDrill({ ig }) {
     >
       <div>
         <div className="mt-eyebrow">Why the tilt</div>
-        <p style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.55, margin: '6px 0 12px', maxWidth: 480 }}>
-          Engine is {ig.tilt_score > 0 ? 'overweighting' : 'underweighting'} <b>{ig.name}</b>{' '}
-          based on its contribution profile across the six v11 cycle mechanisms.
-        </p>
-        {ig.contributions && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {Object.entries(ig.contributions).map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span style={{ color: 'var(--mt-ink-2)' }}>{k.replace(/_/g, ' ')}</span>
-                <span
-                  className="num"
-                  style={{ color: v > 0 ? 'var(--mt-up)' : v < 0 ? 'var(--mt-down)' : 'var(--mt-ink-2)', fontWeight: 600 }}
-                >
-                  {v > 0 ? '+' : ''}{Number(v).toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
+        {why ? (
+          <p style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.55, margin: '6px 0 12px', maxWidth: 480 }}>
+            {why}
+          </p>
+        ) : (
+          <p style={{ fontSize: 13, color: 'var(--mt-ink-1)', lineHeight: 1.55, margin: '6px 0 12px', maxWidth: 480 }}>
+            Engine is {ig.tilt_score > 0 ? 'overweighting' : 'underweighting'} <b>{ig.name}</b>{' '}
+            based on its contribution profile across the six cycle mechanisms.
+          </p>
         )}
+        <MechBreakdown contributions={ig.contributions} tiltScore={ig.tilt_score ?? 0} mechBands={mechBands} />
       </div>
       <div>
         <div className="mt-eyebrow">ETFs in this group</div>
