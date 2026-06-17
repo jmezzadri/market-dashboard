@@ -266,3 +266,41 @@ export function dailySessionGrade(
   }
   return { expectedDate, behind, grade: behind <= 0 ? "green" : behind === 1 ? "amber" : "red" };
 }
+
+
+// ─── TWO-CLOCK BINARY grade (FRESHNESS doctrine v2 — Joe 2026-06-17) ─────────
+// Mirrors src/lib/freshnessClock.js gradeTwoClock / isDataStale EXACTLY —
+// change one, change the other. Green ONLY if BOTH the pull clock and the data
+// clock pass. No amber. Untracked → red.
+export function isDataStale(
+  dataAsOfIso: string | null | undefined,
+  maxDataAgeHours: number | null | undefined,
+  calendar?: string,
+  nowMs?: number,
+): boolean {
+  if (!maxDataAgeHours || maxDataAgeHours <= 0) return false;
+  if (!dataAsOfIso) return true;
+  const age = ageHoursAgainstCalendar(dataAsOfIso, calendar, nowMs);
+  if (!Number.isFinite(age)) return true;
+  return age > maxDataAgeHours;
+}
+
+export function gradeTwoClock(
+  input: any,
+  nowMs?: number,
+): { status: string; clock: string | null; reason: string | null; ageHours: number | null } {
+  const o = input || {};
+  const pull = gradeByLastPull(o, nowMs);
+  if (pull.status !== "green") {
+    return { status: "red", clock: "pull", reason: pull.reason || "Not registered", ageHours: pull.ageHours == null ? null : pull.ageHours };
+  }
+  const cal = o.dataCalendar || "wall-clock";
+  if (isDataStale(o.dataAsOfIso, o.maxDataAgeHours, cal, nowMs)) {
+    const age = ageHoursAgainstCalendar(o.dataAsOfIso, cal, nowMs);
+    const reason = o.dataAsOfIso
+      ? `No new data in ${Math.round(age)}h — expected within ${formatSlaDaysHours(o.maxDataAgeHours)}; source may have stopped`
+      : "No data point on record";
+    return { status: "red", clock: "data", reason, ageHours: pull.ageHours == null ? null : pull.ageHours };
+  }
+  return { status: "green", clock: null, reason: null, ageHours: pull.ageHours == null ? null : pull.ageHours };
+}
