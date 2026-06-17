@@ -88,6 +88,32 @@ export const GROUP_LABEL = {
   score: '',
 };
 
+// Alternating section shading so the eye can anchor on a group across a wide
+// table (data-table research: column banding aids scanning in many-column
+// tables). `strong` = the group-label header tier; lighter = column heads +
+// data rows. Score gets a faint accent wash to set the headline apart.
+function bandBg(group, strong) {
+  if (group === 'score') {
+    return strong
+      ? 'color-mix(in oklab, var(--mt-accent) 16%, transparent)'
+      : 'color-mix(in oklab, var(--mt-accent) 8%, transparent)';
+  }
+  const shaded = group === 'performance' || group === 'signals';
+  if (strong) {
+    return shaded
+      ? 'color-mix(in oklab, var(--mt-ink-2) 13%, transparent)'
+      : 'color-mix(in oklab, var(--mt-ink-2) 6%, transparent)';
+  }
+  return shaded ? 'color-mix(in oklab, var(--mt-ink-2) 6%, transparent)' : 'transparent';
+}
+
+// Horizontal alignment per column → flexbox justification for the banded cells.
+function justifyFor(k) {
+  if (k === 'ticker' || k === 'name') return 'flex-start';
+  if (k === 'price' || k === 'day') return 'flex-end';
+  return 'center';
+}
+
 const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
 // Sort value accessor per column. Returns a number, a string, or null
@@ -301,15 +327,16 @@ export default function ScanList({
           style={{
             display: 'grid',
             gridTemplateColumns: grid,
-            gap: 14,
-            padding: '9px 18px 7px',
-            background: 'color-mix(in oklab, var(--mt-accent) 7%, var(--mt-surface-2))',
+            gap: 0,
+            padding: '0 18px',
+            alignItems: 'stretch',
+            background: 'var(--mt-surface-2)',
             borderBottom: '1px solid var(--mt-line-0)',
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
-            letterSpacing: '0.09em',
+            letterSpacing: '0.10em',
             textTransform: 'uppercase',
-            color: 'var(--mt-ink-2)',
+            color: 'var(--mt-ink-1)',
           }}
         >
           {groupRuns.map((run, i) => (
@@ -317,7 +344,11 @@ export default function ScanList({
               key={i}
               style={{
                 gridColumn: `span ${run.span}`,
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '11px 8px 9px',
+                background: bandBg(run.group, true),
                 borderLeft: i > 0 ? '1px solid var(--mt-line-0)' : 'none',
               }}
             >
@@ -333,15 +364,16 @@ export default function ScanList({
           style={{
             display: 'grid',
             gridTemplateColumns: grid,
-            gap: 14,
-            padding: '10px 18px',
+            gap: 0,
+            padding: '0 18px',
+            alignItems: 'stretch',
             borderBottom: '1px solid var(--mt-line-0)',
-            background: 'var(--mt-surface-2)',
-            fontSize: 10,
+            background: 'var(--mt-surface)',
+            fontSize: 12,
             fontWeight: 600,
-            letterSpacing: '0.06em',
+            letterSpacing: '0.04em',
             textTransform: 'uppercase',
-            color: 'var(--mt-ink-3)',
+            color: 'var(--mt-ink-2)',
           }}
         >
           {activeKeys.map((k) => {
@@ -377,6 +409,7 @@ export default function ScanList({
                 key={k}
                 onClick={() => onSort(k)}
                 align={align}
+                bg={bandBg(COL_GROUP[k], false)}
                 active={sort.key === k}
                 dir={sort.dir}
                 tip={tips[k]}
@@ -663,15 +696,29 @@ export default function ScanList({
               style={{
                 display: 'grid',
                 gridTemplateColumns: grid,
-                gap: 14,
-                padding: '14px 18px',
+                gap: indicatorColumns ? 0 : 14,
+                padding: indicatorColumns ? '0 18px' : '14px 18px',
                 ...(indicatorColumns ? {} : { background: isOpen ? 'var(--mt-surface-2)' : 'transparent' }),
                 cursor: 'pointer',
-                alignItems: 'center',
+                alignItems: indicatorColumns ? 'stretch' : 'center',
               }}
             >
               {indicatorColumns ? (
-                activeKeys.map((k) => cellFor(k))
+                activeKeys.map((k) => (
+                  <div
+                    key={k}
+                    style={{
+                      background: bandBg(COL_GROUP[k], false),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: justifyFor(k),
+                      padding: '14px 8px',
+                      minWidth: 0,
+                    }}
+                  >
+                    {cellFor(k)}
+                  </div>
+                ))
               ) : (
                 <>
                   {cellFor('ticker')}
@@ -695,9 +742,11 @@ export default function ScanList({
               {/* Chevron */}
               <span
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
                   fontSize: 14,
                   color: 'var(--mt-ink-3)',
-                  textAlign: 'right',
                   transform: isOpen ? 'rotate(90deg)' : 'rotate(0)',
                   transition: 'transform var(--mt-dur-fast) var(--mt-ease)',
                 }}
@@ -715,14 +764,15 @@ export default function ScanList({
 }
 
 function SortHead({
-  children, tip, align, active, dir, onClick,
+  children, tip, align, bg, active, dir, onClick,
   draggable, dragging, onDragStart, onDragOver, onDrop, onDragEnd,
 }) {
-  // Clickable + draggable header — click to sort (click again to flip the
-  // direction), or drag the header onto another to move the column there
-  // (Joe 2026-06-17). The arrow shows on the active column only.
+  // Clickable + draggable header cell — click to sort (click again to flip the
+  // direction), or drag onto another header to move the column there (Joe
+  // 2026-06-17). Fills the full track so its section band runs edge to edge.
   const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
   const inner = tip ? <Tip content={tip}>{children}</Tip> : children;
+  const justify = align === 'right' ? 'flex-end' : align === 'left' ? 'flex-start' : 'center';
   return (
     <span
       role="button"
@@ -737,11 +787,15 @@ function SortHead({
       onDragEnd={onDragEnd}
       title={draggable ? 'Click to sort · drag to move' : 'Click to sort'}
       style={{
-        textAlign: align || 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: justify,
+        padding: '13px 8px',
+        background: bg || 'transparent',
         cursor: draggable ? 'grab' : 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
-        color: active ? 'var(--mt-ink-1)' : undefined,
+        color: active ? 'var(--mt-ink-0)' : undefined,
         opacity: dragging ? 0.4 : 1,
       }}
     >

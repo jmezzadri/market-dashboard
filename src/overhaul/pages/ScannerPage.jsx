@@ -167,8 +167,10 @@ export default function ScannerPage() {
             onClick={() => setShowCols((v) => !v)}
             title="Show or hide columns"
             aria-label="Show or hide columns"
+            style={{ fontSize: 20, lineHeight: 1, padding: '7px 11px' }}
           >
-            ⚙ Columns{hiddenCount > 0 && <span className="sc-colcount num">{activeColumns.length}/{colState.length}</span>}
+            <span aria-hidden="true">⚙</span>
+            {hiddenCount > 0 && <span className="sc-colcount num" style={{ fontSize: 11 }}>{activeColumns.length}/{colState.length}</span>}
           </button>
           {showCols && (
             <div
