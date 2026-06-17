@@ -146,6 +146,21 @@ def _mark_rejected(row_id: str, reason: str) -> None:
     _supabase_exec(sql)
 
 
+def _mark_skipped(row_id: str, reason: str) -> None:
+    """Idempotent dedup skip — NOT a rejection. A working order already exists
+    for this ticker/side, so this redundant intent is closed out as 'cancelled'
+    (the closest benign status the schema allows) with the reason. Marking these
+    'rejected' (old behaviour) made the Paper page show alarming 'N rejected'
+    counts for harmless duplicate intents (2026-06-16)."""
+    sql = (
+        "update public.paper_orders set "
+        "  status = 'cancelled', "
+        f"  rejection_reason = {_sql_escape(reason)} "
+        f"where id = '{row_id}' and status = 'pending';"
+    )
+    _supabase_exec(sql)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Submission loop
 # ─────────────────────────────────────────────────────────────────────────────
@@ -200,7 +215,7 @@ def submit_pending_orders(
             logger.info("row %s: %s %s already has a working order — skipping (idempotent)",
                         row.id, row.side, row.ticker)
             if not dry_run:
-                _mark_rejected(row.id, "skipped — open order already working for this ticker/side")
+                _mark_skipped(row.id, "skipped — open order already working for this ticker/side")
             result.duplicates += 1
             continue
         # Step 1 — idempotency pre-check.

@@ -800,6 +800,10 @@ function RebalanceLog({ orders }) {
     if (!orders || orders.length === 0) return [];
     const m = new Map();
     for (const o of orders) {
+      // Idempotent dedup-skips (a working order already exists for this
+      // ticker/side) never fired — keep them out of the rebalance log so they
+      // don't inflate the order count or read as "rejected" (2026-06-16).
+      if (o.status === 'cancelled') continue;
       const d = (o.created_at || '').split('T')[0];
       if (!m.has(d)) m.set(d, []);
       m.get(d).push(o);
