@@ -3,27 +3,37 @@
    Rebuilt 2026-06-16. Everything on this page is computed at runtime from
    public/data_manifest.json (loaded once, guarded) — NOT hand-typed. There
    are no hardcoded tile lists, vendor tables, indicator counts, or prose
-   drawers. The four-column data-flow concept is kept (Sources → Derived
-   indicators → Engines & models → Surfaces & workflows) but each column is
-   grouped out of the manifest:
+   drawers. The four-column data-flow concept is kept (Sources → Indicators
+   → Engines & models → Surfaces & workflows) but each column is grouped out
+   of the manifest:
 
      - Sources      = the distinct external `source_vendor`s in the manifest
                       (in-house / computed vendors are excluded — they live in
                       the Engines column). Cost is read from VENDOR_MONTHLY_COST
                       (canonical) with the manifest's monthly_cost_usd as a
                       fallback.
-     - Derived      = every `category:"indicator"` element, grouped into the
+     - Indicators   = every `category:"indicator"` element, grouped into the
                       five-domain families the rest of the site uses (Rates,
                       Credit, Equities, Commodities, FX, Financial Conditions &
-                      Economy). The family for each indicator comes from the
-                      shared indicator registry (IND[name][2] → FAMILY_LABEL);
-                      a small fallback map covers the handful of computed v11
-                      series that aren't in the registry.
-     - Engines      = in-house computed outputs (scenario category, the cycle
-                      board, the indicator-history compiler, the allocation
-                      engine, pipeline_health) — vendor is "n/a" / "MacroTilt".
+                      Economy). NOTE: these are the indicators we TRACK — ~60%
+                      are straight vendor pulls, not series we derive — so the
+                      column is called "Indicators", not "Derived indicators".
+                      The family for each indicator comes from the shared
+                      indicator registry (IND[name][2] → FAMILY_LABEL); a small
+                      fallback map covers the handful of computed v11 series
+                      that aren't in the registry.
+     - Engines      = in-house computed outputs (the cycle board, the
+                      indicator-history compiler, the v10 allocation engine and
+                      its history/legacy outputs) — vendor is "n/a"/"MacroTilt".
+                      Internal infrastructure (category:"ops" — bug tracker,
+                      admin tables, api usage log, pipeline_health — plus the
+                      static methodology changelog) is plumbing, NOT a data
+                      feed, and is EXCLUDED from the flow entirely.
      - Surfaces &   = the distinct consumer-surface tabs the manifest declares,
-       workflows      plus the ops / portfolio / news / commentary elements.
+       workflows      plus the portfolio / news / commentary elements. Feeds
+                      that update on-change / on-demand / are static (portfolio
+                      accounts, options chain, per-ticker news) show their
+                      nature rather than a daily-SLA freshness chip.
 
    THE KEY ASK — per-tile indicator-by-indicator detail. Selecting any tile
    opens a right-hand detail panel that lists EVERY underlying element with,
@@ -42,6 +52,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../hooks/useDataHealth';
 import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
+import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
 
 // ─── Five-domain family rollup (matches useIndicators.FAMILY_LABEL) ──────────
@@ -138,10 +149,92 @@ function isInhouseVendor(raw) {
 }
 
 // Manifest element `name`s that are engine outputs regardless of category.
+// The four allocation rows (the live v10 allocator + its history output + the
+// v9 legacy backup + the allocation history file) all live under ONE v10
+// allocation engine tile — see allocationGroup() — so the user never sees two
+// peers both called "v10 allocation".
 const ENGINE_NAMES = new Set([
-  'cycle_board', 'indicator_history', 'v10_allocation', 'v10_sector_history',
-  'scenarios', 'pipeline_health',
+  'cycle_board', 'indicator_history',
+  'v10_allocation', 'v10_sector_history', 'v9_allocation_legacy', 'allocation_history',
 ]);
+
+// The allocation family — collapsed into one "v10 Allocation" engine tile.
+const ALLOCATION_NAMES = new Set([
+  'v10_allocation', 'v10_sector_history', 'v9_allocation_legacy', 'allocation_history',
+]);
+
+// Consumer-surface tab aliases → one canonical tab, so a single surface tile
+// represents each real page. The manifest uses several names for the same
+// page: macro/overview = Macro Overview; portopps/scanner = Trading Opps;
+// allocation/asset-tilt = Asset Tilt (the cycle board's consumer tab is
+// "asset-tilt"); readme/methodology = Methodology. Without this the page drew
+// two tiles both labelled "Asset Tilt" and two labelled "Methodology".
+const SURFACE_ALIAS = {
+  macro: 'overview',
+  portopps: 'scanner',
+  'asset-tilt': 'allocation',
+  methodology: 'readme',
+};
+function canonTab(tab) {
+  return SURFACE_ALIAS[tab] || tab;
+}
+
+// ─── Internal infrastructure to EXCLUDE from the data-flow entirely ──────────
+// These are plumbing, not data feeds: the bug tracker, admin/auth tables, the
+// api-usage log, the freshness monitor's own pipeline_health table, and the
+// static methodology changelog. They have no scheduled-data SLA, so showing
+// them with a "no successful run on record" / stale chip was alarming and
+// wrong. Anything with category:"ops" is infrastructure; methodology_changelog
+// is a static site doc. (bug_reports, bug_status_log, bug_screenshots,
+// admin_users, user_preferences, api_usage_log, pipeline_health are all `ops`.)
+function isInfrastructure(el) {
+  if (!el) return true;
+  if (el.category === 'ops') return true;
+  if (el.name === 'methodology_changelog') return true;
+  return false;
+}
+
+// ─── Cadence nature (manifest cadence string → how a feed updates) ───────────
+// Manifest cadences are free-text ("daily (08:15 ET business days)",
+// "event-driven", "on-demand (per modal open)", "static", "during scan").
+// Classify each into either a SCHEDULED feed (has a real daily/weekly/…/SLA and
+// should grade green/amber/red) or one of the non-scheduled natures, which have
+// NO daily SLA — a red/stale chip is wrong for them, so we show their nature
+// instead. Returns { scheduled:bool, label:string|null }.
+function cadenceNature(cadence) {
+  const c = String(cadence || '').toLowerCase().trim();
+  if (!c) return { scheduled: false, label: 'On demand' };
+  // The LEADING cadence token wins. A feed described as "daily (with scan) +
+  // on-demand (per add-to-watchlist)" is a daily scheduled feed that also has
+  // an on-demand path — its primary cadence (and its SLA) is daily, so it
+  // grades on a schedule. Only feeds whose primary cadence is a non-scheduled
+  // nature (pure event-driven / on-demand / static) skip the SLA grade.
+  if (/^(daily|weekly|bi[- ]?weekly|bi[- ]?monthly|monthly|quarterly|annual|hourly|\d+x|every |during scan)\b/.test(c)) {
+    return { scheduled: true, label: null };
+  }
+  // Event / on-change feeds — portfolio accounts, positions, watchlist,
+  // transactions, user preferences (when present).
+  if (/^event[- ]driven|^on[- ]change|^per (workflow|add-to-watchlist|save)/.test(c)) {
+    return { scheduled: false, label: 'Updates on change' };
+  }
+  // On-demand / on-request feeds — per-ticker Google News, per-modal pulls.
+  if (/^on[- ]demand|^per modal|^on[- ]request/.test(c)) {
+    return { scheduled: false, label: 'On demand' };
+  }
+  // Static reference data.
+  if (/^static\b/.test(c)) {
+    return { scheduled: false, label: 'Static' };
+  }
+  // Fallbacks for cadence strings that don't lead with a known token.
+  if (/\b(daily|weekly|monthly|quarterly|hourly|\d+x|every )\b|scan/.test(c)) {
+    return { scheduled: true, label: null };
+  }
+  if (/event[- ]driven|on[- ]change/.test(c)) return { scheduled: false, label: 'Updates on change' };
+  if (/on[- ]demand/.test(c)) return { scheduled: false, label: 'On demand' };
+  if (/\bstatic\b/.test(c)) return { scheduled: false, label: 'Static' };
+  // Unknown → treat as non-scheduled so we never fabricate a red SLA chip.
+  return { scheduled: false, label: 'On demand' };
+}
 
 // ─── Display-name helper ─────────────────────────────────────────────────────
 // Never render code-y element ids/names to the user. Prefer the registry's
@@ -158,9 +251,25 @@ function humanise(name) {
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+// Explicit display names for engine-internal elements that are NOT in the
+// indicator registry and whose humanised id reads code-y or — for the
+// allocation family — ambiguous. The allocation labels make clear that the
+// live allocator is ONE engine and the history/legacy rows are its outputs /
+// backup, not competing "v10 allocation" models (Joe: must not see two things
+// both called v10 allocation).
+const ENGINE_DISPLAY = {
+  v10_allocation: 'v10 Allocation (live allocator)',
+  v10_sector_history: 'v10 Sector History (allocation output)',
+  v9_allocation_legacy: 'v9 Allocation (legacy backup)',
+  allocation_history: 'Allocation history (output)',
+  cycle_board: 'Cycle Mechanism Board',
+  indicator_history: 'Indicator history compiler',
+};
+
 function displayName(el) {
   if (!el) return '';
   const n = el.name;
+  if (ENGINE_DISPLAY[n]) return ENGINE_DISPLAY[n];
   if (REG_DISPLAY[n]) return REG_DISPLAY[n];
   // Spell out the commonest non-registry families nicely.
   return humanise(n);
@@ -260,6 +369,36 @@ function ElementRow({ el }) {
   const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
   const sla = prettySla(el.freshness_sla_hours);
 
+  // How does this feed update? Scheduled feeds grade green/amber/red against an
+  // SLA; on-change / on-demand / static feeds have NO daily SLA, so a red/stale
+  // chip would be wrong — show their NATURE instead.
+  const nature = cadenceNature(el.cadence);
+  // A scheduled feed with no pipeline_health row isn't broken — it's just not
+  // being tracked yet. The grader synthesises a red ("No successful pull on
+  // record") purely because the row is absent, so when the row is missing we
+  // show a neutral grey "Not yet tracked" chip instead (never green, never the
+  // "no successful run" alarm). A feed that HAS a row grades normally.
+  const notTracked = nature.scheduled && f && f.missingFromPipelineHealth;
+
+  let freshnessCell;
+  if (!nature.scheduled) {
+    // On-change / on-demand / static — state the nature, not a freshness grade.
+    freshnessCell = <span className="df-row-nature">{nature.label}</span>;
+  } else if (notTracked) {
+    freshnessCell = (
+      <span className="df-row-untracked">
+        <span className="df-dot df-dot--inline df-dot--u" />Not yet tracked
+      </span>
+    );
+  } else {
+    freshnessCell = <FreshnessChip elementId={el.id} variant="label" />;
+  }
+
+  // For non-scheduled feeds the As-of / Last-pull / SLA columns carry no
+  // meaningful schedule figures — keep them quiet rather than showing stale or
+  // em-dash noise; the nature label already says how the feed behaves.
+  const showSchedule = nature.scheduled;
+
   return (
     <div className="df-row">
       <div className="df-row-main">
@@ -269,11 +408,11 @@ function ElementRow({ el }) {
       <div className="df-row-cad">
         {cad}{fetchAt ? <span className="df-row-cad-t"> · {fetchAt}</span> : null}
       </div>
-      <div className="df-row-asof"><span className="df-row-k">As of</span>{asOf}</div>
-      <div className="df-row-pull"><span className="df-row-k">Last pull</span>{lastPull}</div>
-      <div className="df-row-sla"><span className="df-row-k">SLA</span>{sla}</div>
+      <div className="df-row-asof"><span className="df-row-k">As of</span>{showSchedule ? asOf : '—'}</div>
+      <div className="df-row-pull"><span className="df-row-k">Last pull</span>{showSchedule ? lastPull : '—'}</div>
+      <div className="df-row-sla"><span className="df-row-k">SLA</span>{showSchedule ? sla : '—'}</div>
       <div className="df-row-chip">
-        <FreshnessChip elementId={el.id} variant="label" />
+        {freshnessCell}
       </div>
     </div>
   );
@@ -294,7 +433,12 @@ function ElementTableHead() {
 }
 
 // ─── Tile ─────────────────────────────────────────────────────────────────────
-function Tile({ id, role, name, sub, count, selected, lit, dim, status, onClick }) {
+// The status dot carries an INSTANT tooltip (the site's portal-rendered <Tip>,
+// which shows on hover/focus with zero delay — never the native title attr,
+// which has a ~1s delay). The tip explains what the dot colour means and, for
+// amber/red tiles, names the specific lagging/stale member feed(s). `dotTip` is
+// the pre-built JSX passed down from the page's status rollup.
+function Tile({ id, role, name, sub, count, selected, lit, dim, status, dotTip, onClick }) {
   const cls = [
     'df-tile',
     `df-tile--${role}`,
@@ -302,7 +446,7 @@ function Tile({ id, role, name, sub, count, selected, lit, dim, status, onClick 
     lit ? 'df-tile--lit' : '',
     dim ? 'df-tile--dim' : '',
   ].filter(Boolean).join(' ');
-  const dotCls = `df-dot df-dot--${status || 'u'}`;
+  const dotCls = `df-dot df-dot--static df-dot--${status || 'u'}`;
   return (
     <button
       type="button"
@@ -310,11 +454,46 @@ function Tile({ id, role, name, sub, count, selected, lit, dim, status, onClick 
       onClick={(e) => { e.stopPropagation(); onClick(id); }}
       data-id={id}
     >
-      <span className={dotCls} aria-hidden />
+      <span className="df-dot-tip">
+        <Tip content={dotTip} side="left" bare>
+          <span className={dotCls} aria-label="feed freshness" />
+        </Tip>
+      </span>
       <span className="df-tile-name">{name}</span>
       <span className="df-tile-cd">{sub}</span>
       {count != null && <span className="df-tile-count">{count}</span>}
     </button>
+  );
+}
+
+// Build the dot tooltip content for a tile: a plain-English meaning of the dot
+// colour, plus — for amber/red — the named worst member feed(s) and why. `worst`
+// is the list of lagging/stale members [{ name, status, lastRan, reason }].
+function buildDotTip(status, worst) {
+  const meaning =
+    status === 'g' ? 'Green — every feed in this tile is within its freshness target.'
+      : status === 'a' ? 'Amber — at least one feed is lagging its schedule.'
+        : status === 'r' ? 'Red — at least one feed is stale or its last run failed.'
+          : 'Grey — these feeds aren’t on a daily schedule (they update on change / on demand), or aren’t tracked yet.';
+  return (
+    <div style={{ minWidth: 180 }}>
+      <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: (worst && worst.length) ? 6 : 0 }}>
+        {meaning}
+      </div>
+      {worst && worst.length > 0 && (
+        <ul style={{ margin: '4px 0 0', paddingLeft: 16, color: 'var(--mt-ink-2)', lineHeight: 1.5 }}>
+          {worst.slice(0, 4).map((w) => (
+            <li key={w.name}>
+              <span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{w.name}</span>
+              {w.detail ? <span> — {w.detail}</span> : null}
+            </li>
+          ))}
+          {worst.length > 4 && (
+            <li style={{ color: 'var(--mt-ink-3)' }}>+{worst.length - 4} more</li>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -352,7 +531,12 @@ export default function DataFlowPage() {
 
   const elements = useMemo(() => {
     const els = manifest?.elements;
-    return Array.isArray(els) ? els.filter((e) => e && typeof e === 'object' && e.name) : [];
+    if (!Array.isArray(els)) return [];
+    // Drop malformed rows AND internal infrastructure (ops tables + the static
+    // methodology changelog) — they are plumbing, not data feeds, so they have
+    // no scheduled-freshness SLA and were the source of the "no successful run
+    // on record" clutter. No live data feed is removed here.
+    return els.filter((e) => e && typeof e === 'object' && e.name && !isInfrastructure(e));
   }, [manifest]);
 
   const elementById = useMemo(() => {
@@ -367,11 +551,14 @@ export default function DataFlowPage() {
     elements.forEach((e) => {
       const cat = e.category;
       const base = vendorBase(e.source_vendor);
-      if (cat === 'scenario' || ENGINE_NAMES.has(e.name)) {
+      // Engines: explicit engine outputs + every allocation row (the v10
+      // allocator + its history + the v9 legacy backup) so allocation never
+      // splits across two columns. (ops is already filtered out upstream.)
+      if (cat === 'allocation' || ENGINE_NAMES.has(e.name)) {
         out[e.name] = 'engine';
       } else if (cat === 'indicator') {
         out[e.name] = 'derived';
-      } else if (cat === 'ops' || cat === 'portfolio' || cat === 'news' || cat === 'commentary') {
+      } else if (cat === 'portfolio' || cat === 'news' || cat === 'commentary') {
         out[e.name] = 'workflow';
       } else if (!isInhouseVendor(e.source_vendor) && canonVendor(e.source_vendor)) {
         // equity / market elements with a real external vendor are source-fed,
@@ -454,26 +641,40 @@ export default function DataFlowPage() {
     return tiles;
   }, [elements, classified]);
 
-  // ── Column 3: Engine / model tiles (one per engine output) ──
+  // ── Column 3: Engine / model tiles ──
+  // The allocation family (live v10 allocator + its sector-history output + the
+  // v9 legacy backup + the allocation history file) collapses into ONE
+  // "v10 Allocation" engine tile so it never looks like competing models; the
+  // tile lists all of them as members with self-explaining names. Every other
+  // engine element (cycle board, indicator-history compiler) is its own tile.
   const engineTiles = useMemo(() => {
     const els = elements.filter((e) => classified[e.name] === 'engine');
-    // De-dupe by display name (the manifest has two v10_allocation rows).
-    const seen = new Map();
-    els.forEach((e) => {
-      const key = displayName(e);
-      if (!seen.has(key)) seen.set(key, []);
-      seen.get(key).push(e);
-    });
     const tiles = [];
-    seen.forEach((group, key) => {
-      const primary = group[0];
+    const allocMembers = [];
+    els.forEach((e) => {
+      if (ALLOCATION_NAMES.has(e.name)) { allocMembers.push(e); return; }
+      // One tile per non-allocation engine element.
       tiles.push({
-        id: `eng:${primary.name}`,
-        name: key,
-        sub: prettyCadence(primary.cadence),
-        members: group,
+        id: `eng:${e.name}`,
+        name: displayName(e),
+        sub: prettyCadence(e.cadence),
+        members: [e],
       });
     });
+    if (allocMembers.length) {
+      // Put the live allocator first; the live element anchors the tile id.
+      allocMembers.sort((a, b) => {
+        const rank = (n) => (n === 'v10_allocation' ? 0 : n === 'v10_sector_history' ? 1 : n === 'allocation_history' ? 2 : 3);
+        return rank(a.name) - rank(b.name);
+      });
+      const live = allocMembers.find((m) => m.name === 'v10_allocation') || allocMembers[0];
+      tiles.push({
+        id: 'eng:v10_allocation',
+        name: 'v10 Allocation',
+        sub: `${prettyCadence(live.cadence)} · live allocator`,
+        members: allocMembers,
+      });
+    }
     tiles.sort((a, b) => a.name.localeCompare(b.name));
     return tiles;
   }, [elements, classified]);
@@ -482,12 +683,14 @@ export default function DataFlowPage() {
   const { surfaceTiles, workflowTiles } = useMemo(() => {
     // Surfaces: collect, per tab, every element that declares a consumer
     // surface on that tab. consumer_surfaces entries can be dicts or strings.
+    // Tab names are canonicalised (macro→overview, portopps→scanner,
+    // asset-tilt→allocation, methodology→readme) so each real page is ONE tile.
     const byTab = new Map();
     elements.forEach((e) => {
       const css = Array.isArray(e.consumer_surfaces) ? e.consumer_surfaces : [];
       const tabs = new Set();
       css.forEach((cs) => {
-        if (cs && typeof cs === 'object' && cs.tab) tabs.add(cs.tab);
+        if (cs && typeof cs === 'object' && cs.tab) tabs.add(canonTab(cs.tab));
         // string-shaped entries carry no clean tab — skip for grouping.
       });
       tabs.forEach((tab) => {
@@ -495,19 +698,6 @@ export default function DataFlowPage() {
         byTab.get(tab).push(e);
       });
     });
-    // Merge the two Macro-Overview tab aliases (overview + macro) into one.
-    if (byTab.has('macro')) {
-      const merged = byTab.get('overview') || [];
-      byTab.get('macro').forEach((e) => { if (!merged.includes(e)) merged.push(e); });
-      byTab.set('overview', merged);
-      byTab.delete('macro');
-    }
-    if (byTab.has('portopps')) {
-      const merged = byTab.get('scanner') || [];
-      byTab.get('portopps').forEach((e) => { if (!merged.includes(e)) merged.push(e); });
-      byTab.set('scanner', merged);
-      byTab.delete('portopps');
-    }
     const SURFACE_ORDER = ['home', 'overview', 'allocation', 'scanner', 'paper', 'indicators', 'readme', 'ticker', 'admin'];
     const sTiles = [];
     const pushTab = (tab) => {
@@ -524,9 +714,9 @@ export default function DataFlowPage() {
     SURFACE_ORDER.forEach(pushTab);
     byTab.forEach((_els, tab) => { if (!SURFACE_ORDER.includes(tab)) pushTab(tab); });
 
-    // Workflows: ops / portfolio / news / commentary elements grouped by category.
+    // Workflows: portfolio / news / commentary elements grouped by category.
+    // (Internal ops plumbing was already excluded upstream.)
     const CAT_LABEL = {
-      ops: 'Operations & scanner jobs',
       portfolio: 'Portfolio & accounts',
       news: 'News & commentary feeds',
       commentary: 'Editorial commentary',
@@ -539,7 +729,7 @@ export default function DataFlowPage() {
       byCat.get(cat).push(e);
     });
     const wTiles = [];
-    ['ops', 'portfolio', 'news', 'commentary'].forEach((cat) => {
+    ['portfolio', 'news', 'commentary'].forEach((cat) => {
       if (!byCat.has(cat)) return;
       const els = byCat.get(cat);
       wTiles.push({
@@ -552,7 +742,7 @@ export default function DataFlowPage() {
     });
     // Anything else classified workflow (rare) into a catch-all tile.
     byCat.forEach((els, cat) => {
-      if (['ops', 'portfolio', 'news', 'commentary'].includes(cat)) return;
+      if (['portfolio', 'news', 'commentary'].includes(cat)) return;
       wTiles.push({ id: `wf:${cat}`, name: CAT_LABEL[cat] || humanise(cat), sub: `${els.length} jobs`, count: els.length, members: els });
     });
     return { surfaceTiles: sTiles, workflowTiles: wTiles };
@@ -573,8 +763,10 @@ export default function DataFlowPage() {
   //   vendor → family    : a source feeds every family it has an indicator in
   //   vendor → engine     : a source feeds an engine it is a member of (rare)
   //   family → engines    : every family rolls into the cycle board + compiler
-  //   engines → surfaces  : the indicator compiler / cycle board feed the
-  //                         macro/indicator/allocation surfaces
+  //   engines → surfaces  : each engine feeds ONLY the surfaces its manifest
+  //                         consumer_surfaces declare — so the Cycle Mechanism
+  //                         Board draws to Asset Tilt (its consumer tab is
+  //                         "asset-tilt"), NOT Macro Overview.
   //   member → surface    : every element feeds the surface tabs it declares
   const edges = useMemo(() => {
     const E = [];
@@ -599,7 +791,7 @@ export default function DataFlowPage() {
         const css = Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : [];
         css.forEach((cs) => {
           if (cs && typeof cs === 'object' && cs.tab) {
-            const tab = cs.tab === 'macro' ? 'overview' : cs.tab === 'portopps' ? 'scanner' : cs.tab;
+            const tab = canonTab(cs.tab);
             if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
           }
         });
@@ -626,7 +818,7 @@ export default function DataFlowPage() {
         const css = Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : [];
         css.forEach((cs) => {
           if (cs && typeof cs === 'object' && cs.tab) {
-            const tab = cs.tab === 'macro' ? 'overview' : cs.tab === 'portopps' ? 'scanner' : cs.tab;
+            const tab = canonTab(cs.tab);
             if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
           }
         });
@@ -667,12 +859,13 @@ export default function DataFlowPage() {
   //    (fake-green is forbidden). We then propagate the worst status upstream
   //    so a red source paints every tile downstream of it. Per-row truth still
   //    lives in the detail panel via <FreshnessChip>; the dot is a summary. ──
-  const statusByElement = useMemo(() => {
-    // pipeline_health.status → dot letter. "unverified" (a green the monitor
-    // could not re-confirm) and missing rows are neutral grey, not green.
+  const { statusByElement, detailByElement } = useMemo(() => {
+    // pipeline_health row → dot letter + the run detail the dot tooltip names.
+    // "unverified" (a green the monitor could not re-confirm) and missing rows
+    // are neutral grey, not green.
     const byKey = new Map();
     (healthRows || []).forEach((r) => {
-      if (r && r.indicator_id) byKey.set(r.indicator_id, r.status);
+      if (r && r.indicator_id) byKey.set(r.indicator_id, r);
     });
     const lookup = (el) => {
       const cand = [el.name, el.id].filter(Boolean);
@@ -680,12 +873,34 @@ export default function DataFlowPage() {
       return null;
     };
     const out = {};
+    const detail = {};
     elements.forEach((el) => {
-      const s = lookup(el);
+      const r = lookup(el);
+      const s = r ? r.status : null;
       out[el.name] = s === 'red' ? 'r' : s === 'amber' ? 'a' : s === 'green' ? 'g' : 'u';
+      detail[el.name] = {
+        lastGoodAt: r?.last_good_at || null,
+        lastError: r?.last_error || null,
+        dataAsOf: r?.data_as_of || null,
+      };
     });
-    return out;
+    return { statusByElement: out, detailByElement: detail };
   }, [healthRows, elements]);
+
+  // Plain-English "why" for a lagging/stale member feed, named in the dot tip.
+  const memberDetailText = useCallback((el) => {
+    const st = statusByElement[el.name] || 'u';
+    const d = detailByElement[el.name] || {};
+    const ran = d.lastGoodAt
+      ? `last ran ${fmtDate(d.lastGoodAt)}`
+      : 'no successful run recorded';
+    if (st === 'r') {
+      if (d.lastError) return `failed (${String(d.lastError).slice(0, 60)})`;
+      return `${ran}, past its window`;
+    }
+    if (st === 'a') return `${ran}, lagging its schedule`;
+    return ran;
+  }, [statusByElement, detailByElement]);
 
   const statusByTile = useMemo(() => {
     // worst-of-members, where 'u' (untracked) is neutral and does not turn a
@@ -721,6 +936,43 @@ export default function DataFlowPage() {
     });
     return out;
   }, [allTiles, statusByElement, bfs]);
+
+  // ── Per-tile worst-member detail for the dot tooltip. Names the specific
+  //    member feed(s) that are lagging/stale and why. Includes the tile's OWN
+  //    amber/red members, plus — when the tile is only amber/red because an
+  //    upstream source is — the worst upstream member feed (so a surface tile
+  //    that is red because a vendor is stale names that vendor's feed). ──
+  const tileWorst = useMemo(() => {
+    const rank = { r: 3, a: 2, g: 1, u: 0 };
+    const out = {};
+    allTiles.forEach((t) => {
+      const items = [];
+      const seenNames = new Set();
+      const addBad = (members) => {
+        (members || []).forEach((m) => {
+          const st = statusByElement[m.name] || 'u';
+          if ((st === 'r' || st === 'a') && !seenNames.has(m.name)) {
+            seenNames.add(m.name);
+            items.push({ name: displayName(m), status: st, detail: memberDetailText(m) });
+          }
+        });
+      };
+      addBad(t.members);
+      // If this tile shows amber/red but none of its OWN members are bad, the
+      // colour came from upstream — name the worst upstream member feed(s).
+      const tileStatus = statusByTile[t.id];
+      if ((tileStatus === 'r' || tileStatus === 'a') && items.length === 0) {
+        bfs(t.id, 'up').forEach((uid) => {
+          const ut = tileById[uid];
+          if (ut) addBad(ut.members);
+        });
+      }
+      // Worst first.
+      items.sort((a, b) => rank[b.status] - rank[a.status]);
+      out[t.id] = items;
+    });
+    return out;
+  }, [allTiles, statusByElement, statusByTile, memberDetailText, bfs, tileById]);
 
   // Lineage drawing on the SVG connector layer.
   const drawLineage = useCallback((id) => {
@@ -790,6 +1042,7 @@ export default function DataFlowPage() {
       lit={litSet.has(t.id)}
       dim={dimSet.has(t.id)}
       status={statusByTile[t.id]}
+      dotTip={buildDotTip(statusByTile[t.id], tileWorst[t.id])}
       onClick={handleTileClick}
     />
   );
@@ -797,7 +1050,7 @@ export default function DataFlowPage() {
   const selectedTile = selectedId ? tileById[selectedId] : null;
   const selectedRole = selectedId
     ? (selectedId.startsWith('src:') ? 'Source vendor'
-      : selectedId.startsWith('dom:') ? 'Derived indicator family'
+      : selectedId.startsWith('dom:') ? 'Indicator family'
         : selectedId.startsWith('eng:') ? 'Engine / model'
           : selectedId.startsWith('surf:') ? 'Live surface'
             : 'Workflow')
@@ -831,7 +1084,7 @@ export default function DataFlowPage() {
             End-to-end <i>data flow</i>.
           </h1>
           <p className="mt-deck">
-            Every source, every derived indicator, every engine, every surface — read straight from the
+            Every source, every indicator we track, every engine, every surface — read straight from the
             data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
             fresh each feed is.
           </p>
@@ -850,7 +1103,7 @@ export default function DataFlowPage() {
           <div className="df-totals" role="note" aria-label="Manifest totals">
             <span><b>{totals.elements}</b> tracked elements</span>
             <span><b>{totals.vendors}</b> external sources</span>
-            <span><b>{totals.indicators}</b> derived indicators</span>
+            <span><b>{totals.indicators}</b> indicators</span>
             <span><b>{totals.engines}</b> engines &amp; models</span>
             <span><b>{totals.surfaces}</b> live surfaces</span>
           </div>
@@ -860,7 +1113,8 @@ export default function DataFlowPage() {
             <span><span className="df-dot df-dot--inline df-dot--g" />Within target</span>
             <span><span className="df-dot df-dot--inline df-dot--a" />Lagging</span>
             <span><span className="df-dot df-dot--inline df-dot--r" />Stale or failed</span>
-            <span className="df-legend-hint">Click a tile to list its feeds · click again to clear</span>
+            <span><span className="df-dot df-dot--inline df-dot--u" />On change / not yet tracked</span>
+            <span className="df-legend-hint">Hover a tile’s dot for detail · click a tile to list its feeds</span>
           </div>
 
           <div className="df-layout">
@@ -875,7 +1129,7 @@ export default function DataFlowPage() {
                 </div>
 
                 <div className="df-col">
-                  <div className="df-col-h">Derived indicators</div>
+                  <div className="df-col-h">Indicators</div>
                   <div className="df-stack">{derivedTiles.map((t) => renderTile(t, 'derived'))}</div>
                 </div>
 
@@ -974,12 +1228,23 @@ export default function DataFlowPage() {
         .df-tile-cd { display: block; font-size: 10px; color: var(--mt-ink-2); margin-top: 2px; line-height: 1.25; }
         .df-tile-count { position: absolute; top: 7px; right: 9px; font-size: 10px; font-weight: 700; color: var(--mt-ink-1);
           background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: 9px; padding: 0 6px; min-width: 14px; text-align: center; line-height: 16px; }
-        .df-dot { position: absolute; bottom: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
+        .df-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
         .df-dot--g { background: var(--mt-up); }
         .df-dot--a { background: var(--mt-warn); }
         .df-dot--r { background: var(--mt-down); }
         .df-dot--u { background: var(--mt-ink-3); opacity: 0.55; }
         .df-dot--inline { position: static; display: inline-block; vertical-align: 1px; margin-right: 6px; }
+        /* Static-positioned dot lives inside the .df-dot-tip hover target. */
+        .df-dot--static { display: block; }
+        /* Hover target for the dot's instant tooltip — pinned bottom-right of
+           the tile, slightly larger than the dot so it's easy to hit. */
+        .df-dot-tip { position: absolute; bottom: 6px; right: 7px; display: inline-flex;
+          align-items: center; justify-content: center; padding: 3px; }
+        .df-dot-tip:hover .df-dot { box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 22%, transparent); }
+
+        /* Non-scheduled / not-yet-tracked freshness cells in the detail table. */
+        .df-row-nature { font-size: 11px; color: var(--mt-ink-2); font-style: italic; }
+        .df-row-untracked { display: inline-flex; align-items: center; font-size: 11px; color: var(--mt-ink-2); }
 
         /* ── Detail panel ── */
         .df-detail { position: sticky; top: 12px; background: var(--mt-surface); border: 1px solid var(--mt-line-0);
