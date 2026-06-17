@@ -1961,7 +1961,8 @@
    "target_storage": "public/cycle_v2.json",
    "owner": "Data Steward",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
-   "id": "cycle-mechanism-board-daily"
+   "id": "cycle-mechanism-board-daily",
+   "description": "Cycle Mechanism Board \u2014 scores six dimensions of the business cycle from 0 to 100 each night: Valuation, Credit, Funding, Growth, Liquidity & Policy, and Positioning & Breadth. These six scores feed the v10 allocator, which uses them to set the sector and industry-group tilts on Asset Tilt. It does not drive Macro Overview."
   },
   "indicator-fx_dollar-daily": {
    "element": "fx_dollar",
