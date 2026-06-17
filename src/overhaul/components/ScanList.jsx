@@ -32,26 +32,29 @@ const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
 // Column registry for the indicator (Scanner) view. `w` is the grid track
 // width. `head` is the short column header label. Ticker + Score are locked
 // on by the picker, so they always appear; the rest are toggleable.
+// `w` is the minimum track width. `grow` (fr weight) lets a column absorb extra
+// width so the table fills wide screens instead of leaving an empty right
+// gutter; the compact signal-point columns stay fixed for a tight cluster.
 export const INDICATOR_COLS = {
-  ticker:  { key: 'ticker',  label: 'Ticker',                head: 'Ticker',   w: '78px', locked: true },
-  name:    { key: 'name',    label: 'Company name',          head: 'Name',     w: '150px' },
-  price:   { key: 'price',   label: 'Last price',            head: 'Last',     w: '74px' },
-  day:     { key: 'day',     label: 'Day change',            head: 'Day',      w: '66px' },
-  chg30:   { key: 'chg30',   label: '30-day change',         head: '30-Day',   w: '88px' },
-  from52hi:{ key: 'from52hi',label: '% from 52-week high',   head: '% 52w hi', w: '70px' },
-  rsi:     { key: 'rsi',     label: 'RSI (14-day)',          head: 'RSI',      w: '46px' },
-  vs200:   { key: 'vs200',   label: '% vs 200-day line',     head: '% 200d',   w: '62px' },
-  rvol:    { key: 'rvol',    label: 'Relative volume',       head: 'Rel vol',  w: '58px' },
-  mktcap:  { key: 'mktcap',  label: 'Market cap',            head: 'Mkt cap',  w: '66px' },
-  ivrank:  { key: 'ivrank',  label: 'IV rank',               head: 'IV rank',  w: '56px' },
-  earn:    { key: 'earn',    label: 'Next earnings date',    head: 'Earnings', w: '74px' },
+  ticker:  { key: 'ticker',  label: 'Ticker',                head: 'Ticker',   w: '78px',  locked: true },
+  name:    { key: 'name',    label: 'Company name',          head: 'Name',     w: '150px', grow: 2.4 },
+  price:   { key: 'price',   label: 'Last price',            head: 'Last',     w: '74px',  grow: 1 },
+  day:     { key: 'day',     label: 'Day change',            head: 'Day',      w: '66px',  grow: 1 },
+  chg30:   { key: 'chg30',   label: '30-day change',         head: '30-Day',   w: '88px',  grow: 1 },
+  from52hi:{ key: 'from52hi',label: '% from 52-week high',   head: '% 52w hi', w: '70px',  grow: 1 },
+  rsi:     { key: 'rsi',     label: 'RSI (14-day)',          head: 'RSI',      w: '46px',  grow: 1 },
+  vs200:   { key: 'vs200',   label: '% vs 200-day line',     head: '% 200d',   w: '62px',  grow: 1 },
+  rvol:    { key: 'rvol',    label: 'Relative volume',       head: 'Rel vol',  w: '58px',  grow: 1 },
+  mktcap:  { key: 'mktcap',  label: 'Market cap',            head: 'Mkt cap',  w: '66px',  grow: 1 },
+  ivrank:  { key: 'ivrank',  label: 'IV rank',               head: 'IV rank',  w: '56px',  grow: 1 },
+  earn:    { key: 'earn',    label: 'Next earnings date',    head: 'Earnings', w: '74px',  grow: 1 },
   insider: { key: 'insider', label: 'Insider pts',           head: 'Insider',  w: '54px' },
   tech:    { key: 'tech',    label: 'Technicals pts',        head: 'Tech',     w: '46px' },
   options: { key: 'options', label: 'Options pts',           head: 'Options',  w: '54px' },
   dark:    { key: 'dark',    label: 'Dark-pool pts',         head: 'Dark',     w: '46px' },
-  short:   { key: 'short',   label: 'Short interest %',      head: 'Short %',  w: '58px' },
+  short:   { key: 'short',   label: 'Short interest %',      head: 'Short %',  w: '58px',  grow: 1 },
   flow:    { key: 'flow',    label: 'Options flow net $',    head: 'Flow $',   w: '62px' },
-  score:   { key: 'score',   label: 'Score',                 head: 'Score',    w: '54px', locked: true },
+  score:   { key: 'score',   label: 'Score',                 head: 'Score',    w: '54px',  grow: 0.6, locked: true },
 };
 
 // Full available-column universe + initial order grouped per Joe's layout
@@ -232,9 +235,18 @@ export default function ScanList({
       })()
     : null;
 
+  // Grow columns get a flexible max (minmax(min, Nfr)) so the table fills wide
+  // screens instead of leaving an empty right gutter; fixed columns keep their
+  // width. minTableWidth = the floor below which we stop stretching and scroll.
   const grid = indicatorColumns
-    ? `${activeKeys.map((k) => INDICATOR_COLS[k].w).join(' ')} 22px`
+    ? `${activeKeys.map((k) => {
+        const c = INDICATOR_COLS[k];
+        return c.grow ? `minmax(${c.w}, ${c.grow}fr)` : c.w;
+      }).join(' ')} 22px`
     : GRID_FACETS;
+  const minTableWidth = indicatorColumns
+    ? activeKeys.reduce((sum, k) => sum + (parseInt(INDICATOR_COLS[k].w, 10) || 0), 0) + 22 + 36
+    : null;
 
   // Group the active columns into contiguous runs for the grouped header tier
   // (Stock / Performance / Technicals / Signal scores / Other / Score).
@@ -319,7 +331,7 @@ export default function ScanList({
         listStyle: 'none',
         padding: 0,
         margin: 0,
-        minWidth: indicatorColumns ? 'max-content' : undefined,
+        minWidth: indicatorColumns ? minTableWidth : undefined,
       }}
     >
       {indicatorColumns && (
