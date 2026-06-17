@@ -1,734 +1,743 @@
-/* DataFlowPage — end-to-end data lineage dashboard.
+/* DataFlowPage — end-to-end data lineage dashboard, MANIFEST-DERIVED.
 
-   Single E2E surface that shows every external source, every derived
-   indicator bucket, every modelled engine, every live surface, and every
-   downstream workflow. Replaces the per-vendor admin views.
+   Rebuilt 2026-06-16. Everything on this page is computed at runtime from
+   public/data_manifest.json (loaded once, guarded) — NOT hand-typed. There
+   are no hardcoded tile lists, vendor tables, indicator counts, or prose
+   drawers. The four-column data-flow concept is kept (Sources → Derived
+   indicators → Engines & models → Surfaces & workflows) but each column is
+   grouped out of the manifest:
 
-   Behaviour:
-     - Status dots on source tiles read from live pipeline_health via the
-       useDataHealth hook (60s cache + tab-focus refresh).
-     - Click any tile -> draws full transitive upstream + downstream chain
-       (BFS in both directions on the edge list below), dims unconnected
-       tiles, paints SVG curves on the connector layer.
-     - Click again or click empty space -> clears the lineage.
-     - Drawer below renders rich content per tile from TILE_DETAILS.
-       Asset tilt allocator gets the special SectorAllocationDrawer that
-       breaks out the three input groups + static config.
+     - Sources      = the distinct external `source_vendor`s in the manifest
+                      (in-house / computed vendors are excluded — they live in
+                      the Engines column). Cost is read from VENDOR_MONTHLY_COST
+                      (canonical) with the manifest's monthly_cost_usd as a
+                      fallback.
+     - Derived      = every `category:"indicator"` element, grouped into the
+                      five-domain families the rest of the site uses (Rates,
+                      Credit, Equities, Commodities, FX, Financial Conditions &
+                      Economy). The family for each indicator comes from the
+                      shared indicator registry (IND[name][2] → FAMILY_LABEL);
+                      a small fallback map covers the handful of computed v11
+                      series that aren't in the registry.
+     - Engines      = in-house computed outputs (scenario category, the cycle
+                      board, the indicator-history compiler, the allocation
+                      engine, pipeline_health) — vendor is "n/a" / "MacroTilt".
+     - Surfaces &   = the distinct consumer-surface tabs the manifest declares,
+       workflows      plus the ops / portfolio / news / commentary elements.
 
-   Edges are derived from a live-code audit. Sources are connected to the
-   SPECIFIC derived buckets they feed — not via a hub fan-out — so
-   clicking ISM only lights up the growth chain.
+   THE KEY ASK — per-tile indicator-by-indicator detail. Selecting any tile
+   opens a right-hand detail panel that lists EVERY underlying element with,
+   per row: display name, source vendor, cadence + scheduled fetch time, the
+   data as-of date, the last successful pull time, the freshness state (a real
+   per-row <FreshnessChip>, which resolves status from the manifest +
+   pipeline_health via useFreshness), and the SLA. This replaces the old
+   bottom prose drawer.
 
-   Theming uses --mt-* tokens from tokens.css, so the page picks up the
-   existing light / dark / navy themes via data-mt-theme on <html>.
+   Theming uses --mt-* tokens only (no hardcoded hex), so the page picks up the
+   light / dark / navy themes via data-mt-theme on <html>. Every value carries
+   a freshness chip.
 */
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useDataHealth, VENDOR_MONTHLY_COST } from '../../hooks/useDataHealth';
+import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../hooks/useDataHealth';
+import { IND } from '../../data/indicatorRegistry';
+import FreshnessChip from '../components/FreshnessChip';
+import { useFreshness } from '../../hooks/useFreshness';
 
-const EDGES = [
-  // Sources -> Indicator History Compiler
-  ['fred', 'ihc'], ['treasury', 'ihc'], ['yahoo', 'ihc'], ['multpl', 'ihc'],
-  ['gdpnow', 'ihc'], ['ism', 'ihc'], ['fdic', 'ihc'],
+// ─── Five-domain family rollup (matches useIndicators.FAMILY_LABEL) ──────────
+// The registry tags each indicator with a fine-grained family_id; the site
+// rolls those up into the five user-facing domains. Kept here so the Derived
+// column groups indicators exactly the way the Indicators / Macro pages do.
+const FAMILY_LABEL = {
+  equity: 'Equities',
+  credit: 'Credit',
+  rates: 'Rates',
+  fincond: 'Financial Conditions & Economy',
+  bank: 'Credit',
+  labor: 'Financial Conditions & Economy',
+  commodities: 'Commodities',
+  fx: 'FX',
+};
 
-  // Sources -> Derived buckets (specific, no hub fan-out)
-  ['fred', 'rates'], ['fred', 'credit'], ['fred', 'liquidity'], ['fred', 'growth'], ['fred', 'twoaxis'],
-  ['treasury', 'rates'],
-  ['yahoo', 'positioning'], ['yahoo', 'commodity'], ['yahoo', 'credit'], ['yahoo', 'twoaxis'],
-  ['multpl', 'valuation'],
-  ['gdpnow', 'growth'],
-  ['ism', 'growth'],
-  ['fdic', 'credit'],
+// Fixed display order for the Derived column so the layout is stable run to run.
+const FAMILY_ORDER = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 
-  // Sources that bypass derived
-  ['polygon', 'scanner'], ['polygon', 'sectorperf'],
-  ['uw', 'scanner'],
-  ['nasdaq', 'scanner'],
-  ['congress', 'scanner'],
-  ['spdr', 'asset_tilt'],
-  ['zh', 'commentary'],
+// A handful of computed v11 / derived series are not in the indicator
+// registry (they are engine-internal preferred variants). Map them to the
+// right domain so they still appear under the correct family rather than an
+// "Other" bucket. Keys are manifest element `name`s.
+const FALLBACK_FAMILY = {
+  erp: 'Equities',
+  cftc_cot: 'Equities',
+  'cftc-cot': 'Equities',
+  fra_ois: 'Credit',
+  sofr_ois: 'Credit',
+  real_fedfunds: 'Credit',
+  bkx_spx_v11: 'Credit',
+  ic4wsa: 'Financial Conditions & Economy',
+  ism_mfg: 'Financial Conditions & Economy',
+  ism_svc: 'Financial Conditions & Economy',
+};
 
-  // Derived -> Engines
-  ['rates', 'v11'], ['credit', 'v11'], ['liquidity', 'v11'], ['growth', 'v11'], ['valuation', 'v11'], ['positioning', 'v11'], ['positioning', 'twoaxis'],
-  ['commodity', 'v11'],
+// ─── Vendor canonicalisation ─────────────────────────────────────────────────
+// Manifest source_vendor strings are free-text ("Polygon (Massive)",
+// "Treasury.gov (computed)", "Unusual Whales + FINRA"). Reduce each to a
+// canonical vendor name that matches the VENDOR_MONTHLY_COST / blast-radius
+// tables in useDataHealth so cost + description aren't hand-typed here.
+const VENDOR_CANON = {
+  polygon: 'Polygon Massive',
+  'unusual whales': 'Unusual Whales',
+  fred: 'FRED',
+  'treasury.gov': 'U.S. Treasury',
+  'yahoo finance': 'Yahoo Finance',
+  ism: 'ISM',
+  shiller: 'Shiller dataset',
+  cme: 'CME',
+  fdic: 'FDIC',
+  zerohedge: 'ZeroHedge',
+  'state street': 'State Street SPDR',
+  cftc: 'CFTC',
+  numerco: 'Numerco',
+  alpaca: 'Alpaca (paper)',
+  anthropic: 'Anthropic (Claude)',
+  'google news rss': 'Google News',
+  tradingeconomics: 'TradingEconomics',
+  nasdaq: 'Nasdaq / FINRA',
+  finra: 'Nasdaq / FINRA',
+  wikipedia: 'Wikipedia + iShares',
+  invesco: 'Invesco QQQ holdings',
+};
 
-  // Engines -> Surfaces
-  ['ihc', 'indicators'], ['ihc', 'methodology'],
-  ['v11', 'asset_tilt'], 
-  ['twoaxis', 'asset_tilt'], ['twoaxis', 'overview'], ['twoaxis', 'allocation'],
-  ['asset_tilt', 'allocation'], ['asset_tilt', 'home'], ['asset_tilt', 'methodology'],
-  ['scanner', 'ops'], ['scanner', 'home'], ['scanner', 'methodology'],
-  ['sectorperf', 'allocation'], ['sectorperf', 'indicators'],
+// Vendor strings that mean "computed in-house" — these are NOT external
+// sources; their elements belong in the Engines column.
+const INHOUSE_VENDOR = new Set([
+  'n/a', 'self', 'macrotilt', 'macrotilt engine', 'macrotilt producers', 'tbd', '',
+]);
 
-  // Engines -> Workflows
-  ['asset_tilt', 'alpaca'],
-  ['scanner', 'alpaca'],
-
-  // Workflows -> Surfaces
-  ['alpaca', 'paper'],
-];
-
-function bfs(start, dir) {
-  const seen = new Set([start]);
-  const queue = [start];
-  while (queue.length) {
-    const n = queue.shift();
-    for (const [a, b] of EDGES) {
-      let next = null;
-      if (dir === 'down' && a === n) next = b;
-      if (dir === 'up' && b === n) next = a;
-      if (next && !seen.has(next)) {
-        seen.add(next);
-        queue.push(next);
-      }
-    }
+function vendorBase(raw) {
+  if (!raw) return '';
+  // Take the text before the first '(', '+', or '/' and lowercase it, so
+  // "Polygon (Massive)", "Unusual Whales + FINRA" and "Shiller / multpl.com"
+  // all reduce to a single canonical key.
+  return String(raw).split(/[(+/]/)[0].trim().toLowerCase();
+}
+function canonVendor(raw) {
+  const base = vendorBase(raw);
+  if (!base || INHOUSE_VENDOR.has(base)) return null; // in-house → not a source
+  if (VENDOR_CANON[base]) return VENDOR_CANON[base];
+  // Prefix match — "zerohedge premium" → "zerohedge", "shiller …" → "shiller".
+  for (const key of Object.keys(VENDOR_CANON)) {
+    if (base.startsWith(key)) return VENDOR_CANON[key];
   }
-  seen.delete(start);
-  return Array.from(seen);
+  // Title-case the cleaned base as a last resort.
+  const clean = String(raw).split(/[(+/]/)[0].trim();
+  return clean || null;
+}
+function isInhouseVendor(raw) {
+  return INHOUSE_VENDOR.has(vendorBase(raw));
 }
 
-// ---------- Tile config ----------
-const COL1_EQUITY = [
-  { id: 'polygon', name: 'Polygon Massive', cd: 'Daily · 4:30 PM ET' },
-  { id: 'uw', name: 'Unusual Whales', cd: '3×/day · intraday' },
-  { id: 'yahoo', name: 'Yahoo Finance', cd: 'Daily · close' },
-  { id: 'nasdaq', name: 'Nasdaq / FINRA', cd: 'Daily · short interest' },
-  { id: 'spdr', name: 'SPDR sector weights', cd: 'Daily · 6 AM ET' },
-];
+// Manifest element `name`s that are engine outputs regardless of category.
+const ENGINE_NAMES = new Set([
+  'cycle_board', 'indicator_history', 'v10_allocation', 'v10_sector_history',
+  'scenarios', 'pipeline_health',
+]);
 
-const COL1_MACRO = [
-  { id: 'fred', name: 'FRED', cd: 'Daily · ~30 series' },
-  { id: 'treasury', name: 'US Treasury', cd: 'Daily · 4 PM ET' },
-  { id: 'ism', name: 'ISM PMI release', cd: 'Monthly', manual: true },
-  { id: 'gdpnow', name: 'Atlanta Fed GDPNow', cd: 'Bi-weekly' },
-  { id: 'multpl', name: 'multpl.com CAPE', cd: 'Monthly' },
-  { id: 'zh', name: 'ZeroHedge premium', cd: 'Weekly' },
-  { id: 'congress', name: 'Congress roster', cd: 'Monthly' },
-  { id: 'fdic', name: 'FDIC HTM losses', cd: 'Quarterly', manual: true },
-];
+// ─── Display-name helper ─────────────────────────────────────────────────────
+// Never render code-y element ids/names to the user. Prefer the registry's
+// human display name; fall back to a humanised version of the manifest name.
+const REG_DISPLAY = {};
+Object.entries(IND).forEach(([k, meta]) => { if (meta && meta[0]) REG_DISPLAY[k] = meta[0]; });
+const REG_FAMILY = {};
+Object.entries(IND).forEach(([k, meta]) => { if (meta && meta[2]) REG_FAMILY[k] = meta[2]; });
 
-const COL2_DERIVED = [
-  { id: 'rates', name: 'Rates & curve', cd: '6 metrics' },
-  { id: 'credit', name: 'Credit', cd: '6 metrics' },
-  { id: 'liquidity', name: 'Liquidity & money', cd: '4 metrics' },
-  { id: 'growth', name: 'Growth', cd: '2 metrics + ISM, GDPNow' },
-  { id: 'valuation', name: 'Valuation', cd: '2 metrics' },
-  { id: 'positioning', name: 'Positioning & vol', cd: '3 metrics' },
-  { id: 'commodity', name: 'Commodity & sector', cd: '2 metrics' },
-];
+function humanise(name) {
+  if (!name) return '';
+  return String(name)
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function displayName(el) {
+  if (!el) return '';
+  const n = el.name;
+  if (REG_DISPLAY[n]) return REG_DISPLAY[n];
+  // Spell out the commonest non-registry families nicely.
+  return humanise(n);
+}
 
-const COL3_ENGINES = [
-  { id: 'ihc', name: 'Indicator history compiler', cd: 'Daily · 6 AM & 6 PM' },
-  { id: 'v11', name: 'Cycle mechanism board', cd: 'Nightly · 6 macro scores' },
-  { id: 'twoaxis', name: '2-axis engine', cd: 'Stress · yield direction' },
-  { id: 'asset_tilt', name: 'Asset tilt allocator', cd: 'Daily · 8:15 AM ET' },
-  { id: 'scanner', name: 'Trading opps scanner', cd: '3:30 / 5:30 / 9:30 ET' },
-  { id: 'sectorperf', name: 'Sector performance compute', cd: 'Daily' },
-];
+// Domain for an indicator element: registry family → 5-domain label, else
+// the explicit fallback map, else a catch-all.
+function domainForIndicator(name) {
+  const fid = REG_FAMILY[name];
+  if (fid && FAMILY_LABEL[fid]) return FAMILY_LABEL[fid];
+  if (FALLBACK_FAMILY[name]) return FALLBACK_FAMILY[name];
+  return 'Financial Conditions & Economy';
+}
 
-const COL4_SURFACES = [
-  { id: 'home', name: 'Home', cd: 'Tile dashboard' },
-  { id: 'overview', name: 'Macro overview', cd: 'Five-domain dashboard' },
-  { id: 'allocation', name: 'Asset tilt', cd: 'Sector / IG / defensive' },
-  { id: 'ops', name: 'Trading ops', cd: 'Named tickers' },
-  { id: 'paper', name: 'Paper portfolio', cd: 'Alpaca mirror' },
-  { id: 'indicators', name: 'All indicators', cd: '36-indicator grid' },
-  { id: 'methodology', name: 'Methodology', cd: 'Calibration tables' },
-];
+// ─── Plain-English helpers (manifest → label) ────────────────────────────────
+function prettyCadence(cad) {
+  if (!cad) return '—';
+  const c = String(cad);
+  // Keep parenthetical schedule notes short; surface the leading cadence word.
+  const head = c.split('(')[0].trim();
+  return head ? head.charAt(0).toUpperCase() + head.slice(1) : c;
+}
+function prettyFetchET(raw) {
+  if (!raw) return null;
+  const t = String(raw).split('(')[0].trim();
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return t;
+  let h = Number(m[1]);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m[2]} ${ap} ET`;
+}
+function prettySla(hours) {
+  const h = Number(hours);
+  if (!Number.isFinite(h) || h <= 0) return '—';
+  if (h < 48) return `${Math.round(h)}h`;
+  const d = h / 24;
+  if (d < 14) return `${Math.round(d)}d`;
+  if (d < 60) return `${Math.round(d / 7)}w`;
+  return `${Math.round(d / 30)}mo`;
+}
+function tabLabel(tab) {
+  const MAP = {
+    home: 'Home',
+    overview: 'Macro Overview',
+    macro: 'Macro Overview',
+    indicators: 'All Indicators',
+    allocation: 'Asset Tilt',
+    scanner: 'Trading Opps',
+    portopps: 'Trading Opps',
+    paper: 'Paper Portfolio',
+    ticker: 'Ticker Detail',
+    readme: 'Methodology',
+    methodology: 'Methodology',
+    admin: 'Admin · Data',
+  };
+  return MAP[tab] || humanise(tab);
+}
 
-const COL4_WORKFLOWS = [
-  { id: 'alpaca', name: 'Alpaca paper queue', cd: 'Daily · 9 AM ET' },
-  { id: 'alerts', name: 'Email alerts', cd: 'Resend · on-event' },
-  { id: 'triage', name: 'Bug triage loop', cd: 'Resend + GitHub' },
-  { id: 'commentary', name: 'News commentary', cd: 'Threshold-gated' },
-];
+// ─── Per-row freshness cells (driven by useFreshness on the element id) ──────
+// One small hook-component per element row so each row resolves its own live
+// status, as-of, and last-pull from the manifest + pipeline_health. The chip
+// itself renders the dot + relative age + the five-field tooltip; the extra
+// cells show the exact as-of and last-pull alongside it so the table reads
+// indicator-by-indicator without needing to hover.
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const dateOnly = String(iso).length === 10;
+  const dt = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '—';
+  // Date-only stamps carry no real intraday time — show date only.
+  if (String(iso).length === 10) {
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
+  return dt.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    timeZone: 'America/New_York',
+  });
+}
 
-// ---------- Source tile -> canonical vendor (for live freshness lookup) ----------
-const VENDOR_BY_TILE = {
-  polygon:  'Polygon Massive',
-  uw:       'Unusual Whales',
-  yahoo:    'Yahoo Finance',
-  nasdaq:   'Nasdaq / FINRA',
-  spdr:     'State Street SPDR',
-  fred:     'FRED',
-  treasury: 'U.S. Treasury',
-  ism:      'ISM',
-  naaim:    null,
-  gdpnow:   'FRED',
-  multpl:   'Shiller dataset',
-  zh:       'ZeroHedge',
-  congress: 'GitHub public roster',
-  fdic:     'FDIC',
-};
+function ElementRow({ el }) {
+  // Resolve live freshness for this element. useFreshness accepts the manifest
+  // id OR short name; we pass the id which is the canonical key.
+  const f = useFreshness(el.id);
+  const vendor = el.source_vendor && !isInhouseVendor(el.source_vendor)
+    ? (canonVendor(el.source_vendor) || el.source_vendor)
+    : 'MacroTilt (computed)';
+  const cad = prettyCadence(el.cadence);
+  const fetchAt = prettyFetchET(el.scheduled_fetch_time_et);
+  const asOf = fmtDate(f?.dataAsOf || el.data_as_of);
+  const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
+  const sla = prettySla(el.freshness_sla_hours);
 
-// ---------- Per-tile drawer content ----------
-const TILE_DETAILS = {
-  // -- Sources --
-  polygon: {
-    role: 'source',
-    desc: 'End-of-day equity prices for ~12,600 US-listed tickers, plus ticker reference (name, SIC, sector, industry group), dividends, splits, sector ETF performance, and the master universe.',
-    consumers: {
-      engines: ['Trading opps scanner', 'Sector performance compute'],
-      surfaces: ['Trading ops (prices, day change, sector)', 'Portfolio insights (position marks)', 'Asset tilt (sector performance)'],
-      workflows: [],
-    },
-  },
-  uw: {
-    role: 'source',
-    desc: 'Per-ticker universe snapshot, insider trades, options flow alerts, dark-pool prints, per-contract EOD options, congress trades, analyst ratings, news event streams, earnings history.',
-    consumers: {
-      engines: ['Trading opps scanner', 'Dark-pool scoring layer', 'Options scoring layer'],
-      surfaces: ['Trading ops (composite scores)', 'Portfolio insights (option marks)', 'All indicators (IV rank, earnings)'],
-      workflows: [],
-    },
-  },
-  yahoo: {
-    role: 'source',
-    desc: 'Free market data for indices and macro-sensitive ETFs: ^MOVE, ^SKEW, GLD, SPY, KBE, HG=F (copper), GC=F (gold), HYG, LQD. Used for both macro signals and price fallback.',
-    consumers: {
-      engines: ['Indicator history compiler', '2-axis engine (MOVE)'],
-      surfaces: ['All indicators (MOVE, SKEW)', 'Macro overview (positioning + commodity)'],
-      workflows: [],
-    },
-  },
-  nasdaq: {
-    role: 'source',
-    desc: 'Bi-monthly settlement short-interest print, published via Nasdaq/FINRA. Feeds the short-interest sub-score on the Trading Opps scanner.',
-    consumers: {
-      engines: ['Trading opps scanner'],
-      surfaces: ['Trading ops (short interest column)'],
-      workflows: [],
-    },
-  },
-  spdr: {
-    role: 'source',
-    desc: 'SPY GICS sector weights from the SPDR holdings file. Used as the benchmark against which Asset Tilt computes vs-SPY deltas.',
-    consumers: {
-      engines: ['Asset tilt allocator'],
-      surfaces: ['Asset tilt (vs-SPY column)'],
-      workflows: [],
-    },
-  },
-  fred: {
-    role: 'source',
-    desc: '~30 macro series including HY/IG OAS, jobless claims, M2, balance sheet WALCL, term premium, RRP, SLOOS, and rate series (DGS10, DGS2, DFF, SOFR, CP yields).',
-    consumers: {
-      engines: ['Indicator history compiler', '2-axis engine (DGS10)'],
-      surfaces: ['Macro overview', 'All indicators', 'Methodology'],
-      workflows: [],
-    },
-  },
-  treasury: {
-    role: 'source',
-    desc: 'Daily par yields (1Mo–30Y nominal) and TIPS real yields from home.treasury.gov. Published same-day around 4 PM ET. Replaced FRED for same-day Treasury coverage in May 2026.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview (yield curve)', 'All indicators (10Y, 2Y, breakevens)'],
-      workflows: [],
-    },
-  },
-  ism: {
-    role: 'source',
-    desc: 'Monthly Purchasing Managers Index release. Currently scraped from TradingEconomics. Feeds the Growth cycle mechanism — and only the Growth mechanism — despite being a high-attention release.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview', 'All indicators (ISM PMI)'],
-      workflows: [],
-    },
-  },
-  gdpnow: {
-    role: 'source',
-    desc: 'Atlanta Fed GDPNow nowcast, ingested via the FRED GDPNOW series. Refreshes bi-weekly when the Atlanta Fed publishes an update.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  multpl: {
-    role: 'source',
-    desc: 'Shiller CAPE ratio, scraped monthly from multpl.com with a curated anchor fallback for missed scrapes. Feeds the Valuation mechanism and the Equity Risk Premium derived indicator.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview', 'All indicators (CAPE, ERP)'],
-      workflows: [],
-    },
-  },
-  zh: {
-    role: 'source',
-    desc: 'ZeroHedge premium feed, cookie-authenticated. A weekly cookie health-check workflow emails Joe to refresh the cookie when it nears expiry.',
-    consumers: {
-      engines: [],
-      surfaces: ['Ticker detail (commentary)', 'Home (news strip)'],
-      workflows: ['News commentary'],
-    },
-  },
-  congress: {
-    role: 'source',
-    desc: 'Members of Congress roster JSON (unitedstates/congress-legislators on GitHub, CC0). Refreshes monthly with a PR on diff. Used to attach member names to congressional trade activity.',
-    consumers: {
-      engines: ['Trading opps scanner'],
-      surfaces: ['Trading ops (congress trades column)'],
-      workflows: [],
-    },
-  },
-  fdic: {
-    role: 'source',
-    desc: 'FDIC Quarterly Banking Profile — bank unrealized HTM losses. Manually updated quarterly via a curated anchor list because the underlying FDIC publication is PDF-based.',
-    consumers: {
-      engines: ['Indicator history compiler'],
-      surfaces: ['Macro overview', 'All indicators (bank stress)'],
-      workflows: [],
-    },
-  },
+  return (
+    <div className="df-row">
+      <div className="df-row-main">
+        <div className="df-row-name">{displayName(el)}</div>
+        <div className="df-row-vendor">{vendor}</div>
+      </div>
+      <div className="df-row-cad">
+        {cad}{fetchAt ? <span className="df-row-cad-t"> · {fetchAt}</span> : null}
+      </div>
+      <div className="df-row-asof"><span className="df-row-k">As of</span>{asOf}</div>
+      <div className="df-row-pull"><span className="df-row-k">Last pull</span>{lastPull}</div>
+      <div className="df-row-sla"><span className="df-row-k">SLA</span>{sla}</div>
+      <div className="df-row-chip">
+        <FreshnessChip elementId={el.id} variant="label" />
+      </div>
+    </div>
+  );
+}
 
-  // -- Derived --
-  rates: {
-    role: 'derived',
-    desc: 'Six rates-and-curve derived indicators: 10Y-2Y slope, 10Y breakeven inflation, term premium, real Fed funds rate, 3-month Δ 10Y in bps, and 10Y yield 5-year percentile.',
-    consumers: {
-      engines: ['Cycle mechanism board (Funding mechanism)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  credit: {
-    role: 'derived',
-    desc: 'Six credit derived indicators: HY-IG spread, HY/IG ratio, HY/IG ETF proxy (HYG/LQD), commercial paper minus Fed funds spread, FRA-OIS modern proxy, and the CMDI distress proxy.',
-    consumers: {
-      engines: ['Cycle mechanism board (Credit mechanism)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  liquidity: {
-    role: 'derived',
-    desc: 'Four liquidity-and-money derived indicators: M2 year-over-year, Fed balance sheet year-over-year, three-year bank credit growth, and bank credit year-over-year.',
-    consumers: {
-      engines: ['Cycle mechanism board (Liquidity & Policy mechanism)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  growth: {
-    role: 'derived',
-    desc: 'Growth bucket: two derived indicators (CFNAI 3-month moving average, jobless claims 4-week moving average) plus the direct ISM Manufacturing and Services PMI prints and the Atlanta Fed GDPNow nowcast.',
-    consumers: {
-      engines: ['Cycle mechanism board (Growth mechanism)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  valuation: {
-    role: 'derived',
-    desc: 'Two valuation derived indicators: the Buffett indicator (corporate equities divided by GDP) and the Equity Risk Premium (1/CAPE minus 10Y yield).',
-    consumers: {
-      engines: ['Cycle mechanism board (Valuation mechanism)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  positioning: {
-    role: 'derived',
-    desc: 'Three positioning-and-volatility derived indicators: MOVE 5-year percentile, NAAIM exposure index, and 63-day rolling equity-credit correlation (SPY vs HYG).',
-    consumers: {
-      engines: ['Cycle mechanism board (Positioning & Breadth)', '2-axis engine (MOVE)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
-  commodity: {
-    role: 'derived',
-    desc: 'Two commodity-and-sector derived indicators: Copper/Gold ratio (HG/GC × 100) and BKX/SPX (banks versus market).',
-    consumers: {
-      engines: ['Cycle mechanism board (growth signal)'],
-      surfaces: ['Macro overview', 'All indicators'],
-      workflows: [],
-    },
-  },
+// Column headers for the per-element table (rendered once above the rows).
+function ElementTableHead() {
+  return (
+    <div className="df-row df-row--head" aria-hidden>
+      <div className="df-row-main">Element · source</div>
+      <div className="df-row-cad">Cadence · fetch</div>
+      <div className="df-row-asof">As of</div>
+      <div className="df-row-pull">Last pull</div>
+      <div className="df-row-sla">SLA</div>
+      <div className="df-row-chip">Freshness</div>
+    </div>
+  );
+}
 
-  // -- Engines --
-  ihc: {
-    role: 'engine',
-    desc: 'Indicator History Compiler. Pulls all macro sources nightly and twice daily, derives every indicator above, and writes the consolidated indicator_history.json that the rest of the engine and surface chain reads from.',
-    owner: 'Senior Quant + Lead Dev',
-    output: 'indicator_history.json',
-    consumers: {
-      engines: ['Cycle mechanism board', '2-axis engine'],
-      surfaces: ['All indicators (36-indicator grid)', 'Methodology'],
-      workflows: [],
-    },
-  },
-  v11: {
-    role: 'engine',
-    desc: 'The Cycle Mechanism Board. Scores six macro mechanisms 0–100 each via direction-corrected percentile averaging of their constituent indicators. The six are Valuation, Credit, Funding, Growth, Liquidity & Policy, and Positioning & Breadth.',
-    owner: 'Senior Quant',
-    output: 'cycle_board_snapshot.json',
-    consumers: {
-      engines: ['Asset tilt allocator'],
-      surfaces: ['Asset tilt (sector / industry-group tilts)'],
-      workflows: [],
-    },
-  },
-  twoaxis: {
-    role: 'engine',
-    desc: 'MacroTilt 2-axis engine. Axis 1 (Stress) reads MOVE trailing 5-year percentile and maps to Risk On / Watch / Risk Off bands and equity allocation 100% / 80% / 50%. Axis 2 (Yield Direction) reads the 3-month Δ 10Y 5-year percentile and maps to Inflationary / Neutral / Deflationary defensive sleeves.',
-    owner: 'Senior Quant',
-    output: 'macrotilt_engine.json',
-    consumers: {
-      engines: ['Asset tilt allocator'],
-      surfaces: ['Macro overview (stress band)', 'Asset tilt (equity / defensive split)'],
-      workflows: [],
-    },
-  },
-  asset_tilt: { role: 'engine', special: 'sector_allocation' },
-  scanner: {
-    role: 'engine',
-    desc: 'Trading Opportunities scanner. Per-ticker MacroTilt Score in [-100, +100] built from six weighted sub-scores: insider, options flow, congress, technicals, analyst, short interest. Assigns one of five bands: Strong Sell, Watch Sell, Neutral, Watch Buy, Strong Buy.',
-    owner: 'Senior Quant + Lead Dev',
-    output: 'signal_intel_v5_daily',
-    consumers: {
-      engines: [],
-      surfaces: ['Trading ops (named tickers)', 'Home (top opps tile)', 'Methodology (scoring framework)'],
-      workflows: ['Alpaca paper queue (Sleeve B)'],
-    },
-  },
-  sectorperf: {
-    role: 'engine',
-    desc: 'Sector Performance Compute. 1-month, 3-month, and trailing-twelve-month return plus TTM volatility for each of the 11 GICS sector ETFs.',
-    owner: 'Lead Dev',
-    output: 'sector_perf.json',
-    consumers: {
-      engines: [],
-      surfaces: ['Asset tilt (sector performance column)', 'All indicators (sector grid)'],
-      workflows: [],
-    },
-  },
-
-  // -- Surfaces --
-  home: { role: 'surface', desc: 'Landing tile dashboard. Summarises the regime, the asset tilt, the top trading opportunities, and any urgent freshness alerts on a single screen.' },
-  overview: { role: 'surface', desc: 'Macro Overview page. The five-domain indicator backdrop — each indicator graded against its own trailing 3-year range — plus the stress band, the yield-direction band, and the regime label. (It does not read the cycle mechanism board.)' },
-  allocation: { role: 'surface', desc: 'Asset Tilt page. Live sector allocation (11 sectors + 25 industry groups), the defensive sleeve, the page stance, and the vs-SPY deltas.' },
-  ops: { role: 'surface', desc: 'Trading Opportunities page. Filterable grid of every scanner-scored ticker with MacroTilt Score, band, sub-scores, and named drivers.' },
-  paper: { role: 'surface', desc: 'Paper Portfolio page. Alpaca-mirrored paper account: $1M total with two sleeves. NAV, fills, and positions update on the morning open and EOD chains.' },
-  indicators: { role: 'surface', desc: 'All Indicators page. Full 36-indicator grid with per-indicator percentile, history, and drill-down panels.' },
-  methodology: { role: 'surface', desc: "Methodology page. Documents every engine's framework, calibration tables, formulae, and back-test results. Updated in the same PR as any model change." },
-
-  // -- Workflows --
-  alpaca: {
-    role: 'workflow',
-    desc: 'Paper-portfolio EOD and Open jobs. EOD translates the Asset Tilt allocation and the Trading Opps scanner output into pending paper orders and submits them market-on-open to Alpaca; the morning Open job mirrors fills back to Supabase.',
-    consumers: { engines: [], surfaces: ['Paper portfolio'], workflows: [] },
-  },
-  alerts: {
-    role: 'workflow',
-    desc: 'Resend-powered email alerts for workflow failures, daily home smoke tests, pipeline freshness watchdog, and bug-triage events.',
-    consumers: { engines: [], surfaces: [], workflows: [] },
-  },
-  triage: {
-    role: 'workflow',
-    desc: 'Bug triage email loop. Resend acknowledgement on file → 36-hour nudge on stale bugs → one-tap APPROVE email that auto-merges the triage PR via the GitHub API.',
-    consumers: { engines: [], surfaces: ['Admin · Bugs'], workflows: [] },
-  },
-  commentary: {
-    role: 'workflow',
-    desc: 'Threshold-gated editorial commentary generator. Pulls ZeroHedge premium articles, runs a Claude call when relevant tickers cross a salience threshold, and writes blurbs to the Ticker Detail commentary section.',
-    consumers: { engines: [], surfaces: ['Ticker detail', 'Home (news strip)'], workflows: [] },
-  },
-};
-
-// ---------- Tile component ----------
-function Tile({ tile, role, selected, lit, dim, status, onClick }) {
+// ─── Tile ─────────────────────────────────────────────────────────────────────
+function Tile({ id, role, name, sub, count, selected, lit, dim, status, onClick }) {
   const cls = [
     'df-tile',
     `df-tile--${role}`,
-    tile.manual ? 'df-tile--manual' : '',
     selected ? 'df-tile--selected' : '',
     lit ? 'df-tile--lit' : '',
     dim ? 'df-tile--dim' : '',
   ].filter(Boolean).join(' ');
-  const dotCls = `df-dot df-dot--${status || 'g'}`;
+  const dotCls = `df-dot df-dot--${status || 'u'}`;
   return (
     <button
       type="button"
       className={cls}
-      onClick={(e) => { e.stopPropagation(); onClick(tile.id); }}
-      data-id={tile.id}
-      data-tip={`${tile.name} — ${tile.cd}. Click to trace its chain.`}
+      onClick={(e) => { e.stopPropagation(); onClick(id); }}
+      data-id={id}
     >
       <span className={dotCls} aria-hidden />
-      <span className="df-tile-name">{tile.name}</span>
-      <span className="df-tile-cd">{tile.cd}</span>
+      <span className="df-tile-name">{name}</span>
+      <span className="df-tile-cd">{sub}</span>
+      {count != null && <span className="df-tile-count">{count}</span>}
     </button>
   );
 }
 
-// ---------- Sector allocation drawer (special-case for asset_tilt) ----------
-function SectorAllocationDrawer() {
-  return (
-    <div className="df-drawer">
-      <div className="df-drawer-head">
-        <h3>
-          <span className="df-dot df-dot--inline df-dot--g" aria-hidden />
-          Asset tilt allocator · sector allocation
-        </h3>
-      </div>
-      <p className="df-drawer-desc">
-        Live engine behind the Asset Tilt page. Combines the 2-axis macro engine with the six cycle mechanism
-        board scores (Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth) plus
-        a static sensitivity matrix to produce 11 sector tilts, 25 industry-group tilts, defensive sleeve
-        composition, page stance, and leverage. Source of truth: compute_v10_allocation.py (v10.2, locked
-        2026-05-22).
-      </p>
-
-      <div className="df-meta">
-        <div><div className="df-meta-k">Type</div><div className="df-meta-v">Modelled engine</div></div>
-        <div><div className="df-meta-k">Cadence</div><div className="df-meta-v">Daily · 8:15 AM ET</div></div>
-        <div><div className="df-meta-k">Output</div><div className="df-meta-v">v10_allocation.json</div></div>
-        <div><div className="df-meta-k">Owner</div><div className="df-meta-v">Senior Quant + Lead Dev</div></div>
-      </div>
-
-      <div className="df-block">
-        <div className="df-block-h">Inputs · what the engine reads</div>
-
-        <div className="df-inp">
-          <div className="df-inp-h"><span className="df-inp-bar" />From the 2-axis engine</div>
-          <div className="df-inp-sub">Drives equity %, defensive %, and the defensive sleeve mix.</div>
-          <div className="df-chips">
-            <span className="df-chip">MOVE 5-yr percentile</span>
-            <span className="df-chip">3-month Δ 10Y yield 5-yr percentile</span>
-            <span className="df-chip">Equity %</span>
-            <span className="df-chip">Defensive %</span>
-            <span className="df-chip">Sleeve mix (cash / SHY / TLT / GLD / LQD)</span>
-          </div>
-        </div>
-
-        <div className="df-inp">
-          <div className="df-inp-h"><span className="df-inp-bar" />From the cycle mechanism board</div>
-          <div className="df-inp-sub">Six macro scores (0–100). Each is itself an aggregate of 3–5 underlying FRED, Yahoo and scrape indicators.</div>
-          <div className="df-chips">
-            <span className="df-chip">Valuation</span>
-            <span className="df-chip">Credit</span>
-            <span className="df-chip">Funding</span>
-            <span className="df-chip">Growth</span>
-            <span className="df-chip">Liquidity &amp; policy</span>
-            <span className="df-chip">Positioning &amp; breadth</span>
-          </div>
-        </div>
-
-        <div className="df-inp">
-          <div className="df-inp-h"><span className="df-inp-bar" />Static configuration</div>
-          <div className="df-inp-sub">Hard-coded constants reviewed each methodology cycle.</div>
-          <div className="df-chips">
-            <span className="df-chip">11-sector SPY benchmark weights</span>
-            <span className="df-chip">11 × 6 sensitivity matrix</span>
-            <span className="df-chip">25 IG sensitivity adjustments</span>
-            <span className="df-chip">OW / UW thresholds ±0.3</span>
-            <span className="df-chip">Leverage cap 1.5×</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="df-block">
-        <div className="df-block-h">Downstream consumers</div>
-        <div className="df-grp">
-          <div>
-            <div className="df-grp-h">Engines</div>
-            <ul><li className="df-grp-empty">Terminal — no downstream engines</li></ul>
-          </div>
-          <div>
-            <div className="df-grp-h">Live surfaces</div>
-            <ul>
-              <li>Asset tilt page</li>
-              <li>Home (asset tilt tile)</li>
-              <li>Methodology page</li>
-            </ul>
-          </div>
-          <div>
-            <div className="df-grp-h">Downstream workflows</div>
-            <ul>
-              <li>Paper portfolio EOD → Alpaca</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- Generic per-tile drawer (TILE_DETAILS-driven) ----------
-function TileDetailDrawer({ tileId, tileById, status }) {
-  const details = TILE_DETAILS[tileId];
-  const tile = tileById[tileId];
-  if (!details || !tile) return null;
-
-  const roleLabel = {
-    source: 'External source',
-    derived: 'Derived indicator bucket',
-    engine: 'Modelled engine',
-    surface: 'Live surface',
-    workflow: 'Downstream workflow',
-  }[details.role] || 'Element';
-
-  const consumers = details.consumers || { engines: [], surfaces: [], workflows: [] };
-  const vendor = details.role === 'source' ? VENDOR_BY_TILE[tileId] : null;
-  const cost = vendor ? VENDOR_MONTHLY_COST[vendor] : null;
-
-  const dotCls = `df-dot df-dot--inline df-dot--${status || 'g'}`;
-
-  return (
-    <div className="df-drawer">
-      <div className="df-drawer-head">
-        <h3>
-          <span className={dotCls} aria-hidden />
-          {tile.name}
-        </h3>
-      </div>
-      <p className="df-drawer-desc">{details.desc}</p>
-
-      <div className="df-meta">
-        <div><div className="df-meta-k">Type</div><div className="df-meta-v">{roleLabel}</div></div>
-        <div><div className="df-meta-k">Cadence</div><div className="df-meta-v">{tile.cd}</div></div>
-        {vendor && <div><div className="df-meta-k">Vendor</div><div className="df-meta-v">{vendor}</div></div>}
-        {cost && <div><div className="df-meta-k">Monthly cost</div><div className="df-meta-v">{cost}</div></div>}
-        {details.owner && <div><div className="df-meta-k">Owner</div><div className="df-meta-v">{details.owner}</div></div>}
-        {details.output && <div><div className="df-meta-k">Output</div><div className="df-meta-v">{details.output}</div></div>}
-        {tile.manual && <div><div className="df-meta-k">Ingest</div><div className="df-meta-v">Manual upload</div></div>}
-      </div>
-
-      {(consumers.engines.length + consumers.surfaces.length + consumers.workflows.length) > 0 && (
-        <div className="df-block">
-          <div className="df-block-h">Downstream consumers</div>
-          <div className="df-grp">
-            <div>
-              <div className="df-grp-h">Engines</div>
-              <ul>
-                {consumers.engines.length === 0
-                  ? <li className="df-grp-empty">None</li>
-                  : consumers.engines.map((c) => <li key={c}>{c}</li>)}
-              </ul>
-            </div>
-            <div>
-              <div className="df-grp-h">Live surfaces</div>
-              <ul>
-                {consumers.surfaces.length === 0
-                  ? <li className="df-grp-empty">None</li>
-                  : consumers.surfaces.map((c) => <li key={c}>{c}</li>)}
-              </ul>
-            </div>
-            <div>
-              <div className="df-grp-h">Downstream workflows</div>
-              <ul>
-                {consumers.workflows.length === 0
-                  ? <li className="df-grp-empty">None</li>
-                  : consumers.workflows.map((c) => <li key={c}>{c}</li>)}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- Status lookup helpers ----------
-function statusForVendorRollup(rollup) {
-  if (!rollup) return 'g';
-  if (rollup.red > 0) return 'r';
-  if (rollup.amber > 0) return 'a';
+// ─── Status rollup (own + worst upstream), driven by live freshness ──────────
+function worse(a, b) {
+  if (a === 'r' || b === 'r') return 'r';
+  if (a === 'a' || b === 'a') return 'a';
   return 'g';
 }
 
-// ---------- Main page ----------
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function DataFlowPage() {
-  const [selectedId, setSelectedId] = useState('asset_tilt');
+  // ALL useState first — declared before any useMemo that references them, so
+  // there is no temporal-dead-zone trap (the prior blank-page bug).
+  const [manifest, setManifest] = useState(null);
+  const [loadErr, setLoadErr] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const flowRef = useRef(null);
   const svgRef = useRef(null);
 
-  // Live vendor freshness (60s cache, focus refresh)
-  const { byVendor } = useDataHealth();
+  // Live pipeline health for the tile dots (real per-row freshness lives in the
+  // detail panel via FreshnessChip). 60s cache + focus refresh. `rows` is the
+  // raw pipeline_health set, keyed in statusByElement by element name/id.
+  const { rows: healthRows } = useDataHealth();
 
-  const allTiles = useMemo(() => [
-    ...COL1_EQUITY, ...COL1_MACRO, ...COL2_DERIVED,
-    ...COL3_ENGINES, ...COL4_SURFACES, ...COL4_WORKFLOWS,
-  ], []);
-  const tileById = useMemo(
-    () => Object.fromEntries(allTiles.map((t) => [t.id, t])),
-    [allTiles],
-  );
+  // Load the manifest once. Same fetch pattern as useIndicators.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/data_manifest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setManifest(d); })
+      .catch((e) => { if (!cancelled) setLoadErr(e?.message || 'manifest load failed'); });
+    return () => { cancelled = true; };
+  }, []);
 
-  // Resolve per-tile status from live data.
-  // Every tile is wired — sources read from their canonical vendor
-  // rollup; everything downstream takes the worst status of its
-  // transitive upstream source set (so a red source paints every
-  // tile that depends on it). Operational workflows with no graph
-  // upstream (alerts, triage) inherit the worst of all sources.
-  const statusByTile = useMemo(() => {
+  const elements = useMemo(() => {
+    const els = manifest?.elements;
+    return Array.isArray(els) ? els.filter((e) => e && typeof e === 'object' && e.name) : [];
+  }, [manifest]);
+
+  const elementById = useMemo(() => {
     const out = {};
+    elements.forEach((e) => { out[e.id || e.name] = e; });
+    return out;
+  }, [elements]);
 
-    // Pre-compute the OWN status for every tile (vendor / manual / null).
-    const ownStatus = {};
-    allTiles.forEach((t) => {
-      const vendor = VENDOR_BY_TILE[t.id];
-      if (vendor && byVendor && byVendor.get(vendor)) {
-        ownStatus[t.id] = statusForVendorRollup(byVendor.get(vendor));
-      } else if (t.manual) {
-        ownStatus[t.id] = 'a';
+  // ── Classify every element into one of the four columns ──
+  const classified = useMemo(() => {
+    const out = {};
+    elements.forEach((e) => {
+      const cat = e.category;
+      const base = vendorBase(e.source_vendor);
+      if (cat === 'scenario' || ENGINE_NAMES.has(e.name)) {
+        out[e.name] = 'engine';
+      } else if (cat === 'indicator') {
+        out[e.name] = 'derived';
+      } else if (cat === 'ops' || cat === 'portfolio' || cat === 'news' || cat === 'commentary') {
+        out[e.name] = 'workflow';
+      } else if (!isInhouseVendor(e.source_vendor) && canonVendor(e.source_vendor)) {
+        // equity / market elements with a real external vendor are source-fed,
+        // but their *home* on this page is the surface/workflow they feed; we
+        // still surface their vendor in the Sources column member list.
+        out[e.name] = 'sourcefed';
+      } else if (base) {
+        out[e.name] = 'workflow';
       } else {
-        ownStatus[t.id] = null;
+        out[e.name] = 'workflow';
       }
     });
+    return out;
+  }, [elements]);
 
-    const worse = (a, b) => {
-      if (a === 'r' || b === 'r') return 'r';
-      if (a === 'a' || b === 'a') return 'a';
-      return 'g';
+  // ── Column 1: Source tiles, grouped by canonical vendor ──
+  const sourceTiles = useMemo(() => {
+    const byVendor = new Map();
+    elements.forEach((e) => {
+      const v = canonVendor(e.source_vendor);
+      if (!v) return; // in-house elements are not sources
+      if (!byVendor.has(v)) byVendor.set(v, []);
+      byVendor.get(v).push(e);
+    });
+    const tiles = [];
+    byVendor.forEach((els, vendor) => {
+      // Cost: canonical table first, then the manifest's own per-element value.
+      let cost = VENDOR_MONTHLY_COST[vendor] || null;
+      if (!cost) {
+        const withCost = els.find((e) => Number(e.monthly_cost_usd) > 0);
+        cost = withCost ? `$${withCost.monthly_cost_usd}` : 'Free';
+      }
+      // Cadence summary = the most-common cadence head among this vendor's els.
+      const cadCounts = {};
+      els.forEach((e) => {
+        const c = prettyCadence(e.cadence);
+        cadCounts[c] = (cadCounts[c] || 0) + 1;
+      });
+      const topCad = Object.entries(cadCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+      tiles.push({
+        id: `src:${vendor}`,
+        vendor,
+        name: vendor,
+        sub: `${topCad} · ${cost}`,
+        count: els.length,
+        members: els,
+      });
+    });
+    // Order: most elements first (FRED / Yahoo lead), stable.
+    tiles.sort((a, b) => b.count - a.count || a.vendor.localeCompare(b.vendor));
+    return tiles;
+  }, [elements]);
+
+  // ── Column 2: Derived-indicator tiles, grouped by 5-domain family ──
+  const derivedTiles = useMemo(() => {
+    const byFam = new Map();
+    elements.forEach((e) => {
+      if (classified[e.name] !== 'derived') return;
+      const dom = domainForIndicator(e.name);
+      if (!byFam.has(dom)) byFam.set(dom, []);
+      byFam.get(dom).push(e);
+    });
+    const tiles = [];
+    FAMILY_ORDER.forEach((dom) => {
+      if (!byFam.has(dom)) return;
+      const els = byFam.get(dom);
+      tiles.push({
+        id: `dom:${dom}`,
+        name: dom,
+        sub: `${els.length} indicator${els.length === 1 ? '' : 's'}`,
+        count: els.length,
+        members: els,
+      });
+    });
+    // Any family not in the fixed order (shouldn't happen) appended.
+    byFam.forEach((els, dom) => {
+      if (FAMILY_ORDER.includes(dom)) return;
+      tiles.push({ id: `dom:${dom}`, name: dom, sub: `${els.length} indicators`, count: els.length, members: els });
+    });
+    return tiles;
+  }, [elements, classified]);
+
+  // ── Column 3: Engine / model tiles (one per engine output) ──
+  const engineTiles = useMemo(() => {
+    const els = elements.filter((e) => classified[e.name] === 'engine');
+    // De-dupe by display name (the manifest has two v10_allocation rows).
+    const seen = new Map();
+    els.forEach((e) => {
+      const key = displayName(e);
+      if (!seen.has(key)) seen.set(key, []);
+      seen.get(key).push(e);
+    });
+    const tiles = [];
+    seen.forEach((group, key) => {
+      const primary = group[0];
+      tiles.push({
+        id: `eng:${primary.name}`,
+        name: key,
+        sub: prettyCadence(primary.cadence),
+        members: group,
+      });
+    });
+    tiles.sort((a, b) => a.name.localeCompare(b.name));
+    return tiles;
+  }, [elements, classified]);
+
+  // ── Column 4: Surface tiles (one per consumer-surface tab) + workflow tiles ──
+  const { surfaceTiles, workflowTiles } = useMemo(() => {
+    // Surfaces: collect, per tab, every element that declares a consumer
+    // surface on that tab. consumer_surfaces entries can be dicts or strings.
+    const byTab = new Map();
+    elements.forEach((e) => {
+      const css = Array.isArray(e.consumer_surfaces) ? e.consumer_surfaces : [];
+      const tabs = new Set();
+      css.forEach((cs) => {
+        if (cs && typeof cs === 'object' && cs.tab) tabs.add(cs.tab);
+        // string-shaped entries carry no clean tab — skip for grouping.
+      });
+      tabs.forEach((tab) => {
+        if (!byTab.has(tab)) byTab.set(tab, []);
+        byTab.get(tab).push(e);
+      });
+    });
+    // Merge the two Macro-Overview tab aliases (overview + macro) into one.
+    if (byTab.has('macro')) {
+      const merged = byTab.get('overview') || [];
+      byTab.get('macro').forEach((e) => { if (!merged.includes(e)) merged.push(e); });
+      byTab.set('overview', merged);
+      byTab.delete('macro');
+    }
+    if (byTab.has('portopps')) {
+      const merged = byTab.get('scanner') || [];
+      byTab.get('portopps').forEach((e) => { if (!merged.includes(e)) merged.push(e); });
+      byTab.set('scanner', merged);
+      byTab.delete('portopps');
+    }
+    const SURFACE_ORDER = ['home', 'overview', 'allocation', 'scanner', 'paper', 'indicators', 'readme', 'ticker', 'admin'];
+    const sTiles = [];
+    const pushTab = (tab) => {
+      if (!byTab.has(tab)) return;
+      const els = byTab.get(tab);
+      sTiles.push({
+        id: `surf:${tab}`,
+        name: tabLabel(tab),
+        sub: `${els.length} feed${els.length === 1 ? '' : 's'}`,
+        count: els.length,
+        members: els,
+      });
+    };
+    SURFACE_ORDER.forEach(pushTab);
+    byTab.forEach((_els, tab) => { if (!SURFACE_ORDER.includes(tab)) pushTab(tab); });
+
+    // Workflows: ops / portfolio / news / commentary elements grouped by category.
+    const CAT_LABEL = {
+      ops: 'Operations & scanner jobs',
+      portfolio: 'Portfolio & accounts',
+      news: 'News & commentary feeds',
+      commentary: 'Editorial commentary',
+    };
+    const byCat = new Map();
+    elements.forEach((e) => {
+      if (classified[e.name] !== 'workflow') return;
+      const cat = e.category || 'other';
+      if (!byCat.has(cat)) byCat.set(cat, []);
+      byCat.get(cat).push(e);
+    });
+    const wTiles = [];
+    ['ops', 'portfolio', 'news', 'commentary'].forEach((cat) => {
+      if (!byCat.has(cat)) return;
+      const els = byCat.get(cat);
+      wTiles.push({
+        id: `wf:${cat}`,
+        name: CAT_LABEL[cat] || humanise(cat),
+        sub: `${els.length} job${els.length === 1 ? '' : 's'}`,
+        count: els.length,
+        members: els,
+      });
+    });
+    // Anything else classified workflow (rare) into a catch-all tile.
+    byCat.forEach((els, cat) => {
+      if (['ops', 'portfolio', 'news', 'commentary'].includes(cat)) return;
+      wTiles.push({ id: `wf:${cat}`, name: CAT_LABEL[cat] || humanise(cat), sub: `${els.length} jobs`, count: els.length, members: els });
+    });
+    return { surfaceTiles: sTiles, workflowTiles: wTiles };
+  }, [elements, classified]);
+
+  // ── Index every tile by id, and build the lineage edge list at runtime ──
+  const allTiles = useMemo(
+    () => [...sourceTiles, ...derivedTiles, ...engineTiles, ...surfaceTiles, ...workflowTiles],
+    [sourceTiles, derivedTiles, engineTiles, surfaceTiles, workflowTiles],
+  );
+  const tileById = useMemo(() => {
+    const out = {};
+    allTiles.forEach((t) => { out[t.id] = t; });
+    return out;
+  }, [allTiles]);
+
+  // Edges (derived, not hardcoded):
+  //   vendor → family    : a source feeds every family it has an indicator in
+  //   vendor → engine     : a source feeds an engine it is a member of (rare)
+  //   family → engines    : every family rolls into the cycle board + compiler
+  //   engines → surfaces  : the indicator compiler / cycle board feed the
+  //                         macro/indicator/allocation surfaces
+  //   member → surface    : every element feeds the surface tabs it declares
+  const edges = useMemo(() => {
+    const E = [];
+    const famTileFor = {};
+    derivedTiles.forEach((t) => { famTileFor[t.name] = t.id; });
+    const engById = {};
+    engineTiles.forEach((t) => { t.members.forEach((m) => { engById[m.name] = t.id; }); });
+    const surfTileForTab = {};
+    surfaceTiles.forEach((t) => { surfTileForTab[t.id.replace('surf:', '')] = t.id; });
+
+    // vendor → family / engine / surface (via each member element)
+    sourceTiles.forEach((src) => {
+      const fams = new Set();
+      const engs = new Set();
+      const surfs = new Set();
+      src.members.forEach((m) => {
+        if (classified[m.name] === 'derived') {
+          const dom = domainForIndicator(m.name);
+          if (famTileFor[dom]) fams.add(famTileFor[dom]);
+        }
+        if (classified[m.name] === 'engine' && engById[m.name]) engs.add(engById[m.name]);
+        const css = Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : [];
+        css.forEach((cs) => {
+          if (cs && typeof cs === 'object' && cs.tab) {
+            const tab = cs.tab === 'macro' ? 'overview' : cs.tab === 'portopps' ? 'scanner' : cs.tab;
+            if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
+          }
+        });
+      });
+      fams.forEach((f) => E.push([src.id, f]));
+      engs.forEach((g) => E.push([src.id, g]));
+      // sources that feed a surface directly (equity/market feeds) — only when
+      // they don't already route through a family (keeps the graph readable).
+      if (fams.size === 0) surfs.forEach((s) => E.push([src.id, s]));
+    });
+
+    // family → cycle board + indicator compiler
+    const cycleId = engineTiles.find((t) => /cycle/i.test(t.name))?.id;
+    const compilerId = engineTiles.find((t) => /history|compiler|indicator history/i.test(t.name))?.id;
+    derivedTiles.forEach((t) => {
+      if (cycleId) E.push([t.id, cycleId]);
+      if (compilerId) E.push([t.id, compilerId]);
+    });
+
+    // engines → surfaces (via the surfaces each engine's members declare)
+    engineTiles.forEach((eng) => {
+      const surfs = new Set();
+      eng.members.forEach((m) => {
+        const css = Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : [];
+        css.forEach((cs) => {
+          if (cs && typeof cs === 'object' && cs.tab) {
+            const tab = cs.tab === 'macro' ? 'overview' : cs.tab === 'portopps' ? 'scanner' : cs.tab;
+            if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
+          }
+        });
+      });
+      surfs.forEach((s) => E.push([eng.id, s]));
+    });
+
+    // de-dupe
+    const seen = new Set();
+    return E.filter(([a, b]) => {
+      const k = `${a}>${b}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [sourceTiles, derivedTiles, engineTiles, surfaceTiles, classified]);
+
+  const bfs = useCallback((start, dir) => {
+    const seen = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const n = queue.shift();
+      for (const [a, b] of edges) {
+        let next = null;
+        if (dir === 'down' && a === n) next = b;
+        if (dir === 'up' && b === n) next = a;
+        if (next && !seen.has(next)) { seen.add(next); queue.push(next); }
+      }
+    }
+    seen.delete(start);
+    return Array.from(seen);
+  }, [edges]);
+
+  // ── Live freshness for the tile dots. Each tile's OWN dot is the worst
+  //    status across its member elements, looked up in pipeline_health by the
+  //    same keys the chips grade on (short name, then full id). A member with
+  //    no tracking row contributes "unknown" — NEVER silently green
+  //    (fake-green is forbidden). We then propagate the worst status upstream
+  //    so a red source paints every tile downstream of it. Per-row truth still
+  //    lives in the detail panel via <FreshnessChip>; the dot is a summary. ──
+  const statusByElement = useMemo(() => {
+    // pipeline_health.status → dot letter. "unverified" (a green the monitor
+    // could not re-confirm) and missing rows are neutral grey, not green.
+    const byKey = new Map();
+    (healthRows || []).forEach((r) => {
+      if (r && r.indicator_id) byKey.set(r.indicator_id, r.status);
+    });
+    const lookup = (el) => {
+      const cand = [el.name, el.id].filter(Boolean);
+      for (const c of cand) if (byKey.has(c)) return byKey.get(c);
+      return null;
+    };
+    const out = {};
+    elements.forEach((el) => {
+      const s = lookup(el);
+      out[el.name] = s === 'red' ? 'r' : s === 'amber' ? 'a' : s === 'green' ? 'g' : 'u';
+    });
+    return out;
+  }, [healthRows, elements]);
+
+  const statusByTile = useMemo(() => {
+    // worst-of-members, where 'u' (untracked) is neutral and does not turn a
+    // tile green on its own; a tile with only untracked members stays neutral.
+    const rank = { r: 3, a: 2, g: 1, u: 0 };
+    const rollMembers = (members) => {
+      let best = 'u';
+      let sawTracked = false;
+      (members || []).forEach((m) => {
+        const s = statusByElement[m.name] || 'u';
+        if (s !== 'u') sawTracked = true;
+        if (rank[s] > rank[best]) best = s;
+      });
+      // If a tile has any red/amber, that wins; else if any tracked-green, green;
+      // else neutral. (best already encodes this via rank.)
+      if (!sawTracked) return 'u';
+      return best === 'u' ? 'u' : best;
     };
 
-    // For every tile: roll up own + worst upstream.
+    const own = {};
+    allTiles.forEach((t) => { own[t.id] = rollMembers(t.members); });
+
+    // Propagate worst status upstream: a red/amber source colours everything
+    // it feeds. 'u' never overrides a real status.
+    const out = {};
     allTiles.forEach((t) => {
-      let worst = ownStatus[t.id] || 'g';
-      const upstream = bfs(t.id, 'up');
-      upstream.forEach((uid) => {
-        const us = ownStatus[uid];
-        if (us) worst = worse(worst, us);
+      let s = own[t.id];
+      bfs(t.id, 'up').forEach((uid) => {
+        const us = own[uid];
+        if (us && us !== 'u') s = worse(s === 'u' ? 'g' : s, us);
       });
-      out[t.id] = worst;
+      out[t.id] = s;
     });
-
-    // Operational sidecars (alerts, triage) aren't in the lineage graph
-    // but should reflect overall pipeline health — they fire on any
-    // source failure. Inherit worst of all source statuses.
-    ['alerts', 'triage'].forEach((id) => {
-      let worst = 'g';
-      [...COL1_EQUITY, ...COL1_MACRO].forEach((src) => {
-        const s = ownStatus[src.id];
-        if (s) worst = worse(worst, s);
-      });
-      out[id] = worst;
-    });
-
     return out;
-  }, [allTiles, byVendor]);
+  }, [allTiles, statusByElement, bfs]);
 
+  // Lineage drawing on the SVG connector layer.
   const drawLineage = useCallback((id) => {
     const svg = svgRef.current;
     const flow = flowRef.current;
     if (!svg || !flow) return;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     if (!id) return;
-
     const upstream = bfs(id, 'up');
     const downstream = bfs(id, 'down');
     const connected = new Set([id, ...upstream, ...downstream]);
-
     const fr = flow.getBoundingClientRect();
     svg.setAttribute('viewBox', `0 0 ${fr.width} ${fr.height}`);
-
-    EDGES.forEach(([from, to]) => {
+    edges.forEach(([from, to]) => {
       if (!connected.has(from) || !connected.has(to)) return;
-      const a = flow.querySelector(`[data-id="${from}"]`);
-      const b = flow.querySelector(`[data-id="${to}"]`);
+      const a = flow.querySelector(`[data-id="${CSS.escape(from)}"]`);
+      const b = flow.querySelector(`[data-id="${CSS.escape(to)}"]`);
       if (!a || !b) return;
       const ar = a.getBoundingClientRect();
       const br = b.getBoundingClientRect();
@@ -742,50 +751,76 @@ export default function DataFlowPage() {
       p.setAttribute('d', d);
       svg.appendChild(p);
     });
-  }, []);
+  }, [edges, bfs]);
 
   useEffect(() => {
     drawLineage(selectedId);
     const onResize = () => drawLineage(selectedId);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [selectedId, drawLineage]);
+  }, [selectedId, drawLineage, allTiles]);
 
-  const handleTileClick = (id) => {
-    setSelectedId((prev) => (prev === id ? null : id));
-  };
+  // Default the selection to the first source tile once the manifest lands.
+  useEffect(() => {
+    if (!selectedId && sourceTiles.length) setSelectedId(sourceTiles[0].id);
+  }, [sourceTiles, selectedId]);
 
-  // Compute lit / dim sets for current selection
-  let litSet = new Set();
-  let dimSet = new Set();
+  const handleTileClick = (id) => setSelectedId((prev) => (prev === id ? null : id));
+
+  // lit / dim sets for the current selection
+  const litSet = new Set();
+  const dimSet = new Set();
   if (selectedId) {
-    const upstream = bfs(selectedId, 'up');
-    const downstream = bfs(selectedId, 'down');
-    const connected = new Set([selectedId, ...upstream, ...downstream]);
+    const connected = new Set([selectedId, ...bfs(selectedId, 'up'), ...bfs(selectedId, 'down')]);
     allTiles.forEach((t) => {
-      if (!connected.has(t.id) && t.id !== selectedId) dimSet.add(t.id);
-      else if (t.id !== selectedId) litSet.add(t.id);
+      if (t.id === selectedId) return;
+      if (connected.has(t.id)) litSet.add(t.id); else dimSet.add(t.id);
     });
   }
 
-  const renderTile = (tile, role) => (
+  const renderTile = (t, role) => (
     <Tile
-      key={tile.id}
-      tile={tile}
+      key={t.id}
+      id={t.id}
       role={role}
-      selected={selectedId === tile.id}
-      lit={litSet.has(tile.id)}
-      dim={dimSet.has(tile.id)}
-      status={statusByTile[tile.id]}
+      name={t.name}
+      sub={t.sub}
+      count={t.count}
+      selected={selectedId === t.id}
+      lit={litSet.has(t.id)}
+      dim={dimSet.has(t.id)}
+      status={statusByTile[t.id]}
       onClick={handleTileClick}
     />
   );
 
-  const drawerForSelection = () => {
-    if (!selectedId) return null;
-    if (selectedId === 'asset_tilt') return <SectorAllocationDrawer />;
-    return <TileDetailDrawer tileId={selectedId} tileById={tileById} status={statusByTile[selectedId]} />;
-  };
+  const selectedTile = selectedId ? tileById[selectedId] : null;
+  const selectedRole = selectedId
+    ? (selectedId.startsWith('src:') ? 'Source vendor'
+      : selectedId.startsWith('dom:') ? 'Derived indicator family'
+        : selectedId.startsWith('eng:') ? 'Engine / model'
+          : selectedId.startsWith('surf:') ? 'Live surface'
+            : 'Workflow')
+    : null;
+
+  // Member elements for the detail panel, sorted by display name.
+  const detailMembers = useMemo(() => {
+    if (!selectedTile) return [];
+    return [...(selectedTile.members || [])].sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  }, [selectedTile]);
+
+  // Vendor extras for the detail header (cost + blast radius), when a source.
+  const vendorCost = selectedTile && selectedTile.vendor ? VENDOR_MONTHLY_COST[selectedTile.vendor] : null;
+  const vendorBlast = selectedTile && selectedTile.vendor ? VENDOR_BLAST_RADIUS[selectedTile.vendor] : null;
+
+  // Totals for the hero strip — computed, never literal.
+  const totals = useMemo(() => ({
+    elements: elements.length,
+    vendors: sourceTiles.length,
+    indicators: elements.filter((e) => classified[e.name] === 'derived').length,
+    engines: engineTiles.length,
+    surfaces: surfaceTiles.length,
+  }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
 
   return (
     <div className="mt-pagebody mt-fade df-page">
@@ -796,155 +831,202 @@ export default function DataFlowPage() {
             End-to-end <i>data flow</i>.
           </h1>
           <p className="mt-deck">
-            Every source, every derived indicator, every engine, every surface, every downstream workflow.
-            Click any tile to trace its full upstream and downstream chain.
+            Every source, every derived indicator, every engine, every surface — read straight from the
+            data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
+            fresh each feed is.
           </p>
         </div>
       </section>
 
-      <div className="df-legend-top" role="note" aria-label="Legend">
-        <div className="df-legend-grp">
-          <span className="df-legend-grp-h">Freshness</span>
-          <span><span className="df-dot df-dot--inline df-dot--g" />Within target</span>
-          <span><span className="df-dot df-dot--inline df-dot--a" />Overdue</span>
-          <span><span className="df-dot df-dot--inline df-dot--r" />Stale or failed</span>
-        </div>
-        <div className="df-legend-grp">
-          <span className="df-legend-grp-h">Tile type</span>
-          <span><span className="df-legpip df-legpip--auto" />Automated source</span>
-          <span><span className="df-legpip df-legpip--manual" />Manual / workflow</span>
-          <span><span className="df-legpip df-legpip--derived" />Derived indicator</span>
-          <span><span className="df-legpip df-legpip--surface" />Engine / surface</span>
-        </div>
-        <span className="df-legend-hint">Hover a tile for detail · click to trace its chain · click again to clear</span>
-      </div>
+      {loadErr && (
+        <div className="df-banner df-banner--err">Could not load the data manifest: {loadErr}</div>
+      )}
+      {!manifest && !loadErr && (
+        <div className="df-banner">Loading the data manifest…</div>
+      )}
 
-      <div className="df-flow" ref={flowRef} onClick={() => setSelectedId(null)}>
-        <svg className="df-svg" ref={svgRef} />
-        <div className="df-cols" onClick={(e) => e.stopPropagation()}>
-
-          <div className="df-col">
-            <div className="df-col-h">External · starting points</div>
-            <div className="df-sub-h">Equity &amp; option vendors</div>
-            <div className="df-stack">{COL1_EQUITY.map((t) => renderTile(t, 'source'))}</div>
-            <div className="df-sub-h">Macro &amp; alternative</div>
-            <div className="df-stack">{COL1_MACRO.map((t) => renderTile(t, 'source'))}</div>
+      {manifest && (
+        <>
+          <div className="df-totals" role="note" aria-label="Manifest totals">
+            <span><b>{totals.elements}</b> tracked elements</span>
+            <span><b>{totals.vendors}</b> external sources</span>
+            <span><b>{totals.indicators}</b> derived indicators</span>
+            <span><b>{totals.engines}</b> engines &amp; models</span>
+            <span><b>{totals.surfaces}</b> live surfaces</span>
           </div>
 
-          <div className="df-col">
-            <div className="df-col-h">Derived indicators</div>
-            <div className="df-stack" style={{ marginTop: 16 }}>
-              {COL2_DERIVED.map((t) => renderTile(t, 'derived'))}
+          <div className="df-legend-top" role="note" aria-label="Legend">
+            <span className="df-legend-grp-h">Freshness on every row</span>
+            <span><span className="df-dot df-dot--inline df-dot--g" />Within target</span>
+            <span><span className="df-dot df-dot--inline df-dot--a" />Lagging</span>
+            <span><span className="df-dot df-dot--inline df-dot--r" />Stale or failed</span>
+            <span className="df-legend-hint">Click a tile to list its feeds · click again to clear</span>
+          </div>
+
+          <div className="df-layout">
+            {/* LEFT: the four-column flow */}
+            <div className="df-flow" ref={flowRef} onClick={() => setSelectedId(null)}>
+              <svg className="df-svg" ref={svgRef} />
+              <div className="df-cols" onClick={(e) => e.stopPropagation()}>
+
+                <div className="df-col">
+                  <div className="df-col-h">External sources</div>
+                  <div className="df-stack">{sourceTiles.map((t) => renderTile(t, 'source'))}</div>
+                </div>
+
+                <div className="df-col">
+                  <div className="df-col-h">Derived indicators</div>
+                  <div className="df-stack">{derivedTiles.map((t) => renderTile(t, 'derived'))}</div>
+                </div>
+
+                <div className="df-col">
+                  <div className="df-col-h">Engines &amp; models</div>
+                  <div className="df-stack">{engineTiles.map((t) => renderTile(t, 'engine'))}</div>
+                </div>
+
+                <div className="df-col">
+                  <div className="df-col-h">Surfaces &amp; workflows</div>
+                  <div className="df-sub-h">Live surfaces</div>
+                  <div className="df-stack">{surfaceTiles.map((t) => renderTile(t, 'surface'))}</div>
+                  {workflowTiles.length > 0 && <div className="df-sub-h">Workflows</div>}
+                  <div className="df-stack">{workflowTiles.map((t) => renderTile(t, 'workflow'))}</div>
+                </div>
+
+              </div>
             </div>
+
+            {/* RIGHT: per-tile, indicator-by-indicator detail */}
+            <aside className="df-detail" onClick={(e) => e.stopPropagation()}>
+              {!selectedTile && (
+                <div className="df-detail-empty">Select a tile to list every feed inside it.</div>
+              )}
+              {selectedTile && (
+                <>
+                  <div className="df-detail-head">
+                    <div className="df-detail-role">{selectedRole}</div>
+                    <h3 className="df-detail-title">{selectedTile.name}</h3>
+                    <div className="df-detail-sub">
+                      {detailMembers.length} feed{detailMembers.length === 1 ? '' : 's'}
+                      {vendorCost ? <span className="df-detail-cost"> · {vendorCost}/mo</span> : null}
+                    </div>
+                    {vendorBlast && <p className="df-detail-blast">{vendorBlast}</p>}
+                  </div>
+
+                  <div className="df-table">
+                    <ElementTableHead />
+                    {detailMembers.map((el) => (
+                      <ElementRow key={el.id || el.name} el={el} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </aside>
           </div>
-
-          <div className="df-col">
-            <div className="df-col-h">Modelled engines</div>
-            <div className="df-stack" style={{ marginTop: 16 }}>
-              {COL3_ENGINES.map((t) => renderTile(t, 'engine'))}
-            </div>
-          </div>
-
-          <div className="df-col">
-            <div className="df-col-h">Surfaces &amp; workflows</div>
-            <div className="df-sub-h">Live surfaces</div>
-            <div className="df-stack">{COL4_SURFACES.map((t) => renderTile(t, 'surface'))}</div>
-            <div className="df-sub-h">Downstream workflows</div>
-            <div className="df-stack">{COL4_WORKFLOWS.map((t) => renderTile(t, 'workflow'))}</div>
-          </div>
-
-        </div>
-      </div>
-
-      {drawerForSelection()}
+        </>
+      )}
 
       <style>{`
         .df-page { padding-bottom: 40px; }
-        .df-flow { position: relative; padding: 12px 0; }
+
+        .df-banner { margin: 12px 0; padding: 12px 16px; background: var(--mt-surface-2);
+          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); color: var(--mt-ink-2); font-size: 13px; }
+        .df-banner--err { color: var(--mt-down); border-color: var(--mt-down); }
+
+        .df-totals { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 14px; padding: 11px 16px;
+          background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm);
+          font-size: 12.5px; color: var(--mt-ink-2); }
+        .df-totals b { color: var(--mt-ink-0); font-weight: 700; }
+
+        .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
+          margin: 0 0 16px; padding: 9px 14px; background: var(--mt-surface-2);
+          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); font-size: 11.5px; color: var(--mt-ink-1); }
+        .df-legend-top > span { display: inline-flex; align-items: center; }
+        .df-legend-grp-h { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
+        .df-legend-hint { color: var(--mt-ink-3); font-style: italic; font-size: 10.5px; margin-left: auto; }
+
+        /* Two-pane layout: flow on the left, detail panel on the right. */
+        .df-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr); gap: 18px; align-items: start; }
+
+        .df-flow { position: relative; padding: 4px 0; }
         .df-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; color: var(--mt-accent); }
-        .df-svg path { fill: none; stroke: currentColor; stroke-width: 1.3; opacity: 0.55; }
-        .df-cols { display: grid; grid-template-columns: 1.05fr 1fr 1.1fr 1.15fr; gap: 14px; position: relative; z-index: 2; }
+        .df-svg path { fill: none; stroke: currentColor; stroke-width: 1.3; opacity: 0.5; }
+        .df-cols { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; position: relative; z-index: 2; }
         .df-col { min-width: 0; }
         .df-col-h { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--mt-line-0); }
         .df-sub-h { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; margin: 12px 0 6px 2px; }
-        .df-sub-h:first-of-type { margin-top: 0; }
         .df-stack { display: flex; flex-direction: column; gap: 6px; }
 
         .df-tile { all: unset; box-sizing: border-box; cursor: pointer; display: block; position: relative;
           background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-left: 3px solid var(--mt-accent);
-          border-radius: var(--mt-r-sm); padding: 8px 12px; min-height: 44px;
+          border-radius: var(--mt-r-sm); padding: 7px 30px 7px 11px; min-height: 40px;
           transition: opacity 0.18s var(--mt-ease), background 0.15s var(--mt-ease), border-color 0.15s var(--mt-ease), transform 0.12s var(--mt-ease); }
         .df-tile:focus-visible { outline: 2px solid var(--mt-accent); outline-offset: 2px; }
         .df-tile:hover { background: var(--mt-accent-soft); transform: translateY(-1px); }
-        .df-tile[data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%;
-          bottom: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 240px;
-          background: var(--mt-surface); color: var(--mt-ink-0); border: 1px solid var(--mt-line-1);
-          border-radius: 8px; padding: 6px 9px; font-size: 11px; font-weight: 400; line-height: 1.4;
-          white-space: normal; box-shadow: 0 12px 32px rgba(0,0,0,.18); z-index: 100000; pointer-events: none; }
-        /* instant — no transition/delay on the tooltip itself */
-        .df-tile--manual { border-left-color: var(--mt-warn); }
         .df-tile--derived { border-left-color: var(--mt-ink-3); }
         .df-tile--engine { border-left-color: var(--mt-accent); background: var(--mt-surface-2); }
         .df-tile--surface { border-left-color: var(--mt-up); background: var(--mt-surface-2); }
         .df-tile--workflow { border-left-color: var(--mt-warn); background: var(--mt-surface-2); }
         .df-tile--selected { background: var(--mt-accent-soft); box-shadow: 0 0 0 2px var(--mt-accent); }
         .df-tile--lit { border-color: var(--mt-accent); background: var(--mt-accent-soft); }
-        .df-tile--dim { opacity: 0.2; }
+        .df-tile--dim { opacity: 0.22; }
 
-        .df-tile-name { display: block; font-size: 12.5px; font-weight: 600; color: var(--mt-ink-0); line-height: 1.25; padding-right: 16px; }
-        .df-tile-cd { display: block; font-size: 10.5px; color: var(--mt-ink-2); margin-top: 2px; line-height: 1.25; }
-        .df-dot { position: absolute; top: 10px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
+        .df-tile-name { display: block; font-size: 12px; font-weight: 600; color: var(--mt-ink-0); line-height: 1.25; }
+        .df-tile-cd { display: block; font-size: 10px; color: var(--mt-ink-2); margin-top: 2px; line-height: 1.25; }
+        .df-tile-count { position: absolute; top: 7px; right: 9px; font-size: 10px; font-weight: 700; color: var(--mt-ink-1);
+          background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: 9px; padding: 0 6px; min-width: 14px; text-align: center; line-height: 16px; }
+        .df-dot { position: absolute; bottom: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
         .df-dot--g { background: var(--mt-up); }
         .df-dot--a { background: var(--mt-warn); }
         .df-dot--r { background: var(--mt-down); }
+        .df-dot--u { background: var(--mt-ink-3); opacity: 0.55; }
         .df-dot--inline { position: static; display: inline-block; vertical-align: 1px; margin-right: 6px; }
 
-        .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px;
-          margin: 0 0 16px; padding: 10px 14px; background: var(--mt-surface-2);
-          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); font-size: 11.5px; color: var(--mt-ink-1); }
-        .df-legend-grp { display: flex; align-items: center; gap: 14px; }
-        .df-legend-grp > span { display: inline-flex; align-items: center; }
-        .df-legend-grp-h { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
-        .df-legend { display: flex; gap: 16px; justify-content: flex-end; align-items: center;
-          font-size: 11px; color: var(--mt-ink-2); margin: 12px 0 0; flex-wrap: wrap; }
-        .df-legpip { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; }
-        .df-legpip--auto { background: var(--mt-accent); }
-        .df-legpip--manual { background: var(--mt-warn); }
-        .df-legpip--derived { background: var(--mt-ink-3); }
-        .df-legpip--surface { background: var(--mt-up); }
-        .df-legend-hint { color: var(--mt-ink-3); font-style: italic; font-size: 10.5px; }
+        /* ── Detail panel ── */
+        .df-detail { position: sticky; top: 12px; background: var(--mt-surface); border: 1px solid var(--mt-line-0);
+          border-radius: var(--mt-r-md); padding: 16px 18px; max-height: calc(100vh - 40px); overflow: auto; }
+        .df-detail-empty { color: var(--mt-ink-3); font-size: 12.5px; font-style: italic; padding: 8px 0; }
+        .df-detail-head { padding-bottom: 12px; margin-bottom: 10px; border-bottom: 1px solid var(--mt-line-0); }
+        .df-detail-role { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
+        .df-detail-title { font-size: 16px; font-weight: 700; margin: 3px 0 4px; color: var(--mt-ink-0); }
+        .df-detail-sub { font-size: 12px; color: var(--mt-ink-2); }
+        .df-detail-cost { color: var(--mt-ink-1); font-weight: 600; }
+        .df-detail-blast { font-size: 11.5px; color: var(--mt-ink-2); line-height: 1.5; margin: 8px 0 0; }
 
-        .df-drawer { margin-top: 18px; background: var(--mt-surface); border: 1px solid var(--mt-line-0);
-          border-radius: var(--mt-r-md); padding: 18px 22px; }
-        .df-drawer-head h3 { font-size: 15px; font-weight: 600; margin: 0 0 4px; color: var(--mt-ink-0); display: flex; align-items: center; }
-        .df-drawer-desc { font-size: 12.5px; color: var(--mt-ink-2); margin: 4px 0 14px; line-height: 1.5; }
+        /* ── Per-element table (indicator-by-indicator) ── */
+        .df-table { display: flex; flex-direction: column; }
+        .df-row { display: grid; grid-template-columns: minmax(0, 1.5fr) 1fr 0.8fr 0.95fr 0.5fr auto;
+          gap: 8px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--mt-line-0); font-size: 11.5px; }
+        .df-row:last-child { border-bottom: none; }
+        .df-row--head { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mt-ink-3);
+          font-weight: 600; padding: 6px 4px; border-bottom: 1px solid var(--mt-line-1); }
+        .df-row--head .df-row-k { display: none; }
+        .df-row-main { min-width: 0; }
+        .df-row-name { font-weight: 600; color: var(--mt-ink-0); font-size: 12px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .df-row-vendor { color: var(--mt-ink-2); font-size: 10.5px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .df-row-cad { color: var(--mt-ink-1); }
+        .df-row-cad-t { color: var(--mt-ink-3); }
+        .df-row-asof, .df-row-pull, .df-row-sla { color: var(--mt-ink-1); }
+        .df-row-k { display: none; }
+        .df-row-chip { justify-self: end; }
 
-        .df-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 24px; font-size: 11.5px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--mt-line-0); }
-        .df-meta-k { color: var(--mt-ink-3); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
-        .df-meta-v { color: var(--mt-ink-0); font-weight: 500; font-size: 12px; line-height: 1.3; }
-
-        .df-block { margin-bottom: 16px; }
-        .df-block-h { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; margin-bottom: 8px; }
-        .df-inp { background: var(--mt-surface-2); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); padding: 12px 14px; margin-bottom: 8px; }
-        .df-inp-h { font-size: 11.5px; font-weight: 600; color: var(--mt-ink-0); margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
-        .df-inp-bar { width: 3px; height: 12px; background: var(--mt-accent); border-radius: 1px; }
-        .df-inp-sub { font-size: 11px; color: var(--mt-ink-2); margin-bottom: 8px; line-height: 1.5; }
-        .df-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-        .df-chip { font-size: 11px; background: var(--mt-surface); border: 1px solid var(--mt-line-0); padding: 2px 8px; border-radius: 11px; color: var(--mt-ink-0); }
-
-        .df-grp { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; font-size: 12px; }
-        .df-grp-h { font-size: 11px; font-weight: 600; color: var(--mt-ink-0); margin-bottom: 5px; }
-        .df-grp ul { list-style: none; padding: 0; margin: 0; }
-        .df-grp li { padding: 3px 0; color: var(--mt-ink-0); font-size: 11.5px; line-height: 1.4; display: flex; align-items: flex-start; gap: 6px; }
-        .df-grp li::before { content: ""; width: 3px; height: 3px; border-radius: 50%; background: var(--mt-accent); display: inline-block; margin-top: 7px; flex: 0 0 3px; }
-        .df-grp li.df-grp-empty { color: var(--mt-ink-2); font-style: italic; }
-        .df-grp li.df-grp-empty::before { display: none; }
-
-        @media (max-width: 1100px) {
-          .df-cols { grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 1180px) {
+          .df-layout { grid-template-columns: 1fr; }
+          .df-detail { position: static; max-height: none; }
           .df-svg { display: none; }
-          .df-meta { grid-template-columns: 1fr 1fr; }
-          .df-grp { grid-template-columns: 1fr; }
+          .df-cols { grid-template-columns: 1fr 1fr; }
+        }
+        /* On narrow detail panels, stack the row into a card with labels. */
+        @media (max-width: 1180px) {
+          .df-row { grid-template-columns: 1fr auto; grid-template-areas:
+            "main chip" "cad cad" "asof pull" "sla sla"; row-gap: 4px; }
+          .df-row--head { display: none; }
+          .df-row-main { grid-area: main; }
+          .df-row-chip { grid-area: chip; }
+          .df-row-cad { grid-area: cad; }
+          .df-row-asof { grid-area: asof; }
+          .df-row-pull { grid-area: pull; }
+          .df-row-sla { grid-area: sla; }
+          .df-row-k { display: inline; color: var(--mt-ink-3); margin-right: 5px; font-size: 10px; }
         }
       `}</style>
     </div>
