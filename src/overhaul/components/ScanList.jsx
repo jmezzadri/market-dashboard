@@ -325,7 +325,12 @@ export default function ScanList({
                 onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
                 onDrop={canDrag ? (e) => {
                   e.preventDefault();
-                  if (dragCol) onReorderColumn(dragCol, k);
+                  let fromKey = dragCol;
+                  try {
+                    const dtKey = e.dataTransfer && e.dataTransfer.getData('text/plain');
+                    if (dtKey) fromKey = dtKey;
+                  } catch { /* ignore */ }
+                  if (fromKey) onReorderColumn(fromKey, k);
                   setDragCol(null);
                 } : undefined}
                 onDragEnd={() => setDragCol(null)}
