@@ -1258,6 +1258,19 @@ export default function DataFlowPage() {
   const vendorCost = selectedTile && selectedTile.vendor ? VENDOR_MONTHLY_COST[selectedTile.vendor] : null;
   const vendorBlast = selectedTile && selectedTile.vendor ? VENDOR_BLAST_RADIUS[selectedTile.vendor] : null;
 
+  // Plain-English "what it is / what it does" for the selected tile (engines +
+  // single-element tiles), straight from the manifest description (gold source).
+  const selectedDesc = useMemo(() => {
+    if (!selectedTile || selectedTile.isCot) return null;
+    const ms = selectedTile.members || [];
+    const isEngine = !!selectedId && selectedId.startsWith('eng:');
+    if (isEngine || ms.length === 1) {
+      const m = ms.find((x) => x && x.description) || ms[0];
+      return m && m.description ? m.description : null;
+    }
+    return null;
+  }, [selectedTile, selectedId]);
+
   // Totals for the hero strip — computed, never literal.
   const totals = useMemo(() => ({
     elements: elements.length,
@@ -1356,6 +1369,7 @@ export default function DataFlowPage() {
                       {vendorCost ? <span className="df-detail-cost"> · {vendorCost}/mo</span> : null}
                     </div>
                     {vendorBlast && <p className="df-detail-blast">{vendorBlast}</p>}
+                    {selectedDesc && <p className="df-detail-desc">{selectedDesc}</p>}
                     {selectedTile.isCot && (
                       <p className="df-detail-blast">
                         Weekly Commitments-of-Traders futures positioning from the CFTC. Each market’s net
@@ -1453,6 +1467,7 @@ export default function DataFlowPage() {
           border-radius: var(--mt-r-md); padding: 16px 18px; max-height: calc(100vh - 40px); overflow: auto; }
         .df-detail-empty { color: var(--mt-ink-3); font-size: 12.5px; font-style: italic; padding: 8px 0; }
         .df-detail-head { padding-bottom: 12px; margin-bottom: 10px; border-bottom: 1px solid var(--mt-line-0); }
+        .df-detail-desc { font-size: 12.5px; color: var(--mt-ink-1); line-height: 1.55; margin: 10px 0 0; }
         .df-detail-role { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
         .df-detail-title { font-size: 16px; font-weight: 700; margin: 3px 0 4px; color: var(--mt-ink-0); }
         .df-detail-sub { font-size: 12px; color: var(--mt-ink-2); }
