@@ -79,6 +79,21 @@ const fmtDate = (iso) => {
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 };
 
+// Time-of-day in ET (market time), e.g. "9:30 AM". Null-safe.
+const fmtTimeET = (iso) => {
+  if (!iso) return null;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+};
+// ET calendar-date key (YYYY-MM-DD) for matching fills to a rebalance day.
+const etDateKey = (iso) => {
+  if (!iso) return null;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+};
+
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
 const PAGE_CSS = `
@@ -795,7 +810,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
 
 // ── Rebalance log ──────────────────────────────────────────────────────────
 
-function RebalanceLog({ orders }) {
+function RebalanceLog({ orders, fills }) {
   const byDate = useMemo(() => {
     if (!orders || orders.length === 0) return [];
     const m = new Map();
@@ -810,6 +825,19 @@ function RebalanceLog({ orders }) {
     }
     return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 5);
   }, [orders]);
+
+  // Earliest fill time per ET calendar date, so each rebalance row can show
+  // when its orders actually executed (fills land at the next open).
+  const fillByDate = useMemo(() => {
+    const m = new Map();
+    for (const fdesc of (fills || [])) {
+      const k = etDateKey(fdesc.filled_at);
+      if (!k) continue;
+      const cur = m.get(k);
+      if (!cur || fdesc.filled_at < cur) m.set(k, fdesc.filled_at);
+    }
+    return m;
+  }, [fills]);
 
   return (
     <div className="paper-panel">
@@ -830,9 +858,14 @@ function RebalanceLog({ orders }) {
           byDate.map(([date, rows]) => {
             const buys = rows.filter((r) => r.side === 'buy').length;
             const sells = rows.filter((r) => r.side === 'sell').length;
-            const filled = rows.filter((r) => r.status === 'filled').length;
             const pending = rows.filter((r) => r.status === 'pending').length;
             const rejected = rows.filter((r) => r.status === 'rejected').length;
+            // Queued = when these orders were sent to the broker; Filled = when
+            // they executed at the open (from the fills ledger, matched on the
+            // submit date so each row shows its own fills).
+            const submits = rows.map((r) => r.submitted_at).filter(Boolean).sort();
+            const queuedAt = submits[0] || null;
+            const filledAt = fillByDate.get(etDateKey(queuedAt) || date) || null;
             return (
               <div key={date} className="paper-rebal-row">
                 <div className="paper-rebal-date">
@@ -841,7 +874,10 @@ function RebalanceLog({ orders }) {
                     &middot; {rows.length} orders ({buys} buys, {sells} sells)
                     {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} pending</span></>}
                     {rejected > 0 && <> &middot; <span style={{ color: DOWN_COLOR }}>{rejected} rejected</span></>}
-                    {filled > 0   && <> &middot; <span style={{ color: UP_COLOR }}>{filled} filled</span></>}
+                    {queuedAt && <> &middot; queued {fmtTimeET(queuedAt)}</>}
+                    {filledAt
+                      ? <> &middot; <span style={{ color: UP_COLOR }}>filled {fmtTimeET(filledAt)}</span></>
+                      : (queuedAt && <> &middot; <span style={{ color: WARN_COLOR }}>awaiting fill</span></>)}
                   </span>
                 </div>
                 <div className="paper-rebal-source">
@@ -863,6 +899,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [positions, setPositions] = useState([]);
   const [posAsOf, setPosAsOf] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [fills, setFills] = useState([]);
   const [account, setAccount] = useState(null);
   const [err, setErr] = useState(null);
 
@@ -903,10 +940,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         const ord = await supabase
           .from('paper_orders')
-          .select('id, created_at, sleeve, ticker, side, target_notional, signal_source, status, signal_score')
+          .select('id, created_at, submitted_at, sleeve, ticker, side, target_notional, signal_source, status, signal_score')
           .order('created_at', { ascending: false })
           .limit(200);
         if (!cancelled) setOrders(ord.data || []);
+
+        const fl = await supabase
+          .from('paper_fills')
+          .select('ticker, side, sleeve, filled_at')
+          .order('filled_at', { ascending: false })
+          .limit(400);
+        if (!cancelled) setFills(fl.data || []);
 
         const acc = await supabase
           .from('paper_accounts')
@@ -982,7 +1026,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           headline={heads.b}
           infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
         />
-        <RebalanceLog orders={orders} />
+        <RebalanceLog orders={orders} fills={fills} />
 
         {err && (
           <div style={{ marginTop: 24, padding: 14, background: 'var(--bg-2)', border: `1px solid ${DOWN_COLOR}`, borderRadius: 14, color: DOWN_COLOR, fontSize: 12 }}>
