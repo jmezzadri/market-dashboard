@@ -172,6 +172,11 @@ function MechModal({ mech, breakdown, onClose }) {
     ? Math.round(rows.reduce((s, r) => s + (Number(r.score) || 0), 0) / rows.length)
     : (mech.score ?? null);
   const b = bandClass(mech.band);
+  const ordinal = (n) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+  };
   return (
     <div className="at-mechmodal-scrim" onClick={onClose} role="presentation">
       <div
@@ -216,7 +221,7 @@ function MechModal({ mech, breakdown, onClose }) {
                     <span className={`at-mechmodal-fill at-mechmodal-fill--${bc}`} style={{ width: `${Math.max(2, Math.min(100, sc))}%` }} />
                   </span>
                   <div className="at-mechmodal-why">
-                    {r.percentile != null ? <>{Math.round(r.percentile)}th percentile of its history</> : 'percentile n/a'}
+                    {r.percentile != null ? <>{ordinal(Math.round(r.percentile))} percentile of its history</> : 'percentile n/a'}
                     {' · '}{DIRECTION_LABEL[r.direction] || 'higher reading = more risk-off'}
                     {r.reading != null && <> · reading <span className="num">{r.reading}{r.unit ? ` ${r.unit}` : ''}</span></>}
                   </div>
