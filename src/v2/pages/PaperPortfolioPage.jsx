@@ -1046,7 +1046,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         const fl = await supabase
           .from('paper_fills')
-          .select('ticker, side, sleeve, filled_at')
+          .select('ticker, side, sleeve, quantity, price, filled_at')
           .order('filled_at', { ascending: false })
           .limit(400);
         if (!cancelled) setFills(fl.data || []);
