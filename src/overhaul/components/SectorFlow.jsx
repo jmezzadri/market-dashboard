@@ -118,6 +118,65 @@ function MechBreakdown({ contributions, tiltScore, mechBands }) {
   );
 }
 
+/* TiltBridge — makes the jump from the unitless tilt SCORE to the actual
+   weight-vs-S&P explicit (Joe 2026-06-17: "-0.71 tilt equates to -5.6% vs
+   SPY?"). Four steps, all from fields already in v10_allocation.json:
+     1. tilt score = sum of the six mechanism contributions (shown above)
+     2. score bucket → rating → fixed multiplier on the S&P weight
+     3. renormalize so the equity sleeve sums to 100%  → final equity share
+     4. final share − S&P weight = the pp over/underweight
+   The multiplier is a FIXED step per bucket (not proportional to the score's
+   size) — so we say so, which is why a −0.31 and a −0.71 land at the same
+   weight. Nothing recomputed; we display the engine's own numbers. */
+const TILT_MULT = { OW: 1.20, MW: 1.0, UW: 0.75 };
+function TiltBridge({ s }) {
+  const tilt = Number(s.tilt_score ?? 0);
+  const rating = s.rating || (tilt > 0.3 ? 'OW' : tilt < -0.3 ? 'UW' : 'MW');
+  const mult = TILT_MULT[rating] ?? 1.0;
+  const spyW = (Number(s.spy_weight) || 0) * 100;          // S&P cap weight, %
+  const rawShare = spyW * mult;                            // after the bucket multiplier
+  const vs = Number(s.vs_spy_pp ?? 0);                     // engine's published pp
+  const finalShare = spyW + vs;                            // share of equity sleeve, %
+  const over = vs > 0;
+  const bucketTxt = rating === 'OW' ? 'above +0.3 → Overweight'
+    : rating === 'UW' ? 'below −0.3 → Underweight'
+    : 'between −0.3 and +0.3 → Market-weight';
+  const fmt1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+  return (
+    <div className="at-bridge">
+      <div className="at-bridge-head">
+        <span className="mt-eyebrow">How the tilt score becomes a weight</span>
+        <span className="at-bridge-hint">A score doesn’t equal a percent — it picks a bucket, the bucket sets the weight.</span>
+      </div>
+      <div className="at-bridge-flow">
+        <div className="at-bridge-step">
+          <span className="at-bridge-k">Tilt score</span>
+          <span className={`num at-bridge-v ${tilt > 0 ? 'up' : tilt < 0 ? 'down' : ''}`}>{tilt > 0 ? '+' : ''}{fmt1(tilt)}</span>
+          <span className="at-bridge-cap">sum of the six contributions above</span>
+        </div>
+        <span className="at-bridge-arrow">→</span>
+        <div className="at-bridge-step">
+          <span className="at-bridge-k">Bucket → multiplier</span>
+          <span className="at-bridge-v"><b>{rating}</b> · ×{mult.toFixed(2)}</span>
+          <span className="at-bridge-cap">{bucketTxt} (fixed step)</span>
+        </div>
+        <span className="at-bridge-arrow">→</span>
+        <div className="at-bridge-step">
+          <span className="at-bridge-k">Weight in equities</span>
+          <span className="num at-bridge-v">{fmt1(spyW)}% × {mult.toFixed(2)} = {fmt1(rawShare)}%</span>
+          <span className="at-bridge-cap">then renormalized to ~{fmt1(finalShare)}% so the sleeve sums to 100%</span>
+        </div>
+        <span className="at-bridge-arrow">→</span>
+        <div className="at-bridge-step">
+          <span className="at-bridge-k">vs S&P 500</span>
+          <span className={`num at-bridge-v ${over ? 'up' : 'down'}`}>{fmt1(finalShare)}% − {fmt1(spyW)}% = {over ? '+' : ''}{fmt1(vs)}pp</span>
+          <span className="at-bridge-cap">{over ? 'overweight' : 'underweight'} the S&P weight</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Shared column template: Sector(1fr) | Rating | Recommended % | Prev wk | vs SPY
 const GRID = '1fr 64px 120px 110px 96px';
 
@@ -373,6 +432,8 @@ function SectorDrillBody({ s, igs, expandedIGs, toggleIG, mechBands = null }) {
           <MechBreakdown contributions={s.contributions} tiltScore={s.tilt_score ?? s.vs_spy_pp ?? 0} mechBands={mechBands} />
         </div>
       </div>
+
+      <TiltBridge s={s} />
 
       {igs.length === 0 && (
         <div style={{ color: 'var(--mt-ink-2)', fontSize: 12 }}>
