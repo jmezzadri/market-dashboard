@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
-import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
+import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS, DEFAULT_VISIBLE_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 
@@ -34,13 +34,21 @@ const BUCKETS = [
   { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
 ];
 
-// v2 (2026-06-11): Joe's column order — Ticker · Name · Last · Day · 30-Day ·
-// six indicators · Score pinned right. Key bump resets saved v1 layouts.
-const COLS_STORAGE_KEY = 'mt-scanner-cols-v2';
+// v3 (2026-06-17): full trader's view by default — identity · price action ·
+// live technicals (RSI, % vs 200-day, rel vol) · key stats (mkt cap, IV rank,
+// next earnings) · the four signal points · Score pinned right. The picker
+// also offers % from 52-week high, short interest, and options flow. Key bump
+// resets older saved layouts so everyone lands on the new default once.
+const COLS_STORAGE_KEY = 'mt-scanner-cols-v3';
 const LOCKED = ['ticker', 'score'];
 
-// default column model: ordered, all on
-const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({ key, on: true }));
+// default column model: ordered (full universe), with the default-visible set
+// switched on and the rest available to toggle on.
+const DEFAULT_VISIBLE_SET = new Set(DEFAULT_VISIBLE_KEYS);
+const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({
+  key,
+  on: DEFAULT_VISIBLE_SET.has(key),
+}));
 
 function loadColState() {
   try {
@@ -49,9 +57,10 @@ function loadColState() {
     const saved = JSON.parse(raw);
     if (!Array.isArray(saved)) return DEFAULT_COL_STATE;
     // keep only known keys, append any new keys that appeared since the save
+    // (off by default, so a future column never silently clutters a saved view)
     const known = saved.filter((c) => INDICATOR_COLS[c.key]);
     const seen = new Set(known.map((c) => c.key));
-    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push({ key: k, on: true }); });
+    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push({ key: k, on: false }); });
     // locked columns must stay on
     return known.map((c) => (LOCKED.includes(c.key) ? { ...c, on: true } : c));
   } catch {
@@ -333,12 +342,6 @@ export default function ScannerPage() {
             </div>
           </div>
         )}
-
-        <div className="sc-note">
-          <b>Scoring update.</b>{' '}
-          Dark-pool prints and the options-shock layer are now live inputs to the 0–10
-          MacroTilt Score.
-        </div>
       </section>
 
       {/* ScanList */}

@@ -94,6 +94,7 @@ function mapRow(r) {
     iv_rank: num(r.iv_rank),
     pc_ratio: num(r.pc_ratio),
     implied_30d_pct: num(r.implied_30d_pct),
+    earningsDate: r.earnings_date || null,
     entry: num(r.entry),
     stop: num(r.stop),
     target: num(r.target),
