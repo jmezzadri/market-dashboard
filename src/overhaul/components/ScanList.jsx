@@ -34,7 +34,7 @@ const GRID_FACETS = '1fr 56px 90px 110px 130px 24px';
 // on by the picker, so they always appear; the rest are toggleable.
 export const INDICATOR_COLS = {
   ticker:  { key: 'ticker',  label: 'Ticker',                head: 'Ticker',   w: '78px', locked: true },
-  name:    { key: 'name',    label: 'Company name',          head: 'Name',     w: '1fr' },
+  name:    { key: 'name',    label: 'Company name',          head: 'Name',     w: '150px' },
   price:   { key: 'price',   label: 'Last price',            head: 'Last',     w: '74px' },
   day:     { key: 'day',     label: 'Day change',            head: 'Day',      w: '66px' },
   chg30:   { key: 'chg30',   label: '30-day change',         head: '30-Day',   w: '88px' },
@@ -176,8 +176,10 @@ export default function ScanList({
   showSparkline = true,
   indicatorColumns = false,
   columns,        // optional ordered array of indicator column keys
+  onReorderColumn, // (fromKey, toKey) => void — drag a header to move a column
 }) {
   const navigate = useNavigate();
+  const [dragCol, setDragCol] = useState(null);
 
   // Resolve the active, ordered list of indicator columns. Ticker + Score
   // are always present (locked). If no `columns` prop is passed we fall back
@@ -242,15 +244,21 @@ export default function ScanList({
   }
 
   return (
+    <div
+      style={{
+        background: 'var(--mt-surface)',
+        border: '1px solid var(--mt-line-0)',
+        borderRadius: 14,
+        overflowX: 'auto',
+        overflowY: 'visible',
+      }}
+    >
     <ul
       style={{
         listStyle: 'none',
         padding: 0,
         margin: 0,
-        background: 'var(--mt-surface)',
-        border: '1px solid var(--mt-line-0)',
-        borderRadius: 14,
-        overflow: 'hidden',
+        minWidth: indicatorColumns ? 'max-content' : undefined,
       }}
     >
       {indicatorColumns && (
@@ -294,6 +302,9 @@ export default function ScanList({
             // everything else is centered over centered values.
             const align = (k === 'ticker' || k === 'name') ? 'left'
               : (k === 'price' || k === 'day') ? 'right' : 'center';
+            // ticker stays pinned left, score pinned right — everything else
+            // can be dragged by its header to a new spot (Joe 2026-06-17).
+            const canDrag = !!onReorderColumn && k !== 'ticker' && k !== 'score';
             return (
               <SortHead
                 key={k}
@@ -302,6 +313,22 @@ export default function ScanList({
                 active={sort.key === k}
                 dir={sort.dir}
                 tip={tips[k]}
+                draggable={canDrag}
+                dragging={dragCol === k}
+                onDragStart={canDrag ? (e) => {
+                  setDragCol(k);
+                  if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', k); } catch { /* ignore */ }
+                  }
+                } : undefined}
+                onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
+                onDrop={canDrag ? (e) => {
+                  e.preventDefault();
+                  if (dragCol) onReorderColumn(dragCol, k);
+                  setDragCol(null);
+                } : undefined}
+                onDragEnd={() => setDragCol(null)}
               >
                 {col.head}
               </SortHead>
@@ -609,27 +636,39 @@ export default function ScanList({
         );
       })}
     </ul>
+    </div>
   );
 }
 
-function SortHead({ children, tip, align, active, dir, onClick }) {
-  // Clickable header — click to sort by this column, click again to flip the
-  // direction. The arrow shows on the active column only (Joe 2026-06-17).
+function SortHead({
+  children, tip, align, active, dir, onClick,
+  draggable, dragging, onDragStart, onDragOver, onDrop, onDragEnd,
+}) {
+  // Clickable + draggable header — click to sort (click again to flip the
+  // direction), or drag the header onto another to move the column there
+  // (Joe 2026-06-17). The arrow shows on the active column only.
   const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
   const inner = tip ? <Tip content={tip}>{children}</Tip> : children;
   return (
     <span
       role="button"
       tabIndex={0}
-      aria-label={`Sort by ${children}`}
+      aria-label={`Sort by ${children}${draggable ? ', or drag to move this column' : ''}`}
+      draggable={draggable || undefined}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      title={draggable ? 'Click to sort · drag to move' : 'Click to sort'}
       style={{
         textAlign: align || 'center',
-        cursor: 'pointer',
+        cursor: draggable ? 'grab' : 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
         color: active ? 'var(--mt-ink-1)' : undefined,
+        opacity: dragging ? 0.4 : 1,
       }}
     >
       {inner}{arrow}

@@ -1,24 +1,16 @@
 /* Trading Scanner — refactored 2026-05-27 per Joe Path-A directive.
 
-   2026-06-04: the Columns and Filter toolbar buttons are now LIVE.
-   - Columns: real show/hide state per column, drag-to-reorder via the grips,
-     a live "shown/total" count, and a Reset link. Ticker + Score are locked
-     on. Choices persist in localStorage. The active, ordered column list is
-     passed down to ScanList, which builds its grid/header/cells from it.
-     The four prior phantom columns (Score 1w, Score 1m, Volume, 52w range)
-     were removed — the scan row carries no data for them, so a toggle for
-     them would have been a non-functional placeholder.
-   - Filter: a real panel with a minimum-score input, a ticker text search,
-     and "must include" toggles for the insider / options / dark-pool signals.
-     Applied on top of the bucket pills. A live count of active filters shows
-     on the button, with a Clear link in the panel. */
+   2026-06-17 (Joe): stripped the filter / columns toolbar entirely. The table
+   now shows EVERY column, columns are reordered by dragging the header cells
+   on the table itself (no panel), and any header click sorts. The only saved
+   state is column ORDER. The score-band boxes in the hero are now plain counts,
+   not filters. */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import FreshnessChip from '../components/FreshnessChip';
-import Tip from '../components/Tip';
-import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS, DEFAULT_VISIBLE_KEYS } from '../components/ScanList';
+import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 
@@ -29,75 +21,46 @@ function bucketFor(s) {
 }
 
 const BUCKETS = [
-  { key: 'b5', label: 'Score 4.5+',    proto: 'sc-bucket--score7' },
+  { key: 'b5', label: 'Score 4.5+',     proto: 'sc-bucket--score7' },
   { key: 'b4', label: 'Score 3.5–4.49', proto: 'sc-bucket--score5' },
   { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
 ];
 
-// v3 (2026-06-17): full trader's view by default — identity · price action ·
-// live technicals (RSI, % vs 200-day, rel vol) · key stats (mkt cap, IV rank,
-// next earnings) · the four signal points · Score pinned right. The picker
-// also offers % from 52-week high, short interest, and options flow. Key bump
-// resets older saved layouts so everyone lands on the new default once.
-const COLS_STORAGE_KEY = 'mt-scanner-cols-v3';
-const LOCKED = ['ticker', 'score'];
+// v4 (2026-06-17): every column always shows; the only saved state is column
+// ORDER. Reorder by dragging the header cells on the table itself. Ticker is
+// pinned left, Score pinned right. Key bump clears the old show/hide layout so
+// everyone lands on the full set once.
+const COLS_ORDER_KEY = 'mt-scanner-colorder-v4';
 
-// default column model: ordered (full universe), with the default-visible set
-// switched on and the rest available to toggle on.
-const DEFAULT_VISIBLE_SET = new Set(DEFAULT_VISIBLE_KEYS);
-const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({
-  key,
-  on: DEFAULT_VISIBLE_SET.has(key),
-}));
-
-function loadColState() {
+function loadColOrder() {
   try {
-    const raw = localStorage.getItem(COLS_STORAGE_KEY);
-    if (!raw) return DEFAULT_COL_STATE;
+    const raw = localStorage.getItem(COLS_ORDER_KEY);
+    if (!raw) return [...INDICATOR_COL_KEYS];
     const saved = JSON.parse(raw);
-    if (!Array.isArray(saved)) return DEFAULT_COL_STATE;
-    // keep only known keys, append any new keys that appeared since the save
-    // (off by default, so a future column never silently clutters a saved view)
-    const known = saved.filter((c) => INDICATOR_COLS[c.key]);
-    const seen = new Set(known.map((c) => c.key));
-    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push({ key: k, on: false }); });
-    // locked columns must stay on
-    return known.map((c) => (LOCKED.includes(c.key) ? { ...c, on: true } : c));
+    if (!Array.isArray(saved)) return [...INDICATOR_COL_KEYS];
+    const known = saved.filter((k) => INDICATOR_COLS[k]);
+    const seen = new Set(known);
+    // append any column added since the save so nothing ever goes missing
+    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push(k); });
+    return known;
   } catch {
-    return DEFAULT_COL_STATE;
+    return [...INDICATOR_COL_KEYS];
   }
 }
 
-const EMPTY_FILTER = { minScore: '', q: '', need: { insider: false, options: false, dark: false } };
-
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
-  const [bucket, setBucket] = useState('all');
   const [drillOpenKey, setDrillOpenKey] = useState(null);
-  const [showCols, setShowCols] = useState(false);
-  const [showFilter, setShowFilter] = useState(false);
-  const [colState, setColState] = useState(loadColState);
-  const [dragKey, setDragKey] = useState(null);
-  const [filter, setFilter] = useState(EMPTY_FILTER);
+  const [colOrder, setColOrder] = useState(loadColOrder);
   const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
-  }, [colState]);
-
-  const activeColumns = useMemo(
-    () => colState.filter((c) => c.on || LOCKED.includes(c.key)).map((c) => c.key),
-    [colState],
-  );
-  const shownCount = activeColumns.length;
-  const totalCount = colState.length;
+    try { localStorage.setItem(COLS_ORDER_KEY, JSON.stringify(colOrder)); } catch { /* ignore */ }
+  }, [colOrder]);
 
   const rows = useMemo(
-    () => (rawRows || []).map((r) => ({
-      ...r,
-      bucket: bucketFor(Number(r.score) || 0),
-    })),
+    () => (rawRows || []).map((r) => ({ ...r, bucket: bucketFor(Number(r.score) || 0) })),
     [rawRows],
   );
 
@@ -107,42 +70,20 @@ export default function ScannerPage() {
     return c;
   }, [rows]);
 
-  const activeFilterCount =
-    (filter.minScore !== '' ? 1 : 0) +
-    (filter.q.trim() !== '' ? 1 : 0) +
-    Object.values(filter.need).filter(Boolean).length;
-
-  const filtered = useMemo(() => {
-    let out = bucket === 'all' ? rows : rows.filter((r) => r.bucket === bucket);
-    const min = parseFloat(filter.minScore);
-    if (!Number.isNaN(min)) out = out.filter((r) => (Number(r.score) || 0) >= min);
-    const q = filter.q.trim().toUpperCase();
-    if (q) out = out.filter((r) =>
-      String(r.ticker || '').toUpperCase().includes(q) ||
-      String(r.name || '').toUpperCase().includes(q));
-    if (filter.need.insider) out = out.filter((r) => (r.insider_pts ?? 0) > 0);
-    if (filter.need.options) out = out.filter((r) => (r.options_pts ?? 0) > 0);
-    if (filter.need.dark) out = out.filter((r) => (r.dark_pool_pts ?? 0) > 0 || r.dark_pool_anchor != null);
-    return out;
-  }, [rows, bucket, filter]);
-
-  function toggleCol(key) {
-    if (LOCKED.includes(key)) return;
-    setColState((prev) => prev.map((c) => (c.key === key ? { ...c, on: !c.on } : c)));
-  }
-
-  function onColDrop(targetKey) {
-    setColState((prev) => {
-      if (!dragKey || dragKey === targetKey) return prev;
+  // Drag a header onto another header to move that column there. Ticker stays
+  // pinned left and Score pinned right (ScanList enforces the locks too).
+  function reorderColumn(fromKey, toKey) {
+    if (!fromKey || fromKey === toKey) return;
+    if (fromKey === 'ticker' || fromKey === 'score' || toKey === 'ticker' || toKey === 'score') return;
+    setColOrder((prev) => {
       const next = [...prev];
-      const from = next.findIndex((c) => c.key === dragKey);
-      const to = next.findIndex((c) => c.key === targetKey);
+      const from = next.indexOf(fromKey);
+      const to = next.indexOf(toKey);
       if (from < 0 || to < 0) return prev;
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       return next;
     });
-    setDragKey(null);
   }
 
   function flashToast(action, ticker) {
@@ -188,173 +129,29 @@ export default function ScannerPage() {
             />
           </div>
           <div className="sc-buckets">
-            {BUCKETS.map((b) => {
-              const isOn = bucket === b.key;
-              return (
-                <button
-                  key={b.key}
-                  type="button"
-                  className={`sc-bucket ${b.proto} ${isOn ? 'on' : ''}`}
-                  onClick={() => setBucket(isOn ? 'all' : b.key)}
-                >
-                  <span className="num">{counts[b.key] || 0}</span>
-                  <span>{b.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Toolbar */}
-      <section className="mt-pagesection mt-pagesection--tight2">
-        <div className="sc-toolbar">
-          <div className="mt-pillgroup">
-            <button
-              type="button"
-              className={`mt-pill ${bucket === 'all' ? 'on' : ''}`}
-              onClick={() => setBucket('all')}
-            >
-              All {universeTotal}
-            </button>
             {BUCKETS.map((b) => (
-              <button
-                key={b.key}
-                type="button"
-                className={`mt-pill ${bucket === b.key ? 'on' : ''}`}
-                onClick={() => setBucket(b.key)}
-              >
-                {b.label} {counts[b.key] || 0}
-              </button>
+              <div key={b.key} className={`sc-bucket ${b.proto}`}>
+                <span className="num">{counts[b.key] || 0}</span>
+                <span>{b.label}</span>
+              </div>
             ))}
           </div>
-          <span className="sc-shortnote">
-            <Tip content="Engine doesn't yet output short signals — long-only universe today.">
-              Long signals only
-            </Tip>
-          </span>
-          <span className="mt-spacer-flex" />
-          <button
-            type="button"
-            className={`mt-btn ${showFilter ? 'on' : ''}`}
-            onClick={() => { setShowFilter((v) => !v); setShowCols(false); }}
-          >
-            ＋ Filter{activeFilterCount > 0 && <span className="sc-colcount num">{activeFilterCount}</span>}
-          </button>
-          <button
-            type="button"
-            className={`mt-btn ${showCols ? 'on' : ''}`}
-            onClick={() => { setShowCols((v) => !v); setShowFilter(false); }}
-          >
-            ⚙ Columns <span className="sc-colcount num">{shownCount}/{totalCount}</span>
-          </button>
         </div>
-
-        {showFilter && (
-          <div className="sc-colpicker mt-fade">
-            <div className="sc-filterhead">
-              <div className="mt-eyebrow">Filter results</div>
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-linkbtn" onClick={() => setFilter(EMPTY_FILTER)}>
-                  Clear all
-                </button>
-              )}
-            </div>
-            <div className="sc-filtergrid">
-              <label className="sc-field">
-                <span className="mt-eyebrow">Minimum score</span>
-                <input
-                  type="number" min="0" max="10" step="0.5" inputMode="decimal"
-                  className="sc-input num" placeholder="e.g. 4"
-                  value={filter.minScore}
-                  onChange={(e) => setFilter((f) => ({ ...f, minScore: e.target.value }))}
-                />
-              </label>
-              <label className="sc-field">
-                <span className="mt-eyebrow">Search ticker / name</span>
-                <input
-                  type="text" className="sc-input" placeholder="e.g. AAPL or Apple"
-                  value={filter.q}
-                  onChange={(e) => setFilter((f) => ({ ...f, q: e.target.value }))}
-                />
-              </label>
-              <div className="sc-field">
-                <span className="mt-eyebrow">Must include signal</span>
-                <div className="sc-needrow">
-                  {[
-                    ['insider', 'Insider'],
-                    ['options', 'Options'],
-                    ['dark', 'Dark pool'],
-                  ].map(([k, lbl]) => (
-                    <label key={k} className={`sc-coltoggle ${filter.need[k] ? 'on' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={filter.need[k]}
-                        onChange={() => setFilter((f) => ({ ...f, need: { ...f.need, [k]: !f.need[k] } }))}
-                      />
-                      <span>{lbl}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="sc-filterfoot mt-eyebrow">
-              Showing <b className="num">{filtered.length}</b> of <b className="num">{rows.length}</b> names
-            </div>
-          </div>
-        )}
-
-        {showCols && (
-          <div className="sc-colpicker mt-fade">
-            <div className="sc-filterhead">
-              <div className="mt-eyebrow">Show / hide / reorder columns — drag the grips to reorder</div>
-              <button type="button" className="sc-linkbtn" onClick={() => setColState(DEFAULT_COL_STATE)}>
-                Reset
-              </button>
-            </div>
-            <div className="sc-colgrid">
-              {colState.map(({ key, on }) => {
-                const col = INDICATOR_COLS[key];
-                const locked = LOCKED.includes(key);
-                const isOn = on || locked;
-                return (
-                  <label
-                    key={key}
-                    className={`sc-coltoggle ${isOn ? 'on' : ''} ${locked ? 'locked' : ''} ${dragKey === key ? 'dragging' : ''}`}
-                    draggable={!locked}
-                    onDragStart={() => !locked && setDragKey(key)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => onColDrop(key)}
-                    onDragEnd={() => setDragKey(null)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isOn}
-                      disabled={locked}
-                      onChange={() => toggleCol(key)}
-                    />
-                    <span className="sc-colgrip">⋮⋮</span>
-                    <span>{col.label}</span>
-                    {locked && <span className="sc-collock">🔒</span>}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </section>
 
-      {/* ScanList */}
+      {/* Results — every column shown; drag a header to move a column, click a
+          header to sort. Wide on purpose; the table scrolls sideways. */}
       <section className="mt-pagesection mt-pagesection--tight2">
         {loading ? (
           <div className="mt-loadingcard">Loading scan results…</div>
         ) : (
           <ScanList
-            rows={filtered}
+            rows={rows}
             drillOpenKey={drillOpenKey}
             setDrillOpenKey={setDrillOpenKey}
             indicatorColumns
-            columns={activeColumns}
+            columns={colOrder}
+            onReorderColumn={reorderColumn}
             renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
           />
         )}
