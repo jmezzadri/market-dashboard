@@ -73,3 +73,28 @@ jobs:
             done
             if [ -z "$ok" ]; then echo "::error::push failed after 3 rebase retries"; exit 1; fi
           fi
+
+      - name: Stamp pipeline_health freshness (after publish)
+        # DURABLE FRESHNESS STAMP (added 2026-06-16). The compute + commit above
+        # ran every weekday but NEVER stamped pipeline_health, so the freshness
+        # monitor read the cycle_board row's last_good_at as frozen and the
+        # Admin · Data chip went RED even though the board was current. Mirrors
+        # v10-allocation-daily: a producer that publishes a fresh file MUST also
+        # stamp its own pipeline_health row, or the chip lies. Honest stamp —
+        # data_as_of = the snapshot's own business-date as_of (never wall-clock),
+        # last_good_at = now (the real run time). Runs on a no-change run too:
+        # the board is still current and the job still succeeded.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python -c "import json;print(json.load(open('public/cycle_board_snapshot.json'))['as_of'])")
+          python scripts/upsert_pipeline_health.py cycle_board "$AS_OF" green
+
+      - name: Stamp pipeline_health red on failure
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python scripts/upsert_pipeline_health.py cycle_board - red "cycle-mechanisms-daily failed before publish (Actions run ${{ github.run_id }})"

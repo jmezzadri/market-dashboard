@@ -79,8 +79,10 @@ const FAMILY_ORDER = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Finan
 // "Other" bucket. Keys are manifest element `name`s.
 const FALLBACK_FAMILY = {
   erp: 'Equities',
-  cftc_cot: 'Equities',
-  'cftc-cot': 'Equities',
+  // cftc-cot is NOT folded into the Equities family — it gets its own
+  // "CFTC COT positioning" tile that lists all 28 per-market signals (see
+  // COT_ELEMENT_NAMES / buildCotMembers). Leaving it here made it a single
+  // lone "Cftc Cot" row in Equities, hiding the 28 signals behind it.
   fra_ois: 'Credit',
   sofr_ois: 'Credit',
   real_fedfunds: 'Credit',
@@ -89,6 +91,54 @@ const FALLBACK_FAMILY = {
   ism_mfg: 'Financial Conditions & Economy',
   ism_svc: 'Financial Conditions & Economy',
 };
+
+// ─── CFTC COT positioning — the 28 per-market signals ────────────────────────
+// The manifest declares ONE cftc-cot element, but the weekly producer writes 28
+// per-market positioning signals into public/cot_positioning.json. We pull the
+// cftc-cot element OUT of the generic indicator families and give it a dedicated
+// tile whose members are those 28 markets, read live from that file. All 28 are
+// produced by the one weekly CFTC job, so each row grades off the single real
+// cftc-cot pipeline_health stamp (no per-market tracking rows exist; we never
+// fabricate one). The element is matched by either manifest name.
+const COT_ELEMENT_NAMES = new Set(['cftc-cot', 'cftc_cot']);
+const COT_TILE_ID = 'cot:positioning';
+const COT_HEALTH_ID = 'cftc-cot'; // the real pipeline_health row all 28 share
+
+function isCotElement(el) {
+  return !!el && (COT_ELEMENT_NAMES.has(el.name) || el.id === 'indicator-cftc-cot-weekly');
+}
+
+// Build the 28 COT member rows from cot_positioning.json. Each becomes an
+// element-shaped object the detail table can render, carrying the market's real
+// speculator/commercial percentile + its own as-of date. `_cot` marks it so the
+// row renderer shows the positioning figures and grades freshness off the shared
+// cftc-cot stamp rather than looking up a (non-existent) per-market health row.
+function buildCotMembers(cotData) {
+  const domains = cotData && typeof cotData === 'object' ? cotData.domains : null;
+  if (!domains || typeof domains !== 'object') return [];
+  const out = [];
+  Object.entries(domains).forEach(([domain, obj]) => {
+    const markets = obj && Array.isArray(obj.markets) ? obj.markets : [];
+    markets.forEach((m) => {
+      if (!m || !m.market) return;
+      out.push({
+        id: `cot:${domain}:${m.market}`,
+        name: m.market,
+        _cot: true,
+        cotDomain: domain,
+        cotSpec: typeof m.spec === 'number' ? m.spec : null,
+        cotComm: typeof m.comm === 'number' ? m.comm : null,
+        cotDiv: !!m.div,
+        source_vendor: 'CFTC',
+        cadence: 'weekly',
+        scheduled_fetch_time_et: '07:00 (Sat)',
+        data_as_of: m.asof || cotData.as_of || null,
+        freshness_sla_hours: 192,
+      });
+    });
+  });
+  return out;
+}
 
 // ─── Vendor canonicalisation ─────────────────────────────────────────────────
 // Manifest source_vendor strings are free-text ("Polygon (Massive)",
@@ -377,10 +427,16 @@ function ElementRow({ el }) {
   const nature = cadenceNature(el.cadence);
   // A scheduled feed with no pipeline_health row isn't broken — it's just not
   // being tracked yet. The grader synthesises a red ("No successful pull on
-  // record") purely because the row is absent, so when the row is missing we
-  // show a neutral grey "Not yet tracked" chip instead (never green, never the
-  // "no successful run" alarm). A feed that HAS a row grades normally.
-  const notTracked = nature.scheduled && f && f.missingFromPipelineHealth;
+  // record") purely because the row is absent, so when there is no successful
+  // run on record we show a neutral grey "Not yet tracked" chip instead (never
+  // green, never the "no successful run" alarm). A feed that HAS recorded a
+  // successful run grades normally (so a feed that ran then went stale still
+  // reads red). Detection: useFreshness exposes missingFromPipelineHealth on
+  // some builds; the always-reliable signal is the absence of BOTH a last-good
+  // and last-refreshed timestamp — a producer that has never recorded a pull.
+  const noRunOnRecord = !f?.lastGoodAt && !f?.lastRefreshedAt;
+  const notTracked = nature.scheduled && f && !f.loading
+    && (f.missingFromPipelineHealth || noRunOnRecord);
 
   let freshnessCell;
   if (!nature.scheduled) {
@@ -420,12 +476,62 @@ function ElementRow({ el }) {
   );
 }
 
+// One COT market row. The 28 CFTC positioning signals are all produced by the
+// single weekly CFTC job, so freshness is resolved ONCE from the shared
+// cftc-cot pipeline_health stamp (every row carries the same honest chip) while
+// each row shows that market's own speculator/commercial percentile and its own
+// CFTC report date. Percentiles are the market's net position ranked in its own
+// trailing 3-year range (0 = most short on record, 100 = most long).
+function CotRow({ el }) {
+  const f = useFreshness(COT_HEALTH_ID);
+  const asOf = fmtDate(el.data_as_of || f?.dataAsOf);
+  const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
+  const pct = (v) => (v == null ? '—' : `${v}`);
+  return (
+    <div className="df-row df-row--cot">
+      <div className="df-row-main">
+        <div className="df-row-name">
+          {el.name}
+          {el.cotDiv ? <span className="df-cot-div" title="Speculators and commercials are stretched on opposite sides">· divergent</span> : null}
+        </div>
+        <div className="df-row-vendor">CFTC · {el.cotDomain}</div>
+      </div>
+      <div className="df-row-cad">
+        <span className="df-cot-pct">Spec <b>{pct(el.cotSpec)}</b></span>
+        <span className="df-cot-pct">Comm <b>{pct(el.cotComm)}</b></span>
+        <span className="df-row-cad-t">%-ile, 3y</span>
+      </div>
+      <div className="df-row-asof"><span className="df-row-k">As of</span>{asOf}</div>
+      <div className="df-row-pull"><span className="df-row-k">Last pull</span>{lastPull}</div>
+      <div className="df-row-sla"><span className="df-row-k">SLA</span>{prettySla(el.freshness_sla_hours)}</div>
+      <div className="df-row-chip">
+        <FreshnessChip elementId={COT_HEALTH_ID} variant="label" />
+      </div>
+    </div>
+  );
+}
+
 // Column headers for the per-element table (rendered once above the rows).
 function ElementTableHead() {
   return (
     <div className="df-row df-row--head" aria-hidden>
       <div className="df-row-main">Element · source</div>
       <div className="df-row-cad">Cadence · fetch</div>
+      <div className="df-row-asof">As of</div>
+      <div className="df-row-pull">Last pull</div>
+      <div className="df-row-sla">SLA</div>
+      <div className="df-row-chip">Freshness</div>
+    </div>
+  );
+}
+
+// Header for the COT positioning table — the middle column shows the positioning
+// percentiles rather than a cadence.
+function CotTableHead() {
+  return (
+    <div className="df-row df-row--head df-row--cot" aria-hidden>
+      <div className="df-row-main">Market · class</div>
+      <div className="df-row-cad">Positioning (3y %-ile)</div>
       <div className="df-row-asof">As of</div>
       <div className="df-row-pull">Last pull</div>
       <div className="df-row-sla">SLA</div>
@@ -511,6 +617,7 @@ export default function DataFlowPage() {
   // ALL useState first — declared before any useMemo that references them, so
   // there is no temporal-dead-zone trap (the prior blank-page bug).
   const [manifest, setManifest] = useState(null);
+  const [cotData, setCotData] = useState(null); // public/cot_positioning.json — the 28 CFTC COT signals
   const [loadErr, setLoadErr] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const flowRef = useRef(null);
@@ -531,19 +638,44 @@ export default function DataFlowPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Load the CFTC COT positioning file once. The manifest carries ONE cftc-cot
+  // element, but the weekly producer (build_cot_positioning.py) actually writes
+  // 28 per-market positioning signals into public/cot_positioning.json
+  // (domains: Rates / Equities / FX / Commodities / Credit). We surface those 28
+  // here as their own tile, each row from its real source — never fabricated.
+  // All 28 share the single cftc-cot pipeline_health stamp (one weekly job), so
+  // each row grades off that real stamp.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/cot_positioning.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setCotData(d); })
+      .catch(() => { /* non-fatal — the cftc-cot row still shows without the 28 */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const elements = useMemo(() => {
     const els = manifest?.elements;
     if (!Array.isArray(els)) return [];
-    // DELETE everything with no successful run on record (Joe, 2026-06-16): keep
-    // only elements that have a pipeline_health row with a real last successful
-    // run. Untracked / never-run elements are dropped from the page entirely.
-    // Internal infrastructure (ops tables + the static changelog) stays excluded.
-    const ranOK = new Set();
-    (healthRows || []).forEach((r) => { if (r && r.indicator_id && r.last_good_at) ranOK.add(r.indicator_id); });
-    const filterTracked = ranOK.size > 0; // only filter once health data has loaded (avoids a blank flash)
-    return els.filter((e) => e && typeof e === 'object' && e.name && !isInfrastructure(e)
-      && (!filterTracked || ranOK.has(e.name) || ranOK.has(e.id)));
-  }, [manifest, healthRows]);
+    // Keep every NON-INFRASTRUCTURE element (ops tables + the static changelog
+    // stay excluded). The earlier rule dropped any element with no
+    // pipeline_health row outright — but that silently deleted real feeds the
+    // rest of this page is built to show honestly: the v10 allocator's
+    // history/legacy outputs (so the engine tile showed 1 of 4 members),
+    // portfolio accounts/positions/transactions/watchlist (event-driven),
+    // the per-ticker news + commentary feeds, and several scanner inputs. Each
+    // of those under-counted a tile and left panels thin or empty.
+    //
+    // It is also unnecessary: a scheduled element with no tracking row renders
+    // a neutral grey "Not yet tracked" per row (never green, never the red
+    // "no successful run" alarm — see ElementRow's notTracked guard), and a
+    // non-scheduled feed (on-change / on-demand / static) shows its NATURE.
+    // Tile dots roll up worst-of-members where untracked is neutral grey, so
+    // an untracked element can never turn a tile fake-green or fake-red. So the
+    // honest, complete behaviour is to keep them all and let the per-row /
+    // per-tile freshness machinery state the truth.
+    return els.filter((e) => e && typeof e === 'object' && e.name && !isInfrastructure(e));
+  }, [manifest]);
 
   const elementById = useMemo(() => {
     const out = {};
@@ -619,10 +751,15 @@ export default function DataFlowPage() {
   }, [elements]);
 
   // ── Column 2: Derived-indicator tiles, grouped by 5-domain family ──
+  // The CFTC COT element is pulled out of the family rollup and given its own
+  // tile listing all 28 per-market positioning signals (built from
+  // cot_positioning.json). Without this it was a single lone "Cftc Cot" row.
+  const cotMembers = useMemo(() => buildCotMembers(cotData), [cotData]);
   const derivedTiles = useMemo(() => {
     const byFam = new Map();
     elements.forEach((e) => {
       if (classified[e.name] !== 'derived') return;
+      if (isCotElement(e)) return; // COT gets its own tile, not a family row
       const dom = domainForIndicator(e.name);
       if (!byFam.has(dom)) byFam.set(dom, []);
       byFam.get(dom).push(e);
@@ -644,8 +781,23 @@ export default function DataFlowPage() {
       if (FAMILY_ORDER.includes(dom)) return;
       tiles.push({ id: `dom:${dom}`, name: dom, sub: `${els.length} indicators`, count: els.length, members: els });
     });
+    // Dedicated CFTC COT positioning tile — the 28 per-market signals from the
+    // weekly CFTC job. Only shown once the file has loaded and the cftc-cot
+    // element is actually tracked on this page (so it disappears in lockstep
+    // with the rest of the page if the manifest ever drops it).
+    const cotTracked = elements.some(isCotElement);
+    if (cotTracked && cotMembers.length) {
+      tiles.push({
+        id: COT_TILE_ID,
+        name: 'CFTC COT positioning',
+        sub: `${cotMembers.length} positioning signals`,
+        count: cotMembers.length,
+        members: cotMembers,
+        isCot: true,
+      });
+    }
     return tiles;
-  }, [elements, classified]);
+  }, [elements, classified, cotMembers]);
 
   // ── Column 3: Engine / model tiles ──
   // The allocation family (live v10 allocator + its sector-history output + the
@@ -726,6 +878,7 @@ export default function DataFlowPage() {
       portfolio: 'Portfolio & accounts',
       news: 'News & commentary feeds',
       commentary: 'Editorial commentary',
+      equity: 'Equity / scanner data',
     };
     const byCat = new Map();
     elements.forEach((e) => {
@@ -749,7 +902,7 @@ export default function DataFlowPage() {
     // Anything else classified workflow (rare) into a catch-all tile.
     byCat.forEach((els, cat) => {
       if (['portfolio', 'news', 'commentary'].includes(cat)) return;
-      wTiles.push({ id: `wf:${cat}`, name: CAT_LABEL[cat] || humanise(cat), sub: `${els.length} jobs`, count: els.length, members: els });
+      wTiles.push({ id: `wf:${cat}`, name: CAT_LABEL[cat] || humanise(cat), sub: `${els.length} job${els.length === 1 ? '' : 's'}`, count: els.length, members: els });
     });
     return { surfaceTiles: sTiles, workflowTiles: wTiles };
   }, [elements, classified]);
@@ -789,6 +942,11 @@ export default function DataFlowPage() {
       const engs = new Set();
       const surfs = new Set();
       src.members.forEach((m) => {
+        if (isCotElement(m)) {
+          // CFTC feeds the dedicated COT tile, not a generic family.
+          fams.add(COT_TILE_ID);
+          return;
+        }
         if (classified[m.name] === 'derived') {
           const dom = domainForIndicator(m.name);
           if (famTileFor[dom]) fams.add(famTileFor[dom]);
@@ -809,13 +967,24 @@ export default function DataFlowPage() {
       if (fams.size === 0) surfs.forEach((s) => E.push([src.id, s]));
     });
 
-    // family → cycle board + indicator compiler
+    // family → cycle board + indicator compiler. The COT tile is NOT an input
+    // to the cycle board / compiler — it feeds the Macro Overview cross-asset
+    // positioning rollup directly (see below), so exclude it here.
     const cycleId = engineTiles.find((t) => /cycle/i.test(t.name))?.id;
     const compilerId = engineTiles.find((t) => /history|compiler|indicator history/i.test(t.name))?.id;
     derivedTiles.forEach((t) => {
+      if (t.id === COT_TILE_ID) return;
       if (cycleId) E.push([t.id, cycleId]);
       if (compilerId) E.push([t.id, compilerId]);
     });
+
+    // COT tile → Macro Overview (its manifest consumer surface is the macro tab
+    // "Cross-asset positioning rollup"). Drawn explicitly because the tile's
+    // members are synthetic per-market rows, not manifest elements.
+    const overviewSurfId = surfTileForTab['overview'];
+    if (overviewSurfId && derivedTiles.some((t) => t.id === COT_TILE_ID)) {
+      E.push([COT_TILE_ID, overviewSurfId]);
+    }
 
     // engine → engine: the cycle board's 6 mechanism scores feed the v10
     // allocator, which produces the sector tilts. So the chain reads
@@ -922,7 +1091,9 @@ export default function DataFlowPage() {
       let best = 'u';
       let sawTracked = false;
       (members || []).forEach((m) => {
-        const s = statusByElement[m.name] || 'u';
+        // The 28 COT signals share the single cftc-cot stamp.
+        const key = m._cot ? COT_HEALTH_ID : m.name;
+        const s = statusByElement[key] || 'u';
         if (s !== 'u') sawTracked = true;
         if (rank[s] > rank[best]) best = s;
       });
@@ -1061,17 +1232,26 @@ export default function DataFlowPage() {
 
   const selectedTile = selectedId ? tileById[selectedId] : null;
   const selectedRole = selectedId
-    ? (selectedId.startsWith('src:') ? 'Source vendor'
-      : selectedId.startsWith('dom:') ? 'Indicator family'
-        : selectedId.startsWith('eng:') ? 'Engine / model'
-          : selectedId.startsWith('surf:') ? 'Live surface'
-            : 'Workflow')
+    ? (selectedId === COT_TILE_ID ? 'Indicator family'
+      : selectedId.startsWith('src:') ? 'Source vendor'
+        : selectedId.startsWith('dom:') ? 'Indicator family'
+          : selectedId.startsWith('eng:') ? 'Engine / model'
+            : selectedId.startsWith('surf:') ? 'Live surface'
+              : 'Workflow')
     : null;
 
-  // Member elements for the detail panel, sorted by display name.
+  // Member elements for the detail panel. COT signals sort by domain then
+  // market (so the 28 read in asset-class order); everything else by name.
   const detailMembers = useMemo(() => {
     if (!selectedTile) return [];
-    return [...(selectedTile.members || [])].sort((a, b) => displayName(a).localeCompare(displayName(b)));
+    const ms = [...(selectedTile.members || [])];
+    if (selectedTile.isCot) {
+      const order = { Rates: 0, Equities: 1, FX: 2, Commodities: 3, Credit: 4 };
+      return ms.sort((a, b) =>
+        (order[a.cotDomain] ?? 9) - (order[b.cotDomain] ?? 9)
+        || String(a.name).localeCompare(String(b.name)));
+    }
+    return ms.sort((a, b) => displayName(a).localeCompare(displayName(b)));
   }, [selectedTile]);
 
   // Vendor extras for the detail header (cost + blast radius), when a source.
@@ -1172,16 +1352,26 @@ export default function DataFlowPage() {
                     <div className="df-detail-role">{selectedRole}</div>
                     <h3 className="df-detail-title">{selectedTile.name}</h3>
                     <div className="df-detail-sub">
-                      {detailMembers.length} feed{detailMembers.length === 1 ? '' : 's'}
+                      {detailMembers.length} {selectedTile.isCot ? 'positioning signal' : 'feed'}{detailMembers.length === 1 ? '' : 's'}
                       {vendorCost ? <span className="df-detail-cost"> · {vendorCost}/mo</span> : null}
                     </div>
                     {vendorBlast && <p className="df-detail-blast">{vendorBlast}</p>}
+                    {selectedTile.isCot && (
+                      <p className="df-detail-blast">
+                        Weekly Commitments-of-Traders futures positioning from the CFTC. Each market’s net
+                        speculator and commercial-hedger position is ranked in its own trailing 3-year range
+                        (0 = most short on record, 100 = most long). One weekly job publishes all of these, so
+                        every signal shares the same freshness. Feeds the Macro Overview cross-asset positioning rollup.
+                      </p>
+                    )}
                   </div>
 
                   <div className="df-table">
-                    <ElementTableHead />
+                    {selectedTile.isCot ? <CotTableHead /> : <ElementTableHead />}
                     {detailMembers.map((el) => (
-                      <ElementRow key={el.id || el.name} el={el} />
+                      selectedTile.isCot
+                        ? <CotRow key={el.id} el={el} />
+                        : <ElementRow key={el.id || el.name} el={el} />
                     ))}
                   </div>
                 </>
@@ -1285,6 +1475,12 @@ export default function DataFlowPage() {
         .df-row-asof, .df-row-pull, .df-row-sla { color: var(--mt-ink-1); }
         .df-row-k { display: none; }
         .df-row-chip { justify-self: end; }
+
+        /* COT positioning rows — the middle cell shows the two percentiles. */
+        .df-row--cot .df-row-cad { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+        .df-cot-pct { color: var(--mt-ink-1); font-size: 11px; white-space: nowrap; }
+        .df-cot-pct b { color: var(--mt-ink-0); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .df-cot-div { margin-left: 7px; color: var(--mt-warn); font-size: 10px; font-weight: 600; }
 
         @media (max-width: 1180px) {
           .df-layout { grid-template-columns: 1fr; }
