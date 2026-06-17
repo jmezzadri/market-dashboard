@@ -1,33 +1,41 @@
 /* Asset Tilt — refactored 2026-05-27 per Joe Path-A directive.
 
-   Catalog violations resolved (7 of 7):
-   1. Backtest values (CAGR / Sharpe / Max DD / Validated) → derived from
-      /macrotilt_engine_backtest.json validation.asset_tilt + spy + n_weeks.
-      Em-dash on fetch failure; never hardcoded fallbacks.
-   2. vs-SPY sublines → derived from validation.spy.
-   3. stressHist Math.sin synthesis → real MOVE series from the last 24
-      entries of weekly[] (the data IS in the engine backtest file).
-   4. yieldHist Math.cos synthesis → real delta_y_3m_bp series, same source.
-   5. Sleeve mix "12% gold, 9% TLT, 4% cash" fallback removed; renders
-      em-dash when allocation.sleeveMix is null.
-   6. Regime history 24 cells synthesized (i<6/i<12/...) → real
-      stress_state + yield_regime per week from weekly[] last 24 entries.
-   7. "rebalanced weekly" footer copy → verified from engine config
-      (validation.label confirms weekly rebalancing).
+   2026-06-16 — TRANSPARENCY PASS (feature/ux-asset-tilt-transparency).
+   The page is no longer a black box. The same engine (unchanged) now shows
+   its work top-to-bottom, in three plainly-labelled layers:
 
-   Style refactor (zero inline style props except dynamic widths):
-   - Hero allocation H1 uses .at-headalloc / .at-headalloc--dim / .at-headalloc-sep.
-   - Backtest 4-cell grid uses .at-keystats.at-keystats--compact / .at-keygrid
-     / .at-keynum / .at-keyvs (down variant on Max DD).
-   - Engine read 3-card row uses .at-engineread.
-   - Gauge cards use .at-gauge / .at-gaugehead / .at-gaugefoot / .at-gaugedim
-     / .at-gaugemini. GaugeLegend already emits at-gaugelegend internally.
-   - Stance card uses .at-stance / .at-stanceval / .at-stanceval--dim /
-     .at-stancepct / .at-stancelabel.
-   - Regime strip uses .at-regstrip / .at-regcell / .at-regfoot / .at-regdot
-     (already in place — kept).
-   - Section-foot bar with OW/UW + Apply uses .lm-flowfoot (already in CSS
-     for the SectorFlow component). */
+     1. THE CYCLE READ — the six cycle-board mechanisms (valuation, credit,
+        funding, growth, liquidity & policy, positioning & breadth) scored
+        0–100 with their band (risk-off / caution / neutral) and a one-line
+        plain-English meaning each. This is the diagnosis that drives every
+        sector tilt. Data: v10_allocation.json `mechanism_scores` +
+        `mechanism_bands` (previously unused on this page).
+
+     2. WHY EACH SECTOR TILT — every sector row now expands to a mechanism
+        breakdown (the per-sector `contributions`, which sum to the tilt) as
+        a small bar table, plus a one-sentence plain-English "why" naming the
+        top ± mechanism drivers. Same for industry groups. Surfaces the
+        existing `sectors[].contributions` / `industry_groups[].contributions`
+        (handled in SectorFlow.jsx).
+
+     3. THE RISK OVERLAY — an explicit, readable panel showing how the
+        equity-vs-defensive split is set by the 2-axis engine: the stress
+        axis (MOVE value + 5y percentile → Risk On / Watch / Risk Off →
+        equity %) and the yield-regime axis (3-month change in 10Y →
+        Inflationary / Neutral / Deflationary → which defensive sleeve), with
+        the live readings and thresholds read straight from
+        macrotilt_engine.json. The existing gauges (with their hover history)
+        are kept; the overlay panel makes the logic explicit, not just a hover.
+
+   The engine itself is UNCHANGED — this pass only surfaces data the engine
+   already produces. No new factor model, no recomputation; every number is
+   read from v10_allocation.json or macrotilt_engine.json.
+
+   Original refactor notes (Path-A, kept):
+   - Backtest values derived from /macrotilt_engine_backtest.json; em-dash on
+     failure, never hardcoded.
+   - Real MOVE / ΔY-3M / regime series from the engine history file.
+   - Style: theme tokens only (var(--mt-*)); works light AND dark. */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -63,6 +71,80 @@ function mapYieldClass(y) {
   return 'neutral';
 }
 
+/* ── The six cycle-board mechanisms ───────────────────────────────────────
+   Module-level (NOT a hook) so it can be shared and never trips a TDZ. Each
+   mechanism is scored 0–100 by the cycle board: a HIGHER score = more
+   risk-off pressure from that lens. The band (risk-off / caution / neutral)
+   comes straight from v10_allocation.json `mechanism_bands`. `phrase(score)`
+   produces the plain-English clause shown after the band, written so a PM
+   reads it as "what this lens is saying right now".
+
+   These are descriptions of what the engine already measures — no new
+   computation, no model change. */
+const MECHANISMS = [
+  {
+    key: 'valuation',
+    label: 'Valuation',
+    blurb: 'How expensive equities are versus their own history.',
+    phrase: (v) =>
+      v >= 75 ? 'equities expensive vs history'
+        : v >= 45 ? 'equities around fair value'
+          : 'equities cheap vs history',
+  },
+  {
+    key: 'credit',
+    label: 'Credit',
+    blurb: 'Corporate borrowing conditions — spreads and stress.',
+    phrase: (v) =>
+      v >= 75 ? 'credit spreads tightening risk appetite'
+        : v >= 45 ? 'credit conditions mixed'
+          : 'credit conditions supportive',
+  },
+  {
+    key: 'funding',
+    label: 'Funding',
+    blurb: 'Cost and availability of short-term funding / liquidity plumbing.',
+    phrase: (v) =>
+      v >= 75 ? 'funding markets tightening'
+        : v >= 45 ? 'funding conditions balanced'
+          : 'funding markets easy',
+  },
+  {
+    key: 'growth',
+    label: 'Growth',
+    blurb: 'Direction of the economic-growth signals.',
+    phrase: (v) =>
+      v >= 75 ? 'growth momentum fading'
+        : v >= 45 ? 'growth signals mixed'
+          : 'growth momentum firm',
+  },
+  {
+    key: 'liquidity_policy',
+    label: 'Liquidity & Policy',
+    blurb: 'Central-bank stance and system liquidity.',
+    phrase: (v) =>
+      v >= 75 ? 'policy / liquidity restrictive'
+        : v >= 45 ? 'policy / liquidity neutral'
+          : 'policy / liquidity supportive',
+  },
+  {
+    key: 'positioning_breadth',
+    label: 'Positioning & Breadth',
+    blurb: 'Crowding, sentiment and market breadth.',
+    phrase: (v) =>
+      v >= 75 ? 'positioning crowded, breadth thin'
+        : v >= 45 ? 'positioning / breadth mixed'
+          : 'positioning light, breadth broad',
+  },
+];
+
+const BAND_LABEL = { 'risk-off': 'Risk-off', caution: 'Caution', neutral: 'Neutral' };
+function bandClass(band) {
+  if (band === 'risk-off') return 'off';
+  if (band === 'caution') return 'watch';
+  return 'on';
+}
+
 export default function TiltPage() {
   const { allocation, loading } = useAllocation();
   const regime = useEngineRegime();
@@ -72,6 +154,14 @@ export default function TiltPage() {
   // strip keep advancing every week instead of freezing at the calibration
   // lock date. (Joe 2026-06-03: history frozen at May 15.)
   const [history, setHistory] = useState(null);
+  // 2026-06-16 — the 2-axis regime engine file. macrotilt_engine.json carries
+  // the AUTHORITATIVE current readings + thresholds for the risk overlay (MOVE
+  // value, 5y percentile, watch/risk-off threshold values; 3M ΔY value,
+  // inflationary/deflationary thresholds; the resulting equity / defensive
+  // split and the active sleeve composition). The live gauges read indicators
+  // via useEngineRegime; this file is what the engine actually published, so
+  // the overlay panel shows the exact logic the allocation was built from.
+  const [engineFile, setEngineFile] = useState(null);
   const [expandedSectors, setExpandedSectors] = useState(new Set());
   const [expandedIGs, setExpandedIGs] = useState(new Set());
   /* Sparkline hover state — { idx, value, date } when the user is hovering,
@@ -90,6 +180,10 @@ export default function TiltPage() {
     fetch('/macrotilt_engine_history.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setHistory(j); })
+      .catch(() => {});
+    fetch('/macrotilt_engine.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled) setEngineFile(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -113,6 +207,20 @@ export default function TiltPage() {
     }
     return arr;
   }, [allocation, sectorSort]);
+
+  /* The six cycle-board mechanism readings (score 0–100 + band) for THE CYCLE
+     READ panel and for the per-sector "why" sentences. Read straight from
+     v10_allocation.json — never recomputed. */
+  const mechScores = allocation?.mechanism_scores || null;
+  const mechBands = allocation?.mechanism_bands || null;
+  const mechRows = useMemo(() => {
+    if (!mechScores) return [];
+    return MECHANISMS.map((m) => {
+      const score = Number.isFinite(mechScores[m.key]) ? mechScores[m.key] : null;
+      const band = (mechBands && mechBands[m.key]) || null;
+      return { ...m, score, band };
+    });
+  }, [mechScores, mechBands]);
 
   /* Prior-week sector weights for the "Prev" column. Captured weekly into
      v10_sector_history.json — shows "—" until a prior snapshot exists. Picks
@@ -255,6 +363,23 @@ export default function TiltPage() {
   const nWeeks = backtest?.validation?.n_weeks;
   const validatedRange = backtest?.calibration_label || '—';
 
+  /* ── Risk-overlay readings, straight from macrotilt_engine.json ──────────
+     The 2-axis engine: axis 1 (stress) sets equity %, axis 2 (yield) selects
+     the defensive sleeve when de-risked. We read the published values so the
+     overlay panel mirrors EXACTLY what the allocation was built from. */
+  const eng = engineFile;
+  const engStress = eng?.stress || null;
+  const engYield = eng?.yield_regime || null;
+  const engAlloc = eng?.allocation || null;
+  const engStressState = engStress?.state || regime.stressZone || null;
+  const engYieldState = engYield?.state || regime.yieldRegime || null;
+  const engEquityPct =
+    engAlloc && Number.isFinite(engAlloc.equity_pct) ? engAlloc.equity_pct
+      : equityPct != null ? Math.round(equityPct * 100) : null;
+  const engDefPct =
+    engAlloc && Number.isFinite(engAlloc.defensive_pct) ? engAlloc.defensive_pct
+      : defPct != null ? Math.round(defPct * 100) : null;
+
   return (
     <div className="mt-pagebody mt-fade">
       <section className="mt-pagehero">
@@ -292,7 +417,99 @@ export default function TiltPage() {
         </div>
       </section>
 
-      {/* Today's engine read */}
+      {/* How to read this page — orients the PM to the three layers below. */}
+      <section className="mt-pagesection">
+        <div className="at-howto">
+          <span className="at-howto-step"><b>1</b> The cycle read</span>
+          <span className="at-howto-arrow">→</span>
+          <span className="at-howto-step"><b>2</b> Sector &amp; industry tilts</span>
+          <span className="at-howto-arrow">→</span>
+          <span className="at-howto-step"><b>3</b> Risk overlay (equity vs defensive)</span>
+          <span className="at-howto-note">
+            Read top to bottom: the six mechanisms diagnose the cycle, each
+            sector tilt traces back to them, and the risk overlay sets how much
+            is in equities.
+          </span>
+        </div>
+      </section>
+
+      {/* ── LAYER 1 · THE CYCLE READ ──────────────────────────────────────
+          The six cycle-board mechanisms scored 0–100 with band + plain-English
+          meaning. This is the diagnosis that drives the sector tilts below. */}
+      <section className="mt-pagesection">
+        <div className="mt-sectionhead">
+          <div>
+            <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span>The cycle read · six mechanisms</span>
+              <FreshnessChip
+                elementId="v10-allocation-daily"
+                variant="label"
+                fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
+              />
+            </div>
+            <div className="mt-h2">What the cycle board is diagnosing right now.</div>
+          </div>
+        </div>
+        <div className="mt-card at-cycle">
+          <div className="at-cycle-intro">
+            Each mechanism is scored <b>0–100</b> — a higher score means more
+            risk-off pressure from that lens. Together they set every sector
+            tilt below. Scores and bands come straight from the engine; nothing
+            here is recomputed.
+          </div>
+          {mechRows.length > 0 ? (
+            <div className="at-cyclegrid">
+              {mechRows.map((m) => {
+                const b = bandClass(m.band);
+                const scoreTxt = m.score != null ? Math.round(m.score) : '—';
+                const pct = m.score != null ? Math.max(0, Math.min(100, m.score)) : 0;
+                return (
+                  <Tip
+                    key={m.key}
+                    bare
+                    block
+                    content={
+                      <div style={{ maxWidth: 240 }}>
+                        <b>{m.label}</b> · {BAND_LABEL[m.band] || '—'}
+                        <div style={{ marginTop: 4, color: 'var(--mt-ink-2)' }}>{m.blurb}</div>
+                      </div>
+                    }
+                  >
+                    <div className={`at-mech at-mech--${b}`}>
+                      <div className="at-mech-top">
+                        <span className="at-mech-label">{m.label}</span>
+                        <span className={`mt-tag ${m.band === 'risk-off' ? 'mt-tag--extreme' : m.band === 'caution' ? 'mt-tag--elev' : 'mt-tag--calm'}`}>
+                          {BAND_LABEL[m.band] || '—'}
+                        </span>
+                      </div>
+                      <div className="at-mech-scorerow">
+                        <span className="num at-mech-score">{scoreTxt}</span>
+                        <span className="at-mech-track">
+                          <span className={`at-mech-fill at-mech-fill--${b}`} style={{ width: `${pct}%` }} />
+                        </span>
+                      </div>
+                      <div className="at-mech-mean">{m.score != null ? m.phrase(m.score) : '—'}</div>
+                    </div>
+                  </Tip>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="at-cycle-empty">Cycle-board reading unavailable — engine data not loaded.</div>
+          )}
+          <div className="at-cycle-foot">
+            <span><span className="at-regdot at-regdot--off" /> Risk-off (75–100)</span>
+            <span><span className="at-regdot at-regdot--watch" /> Caution (45–74)</span>
+            <span><span className="at-regdot at-regdot--on" /> Neutral (0–44)</span>
+            <span className="at-foot-push">Drives the sector &amp; industry tilts below</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── LAYER 3 (engine internals) · today's engine read gauges ────────
+          The live stress + yield gauges, with their hover history. Kept as-is.
+          The explicit risk-overlay LOGIC panel sits directly below them so the
+          reader sees the gauge AND the rule that turns it into an allocation. */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
@@ -523,9 +740,89 @@ export default function TiltPage() {
             </div>
           </article>
         </div>
+
+        {/* ── LAYER 3 · THE RISK OVERLAY (explicit logic) ─────────────────
+            Two axes, in plain English, with the live readings + thresholds
+            read straight from macrotilt_engine.json. Makes the equity-vs-
+            defensive decision traceable instead of hover-only. */}
+        <div className="mt-card at-overlay">
+          <div className="at-overlay-head">
+            <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span>The risk overlay · how the equity / defensive split is set</span>
+              <FreshnessChip
+                elementId="v10-allocation-daily"
+                variant="label"
+                fallback={{ asOfIso: eng?.as_of || allocation?.as_of, calendar: 'us-business-day' }}
+              />
+            </div>
+          </div>
+          <div className="at-overlay-grid">
+            {/* Axis 1 — stress → how much equity */}
+            <div className="at-axis">
+              <div className="at-axis-num">1</div>
+              <div className="at-axis-body">
+                <div className="at-axis-title">Stress axis — sets how much equity</div>
+                <div className="at-axis-read">
+                  MOVE is{' '}
+                  <b className="num">{engStress?.move_value != null ? engStress.move_value.toFixed(1) : (regime.move != null ? regime.move.toFixed(1) : '—')}</b>
+                  {engStress?.move_percentile_5y != null && (
+                    <> ({Math.round(engStress.move_percentile_5y * 100)}th percentile over 5y)</>
+                  )}
+                  {' '}→ engine reads{' '}
+                  <b className={`at-axis-state at-axis-state--${mapStressClass(engStressState)}`}>{engStressState || '—'}</b>.
+                </div>
+                <div className="at-axis-rule">
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--on" /> MOVE below {engStress?.watch_threshold_value != null ? engStress.watch_threshold_value.toFixed(0) : '116'} → <b>Risk On</b> · stay 100% equity</span>
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--watch" /> {engStress?.watch_threshold_value != null ? engStress.watch_threshold_value.toFixed(0) : '116'}–{engStress?.risk_off_threshold_value != null ? engStress.risk_off_threshold_value.toFixed(0) : '124'} → <b>Watch</b> · begin de-risking into the defensive sleeve</span>
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--off" /> MOVE above {engStress?.risk_off_threshold_value != null ? engStress.risk_off_threshold_value.toFixed(0) : '124'} → <b>Risk Off</b> · maximum defensive (up to 50%)</span>
+                </div>
+                <div className="at-axis-outcome">
+                  Outcome today: <b className="num">{engEquityPct != null ? engEquityPct : '—'}%</b> equity ·{' '}
+                  <b className="num">{engDefPct != null ? engDefPct : '—'}%</b> defensive.
+                </div>
+              </div>
+            </div>
+
+            {/* Axis 2 — yield → which defensive sleeve */}
+            <div className="at-axis">
+              <div className="at-axis-num">2</div>
+              <div className="at-axis-body">
+                <div className="at-axis-title">Yield axis — picks the defensive sleeve</div>
+                <div className="at-axis-read">
+                  10Y yield is{' '}
+                  <b className="num">
+                    {engYield?.delta_y_3m_bp != null
+                      ? `${engYield.delta_y_3m_bp >= 0 ? '+' : ''}${engYield.delta_y_3m_bp.toFixed(0)} bp`
+                      : (regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—')}
+                  </b>{' '}
+                  over the last 3 months → engine reads{' '}
+                  <b className={`at-axis-state at-axis-state--${mapYieldClass(engYieldState)}`}>{engYieldState || '—'}</b>.
+                </div>
+                <div className="at-axis-rule">
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--defl" /> Below {engYield?.deflationary_threshold_bp != null ? engYield.deflationary_threshold_bp.toFixed(0) : '−10'} bp → <b>Deflationary</b> · lean long Treasuries</span>
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--neutral" /> Between thresholds → <b>Neutral</b> · balanced sleeve</span>
+                  <span className="at-axis-step"><span className="at-axis-dot at-axis-dot--infl" /> Above {engYield?.inflationary_threshold_bp != null ? engYield.inflationary_threshold_bp.toFixed(0) : '+33'} bp → <b>Inflationary</b> · lean gold &amp; short T-bills</span>
+                </div>
+                <div className="at-axis-outcome">
+                  {engDefPct ? (
+                    <>Active sleeve: <b>{engAlloc?.active_sleeve_label || engYieldState || '—'}</b> — tuned to the {(engYieldState || 'neutral').toLowerCase()} reading.</>
+                  ) : (
+                    <>Sleeve on standby — only the stress axis is at Risk On, so no defensive sleeve is selected yet.</>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="at-overlay-foot">
+            Both axes come from the 2-axis engine (validated {eng?.calibration_label || '1986–2026'}).
+            The stress axis decides <i>how much</i> equity; the yield axis decides <i>which</i> defensive
+            assets hold the rest.
+          </div>
+        </div>
       </section>
 
-      {/* Equity bucket · sector tilts */}
+      {/* ── LAYER 2 · EQUITY BUCKET · SECTOR TILTS ────────────────────────
+          Each row expands to a mechanism breakdown traceable to Layer 1. */}
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
@@ -537,7 +834,7 @@ export default function TiltPage() {
                 fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
               />
             </div>
-            <div className="mt-h2">Where the engine wants overweight — and what's underneath.</div>
+            <div className="mt-h2">Where the engine wants overweight — and which mechanisms drive it.</div>
           </div>
           <div className="mt-pillgroup">
             {[['recommended', 'Recommended'], ['tilt', 'Tilt vs cap']].map(([k, l]) => (
@@ -552,6 +849,10 @@ export default function TiltPage() {
             ))}
           </div>
         </div>
+        <div className="at-sector-hint">
+          Expand any sector to see how the six mechanisms produced its tilt — the
+          per-mechanism contributions sum to the tilt score.
+        </div>
         {loading ? (
           <div className="mt-loadingcard">Loading allocation…</div>
         ) : (
@@ -565,6 +866,7 @@ export default function TiltPage() {
             sortKey={sectorSort}
             sleeveRows={sleeveRows}
             prevBySector={prevBySector}
+            mechBands={mechBands}
           />
         )}
         <div className="lm-flowfoot">
