@@ -427,10 +427,16 @@ function ElementRow({ el }) {
   const nature = cadenceNature(el.cadence);
   // A scheduled feed with no pipeline_health row isn't broken — it's just not
   // being tracked yet. The grader synthesises a red ("No successful pull on
-  // record") purely because the row is absent, so when the row is missing we
-  // show a neutral grey "Not yet tracked" chip instead (never green, never the
-  // "no successful run" alarm). A feed that HAS a row grades normally.
-  const notTracked = nature.scheduled && f && f.missingFromPipelineHealth;
+  // record") purely because the row is absent, so when there is no successful
+  // run on record we show a neutral grey "Not yet tracked" chip instead (never
+  // green, never the "no successful run" alarm). A feed that HAS recorded a
+  // successful run grades normally (so a feed that ran then went stale still
+  // reads red). Detection: useFreshness exposes missingFromPipelineHealth on
+  // some builds; the always-reliable signal is the absence of BOTH a last-good
+  // and last-refreshed timestamp — a producer that has never recorded a pull.
+  const noRunOnRecord = !f?.lastGoodAt && !f?.lastRefreshedAt;
+  const notTracked = nature.scheduled && f && !f.loading
+    && (f.missingFromPipelineHealth || noRunOnRecord);
 
   let freshnessCell;
   if (!nature.scheduled) {
