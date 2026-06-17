@@ -1,6 +1,6 @@
 {
   "_doc": "v11 cycle-mechanism scores. Sprint 1 (Valuation/Credit/Growth) reads indicator percentiles directly from methodology_calibration_v11.json with direction encoding (high/low/bidir_top/bidir_bottom). Sprint 2 (Funding/Liquidity & Policy/Positioning & Breadth) computes from indicator_history.json post-2011 sample. Refreshed nightly by scripts/compute_v11_mechanisms.py at 22:30 UTC weekdays.",
-  "as_of": "2026-06-16",
+  "as_of": "2026-06-17",
   "framework": "v11 \u2014 six cycle mechanisms",
   "calibration_label": "Sprint 1+2 calibration",
   "mechanisms": [
@@ -112,11 +112,11 @@
         {
           "id": "rrp",
           "name": "Reverse repo balance",
-          "percentile": 27.8,
+          "percentile": 25.8,
           "direction": "low_is_concerning",
-          "reading": 10.7,
+          "reading": 6.8,
           "unit": null,
-          "score": 72.2
+          "score": 74.2
         }
       ],
       "source": "indicator_history"
@@ -215,43 +215,43 @@
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 63,
+      "score": 67,
       "breakdown": [
         {
           "id": "skew",
           "name": "CBOE SKEW",
-          "percentile": 81.4,
+          "percentile": 81.1,
           "direction": "high_is_concerning",
-          "reading": 142.7,
+          "reading": 142.6,
           "unit": null,
-          "score": 81.4
+          "score": 81.1
         },
         {
           "id": "vix",
           "name": "VIX",
-          "percentile": 49.7,
+          "percentile": 64.5,
           "direction": "high_is_concerning",
-          "reading": 16.41,
+          "reading": 18.44,
           "unit": null,
-          "score": 49.7
+          "score": 64.5
         },
         {
           "id": "eq_cr_corr",
           "name": "Equity-credit correlation (60d)",
-          "percentile": 76.5,
+          "percentile": 75.8,
           "direction": "high_is_concerning",
-          "reading": 0.79,
+          "reading": 0.78,
           "unit": null,
-          "score": 76.5
+          "score": 75.8
         },
         {
           "id": "move",
           "name": "MOVE Index (Treasury vol)",
-          "percentile": 43.7,
+          "percentile": 46.1,
           "direction": "high_is_concerning",
-          "reading": 69.4,
+          "reading": 70.7,
           "unit": null,
-          "score": 43.7
+          "score": 46.1
         }
       ],
       "source": "indicator_history"
