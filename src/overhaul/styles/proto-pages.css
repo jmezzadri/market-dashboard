@@ -189,8 +189,9 @@
 .mt-overhaul .at-keyvs { display: block; font-size: 11px; color: var(--mt-ink-2); margin-top: 4px; }
 
 .mt-overhaul .at-engineread {
-  display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 14px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: stretch;
 }
+.mt-overhaul .at-engineread > .mt-card { height: 100%; }
 .mt-overhaul .at-gauge { display: flex; flex-direction: column; gap: 8px; }
 .mt-overhaul .at-gaugehead { display: flex; justify-content: space-between; align-items: center; }
 .mt-overhaul .at-gaugefoot {
@@ -956,11 +957,131 @@
 }
 .mt-overhaul .at-mechbd-sum .num { font-size: 13px; }
 
+/* ── Asset Tilt 2026-06-17 — folded dial logic, clickable mechanism cards,
+      the 0–100 modal, and the tilt-score→weight bridge ─────────────────── */
+
+/* Folded risk-overlay rule + outcome inside each dial */
+.mt-overhaul .at-dialrule {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 0 8px; margin-top: 2px;
+  border-top: 1px dashed var(--mt-line-1);
+}
+.mt-overhaul .at-dialoutcome {
+  font-size: 12.5px; color: var(--mt-ink-1); line-height: 1.45;
+  padding: 8px 10px; border-radius: var(--mt-r-sm);
+  background: var(--mt-surface-2);
+}
+.mt-overhaul .at-dialoutcome b.num { color: var(--mt-ink-0); }
+
+/* Recommended-allocation synthesis (replaces the standalone overlay footer) */
+.mt-overhaul .at-allocsynth {
+  font-size: 12.5px; color: var(--mt-ink-1); line-height: 1.5;
+  padding: 10px 12px; border-radius: var(--mt-r-sm);
+  background: var(--mt-surface-2); margin-top: auto;
+}
+.mt-overhaul .at-allocsynth b.num { color: var(--mt-ink-0); }
+.mt-overhaul .at-allocsynth-foot { margin-top: 6px; font-size: 11.5px; color: var(--mt-ink-2); }
+
+/* Clickable cycle-mechanism cards */
+.mt-overhaul button.at-mech--clickable {
+  appearance: none; font: inherit; width: 100%; text-align: left;
+  cursor: pointer; transition: transform var(--mt-dur-fast) var(--mt-ease), box-shadow var(--mt-dur-fast) var(--mt-ease), border-color var(--mt-dur-fast) var(--mt-ease);
+}
+.mt-overhaul button.at-mech--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--mt-shadow-1, 0 4px 14px rgba(0,0,0,0.08));
+  border-color: var(--mt-line-1);
+}
+.mt-overhaul button.at-mech--clickable:focus-visible {
+  outline: 2px solid var(--mt-accent); outline-offset: 2px;
+}
+.mt-overhaul .at-mech-more {
+  font-size: 11px; font-weight: 600; color: var(--mt-accent);
+  margin-top: 2px;
+}
+
+/* 0–100 mechanism modal */
+.mt-overhaul .at-mechmodal-scrim {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 20, 28, 0.46);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; animation: atmm-fade var(--mt-dur-fast) var(--mt-ease);
+}
+@keyframes atmm-fade { from { opacity: 0; } to { opacity: 1; } }
+.mt-overhaul .at-mechmodal {
+  width: min(560px, 100%); max-height: 86vh; overflow-y: auto;
+  background: var(--mt-surface); border: 1px solid var(--mt-line-1);
+  border-radius: var(--mt-r-lg, 16px); padding: 20px 22px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+}
+.mt-overhaul .at-mechmodal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.mt-overhaul .at-mechmodal-title {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mt-font-display); font-size: 22px; font-weight: 500; color: var(--mt-ink-0);
+  margin-top: 3px;
+}
+.mt-overhaul .at-mechmodal-close {
+  appearance: none; border: 1px solid var(--mt-line-0); background: var(--mt-surface-2);
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  font-size: 18px; line-height: 1; color: var(--mt-ink-2); flex-shrink: 0;
+}
+.mt-overhaul .at-mechmodal-close:hover { color: var(--mt-ink-0); border-color: var(--mt-line-1); }
+.mt-overhaul .at-mechmodal-sub { font-size: 13px; color: var(--mt-ink-1); margin-top: 8px; }
+.mt-overhaul .at-mechmodal-explain {
+  font-size: 12.5px; color: var(--mt-ink-2); line-height: 1.5;
+  margin: 10px 0 14px; padding: 10px 12px; border-radius: var(--mt-r-sm); background: var(--mt-surface-2);
+}
+.mt-overhaul .at-mechmodal-rows { display: flex; flex-direction: column; gap: 12px; }
+.mt-overhaul .at-mechmodal-row { display: flex; flex-direction: column; gap: 5px; }
+.mt-overhaul .at-mechmodal-rowtop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mt-overhaul .at-mechmodal-ind { font-size: 13px; font-weight: 600; color: var(--mt-ink-0); }
+.mt-overhaul .at-mechmodal-rowscore { font-size: 14px; font-weight: 600; color: var(--mt-ink-0); }
+.mt-overhaul .at-mechmodal-rowscore i { font-style: normal; font-size: 11px; color: var(--mt-ink-3); margin-left: 1px; }
+.mt-overhaul .at-mechmodal-track { position: relative; height: 8px; border-radius: 999px; background: var(--mt-surface-2); overflow: hidden; }
+.mt-overhaul .at-mechmodal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; min-width: 3px; }
+.mt-overhaul .at-mechmodal-fill--off { background: var(--mt-down); }
+.mt-overhaul .at-mechmodal-fill--watch { background: var(--mt-warn); }
+.mt-overhaul .at-mechmodal-fill--on { background: var(--mt-up); }
+.mt-overhaul .at-mechmodal-why { font-size: 12px; color: var(--mt-ink-2); line-height: 1.4; }
+.mt-overhaul .at-mechmodal-why .num { color: var(--mt-ink-1); }
+.mt-overhaul .at-mechmodal-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--mt-line-0);
+  font-size: 12.5px; color: var(--mt-ink-2);
+}
+.mt-overhaul .at-mechmodal-avg { font-family: var(--mt-font-display); font-size: 26px; font-weight: 500; }
+.mt-overhaul .at-mechmodal-avg i { font-style: normal; font-size: 13px; color: var(--mt-ink-3); margin-left: 1px; }
+.mt-overhaul .at-mechmodal-avg--off { color: var(--mt-down); }
+.mt-overhaul .at-mechmodal-avg--watch { color: var(--mt-warn); }
+.mt-overhaul .at-mechmodal-avg--on { color: var(--mt-up); }
+.mt-overhaul .at-mechmodal-empty { font-size: 13px; color: var(--mt-ink-2); padding: 10px 0; }
+
+/* Tilt-score → weight bridge (sector drill) */
+.mt-overhaul .at-bridge {
+  margin: 0 0 14px; padding: 14px;
+  background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-md);
+}
+.mt-overhaul .at-bridge-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.mt-overhaul .at-bridge-hint { font-size: 11.5px; color: var(--mt-ink-2); }
+.mt-overhaul .at-bridge-flow { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+.mt-overhaul .at-bridge-step {
+  flex: 1 1 0; min-width: 150px; display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px; border-radius: var(--mt-r-sm); background: var(--mt-surface-2); border: 1px solid var(--mt-line-0);
+}
+.mt-overhaul .at-bridge-k { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
+.mt-overhaul .at-bridge-v { font-size: 15px; font-weight: 600; color: var(--mt-ink-0); }
+.mt-overhaul .at-bridge-v.up { color: var(--mt-up); }
+.mt-overhaul .at-bridge-v.down { color: var(--mt-down); }
+.mt-overhaul .at-bridge-cap { font-size: 11px; color: var(--mt-ink-2); line-height: 1.4; }
+.mt-overhaul .at-bridge-arrow { align-self: center; color: var(--mt-ink-3); font-size: 14px; }
+
 /* — Responsive: stack the grids on narrow viewports — */
 @media (max-width: 920px) {
   .mt-overhaul .at-cyclegrid { grid-template-columns: repeat(2, 1fr); }
   .mt-overhaul .at-overlay-grid { grid-template-columns: 1fr; }
   .mt-overhaul .at-secwhy { grid-template-columns: 1fr; }
+  .mt-overhaul .at-bridge-arrow { display: none; }
+  .mt-overhaul .at-bridge-step { flex-basis: 100%; }
 }
 @media (max-width: 560px) {
   .mt-overhaul .at-cyclegrid { grid-template-columns: 1fr; }
