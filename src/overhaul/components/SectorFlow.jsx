@@ -151,7 +151,7 @@ function TiltBridge({ s }) {
       <div className="at-bridge-flow">
         <div className="at-bridge-step">
           <span className="at-bridge-k">Tilt score</span>
-          <span className={`num at-bridge-v ${tilt > 0 ? 'up' : tilt < 0 ? 'down' : ''}`}>{tilt > 0 ? '+' : ''}{fmt1(tilt)}</span>
+          <span className={`num at-bridge-v ${tilt > 0 ? 'up' : tilt < 0 ? 'down' : ''}`}>{tilt > 0 ? '+' : ''}{tilt.toFixed(2)}</span>
           <span className="at-bridge-cap">sum of the six contributions above</span>
         </div>
         <span className="at-bridge-arrow">→</span>
