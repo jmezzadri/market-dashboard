@@ -419,3 +419,44 @@ export function formatTradingDayLabel(date, opts) {
     year:    _opts.year === false ? undefined : "numeric",
   });
 }
+
+
+// ─── TWO-CLOCK BINARY grade (FRESHNESS doctrine v2 — Joe 2026-06-17) ─────────
+// Green ONLY if BOTH clocks pass: the pull clock (gradeByLastPull — the job ran
+// on schedule, no error, invariant holds) AND the data clock (a NEW data point
+// actually arrived within its cadence window). No amber. Untracked → red
+// (fake-green forbidden, Hard Rule 0.1). SUPERSEDES one-clock grading at the
+// chip layer; gradeByLastPull stays the pull-clock primitive this calls.
+// Mirror in supabase/functions/_shared/freshnessClock.ts MUST match.
+//
+// Inputs beyond gradeByLastPull:
+//   dataAsOfIso      the data's own as-of (pipeline_health.data_as_of)
+//   maxDataAgeHours  how old the newest point may be before the data clock
+//                    trips — per element (cadence default + long-lag override);
+//                    0/falsy = exempt (static reference data)
+//   dataCalendar     calendar the data clock pauses on ("nyse-trading-day",
+//                    "us-business-day", or "wall-clock" for 24/7 computed feeds)
+export function isDataStale(dataAsOfIso, maxDataAgeHours, calendar, nowMs) {
+  if (!maxDataAgeHours || maxDataAgeHours <= 0) return false; // exempt
+  if (!dataAsOfIso) return true;                              // no point → stale
+  const age = ageHoursAgainstCalendar(dataAsOfIso, calendar, nowMs);
+  if (!Number.isFinite(age)) return true;
+  return age > maxDataAgeHours;
+}
+
+export function gradeTwoClock(input, nowMs) {
+  const o = input || {};
+  const pull = gradeByLastPull(o, nowMs);
+  if (pull.status !== "green") {
+    return { status: "red", clock: "pull", reason: pull.reason || "Not registered", ageHours: pull.ageHours == null ? null : pull.ageHours };
+  }
+  const cal = o.dataCalendar || "wall-clock";
+  if (isDataStale(o.dataAsOfIso, o.maxDataAgeHours, cal, nowMs)) {
+    const age = ageHoursAgainstCalendar(o.dataAsOfIso, cal, nowMs);
+    const reason = o.dataAsOfIso
+      ? `No new data in ${Math.round(age)}h — expected within ${formatSlaDaysHours(o.maxDataAgeHours)}; source may have stopped`
+      : "No data point on record";
+    return { status: "red", clock: "data", reason, ageHours: pull.ageHours == null ? null : pull.ageHours };
+  }
+  return { status: "green", clock: null, reason: null, ageHours: pull.ageHours == null ? null : pull.ageHours };
+}
