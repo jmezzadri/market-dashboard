@@ -312,6 +312,10 @@ def _to_frac(x) -> float:
 def main() -> None:
     snapshot = json.loads(SNAPSHOT_IN.read_text())
     mechs = {m["id"]: m["score"] for m in snapshot["mechanisms"]}
+    # Per-indicator breakdown of each 0-100 mechanism score, passed straight
+    # through from the cycle board so the Asset Tilt page can show HOW each
+    # score was built (added 2026-06-17). Single source: nothing recomputed.
+    mech_breakdown = {m["id"]: m.get("breakdown", []) for m in snapshot["mechanisms"]}
 
     # --- Asset-class split: READ from the 2-axis engine, not recomputed ---
     engine = json.loads(ENGINE_IN.read_text())
@@ -356,6 +360,7 @@ def main() -> None:
         "engine_as_of": engine.get("as_of"),
         "mechanism_scores": mechs,
         "mechanism_bands": bands,
+        "mechanism_breakdown": mech_breakdown,
         "stress_score": stress_score,
         "equity_pct": round(equity_pct, 4),
         "defensive_pct": round(defensive_pct, 4),

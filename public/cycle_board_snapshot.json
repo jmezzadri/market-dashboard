@@ -8,37 +8,253 @@
       "id": "valuation",
       "num": "01",
       "name": "Equity Valuations",
-      "score": 100
+      "score": 100,
+      "breakdown": [
+        {
+          "id": "cape",
+          "name": "CAPE (Shiller)",
+          "percentile": 100.0,
+          "direction": "high",
+          "reading": null,
+          "unit": "ratio",
+          "score": 100.0
+        },
+        {
+          "id": "erp",
+          "name": "Equity Risk Premium",
+          "percentile": 0.5,
+          "direction": "low_is_concerning",
+          "reading": null,
+          "unit": "percent",
+          "score": 99.5
+        },
+        {
+          "id": "buffett",
+          "name": "Buffett Indicator",
+          "percentile": 100.0,
+          "direction": "high",
+          "reading": null,
+          "unit": "% of GDP",
+          "score": 100.0
+        }
+      ],
+      "source": "calibration"
     },
     {
       "id": "credit",
       "num": "02",
       "name": "Credit",
-      "score": 68
+      "score": 68,
+      "breakdown": [
+        {
+          "id": "ig_oas",
+          "name": "IG OAS (Baa \u2212 10y)",
+          "percentile": 14.5,
+          "direction": "bidir_bottom",
+          "reading": null,
+          "unit": "bp",
+          "score": 85.5
+        },
+        {
+          "id": "hy_oas",
+          "name": "HY OAS",
+          "percentile": 8.1,
+          "direction": "bidir_bottom",
+          "reading": null,
+          "unit": "bp",
+          "score": 91.9
+        },
+        {
+          "id": "hy_ig_ratio",
+          "name": "HY/IG ratio",
+          "percentile": 27.8,
+          "direction": "bidir_top",
+          "reading": null,
+          "unit": "ratio",
+          "score": 27.8
+        }
+      ],
+      "source": "calibration"
     },
     {
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 43
+      "score": 43,
+      "breakdown": [
+        {
+          "id": "cpff",
+          "name": "Commercial Paper risk premium",
+          "percentile": 66.5,
+          "direction": "high_is_concerning",
+          "reading": 14.0,
+          "unit": null,
+          "score": 66.5
+        },
+        {
+          "id": "stlfsi",
+          "name": "St. Louis Fed FSI",
+          "percentile": 1.2,
+          "direction": "high_is_concerning",
+          "reading": -0.87,
+          "unit": null,
+          "score": 1.2
+        },
+        {
+          "id": "bank_reserves",
+          "name": "Bank reserves at Fed",
+          "percentile": 69.1,
+          "direction": "low_is_concerning",
+          "reading": 3080.7,
+          "unit": null,
+          "score": 30.9
+        },
+        {
+          "id": "rrp",
+          "name": "Reverse repo balance",
+          "percentile": 27.8,
+          "direction": "low_is_concerning",
+          "reading": 10.7,
+          "unit": null,
+          "score": 72.2
+        }
+      ],
+      "source": "indicator_history"
     },
     {
       "id": "growth",
       "num": "04",
       "name": "Growth",
-      "score": 47
+      "score": 47,
+      "breakdown": [
+        {
+          "id": "cfnai_3ma",
+          "name": "CFNAI 3-month",
+          "percentile": 59.7,
+          "direction": "low_is_concerning",
+          "reading": null,
+          "unit": "index",
+          "score": 40.3
+        },
+        {
+          "id": "jobless",
+          "name": "Jobless claims (4w)",
+          "percentile": 6.9,
+          "direction": "high_is_concerning",
+          "reading": null,
+          "unit": "thousands",
+          "score": 6.9
+        },
+        {
+          "id": "ism",
+          "name": "ISM Manufacturing PMI",
+          "percentile": 55.3,
+          "direction": "low_is_concerning",
+          "reading": null,
+          "unit": "index",
+          "score": 44.7
+        },
+        {
+          "id": "bkx_spx",
+          "name": "Banks vs S&P 500 (BKX/SPX)",
+          "percentile": 2.5,
+          "direction": "low_is_concerning",
+          "reading": null,
+          "unit": "ratio",
+          "score": 97.5
+        }
+      ],
+      "source": "calibration"
     },
     {
       "id": "liquidity_policy",
       "num": "05",
       "name": "Liquidity & Policy",
-      "score": 61
+      "score": 61,
+      "breakdown": [
+        {
+          "id": "anfci",
+          "name": "Chicago Fed ANFCI",
+          "percentile": 59.1,
+          "direction": "high_is_concerning",
+          "reading": -0.47,
+          "unit": null,
+          "score": 59.1
+        },
+        {
+          "id": "fed_bs",
+          "name": "Fed Balance Sheet YoY %",
+          "percentile": 53.5,
+          "direction": "low_is_concerning",
+          "reading": 0.72,
+          "unit": null,
+          "score": 46.5
+        },
+        {
+          "id": "sloos_ci",
+          "name": "SLOOS C&I lending",
+          "percentile": 72.6,
+          "direction": "high_is_concerning",
+          "reading": 8.1,
+          "unit": null,
+          "score": 72.6
+        },
+        {
+          "id": "m2_yoy",
+          "name": "M2 Money Supply YoY",
+          "percentile": 34.8,
+          "direction": "low_is_concerning",
+          "reading": 4.72,
+          "unit": null,
+          "score": 65.2
+        }
+      ],
+      "source": "indicator_history"
     },
     {
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 62
+      "score": 63,
+      "breakdown": [
+        {
+          "id": "skew",
+          "name": "CBOE SKEW",
+          "percentile": 81.4,
+          "direction": "high_is_concerning",
+          "reading": 142.7,
+          "unit": null,
+          "score": 81.4
+        },
+        {
+          "id": "vix",
+          "name": "VIX",
+          "percentile": 49.7,
+          "direction": "high_is_concerning",
+          "reading": 16.41,
+          "unit": null,
+          "score": 49.7
+        },
+        {
+          "id": "eq_cr_corr",
+          "name": "Equity-credit correlation (60d)",
+          "percentile": 76.5,
+          "direction": "high_is_concerning",
+          "reading": 0.79,
+          "unit": null,
+          "score": 76.5
+        },
+        {
+          "id": "move",
+          "name": "MOVE Index (Treasury vol)",
+          "percentile": 43.7,
+          "direction": "high_is_concerning",
+          "reading": 69.4,
+          "unit": null,
+          "score": 43.7
+        }
+      ],
+      "source": "indicator_history"
     }
   ]
 }
