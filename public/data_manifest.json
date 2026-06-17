@@ -1002,8 +1002,8 @@
   },
   {
    "id": "scenario-v9_allocation-weekly",
-   "category": "scenario",
-   "name": "v10_allocation",
+   "category": "allocation",
+   "name": "v9_allocation_legacy",
    "description": "Current week v9 allocation (regime, alpha, equity_share, leverage, picks, defensive sleeve).",
    "sourcing_mode": "computed",
    "source_vendor": "n/a",
@@ -1035,8 +1035,8 @@
   },
   {
    "id": "scenario-allocation_history-weekly",
-   "category": "scenario",
-   "name": "scenarios",
+   "category": "allocation",
+   "name": "allocation_history",
    "description": "Rolling 26-entry history of prior v9 allocations (picks, leverage, equity_share, defensive).",
    "sourcing_mode": "derived",
    "source_vendor": "n/a",
@@ -2352,7 +2352,7 @@
   {
    "id": "v10-allocation-daily",
    "name": "v10_allocation",
-   "category": "scenario",
+   "category": "allocation",
    "description": "v10.2 Asset Tilt allocator output. The asset-class split (equity %, defensive %, defensive-sleeve composition) is read from the 2-axis MacroTilt engine (macrotilt_engine.json); the 6 cycle mechanisms drive only the sector / industry-group tilts. Leverage 1.25x in calm regimes; all 4 hard caps enforced. Produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
    "sourcing_mode": "derived from macrotilt-engine-daily (equity/defensive split + defensive sleeve) and cycle-mechanism-board-daily (sector/IG tilts)",
    "cadence": "daily (08:15 ET business days)",
@@ -2594,7 +2594,7 @@
   {
    "id": "v10-sector-history-daily",
    "name": "v10_sector_history",
-   "category": "scenario",
+   "category": "allocation",
    "description": "Rolling weekly snapshots of v10 sector recommended weights (% of total portfolio). Powers the 'Prev wk' column in the Asset Tilt sector table. Captured each v10-allocation-daily run before overwrite; deduped by as_of, capped 60.",
    "sourcing_mode": "derived from v10_allocation snapshot-before-overwrite",
    "cadence": "daily (12:15/13:15 UTC weekdays)",
@@ -3609,12 +3609,12 @@
    "output_destination": "public/cycle_v2.json",
    "consumer_surfaces": [
     {
-     "tab": "macro",
-     "tile": "Cycle mechanism board"
+     "tab": "asset-tilt",
+     "tile": "Sector tilts (via v10 allocator)"
     },
     {
      "tab": "methodology",
-     "tile": "Cycle board chip"
+     "tile": "Cycle board methodology"
     }
    ],
    "dependencies": [],
