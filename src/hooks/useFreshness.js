@@ -1,22 +1,27 @@
 // useFreshness.js — site-wide data-freshness hook.
 //
-// Grading: ONE CLOCK (FRESHNESS_CHIP_SPEC 2026-06-16)
-// ───────────────────────────────────────────────────
-// The chip grades off the LAST PULL — the producing job's real last successful
-// run time (pipeline_health.last_good_at) — versus its SLA, NEVER off the age
-// of the data. The SLA is sized to how often the JOB runs (cadence + grace),
-// not to the data's publication lag. Consequences:
-//   • a six-week-old monthly series is GREEN as long as its daily reader job
-//     keeps pulling (kills publication-lag false-reds);
-//   • a daily feed whose job stops pulling goes RED within one extra
-//     business-day cadence even if its last value still looks recent
-//     (kills fake-green — the Uranium failure mode);
-//   • data dated after its own last pull is an impossible pair → RED.
-// All of this lives in one shared function, gradeByLastPull (freshnessClock),
-// mirrored server-side so chips, the watchdog, and alerts grade identically.
+// Grading: TWO CLOCKS, binary (FRESHNESS_CHIP_SPEC v2 — Joe 2026-06-17)
+// ─────────────────────────────────────────────────────────────────────
+// A chip is GREEN only if BOTH clocks pass:
+//   • Pull clock — the producing job ran successfully on schedule
+//     (pipeline_health.last_good_at vs its pull SLA). Catches a fetch job that
+//     broke or stopped.
+//   • Data clock — a NEW data point actually arrived within its cadence window
+//     (pipeline_health.data_as_of vs the manifest data_max_age_hours). Catches a
+//     vendor that went dark while the cron keeps "succeeding" (the fake-green
+//     hole the one-clock rule left open).
+// If either clock fails → RED, and the reason names which clock. Both clocks are
+// calendar-aware (weekend/holiday hours never count). The data window is sized to
+// each element's real publication cadence + lag, so a legitimately-laggy monthly
+// or quarterly series stays GREEN between releases (no false-reds), while a daily
+// feed that freezes reds within ~2 trading sessions.
 //
-// Two-state (green / red); "unknown" (grey) only when an element is genuinely
-// untracked — never silently green (Hard Rule 0.1: fake green forbidden).
+// Binary green / red — no amber. An UNtracked element (no manifest entry, no
+// tracking row) is RED, never green (spec v2 §1; Hard Rule 0.1: fake green
+// forbidden; the goal is zero untracked). A registered but static/event-driven
+// row with no SLA and no window is "reference" (grey) — exempt, not red.
+// One shared function, gradeTwoClock (freshnessClock), mirrored server-side so
+// chips, the watchdog, and alerts grade identically.
 //
 // Calendar-aware: the last-pull clock skips weekend/holiday hours for the job's
 // run calendar, so a Friday pull is never "stale" on Monday morning
@@ -34,7 +39,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, gradeByLastPull } from "../lib/freshnessClock";
+import { formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, gradeTwoClock } from "../lib/freshnessClock";
 import {
   getElement,
   getAllElements,
@@ -212,16 +217,15 @@ function statusForElement(elementId, fallback) {
   const lastGoodAt = phRow?.last_good_at || null;
   const lastError = phRow?.last_error || null;
 
-  // 4. ONE-CLOCK grade (FRESHNESS_CHIP_SPEC 2026-06-16). Grade off the LAST
-  // PULL — the producing job's real last successful run time — never off the
-  // age of the data. last_good_at is that run time (an honest wall-clock
-  // stamp); for file-backed indicators whose row may lag, the indicator file's
-  // own build time is an equally-real fallback. As-of feeds ONLY the hard
-  // invariant (data can never be dated after the pull that fetched it). This is
-  // what kills fake-green — a dead job stops advancing last_good_at and goes
-  // red within one extra business-day cadence — and lagged-feed false-red — a
-  // six-week-old monthly series stays green while its daily reader job pulls.
-  // Replaces the old two-clock design (session-frontier + data-age SLA).
+  // 4. Pull-clock input (TWO-CLOCK grade, spec v2). Last Pull = the producing
+  // job's real last successful run time. last_good_at is that run time (an honest
+  // wall-clock stamp); for file-backed indicators whose row may lag, the indicator
+  // file's own build time is an equally-real fallback. The data's as-of feeds the
+  // hard invariant (data can never be dated after the pull that fetched it) AND the
+  // data clock (a new point must have arrived within its window). Two clocks
+  // together kill BOTH failure modes: a dead job stops advancing last_good_at
+  // (pull clock reds), and a vendor going dark stops advancing data_as_of while the
+  // cron still "succeeds" (data clock reds — the one-clock fake-green hole).
   // Last Pull = the job's own real last successful run time (per element).
   // Prefer pipeline_health.last_good_at — an honest wall-clock run stamp since
   // the 2026-06-11 honest-stamp fix — and fall back to the indicator file's
@@ -246,22 +250,51 @@ function statusForElement(elementId, fallback) {
       ? calendar
       : "us-business-day";
 
+  // Data-clock inputs (FRESHNESS doctrine v2 — two-clock, Joe 2026-06-17). The
+  // data clock checks that a NEW data point actually arrived within its cadence
+  // window — catching a vendor that goes dark while the pull job keeps
+  // "succeeding". Window + calendar come from the manifest (data_max_age_hours /
+  // data_calendar). A window of 0 = exempt (static reference, event-driven rows),
+  // so those grade on the pull clock alone, exactly as before.
+  const maxDataAgeHours = manifestEl ? Number(manifestEl.data_max_age_hours) || 0 : 0;
+  const dataCalendar =
+    (manifestEl &&
+      (manifestEl.data_calendar === "nyse-trading-day" ||
+        manifestEl.data_calendar === "us-business-day" ||
+        manifestEl.data_calendar === "wall-clock"))
+      ? manifestEl.data_calendar
+      : gradeCalendar;
+
   const isUntracked = !manifestEl && !phRow && !dataDate && !lastGoodAt;
+  // Registered but not time-graded: a static reference row or an event-driven
+  // catalog row with neither a pull SLA nor a data window. Spec v2 §3: static is
+  // exempt, labeled "reference" — no freshness grade, and NOT red.
+  const isReferenceExempt = !!manifestEl && slaHours <= 0 && maxDataAgeHours <= 0;
 
   let status;
   let reason;
   if (isUntracked) {
-    // No manifest entry, no tracking row, no dates — render grey and explain;
-    // never silently green (Hard Rule 0.1: fake green forbidden).
+    // No manifest entry, no tracking row, no dates. Untracked is RED, never green
+    // (spec v2 §1; Hard Rule 0.1: fake green forbidden). The goal is zero untracked.
+    status = "red";
+    reason = "Not registered — freshness is not tracked for this element";
+  } else if (isReferenceExempt) {
     status = "unknown";
-    reason = "Freshness not tracked for this element";
+    reason = "Reference / event-driven — no freshness target";
   } else {
-    const graded = gradeByLastPull({
+    // TWO-CLOCK grade: green only if BOTH the pull clock (the job ran on schedule,
+    // no error, invariant holds) AND the data clock (a new point arrived within its
+    // window) pass. Binary green/red — no amber. gradeTwoClock calls gradeByLastPull
+    // for the pull clock, then checks the data clock.
+    const graded = gradeTwoClock({
       lastPullIso,
       asOfIso: dataDate,
+      dataAsOfIso: dataDate,
       slaHours,
       calendar: gradeCalendar,
       lastError,
+      maxDataAgeHours,
+      dataCalendar,
     });
     status = graded.status;
     reason = graded.reason;
@@ -273,6 +306,11 @@ function statusForElement(elementId, fallback) {
     lastGoodAt,
     lastError,
     slaHours,
+    // Data-clock budget (two-clock): how old the newest data point may be before
+    // the chip reds. This — not the pull SLA — is the user-meaningful staleness
+    // budget the chip's SLA line should show. 0 = exempt (reference/event-driven).
+    maxDataAgeHours,
+    dataCalendar,
     calendar,
     lastRefreshedAt,
     label: manifestEl?.name || phRow?.label || elementId,
@@ -399,6 +437,8 @@ export function useFreshness(elementId, fallback) {
     description: rolled.description,
     sourceVendor: rolled.sourceVendor,
     slaHours: rolled.slaHours,
+    maxDataAgeHours: rolled.maxDataAgeHours,
+    dataCalendar: rolled.dataCalendar,
     calendar: rolled.calendar,
     cadence: rolled.cadence,
     scheduledFetchET: rolled.scheduledFetchET,
