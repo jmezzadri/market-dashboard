@@ -168,39 +168,64 @@ def latest_value_and_history(ind: dict, key: str) -> Optional[Tuple[float, List[
     return latest, sample
 
 
-def score_mechanism_from_calibration(tile: dict) -> Optional[int]:
-    """Sprint 1: aggregate score from calibration JSON's indicator percentiles."""
+def score_mechanism_from_calibration(tile: dict):
+    """Sprint 1: aggregate score from calibration JSON's indicator percentiles.
+
+    Returns (score, breakdown) where breakdown is a list of per-indicator dicts
+    so the page can show HOW the 0-100 was built. None score → (None, [])."""
     indicators = tile.get("indicators")
     if not indicators:
-        return None
+        return None, []
     contribs = []
+    breakdown = []
     for ind in indicators:
         pct = ind.get("percentile")
         if pct is None:
             continue
         direction = ind.get("direction", "high_is_concerning")
-        contribs.append(direction_corrected_score(float(pct), direction))
+        ind_score = direction_corrected_score(float(pct), direction)
+        contribs.append(ind_score)
+        breakdown.append({
+            "id": ind.get("id"),
+            "name": ind.get("name") or ind.get("id"),
+            "percentile": round(float(pct), 1),
+            "direction": direction,
+            "reading": ind.get("reading", ind.get("value")),
+            "unit": ind.get("unit"),
+            "score": round(float(ind_score), 1),
+        })
     if not contribs:
-        return None
-    return round(sum(contribs) / len(contribs))
+        return None, []
+    return round(sum(contribs) / len(contribs)), breakdown
 
 
 def score_mechanism_from_indicator_history(panel: dict, indicators: dict) -> Optional[int]:
     """Sprint 2 fallback: compute live percentile from post-2011 sample."""
     panel_indicators = panel.get("indicators")
     if not panel_indicators:
-        return None
+        return None, []
     contribs = []
+    breakdown = []
     for key, _label, direction in panel_indicators:
         loaded = latest_value_and_history(indicators, key)
         if loaded is None:
             continue
         cur, sample = loaded
         pct = percentile_of(cur, sorted(sample))
-        contribs.append(direction_corrected_score(pct, direction))
+        ind_score = direction_corrected_score(pct, direction)
+        contribs.append(ind_score)
+        breakdown.append({
+            "id": key,
+            "name": _label,
+            "percentile": round(float(pct), 1),
+            "direction": direction,
+            "reading": round(float(cur), 2) if cur is not None else None,
+            "unit": None,
+            "score": round(float(ind_score), 1),
+        })
     if not contribs:
-        return None
-    return round(sum(contribs) / len(contribs))
+        return None, []
+    return round(sum(contribs) / len(contribs)), breakdown
 
 
 def load_calibration() -> dict:
@@ -255,12 +280,13 @@ def main() -> None:
     out_mechanisms = []
     for mech_id, panel in PANELS.items():
         score = None
+        breakdown = []
         if mech_id in SPRINT1_IDS:
             tile = calib_tiles_by_id.get(mech_id)
             if tile is not None:
-                score = score_mechanism_from_calibration(tile)
+                score, breakdown = score_mechanism_from_calibration(tile)
         if score is None:
-            score = score_mechanism_from_indicator_history(panel, indicators)
+            score, breakdown = score_mechanism_from_indicator_history(panel, indicators)
         # Bug surfaced 2026-05-09: a None score used to fall through to 0, which
         # misread as 'minimum stress / peak risk-on'. Now we emit null and the
         # consumer handles it (UI shows '—').
@@ -269,6 +295,12 @@ def main() -> None:
             "num": panel["num"],
             "name": panel["name"],
             "score": int(score) if score is not None else None,
+            # Per-indicator breakdown so the Asset Tilt page can show HOW the
+            # 0-100 was built (each indicator's percentile, direction, and the
+            # direction-corrected 0-100 it contributes). The mechanism score is
+            # the mean of these indicator scores. Added 2026-06-17.
+            "breakdown": breakdown,
+            "source": "calibration" if mech_id in SPRINT1_IDS and breakdown and score is not None else "indicator_history",
         })
 
     snapshot = {
