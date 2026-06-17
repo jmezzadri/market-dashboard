@@ -12,6 +12,8 @@ import {
   gradeByLastPull,
   lastPullInvariantViolated,
   formatSlaDaysHours,
+  gradeTwoClock,
+  isDataStale,
 } from '../src/lib/freshnessClock.js';
 
 let pass = 0, fail = 0;
@@ -89,6 +91,27 @@ eq(lastPullInvariantViolated('2026-06-15', '2026-06-15T23:00:00Z'), false, 'inva
 eq(formatSlaDaysHours(49),  '2d 1h', 'SLA 49h -> 2d 1h');
 eq(formatSlaDaysHours(192), '8d',    'SLA 192h -> 8d');
 eq(formatSlaDaysHours(480), '20d',   'SLA 480h -> 20d');
+
+console.log('isDataStale (data clock — newest point vs its cadence window):');
+eq(isDataStale('2026-06-16', 54, 'nyse-trading-day', NOW_JUN16), false, 'yesterday close, 54h daily window -> fresh');
+eq(isDataStale('2026-06-12', 54, 'nyse-trading-day', Date.UTC(2026,5,17,18,0,0)), true, 'daily frozen 3 sessions, 54h window -> stale');
+eq(isDataStale('2026-04-01', 2880, 'us-business-day', NOW_JUN16), false, 'monthly data 11wk old but 120d window -> fresh');
+eq(isDataStale('2026-06-12', 54, 'nyse-trading-day', Date.UTC(2026,5,15,12,0,0)), false, 'Fri data read Mon morning -> fresh (weekend pause)');
+eq(isDataStale('2026-06-16', 0, 'wall-clock', NOW_JUN16), false, 'window 0 (static/reference) -> never stale (exempt)');
+
+console.log('gradeTwoClock (BOTH clocks must pass — FRESHNESS_CHIP_SPEC v2, two-clock):');
+const g2 = (o, now = NOW_JUN16) => gradeTwoClock(o, now).status;
+const g2c = (o, now = NOW_JUN16) => gradeTwoClock(o, now).clock;
+// pull green + data fresh -> green
+eq(g2({ lastPullIso:'2026-06-16T17:00:00Z', asOfIso:'2026-06-16', dataAsOfIso:'2026-06-16', slaHours:49, calendar:'nyse-trading-day', maxDataAgeHours:54, dataCalendar:'nyse-trading-day' }), 'green', 'job pulled + data current -> green');
+// pull fails (job stopped) -> red on the PULL clock even if data window is huge
+eq(g2({ lastPullIso:'2026-06-12T13:00:00Z', asOfIso:'2026-04-01', dataAsOfIso:'2026-04-01', slaHours:49, calendar:'us-business-day', maxDataAgeHours:2880, dataCalendar:'us-business-day' }), 'red', 'monthly: job stopped pulling -> RED (pull clock)');
+eq(g2c({ lastPullIso:'2026-06-12T13:00:00Z', asOfIso:'2026-04-01', dataAsOfIso:'2026-04-01', slaHours:49, calendar:'us-business-day', maxDataAgeHours:2880, dataCalendar:'us-business-day' }), 'pull', '...and the failing clock is named "pull"');
+// pull green but vendor went dark (data frozen) -> red on the DATA clock (the one-clock fake-green hole)
+eq(g2({ lastPullIso:'2026-06-16T17:00:00Z', asOfIso:'2026-06-12', dataAsOfIso:'2026-06-12', slaHours:49, calendar:'nyse-trading-day', maxDataAgeHours:54, dataCalendar:'nyse-trading-day' }, Date.UTC(2026,5,17,18,0,0)), 'red', 'cron green but data frozen 3 sessions -> RED (data clock)');
+eq(g2c({ lastPullIso:'2026-06-16T17:00:00Z', asOfIso:'2026-06-12', dataAsOfIso:'2026-06-12', slaHours:49, calendar:'nyse-trading-day', maxDataAgeHours:54, dataCalendar:'nyse-trading-day' }, Date.UTC(2026,5,17,18,0,0)), 'data', '...and the failing clock is named "data"');
+// laggy-but-current quarterly read by the daily job -> green (no false-red)
+eq(g2({ lastPullIso:'2026-06-16T17:00:00Z', asOfIso:'2026-03-31', dataAsOfIso:'2026-03-31', slaHours:49, calendar:'us-business-day', maxDataAgeHours:4320, dataCalendar:'us-business-day' }), 'green', 'quarterly data Mar-31, daily job pulling -> green (no publication-lag false-red)');
 
 console.log(`\nTOTAL: ${pass} pass, ${fail} fail`);
 process.exit(fail > 0 ? 1 : 0);

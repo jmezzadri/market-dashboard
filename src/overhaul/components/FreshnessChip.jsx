@@ -182,6 +182,15 @@ export default function FreshnessChip({
   const asOfExact = fmtAsOf(f?.dataAsOf, f?.asOfCutoffEt);
   const fetchedExact = fmtFetched(f?.lastRefreshedAt || f?.lastGoodAt);
 
+  // Two-clock "turns red if" budgets (spec v2). The chip reds when EITHER clock
+  // trips: the pull clock (the job must keep running) OR the data clock (a new
+  // data point must keep arriving). Show both so the budget is honest — a laggy
+  // monthly series has a short pull budget but a long data window, and that is
+  // exactly why it can read green while its value is weeks old.
+  const pullBudget = f?.slaHours > 0 ? `no pull in ${formatSlaDaysHours(f.slaHours)}` : null;
+  const dataBudget = f?.maxDataAgeHours > 0 ? `no new data in ${formatSlaDaysHours(f.maxDataAgeHours)}` : null;
+  const redIfText = [pullBudget, dataBudget].filter(Boolean).join(', or ') || 'reference data — not time-graded';
+
   const onEnter = () => {
     setHover(true);
     const el = ref.current;
@@ -308,16 +317,18 @@ export default function FreshnessChip({
             }}
           >
             {/* The five governance fields, in the spec's order and plain
-                English (FRESHNESS_CHIP_SPEC 2026-06-16). "As of" is the data's
-                own date; "Last pull" is when the job actually ran. They are two
-                different real timestamps and the chip grades green/red off the
-                LAST PULL versus the SLA — never off the data's age. */}
+                English (FRESHNESS_CHIP_SPEC v2 — two-clock). "As of" is the
+                data's own date; "Last pull" is when the job actually ran. They
+                are two different real timestamps. The chip is GREEN only if both
+                clocks pass: the job ran on schedule (pull clock vs SLA) AND a new
+                data point arrived within its window (data clock). "Turns red if"
+                names both budgets; the reason line below names which clock fired. */}
             <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
               <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{fetchedExact}</span></li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA (turns red):</span> {f?.slaHours > 0 ? `within ${formatSlaDaysHours(f.slaHours)}` : '—'}</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Turns red if:</span> {redIfText}</li>
             </ol>
             {/* When red, say why right under the five fields (spec: "shows the
                 reason if red"). Reason comes from the shared grade function. */}

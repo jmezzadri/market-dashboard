@@ -33,7 +33,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { sendEmail } from "../_shared/email.ts";
-import { gradeByLastPull, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
+import { gradeTwoClock, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
 
 const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.com";
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
@@ -177,7 +177,7 @@ async function handle(req: Request): Promise<Response> {
   // 2) Pull the two canonical site files + the data manifest
   let indicators: Record<string, { as_of?: string }> = {};
   let composites: Array<Record<string, unknown>> = [];
-  let manifestByName: Record<string, { freshness_sla_hours?: number; release_calendar?: string; name?: string }> = {};
+  let manifestByName: Record<string, { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string }> = {};
   try {
     [indicators, composites] = await Promise.all([
       fetchIndicatorHistory(),
@@ -193,7 +193,7 @@ async function handle(req: Request): Promise<Response> {
     if (mr.ok) {
       const m = await mr.json();
       for (const e of (m.elements || []) as Array<Record<string, unknown>>) {
-        const el = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string };
+        const el = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string };
         if (e.name) manifestByName[e.name as string] = el;
         if (e.id)   manifestByName[e.id as string] = el;
       }
@@ -441,24 +441,32 @@ async function handle(req: Request): Promise<Response> {
 
     const ageMin = ageMinutesFromIso(asOf, row.cadence);  // kept only for the fetch-log age column
 
-    // ONE-CLOCK grade (FRESHNESS_CHIP_SPEC 2026-06-16): grade off the LAST PULL
-    // — the job's real last successful run (lastGoodIso) — versus the manifest
-    // SLA, calendar-aware. Identical to the site chips (shared clock function),
-    // so the stored status, the green->red alert, and every chip agree. This
-    // fires on a job that stopped pulling, not on the age of lagged-but-healthy
-    // data (a monthly series read by the daily job stays green while it pulls).
+    // TWO-CLOCK grade (FRESHNESS_CHIP_SPEC v2 — Joe 2026-06-17): green only if BOTH
+    // the pull clock (the job's real last successful run, lastGoodIso, vs the
+    // manifest pull SLA) AND the data clock (data_as_of vs the manifest data
+    // window) pass — calendar-aware. Identical to the site chips (shared clock
+    // function), so the stored status, the green->red alert, and every chip agree.
+    // The pull clock fires on a job that stopped; the data clock fires on a vendor
+    // that went dark while the cron still "succeeds" (the one-clock fake-green hole).
     const mfGrade = manifestByName[row.indicator_id];
-    const graded = gradeByLastPull({
+    const slaH = Number(mfGrade?.freshness_sla_hours) || 0;
+    const winH = Number(mfGrade?.data_max_age_hours) || 0;
+    const graded = gradeTwoClock({
       lastPullIso: lastGoodIso ?? row.last_good_at,
       asOfIso: asOf,
-      slaHours: Number(mfGrade?.freshness_sla_hours) || 0,
+      dataAsOfIso: asOf,
+      slaHours: slaH,
       calendar: (mfGrade?.release_calendar as ReleaseCalendar) || "us-business-day",
       lastError,
+      maxDataAgeHours: winH,
+      dataCalendar: (mfGrade?.data_calendar as ReleaseCalendar) || (mfGrade?.release_calendar as ReleaseCalendar) || "us-business-day",
     });
-    // Two-state stored status; a config gap (no manifest SLA) -> amber, which is
-    // visible in Admin·Data without firing the green->red alert.
+    // Config gap (neither a pull SLA nor a data window configured) -> amber, which
+    // is visible in Admin·Data without firing the green->red alert. Everything else
+    // takes the two-clock green/red verdict directly.
+    const isConfigGap = slaH <= 0 && winH <= 0;
     const newStatus: "green" | "amber" | "red" =
-      graded.status === "green" ? "green" : graded.status === "red" ? "red" : "amber";
+      isConfigGap ? "amber" : (graded.status === "green" ? "green" : "red");
 
     // Debounced alert on a green→red transition
     const wasGreen = row.status === "green";
@@ -474,8 +482,8 @@ async function handle(req: Request): Promise<Response> {
     // frontend chip). The legacy newStatus above uses cadence + tolerance and
     // does not account for calendar awareness; using it for stuck-red would
     // fire false alarms on weekend FRED dailies.
-    // Stuck-red gate uses the SAME last-pull grade as the chip + stored status.
-    const manifestStale = graded.status === "red";
+    // Stuck-red gate uses the SAME two-clock grade as the chip + stored status.
+    const manifestStale = !isConfigGap && graded.status === "red";
 
     // Rolling: when did this row first go red? Use last_alerted_at as proxy
     // (set on every green→red transition, including the very first one).
