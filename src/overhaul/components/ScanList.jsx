@@ -54,27 +54,39 @@ export const INDICATOR_COLS = {
   score:   { key: 'score',   label: 'Score',                 head: 'Score',    w: '54px', locked: true },
 };
 
-// Full available-column universe + initial order (Joe 2026-06-17): identity →
-// price action → live technicals → key stats → the four signal points →
-// short/flow context → Score pinned far right. All values ride the same
-// nightly scan row, so they share the scan's freshness stamp.
+// Full available-column universe + initial order grouped per Joe's layout
+// (2026-06-17 PM): Stock → Performance → Technicals → Signal scores → Other →
+// Score. All values ride the same nightly scan row, so they share the scan's
+// freshness stamp.
 export const INDICATOR_COL_KEYS = [
-  'ticker', 'name', 'price', 'day', 'chg30', 'from52hi',
-  'rsi', 'vs200', 'rvol', 'mktcap', 'ivrank', 'earn',
-  'insider', 'tech', 'options', 'dark', 'short', 'flow',
-  'score',
+  'ticker', 'name', 'price',                       // Stock
+  'day', 'chg30', 'from52hi',                      // Performance
+  'rsi', 'vs200', 'rvol', 'ivrank',                // Technicals
+  'insider', 'tech', 'options', 'dark', 'flow',    // Signal scores
+  'mktcap', 'short', 'earn',                       // Other
+  'score',                                         // MacroTilt Score
 ];
 
-// Columns ON by default — Joe's "full trader's view" (2026-06-17): lean set
-// plus RSI, % vs 200-day, relative volume, market cap, IV rank, next earnings.
-// % from 52-week high, short interest, and options flow stay one click away in
-// the column picker.
-export const DEFAULT_VISIBLE_KEYS = [
-  'ticker', 'name', 'price', 'day', 'chg30',
-  'rsi', 'vs200', 'rvol', 'mktcap', 'ivrank', 'earn',
-  'insider', 'tech', 'options', 'dark',
-  'score',
-];
+// All columns show by default; the gear chooser only hides what you opt out of.
+export const DEFAULT_VISIBLE_KEYS = [...INDICATOR_COL_KEYS];
+
+// Column → group, and the group display label. Drives the grouped header tier.
+export const COL_GROUP = {
+  ticker: 'stock', name: 'stock', price: 'stock',
+  day: 'performance', chg30: 'performance', from52hi: 'performance',
+  rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', ivrank: 'technicals',
+  insider: 'signals', tech: 'signals', options: 'signals', dark: 'signals', flow: 'signals',
+  mktcap: 'other', short: 'other', earn: 'other',
+  score: 'score',
+};
+export const GROUP_LABEL = {
+  stock: 'Stock',
+  performance: 'Performance',
+  technicals: 'Technicals',
+  signals: 'MacroTilt signal scores',
+  other: 'Other',
+  score: '',
+};
 
 const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
@@ -146,7 +158,7 @@ function Chg30Cell({ value }) {
   const color = v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)';
   const half = Math.min(Math.abs(v) / 30, 1) * 50;   // % of track, from center
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ width: 62, textAlign: 'center' }}>
       <div className="num" style={{ fontSize: 13, fontWeight: 600, color }}>
         {v > 0 ? '+' : ''}{v.toFixed(1)}%
       </div>
@@ -197,6 +209,19 @@ export default function ScanList({
   const grid = indicatorColumns
     ? `${activeKeys.map((k) => INDICATOR_COLS[k].w).join(' ')} 22px`
     : GRID_FACETS;
+
+  // Group the active columns into contiguous runs for the grouped header tier
+  // (Stock / Performance / Technicals / Signal scores / Other / Score).
+  const groupRuns = indicatorColumns ? (() => {
+    const runs = [];
+    activeKeys.forEach((k) => {
+      const g = COL_GROUP[k] || '';
+      const last = runs[runs.length - 1];
+      if (last && last.group === g) last.span += 1;
+      else runs.push({ group: g, span: 1 });
+    });
+    return runs;
+  })() : [];
 
   // Click-to-sort (Scanner / indicator mode only). Default: keep the order the
   // caller passed in — the scan arrives already ranked by score, high first.
@@ -253,6 +278,16 @@ export default function ScanList({
         overflowY: 'visible',
       }}
     >
+    {indicatorColumns && (
+      <style>{`
+.sc-row{transition:background .15s ease, box-shadow .15s ease;}
+.sc-row:hover{background:var(--mt-surface-2);box-shadow:inset 3px 0 0 var(--mt-accent);}
+.sc-row.sc-row--open{background:var(--mt-surface-2);}
+.sc-row:hover .sc-tkr{text-decoration:underline;text-underline-offset:3px;}
+.sc-scanhead [role="button"]{transition:color .12s ease;}
+.sc-scanhead [role="button"]:hover{color:var(--mt-ink-0);}
+`}</style>
+    )}
     <ul
       style={{
         listStyle: 'none',
@@ -263,6 +298,38 @@ export default function ScanList({
     >
       {indicatorColumns && (
         <li
+          style={{
+            display: 'grid',
+            gridTemplateColumns: grid,
+            gap: 14,
+            padding: '9px 18px 7px',
+            background: 'color-mix(in oklab, var(--mt-accent) 7%, var(--mt-surface-2))',
+            borderBottom: '1px solid var(--mt-line-0)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.09em',
+            textTransform: 'uppercase',
+            color: 'var(--mt-ink-2)',
+          }}
+        >
+          {groupRuns.map((run, i) => (
+            <div
+              key={i}
+              style={{
+                gridColumn: `span ${run.span}`,
+                textAlign: 'center',
+                borderLeft: i > 0 ? '1px solid var(--mt-line-0)' : 'none',
+              }}
+            >
+              {GROUP_LABEL[run.group] || ''}
+            </div>
+          ))}
+          <span />
+        </li>
+      )}
+      {indicatorColumns && (
+        <li
+          className="sc-scanhead"
           style={{
             display: 'grid',
             gridTemplateColumns: grid,
@@ -375,6 +442,7 @@ export default function ScanList({
               return (
                 <div key={k} style={{ minWidth: 0 }}>
                   <span
+                    className="sc-tkr"
                     onClick={(e) => { e.stopPropagation(); navigate(`/ticker/${r.ticker}`); }}
                     style={{ fontWeight: 700, fontSize: 16, color: 'var(--mt-accent)', cursor: 'pointer' }}
                   >
@@ -429,7 +497,7 @@ export default function ScanList({
               );
             case 'chg30':
               return (
-                <div key={k}>
+                <div key={k} style={{ display: 'flex', justifyContent: 'center' }}>
                   <Tip content={r.chg30 != null ? `${r.chg30 > 0 ? '+' : ''}${Number(r.chg30).toFixed(1)}% vs the close 21 trading days (~30 calendar days) earlier` : 'No 30-day reading yet — populates on the next nightly scan'} bare>
                     <Chg30Cell value={r.chg30} />
                   </Tip>
@@ -584,6 +652,7 @@ export default function ScanList({
             <div
               role="button"
               tabIndex={0}
+              className={indicatorColumns ? `sc-row${isOpen ? ' sc-row--open' : ''}` : undefined}
               onClick={() => setDrillOpenKey(isOpen ? null : key)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -596,7 +665,7 @@ export default function ScanList({
                 gridTemplateColumns: grid,
                 gap: 14,
                 padding: '14px 18px',
-                background: isOpen ? 'var(--mt-surface-2)' : 'transparent',
+                ...(indicatorColumns ? {} : { background: isOpen ? 'var(--mt-surface-2)' : 'transparent' }),
                 cursor: 'pointer',
                 alignItems: 'center',
               }}
