@@ -189,7 +189,7 @@
 .mt-overhaul .at-keyvs { display: block; font-size: 11px; color: var(--mt-ink-2); margin-top: 4px; }
 
 .mt-overhaul .at-engineread {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: stretch;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; align-items: stretch; margin-bottom: 14px;
 }
 .mt-overhaul .at-engineread > .mt-card { height: 100%; min-width: 0; }
 /* The MOVE/Yield dials embed a fixed-width sparkline SVG; without these two
@@ -1080,6 +1080,49 @@
 .mt-overhaul .at-bridge-cap { font-size: 11px; color: var(--mt-ink-2); line-height: 1.4; }
 .mt-overhaul .at-bridge-arrow { align-self: center; color: var(--mt-ink-3); font-size: 14px; }
 
+/* ── Asset Tilt 2026-06-17 — condensed layout: subbullets, outlined
+      sections, recommended-allocation table ───────────────────────────── */
+.mt-overhaul .at-subbullets {
+  list-style: none; margin: 14px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px; max-width: 760px;
+}
+.mt-overhaul .at-subbullets li {
+  position: relative; padding-left: 16px;
+  font-size: 13px; color: var(--mt-ink-1); line-height: 1.5;
+}
+.mt-overhaul .at-subbullets li::before {
+  content: ''; position: absolute; left: 0; top: 8px;
+  width: 5px; height: 5px; border-radius: 999px; background: var(--mt-accent);
+}
+.mt-overhaul .at-subbullets b { color: var(--mt-ink-0); }
+
+/* Each of the two page sections is one clearly-outlined block. */
+.mt-overhaul .at-section {
+  border: 1px solid var(--mt-line-1); border-radius: var(--mt-r-lg, 16px);
+  padding: 18px 18px 16px; background: var(--mt-surface);
+}
+.mt-overhaul .at-section + .at-section { margin-top: 18px; }
+.mt-overhaul .at-section > .mt-sectionhead { margin-bottom: 14px; }
+/* Cards inside an outlined section drop their own heavy border so the outline reads as one block. */
+.mt-overhaul .at-section .at-gauge,
+.mt-overhaul .at-section .at-alloctable-card,
+.mt-overhaul .at-section .at-reghist-card { background: var(--mt-surface-2); }
+
+/* Recommended-allocation TABLE (replaces the 3rd dial) */
+.mt-overhaul .at-alloctable-card { padding: 14px 16px; margin-bottom: 14px; }
+.mt-overhaul .at-alloctable { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.mt-overhaul .at-alloctable td { padding: 7px 0; vertical-align: middle; border-bottom: 1px solid var(--mt-line-0); }
+.mt-overhaul .at-alloctable tr:last-child td { border-bottom: none; }
+.mt-overhaul .at-alloctable .at-alloclabel { font-size: 13px; color: var(--mt-ink-0); font-weight: 600; width: 110px; white-space: nowrap; }
+.mt-overhaul .at-alloctable .at-alloctrackcell { padding-left: 14px; padding-right: 14px; }
+.mt-overhaul .at-alloctable .at-alloctrack { display: block; position: relative; height: 8px; border-radius: 999px; background: var(--mt-surface); overflow: hidden; }
+.mt-overhaul .at-alloctable .at-allocval { text-align: right; width: 64px; font-size: 15px; font-weight: 600; color: var(--mt-ink-0); }
+.mt-overhaul .at-alloctable .at-allocval i { font-style: normal; font-size: 11px; color: var(--mt-ink-3); margin-left: 1px; }
+.mt-overhaul .at-alloctable .at-allocrow--empty .at-alloclabel,
+.mt-overhaul .at-alloctable .at-allocrow--empty .at-allocval { color: var(--mt-ink-3); }
+.mt-overhaul .at-reghist-card { padding: 14px 16px; }
+.mt-overhaul .at-reghist-card .at-regstrip { margin-top: 8px; }
+
 /* — Responsive: stack the grids on narrow viewports — */
 @media (max-width: 920px) {
   .mt-overhaul .at-cyclegrid { grid-template-columns: repeat(2, 1fr); }
@@ -1090,5 +1133,6 @@
 }
 @media (max-width: 560px) {
   .mt-overhaul .at-cyclegrid { grid-template-columns: 1fr; }
+  .mt-overhaul .at-engineread { grid-template-columns: 1fr; }
   .mt-overhaul .at-mechbd-row { grid-template-columns: 120px 1fr 48px; }
 }

@@ -490,6 +490,10 @@ export default function TiltPage() {
             A <i>back-tested</i> asset allocation tool that seeks to beat
             the S&amp;P 500 on a risk-adjusted basis over the long run.
           </h1>
+          <ul className="at-subbullets">
+            <li><b>1 · Engine read</b> — how much risk to carry &amp; what holds the defensive sleeve (the equity-vs-defensive split).</li>
+            <li><b>2 · Cycle board → sector &amp; industry tilts</b> — six mechanisms score the cycle and set every tilt; click any mechanism for its 0–100 math.</li>
+          </ul>
         </div>
         <div className="at-keystats at-keystats--compact">
           <div className="mt-eyebrow">Backtest · {validatedRange}</div>
@@ -518,31 +522,16 @@ export default function TiltPage() {
         </div>
       </section>
 
-      {/* Orient — two sections: the engine read (risk + allocation), then the
-          cycle board that drives the sector tilts. */}
-      <section className="mt-pagesection">
-        <div className="at-howto">
-          <span className="at-howto-step"><b>1</b> Engine read — how much risk &amp; what defensive</span>
-          <span className="at-howto-arrow">→</span>
-          <span className="at-howto-step"><b>2</b> Cycle board → sector &amp; industry tilts</span>
-          <span className="at-howto-note">
-            The engine read sets the equity-vs-defensive split. The six-mechanism
-            cycle board scores the cycle and drives every sector tilt — click any
-            mechanism to see how its 0–100 score is built.
-          </span>
-        </div>
-      </section>
-
       {/* ── SECTION A · ENGINE READ + RECOMMENDED ALLOCATION ──────────────
           Three EQUAL dials. Each dial carries its own rule, folded in from the
           former standalone risk-overlay panel: the MOVE dial shows the stress
           rule + equity outcome, the yield dial shows the rate-regime rule +
           sleeve outcome, the allocation dial shows the resulting split with a
-          one-line synthesis. */}
-      <section className="mt-pagesection">
+          one-line synthesis. The whole section is one outlined block. */}
+      <section className="mt-pagesection at-section">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Engine read · how much risk, and what defensive</div>
+            <div className="mt-eyebrow">Section 1 · Engine read — how much risk, and what defensive</div>
             <div className="mt-h2">
               {regime.stressZone || '—'} · {regime.yieldRegime || '—'} — {fmtPercent(equityPct, 0)}% equity,
               defensive {sleeve ? 'firing' : 'on standby'}.
@@ -726,63 +715,99 @@ export default function TiltPage() {
             </div>
           </article>
 
-          {/* ── Dial 3 · Recommended allocation (the resulting split) ── */}
-          <article className="mt-card at-stance">
-            <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span>Recommended allocation</span>
-              <FreshnessChip
-                elementId="v10-allocation-daily"
-                variant="label"
-                fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
-              />
-            </div>
-            <div className="at-allocbars">
+        </div>{/* end at-engineread — two dials only */}
+
+        {/* Recommended allocation — a compact TABLE (was the 3rd dial). */}
+        <div className="mt-card at-alloctable-card">
+          <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span>Recommended allocation</span>
+            <FreshnessChip
+              elementId="v10-allocation-daily"
+              variant="label"
+              fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
+            />
+          </div>
+          <table className="at-alloctable">
+            <tbody>
               {(() => {
                 const rows = [
-                  { id: 'equity',   label: 'Equities',   pct: equityPctDisplay,         klass: 'at-allocfill--equity'   },
+                  { id: 'equity',   label: 'Equities',   pct: equityPctDisplay,        klass: 'at-allocfill--equity'   },
                   { id: 'treasury', label: 'Treasuries', pct: sleeveAllocPct.treasury, klass: 'at-allocfill--treasury' },
                   { id: 'gold',     label: 'Gold',       pct: sleeveAllocPct.gold,     klass: 'at-allocfill--gold'     },
                   { id: 'cash',     label: 'Cash',       pct: sleeveAllocPct.cash,     klass: 'at-allocfill--cash'     },
                 ];
                 return rows.map((r) => (
-                  <div key={r.id} className={`at-allocbar ${r.pct === 0 ? 'at-allocbar--empty' : ''}`}>
-                    <span className="at-alloclabel">{r.label}</span>
-                    <span className="at-alloctrack">
-                      <span
-                        className={`at-allocfill ${r.klass}`}
-                        style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }}
-                      />
-                    </span>
-                    <span className="num at-allocval">
+                  <tr key={r.id} className={r.pct === 0 ? 'at-allocrow--empty' : ''}>
+                    <td className="at-alloclabel">{r.label}</td>
+                    <td className="at-alloctrackcell">
+                      <span className="at-alloctrack">
+                        <span className={`at-allocfill ${r.klass}`} style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }} />
+                      </span>
+                    </td>
+                    <td className="num at-allocval">
                       {r.pct === 0 ? '0' : r.pct < 1 ? r.pct.toFixed(1) : Math.round(r.pct)}<i>%</i>
-                    </span>
-                  </div>
+                    </td>
+                  </tr>
                 ));
               })()}
-            </div>
-            {/* Synthesis — how the two dials combine into this split. Replaces
-                the former standalone risk-overlay footer. */}
-            <div className="at-allocsynth">
-              Stress <b className={`at-axis-state at-axis-state--${mapStressClass(engStressState)}`}>{regime.stressZone || '—'}</b> sets{' '}
-              <b className="num">{engEquityPct != null ? engEquityPct : '—'}%</b> in equities; the yield read{' '}
-              <b className={`at-axis-state at-axis-state--${mapYieldClass(engYieldState)}`}>{engYieldState || regime.yieldRegime || '—'}</b> sets{' '}
-              {sleeve ? <>the <b>{engAlloc?.active_sleeve_label || 'active'}</b> defensive sleeve</> : <>the defensive sleeve (on standby)</>}.
-              <div className="at-allocsynth-foot">
-                Stress decides <i>how much</i> equity; the yield read decides <i>which</i> defensive assets hold the rest. Both from the 2-axis engine ({eng?.calibration_label || '1986–2026'}).
-              </div>
-            </div>
-          </article>
+            </tbody>
+          </table>
+          <div className="at-allocsynth">
+            Stress <b className={`at-axis-state at-axis-state--${mapStressClass(engStressState)}`}>{regime.stressZone || '—'}</b> sets{' '}
+            <b className="num">{engEquityPct != null ? engEquityPct : '—'}%</b> in equities; the yield read{' '}
+            <b className={`at-axis-state at-axis-state--${mapYieldClass(engYieldState)}`}>{engYieldState || regime.yieldRegime || '—'}</b> sets{' '}
+            {sleeve ? <>the <b>{engAlloc?.active_sleeve_label || 'active'}</b> defensive sleeve</> : <>the defensive sleeve (on standby)</>}.{' '}
+            Stress decides <i>how much</i> equity; the yield read decides <i>which</i> defensive assets hold the rest.
+          </div>
+        </div>
+
+        {/* Regime history — moved up INTO the engine-read section (Joe 2026-06-17). */}
+        <div className="mt-card at-reghist-card">
+          <div className="mt-eyebrow">Regime history · 24 weeks — when the engine moved</div>
+          <div className="at-regstrip">
+            {weeklyTail24.length > 0 ? (
+              weeklyTail24.map((w, i) => {
+                const stress = mapStressClass(w.stress_state);
+                const stage = mapYieldClass(w.yield_regime);
+                return (
+                  <Tip
+                    key={i}
+                    bare
+                    block
+                    content={`Week ${i + 1} · ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`}
+                  >
+                    <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
+                  </Tip>
+                );
+              })
+            ) : (
+              Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className="at-regcell at-regcell--skel" />
+              ))
+            )}
+          </div>
+          <div className="at-regfoot">
+            <span><span className="at-regdot at-regdot--on" /> Risk On</span>
+            <span><span className="at-regdot at-regdot--watch" /> Watch</span>
+            <span><span className="at-regdot at-regdot--off" /> Risk Off</span>
+            <span className="lm-flowfootsep" />
+            <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
+            <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
+            <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
+            <span className="num at-foot-push">24 weeks · rebalanced weekly</span>
+          </div>
         </div>
       </section>
 
       {/* ── SECTION B · CYCLE BOARD → SECTOR TILTS ────────────────────────
           The six mechanisms (click any for its 0–100 math) flow straight into
-          the sector tilts. Same data the engine acts on; nothing recomputed. */}
-      <section className="mt-pagesection">
+          the sector tilts. Same data the engine acts on; nothing recomputed.
+          One outlined block. */}
+      <section className="mt-pagesection at-section">
         <div className="mt-sectionhead">
           <div>
             <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span>The cycle board → sector tilts</span>
+              <span>Section 2 · The cycle board → sector tilts</span>
               <FreshnessChip
                 elementId="v10-allocation-daily"
                 variant="label"
@@ -902,53 +927,6 @@ export default function TiltPage() {
               Apply to my portfolio →
             </button>
           </span>
-        </div>
-      </section>
-
-      {/* Regime history · 24 weeks */}
-      <section className="mt-pagesection">
-        <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">Regime history · 24 weeks</div>
-            <div className="mt-h2">
-              When the engine moved.
-            </div>
-          </div>
-        </div>
-        <div className="mt-card">
-          <div className="at-regstrip">
-            {weeklyTail24.length > 0 ? (
-              weeklyTail24.map((w, i) => {
-                const stress = mapStressClass(w.stress_state);
-                const stage = mapYieldClass(w.yield_regime);
-                return (
-                  <Tip
-                    key={i}
-                    bare
-                    block
-                    content={`Week ${i + 1} · ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`}
-                  >
-                    <div className={`at-regcell at-regcell--${stage} at-regcell--${stress}`} />
-                  </Tip>
-                );
-              })
-            ) : (
-              /* Grayscale 24-cell skeleton per Joe nuance */
-              Array.from({ length: 24 }).map((_, i) => (
-                <div key={i} className="at-regcell at-regcell--skel" />
-              ))
-            )}
-          </div>
-          <div className="at-regfoot">
-            <span><span className="at-regdot at-regdot--on" /> Risk On</span>
-            <span><span className="at-regdot at-regdot--watch" /> Watch</span>
-            <span><span className="at-regdot at-regdot--off" /> Risk Off</span>
-            <span className="lm-flowfootsep" />
-            <span><span className="at-regdot at-regdot--neutral" /> Neutral</span>
-            <span><span className="at-regdot at-regdot--infl" /> Inflationary</span>
-            <span><span className="at-regdot at-regdot--defl" /> Deflationary</span>
-            <span className="num at-foot-push">24 weeks · rebalanced weekly</span>
-          </div>
         </div>
       </section>
 
