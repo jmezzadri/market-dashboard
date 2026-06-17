@@ -1,10 +1,11 @@
 /* Trading Scanner — refactored 2026-05-27 per Joe Path-A directive.
 
-   2026-06-17 (Joe): stripped the filter / columns toolbar entirely. The table
-   now shows EVERY column, columns are reordered by dragging the header cells
-   on the table itself (no panel), and any header click sorts. The only saved
-   state is column ORDER. The score-band boxes in the hero are now plain counts,
-   not filters. */
+   2026-06-17 PM (Joe): columns grouped into Stock / Performance / Technicals /
+   MacroTilt signal scores / Other / Score (a grouped header tier renders above
+   the column labels). Every column shows by default; a small gear opens a
+   show/hide chooser. Reorder by dragging the header cells on the table itself;
+   click a header to sort. Row hover is animated. The score-band boxes in the
+   hero are plain counts, not filters. */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,38 +27,47 @@ const BUCKETS = [
   { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
 ];
 
-// v4 (2026-06-17): every column always shows; the only saved state is column
-// ORDER. Reorder by dragging the header cells on the table itself. Ticker is
-// pinned left, Score pinned right. Key bump clears the old show/hide layout so
-// everyone lands on the full set once.
-const COLS_ORDER_KEY = 'mt-scanner-colorder-v4';
+// v5 (2026-06-17 PM): saved state is column order + show/hide. Every column is
+// ON by default; the gear only hides what you opt out of. Reorder happens by
+// dragging the header cells on the table. Ticker pinned left, Score pinned
+// right. Key bump clears older saved layouts so everyone lands on the full
+// grouped set once.
+const COLS_KEY = 'mt-scanner-cols-v5';
+const LOCKED = ['ticker', 'score'];
+const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({ key, on: true }));
 
-function loadColOrder() {
+function loadColState() {
   try {
-    const raw = localStorage.getItem(COLS_ORDER_KEY);
-    if (!raw) return [...INDICATOR_COL_KEYS];
+    const raw = localStorage.getItem(COLS_KEY);
+    if (!raw) return DEFAULT_COL_STATE;
     const saved = JSON.parse(raw);
-    if (!Array.isArray(saved)) return [...INDICATOR_COL_KEYS];
-    const known = saved.filter((k) => INDICATOR_COLS[k]);
-    const seen = new Set(known);
-    // append any column added since the save so nothing ever goes missing
-    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push(k); });
-    return known;
+    if (!Array.isArray(saved)) return DEFAULT_COL_STATE;
+    const known = saved.filter((c) => c && INDICATOR_COLS[c.key]);
+    const seen = new Set(known.map((c) => c.key));
+    INDICATOR_COL_KEYS.forEach((k) => { if (!seen.has(k)) known.push({ key: k, on: true }); });
+    return known.map((c) => (LOCKED.includes(c.key) ? { ...c, on: true } : c));
   } catch {
-    return [...INDICATOR_COL_KEYS];
+    return DEFAULT_COL_STATE;
   }
 }
 
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
   const [drillOpenKey, setDrillOpenKey] = useState(null);
-  const [colOrder, setColOrder] = useState(loadColOrder);
+  const [colState, setColState] = useState(loadColState);
+  const [showCols, setShowCols] = useState(false);
   const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    try { localStorage.setItem(COLS_ORDER_KEY, JSON.stringify(colOrder)); } catch { /* ignore */ }
-  }, [colOrder]);
+    try { localStorage.setItem(COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
+  }, [colState]);
+
+  const activeColumns = useMemo(
+    () => colState.filter((c) => c.on || LOCKED.includes(c.key)).map((c) => c.key),
+    [colState],
+  );
+  const hiddenCount = colState.length - activeColumns.length;
 
   const rows = useMemo(
     () => (rawRows || []).map((r) => ({ ...r, bucket: bucketFor(Number(r.score) || 0) })),
@@ -70,15 +80,20 @@ export default function ScannerPage() {
     return c;
   }, [rows]);
 
-  // Drag a header onto another header to move that column there. Ticker stays
-  // pinned left and Score pinned right (ScanList enforces the locks too).
+  function toggleCol(key) {
+    if (LOCKED.includes(key)) return;
+    setColState((prev) => prev.map((c) => (c.key === key ? { ...c, on: !c.on } : c)));
+  }
+
+  // Drag a header onto another to move that column there. Ticker stays pinned
+  // left and Score pinned right (ScanList enforces the locks too).
   function reorderColumn(fromKey, toKey) {
     if (!fromKey || fromKey === toKey) return;
-    if (fromKey === 'ticker' || fromKey === 'score' || toKey === 'ticker' || toKey === 'score') return;
-    setColOrder((prev) => {
+    if (LOCKED.includes(fromKey) || LOCKED.includes(toKey)) return;
+    setColState((prev) => {
       const next = [...prev];
-      const from = next.indexOf(fromKey);
-      const to = next.indexOf(toKey);
+      const from = next.findIndex((c) => c.key === fromKey);
+      const to = next.findIndex((c) => c.key === toKey);
       if (from < 0 || to < 0) return prev;
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
@@ -139,9 +154,54 @@ export default function ScannerPage() {
         </div>
       </section>
 
-      {/* Results — every column shown; drag a header to move a column, click a
-          header to sort. Wide on purpose; the table scrolls sideways. */}
+      {/* Results — grouped columns, all shown. Gear hides columns; drag a header
+          to move a column; click a header to sort. Wide table scrolls sideways. */}
       <section className="mt-pagesection mt-pagesection--tight2">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 10, position: 'relative' }}>
+          <span className="mt-eyebrow" style={{ marginRight: 'auto', color: 'var(--mt-ink-3)' }}>
+            Drag a column header to reorder · click to sort
+          </span>
+          <button
+            type="button"
+            className={`mt-btn ${showCols ? 'on' : ''}`}
+            onClick={() => setShowCols((v) => !v)}
+            title="Show or hide columns"
+            aria-label="Show or hide columns"
+          >
+            ⚙ Columns{hiddenCount > 0 && <span className="sc-colcount num">{activeColumns.length}/{colState.length}</span>}
+          </button>
+          {showCols && (
+            <div
+              className="sc-colpicker mt-fade"
+              style={{ position: 'absolute', top: '100%', right: 0, zIndex: 30, marginTop: 6, minWidth: 300 }}
+            >
+              <div className="sc-filterhead">
+                <div className="mt-eyebrow">Show / hide columns</div>
+                <button type="button" className="sc-linkbtn" onClick={() => setColState(DEFAULT_COL_STATE)}>
+                  Show all
+                </button>
+              </div>
+              <div className="sc-colgrid">
+                {colState.map(({ key, on }) => {
+                  const col = INDICATOR_COLS[key];
+                  const locked = LOCKED.includes(key);
+                  const isOn = on || locked;
+                  return (
+                    <label key={key} className={`sc-coltoggle ${isOn ? 'on' : ''} ${locked ? 'locked' : ''}`}>
+                      <input type="checkbox" checked={isOn} disabled={locked} onChange={() => toggleCol(key)} />
+                      <span>{col.label}</span>
+                      {locked && <span className="sc-collock">🔒</span>}
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="sc-filterfoot mt-eyebrow">
+                Reorder by dragging the column headers on the table.
+              </div>
+            </div>
+          )}
+        </div>
+
         {loading ? (
           <div className="mt-loadingcard">Loading scan results…</div>
         ) : (
@@ -150,7 +210,7 @@ export default function ScannerPage() {
             drillOpenKey={drillOpenKey}
             setDrillOpenKey={setDrillOpenKey}
             indicatorColumns
-            columns={colOrder}
+            columns={activeColumns}
             onReorderColumn={reorderColumn}
             renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
           />
