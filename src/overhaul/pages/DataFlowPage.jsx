@@ -122,7 +122,7 @@ const VENDOR_CANON = {
 // Vendor strings that mean "computed in-house" — these are NOT external
 // sources; their elements belong in the Engines column.
 const INHOUSE_VENDOR = new Set([
-  'n/a', 'self', 'macrotilt', 'macrotilt engine', 'macrotilt producers', 'tbd', '',
+  'n/a', 'n', 'self', 'macrotilt', 'macrotilt engine', 'macrotilt producers', 'tbd', '',
 ]);
 
 function vendorBase(raw) {
@@ -145,6 +145,8 @@ function canonVendor(raw) {
   return clean || null;
 }
 function isInhouseVendor(raw) {
+  const r = String(raw || '').trim().toLowerCase();
+  if (r === '' || r.startsWith('n/a')) return true; // "n/a (user-generated)" etc. — in-house, never an external source
   return INHOUSE_VENDOR.has(vendorBase(raw));
 }
 
@@ -532,12 +534,16 @@ export default function DataFlowPage() {
   const elements = useMemo(() => {
     const els = manifest?.elements;
     if (!Array.isArray(els)) return [];
-    // Drop malformed rows AND internal infrastructure (ops tables + the static
-    // methodology changelog) — they are plumbing, not data feeds, so they have
-    // no scheduled-freshness SLA and were the source of the "no successful run
-    // on record" clutter. No live data feed is removed here.
-    return els.filter((e) => e && typeof e === 'object' && e.name && !isInfrastructure(e));
-  }, [manifest]);
+    // DELETE everything with no successful run on record (Joe, 2026-06-16): keep
+    // only elements that have a pipeline_health row with a real last successful
+    // run. Untracked / never-run elements are dropped from the page entirely.
+    // Internal infrastructure (ops tables + the static changelog) stays excluded.
+    const ranOK = new Set();
+    (healthRows || []).forEach((r) => { if (r && r.indicator_id && r.last_good_at) ranOK.add(r.indicator_id); });
+    const filterTracked = ranOK.size > 0; // only filter once health data has loaded (avoids a blank flash)
+    return els.filter((e) => e && typeof e === 'object' && e.name && !isInfrastructure(e)
+      && (!filterTracked || ranOK.has(e.name) || ranOK.has(e.id)));
+  }, [manifest, healthRows]);
 
   const elementById = useMemo(() => {
     const out = {};
@@ -810,6 +816,12 @@ export default function DataFlowPage() {
       if (cycleId) E.push([t.id, cycleId]);
       if (compilerId) E.push([t.id, compilerId]);
     });
+
+    // engine → engine: the cycle board's 6 mechanism scores feed the v10
+    // allocator, which produces the sector tilts. So the chain reads
+    // families → Cycle Mechanism Board → v10 Allocation → Asset Tilt.
+    const allocId = engineTiles.find((t) => /allocation/i.test(t.name))?.id;
+    if (cycleId && allocId) E.push([cycleId, allocId]);
 
     // engines → surfaces (via the surfaces each engine's members declare)
     engineTiles.forEach((eng) => {
