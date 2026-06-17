@@ -27,13 +27,20 @@ on:
     - cron: "0 7 * * 2-6"
     - cron: "30 7 * * 2-6"
   workflow_dispatch:
-  # NOTE (2026-06-12): the workflow_run chain off cycle-mechanisms-daily was
-  # REMOVED. It was a leftover from the retired same-evening design: it
-  # recomputed at ~8 PM ET on a T-1 panel (no value), raced the cycle-board
-  # data commit on main (2026-06-11: this job's push was rejected, the
-  # allocation never published, and the next morning's paper rebalance
-  # refused on stale sector signals), and double-ran the job. The 08:15 ET
-  # crons above are the designed runs (Massive panel-complete).
+  # RE-ADDED 2026-06-17 (reliability): GitHub's scheduler dropped the morning
+  # crons two days running (06-16 and 06-17), leaving the sector sleeve a
+  # session stale and the paper rebalance blocked both mornings. Make the
+  # refresh EVENT-DRIVEN off the cycle board (the allocator's only input):
+  # when the board finishes refreshing after the close, recompute immediately
+  # so the sector signal is ready overnight regardless of cron reliability.
+  # The 2026-06-12 removal was for two reasons now moot: (a) the old chain ran
+  # on a T-1 panel — but the board carries the actual close date, so the
+  # allocation is on the right session; (b) it raced the board commit on main
+  # — but the commit step below now has a 3-attempt rebase-retry that survives
+  # the race. The morning crons stay as a backup.
+  workflow_run:
+    workflows: ["cycle-mechanisms-daily"]
+    types: [completed]
 
 concurrency:
   group: v10-allocation-daily
@@ -44,6 +51,9 @@ permissions:
 
 jobs:
   compute:
+    # On the cycle-board chain, only run if the board actually succeeded;
+    # scheduled and manual runs always proceed.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
