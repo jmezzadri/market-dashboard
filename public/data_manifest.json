@@ -1144,13 +1144,8 @@
    "producer_script": "supabase/functions/ingest-massive-universe + scripts/backfill_massive_initial.py",
    "consumer_surfaces": [
     {
-     "tab": "scanner"
-    },
-    {
-     "tab": "portopps"
-    },
-    {
-     "component": "Stock modal"
+     "tab": "ticker",
+     "tile": "Stock header + key stats"
     }
    ],
    "current_status": "live (Phase 1 shipped 2026-04-28; daily cron live on _v11-iter3-wt2 worktree, may not be on main yet)",
@@ -1180,14 +1175,7 @@
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.prices_eod (PK ticker, trade_date)",
    "producer_script": "supabase/functions/ingest-massive-eod",
-   "consumer_surfaces": [
-    {
-     "component": "Stock modal price chart (planned, replacing /api/price-history Yahoo route)"
-    },
-    {
-     "backend": "future technicals replacement"
-    }
-   ],
+   "consumer_surfaces": [],
    "current_status": "live (replacing yfinance for all EOD prices; Phase 4.5 technicals replacement pending)",
    "failure_mode": "pipeline_health 'massive-eod' flips red on UPSERT failure or empty response.",
    "owner": "Data Steward + Lead Dev",
@@ -1195,7 +1183,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "planned \u2014 Stock-modal price chart (to replace the Yahoo price-history route); not live yet"
   },
   {
    "id": "market-ticker_reference-rolling",
@@ -1217,7 +1206,8 @@
    "producer_script": "scripts/backfill_ticker_reference.py",
    "consumer_surfaces": [
     {
-     "component": "Stock modal \u2014 fixes missing-name/desc/logo on per-ticker views"
+     "tab": "ticker",
+     "tile": "Company overview (name/desc/logo/profile)"
     }
    ],
    "current_status": "live (rolling backfill \u2014 Phase 1 fix for missing-company-name bug)",
@@ -1247,11 +1237,7 @@
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.dividends",
    "producer_script": "scripts/backfill_massive_initial.py",
-   "consumer_surfaces": [
-    {
-     "component": "Stock modal \u2014 Corporate actions tile (planned)"
-    }
-   ],
+   "consumer_surfaces": [],
    "current_status": "live",
    "failure_mode": "pipeline_health row flips red on failure.",
    "owner": "Data Steward + Lead Dev",
@@ -1259,7 +1245,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet"
   },
   {
    "id": "market-splits-daily",
@@ -1279,11 +1266,7 @@
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.splits",
    "producer_script": "scripts/backfill_massive_initial.py",
-   "consumer_surfaces": [
-    {
-     "component": "Stock modal \u2014 Corporate actions tile (planned)"
-    }
-   ],
+   "consumer_surfaces": [],
    "current_status": "live",
    "failure_mode": "pipeline_health row flips red on failure.",
    "owner": "Data Steward + Lead Dev",
@@ -1291,7 +1274,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet"
   },
   {
    "id": "equity-universe_snapshots-3xday",
@@ -1313,13 +1297,8 @@
    "producer_script": "trading-scanner/run_universe_snapshot.py + scanner/universe_snapshot.py",
    "consumer_surfaces": [
     {
-     "tab": "portopps"
-    },
-    {
-     "tab": "scanner"
-    },
-    {
-     "component": "Watchlist/Positions price/IV/flow overlay"
+     "tab": "ticker",
+     "tile": "IV rank/30D, options/dark-pool, event feed"
     }
    ],
    "current_status": "live",
@@ -1352,11 +1331,8 @@
    "producer_script": "trading-scanner/run_ticker_events.py + scanner/ticker_events.py",
    "consumer_surfaces": [
     {
-     "tab": "scanner",
-     "tile": "Discovery feeds"
-    },
-    {
-     "component": "Ticker detail modal event feed"
+     "tab": "ticker",
+     "tile": "IV rank/30D, options/dark-pool, event feed"
     }
    ],
    "current_status": "live",
@@ -1464,11 +1440,7 @@
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.earnings_history (PK ticker, report_date)",
    "producer_script": "trading-scanner/run_earnings_history.py",
-   "consumer_surfaces": [
-    {
-     "component": "Stock modal \u2014 Earnings & Events tile (bug #1134)"
-    }
-   ],
+   "consumer_surfaces": [],
    "current_status": "live (verify on main vs worktree)",
    "failure_mode": "Per-ticker write isolated.",
    "owner": "Lead Dev",
@@ -1476,7 +1448,8 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "planned \u2014 Stock-modal Earnings & Events tile (bug #1134); not live yet"
   },
   {
    "id": "equity-options_chain-on_demand",
@@ -1586,7 +1559,8 @@
    "producer_script": "api/news-per-ticker.js",
    "consumer_surfaces": [
     {
-     "component": "Ticker detail modal news pane"
+     "tab": "ticker",
+     "tile": "News pane"
     }
    ],
    "current_status": "live",
@@ -1615,10 +1589,8 @@
    "producer_script": "scanner/short_interest.py",
    "consumer_surfaces": [
     {
-     "tab": "scanner"
-    },
-    {
-     "component": "Ticker detail modal"
+     "tab": "ticker",
+     "tile": "Short interest tab"
     }
    ],
    "current_status": "live",
@@ -3827,8 +3799,12 @@
    "output_destination": "Supabase signal-intel tables",
    "consumer_surfaces": [
     {
-     "page": "ticker",
-     "component": "batch score read"
+     "tab": "scanner",
+     "tile": "Scanner table + scores"
+    },
+    {
+     "tab": "ticker",
+     "tile": "Score drilldown (batch score read)"
     }
    ],
    "dependencies": [],
