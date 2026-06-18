@@ -244,7 +244,9 @@ function MechModal({ mech, breakdown, onClose, onOpenIndicator, chartableIds }) 
                   onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onOpenIndicator(r.id); } : undefined}
                 >
                   <div className="at-mechmodal-rowtop">
-                    <span className="at-mechmodal-ind">{r.name}{clickable && <span className="at-mechmodal-chev" aria-hidden="true"> ↗</span>}</span>
+                    <span className={`at-mechmodal-ind${clickable ? ' at-mechmodal-ind--link' : ''}`}>{r.name}{clickable && (
+                      <svg className="at-mechmodal-charticon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></svg>
+                    )}</span>
                     <span className="num at-mechmodal-rowscore">{Math.round(sc)}<i>/100</i></span>
                   </div>
                   <span className="at-mechmodal-track">
@@ -319,7 +321,40 @@ export default function TiltPage() {
   const [yieldHover, setYieldHover] = useState(null);
   const [openMech, setOpenMech] = useState(null); // cycle-mechanism whose 0–100 breakdown modal is open
   const [openInd, setOpenInd] = useState(null);   // indicator whose full chart modal is open
-  const { active: indCatalog, indexSeries: indIndexSeries } = useIndicators();
+  const { indicators: indCatalog, indexSeries: indIndexSeries } = useIndicators();
+  const [calibInds, setCalibInds] = useState({});
+  // Build a full-chart object for any cycle indicator NOT in the live catalog
+  // (e.g. Equity Risk Premium / Buffett) straight from the calibration file's
+  // embedded history, so EVERY row opens a chart — no registry/pipeline edits.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/methodology_calibration_v11.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (cancelled || !j || !Array.isArray(j.tiles)) return;
+        const m = {};
+        j.tiles.forEach((t) => (t.indicators || []).forEach((ind) => {
+          const pts = (ind.history || []).filter((p) => p && p[1] != null);
+          if (!pts.length) return;
+          m[ind.id] = {
+            id: ind.id, name: ind.name || ind.id, familyId: t.id || 'cycle',
+            familyFull: t.name || 'Cycle', domain: t.name || 'Cycle',
+            unit: ind.unit || '', decimals: 2,
+            value: (ind.current && ind.current.value != null) ? ind.current.value : pts[pts.length - 1][1],
+            asOf: (ind.current && ind.current.date) || pts[pts.length - 1][0],
+            points: pts, pct: ind.percentile != null ? Math.round(ind.percentile) : null,
+            direction: (ind.direction === 'low_is_concerning' || ind.direction === 'bidir_bottom') ? 'lw' : 'hw',
+            state: 'calm', description: ind.description || ind.so_what || '',
+            methodology: ind.formula || ind.description || '',
+            sourceVendor: (ind.source || '').split(/[:(]/)[0].trim() || null,
+            sourceEndpoint: ind.source || null, freq: 'M', manifestId: null, sourcingMode: null,
+          };
+        }));
+        if (!cancelled) setCalibInds(m);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -536,8 +571,8 @@ export default function TiltPage() {
 
   const openMechObj = openMech ? (mechRows.find((r) => r.key === openMech) || null) : null;
   const catalogById = useMemo(() => { const m = {}; (indCatalog || []).forEach((i) => { m[i.id] = i; }); return m; }, [indCatalog]);
-  const chartableIds = useMemo(() => { const s2 = new Set(); (openMechObj?.breakdown || []).forEach((r) => { if (catalogById[CHART_ID[r.id] || r.id]) s2.add(r.id); }); return s2; }, [openMechObj, catalogById]);
-  const handleOpenIndicator = (rid) => { const ind = catalogById[CHART_ID[rid] || rid]; if (ind) { setOpenMech(null); setOpenInd(ind); } };
+  const chartableIds = useMemo(() => { const s2 = new Set(); (openMechObj?.breakdown || []).forEach((r) => { if (catalogById[CHART_ID[r.id] || r.id] || calibInds[r.id]) s2.add(r.id); }); return s2; }, [openMechObj, catalogById, calibInds]);
+  const handleOpenIndicator = (rid) => { const ind = catalogById[CHART_ID[rid] || rid] || calibInds[rid]; if (ind) { setOpenMech(null); setOpenInd(ind); } };
 
   return (
     <div className="mt-pagebody mt-fade">
