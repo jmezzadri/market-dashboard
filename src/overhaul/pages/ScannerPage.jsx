@@ -118,19 +118,11 @@ export default function ScannerPage() {
             Cutting through the noise with <i>proprietary signal intelligence</i>{' '}
             to find trading opportunities.
           </h1>
-          <p className="mt-deck">
-            Four signals — <b>insider activity</b>, <b>technicals</b>,{' '}
-            <b>options shock</b>, and <b>dark-pool prints</b> — sum into one
-            live MacroTilt Score from 0 to 10. A name needs at least 3 to make
-            the list.
-            Long alerts today <b className="num">{universeTotal}</b>.{' '}
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}
-            >
-              See the scoring methodology →
-            </a>
-          </p>
+          <ul className="at-subbullets">
+            <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
+            <li><b>{universeTotal} long alerts today</b>, ranked by score.{' '}
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
+          </ul>
         </div>
         <div className="sc-results">
           <div className="sc-results-head">
