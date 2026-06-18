@@ -1083,8 +1083,12 @@
 /* ── Asset Tilt 2026-06-17 — condensed layout: subbullets, outlined
       sections, recommended-allocation table ───────────────────────────── */
 .mt-overhaul .at-subbullets {
+  /* No max-width (Joe 2026-06-17): the old 760px cap wrapped text early and
+     left dead space on the right of single-column heroes. Bullets now fill
+     the hero column, like the headline. Two-column heroes are bounded by the
+     grid column itself. */
   list-style: none; margin: 14px 0 0; padding: 0;
-  display: flex; flex-direction: column; gap: 6px; max-width: 760px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .mt-overhaul .at-subbullets li {
   position: relative; padding-left: 16px;
@@ -1095,6 +1099,8 @@
   width: 5px; height: 5px; border-radius: 999px; background: var(--mt-accent);
 }
 .mt-overhaul .at-subbullets b { color: var(--mt-ink-0); }
+.mt-overhaul .at-subbullets a { color: var(--mt-accent); text-decoration: none; }
+.mt-overhaul .at-subbullets a:hover { text-decoration: underline; }
 
 /* Each of the two page sections is one clearly-outlined block. */
 .mt-overhaul .at-section {
