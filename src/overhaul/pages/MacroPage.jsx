@@ -28,7 +28,6 @@ import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';
-import MorningRead from '../components/MorningRead';
 import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -548,38 +547,32 @@ export default function MacroPage() {
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '5px 9px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.35, maxWidth: 280, whiteSpace: 'normal', textAlign: 'center', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      {/* Compact header (Joe 2026-06-11: the old full hero + "On this page"
-          card burned ~a third of the viewport on static text; the morning
-          read is the real hero of this page now). One line: title left,
-          counts right. The color/range explanation lives in the legend line
-          above the tiles. */}
-      <section className="mt-pagesection" style={{ paddingBottom: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-            <div className="mt-eyebrow">Macro overview</div>
-            <h1 className="mt-h1" style={{ fontSize: 30, margin: 0, lineHeight: 1.1 }}>
-              Where every market sits <i>in its own range</i>.
-            </h1>
-          </div>
-          <div className="num" style={{ fontSize: 12.5, color: 'var(--mt-ink-2)' }}>
-            {indicators.length || '—'} indicators · {posCount || '—'} positioning signals
-          </div>
+      {/* Header — Asset Tilt pattern (Joe 2026-06-17): one short sentence on
+          what the page is, then a couple of informative sub-bullets. Replaces
+          the old "Since yesterday's close" morning-read hero. */}
+      <section className="mt-pagehero">
+        <div>
+          <div className="mt-eyebrow">Macro overview</div>
+          <h1 className="mt-h1">
+            Where every market sits <i>in its own range</i>.
+          </h1>
+          <ul className="at-subbullets">
+            <li><b>Six domains, one scale</b> — rates, credit, equities, commodities, FX, and the economy, each ranked against its own 3-year range, so a single number shows how stretched it is.</li>
+            <li><b>Positioning underneath</b> — CFTC futures and dealer inventory show where the speculative crowd is leaning in each domain. Click any tile for the full read.</li>
+          </ul>
+        </div>
+        <div className="num" style={{ alignSelf: 'end', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 12.5, color: 'var(--mt-ink-2)' }}>
+          {indicators.length || '—'} indicators · {posCount || '—'} positioning signals
         </div>
       </section>
 
-      {!loading && (
-        <section className="mt-pagesection">
-          <MorningRead indicators={indicators} cotPos={cotPos} indexSeries={indexSeries} />
-        </section>
-      )}
-
       {/* Domain strip */}
       {!loading && (
-        <section className="mt-pagesection">
-          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 10 }}>
+        <section className="mt-pagesection" style={{ paddingTop: 14 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 8 }}>
             Gauge runs from each element's own 3-year median · fill length = how stretched · color = whether that stretch warns
           </div>
-          <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
               const ext = inds.filter((i) => i.state === 'extreme').length;
