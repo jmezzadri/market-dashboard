@@ -1152,7 +1152,7 @@
   {
    "id": "market-dividends-daily",
    "category": "market",
-   "name": "massive-corporate-actions",
+   "name": "massive-dividends",
    "description": "Per-ticker dividend ex/pay/record/declared dates + cash amount + frequency.",
    "sourcing_mode": "STP",
    "source_vendor": "Polygon (Massive)",
@@ -1181,7 +1181,7 @@
   {
    "id": "market-splits-daily",
    "category": "market",
-   "name": "massive-corporate-actions",
+   "name": "massive-splits",
    "description": "Per-ticker stock-split execution date + from/to ratio.",
    "sourcing_mode": "STP",
    "source_vendor": "Polygon (Massive)",
@@ -1243,7 +1243,7 @@
   {
    "id": "equity-ticker_events-3xday",
    "category": "equity",
-   "name": "uw-universe-snapshots",
+   "name": "uw-ticker-events",
    "description": "3x-weekday UW firehose: per-ticker news, insider transactions, congress trades, dark pool prints.",
    "sourcing_mode": "STP",
    "source_vendor": "Unusual Whales",

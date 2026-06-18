@@ -47,10 +47,12 @@ FILE_FEEDS = {
 # Table-backed feeds: ph id -> (table, [candidate ts columns], sla_hours, daily?)
 TABLE_FEEDS = {
     "uw-universe-snapshots":     ("universe_snapshots", ["snapshot_ts", "as_of_date"],          49,  True),
+    "uw-ticker-events":          ("ticker_events",      ["ingested_ts", "event_ts"],            49,  True),
     "massive-eod":               ("prices_eod",         ["trade_date"],                          49,  True),
     "massive-universe":          ("universe_master",    ["as_of", "updated_at", "created_at"],   400, False),
     "massive-ticker-details":    ("ticker_reference",   ["updated_at", "as_of", "created_at"],   400, False),
-    "massive-corporate-actions": ("dividends",          ["ex_date", "updated_at", "created_at"], 600, False),
+    "massive-dividends":         ("dividends",          ["ingested_at", "ex_date"],             600, False),
+    "massive-splits":            ("splits",             ["ingested_at", "execution_date"],      600, False),
     "latest_scan":               ("trading_opps_signals", ["scan_date", "last_trade_ts"],        49,  True),
     "scanner-v5-daily":          ("trading_opps_signals", ["scan_date"],                         49,  True),
     "paper-positions-snapshot":  ("paper_positions",    ["snapshot_date", "last_updated"],       49,  True),

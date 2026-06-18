@@ -84,7 +84,8 @@ const CADENCE_TOLERANCE_MINUTES: Record<CadenceCode, number> = {
 const MASSIVE_TABLE_MAP: Record<string, string> = {
   "massive-universe":          "universe_master",
   "massive-eod":                "prices_eod",
-  "massive-corporate-actions":  "dividends",
+  "massive-dividends":          "dividends",
+  "massive-splits":             "splits",
   "massive-ticker-details":     "ticker_reference",
 };
 
@@ -352,6 +353,7 @@ async function handle(req: Request): Promise<Response> {
       }
     } else if (
       row.indicator_id === "uw-universe-snapshots" ||
+      row.indicator_id === "uw-ticker-events" ||
       row.indicator_id === "latest_scan" ||
       row.indicator_id === "equity-options_flow-daily" ||
       row.indicator_id === "equity-short_interest-daily"
@@ -361,6 +363,7 @@ async function handle(req: Request): Promise<Response> {
       // table directly.
       const TABLE_MAP: Record<string, { table: string; col: string; runTsCol?: string }> = {
         "uw-universe-snapshots": { table: "universe_snapshots", col: "snapshot_ts" },
+        "uw-ticker-events": { table: "ticker_events", col: "ingested_ts" },
         // 2026-06-15 — latest_scan graded off its source table, not the
         // committed file. Before this change the watchdog read the file's
         // scan_time into data_as_of and NEVER wrote last_good_at, so
