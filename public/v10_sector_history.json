@@ -489,6 +489,55 @@
           "dollar": 3.81
         }
       ]
+    },
+    {
+      "as_of": "2026-06-17",
+      "sectors": [
+        {
+          "sector": "Information Technology",
+          "dollar": 21.43
+        },
+        {
+          "sector": "Communication Services",
+          "dollar": 7.14
+        },
+        {
+          "sector": "Financials",
+          "dollar": 16.51
+        },
+        {
+          "sector": "Health Care",
+          "dollar": 16.51
+        },
+        {
+          "sector": "Consumer Discretionary",
+          "dollar": 8.73
+        },
+        {
+          "sector": "Industrials",
+          "dollar": 9.52
+        },
+        {
+          "sector": "Consumer Staples",
+          "dollar": 7.62
+        },
+        {
+          "sector": "Energy",
+          "dollar": 4.23
+        },
+        {
+          "sector": "Materials",
+          "dollar": 2.12
+        },
+        {
+          "sector": "Real Estate",
+          "dollar": 2.38
+        },
+        {
+          "sector": "Utilities",
+          "dollar": 3.81
+        }
+      ]
     }
   ]
 }
