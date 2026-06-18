@@ -557,12 +557,9 @@ export default function MacroPage() {
             Where every market sits <i>in its own range</i>.
           </h1>
           <ul className="at-subbullets">
-            <li><b>Six domains, one scale</b> — rates, credit, equities, commodities, FX, and the economy, each ranked against its own 3-year range, so a single number shows how stretched it is.</li>
-            <li><b>Positioning underneath</b> — CFTC futures and dealer inventory show where the speculative crowd is leaning in each domain. Click any tile for the full read.</li>
+            <li><b>{indicators.length || '—'} market indicators</b> across five asset classes — rates, credit, equities, commodities, and FX — plus financial conditions and the economy. Each is ranked against its own 3-year range, so one number shows how stretched it is.</li>
+            <li><b>{posCount || '—'} positioning signals</b> from CFTC futures and Wall Street dealer inventory, showing where the speculative crowd is leaning. Click any tile for the full read.</li>
           </ul>
-        </div>
-        <div className="num" style={{ alignSelf: 'end', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 12.5, color: 'var(--mt-ink-2)' }}>
-          {indicators.length || '—'} indicators · {posCount || '—'} positioning signals
         </div>
       </section>
 
