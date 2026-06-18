@@ -1365,7 +1365,7 @@
    "cadence": "weekly",
    "scheduled_fetch_time_et": "TBD",
    "refresh_trigger": "EARNINGS_HISTORY_WEEKLY.yml (in _v11-iter3-wt2 worktree; verify on main)",
-   "freshness_sla_hours": 49,
+   "freshness_sla_hours": 200,
    "data_max_age_hours": 384,
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.earnings_history (PK ticker, report_date)",
@@ -1383,7 +1383,7 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Weekly job; SLA = weekly cadence + grace (~200h), graded off last successful run. Data window 384h covers the 15-day FINRA short-interest lag."
   },
   {
    "id": "equity-options_chain-on_demand",
