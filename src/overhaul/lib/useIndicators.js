@@ -139,6 +139,9 @@ export default function useIndicators() {
         // Fed release but the history file marked it daily, and ig_oas was
         // tagged monthly though it is a daily FRED series).
         cadence: String(e.cadence || '').toLowerCase() || null,
+        // Plain-English display override for the Freq column + chip — lets a
+        // lagged feed read honestly (e.g. "Daily T+3") instead of a bare cadence.
+        cadenceLabel: e.cadence_label || null,
         // How the displayed series relates to the raw vendor feed.
         sourcingMode: e.sourcing_mode || null,
         sla: Number(e.freshness_sla_hours) || null,
@@ -224,6 +227,7 @@ export default function useIndicators() {
         points: h.points || [],
         stats: h.stats || {},
         freq: freqCode,
+        cadenceLabel: src.cadenceLabel || null,
         pct,
         direction,
         state,
