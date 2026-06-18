@@ -156,6 +156,20 @@ const DIRECTION_LABEL = {
   bidir_bottom: 'too-low reading = more risk-off (complacency)',
 };
 
+/* History window each indicator's percentile is ranked against — derived from
+   the actual data span of each series (calibration + indicator_history, verified
+   2026-06-17). Answers 'percentile of WHAT history?' on every row. HY OAS / HY-IG
+   ratio show 3y because that's all the data the feed currently holds — lengthens
+   once the HY OAS series is registered with full history. */
+const HISTORY_WINDOW = {
+  ig_oas: '40-year', hy_oas: '3-year', hy_ig_ratio: '3-year',
+  cape: '20-year', erp: '15-year', buffett: '55-year',
+  cfnai_3ma: '20-year', jobless: '20-year', ism: '15-year', bkx_spx: '20-year',
+  cpff: '15-year', stlfsi: '15-year', bank_reserves: '15-year', rrp: '15-year',
+  anfci: '15-year', fed_bs: '15-year', sloos_ci: '15-year', m2_yoy: '15-year',
+  skew: '15-year', vix: '15-year', eq_cr_corr: '15-year', move: '15-year',
+};
+
 /* MechModal — opens when a cycle-mechanism card is clicked. Shows HOW the
    0–100 was built: each feeding indicator's percentile, its direction, and the
    direction-corrected 0–100 it contributes. The mechanism score is the average
@@ -215,22 +229,15 @@ function MechModal({ mech, breakdown, onClose }) {
                 <div className="at-mechmodal-row" key={r.id || i}>
                   <div className="at-mechmodal-rowtop">
                     <span className="at-mechmodal-ind">{r.name}</span>
-                  </div>
-                  <div className="at-mechmodal-sits">
-                    Where it sits today:{' '}
-                    <span className="num">{r.percentile != null ? <>{ordinal(Math.round(r.percentile))} percentile</> : 'percentile n/a'}</span>
-                    {' '}of its history
-                    {r.reading != null && <> · reading <span className="num">{r.reading}{r.unit ? ` ${r.unit}` : ''}</span></>}
-                  </div>
-                  <div className="at-mechmodal-contribrow">
-                    <span className="at-mechmodal-contriblabel">Risk-off contribution</span>
                     <span className="num at-mechmodal-rowscore">{Math.round(sc)}<i>/100</i></span>
                   </div>
                   <span className="at-mechmodal-track">
                     <span className={`at-mechmodal-fill at-mechmodal-fill--${bc}`} style={{ width: `${Math.max(2, Math.min(100, sc))}%` }} />
                   </span>
                   <div className="at-mechmodal-why">
-                    {DIRECTION_LABEL[r.direction] || 'higher reading = more risk-off'}
+                    {r.percentile != null ? <>{ordinal(Math.round(r.percentile))} percentile of its {HISTORY_WINDOW[r.id] ? `${HISTORY_WINDOW[r.id]} ` : ''}history</> : 'percentile n/a'}
+                    {' · '}{DIRECTION_LABEL[r.direction] || 'higher reading = more risk-off'}
+                    {r.reading != null && <> · reading <span className="num">{r.reading}{r.unit ? ` ${r.unit}` : ''}</span></>}
                   </div>
                 </div>
               );
@@ -238,7 +245,7 @@ function MechModal({ mech, breakdown, onClose }) {
           </div>
         )}
         <div className="at-mechmodal-foot">
-          <span>Average of {rows.length || '—'} indicator{rows.length === 1 ? '' : 's'} = mechanism score</span>
+          <span>Average</span>
           <span className={`num at-mechmodal-avg at-mechmodal-avg--${b}`}>{avg != null ? avg : '—'}<i>/100</i></span>
         </div>
       </div>
