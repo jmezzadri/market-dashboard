@@ -217,7 +217,7 @@ const ALLOCATION_NAMES = new Set([
 
 // Consumer-surface tab aliases → one canonical tab, so a single surface tile
 // represents each real page. The manifest uses several names for the same
-// page: macro/overview = Macro Overview; portopps/scanner = Trading Opps;
+// page: macro/overview = Macro Overview; portopps/scanner = Trading Scanner;
 // allocation/asset-tilt = Asset Tilt (the cycle board's consumer tab is
 // "asset-tilt"); readme/methodology = Methodology. Without this the page drew
 // two tiles both labelled "Asset Tilt" and two labelled "Methodology".
@@ -370,8 +370,8 @@ function tabLabel(tab) {
     macro: 'Macro Overview',
     indicators: 'All Indicators',
     allocation: 'Asset Tilt',
-    scanner: 'Trading Opps',
-    portopps: 'Trading Opps',
+    scanner: 'Trading Scanner',
+    portopps: 'Trading Scanner',
     paper: 'Paper Portfolio',
     ticker: 'Ticker Detail',
     readme: 'Methodology',
@@ -845,6 +845,13 @@ export default function DataFlowPage() {
     // asset-tilt→allocation, methodology→readme) so each real page is ONE tile.
     const byTab = new Map();
     elements.forEach((e) => {
+      // Portfolio / news / commentary feeds are shown in the Workflows section
+      // below (grouped by category). They also declare a consumer surface (the
+      // Portfolio feeds carry a "portopps" tab), which was double-listing them
+      // under a page-surface tile — e.g. the watchlist / accounts / positions /
+      // transactions feeds showing under "Trading Scanner". A feed lives in
+      // exactly one place: Workflows OR Surfaces, never both. (Joe 2026-06-17.)
+      if (classified[e.name] === 'workflow') return;
       const css = Array.isArray(e.consumer_surfaces) ? e.consumer_surfaces : [];
       const tabs = new Set();
       css.forEach((cs) => {
@@ -1195,9 +1202,18 @@ export default function DataFlowPage() {
     return () => window.removeEventListener('resize', onResize);
   }, [selectedId, drawLineage, allTiles]);
 
-  // Default the selection to the first source tile once the manifest lands.
+  // Default the selection to the first source tile ONCE, when the manifest
+  // first lands. Previously this re-fired whenever selectedId went null, so
+  // deselecting (clicking empty space or the selected tile again) instantly
+  // snapped the first tile back — the user could never reach the "all tiles,
+  // no lines" overview. The ref makes it a one-time default, so deselect now
+  // sticks. (Joe 2026-06-17: "why can't I unclick to see all tiles without lines?")
+  const didInitSelect = useRef(false);
   useEffect(() => {
-    if (!selectedId && sourceTiles.length) setSelectedId(sourceTiles[0].id);
+    if (!didInitSelect.current && !selectedId && sourceTiles.length) {
+      didInitSelect.current = true;
+      setSelectedId(sourceTiles[0].id);
+    }
   }, [sourceTiles, selectedId]);
 
   const handleTileClick = (id) => setSelectedId((prev) => (prev === id ? null : id));
