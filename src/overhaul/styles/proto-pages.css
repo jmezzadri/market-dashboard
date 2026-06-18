@@ -1039,6 +1039,10 @@
 .mt-overhaul .at-mechmodal-rows { display: flex; flex-direction: column; gap: 12px; }
 .mt-overhaul .at-mechmodal-row { display: flex; flex-direction: column; gap: 5px; }
 .mt-overhaul .at-mechmodal-rowtop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mt-overhaul .at-mechmodal-sits { font-size: 12.5px; color: var(--mt-ink-2); line-height: 1.4; }
+.mt-overhaul .at-mechmodal-sits .num { color: var(--mt-ink-0); font-weight: 600; }
+.mt-overhaul .at-mechmodal-contribrow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 3px; }
+.mt-overhaul .at-mechmodal-contriblabel { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--mt-ink-3); }
 .mt-overhaul .at-mechmodal-ind { font-size: 13px; font-weight: 600; color: var(--mt-ink-0); }
 .mt-overhaul .at-mechmodal-rowscore { font-size: 14px; font-weight: 600; color: var(--mt-ink-0); }
 .mt-overhaul .at-mechmodal-rowscore i { font-style: normal; font-size: 11px; color: var(--mt-ink-3); margin-left: 1px; }
