@@ -79,7 +79,7 @@ const COLUMNS = [
   },
   {
     key: 'freq', label: 'Freq', sortKey: 'freq', width: 92,
-    render: (i) => <span className="al-freq">{fmtFreq(i.freq)}</span>,
+    render: (i) => <span className="al-freq">{i.cadenceLabel || fmtFreq(i.freq)}</span>,
   },
   {
     key: 'refresh', label: 'Last refresh', sortKey: 'asOf', width: 120,
