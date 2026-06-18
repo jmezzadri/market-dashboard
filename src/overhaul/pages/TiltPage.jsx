@@ -46,6 +46,9 @@ import Tip from '../components/Tip';
 import SectorFlow from '../components/SectorFlow';
 import useAllocation from '../lib/useAllocation';
 import useEngineRegime from '../lib/useEngineRegime';
+import useIndicators from '../lib/useIndicators';
+import IndicatorDetail from '../components/IndicatorDetail';
+import { createPortal } from 'react-dom';
 
 function fmtPercent(v, digits = 0) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -170,12 +173,17 @@ const HISTORY_WINDOW = {
   skew: '15-year', vix: '15-year', eq_cr_corr: '15-year', move: '15-year',
 };
 
+/* Cycle-breakdown indicator id -> the catalog indicator whose full chart it
+   opens. Most are identity; credit's calibration ids point at the live tracked
+   series (hy_oas / ratio -> hy_ig = the ICE BofA HY OAS series, 15y history). */
+const CHART_ID = { hy_oas: 'hy_ig', hy_ig_ratio: 'hy_ig' };
+
 /* MechModal — opens when a cycle-mechanism card is clicked. Shows HOW the
    0–100 was built: each feeding indicator's percentile, its direction, and the
    direction-corrected 0–100 it contributes. The mechanism score is the average
    of those indicator scores. Data comes from v10_allocation.json
    `mechanism_breakdown` (emitted by the producer) — nothing is recomputed. */
-function MechModal({ mech, breakdown, onClose }) {
+function MechModal({ mech, breakdown, onClose, onOpenIndicator, chartableIds }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -225,10 +233,18 @@ function MechModal({ mech, breakdown, onClose }) {
             {rows.map((r, i) => {
               const sc = Number(r.score) || 0;
               const bc = sc >= 75 ? 'off' : sc >= 50 ? 'watch' : 'on';
+              const clickable = chartableIds && chartableIds.has(r.id);
               return (
-                <div className="at-mechmodal-row" key={r.id || i}>
+                <div
+                  className={`at-mechmodal-row${clickable ? ' at-mechmodal-row--link' : ''}`}
+                  key={r.id || i}
+                  onClick={clickable ? () => onOpenIndicator(r.id) : undefined}
+                  role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onOpenIndicator(r.id); } : undefined}
+                >
                   <div className="at-mechmodal-rowtop">
-                    <span className="at-mechmodal-ind">{r.name}</span>
+                    <span className="at-mechmodal-ind">{r.name}{clickable && <span className="at-mechmodal-chev" aria-hidden="true"> ↗</span>}</span>
                     <span className="num at-mechmodal-rowscore">{Math.round(sc)}<i>/100</i></span>
                   </div>
                   <span className="at-mechmodal-track">
@@ -250,6 +266,30 @@ function MechModal({ mech, breakdown, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ChartModal — portal wrapper that hosts the canonical IndicatorDetail (chart
+   + history + freshness) when a cycle indicator row is clicked. Mirrors the
+   Macro Overview DetailModal so the full chart looks identical site-wide. */
+function ChartModal({ onClose, children }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+  }, [onClose]);
+  const target = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
+  if (!target) return null;
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,23,28,.55)', zIndex: 6000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '32px 16px 64px' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: 'min(1080px, 95vw)', background: 'var(--mt-surface, #fff)', borderRadius: 18, boxShadow: '0 24px 70px rgba(20,30,45,.4)' }}>
+        <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', top: 14, right: 16, border: 'none', background: 'none', fontSize: 26, lineHeight: 1, color: 'var(--mt-ink-3)', cursor: 'pointer', zIndex: 2 }}>×</button>
+        {children}
+      </div>
+    </div>,
+    target,
   );
 }
 
@@ -278,6 +318,8 @@ export default function TiltPage() {
   const [stressHover, setStressHover] = useState(null);
   const [yieldHover, setYieldHover] = useState(null);
   const [openMech, setOpenMech] = useState(null); // cycle-mechanism whose 0–100 breakdown modal is open
+  const [openInd, setOpenInd] = useState(null);   // indicator whose full chart modal is open
+  const { active: indCatalog, indexSeries: indIndexSeries } = useIndicators();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -493,6 +535,9 @@ export default function TiltPage() {
       : defPct != null ? Math.round(defPct * 100) : null;
 
   const openMechObj = openMech ? (mechRows.find((r) => r.key === openMech) || null) : null;
+  const catalogById = useMemo(() => { const m = {}; (indCatalog || []).forEach((i) => { m[i.id] = i; }); return m; }, [indCatalog]);
+  const chartableIds = useMemo(() => { const s2 = new Set(); (openMechObj?.breakdown || []).forEach((r) => { if (catalogById[CHART_ID[r.id] || r.id]) s2.add(r.id); }); return s2; }, [openMechObj, catalogById]);
+  const handleOpenIndicator = (rid) => { const ind = catalogById[CHART_ID[rid] || rid]; if (ind) { setOpenMech(null); setOpenInd(ind); } };
 
   return (
     <div className="mt-pagebody mt-fade">
@@ -900,7 +945,12 @@ export default function TiltPage() {
       </section>
 
       {openMechObj && (
-        <MechModal mech={openMechObj} breakdown={openMechObj.breakdown} onClose={() => setOpenMech(null)} />
+        <MechModal mech={openMechObj} breakdown={openMechObj.breakdown} onClose={() => setOpenMech(null)} onOpenIndicator={handleOpenIndicator} chartableIds={chartableIds} />
+      )}
+      {openInd && (
+        <ChartModal onClose={() => setOpenInd(null)}>
+          <IndicatorDetail ind={openInd} catalog={indCatalog} indexSeries={indIndexSeries} onClose={() => setOpenInd(null)} />
+        </ChartModal>
       )}
     </div>
   );
