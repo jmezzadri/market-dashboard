@@ -550,7 +550,7 @@ export default function MacroPage() {
       {/* Header — Asset Tilt pattern (Joe 2026-06-17): one short sentence on
           what the page is, then a couple of informative sub-bullets. Replaces
           the old "Since yesterday's close" morning-read hero. */}
-      <section className="mt-pagehero" style={{ padding: '26px var(--mt-pad-page) 16px' }}>
+      <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Macro overview</div>
           <h1 className="mt-h1">
