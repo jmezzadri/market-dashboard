@@ -284,11 +284,14 @@
 }
 .mt-overhaul .mt-h1 {
   font-family: var(--mt-font-display);
-  font-size: clamp(36px, 4.2vw, 56px);
+  /* Standard page-header size (Joe 2026-06-17 consistency pass): one tight
+     scale across every page. Was clamp(36,4.2vw,56) — rendered "massive" on
+     short headlines and a 5-line block on long sentences. */
+  font-size: clamp(26px, 3vw, 36px);
   font-weight: 400;
-  letter-spacing: -0.025em;
-  line-height: 1.0;
-  margin: 6px 0 0;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 4px 0 0;
   text-wrap: pretty;
 }
 .mt-overhaul .mt-h1 i {
@@ -320,11 +323,13 @@
 /* ── Page body ────────────────────────────────────────────────── */
 .mt-overhaul .mt-pagebody { padding: 0 0 80px; }
 .mt-overhaul .mt-pagehero {
-  padding: 56px var(--mt-pad-page) 36px;
+  /* Tightened + vertically centered (Joe 2026-06-17 consistency pass): kills
+     the top dead-space and the empty block beside short left columns. */
+  padding: 26px var(--mt-pad-page) 18px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 32px;
-  align-items: end;
+  align-items: center;
 }
 .mt-overhaul .mt-pagesection { padding: 32px var(--mt-pad-page); }
 .mt-overhaul .mt-pagesection--tight { padding-top: 16px; padding-bottom: 12px; }
