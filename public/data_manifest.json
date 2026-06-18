@@ -2306,9 +2306,18 @@
    "data_max_age_hours": 54,
    "data_calendar": "us-business-day",
    "consumer_surfaces": [
-    "src/overhaul/pages/TiltPage.jsx (Recommended allocation + sector tilts chips)",
-    "src/App.jsx home Asset Tilt preview card",
-    "paper_portfolio/signals.py \u2014 Sleeve A signal source (paper rebalance gate)"
+    {
+     "tab": "allocation",
+     "tile": "Recommended allocation + sector tilts"
+    },
+    {
+     "tab": "home",
+     "tile": "Asset Tilt preview card"
+    },
+    {
+     "tab": "paper",
+     "tile": "Sleeve A signal source (rebalance gate)"
+    }
    ],
    "output_path": "public/v10_allocation.json",
    "producer_script": "scripts/compute_v10_allocation.py",
@@ -2565,7 +2574,10 @@
    "data_max_age_hours": 54,
    "data_calendar": "us-business-day",
    "consumer_surfaces": [
-    "src/overhaul/pages/TiltPage.jsx sector table Prev wk column"
+    {
+     "tab": "allocation",
+     "tile": "Sector table - prior-week column"
+    }
    ],
    "output_path": "public/v10_sector_history.json",
    "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
@@ -3735,7 +3747,20 @@
    "output_destination": "public/indicator_history.json",
    "consumer_surfaces": [
     {
-     "component": "freshness alarm + Admin\u00b7Data"
+     "tab": "indicators",
+     "tile": "Indicator drilldowns"
+    },
+    {
+     "tab": "overview",
+     "tile": "Six-bucket read inputs"
+    },
+    {
+     "tab": "home",
+     "tile": "Macro read inputs"
+    },
+    {
+     "tab": "admin",
+     "tile": "Freshness alarm + Admin/Data"
     }
    ],
    "dependencies": [],
