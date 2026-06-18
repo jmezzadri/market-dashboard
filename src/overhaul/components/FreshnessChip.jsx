@@ -325,7 +325,7 @@ export default function FreshnessChip({
                 names both budgets; the reason line below names which clock fired. */}
             <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {f?.cadenceLabel || freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
               <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{fetchedExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Turns red if:</span> {redIfText}</li>
