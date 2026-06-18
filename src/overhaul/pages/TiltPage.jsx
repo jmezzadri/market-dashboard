@@ -215,15 +215,22 @@ function MechModal({ mech, breakdown, onClose }) {
                 <div className="at-mechmodal-row" key={r.id || i}>
                   <div className="at-mechmodal-rowtop">
                     <span className="at-mechmodal-ind">{r.name}</span>
+                  </div>
+                  <div className="at-mechmodal-sits">
+                    Where it sits today:{' '}
+                    <span className="num">{r.percentile != null ? <>{ordinal(Math.round(r.percentile))} percentile</> : 'percentile n/a'}</span>
+                    {' '}of its history
+                    {r.reading != null && <> · reading <span className="num">{r.reading}{r.unit ? ` ${r.unit}` : ''}</span></>}
+                  </div>
+                  <div className="at-mechmodal-contribrow">
+                    <span className="at-mechmodal-contriblabel">Risk-off contribution</span>
                     <span className="num at-mechmodal-rowscore">{Math.round(sc)}<i>/100</i></span>
                   </div>
                   <span className="at-mechmodal-track">
                     <span className={`at-mechmodal-fill at-mechmodal-fill--${bc}`} style={{ width: `${Math.max(2, Math.min(100, sc))}%` }} />
                   </span>
                   <div className="at-mechmodal-why">
-                    {r.percentile != null ? <>{ordinal(Math.round(r.percentile))} percentile of its history</> : 'percentile n/a'}
-                    {' · '}{DIRECTION_LABEL[r.direction] || 'higher reading = more risk-off'}
-                    {r.reading != null && <> · reading <span className="num">{r.reading}{r.unit ? ` ${r.unit}` : ''}</span></>}
+                    {DIRECTION_LABEL[r.direction] || 'higher reading = more risk-off'}
                   </div>
                 </div>
               );
