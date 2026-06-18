@@ -426,6 +426,7 @@ export default function TiltPage() {
      so the bar widths render at the right scale. When the sleeve is on
      standby (Risk On regime), all three defensive components are 0 — the
      "Defensive sleeve on standby" caption explains why under the bars. */
+  const equityPctDisplay = equityPct != null ? equityPct * 100 : 0;
   const sleeveAllocPct = useMemo(() => {
     if (!sleeve || defPct == null) {
       return { gold: 0, treasury: 0, cash: 0 };
@@ -482,10 +483,10 @@ export default function TiltPage() {
 
   return (
     <div className="mt-pagebody mt-fade">
-      <section className="mt-pagehero">
+      <section className="mt-pagehero" style={{ padding: '26px var(--mt-pad-page) 18px', alignItems: 'center' }}>
         <div>
           <div className="mt-eyebrow">Asset Tilt</div>
-          <h1 className="mt-h1">
+          <h1 className="mt-h1" style={{ fontSize: 'clamp(26px, 3vw, 36px)' }}>
             A <i>back-tested</i> asset allocation tool that seeks to beat
             the S&amp;P 500 on a risk-adjusted basis over the long run.
           </h1>
@@ -716,6 +717,50 @@ export default function TiltPage() {
 
         </div>{/* end at-engineread — two dials only */}
 
+        {/* Recommended allocation — a compact TABLE (was the 3rd dial). */}
+        <div className="mt-card at-alloctable-card">
+          <div className="mt-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span>Recommended allocation</span>
+            <FreshnessChip
+              elementId="v10-allocation-daily"
+              variant="label"
+              fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }}
+            />
+          </div>
+          <table className="at-alloctable">
+            <tbody>
+              {(() => {
+                const rows = [
+                  { id: 'equity',   label: 'Equities',   pct: equityPctDisplay,        klass: 'at-allocfill--equity'   },
+                  { id: 'treasury', label: 'Treasuries', pct: sleeveAllocPct.treasury, klass: 'at-allocfill--treasury' },
+                  { id: 'gold',     label: 'Gold',       pct: sleeveAllocPct.gold,     klass: 'at-allocfill--gold'     },
+                  { id: 'cash',     label: 'Cash',       pct: sleeveAllocPct.cash,     klass: 'at-allocfill--cash'     },
+                ];
+                return rows.map((r) => (
+                  <tr key={r.id} className={r.pct === 0 ? 'at-allocrow--empty' : ''}>
+                    <td className="at-alloclabel">{r.label}</td>
+                    <td className="at-alloctrackcell">
+                      <span className="at-alloctrack">
+                        <span className={`at-allocfill ${r.klass}`} style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }} />
+                      </span>
+                    </td>
+                    <td className="num at-allocval">
+                      {r.pct === 0 ? '0' : r.pct < 1 ? r.pct.toFixed(1) : Math.round(r.pct)}<i>%</i>
+                    </td>
+                  </tr>
+                ));
+              })()}
+            </tbody>
+          </table>
+          <div className="at-allocsynth">
+            Stress <b className={`at-axis-state at-axis-state--${mapStressClass(engStressState)}`}>{regime.stressZone || '—'}</b> sets{' '}
+            <b className="num">{engEquityPct != null ? engEquityPct : '—'}%</b> in equities; the yield read{' '}
+            <b className={`at-axis-state at-axis-state--${mapYieldClass(engYieldState)}`}>{engYieldState || regime.yieldRegime || '—'}</b> sets{' '}
+            {sleeve ? <>the <b>{engAlloc?.active_sleeve_label || 'active'}</b> defensive sleeve</> : <>the defensive sleeve (on standby)</>}.{' '}
+            Stress decides <i>how much</i> equity; the yield read decides <i>which</i> defensive assets hold the rest.
+          </div>
+        </div>
+
         {/* Regime history — moved up INTO the engine-read section (Joe 2026-06-17). */}
         <div className="mt-card at-reghist-card">
           <div className="mt-eyebrow">Regime history · 24 weeks — when the engine moved</div>
@@ -891,4 +936,3 @@ export default function TiltPage() {
     </div>
   );
 }
-
