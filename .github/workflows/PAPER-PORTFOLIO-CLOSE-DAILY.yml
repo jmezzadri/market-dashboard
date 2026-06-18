@@ -77,28 +77,3 @@ jobs:
           else
             python -m paper_portfolio.runner --phase close
           fi
-
-      - name: Stamp pipeline_health freshness (portfolio_history, after close)
-        # DURABLE FRESHNESS STAMP (added 2026-06-16). The close phase writes the
-        # daily portfolio snapshot (portfolio_history) every weekday but NEVER
-        # stamped pipeline_health, so the freshness monitor read its last_good_at
-        # as frozen and the Admin · Data chip went RED even though the snapshot
-        # was current. A producer that publishes a fresh snapshot MUST stamp its
-        # own pipeline_health row, or the chip lies. Honest stamp — data_as_of =
-        # the close session date in ET (the bar this snapshot records),
-        # last_good_at = now. Skipped on dry-run (no DB writes happened).
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        env:
-          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY:    ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          AS_OF=$(TZ=America/New_York date +%F)
-          python scripts/upsert_pipeline_health.py portfolio_history "$AS_OF" green
-
-      - name: Stamp pipeline_health red on failure (portfolio_history)
-        if: failure()
-        env:
-          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY:    ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          python scripts/upsert_pipeline_health.py portfolio_history - red "PAPER-PORTFOLIO-CLOSE-DAILY failed before publish (Actions run ${{ github.run_id }})"

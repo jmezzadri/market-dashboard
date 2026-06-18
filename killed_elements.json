@@ -2,6 +2,47 @@
   "_comment": "Registry of retired MacroTilt concepts (indicators, feeds, engines, UI). A name here is DEAD and must not be re-introduced as a producer, registry entry, tracking row, schedule, or live UI surface. Before resurrecting/fixing/registering any of these, the answer is delete the remnant, not revive it (LESSONS 0.10). 'residue' lists code that still references the dead concept and is pending eradication. Created 2026-06-15 cleanup Phase 4.",
   "killed": [
     {
+      "id": "portfolio-accounts-on_change",
+      "name": "Accounts (user portfolio)",
+      "killed": "2026-06-17",
+      "reason": "Old live-money Portfolio Insights feed. No live consumer (the /portfolio page was removed; Paper Portfolio replaced it). useUserPortfolio hook orphaned. Manifest-vs-live drift cleanup, Joe-approved 2026-06-17.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "portfolio-positions-on_change",
+      "name": "Positions (user portfolio)",
+      "killed": "2026-06-17",
+      "reason": "Old live-money Portfolio Insights feed; no live consumer (page removed, Paper Portfolio replaced it). Manifest drift cleanup, Joe-approved.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "portfolio-transactions-on_change",
+      "name": "Transactions (user portfolio)",
+      "killed": "2026-06-17",
+      "reason": "Old live-money Portfolio Insights feed; no live consumer. Manifest drift cleanup, Joe-approved.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "portfolio-watchlist-on_change",
+      "name": "Watchlist (user portfolio)",
+      "killed": "2026-06-17",
+      "reason": "Old live-money Portfolio Insights feed; no live consumer (Scanner renders no user watchlist). Manifest drift cleanup, Joe-approved.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "portfolio-portfolio_history-daily",
+      "name": "Portfolio History (user portfolio NAV)",
+      "killed": "2026-06-17",
+      "reason": "Zombie: a daily step stamped its pipeline_health row green though no live page reads the table (only the freshness tooling referenced it). Removed manifest entry, tracking row, the close-workflow stamp steps, repair/reconcile entries, and the watchdog mapping. Manifest drift cleanup, Joe-approved.",
+      "status": "removed",
+      "residue": [],
+      "note": "Underlying Supabase table public.portfolio_history left in place (table drop is schema-destructive; needs explicit go from Joe). It is now unproduced, unconsumed, and untracked."
+    },
+    {
       "id": "naaim",
       "name": "NAAIM Exposure Index",
       "killed": "2026-05-11",

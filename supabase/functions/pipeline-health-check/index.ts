@@ -352,7 +352,6 @@ async function handle(req: Request): Promise<Response> {
       }
     } else if (
       row.indicator_id === "uw-universe-snapshots" ||
-      row.indicator_id === "portfolio_history" ||
       row.indicator_id === "latest_scan" ||
       row.indicator_id === "equity-options_flow-daily" ||
       row.indicator_id === "equity-short_interest-daily"
@@ -362,7 +361,6 @@ async function handle(req: Request): Promise<Response> {
       // table directly.
       const TABLE_MAP: Record<string, { table: string; col: string; runTsCol?: string }> = {
         "uw-universe-snapshots": { table: "universe_snapshots", col: "snapshot_ts" },
-        "portfolio_history":     { table: "portfolio_history",  col: "as_of" },
         // 2026-06-15 — latest_scan graded off its source table, not the
         // committed file. Before this change the watchdog read the file's
         // scan_time into data_as_of and NEVER wrote last_good_at, so
