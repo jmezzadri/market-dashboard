@@ -56,6 +56,17 @@ TABLE_FEEDS = {
     "paper-positions-snapshot":  ("paper_positions",    ["snapshot_date", "last_updated"],       49,  True),
     "paper-nav-daily":           ("paper_nav_history",  ["nav_date", "as_of", "created_at"],     49,  True),
     "paper-orders-intent":       ("paper_orders",       ["created_at", "order_date"],            49,  True),
+    # --- registered 2026-06-18: live feeds that previously had no tracking row ---
+    "earnings_history":          ("earnings_history",   ["updated_at", "report_date"],          200, False),
+    "macro_commentary":          ("macro_commentary",   ["generated_date", "generated_at"],     49,  True),
+    "sector_commentary":         ("sector_commentary",  ["generated_date", "generated_at"],     49,  True),
+    "zerohedge_public":          ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "zerohedge_premium":         ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "options_chain":             ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "wide_universe":             ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "user_scan_data":            ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "index_membership":          ("trading_opps_signals", ["scan_date"],                        49,  True),
+    "short_interest":            ("trading_opps_signals", ["scan_date"],                        49,  True),
 }
 
 def parse_date(s):
