@@ -195,10 +195,10 @@
   border: 1px solid var(--mt-line-0);
   background: var(--mt-surface);
   border-radius: var(--mt-r-lg);
-  padding: 16px 18px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   text-align: left;
   cursor: pointer;
   transition: border-color var(--mt-dur-fast) var(--mt-ease), background var(--mt-dur-fast) var(--mt-ease);
