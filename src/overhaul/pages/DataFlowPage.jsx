@@ -985,6 +985,27 @@ export default function DataFlowPage() {
       if (compilerId) E.push([t.id, compilerId]);
     });
 
+    // family -> surfaces (THE missing link): a family feeds every surface that
+    // renders any of its member indicators, read from each member's
+    // consumer_surfaces. Without this, surfaces that render indicators directly
+    // (Home, Macro Overview, All Indicators) showed almost no upstream and the
+    // value chain was broken in the middle. Now clicking a surface traces back
+    // through its indicator families to their sources, and clicking a
+    // source/family lights every surface its data reaches.
+    derivedTiles.forEach((t) => {
+      if (t.id === COT_TILE_ID) return;
+      const fsurfs = new Set();
+      t.members.forEach((m) => {
+        (Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : []).forEach((cs) => {
+          if (cs && typeof cs === 'object' && cs.tab) {
+            const tab = canonTab(cs.tab);
+            if (surfTileForTab[tab]) fsurfs.add(surfTileForTab[tab]);
+          }
+        });
+      });
+      fsurfs.forEach((sid) => E.push([t.id, sid]));
+    });
+
     // COT tile → Macro Overview (its manifest consumer surface is the macro tab
     // "Cross-asset positioning rollup"). Drawn explicitly because the tile's
     // members are synthetic per-market rows, not manifest elements.
