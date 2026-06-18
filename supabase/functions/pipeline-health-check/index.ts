@@ -511,6 +511,17 @@ async function handle(req: Request): Promise<Response> {
     if (shouldEscalate7Day) next7DayAlertAt = now.toISOString();
 
 
+    // Anti-clobber (LESSONS 4.2 — this clobber recurred again 2026-06-18): if this
+    // watchdog has NO source mapping for the row (not an indicator_history.json
+    // series, not a massive/table/file feed it knows how to read), it must NOT
+    // overwrite the row red. Another producer or the 6-hourly
+    // reconcile_pipeline_health.py job owns these (commentary, ZeroHedge, the
+    // scan-embedded feeds, allocation outputs, earnings). Leave the existing stamp
+    // untouched so the watchdog never fabricates a red on a feed it cannot grade.
+    if (lastError === "indicator not present in indicator_history.json") {
+      continue;
+    }
+
     // Include all NOT NULL columns (label, source, cadence, expected_cadence_minutes)
     // — Supabase's upsert reuses INSERT semantics on conflict, so partial rows
     // trip the column constraints even though the row already exists.
