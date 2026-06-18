@@ -48,7 +48,6 @@ EVIDENCE = {
     "paper-positions-snapshot":  ("paper_positions",      "last_updated"),
     "paper-nav-daily":           ("paper_nav_daily",      "created_at"),
     "paper-orders-intent":       ("paper_orders",         "created_at"),
-    "portfolio_history":         ("portfolio_history",    "created_at"),
     "massive-ticker-details":    ("ticker_reference",     "updated_at"),
     "massive-universe":          ("universe_master",      "updated_at"),
     "massive-corporate-actions": ("dividends",            "updated_at"),

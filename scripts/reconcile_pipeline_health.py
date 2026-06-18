@@ -56,7 +56,6 @@ TABLE_FEEDS = {
     "paper-positions-snapshot":  ("paper_positions",    ["snapshot_date", "last_updated"],       49,  True),
     "paper-nav-daily":           ("paper_nav_history",  ["nav_date", "as_of", "created_at"],     49,  True),
     "paper-orders-intent":       ("paper_orders",       ["created_at", "order_date"],            49,  True),
-    "portfolio_history":         ("portfolio_history",  ["as_of", "date", "created_at"],         49,  True),
 }
 
 def parse_date(s):

@@ -1530,18 +1530,14 @@
    "data_calendar": "wall-clock",
    "output_destination": "latest_scan_data.json signals.market_news.zerohedge_public[]",
    "producer_script": "scanner/market_news.py::fetch_zerohedge_public",
-   "consumer_surfaces": [
-    {
-     "tab": "home",
-     "tile": "Headlines list (top 7)"
-    }
-   ],
-   "current_status": "live",
+   "consumer_surfaces": [],
+   "current_status": "ingested; not surfaced on any live page (held for homepage redesign, 2026-06-17)",
    "failure_mode": "RSS fetch fail \u2192 empty list, no headlines render.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
    "dependencies": [],
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed."
   },
   {
    "id": "equity-zerohedge_premium-live",
@@ -1561,15 +1557,14 @@
    "data_calendar": "wall-clock",
    "output_destination": "latest_scan_data.json signals.market_news.zerohedge_premium[] AND signals.market_news.items[] (filter source_tier=\"premium\")",
    "producer_script": "scanner/market_news.py::fetch_zerohedge_premium (Path 2 \u2014 cookie session, PR #10 / 2026-04-30)",
-   "consumer_surfaces": [
-    "Modal news pane (rendered alongside public ZH RSS items, gated to Joe per ZH ToS)"
-   ],
-   "current_status": "LIVE as of 2026-04-30 (PR #10) \u2014 produces 5+ items per scan from a fresh test",
+   "consumer_surfaces": [],
+   "current_status": "ingested; not surfaced on any live page (held for homepage redesign, 2026-06-17)",
    "failure_mode": "ZEROHEDGE_COOKIE expires (Drupal default ~3 weeks) \u2192 fetch logs warning + returns []. Refresh: open zerohedge.com in Chrome \u2192 DevTools \u2192 Network tab \u2192 copy Cookie: header \u2192 re-paste as ZEROHEDGE_COOKIE secret.",
    "owner": "Lead Developer (Path 2 cookie maintenance is identity-bound to Joe)",
    "release_calendar": "wall-clock",
    "dependencies": [],
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed."
   },
   {
    "id": "equity-google_news_per_ticker-on_demand",
@@ -1885,188 +1880,12 @@
    "dependencies": []
   },
   {
-   "id": "portfolio-accounts-on_change",
-   "category": "portfolio",
-   "name": "accounts",
-   "description": "Per-user broker accounts (label, color, sub-account, tactical flag).",
-   "sourcing_mode": "STP",
-   "source_vendor": "n/a (user-managed)",
-   "source_endpoint": "manual UI",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "event-driven",
-   "scheduled_fetch_time_et": "n/a",
-   "refresh_trigger": "user action",
-   "freshness_sla_hours": 0,
-   "data_max_age_hours": 0,
-   "data_calendar": "wall-clock",
-   "output_destination": "Supabase public.accounts (RLS per user)",
-   "producer_script": "src/components/BulkImport.jsx, manual editor",
-   "consumer_surfaces": [
-    {
-     "hook": "useUserPortfolio"
-    },
-    {
-     "tab": "portopps"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "User-edit failures bubble to UI.",
-   "owner": "Lead Dev",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
-  },
-  {
-   "id": "portfolio-positions-on_change",
-   "category": "portfolio",
-   "name": "positions",
-   "description": "Per-user holdings (quantity, price, avg_cost, value, asset_class, opened_at, closed_at, etc.).",
-   "sourcing_mode": "STP",
-   "source_vendor": "n/a (user-managed)",
-   "source_endpoint": "manual UI + RPC add_position / close_position + scan-ticker.js backfill",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "event-driven",
-   "scheduled_fetch_time_et": "n/a",
-   "refresh_trigger": "user action; api/scan-ticker.js patch",
-   "freshness_sla_hours": 0,
-   "data_max_age_hours": 0,
-   "data_calendar": "wall-clock",
-   "output_destination": "Supabase public.positions (RLS per user)",
-   "producer_script": "src/components/{BulkImport,PositionEditor}.jsx + RPCs add_position v2 (mig 030) + close_position v2 (mig 027)",
-   "consumer_surfaces": [
-    {
-     "hook": "useUserPortfolio"
-    },
-    {
-     "tab": "portopps",
-     "tile": "Portfolio insights / NAV / Realized PnL"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "RPC throws on guard-rail violation.",
-   "owner": "Lead Dev",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
-  },
-  {
-   "id": "portfolio-watchlist-on_change",
-   "category": "portfolio",
-   "name": "watchlist",
-   "description": "Per-user tracked tickers (theme, name).",
-   "sourcing_mode": "STP",
-   "source_vendor": "n/a",
-   "source_endpoint": "supabase.from('watchlist').{insert,delete}",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "event-driven",
-   "scheduled_fetch_time_et": "n/a",
-   "refresh_trigger": "user action (App.jsx, modal)",
-   "freshness_sla_hours": 0,
-   "data_max_age_hours": 0,
-   "data_calendar": "wall-clock",
-   "output_destination": "Supabase public.watchlist (RLS per user)",
-   "producer_script": "src/App.jsx",
-   "consumer_surfaces": [
-    {
-     "hook": "useUserPortfolio"
-    },
-    {
-     "tab": "portopps"
-    },
-    {
-     "tab": "scanner"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Insert fails \u2192 ticker not added.",
-   "owner": "Lead Dev",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
-  },
-  {
-   "id": "portfolio-transactions-on_change",
-   "category": "portfolio",
-   "name": "transactions",
-   "description": "Tax-lot ledger (BUY/SELL/OPEN/CLOSE/TRANSFER/ADJUST), realized_pnl, holding_days, is_long_term.",
-   "sourcing_mode": "STP",
-   "source_vendor": "n/a (user-managed via RPCs)",
-   "source_endpoint": "RPCs add_position v2 + close_position v2",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "event-driven",
-   "scheduled_fetch_time_et": "n/a",
-   "refresh_trigger": "user trade action",
-   "freshness_sla_hours": 0,
-   "data_max_age_hours": 0,
-   "data_calendar": "wall-clock",
-   "output_destination": "Supabase public.transactions (RLS per user)",
-   "producer_script": "RPC add_position + close_position",
-   "consumer_surfaces": [
-    {
-     "tab": "portopps",
-     "tile": "Realized P&L tile"
-    },
-    {
-     "tile": "Trade History"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Atomic with positions update \u2014 both succeed or both roll back.",
-   "owner": "Lead Dev",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
-  },
-  {
-   "id": "portfolio-portfolio_history-daily",
-   "category": "portfolio",
-   "name": "portfolio_history",
-   "description": "Per-user, per-account, daily NAV + flows + monthly_return.",
-   "sourcing_mode": "computed",
-   "source_vendor": "n/a (aggregates positions.value)",
-   "source_endpoint": "RPC snapshot_portfolios_today() + manual statement seeds",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "17:00 (UTC 21:00, weekdays)",
-   "refresh_trigger": "pg_cron snapshot-portfolios-daily-2100utc",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "Supabase public.portfolio_history",
-   "producer_script": "RPC snapshot_portfolios_today",
-   "consumer_surfaces": [
-    {
-     "hook": "usePortfolioHistory"
-    },
-    {
-     "hook": "useDailyNavSnapshot"
-    }
-   ],
-   "current_status": "live-no-consumer",
-   "failure_mode": "Producer runs but neither hook is imported anywhere \u2014 Phase 2 candidate (consumer wiring or producer pause).",
-   "owner": "Lead Dev \u2014 Phase 2 review",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "as_of_cutoff_et": "16:00",
-   "as_of_cutoff_note": "as-of latest session close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
    "id": "commentary-macro_commentary-daily",
    "category": "commentary",
    "name": "macro_commentary",
    "description": "Daily editorial macro blurb (short_term + medium_term).",
-   "sourcing_mode": "STP",
-   "source_vendor": "Anthropic (Claude Haiku) + indicator_history.json + latest_scan_data.json",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "MacroTilt (Claude-generated, in-house)",
    "source_endpoint": "supabase/functions/generate-commentary",
    "license_tier": "paid (de minimis)",
    "monthly_cost_usd": 0.5,
@@ -2079,31 +1898,24 @@
    "data_calendar": "wall-clock",
    "output_destination": "Supabase public.macro_commentary",
    "producer_script": "supabase/functions/generate-commentary/index.ts",
-   "consumer_surfaces": [
-    {
-     "hook": "useCommentary"
-    },
-    {
-     "tab": "home",
-     "tile": "Macro Overview blurb"
-    }
-   ],
-   "current_status": "live (cron trigger source ambiguous \u2014 Phase 2 verify)",
+   "consumer_surfaces": [],
+   "current_status": "in-house generated; not surfaced on any live page yet (held for homepage redesign, 2026-06-17)",
    "failure_mode": "Threshold-gated; if no material moves, returns null and tile renders nothing.",
    "owner": "Senior Quant + Data Steward \u2014 Phase 2 cron audit",
    "release_calendar": "wall-clock",
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17)."
   },
   {
    "id": "commentary-sector_commentary-daily",
    "category": "commentary",
    "name": "sector_commentary",
    "description": "Daily editorial sector-outlook blurb (headline + per_sector).",
-   "sourcing_mode": "STP",
-   "source_vendor": "Anthropic (Claude Haiku)",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "MacroTilt (Claude-generated, in-house)",
    "source_endpoint": "supabase/functions/generate-commentary",
    "license_tier": "paid (de minimis)",
    "monthly_cost_usd": 0.5,
@@ -2116,23 +1928,16 @@
    "data_calendar": "wall-clock",
    "output_destination": "Supabase public.sector_commentary",
    "producer_script": "supabase/functions/generate-commentary",
-   "consumer_surfaces": [
-    {
-     "hook": "useCommentary"
-    },
-    {
-     "tab": "home",
-     "tile": "Sector Outlook blurb"
-    }
-   ],
-   "current_status": "live (PR #355 \u2014 sector_rank_history wired to generate-commentary edge fn, 2026-04-30)",
+   "consumer_surfaces": [],
+   "current_status": "in-house generated; not surfaced on any live page yet (held for homepage redesign, 2026-06-17)",
    "failure_mode": "Per source: sector_rank_history table not wired; LLM gets no context, blurb stays null.",
    "owner": "Senior Quant + Lead Dev \u2014 Phase 2 fix",
    "release_calendar": "wall-clock",
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17)."
   },
   {
    "id": "ops-bug_screenshots-event",
