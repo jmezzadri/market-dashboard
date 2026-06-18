@@ -319,6 +319,12 @@ function statusForElement(elementId, fallback) {
     // Frequency + scheduled fetch time — so every chip can show all five
     // governance fields (Source, Frequency+calendar, Timing ET, SLA, Last update).
     cadence: manifestEl?.cadence || phRow?.cadence || null,
+    // Plain-English display override for the chip's Frequency line. Lets a
+    // daily-but-lagged feed read honestly, e.g. "Daily T+3" (the Fed posts the
+    // value 3 business days late) instead of a bare "Daily" that looks broken
+    // beside a 3-day-old date. Drives display only — the cadence above still
+    // drives logic. (Joe 2026-06-17: "We need to be transparent.")
+    cadenceLabel: manifestEl?.cadence_label || null,
     scheduledFetchET: manifestEl?.scheduled_fetch_time_et || null,
     asOfCutoffEt: manifestEl?.as_of_cutoff_et || null,
     reason,
@@ -441,6 +447,7 @@ export function useFreshness(elementId, fallback) {
     dataCalendar: rolled.dataCalendar,
     calendar: rolled.calendar,
     cadence: rolled.cadence,
+    cadenceLabel: rolled.cadenceLabel,
     scheduledFetchET: rolled.scheduledFetchET,
     asOfCutoffEt: rolled.asOfCutoffEt,
     // Phase 2 — exposed to chips/tooltips so they can render the actual
