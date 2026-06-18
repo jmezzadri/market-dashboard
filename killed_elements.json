@@ -2,6 +2,23 @@
   "_comment": "Registry of retired MacroTilt concepts (indicators, feeds, engines, UI). A name here is DEAD and must not be re-introduced as a producer, registry entry, tracking row, schedule, or live UI surface. Before resurrecting/fixing/registering any of these, the answer is delete the remnant, not revive it (LESSONS 0.10). 'residue' lists code that still references the dead concept and is pending eradication. Created 2026-06-15 cleanup Phase 4.",
   "killed": [
     {
+      "id": "scenario-v9_allocation-weekly",
+      "name": "v9 Allocation (legacy)",
+      "killed": "2026-06-18",
+      "reason": "v10 Allocation fully replaced v9 (V10-ASSET-ALLOCATION 'Replaces the v9 integration'); v10 is independent of v9. Nothing on the live site reads public/v9_allocation.json. Retired the V9-ALLOCATION-WEEKLY job. Joe-approved 2026-06-18.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "scenario-allocation_history-weekly",
+      "name": "Allocation history (v9 weekly snapshot)",
+      "killed": "2026-06-18",
+      "reason": "Written only by the v9 weekly job (snapshot of v9_allocation.json); read by no live page. Dead with the v9 system. Joe-approved.",
+      "status": "removed",
+      "residue": [],
+      "note": "Files public/v9_allocation.json + public/allocation_history.json left in repo (harmless static); the producing weekly workflow is deleted so they no longer update."
+    },
+    {
       "id": "portfolio-accounts-on_change",
       "name": "Accounts (user portfolio)",
       "killed": "2026-06-17",

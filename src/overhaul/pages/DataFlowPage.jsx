@@ -207,12 +207,12 @@ function isInhouseVendor(raw) {
 // peers both called "v10 allocation".
 const ENGINE_NAMES = new Set([
   'cycle_board', 'indicator_history',
-  'v10_allocation', 'v10_sector_history', 'v9_allocation_legacy', 'allocation_history',
+  'v10_allocation', 'v10_sector_history',
 ]);
 
 // The allocation family — collapsed into one "v10 Allocation" engine tile.
 const ALLOCATION_NAMES = new Set([
-  'v10_allocation', 'v10_sector_history', 'v9_allocation_legacy', 'allocation_history',
+  'v10_allocation', 'v10_sector_history',
 ]);
 
 // Consumer-surface tab aliases → one canonical tab, so a single surface tile
@@ -312,8 +312,6 @@ function humanise(name) {
 const ENGINE_DISPLAY = {
   v10_allocation: 'v10 Allocation (live allocator)',
   v10_sector_history: 'v10 Sector History (allocation output)',
-  v9_allocation_legacy: 'v9 Allocation (legacy backup)',
-  allocation_history: 'Allocation history (output)',
   cycle_board: 'Cycle Mechanism Board',
   indicator_history: 'Indicator history compiler',
 };
@@ -822,7 +820,7 @@ export default function DataFlowPage() {
     if (allocMembers.length) {
       // Put the live allocator first; the live element anchors the tile id.
       allocMembers.sort((a, b) => {
-        const rank = (n) => (n === 'v10_allocation' ? 0 : n === 'v10_sector_history' ? 1 : n === 'allocation_history' ? 2 : 3);
+        const rank = (n) => (n === 'v10_allocation' ? 0 : n === 'v10_sector_history' ? 1 : 2);
         return rank(a.name) - rank(b.name);
       });
       const live = allocMembers.find((m) => m.name === 'v10_allocation') || allocMembers[0];
@@ -1035,6 +1033,24 @@ export default function DataFlowPage() {
       surfs.forEach((s) => E.push([eng.id, s]));
     });
 
+    // workflow tiles <-> sources/surfaces: a workflow (Portfolio, News, Commentary,
+    // Equity data) is fed by its members' source vendors and feeds the surfaces its
+    // members declare. Without this the workflow tiles drew no connectors at all.
+    const srcTileForVendor = {};
+    sourceTiles.forEach((stile) => { if (stile.vendor) srcTileForVendor[stile.vendor] = stile.id; });
+    workflowTiles.forEach((wt) => {
+      (wt.members || []).forEach((m) => {
+        const v = canonVendor(m.source_vendor);
+        if (v && srcTileForVendor[v]) E.push([srcTileForVendor[v], wt.id]);
+        (Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : []).forEach((cs) => {
+          if (cs && typeof cs === 'object' && cs.tab) {
+            const tab = canonTab(cs.tab);
+            if (surfTileForTab[tab]) E.push([wt.id, surfTileForTab[tab]]);
+          }
+        });
+      });
+    });
+
     // de-dupe
     const seen = new Set();
     return E.filter(([a, b]) => {
@@ -1043,7 +1059,7 @@ export default function DataFlowPage() {
       seen.add(k);
       return true;
     });
-  }, [sourceTiles, derivedTiles, engineTiles, surfaceTiles, classified]);
+  }, [sourceTiles, derivedTiles, engineTiles, surfaceTiles, workflowTiles, classified]);
 
   const bfs = useCallback((start, dir) => {
     const seen = new Set([start]);

@@ -1055,76 +1055,6 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
-   "id": "scenario-v9_allocation-weekly",
-   "category": "allocation",
-   "name": "v9_allocation_legacy",
-   "description": "Current week v9 allocation (regime, alpha, equity_share, leverage, picks, defensive sleeve).",
-   "sourcing_mode": "computed",
-   "source_vendor": "n/a",
-   "source_endpoint": "compute_v9_allocation.py",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "weekly",
-   "scheduled_fetch_time_et": "08:15",
-   "refresh_trigger": "V9-ALLOCATION-WEEKLY",
-   "freshness_sla_hours": 192,
-   "data_max_age_hours": 384,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "public/v9_allocation.json",
-   "producer_script": "compute_v9_allocation.py",
-   "consumer_surfaces": [
-    {
-     "tab": "allocation",
-     "tile": "Hero KPI strip + Allocation changes table"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Workflow fails red on yfinance bulk error; older v9_allocation.json stays live.",
-   "owner": "Senior Quant + Lead Dev",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [
-    "composite-rl-daily",
-    "composite-gr-daily",
-    "composite-ir-daily"
-   ],
-   "sla_basis": "Weekly v9 allocation job; SLA = weekly job cadence + grace"
-  },
-  {
-   "id": "scenario-allocation_history-weekly",
-   "category": "allocation",
-   "name": "allocation_history",
-   "description": "Rolling 26-entry history of prior v9 allocations (picks, leverage, equity_share, defensive).",
-   "sourcing_mode": "derived",
-   "source_vendor": "n/a",
-   "source_endpoint": "Pre-write snapshot in V9-ALLOCATION-WEEKLY workflow",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "weekly",
-   "scheduled_fetch_time_et": "Saturday 08:00",
-   "refresh_trigger": "V9-ALLOCATION-WEEKLY (inline heredoc)",
-   "freshness_sla_hours": 192,
-   "data_max_age_hours": 384,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "public/allocation_history.json",
-   "producer_script": "V9-ALLOCATION-WEEKLY.yml inline Python",
-   "consumer_surfaces": [
-    {
-     "tab": "allocation",
-     "tile": "Last month / Last quarter columns; rating change tallies"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Skipped on missing prior file. Joe noted history begins ~2026-04-26 \u2014 comparison columns empty until next rebalance.",
-   "owner": "Senior Quant + Lead Dev",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [
-    "scenario-v9_allocation-weekly"
-   ],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Weekly allocation job (Saturday); SLA = weekly job cadence + grace"
-  },
-  {
    "id": "market-universe_master-daily",
    "category": "market",
    "name": "massive-universe",
@@ -1440,7 +1370,12 @@
    "data_calendar": "nyse-trading-day",
    "output_destination": "Supabase public.earnings_history (PK ticker, report_date)",
    "producer_script": "trading-scanner/run_earnings_history.py",
-   "consumer_surfaces": [],
+   "consumer_surfaces": [
+    {
+     "tab": "ticker",
+     "tile": "Fundamentals tab \u2014 last 4 quarters EPS est/actual/surprise"
+    }
+   ],
    "current_status": "live (verify on main vs worktree)",
    "failure_mode": "Per-ticker write isolated.",
    "owner": "Lead Dev",
@@ -1448,8 +1383,7 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "planned \u2014 Stock-modal Earnings & Events tile (bug #1134); not live yet"
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
    "id": "equity-options_chain-on_demand",
