@@ -142,6 +142,7 @@ jobs:
         run: |
           AS_OF=$(python -c "import json;print(json.load(open('public/v10_allocation.json'))['as_of'])")
           python scripts/upsert_pipeline_health.py v10_allocation "$AS_OF" green
+          python scripts/upsert_pipeline_health.py v10_sector_history "$AS_OF" green
 
       - name: Stamp pipeline_health red on failure
         if: failure()
