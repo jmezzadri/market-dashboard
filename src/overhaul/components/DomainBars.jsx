@@ -43,11 +43,11 @@ function Gauge({ pct, dimmed }) {
     const t = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(t);
   }, []);
-  if (pct == null || !Number.isFinite(pct)) return <span style={{ display: 'block', height: 4, marginTop: 5 }} />;
+  if (pct == null || !Number.isFinite(pct)) return <span style={{ display: 'block', height: 3, marginTop: 4 }} />;
   const left = Math.min(pct, 50);
   const width = Math.abs(pct - 50);
   return (
-    <span style={{ position: 'relative', display: 'block', height: 4, marginTop: 5, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)', opacity: dimmed ? 0.45 : 1, transition: 'opacity .25s ease' }}>
+    <span style={{ position: 'relative', display: 'block', height: 3, marginTop: 4, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)', opacity: dimmed ? 0.45 : 1, transition: 'opacity .25s ease' }}>
       <span style={{ position: 'absolute', left: '50%', top: -1, bottom: -1, width: 1.5, background: 'currentColor', opacity: 0.55 }} />
       <span
         style={{
@@ -71,6 +71,7 @@ function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick,
       onMouseLeave={onHideTip}
       style={{
         cursor: 'pointer', border: dashed ? '1px dashed currentColor' : 'none', font: 'inherit',
+        fontSize: 11.5, padding: '2px 7px', lineHeight: 1.25,
         width: '100%', display: 'block', textAlign: 'left',
         // Off-print state (Joe 2026-06-11: "make the text more visible on the
         // signals"): the old 50% whole-pill dim washed out the labels. Names
@@ -95,13 +96,13 @@ function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick,
 
 export default function DomainBars({ inds = [], markets = [], shortLabel, posDimmed, posNextPrint, onSelectInd, onSelectPos, onTip, onHideTip }) {
   const head = {
-    fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
-    color: 'var(--mt-ink-1)', marginBottom: 8,
+    fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
+    color: 'var(--mt-ink-1)', marginBottom: 7,
   };
   return (
-    <div style={{ marginTop: 12 }}>
+    <div style={{ marginTop: 10 }}>
       <div style={head}>Indicators</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
         {inds.map((i) => (
           <GaugePill
             key={i.id}
@@ -122,12 +123,10 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
       </div>
       {markets.length > 0 && (
         <>
-          <div style={{ ...head, margin: '16px 0 8px', paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>
-            Positioning signals{posDimmed && posNextPrint ? (
-              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--mt-ink-3)', marginLeft: 8 }}>next print {posNextPrint}</span>
-            ) : null}
+          <div style={{ ...head, margin: '13px 0 7px', paddingTop: 12, borderTop: '1px solid var(--mt-line-1)' }}>
+            Positioning signals
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
             {markets.map((m) => (
               <GaugePill
                 key={m.market}
