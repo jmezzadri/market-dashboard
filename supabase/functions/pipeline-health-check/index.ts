@@ -28,7 +28,7 @@
 //
 // Response shape
 // ──────────────
-//   { ok: true, checked: 37, green: 30, amber: 4, red: 3, alertsSent: 1 }
+//   { ok: true, checked: 37, green: 33, red: 3, unknown: 1, alertsSent: 1 }
 //
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
@@ -56,8 +56,8 @@ type HealthRow = {
   last_check_at: string | null;
   last_value: unknown;
   last_error: string | null;
-  status: "green" | "amber" | "red";
-  prev_status: "green" | "amber" | "red" | null;
+  status: "green" | "red" | "unknown" | "amber";
+  prev_status: "green" | "red" | "unknown" | "amber" | null;
   last_alerted_at: string | null;
   last_7day_alert_at?: string | null;
 };
@@ -96,12 +96,6 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function statusFor(ageMinutes: number, row: HealthRow): "green" | "amber" | "red" {
-  const limit = row.expected_cadence_minutes + CADENCE_TOLERANCE_MINUTES[row.cadence];
-  if (ageMinutes <= limit)         return "green";
-  if (ageMinutes <= limit * 2)     return "amber";
-  return "red";
-}
 
 // PR (timestamp-semantics fix, 2026-05-01): when as_of comes through as a
 // date-only string ("2026-04-30") for a DAILY indicator, anchor the time to
@@ -185,8 +179,9 @@ async function handle(req: Request): Promise<Response> {
       fetchCompositeHistory(),
     ]);
   } catch (e) {
-    // If the site itself is down, mark everything amber, don't alert — this is
-    // a fetch-side failure, not a pipeline failure.
+    // If the site itself is down, bail without touching any row — this is a
+    // fetch-side failure, not a pipeline failure. We never blanket-flip rows to
+    // a "can't tell" state; the next run re-grades cleanly once the site is back.
     return json({ ok: false, error: `site fetch: ${(e as Error).message}` }, 502);
   }
   try {
@@ -217,7 +212,7 @@ async function handle(req: Request): Promise<Response> {
   const logRows: Array<{
     indicator_id: string;
     check_at: string;
-    status: "green" | "amber" | "red";
+    status: "green" | "red" | "unknown" | "amber";
     age_minutes: number | null;
     last_value: unknown;
     error_message: string | null;
@@ -484,12 +479,15 @@ async function handle(req: Request): Promise<Response> {
       maxDataAgeHours: winH,
       dataCalendar: (mfGrade?.data_calendar as ReleaseCalendar) || (mfGrade?.release_calendar as ReleaseCalendar) || "us-business-day",
     });
-    // Config gap (neither a pull SLA nor a data window configured) -> amber, which
-    // is visible in Admin·Data without firing the green->red alert. Everything else
-    // takes the two-clock green/red verdict directly.
+    // Config gap (neither a pull SLA nor a data window configured): a reference /
+    // static / event-driven row with no freshness target. Grade it "unknown"
+    // (neutral grey) — the SAME state the site chips show for a reference-exempt
+    // element. NEVER amber: the binary doctrine has exactly two graded states
+    // (green / red) plus grey for untracked/reference. There is no "lagging"
+    // state anywhere on the site.
     const isConfigGap = slaH <= 0 && winH <= 0;
-    const newStatus: "green" | "amber" | "red" =
-      isConfigGap ? "amber" : (graded.status === "green" ? "green" : "red");
+    const newStatus: "green" | "red" | "unknown" =
+      isConfigGap ? "unknown" : (graded.status === "green" ? "green" : "red");
 
     // Debounced alert on a green→red transition
     const wasGreen = row.status === "green";
@@ -672,7 +670,7 @@ async function handle(req: Request): Promise<Response> {
 
   // 6) Summary
   const green = updates.filter((u) => u.status === "green").length;
-  const amber = updates.filter((u) => u.status === "amber").length;
+  const unknown = updates.filter((u) => u.status === "unknown").length;
   const red   = updates.filter((u) => u.status === "red").length;
   // (escalationsSent surfaced in the response below)
 
@@ -752,7 +750,7 @@ async function handle(req: Request): Promise<Response> {
     console.error("[pipeline-health-check] Narrative-gap check failed:", (e as Error).message);
   }
 
-  return json({ ok: true, checked: updates.length, green, amber, red, alertsSent, narrativeAlertsSent });
+  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, narrativeAlertsSent });
 }
 
 // Returns YYYY-MM-DD for the most recent UTC weekday.
