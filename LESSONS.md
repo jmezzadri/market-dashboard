@@ -262,6 +262,21 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 # 4 · DATA GOVERNANCE
 
+### 2026-06-19 — One provider per source; every source names its exact dataset + location; no mashups, no guessing
+
+**What happened:** The manifest lumped multiple providers into one "source" ("Wikipedia + iShares", "Invesco QQQ holdings + Polygon"), source fields were vague about WHAT data and WHERE, and the S&P-500-breadth SSGA source was omitted entirely. Joe: "There is no methodology to how you operate. This is atrocious. Source: what is the actual website/source/location you're going? Specifically what is the data being sourced."
+
+**Rule (binding data-governance standard):** A SOURCE = exactly ONE provider pulling ONE specific dataset from ONE specific location. Never combine two providers in a single source. Each source declares four fields, no exceptions:
+1. **Provider** — the actual organization (Wikipedia, iShares, Invesco, SSGA/State Street, Polygon, FRED, CFTC, NY Fed, Treasury.gov, Yahoo, ISM, multpl/Shiller, FINRA).
+2. **Dataset** — the specific data pulled, named concretely ("Russell 2000 constituents = IWM holdings", "S&P 500 grouped EOD prices", "VIXCLS daily series"). Never a category.
+3. **Location** — the exact URL / API endpoint / file the producer hits.
+4. **Method** — API / CSV / XLSX / scrape / DB.
+
+A COMPUTED element lists EACH input source separately (provider + dataset + location + method) plus the in-house transform — never a mashed vendor string. "Source" answers WHERE (origin); "Dataset" answers WHAT — different fields, both mandatory. Before writing any source, VERIFY the real provider/dataset/location against the producer code; never guess, never mash. The manifest carries a structured `inputs` array per element; the Data-page Source column shows each distinct provider as its own tile with its specific dataset.
+
+**Applies to:** Data Steward (owns) + all. Every manifest entry, every Data-page source tile. Hard rule.
+
+
 ### 2026-06-16 — Freshness is ONE clock: grade off the LAST PULL, never the age of the data (binding; FRESHNESS_CHIP_SPEC.md is the acceptance test)
 
 **What happened:** The two-clock design (data-age SLA on most chips + a session-frontier grade on dailies) drifted into the three contradictions Joe kept catching: fake-green (Uranium read green while its feed was effectively dead), false-red (lagged monthly/quarterly series red between releases), and "refresh older than data" impossible pairs. Joe wrote FRESHNESS_CHIP_SPEC.md as the binding contract and acceptance test for all 50 indicator + 28 positioning chips.
