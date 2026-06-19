@@ -54,6 +54,7 @@ import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
+import { gradeTwoClock } from '../../lib/freshnessClock';
 
 // ─── Five-domain family rollup (matches useIndicators.FAMILY_LABEL) ──────────
 // The registry tags each indicator with a fine-grained family_id; the site
@@ -300,6 +301,28 @@ const REG_DISPLAY = {};
 Object.entries(IND).forEach(([k, meta]) => { if (meta && meta[0]) REG_DISPLAY[k] = meta[0]; });
 const REG_FAMILY = {};
 Object.entries(IND).forEach(([k, meta]) => { if (meta && meta[2]) REG_FAMILY[k] = meta[2]; });
+// Registry "deprecated" flag (schema index 11). A deprecated registry entry is a
+// retired cycle-engine factor that is NOT shown as an indicator on Macro
+// Overview (the Shiller P/E, ISM, the copper/gold ratio, banks-vs-market, and
+// 3-year credit growth). Kept in the registry for engine math, hidden from the
+// indicator grids.
+const REG_DEPRECATED = {};
+Object.entries(IND).forEach(([k, meta]) => { REG_DEPRECATED[k] = !!(meta && meta[11]); });
+
+// A LIVE Macro Overview indicator = a registry entry that is not deprecated.
+// This is exactly the set the Macro Overview and All Indicators pages display
+// (50 of them). The manifest's category:"indicator" is deliberately broader — it
+// also tracks, for freshness, the engine-input derived spreads/ratios (FRA-OIS,
+// SOFR-OIS, real Fed funds, the bank-vs-market v11 ratio, the equity risk
+// premium, copper/gold), the survey sub-series (the ISM head plus its
+// manufacturing/services splits, the 4-week jobless-claims average), registry
+// reference-only series (CAPE, 3-year credit growth), the NY-Fed credit
+// positioning signal, and the single CFTC COT element. None of those are Macro
+// Overview indicators, so the Indicators column and its headline count include
+// ONLY the live registry indicators — and tie out to the 50 on Macro Overview.
+function isLiveIndicator(name) {
+  return Object.prototype.hasOwnProperty.call(IND, name) && !REG_DEPRECATED[name];
+}
 
 function humanise(name) {
   if (!name) return '';
@@ -578,14 +601,13 @@ function Tile({ id, role, name, sub, count, selected, lit, dim, status, dotTip, 
 }
 
 // Build the dot tooltip content for a tile: a plain-English meaning of the dot
-// colour, plus — for amber/red — the named worst member feed(s) and why. `worst`
-// is the list of lagging/stale members [{ name, status, lastRan, reason }].
+// colour, plus — for a red tile — the named stale/failed member feed(s) and why.
+// `worst` is the list of stale members [{ name, status, lastRan, reason }].
 function buildDotTip(status, worst) {
   const meaning =
     status === 'g' ? 'Green — every feed in this tile is within its freshness target.'
-      : status === 'a' ? 'Amber — at least one feed is lagging its schedule.'
-        : status === 'r' ? 'Red — at least one feed is stale or its last run failed.'
-          : 'Grey — these feeds aren’t on a daily schedule (they update on change / on demand), or aren’t tracked yet.';
+      : status === 'r' ? 'Red — at least one feed is stale or its last run failed.'
+        : 'Grey — these feeds aren’t on a daily schedule (they update on change / on demand), or aren’t tracked yet.';
   return (
     <div style={{ minWidth: 180 }}>
       <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: (worst && worst.length) ? 6 : 0 }}>
@@ -606,13 +628,6 @@ function buildDotTip(status, worst) {
       )}
     </div>
   );
-}
-
-// ─── Status rollup (own + worst upstream), driven by live freshness ──────────
-function worse(a, b) {
-  if (a === 'r' || b === 'r') return 'r';
-  if (a === 'a' || b === 'a') return 'a';
-  return 'g';
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -763,6 +778,11 @@ export default function DataFlowPage() {
     elements.forEach((e) => {
       if (classified[e.name] !== 'derived') return;
       if (isCotElement(e)) return; // COT gets its own tile, not a family row
+      // Only the 50 live Macro Overview indicators are counted/grouped here.
+      // Derived engine inputs, survey sub-series, reference-only and positioning
+      // elements stay tracked (and visible under their source vendor tile) but
+      // are not indicators — so this column ties to Macro Overview's 50.
+      if (!isLiveIndicator(e.name)) return;
       const dom = domainForIndicator(e.name);
       if (!byFam.has(dom)) byFam.set(dom, []);
       byFam.get(dom).push(e);
@@ -957,7 +977,7 @@ export default function DataFlowPage() {
           fams.add(COT_TILE_ID);
           return;
         }
-        if (classified[m.name] === 'derived') {
+        if (classified[m.name] === 'derived' && isLiveIndicator(m.name)) {
           const dom = domainForIndicator(m.name);
           if (famTileFor[dom]) fams.add(famTileFor[dom]);
         }
@@ -1102,12 +1122,42 @@ export default function DataFlowPage() {
       for (const c of cand) if (byKey.has(c)) return byKey.get(c);
       return null;
     };
+    const coerceCal = (c) => (c === 'nyse-trading-day' || c === 'us-business-day' || c === 'wall-clock') ? c : 'us-business-day';
     const out = {};
     const detail = {};
     elements.forEach((el) => {
       const r = lookup(el);
-      const s = r ? r.status : null;
-      out[el.name] = s === 'red' ? 'r' : s === 'amber' ? 'a' : s === 'green' ? 'g' : 'u';
+      // Grade each element with the SAME two-clock function the per-row chips
+      // use, off the SAME inputs: the manifest pull SLA + data window, and the
+      // row's honest last_good_at / data_as_of / last_error. One shared grader
+      // (gradeTwoClock) means a tile dot can never disagree with the chips inside
+      // it. Binary green/red — no amber, ever. We do NOT read the stored
+      // pipeline_health.status here (that was the source of dots disagreeing with
+      // chips when the nightly watchdog and the chip used different SLAs).
+      const slaHours = Number(el.freshness_sla_hours) || 0;
+      const maxDataAgeHours = Number(el.data_max_age_hours) || 0;
+      let s;
+      if (slaHours <= 0 && maxDataAgeHours <= 0) {
+        // Reference / event-driven / not-time-graded: no freshness target → a
+        // neutral grey, never green (fake-green forbidden) and never red on a
+        // tile rollup (an untracked member must not paint a tile red).
+        s = 'u';
+      } else {
+        let dataAsOf = r?.data_as_of || null;
+        if (dataAsOf && /T00:00:00(\.0+)?(\+00:00|Z)$/.test(String(dataAsOf))) dataAsOf = String(dataAsOf).slice(0, 10);
+        const graded = gradeTwoClock({
+          lastPullIso: r?.last_good_at || null,
+          asOfIso: dataAsOf,
+          dataAsOfIso: dataAsOf,
+          slaHours,
+          calendar: coerceCal(el.release_calendar),
+          lastError: r?.last_error || null,
+          maxDataAgeHours,
+          dataCalendar: coerceCal(el.data_calendar || el.release_calendar),
+        });
+        s = graded.status === 'green' ? 'g' : graded.status === 'red' ? 'r' : 'u';
+      }
+      out[el.name] = s;
       detail[el.name] = {
         lastGoodAt: r?.last_good_at || null,
         lastError: r?.last_error || null,
@@ -1152,22 +1202,16 @@ export default function DataFlowPage() {
       return best === 'u' ? 'u' : best;
     };
 
-    const own = {};
-    allTiles.forEach((t) => { own[t.id] = rollMembers(t.members); });
-
-    // Propagate worst status upstream: a red/amber source colours everything
-    // it feeds. 'u' never overrides a real status.
+    // Each tile's dot is the worst of its OWN members only — NO upstream
+    // propagation. A stale feed reds ONLY its own tile, never the whole board
+    // (the old "red sea" where one stale feed painted every engine and surface
+    // it touched). The lineage lines still show that feed's downstream impact
+    // when you click its tile; the dot just stops lying about tiles whose own
+    // feeds are all fresh.
     const out = {};
-    allTiles.forEach((t) => {
-      let s = own[t.id];
-      bfs(t.id, 'up').forEach((uid) => {
-        const us = own[uid];
-        if (us && us !== 'u') s = worse(s === 'u' ? 'g' : s, us);
-      });
-      out[t.id] = s;
-    });
+    allTiles.forEach((t) => { out[t.id] = rollMembers(t.members); });
     return out;
-  }, [allTiles, statusByElement, bfs]);
+  }, [allTiles, statusByElement]);
 
   // ── Per-tile worst-member detail for the dot tooltip. Names the specific
   //    member feed(s) that are lagging/stale and why. Includes the tile's OWN
@@ -1333,7 +1377,7 @@ export default function DataFlowPage() {
   const totals = useMemo(() => ({
     elements: elements.length,
     vendors: sourceTiles.length,
-    indicators: elements.filter((e) => classified[e.name] === 'derived').length,
+    indicators: elements.filter((e) => classified[e.name] === 'derived' && isLiveIndicator(e.name)).length,
     engines: engineTiles.length,
     surfaces: surfaceTiles.length,
   }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
@@ -1374,7 +1418,6 @@ export default function DataFlowPage() {
           <div className="df-legend-top" role="note" aria-label="Legend">
             <span className="df-legend-grp-h">Freshness on every row</span>
             <span><span className="df-dot df-dot--inline df-dot--g" />Within target</span>
-            <span><span className="df-dot df-dot--inline df-dot--a" />Lagging</span>
             <span><span className="df-dot df-dot--inline df-dot--r" />Stale or failed</span>
             <span><span className="df-dot df-dot--inline df-dot--u" />On change / not yet tracked</span>
             <span className="df-legend-hint">Hover a tile’s dot for detail · click a tile to list its feeds</span>
