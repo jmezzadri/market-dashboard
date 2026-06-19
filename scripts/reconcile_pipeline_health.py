@@ -41,7 +41,8 @@ FILE_FEEDS = {
     "cycle_board":      ("cycle_v2.json",          "top",        49,  True),
     "sector_perf":      ("sector_perf.json",       "top",        49,  True),
     "v10_allocation":   ("v10_allocation.json",    "top",        200, False),
-    "cftc-cot":         ("cot_positioning.json",   "min_market", 432, False),  # grade off OLDEST market so a stale sub-feed (credit) reds the chip
+    "cftc-cot":         ("cot_positioning.json",   "min_market", 192, False),  # CFTC domains only (Credit split to credit_positioning)
+    "credit_positioning":("cot_positioning.json",   "min_market", 480, False),  # NY-Fed dealer inventory (Credit domain)
     "indicator_history":("indicator_history.json", "max_series", 49,  True),
 }
 # Table-backed feeds: ph id -> (table, [candidate ts columns], sla_hours, daily?)
@@ -145,8 +146,12 @@ def resolve(indicator_id, ih):
         d = fetch_json(fn)
         if d is None: return ("unknown", "fetch failed", None)
         if mode == "min_market":
+            # cftc-cot grades off the CFTC domains only (Rates/Equities/FX/Commodities);
+            # the Credit domain is NY-Fed dealer inventory, tracked as credit_positioning.
             best = None
-            for dd in (d.get("domains") or {}).values():
+            doms = d.get("domains") or {}
+            sel = {k: v for k, v in doms.items() if k == "Credit"} if indicator_id == "credit_positioning" else {k: v for k, v in doms.items() if k != "Credit"}
+            for dd in sel.values():
                 for mk in (dd.get("markets") or []):
                     a = parse_date(mk.get("asof"))
                     if a and (best is None or a < best): best = a

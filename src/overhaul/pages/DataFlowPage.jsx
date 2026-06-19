@@ -87,6 +87,7 @@ const FALLBACK_FAMILY = {
   sofr_ois: 'Credit',
   real_fedfunds: 'Credit',
   bkx_spx_v11: 'Credit',
+  credit_positioning: 'Credit',
   ic4wsa: 'Financial Conditions & Economy',
   ism_mfg: 'Financial Conditions & Economy',
   ism_svc: 'Financial Conditions & Economy',
