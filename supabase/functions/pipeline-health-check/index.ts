@@ -311,7 +311,8 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "sector_perf" ||
       row.indicator_id === "v10_allocation" ||
       row.indicator_id === "indicator_history" ||
-      row.indicator_id === "cftc-cot"
+      row.indicator_id === "cftc-cot" ||
+      row.indicator_id === "credit_positioning"
     ) {
       // 2026-05-19 (#1148 fix) — these rows used to fall into the generic
       // indicator_history lookup and always RED because they are not
@@ -322,6 +323,7 @@ async function handle(req: Request): Promise<Response> {
         sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
+        "credit_positioning":{ path: "/cot_positioning.json",     field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
       };
       const cfg = FILE_MAP[row.indicator_id];
@@ -337,10 +339,13 @@ async function handle(req: Request): Promise<Response> {
           // stuck weeks back) turns the chip RED instead of hiding under the
           // freshest market. (Joe 2026-06-19 — the header lied "all current".)
           let v: unknown;
-          if (row.indicator_id === "cftc-cot") {
+          if (row.indicator_id === "cftc-cot" || row.indicator_id === "credit_positioning") {
+            // cftc-cot = CFTC domains only; credit_positioning = the NY-Fed Credit domain.
             let minA: string | null = null;
             const doms = (j && (j as Record<string, unknown>).domains) as Record<string, { markets?: Array<{ asof?: string }> }> | undefined;
-            for (const d of Object.values(doms || {})) {
+            const wantCredit = row.indicator_id === "credit_positioning";
+            for (const [dname, d] of Object.entries(doms || {})) {
+              if ((dname === "Credit") !== wantCredit) continue;
               for (const mk of (d?.markets || [])) {
                 if (mk?.asof && (minA === null || mk.asof < minA)) minA = mk.asof;
               }

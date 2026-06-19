@@ -3822,6 +3822,36 @@
    "dependencies": [],
    "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) \u2014 a different element; this one is context-only and never scored.",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+  },
+  {
+   "id": "indicator-credit_positioning-weekly",
+   "category": "indicator",
+   "name": "credit_positioning",
+   "description": "Credit positioning \u2014 primary-dealer net inventory of IG/HY corporate bonds (NY Fed primary-dealer statistics). Separate source from the CFTC COT speculator data.",
+   "sourcing_mode": "STP",
+   "source_vendor": "NY Fed primary-dealer statistics",
+   "source_endpoint": "NY Fed primary dealer statistics (weekly)",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "weekly",
+   "scheduled_fetch_time_et": "07:00",
+   "freshness_sla_hours": 192,
+   "data_max_age_hours": 480,
+   "data_calendar": "us-business-day",
+   "output_destination": "public/cot_positioning.json domains.Credit",
+   "producer_script": "scripts/build_cot_positioning.py (Credit domain)",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Credit positioning \u2014 dealer inventory"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "NY Fed fetch fails -> credit markets stale (currently stuck 2026-05-27).",
+   "owner": "Data Steward",
+   "release_calendar": "us-business-day",
+   "dependencies": [],
+   "sla_basis": "Weekly job; PULL SLA = weekly cadence + grace (~8 days / 192h). Data window 480h covers the NY Fed publication lag."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
