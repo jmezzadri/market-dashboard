@@ -331,9 +331,26 @@ async function handle(req: Request): Promise<Response> {
           lastError = `${cfg.path} ${r.status}`;
         } else {
           const j = await r.json();
-          const parts = cfg.field.split(".");
-          let v: unknown = j;
-          for (const p of parts) { v = v && typeof v === "object" ? (v as Record<string, unknown>)[p] : undefined; }
+          // cftc-cot bundles CFTC speculator data AND NY-Fed credit positioning
+          // under one feed. Grade off the OLDEST market as_of (not the file's
+          // top-level/newest date) so a stale sub-feed (e.g. credit positioning
+          // stuck weeks back) turns the chip RED instead of hiding under the
+          // freshest market. (Joe 2026-06-19 — the header lied "all current".)
+          let v: unknown;
+          if (row.indicator_id === "cftc-cot") {
+            let minA: string | null = null;
+            const doms = (j && (j as Record<string, unknown>).domains) as Record<string, { markets?: Array<{ asof?: string }> }> | undefined;
+            for (const d of Object.values(doms || {})) {
+              for (const mk of (d?.markets || [])) {
+                if (mk?.asof && (minA === null || mk.asof < minA)) minA = mk.asof;
+              }
+            }
+            v = minA || (j as Record<string, unknown>).as_of;
+          } else {
+            const parts = cfg.field.split(".");
+            v = j;
+            for (const p of parts) { v = v && typeof v === "object" ? (v as Record<string, unknown>)[p] : undefined; }
+          }
           if (typeof v === "string" && v.length > 0) {
             asOf = v;
             // Honest last_good_at (kills the frozen-stamp impossible-pair red).

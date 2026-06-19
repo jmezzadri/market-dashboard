@@ -41,7 +41,7 @@ FILE_FEEDS = {
     "cycle_board":      ("cycle_v2.json",          "top",        49,  True),
     "sector_perf":      ("sector_perf.json",       "top",        49,  True),
     "v10_allocation":   ("v10_allocation.json",    "top",        200, False),
-    "cftc-cot":         ("cot_positioning.json",   "top",        432, False),  # weekly COT — full NY Fed dealer chain (manifest sla_basis)
+    "cftc-cot":         ("cot_positioning.json",   "min_market", 432, False),  # grade off OLDEST market so a stale sub-feed (credit) reds the chip
     "indicator_history":("indicator_history.json", "max_series", 49,  True),
 }
 # Table-backed feeds: ph id -> (table, [candidate ts columns], sla_hours, daily?)
@@ -144,7 +144,14 @@ def resolve(indicator_id, ih):
         fn, mode, sla, daily = FILE_FEEDS[indicator_id]
         d = fetch_json(fn)
         if d is None: return ("unknown", "fetch failed", None)
-        if mode == "max_series":
+        if mode == "min_market":
+            best = None
+            for dd in (d.get("domains") or {}).values():
+                for mk in (dd.get("markets") or []):
+                    a = parse_date(mk.get("asof"))
+                    if a and (best is None or a < best): best = a
+            asof = best
+        elif mode == "max_series":
             best = None
             for v in d.values():
                 if isinstance(v, dict) and v.get("as_of"):
