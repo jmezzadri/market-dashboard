@@ -288,12 +288,19 @@ def run():
             }
             latest = max(latest, cr_asof) if latest else cr_asof
             print(f"  Credit (NY Fed dealer) IG p{ig['spec'] if ig else '-'} HY p{hy['spec'] if hy else '-'} as_of {cr_asof}")
+            # The Credit row (credit_positioning) is a SEPARATE pipeline_health
+            # row from cftc-cot — stamp it green + fresh here, or it reds on the
+            # pull clock forever even with fresh data.
+            _sync_credit_positioning(cr_asof, True)
         elif "Credit" in prior:
             domains["Credit"] = prior["Credit"]; print("  Credit: NY Fed empty, kept prior")
+            _sync_credit_positioning(None, False, "NY Fed returned no dealer-inventory rows")
     except Exception as e:
         print(f"  Credit NY Fed fetch failed: {e}")
         if "Credit" in prior:
             domains["Credit"] = prior["Credit"]
+        # Fail loud: never leave a frozen green — mark the row red with the error.
+        _sync_credit_positioning(None, False, e)
     # headline + takeaway only for freshly built buckets (preserved buckets keep
     # theirs). Defensive .get so a market missing a field can never crash the run.
     for b in fresh_buckets:
@@ -331,6 +338,32 @@ def _sync_pipeline_health(as_of):
     try:
         with _ur.urlopen(req,timeout=10) as r: r.read(); print("  pipeline_health: cftc-cot upserted")
     except Exception as ex: print(f"  pipeline_health upsert cftc-cot: {ex}")
+
+
+def _sync_credit_positioning(as_of, ok, err=None):
+    """Upsert the credit_positioning pipeline_health row (NY Fed dealer
+    inventory, IG + HY corporate bonds — split out from cftc-cot). Green + a
+    fresh last_good_at on a successful pull; red with the error on failure
+    (fail-loud — never leave a frozen green). On failure last_good_at and
+    data_as_of are left untouched so they keep the last real success. No-op
+    without Supabase env."""
+    import os as _os, urllib.request as _ur, json as _json, datetime as _dtm
+    url=_os.environ.get("SUPABASE_URL"); key=_os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not (url and key): return
+    _now=_dtm.datetime.now(_dtm.timezone.utc).isoformat()
+    row={"indicator_id":"credit_positioning","label":"Credit positioning (NY Fed dealer)",
+         "source":"ny_fed","cadence":"W","expected_cadence_minutes":10080,
+         "status":"green" if ok else "red",
+         "last_error":None if ok else (str(err)[:200] if err else "NY Fed dealer-inventory pull failed")}
+    if ok and as_of:
+        row["data_as_of"]=f"{str(as_of)[:10]}T00:00:00+00:00"
+        row["last_good_at"]=_now
+        row["coverage_pct"]=100.0
+    req=_ur.Request(f"{url}/rest/v1/pipeline_health?on_conflict=indicator_id",data=_json.dumps(row).encode(),method="POST",
+        headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json","Prefer":"return=minimal,resolution=merge-duplicates"})
+    try:
+        with _ur.urlopen(req,timeout=10) as r: r.read(); print(f"  pipeline_health: credit_positioning {'green' if ok else 'red'}")
+    except Exception as ex: print(f"  pipeline_health upsert credit_positioning: {ex}")
 
 
 def stamp_manifest(as_of):
