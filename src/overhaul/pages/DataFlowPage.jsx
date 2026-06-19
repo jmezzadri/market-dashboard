@@ -119,6 +119,10 @@ function buildCotMembers(cotData) {
   if (!domains || typeof domains !== 'object') return [];
   const out = [];
   Object.entries(domains).forEach(([domain, obj]) => {
+    // The Credit domain (IG/HY bond positioning) is NY-Fed dealer-inventory data,
+    // NOT CFTC COT — it is tracked separately as the `credit_positioning` element.
+    // Exclude it here so the COT tile counts only the 26 real CFTC markets.
+    if (domain === 'Credit') return;
     const markets = obj && Array.isArray(obj.markets) ? obj.markets : [];
     markets.forEach((m) => {
       if (!m || !m.market) return;
