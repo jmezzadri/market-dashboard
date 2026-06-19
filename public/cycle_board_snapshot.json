@@ -1,6 +1,6 @@
 {
   "_doc": "v11 cycle-mechanism scores. Sprint 1 (Valuation/Credit/Growth) reads indicator percentiles directly from methodology_calibration_v11.json with direction encoding (high/low/bidir_top/bidir_bottom). Sprint 2 (Funding/Liquidity & Policy/Positioning & Breadth) computes from indicator_history.json post-2011 sample. Refreshed nightly by scripts/compute_v11_mechanisms.py at 22:30 UTC weekdays.",
-  "as_of": "2026-06-17",
+  "as_of": "2026-06-18",
   "framework": "v11 \u2014 six cycle mechanisms",
   "calibration_label": "Sprint 1+2 calibration",
   "mechanisms": [
@@ -80,7 +80,7 @@
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 43,
+      "score": 50,
       "breakdown": [
         {
           "id": "cpff",
@@ -94,29 +94,29 @@
         {
           "id": "stlfsi",
           "name": "St. Louis Fed FSI",
-          "percentile": 1.2,
+          "percentile": 7.1,
           "direction": "high_is_concerning",
-          "reading": -0.87,
+          "reading": -0.77,
           "unit": null,
-          "score": 1.2
+          "score": 7.1
         },
         {
           "id": "bank_reserves",
           "name": "Bank reserves at Fed",
-          "percentile": 69.1,
+          "percentile": 67.5,
           "direction": "low_is_concerning",
-          "reading": 3080.7,
+          "reading": 3033.4,
           "unit": null,
-          "score": 30.9
+          "score": 32.5
         },
         {
           "id": "rrp",
           "name": "Reverse repo balance",
-          "percentile": 25.8,
+          "percentile": 7.4,
           "direction": "low_is_concerning",
-          "reading": 6.8,
+          "reading": 0.3,
           "unit": null,
-          "score": 74.2
+          "score": 92.6
         }
       ],
       "source": "indicator_history"
@@ -184,11 +184,11 @@
         {
           "id": "fed_bs",
           "name": "Fed Balance Sheet YoY %",
-          "percentile": 53.5,
+          "percentile": 53.7,
           "direction": "low_is_concerning",
-          "reading": 0.72,
+          "reading": 0.83,
           "unit": null,
-          "score": 46.5
+          "score": 46.3
         },
         {
           "id": "sloos_ci",
@@ -215,43 +215,43 @@
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 67,
+      "score": 63,
       "breakdown": [
         {
           "id": "skew",
           "name": "CBOE SKEW",
-          "percentile": 81.1,
+          "percentile": 87.7,
           "direction": "high_is_concerning",
-          "reading": 142.6,
+          "reading": 146.7,
           "unit": null,
-          "score": 81.1
+          "score": 87.7
         },
         {
           "id": "vix",
           "name": "VIX",
-          "percentile": 64.5,
+          "percentile": 49.6,
           "direction": "high_is_concerning",
-          "reading": 18.44,
+          "reading": 16.4,
           "unit": null,
-          "score": 64.5
+          "score": 49.6
         },
         {
           "id": "eq_cr_corr",
           "name": "Equity-credit correlation (60d)",
-          "percentile": 75.8,
+          "percentile": 79.0,
           "direction": "high_is_concerning",
-          "reading": 0.78,
+          "reading": 0.8,
           "unit": null,
-          "score": 75.8
+          "score": 79.0
         },
         {
           "id": "move",
           "name": "MOVE Index (Treasury vol)",
-          "percentile": 46.1,
+          "percentile": 36.5,
           "direction": "high_is_concerning",
-          "reading": 70.7,
+          "reading": 65.4,
           "unit": null,
-          "score": 46.1
+          "score": 36.5
         }
       ],
       "source": "indicator_history"
