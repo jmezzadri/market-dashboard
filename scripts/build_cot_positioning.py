@@ -117,19 +117,46 @@ IG_BUCKETS = [("PDPOSCSBND-L13", "\u226413mo"), ("PDPOSCSBND-G13", "1\u20135yr")
 HY_BUCKETS = [("PDPOSCSBND-BELL13", "\u226413mo"), ("PDPOSCSBND-BELG13", "1\u20135yr"), ("PDPOSCSBND-BELG5L10", "5\u201310yr"), ("PDPOSCSBND-BELG10", "10yr+")]
 
 
+# The NY Fed markets API intermittently returns an EMPTY 200 body to
+# data-center IP ranges (GitHub Actions). The old bare requests.get with the
+# default python-requests User-Agent hit that empty body, threw "Expecting
+# value: line 1 column 1" at .json(), and the Credit bucket silently kept its
+# prior value — it froze at 2026-05-27 for weeks while fresh data was available
+# (LESSONS 4.5: never accept a silent empty pull). Send browser-like headers and
+# retry on an empty / non-JSON / empty-timeseries body before giving up.
+_NYFED_HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://markets.newyorkfed.org/",
+}
+
 def _nyfed_series(keyid):
-    """One NY Fed Primary Dealer weekly series -> pd.Series(index=date, value=$mm)."""
-    import requests
-    r = requests.get(NYFED_PD_URL.format(keyid), timeout=60)
-    r.raise_for_status()
-    rows = r.json().get("pd", {}).get("timeseries", [])
-    out = {}
-    for o in rows:
+    """One NY Fed Primary Dealer weekly series -> pd.Series(index=date, value=$mm).
+    Robust: browser headers + retry on an empty/non-JSON body so a transient
+    empty 200 from the API can no longer silently freeze the Credit bucket."""
+    import requests, time
+    last_err = None
+    for attempt in range(4):
         try:
-            out[str(o["asofdate"])[:10]] = float(o["value"])
-        except (TypeError, ValueError, KeyError):
-            continue
-    return pd.Series(out)
+            r = requests.get(NYFED_PD_URL.format(keyid), headers=_NYFED_HEADERS, timeout=60)
+            r.raise_for_status()
+            if not (r.text or "").strip():
+                raise ValueError("empty response body")
+            rows = r.json().get("pd", {}).get("timeseries", [])
+            if not rows:
+                raise ValueError("no timeseries rows")
+            out = {}
+            for o in rows:
+                try:
+                    out[str(o["asofdate"])[:10]] = float(o["value"])
+                except (TypeError, ValueError, KeyError):
+                    continue
+            return pd.Series(out)
+        except Exception as e:
+            last_err = e
+            time.sleep(3 * (attempt + 1))
+    raise RuntimeError(f"NY Fed {keyid}: {last_err}")
 
 
 def _dealer_market(disp, buckets, start):
