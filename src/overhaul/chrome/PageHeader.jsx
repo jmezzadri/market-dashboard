@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import { useTweaks } from '../tweaks/TweaksContext';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
+import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
 
 // "All feeds" pill — a TRUE site-wide rollup across EVERY registered data
 // element, graded with the exact same logic the per-element chips use
@@ -124,9 +125,9 @@ function AllFeedsPill() {
 }
 
 function nyseMarketState(now = new Date()) {
-  // Lightweight client-side approximation. NYSE 9:30 ET → 16:00 ET on weekdays.
-  // Doesn't account for holidays — that's fine for a chrome label; the
-  // FreshnessChip is the source of truth on stale data.
+  // NYSE 9:30 ET → 16:00 ET on trading days. Trading day = weekday AND not an
+  // NYSE holiday (the same holiday table the freshness clock uses, so a federal
+  // holiday like Juneteenth reads "Market closed", not "Market open").
   const opts = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short' };
   const parts = new Intl.DateTimeFormat('en-US', opts).formatToParts(now);
   const get = (t) => parts.find((p) => p.type === t)?.value;
@@ -134,8 +135,11 @@ function nyseMarketState(now = new Date()) {
   const h = Number(get('hour'));
   const m = Number(get('minute'));
   const mins = h * 60 + m;
-  const isWeekday = !['Sat', 'Sun'].includes(wk);
-  if (!isWeekday) return { open: false, label: 'Market closed' };
+  // ET calendar date (YYYY-MM-DD) for the holiday lookup.
+  const etDate = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const isHoliday = NYSE_HOLIDAYS.has(etDate);
+  const isTradingDay = !['Sat', 'Sun'].includes(wk) && !isHoliday;
+  if (!isTradingDay) return { open: false, label: isHoliday ? 'Market closed · holiday' : 'Market closed' };
   if (mins < 9 * 60 + 30) return { open: false, label: 'Market pre-open' };
   if (mins >= 16 * 60) return { open: false, label: 'Market closed' };
   return { open: true, label: 'Market open' };

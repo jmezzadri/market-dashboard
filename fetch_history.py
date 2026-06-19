@@ -1527,6 +1527,33 @@ def main():
                 if carried:
                     print(f"  Carried forward {len(carried)} indicator(s) from prior "
                           f"file (fresh fetch failed): {', '.join(carried)}")
+                # ── Never regress a series backward (monotonic as-of guard) ──
+                # A vendor (Yahoo ^MOVE) intermittently returns a TRUNCATED
+                # series ending on an OLDER date than what we already hold. That
+                # is not a "missing" indicator (the carry-forward above won't
+                # catch it) — it is present-but-stale, and writing it overwrites
+                # good data with old data. MOVE flip-flopped Jun 18 -> Jun 12 in
+                # one day this way. Keep the fresher on-disk series whenever the
+                # fresh fetch ends EARLIER than what we already have. (Future
+                # points were already dropped, so the last point is the true
+                # latest.)
+                def _last_dt(e):
+                    p = e.get("points") if isinstance(e, dict) else None
+                    return p[-1][0] if p else None
+                regressed = []
+                for ind_id, fresh in list(data.items()):
+                    if ind_id.startswith("__"):
+                        continue
+                    pf = prior.get(ind_id)
+                    if not isinstance(pf, dict):
+                        continue
+                    nd, od = _last_dt(fresh), _last_dt(pf)
+                    if nd and od and nd < od:
+                        data[ind_id] = pf            # keep the fresher prior series
+                        regressed.append(f"{ind_id} (fetch {nd} < held {od})")
+                if regressed:
+                    print(f"  REGRESSION BLOCKED — kept prior (fresh fetch was older): "
+                          f"{', '.join(regressed)}")
         except Exception as _ce:
             print(f"  carry-forward step skipped: {_ce}")
         # ── Publish healthy data FIRST, then flag staleness per-element ───────
