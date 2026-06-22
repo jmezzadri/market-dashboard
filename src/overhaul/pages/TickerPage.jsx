@@ -26,7 +26,7 @@
    Layout follows the prototype tk-* class set unchanged.
 */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
@@ -397,6 +397,19 @@ export default function TickerPage() {
     [eventsForSym.news],
   );
 
+  /* Live per-ticker news (Google News, fetched on demand when the News tab is
+     open) merged with the stored ticker_events news rows. */
+  const companyName = info.name || snap?.full_name || '';
+  const liveNews = useLiveTickerNews(sym, companyName, tab === 'news');
+  const mergedNews = useMemo(
+    () => mergeTickerNews(newsEvents, liveNews.items),
+    [newsEvents, liveNews.items],
+  );
+  const eventsForBadge = useMemo(
+    () => ({ ...eventsForSym, news: mergedNews }),
+    [eventsForSym, mergedNews],
+  );
+
   return (
     <div className="mt-pagebody tk-page mt-fade">
       {/* Back row */}
@@ -639,7 +652,7 @@ export default function TickerPage() {
               className={`mt-pill ${tab === id ? 'on' : ''}`}
               onClick={() => setTab(id)}
             >
-              {l}{badgeForTab(id, eventsForSym, earnings)}
+              {l}{badgeForTab(id, eventsForBadge, earnings)}
             </button>
           ))}
         </div>
@@ -647,7 +660,7 @@ export default function TickerPage() {
         {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} flow={positioning.flow} />}
         {tab === 'dark'    && <DarkPoolTab events={darkEvents} />}
         {tab === 'short'   && <ShortInterestTab pos={positioning} />}
-        {tab === 'news'    && <NewsTab events={newsEvents} />}
+        {tab === 'news'    && <NewsTab items={mergedNews} loading={liveNews.loading} />}
         {tab === 'fund'    && <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />}
       </section>
 
@@ -993,15 +1006,75 @@ function DarkPoolTab({ events }) {
 
 /* ---------- News tab ---------- */
 
-function NewsTab({ events }) {
-  if (!events.length) {
+/* Normalize a headline for dedupe — mirrors api/news-per-ticker.js. */
+function normHeadline(h) {
+  return (h || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+}
+
+/* Merge stored ticker_events news rows with the live Google News feed into a
+   single, deduped, newest-first list. Live items are pushed first so their
+   (fresher) source attribution wins on a duplicate headline. */
+function mergeTickerNews(storedEvents, liveItems) {
+  const out = [];
+  const seen = new Set();
+  const push = (it) => {
+    const key = normHeadline(it.headline);
+    if (!it.headline || !key || seen.has(key)) return;
+    seen.add(key);
+    out.push(it);
+  };
+  for (const it of (liveItems || [])) {
+    push({ ts: it.published || null, headline: it.headline, url: it.url, source: it.source, live: true });
+  }
+  for (const r of (storedEvents || [])) {
+    const p = r.payload || {};
+    push({ ts: r.event_ts || null, headline: p.headline, url: p.url, source: p.source, live: false });
+  }
+  out.sort((a, b) => {
+    const ta = a.ts ? Date.parse(a.ts) : 0;
+    const tb = b.ts ? Date.parse(b.ts) : 0;
+    return (tb || 0) - (ta || 0);
+  });
+  return out;
+}
+
+/* Live per-ticker news. Fetches /api/news-per-ticker on demand (only when the
+   News tab is active) — no schedule, fresh on open. Best-effort: any failure
+   leaves the stored list intact. */
+function useLiveTickerNews(sym, company, enabled) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!enabled || !sym) return undefined;
+    let cancelled = false;
+    setItems([]);
+    setLoading(true);
+    const params = new URLSearchParams({ ticker: sym });
+    if (company) params.set('company', company);
+    fetch(`/api/news-per-ticker?${params.toString()}`)
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => { if (!cancelled) setItems(Array.isArray(d.items) ? d.items : []); })
+      .catch(() => { if (!cancelled) setItems([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [sym, company, enabled]);
+  return { items, loading };
+}
+
+function NewsTab({ items, loading }) {
+  if (!items.length) {
     return (
       <article className="mt-card mt-fade">
         <div className="tk-tabhead">
           <div className="mt-eyebrow">Recent headlines</div>
         </div>
         <div className="tk-empty">
-          No recent headlines on file for this ticker.
+          {loading ? 'Loading headlines…' : 'No recent headlines on file for this ticker.'}
         </div>
       </article>
     );
@@ -1009,25 +1082,22 @@ function NewsTab({ events }) {
   return (
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
-        <div className="mt-eyebrow">Recent headlines · {events.length}</div>
+        <div className="mt-eyebrow">Recent headlines · {items.length}{loading ? ' · updating…' : ''}</div>
       </div>
       <ul className="tk-newslist">
-        {events.slice(0, 30).map((r, i) => {
-          const p = r.payload || {};
-          return (
-            <li key={`${r.event_ts}-${p.headline}`} className="tk-newsrow">
-              <span className="tk-newstime num">{fmtTimeAgo(r.event_ts)}</span>
-              <span className="tk-newshead">
-                {p.url ? (
-                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="tk-newslink">
-                    {p.headline || '—'}
-                  </a>
-                ) : (p.headline || '—')}
-              </span>
-              <span className="tk-newssrc">{p.source || '—'}</span>
-            </li>
-          );
-        })}
+        {items.slice(0, 30).map((r, i) => (
+          <li key={`${r.ts}-${i}`} className="tk-newsrow">
+            <span className="tk-newstime num">{fmtTimeAgo(r.ts)}</span>
+            <span className="tk-newshead">
+              {r.url ? (
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="tk-newslink">
+                  {r.headline || '—'}
+                </a>
+              ) : (r.headline || '—')}
+            </span>
+            <span className="tk-newssrc">{r.source || '—'}</span>
+          </li>
+        ))}
       </ul>
     </article>
   );
@@ -1424,4 +1494,5 @@ function CompanyOverview({ deep, sector, exchange }) {
     </section>
   );
 }
+
 
