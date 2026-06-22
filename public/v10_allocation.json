@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-19",
+  "as_of": "2026-06-22",
   "version": "v10.2",
   "engine": "v10.2 \u2014 asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
   "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
@@ -74,11 +74,11 @@
       {
         "id": "cpff",
         "name": "Commercial Paper risk premium",
-        "percentile": 63.8,
+        "percentile": 78.8,
         "direction": "high_is_concerning",
-        "reading": 13.0,
+        "reading": 21.0,
         "unit": null,
-        "score": 63.8
+        "score": 78.8
       },
       {
         "id": "stlfsi",
@@ -101,11 +101,11 @@
       {
         "id": "rrp",
         "name": "Reverse repo balance",
-        "percentile": 7.4,
+        "percentile": 22.1,
         "direction": "low_is_concerning",
-        "reading": 0.3,
+        "reading": 3.9,
         "unit": null,
-        "score": 92.6
+        "score": 77.9
       }
     ],
     "growth": [
@@ -188,38 +188,38 @@
       {
         "id": "skew",
         "name": "CBOE SKEW",
-        "percentile": 87.7,
+        "percentile": 79.6,
         "direction": "high_is_concerning",
-        "reading": 146.7,
+        "reading": 141.9,
         "unit": null,
-        "score": 87.7
+        "score": 79.6
       },
       {
         "id": "vix",
         "name": "VIX",
-        "percentile": 52.9,
+        "percentile": 57.0,
         "direction": "high_is_concerning",
-        "reading": 16.78,
+        "reading": 17.28,
         "unit": null,
-        "score": 52.9
+        "score": 57.0
       },
       {
         "id": "eq_cr_corr",
         "name": "Equity-credit correlation (60d)",
-        "percentile": 79.0,
+        "percentile": 76.0,
         "direction": "high_is_concerning",
-        "reading": 0.8,
+        "reading": 0.78,
         "unit": null,
-        "score": 79.0
+        "score": 76.0
       },
       {
         "id": "move",
         "name": "MOVE Index (Treasury vol)",
-        "percentile": 36.5,
+        "percentile": 45.0,
         "direction": "high_is_concerning",
-        "reading": 65.4,
+        "reading": 70.0,
         "unit": null,
-        "score": 36.5
+        "score": 45.0
       }
     ]
   },
