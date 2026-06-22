@@ -246,7 +246,8 @@ export default function FreshnessChip({
         }}
       >
         {dot}
-        {asOf && <span>{asOf}</span>}
+        {/* Joe 2026-06-22: no time-text next to freshness chips, site-wide.
+            The colored dot carries status; full detail is in the hover tooltip. */}
       </span>
     );
   } else {
@@ -277,7 +278,6 @@ export default function FreshnessChip({
       >
         {dot}
         {label && <span>{label}</span>}
-        {asOf && <span style={{ opacity: label ? 0.7 : 1 }}>{label ? `· ${asOf}` : asOf}</span>}
       </span>
     );
   }
