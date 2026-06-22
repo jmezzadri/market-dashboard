@@ -90,8 +90,8 @@
     {
       "id": "buffett",
       "name": "Buffett Indicator",
-      "killed": "2026-06-10",
-      "reason": "Phantom feed killed by Joe.",
+      "killed": "2026-06-22",
+      "reason": "Retired means deleted everywhere. Removed the Buffett valuation input from the v11 engine (methodology_calibration_v11 valuation tile + composite_breakdown, re-normalized CAPE/ERP to 50/50), cycle_board_snapshot, v10_allocation, TiltPage, and all peer/comovement references. Stale quarterly feed (last point 2025-12-31); redundant with CAPE + ERP. Joe-approved 2026-06-22.",
       "status": "removed",
       "residue": []
     },
