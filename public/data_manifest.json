@@ -70,7 +70,8 @@
   "v_2026_06_11c": " v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron).",
   "v_2026_06_11d": " v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags \u2014 per-series calibration queued.",
   "freshness_sla_basis": "One-clock (FRESHNESS_CHIP_SPEC 2026-06-16): freshness_sla_hours is the JOB's run cadence + grace, NOT the data's publication lag. The chip grades green/red off the LAST PULL (pipeline_health.last_good_at, the job's real last successful run) vs this SLA, calendar-aware so weekends/holidays never count. Daily job = 49h (~2 business days). Weekly job = 192h. Bi-monthly (FINRA) = 480h. Monthly job = 768h. Quarterly job = 2400h. A lagged data series (e.g. a monthly read by the daily job) stays GREEN while the daily job pulls \u2014 its weeks-old as_of no longer reds the chip.",
-  "v_2026_06_22": "Freshness false-red fix (Joe 2026-06-22): scan-fed feeds zerohedge_public/zerohedge_premium/index_membership were graded on wall-clock so the Juneteenth (Jun 19) holiday + weekend counted against them; switched to nyse-trading-day to match their sibling scan feeds (wide_universe/options_chain). user_scan_data SLA 25h->49h (daily standard; 25h was too tight to survive a holiday+weekend). No data change - the daily scan correctly did not run Fri/Sat/Sun; Jun 18 is the last completed session."
+  "v_2026_06_22": "Freshness false-red fix (Joe 2026-06-22): scan-fed feeds zerohedge_public/zerohedge_premium/index_membership were graded on wall-clock so the Juneteenth (Jun 19) holiday + weekend counted against them; switched to nyse-trading-day to match their sibling scan feeds (wide_universe/options_chain). user_scan_data SLA 25h->49h (daily standard; 25h was too tight to survive a holiday+weekend). No data change - the daily scan correctly did not run Fri/Sat/Sun; Jun 18 is the last completed session.",
+  "v_2026_06_22b": "Retired sector_perf (Asset Tilt \u00b7 Sector Performance): orphaned feed \u2014 no frontend consumer reads sector_perf.json (the performance/volatility columns it fed were removed in the sector-table redesign). Producer workflow, script, served file, reconciler + watchdog entries all removed. (Joe 2026-06-22)"
  },
  "elements": [
   {
@@ -3698,41 +3699,6 @@
    "failure_mode": "alarm emails Joe; Admin row reds",
    "owner": "Data Steward",
    "producer_script": "indicator history producer",
-   "current_status": "live",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
-   "id": "market-sector_perf-daily",
-   "name": "sector_perf",
-   "category": "market",
-   "description": "Sector performance snapshot (1d/1w/1m sector returns).",
-   "sourcing_mode": "STP from vendor",
-   "source_vendor": "Yahoo Finance",
-   "source_endpoint": "sector ETFs daily closes",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "16:30",
-   "refresh_trigger": "EOD chain",
-   "release_calendar": "nyse-trading-day",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "as_of_cutoff_et": "16:00",
-   "as_of_cutoff_note": "NYSE close",
-   "output_destination": "public/sector_perf.json",
-   "consumer_surfaces": [
-    {
-     "tab": "home"
-    },
-    {
-     "tab": "macro"
-    }
-   ],
-   "dependencies": [],
-   "failure_mode": "chip reds by SLA",
-   "owner": "Data Steward",
-   "producer_script": "sector performance producer",
    "current_status": "live",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
