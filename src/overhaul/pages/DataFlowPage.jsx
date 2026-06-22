@@ -122,7 +122,8 @@ function buildCotMembers(cotData) {
   Object.entries(domains).forEach(([domain, obj]) => {
     // The Credit domain (IG/HY bond positioning) is NY-Fed dealer-inventory data,
     // NOT CFTC COT — it is tracked separately as the `credit_positioning` element.
-    // Exclude it here so the COT tile counts only the 26 real CFTC markets.
+    // Exclude it here so the COT tile counts only the CFTC futures markets;
+    // the Credit domain is surfaced as its own Credit positioning tile.
     if (domain === 'Credit') return;
     const markets = obj && Array.isArray(obj.markets) ? obj.markets : [];
     markets.forEach((m) => {
@@ -144,6 +145,40 @@ function buildCotMembers(cotData) {
     });
   });
   return out;
+}
+
+// ─── Credit positioning — NY-Fed primary-dealer IG/HY inventory (2 signals) ──
+// Separate source from CFTC COT: the weekly producer writes primary-dealer net
+// inventory positioning for investment-grade and high-yield corporate bonds into
+// cot_positioning.json domains.Credit. Surfaced as its own tile (Joe 2026-06-22)
+// next to the COT tile. Both signals share the one credit_positioning stamp.
+const CREDIT_ELEMENT_NAMES = new Set(['credit_positioning']);
+const CREDIT_TILE_ID = 'credit:positioning';
+const CREDIT_HEALTH_ID = 'credit_positioning';
+function isCreditPosElement(el) {
+  return !!el && (CREDIT_ELEMENT_NAMES.has(el.name) || el.id === 'indicator-credit_positioning-weekly');
+}
+function buildCreditMembers(cotData) {
+  const domains = cotData && typeof cotData === 'object' ? cotData.domains : null;
+  const obj = domains && domains.Credit ? domains.Credit : null;
+  const markets = obj && Array.isArray(obj.markets) ? obj.markets : [];
+  return markets.filter((m) => m && m.market).map((m) => ({
+    id: `credit:${m.market}`,
+    name: m.market,
+    _cot: true,
+    healthId: CREDIT_HEALTH_ID,
+    cotDomain: 'Credit',
+    cotVendor: 'NY Fed',
+    cotPctLabel: 'Dealer',
+    cotSpec: typeof m.spec === 'number' ? m.spec : null,
+    cotComm: typeof m.comm === 'number' ? m.comm : null,
+    cotDiv: !!m.div,
+    source_vendor: 'NY Fed primary-dealer statistics',
+    cadence: 'weekly',
+    scheduled_fetch_time_et: '07:00 (Sat)',
+    data_as_of: m.asof || cotData.as_of || null,
+    freshness_sla_hours: 192,
+  }));
 }
 
 // ─── Vendor canonicalisation ─────────────────────────────────────────────────
@@ -509,7 +544,7 @@ function ElementRow({ el }) {
 // CFTC report date. Percentiles are the market's net position ranked in its own
 // trailing 3-year range (0 = most short on record, 100 = most long).
 function CotRow({ el }) {
-  const f = useFreshness(COT_HEALTH_ID);
+  const f = useFreshness(el.healthId || COT_HEALTH_ID);
   const asOf = fmtDate(el.data_as_of || f?.dataAsOf);
   const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
   const pct = (v) => (v == null ? '—' : `${v}`);
@@ -520,18 +555,24 @@ function CotRow({ el }) {
           {el.name}
           {el.cotDiv ? <span className="df-cot-div" title="Speculators and commercials are stretched on opposite sides">· divergent</span> : null}
         </div>
-        <div className="df-row-vendor">CFTC · {el.cotDomain}</div>
+        <div className="df-row-vendor">{el.cotVendor || 'CFTC'} · {el.cotDomain}</div>
       </div>
       <div className="df-row-cad">
-        <span className="df-cot-pct">Spec <b>{pct(el.cotSpec)}</b></span>
-        <span className="df-cot-pct">Comm <b>{pct(el.cotComm)}</b></span>
+        {el.cotComm == null ? (
+          <span className="df-cot-pct">{el.cotPctLabel || 'Spec'} <b>{pct(el.cotSpec)}</b></span>
+        ) : (
+          <>
+            <span className="df-cot-pct">Spec <b>{pct(el.cotSpec)}</b></span>
+            <span className="df-cot-pct">Comm <b>{pct(el.cotComm)}</b></span>
+          </>
+        )}
         <span className="df-row-cad-t">%-ile, 3y</span>
       </div>
       <div className="df-row-asof"><span className="df-row-k">As of</span>{asOf}</div>
       <div className="df-row-pull"><span className="df-row-k">Last pull</span>{lastPull}</div>
       <div className="df-row-sla"><span className="df-row-k">SLA</span>{prettySla(el.freshness_sla_hours)}</div>
       <div className="df-row-chip">
-        <FreshnessChip elementId={COT_HEALTH_ID} variant="label" />
+        <FreshnessChip elementId={el.healthId || COT_HEALTH_ID} variant="label" />
       </div>
     </div>
   );
@@ -773,11 +814,13 @@ export default function DataFlowPage() {
   // tile listing all 28 per-market positioning signals (built from
   // cot_positioning.json). Without this it was a single lone "Cftc Cot" row.
   const cotMembers = useMemo(() => buildCotMembers(cotData), [cotData]);
+  const creditMembers = useMemo(() => buildCreditMembers(cotData), [cotData]);
   const derivedTiles = useMemo(() => {
     const byFam = new Map();
     elements.forEach((e) => {
       if (classified[e.name] !== 'derived') return;
       if (isCotElement(e)) return; // COT gets its own tile, not a family row
+      if (isCreditPosElement(e)) return; // credit positioning gets its own tile
       // Only the 50 live Macro Overview indicators are counted/grouped here.
       // Derived engine inputs, survey sub-series, reference-only and positioning
       // elements stay tracked (and visible under their source vendor tile) but
@@ -819,8 +862,23 @@ export default function DataFlowPage() {
         isCot: true,
       });
     }
+    // Dedicated Credit positioning tile — IG/HY primary-dealer inventory (the 2
+    // signals from cot_positioning.json domains.Credit). Own tile next to the COT
+    // tile (Joe 2026-06-22). Both signals share the credit_positioning stamp.
+    const creditTracked = elements.some(isCreditPosElement);
+    if (creditTracked && creditMembers.length) {
+      tiles.push({
+        id: CREDIT_TILE_ID,
+        name: 'Credit positioning',
+        sub: `${creditMembers.length} positioning signals`,
+        count: creditMembers.length,
+        members: creditMembers,
+        isCot: true,
+        isCredit: true,
+      });
+    }
     return tiles;
-  }, [elements, classified, cotMembers]);
+  }, [elements, classified, cotMembers, creditMembers]);
 
   // ── Column 3: Engine / model tiles ──
   // The allocation family (live v10 allocator + its sector-history output + the
@@ -977,6 +1035,11 @@ export default function DataFlowPage() {
           fams.add(COT_TILE_ID);
           return;
         }
+        if (isCreditPosElement(m)) {
+          // NY-Fed dealer feed → the dedicated Credit positioning tile.
+          fams.add(CREDIT_TILE_ID);
+          return;
+        }
         if (classified[m.name] === 'derived' && isLiveIndicator(m.name)) {
           const dom = domainForIndicator(m.name);
           if (famTileFor[dom]) fams.add(famTileFor[dom]);
@@ -1003,7 +1066,7 @@ export default function DataFlowPage() {
     const cycleId = engineTiles.find((t) => /cycle/i.test(t.name))?.id;
     const compilerId = engineTiles.find((t) => /history|compiler|indicator history/i.test(t.name))?.id;
     derivedTiles.forEach((t) => {
-      if (t.id === COT_TILE_ID) return;
+      if (t.id === COT_TILE_ID || t.id === CREDIT_TILE_ID) return;
       if (cycleId) E.push([t.id, cycleId]);
       if (compilerId) E.push([t.id, compilerId]);
     });
@@ -1016,7 +1079,7 @@ export default function DataFlowPage() {
     // through its indicator families to their sources, and clicking a
     // source/family lights every surface its data reaches.
     derivedTiles.forEach((t) => {
-      if (t.id === COT_TILE_ID) return;
+      if (t.id === COT_TILE_ID || t.id === CREDIT_TILE_ID) return;
       const fsurfs = new Set();
       t.members.forEach((m) => {
         (Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : []).forEach((cs) => {
@@ -1035,6 +1098,9 @@ export default function DataFlowPage() {
     const overviewSurfId = surfTileForTab['overview'];
     if (overviewSurfId && derivedTiles.some((t) => t.id === COT_TILE_ID)) {
       E.push([COT_TILE_ID, overviewSurfId]);
+    }
+    if (overviewSurfId && derivedTiles.some((t) => t.id === CREDIT_TILE_ID)) {
+      E.push([CREDIT_TILE_ID, overviewSurfId]);
     }
 
     // engine → engine: the cycle board's 6 mechanism scores feed the v10
@@ -1191,7 +1257,7 @@ export default function DataFlowPage() {
       let sawTracked = false;
       (members || []).forEach((m) => {
         // The 28 COT signals share the single cftc-cot stamp.
-        const key = m._cot ? COT_HEALTH_ID : m.name;
+        const key = m._cot ? (m.healthId || COT_HEALTH_ID) : m.name;
         const s = statusByElement[key] || 'u';
         if (s !== 'u') sawTracked = true;
         if (rank[s] > rank[best]) best = s;
@@ -1334,7 +1400,7 @@ export default function DataFlowPage() {
 
   const selectedTile = selectedId ? tileById[selectedId] : null;
   const selectedRole = selectedId
-    ? (selectedId === COT_TILE_ID ? 'Indicator family'
+    ? ((selectedId === COT_TILE_ID || selectedId === CREDIT_TILE_ID) ? 'Indicator family'
       : selectedId.startsWith('src:') ? 'Source vendor'
         : selectedId.startsWith('dom:') ? 'Indicator family'
           : selectedId.startsWith('eng:') ? 'Engine / model'
@@ -1471,12 +1537,22 @@ export default function DataFlowPage() {
                     </div>
                     {vendorBlast && <p className="df-detail-blast">{vendorBlast}</p>}
                     {selectedDesc && <p className="df-detail-desc">{selectedDesc}</p>}
-                    {selectedTile.isCot && (
+                    {selectedTile.isCot && !selectedTile.isCredit && (
                       <p className="df-detail-blast">
                         Weekly Commitments-of-Traders futures positioning from the CFTC. Each market’s net
                         speculator and commercial-hedger position is ranked in its own trailing 3-year range
                         (0 = most short on record, 100 = most long). One weekly job publishes all of these, so
                         every signal shares the same freshness. Feeds the Macro Overview cross-asset positioning rollup.
+                      </p>
+                    )}
+                    {selectedTile.isCredit && (
+                      <p className="df-detail-blast">
+                        Weekly primary-dealer net inventory of investment-grade and high-yield corporate
+                        bonds (NY Fed primary-dealer statistics) — a separate source from the CFTC speculator
+                        data. Each bond class’s dealer net position is ranked in its own trailing 3-year range
+                        (0 = lightest inventory on record, 100 = heaviest). Heavy dealer inventory leaves less
+                        balance-sheet room to absorb client selling. One weekly job publishes both signals, so
+                        they share the same freshness. Feeds the Macro Overview cross-asset positioning rollup.
                       </p>
                     )}
                   </div>
