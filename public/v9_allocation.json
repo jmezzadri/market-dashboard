@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-19T22:44:18.960040+00:00",
+  "as_of": "2026-06-22T15:20:25.410243+00:00",
   "status": "dormant",
   "reason": "composite_history_daily.json was retired by PR \u03bb (composite kill). v9 is dormant pending Asset Tilt rebuild.",
   "alpha": null,
