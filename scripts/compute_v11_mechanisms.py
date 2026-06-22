@@ -100,12 +100,11 @@ PANELS: Dict[str, dict] = {
     "growth": {
         "num": "04",
         "name": "Growth",
-        # Sprint 2 fallback. methodology-v11 calls for ISM Manufacturing + ISM Services
-        # + GDPNow split, but FRED only carries the combined ISM series free. Use what
+        # Sprint 2 fallback. methodology-v11 calls for ISM Manufacturing + ISM Services,
+        # but FRED only carries the combined ISM series free. Use what
         # we have until ism_mfg/ism_svc backfill ships.
         "indicators": [
             ("ism",    "ISM PMI (combined)", "low_is_concerning"),
-            ("gdpnow", "Atlanta Fed GDPNow", "low_is_concerning"),
         ],
     },
     "liquidity_policy": {
