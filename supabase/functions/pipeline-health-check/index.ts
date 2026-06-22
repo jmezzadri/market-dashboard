@@ -303,7 +303,6 @@ async function handle(req: Request): Promise<Response> {
       if (!asOf) lastError = `${row.indicator_id} has not run yet`;
     } else if (
       row.indicator_id === "cycle_board" ||
-      row.indicator_id === "sector_perf" ||
       row.indicator_id === "v10_allocation" ||
       row.indicator_id === "indicator_history" ||
       row.indicator_id === "cftc-cot" ||
@@ -315,7 +314,6 @@ async function handle(req: Request): Promise<Response> {
       // alongside it. Read the file's own freshness stamp instead.
       const FILE_MAP: Record<string, { path: string; field: string }> = {
         cycle_board:        { path: "/cycle_board_snapshot.json", field: "as_of" },
-        sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
         "credit_positioning":{ path: "/cot_positioning.json",     field: "as_of" },
