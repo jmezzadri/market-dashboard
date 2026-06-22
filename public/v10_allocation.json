@@ -1,7 +1,7 @@
 {
   "as_of": "2026-06-19",
   "version": "v10.2",
-  "engine": "v10.2 — asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
+  "engine": "v10.2 \u2014 asset-class split from the 2-axis MOVE+yield engine; sector/IG tilts from the 6-mechanism cycle board",
   "asset_class_source": "macrotilt_engine.json (2-axis: MOVE percentile + 3-month change in 10Y yield)",
   "engine_as_of": "2026-06-19",
   "mechanism_scores": {
@@ -44,7 +44,7 @@
     "credit": [
       {
         "id": "ig_oas",
-        "name": "IG OAS (Baa − 10y)",
+        "name": "IG OAS (Baa \u2212 10y)",
         "percentile": 14.5,
         "direction": "bidir_bottom",
         "reading": null,
