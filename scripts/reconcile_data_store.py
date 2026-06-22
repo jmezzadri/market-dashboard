@@ -69,6 +69,62 @@ for i in range(len(keys)):
         if len(a) >= 30 and a == b:
             flags.append(('P2', f"'{keys[i]}' and '{keys[j]}' have identical recent values — likely duplicate series"))
 
+
+# 6) engine-layer indicator visibility guard (added 2026-06-22, kill-buffett PR).
+#    Every sub-indicator id referenced by the v11 engine's INDICATOR layer must be
+#    visible to the freshness roll-ups: it must resolve to EITHER a manifest element
+#    (by store-key mapping or by the element's `name`) OR — at runtime — a
+#    public.pipeline_health row. A chip renders for any engine indicator id, so an
+#    id with no manifest backing is invisible to freshness and is a P1 defect (this
+#    is exactly how the retired 'buffett' input lingered after its feed died). Only
+#    the engine's indicator-breakdown arrays are scanned — sector / industry-group
+#    allocation ids are NOT freshness-tracked indicators and are excluded.
+manifest_names = {e.get('name') for e in man['elements']
+                  if (e.get('category') == 'indicator' or 'indicator-' in (e.get('id') or ''))}
+tracked_ids = set(mapped) | {n for n in manifest_names if n}
+
+# Calibration-only aliases that intentionally chart off a live tracked series
+# (TiltPage CHART_ID map): hy_oas / hy_ig_ratio both open the tracked hy_ig OAS.
+ENGINE_ALIASES = {'hy_oas': 'hy_ig', 'hy_ig_ratio': 'hy_ig'}
+
+def _engine_indicator_ids():
+    """Collect sub-indicator ids from the engine INDICATOR-breakdown layers only."""
+    ids = set()
+    def add(lst, key):
+        for x in (lst or []):
+            if isinstance(x, dict) and isinstance(x.get(key), str):
+                ids.add(x[key])
+    # methodology_calibration_v11.json: tiles[].indicators[] + composite_breakdown[]
+    p = os.path.join(ROOT, 'public/methodology_calibration_v11.json')
+    if os.path.exists(p):
+        cal = json.load(open(p))
+        for t in cal.get('tiles', []):
+            add(t.get('indicators'), 'id')
+            add(t.get('composite_breakdown'), 'indicator_id')
+    # cycle_board_snapshot.json: mechanisms[].breakdown[]
+    p = os.path.join(ROOT, 'public/cycle_board_snapshot.json')
+    if os.path.exists(p):
+        cb = json.load(open(p))
+        for mech in cb.get('mechanisms', []):
+            add(mech.get('breakdown'), 'id')
+    # v10_allocation.json: mechanism_breakdown.<mechanism>[]
+    p = os.path.join(ROOT, 'public/v10_allocation.json')
+    if os.path.exists(p):
+        v10 = json.load(open(p))
+        mb = v10.get('mechanism_breakdown', {})
+        if isinstance(mb, dict):
+            for arr in mb.values():
+                add(arr, 'id')
+    return ids
+
+for eid in sorted(_engine_indicator_ids()):
+    resolved = ENGINE_ALIASES.get(eid, eid)
+    if resolved in tracked_ids or eid in tracked_ids or eid in killed or eid in KILLED_KEYS:
+        continue
+    flags.append(('P1', f"engine indicator '{eid}' renders a chip but has NEITHER a manifest "
+                        f"element NOR a pipeline_health row — it is invisible to the freshness "
+                        f"roll-ups; register it or remove it from the engine files"))
+
 p1 = [m for s,m in flags if s=='P1']
 print(f"Data reconciler: {len(store)} stored series, {len(mapped)} mapped. {len(flags)} discrepancy(ies).")
 for s,m in sorted(flags): print(f"  [{s}] {m}")

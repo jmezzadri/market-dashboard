@@ -1,9 +1,13 @@
 {
   "_doc": "Methodology changelog — material changes to the engine, the indicator framework, or the scoring math. Owned by Senior Quant + Data Steward; updated by manual PR when a model/calibration ships. Joe Path-A directive 2026-05-27: dates + notes here are reference facts, not market data, so they live in this curated file rather than hardcoded in the Methodology page.",
   "owner": "Senior Quant + Data Steward",
-  "as_of": "2026-05-27",
+  "as_of": "2026-06-22",
   "schema_version": 1,
   "entries": [
+    {
+      "date": "2026-06-22",
+      "note": "Buffett Indicator retired from the Equity Valuations cycle mechanism. The valuation score now reads from CAPE + Equity Risk Premium only (re-normalized to 50/50). Buffett was a stale quarterly feed (last point 2025-12-31) and redundant with the two remaining inputs. Removed everywhere — engine calibration, cycle board, v10 allocation, and the Asset Tilt page."
+    },
     {
       "date": "2026-05-27",
       "note": "Daily rebalance pipeline moved to next-morning. Massive 8:00 ET → Asset Tilt 8:15 ET → Trading Ops scanner 8:30 ET → Paper Portfolio queues trades into Alpaca 9:00 ET (Tue-Sat, 30 min before the 9:30 open). Same-day evening runs only captured ~0.5% of the universe because Polygon's full batch lands 2-8 AM ET the next morning."

@@ -166,7 +166,7 @@ const DIRECTION_LABEL = {
    once the HY OAS series is registered with full history. */
 const HISTORY_WINDOW = {
   ig_oas: '40-year', hy_oas: '3-year', hy_ig_ratio: '3-year',
-  cape: '20-year', erp: '15-year', buffett: '55-year',
+  cape: '20-year', erp: '15-year',
   cfnai_3ma: '20-year', jobless: '20-year', ism: '15-year', bkx_spx: '20-year',
   cpff: '15-year', stlfsi: '15-year', bank_reserves: '15-year', rrp: '15-year',
   anfci: '15-year', fed_bs: '15-year', sloos_ci: '15-year', m2_yoy: '15-year',
@@ -324,7 +324,7 @@ export default function TiltPage() {
   const { indicators: indCatalog, indexSeries: indIndexSeries } = useIndicators();
   const [calibInds, setCalibInds] = useState({});
   // Build a full-chart object for any cycle indicator NOT in the live catalog
-  // (e.g. Equity Risk Premium / Buffett) straight from the calibration file's
+  // (e.g. Equity Risk Premium) straight from the calibration file's
   // embedded history, so EVERY row opens a chart — no registry/pipeline edits.
   useEffect(() => {
     let cancelled = false;

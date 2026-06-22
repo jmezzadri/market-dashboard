@@ -1111,12 +1111,11 @@ const TILES = [
   {
     id:"Equities", num:"01", name:"Equities", live:true, score:99, band:"darkblood",
     caption:"Equity valuation indicators do not pass the predictive-power gate at 6m today — visible for context but not weighted into the headline.",
-    cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
+    cadence: "Monthly · CAPE/ERP refresh",
     traj: [],
     indicators:[
       { id:'cape', name:'CAPE (Shiller)', value:'42.0×', percentile:100, dir:'high', desc:'Cyclically-adjusted price-to-earnings ratio.', sample:'post-1986 (~40y)', sampleMin:"—", sampleMax:"—" },
       { id:'erp', name:'Equity Risk Premium', value:'-2.03%', percentile:100, dir:'low', desc:'S&P 500 earnings yield minus 10-year Treasury yield.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
-      { id:'buffett', name:'Buffett Indicator', value:'230%', percentile:99, dir:'high', desc:'U.S. equity market cap as share of GDP.', sample:'post-1970 (~55y)', sampleMin:"—", sampleMax:"—" },
       { id:'bkx_spx', name:'BKX / SPX ratio', value:'0.087', percentile:97, dir:'low', desc:'Bank stock index relative to S&P 500 — leadership / lag indicator.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
     ],
   },
@@ -1689,7 +1688,6 @@ const DRILLS = {
     ],
     comovement: [
       { peer:"Equity Risk Premium", c1y:"-0.94", c5y:"-0.90", n1:"12", n5:"60" },
-      { peer:"Buffett Indicator",   c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
       { peer:"S&P 500",             c1y:"+0.85", c5y:"+0.78", n1:"12", n5:"60" },
       { peer:"Real rates",          c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
     ],
@@ -1739,45 +1737,6 @@ const DRILLS = {
     caveat: "Sensitive to earnings revisions; can flip on a single quarter of S&P EPS surprise.",
   },
 
-  buffett: {
-    header_label: "Federal Reserve Z.1 + BEA \u00b7 Quarterly",
-    axis_label: "%",
-    unit_fmt: fmtPct,
-    kpis: [
-      { lbl:"1-month change", val:"+1.4 pp", meta:"price + low GDP", dir:"up" },
-      { lbl:"3-month change", val:"+5.2 pp", meta:"new highs week-over-week", dir:"up" },
-      { lbl:"1-year change",  val:"+14.8 pp", meta:"sustained run", dir:"up" },
-      { lbl:"Distance from peak", val:"0 pp", meta:"all-time high reading", dir:"up" },
-    ],
-    traj: [
-      [2016,4,148],[2016,7,151],[2016,10,153],[2017,1,158],[2017,4,162],[2017,7,166],[2017,10,170],
-      [2018,1,178],[2018,4,176],[2018,7,180],[2018,10,167],[2019,1,162],[2019,4,170],[2019,7,170],[2019,10,172],
-      [2020,1,180],[2020,3,135],[2020,4,148],[2020,7,170],[2020,10,178],
-      [2021,1,190],[2021,4,195],[2021,7,196],[2021,10,197],
-      [2022,1,194],[2022,4,180],[2022,7,170],[2022,10,165],
-      [2023,1,178],[2023,4,182],[2023,7,190],[2023,10,192],
-      [2024,1,205],[2024,4,210],[2024,7,215],[2024,10,218],
-      [2025,1,222],[2025,4,224],[2025,7,227],[2025,10,229],
-      [2026,1,231],[2026,4,232.7],
-    ],
-    episodes: [
-      { period:"Apr 2026", note:"All-time high \u2014 above 2021 peak", spx6:null, spx12:null },
-      { period:"Oct 2021", note:"Pandemic-era peak (197%)", spx6:"-10%", spx12:"-19%" },
-      { period:"Mar 2000", note:"Dotcom peak (~148%)", spx6:"-9%", spx12:"-22%" },
-      { period:"Sep 2007", note:"Pre-GFC peak (~110%)", spx6:"-12%", spx12:"-30%" },
-      { period:"Dec 1968", note:"Nifty-Fifty peak (~87%)", spx6:"-3%", spx12:"+8%" },
-    ],
-    comovement: [
-      { peer:"S&P 500",            c1y:"+0.94", c5y:"+0.90", n1:"4",  n5:"20" },
-      { peer:"CAPE (Shiller)",     c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
-      { peer:"Margin debt YoY",    c1y:"+0.71", c5y:"+0.62", n1:"4",  n5:"20" },
-      { peer:"Real GDP growth",    c1y:"-0.22", c5y:"-0.18", n1:"4",  n5:"20" },
-    ],
-    release: { freq:"Quarterly", last:"—", next:"—", source:"Fed Z.1 + BEA GDP" },
-    source_url: "https://fred.stlouisfed.org/graph/?g=qLC",
-    formula: "Total U.S. equity market capitalization divided by nominal GDP.",
-    caveat: "Buffett himself called this \u201cprobably the best single measure\u201d in 2001; modern critique points to globalization tilt.",
-  },
 
   // ─── CREDIT TILE ───
   ig_oas: {
@@ -2290,7 +2249,6 @@ const DRILLS = {
       { peer:"Real Fed funds",   c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
       { peer:"S&P 500 12mo",     c1y:"+0.42", c5y:"+0.35", n1:"12", n5:"60" },
       { peer:"CPI YoY",          c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
-      { peer:"Buffett Indicator", c1y:"+0.38", c5y:"+0.32", n1:"12", n5:"60" },
     ],
     release: { freq:"Monthly", last:"—", next:"—", source:"FRED · M2SL" },
     source_url: "https://fred.stlouisfed.org/series/M2SL",
@@ -2407,7 +2365,6 @@ const DRILLS = {
     comovement: [
       { peer:"S&P 500 6mo",       c1y:"+0.68", c5y:"+0.62", n1:"12", n5:"60" },
       { peer:"NAAIM",             c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
-      { peer:"Buffett Indicator", c1y:"+0.71", c5y:"+0.62", n1:"12", n5:"60" },
       { peer:"VIX",               c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
     ],
     release: { freq:"Monthly", last:"—", next:"—", source:"FINRA · NYSE FactBook" },
@@ -2920,10 +2877,10 @@ function openIndicatorDrawerLite(ind, tile) {
 function captionForState(subId, score) {
   const T = {
     Equities: {
-      risk_on:    "Equity valuations cheap relative to history — CAPE, ERP, and Buffett ratio in the bottom quartile of long-run history.",
+      risk_on:    "Equity valuations cheap relative to history — CAPE and ERP in the bottom quartile of long-run history.",
       neutral:    "Equity valuations within normal historical range — neither cheap nor stretched.",
-      cautionary: "Equity valuations stretched — CAPE, ERP, and Buffett ratio above long-run medians.",
-      risk_off:   "Equity valuations at cycle extremes — CAPE, ERP, and Buffett ratio all in the top quartile of long-run history.",
+      cautionary: "Equity valuations stretched — CAPE and ERP above long-run medians.",
+      risk_off:   "Equity valuations at cycle extremes — CAPE and ERP all in the top quartile of long-run history.",
     },
     Rates: {
       risk_on:    "Rates structure benign — curve normal-shaped, term premium contained, real yields below neutral.",
