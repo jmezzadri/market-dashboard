@@ -893,8 +893,8 @@ def write_nav_daily(
 
     # Cash split — proportional to the equity split; sleeves share Alpaca's
     # single cash pool. Where one sleeve is 100 % cash we attribute by capital cap.
-    cap_a = 500_000.0
-    cap_b = 500_000.0
+    cap_a = 0.0          # Sleeve A retired 2026-06-23
+    cap_b = 1_000_000.0  # Equity Scanner is the whole $1M book
     sleeve_a_cash = max(0.0, cap_a - sleeve_a_equity)
     sleeve_b_cash = max(0.0, cap_b - sleeve_b_equity)
     sleeve_b_margin_used = max(0.0, sleeve_b_equity - cap_b)
@@ -940,7 +940,7 @@ def write_nav_daily(
     # to the account equity — it overstated the book by ~$33K and made the
     # sleeves fail to sum to the total. realized_by_sleeve is still stored below
     # for reference, but it must not drive the sleeve value.
-    SLEEVE_CAP = 500_000.0
+    SLEEVE_CAP = 1_000_000.0  # single $1M book (Sleeve A retired)
     _gross = sleeve_a_equity + sleeve_b_equity
     _margin = _gross - total_nav                      # total borrowing across the book
     _a_borrow = max(0.0, sleeve_a_equity - SLEEVE_CAP)

@@ -47,7 +47,7 @@ const HERO_TITLE = (
 
 const HERO_BULLETS = [
   '$1M starting capital, following the Trading Scanner recommendations',
-  'Buy at Score \u2265 5; sized at Score \u00d7 $10K \u2014 5 = $50K, 6 = $60K, 7 = $70K, 8 = $80K, 9 = $90K, 10 = $100K',
+  'Buy at Score \u2265 5; sized at Score \u00d7 $20K \u2014 5 = $100K, 6 = $120K, 7 = $140K, 8 = $160K, 9 = $180K, 10 = $200K',
   'Long-only, 2\u00d7 max leverage',
 ];
 
@@ -325,7 +325,7 @@ const seriesBeta = (vals, spys, minN = 6) => {
   return cov / varS;
 };
 
-const PAPER_SLEEVE_CAP = 500_000;
+const PAPER_SLEEVE_CAP = 1_000_000;  // single Equity Scanner book = the whole $1M (Sleeve A retired 2026-06-23)
 
 // Split the shared Alpaca account into two sleeve values that ALWAYS sum to
 // the broker total (total_nav). The account shares one cash pool and one
@@ -1149,7 +1149,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           cfg={colCfg}
           setCfg={setColCfg}
           headline={heads.b}
-          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; position size = Score × $10K (5 = $50K … 10 = $100K); up to 2× leverage when signals exceed the cash sleeve."
+          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; position size = Score × $20K (5 = $100K … 10 = $200K); up to 2× leverage when total signals exceed the $1M book."
         />
         <RebalanceLog orders={orders} fills={fills} />
 
