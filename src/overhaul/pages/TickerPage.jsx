@@ -30,6 +30,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
+import TradingViewChart, { tvSymbolFor } from '../components/TradingViewChart';
 import ScoreDial from '../components/ScoreDial';
 import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
@@ -258,6 +259,7 @@ export default function TickerPage() {
   const [show200, setShow200]     = useState(false);
   const [showVol, setShowVol]     = useState(false);
   const [showEvents, setShowEvents] = useState(false);
+  const [showTV, setShowTV] = useState(false);
   const [showRsi, setShowRsi]       = useState(false);
   const [compareSym, setCompareSym] = useState('');
   const [fromDate, setFromDate]     = useState('');   // custom range start (YYYY-MM-DD)
@@ -584,6 +586,50 @@ export default function TickerPage() {
               <button type="button" className="mt-btn" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
             )}
           </div>
+        </article>
+      </section>
+
+      {/* Interactive chart — TradingView live charting, mounted on demand.
+          Convenience layer only; the score-annotated price history above
+          (our own prices_eod feed) stays the system of record. */}
+      <section className="mt-pagesection mt-pagesection--tight2">
+        <article className="mt-card">
+          <div className="mt-sectionhead tk-charthead">
+            <div>
+              <div className="mt-eyebrow">Interactive chart</div>
+              <div className="mt-h2">
+                Live charting via TradingView{' '}
+                <span className="tk-windowlabel">· candles · intraday · indicators · drawing tools</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`mt-pill ${showTV ? 'on' : ''}`}
+              onClick={() => setShowTV((v) => !v)}
+            >
+              {showTV ? '✕ Hide chart' : 'Open chart'}
+            </button>
+          </div>
+          {showTV ? (
+            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={520} />
+          ) : (
+            <div
+              style={{
+                padding: '28px 20px',
+                textAlign: 'center',
+                color: 'var(--mt-ink-3)',
+                border: '1px dashed var(--mt-line, #e5e7eb)',
+                borderRadius: 12,
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              Full TradingView chart for {sym} — candlesticks, intraday timeframes,
+              100+ indicators and drawing tools. Loads on demand to keep the page fast.
+              <br />
+              The score-annotated price history above remains our system of record.
+            </div>
+          )}
         </article>
       </section>
 
