@@ -398,7 +398,7 @@ function sleeveHeadlines(navHistory, sleeveAGross = null, sleeveBGross = null) {
   };
 }
 
-function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
+function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, live = false, asOfIso = null }) {
   const empty = !navHistory || navHistory.length === 0;
   const latest = empty ? null : navHistory[navHistory.length - 1];
   const prev   = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
@@ -507,7 +507,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
     <div className="paper-tile-summary">
       <div className="pts-head">
         <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for the Equity Scanner book and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Book value = account equity (cash + holdings, net of any borrowing). Inception = since the book opened, anchored to the $1M start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Daily is the exact session P&L — price moves of holdings plus the effect of any trades executed at the open." size={11} /></span>
-        <span className="pts-asof">{latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—'}</span>
+        <span className="pts-asof">{live && asOfIso ? `AS OF ${(fmtTimeET(asOfIso) || '').toUpperCase()} ET · LIVE` : (latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—')}</span>
       </div>
       <table className="pmx">
         <colgroup>
@@ -530,7 +530,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
         </tbody>
       </table>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-        <FreshnessChip elementId="portfolio.paper-nav-daily" variant="label" fallback={{ asOfIso: latest.created_at || latest.snapshot_date, calendar: 'nyse' }} />
+        <FreshnessChip elementId={live ? 'portfolio.paper-nav-intraday' : 'portfolio.paper-nav-daily'} variant="label" fallback={{ asOfIso: live ? asOfIso : (latest.created_at || latest.snapshot_date), calendar: 'nyse' }} />
       </div>
     </div>
   );
@@ -584,7 +584,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot' }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). This table renders only the columns that
   // apply to its sleeve — Score is Sleeve-B-only and is filtered out elsewhere.
@@ -709,7 +709,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
             )}
             {' '}&middot; <span style={{ color: (headline?.day$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.day$ != null ? fmtMoneyExact(headline.day$) : '\u2014'} today</span>
             {' '}&middot; <span style={{ color: (headline?.incep$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.incep$ != null ? fmtMoneyExact(headline.incep$) : '\u2014'} since inception</span>
-            {asOf && <> &middot; <span>as of {fmtDate(asOf)} close</span></>}
+            {asOf && <> &middot; <span>as of {live ? `${fmtTimeET(asOf)} ET` : `${fmtDate(asOf)} close`}</span></>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -749,7 +749,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
               </div>
             )}
           </div>
-          <FreshnessChip elementId="portfolio.paper-positions-snapshot" variant="label" fallback={{ asOfIso: updatedAt || asOf, calendar: 'nyse' }} />
+          <FreshnessChip elementId={freshnessId} variant="label" fallback={{ asOfIso: updatedAt || asOf, calendar: 'nyse' }} />
         </div>
       </div>
 
@@ -981,6 +981,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [navHistory, setNavHistory] = useState([]);
   const [positions, setPositions] = useState([]);
   const [posAsOf, setPosAsOf] = useState(null);
+  const [liveNav, setLiveNav] = useState(null);
+  const [livePos, setLivePos] = useState([]);
   const [orders, setOrders] = useState([]);
   const [fills, setFills] = useState([]);
   const [account, setAccount] = useState(null);
@@ -1041,6 +1043,27 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           .eq('status', 'active')
           .limit(1);
         if (!cancelled) setAccount(acc?.data?.[0] || null);
+
+        // LIVE intraday view (refreshed hourly during market hours). Kept in a
+        // separate table from the official close record so live marks never
+        // touch the daily NAV history. The page prefers it only while the
+        // market is open (see liveMode below); after the 16:50 close it flips
+        // back to the official close snapshot.
+        const lnav = await supabase
+          .from('paper_intraday_nav')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (!cancelled) setLiveNav(lnav?.data?.[0] || null);
+        const lpos = await supabase
+          .from('paper_intraday_positions')
+          .select('*')
+          .order('market_value', { ascending: false });
+        if (!cancelled) setLivePos((lpos?.data || []).map((r) => ({
+          ...r,
+          change_today: (r.lastday_price && r.current_price != null)
+            ? (r.current_price / r.lastday_price - 1) : null,
+        })));
       } catch (e) {
         if (!cancelled) setErr(e?.message || String(e));
       }
@@ -1048,22 +1071,52 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     return () => { cancelled = true; };
   }, []);
 
-  const sleeveA = useMemo(() => positions.filter((p) => p.sleeve === 'A'), [positions]);
-  const sleeveB = useMemo(() => positions.filter((p) => p.sleeve === 'B'), [positions]);
+  // ── Live-vs-close selection (Joe 2026-06-23) ──────────────────────────────
+  // Prefer the live intraday view whenever its session date is AFTER the latest
+  // official close row — i.e. during market hours, before the 16:50 close run
+  // writes today's official snapshot. The instant that close row lands, the
+  // dates tie and this flips to false, so the LAST update of the day is always
+  // the 4PM close. Pure date compare → DST-proof.
+  const lastClose = navHistory.length ? navHistory[navHistory.length - 1] : null;
+  const liveMode = !!(liveNav && lastClose && liveNav.as_of_date && lastClose.snapshot_date
+                      && liveNav.as_of_date > lastClose.snapshot_date);
+
+  // What the page renders: live rows during market hours, else the close record.
+  const displayPositions = liveMode ? livePos : positions;
+  const displayPosAsOf = liveMode ? (liveNav.updated_at || liveNav.as_of_date) : posAsOf;
+  // For the chart/card, append the live point as today's bar so all the shared
+  // math (reconcile, headlines, betas) works unchanged. History is never mutated.
+  const navForCard = useMemo(() => {
+    if (!liveMode) return navHistory;
+    return [...navHistory, {
+      snapshot_date: liveNav.as_of_date,
+      total_nav: liveNav.total_nav,
+      sleeve_a_value: liveNav.sleeve_a_value, sleeve_b_value: liveNav.sleeve_b_value,
+      sleeve_a_equity: liveNav.sleeve_a_equity, sleeve_b_equity: liveNav.sleeve_b_equity,
+      spy_close: liveNav.spy_close, spy_prev_close: liveNav.spy_prev_close,
+      spy_inception_close: liveNav.spy_inception_close,
+      sleeve_b_day_pnl: liveNav.day_pnl, portfolio_beta: liveNav.portfolio_beta,
+      created_at: liveNav.updated_at,
+    }];
+  }, [liveMode, liveNav, navHistory]);
+
+  const sleeveA = useMemo(() => displayPositions.filter((p) => p.sleeve === 'A'), [displayPositions]);
+  const sleeveB = useMemo(() => displayPositions.filter((p) => p.sleeve === 'B'), [displayPositions]);
 
   // Reconciled per-sleeve cash (idle) so each table can show a Cash line that
   // ties the sleeve's holdings + cash to the broker NAV.
-  const latestNav = navHistory.length ? navHistory[navHistory.length - 1] : null;
-  // EOD-priced per-sleeve holdings, summed from the displayed positions, so the
+  const latestNav = navForCard.length ? navForCard[navForCard.length - 1] : null;
+  // Per-sleeve holdings, summed from the displayed positions, so the
   // Performance card's sleeve value and each table's Cash line tie to the rows.
   const sleeveAGross = useMemo(() => sleeveA.length ? sleeveA.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveA]);
   const sleeveBGross = useMemo(() => sleeveB.length ? sleeveB.reduce((s, p) => s + (p.market_value || 0), 0) : null, [sleeveB]);
   const recon = useMemo(() => reconcileSleeves(latestNav, sleeveAGross, sleeveBGross), [latestNav, sleeveAGross, sleeveBGross]);
   // Shared headline stats — the SAME object family the Performance card renders.
-  const heads = useMemo(() => sleeveHeadlines(navHistory, sleeveAGross, sleeveBGross), [navHistory, sleeveAGross, sleeveBGross]);
-  // Precise last-update timestamp for the positions snapshot (has time-of-day,
+  const heads = useMemo(() => sleeveHeadlines(navForCard, sleeveAGross, sleeveBGross), [navForCard, sleeveAGross, sleeveBGross]);
+  // Precise last-update timestamp for the displayed snapshot (has time-of-day,
   // so the freshness tooltip shows date AND time, not just a date).
-  const posUpdatedAt = positions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
+  const posUpdatedAt = liveMode ? (liveNav.updated_at || liveNav.as_of_date)
+    : displayPositions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
 
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
@@ -1077,7 +1130,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         eyebrow="Paper Portfolio"
         title={HERO_TITLE}
         bullets={HERO_BULLETS}
-        right={<SummaryCard navHistory={navHistory} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} />}
+        right={<SummaryCard navHistory={navForCard} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />}
       />
 
       <div className="paper-shell">
@@ -1085,8 +1138,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           title="Equity Scanner — Long-Only"
           sleeve="B"
           positions={sleeveB}
-          asOf={posAsOf}
+          asOf={displayPosAsOf}
           updatedAt={posUpdatedAt}
+          live={liveMode}
+          freshnessId={liveMode ? 'portfolio.paper-positions-intraday' : 'portfolio.paper-positions-snapshot'}
           cashValue={recon.bCash}
           totalCapital={STARTING_CAPITAL}
           onOpenTicker={onOpenTicker}
