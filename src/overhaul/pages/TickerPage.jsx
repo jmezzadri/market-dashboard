@@ -259,7 +259,7 @@ export default function TickerPage() {
   const [show200, setShow200]     = useState(false);
   const [showVol, setShowVol]     = useState(false);
   const [showEvents, setShowEvents] = useState(false);
-  const [showTV, setShowTV] = useState(false);
+  const [chartMode, setChartMode] = useState('mt'); // 'mt' = our chart, 'tv' = TradingView
   const [showRsi, setShowRsi]       = useState(false);
   const [compareSym, setCompareSym] = useState('');
   const [fromDate, setFromDate]     = useState('');   // custom range start (YYYY-MM-DD)
@@ -502,22 +502,46 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">· {customRange ? 'custom range' : `${tf} window`}{priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}</span>
+                ${fmt(price, 2)} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
               </div>
             </div>
-            <div className="mt-pillgroup">
-              {TFS.map((k) => (
+            <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+              <div className="mt-pillgroup">
                 <button
-                  key={k}
                   type="button"
-                  className={`mt-pill ${(!customRange && tf === k) ? 'on' : ''}`}
-                  onClick={() => { setTf(k); setFromDate(''); setToDate(''); }}
+                  className={`mt-pill ${chartMode === 'mt' ? 'on' : ''}`}
+                  onClick={() => setChartMode('mt')}
                 >
-                  {k}
+                  MacroTilt
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className={`mt-pill ${chartMode === 'tv' ? 'on' : ''}`}
+                  onClick={() => setChartMode('tv')}
+                >
+                  TradingView
+                </button>
+              </div>
+              {chartMode === 'mt' && (
+                <div className="mt-pillgroup">
+                  {TFS.map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      className={`mt-pill ${(!customRange && tf === k) ? 'on' : ''}`}
+                      onClick={() => { setTf(k); setFromDate(''); setToDate(''); }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+          {chartMode === 'tv' ? (
+            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={480} />
+          ) : (
+          <>
           {histAll.loading ? (
             <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)' }}>
               Loading price history…
@@ -586,49 +610,7 @@ export default function TickerPage() {
               <button type="button" className="mt-btn" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
             )}
           </div>
-        </article>
-      </section>
-
-      {/* Interactive chart — TradingView live charting, mounted on demand.
-          Convenience layer only; the score-annotated price history above
-          (our own prices_eod feed) stays the system of record. */}
-      <section className="mt-pagesection mt-pagesection--tight2">
-        <article className="mt-card">
-          <div className="mt-sectionhead tk-charthead">
-            <div>
-              <div className="mt-eyebrow">Interactive chart</div>
-              <div className="mt-h2">
-                Live charting via TradingView{' '}
-                <span className="tk-windowlabel">· candles · intraday · indicators · drawing tools</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className={`mt-pill ${showTV ? 'on' : ''}`}
-              onClick={() => setShowTV((v) => !v)}
-            >
-              {showTV ? '✕ Hide chart' : 'Open chart'}
-            </button>
-          </div>
-          {showTV ? (
-            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={520} />
-          ) : (
-            <div
-              style={{
-                padding: '28px 20px',
-                textAlign: 'center',
-                color: 'var(--mt-ink-3)',
-                border: '1px dashed var(--mt-line, #e5e7eb)',
-                borderRadius: 12,
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
-              Full TradingView chart for {sym} — candlesticks, intraday timeframes,
-              100+ indicators and drawing tools. Loads on demand to keep the page fast.
-              <br />
-              The score-annotated price history above remains our system of record.
-            </div>
+          </>
           )}
         </article>
       </section>
