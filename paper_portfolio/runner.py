@@ -60,6 +60,7 @@ from paper_portfolio.mirror import (
     stamp_paper_pipeline_health,
     write_nav_daily,
 )
+from paper_portfolio.intraday import run_intraday
 from paper_portfolio.submitter import submit_pending_orders
 from paper_portfolio.translator import run as run_translator
 
@@ -260,7 +261,7 @@ def run_close_phase(
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="MacroTilt paper-portfolio nightly runner.")
-    p.add_argument("--phase", choices=["eod", "open", "close", "all"], default="eod",
+    p.add_argument("--phase", choices=["eod", "open", "close", "intraday", "all"], default="eod",
                    help="eod=order intent (pre-open submit window); "
                         "open=morning fills mirror + close-price certification (09:45 ET); "
                         "close=official-close positions + NAV snapshot (16:50 ET) — "
@@ -273,6 +274,14 @@ def main(argv: list[str] | None = None) -> int:
                    help="OVERRIDE the PAPER_LIVE_TRADING_ENABLED env-var guard. "
                         "Required to fire live orders from a workflow_dispatch run.")
     args = p.parse_args(argv)
+
+    # Intraday is a READ/mirror phase (live positions + live NAV) — it never
+    # submits orders, so it routes around the live-trading kill-switch and
+    # honours only --dry-run.
+    if args.phase == "intraday":
+        run_intraday(dry_run=args.dry_run)
+        logger.info("runner done — phase=intraday dry_run=%s", args.dry_run)
+        return 0
 
     # Kill-switch: if --dry-run is set we honour it; otherwise we require
     # the env-var (or --force-live) to be set, else we silently downgrade
