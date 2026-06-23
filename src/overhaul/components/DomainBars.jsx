@@ -91,7 +91,10 @@ function trendOf(points, freq) {
 // arrow carries the direction, so the number stays uncluttered.
 function fmtChange(delta, decimals) {
   if (delta == null || !Number.isFinite(delta) || delta === 0) return null;
-  return fmtVal(Math.abs(delta), decimals);
+  const s = fmtVal(Math.abs(delta), decimals);
+  // Magnitude rounds to zero at this precision — show the direction arrow only,
+  // never a misleading "▲ 0".
+  return parseFloat(s) === 0 ? null : s;
 }
 
 function tagClass(state) {
