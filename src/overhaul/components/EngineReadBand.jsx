@@ -71,6 +71,33 @@ function deltaSeriesBp(ind) {
   return out;
 }
 
+// Percentile rank of a value within a [date, value] series, using the same
+// TRAILING 3-YEAR window the rest of the site uses for its percentiles
+// (useIndicators.pctRank / PILL_WINDOW_DAYS). Used to put the gauge needle on
+// a percentile basis so it matches the percentile shown beside it, and to
+// place the zone boundaries at where the engine's absolute trigger levels fall
+// in that same 3-year distribution.
+const PILL_WINDOW_DAYS = 3 * 365;
+function pctOf(value, series) {
+  if (value == null || !series?.length) return null;
+  const lastT = Date.parse(String(series[series.length - 1][0]).slice(0, 10) + 'T00:00:00Z');
+  if (!Number.isFinite(lastT)) return null;
+  const cutT = lastT - PILL_WINDOW_DAYS * 86400000;
+  const vs = [];
+  for (const p of series) {
+    const t = Date.parse(String(p[0]).slice(0, 10) + 'T00:00:00Z');
+    if (Number.isFinite(t) && t >= cutT && typeof p[1] === 'number') vs.push(p[1]);
+  }
+  if (vs.length < 12) return null;
+  const below = vs.filter((v) => v < value).length;
+  return Math.round((below / vs.length) * 100);
+}
+function ordSuffix(n) {
+  const v = Math.abs(Math.round(n)), k = v % 100;
+  if (k >= 11 && k <= 13) return 'th';
+  return { 1: 'st', 2: 'nd', 3: 'rd' }[v % 10] || 'th';
+}
+
 // One axis: title + live reading, gauge, legend, 1-year history sparkline.
 function DialPanel({
   title, freshnessId, valueMain, unit, pctText, accent,
@@ -174,26 +201,41 @@ export default function EngineReadBand({ onTip, onHideTip }) {
 
   const tip = (e, text) => onTip && onTip(e, text);
 
-  // 1-year (~252 trading day) history for each axis, from its own series.
-  const moveHist = useMemo(() => levelSeries(regime.moveInd).slice(-252), [regime.moveInd]);
-  const yieldHist = useMemo(() => deltaSeriesBp(regime.yieldInd).slice(-252), [regime.yieldInd]);
+  // Full series for ranking + the 1-year (~252 trading day) tail for the spark.
+  const moveSeries = useMemo(() => levelSeries(regime.moveInd), [regime.moveInd]);
+  const yieldSeries = useMemo(() => deltaSeriesBp(regime.yieldInd), [regime.yieldInd]);
+  const moveHist = useMemo(() => moveSeries.slice(-252), [moveSeries]);
+  const yieldHist = useMemo(() => yieldSeries.slice(-252), [yieldSeries]);
 
   const moveVal = regime.move;
   const yVal = regime.yieldDeltaBp;
 
+  // Needle on a PERCENTILE basis (Joe 2026-06-23): position = where today's
+  // reading ranks in its own trailing-3-year range, so the needle matches the
+  // percentile beside it. Zone boundaries = where the engine's absolute trigger
+  // levels fall in that same distribution — the colored arc still means the
+  // exact same MOVE / bp thresholds shown in the legend. Stress ranks the MOVE
+  // level; yield ranks the 3-month change (the metric the gauge actually reads).
+  const sCur = useMemo(() => pctOf(moveVal, moveSeries), [moveVal, moveSeries]);
+  const sWatch = useMemo(() => pctOf(watchT, moveSeries), [watchT, moveSeries]);
+  const sRiskOff = useMemo(() => pctOf(riskOffT, moveSeries), [riskOffT, moveSeries]);
+  const yCur = useMemo(() => pctOf(yVal, yieldSeries), [yVal, yieldSeries]);
+  const yDefl = useMemo(() => pctOf(deflT, yieldSeries), [deflT, yieldSeries]);
+  const yInfl = useMemo(() => pctOf(inflT, yieldSeries), [inflT, yieldSeries]);
+
   const stressTip =
     `ICE BofA MOVE Index — the volatility priced into U.S. Treasury options (the bond market's fear gauge). `
     + `Reading ${moveVal != null ? moveVal.toFixed(1) : '—'}`
-    + `${regime.movePct != null ? `, ${regime.movePct}th percentile over 5 years` : ''}.\n\n`
-    + `Engine: below ${Math.round(watchT)} carries full equity; ${Math.round(watchT)}–${Math.round(riskOffT)} is a watch zone; `
-    + `${Math.round(riskOffT)}+ de-risks up to half into the defensive sleeve.`;
+    + `${sCur != null ? `, ${sCur}${ordSuffix(sCur)} percentile of its 3-year range` : ''}.\n\n`
+    + `Needle = that percentile. Engine: below ${Math.round(watchT)} carries full equity; ${Math.round(watchT)}–${Math.round(riskOffT)} is a watch zone; `
+    + `${Math.round(riskOffT)}+ de-risks up to half into the defensive sleeve. The colored bands mark where those levels fall in the 3-year range.`;
 
   const yieldTip =
     `Three-month change in the 10-year real yield, in basis points — the engine's inflation/deflation axis. `
     + `Reading ${yVal != null ? `${yVal >= 0 ? '+' : ''}${yVal.toFixed(0)} bp` : '—'}`
-    + `${regime.yieldPct != null ? `, ${regime.yieldPct}th percentile over 5 years` : ''}.\n\n`
-    + `Engine (when stress signals Risk Off): ${Math.round(deflT)} bp or lower leans long Treasuries; `
-    + `+${Math.round(inflT)} bp or higher leans gold & short T-bills; in between holds a balanced sleeve.`;
+    + `${yCur != null ? `, ${yCur}${ordSuffix(yCur)} percentile of its 3-year range` : ''}.\n\n`
+    + `Needle = that percentile. Engine (when stress signals Risk Off): ${Math.round(deflT)} bp or lower leans long Treasuries; `
+    + `+${Math.round(inflT)} bp or higher leans gold & short T-bills; in between holds a balanced sleeve. The colored bands mark where those levels fall in the 3-year range.`;
 
   return (
     <section className="mt-pagesection mer-band" style={{ paddingTop: 14 }}>
@@ -233,14 +275,14 @@ export default function EngineReadBand({ onTip, onHideTip }) {
             title="Stress signal · MOVE Index"
             freshnessId="indicator-move-daily"
             valueMain={moveVal != null ? moveVal.toFixed(1) : '—'}
-            pctText={regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}
+            pctText={sCur != null ? `${sCur}${ordSuffix(sCur)} pctile · 3y` : '—'}
             accent={regime.stressColor}
             caption=""
             gauge={
               <BigGauge
-                value={moveVal ?? 0}
-                max={200}
-                thresholds={[{ pos: watchT / 200 }, { pos: riskOffT / 200 }]}
+                value={sCur ?? 50}
+                max={100}
+                thresholds={[{ pos: (sWatch ?? 60) / 100 }, { pos: (sRiskOff ?? 80) / 100 }]}
               />
             }
             legendZones={[
@@ -260,15 +302,14 @@ export default function EngineReadBand({ onTip, onHideTip }) {
             freshnessId="indicator-yield_curve-daily"
             valueMain={yVal != null ? `${yVal >= 0 ? '+' : ''}${yVal.toFixed(0)}` : '—'}
             unit="bp"
-            pctText={regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}
+            pctText={yCur != null ? `${yCur}${ordSuffix(yCur)} pctile · 3y` : '—'}
             accent={regime.yieldColor}
             caption="When Stress Signal indicates Risk Off, Yield Regime dictates allocation."
             gauge={
               <BigGauge
-                value={yVal ?? 0}
+                value={yCur ?? 50}
                 max={100}
-                bidirectional
-                thresholds={[{ pos: (100 + deflT) / 200 }, { pos: (100 + inflT) / 200 }]}
+                thresholds={[{ pos: (yDefl ?? 30) / 100 }, { pos: (yInfl ?? 80) / 100 }]}
               />
             }
             legendZones={[
