@@ -151,18 +151,23 @@ def stamp_paper_pipeline_health(dry_run: bool = False) -> None:
         except Exception as exc:
             logger.warning("pipeline_health: could not read %s (%s) — skip", table, exc)
             continue
-        if not d:
-            continue
-        # Date-only stamps (positions/nav snapshot_date) anchor to the 4:00 PM
-        # ET session close of that date; full timestamps (orders created_at)
-        # pass through. last_good_at = now(): this stamp only runs right after
-        # a successful produce, so "last refreshed" is the real run moment.
-        as_of = _session_close_iso(d) if len(d) == 10 else d
+        # An EMPTY source table is valid, not a failure: a freshly-reset cash
+        # account holds no positions and has no queued orders, so paper_positions
+        # / paper_orders are legitimately empty between the reset and the first
+        # fill. Stamp the run time anyway — skipping here deleted the row and
+        # false-red the Alpaca / Portfolio tile (Joe 2026-06-23: "Alpaca red,
+        # but nothing on Alpaca is red"). When the table is empty, data_as_of =
+        # the run time (the run confirmed zero rows). Date-only stamps anchor to
+        # the 4:00 PM ET session close; full timestamps pass through.
+        if d:
+            as_of_sql = _sql_escape(_session_close_iso(d) if len(d) == 10 else d)
+        else:
+            as_of_sql = "now()"
         rows_sql.append(
             "(" + ", ".join([
                 _sql_escape(ind_id), _sql_escape(label), _sql_escape(source),
                 "'D'", "1440", "'green'", "now()", "now()",
-                _sql_escape(as_of), "NULL", "now()",
+                as_of_sql, "NULL", "now()",
             ]) + ")"
         )
     if not rows_sql:
