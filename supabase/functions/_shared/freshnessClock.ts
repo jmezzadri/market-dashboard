@@ -290,11 +290,26 @@ export function isDataStale(
   return age > maxDataAgeHours;
 }
 
+export function isMarketOpenET(nowMs?: number): boolean {
+  const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  if (!isUSBusinessDay(et)) return false;
+  const mins = et.getHours() * 60 + et.getMinutes();
+  return mins >= 570 && mins <= 965; // 9:30 AM .. 4:05 PM ET
+}
+
 export function gradeTwoClock(
   input: any,
   nowMs?: number,
 ): { status: string; clock: string | null; reason: string | null; ageHours: number | null } {
   const o = input || {};
+  // Market-hours-only live feeds update only while the US market is open; after
+  // the close the daily close snapshot owns the end-of-day value, so a quiet
+  // live feed is expected, not stale. Pause both clocks outside market hours —
+  // a real upstream error still reds. (Joe 2026-06-23.)
+  if (o.marketHoursOnly && !o.lastError && !isMarketOpenET(nowMs)) {
+    return { status: "green", clock: null, reason: "After hours \u2014 live feed resumes at the next market open; the close snapshot is the day\u2019s final value", ageHours: null };
+  }
   const pull = gradeByLastPull(o, nowMs);
   if (pull.status !== "green") {
     return { status: "red", clock: "pull", reason: pull.reason || "Not registered", ageHours: pull.ageHours == null ? null : pull.ageHours };
