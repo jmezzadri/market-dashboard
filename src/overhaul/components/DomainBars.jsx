@@ -32,6 +32,27 @@ function stateColor(state) {
   return state === 'extreme' ? 'var(--mt-down)' : state === 'elevated' ? 'var(--mt-warn)' : 'var(--mt-up)';
 }
 
+// Compact unit shown on the pill face — only short symbols; longer units
+// (index, ratio, etc.) stay in the tooltip so the pill never crowds.
+const FACE_UNITS = new Set(['%', 'bp', 'x', 'pts', '¢']);
+function faceUnit(u) {
+  const s = (u || '').trim();
+  return FACE_UNITS.has(s) ? s : '';
+}
+// Indicator reading for the pill face: value + compact unit, no space to save
+// width ("4.35%", "27bp", "1.2x"). Long-unit series show the bare number.
+function indReading(i) {
+  if (i.value == null || !Number.isFinite(i.value)) return null;
+  return `${fmtVal(i.value, i.decimals)}${faceUnit(i.unit)}`;
+}
+// Positioning reading for the pill face: dealer = net $bn, futures = net % of
+// open interest, both signed.
+function posReading(m) {
+  if (m.specNet == null || !Number.isFinite(m.specNet)) return null;
+  const sign = m.specNet > 0 ? '+' : '';
+  return m.comm == null ? `${sign}${m.specNet}bn` : `${sign}${m.specNet}%`;
+}
+
 /* Background shade from the real percentile: distance from the 3-year median
    (|pct − 50| / 50) scales the tint of the element's state color into the
    surface. Median-neutral tiles read nearly plain; extremes read strongly. */
@@ -67,7 +88,7 @@ function tagClass(state) {
   return `mc-pill mt-tag--${state === 'extreme' ? 'extreme' : state === 'elevated' ? 'elev' : 'calm'}`;
 }
 
-function GaugePill({ label, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
+function GaugePill({ label, valueText, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
   const arrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '·';
   const arrowColor = trend > 0 ? 'var(--mt-up)' : trend < 0 ? 'var(--mt-down)' : 'var(--mt-ink-3)';
   return (
@@ -89,9 +110,12 @@ function GaugePill({ label, tipText, pct, state, trend = 0, dashed, dimmed, onCl
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 5 }}>
-          <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700 }}>{arrow}</span>
-          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-1)' }}>{pct == null ? '—' : Math.round(pct)}</span>
+        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+          {valueText != null && (
+            <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 11.5 }}>{valueText}</span>
+          )}
+          <span className="num" style={{ fontSize: 9, color: arrowColor, fontWeight: 700 }}>{arrow}</span>
+          <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : Math.round(pct)}</span>
         </span>
       </span>
     </button>
@@ -111,6 +135,7 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
           <GaugePill
             key={i.id}
             label={shortLabel(i.name)}
+            valueText={indReading(i)}
             tipText={
               (i.pct == null
                 ? `${i.name} — not enough history to rank yet`
@@ -142,7 +167,8 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
                 <GaugePill
                   key={m.market}
                   label={shortLabel(m.market)}
-                  tipText={`${m.market} — speculators at the ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
+                  valueText={posReading(m)}
+                  tipText={`${m.market} — ${m.comm == null ? 'dealers' : 'speculators'} net ${posReading(m) || '—'} · ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
                   pct={m.spec}
                   state={mstate}
                   trend={mtrend}
