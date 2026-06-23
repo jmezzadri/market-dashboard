@@ -543,7 +543,16 @@ export default function MacroPage() {
 
   return (
     <div className="mt-pagebody mt-fade">
-      <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}.mc-indcard{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}`}</style>
+      <style>{`
+        .mc-pill{transition:filter .12s ease,transform .12s ease}
+        .mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}
+        .mc-indcard{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}
+        .mc-indtitle{font-family:var(--mt-font-display);font-size:clamp(18px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
+        /* Domain cells as raised panels — same treatment as the engine dials
+           above, so they read as distinct tiles inside the white card. */
+        .mt-overhaul .mc-indcard .mc-domcell{background:var(--mt-surface-2);border-color:var(--mt-line-1);box-shadow:0 1px 2px rgba(20,30,45,.05)}
+        .mt-overhaul .mc-indcard .mc-domcell:hover{background:var(--mt-surface-2);border-color:var(--mt-accent);box-shadow:0 7px 18px rgba(20,30,45,.09)}
+      `}</style>
       {tip && createPortal(
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
@@ -571,13 +580,11 @@ export default function MacroPage() {
               and the indicators together. Explainer copy is verbatim per
               LESSONS 8.5. */}
           <div className="mc-indcard">
-          <ul className="at-subbullets" style={{ marginTop: 0, marginBottom: 16 }}>
+          <div className="mc-indtitle">Market Indicators and Positioning Signals</div>
+          <ul className="at-subbullets" style={{ marginTop: 8, marginBottom: 16 }}>
             <li>Market indicators across five asset classes, financial conditions and the economy. Each indicator is ranked (red, amber, green) against its own 3-year range.</li>
             <li>Positioning signals from CFTC COT Dealer inventory, showing where positioning might be crowded.</li>
           </ul>
-          <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 8 }}>
-            Background shade = how stretched each element is in its own 3-year range · color = whether that stretch warns · arrow = move since the last update
-          </div>
           <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
