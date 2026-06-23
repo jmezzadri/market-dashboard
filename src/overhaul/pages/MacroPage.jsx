@@ -397,7 +397,7 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
           <select value={overlayKey} onChange={(e) => setOverlayKey(e.target.value)}
             style={{ font: 'inherit', fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
             <option value="">None</option>
-            {catalog.filter((c) => c.label !== item.market).map((c) => (
+            {catalog.filter((c) => c.key !== 'pos:' + item.market).map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>

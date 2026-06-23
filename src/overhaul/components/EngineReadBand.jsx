@@ -123,17 +123,31 @@ function DialPanel({
         </div>
       </div>
 
-      <div className="mer-gcap">{caption || ''}</div>
+      {caption ? <div className="mer-gcap">{caption}</div> : null}
 
-      <div
-        className="mer-dialwrap"
-        onMouseEnter={(e) => onTip && onTip(e, tipText)}
-        onMouseLeave={onHideTip}
-      >
-        {gauge}
+      <div className="mer-dialrow">
+        <div
+          className="mer-dialwrap"
+          onMouseEnter={(e) => onTip && onTip(e, tipText)}
+          onMouseLeave={onHideTip}
+        >
+          {gauge}
+        </div>
+        {legendZones && (
+          <div className="mer-diallegend">
+            {legendZones.map((z) => {
+              const zc = z.kind === 'up' ? 'var(--mt-up)' : z.kind === 'warn' ? 'var(--mt-warn)' : 'var(--mt-down)';
+              return (
+                <div key={z.label} className="mer-legtile">
+                  <span className="mer-legdot" style={{ background: zc }} />
+                  <span className="mer-leglabel" style={{ color: zc }}>{z.label}</span>
+                  <span className="mer-legrange num">{z.range}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {legendZones && <GaugeLegend zones={legendZones} />}
 
       {data.length > 1 && (
         <div className="mer-spark">
@@ -194,7 +208,7 @@ export default function EngineReadBand({ onTip, onHideTip }) {
   const inflT = yld?.inflationary_threshold_bp ?? 33;
   const deflT = yld?.deflationary_threshold_bp ?? -10;
 
-  const tail24 = useMemo(() => weekly.slice(-24), [weekly]);
+  const tail104 = useMemo(() => weekly.slice(-104), [weekly]);
 
   const stressState = stress?.state || regime.stressZone || null;
   const yieldState = yld?.state || regime.yieldRegime || null;
@@ -250,18 +264,25 @@ export default function EngineReadBand({ onTip, onHideTip }) {
         .mer-gval{font-family:var(--mt-font-display);font-size:32px;font-weight:500;line-height:1;letter-spacing:-.01em}
         .mer-gunit{font-family:var(--mt-font-ui);font-size:14px;font-weight:500;color:var(--mt-ink-2);margin-left:4px;letter-spacing:0}
         .mer-gsub{font-size:11px;color:var(--mt-ink-3)}
-        .mer-gcap{min-height:32px;font-size:11.5px;color:var(--mt-ink-2);line-height:1.4;margin:8px 0 4px}
-        .mer-dialwrap{cursor:help}
+        .mer-gcap{font-size:11.5px;color:var(--mt-ink-2);line-height:1.4;margin:6px 0 2px}
+        .mer-dialrow{display:flex;align-items:center;gap:14px;margin-top:6px}
+        .mer-dialwrap{cursor:help;flex:1 1 56%;min-width:0}
+        .mer-diallegend{flex:1 1 44%;display:flex;flex-direction:column;gap:7px}
+        .mer-legtile{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--mt-line-0);border-radius:8px;background:var(--mt-surface-2)}
+        .mer-legdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .mer-leglabel{font-size:11px;font-weight:600;letter-spacing:.03em;flex:1}
+        .mer-legrange{font-size:11px;color:var(--mt-ink-2);font-family:var(--mt-font-mono)}
         .mer-spark{margin-top:12px;padding-top:10px;border-top:1px solid var(--mt-line-1)}
         .mer-sparkhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700;margin-bottom:5px}
         .mer-sparkval{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mt-ink-1);font-family:var(--mt-font-mono);font-size:11px}
         .mer-strip-wrap{margin-top:18px;padding-top:14px;border-top:1px solid var(--mt-line-1)}
-        .mer-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:8px}
-        .mer-cell{height:26px;border-radius:3px;cursor:default;border-bottom:3px solid transparent}
+        .mer-strip{display:grid;grid-template-columns:repeat(104,1fr);gap:1.5px;margin-top:8px}
+        .mer-cell{height:30px;border-radius:2px;cursor:default;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--mt-line-1)}
+        .mer-celltop,.mer-cellbot{flex:1 1 50%}
         .mer-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:10.5px;color:var(--mt-ink-3)}
         .mer-legend span{display:inline-flex;align-items:center;gap:5px}
         .mer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-        @media (max-width:760px){.mer-grid{grid-template-columns:1fr;gap:14px}.mer-strip{grid-template-columns:repeat(12,1fr)}}
+        @media (max-width:760px){.mer-grid{grid-template-columns:1fr;gap:14px}.mer-strip{grid-template-columns:repeat(26,1fr)}.mer-dialrow{flex-direction:column;align-items:stretch;gap:10px}}
       `}</style>
 
       <div className="mer-card">
@@ -327,34 +348,27 @@ export default function EngineReadBand({ onTip, onHideTip }) {
 
         {/* 24-week regime strip */}
         <div className="mer-strip-wrap">
-          <div className="mt-eyebrow">Regime history · 24 weeks — when the engine moved</div>
+          <div className="mt-eyebrow">Regime history · 2 years — top: stress signal · bottom: yield regime</div>
           <div className="mer-strip">
-            {tail24.length > 0
-              ? tail24.map((w, i) => {
+            {tail104.length > 0
+              ? tail104.map((w, i) => {
                   const sk = stressKind(w.stress_state);
                   const yk = yieldKind(w.yield_regime);
                   return (
                     <div
                       key={i}
                       className="mer-cell"
-                      style={{
-                        background: `color-mix(in oklab, ${KIND_COLOR[sk]} 30%, var(--mt-surface-3))`,
-                        borderBottomColor: KIND_COLOR[yk],
-                      }}
                       onMouseEnter={(e) => tip(e, `Week of ${w.date || '—'}: ${w.stress_state || '—'} · ${w.yield_regime || '—'}`)}
                       onMouseLeave={onHideTip}
-                    />
+                    >
+                      <div className="mer-celltop" style={{ background: `color-mix(in oklab, ${KIND_COLOR[sk]} 62%, var(--mt-surface))` }} />
+                      <div className="mer-cellbot" style={{ background: `color-mix(in oklab, ${KIND_COLOR[yk]} 62%, var(--mt-surface))` }} />
+                    </div>
                   );
                 })
-              : Array.from({ length: 24 }).map((_, i) => (
+              : Array.from({ length: 104 }).map((_, i) => (
                   <div key={i} className="mer-cell" style={{ background: 'var(--mt-surface-3)' }} />
                 ))}
-          </div>
-          <div className="mer-legend">
-            <span><span className="mer-dot" style={{ background: 'var(--mt-up)' }} /> Risk On</span>
-            <span><span className="mer-dot" style={{ background: 'var(--mt-warn)' }} /> Watch</span>
-            <span><span className="mer-dot" style={{ background: 'var(--mt-down)' }} /> Risk Off</span>
-            <span style={{ opacity: 0.6 }}>fill = stress · underline = yield regime</span>
           </div>
         </div>
       </div>
