@@ -104,7 +104,6 @@ function tagClass(state) {
 function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
   const arrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '·';
   const arrowColor = trend > 0 ? 'var(--mt-up)' : trend < 0 ? 'var(--mt-down)' : 'var(--mt-ink-3)';
-  const rowBase = { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 };
   return (
     <button
       type="button"
@@ -117,25 +116,19 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
         border: dashed ? '1px dashed var(--mt-line-1)' : '1px solid var(--mt-line-0)',
         background: shadeBg(pct, state),
         color: 'var(--mt-ink-0)',
-        font: 'inherit', padding: '6px 9px', lineHeight: 1.2,
+        font: 'inherit', padding: '5px 8px', lineHeight: 1.25,
         width: '100%', display: 'block', textAlign: 'left', borderRadius: 7,
         opacity: dimmed ? 0.85 : 1, transition: 'opacity .25s ease, filter .12s ease, transform .12s ease',
       }}
     >
-      {/* Row 1: name (left) + reading (right) */}
-      <span style={rowBase}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{label}</span>
-        <span className="num" style={{ flex: '0 0 auto', fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 12.5 }}>{valueText != null ? valueText : '—'}</span>
-      </span>
-      {/* Row 2: change + percentile, RIGHT-aligned under the reading so both
-          read as stats of that reading (Joe 2026-06-23). */}
-      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5, marginTop: 3 }}>
-        <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700, whiteSpace: 'nowrap' }}>
-          {arrow}{trend !== 0 && changeText ? ` ${changeText}` : ''}
-        </span>
-        <span style={{ fontSize: 9, color: 'var(--mt-ink-3)' }}>·</span>
-        <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>
-          {pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}
+      {/* Single line, no wrap (Joe 2026-06-23): name (truncates) + reading,
+          change and percentile as a fixed right-aligned cluster. */}
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'nowrap' }}>
+        <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{label}</span>
+        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
+          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 11.5 }}>{valueText != null ? valueText : '—'}</span>
+          <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700 }}>{arrow}{trend !== 0 && changeText ? changeText : ''}</span>
+          <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}</span>
         </span>
       </span>
     </button>
