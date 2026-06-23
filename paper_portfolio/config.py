@@ -31,12 +31,17 @@ PROJECT_REF = "yqaqqzseepebrocgibcw"
 SLEEVE_B_BUY_THRESHOLD = 5.0   # buy when normalized buy-score >= 5
 SLEEVE_B_EXIT_THRESHOLD = 5.0  # exit when normalized buy-score < 5
 
-# Sleeve B per-name sizing by tier on the normalized 0–10 scale.
-# Tier 1 (9–10) → $50,000; Tier 2 (7–<9) → $40,000; Tier 3 (5–<7) → $30,000.
+# Sleeve B per-name sizing on the normalized 0–10 buy-score: notional = score
+# × $10K, stepped by integer score (Joe directive 2026-06-23, replacing the old
+# 3-tier $50K/$40K/$30K scheme). Score 5 → $50K, 6 → $60K, … 10 → $100K.
+# Bands are half-open [lo, hi); listed largest-first = fill priority order.
 SLEEVE_B_TIER_BANDS = [
-    ("tier1", 9.0, 10.01, 50_000.0),  # half-open [9, 10.01) — captures any score == 10
-    ("tier2", 7.0,  9.0,  40_000.0),  # [7, 9)
-    ("tier3", 5.0,  7.0,  30_000.0),  # [5, 7)
+    ("s10", 10.0, 10.01, 100_000.0),  # [10, 10.01) — captures any score == 10
+    ("s9",   9.0, 10.0,   90_000.0),  # [9, 10)
+    ("s8",   8.0,  9.0,   80_000.0),  # [8, 9)
+    ("s7",   7.0,  8.0,   70_000.0),  # [7, 8)
+    ("s6",   6.0,  7.0,   60_000.0),  # [6, 7)
+    ("s5",   5.0,  6.0,   50_000.0),  # [5, 6)
 ]
 
 # Tolerance band — a holding only rebalances when it has drifted from its

@@ -47,7 +47,7 @@ const HERO_TITLE = (
 
 const HERO_BULLETS = [
   '$1M starting capital, following the Trading Scanner recommendations',
-  'Buy at Score \u2265 5; sized by tier \u2014 Score 5\u20136 = $30K, 7\u20138 = $40K, 9\u201310 = $50K',
+  'Buy at Score \u2265 5; sized at Score \u00d7 $10K \u2014 5 = $50K, 6 = $60K, 7 = $70K, 8 = $80K, 9 = $90K, 10 = $100K',
   'Long-only, 2\u00d7 max leverage',
 ];
 
@@ -1137,7 +1137,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           cfg={colCfg}
           setCfg={setColCfg}
           headline={heads.b}
-          infoDef="$1M following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed the cash sleeve."
+          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; position size = Score × $10K (5 = $50K … 10 = $100K); up to 2× leverage when signals exceed the cash sleeve."
         />
         <RebalanceLog orders={orders} fills={fills} />
 
