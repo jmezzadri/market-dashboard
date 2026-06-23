@@ -15,6 +15,7 @@ export default function Sparkline({
   onHover,
   area = false,
   pad = 2,
+  fluid = false,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden />;
@@ -59,7 +60,8 @@ export default function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
-      style={{ display: 'block', overflow: 'visible' }}
+      preserveAspectRatio={fluid ? 'none' : undefined}
+      style={{ display: 'block', overflow: 'visible', ...(fluid ? { width: '100%' } : {}) }}
     >
       {areaPath && <path d={areaPath} fill={fill} opacity={0.18} />}
       <path
@@ -69,6 +71,7 @@ export default function Sparkline({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
       {showDot && pts.length > 0 && (
         <circle
