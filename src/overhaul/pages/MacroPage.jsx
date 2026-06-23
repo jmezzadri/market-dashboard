@@ -557,17 +557,8 @@ export default function MacroPage() {
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      {/* Header — Asset Tilt pattern (Joe 2026-06-17): one short sentence on
-          what the page is, then a couple of informative sub-bullets. Replaces
-          the old "Since yesterday's close" morning-read hero. */}
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Macro overview</div>
-          <h1 className="mt-h1">
-            Where every market sits <i>in its own range</i>.
-          </h1>
-        </div>
-      </section>
+      {/* Hero tagline removed (Joe 2026-06-23) — the page leads straight into
+          the live engine read, which is the headline state. */}
 
       {/* Engine read — the de-risk engine (moved from the retired Asset Tilt
           page, Joe 2026-06-22). The headline state read leads the page. */}

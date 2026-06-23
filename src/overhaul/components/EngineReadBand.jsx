@@ -252,7 +252,7 @@ export default function EngineReadBand({ onTip, onHideTip }) {
     + `+${Math.round(inflT)} bp or higher leans gold & short T-bills; in between holds a balanced sleeve. The colored bands mark where those levels fall in the 3-year range.`;
 
   return (
-    <section className="mt-pagesection mer-band" style={{ paddingTop: 14 }}>
+    <section className="mt-pagesection mer-band" style={{ paddingTop: 28 }}>
       <style>{`
         .mer-card{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}
         .mer-state{font-family:var(--mt-font-display);font-size:clamp(16px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
