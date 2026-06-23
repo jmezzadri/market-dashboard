@@ -122,17 +122,19 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
         opacity: dimmed ? 0.85 : 1, transition: 'opacity .25s ease, filter .12s ease, transform .12s ease',
       }}
     >
-      {/* Row 1: name + reading */}
+      {/* Row 1: name (left) + reading (right) */}
       <span style={rowBase}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{label}</span>
         <span className="num" style={{ flex: '0 0 auto', fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 12.5 }}>{valueText != null ? valueText : '—'}</span>
       </span>
-      {/* Row 2: change (arrow + magnitude) + percentile */}
-      <span style={{ ...rowBase, marginTop: 3 }}>
+      {/* Row 2: change + percentile, RIGHT-aligned under the reading so both
+          read as stats of that reading (Joe 2026-06-23). */}
+      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5, marginTop: 3 }}>
         <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700, whiteSpace: 'nowrap' }}>
           {arrow}{trend !== 0 && changeText ? ` ${changeText}` : ''}
         </span>
-        <span className="num" style={{ flex: '0 0 auto', fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>
+        <span style={{ fontSize: 9, color: 'var(--mt-ink-3)' }}>·</span>
+        <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>
           {pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}
         </span>
       </span>
