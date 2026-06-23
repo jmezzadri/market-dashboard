@@ -102,7 +102,7 @@ export const VENDOR_BLAST_RADIUS = {
   "Nasdaq / FINRA":
     "Short interest reports. Powers the v5 scanner short interest score.",
   "MacroTilt in-house":
-    "Composite scorers + back-test artefacts computed daily from the external vendor feeds above. Powers v5/v9/v10/v11 scoring, Cycle Board snapshots.",
+    "In-house computed outputs derived daily from the external vendor feeds above. Powers the two-axis engine read and the indicator-history compiler.",
 };
 
 // Monthly cost per canonical vendor — matches data_vendors.md. "Free" for

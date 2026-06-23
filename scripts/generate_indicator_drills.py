@@ -5,7 +5,7 @@ that don't yet have a full drilldown.
 
 Joe directive 2026-05-11: deeper drilldown on every indicator. The
 hand-written DRILLS map only covers ~17 of the 38 v2 indicators. This
-script reads indicator_history.json + cycle_v2.json + data_manifest.json
+script reads indicator_history.json + data_manifest.json
 and emits a JSON file with computed entries — KPIs (1m / 3m / 1y change,
 distance from peak), co-movement (Pearson correlation on monthly first
 differences vs peer indicators), release calendar (cadence + source +
@@ -35,7 +35,6 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INDICATOR_HISTORY = REPO_ROOT / "public" / "indicator_history.json"
-CYCLE_V2 = REPO_ROOT / "public" / "cycle_v2.json"
 DATA_MANIFEST = REPO_ROOT / "data_manifest.json"
 OUT_PATH = REPO_ROOT / "public" / "indicator_drills_generated.json"
 
@@ -50,8 +49,7 @@ COVERED_BY_HAND = {
     "cfnai_3ma", "ism_mfg", "ism_svc",
 }
 
-# Plain-English indicator labels + axis units. Match the lite-drawer label map
-# in MacroTilt_Macro_Overview_Page_v11.html.
+# Plain-English indicator labels + axis units for the indicator drilldowns.
 INDICATOR_META = {
     "cmdi":          {"name": "Moody's distress index", "axis": "index", "freq": "Daily"},
     "loan_syn":      {"name": "Senior loan officer survey", "axis": "% banks tightening", "freq": "Quarterly"},
@@ -225,7 +223,6 @@ def compute_comovement(target_diffs: List[float], all_diffs: Dict[str, List[floa
 
 def main() -> int:
     hist = json.loads(INDICATOR_HISTORY.read_text())
-    v2 = json.loads(CYCLE_V2.read_text())
     manifest_entries = {}
     if DATA_MANIFEST.exists():
         try:
@@ -237,17 +234,19 @@ def main() -> int:
         except Exception:
             pass
 
-    indicator_by_id = {ind["id"]: ind for ind in v2["indicators"]}
+    # The indicator universe is every id we have plain-English metadata for;
+    # history_key defaults to the id (matching the indicator_history.json keys).
+    indicator_by_id = {iid: {"id": iid, "history_key": iid} for iid in INDICATOR_META}
     targets = [iid for iid in INDICATOR_META if iid not in COVERED_BY_HAND]
 
-    # Pre-compute monthly diffs for ALL v2 indicators (for co-movement comparisons).
+    # Pre-compute monthly diffs for ALL known indicators (for co-movement comparisons).
     all_diffs: Dict[str, List[float]] = {}
     all_labels: Dict[str, str] = {}
-    for ind in v2["indicators"]:
-        hist_key = ind.get("history_key", ind["id"])
+    for iid in INDICATOR_META:
+        hist_key = iid
         if hist_key in hist and "points" in hist[hist_key]:
-            all_diffs[ind["id"]] = monthly_first_diffs(hist[hist_key]["points"])
-            all_labels[ind["id"]] = INDICATOR_META.get(ind["id"], {}).get("name", ind["id"])
+            all_diffs[iid] = monthly_first_diffs(hist[hist_key]["points"])
+            all_labels[iid] = INDICATOR_META.get(iid, {}).get("name", iid)
 
     out: Dict[str, Any] = {}
     for iid in targets:

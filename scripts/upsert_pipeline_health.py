@@ -6,11 +6,11 @@ Why this exists
 The freshness chip (useFreshness) grades against public.pipeline_health
 (data_as_of / last_good_at). The Supabase edge function only refreshes
 pipeline_health for ATOMIC vendor feeds — it does NOT touch rows owned by
-in-house recompute jobs like v10-allocation-daily or macrotilt-engine-daily.
-Result (Joe 2026-06-03): the v10_allocation file refreshed fine every day, but
-its pipeline_health.data_as_of was frozen at 2026-05-26, so the Recommended
-Allocation chip read a fake "6D ago". A producer that commits a fresh file MUST
-also stamp its own pipeline_health row, or the chip lies.
+in-house recompute jobs like macrotilt-engine-daily. Result (Joe 2026-06-03):
+an in-house computed file refreshed fine every day, but its
+pipeline_health.data_as_of stayed frozen, so its chip read a fake "6D ago". A
+producer that commits a fresh file MUST also stamp its own pipeline_health row,
+or the chip lies.
 
 This helper updates an EXISTING pipeline_health row (per the binding rule:
 the freshness checker only updates existing rows — new feeds need a seed row).

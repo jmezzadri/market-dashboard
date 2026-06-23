@@ -55,7 +55,6 @@ import { useSession } from '../auth/useSession';
 
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
-import TiltPage from './pages/TiltPage';
 import ScannerPage from './pages/ScannerPage';
 import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
@@ -152,7 +151,7 @@ function Shell() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/macro" element={<MacroPage />} />
-            <Route path="/tilt" element={<TiltPage />} />
+            <Route path="/tilt" element={<Navigate to="/macro" replace />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />

@@ -28,8 +28,6 @@
 If this PR touches **any** of the following, attach a screenshot of
 `macrotilt.com/#home` showing the affected tile is still rendering:
 
-- [ ] `compute_v9_allocation.py` — Home Outperformance/Drawdown/Sharpe tile,
-      Asset Allocation tab
 - [ ] `fetch_history.py` / `compute_composite_history.py` — Home Macro
       lead-in, TodayMacro chart
 - [ ] Anything under `public/*.json`

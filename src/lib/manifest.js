@@ -19,7 +19,7 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 
 function normKey(s) {
   return String(s || "").toLowerCase()
-    .replace(/^(indicator|market|equity|scenario|portfolio|news|commentary|ops|site|v9|v10|v11)-/, "")
+    .replace(/^(indicator|market|equity|portfolio|news|commentary|ops|site)-/, "")
     .replace(/-(daily|weekly|monthly|quarterly|intraday)$/, "")
     .replace(/[^a-z0-9]/g, "");
 }

@@ -4,8 +4,7 @@
 Why this exists
 ---------------
 Every JSON file under public/ is a contract between a Python producer
-(compute_v9_allocation.py, indicator_history pipeline, composite recompute
-pipeline, etc.) and a React consumer (App.jsx Home page tiles, /pages/*).
+(the indicator_history pipeline, composite recompute pipeline, etc.) and a React consumer (App.jsx Home page tiles, /pages/*).
 A producer can drop or rename a key without throwing — the consumer just
 silently renders an em dash and the bug ships to prod.
 
@@ -50,37 +49,6 @@ from datetime import datetime, timezone
 # actually reads. Don't enumerate every field a producer happens to emit.
 # ---------------------------------------------------------------------------
 CONTRACTS: dict = {
-    # The v9 allocation snapshot. Read by Home Outperformance tile +
-    # Asset Allocation tab. Bug #1109 lived here.
-    "v9_allocation.json": {
-        "consumed_by": [
-            "src/App.jsx Home Mission/Evidence strip (~L6440)",
-            "src/pages/AssetAllocation.jsx",
-            "src/components/TickerDetailModal.jsx Asset Tilt rail tile (Phase 4b PR-C)",
-        ],
-        "required_top_level": [
-            "as_of",
-            "regime",
-            "alpha",
-            "equity_share",
-            "leverage",
-            "selection_confidence",
-            "picks",
-            "defensive",
-            "methodology",
-        ],
-        # Nested keys that must exist AND be non-null.
-        "required_non_null": [
-            "methodology.back_test_window",
-            "methodology.back_test_cagr",
-            "methodology.back_test_spx_cagr",
-            "methodology.back_test_sharpe",
-            "methodology.back_test_spx_sharpe",
-            "methodology.back_test_max_drawdown",
-            "methodology.back_test_spx_max_drawdown",
-        ],
-    },
-
     # Composite history — Home Macro lead-in + Asset Allocation timeline +
     # TodayMacro chart. Validated as a non-empty list with the daily fields.
 
@@ -88,18 +56,6 @@ CONTRACTS: dict = {
     # require the file to be a non-empty object/list.
     "indicator_history.json": {
         "consumed_by": ["src/App.jsx hist hook (~L779)"],
-        "non_empty": True,
-    },
-
-    # Industry-group rationales for the Asset Allocation drill-down.
-    "industry_group_rationale.json": {
-        "consumed_by": ["src/pages/AssetAllocation.jsx drill-down"],
-        "non_empty": True,
-    },
-
-    # Allocation history.
-    "allocation_history.json": {
-        "consumed_by": ["src/pages/AssetAllocation.jsx history strip"],
         "non_empty": True,
     },
 
@@ -155,15 +111,6 @@ def _check_one(filename: str, contract: dict, data) -> list[str]:
     """Return list of violation strings (empty list = pass)."""
     out: list[str] = []
     consumers = ", ".join(contract.get("consumed_by", []))
-
-    # PR ο (2026-05-02) introduced a v9 dormant stub written when composites
-    # are retired — it intentionally lacks regime / defensive / methodology /
-    # methodology.* because the v9 model is suspended pending the Asset Tilt
-    # rebuild. The dormant payload is detectable by status == "dormant"; in
-    # that case the consumers are expected to render a "v9 dormant" placeholder
-    # rather than read those fields, so contract violations are not real.
-    if filename == "v9_allocation.json" and isinstance(data, dict) and data.get("status") == "dormant":
-        return []
 
     # File-level non-empty (object or list).
     if contract.get("non_empty"):

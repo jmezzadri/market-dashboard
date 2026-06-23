@@ -514,9 +514,9 @@ export function useFreshnessRollup() {
     seen.add(phKey);
     let r;
     try { r = rollupStatus(name || id); } catch { continue; }
-    // Prefer the friendly pipeline_health label ("Macro Overview \u00b7 Cycle
-    // Board Snapshot") over the manifest short-code ("cycle_board"), so the
-    // header tooltip reads in plain English.
+    // Prefer the friendly pipeline_health label ("Indicator history") over
+    // the manifest short-code ("indicator_history"), so the header tooltip
+    // reads in plain English.
     const phRow = cachedRows.get(phKey);
     const label = (phRow && phRow.label) || r.label || name || id;
     if (r.status === "red") red.push({ id: phKey, label, reason: r.reason || r.lastError || null });

@@ -22,9 +22,8 @@
                       indicator registry (IND[name][2] → FAMILY_LABEL); a small
                       fallback map covers the handful of computed v11 series
                       that aren't in the registry.
-     - Engines      = in-house computed outputs (the cycle board, the
-                      indicator-history compiler, the v10 allocation engine and
-                      its history/legacy outputs) — vendor is "n/a"/"MacroTilt".
+     - Engines      = in-house computed outputs (the indicator-history
+                      compiler) — vendor is "n/a"/"MacroTilt".
                       Internal infrastructure (category:"ops" — bug tracker,
                       admin tables, api usage log, pipeline_health — plus the
                       static methodology changelog) is plumbing, NOT a data
@@ -242,30 +241,18 @@ function isInhouseVendor(raw) {
 }
 
 // Manifest element `name`s that are engine outputs regardless of category.
-// The four allocation rows (the live v10 allocator + its history output + the
-// v9 legacy backup + the allocation history file) all live under ONE v10
-// allocation engine tile — see allocationGroup() — so the user never sees two
-// peers both called "v10 allocation".
 const ENGINE_NAMES = new Set([
-  'cycle_board', 'indicator_history',
-  'v10_allocation', 'v10_sector_history',
-]);
-
-// The allocation family — collapsed into one "v10 Allocation" engine tile.
-const ALLOCATION_NAMES = new Set([
-  'v10_allocation', 'v10_sector_history',
+  'indicator_history',
 ]);
 
 // Consumer-surface tab aliases → one canonical tab, so a single surface tile
 // represents each real page. The manifest uses several names for the same
 // page: macro/overview = Macro Overview; portopps/scanner = Trading Scanner;
-// allocation/asset-tilt = Asset Tilt (the cycle board's consumer tab is
-// "asset-tilt"); readme/methodology = Methodology. Without this the page drew
-// two tiles both labelled "Asset Tilt" and two labelled "Methodology".
+// readme/methodology = Methodology. Without this the page drew two tiles
+// both labelled "Methodology".
 const SURFACE_ALIAS = {
   macro: 'overview',
   portopps: 'scanner',
-  'asset-tilt': 'allocation',
   methodology: 'readme',
 };
 function canonTab(tab) {
@@ -367,15 +354,8 @@ function humanise(name) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 // Explicit display names for engine-internal elements that are NOT in the
-// indicator registry and whose humanised id reads code-y or — for the
-// allocation family — ambiguous. The allocation labels make clear that the
-// live allocator is ONE engine and the history/legacy rows are its outputs /
-// backup, not competing "v10 allocation" models (Joe: must not see two things
-// both called v10 allocation).
+// indicator registry and whose humanised id reads code-y.
 const ENGINE_DISPLAY = {
-  v10_allocation: 'v10 Allocation (live allocator)',
-  v10_sector_history: 'v10 Sector History (allocation output)',
-  cycle_board: 'Cycle Mechanism Board',
   indicator_history: 'Indicator history compiler',
 };
 
@@ -430,7 +410,6 @@ function tabLabel(tab) {
     overview: 'Macro Overview',
     macro: 'Macro Overview',
     indicators: 'All Indicators',
-    allocation: 'Asset Tilt',
     scanner: 'Trading Scanner',
     portopps: 'Trading Scanner',
     paper: 'Paper Portfolio',
@@ -719,8 +698,7 @@ export default function DataFlowPage() {
     // Keep every NON-INFRASTRUCTURE element (ops tables + the static changelog
     // stay excluded). The earlier rule dropped any element with no
     // pipeline_health row outright — but that silently deleted real feeds the
-    // rest of this page is built to show honestly: the v10 allocator's
-    // history/legacy outputs (so the engine tile showed 1 of 4 members),
+    // rest of this page is built to show honestly:
     // portfolio accounts/positions/transactions/watchlist (event-driven),
     // the per-ticker news + commentary feeds, and several scanner inputs. Each
     // of those under-counted a tile and left panels thin or empty.
@@ -748,10 +726,8 @@ export default function DataFlowPage() {
     elements.forEach((e) => {
       const cat = e.category;
       const base = vendorBase(e.source_vendor);
-      // Engines: explicit engine outputs + every allocation row (the v10
-      // allocator + its history + the v9 legacy backup) so allocation never
-      // splits across two columns. (ops is already filtered out upstream.)
-      if (cat === 'allocation' || ENGINE_NAMES.has(e.name)) {
+      // Engines: explicit engine outputs. (ops is already filtered out upstream.)
+      if (ENGINE_NAMES.has(e.name)) {
         out[e.name] = 'engine';
       } else if (cat === 'indicator') {
         out[e.name] = 'derived';
@@ -881,18 +857,11 @@ export default function DataFlowPage() {
   }, [elements, classified, cotMembers, creditMembers]);
 
   // ── Column 3: Engine / model tiles ──
-  // The allocation family (live v10 allocator + its sector-history output + the
-  // v9 legacy backup + the allocation history file) collapses into ONE
-  // "v10 Allocation" engine tile so it never looks like competing models; the
-  // tile lists all of them as members with self-explaining names. Every other
-  // engine element (cycle board, indicator-history compiler) is its own tile.
+  // Engine-internal computed outputs — one tile per engine element.
   const engineTiles = useMemo(() => {
     const els = elements.filter((e) => classified[e.name] === 'engine');
     const tiles = [];
-    const allocMembers = [];
     els.forEach((e) => {
-      if (ALLOCATION_NAMES.has(e.name)) { allocMembers.push(e); return; }
-      // One tile per non-allocation engine element.
       tiles.push({
         id: `eng:${e.name}`,
         name: displayName(e),
@@ -900,20 +869,6 @@ export default function DataFlowPage() {
         members: [e],
       });
     });
-    if (allocMembers.length) {
-      // Put the live allocator first; the live element anchors the tile id.
-      allocMembers.sort((a, b) => {
-        const rank = (n) => (n === 'v10_allocation' ? 0 : n === 'v10_sector_history' ? 1 : 2);
-        return rank(a.name) - rank(b.name);
-      });
-      const live = allocMembers.find((m) => m.name === 'v10_allocation') || allocMembers[0];
-      tiles.push({
-        id: 'eng:v10_allocation',
-        name: 'v10 Allocation',
-        sub: `${prettyCadence(live.cadence)} · live allocator`,
-        members: allocMembers,
-      });
-    }
     tiles.sort((a, b) => a.name.localeCompare(b.name));
     return tiles;
   }, [elements, classified]);
@@ -923,7 +878,7 @@ export default function DataFlowPage() {
     // Surfaces: collect, per tab, every element that declares a consumer
     // surface on that tab. consumer_surfaces entries can be dicts or strings.
     // Tab names are canonicalised (macro→overview, portopps→scanner,
-    // asset-tilt→allocation, methodology→readme) so each real page is ONE tile.
+    // methodology→readme) so each real page is ONE tile.
     const byTab = new Map();
     elements.forEach((e) => {
       // Portfolio / news / commentary feeds are shown in the Workflows section
@@ -944,7 +899,7 @@ export default function DataFlowPage() {
         byTab.get(tab).push(e);
       });
     });
-    const SURFACE_ORDER = ['home', 'overview', 'allocation', 'scanner', 'paper', 'indicators', 'readme', 'ticker', 'admin'];
+    const SURFACE_ORDER = ['home', 'overview', 'scanner', 'paper', 'indicators', 'readme', 'ticker', 'admin'];
     const sTiles = [];
     const pushTab = (tab) => {
       if (!byTab.has(tab)) return;
@@ -1009,11 +964,9 @@ export default function DataFlowPage() {
   // Edges (derived, not hardcoded):
   //   vendor → family    : a source feeds every family it has an indicator in
   //   vendor → engine     : a source feeds an engine it is a member of (rare)
-  //   family → engines    : every family rolls into the cycle board + compiler
+  //   family → engines    : every family rolls into the indicator compiler
   //   engines → surfaces  : each engine feeds ONLY the surfaces its manifest
-  //                         consumer_surfaces declare — so the Cycle Mechanism
-  //                         Board draws to Asset Tilt (its consumer tab is
-  //                         "asset-tilt"), NOT Macro Overview.
+  //                         consumer_surfaces declare.
   //   member → surface    : every element feeds the surface tabs it declares
   const edges = useMemo(() => {
     const E = [];
@@ -1060,14 +1013,12 @@ export default function DataFlowPage() {
       if (fams.size === 0) surfs.forEach((s) => E.push([src.id, s]));
     });
 
-    // family → cycle board + indicator compiler. The COT tile is NOT an input
-    // to the cycle board / compiler — it feeds the Macro Overview cross-asset
-    // positioning rollup directly (see below), so exclude it here.
-    const cycleId = engineTiles.find((t) => /cycle/i.test(t.name))?.id;
+    // family → indicator compiler. The COT tile is NOT an input to the
+    // compiler — it feeds the Macro Overview cross-asset positioning rollup
+    // directly (see below), so exclude it here.
     const compilerId = engineTiles.find((t) => /history|compiler|indicator history/i.test(t.name))?.id;
     derivedTiles.forEach((t) => {
       if (t.id === COT_TILE_ID || t.id === CREDIT_TILE_ID) return;
-      if (cycleId) E.push([t.id, cycleId]);
       if (compilerId) E.push([t.id, compilerId]);
     });
 
@@ -1102,12 +1053,6 @@ export default function DataFlowPage() {
     if (overviewSurfId && derivedTiles.some((t) => t.id === CREDIT_TILE_ID)) {
       E.push([CREDIT_TILE_ID, overviewSurfId]);
     }
-
-    // engine → engine: the cycle board's 6 mechanism scores feed the v10
-    // allocator, which produces the sector tilts. So the chain reads
-    // families → Cycle Mechanism Board → v10 Allocation → Asset Tilt.
-    const allocId = engineTiles.find((t) => /allocation/i.test(t.name))?.id;
-    if (cycleId && allocId) E.push([cycleId, allocId]);
 
     // engines → surfaces (via the surfaces each engine's members declare)
     engineTiles.forEach((eng) => {

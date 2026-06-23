@@ -9,8 +9,6 @@ name: macrotilt-engine-daily
 #   - Daily 19:45 UTC weekdays (≈ 15:45 ET standard / 14:45 ET DST)
 #     so the snapshot is current before market close. The weekly Friday read
 #     drives Monday-open execution per the engine spec.
-#
-# Pattern: cycle-mechanisms-daily.yml.
 
 on:
   schedule:
