@@ -472,6 +472,24 @@ function fmtDateTime(iso) {
   });
 }
 
+// As-of, capped at the last pull and rendered in the SAME ET basis as the
+// Last-pull column. Data can never be more current than the pull that fetched
+// it (Joe 2026-06-23): a forward-dated / midnight-UTC stamp on a late-evening
+// pull must not render a day AHEAD of a Last-pull shown in ET. When the as-of
+// anchored to its session close is after the pull, show the pull's own ET date.
+function fmtAsOfClamped(asOfIso, lastPullIso) {
+  if (!asOfIso) return '—';
+  if (lastPullIso) {
+    const a = String(asOfIso);
+    const aMs = Date.parse(a.length === 10 ? `${a}T20:00:00Z` : a);
+    const pMs = Date.parse(lastPullIso);
+    if (Number.isFinite(aMs) && Number.isFinite(pMs) && aMs > pMs) {
+      return new Date(pMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+    }
+  }
+  return fmtDate(asOfIso);
+}
+
 function ElementRow({ el }) {
   // Resolve live freshness for this element. useFreshness accepts the manifest
   // id OR short name; we pass the id which is the canonical key.
@@ -481,8 +499,9 @@ function ElementRow({ el }) {
     : 'MacroTilt (computed)';
   const cad = prettyCadence(el.cadence);
   const fetchAt = prettyFetchET(el.scheduled_fetch_time_et);
-  const asOf = fmtDate(f?.dataAsOf || el.data_as_of);
-  const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
+  const lastPullIso = f?.lastRefreshedAt || f?.lastGoodAt;
+  const asOf = fmtAsOfClamped(f?.dataAsOf || el.data_as_of, lastPullIso);
+  const lastPull = fmtDateTime(lastPullIso);
   const sla = prettySla(el.freshness_sla_hours);
 
   // How does this feed update? Scheduled feeds grade green/amber/red against an
@@ -548,8 +567,9 @@ function ElementRow({ el }) {
 // trailing 3-year range (0 = most short on record, 100 = most long).
 function CotRow({ el }) {
   const f = useFreshness(el.healthId || COT_HEALTH_ID);
-  const asOf = fmtDate(el.data_as_of || f?.dataAsOf);
-  const lastPull = fmtDateTime(f?.lastRefreshedAt || f?.lastGoodAt);
+  const lastPullIso = f?.lastRefreshedAt || f?.lastGoodAt;
+  const asOf = fmtAsOfClamped(el.data_as_of || f?.dataAsOf, lastPullIso);
+  const lastPull = fmtDateTime(lastPullIso);
   const pct = (v) => (v == null ? '—' : `${v}`);
   return (
     <div className="df-row df-row--cot">
