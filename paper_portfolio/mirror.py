@@ -35,7 +35,6 @@ from typing import Any
 import requests
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient, AlpacaPosition
-from paper_portfolio.signals import load_asset_tilt_snapshot
 
 logger = logging.getLogger("paper_mirror")
 PROJECT_REF = "yqaqqzseepebrocgibcw"
@@ -411,16 +410,20 @@ def _spy_anchor_closes(alpaca: AlpacaPaperClient) -> dict:
 def _build_sleeve_a_etf_universe(
     asset_tilt_path: str = "public/v10_allocation.json",
 ) -> set[str]:
-    """Return the set of all tickers that appear anywhere in any IG's
-    `tickers` list in today's Asset Tilt snapshot. Used to classify live
-    Alpaca positions as Sleeve A vs Sleeve B."""
+    """Historical Sleeve-A (Asset Tilt) ETF universe, used only to label legacy
+    held positions on the snapshot. Sleeve A was retired 2026-06-23 and the
+    Asset Tilt engine output (v10_allocation.json) no longer exists, so this
+    returns an empty set and every live position attributes to Sleeve B.
+
+    Reads the JSON directly (the signals reader was removed with Sleeve A); if
+    the file is ever restored, legacy ETFs would label as Sleeve A again."""
     try:
-        snap = load_asset_tilt_snapshot(asset_tilt_path)
-    except FileNotFoundError:
-        logger.warning("asset tilt snapshot not found at %s — using empty Sleeve A universe", asset_tilt_path)
+        with open(asset_tilt_path) as f:
+            d = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
         return set()
     universe: set[str] = set()
-    for ig in snap.raw.get("industry_groups", []) or []:
+    for ig in d.get("industry_groups", []) or []:
         for t in (ig.get("tickers") or []):
             universe.add(t)
     return universe

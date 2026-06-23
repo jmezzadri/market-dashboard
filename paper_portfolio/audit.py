@@ -4,9 +4,9 @@ paper_portfolio.audit — writers for paper_signal_capture + paper_orders.
 Two responsibilities:
 
   1. write_signal_capture(...) — one row per translator run, carries the
-     signal payload JSON (Asset Tilt snapshot summary + scanner sample)
-     and a count of orders triggered. The Phase 4 execution layer can
-     replay any historical run from these rows.
+     signal payload JSON (scanner sample + sleeve summary) and a count of
+     orders triggered. The Phase 4 execution layer can replay any historical
+     run from these rows.
 
   2. write_order_intents(...) — one row per OrderIntent in paper_orders
      with status='pending'. Phase 2 NEVER writes status='submitted' or
@@ -27,7 +27,7 @@ from typing import Iterable
 import requests
 
 from paper_portfolio.diff import OrderIntent
-from paper_portfolio.signals import AssetTiltSnapshot, EquityScannerSnapshot
+from paper_portfolio.signals import EquityScannerSnapshot
 
 PROJECT_REF = "yqaqqzseepebrocgibcw"
 
@@ -63,13 +63,13 @@ def _sql_jsonb(payload: dict) -> str:
 
 
 def write_signal_capture(
-    signal_source: str,             # 'asset_tilt' or 'equity_scanner'
+    signal_source: str,             # 'equity_scanner'
     signal_payload: dict,
     triggered_orders_count: int,
     captured_at: datetime | None = None,
 ) -> str:
     """Insert one paper_signal_capture row, return the generated UUID."""
-    if signal_source not in ("asset_tilt", "equity_scanner"):
+    if signal_source not in ("equity_scanner",):
         raise ValueError(f"invalid signal_source: {signal_source}")
     cap_id = str(uuid.uuid4())
     ts = (captured_at or datetime.now(tz=timezone.utc)).isoformat()
@@ -124,33 +124,15 @@ def write_order_intents(intents: Iterable[OrderIntent]) -> int:
 
 
 def build_audit_payload(
-    asset_tilt: AssetTiltSnapshot,
     scanner: EquityScannerSnapshot,
-    sleeve_a_summary: dict,
     sleeve_b_summary: dict,
 ) -> dict:
     """Pack a compact JSON payload for paper_signal_capture.signal_payload.
 
-    Keeps the row size small (<10 KB typical) by including only the IG
-    list (24 rows) and the top-25 scanner sample, plus the sleeve summaries.
+    Keeps the row size small (<10 KB typical) by including only the top-25
+    scanner sample plus the Sleeve B summary.
     """
     return {
-        "asset_tilt": {
-            "as_of": asset_tilt.as_of,
-            "engine_version": asset_tilt.engine_version,
-            "equity_pct": asset_tilt.equity_pct,
-            "industry_groups": [
-                {
-                    "id": ig.ig_id,
-                    "name": ig.name,
-                    "sector": ig.sector,
-                    "primary_etf": ig.primary_etf,
-                    "weight_pct": ig.weight_pct,
-                    "rating": ig.rating,
-                }
-                for ig in asset_tilt.industry_groups
-            ],
-        },
         "equity_scanner": {
             "scan_date": scanner.scan_date,
             "qualifying_signals_count": len(scanner.signals),
@@ -162,6 +144,5 @@ def build_audit_payload(
                 for s in scanner.signals
             ],
         },
-        "sleeve_a_summary": sleeve_a_summary,
         "sleeve_b_summary": sleeve_b_summary,
     }

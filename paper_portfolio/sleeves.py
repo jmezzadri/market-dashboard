@@ -6,11 +6,6 @@ diff layer (diff.py) converts notional → shares at the time the order
 is built, using the last trade price from Alpaca, so this module stays
 deterministic and unit-testable without a live price feed.
 
-  * Sleeve A — 16-or-24 IG ETFs at Asset Tilt recommended weights ×
-                 $sleeve_a_allocation. Tilts are already normalized in
-                 v10_allocation.json (IG dollar values sum to 100 when
-                 equity_pct == 1.0).
-
   * Sleeve B — Long-only equity scanner output, sized into three tiers
                  ($50K / $40K / $30K) on a normalized 0–10 buy-score.
                  Up to 2x leverage when total demand at full sizing
@@ -31,7 +26,7 @@ from paper_portfolio.config import (
     SLEEVE_B_BUY_THRESHOLD,
     SLEEVE_B_TIER_BANDS,
 )
-from paper_portfolio.signals import AssetTiltSnapshot, EquityScannerSnapshot
+from paper_portfolio.signals import EquityScannerSnapshot
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,68 +51,6 @@ class SleeveTarget:
     idle_cash: float                 # max(0, capital_assigned - gross_long)
     leverage_ratio: float            # gross_long / capital_assigned (≥ 1 when levered)
     lines: list[TargetLine] = field(default_factory=list)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Sleeve A — Asset Tilt IG ETFs
-# ─────────────────────────────────────────────────────────────────────────────
-
-def build_sleeve_a_target(
-    snapshot: AssetTiltSnapshot,
-    sleeve_a_capital: float,
-) -> SleeveTarget:
-    """Multiply each IG's weight by sleeve_a_capital; group-by primary ETF
-    in case two IGs share the same ETF (the v10 file does not, but the
-    code defends against it).
-
-    The Asset Tilt page weights are scaled to 100% across the equity sleeve.
-    If equity_pct < 1.0 (engine carved out defensive), the Sleeve A target
-    gross_long shrinks accordingly — the difference rests in cash.
-    """
-    if sleeve_a_capital <= 0:
-        return SleeveTarget(
-            sleeve="A", capital_assigned=0, gross_long=0,
-            leverage_used=0, idle_cash=0, leverage_ratio=0, lines=[],
-        )
-
-    # Aggregate by primary ETF in case of any IG → ETF collision.
-    by_etf: dict[str, dict] = {}
-    for ig in snapshot.industry_groups:
-        notional = ig.weight_pct * snapshot.equity_pct * sleeve_a_capital
-        if notional <= 0:
-            continue
-        slot = by_etf.setdefault(ig.primary_etf, {"notional": 0.0, "igs": []})
-        slot["notional"] += notional
-        slot["igs"].append(ig)
-
-    lines: list[TargetLine] = []
-    for etf, slot in by_etf.items():
-        igs = slot["igs"]
-        rating_set = sorted({ig.rating for ig in igs})
-        rationale = (
-            f"Asset Tilt IG → ETF (covers " +
-            ", ".join(ig.name for ig in igs) + ") "
-            f"at {sum(ig.weight_pct for ig in igs)*100:.2f}% of equity sleeve; "
-            f"rating {'/'.join(rating_set)}"
-        )
-        lines.append(TargetLine(
-            sleeve="A",
-            ticker=etf,
-            notional=round(slot["notional"], 2),
-            rationale=rationale,
-            score=None,
-        ))
-
-    gross = sum(l.notional for l in lines)
-    return SleeveTarget(
-        sleeve="A",
-        capital_assigned=sleeve_a_capital,
-        gross_long=round(gross, 2),
-        leverage_used=0.0,             # Sleeve A is unlevered by spec
-        idle_cash=round(max(0.0, sleeve_a_capital - gross), 2),
-        leverage_ratio=(gross / sleeve_a_capital) if sleeve_a_capital else 0.0,
-        lines=lines,
-    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

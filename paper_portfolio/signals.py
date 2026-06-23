@@ -1,13 +1,6 @@
 """
 paper_portfolio.signals — signal source readers.
 
-Sleeve A signal source: public/v10_allocation.json (the live Asset Tilt
-engine output that the React Asset Tilt page renders from). Has 24
-industry-group entries; each entry carries a `dollar` field (= weight %
-× 100, sums to 100 across all IGs when equity_pct == 1.0) and a `tickers`
-list. We use `tickers[0]` as the calibration ETF for each IG (the file's
-ordering is the engine's preferred primary).
-
 Sleeve B signal source: public.trading_opps_signals — the scanner the
 Trading Opportunities page renders from. score field is already on a 0–10
 scale (raised from 5 to 10 on 2026-05-21 when dark-pool + options layers
@@ -38,71 +31,6 @@ from typing import Any
 import requests
 
 PROJECT_REF = "yqaqqzseepebrocgibcw"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Sleeve A — Asset Tilt IG signals from v10_allocation.json
-# ─────────────────────────────────────────────────────────────────────────────
-
-@dataclass(frozen=True)
-class AssetTiltIG:
-    ig_id: str               # e.g. 'semis'
-    name: str                # e.g. 'Semiconductors'
-    sector: str              # e.g. 'Information Technology'
-    primary_etf: str         # first ticker in the engine's tickers list
-    weight_pct: float        # 0.0987 means 9.87% of equity-sleeve
-    rating: str              # 'OW' / 'MW' / 'UW'
-
-
-@dataclass(frozen=True)
-class AssetTiltSnapshot:
-    as_of: str               # e.g. '2026-05-25'
-    engine_version: str      # e.g. 'v10.2'
-    equity_pct: float        # 1.0 means full equity; 0.7 means 30% defensive
-    industry_groups: list[AssetTiltIG]
-    raw: dict[str, Any]      # the entire allocation dict for downstream audit
-
-
-def load_asset_tilt_snapshot(
-    allocation_path: str | Path = "public/v10_allocation.json",
-) -> AssetTiltSnapshot:
-    """Load the canonical Asset Tilt allocation snapshot.
-
-    Default path is repo-relative; pass an absolute path for tests / replay.
-    """
-    p = Path(allocation_path)
-    if not p.exists():
-        raise FileNotFoundError(
-            f"Asset Tilt allocation file not found at {p}. The translator "
-            "requires the live Asset Tilt engine output."
-        )
-    with open(p) as f:
-        d = json.load(f)
-
-    igs: list[AssetTiltIG] = []
-    for row in d.get("industry_groups", []):
-        tickers = row.get("tickers") or []
-        if not tickers:
-            # Skip any IG without an ETF mapping — surfaced upstream by
-            # the engine validation layer; the translator does not silently
-            # default to anything else.
-            continue
-        igs.append(AssetTiltIG(
-            ig_id=row["id"],
-            name=row["name"],
-            sector=row["sector"],
-            primary_etf=tickers[0],
-            weight_pct=float(row.get("dollar", 0.0)) / 100.0,  # dollar field is %, /100 → fraction
-            rating=row.get("rating", "MW"),
-        ))
-
-    return AssetTiltSnapshot(
-        as_of=d.get("as_of", ""),
-        engine_version=d.get("version", ""),
-        equity_pct=float(d.get("equity_pct", 1.0)),
-        industry_groups=igs,
-        raw=d,
-    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -7,15 +7,17 @@ days stale. Combined with the opg time-window bug, the system either no-op'd
 or would have silently rebalanced on stale signals. The workflow comments
 CLAIMED a freshness gate existed; it did not. This module is that gate.
 
-Contract: before any live submission, BOTH sleeve signals must be current
-for the most recent CLOSED trading session (per Alpaca's own calendar — not
-a naive weekday/holiday guess). If either is behind, the gate FAILS: the
-runner skips submission and an alert row is filed. No stale trade ever fires.
+Contract: before any live submission, the scanner signal must be current for
+the most recent CLOSED trading session (per Alpaca's own calendar — not a
+naive weekday/holiday guess). If it is behind, the gate FAILS: the runner
+skips submission and an alert row is filed. No stale trade ever fires.
+(Sleeve A retired 2026-06-23 — the paper portfolio runs the Equity Scanner
+sleeve only, so only the scanner date is gated.)
 
 Why "last closed session" and not "today": the daily rebalance runs in the
 early morning to queue at-the-open orders for TODAY's open. The freshest
 signals available at that hour reflect the PRIOR trading day's close (the
-overnight price batch). So the bar is: both sleeves == last_closed_session.
+overnight price batch). So the bar is: scanner == last_closed_session.
 """
 
 from __future__ import annotations
@@ -85,7 +87,6 @@ def file_alert(title: str, description: str, priority: str = "P1") -> None:
 class FreshnessResult:
     fresh: bool
     last_closed_session: str          # YYYY-MM-DD per Alpaca calendar
-    sleeve_a_as_of: str
     sleeve_b_scan_date: str
     reasons: list[str]                # human-readable, empty when fresh
 
@@ -129,20 +130,15 @@ def last_closed_trading_session(alpaca, now_utc: _dt.datetime | None = None) -> 
     return last
 
 
-def check_freshness(asset_tilt_as_of: str, scanner_scan_date: str, alpaca,
+def check_freshness(scanner_scan_date: str, alpaca,
                     now_utc: _dt.datetime | None = None) -> FreshnessResult:
-    """Return a FreshnessResult. fresh=True only if BOTH sleeve dates are
-    >= the last closed trading session. (>= rather than == so that if a
-    sleeve is somehow AHEAD — e.g. a same-day partial — we don't false-fail;
+    """Return a FreshnessResult. fresh=True only if the scanner scan date is
+    >= the last closed trading session. (>= rather than == so that if the
+    scanner is somehow AHEAD — e.g. a same-day partial — we don't false-fail;
     behind is the only failure that matters for stale-trade protection.)"""
     lcs = last_closed_trading_session(alpaca, now_utc=now_utc)
     reasons: list[str] = []
-    a = (asset_tilt_as_of or "").strip()
     b = (scanner_scan_date or "").strip()
-    if not a:
-        reasons.append("Sector sleeve (Asset Tilt) has no as-of date.")
-    elif a < lcs:
-        reasons.append(f"Sector sleeve is stale: as-of {a}, last closed session {lcs}.")
     if not b:
         reasons.append("Stock sleeve (Scanner) has no scan date.")
     elif b < lcs:
@@ -150,5 +146,5 @@ def check_freshness(asset_tilt_as_of: str, scanner_scan_date: str, alpaca,
     fresh = not reasons
     return FreshnessResult(
         fresh=fresh, last_closed_session=lcs,
-        sleeve_a_as_of=a, sleeve_b_scan_date=b, reasons=reasons,
+        sleeve_b_scan_date=b, reasons=reasons,
     )
