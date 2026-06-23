@@ -46,8 +46,9 @@ const HERO_TITLE = (
 );
 
 const HERO_BULLETS = [
-  '$1M starting capital, following the Equity Scanner long-only',
-  'Buy when buy-score \u2265 5; sized $50K / $40K / $30K by tier; max 2\u00d7 leverage',
+  '$1M starting capital, following the Trading Scanner recommendations',
+  'Buy at Score \u2265 5; sized by tier \u2014 Score 5\u20136 = $30K, 7\u20138 = $40K, 9\u201310 = $50K',
+  'Long-only, 2\u00d7 max leverage',
 ];
 
 // ── small helpers ──────────────────────────────────────────────────────────
@@ -97,10 +98,10 @@ const etDateKey = (iso) => {
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
 const PAGE_CSS = `
-/* Match the PageHero's max-width (1280px in PageHero.css) so the tables align
+/* Match the PageHero's overhaul width (1440px via legacy-bridge .mt-overhaul override) so the tables align
    with the hero above them. Was 1440 — 160px wider than the hero, which made
    the hero look narrower than the tables. */
-.paper-shell { max-width: 1280px; margin: 0 auto; padding: 0 32px 64px; }
+.paper-shell { max-width: 1440px; margin: 0 auto; padding: 0 32px 64px; }
 
 /* Right-side summary card on the hero — mirrors the Trading Opps
    "Latest Scan Results" stat block. */
@@ -460,7 +461,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
   // the single sleeve row IS the total book ($1M start).
   const rows = [
     {
-      label: 'Equity Scanner', sub: '$1M start', strong: true,
+      label: 'Paper Portfolio', sub: '$1M start', strong: true,
       value: latest.total_nav,
       daily$: totDay$, daily: (totDay$ != null && prev?.total_nav) ? totDay$ / prev.total_nav : null,
       incep$: dlt(latest.total_nav, TOTAL_CAP),       incep: ret(latest.total_nav, TOTAL_CAP),
@@ -476,7 +477,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
   ];
   const total = rows[0], spy = rows[1];
   const vs = {
-    label: 'Excess vs S&P 500', vs: true,
+    label: 'vs S&P 500', vs: true,
     value: (total.value != null && spy.value != null) ? total.value - spy.value : null,
     daily$: (total.daily$ != null && spy.daily$ != null) ? total.daily$ - spy.daily$ : null,
     daily: (total.daily != null && spy.daily != null) ? total.daily - spy.daily : null,
@@ -698,19 +699,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     <div className="paper-panel">
       <div className="paper-panel-head">
         <div>
-          <h2 className="paper-panel-title">
-            Sleeve {sleeve} &mdash; {title}
-            {infoDef && <InfoTip term={`Sleeve ${sleeve}`} def={infoDef} size={12} />}
-          </h2>
-          <div className="paper-panel-sub">
-            {positions.length} position{positions.length === 1 ? '' : 's'} &middot; {fmtMoneyExact(grossLong)} gross long
-            {leverageRatio > 1.0 && (
-              <> &middot; <span style={{ color: WARN_COLOR, fontWeight: 600 }}>{leverageRatio.toFixed(2)}&times; leverage</span></>
-            )}
-            {' '}&middot; <span style={{ color: (headline?.day$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.day$ != null ? fmtMoneyExact(headline.day$) : '\u2014'} today</span>
-            {' '}&middot; <span style={{ color: (headline?.incep$ ?? 0) >= 0 ? UP_COLOR : DOWN_COLOR }}>{headline?.incep$ != null ? fmtMoneyExact(headline.incep$) : '\u2014'} since inception</span>
-            {asOf && <> &middot; <span>as of {live ? `${fmtTimeET(asOf)} ET` : `${fmtDate(asOf)} close`}</span></>}
-          </div>
+          <h2 className="paper-panel-title">Paper Portfolio</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="pcol-wrap">
