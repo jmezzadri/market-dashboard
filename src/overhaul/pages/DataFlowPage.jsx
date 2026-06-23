@@ -1240,6 +1240,10 @@ export default function DataFlowPage() {
           lastError: r?.last_error || null,
           maxDataAgeHours,
           dataCalendar: coerceCal(el.data_calendar || el.release_calendar),
+          // Live feeds that only update while the market is open pause their
+          // clock after the close — same flag the per-row chips use, so the
+          // tile dot never reds while the chips inside it are green. (Joe 2026-06-23.)
+          marketHoursOnly: !!el.market_hours_only,
         });
         s = graded.status === 'green' ? 'g' : graded.status === 'red' ? 'r' : 'u';
       }
