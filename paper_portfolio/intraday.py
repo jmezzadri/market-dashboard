@@ -258,12 +258,17 @@ def stamp_intraday_pipeline_health(dry_run: bool = False) -> None:
         except Exception as exc:  # noqa: BLE001
             logger.warning("intraday health: could not read %s (%s) — skip", table, exc)
             continue
-        if not d:
-            continue
+        # An EMPTY table is valid, not a failure: a freshly-reset cash account
+        # holds no positions, so paper_intraday_positions is legitimately empty
+        # between the reset and the first fill. Stamp the run time anyway —
+        # skipping here deleted the row and false-red the chip (Joe 2026-06-23:
+        # "Alpaca red, but nothing on Alpaca is red"). data_as_of = the run time
+        # when the table is empty (we confirmed 0 positions this run).
+        as_of_sql = _sql_escape(d) if d else "now()"
         rows_sql.append(
             "(" + ", ".join([
                 _sql_escape(ind_id), _sql_escape(label), _sql_escape(source),
-                "'H'", "60", "'green'", "now()", "now()", _sql_escape(d), "NULL", "now()",
+                "'H'", "60", "'green'", "now()", "now()", as_of_sql, "NULL", "now()",
             ]) + ")"
         )
     if not rows_sql:
