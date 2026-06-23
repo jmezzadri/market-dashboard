@@ -370,6 +370,12 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "uw-universe-snapshots" ||
       row.indicator_id === "uw-ticker-events" ||
       row.indicator_id === "latest_scan" ||
+      row.indicator_id === "zerohedge_public" ||
+      row.indicator_id === "zerohedge_premium" ||
+      row.indicator_id === "options_chain" ||
+      row.indicator_id === "wide_universe" ||
+      row.indicator_id === "user_scan_data" ||
+      row.indicator_id === "index_membership" ||
       row.indicator_id === "equity-options_flow-daily" ||
       row.indicator_id === "equity-short_interest-daily"
     ) {
@@ -391,6 +397,20 @@ async function handle(req: Request): Promise<Response> {
         // wrote -> last_good_at). Reading both every watchdog run keeps the
         // pair honest and self-heals with no dependency on REPAIR-HEALTH-STAMPS.
         "latest_scan":           { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        // 2026-06-23 — the daily scan also FEEDS six derived facets that were
+        // registered later (2026-06-18) but never added here, so they had no
+        // honest last_good_at writer: data_as_of marched forward off scan_date
+        // while last_good_at stayed frozen at their seed time, tripping the
+        // "data newer than last pull" impossible pair and showing 6 false-stale
+        // chips. They are all produced by the SAME scan, so they read the same
+        // two honest stamps (scan_date -> data_as_of, scan_run_ts -> last_good_at)
+        // exactly like latest_scan, and self-heal every 30-minute run. (Joe.)
+        "zerohedge_public":      { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        "zerohedge_premium":     { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        "options_chain":         { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        "wide_universe":         { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        "user_scan_data":        { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
+        "index_membership":      { table: "trading_opps_signals", col: "scan_date", runTsCol: "scan_run_ts" },
         // 2026-06-15 — options flow + short interest were graded against
         // indicator_history.json, where they do not exist, so they were
         // permanently RED ("indicator not present"). They are Supabase
@@ -765,3 +785,4 @@ function lastTradingDayUtcDate(now: Date): string {
 }
 
 serve(handle);
+
