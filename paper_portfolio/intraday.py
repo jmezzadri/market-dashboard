@@ -43,11 +43,13 @@ from paper_portfolio.mirror import (
 
 logger = logging.getLogger("paper_intraday")
 
-# Pipeline-health ids follow the Data Steward naming the manifest resolves to.
+# pipeline_health.indicator_id MUST equal the manifest `name` the chip resolves
+# to (NOT the dotted id) — same convention as mirror._PAPER_HEALTH. Cadence 'H'
+# (hourly) is allowed by pipeline_health_cadence_check as of migration 061.
 _INTRADAY_HEALTH = [
-    ("portfolio.paper-positions-intraday", "public.paper_intraday_positions",
+    ("paper-positions-intraday", "public.paper_intraday_positions",
      "Paper Portfolio · Live positions (intraday)", "Alpaca (paper) — live marks"),
-    ("portfolio.paper-nav-intraday", "public.paper_intraday_nav",
+    ("paper-nav-intraday", "public.paper_intraday_nav",
      "Paper Portfolio · Live NAV (intraday)", "Alpaca (paper) — live equity"),
 ]
 
