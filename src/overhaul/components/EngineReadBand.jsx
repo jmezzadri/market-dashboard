@@ -84,8 +84,10 @@ export default function EngineReadBand({ onTip, onHideTip }) {
         .mer-state{font-family:var(--mt-font-display);font-size:clamp(16px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
         .mer-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
         .mer-gtitle{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700;margin-bottom:2px}
-        .mer-gnow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px}
-        .mer-gval{font-family:var(--mt-font-mono);font-size:20px;font-weight:600;color:var(--mt-ink-0)}
+        .mer-dialrow{display:flex;align-items:center;gap:16px}
+        .mer-dialwrap{flex:1;min-width:0}
+        .mer-gnow{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto;text-align:right}
+        .mer-gval{font-family:var(--mt-font-mono);font-size:24px;font-weight:600;color:var(--mt-ink-0);line-height:1.1}
         .mer-gsub{font-size:11px;color:var(--mt-ink-3)}
         .mer-rule{font-size:11.5px;color:var(--mt-ink-2);line-height:1.5;margin-top:8px}
         .mer-rule b{color:var(--mt-ink-1)}
@@ -99,9 +101,6 @@ export default function EngineReadBand({ onTip, onHideTip }) {
       `}</style>
 
       <div className="mer-card">
-        <div className="mer-head">
-          <div className="mt-eyebrow">Engine read — how much risk, and what holds the defensive sleeve</div>
-        </div>
         <div className="mer-state">
           {stressState || '—'} · {yieldState || '—'} — {equityPct != null ? `${equityPct}%` : '—'} equity,
           defensive {defensiveOn ? `firing (${sleeveLabel || '—'} sleeve)` : 'on standby'}.
@@ -114,11 +113,19 @@ export default function EngineReadBand({ onTip, onHideTip }) {
               <span>Stress signal · MOVE</span>
               <FreshnessChip elementId="indicator-move-daily" variant="dot" />
             </div>
-            <BigGauge
-              value={regime.move ?? 0}
-              max={200}
-              thresholds={[{ pos: watchT / 200 }, { pos: riskOffT / 200 }]}
-            />
+            <div className="mer-dialrow">
+              <div className="mer-dialwrap">
+                <BigGauge
+                  value={regime.move ?? 0}
+                  max={200}
+                  thresholds={[{ pos: watchT / 200 }, { pos: riskOffT / 200 }]}
+                />
+              </div>
+              <div className="mer-gnow">
+                <span className="mer-gval">{regime.move != null ? regime.move.toFixed(1) : '—'}</span>
+                <span className="mer-gsub">{regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}</span>
+              </div>
+            </div>
             <GaugeLegend
               zones={[
                 { kind: 'up', label: 'Risk On', range: `≤ ${Math.round(watchT)}` },
@@ -126,13 +133,6 @@ export default function EngineReadBand({ onTip, onHideTip }) {
                 { kind: 'down', label: 'Risk Off', range: `≥ ${Math.round(riskOffT)}` },
               ]}
             />
-            <div className="mer-gnow">
-              <span className="mer-gval">{regime.move != null ? regime.move.toFixed(1) : '—'}</span>
-              <span className="mer-gsub">{regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}</span>
-            </div>
-            <div className="mer-rule">
-              Below <b>{Math.round(watchT)}</b> carries full equity; above <b>{Math.round(riskOffT)}</b> de-risks up to half into the defensive sleeve.
-            </div>
           </div>
 
           {/* Yield gauge → which sleeve */}
@@ -141,12 +141,20 @@ export default function EngineReadBand({ onTip, onHideTip }) {
               <span>Yield regime · 3-month change in 10-year</span>
               <FreshnessChip elementId="indicator-yield_curve-daily" variant="dot" />
             </div>
-            <BigGauge
-              value={regime.yieldDeltaBp ?? 0}
-              max={100}
-              bidirectional
-              thresholds={[{ pos: (100 + deflT) / 200 }, { pos: (100 + inflT) / 200 }]}
-            />
+            <div className="mer-dialrow">
+              <div className="mer-dialwrap">
+                <BigGauge
+                  value={regime.yieldDeltaBp ?? 0}
+                  max={100}
+                  bidirectional
+                  thresholds={[{ pos: (100 + deflT) / 200 }, { pos: (100 + inflT) / 200 }]}
+                />
+              </div>
+              <div className="mer-gnow">
+                <span className="mer-gval">{regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—'}</span>
+                <span className="mer-gsub">{regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}</span>
+              </div>
+            </div>
             <GaugeLegend
               zones={[
                 { kind: 'up', label: 'Deflationary', range: `≤ ${Math.round(deflT)} bp` },
@@ -154,13 +162,6 @@ export default function EngineReadBand({ onTip, onHideTip }) {
                 { kind: 'down', label: 'Inflationary', range: `≥ +${Math.round(inflT)} bp` },
               ]}
             />
-            <div className="mer-gnow">
-              <span className="mer-gval">{regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—'}</span>
-              <span className="mer-gsub">{regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}</span>
-            </div>
-            <div className="mer-rule">
-              Below <b>{Math.round(deflT)} bp</b> leans long Treasuries; above <b>+{Math.round(inflT)} bp</b> leans gold &amp; short T-bills; in between holds a balanced sleeve.
-            </div>
           </div>
         </div>
 
