@@ -30,6 +30,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
+import TradingViewChart, { tvSymbolFor } from '../components/TradingViewChart';
 import ScoreDial from '../components/ScoreDial';
 import FreshnessChip from '../components/FreshnessChip';
 import Tip from '../components/Tip';
@@ -258,6 +259,7 @@ export default function TickerPage() {
   const [show200, setShow200]     = useState(false);
   const [showVol, setShowVol]     = useState(false);
   const [showEvents, setShowEvents] = useState(false);
+  const [chartMode, setChartMode] = useState('mt'); // 'mt' = our chart, 'tv' = TradingView
   const [showRsi, setShowRsi]       = useState(false);
   const [compareSym, setCompareSym] = useState('');
   const [fromDate, setFromDate]     = useState('');   // custom range start (YYYY-MM-DD)
@@ -500,22 +502,46 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">· {customRange ? 'custom range' : `${tf} window`}{priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}</span>
+                ${fmt(price, 2)} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
               </div>
             </div>
-            <div className="mt-pillgroup">
-              {TFS.map((k) => (
+            <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+              <div className="mt-pillgroup">
                 <button
-                  key={k}
                   type="button"
-                  className={`mt-pill ${(!customRange && tf === k) ? 'on' : ''}`}
-                  onClick={() => { setTf(k); setFromDate(''); setToDate(''); }}
+                  className={`mt-pill ${chartMode === 'mt' ? 'on' : ''}`}
+                  onClick={() => setChartMode('mt')}
                 >
-                  {k}
+                  MacroTilt
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className={`mt-pill ${chartMode === 'tv' ? 'on' : ''}`}
+                  onClick={() => setChartMode('tv')}
+                >
+                  TradingView
+                </button>
+              </div>
+              {chartMode === 'mt' && (
+                <div className="mt-pillgroup">
+                  {TFS.map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      className={`mt-pill ${(!customRange && tf === k) ? 'on' : ''}`}
+                      onClick={() => { setTf(k); setFromDate(''); setToDate(''); }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+          {chartMode === 'tv' ? (
+            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={480} />
+          ) : (
+          <>
           {histAll.loading ? (
             <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)' }}>
               Loading price history…
@@ -584,6 +610,8 @@ export default function TickerPage() {
               <button type="button" className="mt-btn" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
             )}
           </div>
+          </>
+          )}
         </article>
       </section>
 
