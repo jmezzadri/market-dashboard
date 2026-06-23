@@ -65,14 +65,13 @@ function shadeBg(pct, state) {
 
 const PERIOD_DAYS = { D: 1, W: 7, M: 31, Q: 93 };
 
-/* Direction of the element's value over its own cadence. +1 up / −1 down / 0
-   flat. Green up / red down, matching the site convention. */
-function trendOf(points, freq) {
-  if (!Array.isArray(points) || points.length < 2) return 0;
-  const lastIso = String(points[points.length - 1][0]).slice(0, 10);
-  const lastT = Date.parse(lastIso + 'T00:00:00Z');
+/* Signed change in the element's value over its own cadence (last day / week /
+   month / quarter). Returns the magnitude (lastV − prevV) or null. */
+function changeOf(points, freq) {
+  if (!Array.isArray(points) || points.length < 2) return null;
+  const lastT = Date.parse(String(points[points.length - 1][0]).slice(0, 10) + 'T00:00:00Z');
   const lastV = points[points.length - 1][1];
-  if (!Number.isFinite(lastV) || !Number.isFinite(lastT)) return 0;
+  if (!Number.isFinite(lastV) || !Number.isFinite(lastT)) return null;
   const lookbackMs = (PERIOD_DAYS[freq] || 7) * 86400000 - 43200000;
   let prevV = points[points.length - 2][1];
   for (let k = points.length - 2; k >= 0; k--) {
@@ -80,17 +79,29 @@ function trendOf(points, freq) {
     if (Number.isFinite(points[k][1])) prevV = points[k][1];
     if (Number.isFinite(t) && lastT - t >= lookbackMs) break;
   }
-  if (!Number.isFinite(prevV) || prevV === lastV) return 0;
-  return lastV > prevV ? 1 : -1;
+  if (!Number.isFinite(prevV)) return null;
+  return lastV - prevV;
+}
+/* Direction +1 up / −1 down / 0 flat — green up / red down, site convention. */
+function trendOf(points, freq) {
+  const d = changeOf(points, freq);
+  return d == null || d === 0 ? 0 : d > 0 ? 1 : -1;
+}
+// Change magnitude (unsigned) formatted to the element's own precision; the
+// arrow carries the direction, so the number stays uncluttered.
+function fmtChange(delta, decimals) {
+  if (delta == null || !Number.isFinite(delta) || delta === 0) return null;
+  return fmtVal(Math.abs(delta), decimals);
 }
 
 function tagClass(state) {
   return `mc-pill mt-tag--${state === 'extreme' ? 'extreme' : state === 'elevated' ? 'elev' : 'calm'}`;
 }
 
-function GaugePill({ label, valueText, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
+function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
   const arrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '·';
   const arrowColor = trend > 0 ? 'var(--mt-up)' : trend < 0 ? 'var(--mt-down)' : 'var(--mt-ink-3)';
+  const rowBase = { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 };
   return (
     <button
       type="button"
@@ -103,19 +114,23 @@ function GaugePill({ label, valueText, tipText, pct, state, trend = 0, dashed, d
         border: dashed ? '1px dashed var(--mt-line-1)' : '1px solid var(--mt-line-0)',
         background: shadeBg(pct, state),
         color: 'var(--mt-ink-0)',
-        font: 'inherit', fontSize: 11.5, padding: '5px 8px', lineHeight: 1.25,
+        font: 'inherit', padding: '6px 9px', lineHeight: 1.2,
         width: '100%', display: 'block', textAlign: 'left', borderRadius: 7,
         opacity: dimmed ? 0.85 : 1, transition: 'opacity .25s ease, filter .12s ease, transform .12s ease',
       }}
     >
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-          {valueText != null && (
-            <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 11.5 }}>{valueText}</span>
-          )}
-          <span className="num" style={{ fontSize: 9, color: arrowColor, fontWeight: 700 }}>{arrow}</span>
-          <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : Math.round(pct)}</span>
+      {/* Row 1: name + reading */}
+      <span style={rowBase}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{label}</span>
+        <span className="num" style={{ flex: '0 0 auto', fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 12.5 }}>{valueText != null ? valueText : '—'}</span>
+      </span>
+      {/* Row 2: change (arrow + magnitude) + percentile */}
+      <span style={{ ...rowBase, marginTop: 3 }}>
+        <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {arrow}{trend !== 0 && changeText ? ` ${changeText}` : ''}
+        </span>
+        <span className="num" style={{ flex: '0 0 auto', fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>
+          {pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}
         </span>
       </span>
     </button>
@@ -131,25 +146,31 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
     <div style={{ marginTop: 10 }}>
       <div style={head}>Indicators</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
-        {inds.map((i) => (
+        {inds.map((i) => {
+          const delta = changeOf(i.points, i.freq);
+          const chgUnit = faceUnit(i.unit);
+          return (
           <GaugePill
             key={i.id}
             label={shortLabel(i.name)}
             valueText={indReading(i)}
+            changeText={fmtChange(delta, i.decimals)}
             tipText={
               (i.pct == null
                 ? `${i.name} — not enough history to rank yet`
-                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range${i.deltaPct != null && Math.abs(i.deltaPct) >= 2 ? ` · ${i.deltaPct > 0 ? '+' : ''}${Math.round(i.deltaPct)} pts vs prior print` : ''}`)
+                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range`
+                  + (delta != null && delta !== 0 ? ` · ${delta > 0 ? '+' : '−'}${fmtVal(Math.abs(delta), i.decimals)}${chgUnit} latest move` : ''))
               + (i.description ? `\n\n${i.description}` : '')
             }
             pct={i.pct}
             state={i.state}
-            trend={trendOf(i.points, i.freq)}
+            trend={delta == null || delta === 0 ? 0 : delta > 0 ? 1 : -1}
             onClick={() => onSelectInd(i)}
             onTip={onTip}
             onHideTip={onHideTip}
           />
-        ))}
+          );
+        })}
       </div>
       {markets.length > 0 && (
         <>
@@ -159,16 +180,19 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
             {markets.map((m) => {
               const mstate = m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm';
-              const mtrend = Array.isArray(m.history) && m.history.length >= 2
-                ? (m.history[m.history.length - 1][1] > m.history[m.history.length - 2][1] ? 1
-                  : m.history[m.history.length - 1][1] < m.history[m.history.length - 2][1] ? -1 : 0)
-                : 0;
+              const h = Array.isArray(m.history) ? m.history : [];
+              const mDelta = h.length >= 2 && Number.isFinite(h[h.length - 1][1]) && Number.isFinite(h[h.length - 2][1])
+                ? h[h.length - 1][1] - h[h.length - 2][1] : null;
+              const mtrend = mDelta == null || mDelta === 0 ? 0 : mDelta > 0 ? 1 : -1;
               return (
                 <GaugePill
                   key={m.market}
                   label={shortLabel(m.market)}
                   valueText={posReading(m)}
-                  tipText={`${m.market} — ${m.comm == null ? 'dealers' : 'speculators'} net ${posReading(m) || '—'} · ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
+                  changeText={fmtChange(mDelta, 0)}
+                  tipText={`${m.market} — ${m.comm == null ? 'dealers' : 'speculators'} net ${posReading(m) || '—'} · ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years`
+                    + (mDelta != null && mDelta !== 0 ? ` · ${mDelta > 0 ? '+' : '−'}${Math.abs(Math.round(mDelta))} pctile vs prior print` : '')
+                    + (posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : '')}
                   pct={m.spec}
                   state={mstate}
                   trend={mtrend}
