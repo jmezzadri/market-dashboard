@@ -1512,6 +1512,36 @@
    "dependencies": []
   },
   {
+   "id": "equity-tradingview_chart-on_demand",
+   "category": "equity",
+   "name": "tradingview_chart",
+   "description": "Official TradingView Advanced Chart embed \u2014 interactive price chart (candlesticks, intraday timeframes, 100+ indicators, drawing tools). Client-rendered in an iframe; the user toggles it on from the MacroTilt price chart on the Ticker Detail page. No data is fetched or stored by MacroTilt.",
+   "sourcing_mode": "STP",
+   "source_vendor": "TradingView",
+   "source_endpoint": "s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "on-demand (per chart toggle)",
+   "scheduled_fetch_time_et": "n/a",
+   "refresh_trigger": "Client-side embed; mounts when the user selects the TradingView toggle",
+   "freshness_sla_hours": 0,
+   "data_max_age_hours": 0,
+   "data_calendar": "wall-clock",
+   "output_destination": "Rendered client-side in an iframe; not stored in Supabase",
+   "producer_script": "src/overhaul/components/TradingViewChart.jsx",
+   "consumer_surfaces": [
+    {
+     "tab": "ticker",
+     "tile": "Price history \u2014 TradingView toggle"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "If the TradingView CDN is unreachable the chart area is blank; the default MacroTilt price chart is unaffected.",
+   "owner": "Lead Dev",
+   "release_calendar": "wall-clock",
+   "dependencies": []
+  },
+  {
    "id": "equity-short_interest-biweekly",
    "category": "equity",
    "name": "short_interest",

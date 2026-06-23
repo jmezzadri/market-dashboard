@@ -183,6 +183,18 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
+## 13. TradingView (embedded Advanced Chart widget)
+
+- **Monthly cost:** $0 (free public embed; no API key, no account, nothing installed by the user)
+- **License tier:** Public external-embedding widget served from `s3.tradingview.com` / `tradingview-widget.com`. Rendered entirely client-side in an iframe.
+- **What it powers (manifest elements):**
+  - `equity.equity-tradingview_chart-on_demand` — the optional "TradingView" toggle on the Ticker Detail price chart (candlesticks, intraday timeframes, 100+ indicators, drawing tools).
+- **Alternatives evaluated:** Build our own intraday/candlestick/drawing-tools charting (large effort, no edge) vs. the free official embed (chosen). Our own `BigHistoryChart` stays the default and the system of record; TradingView is a convenience layer the user opts into.
+- **Contract end date:** None (free embed; no contract).
+- **Removal blast radius:** Minimal. If TradingView is removed or unreachable, the toggle's chart area is blank; the default MacroTilt chart and every score/overlay are unaffected. No stored data depends on it.
+
+---
+
 ## Monthly run-rate summary
 
 | Vendor | Monthly cost | Status |
@@ -199,6 +211,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 | ZeroHedge Premium | ~$30 | Active |
 | Numerco / Yellow Cake (uranium spot) | $0 | Active |
 | IndexMundi (uranium history) | $0 | One-time seed |
+| TradingView (embedded chart) | $0 | Active |
 | **Total active run-rate** | **~$71-121/month** | (~$852-1,452/year) |
 
 Plus Anthropic API at ~$125/month per Joe's auto-memory (separate line — used for site infra, not a data vendor). Including Anthropic, true MacroTilt data + infra run-rate is approximately **~$196-246/month** (~$2,352-2,952/year), comfortably under the $5,052 pre-audit baseline.
