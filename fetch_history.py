@@ -80,7 +80,7 @@ STATS_WINDOW_YEARS = 15
 #   STEEP curve read as the warning while inversion read calm. Low-warns makes
 #   inversion (low percentile of the trailing 3y range) drive amber/red.
 DIRECTION = {
-    "vix":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"lw",
+    "vix":"hw","vxn":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"lw",
     "move":"hw","anfci":"hw","stlfsi":"hw","real_rates":"hw",
     "sloos_ci":"hw","cape":"hw","ism":"lw","copper_gold":"lw",
     "bkx_spx":"lw","credit_3y":"hw","term_premium":"hw",
@@ -105,6 +105,7 @@ fred = Fred(api_key=FRED_API_KEY)
 #   Treasury.gov + Yahoo are same-day, so SLA=1.
 DAILY_FRESHNESS_SLA = {
     "vix":           1,  # Yahoo ^VIX
+    "vxn":           1,  # Yahoo ^VXN (CBOE Nasdaq-100 Volatility Index)
     "move":          1,  # Yahoo ^MOVE
     "skew":          1,  # Yahoo ^SKEW
     "usd":           1,  # Yahoo DX-Y.NYB
@@ -672,6 +673,12 @@ def fetch_all():
     s = safe_yf("^VIX")
     if s is not None:
         result["vix"] = {"freq": "D", "unit": "index",
+                         "points": series_to_points(s, round_dp=2)}
+
+    print("VXN ...")
+    s = safe_yf("^VXN")  # CBOE Nasdaq-100 Volatility Index (the Nasdaq's VIX)
+    if s is not None:
+        result["vxn"] = {"freq": "D", "unit": "index",
                          "points": series_to_points(s, round_dp=2)}
 
     print("HY OAS (hy_ig proxy) ...")

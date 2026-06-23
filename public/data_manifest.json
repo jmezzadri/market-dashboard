@@ -120,6 +120,51 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
+   "id": "indicator-vxn-daily",
+   "category": "indicator",
+   "name": "vxn",
+   "description": "CBOE VXN index — 30-day implied volatility on the Nasdaq-100 (the Nasdaq's 'fear gauge'); structurally runs above the VIX given the index's tech concentration.",
+   "sourcing_mode": "STP",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "yfinance ^VXN",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[vxn]",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Macro Overview composite KPI"
+    },
+    {
+     "tab": "overview",
+     "tile": "Indicator card"
+    },
+    {
+     "tab": "indicators",
+     "tile": "Indicator grid row"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology — indicator table"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
+   "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:15",
+   "as_of_cutoff_note": "CBOE cash close (Nasdaq-100 vol)",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+  },
+  {
    "id": "indicator-hy_ig-daily",
    "category": "indicator",
    "name": "hy_ig",
