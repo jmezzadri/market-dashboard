@@ -1,0 +1,71 @@
+name: PAPER-PORTFOLIO-REBALANCE-NOW
+
+# ONE-OFF intraday rebalance (2026-06-23). The normal pre-open path submits
+# market-on-open ('opg') orders, which Alpaca only accepts before ~09:28 ET.
+# This manual workflow lets us apply today's rebalance DURING market hours by
+# reusing the tested pieces:
+#   1. runner --phase eod  — translator writes today's intents (exit retired
+#      Asset-Tilt ETFs + Equity Scanner targets at the full $1M) and attempts
+#      the MOO submit. During the regular session Alpaca rejects the opg orders,
+#      which marks each intent row rejected with the opg-window reason.
+#   2. paper_fill_now --force-live — picks up those opg-rejected rows and
+#      submits them as ordinary market/day orders, which fill immediately.
+# No new trading logic. Manual dispatch only. Honors the PAPER_LIVE_TRADING_ENABLED
+# kill-switch. dry_run defaults to true.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (compute only — no orders placed)'
+        required: false
+        default: 'true'
+
+concurrency:
+  group: paper-portfolio-rebalance-now
+  cancel-in-progress: false
+
+jobs:
+  rebalance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install requests pandas pyarrow numpy scipy
+
+      - name: Step 1 — compute + write today's intents (EOD translator + MOO attempt)
+        env:
+          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
+          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python -m paper_portfolio.runner --phase eod --dry-run
+          else
+            python -m paper_portfolio.runner --phase eod || echo "EOD step returned non-zero (expected if MOO orders were rejected for the opg window) — continuing to market-fill."
+          fi
+
+      - name: Step 2 — market-fill the rejected intents (intraday)
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
+          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
+          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+        run: python -m scripts.paper_fill_now --force-live
