@@ -332,12 +332,11 @@ export default function FreshnessChip({
             }}
           >
             {/* The five governance fields, in the spec's order and plain
-                English (FRESHNESS_CHIP_SPEC v2 — two-clock). "As of" is the
-                data's own date; "Last pull" is when the job actually ran. They
-                are two different real timestamps. The chip is GREEN only if both
-                clocks pass: the job ran on schedule (pull clock vs SLA) AND a new
-                data point arrived within its window (data clock). "Turns red if"
-                names both budgets; the reason line below names which clock fired. */}
+                English. "As of" is the data's own date; "Last pull" is when the
+                job actually ran — two different real timestamps, and As-of is
+                never shown later than Last pull. "SLA" states the freshness
+                budget (how long after the last successful pull the chip allows
+                before it reds); the reason line below names what fired when red. */}
             <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {f?.cadenceLabel || freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
