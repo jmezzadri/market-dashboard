@@ -1,23 +1,21 @@
-/* DomainBars — the "bars" view of a Macro Overview domain tile.
+/* DomainBars — the Macro Overview domain tile.
 
-   v2 (Joe 2026-06-11): the original thin vertical bars with rotated labels
-   lost every legibility comparison with the pill view ("toggling to bars it
-   just looks like shit"). This version IS the pill view — identical grid,
-   identical tag chrome, identical text — with one addition per pill: a slim
-   horizontal gauge anchored at the element's own 3-year median (center tick),
-   filling toward today's percentile in the pill's own state color. Length =
-   how stretched; side = above or below its normal; color = the same
-   calm / stretched / extreme state as everywhere else.
+   v3 (Joe 2026-06-22): the median-anchored fill bar is removed. Magnitude now
+   reads as BACKGROUND SHADE — the more stretched an element is in its own
+   3-year range (the real percentile the page already computes), the darker the
+   tint of its state color (calm green / elevated amber / extreme red — the
+   site's existing warn colors, unchanged). Every tile also carries a consistent
+   trend arrow (▲ up = green, ▼ down = red) showing the move over the element's
+   own cadence (last day / week / month / quarter), and an instant styled
+   tooltip with the element's real description.
 
-   Joe's binding requirements carried over:
+   Carried over (binding):
    - Labels via shortLabel() — sanctioned names only.
-   - Hover/click parity: same tooltip, same detail panels, same hover lift
-     (the .mc-pill class from the pill view drives the animation).
-   - No text badges; Δ vs prior print appears as a small marker on fresh
-     prints only.
-   - Positioning section dims between COT prints, tooltip notes next print. */
+   - Hover/click parity with the detail panels; .mc-pill drives the hover lift.
+   - Instant tooltip via the page's onTip/onHideTip portal — never native title.
+   - Positioning section dims between COT prints; tooltip notes the next print. */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 function ordSfx(n) {
   const v = Math.abs(Math.round(n)), k = v % 100;
@@ -30,38 +28,48 @@ function fmtVal(v, decimals) {
   return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals ?? 2 });
 }
 
+function stateColor(state) {
+  return state === 'extreme' ? 'var(--mt-down)' : state === 'elevated' ? 'var(--mt-warn)' : 'var(--mt-up)';
+}
+
+/* Background shade from the real percentile: distance from the 3-year median
+   (|pct − 50| / 50) scales the tint of the element's state color into the
+   surface. Median-neutral tiles read nearly plain; extremes read strongly. */
+function shadeBg(pct, state) {
+  if (pct == null || !Number.isFinite(pct)) return 'var(--mt-surface)';
+  const stretch = Math.min(1, Math.abs(pct - 50) / 50);
+  const mix = (7 + 25 * stretch).toFixed(1);
+  return `color-mix(in oklab, ${stateColor(state)} ${mix}%, var(--mt-surface))`;
+}
+
+const PERIOD_DAYS = { D: 1, W: 7, M: 31, Q: 93 };
+
+/* Direction of the element's value over its own cadence. +1 up / −1 down / 0
+   flat. Green up / red down, matching the site convention. */
+function trendOf(points, freq) {
+  if (!Array.isArray(points) || points.length < 2) return 0;
+  const lastIso = String(points[points.length - 1][0]).slice(0, 10);
+  const lastT = Date.parse(lastIso + 'T00:00:00Z');
+  const lastV = points[points.length - 1][1];
+  if (!Number.isFinite(lastV) || !Number.isFinite(lastT)) return 0;
+  const lookbackMs = (PERIOD_DAYS[freq] || 7) * 86400000 - 43200000;
+  let prevV = points[points.length - 2][1];
+  for (let k = points.length - 2; k >= 0; k--) {
+    const t = Date.parse(String(points[k][0]).slice(0, 10) + 'T00:00:00Z');
+    if (Number.isFinite(points[k][1])) prevV = points[k][1];
+    if (Number.isFinite(t) && lastT - t >= lookbackMs) break;
+  }
+  if (!Number.isFinite(prevV) || prevV === lastV) return 0;
+  return lastV > prevV ? 1 : -1;
+}
+
 function tagClass(state) {
-  return `mt-tag mc-pill mt-tag--${state === 'extreme' ? 'extreme' : state === 'elevated' ? 'elev' : 'calm'}`;
+  return `mc-pill mt-tag--${state === 'extreme' ? 'extreme' : state === 'elevated' ? 'elev' : 'calm'}`;
 }
 
-/* The median-anchored gauge inside a pill. Drawn with currentColor so it
-   automatically takes the pill's state color in every theme. Animates from
-   the center on mount, like the old bars grew from the baseline. */
-function Gauge({ pct, dimmed }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const t = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(t);
-  }, []);
-  if (pct == null || !Number.isFinite(pct)) return <span style={{ display: 'block', height: 3, marginTop: 4 }} />;
-  const left = Math.min(pct, 50);
-  const width = Math.abs(pct - 50);
-  return (
-    <span style={{ position: 'relative', display: 'block', height: 3, marginTop: 4, borderRadius: 2, background: 'color-mix(in oklab, currentColor 18%, transparent)', opacity: dimmed ? 0.45 : 1, transition: 'opacity .25s ease' }}>
-      <span style={{ position: 'absolute', left: '50%', top: -1, bottom: -1, width: 1.5, background: 'currentColor', opacity: 0.55 }} />
-      <span
-        style={{
-          position: 'absolute', top: 0, bottom: 0, borderRadius: 2, background: 'currentColor',
-          left: mounted ? `${left}%` : '50%',
-          width: mounted ? `${width}%` : 0,
-          transition: 'left .45s var(--mt-ease, ease), width .45s var(--mt-ease, ease)',
-        }}
-      />
-    </span>
-  );
-}
-
-function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick, onTip, onHideTip }) {
+function GaugePill({ label, tipText, pct, state, trend = 0, dashed, dimmed, onClick, onTip, onHideTip }) {
+  const arrow = trend > 0 ? '▲' : trend < 0 ? '▼' : '·';
+  const arrowColor = trend > 0 ? 'var(--mt-up)' : trend < 0 ? 'var(--mt-down)' : 'var(--mt-ink-3)';
   return (
     <button
       type="button"
@@ -70,26 +78,22 @@ function GaugePill({ label, tipText, pct, state, delta, dashed, dimmed, onClick,
       onMouseEnter={(e) => onTip && onTip(e, tipText)}
       onMouseLeave={onHideTip}
       style={{
-        cursor: 'pointer', border: dashed ? '1px dashed currentColor' : 'none', font: 'inherit',
-        fontSize: 11.5, padding: '2px 7px', lineHeight: 1.25,
-        width: '100%', display: 'block', textAlign: 'left',
-        // Off-print state (Joe 2026-06-11: "make the text more visible on the
-        // signals"): the old 50% whole-pill dim washed out the labels. Names
-        // and numbers stay at full strength; the GAUGE carries the dim, and
-        // the section header carries "next print Sat 7:00a ET".
-        opacity: dimmed ? 0.9 : 1, transition: 'opacity .25s ease',
+        cursor: 'pointer',
+        border: dashed ? '1px dashed var(--mt-line-1)' : '1px solid var(--mt-line-0)',
+        background: shadeBg(pct, state),
+        color: 'var(--mt-ink-0)',
+        font: 'inherit', fontSize: 11.5, padding: '5px 8px', lineHeight: 1.25,
+        width: '100%', display: 'block', textAlign: 'left', borderRadius: 7,
+        opacity: dimmed ? 0.85 : 1, transition: 'opacity .25s ease, filter .12s ease, transform .12s ease',
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-          {delta != null && Math.abs(delta) >= 2 && (
-            <span className="num" style={{ fontSize: 9.5, opacity: 0.75 }}>{delta > 0 ? '▲' : '▼'}{Math.abs(Math.round(delta))}</span>
-          )}
-          <span className="num" style={{ opacity: 0.85 }}>{pct == null ? '—' : Math.round(pct)}</span>
+        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 5 }}>
+          <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700 }}>{arrow}</span>
+          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-1)' }}>{pct == null ? '—' : Math.round(pct)}</span>
         </span>
       </span>
-      <Gauge pct={pct} dimmed={dimmed} />
     </button>
   );
 }
@@ -108,13 +112,14 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
             key={i.id}
             label={shortLabel(i.name)}
             tipText={
-              i.pct == null
+              (i.pct == null
                 ? `${i.name} — not enough history to rank yet`
-                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range${i.deltaPct != null && Math.abs(i.deltaPct) >= 2 ? ` · ${i.deltaPct > 0 ? '+' : ''}${Math.round(i.deltaPct)} pts vs prior print` : ''}`
+                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range${i.deltaPct != null && Math.abs(i.deltaPct) >= 2 ? ` · ${i.deltaPct > 0 ? '+' : ''}${Math.round(i.deltaPct)} pts vs prior print` : ''}`)
+              + (i.description ? `\n\n${i.description}` : '')
             }
             pct={i.pct}
             state={i.state}
-            delta={i.deltaPct}
+            trend={trendOf(i.points, i.freq)}
             onClick={() => onSelectInd(i)}
             onTip={onTip}
             onHideTip={onHideTip}
@@ -127,20 +132,28 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
             Positioning signals
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
-            {markets.map((m) => (
-              <GaugePill
-                key={m.market}
-                label={shortLabel(m.market)}
-                tipText={`${m.market} — speculators at the ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
-                pct={m.spec}
-                state={m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm'}
-                dashed
-                dimmed={posDimmed}
-                onClick={() => onSelectPos(m)}
-                onTip={onTip}
-                onHideTip={onHideTip}
-              />
-            ))}
+            {markets.map((m) => {
+              const mstate = m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm';
+              const mtrend = Array.isArray(m.history) && m.history.length >= 2
+                ? (m.history[m.history.length - 1][1] > m.history[m.history.length - 2][1] ? 1
+                  : m.history[m.history.length - 1][1] < m.history[m.history.length - 2][1] ? -1 : 0)
+                : 0;
+              return (
+                <GaugePill
+                  key={m.market}
+                  label={shortLabel(m.market)}
+                  tipText={`${m.market} — speculators at the ${Math.round(m.spec)}${ordSfx(m.spec)} percentile of 3 years${posDimmed ? ` · awaiting next print${posNextPrint ? ` (${posNextPrint})` : ''}` : ''}`}
+                  pct={m.spec}
+                  state={mstate}
+                  trend={mtrend}
+                  dashed
+                  dimmed={posDimmed}
+                  onClick={() => onSelectPos(m)}
+                  onTip={onTip}
+                  onHideTip={onHideTip}
+                />
+              );
+            })}
           </div>
         </>
       )}

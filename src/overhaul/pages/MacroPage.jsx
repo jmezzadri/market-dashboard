@@ -28,6 +28,7 @@ import useIndicators from '../lib/useIndicators';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';
+import EngineReadBand from '../components/EngineReadBand';
 import Sparkline from '../components/Sparkline';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
@@ -544,7 +545,7 @@ export default function MacroPage() {
     <div className="mt-pagebody mt-fade">
       <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}`}</style>
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '5px 9px', borderRadius: 6, fontSize: 11.5, lineHeight: 1.35, maxWidth: 280, whiteSpace: 'normal', textAlign: 'center', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
       {/* Header — Asset Tilt pattern (Joe 2026-06-17): one short sentence on
@@ -563,11 +564,15 @@ export default function MacroPage() {
         </div>
       </section>
 
+      {/* Engine read — the de-risk engine (moved from the retired Asset Tilt
+          page, Joe 2026-06-22). The headline state read leads the page. */}
+      {!loading && <EngineReadBand onTip={showTip} onHideTip={hideTip} />}
+
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection" style={{ paddingTop: 14 }}>
           <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 8 }}>
-            Gauge runs from each element's own 3-year median · fill length = how stretched · color = whether that stretch warns
+            Background shade = how stretched each element is in its own 3-year range · color = whether that stretch warns · arrow = move since the last update
           </div>
           <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {DOMAINS.map((dom) => {
