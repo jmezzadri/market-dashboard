@@ -295,6 +295,10 @@ function statusForElement(elementId, fallback) {
       lastError,
       maxDataAgeHours,
       dataCalendar,
+      // Live feeds that only update while the market is open (intraday NAV /
+      // positions): pause the clock after the close so they do not false-red
+      // overnight. (Joe 2026-06-23.)
+      marketHoursOnly: !!(manifestEl && manifestEl.market_hours_only),
     });
     status = graded.status;
     reason = graded.reason;

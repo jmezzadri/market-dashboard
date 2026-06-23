@@ -246,8 +246,13 @@ export function lastPullInvariantViolated(asOfIso, lastPullIso) {
   const refMs = new Date(lastPullIso).getTime();
   if (!Number.isFinite(refMs)) return false;
   if (String(asOfIso).length === 10) {
-    const refEtDate = new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-    return String(asOfIso) > refEtDate;
+    // Compare a date-only as-of to the pull's UTC calendar date, not its ET
+    // session date. A late-evening pull (e.g. 10:32 PM ET = 02:32 UTC the next
+    // day) carries the next day's UTC date; a same-day data stamp must not read
+    // as "data newer than the pull" just because the run crossed midnight UTC.
+    // (Joe 2026-06-23: data can never be more current than the last pull.)
+    const refUtcDate = new Date(refMs).toISOString().slice(0, 10);
+    return String(asOfIso) > refUtcDate;
   }
   const asOfMs = new Date(asOfIso).getTime();
   return Number.isFinite(asOfMs) && asOfMs > refMs + 5 * 60 * 1000;
@@ -444,8 +449,28 @@ export function isDataStale(dataAsOfIso, maxDataAgeHours, calendar, nowMs) {
   return age > maxDataAgeHours;
 }
 
+// True when the US equity market is open right now (regular session): a
+// business day and between 9:30 AM and 4:05 PM ET. Used to PAUSE the freshness
+// clock for live intraday feeds that only update while the market is open —
+// after the close the daily close snapshot is the authoritative value, so a
+// quiet live feed overnight/weekend is expected, not stale. (Joe 2026-06-23.)
+export function isMarketOpenET(nowMs) {
+  const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  if (!isUSBusinessDay(et)) return false;
+  const mins = et.getHours() * 60 + et.getMinutes();
+  return mins >= 570 && mins <= 965; // 9:30 AM .. 4:05 PM ET
+}
+
 export function gradeTwoClock(input, nowMs) {
   const o = input || {};
+  // Market-hours-only live feeds (intraday NAV / positions) update only while
+  // the US market is open; after the close the daily close snapshot owns the
+  // end-of-day value, so the live feed going quiet is expected, not stale.
+  // Pause BOTH clocks outside market hours — a real upstream error still reds.
+  if (o.marketHoursOnly && !o.lastError && !isMarketOpenET(nowMs)) {
+    return { status: "green", clock: null, reason: "After hours \u2014 live feed resumes at the next market open; the close snapshot is the day\u2019s final value", ageHours: null };
+  }
   const pull = gradeByLastPull(o, nowMs);
   if (pull.status !== "green") {
     return { status: "red", clock: "pull", reason: pull.reason || "Not registered", ageHours: pull.ageHours == null ? null : pull.ageHours };

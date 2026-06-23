@@ -172,7 +172,7 @@ async function handle(req: Request): Promise<Response> {
   // 2) Pull the two canonical site files + the data manifest
   let indicators: Record<string, { as_of?: string }> = {};
   let composites: Array<Record<string, unknown>> = [];
-  let manifestByName: Record<string, { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string }> = {};
+  let manifestByName: Record<string, { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string; market_hours_only?: boolean }> = {};
   try {
     [indicators, composites] = await Promise.all([
       fetchIndicatorHistory(),
@@ -189,7 +189,7 @@ async function handle(req: Request): Promise<Response> {
     if (mr.ok) {
       const m = await mr.json();
       for (const e of (m.elements || []) as Array<Record<string, unknown>>) {
-        const el = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string };
+        const el = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string; data_max_age_hours?: number; data_calendar?: string; market_hours_only?: boolean };
         if (e.name) manifestByName[e.name as string] = el;
         if (e.id)   manifestByName[e.id as string] = el;
       }
@@ -496,6 +496,7 @@ async function handle(req: Request): Promise<Response> {
       lastError,
       maxDataAgeHours: winH,
       dataCalendar: (mfGrade?.data_calendar as ReleaseCalendar) || (mfGrade?.release_calendar as ReleaseCalendar) || "us-business-day",
+      marketHoursOnly: !!mfGrade?.market_hours_only,
     });
     // Config gap (neither a pull SLA nor a data window configured): a reference /
     // static / event-driven row with no freshness target. Grade it "unknown"
