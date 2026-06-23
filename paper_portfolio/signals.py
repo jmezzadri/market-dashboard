@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -71,17 +72,33 @@ def _supabase_query(sql: str) -> list[dict[str, Any]]:
             "SUPABASE_ACCESS_TOKEN must be set to read signal_intel_v5_daily."
         )
     url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
-    resp = requests.post(
-        url,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"query": sql},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    # Retry transient gateway errors (the Management API query endpoint
+    # intermittently returns 502/503/504, which otherwise crashes the whole
+    # rebalance). Bounded backoff; re-raise the last error if all tries fail.
+    last_exc = None
+    for attempt in range(5):
+        try:
+            resp = requests.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                json={"query": sql},
+                timeout=45,
+            )
+            if resp.status_code in (429, 500, 502, 503, 504):
+                last_exc = requests.exceptions.HTTPError(
+                    f"{resp.status_code} from Supabase query endpoint", response=resp
+                )
+                time.sleep(2 * (attempt + 1))
+                continue
+            resp.raise_for_status()
+            return resp.json()
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            last_exc = exc
+            time.sleep(2 * (attempt + 1))
+    raise last_exc if last_exc else RuntimeError("Supabase query failed")
 
 
 def load_eod_price_map(tickers: list[str]) -> dict[str, float]:
