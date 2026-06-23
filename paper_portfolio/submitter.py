@@ -72,15 +72,8 @@ def _supabase_query(sql: str) -> list[dict[str, Any]]:
     token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
     if not token:
         raise RuntimeError("SUPABASE_ACCESS_TOKEN required.")
-    url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
-    resp = requests.post(
-        url,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"query": sql},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    from paper_portfolio._sbq import sb_query
+    return sb_query(sql, token)
 
 
 def _supabase_exec(sql: str) -> None:

@@ -39,17 +39,8 @@ def _supabase_exec(sql: str) -> None:
         raise RuntimeError(
             "SUPABASE_ACCESS_TOKEN must be set to write paper_orders rows."
         )
-    url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
-    resp = requests.post(
-        url,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"query": sql},
-        timeout=30,
-    )
-    resp.raise_for_status()
+    from paper_portfolio._sbq import sb_query
+    sb_query(sql, token)
 
 
 def _sql_escape(s: str | None) -> str:

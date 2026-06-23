@@ -47,11 +47,8 @@ def file_alert(title: str, description: str, priority: str = "P1") -> None:
     url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
 
     def q(sql: str):
-        r = requests.post(url, headers={"Authorization": f"Bearer {token}",
-                                        "Content-Type": "application/json"},
-                          json={"query": sql}, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        from paper_portfolio._sbq import sb_query
+        return sb_query(sql, token)
 
     safe_title = title.replace("'", "''")
     safe_desc = description.replace("'", "''")

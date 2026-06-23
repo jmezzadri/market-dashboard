@@ -72,12 +72,8 @@ def _sb_query(sql: str):
     token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
     if not token:
         raise RuntimeError("SUPABASE_ACCESS_TOKEN required for email dedupe")
-    url = f"https://api.supabase.com/v1/projects/{_PROJECT_REF}/database/query"
-    r = requests.post(url, headers={"Authorization": f"Bearer {token}",
-                                    "Content-Type": "application/json"},
-                      json={"query": sql}, timeout=30)
-    r.raise_for_status()
-    return r.json()
+    from paper_portfolio._sbq import sb_query
+    return sb_query(sql, token)
 
 
 def _claim_daily_email_slot(email_type: str) -> bool:

@@ -88,18 +88,8 @@ def _supabase_query(sql: str) -> list[dict[str, Any]]:
             "SUPABASE_ACCESS_TOKEN is not set. The paper-portfolio translator "
             "needs read access to public.paper_accounts."
         )
-    url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
-    resp = requests.post(
-        url,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"query": sql},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    from paper_portfolio._sbq import sb_query
+    return sb_query(sql, token)
 
 
 def load_active_paper_account(account_number: str | None = None) -> PaperAccountConfig:
