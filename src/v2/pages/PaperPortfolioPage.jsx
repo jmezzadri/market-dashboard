@@ -343,6 +343,18 @@ function reconcileSleeves(row, aGrossOverride = null, bGrossOverride = null) {
   const CAP = PAPER_SLEEVE_CAP;
   if (!row || row.total_nav == null) return { aValue: null, bValue: null, aCash: null, bCash: null };
   const tn = row.total_nav;
+
+  // Sleeve A retired 2026-06-23 — the Equity Scanner is the ENTIRE book now. When
+  // there is no Sleeve A position, ALL idle cash belongs to the one sleeve, so
+  // Cash + holdings tie to the account NAV. (Previously idle cash was split
+  // against Sleeve A's old $500K cap, which hid ~$450K of cash on the table.)
+  const _agNow = (aGrossOverride != null && Number.isFinite(aGrossOverride)) ? aGrossOverride : (row.sleeve_a_equity ?? 0);
+  if (!_agNow || _agNow <= 0.01) {
+    const _b = (bGrossOverride != null && Number.isFinite(bGrossOverride)) ? bGrossOverride
+             : (row.sleeve_b_equity != null && Number.isFinite(row.sleeve_b_equity)) ? row.sleeve_b_equity : null;
+    if (_b == null) return { aValue: 0, bValue: tn, aCash: 0, bCash: tn };
+    return { aValue: 0, bValue: tn, aCash: 0, bCash: tn - _b };
+  }
   // Prefer the EOD-priced per-sleeve holdings summed from the positions the page
   // actually displays, so the headline sleeve value equals the sleeve table.
   // The nav row's sleeve_*_equity is priced from live Alpaca and disagrees with
