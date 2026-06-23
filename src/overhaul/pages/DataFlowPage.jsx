@@ -1374,19 +1374,9 @@ export default function DataFlowPage() {
     return () => window.removeEventListener('resize', onResize);
   }, [selectedId, drawLineage, allTiles]);
 
-  // Default the selection to the first source tile ONCE, when the manifest
-  // first lands. Previously this re-fired whenever selectedId went null, so
-  // deselecting (clicking empty space or the selected tile again) instantly
-  // snapped the first tile back — the user could never reach the "all tiles,
-  // no lines" overview. The ref makes it a one-time default, so deselect now
-  // sticks. (Joe 2026-06-17: "why can't I unclick to see all tiles without lines?")
-  const didInitSelect = useRef(false);
-  useEffect(() => {
-    if (!didInitSelect.current && !selectedId && sourceTiles.length) {
-      didInitSelect.current = true;
-      setSelectedId(sourceTiles[0].id);
-    }
-  }, [sourceTiles, selectedId]);
+  // The page loads with NOTHING selected — no tile lit, no lineage lines, and the
+  // detail panel showing its "select a tile" prompt. (Joe 2026-06-23.) There is
+  // no auto-select; selectedId starts null and only a click sets it.
 
   const handleTileClick = (id) => setSelectedId((prev) => (prev === id ? null : id));
 
