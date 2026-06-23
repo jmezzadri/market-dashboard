@@ -83,14 +83,12 @@ export default function EngineReadBand({ onTip, onHideTip }) {
         .mer-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
         .mer-state{font-family:var(--mt-font-display);font-size:clamp(16px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
         .mer-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
-        .mer-gtitle{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700;margin-bottom:2px}
-        .mer-dialrow{display:flex;align-items:center;gap:16px}
-        .mer-dialwrap{flex:1;min-width:0}
-        .mer-gnow{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto;text-align:right}
+        .mer-ghead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+        .mer-gtitle{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700}
+        .mer-ghval{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:0 0 auto}
         .mer-gval{font-family:var(--mt-font-mono);font-size:24px;font-weight:600;color:var(--mt-ink-0);line-height:1.1}
         .mer-gsub{font-size:11px;color:var(--mt-ink-3)}
-        .mer-rule{font-size:11.5px;color:var(--mt-ink-2);line-height:1.5;margin-top:8px}
-        .mer-rule b{color:var(--mt-ink-1)}
+        .mer-gcap{min-height:34px;font-size:11.5px;color:var(--mt-ink-2);line-height:1.4;margin:8px 0 2px}
         .mer-strip-wrap{margin-top:18px;padding-top:14px;border-top:1px solid var(--mt-line-1)}
         .mer-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:8px}
         .mer-cell{height:26px;border-radius:3px;cursor:default;border-bottom:3px solid transparent}
@@ -109,23 +107,23 @@ export default function EngineReadBand({ onTip, onHideTip }) {
         <div className="mer-grid">
           {/* Stress gauge → equity % */}
           <div>
-            <div className="mer-gtitle">
-              <span>Stress signal · MOVE</span>
-              <FreshnessChip elementId="indicator-move-daily" variant="dot" />
-            </div>
-            <div className="mer-dialrow">
-              <div className="mer-dialwrap">
-                <BigGauge
-                  value={regime.move ?? 0}
-                  max={200}
-                  thresholds={[{ pos: watchT / 200 }, { pos: riskOffT / 200 }]}
-                />
+            <div className="mer-ghead">
+              <div className="mer-gtitle">
+                <span>Stress signal · MOVE Index</span>
+                <FreshnessChip elementId="indicator-move-daily" variant="dot" />
               </div>
-              <div className="mer-gnow">
+              <div className="mer-ghval">
                 <span className="mer-gval">{regime.move != null ? regime.move.toFixed(1) : '—'}</span>
                 <span className="mer-gsub">{regime.movePct != null ? `${regime.movePct}th pctile · 5y` : '—'}</span>
               </div>
             </div>
+            {/* spacer keeps both dials aligned with the Yield Regime caption */}
+            <div className="mer-gcap" aria-hidden="true" />
+            <BigGauge
+              value={regime.move ?? 0}
+              max={200}
+              thresholds={[{ pos: watchT / 200 }, { pos: riskOffT / 200 }]}
+            />
             <GaugeLegend
               zones={[
                 { kind: 'up', label: 'Risk On', range: `≤ ${Math.round(watchT)}` },
@@ -137,24 +135,23 @@ export default function EngineReadBand({ onTip, onHideTip }) {
 
           {/* Yield gauge → which sleeve */}
           <div>
-            <div className="mer-gtitle">
-              <span>Yield regime · 3-month change in 10-year</span>
-              <FreshnessChip elementId="indicator-yield_curve-daily" variant="dot" />
-            </div>
-            <div className="mer-dialrow">
-              <div className="mer-dialwrap">
-                <BigGauge
-                  value={regime.yieldDeltaBp ?? 0}
-                  max={100}
-                  bidirectional
-                  thresholds={[{ pos: (100 + deflT) / 200 }, { pos: (100 + inflT) / 200 }]}
-                />
+            <div className="mer-ghead">
+              <div className="mer-gtitle">
+                <span>Yield regime · 3-month change in 10-year</span>
+                <FreshnessChip elementId="indicator-yield_curve-daily" variant="dot" />
               </div>
-              <div className="mer-gnow">
+              <div className="mer-ghval">
                 <span className="mer-gval">{regime.yieldDeltaBp != null ? `${regime.yieldDeltaBp >= 0 ? '+' : ''}${regime.yieldDeltaBp.toFixed(0)} bp` : '—'}</span>
                 <span className="mer-gsub">{regime.yieldPct != null ? `${regime.yieldPct}th pctile · 5y` : '—'}</span>
               </div>
             </div>
+            <div className="mer-gcap">When Stress Signal indicates Risk Off, Yield Regime dictates allocation.</div>
+            <BigGauge
+              value={regime.yieldDeltaBp ?? 0}
+              max={100}
+              bidirectional
+              thresholds={[{ pos: (100 + deflT) / 200 }, { pos: (100 + inflT) / 200 }]}
+            />
             <GaugeLegend
               zones={[
                 { kind: 'up', label: 'Deflationary', range: `≤ ${Math.round(deflT)} bp` },

@@ -543,7 +543,7 @@ export default function MacroPage() {
 
   return (
     <div className="mt-pagebody mt-fade">
-      <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}`}</style>
+      <style>{`.mc-pill{transition:filter .12s ease,transform .12s ease}.mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}.mc-indcard{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}`}</style>
       {tip && createPortal(
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
@@ -567,8 +567,10 @@ export default function MacroPage() {
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection" style={{ paddingTop: 14 }}>
-          {/* Explainer block (Joe exact copy 2026-06-23): moved out of the hero
-              to sit directly above the indicators. Verbatim per LESSONS 8.5. */}
+          {/* Indicators tile (Joe 2026-06-23): a card wraps the explainer copy
+              and the indicators together. Explainer copy is verbatim per
+              LESSONS 8.5. */}
+          <div className="mc-indcard">
           <ul className="at-subbullets" style={{ marginTop: 0, marginBottom: 16 }}>
             <li>Market indicators across five asset classes, financial conditions and the economy. Each indicator is ranked (red, amber, green) against its own 3-year range.</li>
             <li>Positioning signals from CFTC COT Dealer inventory, showing where positioning might be crowded.</li>
@@ -609,6 +611,7 @@ export default function MacroPage() {
                 </div>
               );
             })}
+          </div>
           </div>
         </section>
       )}
