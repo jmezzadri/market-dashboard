@@ -246,8 +246,13 @@ export function lastPullInvariantViolated(asOfIso, lastPullIso) {
   const refMs = new Date(lastPullIso).getTime();
   if (!Number.isFinite(refMs)) return false;
   if (String(asOfIso).length === 10) {
-    const refEtDate = new Date(refMs).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-    return String(asOfIso) > refEtDate;
+    // Compare a date-only as-of to the pull's UTC calendar date, not its ET
+    // session date. A late-evening pull (e.g. 10:32 PM ET = 02:32 UTC the next
+    // day) carries the next day's UTC date; a same-day data stamp must not read
+    // as "data newer than the pull" just because the run crossed midnight UTC.
+    // (Joe 2026-06-23: data can never be more current than the last pull.)
+    const refUtcDate = new Date(refMs).toISOString().slice(0, 10);
+    return String(asOfIso) > refUtcDate;
   }
   const asOfMs = new Date(asOfIso).getTime();
   return Number.isFinite(asOfMs) && asOfMs > refMs + 5 * 60 * 1000;
