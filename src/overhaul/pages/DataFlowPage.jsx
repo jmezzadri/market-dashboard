@@ -1078,6 +1078,18 @@ export default function DataFlowPage() {
       (wt.members || []).forEach((m) => {
         const v = canonVendor(m.source_vendor);
         if (v && srcTileForVendor[v]) E.push([srcTileForVendor[v], wt.id]);
+        // Computed workflow elements (e.g. the wide scan universe) carry no
+        // external vendor of their own, so the vendor edge above draws nothing
+        // and the tile dangled with a single downstream line and no upstream.
+        // Draw the lineage from each declared dependency's OWN source vendor, so
+        // an in-house intermediate still traces back to the external data it is
+        // built from. (Joe 2026-06-23.)
+        (Array.isArray(m.dependencies) ? m.dependencies : []).forEach((depId) => {
+          const dep = elementById[depId];
+          if (!dep) return;
+          const dv = canonVendor(dep.source_vendor);
+          if (dv && srcTileForVendor[dv]) E.push([srcTileForVendor[dv], wt.id]);
+        });
         (Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : []).forEach((cs) => {
           if (cs && typeof cs === 'object' && cs.tab) {
             const tab = canonTab(cs.tab);
@@ -1095,7 +1107,7 @@ export default function DataFlowPage() {
       seen.add(k);
       return true;
     });
-  }, [sourceTiles, derivedTiles, engineTiles, surfaceTiles, workflowTiles, classified]);
+  }, [sourceTiles, derivedTiles, engineTiles, surfaceTiles, workflowTiles, classified, elementById]);
 
   const bfs = useCallback((start, dir) => {
     const seen = new Set([start]);
@@ -1596,13 +1608,22 @@ export default function DataFlowPage() {
         .df-detail-cost { color: var(--mt-ink-1); font-weight: 600; }
         .df-detail-blast { font-size: 11.5px; color: var(--mt-ink-2); line-height: 1.5; margin: 8px 0 0; }
 
-        /* ── Per-element table (indicator-by-indicator) ── */
-        .df-table { display: flex; flex-direction: column; }
-        .df-row { display: grid; grid-template-columns: minmax(0, 1.5fr) 1fr 0.8fr 0.95fr 0.5fr auto;
-          gap: 8px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--mt-line-0); font-size: 11.5px; }
-        .df-row:last-child { border-bottom: none; }
-        .df-row--head { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mt-ink-3);
-          font-weight: 600; padding: 6px 4px; border-bottom: 1px solid var(--mt-line-1); }
+        /* ── Per-element table (indicator-by-indicator) ──
+           The table is ONE CSS grid and every row uses display:contents, so all
+           rows share the SAME column tracks. Before this each .df-row was its own
+           grid: the content-sized last column ("Freshness") resolved WIDE in the
+           header (the label) but NARROW in the body (a dot), which shifted every
+           fractional column and left the data not lining up under its headers
+           (Joe 2026-06-23). One shared grid makes header and body columns
+           identical. The mobile card layout below re-declares .df-row as a grid. */
+        .df-table { display: grid;
+          grid-template-columns: minmax(0, 1.5fr) 1fr 0.8fr 0.95fr 0.5fr max-content;
+          column-gap: 8px; font-size: 11.5px; }
+        .df-row { display: contents; }
+        .df-row > * { align-self: center; min-width: 0; padding: 9px 0; border-bottom: 1px solid var(--mt-line-0); }
+        .df-table > .df-row:last-child > * { border-bottom: none; }
+        .df-row--head > * { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mt-ink-3);
+          font-weight: 600; padding: 6px 0; border-bottom: 1px solid var(--mt-line-1); }
         .df-row--head .df-row-k { display: none; }
         .df-row-main { min-width: 0; }
         .df-row-name { font-weight: 600; color: var(--mt-ink-0); font-size: 12px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1625,10 +1646,16 @@ export default function DataFlowPage() {
           .df-svg { display: none; }
           .df-cols { grid-template-columns: 1fr 1fr; }
         }
-        /* On narrow detail panels, stack the row into a card with labels. */
+        /* On narrow detail panels, stack the row into a card with labels.
+           Reset the desktop shared grid: the table goes back to a column of
+           independent row-grids, and the per-cell borders/padding are undone. */
         @media (max-width: 1180px) {
-          .df-row { grid-template-columns: 1fr auto; grid-template-areas:
-            "main chip" "cad cad" "asof pull" "sla sla"; row-gap: 4px; }
+          .df-table { display: flex; flex-direction: column; }
+          .df-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas:
+            "main chip" "cad cad" "asof pull" "sla sla"; row-gap: 4px; column-gap: 8px;
+            padding: 9px 4px; border-bottom: 1px solid var(--mt-line-0); }
+          .df-row > * { padding: 0; border-bottom: none; }
+          .df-table > .df-row:last-child { border-bottom: none; }
           .df-row--head { display: none; }
           .df-row-main { grid-area: main; }
           .df-row-chip { grid-area: chip; }
@@ -1642,3 +1669,4 @@ export default function DataFlowPage() {
     </div>
   );
 }
+

@@ -1630,7 +1630,10 @@
    "failure_mode": "Skipped \u2192 discovery feed light.",
    "owner": "Lead Dev",
    "release_calendar": "nyse-trading-day",
-   "dependencies": [],
+   "dependencies": [
+    "market-universe_master-daily",
+    "equity-index_membership-daily"
+   ],
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
