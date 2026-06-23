@@ -32,10 +32,13 @@ function fmt(v, dec) {
 function ddParts(dd, dec) {
   if (dd == null || !Number.isFinite(dd)) return { arrow: '', txt: '', cls: '' };
   const d = Math.min(dec, 2);
-  const a = Math.abs(dd).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-  if (dd > 0) return { arrow: '▲', txt: a, cls: 'up' };
-  if (dd < 0) return { arrow: '▼', txt: a, cls: 'down' };
-  return { arrow: '·', txt: a, cls: '' };
+  // Round to the displayed precision first, so a change that rounds to zero
+  // (e.g. a monthly series unchanged since its last print) shows nothing
+  // rather than a spurious "-0.0".
+  const r = Number(dd.toFixed(d));
+  if (r === 0) return { arrow: '', txt: '', cls: '' };
+  const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return r > 0 ? { arrow: '▲', txt: a, cls: 'up' } : { arrow: '▼', txt: a, cls: 'down' };
 }
 function Html({ html, tag = 'span', className }) {
   const T = tag;
