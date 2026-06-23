@@ -191,6 +191,7 @@ const VENDOR_CANON = {
   fred: 'FRED',
   'treasury.gov': 'U.S. Treasury',
   'yahoo finance': 'Yahoo Finance',
+  yahoo: 'Yahoo Finance',
   ism: 'ISM',
   shiller: 'Shiller dataset',
   cme: 'CME',
@@ -239,11 +240,34 @@ function isInhouseVendor(raw) {
   if (r === '' || r.startsWith('n/a')) return true; // "n/a (user-generated)" etc. — in-house, never an external source
   return INHOUSE_VENDOR.has(vendorBase(raw));
 }
+// Some computed feeds list MULTIPLE upstream vendors in one string
+// ("Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares"). canonVendor
+// returns only the first; this returns EVERY canonical vendor named in the
+// string so an engine node can trace back to all the sources it is built from.
+function allCanonVendors(raw) {
+  if (!raw) return [];
+  const out = [];
+  String(raw).split('+').forEach((tok) => {
+    const v = canonVendor(tok);
+    if (v && !out.includes(v)) out.push(v);
+  });
+  return out;
+}
 
 // Manifest element `name`s that are engine outputs regardless of category.
 const ENGINE_NAMES = new Set([
   'indicator_history',
 ]);
+
+// The Trading scanner engine — the in-house computed scan outputs that blend the
+// vendor feeds into the daily MT Score + the filtered universe they score. These
+// are grouped into ONE engine tile (like the indicator-history compiler) so the
+// scanner subsystem reads as sources → engine → surface, instead of feeds
+// jumping straight to the Trading Scanner surface with no lines into it.
+// (Joe 2026-06-23.)
+const SCANNER_ENGINE_NAMES = new Set(['latest_scan', 'scanner-v5-daily', 'wide_universe']);
+const SCANNER_ENGINE_ID = 'eng:trading-scanner';
+const SCANNER_SURFACE_TABS = new Set(['scanner']); // canonTab('portopps') === 'scanner'
 
 // Consumer-surface tab aliases → one canonical tab, so a single surface tile
 // represents each real page. The manifest uses several names for the same
@@ -726,8 +750,9 @@ export default function DataFlowPage() {
     elements.forEach((e) => {
       const cat = e.category;
       const base = vendorBase(e.source_vendor);
-      // Engines: explicit engine outputs. (ops is already filtered out upstream.)
-      if (ENGINE_NAMES.has(e.name)) {
+      // Engines: explicit engine outputs + the computed scan composite.
+      // (ops is already filtered out upstream.)
+      if (ENGINE_NAMES.has(e.name) || SCANNER_ENGINE_NAMES.has(e.name)) {
         out[e.name] = 'engine';
       } else if (cat === 'indicator') {
         out[e.name] = 'derived';
@@ -751,6 +776,9 @@ export default function DataFlowPage() {
   const sourceTiles = useMemo(() => {
     const byVendor = new Map();
     elements.forEach((e) => {
+      // Computed engine outputs (e.g. the scan composite) are NOT vendor pulls —
+      // they belong to the engine that produces them, not a source tile.
+      if (classified[e.name] === 'engine') return;
       const v = canonVendor(e.source_vendor);
       if (!v) return; // in-house elements are not sources
       if (!byVendor.has(v)) byVendor.set(v, []);
@@ -783,7 +811,7 @@ export default function DataFlowPage() {
     // Order: most elements first (FRED / Yahoo lead), stable.
     tiles.sort((a, b) => b.count - a.count || a.vendor.localeCompare(b.vendor));
     return tiles;
-  }, [elements]);
+  }, [elements, classified]);
 
   // ── Column 2: Derived-indicator tiles, grouped by 5-domain family ──
   // The CFTC COT element is pulled out of the family rollup and given its own
@@ -859,16 +887,29 @@ export default function DataFlowPage() {
   // ── Column 3: Engine / model tiles ──
   // Engine-internal computed outputs — one tile per engine element.
   const engineTiles = useMemo(() => {
-    const els = elements.filter((e) => classified[e.name] === 'engine');
     const tiles = [];
-    els.forEach((e) => {
-      tiles.push({
-        id: `eng:${e.name}`,
-        name: displayName(e),
-        sub: prettyCadence(e.cadence),
-        members: [e],
+    // Single-element engines (the indicator-history compiler).
+    elements
+      .filter((e) => classified[e.name] === 'engine' && !SCANNER_ENGINE_NAMES.has(e.name))
+      .forEach((e) => {
+        tiles.push({
+          id: `eng:${e.name}`,
+          name: displayName(e),
+          sub: prettyCadence(e.cadence),
+          members: [e],
+        });
       });
-    });
+    // Trading scanner engine — the in-house computed scan outputs grouped into
+    // one node (the daily composite MT Score + its filtered universe).
+    const scanMembers = elements.filter((e) => SCANNER_ENGINE_NAMES.has(e.name));
+    if (scanMembers.length) {
+      tiles.push({
+        id: SCANNER_ENGINE_ID,
+        name: 'Trading scanner',
+        sub: 'Daily composite MT Score',
+        members: scanMembers,
+      });
+    }
     tiles.sort((a, b) => a.name.localeCompare(b.name));
     return tiles;
   }, [elements, classified]);
@@ -887,7 +928,10 @@ export default function DataFlowPage() {
       // under a page-surface tile — e.g. the watchlist / accounts / positions /
       // transactions feeds showing under "Trading Scanner". A feed lives in
       // exactly one place: Workflows OR Surfaces, never both. (Joe 2026-06-17.)
-      if (classified[e.name] === 'workflow') return;
+      // Workflow feeds live in the Workflows section; engine outputs (the scan
+      // composite) feed surfaces THROUGH their engine node, not as direct
+      // surface members — so neither is counted as a surface feed here.
+      if (classified[e.name] === 'workflow' || classified[e.name] === 'engine') return;
       const css = Array.isArray(e.consumer_surfaces) ? e.consumer_surfaces : [];
       const tabs = new Set();
       css.forEach((cs) => {
@@ -976,6 +1020,8 @@ export default function DataFlowPage() {
     engineTiles.forEach((t) => { t.members.forEach((m) => { engById[m.name] = t.id; }); });
     const surfTileForTab = {};
     surfaceTiles.forEach((t) => { surfTileForTab[t.id.replace('surf:', '')] = t.id; });
+    const srcTileForVendor = {};
+    sourceTiles.forEach((stile) => { if (stile.vendor) srcTileForVendor[stile.vendor] = stile.id; });
 
     // vendor → family / engine / surface (via each member element)
     sourceTiles.forEach((src) => {
@@ -1002,7 +1048,12 @@ export default function DataFlowPage() {
         css.forEach((cs) => {
           if (cs && typeof cs === 'object' && cs.tab) {
             const tab = canonTab(cs.tab);
-            if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
+            // A feed the scanner consumes flows IN through the Trading scanner
+            // engine, not straight to the surface — so the chain reads
+            // source → engine → Trading Scanner (and the surface, when selected,
+            // shows its real upstream instead of a bare feed count).
+            if (SCANNER_SURFACE_TABS.has(tab)) engs.add(SCANNER_ENGINE_ID);
+            else if (surfTileForTab[tab]) surfs.add(surfTileForTab[tab]);
           }
         });
       });
@@ -1054,10 +1105,22 @@ export default function DataFlowPage() {
       E.push([CREDIT_TILE_ID, overviewSurfId]);
     }
 
-    // engines → surfaces (via the surfaces each engine's members declare)
+    // engines: sources → engine (upstream) and engine → surfaces (downstream).
+    // Upstream is drawn from every vendor named in each member's (possibly
+    // multi-vendor) source string PLUS each member's declared dependencies'
+    // vendors — so the Trading scanner engine traces back to all the feeds it is
+    // built from, not just the first one. Downstream is each member's declared
+    // consumer surfaces.
     engineTiles.forEach((eng) => {
       const surfs = new Set();
+      const ups = new Set();
       eng.members.forEach((m) => {
+        allCanonVendors(m.source_vendor).forEach((v) => { if (srcTileForVendor[v]) ups.add(srcTileForVendor[v]); });
+        (Array.isArray(m.dependencies) ? m.dependencies : []).forEach((depId) => {
+          const dep = elementById[depId];
+          if (!dep) return;
+          allCanonVendors(dep.source_vendor).forEach((v) => { if (srcTileForVendor[v]) ups.add(srcTileForVendor[v]); });
+        });
         const css = Array.isArray(m.consumer_surfaces) ? m.consumer_surfaces : [];
         css.forEach((cs) => {
           if (cs && typeof cs === 'object' && cs.tab) {
@@ -1066,14 +1129,14 @@ export default function DataFlowPage() {
           }
         });
       });
+      ups.forEach((u) => E.push([u, eng.id]));
       surfs.forEach((s) => E.push([eng.id, s]));
     });
 
-    // workflow tiles <-> sources/surfaces: a workflow (Portfolio, News, Commentary,
-    // Equity data) is fed by its members' source vendors and feeds the surfaces its
-    // members declare. Without this the workflow tiles drew no connectors at all.
-    const srcTileForVendor = {};
-    sourceTiles.forEach((stile) => { if (stile.vendor) srcTileForVendor[stile.vendor] = stile.id; });
+    // workflow tiles <-> sources/surfaces: a workflow (Portfolio, News, Commentary)
+    // is fed by its members' source vendors and feeds the surfaces its members
+    // declare. Without this the workflow tiles drew no connectors at all.
+    // (srcTileForVendor is built once in the lookups block above.)
     workflowTiles.forEach((wt) => {
       (wt.members || []).forEach((m) => {
         const v = canonVendor(m.source_vendor);
