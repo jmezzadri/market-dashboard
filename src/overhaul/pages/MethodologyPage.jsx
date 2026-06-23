@@ -31,7 +31,7 @@ import FreshnessChip from '../components/FreshnessChip';
 
 const SECTIONS = [
   ['macro',     'Macro overview'],
-  ['tilt',      'Asset Tilt engine'],
+  ['engine',    'Engine read'],
   ['scanner',   'Trading scanner'],
   ['portfolio', 'Portfolio insights'],
   ['freshness', 'Data freshness contract'],
@@ -46,9 +46,9 @@ const SECTIONS = [
    category + consumer-surface fields, never raw element ids. */
 const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
   readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
-  paper: 'Paper Portfolio', 'asset-tilt': 'Asset Tilt', ticker: 'Ticker', data: 'Admin / Data' };
+  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
-  scenario: 'Allocation', allocation: 'Allocation', portfolio: 'Portfolio', news: 'News',
+  portfolio: 'Portfolio', news: 'News',
   commentary: 'Commentary', ops: 'Operations' };
 
 function fmtPct(v, digits = 2) {
@@ -226,17 +226,17 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 02 — Asset Tilt */}
-        <article id="tilt" className="me-section">
+        {/* 02 — Engine read */}
+        <article id="engine" className="me-section">
           <div className="me-num">02</div>
           <div>
-            <div className="mt-eyebrow">Asset Tilt engine</div>
-            <h2 className="me-h2">Two axes set the regime · equity % &amp; sector tilts</h2>
+            <div className="mt-eyebrow">Engine read</div>
+            <h2 className="me-h2">Two axes set the regime · stress &amp; yield</h2>
             <p className="me-body-p">
               Bond-market volatility (<b>MOVE</b>) sets the stress axis. The 3-month change in 10-year
               Treasury yield (<b>3M Δ 10y</b>) sets the yield-regime axis. Together they define a 3×3 grid
-              (Risk On / Watch / Risk Off × Inflationary / Neutral / Deflationary). The cell determines
-              equity %, the defensive sleeve composition, and the within-equity sector tilts.
+              (Risk On / Watch / Risk Off × Inflationary / Neutral / Deflationary). The cell sets the
+              equity-vs-defensive read and the defensive sleeve composition.
             </p>
             <div className="me-formula">
               stress_signal = MOVE<br />
@@ -246,16 +246,10 @@ export default function MethodologyPage() {
               sleeve_mix    = inflationary ? 12% Au / 9% TLT / 4% Cash : 4% Au / 16% TLT / 5% Cash (only when stress ≥ Watch)
             </div>
             <p className="me-body-p">
-              Within the equity bucket, six factor reads drive sector and industry-group tilts: credit OAS,
-              valuation z-score, breadth, growth, liquidity, and an earnings-revision z. Each sector's
-              active weight is a weighted sum of those factors, clipped to [−4%, +6%] vs. its cap weight.
-            </p>
-            <p className="me-body-p">
               <b>Validated {validatedRange}</b> over <b className="num">{validatedWeeks}</b> weeks.{' '}
               <b>CAGR {cagrEngine}</b> vs SPY {cagrSpy}, Sharpe {sharpeEng} vs {sharpeSpy},
-              max drawdown {ddEng} vs {ddSpy}. Rebalanced weekly; defensive sleeve fires only when stress
-              crosses Watch.{' '}
-              <FreshnessChip elementId="cycle-mechanism-board-daily" variant="dot" />
+              max drawdown {ddEng} vs {ddSpy}. The defensive sleeve fires only when stress crosses Watch.{' '}
+              <FreshnessChip elementId="indicator-move-daily" variant="dot" />
             </p>
           </div>
         </article>
@@ -348,11 +342,6 @@ export default function MethodologyPage() {
                   <td>8:00 AM</td>
                   <td>Massive</td>
                   <td>Pulls Polygon's full overnight price batch (~12,200 tickers).</td>
-                </tr>
-                <tr>
-                  <td>8:15 AM</td>
-                  <td>Asset Tilt</td>
-                  <td>Recalculates the recommended allocation from today's indicators.</td>
                 </tr>
                 <tr>
                   <td>8:30 AM</td>

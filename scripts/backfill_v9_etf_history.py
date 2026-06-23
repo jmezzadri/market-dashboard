@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 """
-backfill_v9_etf_history.py — one-shot historical backfill of the 18 v9
-universe ETFs into public.prices_eod.
+backfill_v9_etf_history.py — one-shot historical backfill of an 18-ETF
+universe into public.prices_eod.
 
 Why this script exists
 ----------------------
-The Saturday v9 rebalance (compute_v9_allocation.py) reads daily ETF
-closes via yfinance over a 20-year window because the optimizer's
-multivariate regression needs decades of monthly returns to be
-statistically valid.
+Backfills ~20 years of daily ETF closes into public.prices_eod (the
+Massive/Polygon-fed table that the daily EOD ingest already populates
+forward), so any consumer that needs decades of ETF history reads from
+one shared table rather than a separate yfinance pull.
 
-After this backfill lands, compute_v9_allocation.py can read the same
-prices from public.prices_eod (the Massive/Polygon-fed table that the
-daily EOD ingest already populates forward), eliminating the yfinance
-dependency in the optimizer chain.
-
-Tickers (18) — must match EQUITY + DEFENSIVE in compute_v9_allocation.py:
+Tickers (18):
   EQUITY:    IGV SOXX IBB XLF XLV XLI XLE XLY XLP XLU XLB IYR IYZ MGK
   DEFENSIVE: BIL TLT GLD LQD
 
@@ -27,8 +22,7 @@ Polygon Basic tier serves up to 50,000 bars per call, so 20 years of
 daily history (~5,040 bars per ticker) fits in ONE call per ticker.
 At 5 calls/minute throttle, total wall-clock is ~4 minutes.
 
-Trigger: GitHub Actions workflow_dispatch (one-shot). After completion,
-PR #9 (compute_v9_allocation.py yfinance -> Supabase swap) can land.
+Trigger: GitHub Actions workflow_dispatch (one-shot).
 
 Reads MASSIVE_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY from env.
 """
@@ -45,7 +39,7 @@ THROTTLE_SECONDS = 13   # 60s / 5 req per minute, with margin
 START_DATE = "2003-01-01"
 PAGE_SIZE = 50000
 
-# Must match compute_v9_allocation.py EQUITY + DEFENSIVE keys.
+# EQUITY + DEFENSIVE ETF universe.
 TICKERS = [
     "IGV", "SOXX", "IBB", "XLF", "XLV", "XLI", "XLE", "XLY",
     "XLP", "XLU", "XLB", "IYR", "IYZ", "MGK",

@@ -26,27 +26,17 @@ function fmtFreq(freq) {
   return freq || '—';
 }
 
-/* "Used for" — does the indicator drive an Asset Tilt decision on the live
-   site, or is it backdrop only ("Reference"). Verified 2026-05-29 against the
-   live engines:
-   - Stress signal (equity vs defensive): MOVE  → scripts/compute_macrotilt_engine.py
-   - Sector tilts via the six v11 cycle mechanisms → scripts/compute_v11_mechanisms.py
-     PANELS + methodology_calibration_v11.json:
-       Credit: HY OAS, IG OAS · Funding: USD Funding, STLFSI, Bank Reserves,
-       Reverse Repo · Growth: CFNAI (3M Avg), Init. Claims · Liquidity & Policy:
-       ANFCI, Fed Balance Sheet, SLOOS C&I, M2 Money Supply · Positioning &
-       Breadth: SKEW Index, VIX, EQ–Credit Corr, MOVE Index.
-   (The yield-regime axis reads the 10Y Treasury yield, which is not a tile on
-   this page.) Keep this set in sync with those producers. */
-const ASSET_TILT_IDS = new Set([
-  'move', 'vix', 'skew', 'eq_cr_corr',
-  'hy_ig', 'ig_oas',
-  'cpff', 'stlfsi', 'bank_reserves', 'rrp',
-  'anfci', 'fed_bs', 'sloos_ci', 'm2_yoy',
-  'cfnai_3ma', 'jobless',
+/* "Used for" — does the indicator drive the two-axis engine read on the
+   Macro Overview, or is it backdrop only ("Reference"). The engine has two
+   axes: a stress signal (equity vs defensive) driven by MOVE, and a
+   yield-regime axis driven by the 10Y Treasury yield. MOVE is the only one
+   of those that is also a tile on this page. Producer:
+   scripts/compute_macrotilt_engine.py. Keep this set in sync with it. */
+const ENGINE_IDS = new Set([
+  'move',
 ]);
 function usedFor(id) {
-  return ASSET_TILT_IDS.has(id) ? 'Asset Tilt' : 'Reference';
+  return ENGINE_IDS.has(id) ? 'Engine' : 'Reference';
 }
 
 /* Column catalog. `sortKey` null = not sortable. `num` = right-aligned. */

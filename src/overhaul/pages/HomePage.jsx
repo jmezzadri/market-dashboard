@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import useIndicators from '../lib/useIndicators';
-import useAllocation from '../lib/useAllocation';
 import useEngineRegime from '../lib/useEngineRegime';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import { getWeekGrid, WEEKDAYS } from '../lib/econCalendar';
@@ -10,7 +9,6 @@ import '../home-editorial.css';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 const DOMAIN_SHORT = { 'Financial Conditions & Economy': 'Fin Cond & Economy' };
-const MECH_LABEL = { valuation: 'valuations', credit: 'credit', funding: 'funding', growth: 'growth', liquidity_policy: 'liquidity & policy', positioning_breadth: 'positioning & breadth' };
 const SIGNAL_LABEL = { insider_pts: 'insider buying', sma200_pts: 'its 200-day trend', rsi_pts: 'momentum (RSI)', options_pts: 'options flow', dark_pool_pts: 'dark-pool accumulation' };
 
 /* ── value / delta helpers ─────────────────────────────────────────────── */
@@ -56,11 +54,6 @@ function pickHeadline(inds) {
   const score = (i) => (i.state === 'extreme' ? 200 : i.state === 'elevated' ? 100 : 0) + (i.pct != null ? Math.abs(i.pct - 50) : 0);
   return inds.slice().sort((a, b) => score(b) - score(a))[0];
 }
-function topDriver(s) {
-  const c = s.contributions || {}; let k = null, mv = -1;
-  Object.entries(c).forEach(([kk, vv]) => { const a = Math.abs(Number(vv) || 0); if (a > mv) { mv = a; k = kk; } });
-  return MECH_LABEL[k] || k || 'the engine score';
-}
 function topSignal(r) {
   const f = { insider_pts: r.insider_pts, sma200_pts: r.sma200_pts, rsi_pts: r.rsi_pts, options_pts: r.options_pts, dark_pool_pts: r.dark_pool_pts };
   let k = null, mv = -Infinity;
@@ -69,26 +62,16 @@ function topSignal(r) {
 }
 
 /* ── positioning generators (fully derived from live engine state) ─────── */
-function macroPosition(regime, alloc, buckets) {
+function macroPosition(regime, buckets) {
   if (!regime || regime.loading) return 'Reading the tape…';
   const zone = regime.stressZone || 'Neutral';
-  const eq = alloc ? Math.round((alloc.equity_pct || 0) * 100) : null;
-  const def = alloc ? Math.round((alloc.defensive_pct || 0) * 100) : null;
   let worst = null, wv = -1;
   buckets.forEach((b) => { const n = b.inds.filter((i) => i.state === 'extreme').length * 2 + b.inds.filter((i) => i.state === 'elevated').length; if (n > wv) { wv = n; worst = b; } });
   const lean = zone === 'Risk On' ? 'lean risk-on' : zone === 'Risk Off' ? 'cut risk' : 'stay balanced and watch the data';
   let s = `The engine reads ${regime.regimeLabel || zone}`;
-  if (eq != null) s += ` — ${eq}% equity, ${def}% defensive`;
   s += `. The signal is to ${lean}`;
   if (worst && wv > 0) s += `; ${(DOMAIN_SHORT[worst.name] || worst.name).toLowerCase()} is the bucket showing the most stress right now`;
   return s + '.';
-}
-function tiltPosition(regime, alloc) {
-  if (!alloc || !regime) return '';
-  const eq = Math.round((alloc.equity_pct || 0) * 100), def = Math.round((alloc.defensive_pct || 0) * 100);
-  const zone = regime.regimeLabel || regime.stressZone || '\u2014';
-  const sleeve = regime.sleeveMix ? 'firing' : 'on standby';
-  return `The engine reads ${zone} \u2014 ${eq}% equity, ${def}% defensive (defensive sleeve ${sleeve}). The moves below change which sectors you own, not how much risk you carry.`;
 }
 function scannerPosition(bandCounts, top) {
   if (!bandCounts) return '';
@@ -99,7 +82,6 @@ function scannerPosition(bandCounts, top) {
 export default function HomePage() {
   const navigate = useNavigate();
   const { active, loading: indLoading } = useIndicators();
-  const { allocation } = useAllocation();
   const regime = useEngineRegime();
   const { rows: scanRows, bandCounts, scanDate } = useTradingOppsTop(20);
 
@@ -111,13 +93,6 @@ export default function HomePage() {
     (active || []).forEach((i) => { const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions & Economy'; map[d].push(i); });
     return DOMAINS.map((name) => ({ name, inds: map[name] }));
   }, [active]);
-
-  const tiltMoves = useMemo(() => {
-    const s = (allocation?.sectors || []).slice().sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
-    const ow = s.filter((x) => (x.vs_spy_pp ?? 0) > 0).slice(0, 2);
-    const uw = s.filter((x) => (x.vs_spy_pp ?? 0) < 0).slice(-2).reverse();
-    return [...ow, ...uw];
-  }, [allocation]);
 
   const topBuys = useMemo(() => (scanRows || []).filter((r) => (r.band ?? 0) >= 4).slice(0, 3), [scanRows]);
 
@@ -198,34 +173,7 @@ export default function HomePage() {
 
         <div className="he-sowhat">
           <div className="he-sowhat-lbl"><span>How to position</span></div>
-          <p>{macroPosition(regime, allocation, buckets)}</p>
-        </div>
-      </section>
-
-      {/* ── Asset Tilt ── */}
-      <section className="mt-pagesection he-section">
-        <div className="mt-eyebrow">Asset Tilt · rebalance</div>
-        <h1 className="mt-h1">Where the engine is <i>leaning the book</i>.</h1>
-        <p className="mt-deck">The biggest overweights and underweights versus the benchmark, and the mechanism driving each. <FreshnessChip elementId="v10-allocation-daily" fallback={{ asOfIso: allocation?.as_of, calendar: 'us-business-day' }} variant="label" /></p>
-
-        <div className="he-lanehd"><span>What's changed · this morning's moves</span></div>
-        <div className="he-reb">
-          {tiltMoves.map((s) => {
-            const pp = s.vs_spy_pp ?? 0; const up = pp > 0;
-            return (
-              <button key={s.sector} className="he-rrow" onClick={() => navigate('/tilt')}>
-                <span className={`he-ar ${up ? 'he-up' : 'he-dn'}`}>{up ? '▲' : '▼'}</span>
-                <span className="he-rnm">{s.sector}<small>{s.rating === 'OW' ? 'Overweight' : s.rating === 'UW' ? 'Underweight' : 'Neutral'} · {(s.etfs && s.etfs[0]) || ''}</small></span>
-                <span className="he-wy">Driven mostly by {topDriver(s)}.</span>
-                <span className={`he-pp ${up ? 'he-up' : 'he-dn'}`}>{up ? '+' : ''}{pp.toFixed(1)}pp</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="he-sowhat">
-          <div className="he-sowhat-lbl"><span>How to position</span></div>
-          <p>{tiltPosition(regime, allocation)}</p>
+          <p>{macroPosition(regime, buckets)}</p>
         </div>
       </section>
 

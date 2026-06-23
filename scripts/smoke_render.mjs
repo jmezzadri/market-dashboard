@@ -57,7 +57,6 @@ const SURFACES = [
   },
   { path: "/", name: "Home", mustMatch: [/\S/] },
   { path: "/macro", name: "Macro overview", mustMatch: [/\S/] },
-  { path: "/tilt", name: "Asset Tilt", mustMatch: [/\S/] },
   { path: "/indicators", name: "All indicators", mustMatch: [/\S/] },
 ];
 

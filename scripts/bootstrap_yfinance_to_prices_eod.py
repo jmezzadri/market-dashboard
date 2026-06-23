@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """
-bootstrap_yfinance_to_prices_eod.py — one-shot historical bootstrap of the
-18 v9 universe ETFs into public.prices_eod.
+bootstrap_yfinance_to_prices_eod.py — one-shot historical bootstrap of an
+18-ETF universe into public.prices_eod.
 
 Why this script exists
 ----------------------
 Polygon Basic tier silently caps historical aggs at ~2 years (discovered
-during PR #9-prep UAT 2026-04-30). compute_v9_allocation.py needs 20+ years
-of monthly returns for its multivariate regression to produce stable picks.
-The hybrid path Joe approved (Phase 3 popup 2026-04-30 option C):
+during UAT 2026-04-30). Any consumer needing 20+ years of ETF history needs
+the older bars in prices_eod. The hybrid path Joe approved:
   1. ONE-SHOT yfinance pull populates prices_eod with 2003-01-01 → 2024-04-29
      history (the part Polygon won't give us). Source tag: 'yfinance-bootstrap'.
   2. Massive's MASSIVE-DAILY workflow already carries it forward from
      2024-04-30 onward (source='massive').
-  3. PR #9-final swaps compute_v9_allocation.py from yf.download to a
-     Supabase prices_eod read. yfinance never runs in the v9 pipeline again
-     after this bootstrap.
 
-Tickers (18) — must match EQUITY + DEFENSIVE in compute_v9_allocation.py:
+Tickers (18):
   EQUITY    (14): IGV SOXX IBB XLF XLV XLI XLE XLY XLP XLU XLB IYR IYZ MGK
   DEFENSIVE  (4): BIL TLT GLD LQD
 
@@ -111,9 +107,9 @@ def fetch_yf_history(ticker):
             iso = str(d)[:10]
         # auto_adjust=False so we get raw OHLC + 'Adj Close'. We store CLOSE
         # (unadjusted) to match Massive's Daily Market Summary which is also
-        # split-adjusted but not dividend-adjusted. compute_v9_allocation.py
-        # uses pct_change which is robust to either choice as long as the
-        # series is internally consistent.
+        # split-adjusted but not dividend-adjusted. Downstream return calcs use
+        # pct_change which is robust to either choice as long as the series is
+        # internally consistent.
         rows.append({
             "ticker":       ticker,
             "trade_date":   iso,
@@ -177,7 +173,7 @@ def main():
         for t, e in failures:
             print(f"  {t}: {e}")
         sys.exit(2)
-    print("OK — bootstrap complete. Next step: PR #9-final swaps compute_v9_allocation.py.")
+    print("OK — bootstrap complete.")
 
 if __name__ == "__main__":
     main()

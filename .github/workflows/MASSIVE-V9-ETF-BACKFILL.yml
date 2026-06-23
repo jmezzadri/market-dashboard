@@ -2,9 +2,7 @@
 # 18 v9 universe ETFs (IGV, SOXX, IBB, XLF, XLV, XLI, XLE, XLY, XLP, XLU, XLB,
 # IYR, IYZ, MGK, BIL, TLT, GLD, LQD) into public.prices_eod.
 #
-# After this workflow runs successfully, PR #9 (compute_v9_allocation.py
-# yfinance -> Supabase) can ship without breaking the optimizer's 20-year
-# multivariate regression.
+# Backfills 20-year daily history for the 18 ETFs into public.prices_eod.
 #
 # Wall clock: ~4 minutes (18 tickers × 1 call each, 13s throttle).
 # Trigger: workflow_dispatch only — this is a one-shot prep workflow.

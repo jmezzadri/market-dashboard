@@ -159,8 +159,6 @@ def grade_binary(asof, last_good_at, man_el, freq_hint):
     return "unknown", "no evidence (deferred to edge function)"
 # File-backed feeds: ph id -> (served file, mode, sla_hours, daily?)
 FILE_FEEDS = {
-    "cycle_board":      ("cycle_v2.json",          "top",        49,  True),
-    "v10_allocation":   ("v10_allocation.json",    "top",        200, False),
     "cftc-cot":         ("cot_positioning.json",   "min_market", 192, False),  # CFTC domains only (Credit split to credit_positioning)
     "credit_positioning":("cot_positioning.json",   "min_market", 480, False),  # NY-Fed dealer inventory (Credit domain)
     "indicator_history":("indicator_history.json", "max_series", 49,  True),
@@ -182,7 +180,6 @@ TABLE_FEEDS = {
     # --- registered 2026-06-18: live feeds that previously had no tracking row ---
     "earnings_history":          ("earnings_history",   ["updated_at", "report_date"],          200, False),
     "macro_commentary":          ("macro_commentary",   ["generated_date", "generated_at"],     49,  True),
-    "sector_commentary":         ("sector_commentary",  ["generated_date", "generated_at"],     49,  True),
     "zerohedge_public":          ("trading_opps_signals", ["scan_date"],                        49,  True),
     "zerohedge_premium":         ("trading_opps_signals", ["scan_date"],                        49,  True),
     "options_chain":             ("trading_opps_signals", ["scan_date"],                        49,  True),

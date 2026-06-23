@@ -20,7 +20,6 @@ on:
   push:
     branches: [main]
     paths:
-      - "compute_v9_allocation.py"
       - "fetch_history.py"
       - "compute_composite_history.py"
       - "public/*.json"

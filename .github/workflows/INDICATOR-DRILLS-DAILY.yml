@@ -2,15 +2,14 @@
 #
 # WHY
 # ───
-# Hand-written DRILLS in MacroTilt_Macro_Overview_Page_v11.html cover ~17 of
-# 38 v2 indicators. The other 17 get auto-computed KPIs + co-movement +
-# release metadata via scripts/generate_indicator_drills.py. As
+# Auto-computed KPIs + co-movement + release metadata for the indicator
+# drilldowns are produced via scripts/generate_indicator_drills.py. As
 # indicator_history.json refreshes, the generated KPIs need to refresh too.
 #
 # SCHEDULE
 # ────────
 # Daily 23:00 UTC — after CYCLE-V2-DAILY (22:30 UTC) writes the latest
-# cycle_v2.json and indicator_history.json.
+# indicator_history.json + data_manifest.json.
 #
 # OUTPUTS
 # ───────

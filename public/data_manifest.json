@@ -1824,36 +1824,6 @@
    "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17)."
   },
   {
-   "id": "commentary-sector_commentary-daily",
-   "category": "commentary",
-   "name": "sector_commentary",
-   "description": "Daily editorial sector-outlook blurb (headline + per_sector).",
-   "sourcing_mode": "computed in-house",
-   "source_vendor": "MacroTilt (Claude-generated, in-house)",
-   "source_endpoint": "supabase/functions/generate-commentary",
-   "license_tier": "paid (de minimis)",
-   "monthly_cost_usd": 0.5,
-   "cost_shared_with": "macro_commentary call",
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "23:00 (cron source ambiguous)",
-   "refresh_trigger": "Cowork scheduled task",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "wall-clock",
-   "output_destination": "Supabase public.sector_commentary",
-   "producer_script": "supabase/functions/generate-commentary",
-   "consumer_surfaces": [],
-   "current_status": "in-house generated; not surfaced on any live page yet (held for homepage redesign, 2026-06-17)",
-   "failure_mode": "Per source: sector_rank_history table not wired; LLM gets no context, blurb stays null.",
-   "owner": "Senior Quant + Lead Dev \u2014 Phase 2 fix",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17)."
-  },
-  {
    "id": "ops-bug_screenshots-event",
    "category": "ops",
    "name": "bug_screenshots",
@@ -2216,43 +2186,6 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
-   "id": "v10-allocation-daily",
-   "name": "v10_allocation",
-   "category": "allocation",
-   "description": "v10 Allocation \u2014 the allocator behind Asset Tilt. It combines the six Cycle Mechanism Board scores (which set the sector and industry-group tilts) with the two-axis stress/yield engine (which sets the equity % and the defensive sleeve from bond-market volatility and the 3-month change in the 10-year yield). Output: today's equity-vs-defensive split, leverage, and active tilts across 11 sectors and 24 industry groups.",
-   "sourcing_mode": "derived from macrotilt-engine-daily (equity/defensive split + defensive sleeve) and cycle-mechanism-board-daily (sector/IG tilts)",
-   "cadence": "daily (08:15 ET business days)",
-   "release_calendar": "us-business-day",
-   "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "us-business-day",
-   "consumer_surfaces": [
-    {
-     "tab": "allocation",
-     "tile": "Recommended allocation + sector tilts"
-    },
-    {
-     "tab": "home",
-     "tile": "Asset Tilt preview card"
-    },
-    {
-     "tab": "paper",
-     "tile": "Sleeve A signal source (rebalance gate)"
-    }
-   ],
-   "output_path": "public/v10_allocation.json",
-   "producer_script": "scripts/compute_v10_allocation.py",
-   "owner": "Senior Quant",
-   "shipped_in_pr": 411,
-   "tuned_in_pr": 416,
-   "backtest_evidence": "PHASE2_V10_BACKTEST.md",
-   "shipped_date": "2026-05-04",
-   "scheduled_fetch_time_et": "03:00",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "schedule_note": "Moved 2026-06-16 from 08:15 ET to ~03:00 ET so the sector sleeve publishes before the paper rebalancer's 04:00 ET submit window."
-  },
-  {
    "id": "site-methodology_changelog-static",
    "category": "ops",
    "name": "methodology_changelog",
@@ -2486,30 +2419,6 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
-   "id": "v10-sector-history-daily",
-   "name": "v10_sector_history",
-   "category": "allocation",
-   "description": "Rolling weekly snapshots of v10 sector recommended weights (% of total portfolio). Powers the 'Prev wk' column in the Asset Tilt sector table. Captured each v10-allocation-daily run before overwrite; deduped by as_of, capped 60.",
-   "sourcing_mode": "derived from v10_allocation snapshot-before-overwrite",
-   "cadence": "daily (12:15/13:15 UTC weekdays)",
-   "release_calendar": "us-business-day",
-   "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "us-business-day",
-   "consumer_surfaces": [
-    {
-     "tab": "allocation",
-     "tile": "Sector table - prior-week column"
-    }
-   ],
-   "output_path": "public/v10_sector_history.json",
-   "producer_script": ".github/workflows/v10-allocation-daily.yml (inline snapshot step)",
-   "owner": "Data Steward",
-   "registered_date": "2026-06-03",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
    "id": "portfolio.paper-nav-daily",
    "category": "portfolio",
    "name": "paper-nav-daily",
@@ -2579,10 +2488,10 @@
    "id": "portfolio.paper-orders-intent",
    "category": "portfolio",
    "name": "paper-orders-intent",
-   "description": "Paper rebalance order intents queued for the next open (Asset Tilt + Equity Scanner diff).",
+   "description": "Paper rebalance order intents queued for the next open (engine read + Equity Scanner diff).",
    "sourcing_mode": "computed",
    "source_vendor": "MacroTilt engine",
-   "source_endpoint": "Asset Tilt + Equity Scanner diff \u2192 paper_orders",
+   "source_endpoint": "Engine read + Equity Scanner diff \u2192 paper_orders",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -3547,43 +3456,6 @@
    "as_of_cutoff_note": "US market close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "fetch_grace_hours": 6
-  },
-  {
-   "id": "cycle-mechanism-board-daily",
-   "name": "cycle_board",
-   "category": "indicator",
-   "description": "Cycle Mechanism Board \u2014 scores six dimensions of the business cycle from 0 to 100 each night: Valuation, Credit, Funding, Growth, Liquidity & Policy, and Positioning & Breadth. These six scores feed the v10 allocator, which uses them to set the sector and industry-group tilts on Asset Tilt. It does not drive Macro Overview.",
-   "sourcing_mode": "computed in-house from registered indicator inputs",
-   "source_vendor": "MacroTilt engine",
-   "source_endpoint": "served snapshot cycle_v2.json",
-   "license_tier": "n/a (in-house)",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "07:00",
-   "refresh_trigger": "CYCLE-V2-DAILY workflow",
-   "release_calendar": "nyse-trading-day",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": null,
-   "output_destination": "public/cycle_v2.json",
-   "consumer_surfaces": [
-    {
-     "tab": "asset-tilt",
-     "tile": "Sector tilts (via v10 allocator)"
-    },
-    {
-     "tab": "methodology",
-     "tile": "Cycle board methodology"
-    }
-   ],
-   "dependencies": [],
-   "failure_mode": "board renders last snapshot; chip ambers/reds by SLA",
-   "owner": "Data Steward",
-   "producer_script": "cycle board daily producer",
-   "current_status": "live",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
    "id": "indicator-ism_mfg-monthly",

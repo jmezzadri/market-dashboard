@@ -17,13 +17,9 @@ name: PAPER-PORTFOLIO-EOD-DAILY
 #  (b) There was NO freshness gate despite comments claiming one.
 #
 # Data-availability facts (verified from run logs 2026-06-01):
-#  * Sector sleeve (Asset Tilt) publishes early morning (~3:00am ET). The
-#    v10-allocation-daily run was moved here 2026-06-16 so it lands BEFORE
-#    this window (was 08:15 ET — after this job gave up — which caused the
-#    2026-06-16 stale-sector refusal).
 #  * Stock sleeve (Screener) scores the prior close only AFTER the overnight
 #    full price batch lands (~2:30-3:00am ET).
-#  => Earliest both sleeves are simultaneously fresh = ~3:00am ET.
+#  => Earliest the Screener sleeve is fresh = ~3:00am ET.
 #     Alpaca opg cutoff = 9:28am ET. So submit in the EARLY MORNING with a
 #     wide accept window and many redundant fires; the first in-window fire
 #     queues the auction orders, the rest are idempotent no-ops.
@@ -48,13 +44,11 @@ on:
     - cron: '30 12 * * 1-5'
     - cron: '0 13 * * 1-5'
     - cron: '30 13 * * 1-5'
-  # Chain off BOTH morning signal producers so we fire the moment fresh
-  # signals land. v10-allocation-daily added 2026-06-12: its 08:15 ET cron can
-  # land after the last scheduled submit fire (GitHub cron lag), which left no
-  # submit attempt that could see the fresh sector sleeve. The accept-window
-  # guard (03:00–09:25 ET) + idempotent submitter make extra fires safe.
+  # Chain off the morning signal producer so we fire the moment fresh
+  # signals land. The accept-window guard (03:00–09:25 ET) + idempotent
+  # submitter make extra fires safe.
   workflow_run:
-    workflows: ["SCREENER_TRADING_OPPS_DAILY", "v10-allocation-daily"]
+    workflows: ["SCREENER_TRADING_OPPS_DAILY"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

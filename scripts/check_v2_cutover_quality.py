@@ -53,12 +53,7 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parent.parent
 
 # ─── PATHS WE CHECK ───────────────────────────────────────────────────
-USER_FACING_JSON = [
-    ROOT / "public" / "methodology_calibration_v11.json",
-    ROOT / "public" / "cycle_board_snapshot.json",
-    ROOT / "public" / "v10_allocation.json",
-    ROOT / "public" / "v9_allocation.json",
-]
+USER_FACING_JSON: list[Path] = []
 
 V2_PAGE_FILES = (
     list((ROOT / "src" / "v2").rglob("*.jsx"))
@@ -88,11 +83,8 @@ BANNED_NORMAL_PATTERNS = [
 INTERNAL_PLUMBING_TOKENS = [
     "pipeline_health",
     "indicator_history",
-    "cycle_board_snapshot",
     "INDICATOR-REFRESH",
     "MASSIVE-DAILY",
-    "V10-ASSET-ALLOCATION",
-    "V9-ALLOCATION",
     "DAILY-HOME-SMOKE",
     "SCAN_345PM",
     "TICKER_EVENTS_3X",

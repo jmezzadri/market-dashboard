@@ -18,8 +18,8 @@ Why this exists
 ───────────────
 The Supabase edge function (pipeline-health-check) writes a row to
 pipeline_fetch_log every 30 minutes for every ATOMIC element. But aggregate
-elements (composite-rl/gr/ir, v10_allocation, etc.) are produced by
-Python recompute jobs. Their "did the calc actually run today?" status is
+elements (the macrotilt engine, indicator-history compiler, etc.) are
+produced by Python recompute jobs. Their "did the calc actually run today?" status is
 INVISIBLE to the edge function — all it sees is the resulting JSON file's
 asOf timestamp, which gives stale-input detection but not calc-failed
 detection. Aggregate-level chips need both.

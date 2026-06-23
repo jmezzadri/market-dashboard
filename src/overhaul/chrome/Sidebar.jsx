@@ -14,7 +14,6 @@ import { supabase } from '../../lib/supabase';
 const NAV = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/macro', label: 'Macro overview', icon: 'macro' },
-  { to: '/tilt', label: 'Asset Tilt', icon: 'tilt' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
   { to: '/paper', label: 'Paper Portfolio', icon: 'portfolio' },
   { to: '/indicators', label: 'All indicators', icon: 'indicators' },

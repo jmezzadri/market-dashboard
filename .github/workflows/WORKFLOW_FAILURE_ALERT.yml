@@ -17,10 +17,8 @@ name: WORKFLOW_FAILURE_ALERT
 on:
   workflow_run:
     workflows:
-      # Daily indicator + composite + v9 chain
+      # Daily indicator + composite chain
       - INDICATOR-REFRESH_7AM_WEEKDAYS
-      - V9-ALLOCATION-WEEKLY
-      - V9-ALLOCATION-BACKFILL
       # Intraday scanner triplet
       - TICKER_EVENTS_3X_WEEKDAYS
       - UNIVERSE_SNAPSHOT_3X_WEEKDAYS
@@ -37,16 +35,9 @@ on:
       - REFRESH-CONGRESS-ROSTER
       # Phase 4 cleanup PR η (2026-05-02) — close the workflow-alert watchlist
       # gap. Each of these was missing on-failure alerting.
-      - V11-CYCLE-MECHANISM_DAILY
       - DAILY-HOME-SMOKE
       - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY
       - MASSIVE-V9-ETF-BACKFILL
-      # 2026-06-12 — watchlist repair. V10-ASSET-ALLOCATION was a DEAD name
-      # (workflow renamed long ago), so the 2026-06-11 v10-allocation-daily
-      # push failure emailed nobody; Joe found out from the paper-gate
-      # refusal email the next morning. Live names below.
-      - v10-allocation-daily
-      - cycle-mechanisms-daily
       - SCREENER_TRADING_OPPS_DAILY
       - PAPER-PORTFOLIO-EOD-DAILY
       - MARKET-INDICATORS-EOD

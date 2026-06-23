@@ -5,8 +5,7 @@
 # Why this exists: Polygon Basic tier silently caps historical aggs at ~2 years
 # (discovered PR #9-prep UAT 2026-04-30). The hybrid path Joe approved 2026-04-30:
 # yfinance carries the historical bulk once; Massive carries forward from
-# 2024-04-30. After this runs, PR #9-final swaps compute_v9_allocation.py from
-# yfinance to Supabase prices_eod and yfinance never touches the v9 chain again.
+# 2024-04-30.
 #
 # Wall clock: ~2-3 minutes (yfinance bulk pull, no rate limit on unauth).
 # Trigger: workflow_dispatch only.

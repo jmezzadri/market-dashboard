@@ -47,13 +47,7 @@ BASE = "https://macrotilt.com"
 #     "top:<field>"   -> d[field]
 #     "ism_series"    -> max last point across ism_mfg/ism_svc points
 #     "max_series_asof" -> max as_of across all top-level series objects
-# NOTE 2026-06-22: the cycle board's served file was renamed cycle_v2.json ->
-# cycle_board_snapshot.json (the old name now 404s; the manifest still references
-# the old name — a separate drift to clean up). The retired cycle history file
-# (cycle_v2_history.json) also 404s and was dropped here so it can't false-alarm.
 FILES = [
-    {"path": "cycle_board_snapshot.json", "budget_h": 49,  "trading": True,  "timestamp": "top:as_of",
-     "label": "Macro Overview cycle board"},
     {"path": "indicator_history.json", "budget_h": 49,   "trading": True,  "timestamp": "max_series_asof",
      "label": "Indicator history (charts + drills)"},
     {"path": "indicator_drills_generated.json", "budget_h": 120, "trading": True, "timestamp": "file_changed",
@@ -137,7 +131,6 @@ def supa(method, path, body=None, prefer=None):
 # we PATCH the existing row (never insert) with a real status + last_check_at=now,
 # so those rows are genuinely green/red — not stale guesses.
 PH_ID = {
-    "cycle_board_snapshot.json": "cycle_board",
     "indicator_history.json": "indicator_history",
 }
 
