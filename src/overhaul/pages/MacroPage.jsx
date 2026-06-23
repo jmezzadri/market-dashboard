@@ -557,10 +557,6 @@ export default function MacroPage() {
           <h1 className="mt-h1">
             Where every market sits <i>in its own range</i>.
           </h1>
-          <ul className="at-subbullets">
-            <li><b>{indicators.length || '—'} market indicators</b> across five asset classes — rates, credit, equities, commodities, and FX — plus financial conditions and the economy. Each is ranked against its own 3-year range, so one number shows how stretched it is.</li>
-            <li><b>{posCount || '—'} positioning signals</b> from CFTC futures and Wall Street dealer inventory, showing where the speculative crowd is leaning. Click any tile for the full read.</li>
-          </ul>
         </div>
       </section>
 
@@ -571,6 +567,12 @@ export default function MacroPage() {
       {/* Domain strip */}
       {!loading && (
         <section className="mt-pagesection" style={{ paddingTop: 14 }}>
+          {/* Explainer block (Joe exact copy 2026-06-23): moved out of the hero
+              to sit directly above the indicators. Verbatim per LESSONS 8.5. */}
+          <ul className="at-subbullets" style={{ marginTop: 0, marginBottom: 16 }}>
+            <li>Market indicators across five asset classes, financial conditions and the economy. Each indicator is ranked (red, amber, green) against its own 3-year range.</li>
+            <li>Positioning signals from CFTC COT Dealer inventory, showing where positioning might be crowded.</li>
+          </ul>
           <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', marginBottom: 8 }}>
             Background shade = how stretched each element is in its own 3-year range · color = whether that stretch warns · arrow = move since the last update
           </div>
