@@ -1,12 +1,11 @@
 """
 Unit tests for paper_portfolio.sleeves — the Sleeve A + Sleeve B math.
 
-Required by the Phase 2 spec:
+Covers (Equity Scanner / Sleeve B only — Sleeve A retired 2026-06-23):
   1. Sleeve B overflow with leverage
   2. Idle cash with too few signals
   3. Tier-fill prioritization (9-10 first)
-  4. Sleeve isolation (A and B do not bleed into each other)
-  5. Exit on score drop below 5
+  4. Exit on score drop below 5
 
 Run: python -m pytest paper_portfolio/tests/ -v
 """
@@ -16,13 +15,10 @@ from __future__ import annotations
 import pytest
 
 from paper_portfolio.signals import (
-    AssetTiltIG,
-    AssetTiltSnapshot,
     EquityScannerSnapshot,
     EquitySignal,
 )
 from paper_portfolio.sleeves import (
-    build_sleeve_a_target,
     build_sleeve_b_target,
 )
 
@@ -49,21 +45,6 @@ def _mk_scanner(score_list: list[tuple[str, float]]) -> EquityScannerSnapshot:
         signals=signals,
         all_count=len(signals),
         raw_payload_sample=[],
-    )
-
-
-def _mk_asset_tilt(weights: list[tuple[str, str, float, str]]) -> AssetTiltSnapshot:
-    """weights = [(ig_id, primary_etf, weight_pct, rating), ...] where
-    weight_pct is the fraction (0.10 = 10 %). Sum should be 1.0 for a
-    full equity sleeve."""
-    igs = [
-        AssetTiltIG(ig_id=ig_id, name=ig_id.title(), sector="X",
-                    primary_etf=etf, weight_pct=w, rating=rating)
-        for ig_id, etf, w, rating in weights
-    ]
-    return AssetTiltSnapshot(
-        as_of="2026-05-26", engine_version="test", equity_pct=1.0,
-        industry_groups=igs, raw={},
     )
 
 
@@ -195,56 +176,20 @@ def test_sleeve_b_tier3_shares_remainder_when_budget_tight():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test 4 — Sleeve isolation
+# Test 4 — Sleeve B depends only on the scanner
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_sleeve_isolation_a_and_b_independent():
-    """Sleeve A target depends only on Asset Tilt; Sleeve B only on Scanner.
-    Building both with the same capital cap should produce independent
-    line lists, and neither leverages into the other."""
-    at = _mk_asset_tilt([
-        ("semis", "SOXX", 0.10, "OW"),
-        ("software", "IGV", 0.05, "MW"),
-        ("banks", "KBE", 0.20, "UW"),
-        ("staples", "XLP", 0.65, "OW"),
-    ])
-    a = build_sleeve_a_target(at, sleeve_a_capital=500_000)
-
-    # Sleeve A — unlevered, no negative weights, idle cash = 0 (weights sum to 1.0)
-    assert a.sleeve == "A"
-    assert a.gross_long == pytest.approx(500_000.0, rel=1e-4)
-    assert a.leverage_used == 0.0
-    assert a.idle_cash == pytest.approx(0.0, abs=0.5)
-    a_tickers = {l.ticker for l in a.lines}
-    assert a_tickers == {"SOXX", "IGV", "KBE", "XLP"}
-
+def test_sleeve_b_target_depends_only_on_scanner():
+    """Sleeve B target is a pure function of the scanner snapshot — the only
+    sleeve the paper portfolio runs (Sleeve A retired 2026-06-23)."""
     snap = _mk_scanner([("ZZZ", 9.5), ("YYY", 7.5)])
     b = build_sleeve_b_target(snap, sleeve_b_capital=500_000, max_leverage=2.0)
     b_tickers = {l.ticker for l in b.lines}
+    assert b.sleeve == "B"
     assert b_tickers == {"ZZZ", "YYY"}
     assert b.gross_long == 50_000.0 + 40_000.0
     assert b.idle_cash == 500_000.0 - 90_000.0
-
-    # No overlap in tickers
-    assert a_tickers.isdisjoint(b_tickers)
-
-
-def test_sleeve_a_respects_equity_pct():
-    """When the engine carves out defensive (equity_pct < 1.0), Sleeve A
-    target shrinks; difference rests in cash."""
-    at = _mk_asset_tilt([
-        ("semis", "SOXX", 0.50, "OW"),
-        ("software", "IGV", 0.50, "MW"),
-    ])
-    # Override equity_pct → 0.7 means 70 % equity, 30 % defensive
-    at = AssetTiltSnapshot(
-        as_of=at.as_of, engine_version=at.engine_version,
-        equity_pct=0.7, industry_groups=at.industry_groups, raw=at.raw,
-    )
-    a = build_sleeve_a_target(at, sleeve_a_capital=500_000)
-    # Expected gross = 0.7 × $500K = $350K; idle = $150K
-    assert a.gross_long == pytest.approx(350_000.0, abs=0.5)
-    assert a.idle_cash == pytest.approx(150_000.0, abs=0.5)
+    assert b.leverage_used == 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

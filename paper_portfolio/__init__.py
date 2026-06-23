@@ -1,10 +1,14 @@
 """
 paper_portfolio — MacroTilt paper trading translator.
 
-Reads Asset Tilt and Equity Scanner signals, computes Sleeve A + Sleeve B
-target positions, diffs against the live Alpaca paper account, and writes
-the resulting buy/sell intent rows to public.paper_orders in 'pending'
-status.
+Reads Equity Scanner signals, computes the Sleeve B (Equity Scanner) target
+positions, diffs against the live Alpaca paper account, and writes the
+resulting buy/sell intent rows to public.paper_orders in 'pending' status.
+
+The paper portfolio is Sleeve B (Equity Scanner) ONLY. Sleeve A (the Asset
+Tilt industry-group ETF sleeve) was retired 2026-06-23 when the Asset Tilt
+engine was removed; any held Sleeve-A ETF is exited to cash on the next
+rebalance (every held name absent from the Sleeve B target is sold).
 
 Phase 2 scope (this module): intent generation only — NO submission to
 Alpaca, NO real fills, NO live position writes. Phase 4 wires execution.

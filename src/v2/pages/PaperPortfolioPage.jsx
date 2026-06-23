@@ -46,8 +46,8 @@ const HERO_TITLE = (
 );
 
 const HERO_BULLETS = [
-  'Sleeve A — $500K starting, follows Asset Tilt, no leverage',
-  'Sleeve B — $500K starting, follows Trading Scanner, max 2× leverage',
+  '$1M starting capital, following the Equity Scanner long-only',
+  'Buy when buy-score \u2265 5; sized $50K / $40K / $30K by tier; max 2\u00d7 leverage',
 ];
 
 // ── small helpers ──────────────────────────────────────────────────────────
@@ -438,7 +438,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   // the prior row reconciles from its own stored equities, so sleeve daily
   // P&L sums EXACTLY to the book's daily P&L on both days.
   const heads = sleeveHeadlines(navHistory, sleeveAGross, sleeveBGross);
-  const sLatestA = heads.a.value, sLatestB = heads.b.value;
+  // (Sleeve values now roll up to the single Equity Scanner book; see rows below.)
 
   const spyNow = latest.spy_close ?? null;
   const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
@@ -449,32 +449,18 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   // effect of trades executed at the open; A+B sums to the book's NAV change
   // to the cent). Fall back to the net-equity delta for rows written before
   // the column existed.
-  const aDay$ = heads.a.day$;
-  const bDay$ = heads.b.day$;
   // Total Daily = the sum of the sleeve session P&Ls when the exact numbers
   // exist, so the card always foots on one consistent mark set (names whose
   // official bar is late carry broker marks until the morning certification;
   // summing keeps Total and sleeves on identical marks).
-  const totDay$ = (latest.sleeve_a_day_pnl != null && latest.sleeve_b_day_pnl != null)
-    ? latest.sleeve_a_day_pnl + latest.sleeve_b_day_pnl
+  const totDay$ = (latest.sleeve_b_day_pnl != null)
+    ? latest.sleeve_b_day_pnl
     : dlt(latest.total_nav, prev?.total_nav);
+  // Sleeve A retired 2026-06-23 — the Equity Scanner is now the entire book, so
+  // the single sleeve row IS the total book ($1M start).
   const rows = [
     {
-      label: 'Sleeve A', sub: 'Asset Tilt · $500K',
-      value: sLatestA,
-      daily$: aDay$, daily: (aDay$ != null && heads.a.prevValue) ? aDay$ / heads.a.prevValue : null,
-      incep$: heads.a.incep$,          incep: heads.a.incepPct,
-      beta: betas.a ?? latest.sleeve_a_beta ?? null,
-    },
-    {
-      label: 'Sleeve B', sub: 'Equity Scanner · $500K',
-      value: sLatestB,
-      daily$: bDay$, daily: (bDay$ != null && heads.b.prevValue) ? bDay$ / heads.b.prevValue : null,
-      incep$: heads.b.incep$,          incep: heads.b.incepPct,
-      beta: betas.b ?? latest.sleeve_b_beta ?? null,
-    },
-    {
-      label: 'Total book', sub: '$1M start', strong: true,
+      label: 'Equity Scanner', sub: '$1M start', strong: true,
       value: latest.total_nav,
       daily$: totDay$, daily: (totDay$ != null && prev?.total_nav) ? totDay$ / prev.total_nav : null,
       incep$: dlt(latest.total_nav, TOTAL_CAP),       incep: ret(latest.total_nav, TOTAL_CAP),
@@ -488,7 +474,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
       beta: 1.0,
     },
   ];
-  const total = rows[2], spy = rows[3];
+  const total = rows[0], spy = rows[1];
   const vs = {
     label: 'Excess vs S&P 500', vs: true,
     value: (total.value != null && spy.value != null) ? total.value - spy.value : null,
@@ -520,7 +506,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null }) {
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for each sleeve, the total book, and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Total book = account equity (cash + holdings, net of any borrowing). Sleeve A + Sleeve B always sum to the Total: each sleeve's value is its holdings plus its share of idle cash (or minus its share of borrowing), so sleeve Daily P&L sums to the book's Daily P&L. Inception = since the book opened, anchored to each sleeve's $500K start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Note: a sleeve's Daily is its exact session P&L — price moves of its holdings plus the effect of any trades executed at the open — so Sleeve A + Sleeve B equals the book's Daily to the cent. Each sleeve table's header shows this same Daily and the same Inception figure, computed once from this snapshot, so the card and the tables always match." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for the Equity Scanner book and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Book value = account equity (cash + holdings, net of any borrowing). Inception = since the book opened, anchored to the $1M start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Daily is the exact session P&L — price moves of holdings plus the effect of any trades executed at the open." size={11} /></span>
         <span className="pts-asof">{latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—'}</span>
       </div>
       <table className="pmx">
@@ -575,8 +561,8 @@ const POS_COLUMNS = [
 ];
 
 // ONE shared column config (visibility + order + width) for BOTH sleeve
-// tables. Set once, persists once, applies to A and B. (Sleeve A simply
-// hides columns that don't apply to it, e.g. Score.)
+// tables. Set once, persists once. Score is a Sleeve-B-only column.
+// (Sleeve A retired 2026-06-23; only the Equity Scanner sleeve renders.)
 const PAPER_COLS_KEY = 'mt_paper_cols_v3_shared';
 const posDefaultCfg = () => POS_COLUMNS.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
 function loadPaperCols() {
@@ -601,7 +587,7 @@ const daysHeld = (iso) => {
 function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). This table renders only the columns that
-  // apply to its sleeve — Sleeve A has no Score, so it's filtered out here.
+  // apply to its sleeve — Score is Sleeve-B-only and is filtered out elsewhere.
   const appliesToSleeve = (key) => {
     const m = POS_COLUMNS.find((c) => c.key === key);
     return !!m && (!m.sleeveOnly || m.sleeveOnly === sleeve);
@@ -769,9 +755,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
 
       {positions.length === 0 ? (
         <div className="paper-empty">
-          {sleeve === 'B'
-            ? 'Scanner found no qualifying buy signals at the moment. Positions appear here after the next rebalance cycle.'
-            : 'Awaiting first rebalance. Asset Tilt positions appear here after the next nightly run.'}
+          {'Scanner found no qualifying buy signals at the moment. Positions appear here after the next rebalance cycle.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -1098,32 +1082,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
       <div className="paper-shell">
         <PositionsPanel
-          title="Asset Tilt — Industry-Group ETFs"
-          sleeve="A"
-          positions={sleeveA}
-          asOf={posAsOf}
-          updatedAt={posUpdatedAt}
-          cashValue={recon.aCash}
-          totalCapital={account?.sleeve_a_allocation || 500_000}
-          onOpenTicker={onOpenTicker}
-          cfg={colCfg}
-          setCfg={setColCfg}
-          headline={heads.a}
-          infoDef="$500K following the Asset Tilt engine's 24-industry-group allocation. ETFs only. Unlevered."
-        />
-        <PositionsPanel
           title="Equity Scanner — Long-Only"
           sleeve="B"
           positions={sleeveB}
           asOf={posAsOf}
           updatedAt={posUpdatedAt}
           cashValue={recon.bCash}
-          totalCapital={account?.sleeve_b_allocation || 500_000}
+          totalCapital={STARTING_CAPITAL}
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
           setCfg={setColCfg}
           headline={heads.b}
-          infoDef="$500K following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed $500K."
+          infoDef="$1M following the Equity Scanner long-only. Buy when buy-score ≥ 5; size $50K / $40K / $30K by tier; up to 2× leverage when signals exceed the cash sleeve."
         />
         <RebalanceLog orders={orders} fills={fills} />
 

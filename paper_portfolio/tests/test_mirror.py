@@ -43,6 +43,16 @@ class MockAlpaca:
     def get_last_trade_price(self, ticker):
         return self._last_trade_price
 
+    def get_close_price(self, ticker):
+        # Static stub close used by write_nav_daily/mirror_positions in the
+        # default "live" price_mode. Benchmarks (SPY/AGG) just need a number.
+        return self._last_trade_price
+
+    def get_daily_closes(self, ticker, start):
+        # SPY benchmark history — empty is fine for the unit tests (the writer
+        # tolerates missing inception/prev closes and stores nulls).
+        return []
+
 
 _executed: list[str] = []
 
@@ -52,7 +62,13 @@ def _fake_exec(sql: str) -> None:
 
 
 def _fake_query(sql: str):
-    # Used by write_nav for "max(filled_at)" lookups
+    # Route by query shape. The realized-P&L lookup reads paper_fills rows
+    # (needs 'ticker'); return none so the lots loop short-circuits. Everything
+    # else (e.g. "max(filled_at)") gets the harmless single-row default.
+    if "from public.paper_fills" in sql:
+        return []
+    if "from public.paper_nav_daily" in sql:
+        return []   # beta + prior-NAV history lookups: no history in unit tests
     return [{"max_t": None}]
 
 
@@ -61,10 +77,10 @@ def patch_supabase(monkeypatch):
     _executed.clear()
     monkeypatch.setattr("paper_portfolio.mirror._supabase_exec", _fake_exec)
     monkeypatch.setattr("paper_portfolio.mirror._supabase_query", _fake_query)
-    # Empty Sleeve A universe for these tests — every ticker attributes to Sleeve B
-    # unless test overrides.
+    # Sleeve A retired 2026-06-23 — the Asset Tilt ETF universe is empty, so
+    # every held ticker attributes to Sleeve B (the only sleeve).
     monkeypatch.setattr("paper_portfolio.mirror._build_sleeve_a_etf_universe",
-                        lambda asset_tilt_path="public/v10_allocation.json": {"SOXX", "IGV", "KBE", "IHI"})
+                        lambda asset_tilt_path="public/v10_allocation.json": set())
     yield
 
 
@@ -80,12 +96,12 @@ def test_mirror_positions_writes_delete_then_insert():
     alpaca = MockAlpaca(positions=positions)
     n = mirror_positions(alpaca=alpaca)
     assert n == 2
-    # Exactly one SQL execution (begin; delete; inserts; commit)
-    assert len(_executed) == 1
+    # The delete+insert batch is the first execution (an entry_date backfill
+    # UPDATE follows as a second statement).
+    assert len(_executed) >= 1
     sql = _executed[0]
-    # SOXX (in Sleeve A universe) → sleeve A; NVDA (not) → sleeve B
-    assert "'A'" in sql and "SOXX" in sql
-    assert "'B'" in sql and "NVDA" in sql
+    # Sleeve A retired — every held ticker (SOXX, NVDA) attributes to Sleeve B.
+    assert "'B'" in sql and "SOXX" in sql and "NVDA" in sql
     assert "delete from public.paper_positions" in sql
     assert "insert into public.paper_positions" in sql
 
@@ -121,7 +137,7 @@ def test_mirror_fills_only_filled_orders():
 
 
 def test_write_nav_daily_with_long_only_positions():
-    # 50K Sleeve A (SOXX), 80K Sleeve B (NVDA)
+    # Sleeve A retired — both SOXX (50K) and NVDA (80K) attribute to Sleeve B.
     positions = [_pos("SOXX", 100, 50_000), _pos("NVDA", 50, 80_000)]
     account = AlpacaAccountSnapshot(
         account_number="PA3ENEE9XT8L", cash=870_000, equity=1_000_000,
@@ -131,8 +147,8 @@ def test_write_nav_daily_with_long_only_positions():
     )
     alpaca = MockAlpaca(positions=positions, account=account)
     nav = write_nav_daily(alpaca=alpaca)
-    assert nav["sleeve_a_equity"] == 50_000
-    assert nav["sleeve_b_equity"] == 80_000
+    assert nav["sleeve_a_equity"] == 0
+    assert nav["sleeve_b_equity"] == 130_000
     assert nav["sleeve_b_margin_used"] == 0   # under $500K cap
     assert nav["total_nav"] == 1_000_000
     sql = _executed[-1]

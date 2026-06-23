@@ -4,7 +4,7 @@ paper_portfolio.runner — nightly orchestrator.
 Two ET phases per trading day:
 
   PHASE EOD (default --phase eod, runs ~16:30 ET after the close):
-    1. translator.run(...)  — Asset Tilt + Scanner → pending paper_orders rows.
+    1. translator.run(...)  — Equity Scanner → pending paper_orders rows.
     2. submitter.submit_pending_orders(...) — submit MOO orders for tomorrow's open.
 
   PHASE OPEN (--phase open, runs ~09:45 ET after the opening auction settles):
@@ -72,7 +72,6 @@ logger = logging.getLogger("paper_runner")
 
 def run_eod_phase(
     account_number: str | None = None,
-    asset_tilt_path: str = "public/v10_allocation.json",
     scan_date: str | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
@@ -82,7 +81,6 @@ def run_eod_phase(
     logger.info("=" * 60)
     t_result = run_translator(
         account_number=account_number,
-        asset_tilt_path=asset_tilt_path,
         scan_date=scan_date,
         dry_run=dry_run,
     )
@@ -104,10 +102,9 @@ def run_eod_phase(
     # stale, SKIP submission and file a P1 alert. This is the guard the old
     # workflow comments falsely claimed existed. It runs in live mode only;
     # a dry-run still reports what it WOULD have done.
-    a_as_of = t_result.asset_tilt_as_of
     b_scan_date = t_result.scanner_scan_date
     try:
-        fr = check_freshness(a_as_of, b_scan_date, AlpacaPaperClient())
+        fr = check_freshness(b_scan_date, AlpacaPaperClient())
     except Exception as exc:  # calendar fetch must not crash the run
         logger.warning("freshness check errored (%s) — BLOCKING submit to be safe", exc)
         fr = None
@@ -269,7 +266,6 @@ def main(argv: list[str] | None = None) -> int:
                         "close=official-close positions + NAV snapshot (16:50 ET) — "
                         "the daily record the page displays; all=eod+close.")
     p.add_argument("--account", help="paper account_number override")
-    p.add_argument("--asset-tilt-path", default="public/v10_allocation.json")
     p.add_argument("--scan-date", help="explicit scanner scan_date (YYYY-MM-DD)")
     p.add_argument("--dry-run", action="store_true",
                    help="compute and log; no Supabase writes, no Alpaca submission")
@@ -295,7 +291,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.phase in ("eod", "all"):
         run_eod_phase(
             account_number=args.account,
-            asset_tilt_path=args.asset_tilt_path,
             scan_date=args.scan_date,
             dry_run=effective_dry_run,
         )
