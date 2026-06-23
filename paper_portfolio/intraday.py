@@ -188,7 +188,7 @@ def write_nav_intraday(
     today = _et_today()
     sleeve_a_etfs = _build_sleeve_a_etf_universe()
 
-    SLEEVE_CAP = 500_000.0
+    SLEEVE_CAP = 1_000_000.0  # single $1M book (Sleeve A retired)
     a_eq = b_eq = 0.0
     a_n = b_n = 0
     for p in positions:

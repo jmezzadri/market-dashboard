@@ -361,6 +361,14 @@ export default function MethodologyPage() {
               close intra-evening — the canonical "data is complete" run is the 8 AM morning one.
             </p>
             <p className="me-body-p">
+              <b>Paper Portfolio sizing.</b> The $1M paper book follows the Trading Scanner long-only.
+              Each qualifying name (Score ≥ 5) is sized at <b>Score × $20K</b> — a Score of 5 buys
+              $100K, 6 buys $120K, up to a Score of 10 at $200K. When total demand exceeds the $1M book it
+              levers up to <b>2×</b> ($2M gross), filling the highest-scored names first and pro-rating the
+              marginal score band. Trades fire on signal changes only and are priced off the end-of-day feed;
+              the book rebalances daily on the open.
+            </p>
+            <p className="me-body-p">
               For per-feed freshness across all sources at any time, the <b>Admin · Data → Data Health</b>{' '}
               page shows every feed, when it last refreshed, and what's on its dependency chain.
             </p>
