@@ -76,27 +76,27 @@ export const VENDOR_BLAST_RADIUS = {
   "Unusual Whales":
     "Options flow, insider buys, congress trades, analyst ratings, screener universe. Powers the v5 scanner, the Trading Opps composites, the Portfolio Insights option marks.",
   "FRED":
-    "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview, the Cycle Mechanism Board, indicator drilldowns. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
+    "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview indicators and indicator drilldowns. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
   "U.S. Treasury":
     "Daily Treasury par yield curve (1Mo–30Y nominal) and daily TIPS real yield curve (5Y–30Y). Powers the 10Y-2Y slope, 10Y TIPS real rate, and 10Y inflation breakeven indicators. Free CSV feed at home.treasury.gov, same-day publication ~16:00 ET.",
   "Yahoo Finance":
     "VIX, MOVE, SKEW, KBE/SPY ratio, LQD/HYG ratio, DX-Y dollar index. Powers macro indicators + portfolio price marks where Polygon coverage is incomplete.",
   "ISM":
-    "Manufacturing + Services PMI. Monthly. Powers the cycle mechanism Growth pillar.",
+    "Manufacturing + Services PMI. Monthly. Powers the ISM Manufacturing and Services activity indicators.",
   "New York Fed":
-    "Corporate Market Distress Index (CMDI). Powers the Credit mechanism.",
+    "Corporate Market Distress Index (CMDI). Powers the Corporate Market Distress indicator.",
   "Federal Reserve Board":
-    "Kansas City Financial Stress Index. Powers the Liquidity & Policy mechanism.",
+    "Kansas City Financial Stress Index. Powers the Kansas City Financial Stress indicator.",
   "Shiller dataset":
-    "Long-history CAPE, real yields, real prices. Powers the Valuation mechanism + the long-term back-test panels.",
+    "Long-history CAPE, real yields, real prices. Powers the CAPE valuation indicator and the long-term history panels.",
   "CME":
-    "Copper/gold ratio (HG1/GC1). Powers the Growth mechanism.",
+    "Copper/gold ratio (HG1/GC1). Powers the copper/gold growth indicator.",
   "FDIC":
     "Quarterly Bank Performance reports. Powers bank-sector stress indicators.",
   "ZeroHedge":
     "Premium commentary feed. Powers the weekly commentary section.",
   "State Street SPDR":
-    "SPY sector weights (XLE/XLF/XLK/etc). Powers Asset Tilt benchmark + sector overlays.",
+    "SPY and sector ETF prices (XLE/XLF/XLK/etc). Powers the S&P 500 benchmark and sector index overlays.",
   "GitHub public roster":
     "Members of Congress roster JSON (unitedstates/congress-legislators). Powers the congress trades drill names.",
   "Nasdaq / FINRA":
