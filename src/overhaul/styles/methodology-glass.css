@@ -1,0 +1,83 @@
+/* methodology-glass.css — Methodology page to the home-v11 glass bar.
+   Wrapped in `home-v11 methodology-page` inside `.shell` (glow backdrop +
+   full-bleed). Remaps --mt-* to the glass palette so the existing TOC rail,
+   section grid, formula blocks and vendor tables render as native glass.
+   Hero uses the shared sc-ed editorial component (fonts identical to
+   Scanner / Indicators). Light + navy. */
+
+.home-v11.methodology-page {
+  --mt-surface: var(--panel); --mt-surface-2: var(--inset); --mt-surface-3: var(--inset);
+  --mt-ink-0: var(--ink); --mt-ink-1: var(--soft); --mt-ink-2: var(--muted); --mt-ink-3: var(--muted);
+  --mt-line-0: var(--hair); --mt-line-1: var(--panel-bd);
+  --mt-accent: var(--acc); --mt-accent-soft: color-mix(in oklab, var(--acc) 16%, transparent);
+  --mt-up: var(--up); --mt-down: var(--down); --mt-warn: var(--amber); --mt-amber: var(--amber);
+}
+
+/* Full-bleed: align every card to the hero (shell) width. */
+.home-v11.methodology-page .mt-pagebody { padding: 0; max-width: none; }
+.home-v11.methodology-page .mt-pagesection { margin-top: 14px; padding-left: 0; padding-right: 0; }
+
+/* ── Hero: shared sc-ed editorial masthead (serif 30px, blue eyebrow) ─── */
+.home-v11.methodology-page .sc-hero-solo { margin: 0 0 14px; }
+.home-v11.methodology-page .sc-ed { padding: 24px 30px 26px; }
+.home-v11.methodology-page .sc-ed h1 {
+  font-family: var(--serif); font-size: 30px; line-height: 1.08;
+  letter-spacing: -.5px; font-weight: 700; margin: 8px 0 14px; color: var(--ink);
+}
+.home-v11.methodology-page .sc-ed h1 i { color: var(--acc); font-style: italic; }
+.home-v11.methodology-page .sc-ed .ed-deck { font-size: 13px; color: var(--soft); line-height: 1.55; margin: 10px 0 0; max-width: 760px; }
+.home-v11.methodology-page .sc-ed .ed-deck b { color: var(--ink); font-weight: 700; }
+.home-v11.methodology-page .ed-eyebrow { color: var(--acc); }
+
+/* ── 2-col layout: sticky glass TOC rail + reading column ──────────────── */
+.home-v11.methodology-page .me-layout { gap: 28px; }
+
+.home-v11.methodology-page .me-toc.me-rail {
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd); border-top-color: var(--panel-top);
+  border-radius: 16px; box-shadow: var(--panel-sh);
+  padding: 18px 20px; top: 84px;
+}
+.home-v11.methodology-page .me-toc .mt-eyebrow { color: var(--acc); }
+.home-v11.methodology-page .me-toc a { color: var(--soft); }
+.home-v11.methodology-page .me-toc a::before { color: var(--muted); }
+.home-v11.methodology-page .me-toc a:hover { color: var(--acc); }
+.home-v11.methodology-page .me-toc.me-rail a.is-active { color: var(--acc); font-weight: 600; border-left-color: var(--acc); }
+.home-v11.methodology-page .me-toc.me-rail a.is-active::before { color: var(--acc); }
+
+/* ── Section cards: each numbered section is its own glass panel ───────── */
+.home-v11.methodology-page .me-section {
+  background: var(--panel) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd) !important; border-top: 1px solid var(--panel-top) !important;
+  border-radius: 16px !important; box-shadow: var(--panel-sh);
+  padding: 26px 30px; margin: 0 0 16px;
+}
+.home-v11.methodology-page .me-section:first-of-type { border-top: 1px solid var(--panel-top) !important; }
+
+.home-v11.methodology-page .me-num { color: color-mix(in oklab, var(--ink) 14%, transparent); }
+.home-v11.methodology-page .me-h2 { font-family: var(--serif); color: var(--ink); }
+.home-v11.methodology-page .mt-eyebrow { color: var(--acc); }
+.home-v11.methodology-page .me-body-p { color: var(--soft); max-width: 760px; }
+.home-v11.methodology-page .me-body-p b,
+.home-v11.methodology-page .me-section p b { color: var(--ink); }
+.home-v11.methodology-page .me-section p { color: var(--soft); }
+
+/* Formula blocks → glass inset. */
+.home-v11.methodology-page .me-formula {
+  background: var(--inset);
+  border: 1px solid var(--hair); border-radius: 12px;
+  color: var(--soft);
+}
+
+/* Vendor / job tables → glass, hairline rows. */
+.home-v11.methodology-page .me-vendors thead th {
+  background: transparent; color: var(--muted); border-bottom: 1px solid var(--panel-bd);
+}
+.home-v11.methodology-page .me-vendors tbody td { border-top: 1px solid var(--hair); color: var(--soft); }
+.home-v11.methodology-page .me-vendors tbody td:first-child { color: var(--ink); }
+
+/* Changelog list. */
+.home-v11.methodology-page .me-changelog li { color: var(--soft); }
+.home-v11.methodology-page .me-changelog li b { color: var(--muted); }
