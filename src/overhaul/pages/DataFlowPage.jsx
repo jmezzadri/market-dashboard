@@ -51,6 +51,8 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../hooks/useDataHealth';
 import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
+import '../styles/home-system.css';
+import '../styles/data-glass.css';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
 import { gradeTwoClock } from '../../lib/freshnessClock';
@@ -1481,14 +1483,13 @@ export default function DataFlowPage() {
   }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
 
   return (
-    <div className="mt-pagebody mt-fade df-page">
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Data</div>
-          <h1 className="mt-h1">
-            End-to-end <i>data flow</i>.
-          </h1>
-          <p className="mt-deck">
+    <div className="home-v11 data-page mt-fade df-page">
+      <div className="shell">
+      <section className="sc-hero-solo">
+        <div className="glass sc-ed">
+          <div className="ed-eyebrow">● Data</div>
+          <h1>End-to-end <i>data flow</i>.</h1>
+          <p className="ed-deck">
             Every source, every indicator we track, every engine, every surface — read straight from the
             data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
             fresh each feed is.
@@ -1741,6 +1742,7 @@ export default function DataFlowPage() {
           .df-row-k { display: inline; color: var(--mt-ink-3); margin-right: 5px; font-size: 10px; }
         }
       `}</style>
+      </div>{/* /.shell */}
     </div>
   );
 }
