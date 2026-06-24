@@ -162,7 +162,7 @@ export default function MethodologyPage() {
   const sectionsLiteral  = SECTIONS.length;
 
   return (
-    <div className="mt-pagebody me-body mt-fade">
+    <div className="home-v11 glass-page mt-pagebody me-body mt-fade">
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Methodology</div>
