@@ -1130,12 +1130,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       <style>{PAGE_CSS}</style>
       <div className="shell">
 
-      <PageHero
-        eyebrow="Paper Portfolio"
-        title={HERO_TITLE}
-        bullets={HERO_BULLETS}
-        right={<SummaryCard navHistory={navForCard} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />}
-      />
+      <section className="sc-hero">
+        <div className="glass sc-ed">
+          <div className="ed-eyebrow">● Paper portfolio</div>
+          <h1>An <i>automated $1M paper portfolio</i>, rebalanced <i>daily on the open</i>.</h1>
+          <ul className="impl">
+            <li><b>$1M starting capital</b>, following the Trading Scanner recommendations.</li>
+            <li><b>Scanner indicates a buy with a Score ≥ 5</b>; position size is Score × $20K.</li>
+            <li><b>Long-only</b>, 2× max leverage.</li>
+          </ul>
+        </div>
+        <SummaryCard navHistory={navForCard} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />
+      </section>
 
       <div className="paper-shell">
         <PositionsPanel

@@ -91,3 +91,7 @@
   box-shadow: -4px 0 0 0 var(--acc);
   cursor: pointer;
 }
+
+/* ── Hero now uses the shared sc-ed editorial pattern (identical to Scanner).
+      Align its edges to the table panel and keep the gap tight. ========== */
+.home-v11.paper-page .sc-hero { padding: 0 4px; margin: 0 0 6px; }
