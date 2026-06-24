@@ -201,7 +201,7 @@ export default function HomePage() {
               <div className="hl news">
                 <h3>Key News &amp; Events</h3>
                 {brief.news.map((n, i) => (
-                  <div className="ni" key={i}><span className="d" /><div><b>{n.head}</b> — <Html html={n.body} /></div></div>
+                  <div className="ni" key={i}><span className="d" /><div><b><Html html={n.head} /></b> — <Html html={n.body} /></div></div>
                 ))}
               </div>
             )}
@@ -217,7 +217,7 @@ export default function HomePage() {
               <div className="hl watch">
                 <h3>What to Watch Today</h3>
                 {brief.watch.map((w, i) => (
-                  <div className="wi" key={i}><span className="d" /><div><b>{w.head}</b> — <Html html={w.body} /></div></div>
+                  <div className="wi" key={i}><span className="d" /><div><b><Html html={w.head} /></b> — <Html html={w.body} /></div></div>
                 ))}
               </div>
             )}
