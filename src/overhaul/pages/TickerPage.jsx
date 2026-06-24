@@ -413,7 +413,7 @@ export default function TickerPage() {
   );
 
   return (
-    <div className="mt-pagebody tk-page mt-fade">
+    <div className="home-v11 glass-page mt-pagebody tk-page mt-fade">
       {/* Back row */}
       <div className="tk-backrow">
         <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate(-1)}>
