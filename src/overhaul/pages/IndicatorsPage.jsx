@@ -267,7 +267,7 @@ export default function IndicatorsPage() {
   }
 
   return (
-    <div className="mt-pagebody mt-fade">
+    <div className="home-v11 glass-page mt-pagebody mt-fade">
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">All indicators</div>
