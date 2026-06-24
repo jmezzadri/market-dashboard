@@ -7,6 +7,7 @@ import Sparkline from '../components/Sparkline';
 import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
+import { useSearchParams } from 'react-router-dom';
 
 const DOMAINS = ['All', 'Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 
@@ -149,6 +150,18 @@ export default function IndicatorsPage() {
   const [colOrder, setColOrder] = useState(loadOrder);
   const [colWidths, setColWidths] = useState(loadWidths);
   const [dragKey, setDragKey] = useState(null);
+  const [searchParams] = useSearchParams();
+  // Deep-link: /indicators?ind=<id> opens that indicator's detail and scrolls to it.
+  useEffect(() => {
+    const want = searchParams.get('ind');
+    if (!want || !active?.length || !active.some((i) => i.id === want)) return;
+    setDomain('All');
+    setDrill(want);
+    const t = setTimeout(() => {
+      document.getElementById(`ind-row-${want}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [searchParams, active]);
   const resizingRef = useRef(false);
 
   useEffect(() => {
@@ -336,7 +349,7 @@ export default function IndicatorsPage() {
                   const ctx = { color, trendPts };
                   return (
                     <React.Fragment key={i.id}>
-                      <tr className={`al-row-tr ${isOpen ? 'open' : ''}`} onClick={() => setDrill(isOpen ? null : i.id)}>
+                      <tr id={`ind-row-${i.id}`} className={`al-row-tr ${isOpen ? 'open' : ''}`} onClick={() => setDrill(isOpen ? null : i.id)}>
                         {orderedCols.map((c) => (
                           <td
                             key={c.key}

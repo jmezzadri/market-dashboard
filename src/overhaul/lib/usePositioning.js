@@ -35,6 +35,7 @@ export default function usePositioning() {
             if (!lean) return;
             out.push({
               market: NAME[m.market] || m.market,
+              rawMarket: m.market,
               lean,
               label: lean === 'wash' ? 'Washed out · contrarian floor' : 'Crowded · contrarian warning',
               // Rank by extremity (distance from neutral 50), tiny tiebreak for

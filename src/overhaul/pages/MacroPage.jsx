@@ -19,6 +19,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
 import { useFreshness } from '../../hooks/useFreshness';
 import RegimeCanvas from '../components/RegimeCanvas';
@@ -489,6 +490,24 @@ export default function MacroPage() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  // Deep-links from Home: /macro?ind=<id> opens an indicator detail;
+  // /macro?pos=<market> opens a positioning (COT) detail.
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const id = searchParams.get('ind');
+    if (!id || !indicators?.length) return;
+    const it = indicators.find((i) => i.id === id);
+    if (it) setSelected(it);
+  }, [searchParams, indicators]);
+  useEffect(() => {
+    const m = searchParams.get('pos');
+    if (!m || !cotPos?.domains) return;
+    for (const d of Object.values(cotPos.domains)) {
+      const hit = (d.markets || []).find((x) => x.market === m);
+      if (hit) { setSelectedPos(hit); break; }
+    }
+  }, [searchParams, cotPos]);
   const posCount = useMemo(() => {
     if (!cotPos || !cotPos.domains) return 0;
     let n = 0;
