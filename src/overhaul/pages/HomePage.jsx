@@ -1,208 +1,374 @@
+/* HomePage — the Daily-Brief home, rebuilt on the Liquid-Glass design system
+   approved 2026-06-23 (Homepage_Redesign_v11_DailyBrief). Layout: top ribbon
+   of live levels, a left editorial column carrying the morning brief, and a
+   right data rail (The Engine, prior-session movers, macro indicators,
+   positioning, the scanner, upcoming data).
+
+   Design rules honored (these caused the rework):
+     • Engine data wins — the stress signal is MOVE (bands 116 / 124) and the
+       yield regime is the 3-month change in the 10-year, both from the engine
+       hook, never the brief's prose. No invented thresholds.
+     • Lead with the day-over-day CHANGE on every level.
+     • Durable daily slots only — the brief, the movers, the scan all refresh.
+     • Prices are prior-close, labeled "close".
+     • Everything links to its detail route. */
+
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import FreshnessChip from '../components/FreshnessChip';
-import useIndicators from '../lib/useIndicators';
+import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
+import useMarketLevels from '../lib/useMarketLevels';
+import usePositioning from '../lib/usePositioning';
+import useDailyBrief from '../lib/useDailyBrief';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import { getWeekGrid, WEEKDAYS } from '../lib/econCalendar';
-import '../home-editorial.css';
+import { getWeekGrid } from '../lib/econCalendar';
+import '../styles/home-system.css';
 
-const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
-const DOMAIN_SHORT = { 'Financial Conditions & Economy': 'Fin Cond & Economy' };
-const SIGNAL_LABEL = { insider_pts: 'insider buying', sma200_pts: 'its 200-day trend', rsi_pts: 'momentum (RSI)', options_pts: 'options flow', dark_pool_pts: 'dark-pool accumulation' };
-
-/* ── value / delta helpers ─────────────────────────────────────────────── */
-function valueDaysAgo(points, days) {
-  if (!points || points.length < 2) return null;
-  const lastT = Date.parse(points[points.length - 1][0] + 'T00:00:00Z');
-  const target = lastT - days * 86400000;
-  for (let i = points.length - 1; i >= 0; i--) {
-    if (Date.parse(points[i][0] + 'T00:00:00Z') <= target) return points[i][1];
-  }
-  return points[0][1];
+/* ── format helpers ─────────────────────────────────────────────────────── */
+function fmt(v, dec) {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
-function deltas(ind) {
-  const p = ind.points || [];
-  if (p.length < 2) return { recent: null, wow: null };
-  const last = p[p.length - 1][1];
-  return { recent: last - p[p.length - 2][1], wow: (() => { const w = valueDaysAgo(p, 7); return w == null ? null : last - w; })() };
+function ddParts(dd, dec) {
+  if (dd == null || !Number.isFinite(dd)) return { arrow: '', txt: '', cls: '' };
+  const d = Math.min(dec, 2);
+  // Round to the displayed precision first, so a change that rounds to zero
+  // (e.g. a monthly series unchanged since its last print) shows nothing
+  // rather than a spurious "-0.0".
+  const r = Number(dd.toFixed(d));
+  if (r === 0) return { arrow: '', txt: '', cls: '' };
+  const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return r > 0 ? { arrow: '▲', txt: a, cls: 'up' } : { arrow: '▼', txt: a, cls: 'down' };
 }
-function freqLabel(freq) { return freq === 'W' ? 'w/w' : freq === 'M' ? 'm/m' : freq === 'Q' ? 'q/q' : 'd/d'; }
-function fmtVal(ind) {
-  const v = ind.value; if (v == null) return '—';
-  const d = Number.isFinite(ind.decimals) ? ind.decimals : 2;
-  const u = ind.unit || '';
-  if (u === '%') return `${v.toFixed(d)}%`;
-  if (!u || u === 'index' || u === 'ratio' || u === 'z-score') return v.toFixed(d);
-  return `${v.toFixed(d)} ${u}`;
+function Html({ html, tag = 'span', className }) {
+  const T = tag;
+  return <T className={className} dangerouslySetInnerHTML={{ __html: html || '' }} />;
 }
-function fmtDelta(x, ind) {
-  if (x == null) return null;
-  const d = Number.isFinite(ind.decimals) ? ind.decimals : 2;
-  const s = `${x > 0 ? '+' : ''}${x.toFixed(Math.min(d, 2))}`;
-  return { text: s, cls: Math.abs(x) < Math.pow(10, -(d + 1)) ? 'he-nu' : x > 0 ? 'he-up' : 'he-dn' };
+function shortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
-function stanceFor(inds) {
-  const ext = inds.filter((i) => i.state === 'extreme').length;
-  const elev = inds.filter((i) => i.state === 'elevated').length;
-  if (ext > 0) return { label: 'Stretched', cls: 'extreme', stretched: ext + elev };
-  if (elev > 0) return { label: 'Elevated', cls: 'elev', stretched: elev };
-  return { label: 'Calm', cls: 'calm', stretched: 0 };
-}
-function pickHeadline(inds) {
-  if (!inds.length) return null;
-  const score = (i) => (i.state === 'extreme' ? 200 : i.state === 'elevated' ? 100 : 0) + (i.pct != null ? Math.abs(i.pct - 50) : 0);
-  return inds.slice().sort((a, b) => score(b) - score(a))[0];
-}
-function topSignal(r) {
-  const f = { insider_pts: r.insider_pts, sma200_pts: r.sma200_pts, rsi_pts: r.rsi_pts, options_pts: r.options_pts, dark_pool_pts: r.dark_pool_pts };
-  let k = null, mv = -Infinity;
-  Object.entries(f).forEach(([kk, vv]) => { const n = Number(vv) || 0; if (n > mv) { mv = n; k = kk; } });
-  return SIGNAL_LABEL[k] || 'multiple signals';
+function weekdayDate(iso) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
-/* ── positioning generators (fully derived from live engine state) ─────── */
-function macroPosition(regime, buckets) {
-  if (!regime || regime.loading) return 'Reading the tape…';
-  const zone = regime.stressZone || 'Neutral';
-  let worst = null, wv = -1;
-  buckets.forEach((b) => { const n = b.inds.filter((i) => i.state === 'extreme').length * 2 + b.inds.filter((i) => i.state === 'elevated').length; if (n > wv) { wv = n; worst = b; } });
-  const lean = zone === 'Risk On' ? 'lean risk-on' : zone === 'Risk Off' ? 'cut risk' : 'stay balanced and watch the data';
-  let s = `The engine reads ${regime.regimeLabel || zone}`;
-  s += `. The signal is to ${lean}`;
-  if (worst && wv > 0) s += `; ${(DOMAIN_SHORT[worst.name] || worst.name).toLowerCase()} is the bucket showing the most stress right now`;
-  return s + '.';
+const RIBBON = [
+  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '' },
+  { key: 'move', label: 'MOVE', dec: 0, suffix: '' },
+  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%' },
+  { key: 'vix', label: 'VIX', dec: 1, suffix: '' },
+  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '' },
+  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '' },
+  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '' },
+];
+
+const IND_ROWS = [
+  { g: 'Rates', key: 'ust_10y', name: '10Y', dec: 2, suffix: '%' },
+  { g: 'Credit', key: 'hy_ig', name: 'HY OAS', dec: 0, suffix: '' },
+  { g: 'Equities', key: 'cape', name: 'CAPE', dec: 1, suffix: '' },
+  { g: 'Commod.', key: 'cmdty_copper', name: 'Copper', dec: 2, suffix: '' },
+  { g: 'FX', key: 'fx_jpy', name: 'USD/JPY', dec: 1, suffix: '' },
+  { g: 'Econ', key: 'ism', name: 'ISM', dec: 1, suffix: '' },
+];
+
+/* ── engine gauge math (linear scales; bands = engine thresholds) ───────── */
+const clampPct = (x) => Math.max(0, Math.min(100, x));
+function stressGauge(move) {
+  const MIN = 40, MAX = 160, R = MAX - MIN; // sensible MOVE range
+  const on = ((116 - MIN) / R) * 100;
+  const watch = ((124 - 116) / R) * 100;
+  const off = ((MAX - 124) / R) * 100;
+  const mk = move == null ? null : clampPct(((move - MIN) / R) * 100);
+  return { on, watch, off, mk };
 }
-function scannerPosition(bandCounts, top) {
-  if (!bandCounts) return '';
-  const names = top.slice(0, 3).map((r) => r.ticker).filter(Boolean).join(', ');
-  return `${bandCounts.total} names cleared the score gate${bandCounts.score5 ? `, ${bandCounts.score5} at top conviction` : ''}. The strongest setups right now: ${names || '—'}. Stage entries around the releases above — these are event-gated, not buy-and-holds.`;
+function yieldGauge(bp) {
+  const MIN = -40, MAX = 60, R = MAX - MIN;
+  const defl = ((-11 - MIN) / R) * 100;
+  const neutral = ((32 - -11) / R) * 100;
+  const infl = ((MAX - 32) / R) * 100;
+  const mk = bp == null ? null : clampPct(((bp - MIN) / R) * 100);
+  return { defl, neutral, infl, mk };
 }
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { active, loading: indLoading } = useIndicators();
+  const go = (path) => (e) => { e.preventDefault(); navigate(path); };
+
+  const { tweaks, setTweak } = useTweaks();
+  const isDark = tweaks.theme !== 'light';
+  const flip = () => setTweak('theme', isDark ? 'light' : 'navy');
+
+  const { level } = useMarketLevels();
   const regime = useEngineRegime();
-  const { rows: scanRows, bandCounts, scanDate } = useTradingOppsTop(20);
+  const { rows: posRows } = usePositioning();
+  const { brief } = useDailyBrief();
+  const { rows: scanRows, bandCounts } = useTradingOppsTop(20);
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const weeks = useMemo(() => getWeekGrid(todayISO, 2), [todayISO]);
+  const weeks = useMemo(() => getWeekGrid(todayISO, 3), [todayISO]);
 
-  const buckets = useMemo(() => {
-    const map = {}; DOMAINS.forEach((d) => { map[d] = []; });
-    (active || []).forEach((i) => { const d = DOMAINS.includes(i.domain) ? i.domain : 'Financial Conditions & Economy'; map[d].push(i); });
-    return DOMAINS.map((name) => ({ name, inds: map[name] }));
-  }, [active]);
+  // Header: market open/closed + honest "data as of" (newest displayed level).
+  const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const dow = nowET.getDay();
+  const mins = nowET.getHours() * 60 + nowET.getMinutes();
+  const marketOpen = dow >= 1 && dow <= 5 && mins >= 570 && mins < 960;
+  const todayLabel = nowET.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const newestAsOf = useMemo(() => {
+    const ds = RIBBON.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
+    return ds.length ? ds[ds.length - 1] : null;
+  }, [level]);
 
-  const topBuys = useMemo(() => (scanRows || []).filter((r) => (r.band ?? 0) >= 4).slice(0, 3), [scanRows]);
+  // Top scanner names (cleared the gate), top 3 by score.
+  const topScan = useMemo(
+    () => (scanRows || []).filter((r) => (r.band ?? 0) >= 4).slice(0, 3),
+    [scanRows],
+  );
 
-  const stretchedTotal = (active || []).filter((i) => i.state === 'extreme' || i.state === 'elevated').length;
+  // Upcoming releases — next three dated events.
+  const upcoming = useMemo(() => {
+    const out = [];
+    weeks.flat().forEach((day) => {
+      if (day.isPast || day.iso < todayISO) return;
+      (day.events || []).forEach((e) => out.push({ iso: day.iso, name: e.name || e.short, prior: e.prior }));
+    });
+    return out.slice(0, 3);
+  }, [weeks, todayISO]);
+
+  const stress = stressGauge(regime.move);
+  const yld = yieldGauge(regime.yieldDeltaBp);
+  const stressZone = regime.stressZone;
+  const stressCls = stressZone === 'Risk On' ? 'up' : stressZone === 'Watch' ? 'amb' : stressZone === 'Risk Off' ? 'down' : '';
+  const stressMsg = stressZone === 'Risk On' ? 'Calm — far from any de-risk line.'
+    : stressZone === 'Watch' ? 'Watch — approaching the de-risk line.'
+    : stressZone === 'Risk Off' ? 'Risk off — the de-risk line is breached.' : '—';
+  const yReg = regime.yieldRegime;
+  const nearInfl = yReg === 'Neutral' && regime.yieldDeltaBp != null && 32 - regime.yieldDeltaBp <= 8;
+  const yCls = yReg === 'Inflationary' ? 'amb' : yReg === 'Deflationary' ? 'up' : nearInfl ? 'amb' : '';
+  const yMsg = yReg === 'Inflationary' ? 'Inflationary — the Fed is back in play.'
+    : yReg === 'Deflationary' ? 'Deflationary — a growth scare.'
+    : nearInfl ? 'Neutral — nearing the inflationary edge.' : 'Neutral.';
+
+  // Verdict split ("Risk On · Neutral" -> bold + small).
+  const verdictParts = (regime.regimeLabel || '—').split('·').map((s) => s.trim());
+
+  const moversMax = useMemo(() => {
+    const a = (brief?.movers || []).map((m) => Math.abs(m.pct || 0));
+    return a.length ? Math.max(...a) : 1;
+  }, [brief]);
 
   return (
-    <div className="mt-pagebody mt-fade">
-      {/* ── Week-ahead calendar ── */}
-      <section className="he-week" aria-label="Economic data calendar — next two weeks">
-        <div className="he-weekhd"><span>What's coming · the data calendar</span><span className="he-calmonth">{weeks[0][0].month} {todayISO.slice(0,4)}</span></div>
-        <div className="he-calhdr">
-          {WEEKDAYS.map((d) => <div key={d} className="he-calwd">{d}</div>)}
-        </div>
-        <div className="he-calgrid">
-          {weeks.flat().map((day) => (
-            <div key={day.iso} className={`he-calcell${day.isToday ? ' today' : ''}${day.isPast ? ' past' : ''}${day.events.length ? ' has' : ''}`}>
-              <div className="he-calday">
-                <span className="he-caldaynum">{day.firstOfMonth ? `${day.month} ${day.dayNum}` : day.dayNum}</span>
-                {day.isToday && <span className="he-caltoday">Today</span>}
-              </div>
-              {day.events.map((e) => (
-                <div key={e.name} className="he-calev">
-                  <span className="he-calev-top"><span className="he-caldot" />{e.short}</span>
-                  {(e.expected || e.prior) && (
-                    <span className="he-calev-sub">{e.expected ? `exp ${e.expected}` : ''}{e.expected && e.prior ? ' · ' : ''}{e.prior ? `prev ${e.prior}` : ''}</span>
-                  )}
-                  <span className="he-caltip" role="tooltip">
-                    <span className="he-caltip-nm">{e.name}</span>
-                    <span className="he-caltip-time">{e.time}</span>
-                    {e.expected ? <span className="he-caltip-row">Expected · {e.expected}</span> : null}
-                    {e.prior ? <span className="he-caltip-row">Prior · {e.prior}</span> : null}
-                    <span className="he-caltip-detail">{e.detail}</span>
-                  </span>
-                </div>
-              ))}
+    <div className="home-v11">
+      <div className="shell">
+
+        {/* ── header ── */}
+        <div className="hdr">
+          <div className="logo">Macro<i>Tilt</i></div>
+          <div className="hdr-r">
+            <span className="pill">Prior close{newestAsOf ? ` · ${shortDate(newestAsOf)}` : ''}</span>
+            <span className="pill">Market {marketOpen ? 'open' : 'closed'} · {todayLabel}</span>
+            <div className="toggle" onClick={flip} role="button" aria-label="Toggle light or dark theme">
+              <span className="opt sun">☀</span><span className="opt moon">☾</span>
             </div>
-          ))}
+          </div>
         </div>
-      </section>
 
-      {/* ── Macro Overview ── */}
-      <section className="mt-pagesection he-section">
-        <div className="mt-eyebrow">Macro Overview · today's read</div>
-        <h1 className="mt-h1">{regime.loading ? 'Reading the tape' : <>{regime.stressZone || 'Neutral'} — <i>{(regime.yieldRegime || 'neutral').toLowerCase()}</i>.</>}</h1>
-        <p className="mt-deck">
-          A read across the six things we watch — rates, credit, equities, commodities, FX, and the economy — each ranked against its own three-year history. {stretchedTotal} of {(active || []).length} indicators are stretched right now.
-        </p>
-
-        <div className="he-lanehd"><span>What's changed · across the six buckets</span></div>
-        <div className="he-buckets">
-          {indLoading ? <div className="mt-deck">Loading indicators…</div> : buckets.map((b) => {
-            const stance = stanceFor(b.inds);
-            const head = pickHeadline(b.inds);
-            const dd = head ? deltas(head) : { recent: null, wow: null };
-            const dRec = head ? fmtDelta(dd.recent, head) : null;
-            const dWow = head ? fmtDelta(dd.wow, head) : null;
+        {/* ── ribbon ── */}
+        <div className="ribbon glass">
+          {RIBBON.map((r) => {
+            const lv = level(r.key);
+            const d = ddParts(lv?.dd, r.dec);
             return (
-              <button key={b.name} className="he-bk" onClick={() => navigate('/macro')}>
-                <div className="he-bk-top">
-                  <span className="he-bk-nm">{DOMAIN_SHORT[b.name] || b.name}</span>
-                  <span className={`he-chip ${stance.cls}`}><span className="he-dot" />{stance.label}</span>
-                </div>
-                {head && (
-                  <>
-                    <div className="he-met num">
-                      <span className="he-lv">{fmtVal(head)}</span>
-                      {dRec && <span className={`he-dl ${dRec.cls}`}>{dRec.text} {freqLabel(head.freq)}</span>}
-                      {dWow && head.freq === 'D' && <span className={`he-dl ${dWow.cls}`}>{dWow.text} w/w</span>}
-                    </div>
-                    <div className="he-rd"><b>{head.name}</b> — {head.state === 'calm' ? 'in its normal range' : `${head.state} vs its 3-year range`}.</div>
-                  </>
-                )}
-                <div className="he-tr"><b>{stance.stretched}</b> of {b.inds.length} indicators stretched · <FreshnessChip elementId={head?.manifestId} variant="dot" /></div>
-              </button>
+              <a key={r.key} className="rc" href="/indicators" onClick={go('/indicators')}>
+                <span className="rk">{r.label}</span>
+                <span className="rv num">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
+                <span className={`rd ${d.cls}`}>{d.arrow}{d.txt} close</span>
+              </a>
             );
           })}
         </div>
 
-        <div className="he-sowhat">
-          <div className="he-sowhat-lbl"><span>How to position</span></div>
-          <p>{macroPosition(regime, buckets)}</p>
-        </div>
-      </section>
+        <div className="layout">
 
-      {/* ── Equity Scanner ── */}
-      <section className="mt-pagesection he-section">
-        <div className="mt-eyebrow">Equity Scanner · {bandCounts ? bandCounts.total : ''} long alerts</div>
-        <h1 className="mt-h1">The names this setup <i>points at</i>.</h1>
-        <p className="mt-deck">Top-conviction longs from the five-signal scan, with the signal driving each. <FreshnessChip elementId="equity-latest_scan_data-daily" fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }} variant="label" /></p>
+          {/* ── LEFT: editorial ── */}
+          <div className="glass editorial">
+            <div className="ed-eyebrow">● {brief?.eyebrow || 'Morning Brief'}</div>
+            <h1>{brief?.headline || 'Reading the tape…'}</h1>
+            {brief?.stance && <Html tag="p" className="stance" html={brief.stance} />}
 
-        <div className="he-lanehd"><span>What's changed · today's top conviction</span></div>
-        {topBuys.length === 0 ? <div className="mt-deck">No names cleared the conviction gate today.</div> : topBuys.map((r) => {
-          const chg = (r.score != null && r.score_1m != null) ? r.score - r.score_1m : null;
-          return (
-            <button key={r.ticker} className="he-buy" onClick={() => navigate(`/ticker/${r.ticker}`)}>
-              <div className="he-buy-h">
-                <span className="he-tk">{r.ticker}</span>
-                <span className={`he-conv ${r.band >= 5 ? 'high' : 'med'}`}>{r.band >= 5 ? 'High' : 'Medium'}</span>
-                <span className="he-sc">Score <b>{r.score != null ? r.score.toFixed(1) : '—'}</b>{chg != null ? ` · ${chg >= 0 ? '▲' : '▼'} ${chg >= 0 ? '+' : ''}${chg.toFixed(1)} vs 1mo` : ''}</span>
+            {brief?.news?.length > 0 && (
+              <div className="hl news">
+                <h3>Key News &amp; Events</h3>
+                {brief.news.map((n, i) => (
+                  <div className="ni" key={i}><span className="d" /><div><b>{n.head}</b> — <Html html={n.body} /></div></div>
+                ))}
               </div>
-              <div className="he-wy"><b>Driver:</b> {r.so_what ? r.so_what : `Led by ${topSignal(r)}.`}{r.name ? ` (${r.name})` : ''}</div>
-            </button>
-          );
-        })}
+            )}
 
-        <div className="he-sowhat">
-          <div className="he-sowhat-lbl"><span>How to position</span></div>
-          <p>{scannerPosition(bandCounts, topBuys)}</p>
+            {brief?.implications?.length > 0 && (
+              <div className="hl">
+                <h3>Implications</h3>
+                <ul className="impl">{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+              </div>
+            )}
+
+            {brief?.watch?.length > 0 && (
+              <div className="hl watch">
+                <h3>What to Watch Today</h3>
+                {brief.watch.map((w, i) => (
+                  <div className="wi" key={i}><span className="d" /><div><b>{w.head}</b> — <Html html={w.body} /></div></div>
+                ))}
+              </div>
+            )}
+
+            <div className="divider">The detail</div>
+
+            {(brief?.sections || []).map((s, i) => (
+              <div className="sec" key={i}>
+                <div className="sh">{s.title}</div>
+                <Html tag="p" html={s.prose} />
+                <div className="tagline">
+                  {s.positioning && (
+                    <div className="tg pos"><span className="k">Positioning</span><span>{s.positioning}</span></div>
+                  )}
+                  {s.single_name && (
+                    <div className="tg name"><span className="k">Single name</span><span>
+                      <a className="tklink" style={{ fontWeight: 800 }} href={`/ticker/${s.single_name.ticker}`} onClick={go(`/ticker/${s.single_name.ticker}`)}>{s.single_name.ticker} ↗</a> {s.single_name.note}
+                    </span></div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── RIGHT: data rail ── */}
+          <div className="rail">
+
+            {/* Engine */}
+            <div className="glass tile">
+              <div className="th"><span className="label">The Engine</span>
+                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/macro" onClick={go('/macro')}>Macro Overview</a></div>
+              <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
+              <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
+
+              <div className="g">
+                <div className="gtop"><span className="gname">Stress signal · MOVE</span>
+                  <span className="gval num">{fmt(regime.move, 0)} <small>{(() => { const d = ddParts(level('move')?.dd, 0); return `${d.arrow}${d.txt} d/d`; })()}</small></span></div>
+                <div className="gtrack">
+                  <span className="z" style={{ width: `${stress.on}%`, background: 'var(--up)' }} />
+                  <span className="z" style={{ width: `${stress.watch}%`, background: 'var(--amber)' }} />
+                  <span className="z" style={{ width: `${stress.off}%`, background: 'var(--down)' }} />
+                  {stress.mk != null && <span className="mk" style={{ left: `${stress.mk}%` }} />}
+                </div>
+                <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
+                <div className={`gstate ${stressCls}`}>● {stressMsg}</div>
+              </div>
+
+              <div className="g">
+                <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span>
+                  <span className="gval num">{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <small>bp</small></span></div>
+                <div className="gtrack">
+                  <span className="z" style={{ width: `${yld.defl}%`, background: 'var(--up)' }} />
+                  <span className="z" style={{ width: `${yld.neutral}%`, background: 'var(--track)' }} />
+                  <span className="z" style={{ width: `${yld.infl}%`, background: 'var(--amber)' }} />
+                  {yld.mk != null && <span className="mk" style={{ left: `${yld.mk}%` }} />}
+                </div>
+                <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
+                <div className={`gstate ${yCls}`}>● {yMsg}</div>
+              </div>
+            </div>
+
+            {/* Movers */}
+            <div className="glass tile">
+              <span className="label">Biggest movers · prior session</span>
+              <div style={{ marginTop: 8 }}>
+                {(brief?.movers || []).map((m) => {
+                  const w = Math.round((Math.abs(m.pct) / moversMax) * 100);
+                  const up = m.pct > 0;
+                  const inner = (
+                    <>
+                      <span className="t tklink">{m.ticker}</span>
+                      <span className="mvbar"><i className={up ? 'upbar' : ''} style={{ width: `${w}%` }} /></span>
+                      <span className={`p ${up ? 'upp' : ''}`}>{up ? '+' : '−'}{Math.abs(m.pct)}%</span>
+                      <span className="chev">›</span>
+                    </>
+                  );
+                  return m.link
+                    ? <a key={m.ticker} className="lk mv" href={`/ticker/${m.ticker}`} onClick={go(`/ticker/${m.ticker}`)}>{inner}</a>
+                    : <div key={m.ticker} className="mv">{inner}</div>;
+                })}
+              </div>
+              <div className="mvcap">Prior cash session · refreshes each morning.</div>
+            </div>
+
+            {/* Macro indicators */}
+            <div className="glass tile">
+              <div className="th"><span className="label">Macro Indicators</span>
+                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/indicators" onClick={go('/indicators')}>All Indicators</a></div>
+              <div style={{ marginTop: 3 }}>
+                {IND_ROWS.map((row) => {
+                  const lv = level(row.key);
+                  const d = ddParts(lv?.dd, row.dec);
+                  return (
+                    <a key={row.key} className="lk irow" href="/indicators" onClick={go('/indicators')}>
+                      <span className="g1">{row.g}</span>
+                      <span style={{ marginLeft: 'auto' }}>{row.name} <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
+                        <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span><span className="chev">›</span></span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Positioning */}
+            <div className="glass tile">
+              <div className="th"><span className="label">Positioning · COT extremes</span>
+                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/macro" onClick={go('/macro')}>Macro Overview</a></div>
+              <div style={{ marginTop: 3 }}>
+                {(posRows || []).map((p, i) => (
+                  <a key={i} className="lk prow" href="/macro" onClick={go('/macro')}>
+                    <span>{p.market}</span>
+                    <span><span className={`lean ${p.lean}`}>{p.label}</span><span className="chev">›</span></span>
+                  </a>
+                ))}
+                {posRows && posRows.length === 0 && <div className="mvcap">No positioning extremes right now.</div>}
+              </div>
+            </div>
+
+            {/* Scanner */}
+            <div className="glass tile">
+              <div className="th"><span className="label">Trading Scanner</span>
+                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/scanner" onClick={go('/scanner')}>Trading Scanner</a></div>
+              <div>
+                {topScan.map((r) => (
+                  <a key={r.ticker} className="lk nm-row" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
+                    <div><span className="tk tklink">{r.ticker}</span><span className="chip">HIGH</span></div>
+                    <div><span className="score num">{fmt(r.score, 1)}</span><span className="chev">›</span></div>
+                  </a>
+                ))}
+              </div>
+              {bandCounts && <div className="mvcap">{bandCounts.total} longs cleared · {bandCounts.score5} top conviction.</div>}
+            </div>
+
+            {/* Upcoming data */}
+            <div className="glass tile">
+              <span className="label">Upcoming data</span>
+              <div style={{ marginTop: 5 }}>
+                {upcoming.map((u, i) => (
+                  <a key={i} className="lk cal-ev" href="/macro" onClick={go('/macro')}>
+                    <b>{weekdayDate(u.iso)}</b><span>{u.name}{u.prior ? ` · prev ${u.prior}` : ''} <span className="chev">›</span></span>
+                  </a>
+                ))}
+                {upcoming.length === 0 && <div className="mvcap">No scheduled releases in the next two weeks.</div>}
+              </div>
+            </div>
+
+          </div>
         </div>
-      </section>
+
+        <p className="cap">Lands every morning as a recap of the prior session — news, implications and what to watch lead; the detail and live data follow. Every level is prior-close. Use ☀ / ☾ to switch themes.</p>
+      </div>
     </div>
   );
 }
