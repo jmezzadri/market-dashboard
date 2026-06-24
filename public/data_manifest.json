@@ -2264,38 +2264,6 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
-   "id": "site-methodology_changelog-static",
-   "category": "ops",
-   "name": "methodology_changelog",
-   "description": "Reference list of material changes to the engine, indicator framework, or scoring math. Methodology page Changelog section reads this file.",
-   "sourcing_mode": "curated",
-   "source_vendor": "n/a (curated by Senior Quant + Data Steward)",
-   "source_endpoint": "public/methodology_changelog.json",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "static",
-   "scheduled_fetch_time_et": "n/a (hand-maintained)",
-   "refresh_trigger": "Manual PR when a model/calibration ships",
-   "freshness_sla_hours": 26280,
-   "data_max_age_hours": 0,
-   "data_calendar": "wall-clock",
-   "output_destination": "public/methodology_changelog.json",
-   "producer_script": "n/a (hand-maintained JSON)",
-   "consumer_surfaces": [
-    {
-     "tab": "methodology",
-     "tile": "Changelog section (08)"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Static file; if missing, Methodology changelog section renders an empty list and a red FreshnessChip.",
-   "owner": "Senior Quant (notes), Data Steward (curation)",
-   "release_calendar": "wall-clock",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
-  },
-  {
    "id": "indicator-fed_bs-weekly",
    "name": "fed_bs",
    "category": "indicator",

@@ -285,16 +285,14 @@ function canonTab(tab) {
 
 // ─── Internal infrastructure to EXCLUDE from the data-flow entirely ──────────
 // These are plumbing, not data feeds: the bug tracker, admin/auth tables, the
-// api-usage log, the freshness monitor's own pipeline_health table, and the
-// static methodology changelog. They have no scheduled-data SLA, so showing
+// api-usage log, and the freshness monitor's own pipeline_health
+// table. They have no scheduled-data SLA, so showing
 // them with a "no successful run on record" / stale chip was alarming and
-// wrong. Anything with category:"ops" is infrastructure; methodology_changelog
-// is a static site doc. (bug_reports, bug_status_log, bug_screenshots,
+// wrong. Anything with category:"ops" is infrastructure (bug_reports, bug_status_log, bug_screenshots,
 // admin_users, user_preferences, api_usage_log, pipeline_health are all `ops`.)
 function isInfrastructure(el) {
   if (!el) return true;
   if (el.category === 'ops') return true;
-  if (el.name === 'methodology_changelog') return true;
   return false;
 }
 
