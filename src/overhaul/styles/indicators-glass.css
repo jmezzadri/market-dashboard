@@ -66,3 +66,21 @@
 .home-v11.indicators-page .sc-hero-solo { margin: 0 0 14px; }
 .home-v11.indicators-page .sc-ed .ed-deck { font-size: 13px; color: var(--soft); line-height: 1.55; margin: 10px 0 0; }
 .home-v11.indicators-page .sc-ed .ed-deck b { color: var(--ink); font-weight: 700; }
+
+/* ── Generic frosted modal shell (the DetailModal wrapper used by the Macro
+      positioning / bucket / indicator pop-ups and the Indicators pop-up). Same
+      frost as .ind-detail so a positioning signal modal reads as glass, not a
+      solid surface. Light + navy. ======================================= */
+.mt-glassmodal {
+  background: rgba(255,255,255,.82);
+  -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.6);
+  border-radius: 18px;
+  box-shadow: 0 26px 64px -18px rgba(20,30,60,.5);
+}
+[data-mt-theme='dark'] .mt-glassmodal,
+[data-mt-theme='navy'] .mt-glassmodal {
+  background: rgba(19,33,60,.90);
+  border-color: rgba(140,165,220,.18);
+  box-shadow: 0 30px 72px -20px rgba(2,8,23,.72);
+}
