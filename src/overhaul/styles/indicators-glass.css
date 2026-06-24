@@ -36,8 +36,8 @@
   border-radius: 16px !important; box-shadow: var(--panel-sh);
 }
 .home-v11.indicators-page .al-table thead th { background: transparent; border-bottom-color: var(--panel-bd); }
-.home-v11.indicators-page .al-table tbody tr { transition: background .16s ease; }
-.home-v11.indicators-page .al-table tbody tr:hover { background: color-mix(in oklab, var(--acc) 7%, transparent); }
+.home-v11.indicators-page .al-table tbody tr { transition: background .16s ease, transform .16s ease, box-shadow .16s ease; }
+.home-v11.indicators-page .al-table tbody tr:hover { background: color-mix(in oklab, var(--acc) 8%, transparent); transform: translateX(4px); box-shadow: -4px 0 0 0 var(--acc); cursor: pointer; }
 .home-v11.indicators-page .mt-pill { background: var(--pill); border: 1px solid var(--pill-bd); }
 .home-v11.indicators-page .mt-pill.on { background: var(--acc); color: #fff; border-color: var(--acc); }
 
