@@ -581,6 +581,11 @@ export default function MacroPage() {
   const posLean = (spec) => spec<=15?{cls:'wash',txt:'Washed out'}:spec>=85?{cls:'crowd',txt:'Crowded'}:null;
   const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
   const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
+  const stateWord = (st) => st==='extreme'?'stretched (red)':st==='elevated'?'elevated (amber)':'in range (green)';
+  const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' percentile of its 3-year range · '+stateWord(ind.state)); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>180?d.slice(0,177)+'…':d); L.push('Click for the full chart.'); return L.join('\n'); };
+  const posTip = (m, ln) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Speculators at the '+ord(m.spec)+' percentile of their 3-year range'+(ln?(ln.cls==='wash'?' — almost no bullish bets left (contrarian floor)':' — piled in (contrarian warning)'):'')); L.push('Click for the full positioning chart.'); return L.join('\n'); };
+  const moveTip = 'Stress signal · MOVE '+fmtV(regime.move,0)+'\nRisk On ≤116 · Watch 116–124 · Risk Off ≥124\nThe bond market\u2019s volatility gauge — the engine\u2019s primary de-risk trigger. Click for the full chart.';
+  const yieldTip = 'Yield regime · 3-month change in the 10-year'+(regime.yieldDeltaBp!=null?', '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nSets which defensive sleeve holds when the engine de-risks. Click for the full chart.';
 
   return (
     <div className="home-v11 mt-fade">
@@ -602,13 +607,13 @@ export default function MacroPage() {
             <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
             <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, marginTop: 4 }}>
-              <a className="g lk" onClick={openMove} style={{ display: 'block', cursor: 'pointer' }}>
+              <a className="g lk" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ display: 'block', cursor: 'pointer' }}>
                 <div className="gtop"><span className="gname">Stress signal · MOVE</span><span className="gval num">{fmtV(regime.move,0)}</span></div>
                 <div className="gtrack"><span className="z" style={{ width: stressG.on+'%', background: 'var(--up)' }} /><span className="z" style={{ width: stressG.watch+'%', background: 'var(--amber)' }} /><span className="z" style={{ width: stressG.off+'%', background: 'var(--down)' }} />{stressG.mk!=null && <span className="mk" style={{ left: stressG.mk+'%' }} />}</div>
                 <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
                 <div className={'gstate '+sCls}>● {sMsg}</div>
               </a>
-              <a className="g lk" onClick={openYield} style={{ display: 'block', cursor: 'pointer' }}>
+              <a className="g lk" onClick={openYield} onMouseEnter={(e)=>showTip(e, yieldTip)} onMouseLeave={hideTip} style={{ display: 'block', cursor: 'pointer' }}>
                 <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span><span className="gval num">{regime.yieldDeltaBp==null?'—':(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)} <small>bp</small></span></div>
                 <div className="gtrack"><span className="z" style={{ width: yieldG.defl+'%', background: 'var(--up)' }} /><span className="z" style={{ width: yieldG.neutral+'%', background: 'var(--track)' }} /><span className="z" style={{ width: yieldG.infl+'%', background: 'var(--amber)' }} />{yieldG.mk!=null && <span className="mk" style={{ left: yieldG.mk+'%' }} />}</div>
                 <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
@@ -622,8 +627,8 @@ export default function MacroPage() {
               return (
                 <div style={{ marginTop: 15, paddingTop: 13, borderTop: '1px solid var(--hair)' }}>
                   <div className="label" style={{ marginBottom: 7 }}>Regime history · 2 years · top: stress signal · bottom: yield regime</div>
-                  <div style={{ display: 'flex', gap: 1.5, marginBottom: 2 }}>{wk.map((w,i)=><span key={i} title={w.date+' · '+w.stress_state} style={{ flex: 1, height: 10, borderRadius: 1, background: sC(w.stress_state) }} />)}</div>
-                  <div style={{ display: 'flex', gap: 1.5 }}>{wk.map((w,i)=><span key={i} title={w.date+' · '+w.yield_regime} style={{ flex: 1, height: 10, borderRadius: 1, background: yC(w.yield_regime) }} />)}</div>
+                  <div style={{ display: 'flex', gap: 1.5, marginBottom: 2 }}>{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Stress: '+w.stress_state)} onMouseLeave={hideTip} style={{ flex: 1, height: 10, borderRadius: 1, background: sC(w.stress_state) }} />)}</div>
+                  <div style={{ display: 'flex', gap: 1.5 }}>{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Yield: '+w.yield_regime)} onMouseLeave={hideTip} style={{ flex: 1, height: 10, borderRadius: 1, background: yC(w.yield_regime) }} />)}</div>
                   <div className="gbands" style={{ marginTop: 5 }}><span>{(wk[0]?.date||'').slice(0,7)}</span><span>now</span></div>
                 </div>
               );
@@ -643,13 +648,13 @@ export default function MacroPage() {
                   <div className="th"><span className="label">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="label" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
                   <div style={{ marginTop: 2 }}>
                     {inds.map((ind) => (
-                      <a key={ind.id} className="lk irow" onClick={() => setSelected(ind)} style={{ cursor: 'pointer' }}>
+                      <a key={ind.id} className="lk irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip} style={{ cursor: 'pointer' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: '1 1 0' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ind.state), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{ind.name}</span></span>
                         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}><span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span>{(() => { const dd=ddOf(ind); return dd ? <span className={'chg '+dd.cls}>{dd.arrow}{dd.txt}</span> : null; })()}{ind.pct!=null && <span style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 700, minWidth: 24, textAlign: 'right' }}>{ord(ind.pct)}</span>}<span className="chev">›</span></span>
                       </a>
                     ))}
                     {markets.map((m) => { const ln=posLean(m.spec); return (
-                      <a key={'pos-'+m.market} className="lk irow" onClick={() => setSelectedPos(m)} style={{ cursor: 'pointer' }}>
+                      <a key={'pos-'+m.market} className="lk irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip} style={{ cursor: 'pointer' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, color: 'var(--muted)' }}><span style={{ width: 7, height: 7, borderRadius: 2, background: ln?(ln.cls==='wash'?'var(--up)':'var(--down)'):'var(--muted)', flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>{m.market} · positioning</span></span>
                         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}>{ln && <span className={'lean '+ln.cls} style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{ln.txt}</span>}{(() => { const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) return <span className="chg" style={{color:'var(--muted)'}}>{r>0?'▲':'▼'}{Math.abs(r).toFixed(1)}</span>; } } return null; })()}{Number.isFinite(m.spec) && <span style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 700, minWidth: 24, textAlign: 'right' }}>{ord(m.spec)}</span>}<span className="chev">›</span></span>
                       </a>
