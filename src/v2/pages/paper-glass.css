@@ -27,10 +27,10 @@
 .home-v11.paper-page .mt-page-hero-inner,
 .home-v11.paper-page .paper-shell { max-width: none; margin: 0; }
 .home-v11.paper-page .paper-shell { padding: 0 4px 64px; }
-.home-v11.paper-page .mt-page-hero { padding: 6px 4px 20px; }
+.home-v11.paper-page .mt-page-hero { padding: 6px 4px 4px; }
 
 /* ── Hero: editorial card (left) + performance card (right), like Scanner */
-.home-v11.paper-page .mt-page-hero-inner { gap: 16px; align-items: stretch; grid-template-columns: minmax(0,1fr) 520px; }
+.home-v11.paper-page .mt-page-hero-inner { gap: 16px; align-items: stretch; grid-template-columns: minmax(0,1fr) 520px; padding: 0; }
 .home-v11.paper-page .mt-page-hero-left {
   background: var(--panel);
   -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
@@ -80,4 +80,14 @@
   padding: 11px 12px;
   color: var(--ink);
   font-weight: 600;
+}
+
+/* ── Hero/table edge alignment, tighter gap, and row-hover motion (Joe) ── */
+.home-v11.paper-page .paper-panel { margin-top: 14px !important; }
+.home-v11.paper-page .paper-table tbody tr { transition: background .16s ease, transform .16s ease, box-shadow .16s ease; }
+.home-v11.paper-page .paper-table tbody tr:not(.paper-cash-row):not(.paper-total-row):hover {
+  background: color-mix(in oklab, var(--acc) 8%, transparent);
+  transform: translateX(4px);
+  box-shadow: -4px 0 0 0 var(--acc);
+  cursor: pointer;
 }
