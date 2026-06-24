@@ -60,4 +60,9 @@
 /* Align toolbar + table to the hero (full width) and match the hero's 18px
    radius so all three cards read as one system (Joe: they didn't match). */
 .home-v11.indicators-page .al-toolbar,
-.home-v11.indicators-page .mt-tablecard { border-radius: 18px !important; }
+.home-v11.indicators-page .mt-tablecard { border-radius: 16px !important; }
+
+/* Hero uses the shared sc-ed editorial component (fonts identical to Paper/Scanner). */
+.home-v11.indicators-page .sc-hero-solo { margin: 0 0 14px; }
+.home-v11.indicators-page .sc-ed .ed-deck { font-size: 13px; color: var(--soft); line-height: 1.55; margin: 10px 0 0; }
+.home-v11.indicators-page .sc-ed .ed-deck b { color: var(--ink); font-weight: 700; }
