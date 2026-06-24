@@ -1,49 +1,41 @@
-/* Methodology — refactored 2026-05-27 per Joe Path-A directive.
+/* Methodology — content uplift + glass UX 2026-06-24.
 
-   Catalog violations resolved (5 of 5):
-   1. CHANGELOG hardcoded rows → moved to /methodology_changelog.json
-      (curated, owned by Senior Quant + Data Steward, registered in the
-      manifest as site-methodology_changelog-static).
-   2. Backtest paragraph numbers (CAGR 11.93%, Sharpe 0.61, Max DD
-      −32.1%, 2056 weeks, vs-SPY 11.16%/0.47/−54.6%) → derived from
-      /macrotilt_engine_backtest.json (validation.asset_tilt and
-      validation.spy and validation.n_weeks).
-   4. "Six sections. Plain English." → bound to SECTIONS.length (now 8).
-   5. VENDORS table → kept as labeled DESIGN CONFIG with explicit
-      Path-A exception #1 note (Joe: "Optional: derive from
-      data_manifest.json grouped by source_vendor, but content is the
-      same."). Content == manifest content.
+   Content re-sourced from production code (LESSONS 8.3 — methodology copy is
+   bound to what ships, never memory):
+   - §01 categories reconciled to the All Indicators filter (Rates, Credit,
+     Equities, Commodities, FX, Financial Conditions & Economy); the invented
+     word "domains" dropped; the regime-map ladder kept as a SEPARATE lens with
+     anchors re-sourced from RegimeCanvas.jsx (DOMAIN_Y / STATE_X).
+   - §02 engine stats now read validation.engine ("Regime + Defensive Sleeve"),
+     the live Macro Overview engine — NOT validation.asset_tilt (the retired
+     sector-allocation overlay). The equity grid + defensive sleeve mix are
+     re-sourced from scripts/compute_macrotilt_engine.py.
+   - §03 states the buy line (Score ≥ 5) explicitly.
+   - §04 rewritten as the automated $1M Paper Portfolio (the broker-CSV / Plaid
+     import it described is dead); TOC entry renamed "Paper Portfolio".
 
-   Style refactor (zero inline style props):
-   - Body uses .me-body wrapper (max-width 980, centered).
-   - Each article uses prototype .me-section (80/1fr grid) with .me-num
-     left-column display number, .me-h2 right-column display title,
-     .me-body-p paragraphs, .me-links button rows.
-   - TOC is a sticky left-rail nav (.me-toc.me-rail) inside a 2-col
-     .me-layout grid; scroll-spy highlights the active section. Collapses
-     to a stacked card above the content at <=900px (see pages.css).
-   - Changelog uses .me-changelog list (prototype grid-templated).
-   - Vendor table uses .me-vendors. */
+   Glass UX (home-v11 recipe): sc-ed hero, wrapped in home-v11 + .shell, token
+   bridge in methodology-glass.css, glass TOC rail + section cards aligned to
+   the hero width, 16px radius. Reading column stays capped/readable. */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
 import FreshnessChip from '../components/FreshnessChip';
+import '../styles/home-system.css';
+import '../styles/methodology-glass.css';
 
 const SECTIONS = [
   ['macro',     'Macro overview'],
   ['engine',    'Engine read'],
   ['scanner',   'Trading scanner'],
-  ['portfolio', 'Portfolio insights'],
+  ['portfolio', 'Paper Portfolio'],
   ['freshness', 'Data freshness contract'],
   ['sources',   'Data sources & vendors'],
   ['change',    'Changelog'],
 ];
 
-/* 2026-06-16 (Joe directive: nothing hardcoded): the vendor table is DERIVED
-   from public/data_manifest.json (the single source of truth) at runtime, so it
-   can never drift. Add or change a feed's source_vendor in the manifest and this
-   table updates itself. Plain-English column values come from the manifest's
-   category + consumer-surface fields, never raw element ids. */
+/* The vendor table is DERIVED from the data manifest (single source of truth)
+   at runtime, so it can never drift. */
 const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
   readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
   paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data' };
@@ -64,7 +56,6 @@ function fmtPctSigned(v, digits = 2) {
 export default function MethodologyPage() {
   const { active } = useIndicators();
   const liveIndicatorCount = active.length || '—';
-
 
   const [backtest, setBacktest] = useState(null);
   const [changelog, setChangelog] = useState(null);
@@ -131,48 +122,48 @@ export default function MethodologyPage() {
           if (e.isIntersecting) visible.set(e.target.id, e.intersectionRatio);
           else visible.delete(e.target.id);
         });
-        // Pick the section nearest the top of the viewport that is on screen.
         let best = null;
         for (const id of ids) {
           if (visible.has(id)) { best = id; break; }
         }
         if (best) setActiveId(best);
       },
-      // Trigger when a section crosses the upper third of the viewport.
       { rootMargin: '-80px 0px -65% 0px', threshold: [0, 0.1, 0.5, 1] }
     );
     els.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
-  const at = backtest?.validation?.asset_tilt;
+  // Engine stats read the LIVE engine series ("Regime + Defensive Sleeve"),
+  // not the retired sector-allocation overlay (validation.asset_tilt).
+  const eng = backtest?.validation?.engine;
   const spy = backtest?.validation?.spy;
   const nWeeks = backtest?.validation?.n_weeks;
   // Backtest values render em-dash when the backtest file fails to load —
-  // never a hardcoded number. FreshnessChip on the section reports staleness.
-  const cagrEngine = at ? fmtPct(at.cagr, 2) : '—';
+  // never a hardcoded number.
+  const cagrEngine = eng ? fmtPct(eng.cagr, 2) : '—';
   const cagrSpy   = spy ? fmtPct(spy.cagr, 2) : '—';
-  const sharpeEng = at ? at.sharpe.toFixed(2) : '—';
+  const sharpeEng = eng ? eng.sharpe.toFixed(2) : '—';
   const sharpeSpy = spy ? spy.sharpe.toFixed(2) : '—';
-  const ddEng     = at ? fmtPctSigned(at.max_drawdown, 1) : '—';
+  const ddEng     = eng ? fmtPctSigned(eng.max_drawdown, 1) : '—';
   const ddSpy     = spy ? fmtPctSigned(spy.max_drawdown, 1) : '—';
   const validatedWeeks = nWeeks ? nWeeks.toLocaleString() : '—';
-  const validatedRange = backtest?.calibration_label || '—';
+  // "1986-2026 validated (locked …)" → just the year range for clean prose.
+  const validatedRange = (backtest?.calibration_label || '').split(' validated')[0] || '—';
 
   const sectionsLiteral  = SECTIONS.length;
 
   return (
-    <div className="mt-pagebody me-body mt-fade">
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Methodology</div>
-          <h1 className="mt-h1">
-            How MacroTilt <i>actually</i> works.
-          </h1>
-          <p className="mt-deck">
-            {sectionsLiteral} sections. Plain English. Every page on the site
-            links here for the underlying logic. The full formula sheet and
-            data vendor table are at the bottom.
+    <div className="home-v11 methodology-page mt-fade">
+      <div className="shell">
+      <section className="sc-hero-solo">
+        <div className="glass sc-ed">
+          <div className="ed-eyebrow">● Methodology</div>
+          <h1>How MacroTilt <i>actually</i> works.</h1>
+          <p className="ed-deck">
+            {sectionsLiteral} sections, plain English. Every page on the site
+            links here for the logic behind the number. The full formula sheet
+            and data-vendor table are at the bottom.
           </p>
         </div>
       </section>
@@ -202,26 +193,34 @@ export default function MethodologyPage() {
           <div className="me-num">01</div>
           <div>
             <div className="mt-eyebrow">Macro overview</div>
-            <h2 className="me-h2">Five-domain backdrop · {liveIndicatorCount} indicators</h2>
+            <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
-              Every indicator on MacroTilt is classified into one of five domains: <b>Rates</b>, <b>Credit</b>,
-              <b> Equities</b>, <b>Money &amp; Banking</b>, and the real <b>Economy</b>. Within a domain, each
-              indicator has a <b>type</b> — Lead, Coincident, or Lag — based on its empirical timing vs.
-              the business cycle.
+              Every indicator on MacroTilt is sorted into one of the categories you can filter on the
+              All Indicators page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
+              <b> FX</b>, and <b>Financial Conditions &amp; Economy</b>. Within a category, each indicator is
+              tagged by where it sits in the business cycle — <b>Lead</b>, <b>Coincident</b>, or <b>Lag</b>.
             </p>
             <p className="me-body-p">
               <b>State</b> (Calm / Elevated / Extreme) is set by where today's reading sits in the
-              indicator's own <b>trailing 3-year</b> percentile distribution — the same window the
+              indicator's own <b>trailing 3-year</b> percentile range — the same window the
               positioning signals use. Cut-points depend on which tail of the indicator is unhealthy:
-              high-warns indicators go Elevated at the 75th percentile and Extreme at the 85th;
-              low-warns indicators go Elevated at the 25th and Extreme at the 15th; two-sided
+              high-warns indicators turn Elevated at the 75th percentile and Extreme at the 85th;
+              low-warns indicators turn Elevated at the 25th and Extreme at the 15th; two-sided
               indicators warn at both ends. The detail chart shades these same amber/red zones, so
               the pill and the chart always agree.
             </p>
+            <p className="me-body-p">
+              The <b>macro regime map</b> plots every indicator on two axes. Left-to-right is the
+              indicator's state — calm names sit left, extreme names sit right. Top-to-bottom groups
+              names on a five-rung macro ladder — Rates at the top, then Credit, Equities, Money, and
+              the real Economy at the bottom — so a glance shows which part of the system is under
+              stress. That ladder is a layout for the map only; it is a different lens from the
+              category filter above.
+            </p>
             <div className="me-formula">
-              state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both)<br />
-              stress_x  = state ∈ {`{extreme: +0.62, elevated: +0.18, calm: −0.55}`} + jitter<br />
-              regime_y  = domain_anchor ∈ {`{Rates: +0.40, Equities: +0.10, Credit: −0.05, Money: −0.25, Economy: −0.42}`}
+              state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both ends)<br />
+              map x (state)        = extreme +0.62 · elevated +0.20 · calm −0.55<br />
+              map y (macro ladder) = Rates +0.45 · Credit +0.20 · Equities −0.10 · Money −0.40 · Economy −0.65
             </div>
           </div>
         </article>
@@ -233,22 +232,25 @@ export default function MethodologyPage() {
             <div className="mt-eyebrow">Engine read</div>
             <h2 className="me-h2">Two axes set the regime · stress &amp; yield</h2>
             <p className="me-body-p">
-              Bond-market volatility (<b>MOVE</b>) sets the stress axis. The 3-month change in 10-year
-              Treasury yield (<b>3M Δ 10y</b>) sets the yield-regime axis. Together they define a 3×3 grid
-              (Risk On / Watch / Risk Off × Inflationary / Neutral / Deflationary). The cell sets the
-              equity-vs-defensive read and the defensive sleeve composition.
+              Bond-market volatility (<b>MOVE</b>) sets the <b>stress axis</b> — it decides how much of the
+              book sits in equities versus a defensive bucket. The 3-month change in the 10-year
+              Treasury yield (<b>3M Δ 10y</b>) sets the <b>yield axis</b> — it decides what goes inside that
+              defensive bucket when the engine de-risks, and does not change the equity weight.
             </p>
             <div className="me-formula">
               stress_signal = MOVE<br />
               stress_zone   = MOVE &lt; 116 → Risk On · 116 ≤ MOVE &lt; 124 → Watch · MOVE ≥ 124 → Risk Off<br />
+              equity_pct    = Risk On 100% · Watch 80% · Risk Off 50%  (set by stress alone)<br />
               yield_regime  = 3M Δ 10y ≥ +32 bp → Inflationary · ≤ −11 bp → Deflationary · else Neutral<br />
-              equity_pct    = lookup_grid(stress_zone, yield_regime)<br />
-              sleeve_mix    = inflationary ? 12% Au / 9% TLT / 4% Cash : 4% Au / 16% TLT / 5% Cash (only when stress ≥ Watch)
+              defensive_mix = Inflationary 50% cash / 30% gold / 20% short Treasuries ·
+              Deflationary 25% cash / 25% gold / 50% long Treasuries ·
+              Neutral 50% cash / 25% gold / 25% long Treasuries
             </div>
             <p className="me-body-p">
               <b>Validated {validatedRange}</b> over <b className="num">{validatedWeeks}</b> weeks.{' '}
               <b>CAGR {cagrEngine}</b> vs SPY {cagrSpy}, Sharpe {sharpeEng} vs {sharpeSpy},
-              max drawdown {ddEng} vs {ddSpy}. The defensive sleeve fires only when stress crosses Watch.{' '}
+              max drawdown {ddEng} vs {ddSpy} — the engine takes far less of the drawdown for a
+              comparable return. The defensive bucket fills only when stress crosses Watch.{' '}
               <FreshnessChip elementId="indicator-move-daily" variant="dot" />
             </p>
           </div>
@@ -262,7 +264,9 @@ export default function MethodologyPage() {
             <h2 className="me-h2">Four signals · one MacroTilt Score (0–10)</h2>
             <p className="me-body-p">
               Each ticker earns points from four inputs. They are added together — not weighted — into a
-              single score from 0 to 10. A name needs at least 3 points to make the list.
+              single score from 0 to 10. A name needs at least <b>3 points to appear</b> on the scanner;
+              the <b>buy line is a Score of 5</b> — that is the level at which the $1M Paper Portfolio
+              (section 04) actually buys a name.
             </p>
             <div className="me-formula">
               Insider (up to +4) + Technicals (+1 / −2) + Options shock (up to +4) + Dark pool (up to +2)<br />
@@ -288,19 +292,29 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 04 — Portfolio */}
+        {/* 04 — Paper Portfolio */}
         <article id="portfolio" className="me-section">
           <div className="me-num">04</div>
           <div>
-            <div className="mt-eyebrow">Portfolio insights</div>
-            <h2 className="me-h2">Cost-basis P/L, not just market value</h2>
+            <div className="mt-eyebrow">Paper Portfolio</div>
+            <h2 className="me-h2">The automated $1M paper book</h2>
             <p className="me-body-p">
-              Positions are imported from broker CSVs (Chase, Fidelity, Schwab) or wired via Plaid (coming
-              soon). Realized P/L uses the broker's taxable number as canonical; wash-sale disallowed losses
-              are preserved in the transaction ledger for future economic-P/L overlay but do not affect the
-              headline realized number.
+              MacroTilt runs a live <b>$1M paper portfolio</b> that trades the Trading Scanner long-only —
+              no manual input, no broker import. It buys every name <b>at or above the buy line (Score ≥ 5)</b>{' '}
+              and sizes each at <b>Score × $20K</b>: a Score of 5 buys $100K, 6 buys $120K, up to a Score of
+              10 at $200K. When total demand tops the $1M book it levers up to <b>2×</b> ($2M gross), filling
+              the highest-scored names first and pro-rating the marginal score band.
+            </p>
+            <p className="me-body-p">
+              The book is <b>signal-only</b>. A trade fires only when a name enters the list, drops off it
+              (sold in full), or its score moves enough to resize it past a tolerance band — never on price
+              drift alone. Every position is held at its <b>cost basis</b> and priced off the end-of-day
+              feed, the same prices the rest of the site uses, so profit and loss is cost-basis P/L, not a
+              live mark.
             </p>
             <div className="me-formula">
+              buy  = Score ≥ 5 · size = Score × $20K  (levers to 2× / $2M gross when demand exceeds the book)<br />
+              sell = Score &lt; 5 → exit the whole position<br />
               unrealized_pl_$   = market_value − cost_basis<br />
               unrealized_pl_pct = (market_value − cost_basis) / cost_basis
             </div>
@@ -327,7 +341,7 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full
               overnight price batch lands (the batch finishes between 2 AM and 8 AM ET the next morning,
-              not same-day). Four jobs run in sequence:
+              not same-day). Three jobs run in sequence:
             </p>
             <table className="me-vendors">
               <thead>
@@ -340,33 +354,25 @@ export default function MethodologyPage() {
               <tbody>
                 <tr>
                   <td>8:00 AM</td>
-                  <td>Massive</td>
+                  <td>Price batch</td>
                   <td>Pulls Polygon's full overnight price batch (~12,200 tickers).</td>
                 </tr>
                 <tr>
                   <td>8:30 AM</td>
-                  <td>Trading Ops scanner</td>
+                  <td>Trading scanner</td>
                   <td>Scans the universe on last night's close, writes the signal table.</td>
                 </tr>
                 <tr>
                   <td>9:00 AM</td>
                   <td>Paper Portfolio queue</td>
-                  <td>Queues rebalance trades into Alpaca for the 9:30 open.</td>
+                  <td>Queues rebalance trades for the 9:30 open.</td>
                 </tr>
               </tbody>
             </table>
             <p className="me-body-p">
               Each job is safe to re-run, and backup runs fire if any one job misses its window. Same-day
-              evening runs of Massive are kept as best-effort scraps so dashboard tiles can show a rough
+              evening price pulls are kept as best-effort scraps so dashboard tiles can show a rough
               close intra-evening — the canonical "data is complete" run is the 8 AM morning one.
-            </p>
-            <p className="me-body-p">
-              <b>Paper Portfolio sizing.</b> The $1M paper book follows the Trading Scanner long-only.
-              Each qualifying name (Score ≥ 5) is sized at <b>Score × $20K</b> — a Score of 5 buys
-              $100K, 6 buys $120K, up to a Score of 10 at $200K. When total demand exceeds the $1M book it
-              levers up to <b>2×</b> ($2M gross), filling the highest-scored names first and pro-rating the
-              marginal score band. Trades fire on signal changes only and are priced off the end-of-day feed;
-              the book rebalances daily on the open.
             </p>
             <p className="me-body-p">
               For per-feed freshness across all sources at any time, the <b>Admin · Data → Data Health</b>{' '}
@@ -437,6 +443,7 @@ export default function MethodologyPage() {
         </div>{/* /.me-content */}
        </div>{/* /.me-layout */}
       </section>
+      </div>{/* /.shell */}
     </div>
   );
 }
