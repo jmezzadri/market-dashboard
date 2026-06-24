@@ -142,15 +142,13 @@ function Shell() {
   // The Home route is the full-bleed Daily-Brief design (its own header +
   // ribbon). Every other route keeps the standard sidebar + top chrome until
   // Phase 2 brings them onto the same system.
-  const { pathname } = useLocation();
-  const isHome = pathname === '/';
   return (
     <div className="mt-overhaul">
       <div className="mt-app">
         <Sidebar />
-        <main className={`mt-main${isHome ? ' mt-main-home' : ''}`}>
-          {!isHome && <TopNav />}
-          {!isHome && <PageHeader />}
+        <main className="mt-main">
+          <TopNav />
+          <PageHeader />
           <ScrollToTop />
           <VersionWatch />
           <Routes>

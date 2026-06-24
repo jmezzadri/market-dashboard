@@ -5,6 +5,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import FreshnessChip from '../components/FreshnessChip';
+import TickerSearch from './TickerSearch';
 import { useTweaks } from '../tweaks/TweaksContext';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
 import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
@@ -182,10 +183,7 @@ export default function PageHeader() {
         <span className="mt-headmeta-sep" />
         <span><b>{today.split(', ')[0]}</b>, {today.split(', ').slice(1).join(', ')}</span>
       </div>
-      {/* Header search removed 2026-05-27 — the prior static
-          "Search tickers, indicators…" pill was unwired chrome
-          ported from the prototype. If a real command palette is ever
-          built, mount it here. */}
+      <TickerSearch />
       <div className="mt-headstatus">
         {/* Freshness pill rolls up the universe pipeline — when all
             ingest pipelines are green, this reads "All feeds healthy".

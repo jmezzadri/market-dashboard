@@ -162,19 +162,7 @@ export default function HomePage() {
     <div className="home-v11">
       <div className="shell">
 
-        {/* ── header ── */}
-        <div className="hdr">
-          <div className="logo">Macro<i>Tilt</i></div>
-          <div className="hdr-r">
-            <span className="pill">Prior close{newestAsOf ? ` · ${shortDate(newestAsOf)}` : ''}</span>
-            <span className="pill">Market {marketOpen ? 'open' : 'closed'} · {todayLabel}</span>
-            <div className="toggle" onClick={flip} role="button" aria-label="Toggle light or dark theme">
-              <span className="opt sun">☀</span><span className="opt moon">☾</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── ribbon ── */}
+{/* ── ribbon ── */}
         <div className="ribbon glass">
           {RIBBON.map((r) => {
             const lv = level(r.key);
