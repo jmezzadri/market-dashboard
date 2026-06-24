@@ -162,7 +162,6 @@
 @media(max-width:1040px){.home-v11 .layout{grid-template-columns:1fr}.home-v11 .ribbon{flex-wrap:wrap}}
 
 /* Full-bleed Home: neutralize the app shell's sidebar/main padding on `/`. */
-.mt-app-home { display: block !important; }
 .mt-main-home { padding: 0 !important; max-width: none !important; width: 100%; }
 
 /* build 1782258781 */

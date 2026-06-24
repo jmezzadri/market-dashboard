@@ -180,7 +180,7 @@ export default function HomePage() {
             const lv = level(r.key);
             const d = ddParts(lv?.dd, r.dec);
             return (
-              <a key={r.key} className="rc" href="/indicators" onClick={go('/indicators')}>
+              <a key={r.key} className="rc" href="/macro" onClick={go('/macro')}>
                 <span className="rk">{r.label}</span>
                 <span className="rv num">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
                 <span className={`rd ${d.cls}`}>{d.arrow}{d.txt} close</span>
@@ -311,7 +311,7 @@ export default function HomePage() {
                   const lv = level(row.key);
                   const d = ddParts(lv?.dd, row.dec);
                   return (
-                    <a key={row.key} className="lk irow" href="/indicators" onClick={go('/indicators')}>
+                    <a key={row.key} className="lk irow" href="/macro" onClick={go('/macro')}>
                       <span className="g1">{row.g}</span>
                       <span style={{ marginLeft: 'auto' }}>{row.name} <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
                         <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span><span className="chev">›</span></span>

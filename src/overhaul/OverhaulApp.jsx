@@ -146,8 +146,8 @@ function Shell() {
   const isHome = pathname === '/';
   return (
     <div className="mt-overhaul">
-      <div className={`mt-app${isHome ? ' mt-app-home' : ''}`}>
-        {!isHome && <Sidebar />}
+      <div className="mt-app">
+        <Sidebar />
         <main className={`mt-main${isHome ? ' mt-main-home' : ''}`}>
           {!isHome && <TopNav />}
           {!isHome && <PageHeader />}
