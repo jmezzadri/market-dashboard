@@ -54,6 +54,7 @@ export const INDICATOR_COLS = {
   dark:    { key: 'dark',    label: 'Dark-pool pts',         head: 'Dark',     w: '46px' },
   short:   { key: 'short',   label: 'Short interest %',      head: 'Short %',  w: '58px',  grow: 1 },
   flow:    { key: 'flow',    label: 'Options flow net $',    head: 'Flow $',   w: '62px' },
+  trend:   { key: 'trend',   label: 'Score trend',           head: 'Trend',    w: '76px' },
   score:   { key: 'score',   label: 'Score',                 head: 'Score',    w: '54px',  grow: 0.6, locked: true },
 };
 
@@ -67,6 +68,7 @@ export const INDICATOR_COL_KEYS = [
   'rsi', 'vs200', 'rvol', 'ivrank',                // Technicals
   'insider', 'tech', 'options', 'dark', 'flow',    // Signal scores
   'mktcap', 'short', 'earn',                       // Other
+  'trend',                                         // Score trend
   'score',                                         // MacroTilt Score
 ];
 
@@ -80,7 +82,7 @@ export const COL_GROUP = {
   rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', ivrank: 'technicals',
   insider: 'signals', tech: 'signals', options: 'signals', dark: 'signals', flow: 'signals',
   mktcap: 'other', short: 'other', earn: 'other',
-  score: 'score',
+  trend: 'score', score: 'score',
 };
 export const GROUP_LABEL = {
   stock: 'Stock',
@@ -140,6 +142,7 @@ const SORT_ACCESSORS = {
   dark:     (r) => num(r.dark_pool_pts),
   short:    (r) => num(r.si_float_pct),
   flow:     (r) => num(r.flow_net_call_prem_usd),
+  trend:    (r) => num(r.scoreDelta),
   score:    (r) => num(r.score),
 };
 
@@ -515,10 +518,44 @@ export default function ScanList({
               );
             case 'score':
               return (
-                <div key={k} style={{ display: 'flex', justifyContent: 'center' }}>
+                <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <ScoreDial score={r.score} max={10} size={42} />
+                  {Number.isFinite(Number(r.daysOnList)) && r.daysOnList > 0 && (
+                    <Tip content={`On the list ${r.daysOnList} straight scan day${r.daysOnList > 1 ? 's' : ''}`} bare>
+                      <span className="sc-tenure num">{r.daysOnList}d</span>
+                    </Tip>
+                  )}
                 </div>
               );
+            case 'trend': {
+              const series = Array.isArray(r.scoreSeries) ? r.scoreSeries : null;
+              const dlt = num(r.scoreDelta);
+              const dir = dlt == null ? 'new' : dlt > 0 ? 'up' : dlt < 0 ? 'down' : 'flat';
+              const tcol = dir === 'up' ? 'var(--mt-up)' : dir === 'down' ? 'var(--mt-down)'
+                : dir === 'new' ? 'var(--mt-accent)' : 'var(--mt-ink-3)';
+              const arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '';
+              const mag = dlt == null ? '' : Math.abs(dlt).toFixed(Math.abs(dlt) % 1 === 0 ? 0 : 2);
+              const deltaTxt = dir === 'new' ? 'new' : dir === 'flat' ? 'flat' : `${arrow}${mag}`;
+              const pathTxt = series && series.length ? series.map((p) => p.s).join(' → ') : '—';
+              const headline = dlt == null ? 'New to the list today'
+                : dir === 'flat' ? 'Same score as the prior scan day'
+                : `${dir === 'up' ? 'Up' : 'Down'} ${mag} vs the prior scan day`;
+              const tipNode = (
+                <span>{headline}<br />
+                  <span style={{ opacity: 0.85 }}>Path: {pathTxt}{r.scorePeak != null ? ` · peak ${r.scorePeak}` : ''}</span>
+                </span>
+              );
+              return (
+                <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, width: '100%' }}>
+                  <Tip content={tipNode} bare>
+                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <ScoreSpark series={series} color={tcol} />
+                      <span className="num" style={{ fontSize: 10, fontWeight: 700, color: tcol, lineHeight: 1 }}>{deltaTxt}</span>
+                    </span>
+                  </Tip>
+                </div>
+              );
+            }
             case 'price':
               return price != null ? (
                 <div key={k} style={{ textAlign: indicatorColumns ? 'right' : 'left' }}>
@@ -845,5 +882,30 @@ function Facet({ label, active, color }) {
     >
       {label}
     </span>
+  );
+}
+
+/* ScoreSpark — tiny score-path line for the Trend column. Unlike the price
+   Sparkline it centers a flat series (a steady score reads as a flat middle
+   line, not a line pinned to the floor). Series is the name's own list-days. */
+function ScoreSpark({ series, color, width = 60, height = 18 }) {
+  const vals = Array.isArray(series) ? series.map((p) => Number(p.s)).filter(Number.isFinite) : [];
+  if (vals.length === 0) {
+    return <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden />;
+  }
+  const pad = 2;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min;
+  const stepX = (width - pad * 2) / Math.max(1, vals.length - 1);
+  const yOf = (v) => (range === 0 ? height / 2 : height - pad - ((v - min) / range) * (height - pad * 2));
+  const pts = vals.map((v, i) => [pad + i * stepX, yOf(v)]);
+  const dPath = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', overflow: 'visible' }}>
+      <path d={dPath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={last[0]} cy={last[1]} r={2} fill={color} />
+    </svg>
   );
 }
