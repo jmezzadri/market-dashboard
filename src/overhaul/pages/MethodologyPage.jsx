@@ -31,7 +31,6 @@ const SECTIONS = [
   ['portfolio', 'Paper Portfolio'],
   ['freshness', 'Data freshness contract'],
   ['sources',   'Data sources & vendors'],
-  ['change',    'Changelog'],
 ];
 
 /* The vendor table is DERIVED from the data manifest (single source of truth)
@@ -58,7 +57,6 @@ export default function MethodologyPage() {
   const liveIndicatorCount = active.length || '—';
 
   const [backtest, setBacktest] = useState(null);
-  const [changelog, setChangelog] = useState(null);
   const [manifest, setManifest] = useState(null);
   const [activeId, setActiveId] = useState(SECTIONS[0][0]);
 
@@ -87,10 +85,6 @@ export default function MethodologyPage() {
     fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setBacktest(j); })
-      .catch(() => {});
-    fetch('/methodology_changelog.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && Array.isArray(j?.entries)) setChangelog(j.entries); })
       .catch(() => {});
     fetch('/data_manifest.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
@@ -414,32 +408,6 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 07 — Changelog */}
-        <article id="change" className="me-section">
-          <div className="me-num">07</div>
-          <div>
-            <div className="mt-eyebrow">Changelog</div>
-            <h2 className="me-h2">What changed, when</h2>
-            <p className="me-body-p">
-              Material changes to the engine, indicator framework, or scoring math.{' '}
-              <FreshnessChip elementId="site-methodology_changelog-static" variant="dot" />
-            </p>
-            {changelog === null ? (
-              <ul className="me-changelog">
-                <li><b className="num">—</b><span>Loading changelog…</span></li>
-              </ul>
-            ) : (
-              <ul className="me-changelog">
-                {changelog.map((c) => (
-                  <li key={c.date}>
-                    <b className="num">{c.date}</b>
-                    <span>{c.note}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </article>
         </div>{/* /.me-content */}
        </div>{/* /.me-layout */}
       </section>
