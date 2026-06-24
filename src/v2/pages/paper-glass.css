@@ -25,7 +25,7 @@
 /* ── Content measure: full-bleed glass backdrop, readable centered content */
 .home-v11.paper-page .mt-page-hero,
 .home-v11.paper-page .mt-page-hero-inner,
-.home-v11.paper-page .paper-shell { max-width: 1640px; margin: 0 auto; }
+.home-v11.paper-page .paper-shell { max-width: none; margin: 0; }
 .home-v11.paper-page .paper-shell { padding: 0 4px 64px; }
 .home-v11.paper-page .mt-page-hero { padding: 6px 4px 20px; }
 
