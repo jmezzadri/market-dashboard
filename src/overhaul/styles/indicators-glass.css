@@ -40,3 +40,19 @@
 .home-v11.indicators-page .al-table tbody tr:hover { background: color-mix(in oklab, var(--acc) 7%, transparent); }
 .home-v11.indicators-page .mt-pill { background: var(--pill); border: 1px solid var(--pill-bd); }
 .home-v11.indicators-page .mt-pill.on { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+/* ── Indicator detail modal (shared by Indicators + Macro; portals to <body>),
+      frosted glass, light + navy. ===================================== */
+.ind-detail.mt-card {
+  background: rgba(255,255,255,.82) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.6) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 26px 64px -18px rgba(20,30,60,.5) !important;
+}
+[data-mt-theme='dark'] .ind-detail.mt-card,
+[data-mt-theme='navy'] .ind-detail.mt-card {
+  background: rgba(19,33,60,.90) !important;
+  border-color: rgba(140,165,220,.18) !important;
+  box-shadow: 0 30px 72px -20px rgba(2,8,23,.72) !important;
+}
