@@ -593,7 +593,7 @@ export default function MacroPage() {
         <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: '#0f1622', color: '#eef2f8', padding: '9px 12px', borderRadius: 9, fontSize: 11.5, lineHeight: 1.45, maxWidth: 320, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      <div className="shell" style={{ maxWidth: 1320, paddingTop: 6 }}>
+      <div className="shell" style={{ paddingTop: 6 }}>
 
         <div style={{ marginBottom: 14 }}>
           <div className="ed-eyebrow">● Macro Overview</div>
