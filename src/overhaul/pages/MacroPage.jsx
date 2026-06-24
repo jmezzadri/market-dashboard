@@ -590,7 +590,7 @@ export default function MacroPage() {
   return (
     <div className="home-v11 mt-fade">
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--ink)', color: 'var(--page2)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: '#0f1622', color: '#eef2f8', padding: '9px 12px', borderRadius: 9, fontSize: 11.5, lineHeight: 1.45, maxWidth: 320, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
       <div className="shell" style={{ maxWidth: 1320, paddingTop: 6 }}>
