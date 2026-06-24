@@ -159,7 +159,7 @@ export default function ScannerPage() {
         document.body,
       )}
 
-      <div className="shell" style={{ maxWidth: 1320, paddingTop: 6 }}>
+      <div className="shell" style={{ paddingTop: 6 }}>
         {/* Hero — editorial left, scan card right */}
         <section className="sc-hero">
           <div className="glass sc-ed">
