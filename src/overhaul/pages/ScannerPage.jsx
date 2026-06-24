@@ -167,7 +167,7 @@ export default function ScannerPage() {
             <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
             <ul className="impl">
               <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
-              <li><b>{counts.b5} buy signals today</b> at Score ≥ 5 — the buy line; {universeTotal} names on the watch list in all, ranked by score.{' '}
+              <li><b>Scanner indicates a buy with a Score ≥ 5</b>; position size is Score × $20K.{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
             </ul>
           </div>
