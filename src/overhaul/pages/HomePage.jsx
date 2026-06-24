@@ -55,13 +55,13 @@ function weekdayDate(iso) {
 }
 
 const RIBBON = [
-  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '' },
-  { key: 'move', label: 'MOVE', dec: 0, suffix: '' },
-  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%' },
-  { key: 'vix', label: 'VIX', dec: 1, suffix: '' },
-  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '' },
-  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '' },
-  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '' },
+  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', route: '/ticker/SPY' },
+  { key: 'move', label: 'MOVE', dec: 0, suffix: '', route: '/indicators?ind=move' },
+  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', route: '/indicators?ind=ust_10y' },
+  { key: 'vix', label: 'VIX', dec: 1, suffix: '', route: '/indicators?ind=vix' },
+  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', route: '/indicators?ind=fx_jpy' },
+  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', route: '/indicators?ind=hy_ig' },
+  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', route: '/indicators?ind=cmdty_copper' },
 ];
 
 const IND_ROWS = [
@@ -180,7 +180,7 @@ export default function HomePage() {
             const lv = level(r.key);
             const d = ddParts(lv?.dd, r.dec);
             return (
-              <a key={r.key} className="rc" href="/macro" onClick={go('/macro')}>
+              <a key={r.key} className="rc" href={r.route} onClick={go(r.route)}>
                 <span className="rk">{r.label}</span>
                 <span className="rv num">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
                 <span className={`rd ${d.cls}`}>{d.arrow}{d.txt} close</span>
@@ -192,7 +192,7 @@ export default function HomePage() {
         <div className="layout">
 
           {/* ── LEFT: editorial ── */}
-          <div className="glass editorial">
+          <div className="glass editorial" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
             <div className="ed-eyebrow">● {brief?.eyebrow || 'Morning Brief'}</div>
             <h1>{brief?.headline || 'Reading the tape…'}</h1>
             {brief?.stance && <Html tag="p" className="stance" html={brief.stance} />}
@@ -201,7 +201,7 @@ export default function HomePage() {
               <div className="hl news">
                 <h3>Key News &amp; Events</h3>
                 {brief.news.map((n, i) => (
-                  <div className="ni" key={i}><span className="d" /><div><b>{n.head}</b> — <Html html={n.body} /></div></div>
+                  <div className="ni" key={i}><span className="d" /><div><b><Html html={n.head} /></b> — <Html html={n.body} /></div></div>
                 ))}
               </div>
             )}
@@ -217,7 +217,7 @@ export default function HomePage() {
               <div className="hl watch">
                 <h3>What to Watch Today</h3>
                 {brief.watch.map((w, i) => (
-                  <div className="wi" key={i}><span className="d" /><div><b>{w.head}</b> — <Html html={w.body} /></div></div>
+                  <div className="wi" key={i}><span className="d" /><div><b><Html html={w.head} /></b> — <Html html={w.body} /></div></div>
                 ))}
               </div>
             )}
@@ -252,7 +252,7 @@ export default function HomePage() {
               <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
               <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
 
-              <div className="g">
+              <a className="g lk" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ display: 'block' }}>
                 <div className="gtop"><span className="gname">Stress signal · MOVE</span>
                   <span className="gval num">{fmt(regime.move, 0)} <small>{(() => { const d = ddParts(level('move')?.dd, 0); return `${d.arrow}${d.txt} d/d`; })()}</small></span></div>
                 <div className="gtrack">
@@ -263,9 +263,9 @@ export default function HomePage() {
                 </div>
                 <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
                 <div className={`gstate ${stressCls}`}>● {stressMsg}</div>
-              </div>
+              </a>
 
-              <div className="g">
+              <a className="g lk" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ display: 'block' }}>
                 <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span>
                   <span className="gval num">{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <small>bp</small></span></div>
                 <div className="gtrack">
@@ -276,7 +276,7 @@ export default function HomePage() {
                 </div>
                 <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
                 <div className={`gstate ${yCls}`}>● {yMsg}</div>
-              </div>
+              </a>
             </div>
 
             {/* Movers */}
@@ -311,7 +311,7 @@ export default function HomePage() {
                   const lv = level(row.key);
                   const d = ddParts(lv?.dd, row.dec);
                   return (
-                    <a key={row.key} className="lk irow" href="/macro" onClick={go('/macro')}>
+                    <a key={row.key} className="lk irow" href={`/indicators?ind=${row.key}`} onClick={go(`/indicators?ind=${row.key}`)}>
                       <span className="g1">{row.g}</span>
                       <span style={{ marginLeft: 'auto' }}>{row.name} <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
                         <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span><span className="chev">›</span></span>
@@ -327,7 +327,7 @@ export default function HomePage() {
                 <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/macro" onClick={go('/macro')}>Macro Overview</a></div>
               <div style={{ marginTop: 3 }}>
                 {(posRows || []).map((p, i) => (
-                  <a key={i} className="lk prow" href="/macro" onClick={go('/macro')}>
+                  <a key={i} className="lk prow" href={`/macro?pos=${encodeURIComponent(p.rawMarket || p.market)}`} onClick={go(`/macro?pos=${encodeURIComponent(p.rawMarket || p.market)}`)}>
                     <span>{p.market}</span>
                     <span><span className={`lean ${p.lean}`}>{p.label}</span><span className="chev">›</span></span>
                   </a>
