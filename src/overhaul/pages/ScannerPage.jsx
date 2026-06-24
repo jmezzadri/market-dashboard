@@ -1,19 +1,27 @@
-/* Trading Scanner — refactored 2026-05-27 per Joe Path-A directive.
+/* Trading Scanner — Liquid-Glass rebuild (Phase 2 site-wide redesign).
 
-   2026-06-17 PM (Joe): columns grouped into Stock / Performance / Technicals /
-   MacroTilt signal scores / Other / Score (a grouped header tier renders above
-   the column labels). Every column shows by default; a small gear opens a
-   show/hide chooser. Reorder by dragging the header cells on the table itself;
-   click a header to sort. Row hover is animated. The score-band boxes in the
-   hero are plain counts, not filters. */
+   Converted to the home-v11 glass design system to match Home + Macro
+   Overview: serif editorial hero, glass cards, light + navy themes, instant
+   styled tooltips. The results table (ScanList) keeps all of its behaviour —
+   every column shown by default, a gear show/hide chooser, drag a header to
+   reorder, click a header to sort, click a row to drill — and is reskinned to
+   glass through a token bridge in scanner-glass.css (no edit to the shared
+   table component). Every value remains live; the scan keeps its freshness
+   chip. Score-band boxes in the hero are plain counts, not filters.
+
+   History: refactored 2026-05-27 (Path-A); columns grouped 2026-06-17. */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
+import useScanScoreHistory from '../../hooks/useScanScoreHistory';
 import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
+import '../styles/home-system.css';
+import '../styles/scanner-glass.css';
 
 function bucketFor(s) {
   if (s >= 4.5) return 'b5';
@@ -22,17 +30,16 @@ function bucketFor(s) {
 }
 
 const BUCKETS = [
-  { key: 'b5', label: 'Score 4.5+',     proto: 'sc-bucket--score7' },
-  { key: 'b4', label: 'Score 3.5–4.49', proto: 'sc-bucket--score5' },
-  { key: 'b3', label: 'Score 3.0–3.49', proto: 'sc-bucket--score3' },
+  { key: 'b5', cls: 'b5', label: 'Score 4.5+',     tip: 'Names scoring 4.5 or higher on today’s scan — the strongest signal cluster.' },
+  { key: 'b4', cls: 'b4', label: 'Score 3.5–4.49', tip: 'Names scoring between 3.5 and 4.49 today.' },
+  { key: 'b3', cls: 'b3', label: 'Score 3.0–3.49', tip: 'Names scoring between 3.0 and 3.49 — the entry threshold to make the list.' },
 ];
 
-// v5 (2026-06-17 PM): saved state is column order + show/hide. Every column is
-// ON by default; the gear only hides what you opt out of. Reorder happens by
-// dragging the header cells on the table. Ticker pinned left, Score pinned
-// right. Key bump clears older saved layouts so everyone lands on the full
-// grouped set once.
-const COLS_KEY = 'mt-scanner-cols-v5';
+// Saved state is column order + show/hide. Every column is ON by default; the
+// gear only hides what you opt out of. Reorder by dragging the header cells on
+// the table. Ticker pinned left, Score pinned right. Key bump clears older
+// saved layouts so everyone lands on the full grouped set once.
+const COLS_KEY = 'mt-scanner-cols-v6';
 const LOCKED = ['ticker', 'score'];
 const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({ key, on: true }));
 
@@ -53,11 +60,16 @@ function loadColState() {
 
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
+  const { byTicker: scoreHist, movers, priorDate } = useScanScoreHistory();
   const [drillOpenKey, setDrillOpenKey] = useState(null);
   const [colState, setColState] = useState(loadColState);
   const [showCols, setShowCols] = useState(false);
   const [toast, setToast] = useState(null);
+  const [tip, setTip] = useState(null);
   const navigate = useNavigate();
+
+  const showTip = (e, text) => { const r = e.currentTarget.getBoundingClientRect(); setTip({ text, x: r.left + r.width / 2, y: r.top }); };
+  const hideTip = () => setTip(null);
 
   useEffect(() => {
     try { localStorage.setItem(COLS_KEY, JSON.stringify(colState)); } catch { /* ignore */ }
@@ -70,8 +82,18 @@ export default function ScannerPage() {
   const hiddenCount = colState.length - activeColumns.length;
 
   const rows = useMemo(
-    () => (rawRows || []).map((r) => ({ ...r, bucket: bucketFor(Number(r.score) || 0) })),
-    [rawRows],
+    () => (rawRows || []).map((r) => {
+      const h = scoreHist[r.ticker];
+      return {
+        ...r,
+        bucket: bucketFor(Number(r.score) || 0),
+        scoreSeries: h?.series || null,
+        scoreDelta: h?.delta ?? null,
+        daysOnList: h?.daysOnList ?? null,
+        scorePeak: h?.peak ?? null,
+      };
+    }),
+    [rawRows, scoreHist],
   );
 
   const counts = useMemo(() => {
@@ -109,71 +131,93 @@ export default function ScannerPage() {
 
   const universeTotal = bandCounts.total || rows.length || 0;
 
-  return (
-    <div className="mt-pagebody mt-fade">
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">Trading scanner</div>
-          <h1 className="mt-h1">
-            Cutting through the noise with <i>proprietary signal intelligence</i>{' '}
-            to find trading opportunities.
-          </h1>
-          <ul className="at-subbullets">
-            <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
-            <li><b>{universeTotal} long alerts today</b>, ranked by score.{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
-          </ul>
-        </div>
-        <div className="sc-results">
-          <div className="sc-results-head">
-            <div className="mt-eyebrow">
-              Today's scan{scanDate ? ` · ${scanDate}` : ''}
-            </div>
-            <FreshnessChip
-              elementId="equity-latest_scan_data-daily"
-              variant="label"
-              fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
-            />
-          </div>
-          <div className="sc-buckets">
-            {BUCKETS.map((b) => (
-              <div key={b.key} className={`sc-bucket ${b.proto}`}>
-                <span className="num">{counts[b.key] || 0}</span>
-                <span>{b.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+  // Plain-English copy for the four scoring inputs (kept verbatim from the
+  // approved scanner copy).
+  const BUILD_COPY = {
+    'Insider': {
+      max: '+4',
+      rule: 'Open-market buys filed in the last 30 days. Points fire on the rules — not a raw buy count: a C-suite officer lifting their own stake ≥10% (≥$100k), combined buying worth ≥0.05% of the company, or 3+ different insiders buying. Capped at +4 and faded for age — full weight ≤15 days, gone by 31.',
+    },
+    'Technicals': {
+      max: '+1 / −2',
+      rule: '+1 when it trades above its 200-day line, −2 below; a further −2 if the 14-day RSI is overbought (above 65).',
+    },
+    'Options shock': {
+      max: '+4',
+      rule: 'An unusual surge in call buying versus the contract’s own prior open interest.',
+    },
+    'Dark pool': {
+      max: '+2',
+      rule: 'Large off-exchange block prints clustered near the day’s average price.',
+    },
+  };
 
-      {/* Results — grouped columns, all shown. Gear hides columns; drag a header
-          to move a column; click a header to sort. Wide table scrolls sideways. */}
-      <section className="mt-pagesection mt-pagesection--tight2">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 10, position: 'relative' }}>
-          <span className="mt-eyebrow" style={{ marginRight: 'auto', color: 'var(--mt-ink-3)' }}>
-            Drag a column header to reorder · click to sort
-          </span>
+  return (
+    <div className="home-v11 mt-fade sc-page">
+      {tip && createPortal(
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: '#0f1622', color: '#eef2f8', padding: '9px 12px', borderRadius: 9, fontSize: 11.5, lineHeight: 1.45, maxWidth: 320, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)' }}>{tip.text}</div>,
+        document.body,
+      )}
+
+      <div className="shell" style={{ maxWidth: 1320, paddingTop: 6 }}>
+        {/* Hero — editorial left, scan card right */}
+        <section className="sc-hero">
+          <div className="glass sc-ed">
+            <div className="ed-eyebrow">● Trading scanner</div>
+            <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
+            <ul className="impl">
+              <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
+              <li><b>{universeTotal} long alerts today</b>, ranked by score.{' '}
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
+            </ul>
+          </div>
+
+          <div className="glass sc-scan">
+            <div className="sc-scantop">
+              <div className="label">Today’s scan{scanDate ? ` · ${scanDate}` : ''}</div>
+              <FreshnessChip
+                elementId="equity-latest_scan_data-daily"
+                variant="dot"
+                fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
+              />
+            </div>
+            <ScanMovers movers={movers} priorDate={priorDate} onPick={(tk) => navigate(`/ticker/${tk}`)} />
+            <div className="sc-bands">
+              {BUCKETS.map((b) => (
+                <div
+                  key={b.key}
+                  className={`sc-band ${b.cls}`}
+                  onMouseEnter={(e) => showTip(e, b.tip)}
+                  onMouseLeave={hideTip}
+                >
+                  <div className="n">{counts[b.key] || 0}</div>
+                  <div className="l">{b.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Results — grouped columns, all shown. Gear hides columns; drag a
+            header to move a column; click a header to sort. */}
+        <div className="sc-toolbar">
+          <span className="sc-hint">Drag a column header to reorder · click to sort</span>
           <button
             type="button"
-            className={`mt-btn ${showCols ? 'on' : ''}`}
+            className={`sc-gear ${showCols ? 'on' : ''}`}
             onClick={() => setShowCols((v) => !v)}
-            title="Show or hide columns"
             aria-label="Show or hide columns"
-            style={{ fontSize: 20, lineHeight: 1, padding: '7px 11px' }}
+            onMouseEnter={(e) => showTip(e, 'Show or hide columns')}
+            onMouseLeave={hideTip}
           >
             <span aria-hidden="true">⚙</span>
-            {hiddenCount > 0 && <span className="sc-colcount num" style={{ fontSize: 11 }}>{activeColumns.length}/{colState.length}</span>}
+            {hiddenCount > 0 && <span className="cnt">{activeColumns.length}/{colState.length}</span>}
           </button>
           {showCols && (
-            <div
-              className="sc-colpicker mt-fade"
-              style={{ position: 'absolute', top: '100%', right: 0, zIndex: 30, marginTop: 6, minWidth: 300 }}
-            >
-              <div className="sc-filterhead">
-                <div className="mt-eyebrow">Show / hide columns</div>
-                <button type="button" className="sc-linkbtn" onClick={() => setColState(DEFAULT_COL_STATE)}>
-                  Show all
-                </button>
+            <div className="sc-colpick mt-fade">
+              <div className="ph">
+                <div className="label">Show / hide columns</div>
+                <button type="button" className="lnk" onClick={() => setColState(DEFAULT_COL_STATE)}>Show all</button>
               </div>
               <div className="sc-colgrid">
                 {colState.map(({ key, on }) => {
@@ -181,86 +225,105 @@ export default function ScannerPage() {
                   const locked = LOCKED.includes(key);
                   const isOn = on || locked;
                   return (
-                    <label key={key} className={`sc-coltoggle ${isOn ? 'on' : ''} ${locked ? 'locked' : ''}`}>
+                    <label key={key} className={`sc-ctog ${isOn ? 'on' : ''} ${locked ? 'locked' : ''}`}>
                       <input type="checkbox" checked={isOn} disabled={locked} onChange={() => toggleCol(key)} />
                       <span>{col.label}</span>
-                      {locked && <span className="sc-collock">🔒</span>}
+                      {locked && <span aria-hidden="true">🔒</span>}
                     </label>
                   );
                 })}
               </div>
-              <div className="sc-filterfoot mt-eyebrow">
-                Reorder by dragging the column headers on the table.
-              </div>
+              <div className="sc-foot">Reorder by dragging the column headers on the table.</div>
             </div>
           )}
         </div>
 
-        {loading ? (
-          <div className="mt-loadingcard">Loading scan results…</div>
-        ) : (
-          <ScanList
-            rows={rows}
-            drillOpenKey={drillOpenKey}
-            setDrillOpenKey={setDrillOpenKey}
-            indicatorColumns
-            columns={activeColumns}
-            onReorderColumn={reorderColumn}
-            renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
-          />
-        )}
-        {toast && <div className="mt-toast mt-fade">{toast}</div>}
-      </section>
+        <div className="glass sc-tablecard">
+          {loading ? (
+            <div className="sc-loading">Loading scan results…</div>
+          ) : (
+            <ScanList
+              rows={rows}
+              drillOpenKey={drillOpenKey}
+              setDrillOpenKey={setDrillOpenKey}
+              indicatorColumns
+              columns={activeColumns}
+              onReorderColumn={reorderColumn}
+              renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
+            />
+          )}
+        </div>
+        {toast && <div className="sc-toast mt-fade">{toast}</div>}
 
-      {/* How the score is built */}
-      <section className="mt-pagesection">
-        <div className="mt-card">
-          <div className="mt-sectionhead">
+        {/* How the score is built */}
+        <div className="glass sc-build">
+          <div className="sc-buildhead">
             <div>
-              <div className="mt-eyebrow">How the score is built</div>
-              <div className="mt-h2">Four inputs, summed into one 0–10 score · a name needs ≥3 from insider + trend to launch.</div>
+              <div className="ed-eyebrow">How the score is built</div>
+              <h2>Four inputs, summed into one 0–10 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
-            <button
-              type="button"
-              className="mt-btn mt-btn--ghost"
-              onClick={() => navigate('/methodology#scanner')}
-            >
+            <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>
               Full methodology →
             </button>
           </div>
           <div className="sc-buildgrid">
             {SCORE_COMPONENTS.map((c) => {
-              const d = {
-                'Insider': {
-                  max: '+4',
-                  rule: "Open-market buys filed in the last 30 days. Points fire on the rules — not a raw buy count: a C-suite officer lifting their own stake ≥10% (≥$100k), combined buying worth ≥0.05% of the company, or 3+ different insiders buying. Capped at +4 and faded for age — full weight ≤15 days, gone by 31.",
-                },
-                'Technicals': {
-                  max: '+1 / −2',
-                  rule: '+1 when it trades above its 200-day line, −2 below; a further −2 if the 14-day RSI is overbought (above 65).',
-                },
-                'Options shock': {
-                  max: '+4',
-                  rule: "An unusual surge in call buying versus the contract's own prior open interest.",
-                },
-                'Dark pool': {
-                  max: '+2',
-                  rule: "Large off-exchange block prints clustered near the day's average price.",
-                },
-              }[c.key] || { max: '', rule: c.why };
+              const d = BUILD_COPY[c.key] || { max: '', rule: c.why };
               return (
                 <div key={c.key} className="sc-buildcell">
-                  <div className="mt-eyebrow">{c.key}</div>
-                  <div className="sc-buildwhy">{d.rule}</div>
-                  <div className="sc-buildw">
-                    up to <b className="num">{d.max}</b>
-                  </div>
+                  <div className="k">{c.key}</div>
+                  <div className="why">{d.rule}</div>
+                  <div className="w">up to <b>{d.max}</b></div>
                 </div>
               );
             })}
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
+
+/* Short month-day label, e.g. "Jun 22". */
+function fmtDay(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${MO[Number(m[2]) - 1]} ${Number(m[3])}`;
+}
+
+/* Compact score: whole numbers bare, fractions to two places trimmed. */
+function fmtScore(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
+}
+
+/* Biggest day-over-day score moves, ranked by magnitude. Green = climbing,
+   red = cooling. Fills the Today's Scan card; degrades to a plain line on a
+   quiet day so it never looks empty. */
+function ScanMovers({ movers, priorDate, onPick }) {
+  const list = Array.isArray(movers) ? movers.slice(0, 6) : [];
+  return (
+    <div className="sc-movers">
+      <div className="label">Biggest score moves{priorDate ? ` · since ${fmtDay(priorDate)}` : ''}</div>
+      {list.length === 0 ? (
+        <div className="sc-movers-empty">No score changes since the prior scan.</div>
+      ) : (
+        <div className="sc-movers-list">
+          {list.map((m) => {
+            const up = m.delta > 0;
+            return (
+              <button type="button" key={m.ticker} className="sc-mover" onClick={() => onPick?.(m.ticker)}>
+                <span className={`sc-mv-arrow ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'}</span>
+                <span className="sc-mv-tk">{m.ticker}</span>
+                <span className="sc-mv-path num">{fmtScore(m.prior)} → {fmtScore(m.today)}</span>
+                <span className={`sc-mv-d num ${up ? 'up' : 'down'}`}>{up ? '+' : '−'}{fmtScore(Math.abs(m.delta))}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
