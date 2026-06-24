@@ -26,6 +26,8 @@ import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
+import useEngineRegime from '../lib/useEngineRegime';
+import '../styles/home-system.css';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';
@@ -459,6 +461,7 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
 
 export default function MacroPage() {
   const { active: indicators, loading, indexSeries } = useIndicators();
+  const regime = useEngineRegime();
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
@@ -560,97 +563,92 @@ export default function MacroPage() {
     return out;
   }, [indicators, cotPos]);
 
+  const clampPct = (x) => Math.max(0, Math.min(100, x));
+  const stressG = (() => { const MIN=40,MAX=160,R=MAX-MIN,m=regime.move; return { on:((116-MIN)/R)*100, watch:((124-116)/R)*100, off:((MAX-124)/R)*100, mk:m==null?null:clampPct(((m-MIN)/R)*100) }; })();
+  const yieldG = (() => { const MIN=-40,MAX=60,R=MAX-MIN,b=regime.yieldDeltaBp; return { defl:((-11-MIN)/R)*100, neutral:((32- -11)/R)*100, infl:((MAX-32)/R)*100, mk:b==null?null:clampPct(((b-MIN)/R)*100) }; })();
+  const verdictParts = (regime.regimeLabel || '—').split('·').map((x) => x.trim());
+  const sZone = regime.stressZone, yReg = regime.yieldRegime;
+  const sCls = sZone==='Risk On'?'up':sZone==='Watch'?'amb':sZone==='Risk Off'?'down':'';
+  const sMsg = sZone==='Risk On'?'Calm — far from any de-risk line.':sZone==='Watch'?'Watch — approaching the de-risk line.':sZone==='Risk Off'?'Risk off — the de-risk line is breached.':'—';
+  const nearInfl = yReg==='Neutral' && regime.yieldDeltaBp!=null && 32-regime.yieldDeltaBp<=8;
+  const yCls = yReg==='Inflationary'?'amb':yReg==='Deflationary'?'up':nearInfl?'amb':'';
+  const yMsg = yReg==='Inflationary'?'Inflationary — the Fed is back in play.':yReg==='Deflationary'?'Deflationary — a growth scare.':nearInfl?'Neutral — nearing the inflationary edge.':'Neutral.';
+  const fmtV = (v, dec, unit) => { if (v==null||!Number.isFinite(v)) return '—'; const n=v.toLocaleString('en-US',{minimumFractionDigits:dec??2,maximumFractionDigits:dec??2}); return unit==='%'?n+'%':(!unit||['index','ratio','z-score'].includes(unit))?n:n+' '+unit; };
+  const stateColor = (st) => st==='extreme'?'var(--down)':st==='elevated'?'var(--amber)':'var(--up)';
+  const posLean = (spec) => spec<=15?{cls:'wash',txt:'Washed out'}:spec>=85?{cls:'crowd',txt:'Crowded'}:null;
+  const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
+  const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
+
   return (
-    <div className="mt-pagebody mt-fade">
-      <style>{`
-        .mc-pill{transition:filter .12s ease,transform .12s ease}
-        .mc-pill:hover{filter:brightness(1.18);transform:translateY(-1px)}
-        .mc-indcard{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}
-        .mc-indtitle{font-family:var(--mt-font-display);font-size:clamp(18px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
-        /* Domain cells as raised panels — same treatment as the engine dials
-           above, so they read as distinct tiles inside the white card. */
-        .mt-overhaul .mc-indcard .mc-domcell{background:var(--mt-surface-2);border-color:var(--mt-line-1);box-shadow:0 1px 2px rgba(20,30,45,.05)}
-        .mt-overhaul .mc-indcard .mc-domcell:hover{background:var(--mt-surface-2);border-color:var(--mt-accent);box-shadow:0 7px 18px rgba(20,30,45,.09)}
-      `}</style>
+    <div className="home-v11 mt-fade">
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--mt-ink-1)', color: 'var(--mt-bg)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: 'var(--ink)', color: 'var(--page2)', padding: '7px 11px', borderRadius: 7, fontSize: 11.5, lineHeight: 1.4, maxWidth: 360, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.22)' }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      {/* Hero tagline removed (Joe 2026-06-23) — the page leads straight into
-          the live engine read, which is the headline state. */}
+      <div className="shell" style={{ maxWidth: 1320, paddingTop: 6 }}>
 
-      {/* Engine read — the de-risk engine (moved from the retired Asset Tilt
-          page, Joe 2026-06-22). The headline state read leads the page. */}
-      {!loading && <EngineReadBand onTip={showTip} onHideTip={hideTip} />}
+        <div style={{ marginBottom: 14 }}>
+          <div className="ed-eyebrow">● Macro Overview</div>
+          <h1 style={{ fontFamily: 'var(--serif)', fontSize: 30, lineHeight: 1.08, letterSpacing: '-.5px', fontWeight: 700, margin: '7px 0 5px' }}>The engine read.</h1>
+          <p className="stance" style={{ maxWidth: 700 }}>Where the de-risk engine sits today, and every market indicator and positioning signal behind it — each ranked against its own 3-year range. Click any tile to open its detail.</p>
+        </div>
 
-      {/* Domain strip */}
-      {!loading && (
-        <section className="mt-pagesection" style={{ paddingTop: 14 }}>
-          {/* Indicators tile (Joe 2026-06-23): a card wraps the explainer copy
-              and the indicators together. Explainer copy is verbatim per
-              LESSONS 8.5. */}
-          <div className="mc-indcard">
-          <div className="mc-indtitle">Market Indicators and Positioning Signals</div>
-          <ul className="at-subbullets" style={{ marginTop: 8, marginBottom: 16 }}>
-            <li>Market indicators across five asset classes, financial conditions and the economy. Each indicator is ranked (red, amber, green) against its own 3-year range.</li>
-            <li>Positioning signals from CFTC COT Dealer inventory, showing where positioning might be crowded.</li>
-          </ul>
-          <div className="mc-domstrip" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        {!loading && (
+          <div className="glass tile" style={{ padding: '17px 20px', marginBottom: 14 }}>
+            <div className="th"><span className="label">The Engine</span></div>
+            <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
+            <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, marginTop: 4 }}>
+              <a className="g lk" onClick={openMove} style={{ display: 'block', cursor: 'pointer' }}>
+                <div className="gtop"><span className="gname">Stress signal · MOVE</span><span className="gval num">{fmtV(regime.move,0)}</span></div>
+                <div className="gtrack"><span className="z" style={{ width: stressG.on+'%', background: 'var(--up)' }} /><span className="z" style={{ width: stressG.watch+'%', background: 'var(--amber)' }} /><span className="z" style={{ width: stressG.off+'%', background: 'var(--down)' }} />{stressG.mk!=null && <span className="mk" style={{ left: stressG.mk+'%' }} />}</div>
+                <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
+                <div className={'gstate '+sCls}>● {sMsg}</div>
+              </a>
+              <a className="g lk" onClick={openYield} style={{ display: 'block', cursor: 'pointer' }}>
+                <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span><span className="gval num">{regime.yieldDeltaBp==null?'—':(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)} <small>bp</small></span></div>
+                <div className="gtrack"><span className="z" style={{ width: yieldG.defl+'%', background: 'var(--up)' }} /><span className="z" style={{ width: yieldG.neutral+'%', background: 'var(--track)' }} /><span className="z" style={{ width: yieldG.infl+'%', background: 'var(--amber)' }} />{yieldG.mk!=null && <span className="mk" style={{ left: yieldG.mk+'%' }} />}</div>
+                <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
+                <div className={'gstate '+yCls}>● {yMsg}</div>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {!loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
-              const ext = inds.filter((i) => i.state === 'extreme').length;
-              const elev = inds.filter((i) => i.state === 'elevated').length;
-              const isActive = domain === dom;
+              const markets = cotPos?.domains?.[dom]?.markets || [];
+              const ext = inds.filter((i) => i.state==='extreme').length;
+              const elev = inds.filter((i) => i.state==='elevated').length;
               return (
-                <div
-                  key={dom}
-                  role="button"
-                  tabIndex={0}
-                  className="mc-domcell"
-                  onClick={() => setSelectedBucket(dom)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="mc-domhead">
-                    <div className="mc-domname">{dom}</div>
-                    <BucketRollupDot inds={inds} positioningElementId={(cotPos?.domains?.[dom]?.markets || []).length > 0 ? 'indicator-cftc-cot-weekly' : null} positioningAsOf={(cotPos?.domains?.[dom]?.markets || []).map((m) => m.asof).filter(Boolean).sort().slice(-1)[0]} onTip={showTip} onHideTip={hideTip} />
+                <div key={dom} className="glass tile">
+                  <div className="th"><span className="label">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="label" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
+                  <div style={{ marginTop: 2 }}>
+                    {inds.map((ind) => (
+                      <a key={ind.id} className="lk irow" onClick={() => setSelected(ind)} style={{ cursor: 'pointer' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ind.state), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{ind.name}</span></span>
+                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}><span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span><span className="chev">›</span></span>
+                      </a>
+                    ))}
+                    {markets.map((m) => { const ln=posLean(m.spec); return (
+                      <a key={'pos-'+m.market} className="lk irow" onClick={() => setSelectedPos(m)} style={{ cursor: 'pointer' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, color: 'var(--muted)' }}><span style={{ width: 7, height: 7, borderRadius: 2, background: ln?(ln.cls==='wash'?'var(--up)':'var(--down)'):'var(--muted)', flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>{m.market} · positioning</span></span>
+                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>{ln && <span className={'lean '+ln.cls} style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{ln.txt}</span>}<span className="chev">›</span></span>
+                      </a>
+                    ); })}
+                    {inds.length===0 && markets.length===0 && <div className="mvcap">No live elements.</div>}
                   </div>
-                  <DomainBars
-                    inds={inds}
-                    markets={cotPos?.domains?.[dom]?.markets || []}
-                    shortLabel={shortLabel}
-                    posDimmed={posDimmed}
-                    posNextPrint="CFTC Fri 3:30p ET · ingest Sat 7:00a"
-                    onSelectInd={setSelected}
-                    onSelectPos={setSelectedPos}
-                    onTip={showTip}
-                    onHideTip={hideTip}
-                  />
                 </div>
               );
             })}
           </div>
-          </div>
-        </section>
-      )}
+        )}
 
+        {loading && <div className="glass tile" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>}
+      </div>
 
-
-      {loading && (
-        <section className="mt-pagesection">
-          <div className="mt-loadingcard">Loading…</div>
-        </section>
-      )}
-      {selectedBucket && (
-        <BucketModal
-          dom={selectedBucket}
-          title={DOMAIN_TITLE[selectedBucket] || ''}
-          inds={byDomain[selectedBucket] || []}
-          cotPos={cotPos}
-          onClose={() => setSelectedBucket(null)}
-          onSelectInd={setSelected}
-          onSelectPos={setSelectedPos}
-        />
-      )}
       {selected && (
         <DetailModal onClose={() => setSelected(null)}>
           <IndicatorDetail ind={selected} onClose={() => setSelected(null)} catalog={overlayCatalog} indexSeries={indexSeries} />
