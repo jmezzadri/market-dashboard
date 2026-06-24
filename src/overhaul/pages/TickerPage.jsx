@@ -27,6 +27,8 @@
 */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import '../styles/home-system.css';
+import '../styles/ticker-glass.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
@@ -413,7 +415,8 @@ export default function TickerPage() {
   );
 
   return (
-    <div className="mt-pagebody tk-page mt-fade">
+    <div className="home-v11 ticker-page mt-fade tk-page">
+      <div className="shell">
       {/* Back row */}
       <div className="tk-backrow">
         <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate(-1)}>
@@ -726,6 +729,7 @@ export default function TickerPage() {
           )}
         </div>
       </section>
+      </div>{/* /.shell */}
     </div>
   );
 }
