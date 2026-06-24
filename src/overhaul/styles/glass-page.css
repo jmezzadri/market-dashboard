@@ -1,0 +1,76 @@
+/* ============================================================================
+   glass-page.css — Phase 2 site-wide glass conversion for the remaining
+   overhaul pages (All Indicators, Methodology, Data, Ticker) and the Paper
+   Portfolio page. Same approach as scanner-glass.css: a page gets the classes
+   `home-v11 glass-page`, which brings the v11 glass tokens + gradient backdrop,
+   and we remap the app's --mt-* tokens onto the v11 glass palette so the
+   existing .mt-* components render as native glass WITHOUT rewriting them.
+   Light + navy. ========================================================== */
+
+/* ── Full-bleed padded page wrapper (these pages double as the root, so the
+      wrapper is also .mt-pagebody — beat .mt-overhaul .mt-pagebody specificity) */
+.mt-overhaul .home-v11.glass-page { padding: 16px 28px 64px; position: relative; }
+.mt-overhaul .home-v11.glass-page.me-body { max-width: none; }
+.mt-overhaul .home-v11.glass-page .mt-pagebody { padding: 0; max-width: none; }
+
+/* ── Token bridge: --mt-* → v11 glass palette ─────────────────────────── */
+.home-v11.glass-page {
+  --mt-surface: var(--panel);
+  --mt-surface-2: var(--inset);
+  --mt-surface-3: var(--inset);
+  --mt-ink-0: var(--ink);
+  --mt-ink-1: var(--soft);
+  --mt-ink-2: var(--muted);
+  --mt-ink-3: var(--muted);
+  --mt-line-0: var(--hair);
+  --mt-line-1: var(--hair);
+  --mt-accent: var(--acc);
+  --mt-accent-soft: color-mix(in oklab, var(--acc) 16%, transparent);
+  --mt-accent-glow: color-mix(in oklab, var(--acc) 28%, transparent);
+  --mt-up: var(--up);
+  --mt-down: var(--down);
+  --mt-warn: var(--amber);
+  --mt-amber: var(--amber);
+}
+
+/* ── Cards / heroes / tables → glass panels ───────────────────────────── */
+.home-v11.glass-page .mt-card,
+.home-v11.glass-page .mt-tablecard,
+.home-v11.glass-page .mt-pagehero,
+.home-v11.glass-page .me-toc,
+.home-v11.glass-page .df-card,
+.home-v11.glass-page .tk-card,
+.home-v11.glass-page .tk-panel {
+  background: var(--panel) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd) !important;
+  border-top-color: var(--panel-top) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--panel-sh);
+}
+
+/* Inset / nested surfaces stay subtle (no double-glass) */
+.home-v11.glass-page .mt-card .mt-card { box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Serif editorial headline + accent eyebrow to match Home/Macro/Scanner */
+.home-v11.glass-page .mt-h1 { font-family: var(--serif); letter-spacing: -.4px; }
+.home-v11.glass-page .mt-h1 i { color: var(--acc); font-style: italic; }
+.home-v11.glass-page .mt-eyebrow { color: var(--acc); }
+
+/* ── Paper Portfolio (v2 page) glass skin ─────────────────────────────── */
+.home-v11.glass-page.paper-glass { min-height: 100vh; }
+.home-v11.paper-glass .paper-panel,
+.home-v11.paper-glass .paper-tile-summary {
+  background: var(--panel) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--panel-sh);
+}
+.home-v11.paper-glass .paper-table thead th { background: var(--inset) !important; }
+.home-v11.paper-glass .paper-drawer { background: var(--panel-top) !important; -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%); }
+.home-v11.paper-glass .paper-shell { max-width: none; }
+.home-v11.paper-glass .paper-panel-title,
+.home-v11.paper-glass .pts-title { font-family: var(--serif); }
