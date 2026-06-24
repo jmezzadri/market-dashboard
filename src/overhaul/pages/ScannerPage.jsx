@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
+import useScanScoreHistory from '../../hooks/useScanScoreHistory';
 import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
@@ -38,7 +39,7 @@ const BUCKETS = [
 // gear only hides what you opt out of. Reorder by dragging the header cells on
 // the table. Ticker pinned left, Score pinned right. Key bump clears older
 // saved layouts so everyone lands on the full grouped set once.
-const COLS_KEY = 'mt-scanner-cols-v5';
+const COLS_KEY = 'mt-scanner-cols-v6';
 const LOCKED = ['ticker', 'score'];
 const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({ key, on: true }));
 
@@ -59,6 +60,7 @@ function loadColState() {
 
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
+  const { byTicker: scoreHist, movers, priorDate } = useScanScoreHistory();
   const [drillOpenKey, setDrillOpenKey] = useState(null);
   const [colState, setColState] = useState(loadColState);
   const [showCols, setShowCols] = useState(false);
@@ -80,8 +82,18 @@ export default function ScannerPage() {
   const hiddenCount = colState.length - activeColumns.length;
 
   const rows = useMemo(
-    () => (rawRows || []).map((r) => ({ ...r, bucket: bucketFor(Number(r.score) || 0) })),
-    [rawRows],
+    () => (rawRows || []).map((r) => {
+      const h = scoreHist[r.ticker];
+      return {
+        ...r,
+        bucket: bucketFor(Number(r.score) || 0),
+        scoreSeries: h?.series || null,
+        scoreDelta: h?.delta ?? null,
+        daysOnList: h?.daysOnList ?? null,
+        scorePeak: h?.peak ?? null,
+      };
+    }),
+    [rawRows, scoreHist],
   );
 
   const counts = useMemo(() => {
@@ -169,6 +181,7 @@ export default function ScannerPage() {
                 fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
               />
             </div>
+            <ScanMovers movers={movers} priorDate={priorDate} onPick={(tk) => navigate(`/ticker/${tk}`)} />
             <div className="sc-bands">
               {BUCKETS.map((b) => (
                 <div
@@ -267,6 +280,50 @@ export default function ScannerPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* Short month-day label, e.g. "Jun 22". */
+function fmtDay(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${MO[Number(m[2]) - 1]} ${Number(m[3])}`;
+}
+
+/* Compact score: whole numbers bare, fractions to two places trimmed. */
+function fmtScore(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
+}
+
+/* Biggest day-over-day score moves, ranked by magnitude. Green = climbing,
+   red = cooling. Fills the Today's Scan card; degrades to a plain line on a
+   quiet day so it never looks empty. */
+function ScanMovers({ movers, priorDate, onPick }) {
+  const list = Array.isArray(movers) ? movers.slice(0, 6) : [];
+  return (
+    <div className="sc-movers">
+      <div className="label">Biggest score moves{priorDate ? ` · since ${fmtDay(priorDate)}` : ''}</div>
+      {list.length === 0 ? (
+        <div className="sc-movers-empty">No score changes since the prior scan.</div>
+      ) : (
+        <div className="sc-movers-list">
+          {list.map((m) => {
+            const up = m.delta > 0;
+            return (
+              <button type="button" key={m.ticker} className="sc-mover" onClick={() => onPick?.(m.ticker)}>
+                <span className={`sc-mv-arrow ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'}</span>
+                <span className="sc-mv-tk">{m.ticker}</span>
+                <span className="sc-mv-path num">{fmtScore(m.prior)} → {fmtScore(m.today)}</span>
+                <span className={`sc-mv-d num ${up ? 'up' : 'down'}`}>{up ? '+' : '−'}{fmtScore(Math.abs(m.delta))}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
