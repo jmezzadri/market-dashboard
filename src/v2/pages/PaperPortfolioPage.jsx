@@ -239,10 +239,10 @@ const PAGE_CSS = `
 .pcol-item:hover { background: var(--bg-2); }
 .pcol-item.dragging { opacity: .45; }
 .pcol-item .grip { color: var(--ink-3); cursor: grab; }
-.pcol-item input { accent-color: var(--accent, #0071e3); }
+.pcol-item input { accent-color: var(--accent, #2563eb); }
 .pcol-foot { display: flex; justify-content: space-between; align-items: center;
   border-top: 1px solid var(--line-0); margin-top: 8px; padding-top: 8px; }
-.pcol-reset { font-size: 11.5px; color: var(--accent, #0071e3); background: none; border: none; cursor: pointer; padding: 0; }
+.pcol-reset { font-size: 11.5px; color: var(--accent, #2563eb); background: none; border: none; cursor: pointer; padding: 0; }
 .paper-table th { position: relative; }
 .paper-table th .rsz {
   position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize; user-select: none;
@@ -252,7 +252,7 @@ const PAGE_CSS = `
 .paper-cash-row td.mv { font-style: normal; font-weight: 500; color: var(--ink-1); }
 .paper-ticker-link {
   background: none; border: none; padding: 0; font: inherit; font-weight: 500;
-  color: var(--accent, #0071e3); cursor: pointer;
+  color: var(--accent, #2563eb); cursor: pointer;
 }
 .paper-ticker-link:hover { text-decoration: underline; }
 
@@ -1124,7 +1124,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div className="home-v11 glass-page paper-glass">
       <style>{PAGE_CSS}</style>
 
       <PageHero
