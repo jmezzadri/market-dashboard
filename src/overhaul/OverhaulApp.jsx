@@ -44,6 +44,11 @@ import './styles/responsive.css';
 // DO NOT REMOVE without checking every v2/* component mounted in this file.
 import './styles/legacy-bridge.css';
 
+// Phase-2 glass design system (v11) + shared glass-page bridge, global so the
+// converted pages (Indicators / Methodology / Data / Ticker / Paper) pick it up.
+import './styles/home-system.css';
+import './styles/glass-page.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
 
