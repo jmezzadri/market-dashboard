@@ -1483,7 +1483,7 @@ export default function DataFlowPage() {
   }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
 
   return (
-    <div className="mt-pagebody mt-fade df-page">
+    <div className="home-v11 glass-page mt-pagebody mt-fade df-page">
       <section className="mt-pagehero">
         <div>
           <div className="mt-eyebrow">Data</div>
