@@ -24,15 +24,15 @@ import '../styles/home-system.css';
 import '../styles/scanner-glass.css';
 
 function bucketFor(s) {
-  if (s >= 4.5) return 'b5';
-  if (s >= 3.5) return 'b4';
+  if (s >= 5) return 'b5';
+  if (s >= 4) return 'b4';
   return 'b3';
 }
 
 const BUCKETS = [
-  { key: 'b5', cls: 'b5', label: 'Score 4.5+',     tip: 'Names scoring 4.5 or higher on today’s scan — the strongest signal cluster.' },
-  { key: 'b4', cls: 'b4', label: 'Score 3.5–4.49', tip: 'Names scoring between 3.5 and 4.49 today.' },
-  { key: 'b3', cls: 'b3', label: 'Score 3.0–3.49', tip: 'Names scoring between 3.0 and 3.49 — the entry threshold to make the list.' },
+  { key: 'b5', cls: 'b5', label: 'Score 5+ · Buy', tip: 'Score 5.0 or higher — the buy line. The paper book buys at Score ≥ 5 and exits below 5.' },
+  { key: 'b4', cls: 'b4', label: 'Score 4–4.99',    tip: 'Score 4.0–4.99 — on watch, just below the buy line.' },
+  { key: 'b3', cls: 'b3', label: 'Score 3–3.99',    tip: 'Score 3.0–3.99 — the entry threshold to make the watch list.' },
 ];
 
 // Saved state is column order + show/hide. Every column is ON by default; the
@@ -167,7 +167,7 @@ export default function ScannerPage() {
             <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
             <ul className="impl">
               <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
-              <li><b>{universeTotal} long alerts today</b>, ranked by score.{' '}
+              <li><b>{counts.b5} buy signals today</b> at Score ≥ 5 — the buy line; {universeTotal} names on the watch list in all, ranked by score.{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
             </ul>
           </div>
@@ -303,7 +303,7 @@ function fmtScore(v) {
    red = cooling. Fills the Today's Scan card; degrades to a plain line on a
    quiet day so it never looks empty. */
 function ScanMovers({ movers, priorDate, onPick }) {
-  const list = Array.isArray(movers) ? movers.slice(0, 6) : [];
+  const list = Array.isArray(movers) ? movers.slice(0, 3) : [];
   return (
     <div className="sc-movers">
       <div className="label">Biggest score moves{priorDate ? ` · since ${fmtDay(priorDate)}` : ''}</div>
