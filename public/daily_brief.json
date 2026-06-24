@@ -1,102 +1,53 @@
 {
-  "date": "2026-06-23",
-  "recap_session": "Mon Jun 22",
-  "eyebrow": "Morning Brief · recap of Mon Jun 22 + today's setup",
-  "headline": "Equities crack, but the plumbing stays calm.",
-  "stance": "The engine isn't buying the panic: bond-market volatility is near 3-year lows and credit is calm. We stay <b>Risk On · Neutral</b> — this reads as an equity-valuation wobble, not systemic stress.",
+  "date": "2026-06-24",
+  "recap_session": "Tue Jun 23",
+  "eyebrow": "Morning Brief · Pre-market ~5am ET · Wed Jun 24",
+  "headline": "The AI selloff goes global — but the plumbing still holds.",
+  "stance": "A second day of AI/semiconductor selling has spread overseas — Korea's Kospi fell 10% — yet credit, funding and bond-market volatility stay calm. The engine holds <b>Risk On · Neutral</b>; tonight's <b>Micron earnings</b> are the real test of the AI-spending story.",
   "news": [
-    {
-      "head": "Broadcom Q2 miss",
-      "body": "AI-networking revenue $4.1B vs $4.8B expected; the single trigger for Monday's ~$1.4T semiconductor selloff."
-    },
-    {
-      "head": "Fed's hawkish turn",
-      "body": "new Chair Kevin Warsh opened hawkish (Jun 17); the dot-plot median now implies a 2026 hike."
-    },
-    {
-      "head": "US–Iran framework",
-      "body": "a 60-day roadmap toward a deal; oil fell ~3% Monday, partly recovering overnight."
-    },
-    {
-      "head": "Asia chips dragged",
-      "body": "SK Hynix and Samsung each closed −4%+; European tech −3.2%."
-    }
+    { "head": "Global tech selloff", "body": "Korea's Kospi fell 10% Tuesday (SK Hynix, Samsung each −12%+); European chip names (STMicro, ASMI) −7%+. The AI-spending-payoff question has gone global." },
+    { "head": "Yen weakness accelerating", "body": "USD/JPY is approaching 162 overnight — the yen near a 3-year low; Bank of Japan intervention risk is real and rising." },
+    { "head": "Copper at a 3-year high", "body": "$6.13/lb — even as equities wobble." },
+    { "head": "Today's calendar", "body": "May new home sales (10am ET), the Fed's annual bank stress-test results (4:30pm ET), and Micron (MU) earnings after the close." }
   ],
   "implications": [
-    "The <b>AI-chip trade looks fragile</b> — semis ran ~79% in 100 trading days with no margin for a guidance miss.",
-    "A <b>Fed leaning toward hikes</b> against 2.28% real rates is a headwind for high-multiple tech and could begin widening spreads.",
-    "A sustained <b>Iran deal</b> adds oil supply within 60 days — structurally bearish energy.",
-    "The <b>yen at a 3-year extreme</b> keeps BOJ intervention and carry-unwind risk live."
+    "The selloff is concentrated in AI/semis while credit and funding stay calm — no systemic signal yet, but two straight days of sharp tech losses with global spillover is a yellow flag.",
+    "Washed-out equity positioning limits panic-selling, but <b>Micron tonight</b> is the key re-rating event for the whole AI-capex narrative.",
+    "The yen at a 3-year extreme keeps Bank of Japan intervention risk live — a sudden move would hit dollar crosses fast and broadly.",
+    "Copper speculators are piled into longs at a 3-year high — a contrarian warning; don't chase copper here."
   ],
   "watch": [
-    {
-      "head": "Stress signal (MOVE)",
-      "body": "a climb toward 116 is the first de-risk line; far off today."
-    },
-    {
-      "head": "Yield regime",
-      "body": "a push to +33bp flips it inflationary and puts the Fed back in play."
-    },
-    {
-      "head": "Semis",
-      "body": "stabilize, or does the selling cascade into the cash open?"
-    },
-    {
-      "head": "Yen / BOJ",
-      "body": "any statement with ¥/$ at a 3-year extreme; <b>Iran/oil</b> — framework holds or fractures."
-    }
+    { "head": "Micron (MU) earnings, after the close", "body": "the market's verdict on AI memory demand — a miss reprices the sector, a beat could reverse Tuesday's damage." },
+    { "head": "Fed bank stress-test results, 4:30pm ET", "body": "any surprise failures would pressure bank stocks and credit spreads." },
+    { "head": "May new home sales, 10am ET", "body": "an affordability test with the 10-year at 4.50%." },
+    { "head": "USD/JPY above 162", "body": "watch for Bank of Japan verbal warnings or unannounced intervention." },
+    { "head": "The open", "body": "S&P futures are up pre-market — do buyers hold, or do sellers re-emerge?" }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
-      "prose": "The 10-year closed at <b>4.51%</b> (2Y 4.24%, curve +27bp), and the Fed held hawkish at 3.50–3.75% — nine of eighteen officials now see a 2026 hike, with the market eyeing October. Real rates are restrictive at <b>2.28%</b> while breakeven inflation (2.23%) stays contained. The yen closed at <b>161.6</b>, its weakest in three years.",
-      "positioning": "Rate-futures speculators have almost no bullish bets left — a contrarian floor; much of the hike fear may already be priced.",
+      "prose": "The 10-year closed at <b>4.50%</b> and the 2-year at 4.16% (both prior close, Jun 23); the curve is faintly positive at +34bp. The real, inflation-adjusted yield sits at <b>2.29%</b> — still a genuine drag on risk assets. The dollar index closed 101.39 Tuesday and is at 2026 highs overnight on yen weakness, with <b>USD/JPY at 161.52</b>, the yen's weakest in nearly three years. The MOVE index — the bond market's volatility gauge — is <b>68.8</b>: bond traders are calm.",
+      "positioning": "Speculators in short-term-rate futures have almost no bullish bets left — the most washed-out in three years; the market may be too pessimistic about rate relief.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
-      "prose": "The S&P 500 <b>closed Monday at 7,472.79</b>; overnight futures are <b>−1.4%</b>, pointing to a sharply lower open (Nasdaq 100 closed 26,166.60). The drop followed Broadcom's <b>14% AI-chip revenue miss</b>, which erased ~$1.4T of value — the Philadelphia Semi Index fell 10% on the session, Marvell −17%. VIX closed at 17.3, still moderate, but with <b>CAPE at 41.6</b> valuations leave little room.",
-      "positioning": "Small-cap (Russell 2000) speculators are nearly out of bullish bets — a contrarian floor; small caps may hold up better than large-cap tech.",
-      "single_name": {
-        "ticker": "TSM",
-        "note": "(Taiwan Semiconductor) — insiders buying; the core AI picks-and-shovels name, cheaper after the rout."
-      }
+      "prose": "The S&P 500 closed at <b>7,365 (−1.44%)</b> Tuesday, the Nasdaq 100 at 25,587 (−2.21%), the Dow at 51,667 (−0.09%); S&P futures point to a modestly higher open. AI/semiconductor names led the selling — <b>Micron and Sandisk each fell 13%+</b> on doubts that big-tech AI-infrastructure spending will earn its return. Valuations stay rich (CAPE 40.96) and breadth is mediocre — under 60% of the S&P sits above its 200-day average.",
+      "positioning": "Speculators in S&P 500, Nasdaq 100 and Russell 2000 futures all have almost no bullish bets left (2nd–10th percentile over three years) — a contrarian floor that limits panic-selling, not a timing call.",
+      "single_name": null
     },
     {
       "title": "Credit & Liquidity",
-      "prose": "Credit isn't corroborating the equity stress. IG spreads closed at <b>74bp</b> and high-yield at <b>266bp</b> over — near three-year tights — with bank reserves ample at <b>$3.03T</b> and funding flat to policy. No distress is leaking from the selloff.",
-      "positioning": "High-yield dealers are piled into inventory near a 3-year peak — a contrarian warning; thinner cushion if selling accelerates.",
-      "single_name": {
-        "ticker": "RDN",
-        "note": "(Radian, a mortgage insurer) — insiders buying; a stable-credit, housing-levered play."
-      }
+      "prose": "Investment-grade spreads are <b>74bp</b> over Treasuries and the high-yield premium <b>265bp</b> — tight, no stress. Short-term funding shows no strain, bank reserves are ample at <b>$3,033bn</b>, and overnight Fed facility usage is near zero ($6.5bn) — excess cash has largely drained from the system. No distress is leaking from the equity selloff.",
+      "positioning": "Primary dealers are sitting on their largest high-yield inventory in three years — if sentiment sours, that supply could hit the market quickly.",
+      "single_name": { "ticker": "RDN", "note": "(Radian Group, a mortgage insurer) — insiders buying alongside large off-exchange block buys and unusual options activity, with light short interest. Fits the credit/financial theme into tonight's stress tests." }
     }
   ],
   "movers": [
-    {
-      "ticker": "MRVL",
-      "pct": -17.0,
-      "link": true
-    },
-    {
-      "ticker": "AVGO",
-      "pct": -12.6,
-      "link": true
-    },
-    {
-      "ticker": "INTC",
-      "pct": -11.3,
-      "link": true
-    },
-    {
-      "ticker": "AMD",
-      "pct": -10.9,
-      "link": true
-    },
-    {
-      "ticker": "PHLX",
-      "pct": -10.0,
-      "link": false
-    }
+    { "ticker": "AAOI", "pct": -13.9, "link": true },
+    { "ticker": "SNDK", "pct": -13.6, "link": true },
+    { "ticker": "MU", "pct": -13.2, "link": true },
+    { "ticker": "VRT", "pct": -11.1, "link": true },
+    { "ticker": "ON", "pct": -11.0, "link": true }
   ]
 }
