@@ -462,6 +462,8 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
 export default function MacroPage() {
   const { active: indicators, loading, indexSeries } = useIndicators();
   const regime = useEngineRegime();
+  const [engHist, setEngHist] = useState(null);
+  useEffect(() => { let c=false; fetch('/macrotilt_engine_history.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(d=>{ if(!c) setEngHist(d?.weekly||null); }).catch(()=>{}); return ()=>{c=true;}; }, []);
   const [view, setView] = useState(loadView);
   const [stateF, setStateF] = useState('all');
   const [domain, setDomain] = useState('All');
@@ -564,6 +566,7 @@ export default function MacroPage() {
   }, [indicators, cotPos]);
 
   const clampPct = (x) => Math.max(0, Math.min(100, x));
+  const ddOf = (ind) => { const p=ind.points; if(!p||p.length<2) return null; const last=p[p.length-1][1], prev=p[p.length-2][1]; if(!Number.isFinite(last)||!Number.isFinite(prev)) return null; const dec=Math.min(ind.decimals??2,2); const r=Number((last-prev).toFixed(dec)); if(r===0) return null; const a=Math.abs(r).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return {arrow:r>0?'▲':'▼', txt:a, cls:r>0?'up':'down'}; };
   const stressG = (() => { const MIN=40,MAX=160,R=MAX-MIN,m=regime.move; return { on:((116-MIN)/R)*100, watch:((124-116)/R)*100, off:((MAX-124)/R)*100, mk:m==null?null:clampPct(((m-MIN)/R)*100) }; })();
   const yieldG = (() => { const MIN=-40,MAX=60,R=MAX-MIN,b=regime.yieldDeltaBp; return { defl:((-11-MIN)/R)*100, neutral:((32- -11)/R)*100, infl:((MAX-32)/R)*100, mk:b==null?null:clampPct(((b-MIN)/R)*100) }; })();
   const verdictParts = (regime.regimeLabel || '—').split('·').map((x) => x.trim());
@@ -612,6 +615,19 @@ export default function MacroPage() {
                 <div className={'gstate '+yCls}>● {yMsg}</div>
               </a>
             </div>
+            {engHist && engHist.length > 0 && (() => {
+              const wk = engHist.slice(-104);
+              const sC = (x) => x==='Risk On'?'var(--up)':x==='Watch'?'var(--amber)':x==='Risk Off'?'var(--down)':'var(--track)';
+              const yC = (x) => x==='Deflationary'?'var(--up)':x==='Inflationary'?'var(--amber)':'var(--track)';
+              return (
+                <div style={{ marginTop: 15, paddingTop: 13, borderTop: '1px solid var(--hair)' }}>
+                  <div className="label" style={{ marginBottom: 7 }}>Regime history · 2 years · top: stress signal · bottom: yield regime</div>
+                  <div style={{ display: 'flex', gap: 1.5, marginBottom: 2 }}>{wk.map((w,i)=><span key={i} title={w.date+' · '+w.stress_state} style={{ flex: 1, height: 10, borderRadius: 1, background: sC(w.stress_state) }} />)}</div>
+                  <div style={{ display: 'flex', gap: 1.5 }}>{wk.map((w,i)=><span key={i} title={w.date+' · '+w.yield_regime} style={{ flex: 1, height: 10, borderRadius: 1, background: yC(w.yield_regime) }} />)}</div>
+                  <div className="gbands" style={{ marginTop: 5 }}><span>{(wk[0]?.date||'').slice(0,7)}</span><span>now</span></div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -628,14 +644,14 @@ export default function MacroPage() {
                   <div style={{ marginTop: 2 }}>
                     {inds.map((ind) => (
                       <a key={ind.id} className="lk irow" onClick={() => setSelected(ind)} style={{ cursor: 'pointer' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ind.state), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{ind.name}</span></span>
-                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}><span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span><span className="chev">›</span></span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: '1 1 0' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ind.state), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{ind.name}</span></span>
+                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}><span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span>{(() => { const dd=ddOf(ind); return dd ? <span className={'chg '+dd.cls}>{dd.arrow}{dd.txt}</span> : null; })()}{ind.pct!=null && <span style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 700, minWidth: 24, textAlign: 'right' }}>{ord(ind.pct)}</span>}<span className="chev">›</span></span>
                       </a>
                     ))}
                     {markets.map((m) => { const ln=posLean(m.spec); return (
                       <a key={'pos-'+m.market} className="lk irow" onClick={() => setSelectedPos(m)} style={{ cursor: 'pointer' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, color: 'var(--muted)' }}><span style={{ width: 7, height: 7, borderRadius: 2, background: ln?(ln.cls==='wash'?'var(--up)':'var(--down)'):'var(--muted)', flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11 }}>{m.market} · positioning</span></span>
-                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>{ln && <span className={'lean '+ln.cls} style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{ln.txt}</span>}<span className="chev">›</span></span>
+                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}>{ln && <span className={'lean '+ln.cls} style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{ln.txt}</span>}{(() => { const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) return <span className="chg" style={{color:'var(--muted)'}}>{r>0?'▲':'▼'}{Math.abs(r).toFixed(1)}</span>; } } return null; })()}{Number.isFinite(m.spec) && <span style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 700, minWidth: 24, textAlign: 'right' }}>{ord(m.spec)}</span>}<span className="chev">›</span></span>
                       </a>
                     ); })}
                     {inds.length===0 && markets.length===0 && <div className="mvcap">No live elements.</div>}
@@ -662,5 +678,3 @@ export default function MacroPage() {
     </div>
   );
 }
-
-// build 1782306481
