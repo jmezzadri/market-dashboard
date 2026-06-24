@@ -67,3 +67,17 @@
 [data-mt-theme='navy'] .home-v11.paper-page .pcol-pop,
 [data-mt-theme='dark'] .home-v11.paper-page .paper-drawer,
 [data-mt-theme='navy'] .home-v11.paper-page .paper-drawer { background: #14223f; }
+
+/* ── Class-collision guard: Paper's market-value cell uses class `mv`, which
+      the home-v11 system also defines as the home "movers" grid row
+      (display:grid). Inside .home-v11 that hijacks the cell and kills
+      text-align. Restore it to a normal right-aligned table cell. ======= */
+.home-v11.paper-page .paper-table td.mv {
+  display: table-cell !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  text-align: right;
+  padding: 11px 12px;
+  color: var(--ink);
+  font-weight: 600;
+}
