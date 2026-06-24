@@ -9,6 +9,8 @@ import FreshnessChip from '../components/FreshnessChip';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 import { useSearchParams } from 'react-router-dom';
+import '../styles/home-system.css';
+import '../styles/indicators-glass.css';
 
 /* DetailModal — the centered "pill modal" used across the site (matches Macro
    Overview). Replaces the old inline drawer that opened below the row. */
@@ -267,17 +269,13 @@ export default function IndicatorsPage() {
   }
 
   return (
-    <div className="mt-pagebody mt-fade">
-      <section className="mt-pagehero">
-        <div>
-          <div className="mt-eyebrow">All indicators</div>
-          <h1 className="mt-h1">
-            Every indicator tracked on <i>MacroTilt</i> — what it is, why it matters, how it's used.
-          </h1>
-          <p className="mt-deck">
-            Sourced live from the data registry, across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>,
-            <b> Commodities</b>, <b>FX</b>, the <b>Economy</b>, and <b>Financial Conditions</b>.
-          </p>
+    <div className="home-v11 indicators-page mt-fade">
+      <div className="shell">
+      <section className="sc-hero-solo">
+        <div className="glass sc-ed">
+          <div className="ed-eyebrow">● All indicators</div>
+          <h1>Every indicator tracked on <i>MacroTilt</i> — what it is, why it matters, how it's used.</h1>
+          <p className="ed-deck">Sourced live from the data registry, across <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>, <b>FX</b>, the <b>Economy</b>, and <b>Financial Conditions</b>.</p>
         </div>
       </section>
 
@@ -398,6 +396,7 @@ export default function IndicatorsPage() {
           {!loading && <FreshnessChip elementId="market-universe_master-daily" variant="label" />}
         </div>
       </section>
+      </div>
       {drill && (() => {
         const ind = active.find((i) => i.id === drill);
         return ind ? (

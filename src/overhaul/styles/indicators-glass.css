@@ -1,0 +1,68 @@
+/* indicators-glass.css — All Indicators page to the home-v11 glass bar.
+   Wrapped in `home-v11 indicators-page` inside `.shell` (glow backdrop +
+   full-bleed). Remap --mt-* to the glass palette so the existing toolbar /
+   table render as native glass. Light + navy. */
+.home-v11.indicators-page {
+  --mt-surface: var(--panel); --mt-surface-2: var(--inset); --mt-surface-3: var(--inset);
+  --mt-ink-0: var(--ink); --mt-ink-1: var(--soft); --mt-ink-2: var(--muted); --mt-ink-3: var(--muted);
+  --mt-line-0: var(--hair); --mt-line-1: var(--panel-bd);
+  --mt-accent: var(--acc); --mt-accent-soft: color-mix(in oklab, var(--acc) 16%, transparent);
+  --mt-up: var(--up); --mt-down: var(--down); --mt-warn: var(--amber); --mt-amber: var(--amber);
+}
+.home-v11.indicators-page .mt-pagebody { padding: 0; max-width: none; }
+.home-v11.indicators-page .mt-pagesection { margin-top: 14px; padding-left: 0; padding-right: 0; }
+
+/* Hero as a glass editorial masthead (serif title, blue eyebrow) */
+.home-v11.indicators-page .mt-pagehero {
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd); border-top-color: var(--panel-top);
+  border-radius: 18px; box-shadow: var(--panel-sh);
+  padding: 26px 30px; margin: 0;
+}
+.home-v11.indicators-page .mt-h1 { font-family: var(--serif); letter-spacing: -.4px; }
+.home-v11.indicators-page .mt-h1 i { color: var(--acc); font-style: italic; }
+.home-v11.indicators-page .mt-eyebrow { color: var(--acc); }
+.home-v11.indicators-page .mt-deck { color: var(--soft); }
+.home-v11.indicators-page .mt-deck b { color: var(--ink); }
+
+/* Glass panels: toolbar + table card */
+.home-v11.indicators-page .mt-card,
+.home-v11.indicators-page .al-toolbar,
+.home-v11.indicators-page .mt-tablecard {
+  background: var(--panel) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--panel-bd) !important; border-top-color: var(--panel-top) !important;
+  border-radius: 16px !important; box-shadow: var(--panel-sh);
+}
+.home-v11.indicators-page .al-table thead th { background: transparent; border-bottom-color: var(--panel-bd); }
+.home-v11.indicators-page .al-table tbody tr { transition: background .16s ease; }
+.home-v11.indicators-page .al-table tbody tr:hover { background: color-mix(in oklab, var(--acc) 7%, transparent); }
+.home-v11.indicators-page .mt-pill { background: var(--pill); border: 1px solid var(--pill-bd); }
+.home-v11.indicators-page .mt-pill.on { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+/* ── Indicator detail modal (shared by Indicators + Macro; portals to <body>),
+      frosted glass, light + navy. ===================================== */
+.ind-detail.mt-card {
+  background: rgba(255,255,255,.82) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.6) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 26px 64px -18px rgba(20,30,60,.5) !important;
+}
+[data-mt-theme='dark'] .ind-detail.mt-card,
+[data-mt-theme='navy'] .ind-detail.mt-card {
+  background: rgba(19,33,60,.90) !important;
+  border-color: rgba(140,165,220,.18) !important;
+  box-shadow: 0 30px 72px -20px rgba(2,8,23,.72) !important;
+}
+
+/* Align toolbar + table to the hero (full width) and match the hero's 18px
+   radius so all three cards read as one system (Joe: they didn't match). */
+.home-v11.indicators-page .al-toolbar,
+.home-v11.indicators-page .mt-tablecard { border-radius: 16px !important; }
+
+/* Hero uses the shared sc-ed editorial component (fonts identical to Paper/Scanner). */
+.home-v11.indicators-page .sc-hero-solo { margin: 0 0 14px; }
+.home-v11.indicators-page .sc-ed .ed-deck { font-size: 13px; color: var(--soft); line-height: 1.55; margin: 10px 0 0; }
+.home-v11.indicators-page .sc-ed .ed-deck b { color: var(--ink); font-weight: 700; }
