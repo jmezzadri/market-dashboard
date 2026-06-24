@@ -49,7 +49,7 @@ const HERO_TITLE = (
 
 const HERO_BULLETS = [
   '$1M starting capital, following the Trading Scanner recommendations',
-  'Buy at Score \u2265 5; sized at Score \u00d7 $20K \u2014 5 = $100K, 6 = $120K, 7 = $140K, 8 = $160K, 9 = $180K, 10 = $200K',
+  'Scanner indicates a buy with a Score \u2265 5; position size is Score \u00d7 $20K',
   'Long-only, 2\u00d7 max leverage',
 ];
 
