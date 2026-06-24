@@ -99,3 +99,21 @@
 .home-v11 .sc-buildcell .w b { font-size: 15px; color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; }
 .home-v11 .sc-ghostbtn { background: var(--pill); border: 1px solid var(--pill-bd); border-radius: 10px; padding: 8px 13px; font-size: 12px; font-weight: 600; color: var(--soft); cursor: pointer; white-space: nowrap; }
 .home-v11 .sc-ghostbtn:hover { border-color: var(--acc); color: var(--acc); }
+
+/* ── Score-trend column: days-on-list tag under the dial ──────────────── */
+.home-v11 .sc-tenure { font-size: 9px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+
+/* ── Movers block in the Today's Scan card ────────────────────────────── */
+.home-v11 .sc-movers { margin: 14px 0; flex: 1; }
+.home-v11 .sc-movers-empty { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.5; }
+.home-v11 .sc-movers-list { display: flex; flex-direction: column; gap: 1px; margin-top: 8px; }
+.home-v11 .sc-mover { display: grid; grid-template-columns: 14px 54px 1fr auto; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 5px 8px; cursor: pointer; font-size: 12px; color: var(--soft); }
+.home-v11 .sc-mover:hover { background: var(--inset); }
+.home-v11 .sc-mv-arrow { font-size: 9px; }
+.home-v11 .sc-mv-arrow.up { color: var(--up); }
+.home-v11 .sc-mv-arrow.down { color: var(--down); }
+.home-v11 .sc-mv-tk { font-weight: 800; color: var(--ink); letter-spacing: .2px; }
+.home-v11 .sc-mv-path { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.home-v11 .sc-mv-d { font-weight: 800; justify-self: end; font-variant-numeric: tabular-nums; }
+.home-v11 .sc-mv-d.up { color: var(--up); }
+.home-v11 .sc-mv-d.down { color: var(--down); }
