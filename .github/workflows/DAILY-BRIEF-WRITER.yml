@@ -24,7 +24,7 @@ on:
       send_mode:
         description: "Email recipients: test (Joe only) or live (full list)"
         required: false
-        default: "test"
+        default: "live"
 
 permissions:
   contents: write
@@ -51,7 +51,7 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'test' }}
+          BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'live' }}
         run: python scripts/build_daily_brief.py
 
       - name: Verify brief is current + well-formed
@@ -69,7 +69,7 @@ jobs:
           "
 
       - name: Commit brief if changed
-        if: ${{ (github.event.inputs.send_mode || 'test') == 'live' }}
+        if: ${{ (github.event.inputs.send_mode || 'live') == 'live' }}
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
