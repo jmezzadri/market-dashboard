@@ -1,102 +1,98 @@
 {
-  "date": "2026-06-24",
-  "recap_session": "Tue Jun 23",
+  "date": "2026-06-25",
+  "recap_session": "Wed Jun 24",
   "eyebrow": "Morning Brief",
-  "headline": "The AI selloff goes global — but the plumbing still holds.",
-  "stance": "A second day of AI/semiconductor selling has spread overseas — Korea's Kospi fell 10% — yet credit, funding and bond-market volatility stay calm. The engine holds <b>Risk On · Neutral</b>; tonight's <b><a class=\"tklink\" href=\"/ticker/MU\" data-route=\"/ticker/MU\">Micron</a> earnings</b> are the real test of the AI-spending story.",
+  "headline": "A heavy data morning — PCE and GDP set the tone as chips wobble and oil slides.",
+  "stance": "Markets sit near flat into a packed <b>8:30am ET</b> data slate — PCE, GDP, durable goods and jobless claims — that is today's pivot: a soft print revives rate-cut hopes, a hot one reinforces higher-for-longer and pressures tech. Tech stress is concentrated in chips (Nasdaq vol gauge 30 vs <a class=\"tklink\" href=\"/indicators?ind=vix\" data-route=\"/indicators?ind=vix\">VIX</a> 18.6); credit and funding stay calm. The engine holds <b>Risk On · Neutral</b>.",
   "news": [
     {
-      "head": "Global tech selloff",
-      "body": "Korea's Kospi fell 10% Tuesday (SK Hynix, Samsung each −12%+); European chip names (STMicro, ASMI) −7%+. The AI-spending-payoff question has gone global."
+      "head": "Oil dropped sharply Wednesday",
+      "body": "Brent crude −4.3% to $73.18 and WTI −3.9% to $69.87 (prior close) on reports of Iran diplomatic progress. <a class=\"tklink\" href=\"/indicators?ind=cmdty_gold\" data-route=\"/indicators?ind=cmdty_gold\">Gold</a> eased to ~$3,998 pre-market (prior close ~$4,016)."
     },
     {
-      "head": "Yen weakness accelerating",
-      "body": "<a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> is approaching 162 overnight — the yen near a 3-year low; Bank of Japan intervention risk is real and rising."
+      "head": "Heavy 8:30am data slate",
+      "body": "May PCE inflation, the Q1 GDP final revision (consensus 1.6%, down from 2.0% initial), May durable goods orders, and weekly jobless claims all land at 8:30am ET."
     },
     {
-      "head": "Copper at a 3-year high",
-      "body": "<a class=\"tklink\" href=\"/indicators?ind=cmdty_copper\" data-route=\"/indicators?ind=cmdty_copper\">$6.13/lb</a> — even as equities wobble."
+      "head": "Germany confidence turns positive",
+      "body": "Germany's economic confidence index turned positive for the first time since the Middle East war began — an early sign European sentiment is stabilizing."
     },
     {
-      "head": "Today's calendar",
-      "body": "May new home sales (10am ET), the Fed's annual bank stress-test results (4:30pm ET), and <a class=\"tklink\" href=\"/ticker/MU\" data-route=\"/ticker/MU\">Micron (MU)</a> earnings after the close."
+      "head": "Bank of England on hold",
+      "body": "The BoE held rates at 3.75% — no change."
     }
   ],
   "implications": [
-    "The selloff is concentrated in AI/semis while credit and funding stay calm — no systemic signal yet, but two straight days of sharp tech losses with global spillover is a yellow flag.",
-    "Washed-out equity positioning limits panic-selling, but <b><a class=\"tklink\" href=\"/ticker/MU\" data-route=\"/ticker/MU\">Micron</a> tonight</b> is the key re-rating event for the whole AI-capex narrative.",
-    "The yen at a 3-year extreme keeps Bank of Japan intervention risk live — a sudden move would hit dollar crosses fast and broadly.",
-    "<a class=\"tklink\" href=\"/indicators?ind=cmdty_copper\" data-route=\"/indicators?ind=cmdty_copper\">Copper</a> speculators are piled into longs at a 3-year high — a contrarian warning; don't chase copper here."
+    "PCE and GDP at 8:30am are today's pivot: a soft reading revives rate-cut expectations and could lift equities; a beat reinforces higher-for-longer pressure, especially on tech and growth.",
+    "Oil's drop eases inflation pressure (bond-supportive) but sustained weakness signals demand concern and weighs on energy earnings.",
+    "The yen at multi-year extremes is the sleeper risk — a rapid reversal from current levels could trigger global capital repatriation and broad equity pressure.",
+    "<b>Positioning:</b> <a class=\"tklink\" href=\"/indicators?ind=cmdty_copper\" data-route=\"/indicators?ind=cmdty_copper\">Copper</a> speculators are the most crowded in 3 years — a contrarian warning; don't chase industrial metals here."
   ],
   "watch": [
     {
-      "head": "<a class=\"tklink\" href=\"/ticker/MU\" data-route=\"/ticker/MU\">Micron (MU)</a> earnings, after the close",
-      "body": "the market's verdict on AI memory demand — a miss reprices the sector, a beat could reverse Tuesday's damage."
+      "head": "8:30am ET data",
+      "body": "PCE, GDP final revision, durable goods, jobless claims."
     },
     {
-      "head": "Fed bank stress-test results, 4:30pm ET",
-      "body": "any surprise failures would pressure bank stocks and credit spreads."
+      "head": "Gold above $4,000",
+      "body": "holding above $4,000 is a key sentiment level."
     },
     {
-      "head": "May new home sales, 10am ET",
-      "body": "an affordability test with the <a class=\"tklink\" href=\"/indicators?ind=ust_10y\" data-route=\"/indicators?ind=ust_10y\">10-year</a> at 4.50%."
+      "head": "USD/JPY toward 160",
+      "body": "any move from 161.75 toward 160 signals yen carry unwinding has begun."
     },
     {
-      "head": "<a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> above 162",
-      "body": "watch for Bank of Japan verbal warnings or unannounced intervention."
-    },
-    {
-      "head": "The open",
-      "body": "S&P futures are up pre-market — do buyers hold, or do sellers re-emerge?"
+      "head": "Chip stocks",
+      "body": "watch whether Asia's overnight selling pressure extends through the US open."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
-      "prose": "The <a class=\"tklink\" href=\"/indicators?ind=ust_10y\" data-route=\"/indicators?ind=ust_10y\">10-year</a> closed at <b>4.50%</b> and the <a class=\"tklink\" href=\"/indicators?ind=ust_2y\" data-route=\"/indicators?ind=ust_2y\">2-year</a> at 4.16% (both prior close, Jun 23); the curve is faintly positive at +34bp. The real, inflation-adjusted yield (<a class=\"tklink\" href=\"/indicators?ind=real_rates\" data-route=\"/indicators?ind=real_rates\">10-year TIPS</a>) sits at <b>2.29%</b> — still a genuine drag on risk assets. The <a class=\"tklink\" href=\"/indicators?ind=usd\" data-route=\"/indicators?ind=usd\">dollar index</a> closed 101.39 Tuesday and is at 2026 highs overnight on yen weakness, with <b><a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> at 161.52</b>, the yen's weakest in nearly three years. The <a class=\"tklink\" href=\"/indicators?ind=move\" data-route=\"/indicators?ind=move\">MOVE</a> index — the bond market's volatility gauge — is <b>68.8</b>: bond traders are calm.",
-      "positioning": "Speculators in short-term-rate futures have almost no bullish bets left — the most washed-out in three years; the market may be too pessimistic about rate relief.",
+      "prose": "The 10-year Treasury yield closed Wednesday at <b>4.41%</b>, the 2-year at 4.11% — the curve barely positive at +30bp and still historically flat; inflation-adjusted yields at 2.23% remain restrictive. <a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> at 161.75 (prior close) leaves the yen at a 3-year extreme after the Bank of Japan raised rates to 1.0% on June 16. 10-year inflation expectations are anchored at 2.18%.",
+      "positioning": "Speculators have almost no rate-cut bets left — a contrarian floor; a soft PCE print could quickly lift short-term Treasuries.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
-      "prose": "The S&P 500 closed at <b>7,365 (−1.44%)</b> Tuesday, the Nasdaq 100 at 25,587 (−2.21%), the Dow at 51,667 (−0.09%); S&P futures point to a modestly higher open. AI/semiconductor names led the selling — <b><a class=\"tklink\" href=\"/ticker/MU\" data-route=\"/ticker/MU\">Micron</a> and <a class=\"tklink\" href=\"/ticker/SNDK\" data-route=\"/ticker/SNDK\">Sandisk</a> each fell 13%+</b> on doubts that big-tech AI-infrastructure spending will earn its return. Valuations stay rich (<a class=\"tklink\" href=\"/indicators?ind=cape\" data-route=\"/indicators?ind=cape\">CAPE</a> 40.96) and breadth is mediocre — under 60% of the S&P sits above its <a class=\"tklink\" href=\"/indicators?ind=spx_above_200ema\" data-route=\"/indicators?ind=spx_above_200ema\">200-day average</a>.",
-      "positioning": "Speculators in S&P 500, Nasdaq 100 and Russell 2000 futures all have almost no bullish bets left (2nd–10th percentile over three years) — a contrarian floor that limits panic-selling, not a timing call.",
-      "single_name": null
+      "prose": "The S&P 500 closed Wednesday at <b>7,358 (−0.1%)</b>, the Nasdaq −0.43%, the Dow +0.35%; futures point to a near-flat open. Tech is under pressure — memory-chip names fell sharply in Asia and the weakness extended to <a class=\"tklink\" href=\"/ticker/NVDA\" data-route=\"/ticker/NVDA\">Nvidia</a> and <a class=\"tklink\" href=\"/ticker/AAPL\" data-route=\"/ticker/AAPL\">Apple</a>; the Nasdaq vol gauge sits at 30 vs VIX 18.6, with stress concentrated in growth. About 62% of the S&P trades above its 50-day average — breadth narrowing.",
+      "positioning": "Speculators have almost no bullish bets left on small caps — a contrarian floor; small caps could outperform if today's data surprises soft.",
+      "single_name": {
+        "ticker": "MTDR",
+        "note": "(Matador Resources, an oil & gas producer) — insiders buying plus quiet institutional block accumulation; a way to play energy if oil finds a floor."
+      }
     },
     {
       "title": "Credit & Liquidity",
-      "prose": "Investment-grade spreads are <b><a class=\"tklink\" href=\"/indicators?ind=ig_oas\" data-route=\"/indicators?ind=ig_oas\">74bp</a></b> over Treasuries and the high-yield premium <b><a class=\"tklink\" href=\"/indicators?ind=hy_ig\" data-route=\"/indicators?ind=hy_ig\">265bp</a></b> — tight, no stress. Short-term funding shows no strain, <a class=\"tklink\" href=\"/indicators?ind=bank_reserves\" data-route=\"/indicators?ind=bank_reserves\">bank reserves</a> are ample at <b>$3,033bn</b>, and overnight <a class=\"tklink\" href=\"/indicators?ind=rrp\" data-route=\"/indicators?ind=rrp\">Fed facility</a> usage is near zero ($6.5bn). No distress is leaking from the equity selloff.",
-      "positioning": "Primary dealers are sitting on their largest high-yield inventory in three years — if sentiment sours, that supply could hit the market quickly.",
-      "single_name": {
-        "ticker": "RDN",
-        "note": "(Radian Group, a mortgage insurer) — insiders buying alongside large off-exchange block buys and unusual options activity, with light short interest. Fits the credit/financial theme into tonight's stress tests."
-      }
+      "prose": "Investment-grade spreads are <a class=\"tklink\" href=\"/indicators?ind=ig_oas\" data-route=\"/indicators?ind=ig_oas\">74bp</a> and high-yield <a class=\"tklink\" href=\"/indicators?ind=hy_ig\" data-route=\"/indicators?ind=hy_ig\">271bp</a> over investment grade — both in normal range, no stress. Financial conditions stay loose and bank reserves are robust at $3 trillion. The quiet vulnerability: primary dealers hold near-record high-yield inventories, leaving limited room to absorb a sudden wave of client selling if sentiment shifts.",
+      "positioning": null,
+      "single_name": null
     }
   ],
   "movers": [
     {
-      "ticker": "AAOI",
-      "pct": -13.9,
+      "ticker": "STTK",
+      "pct": 11.5,
       "link": true
     },
     {
-      "ticker": "SNDK",
-      "pct": -13.6,
+      "ticker": "EQPT",
+      "pct": -6.6,
       "link": true
     },
     {
-      "ticker": "MU",
-      "pct": -13.2,
+      "ticker": "STNG",
+      "pct": -4.1,
       "link": true
     },
     {
-      "ticker": "VRT",
-      "pct": -11.1,
+      "ticker": "NSP",
+      "pct": 2.9,
       "link": true
     },
     {
-      "ticker": "ON",
-      "pct": -11.0,
+      "ticker": "RDN",
+      "pct": 2.7,
       "link": true
     }
   ]
