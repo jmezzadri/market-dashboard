@@ -93,7 +93,7 @@ OUTPUT: return ONLY a single JSON object (no prose, no markdown fence) with EXAC
  ],
  "movers": {movers}
 }}
-Rules: bullets are short factual sentences. A "single_name" only when a setups[] name fits that section's theme (energy name for oil, lender for credit/rates). You may wrap tickers as <a class="tklink" href="/ticker/SYM" data-route="/ticker/SYM">Name</a> and indicators as href="/indicators?ind=KEY". Keep it tight. Return the JSON object only."""
+Rules: bullets are short factual sentences. A "single_name" only when a setups[] name fits that section's theme (energy name for oil, lender for credit/rates). You may wrap tickers as <a class="tklink" href="/ticker/SYM" data-route="/ticker/SYM">Name</a> and indicators as href="/indicators?ind=KEY". Keep it tight. Return ONLY the JSON object — compact, strictly valid JSON: escape any double quotes inside string values, never put a raw newline inside a string, no trailing commas, no markdown fences, no text before or after."""
 
 def call_model(feeds, movers, today):
     key = os.environ["ANTHROPIC_API_KEY"]
@@ -113,11 +113,73 @@ def call_model(feeds, movers, today):
     with urllib.request.urlopen(req, timeout=180) as r:
         resp = json.loads(r.read().decode())
     text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text")
-    # extract the JSON object
-    i, j = text.find("{"), text.rfind("}")
-    if i == -1 or j == -1:
-        raise ValueError(f"No JSON in model output: {text[:300]}")
-    return json.loads(text[i:j + 1])
+    obj = _extract_json(text)
+    if obj is not None:
+        return obj
+    # one-shot repair: ask the model to return corrected, strictly-valid JSON only
+    repaired = _repair_json(key, text)
+    if repaired is not None:
+        return repaired
+    raise ValueError(f"Could not parse JSON from model output: {text[:400]}")
+
+
+def _balanced_slice(text):
+    """Return the first balanced {...} block, respecting strings/escapes."""
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth, in_str, esc = 0, False, False
+    for k in range(start, len(text)):
+        c = text[k]
+        if in_str:
+            if esc: esc = False
+            elif c == "\\": esc = True
+            elif c == '"': in_str = False
+        else:
+            if c == '"': in_str = True
+            elif c == "{": depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:k + 1]
+    return None
+
+
+def _extract_json(text):
+    for cand in (text, _balanced_slice(text)):
+        if not cand:
+            continue
+        cand = cand.strip().lstrip("`")
+        if cand.startswith("json"):
+            cand = cand[4:]
+        try:
+            return json.loads(cand)
+        except Exception:
+            continue
+    return None
+
+
+def _repair_json(key, broken):
+    body = {
+        "model": MODEL,
+        "max_tokens": 4000,
+        "messages": [{"role": "user", "content":
+            "The following should be a single valid JSON object but is malformed. "
+            "Return ONLY the corrected, strictly-valid JSON object (no prose, no fences):\n\n" + broken[:16000]}],
+    }
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps(body).encode(),
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+        method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp = json.loads(r.read().decode())
+        text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text")
+        return _extract_json(text)
+    except Exception as e:
+        print(f"WARN: repair pass failed: {e}", file=sys.stderr)
+        return None
 
 def validate(brief, today):
     req = ["date", "eyebrow", "headline", "stance", "news", "implications", "watch", "sections", "movers"]
