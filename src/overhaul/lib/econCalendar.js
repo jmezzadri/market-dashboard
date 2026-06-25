@@ -6,20 +6,36 @@
    Item: { date, time, name, short, expected, prior, detail }. */
 
 const CURATED = [
-  { date: '2026-06-10', time: '8:30a ET', name: 'CPI (May)', short: 'CPI', expected: '4.2% y/y', prior: '3.8% y/y',
-    detail: 'Consumer inflation — the key read on whether the oil spike is leaking into core prices.' },
-  { date: '2026-06-11', time: '8:30a ET', name: 'PPI (May)', short: 'PPI', expected: '', prior: '+1.4% m/m',
-    detail: 'Producer prices — inflation in the pipeline before it reaches consumers.' },
-  { date: '2026-06-17', time: '8:30a ET', name: 'Retail sales (May)', short: 'Retail', expected: '', prior: '+0.5% m/m',
+  // Major US releases, dates from the Federal Reserve / BLS / BEA / Census
+  // published schedules. Curated forward ~6 weeks; refreshed as months roll.
+  { date: '2026-06-30', time: '10:00a ET', name: 'Consumer confidence (Jun)', short: 'Conf.', expected: '', prior: '',
+    detail: 'Conference Board consumer confidence — how households feel about jobs and the economy.' },
+  { date: '2026-06-30', time: '10:00a ET', name: 'JOLTS job openings (May)', short: 'JOLTS', expected: '', prior: '',
+    detail: 'Job openings and labor turnover — a read on labor demand.' },
+  { date: '2026-07-01', time: '10:00a ET', name: 'ISM Manufacturing (Jun)', short: 'ISM Mfg', expected: '', prior: '',
+    detail: 'Factory-sector activity index — above 50 signals expansion.' },
+  { date: '2026-07-02', time: '8:30a ET', name: 'Jobs report (Jun)', short: 'Jobs', expected: '', prior: '',
+    detail: 'Nonfarm payrolls and the unemployment rate — released early this month ahead of the July 4 holiday.' },
+  { date: '2026-07-06', time: '10:00a ET', name: 'ISM Services (Jun)', short: 'ISM Svc', expected: '', prior: '',
+    detail: 'Services-sector activity index — the larger share of the economy; above 50 signals expansion.' },
+  { date: '2026-07-14', time: '8:30a ET', name: 'CPI (Jun)', short: 'CPI', expected: '', prior: '',
+    detail: 'Consumer inflation — the key read on whether price pressure is cooling.' },
+  { date: '2026-07-16', time: '8:30a ET', name: 'Retail sales (Jun)', short: 'Retail', expected: '', prior: '',
     detail: 'Consumer spending — how resilient the household is.' },
-  { date: '2026-06-17', time: '2:00p ET', name: 'FOMC decision', short: 'FOMC', expected: 'Hold 3.50–3.75%', prior: '3.50–3.75%',
-    detail: 'Rate decision and a new dot plot. Markets price a near-certain hold (~99%).' },
-  { date: '2026-07-02', time: '8:30a ET', name: 'Jobs report (Jun)', short: 'Jobs', expected: '', prior: '+172k',
-    detail: 'Nonfarm payrolls and the unemployment rate.' },
-  { date: '2026-07-15', time: '8:30a ET', name: 'CPI (Jun)', short: 'CPI', expected: '', prior: '',
-    detail: 'Consumer inflation.' },
-  { date: '2026-07-29', time: '2:00p ET', name: 'FOMC decision', short: 'FOMC', expected: '', prior: '3.50–3.75%',
-    detail: 'Rate decision.' },
+  { date: '2026-07-17', time: '8:30a ET', name: 'Housing starts (Jun)', short: 'Housing', expected: '', prior: '',
+    detail: 'New residential construction — a rate-sensitive read on housing.' },
+  { date: '2026-07-27', time: '8:30a ET', name: 'Durable goods (Jun)', short: 'Durables', expected: '', prior: '',
+    detail: 'Orders for long-lasting manufactured goods — a gauge of business investment.' },
+  { date: '2026-07-28', time: '10:00a ET', name: 'Consumer confidence (Jul)', short: 'Conf.', expected: '', prior: '',
+    detail: 'Conference Board consumer confidence.' },
+  { date: '2026-07-29', time: '2:00p ET', name: 'FOMC decision', short: 'FOMC', expected: '', prior: '3.50-3.75%',
+    detail: 'Federal Reserve interest-rate decision and statement.' },
+  { date: '2026-07-30', time: '8:30a ET', name: 'GDP (Q2 advance)', short: 'GDP', expected: '', prior: '',
+    detail: 'First estimate of second-quarter economic growth.' },
+  { date: '2026-07-30', time: '8:30a ET', name: 'PCE inflation (Jun)', short: 'PCE', expected: '', prior: '',
+    detail: 'Personal income, spending and the PCE price index — the Fed\'s preferred inflation gauge.' },
+  { date: '2026-07-31', time: '8:30a ET', name: 'Employment cost index (Q2)', short: 'ECI', expected: '', prior: '',
+    detail: 'Wage and benefit cost growth — a closely watched labor-cost inflation read.' },
 ];
 
 function firstFridayISO(y, m) { const d = new Date(Date.UTC(y, m, 1)); d.setUTCDate(1 + ((5 - d.getUTCDay() + 7) % 7)); return d.toISOString().slice(0, 10); }
@@ -42,7 +58,7 @@ function joblessEvents(fromISO) {
 }
 function allEvents(fromISO) {
   const seen = new Set();
-  return [...CURATED, ...payrollsEvents(fromISO), ...joblessEvents(fromISO)].filter((e) => { const k = e.date + e.name; if (seen.has(k)) return false; seen.add(k); return true; });
+  return [...CURATED, ...joblessEvents(fromISO)].filter((e) => { const k = e.date + e.name; if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
 export function getWeekGrid(todayISO, weeks = 2) {
