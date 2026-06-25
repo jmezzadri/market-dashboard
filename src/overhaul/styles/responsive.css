@@ -197,3 +197,52 @@
     letter-spacing: -0.02em !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   GLASS REDESIGN (Phase 2, shipped 2026-06-24) — mobile coverage.
+   The glass pages use a new `.home-v11` class system (shell / ribbon / layout
+   + per-page grids: scanner, paper, ticker, methodology, data). The original
+   rules above only knew the OLD class names, so on a phone these new
+   multi-column grids never collapsed and forced the layout viewport wide —
+   the "spacing all fucked up / everything tiny" report. Collapse them here.
+   Imported LAST, so these win the cascade.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Shell: trim the desktop side padding so content gets the full width. */
+  .mt-overhaul .home-v11 .shell { padding: 14px 14px 22px !important; }
+
+  /* Editorial + data-rail layout → single column. */
+  .mt-overhaul .home-v11 .layout { grid-template-columns: 1fr !important; }
+
+  /* Scanner glass grids. */
+  .mt-overhaul .home-v11 .sc-hero,
+  .mt-overhaul .home-v11 .sc-colgrid { grid-template-columns: 1fr !important; }
+  .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Paper Portfolio hero (chart + summary). */
+  .mt-overhaul .home-v11.paper-page .mt-page-hero-inner { grid-template-columns: 1fr !important; }
+
+  /* Let any glass child shrink to its track instead of re-opening it. */
+  .mt-overhaul .home-v11 .layout > *,
+  .mt-overhaul .home-v11 .sc-hero > *,
+  .mt-overhaul .home-v11 .sc-buildgrid > * { min-width: 0 !important; }
+
+  /* Editorial headline cap so it never overflows the card. */
+  .mt-overhaul .home-v11 .editorial h1 { font-size: clamp(24px, 7vw, 30px) !important; }
+  .mt-overhaul .home-v11 .editorial { padding: 18px 16px 20px !important; }
+}
+
+@media (max-width: 640px) {
+  /* The top levels ribbon packs 7 nowrap cells. On a phone keep it a tidy
+     swipeable row contained in its own card rather than crushing the cells. */
+  .mt-overhaul .home-v11 .ribbon {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mt-overhaul .home-v11 .ribbon .rc { flex: 0 0 auto; min-width: 116px; }
+
+  /* Scanner band counts + paper summary cards → one column. */
+  .mt-overhaul .home-v11 .sc-bands,
+  .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: 1fr !important; }
+}

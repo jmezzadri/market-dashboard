@@ -385,7 +385,15 @@ export default function TickerPage() {
      to a different number than the dial showed). */
   const comp = useMemo(() => (scanRow ? buildScanBreakdown(scanRow) : null), [scanRow]);
 
-  const related = (scanner.rows || []).filter((r) => r.ticker !== sym).slice(0, 4);
+  // Related names must be the SAME sector as this ticker (the header promises
+  // "same sector"). Match case-insensitively on the scanner's sector field;
+  // if this name has no sector, fall back to an empty list rather than
+  // showing unrelated names under a same-sector header.
+  const related = (scanner.rows || [])
+    .filter((r) => r.ticker !== sym
+      && sector && r.sector
+      && String(r.sector).toLowerCase() === String(sector).toLowerCase())
+    .slice(0, 4);
 
   /* Sort events newest first for the tabs. */
   const insiderEvents = useMemo(

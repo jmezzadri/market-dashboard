@@ -15,9 +15,10 @@ const ITEMS = [
   { to: '/', label: 'Home', end: true },
   { to: '/macro', label: 'Macro' },
   { to: '/scanner', label: 'Scanner' },
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/indicators', label: 'All indicators' },
+  { to: '/paper', label: 'Paper' },
+  { to: '/indicators', label: 'Indicators' },
   { to: '/methodology', label: 'Methodology' },
+  { to: '/admin/data', label: 'Data' },
 ];
 
 export default function TopNav() {
