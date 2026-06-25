@@ -75,6 +75,17 @@ const fmtPct = (n, places = 2) => {
   return `${sign}${(n * 100).toFixed(places)}%`;
 };
 
+// Score formatter — IDENTICAL to the Trading Scanner's (whole numbers bare,
+// fractions to two places trimmed). The Score shown here is the name's LIVE
+// scanner score from the same source as the Scanner page (trading_opps_signals),
+// never the rounded integer used only for position sizing — so Paper and
+// Scanner can never disagree on a name's score again.
+const fmtScore = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '\u2014';
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
+};
+
 const fmtDate = (iso) => {
   if (!iso) return '—';
   const dt = new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso);
@@ -572,7 +583,7 @@ const POS_COLUMNS = [
   { key: 'unrealized_plpc',          label: 'Total P&L %', w: 100, align: 'right', fmt: 'pctDir', def: true },
   { key: 'weight',                   label: 'Weight %',    w: 84,  align: 'right', fmt: 'pctPlain', def: false },
   { key: 'entry_date',               label: 'Held',        w: 72,  align: 'right', fmt: 'held',   def: true },
-  { key: 'current_score',            label: 'Score',       w: 70,  align: 'right', fmt: 'num',    def: true, sleeveOnly: 'B' },
+  { key: 'current_score',            label: 'Score',       w: 70,  align: 'right', fmt: 'score',  def: true, sleeveOnly: 'B' },
 ];
 
 // ONE shared column config (visibility + order + width) for BOTH sleeve
@@ -599,7 +610,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot' }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {} }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). This table renders only the columns that
   // apply to its sleeve — Score is Sleeve-B-only and is filtered out elsewhere.
@@ -638,6 +649,10 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     }
     if (key === 'change_today') {                     // Day chg %  = price / prior close - 1
       return (p.current_price != null && p.lastday_price) ? p.current_price / p.lastday_price - 1 : (p.change_today ?? null);
+    }
+    if (key === 'current_score') {            // LIVE scanner score (source of truth)
+      const lv = scanScores?.[p.ticker];
+      return lv != null ? lv : null;
     }
     return p[key];
   };
@@ -701,6 +716,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
       case 'price': return v != null ? `$${Number(v).toFixed(2)}` : '—';
       case 'money': return fmtMoneyExact(v);
       case 'num': return v != null ? v : '—';
+      case 'score': return fmtScore(v);
       case 'held': { const d = daysHeld(v); return d == null ? '—' : `${d}d`; }
       case 'pctPlain': return v != null ? `${(v * 100).toFixed(1)}%` : '—';
       case 'moneyDir': return <span className={(v || 0) >= 0 ? 'up' : 'down'}>{fmtMoneyExact(v)}</span>;
@@ -989,6 +1005,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [orders, setOrders] = useState([]);
   const [fills, setFills] = useState([]);
   const [account, setAccount] = useState(null);
+  const [scanScores, setScanScores] = useState({});
   const [err, setErr] = useState(null);
 
   useEffect(() => {
@@ -1086,6 +1103,35 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   // What the page renders: live rows during market hours, else the close record.
   const displayPositions = liveMode ? livePos : positions;
+
+  // Live Score column source-of-truth: the SAME scanner score the Trading
+  // Scanner shows (latest trading_opps_signals row per held name), to the same
+  // precision. Replaces the rounded integer snapshot that drifted from the
+  // scanner (Joe, recurring). Held names no longer in the scan show an em-dash.
+  const heldTickersKey = useMemo(
+    () => [...new Set((displayPositions || []).map((p) => p.ticker).filter(Boolean))].sort().join(','),
+    [displayPositions],
+  );
+  useEffect(() => {
+    const tickers = heldTickersKey ? heldTickersKey.split(',') : [];
+    if (!tickers.length) { setScanScores({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const sd = await supabase.from('trading_opps_signals')
+          .select('scan_date').order('scan_date', { ascending: false }).limit(1);
+        const latest = sd?.data?.[0]?.scan_date;
+        if (!latest) return;
+        const scr = await supabase.from('trading_opps_signals')
+          .select('ticker, score').eq('scan_date', latest).in('ticker', tickers);
+        if (cancelled) return;
+        const map = {};
+        (scr.data || []).forEach((r) => { if (r.score != null) map[r.ticker] = Number(r.score); });
+        setScanScores(map);
+      } catch { /* leave scores empty -> em-dash */ }
+    })();
+    return () => { cancelled = true; };
+  }, [heldTickersKey]);
   const displayPosAsOf = liveMode ? (liveNav.updated_at || liveNav.as_of_date) : posAsOf;
   // For the chart/card, append the live point as today's bar so all the shared
   // math (reconcile, headlines, betas) works unchanged. History is never mutated.
@@ -1158,6 +1204,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           cfg={colCfg}
           setCfg={setColCfg}
           headline={heads.b}
+          scanScores={scanScores}
           infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; position size = Score × $20K (5 = $100K … 10 = $200K); up to 2× leverage when total signals exceed the $1M book."
         />
         <RebalanceLog orders={orders} fills={fills} />

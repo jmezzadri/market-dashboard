@@ -181,7 +181,7 @@ export default function HomePage() {
 
           {/* ── LEFT: editorial ── */}
           <div className="glass editorial" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
-            <div className="ed-eyebrow">● {brief?.eyebrow || 'Morning Brief'}</div>
+            <div className="ed-eyebrow">● {brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
             <h1>{brief?.headline || 'Reading the tape…'}</h1>
             {brief?.stance && <Html tag="p" className="stance" html={brief.stance} />}
 
