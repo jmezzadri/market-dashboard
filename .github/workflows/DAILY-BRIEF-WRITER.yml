@@ -69,6 +69,7 @@ jobs:
           "
 
       - name: Commit brief if changed
+        if: ${{ (github.event.inputs.send_mode || 'test') == 'live' }}
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
