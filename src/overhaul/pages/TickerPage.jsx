@@ -389,11 +389,15 @@ export default function TickerPage() {
   // "same sector"). Match case-insensitively on the scanner's sector field;
   // if this name has no sector, fall back to an empty list rather than
   // showing unrelated names under a same-sector header.
-  const related = (scanner.rows || [])
-    .filter((r) => r.ticker !== sym
-      && sector && r.sector
-      && String(r.sector).toLowerCase() === String(sector).toLowerCase())
-    .slice(0, 4);
+  // Related names: prefer SAME-sector scanner names (the header promises it).
+  // If the scanner has no other names in this sector, fall back to the top
+  // names across all sectors and DROP the "same sector" claim from the header
+  // (an empty card or a false sector label both read as broken).
+  const _others = (scanner.rows || []).filter((r) => r.ticker !== sym);
+  const _sameSector = _others.filter((r) => sector && r.sector
+    && String(r.sector).toLowerCase() === String(sector).toLowerCase());
+  const relatedSameSector = _sameSector.length > 0;
+  const related = (relatedSameSector ? _sameSector : _others).slice(0, 4);
 
   /* Sort events newest first for the tabs. */
   const insiderEvents = useMemo(
@@ -707,8 +711,8 @@ export default function TickerPage() {
       <section className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">Related names · same sector</div>
-            <div className="mt-h2">Other names the scanner liked in {sector}</div>
+            <div className="mt-eyebrow">{relatedSameSector ? 'Related names · same sector' : 'Related names'}</div>
+            <div className="mt-h2">{relatedSameSector ? `Other names the scanner liked in ${sector}` : 'Other names the scanner liked'}</div>
           </div>
         </div>
         <div className="tk-relatedgrid">
