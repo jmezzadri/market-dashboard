@@ -107,7 +107,7 @@ export default function HomePage() {
   const { rows: scanRows, bandCounts } = useTradingOppsTop(20);
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const weeks = useMemo(() => getWeekGrid(todayISO, 3), [todayISO]);
+  const weeks = useMemo(() => getWeekGrid(todayISO, 6), [todayISO]);
 
   // Header: market open/closed + honest "data as of" (newest displayed level).
   const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -126,14 +126,22 @@ export default function HomePage() {
     [scanRows],
   );
 
-  // Upcoming releases — next three dated events.
+  // Upcoming releases — the next several MAJOR dated events. Weekly jobless
+  // claims recur every Thursday, so we show only the nearest one and let the
+  // monthly majors (jobs, CPI, retail, ISM, PCE, GDP, durable goods, FOMC,
+  // confidence, JOLTS) fill the rest of the tile.
   const upcoming = useMemo(() => {
     const out = [];
+    let claimsShown = 0;
     weeks.flat().forEach((day) => {
       if (day.isPast || day.iso < todayISO) return;
-      (day.events || []).forEach((e) => out.push({ iso: day.iso, name: e.name || e.short, prior: e.prior }));
+      (day.events || []).forEach((e) => {
+        const name = e.name || e.short;
+        if (/jobless claims/i.test(name)) { if (claimsShown >= 1) return; claimsShown += 1; }
+        out.push({ iso: day.iso, name, prior: e.prior });
+      });
     });
-    return out.slice(0, 3);
+    return out.slice(0, 8);
   }, [weeks, todayISO]);
 
   const stress = stressGauge(regime.move);
@@ -350,7 +358,7 @@ export default function HomePage() {
                     <b>{weekdayDate(u.iso)}</b><span>{u.name}{u.prior ? ` · prev ${u.prior}` : ''} <span className="chev">›</span></span>
                   </a>
                 ))}
-                {upcoming.length === 0 && <div className="mvcap">No scheduled releases in the next two weeks.</div>}
+                {upcoming.length === 0 && <div className="mvcap">No scheduled releases coming up.</div>}
               </div>
             </div>
 
