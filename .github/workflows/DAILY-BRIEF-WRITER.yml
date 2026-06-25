@@ -1,0 +1,81 @@
+name: DAILY-BRIEF-WRITER
+
+# ONE cloud generator for the daily market brief (Joe directive 2026-06-25).
+# Runs on GitHub's servers pre-market every weekday — independent of any laptop.
+# Builds the brief from the two live brief feeds + web search, writes the SITE
+# feed (public/daily_brief.json) AND sends the branded email from the SAME JSON,
+# so the site and the email always carry the same messaging and the email's
+# macrotilt.com link lands on a matching brief.
+#
+# Rollout safety: BRIEF_SEND_MODE=test (below) emails ONLY the SMTP user (Joe),
+# so the existing 7am email pipeline is never disturbed while we validate. Flip
+# to 'live' (and retire the old routine) once the new email is confirmed good.
+#
+# Pipeline name (Data Steward convention): commentary-daily-brief-daily
+# Required secrets: ANTHROPIC_API_KEY, SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
+#   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
+
+on:
+  schedule:
+    - cron: '15 10 * * 1-5'   # 06:15 ET (EDT)
+    - cron: '15 11 * * 1-5'   # 06:15 ET (EST) sibling
+  workflow_dispatch:
+    inputs:
+      send_mode:
+        description: "Email recipients: test (Joe only) or live (full list)"
+        required: false
+        default: "test"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}   # admin PAT bypasses required checks
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build brief + send email (stdlib only)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'test' }}
+        run: python scripts/build_daily_brief.py
+
+      - name: Verify brief is current + well-formed
+        run: |
+          test -s public/daily_brief.json
+          python -c "
+          import json, datetime
+          from zoneinfo import ZoneInfo
+          d = json.load(open('public/daily_brief.json'))
+          today = datetime.datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d')
+          assert d.get('date') == today, f'brief date {d.get(\"date\")} != today {today}'
+          assert d.get('headline'), 'missing headline'
+          assert isinstance(d.get('sections'), list) and d['sections'], 'sections empty'
+          print('brief OK', d['date'], '-', d['headline'][:70])
+          "
+
+      - name: Commit brief if changed
+        run: |
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          git add public/daily_brief.json
+          if [[ -n "$(git diff --cached --name-only)" ]]; then
+            git commit -m "Daily brief — $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          else
+            echo "No change to daily brief"
+          fi

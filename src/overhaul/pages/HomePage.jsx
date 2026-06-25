@@ -215,7 +215,9 @@ export default function HomePage() {
             {(brief?.sections || []).map((s, i) => (
               <div className="sec" key={i}>
                 <div className="sh">{s.title}</div>
-                <Html tag="p" html={s.prose} />
+                {Array.isArray(s.bullets) && s.bullets.length > 0
+                  ? <ul className="impl">{s.bullets.map((b, j) => <li key={j}><Html html={b} /></li>)}</ul>
+                  : <Html tag="p" html={s.prose} />}
                 <div className="tagline">
                   {s.positioning && (
                     <div className="tg pos"><span className="k">Positioning</span><span>{s.positioning}</span></div>
