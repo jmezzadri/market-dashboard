@@ -126,22 +126,20 @@ export default function HomePage() {
     [scanRows],
   );
 
-  // Upcoming releases — the next several MAJOR dated events. Weekly jobless
-  // claims recur every Thursday, so we show only the nearest one and let the
-  // monthly majors (jobs, CPI, retail, ISM, PCE, GDP, durable goods, FOMC,
-  // confidence, JOLTS) fill the rest of the tile.
+  // Upcoming releases — ONE row per date (all that date's releases combined),
+  // next 5 dates. Skip dates whose only event is the weekly jobless claims so
+  // the monthly majors fill the tile; claims still show if they share a date.
   const upcoming = useMemo(() => {
-    const out = [];
-    let claimsShown = 0;
+    const rows = [];
     weeks.flat().forEach((day) => {
       if (day.isPast || day.iso < todayISO) return;
-      (day.events || []).forEach((e) => {
-        const name = e.name || e.short;
-        if (/jobless claims/i.test(name)) { if (claimsShown >= 1) return; claimsShown += 1; }
-        out.push({ iso: day.iso, name, prior: e.prior });
-      });
+      const evs = day.events || [];
+      if (!evs.length) return;
+      const hasMajor = evs.some((e) => !/jobless claims/i.test(e.name || e.short));
+      if (!hasMajor) return;
+      rows.push({ iso: day.iso, names: evs.map((e) => e.name || e.short) });
     });
-    return out.slice(0, 8);
+    return rows.slice(0, 5);
   }, [weeks, todayISO]);
 
   const stress = stressGauge(regime.move);
@@ -355,7 +353,7 @@ export default function HomePage() {
               <div style={{ marginTop: 5 }}>
                 {upcoming.map((u, i) => (
                   <a key={i} className="lk cal-ev" href="/macro" onClick={go('/macro')}>
-                    <b>{weekdayDate(u.iso)}</b><span>{u.name}{u.prior ? ` · prev ${u.prior}` : ''} <span className="chev">›</span></span>
+                    <b>{weekdayDate(u.iso)}</b><span>{u.names.join(' · ')} <span className="chev">›</span></span>
                   </a>
                 ))}
                 {upcoming.length === 0 && <div className="mvcap">No scheduled releases coming up.</div>}
