@@ -16,17 +16,15 @@ name: DAILY-BRIEF-WRITER
 #   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
 
 on:
-  # schedule DISABLED 2026-06-25 pending consolidation onto Joe's editable
-  # 5am routine (avoid duplicate emails). Manual dispatch still available.
-  # schedule:
-  #   - cron: '15 10 * * 1-5'
-  #   - cron: '15 11 * * 1-5'
+  schedule:
+    - cron: '15 10 * * 1-5'   # 06:15 ET (EDT)
+    - cron: '15 11 * * 1-5'   # 06:15 ET (EST) sibling
   workflow_dispatch:
     inputs:
       send_mode:
         description: "Email recipients: test (Joe only) or live (full list)"
         required: false
-        default: "test"
+        default: "live"
 
 permissions:
   contents: write
@@ -53,7 +51,7 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'test' }}
+          BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'live' }}
         run: python scripts/build_daily_brief.py
 
       - name: Verify brief is current + well-formed
@@ -71,7 +69,7 @@ jobs:
           "
 
       - name: Commit brief if changed
-        if: ${{ (github.event.inputs.send_mode || 'test') == 'live' }}
+        if: ${{ (github.event.inputs.send_mode || 'live') == 'live' }}
         run: |
           git config user.name "macrotilt-bot"
           git config user.email "macrotilt-bot@users.noreply.github.com"
