@@ -2,117 +2,70 @@
   "date": "2026-06-25",
   "recap_session": "Wed Jun 24",
   "eyebrow": "Morning Brief",
-  "headline": "Micron's blowout earnings ignite a broad semiconductor rebound overnight, even as May PCE prints at a three-year-high 4.1% and keeps a Fed rate hike firmly on the table.",
-  "stance": "<b>Constructive but bifurcated:</b> Memory-chip euphoria is lifting Asia and US futures broadly, yet the macro backdrop remains challenging — inflation is running well above target and the Fed has already signalled it may hike in September. <b>Watch the divergence:</b> semis and industrials are rallying while Mag-7 names (Apple, Microsoft) face fresh price-hike headwinds, so index-level calm masks a significant rotation underneath. Positioning data shows speculators have almost no bullish bets left in S&P 500, Nasdaq, and Russell 2000 futures — a contrarian floor that historically limits downside even when macro news disappoints.",
+  "headline": "A heavy data morning — PCE and GDP set the tone as chips wobble and oil slides.",
+  "stance": "Markets sit near flat into a packed <b>8:30am ET</b> data slate — PCE, GDP, durable goods and jobless claims — that is today's pivot: a soft print revives rate-cut hopes, a hot one reinforces higher-for-longer and pressures tech. Tech stress is concentrated in chips (Nasdaq vol gauge 30 vs <a class=\"tklink\" href=\"/indicators?ind=vix\" data-route=\"/indicators?ind=vix\">VIX</a> 18.6); credit and funding stay calm. The engine holds <b>Risk On · Neutral</b>.",
   "news": [
     {
-      "head": "Micron blowout: AI memory cycle confirmed",
-      "body": "Micron crushed fiscal Q3 estimates with quarterly net income of $28.2 bn (vs $1.9 bn a year ago), sending shares up roughly +16% after hours and triggering a broad semiconductor rally across Asia and US pre-market."
+      "head": "Oil dropped sharply Wednesday",
+      "body": "Brent crude −4.3% to $73.18 and WTI −3.9% to $69.87 (prior close) on reports of Iran diplomatic progress. <a class=\"tklink\" href=\"/indicators?ind=cmdty_gold\" data-route=\"/indicators?ind=cmdty_gold\">Gold</a> eased to ~$3,998 pre-market (prior close ~$4,016)."
     },
     {
-      "head": "May PCE: inflation at 3-year high",
-      "body": "The Fed's preferred inflation gauge rose 4.1% year-over-year in May — in line with forecasts but the highest reading since April 2023 — while core PCE (ex-food and energy) came in at 3.4%, slightly above the 3.3% consensus."
+      "head": "Heavy 8:30am data slate",
+      "body": "May PCE inflation, the Q1 GDP final revision (consensus 1.6%, down from 2.0% initial), May durable goods orders, and weekly jobless claims all land at 8:30am ET."
     },
     {
-      "head": "Oil back near pre-Iran-war levels",
-      "body": "WTI crude settled at $70.34/bbl and Brent at $73.74/bbl on Wednesday (prior cash closes), with oil tankers resuming Strait of Hormuz transits; Brent trading around $73.40 in early Thursday activity — the lowest since before the US-Iran conflict began in late February."
+      "head": "Germany confidence turns positive",
+      "body": "Germany's economic confidence index turned positive for the first time since the Middle East war began — an early sign European sentiment is stabilizing."
     },
     {
-      "head": "Apple and Microsoft raise prices",
-      "body": "Apple lifted prices on select Mac products and Microsoft announced Xbox price increases effective August 1, both citing AI-driven component cost inflation; Apple shares fell roughly 4-6% in early Thursday trade."
-    },
-    {
-      "head": "Alphabet to replace Verizon in the Dow",
-      "body": "S&P Dow Jones Indices confirmed Alphabet (GOOG) will join the Dow Jones Industrial Average before the open on June 29, replacing Verizon, adding mega-cap tech exposure to the blue-chip index."
-    },
-    {
-      "head": "BofA calls three Fed hikes in 2026",
-      "body": "Bank of America economists projected three 25 bp Fed rate hikes this year (Sep, Oct, Dec), which would lift the policy rate to 4.25–4.50%; markets are currently pricing September as the most likely date for the first move."
-    },
-    {
-      "head": "SK Hynix plans ~$29.5 bn Nasdaq listing",
-      "body": "South Korea's SK Hynix unveiled plans to raise up to $29.5 bn through a secondary Nasdaq listing, capitalising on AI memory demand — a move that also adds significant new supply of AI memory equity to the market."
-    },
-    {
-      "head": "Jobless claims beat",
-      "body": "Initial weekly jobless claims fell to 215,000 for the week ended June 20, down 12,000 from the prior reading and better than the 223,000 estimate, reinforcing a still-tight labour market."
+      "head": "Bank of England on hold",
+      "body": "The BoE held rates at 3.75% — no change."
     }
   ],
   "implications": [
-    "Micron's results validate the AI memory demand story and support the broader semi complex (Sandisk, Samsung, SK Hynix), but the sharp overnight rally in already-elevated names adds to crowding risk in the near term.",
-    "May PCE at 4.1% headline / 3.4% core keeps September rate-hike odds rising — oil's retreat may allow June PCE to cool, but core services inflation at 3.7% year-over-year remains stubbornly sticky.",
-    "Oil returning to pre-conflict levels is disinflationary and positive for consumer spending, but the lag means the Fed will not see the full benefit in data until the July/August reports.",
-    "Apple and Microsoft price hikes signal that AI-driven component costs are being passed to consumers — adding to goods inflation just as the Fed needs it to fall.",
-    "The 10-year yield (prior close 4.41%) and 2-year yield (prior close 4.11%) reflect a yield curve that is only barely positive (+30 bps); a September hike that pushes the front end higher could re-invert the curve and tighten financial conditions.",
-    "<b>Positioning:</b> Speculators have almost no bullish bets left in S&P 500 (10th percentile), Nasdaq 100 (9th percentile), and Russell 2000 (2nd percentile, a 3-year low) futures — a contrarian floor suggesting institutional short-covering could amplify any sustained rally. Copper specs are piled into longs at the 97th percentile — a contrarian warning for industrial metals. Primary dealers are warehousing high-yield bond inventory at a 3-year peak (97th percentile), meaning their balance sheets have less room to absorb client selling — a hidden credit fragility."
+    "PCE and GDP at 8:30am are today's pivot: a soft reading revives rate-cut expectations and could lift equities; a beat reinforces higher-for-longer pressure, especially on tech and growth.",
+    "Oil's drop eases inflation pressure (bond-supportive) but sustained weakness signals demand concern and weighs on energy earnings.",
+    "The yen at multi-year extremes is the sleeper risk — a rapid reversal from current levels could trigger global capital repatriation and broad equity pressure.",
+    "<b>Positioning:</b> <a class=\"tklink\" href=\"/indicators?ind=cmdty_copper\" data-route=\"/indicators?ind=cmdty_copper\">Copper</a> speculators are the most crowded in 3 years — a contrarian warning; don't chase industrial metals here."
   ],
   "watch": [
     {
-      "head": "Fed rate-hike probability",
-      "body": "Markets now price roughly 63% odds of a September hike; any hawkish Fed speak or upside data surprise this week could push that toward 75%+ and pressure both bonds and growth equities."
+      "head": "8:30am ET data",
+      "body": "PCE, GDP final revision, durable goods, jobless claims."
     },
     {
-      "head": "Mag-7 earnings rotation",
-      "body": "Apple (-4–6% early Thursday) and Microsoft (-3.8%) are dragging on Nasdaq even as semis surge — monitor whether the index holds its prior cash close of 25,476 as the session opens."
+      "head": "Gold above $4,000",
+      "body": "holding above $4,000 is a key sentiment level."
     },
     {
-      "head": "Oil and Hormuz",
-      "body": "Brent crude is ~$73.40 in Thursday trade (prior cash close $73.74); a sustained break below $70 would further ease inflation expectations and reduce the urgency of Fed hikes."
+      "head": "USD/JPY toward 160",
+      "body": "any move from 161.75 toward 160 signals yen carry unwinding has begun."
     },
     {
-      "head": "MTDR / energy names",
-      "body": "<a class=\"tklink\" href=\"/ticker/MTDR\" data-route=\"/ticker/MTDR\">Matador Resources</a> and other domestic E&P names face continued headwind from falling crude; the setup signal in MTDR is live but energy sector price action must stabilise first."
-    },
-    {
-      "head": "Alphabet Dow inclusion trade",
-      "body": "Alphabet joins the Dow on June 29; index-rebalancing flows will require Dow-tracking funds to buy GOOG and sell VZ into end of week — watch for unusual pre-positioning volume."
+      "head": "Chip stocks",
+      "body": "watch whether Asia's overnight selling pressure extends through the US open."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
-      "bullets": [
-        "May PCE (the Fed's preferred inflation gauge — think of it as the government's broadest measure of what consumers actually pay) printed 4.1% year-over-year, the highest since April 2023, driven largely by Iran-war energy costs that are now fading; core PCE (excluding food and energy) came in at 3.4%, slightly above the 3.3% forecast.",
-        "The Fed (Chair Kevin Warsh) held rates steady at 3.50–3.75% at its June 17 meeting but dropped a previously indicated rate cut and signalled at least one hike is likely — traders have September circled as the most probable date.",
-        "The 10-year Treasury yield closed Wednesday at 4.41% (prior cash close); the 2-year at 4.11% (prior cash close); the curve is barely positive at +30 bps — a flat curve that historically signals investor uncertainty about the growth outlook.",
-        "Real interest rates (inflation-adjusted borrowing costs) stand at 2.23% (prior close) — meaningfully positive, which is a headwind for long-duration growth stocks and gold.",
-        "10-year inflation expectations (breakeven) are 2.18% (prior close), well below actual PCE — the bond market is betting May is peak inflation, consistent with oil's sharp retreat.",
-        "Weekly jobless claims of 215,000 beat estimates and confirm the labour market remains tight, giving the Fed cover to hike if inflation does not cool.",
-        "Durable goods orders fell 4.5% in May, ending two months of gains — a sign that business investment is softening even as consumer spending stays resilient."
-      ],
-      "positioning": "Speculators are almost entirely out of 3-month SOFR interest-rate futures (1st percentile, a 3-year low) — meaning professional traders have almost no bullish bets left on near-term rate cuts; this is a contrarian signal that the market may have over-priced rate hikes.",
+      "prose": "The 10-year Treasury yield closed Wednesday at <b>4.41%</b>, the 2-year at 4.11% — the curve barely positive at +30bp and still historically flat; inflation-adjusted yields at 2.23% remain restrictive. <a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> at 161.75 (prior close) leaves the yen at a 3-year extreme after the Bank of Japan raised rates to 1.0% on June 16. 10-year inflation expectations are anchored at 2.18%.",
+      "positioning": "Speculators have almost no rate-cut bets left — a contrarian floor; a soft PCE print could quickly lift short-term Treasuries.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
-      "bullets": [
-        "S&P 500 prior cash close: 7,358.22 (down 0.10% Wed); Nasdaq prior cash close: 25,476.64 (down 0.43% Wed); Dow prior cash close: 51,848.90 (up 0.35% Wed) — the split reflects tech weakness versus broader market resilience.",
-        "Overnight: Micron surged ~+16% after hours; Asian markets roared back — Japan's Nikkei +4.6%, South Korea's Kospi +6.4% to record highs; MSCI Asia-Pacific ex-Japan +1.6%.",
-        "US pre-market: S&P 500 futures indicated modestly higher; semiconductor names (Micron +15.78%, Sandisk +18.25%) are lifting the index even as Apple (-4–6%) and Microsoft (-3.78%) weigh on it.",
-        "Breadth is healthy despite the index choppiness: 78% of S&P 500 holdings were advancing in early Thursday trade, with industrials, healthcare, and financials leading.",
-        "VIX (the market's 'fear gauge') prior close: 18.63 — down sharply from Tuesday's spike to ~19.49, suggesting the broad panic from last week's tech sell-off has largely unwound.",
-        "SKEW index at 145.3 (prior close) — this measures demand for protection against a large sudden market drop; an elevated reading means sophisticated investors are still buying crash insurance even as the VIX falls.",
-        "61.9% of S&P 500 stocks trade above their 50-day moving average and 61.0% above their 200-day (prior closes) — a majority, but not an overwhelming one; the market's internal health is moderate.",
-        "SpaceX (post-IPO) is trading around $165, roughly 25% below its post-IPO peak of $225."
-      ],
-      "positioning": "Speculators have almost no bullish bets left in S&P 500 (10th percentile), Nasdaq 100 (9th percentile, with hedgers at the opposite extreme — a divergence signal), and Russell 2000 (2nd percentile, a 3-year low) — this is a contrarian bullish floor: when professional short-sellers are this heavily positioned, even modest good news can force a rapid short-covering rally (a 'squeeze').",
+      "prose": "The S&P 500 closed Wednesday at <b>7,358 (−0.1%)</b>, the Nasdaq −0.43%, the Dow +0.35%; futures point to a near-flat open. Tech is under pressure — memory-chip names fell sharply in Asia and the weakness extended to <a class=\"tklink\" href=\"/ticker/NVDA\" data-route=\"/ticker/NVDA\">Nvidia</a> and <a class=\"tklink\" href=\"/ticker/AAPL\" data-route=\"/ticker/AAPL\">Apple</a>; the Nasdaq vol gauge sits at 30 vs VIX 18.6, with stress concentrated in growth. About 62% of the S&P trades above its 50-day average — breadth narrowing.",
+      "positioning": "Speculators have almost no bullish bets left on small caps — a contrarian floor; small caps could outperform if today's data surprises soft.",
       "single_name": {
         "ticker": "MTDR",
-        "note": "<a class=\"tklink\" href=\"/ticker/MTDR\" data-route=\"/ticker/MTDR\">Matador Resources</a> (energy E&P) — large off-exchange block buying (quiet institutional accumulation) and a burst of unusual options buying both live; company insiders have been buying (2 insider rules fired); trading above its 200-day line. Oil's retreat is the key risk to watch before acting."
+        "note": "(Matador Resources, an oil & gas producer) — insiders buying plus quiet institutional block accumulation; a way to play energy if oil finds a floor."
       }
     },
     {
       "title": "Credit & Liquidity",
-      "bullets": [
-        "HY-IG spread (the extra yield investors demand to hold riskier 'junk' bonds over safer investment-grade debt) stands at 271 bps (as of Jun 23) — elevated but not alarming; a spread widening above ~300 bps would signal genuine credit stress.",
-        "Investment-grade option-adjusted spread (IG OAS, the premium for owning corporate vs government bonds) is 74 bps (as of Jun 23) — still relatively tight, meaning large companies can borrow without major distress.",
-        "Financial conditions remain loose: the Chicago Fed's National Financial Conditions Index is -0.477 z-score and the St. Louis Fed stress index is -0.96 (both as of Jun 19) — negative readings mean conditions are easier than average.",
-        "FRA-OIS and SOFR-OIS spreads (measures of bank-to-bank lending stress — think of them as the plumbing health of the financial system) are both -1 bp (prior close), essentially zero — no interbank funding stress.",
-        "Bank reserves stand at $3,033 bn (as of Jun 17); the Treasury's cash balance (TGA) is $880.7 bn — ample system liquidity.",
-        "Commercial paper funding spread (CPFF) is 21 bps (as of Jun 19) — the cost for large companies to borrow short-term is normal; no corporate funding crunch.",
-        "M2 money supply is growing at 5.58% year-over-year (as of May) — moderate, supportive of nominal spending but also keeping upward pressure on prices."
-      ],
-      "positioning": "Primary dealers (the large banks that transact directly with the Fed) are warehousing high-yield bond inventory at the 97th percentile of the past 3 years — their balance sheets are nearly full; if credit sells off, they have limited capacity to absorb client selling, which could amplify any bond market dislocation.",
+      "prose": "Investment-grade spreads are <a class=\"tklink\" href=\"/indicators?ind=ig_oas\" data-route=\"/indicators?ind=ig_oas\">74bp</a> and high-yield <a class=\"tklink\" href=\"/indicators?ind=hy_ig\" data-route=\"/indicators?ind=hy_ig\">271bp</a> over investment grade — both in normal range, no stress. Financial conditions stay loose and bank reserves are robust at $3 trillion. The quiet vulnerability: primary dealers hold near-record high-yield inventories, leaving limited room to absorb a sudden wave of client selling if sentiment shifts.",
+      "positioning": null,
       "single_name": null
     }
   ],
