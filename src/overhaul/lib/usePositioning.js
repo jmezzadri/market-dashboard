@@ -1,16 +1,16 @@
 /* usePositioning — the COT positioning extremes shown on Home and Macro.
    Reads the same-origin /cot_positioning.json the rest of the site uses (the
    edge feed blocks browser requests). Each domain carries markets[] with a
-   speculator percentile `spec` (0 = specs fully washed out, 100 = specs fully
-   crowded) and a `div` flag (specs and hedgers at opposite extremes). We keep
-   only genuine extremes and classify each as a "washed out · contrarian floor"
-   (specs gone) or "crowded · contrarian warning" (specs piled in), then show
+   speculator percentile `spec` (0 = specs at the low end of their 3-year range, 100 = at the
+   high end) and a `div` flag (specs and hedgers at opposite extremes). We keep
+   only genuine extremes and classify each as a low-end (contrarian floor) or high-end
+   (contrarian warning) extreme, then show
    the strongest few. */
 
 import { useEffect, useState } from 'react';
 
-const WASH_AT = 15;   // spec percentile at/below = washed out
-const CROWD_AT = 85;  // spec percentile at/above = crowded
+const WASH_AT = 15;   // spec percentile at/below = low end of 3-yr range
+const CROWD_AT = 85;  // spec percentile at/above = high end of 3-yr range
 
 // Plain-English display names where the raw market name reads like jargon.
 const NAME = { '3M SOFR': 'Short rates (SOFR)', 'High-yield bonds': 'HY bonds' };
@@ -37,7 +37,7 @@ export default function usePositioning() {
               market: NAME[m.market] || m.market,
               rawMarket: m.market,
               lean,
-              label: lean === 'wash' ? 'Washed out · contrarian floor' : 'Crowded · contrarian warning',
+              label: lean === 'wash' ? 'Specs at 3-yr low · contrarian floor' : 'Specs at 3-yr high · contrarian warning',
               // Rank by extremity (distance from neutral 50), tiny tiebreak for
               // a spec/hedger divergence so it never overrides a bigger extreme.
               rank: Math.abs(s - 50) + (m.div ? 0.5 : 0),

@@ -978,7 +978,7 @@ function ShortInterestTab({ pos }) {
         <KvCell
           label="Cost to borrow"
           value={pct1(d?.cost_to_borrow_pct)}
-          tip="Annualized stock-borrow fee — elevated readings mark a hard-to-borrow, crowded short"
+          tip="Annualized stock-borrow fee — elevated readings mark a hard-to-borrow, heavily-shorted name"
         />
         <KvCell label="Fails to deliver" value={fmtVol(d?.ftd_quantity)} />
       </div>

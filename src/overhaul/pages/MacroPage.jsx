@@ -133,7 +133,7 @@ const MARKET_BLURB = {
   'Coffee': "Futures positioning in ICE Coffee C — arabica.",
   'Dollar index': "Futures positioning in the ICE US Dollar Index.",
   'Euro': "Futures positioning in euro FX — the largest currency-futures market.",
-  'Japanese Yen': "Futures positioning in yen FX. Crowded yen shorts have historically unwound violently when carry trades (borrowing cheap yen to buy higher-yielding assets) reverse — August 2024.",
+  'Japanese Yen': "Futures positioning in yen FX. Extended yen shorts have historically unwound violently when carry trades (borrowing cheap yen to buy higher-yielding assets) reverse — August 2024.",
   'British Pound': "Futures positioning in sterling FX.",
   'Canadian Dollar': "Futures positioning in Canadian dollar FX — oil-linked.",
   'Swiss Franc': "Futures positioning in Swiss franc FX — a funding and haven currency.",
@@ -219,7 +219,7 @@ function shortLabel(n) {
   if (SHORT[n]) return SHORT[n];
   return n.length > 20 ? n.slice(0, 19) + '\u2026' : n;
 }
-function posRead(p){ return p>=90?'crowded long':p<=10?'crowded short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
+function posRead(p){ return p>=90?'extended long':p<=10?'extended short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
 function posAccent(p){ const x=posState(p); return x==='extreme'?'var(--mt-down)':x==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 
 function DetailModal({ onClose, children }) {
@@ -310,8 +310,8 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
   }, [overlayKey, catalog, tf]);
   // Amber/red zones in value space — from the SAME trailing 3-year (156-week)
   // window the positioning percentile uses, so chart shading and pill agree.
-  // Positioning is two-sided: crowded long (>=75th amber, >=90th red) AND
-  // crowded short (<=25th amber, <=10th red) both warn.
+  // Positioning is two-sided: extended long (>=75th amber, >=90th red) AND
+  // extended short (<=25th amber, <=10th red) both warn.
   const bands = useMemo(() => {
     const vals = specAll
       .map((pt) => pt[1])
@@ -339,8 +339,8 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
     [indexSeries, idxOn, tf],
   );
   const accent = posAccent(item.spec);
-  const read = item.spec >= 90 ? 'the most bullish in 3 years — crowded long, fragile to an unwind'
-    : item.spec <= 10 ? 'the most bearish in 3 years — crowded short, fragile to a squeeze'
+  const read = item.spec >= 90 ? 'the most bullish in 3 years — extended long, fragile to an unwind'
+    : item.spec <= 10 ? 'the most bearish in 3 years — extended short, fragile to a squeeze'
     : item.spec >= 75 ? 'in the upper part of its 3-year range'
     : item.spec <= 25 ? 'in the lower part of its 3-year range' : 'mid-range over the last 3 years';
   return (
@@ -384,7 +384,7 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
         <div style={{ fontSize: 12.5, color: 'var(--mt-ink-2)', lineHeight: 1.65, margin: '0 0 14px', display: 'grid', gap: 6 }}>
           <div><b style={{ color: 'var(--mt-ink-1)' }}>Who's in the data.</b> Speculators = hedge funds and managed money (CFTC non-commercial). Commercials = producers and merchants hedging physical exposure. The two sides roughly offset by construction — when speculators are net long, hedgers are net short — so a wide gap between the lines is normal, not a signal.</div>
           <div><b style={{ color: 'var(--mt-ink-1)' }}>What's plotted.</b> Solid line: speculators' net position as a share of open interest, ranked into its own trailing 3-year range. Dashed line: the commercials' mirror position.</div>
-          <div><b style={{ color: 'var(--mt-ink-1)' }}>What extremes have meant.</b> Speculator positioning is trend-following — it rises with price, so positioning peaks usually coincide with or lag price peaks rather than lead them. At 3-year extremes the evidence is contrarian on average: crowded longs (90th+) have been followed by below-average forward returns and are exposed to forced unwinds; crowded shorts (10th−) carry squeeze risk. Academic tests find the standalone effect real but weak — an extreme measures the fuel available for a reversal, not its timing.</div>
+          <div><b style={{ color: 'var(--mt-ink-1)' }}>What extremes have meant.</b> Speculator positioning is trend-following — it rises with price, so positioning peaks usually coincide with or lag price peaks rather than lead them. At 3-year extremes the evidence is contrarian on average: extended longs (90th+) have been followed by below-average forward returns and are exposed to forced unwinds; extended shorts (10th−) carry squeeze risk. Academic tests find the standalone effect real but weak — an extreme measures the fuel available for a reversal, not its timing.</div>
           <div><b style={{ color: 'var(--mt-ink-1)' }}>Reading it against price.</b> Use the Overlay picker below to draw this market's price on the chart. The historical warning configurations: positioning at an extreme while price stalls, and price rising while speculator net falls (the crowd exiting into strength). The strongest flag is both groups at their own 3-year extremes at once — the amber link on the card.</div>
         </div>
       )}
@@ -422,7 +422,7 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
         yFormat={(v) => (isDealer ? `$${v.toFixed(1)}bn` : `${v.toFixed(1)}%`)} />
       {bands.length > 0 && (
         <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mt-ink-3)' }}>
-          Shaded bands mark where this signal turns amber (leaning) and red (crowded) —
+          Shaded bands mark where this signal turns amber (leaning) and red (extended) —
           fixed to the same 3-year window that ranks the position, whatever timeframe you select.
         </div>
       )}
@@ -578,7 +578,7 @@ export default function MacroPage() {
   const yMsg = yReg==='Inflationary'?'Inflationary — the Fed is back in play.':yReg==='Deflationary'?'Deflationary — a growth scare.':nearInfl?'Neutral — nearing the inflationary edge.':'Neutral.';
   const fmtV = (v, dec, unit) => { if (v==null||!Number.isFinite(v)) return '—'; const n=v.toLocaleString('en-US',{minimumFractionDigits:dec??2,maximumFractionDigits:dec??2}); return unit==='%'?n+'%':(!unit||['index','ratio','z-score'].includes(unit))?n:n+' '+unit; };
   const stateColor = (st) => st==='extreme'?'var(--down)':st==='elevated'?'var(--amber)':'var(--up)';
-  const posLean = (spec) => spec<=15?{cls:'wash',txt:'Washed out'}:spec>=85?{cls:'crowd',txt:'Crowded'}:null;
+  const posLean = (spec) => spec<=15?{cls:'wash',txt:'Specs at low'}:spec>=85?{cls:'crowd',txt:'Specs at high'}:null;
   const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
   const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
   const stateWord = (st) => st==='extreme'?'stretched (red)':st==='elevated'?'elevated (amber)':'in range (green)';

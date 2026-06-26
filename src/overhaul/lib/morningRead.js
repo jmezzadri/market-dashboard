@@ -252,10 +252,10 @@ export function analyzeMarket(m, priceSeries) {
   const sig = Math.sqrt(diffs.reduce((s, x) => s + (x - mean) ** 2, 0) / diffs.length) || null;
 
   if (pct != null && prev != null && ((pct >= 90 && prev < 90) || (pct <= 10 && prev > 10))) {
-    return { sev: 5, text: `Specs entered crowded-${pct >= 90 ? 'long' : 'short'} ${m.market} — ${ord(pct)} pct, was ${ord(prev)}` };
+    return { sev: 5, text: `Specs moved to an extended ${pct >= 90 ? 'long' : 'short'} in ${m.market} — ${ord(pct)} pct, was ${ord(prev)}` };
   }
   if (pct != null && prev != null && ((prev >= 90 && pct < 90) || (prev <= 10 && pct > 10))) {
-    return { sev: 4, text: `Specs left the crowded ${prev >= 90 ? 'long' : 'short'} in ${m.market} — ${ord(pct)} pct, was ${ord(prev)}` };
+    return { sev: 4, text: `Specs left the extended ${prev >= 90 ? 'long' : 'short'} in ${m.market} — ${ord(pct)} pct, was ${ord(prev)}` };
   }
   if (priceSeries && priceSeries.length > 10) {
     const px = [];
