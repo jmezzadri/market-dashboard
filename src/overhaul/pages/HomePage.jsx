@@ -159,10 +159,17 @@ export default function HomePage() {
   // Verdict split ("Risk On · Neutral" -> bold + small).
   const verdictParts = (regime.regimeLabel || '—').split('·').map((s) => s.trim());
 
+  // Only show movers that carry a real, non-zero percentage change — a stale or
+  // not-yet-written brief leaves these blank, and we never want to render a row
+  // of all-red bars sitting at 0% (which reads as a broken tile).
+  const validMovers = useMemo(
+    () => (brief?.movers || []).filter((m) => Number.isFinite(m.pct) && m.pct !== 0),
+    [brief],
+  );
   const moversMax = useMemo(() => {
-    const a = (brief?.movers || []).map((m) => Math.abs(m.pct || 0));
+    const a = validMovers.map((m) => Math.abs(m.pct));
     return a.length ? Math.max(...a) : 1;
-  }, [brief]);
+  }, [validMovers]);
 
   return (
     <div className="home-v11">
@@ -279,7 +286,7 @@ export default function HomePage() {
             <div className="glass tile">
               <span className="label">Biggest movers · prior session</span>
               <div style={{ marginTop: 8 }}>
-                {(brief?.movers || []).map((m) => {
+                {validMovers.map((m) => {
                   const w = Math.round((Math.abs(m.pct) / moversMax) * 100);
                   const up = m.pct > 0;
                   const inner = (
@@ -295,6 +302,7 @@ export default function HomePage() {
                     : <div key={m.ticker} className="mv">{inner}</div>;
                 })}
               </div>
+              {validMovers.length === 0 && <div className="mvcap">Movers refresh after the next cash session.</div>}
               <div className="mvcap">Prior cash session · refreshes each morning.</div>
             </div>
 
@@ -309,8 +317,10 @@ export default function HomePage() {
                   return (
                     <a key={row.key} className="lk irow" href={`/indicators?ind=${row.key}`} onClick={go(`/indicators?ind=${row.key}`)}>
                       <span className="g1">{row.g}</span>
-                      <span style={{ marginLeft: 'auto' }}>{row.name} <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
-                        <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span><span className="chev">›</span></span>
+                      <span className="n1">{row.name}</span>
+                      <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
+                      <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span>
+                      <span className="chev">›</span>
                     </a>
                   );
                 })}
