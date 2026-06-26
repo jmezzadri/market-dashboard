@@ -1,98 +1,169 @@
 {
-  "date": "2026-06-25",
-  "recap_session": "Wed Jun 24",
+  "date": "2026-06-26",
+  "recap_session": "Thu Jun 25",
   "eyebrow": "Morning Brief",
-  "headline": "A heavy data morning — PCE and GDP set the tone as chips wobble and oil slides.",
-  "stance": "Markets sit near flat into a packed <b>8:30am ET</b> data slate — PCE, GDP, durable goods and jobless claims — that is today's pivot: a soft print revives rate-cut hopes, a hot one reinforces higher-for-longer and pressures tech. Tech stress is concentrated in chips (Nasdaq vol gauge 30 vs <a class=\"tklink\" href=\"/indicators?ind=vix\" data-route=\"/indicators?ind=vix\">VIX</a> 18.6); credit and funding stay calm. The engine holds <b>Risk On · Neutral</b>.",
+  "headline": "Tech rout extends into Friday as AI-cost fears sink Asia, Nasdaq futures slide while PCE in-line gives the dollar a mild overnight fade.",
+  "stance": "The week's defining story is a painful unwind of crowded AI and semiconductor positions: the Nasdaq is on pace for a <b>4.4% weekly loss</b> even as the broader S&P 500 holds better and the Dow outperforms — classic rotation out of mega-cap tech into defensives and industrials. Thursday's PCE inflation print came in broadly in line with expectations, which nudged the dollar and Treasury yields slightly lower overnight and gave gold a modest bounce off the cash-close low, but the Fed's hawkish posture under Chair Warsh is unchanged — markets still price roughly a 63% chance of a September rate hike. <b>The path of least resistance pre-open is lower for tech, steadier for everything else.</b>",
   "news": [
     {
-      "head": "Oil dropped sharply Wednesday",
-      "body": "Brent crude −4.3% to $73.18 and WTI −3.9% to $69.87 (prior close) on reports of Iran diplomatic progress. <a class=\"tklink\" href=\"/indicators?ind=cmdty_gold\" data-route=\"/indicators?ind=cmdty_gold\">Gold</a> eased to ~$3,998 pre-market (prior close ~$4,016)."
+      "head": "PCE in line, Fed stance unchanged",
+      "body": "May PCE inflation matched forecasts, easing the very worst fears of a hot surprise, but it leaves the Fed's hawkish bias intact with markets pricing ~63% odds of a September rate hike."
     },
     {
-      "head": "Heavy 8:30am data slate",
-      "body": "May PCE inflation, the Q1 GDP final revision (consensus 1.6%, down from 2.0% initial), May durable goods orders, and weekly jobless claims all land at 8:30am ET."
+      "head": "Global AI sell-off deepens",
+      "body": "A broad rotation out of AI and semiconductor stocks accelerated overnight: Asia's tech-heavy indices collapsed, with South Korea's KOSPI triggering circuit-breakers and closing down roughly 10%, as SK Hynix and Samsung each fell ~12%."
     },
     {
-      "head": "Germany confidence turns positive",
-      "body": "Germany's economic confidence index turned positive for the first time since the Middle East war began — an early sign European sentiment is stabilizing."
+      "head": "Nasdaq four-day losing streak",
+      "body": "The Nasdaq Composite has now logged four consecutive down sessions — its longest losing streak since February — and is on pace to close the week roughly 4.4% lower."
     },
     {
-      "head": "Bank of England on hold",
-      "body": "The BoE held rates at 3.75% — no change."
+      "head": "Qualcomm AI revenue outlook",
+      "body": "Qualcomm's upbeat long-term AI revenue forecast offered a rare counter-narrative in an otherwise risk-off tape for semiconductors, providing a partial sentiment floor."
+    },
+    {
+      "head": "IBM sub-1nm chip breakthrough",
+      "body": "IBM announced a sub-1nm chip technology breakthrough, though shares slipped on the news, suggesting investors are focused on near-term valuation risk rather than long-dated product catalysts."
+    },
+    {
+      "head": "UMich sentiment due today",
+      "body": "The final University of Michigan June consumer sentiment reading is due this morning — a soft print could add to the risk-off mood; a resilient number could provide a modest floor."
+    },
+    {
+      "head": "Oil retreats to pre-conflict levels",
+      "body": "Crude oil has now fully retraced its war-premium as US-Iran peace negotiations progress, with WTI trading near $70.84 overnight (OVERNIGHT LEVEL) — reducing inflation pressure but crimping energy equity upside."
     }
   ],
   "implications": [
-    "PCE and GDP at 8:30am are today's pivot: a soft reading revives rate-cut expectations and could lift equities; a beat reinforces higher-for-longer pressure, especially on tech and growth.",
-    "Oil's drop eases inflation pressure (bond-supportive) but sustained weakness signals demand concern and weighs on energy earnings.",
-    "The yen at multi-year extremes is the sleeper risk — a rapid reversal from current levels could trigger global capital repatriation and broad equity pressure.",
-    "<b>Positioning:</b> <a class=\"tklink\" href=\"/indicators?ind=cmdty_copper\" data-route=\"/indicators?ind=cmdty_copper\">Copper</a> speculators are the most crowded in 3 years — a contrarian warning; don't chase industrial metals here."
+    "The simultaneous drop in tech and oil removes two previous inflation arguments, which is marginally friendly for bonds — 10Y yields edged down to ~4.37% overnight (OVERNIGHT LEVEL) from the prior cash close of 4.40%.",
+    "A fifth consecutive down session in Nasdaq futures would confirm that the AI-valuation de-rating is broader than a single-day shock; watch whether dip buyers emerge at the open or capitulation accelerates.",
+    "Dollar softness overnight (DXY ~101.13, OVERNIGHT LEVEL, vs. prior cash close of 101.44) is modest — the macro driver of hawkish Fed expectations remains dominant, capping any sustained DXY selloff.",
+    "<b>Positioning:</b> Speculators have almost no bullish bets left in S&amp;P 500 futures (10th percentile of 3 years), Nasdaq 100 futures (9th percentile), and Russell 2000 futures (2nd percentile — a 3-year low) — a contrarian floor that argues against chasing the sell-off aggressively. Separately, speculators are piled into copper longs (97th percentile) — a contrarian warning for industrial metals despite copper's extreme 95th-percentile price level.",
+    "Primary dealers are warehousing near-record high-yield bond inventory (97th percentile of 3 years), meaning their balance sheets have less room to absorb client selling — a latent credit fragility to monitor if equities keep falling."
   ],
   "watch": [
     {
-      "head": "8:30am ET data",
-      "body": "PCE, GDP final revision, durable goods, jobless claims."
+      "head": "UMich sentiment (9:30 ET)",
+      "body": "Final June reading — consensus expects a weak number; a surprise to the upside could stabilize tech sentiment."
     },
     {
-      "head": "Gold above $4,000",
-      "body": "holding above $4,000 is a key sentiment level."
+      "head": "Nasdaq open print",
+      "body": "Whether NQ futures recover from the overnight -0.66% (OVERNIGHT LEVEL) at the open or accelerate lower is the single biggest tell for today's tape."
     },
     {
-      "head": "USD/JPY toward 160",
-      "body": "any move from 161.75 toward 160 signals yen carry unwinding has begun."
+      "head": "USD/JPY at 161.776",
+      "body": "The yen is at its most extreme level in 3 years (100th percentile); any sharp yen strengthening — a sign of carry-trade unwinding — would amplify equity vol and signal broader risk-off."
     },
     {
-      "head": "Chip stocks",
-      "body": "watch whether Asia's overnight selling pressure extends through the US open."
+      "head": "Gold $4,024 overnight",
+      "body": "Gold futures are at an OVERNIGHT LEVEL of ~$4,024 vs. prior cash close of $4,044.50 — holding above $4,000 is a key sentiment test; a break below risks accelerating precious-metal liquidation."
+    },
+    {
+      "head": "WTI crude $70.84 overnight",
+      "body": "Oil at an OVERNIGHT LEVEL of ~$70.84 continues to fall on easing Middle East tensions; watch whether a break below $70 inverts the narrative for energy equities."
+    },
+    {
+      "head": "10Y yield 4.37% overnight",
+      "body": "Treasuries have caught a small safe-haven bid overnight; a move back above 4.40% (prior cash close) would signal that inflation fear is reasserting itself."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
-      "prose": "The 10-year Treasury yield closed Wednesday at <b>4.41%</b>, the 2-year at 4.11% — the curve barely positive at +30bp and still historically flat; inflation-adjusted yields at 2.23% remain restrictive. <a class=\"tklink\" href=\"/indicators?ind=fx_jpy\" data-route=\"/indicators?ind=fx_jpy\">USD/JPY</a> at 161.75 (prior close) leaves the yen at a 3-year extreme after the Bank of Japan raised rates to 1.0% on June 16. 10-year inflation expectations are anchored at 2.18%.",
-      "positioning": "Speculators have almost no rate-cut bets left — a contrarian floor; a soft PCE print could quickly lift short-term Treasuries.",
+      "bullets": [
+        "10Y Treasury yield: prior cash close 4.40%; overnight level ~4.37% — a small safe-haven bid as equities weakened in Asia.",
+        "2Y Treasury yield: prior cash close 4.09%, giving a yield curve of +31 bps (prior cash close) — still historically flat, meaning the market sees rate cuts eventually but not soon.",
+        "Real (inflation-adjusted) 10Y yield stands at 2.19% (prior cash close) — that is genuinely restrictive and is the primary headwind for high-multiple tech stocks.",
+        "10Y inflation breakeven: 2.21% (prior cash close) — markets believe inflation will stay above the Fed's 2% target, keeping the pressure on Chair Warsh to hold or hike.",
+        "DXY dollar index: prior cash close 101.44; overnight level ~101.13 — slight softening after in-line PCE, but the dollar's multi-week rally is intact given hawkish Fed pricing.",
+        "Bond market volatility (MOVE index): 67.1 (prior cash close) — relatively contained, meaning the rates market is not in panic mode despite the equity sell-off.",
+        "Financial conditions remain loose overall: the Chicago Fed National Financial Conditions Index sits at -0.477 (as of Jun 19) and the St. Louis Fed Stress Index at -0.96 — these are pre-stress readings, not danger signals.",
+        "Weekly jobless claims: 215K (as of Jun 20) and the 4-week average at 224K — labor market still firm, which removes the urgency for the Fed to pivot."
+      ],
+      "positioning": "Speculators are washed out of 3M SOFR interest-rate futures (1st percentile of 3 years — a 3-year low in bullish bets) — a contrarian-bullish lean for short-term rates, suggesting the market may be pricing in too many hikes.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
-      "prose": "The S&P 500 closed Wednesday at <b>7,358 (−0.1%)</b>, the Nasdaq −0.43%, the Dow +0.35%; futures point to a near-flat open. Tech is under pressure — memory-chip names fell sharply in Asia and the weakness extended to <a class=\"tklink\" href=\"/ticker/NVDA\" data-route=\"/ticker/NVDA\">Nvidia</a> and <a class=\"tklink\" href=\"/ticker/AAPL\" data-route=\"/ticker/AAPL\">Apple</a>; the Nasdaq vol gauge sits at 30 vs VIX 18.6, with stress concentrated in growth. About 62% of the S&P trades above its 50-day average — breadth narrowing.",
-      "positioning": "Speculators have almost no bullish bets left on small caps — a contrarian floor; small caps could outperform if today's data surprises soft.",
+      "bullets": [
+        "S&P 500: prior cash close 7,357.49; futures OVERNIGHT LEVEL ~7,307 (-0.69%) — the broad index is holding better than tech.",
+        "Nasdaq 100: prior cash close 25,358.60; futures OVERNIGHT LEVEL indicating further pressure (-0.66%) — fourth consecutive losing session.",
+        "Dow Jones: prior cash close 51,920.62; Dow futures OVERNIGHT LEVEL ~51,821 (-0.19%) — outperforming as rotation continues into industrials and financials.",
+        "VIX fear gauge: prior cash close 18.89 — elevated but not at panic levels; the Nasdaq VXN (tech-specific fear gauge) is notably higher at 30.91 (prior cash close), confirming the sell-off is concentrated in tech.",
+        "SKEW index at 139.9 (prior cash close) — options traders are paying up for downside protection, a sign of lingering tail-risk anxiety.",
+        "Market breadth is mixed: 62.1% of S&P 500 stocks trade above their 50-day average (prior cash close), but only 48.5% of Nasdaq 100 stocks do — confirming the tech-specific nature of the weakness.",
+        "The equity-credit correlation stands at 0.774 (prior cash close) — stocks and credit are moving very closely together, so any stress in one market quickly bleeds into the other.",
+        "CAPE (Shiller P/E): 41 (prior cash close) — still stretched at historically high valuations, which is why AI-valuation anxiety triggers outsized moves."
+      ],
+      "positioning": "Speculators have almost no bullish bets left in S&P 500 (10th percentile), Nasdaq 100 (9th percentile), Russell 2000 (2nd percentile — a 3-year low), and VIX (14th percentile) futures — across the board, speculators are washed out, which is a contrarian floor and argues against panic-selling here.",
       "single_name": {
-        "ticker": "MTDR",
-        "note": "(Matador Resources, an oil & gas producer) — insiders buying plus quiet institutional block accumulation; a way to play energy if oil finds a floor."
+        "ticker": "TSM",
+        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — at the epicenter of the global AI-chip sell-off, yet large off-exchange block buying (quiet institutional accumulation) and a burst of unusual options buying appeared on Jun 25; company insiders have been buying; shorts are light (2.61 days to cover) limiting squeeze risk; trades above its 200-day average. Signal is fresh — monitors as a potential mean-reversion long if Asia stabilizes."
       }
     },
     {
       "title": "Credit & Liquidity",
-      "prose": "Investment-grade spreads are <a class=\"tklink\" href=\"/indicators?ind=ig_oas\" data-route=\"/indicators?ind=ig_oas\">74bp</a> and high-yield <a class=\"tklink\" href=\"/indicators?ind=hy_ig\" data-route=\"/indicators?ind=hy_ig\">271bp</a> over investment grade — both in normal range, no stress. Financial conditions stay loose and bank reserves are robust at $3 trillion. The quiet vulnerability: primary dealers hold near-record high-yield inventories, leaving limited room to absorb a sudden wave of client selling if sentiment shifts.",
+      "bullets": [
+        "High-yield vs. investment-grade spread: 276 bps (as of Jun 24) — the gap between riskier and safer corporate bonds is contained; no credit panic despite equity volatility.",
+        "Investment-grade bond spread (OAS): 75 bps (prior cash close) — tight, consistent with still-easy financial conditions.",
+        "Commercial paper funding spread: 21 bps (as of Jun 19) — short-term corporate borrowing costs are normal; no funding stress.",
+        "Bank reserves: $2,951 billion (as of Jun 24) — ample system liquidity; the plumbing is not under pressure.",
+        "Overnight reverse repo (RRP) facility usage: $5.7 billion (prior cash close) — near zero, confirming excess cash has largely drained out of this safety valve; money is in the system.",
+        "Treasury General Account (TGA): $918.7 billion (as of Jun 24) — a large government cash balance; future spending drawdowns would inject liquidity into markets.",
+        "M2 money supply growing at 5.58% year-over-year (as of May) — moderate monetary backdrop, neither deflationary nor inflationary extreme.",
+        "Loan syndication rate at 6.94% (as of Jun 24) and bank credit growing 6.38% year-over-year — lending channels remain open."
+      ],
       "positioning": null,
-      "single_name": null
+      "single_name": {
+        "ticker": "NEWT",
+        "note": "<a class=\"tklink\" href=\"/ticker/NEWT\" data-route=\"/ticker/NEWT\">NewtekOne (NEWT)</a> — small-business lender; 2 insider buying signals fired, large off-exchange block buying, a burst of unusual options activity, trades above 200-day average; shorts are heavy at 18.24 days to cover, creating meaningful squeeze risk if credit sentiment stays stable. Signal is fresh."
+      }
     }
   ],
   "movers": [
     {
-      "ticker": "STTK",
-      "pct": 11.5,
+      "ticker": "AUGO",
+      "pct": null,
       "link": true
     },
     {
-      "ticker": "EQPT",
-      "pct": -6.6,
+      "ticker": "BRC",
+      "pct": null,
       "link": true
     },
     {
-      "ticker": "STNG",
-      "pct": -4.1,
+      "ticker": "TSM",
+      "pct": null,
       "link": true
     },
     {
       "ticker": "NSP",
-      "pct": 2.9,
+      "pct": null,
       "link": true
     },
     {
-      "ticker": "RDN",
-      "pct": 2.7,
+      "ticker": "MTDR",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "GLP",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "NEWT",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "STTK",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "KMX",
+      "pct": null,
       "link": true
     }
   ]
