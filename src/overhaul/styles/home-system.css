@@ -150,6 +150,11 @@
 .home-v11 .irow .g1{color:var(--muted);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
 .home-v11 .irow .n1{color:var(--soft);font-weight:600}
 .home-v11 .irow .v1{font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.home-v11 .mc-irow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair);font-size:13px}
+.home-v11 .mc-irow:last-child{border-bottom:0}
+.home-v11 .mc-irow .v1{font-weight:800;font-variant-numeric:tabular-nums}
+.home-v11 .mc-irow .chg{font-size:11px}
+.home-v11 .mc-irow .chev{font-size:13px}
 .home-v11 .nm-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--hair)}
 .home-v11 .nm-row:last-child{border-bottom:0}
 .home-v11 .tk{font-size:12px;font-weight:800;letter-spacing:.2px}.home-v11 .score{font-size:12px;font-weight:800;color:var(--up)}
