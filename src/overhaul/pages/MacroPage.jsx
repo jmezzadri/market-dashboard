@@ -639,7 +639,7 @@ export default function MacroPage() {
         )}
 
         {!loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 14, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(470px, 1fr))', gap: 14, alignItems: 'start' }}>
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
               const markets = cotPos?.domains?.[dom]?.markets || [];
