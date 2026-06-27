@@ -150,11 +150,36 @@
 .home-v11 .irow .g1{color:var(--muted);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
 .home-v11 .irow .n1{color:var(--soft);font-weight:600}
 .home-v11 .irow .v1{font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
-.home-v11 .mc-irow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair);font-size:13px}
-.home-v11 .mc-irow:last-child{border-bottom:0}
-.home-v11 .mc-irow .v1{font-weight:800;font-variant-numeric:tabular-nums}
-.home-v11 .mc-irow .chg{font-size:11px}
-.home-v11 .mc-irow .chev{font-size:13px}
+/* Macro Overview — aligned per-tile table (name | reading | change | percentile | chev) */
+.home-v11 .mc-rows{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;column-gap:10px;align-items:center;margin-top:4px}
+.home-v11 .mc-irow{display:contents}
+.home-v11 .mc-irow>*{padding:7px 2px;border-bottom:1px solid var(--hair);font-size:13px;white-space:nowrap;min-width:0;cursor:pointer}
+.home-v11 .mc-irow>*+*{text-align:right}
+.home-v11 .mc-irow:last-child>*{border-bottom:0}
+.home-v11 .mc-irow:hover>*{background:rgba(125,160,210,.08)}
+.home-v11 .mc-nm{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--soft)}
+.home-v11 .mc-nm .mc-name{overflow:hidden;text-overflow:ellipsis}
+.home-v11 .mc-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.home-v11 .mc-rows .v1{font-weight:800;font-variant-numeric:tabular-nums}
+.home-v11 .mc-rows .chg{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);margin-left:0}
+.home-v11 .mc-pct{font-size:11px;color:var(--muted);font-weight:700}
+.home-v11 .mc-lean .lean{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.home-v11 .mc-chev{color:var(--muted);opacity:.5;font-weight:800;font-size:13px}
+.home-v11 .mc-pos-head{grid-column:1/-1;margin:9px 0 1px;padding-top:9px;border-top:1px solid var(--hair)}
+/* Macro Overview — Engine tile: larger type + width-filling 3-up layout */
+.home-v11 .mc-engine{padding:20px 24px}
+.home-v11 .mc-engine .label{font-size:11px}
+.home-v11 .mc-engine .verdict{font-size:30px;margin:0 0 3px}
+.home-v11 .mc-engine .vsub{font-size:13.5px;margin:0}
+.home-v11 .mc-engine .gname{font-size:11.5px}
+.home-v11 .mc-engine .gval{font-size:26px}
+.home-v11 .mc-engine .gval small{font-size:11px}
+.home-v11 .mc-engine .gtrack{height:10px}
+.home-v11 .mc-engine .gbands{font-size:10.5px;margin-top:6px}
+.home-v11 .mc-engine .gstate{font-size:12.5px;margin-top:7px}
+.home-v11 .mc-engine-top{display:grid;grid-template-columns:minmax(190px,.72fr) 1fr 1fr;gap:30px;align-items:center;margin-top:8px}
+.home-v11 .mc-engine .eng-vcol{display:flex;flex-direction:column;justify-content:center}
+@media(max-width:980px){.home-v11 .mc-engine-top{grid-template-columns:1fr;gap:18px}}
 .home-v11 .nm-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--hair)}
 .home-v11 .nm-row:last-child{border-bottom:0}
 .home-v11 .tk{font-size:12px;font-weight:800;letter-spacing:.2px}.home-v11 .score{font-size:12px;font-weight:800;color:var(--up)}
