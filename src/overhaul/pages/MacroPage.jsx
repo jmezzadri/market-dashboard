@@ -602,11 +602,13 @@ export default function MacroPage() {
         </div>
 
         {!loading && (
-          <div className="glass tile" style={{ padding: '17px 20px', marginBottom: 14 }}>
+          <div className="glass tile mc-engine" style={{ marginBottom: 14 }}>
             <div className="th"><span className="label">The Engine</span></div>
-            <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
-            <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, marginTop: 4 }}>
+            <div className="mc-engine-top">
+              <div className="eng-vcol">
+                <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
+                <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
+              </div>
               <a className="g lk" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ display: 'block', cursor: 'pointer' }}>
                 <div className="gtop"><span className="gname">Stress signal · MOVE</span><span className="gval num">{fmtV(regime.move,0)}</span></div>
                 <div className="gtrack"><span className="z" style={{ width: stressG.on+'%', background: 'var(--up)' }} /><span className="z" style={{ width: stressG.watch+'%', background: 'var(--amber)' }} /><span className="z" style={{ width: stressG.off+'%', background: 'var(--down)' }} />{stressG.mk!=null && <span className="mk" style={{ left: stressG.mk+'%' }} />}</div>
@@ -646,24 +648,28 @@ export default function MacroPage() {
               return (
                 <div key={dom} className="glass tile">
                   <div className="th"><span className="label">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="label" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
-                  <div style={{ marginTop: 2 }}>
-                    {inds.map((ind) => (
-                      <a key={ind.id} className="lk mc-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip} style={{ cursor: 'pointer' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: '1 1 0' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ind.state), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{ind.name}</span></span>
-                        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}><span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span>{(() => { const dd=ddOf(ind); return dd ? <span className={'chg '+dd.cls}>{dd.arrow}{dd.txt}</span> : null; })()}{ind.pct!=null && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, minWidth: 26, textAlign: 'right' }}>{ord(ind.pct)}</span>}<span className="chev">›</span></span>
+                  <div className="mc-rows">
+                    {inds.map((ind) => { const dd=ddOf(ind); return (
+                      <a key={ind.id} className="lk mc-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
+                        <span className="mc-nm"><span className="mc-dot" style={{ background: stateColor(ind.state) }} /><span className="mc-name">{ind.name}</span></span>
+                        <span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
+                        <span className={'chg'+(dd?' '+dd.cls:'')}>{dd ? dd.arrow+dd.txt : ''}</span>
+                        <span className="mc-pct">{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                        <span className="mc-chev">›</span>
                       </a>
-                    ))}
+                    ); })}
                     {markets.length > 0 && (
-                      <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px solid var(--hair)' }}>
-                        <div className="label" style={{ marginBottom: 5 }}>Positioning · COT extremes</div>
-                        {markets.map((m) => { const ln=posLean(m.spec); const ps = (m.spec<=10||m.spec>=90)?'extreme':(m.spec<=25||m.spec>=75)?'elevated':'calm'; return (
-                          <a key={'pos-'+m.market} className="lk mc-irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip} style={{ cursor: 'pointer' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: '1 1 0' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: stateColor(ps), flex: 'none' }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{m.market}</span></span>
-                            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flex: 'none' }}>{ln && <span className={'lean '+ln.cls} style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em' }}>{ln.txt}</span>}{(() => { const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) return <span className="chg" style={{color:'var(--muted)'}}>{r>0?'▲':'▼'}{Math.abs(r).toFixed(1)}</span>; } } return null; })()}{Number.isFinite(m.spec) && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, minWidth: 26, textAlign: 'right' }}>{ord(m.spec)}</span>}<span className="chev">›</span></span>
-                          </a>
-                        ); })}
-                      </div>
+                      <div className="mc-pos-head"><span className="label">Positioning · COT extremes</span></div>
                     )}
+                    {markets.map((m) => { const ln=posLean(m.spec); const ps = (m.spec<=10||m.spec>=90)?'extreme':(m.spec<=25||m.spec>=75)?'elevated':'calm'; let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
+                      <a key={'pos-'+m.market} className="lk mc-irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
+                        <span className="mc-nm"><span className="mc-dot" style={{ background: stateColor(ps) }} /><span className="mc-name">{m.market}</span></span>
+                        <span className="mc-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
+                        <span className="chg" style={{ color: 'var(--muted)' }}>{chg}</span>
+                        <span className="mc-pct">{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                        <span className="mc-chev">›</span>
+                      </a>
+                    ); })}
                     {inds.length===0 && markets.length===0 && <div className="mvcap">No live elements.</div>}
                   </div>
                 </div>
