@@ -1,0 +1,61 @@
+name: BRIEF-FRESHNESS-SELFHEAL
+
+# Safety net for the homepage daily brief (Data Steward, 2026-06-29).
+# The 06:15 ET DAILY-BRIEF-WRITER is the normal path. This guard runs after it
+# and checks the brief actually published on the live site. If that brief is not
+# dated today, it regenerates it and emails Joe. This catches the case a
+# run-and-fail alert cannot: a producer that is DISABLED or SKIPPED never runs,
+# so it never "fails" — but the homepage still freezes. Checking the live
+# outcome catches every cause. (Froze the homepage on 2026-06-29; never again.)
+#
+# Pipeline name (Data Steward convention): commentary-daily-brief-selfheal
+# Required secrets: ANTHROPIC_API_KEY, SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
+#   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
+
+on:
+  schedule:
+    - cron: '45 11 * * 1-5'   # 07:45 ET (EDT) — ~90 min after the 06:15 writer
+    - cron: '45 12 * * 1-5'   # 07:45 ET (EST) sibling
+    - cron: '15 13 * * 1-5'   # 09:15 ET (EDT) — final backstop before the open
+    - cron: '15 14 * * 1-5'   # 09:15 ET (EST) sibling
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  selfheal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}   # admin PAT bypasses required checks
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check live brief is current; regenerate + alert if stale
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRIEF_SEND_MODE: live
+        run: python scripts/brief_selfheal.py
+
+      - name: Commit brief if the self-heal regenerated it
+        run: |
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          git add public/daily_brief.json
+          if [[ -n "$(git diff --cached --name-only)" ]]; then
+            git commit -m "Daily brief — self-heal regenerate $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          else
+            echo "Brief already current — no self-heal needed"
+          fi
