@@ -680,3 +680,14 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 **Rule:** (a) Any redesign/PR that introduces a new design-system class scope (e.g. a new `.home-vNN`) is not done until `responsive.css` (imported last) collapses every new multi-column grid at ≤900px/≤640px AND the mobile top-nav (TopNav.jsx) is reconciled against the sidebar (same destinations, same real routes). Verify the mobile breakpoint, not just desktop. (b) Any score shown ANYWHERE on the site reads from the single canonical source the Scanner uses (`trading_opps_signals`, latest `scan_date`) and is formatted with the identical trimmed-decimal formatter. The integer score is for POSITION SIZING only (Score × $20K) and must never be the displayed Score — display and sizing are different concerns. This guarantees Scanner and Paper can never disagree on a name's score again.
 
 **Applies to:** UX Designer + Lead Developer (responsive coverage on every redesign); Senior Quant + Lead Developer (score display source-of-truth).
+
+
+---
+
+### 8.8 (2026-06-29) — Never ask Joe to merge a PR or click anything in GitHub; the agent merges its own work
+
+**What happened:** After fixing the frozen homepage, the turn ended by asking Joe to click "Merge" on PR #1317. Joe: "I dont merge. How is this not a hard lesson/rule?!" Joe is a management consultant, not a developer — he does not merge PRs, click GitHub buttons, or operate the repo. Asking him to merge is the same anti-pattern as asking him to run a terminal command or "verify with `file`" (8.x / 2026-04-28).
+
+**Rule (HARD):** The agent merges its OWN PRs to `main` itself, via the GitHub API with the repo PAT, once the required specialist sign-offs (per each domain's authority) are written into the PR description. Never ask Joe to merge, approve a merge, or click anything in GitHub. After merging, monitor the Vercel deployment, confirm it succeeded, view the rendered page, then report. The only things Joe is ever asked for are (a) an identity-bound credential supplied through a service UI he is already logged into, and (b) a plain-English go / no-go decision in chat when the call is genuinely his (e.g., a product/scope choice). Forbidden asks: "merge this PR," "approve the merge," "click Merge," "can you merge," or routing any GitHub button-click to Joe.
+
+**Applies to:** All.
