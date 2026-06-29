@@ -28,6 +28,27 @@ ET = ZoneInfo("America/New_York")
 BASE = "https://yqaqqzseepebrocgibcw.supabase.co"
 MODEL = os.environ.get("BRIEF_MODEL", "claude-sonnet-4-6")
 
+# --- Banned-copy guard (Joe, 2026-06-26): never publish "washed out" / "crowded".
+# Low COT percentile -> "extended short"; high -> "extended long". Deterministic
+# backstop to the prompt rule, so a model slip can never reach the site or email.
+def _scrub_text(s):
+    if not isinstance(s, str):
+        return s
+    for a, b in (("crowded long", "extended long"), ("Crowded long", "Extended long"),
+                 ("washed out", "extended short"), ("Washed out", "Extended short"),
+                 ("washed-out", "extended short"), ("Washed-out", "Extended short"),
+                 ("crowded", "extended"), ("Crowded", "Extended")):
+        s = s.replace(a, b)
+    return s
+def scrub_banned(obj):
+    if isinstance(obj, str):
+        return _scrub_text(obj)
+    if isinstance(obj, list):
+        return [scrub_banned(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: scrub_banned(v) for k, v in obj.items()}
+    return obj
+
 def _get(url, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -70,6 +91,8 @@ PROMPT = """You are MacroTilt's daily market-brief analyst. Today is {today} (ET
 ACCURACY: Use ONLY numbers from the DATA below or that you verify via web search. Never invent a figure; omit anything unverified. NEVER name a data source, feed, URL, or vendor anywhere in the output.
 
 PLAIN ENGLISH for a smart non-trader. Translate jargon every time: short interest/days-to-cover -> "shorts are heavy ... squeeze risk"; dark-pool prints -> "large off-exchange block buying (quiet institutional accumulation)"; unusual options -> "a burst of unusual options buying"; insider rules -> "company insiders have been buying"; COT low percentile -> "speculators have almost no bullish bets left - a contrarian floor"; COT high percentile -> "speculators are piled into longs - a contrarian warning".
+
+BANNED WORDS - never output these in ANY field: "washed out", "crowded". For a low COT percentile write "extended short" (or "speculators have almost no bullish bets left - a contrarian floor"); for a high percentile write "extended long" (or "speculators are heavily positioned - a contrarian warning").
 
 DATA (source of truth for current values + positioning):
 {data}
@@ -294,6 +317,7 @@ def main():
         print("FATAL: both feeds unreachable; refusing to publish", file=sys.stderr); sys.exit(1)
     movers = fetch_movers()
     brief = validate(call_model(feeds, movers, today), today)
+    brief = scrub_banned(brief)  # enforce banned-copy guard before write + email
     if not brief.get("movers"): brief["movers"] = movers
     out = os.path.join(os.path.dirname(__file__), "..", "public", "daily_brief.json")
     with open(out, "w", encoding="utf-8") as f:
