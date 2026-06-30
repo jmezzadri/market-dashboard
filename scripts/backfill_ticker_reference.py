@@ -249,7 +249,7 @@ def fetch_priority_overlay(sb_url, sb_key):
     bucket at the front of the queue. Falls through silently if either
     table read fails — priority is a nice-to-have, not load-bearing."""
     out = set()
-    for table in ("positions", "watchlist"):
+    for table in ("paper_positions", "watchlist"):
         try:
             rows = supabase_get_all(sb_url, sb_key, table, "ticker", page_size=2000)
             for r in rows:
@@ -412,3 +412,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
