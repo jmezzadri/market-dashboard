@@ -14,10 +14,12 @@ name: BRIEF-FRESHNESS-SELFHEAL
 
 on:
   schedule:
-    - cron: '45 11 * * 1-5'   # 07:45 ET (EDT) — ~90 min after the 06:15 writer
-    - cron: '45 12 * * 1-5'   # 07:45 ET (EST) sibling
-    - cron: '15 13 * * 1-5'   # 09:15 ET (EDT) — final backstop before the open
-    - cron: '15 14 * * 1-5'   # 09:15 ET (EST) sibling
+    # Dense morning sweep so the homepage CANNOT stay stale past mid-morning even if the
+    # 06:15 writer cron lags or drops (GitHub's scheduler is best-effort). Every 30 min,
+    # 10:00-15:30 UTC = ~06:00-11:30 ET (EDT) / 05:00-10:30 ET (EST) — spans the writer in
+    # both DST seasons. Idempotent: it only regenerates when the LIVE site is not today's,
+    # so the extra runs are cheap no-ops. Cloud-only; nothing depends on a laptop.
+    - cron: '*/30 10-15 * * 1-5'
   workflow_dispatch: {}
 
 permissions:
@@ -46,6 +48,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BRIEF_SEND_MODE: live
+          BRIEF_FORCE_REBUILD: "1"   # when healing, regenerate even if the local file looks current (deploy lag)
         run: python scripts/brief_selfheal.py
 
       - name: Commit brief if the self-heal regenerated it

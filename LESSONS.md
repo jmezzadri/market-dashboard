@@ -702,3 +702,14 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 **Rule:** (a) A scheduled workflow that has been disabled does not reliably resume on re-enable — you MUST push a commit that touches the workflow file on the default branch to re-register the cron, then confirm the next scheduled run actually fires (look for an `event=schedule` run in the run list, not just `workflow_dispatch`). Treat "every run in history is workflow_dispatch" as proof the schedule is dead. Prefer never disabling a critical producer; if you must, re-arm by commit in the same change. (b) A content generator for a user-visible surface splits its output keys into HARD (cannot render without) and SOFT (default to empty); a single omitted optional field must never abort the publish and freeze the page. Validate hard keys only, default the soft keys, and add one model retry. (c) A safety net that reuses the primary generator does NOT protect against a bug inside that generator — the freshness self-heal guards against a missing run, not a crashing run; both failure modes need coverage.
 
 **Applies to:** Data Steward (schedule re-arm + freshness), Lead Developer (generator robustness).
+
+
+---
+
+### 4.14 (2026-06-30) — Exactly ONE generator emails the daily brief (homepage writer is email-off); and NO automation may depend on Joe's laptop or a scheduled task
+
+**What happened:** After re-arming the brief writer and dispatching it to un-freeze the homepage, Joe got a SECOND "Market Brief" email. Two generators were emailing him daily: the established legacy routine (~06:45 ET to gmail + EY, subject "Market Brief - Month DD, YYYY") and the newer cloud DAILY-BRIEF-WRITER (subject "Market Brief - YYYY-MM-DD", gmail only). The writer's real job is to refresh the homepage file `public/daily_brief.json`; it was never meant to add a second email. The writer's dual EDT/EST sibling crons plus the self-heal could also each fire a send (the once-per-day-email trap, 4.12). Joe: "I dont want two emails daily." He also set a hard rule: "We never use scheduled tasks. NOTHING RELIES ON MY MACBOOK BEING OPEN."
+
+**Rule:** (a) Exactly ONE generator sends the daily brief email. The homepage writer is EMAIL-OFF by default (`BRIEF_SEND_EMAIL` unset) and only updates the homepage file; the legacy routine remains Joe's single daily email. If the writer is ever promoted to sole emailer, the legacy routine is retired in the SAME change - never both live. (b) The writer is idempotent per day: if the published brief is already today's it does nothing (no model call, no commit, no email), so any number of runs collapse to one. (c) HARD RULE: MacroTilt automation runs ONLY in the cloud - GitHub Actions, Vercel cron, Supabase, Google Apps Script. NEVER a Cowork/Claude scheduled task, and NOTHING may depend on Joe's laptop being open. Anything needing a reliable clock uses a cloud scheduler.
+
+**Applies to:** Data Steward + Lead Developer. All.
