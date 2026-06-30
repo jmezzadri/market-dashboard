@@ -72,8 +72,7 @@ Greps must cover the vendor name, table name, column name, element ID, AND every
 **Rule:** Treat the mounted disk as UNTRUSTED for any file you will commit. Before editing ANY repo file, fetch its current content from origin/main:
 
 ```
-curl -H "Authorization: Bearer $PAT" -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/jmezzadri/market-dashboard/contents/<path>?ref=main"
+curl -H "Authorization: Bearer $PAT" -H "Accept: application/vnd.github.raw"   "https://api.github.com/repos/jmezzadri/market-dashboard/contents/<path>?ref=main"
 ```
 
 Edit THAT copy and PUT it back via the Contents API (which carries the latest blob sha). Never grep/edit on-disk `src/**` as source of truth. At the start of every multi-PR phase, re-baseline: `git log -20 origin/main`, fetch deployed JSON files via raw URL, read workflow files from origin/main. If a commit could plausibly touch a file someone else changed, diff your version against origin/main and confirm every difference is intended. After ANY deploy to a user-visible surface, hard-reload (cache-bust) the page and read the console for `Minified React error` BEFORE telling Joe it is done.
@@ -713,3 +712,23 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 **Rule:** (a) Exactly ONE generator sends the daily brief email. The homepage writer is EMAIL-OFF by default (`BRIEF_SEND_EMAIL` unset) and only updates the homepage file; the legacy routine remains Joe's single daily email. If the writer is ever promoted to sole emailer, the legacy routine is retired in the SAME change - never both live. (b) The writer is idempotent per day: if the published brief is already today's it does nothing (no model call, no commit, no email), so any number of runs collapse to one. (c) HARD RULE: MacroTilt automation runs ONLY in the cloud - GitHub Actions, Vercel cron, Supabase, Google Apps Script. NEVER a Cowork/Claude scheduled task, and NOTHING may depend on Joe's laptop being open. Anything needing a reliable clock uses a cloud scheduler.
 
 **Applies to:** Data Steward + Lead Developer. All.
+
+---
+
+### 4.15 (2026-06-30) — `supabase_get_all` raises `SystemExit`, not `Exception`; and `except Exception` silently swallows the contract
+
+**What happened:** `MASSIVE-TICKER-REFERENCE-BACKFILL` was failing for 12 days. Root cause: `fetch_priority_overlay()` iterated `("positions", "watchlist")`, but both tables had been renamed/removed. `supabase_get_all` raises `SystemExit(f"select {table} offset {offset}: HTTP {status} {body}")` on non-2xx responses. The function doc said "Falls through silently if either table read fails — priority is a nice-to-have, not load-bearing" — but `SystemExit` is a subclass of `BaseException`, not `Exception`, so `except Exception as e:` never caught it. The script exited 1 on every run, leaving `massive-ticker-details` red (7-day SLA) for 12 days without a failure alert triggering the stuck-red escalation.
+
+**Rule:** Any error boundary that calls `supabase_get_all` (or any function that raises `SystemExit` as an error signal) MUST use `except BaseException as e:` (or `except (Exception, SystemExit) as e:`) if the intent is truly "silently fall through." `except Exception` does NOT catch `SystemExit`. Additionally: when renaming or removing a DB table, grep the entire codebase for the old name before merging — table references live in scripts, workflows, AND the PostgREST string literals that are invisible to type-checkers.
+
+**Applies to:** Data Steward, Lead Developer.
+
+---
+
+### 8.9 (2026-06-30) — `data_max_age_hours` in the manifest is a hard freshness gate; set it against the ACTUAL upstream publication lag, not a round number
+
+**What happened:** `term_premium` (`THREEFYTP10`, ACM 10Y Term Premium, NY Fed / FRED) turned red because `data_max_age_hours` was set to 144 (6 calendar-day equivalent). THREEFYTP10 has a known 5-8 trading-day publication lag; on day 7 post-last-data-date the business-calendar age crossed 144h and the data clock failed, producing a false red. No data was actually stale — the NY Fed simply had not published yet.
+
+**Rule:** Before setting `data_max_age_hours` for a lagging series, look up the upstream publication cadence and lag. For THREEFYTP10: lag ≤ 8 trading days = ~192h; use 288h (12 trading days) as the gate to absorb normal variance. General pattern: `data_max_age_hours = (max_observed_lag_trading_days + 4_day_buffer) × 24`. A window that is too tight produces false reds that erode trust in the freshness system; a window that is too loose masks a genuinely dead feed. Pick the tightest window that does not fire on a normally-lagging healthy series.
+
+**Applies to:** Data Steward.
