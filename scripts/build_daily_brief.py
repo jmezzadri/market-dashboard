@@ -295,6 +295,13 @@ def render_email_text(b):
     return re.sub("<[^>]+>", "", "\n".join(L))
 
 def send_email(b, today):
+    # EMAIL-OFF by default. Joe's single daily brief email is owned by the LEGACY routine
+    # (gmail + EY, ~06:45 ET). This homepage writer must not send a second, duplicate email
+    # -- its job is the homepage file only. Flip BRIEF_SEND_EMAIL=true ONLY if this writer is
+    # ever made the sole emailer (and the legacy routine retired in the same change).
+    if os.environ.get("BRIEF_SEND_EMAIL", "").lower() not in ("1", "true", "yes"):
+        print("email disabled (BRIEF_SEND_EMAIL unset) -- homepage-only; legacy routine owns Joe's daily email")
+        return False
     user = os.environ.get("SMTP_USER", ""); pw = os.environ.get("SMTP_PASSWORD", "")
     sender = os.environ.get("EMAIL_FROM", "") or user
     mode = os.environ.get("BRIEF_SEND_MODE", "test").lower()
@@ -319,6 +326,19 @@ def send_email(b, today):
 
 def main():
     today = datetime.datetime.now(ET).strftime("%Y-%m-%d")
+    out = os.path.join(os.path.dirname(__file__), "..", "public", "daily_brief.json")
+    # Idempotency: if the committed brief is already today's, do nothing -- no model
+    # call, no commit, no email. Any number of runs/day (the dual EDT/EST writer cron,
+    # the dense self-heal, a manual dispatch) thus collapse to ONE generation. Set
+    # BRIEF_FORCE_REBUILD=1 to override (the self-heal does -- it has already confirmed
+    # the LIVE site is stale).
+    if os.environ.get("BRIEF_FORCE_REBUILD", "").lower() not in ("1", "true", "yes"):
+        try:
+            if json.load(open(out, encoding="utf-8")).get("date") == today:
+                print(f"brief already current ({today}); nothing to do")
+                return
+        except Exception:
+            pass
     feeds = fetch_feeds()
     if not any(feeds.values()):
         print("FATAL: both feeds unreachable; refusing to publish", file=sys.stderr); sys.exit(1)
@@ -335,7 +355,6 @@ def main():
         sys.exit(1)
     brief = scrub_banned(brief)  # enforce banned-copy guard before write + email
     if not brief.get("movers"): brief["movers"] = movers
-    out = os.path.join(os.path.dirname(__file__), "..", "public", "daily_brief.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump(brief, f, ensure_ascii=False, indent=2)
     print(f"wrote public/daily_brief.json — {today}: {brief['headline']}")

@@ -11,20 +11,20 @@
  "elements": {
   "commentary.daily-brief": {
    "category": "commentary",
-   "element": "Daily market brief \u2014 homepage editorial + branded email",
+   "element": "Daily market brief \u2014 homepage editorial (writer updates the homepage file ONLY; the daily email is sent separately by the legacy routine)",
    "sourcing_mode": "computed in-house",
    "source_vendor": "MacroTilt in-house (Anthropic API with web search, over the brief-latest + brief-positioning feeds and the prior-session scan movers)",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: DAILY-BRIEF-WRITER.yml (primary); BRIEF-FRESHNESS-SELFHEAL.yml (live-outcome backstop)",
-   "schedule_et": "06:15 ET weekdays (writer); self-heal 07:45 ET + 09:15 ET; off-platform morning verify ~08:30 ET",
+   "refresh_trigger": "github-actions: DAILY-BRIEF-WRITER.yml (06:15 ET, writes homepage file); BRIEF-FRESHNESS-SELFHEAL.yml (dense morning backstop, every 30 min, regenerates if the live site is not today\u0027s). Both are EMAIL-OFF; the daily email is the legacy routine.",
+   "schedule_et": "Writer 06:15 ET weekdays; self-heal every 30 min 06:00\u201311:30 ET (both DST seasons). Cloud-only (GitHub Actions) \u2014 no laptop / no scheduled-task dependency.",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
     "Home \u2192 Daily Brief (eyebrow, headline, stance, Key News, Implications, What to Watch, the three sections, movers)",
-    "Branded daily Market Brief email"
+    "(daily email sent separately by the legacy routine to gmail + EY \u2014 this writer is email-off to avoid duplicates)"
    ],
    "target_storage": "Repo file public/daily_brief.json (committed by the writer; served static by Vercel)",
-   "failure_mode": "Homepage serves the prior day's brief (stale, no error thrown). BRIEF-FRESHNESS-SELFHEAL checks the LIVE site outcome and regenerates + emails Joe; an off-platform weekday-morning check dispatches the writer if both GitHub jobs miss. Generator now defaults optional keys to empty so an omitted field never blocks the publish.",
+   "failure_mode": "Homepage serves the prior day's brief (stale, no error thrown). BRIEF-FRESHNESS-SELFHEAL sweeps every 30 min through mid-morning and regenerates from the LIVE outcome, so a single missed/lagged writer run cannot leave the page stale. Generator hard-requires only headline/stance/sections and defaults optional keys, so an omitted field never blocks the publish. Writer is email-off + idempotent so reruns never duplicate Joe's email.",
    "owner": "Data Steward",
    "sla_basis": "Daily-job convention (49h, calendar-aware) per _freshness_sla_basis; backstopped by the live-outcome self-heal after the 2026-06-29 and 2026-06-30 homepage freezes.",
    "id": "commentary.daily-brief"
