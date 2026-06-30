@@ -15,6 +15,13 @@ name: DAILY-BRIEF-WRITER
 # Required secrets: ANTHROPIC_API_KEY, SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
 #   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
 
+# 2026-06-30 RE-ARM: this workflow was manually disabled during the 2026-06-29
+# incident and re-enabled, but its scheduled trigger stayed dormant -- GitHub does
+# not reliably resume a disabled schedule until a NEW COMMIT touches the workflow
+# file on the default branch. Result: the 06:15 ET cron silently never fired for
+# three straight weekdays and the homepage froze. Committing this file re-registers
+# the schedule. Do NOT disable this workflow; if you ever must, re-commit to re-arm.
+
 on:
   schedule:
     - cron: '15 10 * * 1-5'   # 06:15 ET (EDT)
