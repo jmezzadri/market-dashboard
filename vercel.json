@@ -4,6 +4,10 @@
     {
       "path": "/api/options-mark-batch",
       "schedule": "30 20 * * 1-5"
+    },
+    {
+      "path": "/api/brief-ensure",
+      "schedule": "30 12 * * 1-5"
     }
   ],
   "rewrites": [
@@ -13,4 +17,3 @@
     }
   ]
 }
-
