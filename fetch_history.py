@@ -985,7 +985,7 @@ def fetch_all():
             te_html = r.read().decode("utf-8", errors="replace")
         # Match "(remained unchanged|increased|decreased|fell|rose|at) X.X points in <Month> [YYYY]"
         m_te = _re.search(
-            r"(?:remained.{0,30}|increased.{0,30}|decreased.{0,30}|fell.{0,30}|rose.{0,30}|at)\s+([0-9]+\.?[0-9]*)\s*points?\s*in\s+([A-Z][a-z]+)(?:\s+(\d{4}))?",
+            r"(?:increased\s+to|decreased\s+to|fell\s+to|rose\s+to|remained\s+(?:unchanged\s+)?at|at)\s+([0-9]+\.?[0-9]*)\s*points?\s*in\s+([A-Z][a-z]+)(?:\s+of\s+(\d{4})|(?:\s+(\d{4})))?",
             te_html
         )
         if m_te:
