@@ -9,6 +9,26 @@
   "Sub-feed split between SCAN_345PM_WEEKDAYS.yml (current main) and V5_SCAN_DAILY.yml (lineage doc) — the lineage doc names V5_SCAN_DAILY but the worktree shows SCAN_345PM_WEEKDAYS. Both are listed; reconcile in next pass."
  ],
  "elements": {
+  "commentary.daily-brief": {
+   "category": "commentary",
+   "element": "Daily market brief \u2014 homepage editorial + branded email",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "MacroTilt in-house (Anthropic API with web search, over the brief-latest + brief-positioning feeds and the prior-session scan movers)",
+   "license_tier": "paid",
+   "cadence": "daily",
+   "refresh_trigger": "github-actions: DAILY-BRIEF-WRITER.yml (primary); BRIEF-FRESHNESS-SELFHEAL.yml (live-outcome backstop)",
+   "schedule_et": "06:15 ET weekdays (writer); self-heal 07:45 ET + 09:15 ET; off-platform morning verify ~08:30 ET",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Home \u2192 Daily Brief (eyebrow, headline, stance, Key News, Implications, What to Watch, the three sections, movers)",
+    "Branded daily Market Brief email"
+   ],
+   "target_storage": "Repo file public/daily_brief.json (committed by the writer; served static by Vercel)",
+   "failure_mode": "Homepage serves the prior day's brief (stale, no error thrown). BRIEF-FRESHNESS-SELFHEAL checks the LIVE site outcome and regenerates + emails Joe; an off-platform weekday-morning check dispatches the writer if both GitHub jobs miss. Generator now defaults optional keys to empty so an omitted field never blocks the publish.",
+   "owner": "Data Steward",
+   "sla_basis": "Daily-job convention (49h, calendar-aware) per _freshness_sla_basis; backstopped by the live-outcome self-heal after the 2026-06-29 and 2026-06-30 homepage freezes.",
+   "id": "commentary.daily-brief"
+  },
   "market.prices-eod-massive": {
    "category": "market",
    "element": "End-of-day equity prices (~12,600 US-listed)",

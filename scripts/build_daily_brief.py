@@ -205,15 +205,22 @@ def _repair_json(key, broken):
         return None
 
 def validate(brief, today):
-    req = ["date", "eyebrow", "headline", "stance", "news", "implications", "watch", "sections", "movers"]
-    for k in req:
-        if k not in brief:
-            raise ValueError(f"brief missing key: {k}")
+    # HARD keys: the home page genuinely cannot render a brief without these.
+    for k in ("headline", "stance", "sections"):
+        if not brief.get(k):
+            raise ValueError(f"brief missing required key: {k}")
+    if not isinstance(brief.get("sections"), list) or not brief["sections"]:
+        raise ValueError("brief.sections empty")
     brief["date"] = today  # force correct date
     if not brief.get("eyebrow"):
         brief["eyebrow"] = "Morning Brief"
-    if not isinstance(brief.get("sections"), list) or not brief["sections"]:
-        raise ValueError("brief.sections empty")
+    # SOFT keys: a model response that omits ONE optional list must never freeze
+    # the homepage. Default them to empty; main() backfills real movers from the
+    # scan table. (2026-06-30: an omitted "movers" key crashed the whole publish
+    # and froze the homepage a second day running -- see LESSONS.)
+    for k in ("news", "implications", "watch", "movers"):
+        if not isinstance(brief.get(k), list):
+            brief[k] = []
     return brief
 
 # ---- email rendering (replicates the existing branded template) ----
@@ -316,7 +323,16 @@ def main():
     if not any(feeds.values()):
         print("FATAL: both feeds unreachable; refusing to publish", file=sys.stderr); sys.exit(1)
     movers = fetch_movers()
-    brief = validate(call_model(feeds, movers, today), today)
+    brief = None
+    for attempt in (1, 2):  # one retry guards against a transient malformed model response
+        try:
+            brief = validate(call_model(feeds, movers, today), today)
+            break
+        except Exception as e:
+            print(f"WARN: brief build attempt {attempt} failed: {e}", file=sys.stderr)
+    if brief is None:
+        print("FATAL: brief failed to build/validate after retry; refusing to publish", file=sys.stderr)
+        sys.exit(1)
     brief = scrub_banned(brief)  # enforce banned-copy guard before write + email
     if not brief.get("movers"): brief["movers"] = movers
     out = os.path.join(os.path.dirname(__file__), "..", "public", "daily_brief.json")
