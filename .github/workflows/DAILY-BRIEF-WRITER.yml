@@ -26,6 +26,14 @@ on:
   schedule:
     - cron: '15 10 * * 1-5'   # 06:15 ET (EDT)
     - cron: '15 11 * * 1-5'   # 06:15 ET (EST) sibling
+  workflow_run:
+    # GitHub's cron scheduler has repeatedly dropped THIS workflow's own schedule
+    # (6/26, 6/29, 7/1) while other workflows fire fine. So we ALSO trigger off the
+    # completion of workflows that DO fire reliably every morning. The writer is
+    # idempotent (skips when the brief is already today's), so being triggered many
+    # times a morning is harmless -- it generates at most once. This is the reliable path.
+    workflows: ["PAPER-PORTFOLIO-EOD-DAILY", "MASSIVE-DAILY"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       send_mode:
