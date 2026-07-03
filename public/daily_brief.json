@@ -1,172 +1,173 @@
 {
-  "date": "2026-07-02",
-  "recap_session": "Wed Jul 1",
+  "date": "2026-07-03",
+  "recap_session": "Thu Jul 2",
   "eyebrow": "Morning Brief",
-  "headline": "US futures edge higher ahead of the June jobs report (8:30am ET), with chips still under pressure after Wednesday's sector selloff but broader rotation into non-tech names keeping the S&P near its prior-session close.",
-  "stance": "The session pivot is <b>8:30am ET: June nonfarm payrolls</b>, released a day early for the Independence Day holiday. Consensus sits around 100K–115K (down from May's 172K) with unemployment steady at 4.3%; a beat risks accelerating Fed rate-hike pricing, while a miss opens a soft-landing window and could lift bonds and gold. <b>Pre-market futures (as of ~6:45am ET)</b> are modestly positive — S&P +0.14%, Nasdaq-100 +0.23%, Dow +0.1% — as markets look past Wednesday's chip rout and await the data for the week's directional cue.",
+  "headline": "June payrolls printed 57K — roughly half the consensus — lifting gold and stocks overnight while the dollar slid and the yen steadied near intervention watch territory; US equity and bond markets are closed today for Independence Day.",
+  "stance": "<b>Lean cautiously constructive entering the long weekend.</b> The soft jobs number lowers the odds of a September Fed rate hike and takes near-term rate-hike risk off the table — a mild tailwind for equities and bonds returning Monday. But the CAPE at 41.6 and a deeply negative equity risk premium (stocks paying no spread over risk-free rates) mean valuation provides little cushion if growth softens further. <b>USD/JPY at 161 with Japan verbally intervening is the single biggest tail risk for the holiday session</b> — thin liquidity today could amplify any move sharply.",
   "news": [
     {
-      "head": "Chip selloff ripples into Asia",
-      "body": "Wednesday's semiconductor rout — Micron -10.6%, AMD -6.9%, Intel -9%, the semiconductor ETF SMH -5.4% — spread overnight to South Korea, where Samsung fell more than 7% and SK Hynix sank over 9%, triggering a brief trading halt on the Kospi."
+      "head": "June NFP: 57K, well below consensus",
+      "body": "The US economy added just 57,000 jobs in June — roughly half the ~115K expected — and April/May were revised down a combined 74,000, bringing cumulative two-month revisions to their worst reading this year."
     },
     {
-      "head": "Meta jumps, non-tech holds",
-      "body": "Meta Platforms surged nearly 9% after announcing plans to launch a cloud business and sell excess AI computing capacity, with Microsoft +3% and Apple +2% helping cushion the broader market decline; the Dow touched an intraday record of 52,742 before retreating."
+      "head": "Unemployment ticked down, but for the wrong reason",
+      "body": "The jobless rate dipped to 4.2% because the labor force participation rate fell 0.3 percentage points to 61.5%, meaning people left the workforce rather than found jobs — a softer signal than the headline suggests."
     },
     {
-      "head": "NFP due 8:30am ET",
-      "body": "The June jobs report is published a day early ahead of Friday's Independence Day closure; consensus is ~100K–115K new jobs and a 4.3% unemployment rate — well below May's 172K, but still above the trailing 12-month average."
+      "head": "Wage growth mild: +3.5% YoY",
+      "body": "Average hourly earnings rose 3.5% year-over-year and just 0.3% month-over-month, providing the Fed with some comfort that wage-driven inflation is not re-accelerating."
     },
     {
-      "head": "ADP miss stokes hopes for softer Fed",
-      "body": "Wednesday's ADP private payrolls showed only 98K jobs added in June, below estimates, giving markets a hint that Friday's official print could disappoint and potentially ease rate-hike pressure on the Fed."
+      "head": "Fed Chair Warsh: no urgency to hike",
+      "body": "At the ECB Forum in Sintra this week, Fed Chair Kevin Warsh said inflation expectations have eased and signaled no immediate urgency to raise rates, though he reaffirmed the central bank's commitment to price stability."
     },
     {
-      "head": "Fed Chair Warsh at ECB forum",
-      "body": "Fed Chair Kevin Warsh told the ECB's Sintra symposium that inflation expectations have eased over the past month, but he reaffirmed commitment to price stability and declined to provide forward guidance on rates — the market still prices more than a 60% chance of at least one hike in 2026."
+      "head": "September hike odds drop to ~50%",
+      "body": "Markets now price roughly a 50% chance of a September rate hike, down from ~67% before the jobs report, giving equities and bonds a modest relief bid heading into the holiday."
     },
     {
-      "head": "US-Iran talks progress, oil slides",
-      "body": "Indirect US-Iran negotiations in Qatar showed progress on shipping passage through the Strait of Hormuz, pulling Brent crude down toward $71; WTI closed at $68.09 (prior cash close) as geopolitical risk premium continues to drain from energy markets."
+      "head": "US-Iran peace talks progressing",
+      "body": "President Trump said US-Iran negotiations were progressing well after mediators met in Doha; Saudi and UAE oil exports have rebounded sharply, pushing Strait of Hormuz daily flows back above 10 million barrels per day."
     },
     {
-      "head": "Bending Spoons IPO pops 42%",
-      "body": "Italian software company Bending Spoons — owner of AOL and Vimeo — debuted on the Nasdaq and surged 42% on its first day of US trading, opening at $31 against a $29 IPO price."
+      "head": "Yen at 40-year low; intervention alert",
+      "body": "USD/JPY touched ~162.5 on Wednesday before snapping back toward 161 on Thursday after a Reuters report suggested Japan may intervene without advance warning; Finance Minister Katayama issued fresh verbal warnings."
     },
     {
-      "head": "SpaceX set to join Nasdaq-100 on July 7",
-      "body": "Index-tracking funds are expected to begin purchasing SpaceX shares after the close on July 6, with the stock officially entering the Nasdaq-100 before trading on July 7."
+      "head": "Chip stocks saw heavy profit-taking Wed",
+      "body": "Semiconductor names including Micron, SanDisk, Applied Materials, Lam Research, Intel, and Marvell each fell roughly 9–10% on Wednesday as investors rotated profits after the sector roughly doubled in Q2."
+    },
+    {
+      "head": "US markets closed Friday Jul 3",
+      "body": "NYSE, Nasdaq, and bond markets are fully closed today in observance of Independence Day; the next cash session is Monday, July 6."
     }
   ],
   "implications": [
-    "A jobs print above ~130K would likely push the 10Y yield (prior close: 4.48%) higher and squeeze gold, which rebounded above $4,000 in overnight trade after briefly dipping below it Wednesday.",
-    "A print at or below 85K could reprice the Fed path dovishly — supportive for rate-sensitive small-caps and bonds, and a tailwind for gold and the Euro.",
-    "Chip names are already a one-day loser; a soft jobs number could trigger a rotation back into semis on 'peak-hawkish' logic, while a hot number would likely deepen the tech drawdown.",
-    "USD/JPY (prior close: 162.55) sits at a 99th-percentile three-year extreme for yen weakness — verbal intervention risk from Tokyo is elevated; any dollar softness post-NFP could see sharp yen snapback.",
-    "<b>Positioning:</b> Speculators have almost no bullish bets left in Nasdaq-100 futures (4th percentile, 3-year range) and Russell 2000 futures (2nd percentile) — a contrarian floor suggesting professional shorts are extended and squeeze risk is present if the jobs print is benign. Copper speculator positioning is at the 95th percentile — speculators are heavily positioned long copper, a contrarian warning. British pound specs are at their most extended short in three years (1st percentile) — a contrarian-bullish lean for GBP."
+    "A 57K payrolls print with downward revisions reduces the Fed's incentive to hike in September, which is bond-friendly and modestly equity-friendly — expect yields to remain well-bid into Monday's open.",
+    "Falling participation (not rising employment) drove the unemployment rate lower — the labor market is cooling more than the 4.2% headline implies, which argues for patience from the Fed rather than action.",
+    "Gold holding above $4,100 (prior cash close $4,135.50) and oil staying near $68.50 (overnight level) tells the same story: disinflation is making progress, and the geopolitical risk premium in energy is deflating as US-Iran talks advance.",
+    "USD/JPY near 161–162 on a low-liquidity US holiday is a live risk: Japan has intervened in thin markets before, and a snap move lower in USDJPY would ripple into equity futures and gold when US desks are unstaffed.",
+    "<b>Positioning:</b> Speculators have almost no bullish bets left in Nasdaq 100 futures and Russell 2000 futures (both near 3-year lows in net positioning) — a contrarian floor suggesting a short-squeeze is possible on any positive catalyst. Copper speculators are heavily positioned long at the 95th percentile — a contrarian warning for the industrial metal. British pound specs are at 1st-percentile short — a contrarian floor for GBP."
   ],
   "watch": [
     {
-      "head": "8:30am ET — June NFP",
-      "body": "The single biggest market-mover of the week: consensus ~100K–115K jobs, unemployment 4.3%; a wide miss or beat will reprice equities, bonds, the dollar, and gold simultaneously."
+      "head": "USD/JPY intervention risk today",
+      "body": "Holiday thin liquidity makes today a historically favored window for Bank of Japan yen-support operations — watch for a sudden move toward 158-159 if Tokyo acts."
     },
     {
-      "head": "10Y yield (4.48% prior close)",
-      "body": "Watch whether yields hold below the psychologically important 4.50% level post-NFP; a break higher would increase pressure on high-multiple tech and growth stocks."
+      "head": "10Y Treasury yield on Monday open",
+      "body": "The prior cash close on the 10Y was 4.49%; a softer labor market argues for yields to drift lower — watch whether 4.40% support holds on the Monday open."
     },
     {
-      "head": "USD/JPY (162.55 prior close)",
-      "body": "At a 40-year yen weakness extreme; any dovish NFP surprise could accelerate yen strength, unwinding carry trades and creating cross-asset volatility."
+      "head": "Semis recovery pace Mon open",
+      "body": "After the sector lost ~6-10% Wednesday on profit-taking, watch whether the post-NFP relief bid and extended-short positioning provide a snapback for SOX names on July 6."
     },
     {
-      "head": "Gold (~$4,000–$4,045 overnight)",
-      "body": "Gold rebounded toward $4,045 overnight after briefly breaking below $4,000 Wednesday; the NFP print is the binary — strong jobs data risks re-testing $4,000 support, weak data could reignite the bull trend."
+      "head": "Oil: peace deal durability",
+      "body": "WTI held ~$68.50 overnight (near prior cash close of $68.46); Iran's Khamenei funeral on July 4 could briefly revive geopolitical noise — watch Brent around $71-72."
     },
     {
-      "head": "Chip sector (SMH) open",
-      "body": "After a 5.4% one-day loss Wednesday and further Asian selling overnight, watch whether US semi names stabilize or extend losses at the open — the sector's direction will shape Nasdaq-100 performance for the day."
-    },
-    {
-      "head": "US markets close Friday Jul 4",
-      "body": "Today is the last full trading session of the week; any position-squaring ahead of the long weekend could amplify post-NFP moves in both directions."
+      "head": "CAPE at 41.6 vs. negative ERP",
+      "body": "The S&P 500 equity risk premium is -2.05% — meaning stocks yield less than risk-free Treasuries — watch whether Monday's open re-tests SPX 7,483 cash close support."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "10Y Treasury yield holds at 4.48% (prior cash close), near a 10bps rebound from Monday's seven-week low of 4.36%, as hawkish Fed repricing and a resilient labor market keep upward pressure on longer-dated bonds.",
-        "2Y yield at 4.17% (prior cash close) gives a 31bp 10Y-2Y spread — technically positive (not inverted), but historically thin, reflecting the market's uncertainty about the growth vs. inflation mix.",
-        "Fed Chair Warsh said inflation risks are easing but offered no rate-cut pivot; the Fed held at 3.50%–3.75% in June and markets still price more than a 60% probability of at least one hike in 2026.",
-        "10Y breakeven inflation at 2.23% (prior close) — the bond market's inflation expectation is only modestly above the Fed's 2% target, signaling the market does not believe energy-driven CPI will persist.",
-        "Real rates at 2.25% (prior close) remain restrictive and act as a headwind for gold and long-duration equity valuations (CAPE at 41.7x is elevated).",
-        "The term premium — the extra yield investors demand for holding long bonds — sits at 68.4 basis points, reflecting lingering fiscal and inflation uncertainty.",
-        "MOVE index (bond-market volatility gauge) at 68.6 (prior close) is subdued, suggesting the options market is not pricing a catastrophic rates move from today's NFP."
+        "PRIOR CASH CLOSE: 10Y Treasury yield 4.49%, 2Y yield 4.14%, curve steepness (10Y minus 2Y) 35 bps — a modestly positive slope suggesting the bond market is not pricing a deep recession.",
+        "The June NFP miss (57K vs ~115K expected) sent the dollar index down to ~100.8 post-report (OVERNIGHT level) from its prior-session high near 101.6 — the DXY prior cash close per data was 100.85.",
+        "Real rates (inflation-adjusted 10Y yield) sit at 2.26% (prior cash close) — still restrictive, meaning the Fed is genuinely squeezing the economy even as nominal yields have dipped.",
+        "10Y breakeven inflation (the bond market's best guess at future CPI) stands at 2.23% (prior cash close) — consistent with the Fed's 2% target and supportive of a patient stance.",
+        "Bond market volatility (MOVE index) at 65.4 (prior cash close) is relatively subdued, suggesting bond investors are not panicking despite the jobs miss.",
+        "Financial conditions remain easy: the Chicago Fed's National Financial Conditions Index (ANFCI) reads -0.486 (last week) and the St. Louis Fed Stress Index (STLFSI) is -0.64 — both well below zero, meaning money is flowing freely through the system.",
+        "The Fed's overnight lending market shows no stress: the spread between what banks charge each other versus the policy rate (FRA-OIS and SOFR-OIS) is just 3 basis points each (prior data) — plumbing is clean.",
+        "<b>Positioning:</b> In rate futures, speculators have almost no bullish bets left on 3-month SOFR contracts — a 3-year low in net positioning — a contrarian floor suggesting the market has over-priced rate-hike risk."
       ],
-      "positioning": "Speculators in 3-month SOFR interest-rate futures are at the 1st percentile of their 3-year net-position range — speculators have almost no bullish bets left, a contrarian floor suggesting rate-cut risk is already priced aggressively short.",
+      "positioning": "Speculators have almost no bullish bets left in 3M SOFR futures (1st percentile of 3-year range) — a contrarian floor; if the Fed stays on hold, these shorts could unwind sharply, pushing short-end yields lower.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500 prior cash close: 7,483.23; Nasdaq-100 prior cash close: 26,040.03; Dow prior cash close: 52,305.24 — all three indices ended Wednesday lower (S&P -0.22%, Nasdaq -0.66%, Dow -0.03%) after the Dow hit a record intraday high of 52,742.",
-        "Pre-market futures (as of ~6:45am ET): S&P +0.14%, Nasdaq-100 +0.23%, Dow +0.11% — fractionally positive as markets await the jobs report.",
-        "H1 2026 scorecard: S&P +9.6%, Nasdaq +12.8%, Dow +8.9%, Russell 2000 +22% — the best small-cap first half since 1991.",
-        "62% of S&P 500 stocks trade above their 50-day moving average and 63.1% above their 200-day average (prior close) — healthy breadth even as the mega-cap chip trade corrects.",
-        "VIX at 16.59 (prior close) is well below stress levels, suggesting investors see Wednesday's chip selloff as healthy profit-taking rather than a systemic unwind.",
-        "SKEW index at 154.8 (prior close) — a high reading that reflects institutional demand for downside protection (tail-risk hedging), even as the VIX stays low; the two together signal calm surface, hidden caution underneath.",
-        "The chip rout hit Micron (-10.6%), AMD (-6.9%), Intel (-9%), and Sandisk (-10.6%) Wednesday; Meta's +9% on cloud expansion news and Microsoft +3% partially offset the index-level damage.",
-        "Equity-credit correlation at 0.709 (prior close) — stocks and credit spreads are moving together, which means a deterioration in credit would quickly transmit into equities."
+        "PRIOR CASH CLOSE: S&P 500 at 7,483.24; Nasdaq 100 at 25,832.67; Dow Jones at 52,900.07 — all reflecting Wednesday's session in which chips sold off heavily while the Dow was nearly flat.",
+        "OVERNIGHT/PRE-MARKET level: S&P 500 futures traded in a range of roughly 7,520–7,594 (per available overnight data) — modestly above the cash close as the soft NFP removed near-term hike risk.",
+        "VIX (the S&P 500's 'fear gauge') closed at 16.15 (prior cash close) — calm, consistent with a market that is not pricing any near-term crash risk despite extended valuations.",
+        "The CAPE ratio (a long-run valuation measure comparing prices to 10-year average earnings) stands at 41.6 — historically elevated, suggesting long-term return expectations are low even if the near-term trend is intact.",
+        "Equity risk premium is -2.05% (prior data) — stocks are not compensating investors for the extra risk of owning them over safe Treasuries, a valuation warning for long-horizon holders.",
+        "Breadth is healthy but not extreme: 62.1% of S&P 500 stocks trade above their 50-day average and 63.3% above their 200-day average (as of Jul 1) — a broadly-participating rally, not just a few mega-caps lifting the index.",
+        "ISM Manufacturing came in at 53.3 in June (above 50 = expanding) — the factory sector is growing, which is a positive read-through for industrial and materials equities.",
+        "<b>Positioning:</b> Speculators have almost no bullish bets left in both Nasdaq 100 and Russell 2000 futures (4th and 2nd percentile of 3-year ranges respectively) — a contrarian floor; heavy short interest in small-caps specifically creates squeeze risk if rates fall further."
       ],
-      "positioning": "Speculators in Nasdaq-100 futures are at the 4th percentile of their 3-year positioning range — speculators have almost no bullish bets left, a contrarian floor. Shorts are not heavy in absolute terms (days-to-cover light across most setups) but any upside catalyst could force rapid short-covering. VIX futures positioning is also extended short (12th percentile), meaning a vol spike would catch most specs offside.",
+      "positioning": "Speculators have almost no bullish bets left in Nasdaq 100 (4th percentile) and Russell 2000 (2nd percentile) futures — both near 3-year lows — a contrarian floor with meaningful squeeze risk on any dovish catalyst.",
       "single_name": {
-        "ticker": "TSM",
-        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — the world's dominant chip foundry, trading above its 200-day line despite the sector rout; large off-exchange block buying (quiet institutional accumulation) and a burst of unusual options activity were both live as of Jul 1 scan. Short interest is low (1.8 days to cover) so shorts are light with minimal squeeze risk — institutions appear to be building a position into the sector pullback. Score: 8/10, signal fresh."
+        "ticker": "HOOD",
+        "note": "<a class=\"tklink\" href=\"/ticker/HOOD\" data-route=\"/ticker/HOOD\">Robinhood Markets</a> (retail brokerage/fintech) — large off-exchange block buying (quiet institutional accumulation) and a burst of unusual options buying are both live; company insiders have been buying; shorts are light (1.15 days to cover) with low squeeze risk but the positive setup remains 56% weighted. Directly benefits from a softer rate environment and renewed retail trading activity post-NFP."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HY-IG spread at 275 bps (as of Jun 30) — the gap between junk-bond yields and investment-grade yields is the market's live stress gauge; a reading here is moderate and not signaling imminent credit distress.",
-        "IG option-adjusted spread at 76 bps (Jun 30) — investment-grade credit is priced close to tight historical levels, consistent with a low-default environment.",
-        "FRA-OIS and SOFR-OIS funding spreads both at just 5 bps (Jun 30) — bank-to-bank lending stress is essentially zero; interbank plumbing is clear.",
-        "Commercial paper funding spread at 18 bps (Jun 26) — short-term corporate borrowing costs are benign.",
-        "Overnight Reverse Repo (RRP) facility usage: just $1 billion (Jul 1) — near zero, meaning money-market funds have fully deployed cash into the market rather than parking it at the Fed; a positive liquidity signal for risk assets.",
-        "Bank reserves at $2,951 billion (Jun 24) — ample system liquidity; the Fed's balance sheet is still large enough to cushion any funding shocks.",
-        "Treasury General Account (TGA) at $919 billion (Jun 24) — a large TGA balance means the Treasury has firepower; as it draws down to pay bills, it injects cash into the banking system (a liquidity tailwind).",
-        "Financial conditions indexes (ANFCI -0.49, STLFSI -0.64, both Jun 26) remain well in accommodative territory — looser than neutral despite the Fed holding rates steady."
+        "High-yield vs. investment-grade credit spread stands at 274 bps (prior data) — the premium investors demand to hold riskier corporate bonds is contained, consistent with no stress in the corporate sector.",
+        "Investment-grade credit spreads (OAS) at 76 bps (prior data) — tight by historical standards, affirming that large, high-quality companies face no notable funding pressure.",
+        "The equity-credit correlation reads 0.718 (prior cash close) — stocks and credit are moving together, which is normal in a risk-on environment; a breakdown here would be an early warning.",
+        "Commercial paper funding spread (CPFF) at 18 bps (prior data) — near zero stress; companies can roll short-term debt cheaply.",
+        "Bank credit growth running at 6.33% year-over-year (prior data) — healthy expansion, suggesting banks are lending and the economy has adequate credit supply.",
+        "Fed reverse repo facility (RRP) balance at just $2.2 billion (prior data) — essentially drained, meaning excess liquidity has been absorbed into the banking system and money market funds are not hoarding cash at the Fed.",
+        "Bank reserves at $2,967 billion (prior data) — ample; no signs of a liquidity crunch heading into the holiday weekend.",
+        "Treasury General Account (TGA) at $880 billion (prior data) — the government's cash buffer is large, which means Treasury will not need to rush bond issuance in the near term, a mild positive for rates."
       ],
       "positioning": null,
       "single_name": {
         "ticker": "STNG",
-        "note": "<a class=\"tklink\" href=\"/ticker/STNG\" data-route=\"/ticker/STNG\">Scorpio Tankers (STNG)</a> — product-tanker operator exposed to Strait of Hormuz shipping flows; large off-exchange block buying and unusual options activity live as of Jul 1 scan, with two insider buying signals fired. Trades above its 200-day line. Short interest manageable at 4.0 days to cover. Progress in US-Iran talks is a direct read-through to tanker rate normalization. Score: 5/10, signal fresh."
+        "note": "<a class=\"tklink\" href=\"/ticker/STNG\" data-route=\"/ticker/STNG\">Scorpio Tankers</a> (crude/product tanker operator) — large off-exchange block buying and a burst of unusual options buying both live; company insiders have been buying (2 insider rules fired); shorts are moderate at 4 days to cover, creating some squeeze risk. As Middle East shipping normalizes and Hormuz flows recover, tanker rate dynamics shift — worth monitoring for credit/energy cross."
       }
     }
   ],
   "movers": [
     {
       "ticker": "TSM",
-      "pct": 0.0,
+      "pct": null,
       "link": true
     },
     {
       "ticker": "HOOD",
-      "pct": 0.0,
-      "link": true
-    },
-    {
-      "ticker": "GLP",
-      "pct": 0.0,
-      "link": true
-    },
-    {
-      "ticker": "LILA",
-      "pct": 0.0,
-      "link": true
-    },
-    {
-      "ticker": "NVRI",
-      "pct": 0.0,
-      "link": true
-    },
-    {
-      "ticker": "KMX",
-      "pct": 0.0,
-      "link": true
-    },
-    {
-      "ticker": "CSWC",
-      "pct": 0.0,
+      "pct": null,
       "link": true
     },
     {
       "ticker": "STNG",
-      "pct": 0.0,
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "CSWC",
+      "pct": null,
       "link": true
     },
     {
       "ticker": "FUN",
-      "pct": 0.0,
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "CXT",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "KMX",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "GLP",
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "LILA",
+      "pct": null,
       "link": true
     }
   ]
