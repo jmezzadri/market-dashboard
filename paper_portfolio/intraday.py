@@ -92,10 +92,29 @@ def ensure_intraday_schema() -> None:
       spy_close numeric,
       spy_prev_close numeric,
       spy_inception_close numeric,
+      qqq_close numeric,
+      qqq_prev_close numeric,
+      qqq_inception_close numeric,
+      dia_close numeric,
+      dia_prev_close numeric,
+      dia_inception_close numeric,
+      iwm_close numeric,
+      iwm_prev_close numeric,
+      iwm_inception_close numeric,
       portfolio_beta numeric,
       n_positions integer,
       updated_at timestamptz not null default now()
     );
+    alter table public.paper_intraday_nav
+      add column if not exists qqq_close numeric,
+      add column if not exists qqq_prev_close numeric,
+      add column if not exists qqq_inception_close numeric,
+      add column if not exists dia_close numeric,
+      add column if not exists dia_prev_close numeric,
+      add column if not exists dia_inception_close numeric,
+      add column if not exists iwm_close numeric,
+      add column if not exists iwm_prev_close numeric,
+      add column if not exists iwm_inception_close numeric;
     alter table public.paper_intraday_positions enable row level security;
     alter table public.paper_intraday_nav enable row level security;
     """
@@ -121,6 +140,8 @@ def _prior_close_nav_row() -> dict[str, Any]:
     try:
         rows = _supabase_query(
             "select total_nav, spy_close, spy_prev_close, spy_inception_close, "
+            "qqq_close, qqq_inception_close, dia_close, dia_inception_close, "
+            "iwm_close, iwm_inception_close, "
             "portfolio_beta, snapshot_date::text as d "
             "from public.paper_nav_daily order by snapshot_date desc limit 1;"
         )
@@ -214,6 +235,9 @@ def write_nav_intraday(
     prior_nav = float(prior["total_nav"]) if prior.get("total_nav") is not None else None
     day_pnl = (total_nav - prior_nav) if prior_nav is not None else None
     spy_live = alpaca.get_close_price("SPY")
+    qqq_live = alpaca.get_close_price("QQQ")
+    dia_live = alpaca.get_close_price("DIA")
+    iwm_live = alpaca.get_close_price("IWM")
 
     if dry_run:
         logger.info("[dry-run] LIVE NAV=$%.2f day=%+.2f vs prior close $%s; SPY=%s; %d positions",
@@ -227,10 +251,20 @@ def write_nav_intraday(
         "insert into public.paper_intraday_nav "
         "(as_of_date, total_nav, cash, long_market_value, sleeve_a_value, sleeve_b_value, "
         " sleeve_a_equity, sleeve_b_equity, day_pnl, prior_close_nav, spy_close, "
-        " spy_prev_close, spy_inception_close, portfolio_beta, n_positions, updated_at) values ("
+        " spy_prev_close, spy_inception_close, "
+        " qqq_close, qqq_prev_close, qqq_inception_close, "
+        " dia_close, dia_prev_close, dia_inception_close, "
+        " iwm_close, iwm_prev_close, iwm_inception_close, "
+        " portfolio_beta, n_positions, updated_at) values ("
         f"'{today.isoformat()}', {num(total_nav)}, {num(account.cash)}, {num(account.long_market_value)}, "
         f"{num(a_val)}, {num(b_val)}, {num(a_eq)}, {num(b_eq)}, {num(day_pnl)}, {num(prior_nav)}, "
-        f"{num(spy_live)}, {num(prior.get('spy_prev_close'))}, {num(prior.get('spy_inception_close'))}, "
+        # Live "prev" baseline = the latest OFFICIAL close (prior row's own
+        # close). Carrying the close row's *_prev_close here (pre-2026-07-03
+        # behavior for SPY) baselined the live Daily %% two sessions back.
+        f"{num(spy_live)}, {num(prior.get('spy_close'))}, {num(prior.get('spy_inception_close'))}, "
+        f"{num(qqq_live)}, {num(prior.get('qqq_close'))}, {num(prior.get('qqq_inception_close'))}, "
+        f"{num(dia_live)}, {num(prior.get('dia_close'))}, {num(prior.get('dia_inception_close'))}, "
+        f"{num(iwm_live)}, {num(prior.get('iwm_close'))}, {num(prior.get('iwm_inception_close'))}, "
         f"{num(prior.get('portfolio_beta'))}, {b_n + a_n}, now()) "
         "on conflict (as_of_date) do update set "
         "total_nav=excluded.total_nav, cash=excluded.cash, long_market_value=excluded.long_market_value, "
@@ -238,6 +272,9 @@ def write_nav_intraday(
         "sleeve_a_equity=excluded.sleeve_a_equity, sleeve_b_equity=excluded.sleeve_b_equity, "
         "day_pnl=excluded.day_pnl, prior_close_nav=excluded.prior_close_nav, spy_close=excluded.spy_close, "
         "spy_prev_close=excluded.spy_prev_close, spy_inception_close=excluded.spy_inception_close, "
+        "qqq_close=excluded.qqq_close, qqq_prev_close=excluded.qqq_prev_close, qqq_inception_close=excluded.qqq_inception_close, "
+        "dia_close=excluded.dia_close, dia_prev_close=excluded.dia_prev_close, dia_inception_close=excluded.dia_inception_close, "
+        "iwm_close=excluded.iwm_close, iwm_prev_close=excluded.iwm_prev_close, iwm_inception_close=excluded.iwm_inception_close, "
         "portfolio_beta=excluded.portfolio_beta, n_positions=excluded.n_positions, updated_at=now();"
     )
     logger.info("wrote LIVE NAV row: $%.2f (day %+.2f), %d positions", total_nav, (day_pnl or 0.0), b_n + a_n)
