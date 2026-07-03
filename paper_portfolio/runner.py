@@ -3,9 +3,12 @@ paper_portfolio.runner — nightly orchestrator.
 
 Two ET phases per trading day:
 
-  PHASE EOD (default --phase eod, runs ~16:30 ET after the close):
+  PHASE EOD (default --phase eod, pre-open submit window):
+    0. trading-day gate — the broker calendar must say TODAY is a session,
+       else the whole phase no-ops (weekday crons fire on weekday market
+       holidays; 2026-07-03 proved it).
     1. translator.run(...)  — Equity Scanner → pending paper_orders rows.
-    2. submitter.submit_pending_orders(...) — submit MOO orders for tomorrow's open.
+    2. submitter.submit_pending_orders(...) — submit MOO orders for today's open.
 
   PHASE OPEN (--phase open, runs ~09:45 ET after the opening auction settles):
     3. mirror.mirror_fills(...)    — pull last 24h of Alpaca fills.
@@ -49,7 +52,7 @@ def _live_trading_enabled() -> bool:
     return os.environ.get("PAPER_LIVE_TRADING_ENABLED", "").strip().lower() == "true"
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient
-from paper_portfolio.freshness import check_freshness, file_alert
+from paper_portfolio.freshness import check_freshness, file_alert, is_trading_session
 from paper_portfolio.mirror import (
     certify_snapshot_prices,
     official_closes,
@@ -76,10 +79,53 @@ def run_eod_phase(
     scan_date: str | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Translator + Submitter."""
+    """Trading-day gate + Translator + Submitter."""
     logger.info("=" * 60)
     logger.info("PHASE EOD — signal capture + MOO submission")
     logger.info("=" * 60)
+
+    # ── TRADING-DAY GATE (added 2026-07-03) ────────────────────────────────
+    # The workflow's crons fire Mon-Fri and its only guard was a time-of-day
+    # window, so a market holiday that lands on a weekday (2026-07-03,
+    # Independence Day observed) sailed straight through: prior-session
+    # signals were "fresh", the window was valid, and 11 at-the-open orders
+    # were queued at the broker on a day with no session — parking them for
+    # the NEXT open and emailing a rebalance summary on a holiday. Ask the
+    # broker calendar whether TODAY (ET) is a session before doing ANYTHING —
+    # before the translator, so no pending rows, signal captures, or emails
+    # are produced on non-trading days. Holiday/weekend → quiet no-op (INFO);
+    # calendar ERROR → block + P1, the same fail-safe direction as the
+    # freshness gate below. The CLOSE and INTRADAY phases have had equivalent
+    # market-closed guards all along; this brings the one phase that SUBMITS
+    # ORDERS up to the same standard.
+    session_date = _et_today()
+    try:
+        session_today = is_trading_session(AlpacaPaperClient(), session_date)
+    except Exception as exc:  # noqa: BLE001 — calendar fetch must not crash the run
+        logger.warning("trading-day check errored (%s) — BLOCKING run to be safe", exc)
+        if not dry_run:
+            file_alert(
+                title="Paper rebalance blocked — trading-day check failed",
+                description=(
+                    "The pre-open paper rebalance could not confirm whether today "
+                    "is a trading session (broker calendar unreachable) and was "
+                    "blocked as a precaution. No orders were placed; the account "
+                    "holds its prior positions. If today IS a trading day, "
+                    "re-run the morning paper workflow once the calendar recovers."
+                ),
+                priority="P1",
+            )
+        return {"translator": None, "submitter": None,
+                "blocked": True, "reason": "trading-day check errored"}
+    if not session_today:
+        logger.info(
+            "TRADING-DAY GATE — %s is not a trading session (market holiday or "
+            "weekend); skipping the rebalance entirely: no intents, no orders, "
+            "no email.", session_date,
+        )
+        return {"translator": None, "submitter": None,
+                "skipped": "market-closed", "date": str(session_date)}
+
     t_result = run_translator(
         account_number=account_number,
         scan_date=scan_date,

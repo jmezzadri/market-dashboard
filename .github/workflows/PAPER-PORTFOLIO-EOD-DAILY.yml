@@ -1,6 +1,12 @@
 name: PAPER-PORTFOLIO-EOD-DAILY
 
 # MacroTilt paper-portfolio EOD phase — queues at-the-open (opg) orders.
+#   0. Trading-day gate (IN THE RUNNER, added 2026-07-03): the broker
+#      calendar must say TODAY is a session, or the phase no-ops before
+#      the translator writes anything. Weekday crons fire on weekday
+#      market HOLIDAYS — on 2026-07-03 (July 4 observed) this queued 11
+#      next-open orders + emailed a rebalance summary on a closed market.
+#      Holidays exit quietly; a calendar ERROR blocks + files a P1.
 #   1. Translator: Asset Tilt + Stock Scanner -> pending paper_orders rows.
 #   2. Freshness gate: BOTH sleeves must be current for the last closed
 #      trading session, else skip + P1 alert (no stale trade ever fires).
