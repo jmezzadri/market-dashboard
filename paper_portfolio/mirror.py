@@ -228,7 +228,16 @@ def ensure_paper_schema() -> None:
       add column if not exists sleeve_b_day_pnl        double precision,
       add column if not exists spy_prev_close          double precision,
       add column if not exists spy_inception_close     double precision,
-      add column if not exists spy_ttm_close           double precision;
+      add column if not exists spy_ttm_close           double precision,
+      add column if not exists qqq_close               double precision,
+      add column if not exists qqq_prev_close          double precision,
+      add column if not exists qqq_inception_close     double precision,
+      add column if not exists dia_close               double precision,
+      add column if not exists dia_prev_close          double precision,
+      add column if not exists dia_inception_close     double precision,
+      add column if not exists iwm_close               double precision,
+      add column if not exists iwm_prev_close          double precision,
+      add column if not exists iwm_inception_close     double precision;
     """
     _supabase_exec(ddl)
     logger.info("ensure_paper_schema: analytics columns present")
@@ -366,17 +375,21 @@ def _portfolio_beta(snapshot_date: date) -> float | None:
     return _beta_for("total_nav")
 
 
-def _spy_anchor_closes(alpaca: AlpacaPaperClient) -> dict:
-    """Fetch the SPY closes needed to anchor benchmark returns directly from
-    Alpaca historical bars, so the S&P 500 row is meaningful on day one without
-    waiting for a stored series. Returns {prev, inception, ttm} closes.
+BENCHMARK_ETFS = ("SPY", "QQQ", "DIA", "IWM")  # S&P 500 / NASDAQ 100 / Dow 30 / Russell 2000
 
-    - inception = SPY close on/before the book's first NAV date
-    - ttm       = SPY close on/before (today - 365 days)
-    - prev      = the prior session's SPY close
+
+def _benchmark_anchor_closes(alpaca: AlpacaPaperClient) -> dict:
+    """Fetch, for EVERY benchmark ETF, the closes needed to anchor its
+    buy-and-hold row directly from Alpaca historical bars, so each benchmark
+    row is meaningful on day one without waiting for a stored series.
+    Returns {SYM: {prev, inception, ttm}}. (Generalized from the SPY-only
+    fetch 2026-07-03 — Joe: compare the book to NASDAQ / Dow / Russell too.)
+
+    - inception = close on/before the book's first NAV date
+    - ttm       = close on/before (today - 365 days); stored for SPY only
+    - prev      = the prior session's close
     """
-    out = {"prev": None, "inception": None, "ttm": None}
-    # Book inception date.
+    # Book inception date (one query, shared by all symbols).
     try:
         r = _supabase_query("select min(snapshot_date)::text as d from public.paper_nav_daily;")
         inception_date = (r and r[0].get("d")) or None
@@ -384,21 +397,26 @@ def _spy_anchor_closes(alpaca: AlpacaPaperClient) -> dict:
         inception_date = None
     today = datetime.now(tz=timezone.utc).date()
     start = (today - timedelta(days=400)).isoformat()
-    closes = alpaca.get_daily_closes("SPY", start)  # [(date, close)] asc
-    if not closes:
-        return out
-    out["prev"] = closes[-2][1] if len(closes) >= 2 else None
-    on_or_before = lambda tgt: next((c for d, c in reversed(closes) if d <= tgt), closes[0][1])
-    # Window-match TTM to the book's life while it's younger than a year, so the
-    # "Vs S&P 500" TTM compares like-for-like instead of the book's few days
-    # against SPY's full 12 months. Once the book is >1yr old this is the true
-    # trailing-12-month anchor.
-    ttm_cal = (today - timedelta(days=365)).isoformat()
-    ttm_target = max(ttm_cal, inception_date) if inception_date else ttm_cal
-    out["ttm"] = on_or_before(ttm_target)
-    if inception_date:
-        out["inception"] = on_or_before(inception_date)
-    return out
+    result: dict = {}
+    for sym in BENCHMARK_ETFS:
+        out = {"prev": None, "inception": None, "ttm": None}
+        try:
+            closes = alpaca.get_daily_closes(sym, start)  # [(date, close)] asc
+        except Exception:
+            logger.exception("benchmark anchor fetch failed for %s — row shows em-dash", sym)
+            closes = []
+        if closes:
+            out["prev"] = closes[-2][1] if len(closes) >= 2 else None
+            on_or_before = lambda tgt: next((c for d, c in reversed(closes) if d <= tgt), closes[0][1])
+            # Window-match TTM to the book's life while it is younger than a
+            # year (like-for-like); true trailing-12m once the book is older.
+            ttm_cal = (today - timedelta(days=365)).isoformat()
+            ttm_target = max(ttm_cal, inception_date) if inception_date else ttm_cal
+            out["ttm"] = on_or_before(ttm_target)
+            if inception_date:
+                out["inception"] = on_or_before(inception_date)
+        result[sym] = out
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -870,7 +888,7 @@ def write_nav_daily(
     if price_mode == "close":
         nav_closes = official_closes(
             alpaca,
-            sorted({p.ticker.upper() for p in positions} | {"SPY", "AGG"}),
+            sorted({p.ticker.upper() for p in positions} | {"SPY", "AGG", "QQQ", "DIA", "IWM"}),
             snapshot_date,
         )
         if "SPY" not in nav_closes:
@@ -914,15 +932,20 @@ def write_nav_daily(
     else:
         total_nav = float(account.equity)
 
-    # Benchmarks — store the RAW closing prices for SPY and AGG. The page
-    # normalizes both to a $1M capital-matched start (SPY buy-and-hold and a
-    # 60/40 SPY/AGG blend), so the comparison is apples-to-apples in dollars.
-    if price_mode == "close":
-        spy_close = nav_closes["SPY"][0]
-        agg_close = nav_closes["AGG"][0] if "AGG" in nav_closes else alpaca.get_close_price("AGG")
-    else:
-        spy_close = alpaca.get_close_price("SPY")
-        agg_close = alpaca.get_close_price("AGG")
+    # Benchmarks — store the RAW closing prices for the benchmark set. The
+    # page normalizes each to a $1M capital-matched start (buy-and-hold), so
+    # the comparison is apples-to-apples in dollars. 2026-07-03 (Joe): the
+    # comparison set is SPY (S&P 500), QQQ (NASDAQ 100), DIA (Dow 30) and
+    # IWM (Russell 2000); AGG remains for the legacy blend column.
+    def _bench_close(sym: str):
+        if price_mode == "close":
+            return nav_closes[sym][0] if sym in nav_closes else alpaca.get_close_price(sym)
+        return alpaca.get_close_price(sym)
+    spy_close = _bench_close("SPY")
+    agg_close = _bench_close("AGG")
+    qqq_close = _bench_close("QQQ")
+    dia_close = _bench_close("DIA")
+    iwm_close = _bench_close("IWM")
     # Back-compat: keep the old 100-share anchor column populated.
     spy_value = spy_close * 100 if spy_close else None
 
@@ -972,10 +995,17 @@ def write_nav_daily(
 
     # SPY benchmark anchors (inception / trailing-12m / prior close) so the
     # S&P 500 + Vs rows are real on day one. Page computes returns from these.
-    spy_anchor = _spy_anchor_closes(alpaca)
+    bench_anchor = _benchmark_anchor_closes(alpaca)
+    spy_anchor = bench_anchor.get("SPY", {})
     spy_prev_close = spy_anchor.get("prev")
     spy_inception_close = spy_anchor.get("inception")
     spy_ttm_close = spy_anchor.get("ttm")
+    qqq_prev_close = bench_anchor.get("QQQ", {}).get("prev")
+    qqq_inception_close = bench_anchor.get("QQQ", {}).get("inception")
+    dia_prev_close = bench_anchor.get("DIA", {}).get("prev")
+    dia_inception_close = bench_anchor.get("DIA", {}).get("inception")
+    iwm_prev_close = bench_anchor.get("IWM", {}).get("prev")
+    iwm_inception_close = bench_anchor.get("IWM", {}).get("inception")
 
     if dry_run:
         logger.info(
@@ -999,6 +1029,9 @@ def write_nav_daily(
             "sleeve_a_positions": sleeve_a_n, "sleeve_b_positions": sleeve_b_n,
             "spy_close": spy_close, "spy_prev_close": spy_prev_close,
             "spy_inception_close": spy_inception_close, "spy_ttm_close": spy_ttm_close,
+            "qqq_close": qqq_close, "qqq_prev_close": qqq_prev_close, "qqq_inception_close": qqq_inception_close,
+            "dia_close": dia_close, "dia_prev_close": dia_prev_close, "dia_inception_close": dia_inception_close,
+            "iwm_close": iwm_close, "iwm_prev_close": iwm_prev_close, "iwm_inception_close": iwm_inception_close,
             "portfolio_beta": beta,
         }
 
@@ -1016,7 +1049,10 @@ def write_nav_daily(
         " sleeve_a_positions, sleeve_b_positions, portfolio_beta, "
         " sleeve_a_value, sleeve_b_value, sleeve_a_beta, sleeve_b_beta, "
         " sleeve_a_day_pnl, sleeve_b_day_pnl, "
-        " spy_prev_close, spy_inception_close, spy_ttm_close, created_at) "
+        " spy_prev_close, spy_inception_close, spy_ttm_close, "
+        " qqq_close, qqq_prev_close, qqq_inception_close, "
+        " dia_close, dia_prev_close, dia_inception_close, "
+        " iwm_close, iwm_prev_close, iwm_inception_close, created_at) "
         "values ("
         f"'{snapshot_date.isoformat()}', "
         f"{sleeve_a_cash}, {sleeve_a_equity}, {sleeve_a_nav}, "
@@ -1029,6 +1065,9 @@ def write_nav_daily(
         f"{sleeve_a_value}, {sleeve_b_value}, {_num(sleeve_a_beta)}, {_num(sleeve_b_beta)}, "
         f"{_num(day_pnl.get('A'))}, {_num(day_pnl.get('B'))}, "
         f"{_num(spy_prev_close)}, {_num(spy_inception_close)}, {_num(spy_ttm_close)}, "
+        f"{_num(qqq_close)}, {_num(qqq_prev_close)}, {_num(qqq_inception_close)}, "
+        f"{_num(dia_close)}, {_num(dia_prev_close)}, {_num(dia_inception_close)}, "
+        f"{_num(iwm_close)}, {_num(iwm_prev_close)}, {_num(iwm_inception_close)}, "
         "now() "
         ") on conflict (snapshot_date) do update set "
         "  sleeve_a_cash = excluded.sleeve_a_cash, "
@@ -1060,6 +1099,12 @@ def write_nav_daily(
         "  spy_prev_close = excluded.spy_prev_close, "
         "  spy_inception_close = excluded.spy_inception_close, "
         "  spy_ttm_close = excluded.spy_ttm_close, "
+        "  qqq_close = excluded.qqq_close, qqq_prev_close = excluded.qqq_prev_close, "
+        "  qqq_inception_close = excluded.qqq_inception_close, "
+        "  dia_close = excluded.dia_close, dia_prev_close = excluded.dia_prev_close, "
+        "  dia_inception_close = excluded.dia_inception_close, "
+        "  iwm_close = excluded.iwm_close, iwm_prev_close = excluded.iwm_prev_close, "
+        "  iwm_inception_close = excluded.iwm_inception_close, "
         "  created_at = now();"
     )
     _supabase_exec(sql)

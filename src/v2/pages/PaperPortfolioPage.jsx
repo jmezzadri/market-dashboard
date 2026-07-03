@@ -466,10 +466,24 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
   const heads = sleeveHeadlines(navHistory, sleeveAGross, sleeveBGross);
   // (Sleeve values now roll up to the single Equity Scanner book; see rows below.)
 
-  const spyNow = latest.spy_close ?? null;
-  const spyVal = (spyNow && latest.spy_inception_close) ? TOTAL_CAP * (spyNow / latest.spy_inception_close) : null;
-  const spyValPrev = (latest.spy_prev_close && latest.spy_inception_close)
-    ? TOTAL_CAP * (latest.spy_prev_close / latest.spy_inception_close) : null;
+  // Benchmark rows — $1M buy & hold, computed from the closes stamped on the
+  // NAV row: S&P 500 = SPY, NASDAQ 100 = QQQ, Dow Jones = DIA, Russell 2000 =
+  // IWM (Joe 2026-07-03: compare the book to the other three majors too).
+  // Beta is defined against the S&P 500, so only the S&P row shows 1.00.
+  const benchRow = (label, k, isSpy = false) => {
+    const now = latest[`${k}_close`] ?? null;
+    const prevC = latest[`${k}_prev_close`] ?? null;
+    const incepC = latest[`${k}_inception_close`] ?? null;
+    const val = (now && incepC) ? TOTAL_CAP * (now / incepC) : null;
+    const valPrev = (prevC && incepC) ? TOTAL_CAP * (prevC / incepC) : null;
+    return {
+      label, sub: '$1M buy & hold', benchmark: true,
+      value: val,
+      daily$: dlt(val, valPrev), daily: ret(now, prevC),
+      incep$: dlt(val, TOTAL_CAP), incep: ret(now, incepC),
+      beta: isSpy ? 1.0 : null, noBeta: !isSpy,
+    };
+  };
 
   // Sleeve Daily $: prefer the writer's EXACT session P&L (holdings move +
   // effect of trades executed at the open; A+B sums to the book's NAV change
@@ -492,13 +506,10 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
       incep$: dlt(latest.total_nav, TOTAL_CAP),       incep: ret(latest.total_nav, TOTAL_CAP),
       beta: betas.total ?? latest.portfolio_beta ?? null,
     },
-    {
-      label: 'S&P 500', sub: '$1M buy & hold', benchmark: true,
-      value: spyVal,
-      daily$: dlt(spyVal, spyValPrev),  daily: ret(spyNow, latest.spy_prev_close),
-      incep$: dlt(spyVal, TOTAL_CAP),   incep: ret(spyNow, latest.spy_inception_close),
-      beta: 1.0,
-    },
+    benchRow('S&P 500', 'spy', true),
+    benchRow('NASDAQ 100', 'qqq'),
+    benchRow('Dow Jones', 'dia'),
+    benchRow('Russell 2000', 'iwm'),
   ];
   const total = rows[0], spy = rows[1];
   const vs = {
@@ -513,6 +524,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
 
   const betaTd = (r) => {
     if (r.vs) return <td className="muted"></td>;
+    if (r.noBeta) return <td className="muted">—</td>;
     if (r.beta == null) return <td className="muted" title="Needs ~6 sessions of history; indicative until ~20">—</td>;
     return <td className="rowval" title="Indicative until ~20 sessions of history">{r.beta.toFixed(2)}</td>;
   };
@@ -532,7 +544,7 @@ function SummaryCard({ navHistory, sleeveAGross = null, sleeveBGross = null, liv
   return (
     <div className="paper-tile-summary">
       <div className="pts-head">
-        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for the Equity Scanner book and a $1M S&P 500 buy-and-hold benchmark — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Book value = account equity (cash + holdings, net of any borrowing). Inception = since the book opened, anchored to the $1M start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Daily is the exact session P&L — price moves of holdings plus the effect of any trades executed at the open." size={11} /></span>
+        <span className="pts-title">Performance <InfoTip term="Performance matrix" def="P&L for the Equity Scanner book and $1M buy-and-hold benchmarks — S&P 500 (SPY), NASDAQ 100 (QQQ), Dow Jones (DIA), Russell 2000 (IWM) — every value marked at OFFICIAL closing prices. The book snapshots each trading day ~4:50 PM ET at the broker's official closes; next morning the site's canonical price feed re-verifies those closes. Book value = account equity (cash + holdings, net of any borrowing). Inception = since the book opened, anchored to the $1M start. Beta = sensitivity to the S&P 500 from daily returns since inception — indicative until ~20 sessions of history. Daily is the exact session P&L — price moves of holdings plus the effect of any trades executed at the open." size={11} /></span>
         <span className="pts-asof">{live && asOfIso ? `AS OF ${(fmtTimeET(asOfIso) || '').toUpperCase()} ET · LIVE` : (latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—')}</span>
       </div>
       <table className="pmx">
