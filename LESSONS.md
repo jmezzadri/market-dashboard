@@ -725,6 +725,14 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+### 4.16 (2026-07-03) — A weekday cron is NOT a trading-day calendar; every order-submitting job asks the exchange calendar first
+
+**What happened:** July 4 2026 fell on a Saturday, so the exchange observed the holiday on Friday July 3 — a weekday. The paper rebalancer's Mon–Fri crons fired; its only guards were a time-of-day window and a signal-freshness check (both passed on a holiday, correctly by their own contracts), and it queued 11 at-the-open orders at the broker on a day with no session — parking them for Monday's open and emailing a "rebalance queued" summary on a market holiday. The CLOSE snapshot phase and the INTRADAY mirror both already had market-closed guards; the one phase that SUBMITS ORDERS was the only one without. A prior weekday holiday (Juneteenth 2026-06-19) masked the gap because the diff produced zero intents that morning.
+
+**Rule:** Any job that submits, modifies, or cancels orders confirms TODAY (ET) is a trading session per the broker's calendar (`is_trading_session`, Alpaca `/v2/calendar`) before doing ANYTHING — before intent computation, before DB writes, before emails. Holiday/weekend → quiet no-op (INFO log only; Joe's inbox contract is per TRADING day, so a holiday sends nothing). Calendar unreachable → BLOCK and file a P1 (fail-safe matches the freshness gate). A `1-5` cron field is a weekday filter, never a market-calendar filter; the two are not interchangeable. When adding a market-closed guard to one phase of a multi-phase pipeline, audit the OTHER phases for the same gap in the same PR — this shipped because close/intraday got guards and the submit phase didn't.
+
+**Applies to:** Lead Developer + Data Steward; every workflow that touches broker orders.
+
 ### 8.9 (2026-06-30) — `data_max_age_hours` in the manifest is a hard freshness gate; set it against the ACTUAL upstream publication lag, not a round number
 
 **What happened:** `term_premium` (`THREEFYTP10`, ACM 10Y Term Premium, NY Fed / FRED) turned red because `data_max_age_hours` was set to 144 (6 calendar-day equivalent). THREEFYTP10 has a known 5-8 trading-day publication lag; on day 7 post-last-data-date the business-calendar age crossed 144h and the data clock failed, producing a false red. No data was actually stale — the NY Fed simply had not published yet.

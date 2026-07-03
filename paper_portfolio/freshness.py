@@ -127,6 +127,25 @@ def last_closed_trading_session(alpaca, now_utc: _dt.datetime | None = None) -> 
     return last
 
 
+def is_trading_session(alpaca, day: _dt.date) -> bool:
+    """True when `day` is a trading session per Alpaca's calendar — the same
+    source of truth the freshness gate already uses.
+
+    Weekday-only crons still fire on market holidays that land on weekdays
+    (2026-07-03: July 4 fell on a Saturday, so the exchange observed it on
+    Friday). This is the pre-trade answer to "is there an opening auction
+    TODAY at all?" — distinct from last_closed_trading_session, which looks
+    backwards. The caller passes the ET session date (mirror._et_today), so
+    this function has no timezone opinion of its own. Transport errors
+    propagate; the caller decides the fail-safe direction (the runner
+    BLOCKS, matching the freshness gate)."""
+    d = day.isoformat()
+    cal = alpaca._get(f"/v2/calendar?start={d}&end={d}")
+    # A non-session day returns an empty list; defensively also ignore any
+    # neighboring-session entries some ranges include.
+    return any(e.get("date") == d for e in (cal or []))
+
+
 def check_freshness(scanner_scan_date: str, alpaca,
                     now_utc: _dt.datetime | None = None) -> FreshnessResult:
     """Return a FreshnessResult. fresh=True only if the scanner scan date is
