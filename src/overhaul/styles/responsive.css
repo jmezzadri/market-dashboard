@@ -246,3 +246,70 @@
   .mt-overhaul .home-v11 .sc-bands,
   .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: 1fr !important; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOBILE AUDIT 2026-07-04 — four phone-width regressions (LESSONS 8.7 class).
+   (1) Macro category tiles: MacroPage renders the six category tiles with an
+       INLINE `repeat(3, 1fr)` grid, which no stylesheet rule can beat without
+       !important — at 390px that is 3 tiles of ~115px and the 5-column rows
+       inside print value/percentile/chevron on top of the name. The tile div
+       now carries .mc-catgrid as a styling hook; collapse it here.
+   (2) Paper performance matrix (.pmx): table-layout:fixed + nowrap + ellipsis
+       cells crush 7 columns into the phone width — every value truncates to
+       "$9…". Let the table keep its natural column widths and scroll inside
+       its card instead (same pattern as the positions + scanner tables).
+   (3) Indicators category filter (.mt-pillgroup): inline-flex never wraps, so
+       the 8 pills clip at the screen edge and FX / Economy / Fin Cond are
+       unreachable. Wrap the pills.
+   (4) Methodology vendors table (.me-vendors): its intrinsic width (~433px)
+       stretches section content past the viewport and the card clips it.
+       Scroll the table inside the card; contain the section; ease the card's
+       30px side padding at phone width.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* (1) 6 category tiles: 3-across → 2-across on tablet. !important is
+     required to beat the inline style. */
+  .mt-overhaul .mc-catgrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .mt-overhaul .mc-catgrid > * { min-width: 0 !important; }
+
+  /* (3) Let the category pills wrap onto extra rows. */
+  .mt-overhaul .mt-pillgroup { flex-wrap: wrap; }
+}
+
+@media (max-width: 640px) {
+  /* (1) Phone: one tile per row — the 5-column indicator rows need the full
+     content width to stay legible. */
+  .mt-overhaul .mc-catgrid { grid-template-columns: 1fr !important; }
+
+  /* (2) Performance matrix scrolls in its card at natural column widths. */
+  .mt-overhaul .pmx {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    table-layout: auto !important;
+    width: auto !important;
+    min-width: 0;
+  }
+  .mt-overhaul .pmx th,
+  .mt-overhaul .pmx td { overflow: visible; text-overflow: clip; }
+
+  /* (4) Methodology: vendors table scrolls inside its section card; nothing
+     in a section may stretch or bleed past the card edge. */
+  .mt-overhaul .me-vendors {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mt-overhaul .me-section,
+  .mt-overhaul .home-v11.methodology-page .me-section { overflow-x: hidden; padding-left: 16px; padding-right: 16px; }
+  /* Each section is a `80px number | content` grid (proto-pages.css). The
+     content column is a grid item whose default min-width:auto lets the
+     vendors table's intrinsic width (~433px) blow the 1fr track past the
+     card — every sibling then renders 433px wide and clips. Unlock the
+     track and stack the number above the content at phone width. */
+  .mt-overhaul .me-section { grid-template-columns: 1fr !important; row-gap: 6px; }
+  .mt-overhaul .me-section > * { min-width: 0 !important; }
+  .mt-overhaul .me-num { font-size: 34px !important; }
+  .mt-overhaul .me-formula,
+  .mt-overhaul .me-section pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
