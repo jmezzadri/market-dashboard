@@ -1,7 +1,11 @@
 name: WORKFLOW_FAILURE_ALERT
 
-# Fires a Resend email to Joe whenever any scheduled workflow finishes in a
-# failure state. Closes the gap that hid bug #1077 for 3 days (the freshness
+# Emails Joe whenever any scheduled workflow finishes in a failure state.
+# 2026-07-06: transport switched Resend -> Gmail SMTP (same SMTP_USER /
+# SMTP_PASSWORD secrets the daily-brief pipeline sends with every day).
+# Resend returned HTTP 403 on BOTH send attempts ever made (2026-07-06) and
+# has no delivery track record here — the alert channel had silently never
+# delivered an email. Manual test: dispatch this workflow (sends a TEST alert). Closes the gap that hid bug #1077 for 3 days (the freshness
 # watchdog quietly went down Friday night and we noticed Tuesday).
 #
 # How it works:
@@ -43,10 +47,11 @@ on:
       - MARKET-INDICATORS-EOD
     types:
       - completed
+  workflow_dispatch: {}   # manual TEST send — proves the channel end-to-end
 
 jobs:
   alert:
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
@@ -54,6 +59,7 @@ jobs:
       actions: read
     steps:
       - name: Was this a real failure or a GitHub runner-shortage cancel?
+        if: github.event_name == 'workflow_run'
         # 2026-05-06 (Joe directive — "why is my data refreshing always failing,
         # I get dozens of these emails"). GitHub Actions runner shortages cause
         # workflows to finish with conclusion=failure even when no code failed —
@@ -85,10 +91,13 @@ jobs:
             echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
           fi
 
-      - name: Send Resend email
-        if: env.IS_REAL_FAILURE == 'true' 
+      - name: Send alert email (Gmail SMTP — same channel as the daily brief)
+        if: env.IS_REAL_FAILURE == 'true' || github.event_name == 'workflow_dispatch'
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          IS_TEST: ${{ github.event_name == 'workflow_dispatch' }}
           WF_NAME: ${{ github.event.workflow_run.name }}
           WF_RUN_URL: ${{ github.event.workflow_run.html_url }}
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -97,7 +106,7 @@ jobs:
           WF_CREATED: ${{ github.event.workflow_run.created_at }}
         run: |
           python3 - <<'PY'
-          import os, json, urllib.request
+          import os
 
           name      = os.environ["WF_NAME"]
           run_url   = os.environ["WF_RUN_URL"]
@@ -105,7 +114,9 @@ jobs:
           head_sha  = os.environ["WF_HEAD_SHA"][:8]
           head_msg  = os.environ.get("WF_HEAD_MSG", "")[:200]
           created   = os.environ.get("WF_CREATED", "")
-          api_key   = os.environ["RESEND_API_KEY"]
+          if os.environ.get("IS_TEST") == "true":
+              name, run_url, run_id = "TEST — alert channel verification", "https://github.com/jmezzadri/market-dashboard/actions", "manual"
+              head_sha, head_msg, created = "-", "Manual dispatch to prove the failure-alert channel delivers.", "-"
 
           subject = f"[MacroTilt] Workflow FAILED: {name}"
           html = f"""
@@ -124,22 +135,23 @@ jobs:
           </div>
           """
 
-          body = json.dumps({
-              "from":    "MacroTilt Watchdog <noreply@macrotilt.com>",
-              "to":      ["josephmezzadri@gmail.com"],
-              "subject": subject,
-              "html":    html,
-          }).encode()
+          import smtplib
+          from email.mime.text import MIMEText
 
-          req = urllib.request.Request(
-              "https://api.resend.com/emails",
-              data=body,
-              headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-          )
+          user = os.environ["SMTP_USER"]
+          pwd  = os.environ["SMTP_PASSWORD"]
+          to   = [a.strip() for a in (os.environ.get("EMAIL_TO") or "josephmezzadri@gmail.com").split(",") if a.strip()]
+
+          msg = MIMEText(html, "html")
+          msg["Subject"] = subject
+          msg["From"]    = f"MacroTilt Watchdog <{user}>"
+          msg["To"]      = ", ".join(to)
           try:
-              r = urllib.request.urlopen(req, timeout=15)
-              print("Resend status:", r.status, r.read().decode()[:200])
+              with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as s:
+                  s.login(user, pwd)
+                  s.sendmail(user, to, msg.as_string())
+              print("SMTP send OK ->", to)
           except Exception as e:
-              print("Resend send FAILED:", e)
+              print("SMTP send FAILED:", e)
               raise SystemExit(1)
           PY
