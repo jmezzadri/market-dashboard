@@ -32,7 +32,7 @@ on:
     # completion of workflows that DO fire reliably every morning. The writer is
     # idempotent (skips when the brief is already today's), so being triggered many
     # times a morning is harmless -- it generates at most once. This is the reliable path.
-    workflows: ["PAPER-PORTFOLIO-EOD-DAILY", "MASSIVE-DAILY"]
+    workflows: ["PAPER-PORTFOLIO-EOD-DAILY", "MASSIVE-DAILY", "MONITOR-RECONCILE"]  # MONITOR-RECONCILE added 2026-07-06 (survived the full morning cron drop)
     types: [completed]
   workflow_dispatch:
     inputs:
