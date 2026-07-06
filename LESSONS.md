@@ -416,6 +416,16 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+### 4.17 (2026-07-06) — GitHub can drop an entire cron block; a GitHub-cron backup for a GitHub-cron primary is not redundancy
+
+**What happened:** On Mon 2026-07-06 GitHub's scheduler silently dropped this repo's whole morning block (~08:00-11:30 UTC): the 06:15 ET brief writer, every BRIEF-FRESHNESS-SELFHEAL sweep fire, the screener, and all 7 pre-open fires of PAPER-PORTFOLIO-EOD-DAILY. The homepage showed Saturday's brief past 07:15 ET on Monday, and NO rebalance orders were queued for the open until a manual dispatch at 07:28 ET. The self-heal never fired because it rides the SAME scheduler that failed. MONITOR-RECONCILE (cron `0 */6 * * *`) was the only morning schedule that fired.
+
+**The rule:** Every workflow whose morning outcome Joe depends on (homepage brief, pre-open orders) must be reachable by BOTH: (a) a `workflow_run` chain off MONITOR-RECONCILE (different cadence, empirically survives block drops), and (b) the Vercel morning-ensure cron (`api/brief-ensure.js`, `45 10 * * 1-5`), which checks the LIVE outcome on a non-GitHub scheduler and dispatches whatever is missing. New morning-critical workflows get added to both paths at creation time. Redundant off-hour fires must be provably safe: in-runner window/calendar guards + idempotent effects + send-once email helper (per 4.12).
+
+**Applies to:** Lead Developer + Data Steward — all schedule work.
+
+---
+
 # 5 · QUANT METHODOLOGY
 
 ### 5.1 (2026-05-13) — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts

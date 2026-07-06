@@ -53,8 +53,12 @@ on:
   # Chain off the morning signal producer so we fire the moment fresh
   # signals land. The accept-window guard (03:00–09:25 ET) + idempotent
   # submitter make extra fires safe.
+  # MONITOR-RECONCILE added 2026-07-06: the only schedule that fired the morning
+  # GitHub dropped the entire 08:00-13:30 UTC cron block (incl. all 7 fires of
+  # this workflow). Its ~12:00 UTC fire lands ~08:00 ET, inside the accept
+  # window; off-hour fires no-op on the window/calendar/idempotence guards.
   workflow_run:
-    workflows: ["SCREENER_TRADING_OPPS_DAILY"]
+    workflows: ["SCREENER_TRADING_OPPS_DAILY", "MONITOR-RECONCILE"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

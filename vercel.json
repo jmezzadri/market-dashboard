@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/brief-ensure",
-      "schedule": "30 12 * * 1-5"
+      "schedule": "45 10 * * 1-5"
     }
   ],
   "rewrites": [
