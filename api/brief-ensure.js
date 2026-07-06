@@ -34,10 +34,14 @@
 // precision is within the hour, so the worst case is ~07:45 ET EDT — still
 // well before the 09:28 ET at-the-open order cutoff.
 //
-// One-time setup (Vercel -> Project -> Settings -> Environment Variables):
-//   BRIEF_DISPATCH_TOKEN = GitHub token with Actions read+write on
-//   jmezzadri/market-dashboard. The JSON response's `tokenPresent` field
-//   reports whether it is configured — check it after any deploy.
+// Dispatch token sourcing (in order):
+//   1. BRIEF_DISPATCH_TOKEN in Vercel env (never configured as of 2026-07-06);
+//   2. ops_secrets.github_dispatch in Supabase — an RLS-locked, service-role-
+//      only table, readable here because SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+//      are already in Vercel env for the other batch endpoints. Seeded by the
+//      one-shot OPS-SECRET-SEED workflow (credentials never leave GitHub/Supabase).
+//   The JSON response's `tokenPresent`/`tokenSource` fields report the outcome —
+//   check them after any deploy.
 // ============================================================================
 
 const REPO = "jmezzadri/market-dashboard";
@@ -72,6 +76,25 @@ async function ghDispatch(token, workflow, inputs) {
   return r.status;
 }
 
+async function getDispatchToken() {
+  if (process.env.BRIEF_DISPATCH_TOKEN) {
+    return { token: process.env.BRIEF_DISPATCH_TOKEN, source: "env" };
+  }
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return { token: null, source: "none" };
+  try {
+    const r = await fetch(`${url}/rest/v1/ops_secrets?name=eq.github_dispatch&select=value`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows[0] && rows[0].value) {
+      return { token: rows[0].value, source: "supabase" };
+    }
+  } catch (e) { /* fall through */ }
+  return { token: null, source: "none" };
+}
+
 export default async function handler(req, res) {
   // Same cron auth pattern as the other batch endpoints: if CRON_SECRET is
   // set, require Vercel's bearer header.
@@ -85,9 +108,9 @@ export default async function handler(req, res) {
 
   const { date: today, weekday } = etParts();
   const isWeekday = !["Sat", "Sun"].includes(weekday);
-  const token = process.env.BRIEF_DISPATCH_TOKEN;
+  const { token, source: tokenSource } = await getDispatchToken();
   const tokenPresent = Boolean(token);
-  const out = { today, weekday, tokenPresent, brief: {}, paper: {} };
+  const out = { today, weekday, tokenPresent, tokenSource, brief: {}, paper: {} };
 
   // ---- 1. BRIEF: check the live outcome; dispatch the writer only if stale.
   try {
@@ -120,7 +143,7 @@ export default async function handler(req, res) {
 
   if (!tokenPresent && (!out.brief.fresh || isWeekday)) {
     out.note =
-      "BRIEF_DISPATCH_TOKEN not set in Vercel env — morning-ensure cannot dispatch GitHub workflows until it is added";
+      "no dispatch token available (Vercel env BRIEF_DISPATCH_TOKEN or Supabase ops_secrets.github_dispatch) — morning-ensure cannot dispatch GitHub workflows";
   }
 
   const briefOk = out.brief.fresh || out.brief.dispatched === true;
