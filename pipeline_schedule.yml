@@ -23,6 +23,7 @@ slots:
       or on a fixed morning schedule. Targets a 06:00 ET window so that any
       consumer rendered at the 07:00 ET Daily Home Smoke run has fresh inputs.
     pipelines:
+      - vercel-cron /api/brief-ensure (45 10 UTC wk): commentary.daily-brief + paper engine backstop  # 2026-07-06, LESSONS 4.17 — non-GitHub scheduler
       - SPY_SECTOR_WEIGHTS_DAILY.yml: market.spy-sector-weights
       - V11-CYCLE-MECHANISM_DAILY.yml: indicator.methodology-calibration-v11
       - INDICATOR-REFRESH_7AM_WEEKDAYS.yml: indicator.indicator-history-fred-yahoo
