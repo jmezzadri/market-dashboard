@@ -1,0 +1,150 @@
+/* ============================================================================
+   Methodology — page styles on the CREAM v12 system (cream-system.css).
+   Cream rebrand Phase B (2026-07-07). RESKIN ONLY: every selector here styles
+   markup that already existed under home-v11 — content, hooks (scroll-spy,
+   manifest-derived vendor table, backtest fetch) and FreshnessChip usage are
+   untouched. Shared eyebrow / reveal / wrap patterns come from cream-system;
+   this file covers what the shared system doesn't: the editorial hero, the
+   sticky putty TOC rail, the open reading sections (ghost serif numbers,
+   serif H2s, 72ch measure at 1.7 line-height), formula insets, and the
+   vendor / job tables as putty cards.
+
+   BASE LAYER: the me-* structure classes keep their .mt-overhaul base rules
+   (pages.css, proto-pages.css, proto-methodology.css) — sticky geometry, TOC
+   counters, section grid. Everything visual is overridden here at
+   .home-v12.methodology-v12 specificity, exactly how the retired glass skin
+   layered on the same base.
+
+   TOKEN BRIDGE: the FreshnessChip (dot variant, in §02) and the me-* base
+   rules read the app's --mt-* tokens; remap them to the v12 cream palette,
+   scoped to .methodology-v12, so they render native cream in light and dark
+   without touching the shared component (scanner-v12 convention).
+
+   RESPONSIVE: ALL of this page's responsive rules live in this file — none
+   were added to responsive.css. The pre-existing .mt-overhaul me-* phone
+   fixes there (LESSONS 8.10d: vendors table display:block scroll, section
+   grid collapse with !important) still apply and are mirrored/consistent
+   here. Grid children that contain tables carry min-width:0 at EVERY width
+   so no intrinsic table width can blow a track (the old 433px break at 390).
+   ========================================================================= */
+
+.home-v12.methodology-v12 {
+  /* v11 alias tokens (macro-v12 / scanner-v12 convention) */
+  --amber: var(--gold-deep);
+  --track: var(--hair);
+  --sect: 44px; /* reading page: body follows the hero closely */
+  padding-bottom: 84px;
+
+  /* --mt-* bridge for the freshness chip + me-* base rules */
+  --mt-surface: transparent;
+  --mt-surface-2: color-mix(in srgb, var(--bg2) 72%, transparent);
+  --mt-surface-3: var(--bg2);
+  --mt-ink-0: var(--ink);
+  --mt-ink-1: var(--ink-soft);
+  --mt-ink-2: var(--mut);
+  --mt-ink-3: var(--mut);
+  --mt-line-0: var(--hair);
+  --mt-line-1: var(--hair);
+  --mt-accent: var(--gold-deep);
+  --mt-accent-soft: color-mix(in srgb, var(--gold-deep) 16%, transparent);
+  --mt-accent-glow: color-mix(in srgb, var(--gold-deep) 26%, transparent);
+  --mt-up: var(--up);
+  --mt-down: var(--down);
+  --mt-warn: var(--amber);
+  --mt-amber: var(--amber);
+}
+.home-v12.methodology-v12 .num { font-variant-numeric: tabular-nums; }
+
+/* ── hero: left editorial on the open cream ground ── */
+.home-v12 .meth-hero { padding: 54px 0 4px; }
+.home-v12 .meth-hero .eyebrow2 { margin-bottom: 18px; }
+.home-v12 .meth-h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 4.6vw, 62px); line-height: 1.06; letter-spacing: -.5px; margin: 0 0 18px; }
+.home-v12 .meth-h1 i { font-style: italic; color: var(--gold-deep); }
+.home-v12 .meth-hero .sub { font-size: 17px; color: var(--ink-soft); max-width: 66ch; margin: 0; line-height: 1.65; }
+
+/* ── 2-col reading layout: sticky TOC rail + reading column ──
+   Both tracks are min-width-locked so the vendor tables' intrinsic width can
+   never stretch a grid track past the viewport (LESSONS 8.10d). */
+.home-v12.methodology-v12 .me-layout { grid-template-columns: 224px minmax(0, 1fr); gap: 56px; }
+.home-v12.methodology-v12 .me-content { min-width: 0; }
+.home-v12.methodology-v12 .me-toc { min-width: 0; }
+
+/* TOC rail — putty card; geometry (sticky top, counters, border-left slide)
+   stays on the pages.css base, recolored to cream + gold here. */
+.home-v12.methodology-v12 .me-toc.me-rail { background: var(--putty); border: 0; border-radius: 28px; box-shadow: none; padding: 22px 24px; transition: background .5s; }
+.home-v12.methodology-v12 .me-toc .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-toc ol { margin-top: 10px; }
+.home-v12.methodology-v12 .me-toc.me-rail a { color: var(--ink-soft); font-size: 14px; padding-top: 6px; padding-bottom: 6px; }
+.home-v12.methodology-v12 .me-toc a::before { color: var(--mut); }
+.home-v12.methodology-v12 .me-toc.me-rail a:hover { color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-toc.me-rail a.is-active { color: var(--gold-deep); font-weight: 650; border-left-color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-toc.me-rail a.is-active::before { color: var(--gold-deep); }
+
+/* ── reading sections: open on the cream ground, hairline separated ──
+   margin-bottom keeps adjacent sections from edge-touching, so the TOC
+   scroll-spy band (rootMargin -80px, tie-break = first visible in order)
+   resolves the SCROLLED-TO section, exactly as the glass cards' 16px gap
+   did. Verified against main: without it the previous section stays in the
+   observer band after an anchor jump and steals the highlight. */
+.home-v12.methodology-v12 .me-section { grid-template-columns: 88px minmax(0, 1fr); gap: 34px; padding: 40px 0 28px; margin-bottom: 12px; border-top: 1px solid var(--hair); }
+.home-v12.methodology-v12 .me-section:first-of-type { border-top: 0; padding-top: 10px; }
+.home-v12.methodology-v12 .me-section > * { min-width: 0; }
+
+.home-v12.methodology-v12 .me-num { font-family: var(--serif); font-size: 56px; font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
+.home-v12.methodology-v12 .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-h2 { font-family: var(--serif); font-size: clamp(27px, 2.6vw, 36px); font-weight: 400; line-height: 1.14; letter-spacing: -.3px; color: var(--ink); margin: 10px 0 18px; }
+
+/* long-form body: generous measure and leading — the site's reading page */
+.home-v12.methodology-v12 .me-section p { font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); max-width: 72ch; margin: 0 0 16px; }
+.home-v12.methodology-v12 .me-content .me-body-p { font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); max-width: 72ch; }
+.home-v12.methodology-v12 .me-section p b { color: var(--ink); font-weight: 650; }
+
+/* formula insets — quiet paper (bg2) against the cream, mono from the base */
+.home-v12.methodology-v12 .me-formula { background: var(--bg2); border: 1px solid var(--hair); border-radius: 18px; padding: 16px 20px; font-size: 13px; line-height: 1.9; color: var(--ink-soft); margin: 14px 0 20px; overflow-x: auto; transition: background .5s; }
+
+/* vendor / job tables — putty cards (rounded via corner cells; the card
+   keeps radius when responsive.css flips it to display:block at phone) */
+.home-v12.methodology-v12 .me-vendors { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--putty); border-radius: 24px; margin: 18px 0 6px; font-size: 14px; transition: background .5s; }
+.home-v12.methodology-v12 .me-vendors thead th { text-align: left; padding: 16px 18px 12px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; border-bottom: 1px solid var(--hair); }
+.home-v12.methodology-v12 .me-vendors tbody td { padding: 13px 18px; border-top: 1px solid var(--hair); color: var(--ink-soft); font-size: 14px; line-height: 1.6; vertical-align: top; }
+.home-v12.methodology-v12 .me-vendors tbody tr:first-child td { border-top: 0; }
+.home-v12.methodology-v12 .me-vendors tbody td:first-child { color: var(--ink); font-weight: 600; }
+.home-v12.methodology-v12 .me-vendors thead th:first-child,
+.home-v12.methodology-v12 .me-vendors tbody td:first-child { padding-left: 22px; }
+.home-v12.methodology-v12 .me-vendors thead th:last-child,
+.home-v12.methodology-v12 .me-vendors tbody td:last-child { padding-right: 22px; }
+.home-v12.methodology-v12 .me-vendors thead th:first-child { border-top-left-radius: 24px; }
+.home-v12.methodology-v12 .me-vendors thead th:last-child { border-top-right-radius: 24px; }
+.home-v12.methodology-v12 .me-vendors tbody tr:last-child td:first-child { border-bottom-left-radius: 24px; }
+.home-v12.methodology-v12 .me-vendors tbody tr:last-child td:last-child { border-bottom-right-radius: 24px; }
+
+/* ── responsive — ALL methodology rules here (responsive.css untouched;
+      its pre-existing .mt-overhaul me-* phone fixes still apply on top) ── */
+@media (max-width: 1100px) {
+  .home-v12.methodology-v12 .me-layout { grid-template-columns: 192px minmax(0, 1fr); gap: 36px; }
+}
+@media (max-width: 900px) {
+  .home-v12 .meth-hero { padding-top: 38px; }
+  .home-v12.methodology-v12 .me-layout { grid-template-columns: 1fr; gap: 0; }
+  .home-v12.methodology-v12 .me-toc.me-rail { position: static; max-height: none; overflow: visible; margin-bottom: 24px; border-radius: 22px; padding: 18px 20px; }
+  .home-v12.methodology-v12 .me-section { grid-template-columns: 1fr; row-gap: 8px; padding: 30px 0 22px; }
+  .home-v12.methodology-v12 .me-section:first-of-type { padding-top: 4px; }
+  .home-v12.methodology-v12 .me-num { font-size: 34px; }
+  /* tables scroll INSIDE their putty card; the card never stretches the
+     column (mirrors the .mt-overhaul rule in responsive.css, scoped here) */
+  .home-v12.methodology-v12 .me-vendors { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 20px; }
+  .home-v12.methodology-v12 .me-formula { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 640px) {
+  .home-v12 .meth-h1 { font-size: 34px; }
+  .home-v12.methodology-v12 .me-section p,
+  .home-v12.methodology-v12 .me-content .me-body-p { font-size: 15.5px; }
+  .home-v12.methodology-v12 .me-formula { font-size: 12px; padding: 13px 14px; }
+  .home-v12.methodology-v12 .me-vendors { font-size: 13px; }
+  .home-v12.methodology-v12 .me-vendors thead th { padding: 13px 12px 10px; }
+  .home-v12.methodology-v12 .me-vendors tbody td { padding: 11px 12px; font-size: 13px; }
+  .home-v12.methodology-v12 .me-vendors thead th:first-child,
+  .home-v12.methodology-v12 .me-vendors tbody td:first-child { padding-left: 16px; }
+  .home-v12.methodology-v12 .me-vendors thead th:last-child,
+  .home-v12.methodology-v12 .me-vendors tbody td:last-child { padding-right: 16px; }
+}

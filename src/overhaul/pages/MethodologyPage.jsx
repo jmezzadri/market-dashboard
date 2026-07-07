@@ -14,15 +14,19 @@
    - §04 rewritten as the automated $1M Paper Portfolio (the broker-CSV / Plaid
      import it described is dead); TOC entry renamed "Paper Portfolio".
 
-   Glass UX (home-v11 recipe): sc-ed hero, wrapped in home-v11 + .shell, token
-   bridge in methodology-glass.css, glass TOC rail + section cards aligned to
-   the hero width, 16px radius. Reading column stays capped/readable. */
+   Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
+   scope to the shared home-v12 cream system (cream-system.css) with page
+   styles in methodology-v12.css. RESKIN ONLY -- classNames, layout wrappers
+   and CSS; zero copy/data/chip changes. The TOC rail keeps its exact
+   scroll-spy + anchor behavior, restyled only. This is the site's reading
+   page: open editorial sections on the cream ground, generous measure,
+   serif section H2s, formula insets, vendor/job tables as putty cards. */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
 import FreshnessChip from '../components/FreshnessChip';
-import '../styles/home-system.css';
-import '../styles/methodology-glass.css';
+import '../styles/cream-system.css';
+import '../styles/methodology-v12.css';
 
 const SECTIONS = [
   ['macro',     'Macro overview'],
@@ -50,6 +54,24 @@ function fmtPctSigned(v, digits = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
   const s = (v * 100).toFixed(digits);
   return `${s}%`;
+}
+
+/* Reveal -- scroll-reveal wrapper, same pattern as HomePage / MacroPage /
+   ScannerPage (v12 system). Replays in BOTH directions; state lives in React
+   so data-poll re-renders preserve the revealed class. Hero only on this
+   page: the reading sections and TOC render statically so hash deep-links
+   (#engine etc.) land on settled, unblurred text. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
 export default function MethodologyPage() {
@@ -148,21 +170,19 @@ export default function MethodologyPage() {
   const sectionsLiteral  = SECTIONS.length;
 
   return (
-    <div className="home-v11 methodology-page mt-fade">
-      <div className="shell">
-      <section className="sc-hero-solo">
-        <div className="glass sc-ed">
-          <div className="ed-eyebrow">● Methodology</div>
-          <h1>How MacroTilt <i>actually</i> works.</h1>
-          <p className="ed-deck">
-            {sectionsLiteral} sections, plain English. Every page on the site
-            links here for the logic behind the number. The full formula sheet
-            and data-vendor table are at the bottom.
-          </p>
-        </div>
-      </section>
+    <div className="home-v12 methodology-v12">
+      {/* hero -- left editorial, label + copy verbatim from the glass hero */}
+      <div className="meth-hero wrap">
+        <Reveal className="eyebrow2"><span className="dot" />Methodology</Reveal>
+        <Reveal as="h1" className="meth-h1">How MacroTilt <i>actually</i> works.</Reveal>
+        <Reveal as="p" className="sub">
+          {sectionsLiteral} sections, plain English. Every page on the site
+          links here for the logic behind the number. The full formula sheet
+          and data-vendor table are at the bottom.
+        </Reveal>
+      </div>
 
-      <section className="mt-pagesection">
+      <section className="wrap meth-main">
        <div className="me-layout">
         <nav className="me-toc me-rail" aria-label="Sections on this page">
           <div className="mt-eyebrow">Sections</div>
@@ -411,7 +431,6 @@ export default function MethodologyPage() {
         </div>{/* /.me-content */}
        </div>{/* /.me-layout */}
       </section>
-      </div>{/* /.shell */}
     </div>
   );
 }
