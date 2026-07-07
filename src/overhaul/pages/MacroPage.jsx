@@ -34,6 +34,7 @@ import useIndicators from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
 import '../styles/cream-system.css';
 import '../styles/macro-v12.css';
+import '../styles/modal.css';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';

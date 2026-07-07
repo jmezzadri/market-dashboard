@@ -181,7 +181,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview → indicator historical charts",
-        "All Indicators → indicator tiles (value, percentile, sparkline)",
+        "Macro Overview → indicator tiles (value, percentile, sparkline)",
         "Methodology → data registry tiles"
       ],
       "target_storage": "public/indicator_history.json",
@@ -222,7 +222,7 @@
       "freshness_sla_hours": 1200,
       "consumer_surfaces": [
         "Macro Overview → Real Economy headline",
-        "All Indicators → Real Economy sub-composite",
+        "Macro Overview → Real Economy sub-composite",
         "Home → Macro tile (regime classifier input)"
       ],
       "target_storage": "Supabase: ism_history",
@@ -243,7 +243,7 @@
       "freshness_sla_hours": 1200,
       "consumer_surfaces": [
         "Macro Overview → Real Economy headline",
-        "All Indicators → Real Economy sub-composite",
+        "Macro Overview → Real Economy sub-composite",
         "Home → Macro tile (regime classifier input)"
       ],
       "target_storage": "Supabase: ism_history",
@@ -286,7 +286,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview → per-mechanism drill panels",
-        "All Indicators → mechanism + composite-share badge"
+        "Macro Overview → mechanism + composite-share badge"
       ],
       "target_storage": "public/methodology_calibration_v11.json",
       "failure_mode": "Drill percentiles + composite-share badges go stale; mechanism panels show last-good KPIs.",
@@ -307,7 +307,7 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card (3 headlines)",
         "Macro Overview → hero composite + Cycle & Value gauge",
-        "All Indicators → headline registry"
+        "Macro Overview → headline registry"
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Headline gauge shows last-good score with stale chip.",
@@ -328,7 +328,7 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card",
         "Macro Overview → Market Stress gauge",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Stress gauge shows last-good score; stale chip.",
@@ -349,7 +349,7 @@
       "consumer_surfaces": [
         "Home → Macro Overview mini-card",
         "Macro Overview → Real Economy gauge",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Real Economy gauge shows last-good score; stale chip.",
@@ -371,7 +371,7 @@
       "consumer_surfaces": [
         "Home macro tile",
         "Macro Overview",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/cycle_v2.json",
       "failure_mode": "Regime label freezes at last-good 4-cell classification.",
@@ -1049,8 +1049,8 @@
       "freshness_sla_hours": null,
       "consumer_surfaces": [
         "Methodology → Data Registry tiles",
-        "All Indicators → license-tier badge",
-        "All Indicators → FRED/Yahoo seriesId display"
+        "Macro Overview → license-tier badge",
+        "Macro Overview → FRED/Yahoo seriesId display"
       ],
       "target_storage": "src/data/dataRegistry.js + public/data_manifest.json",
       "failure_mode": "Methodology Data Registry tiles render an older snapshot of the system; no runtime impact.",
@@ -1148,7 +1148,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1185,7 +1185,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1222,7 +1222,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1259,7 +1259,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1296,7 +1296,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1333,7 +1333,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1370,7 +1370,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1407,7 +1407,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1444,7 +1444,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1480,7 +1480,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1517,7 +1517,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1554,7 +1554,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — grid row"
+          "tile": "Macro Overview — grid row"
         },
         {
           "tab": "readme",
@@ -1591,7 +1591,7 @@
         },
         {
           "tab": "indicators",
-          "tile": "All Indicators — positioning rows"
+          "tile": "Macro Overview — positioning rows"
         },
         {
           "tab": "readme",
@@ -1617,7 +1617,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview — Equities bucket (indicator)",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/indicator_history.json[spx_above_50ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
@@ -1637,7 +1637,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview — Equities bucket (indicator)",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/indicator_history.json[spx_above_200ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
@@ -1657,7 +1657,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview — Equities bucket (indicator)",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/indicator_history.json[ndx_above_50ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
@@ -1677,7 +1677,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview — Equities bucket (indicator)",
-        "All Indicators"
+        "Macro Overview"
       ],
       "target_storage": "public/indicator_history.json[ndx_above_200ema]",
       "failure_mode": "Empty if holdings fetch or prices stale; chip flags red.",
@@ -1872,7 +1872,7 @@
       "consumer_surfaces": [
         "Macro Overview → indicator detail → index overlay toggle",
         "Macro Overview → positioning detail → index overlay toggle",
-        "All Indicators → drill → index overlay toggle"
+        "Macro Overview → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
       "owner": "Lead Dev (pipe), Data Steward (freshness)",
@@ -1892,7 +1892,7 @@
       "consumer_surfaces": [
         "Macro Overview → indicator detail → index overlay toggle",
         "Macro Overview → positioning detail → index overlay toggle",
-        "All Indicators → drill → index overlay toggle"
+        "Macro Overview → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
       "owner": "Lead Dev (pipe), Data Steward (freshness)",
@@ -1912,7 +1912,7 @@
       "consumer_surfaces": [
         "Macro Overview → indicator detail → index overlay toggle",
         "Macro Overview → positioning detail → index overlay toggle",
-        "All Indicators → drill → index overlay toggle"
+        "Macro Overview → drill → index overlay toggle"
       ],
       "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
       "owner": "Lead Dev (pipe), Data Steward (freshness)",
@@ -1931,7 +1931,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview → Equities tile",
-        "All Indicators table"
+        "Macro Overview table"
       ],
       "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
       "owner": "Lead Dev (pipe), Data Steward (freshness)",
@@ -1950,7 +1950,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Macro Overview → Equities tile",
-        "All Indicators table"
+        "Macro Overview table"
       ],
       "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
       "owner": "Lead Dev (pipe), Data Steward (freshness)",

@@ -1,6 +1,6 @@
 /* useIndicators — fetches and unifies the indicator registry, history,
    and manifest the same way the v2 IndicatorsPage does. Single source of
-   truth for the overhaul's macro/indicators surfaces.
+   truth for the overhaul's macro/indicator surfaces (All Indicators page retired 2026-07-07; Macro Overview is the inventory).
 
    Returns:
      {

@@ -16,7 +16,6 @@ const NAV = [
   { to: '/macro', label: 'Macro overview', icon: 'macro' },
   { to: '/scanner', label: 'Trading scanner', icon: 'scanner' },
   { to: '/paper', label: 'Paper Portfolio', icon: 'portfolio' },
-  { to: '/indicators', label: 'All indicators', icon: 'indicators' },
   { to: '/methodology', label: 'Methodology', icon: 'methodology' },
   { to: '/admin/data', label: 'Data', icon: 'admin' },
 ];
