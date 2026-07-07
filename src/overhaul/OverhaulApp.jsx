@@ -56,7 +56,6 @@ import { useSession } from '../auth/useSession';
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
 import ScannerPage from './pages/ScannerPage';
-import IndicatorsPage from './pages/IndicatorsPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
@@ -74,6 +73,14 @@ import PageErrorBoundary from '../v2/components/ErrorBoundary';
 
 // Small wrapper so the /paper route can navigate to a ticker without needing
 // useNavigate at the top of Shell (keeps the route self-contained).
+
+/* /indicators retired 2026-07-07 (Joe): Macro Overview carries every indicator
+   row + the same detail modal. Old links redirect, preserving ?ind= deep links. */
+function LegacyIndicatorsRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/macro${search}`} replace />;
+}
+
 function PaperRoute() {
   const navigate = useNavigate();
   return (
@@ -158,7 +165,7 @@ function Shell() {
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
-            <Route path="/indicators" element={<IndicatorsPage />} />
+            <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />

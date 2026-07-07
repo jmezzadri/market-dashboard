@@ -57,12 +57,12 @@ function weekdayDate(iso) {
 
 const RIBBON = [
   { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', route: '/ticker/SPY' },
-  { key: 'move', label: 'MOVE', dec: 0, suffix: '', route: '/indicators?ind=move' },
-  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', route: '/indicators?ind=ust_10y' },
-  { key: 'vix', label: 'VIX', dec: 1, suffix: '', route: '/indicators?ind=vix' },
-  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', route: '/indicators?ind=fx_jpy' },
-  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', route: '/indicators?ind=hy_ig' },
-  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', route: '/indicators?ind=cmdty_copper' },
+  { key: 'move', label: 'MOVE', dec: 0, suffix: '', route: '/macro?ind=move' },
+  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', route: '/macro?ind=ust_10y' },
+  { key: 'vix', label: 'VIX', dec: 1, suffix: '', route: '/macro?ind=vix' },
+  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', route: '/macro?ind=fx_jpy' },
+  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', route: '/macro?ind=hy_ig' },
+  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', route: '/macro?ind=cmdty_copper' },
 ];
 
 const IND_ROWS = [
@@ -315,13 +315,13 @@ export default function HomePage() {
       <section className="wrap">
         <Reveal className="sechead">
           <div className="eyebrow2"><span className="dot" />Macro indicators · at extremes or after big moves</div>
-          <a href="/indicators" onClick={go('/indicators')}>All indicators →</a>
+          <a href="/macro" onClick={go('/macro')}>All indicators →</a>
         </Reveal>
         <Reveal className="ind">
           {notable.map((row) => {
             const c = chgParts(row.lastChg, row.decimals, row.freq);
             return (
-              <a key={row.id} className="ir" href={`/indicators?ind=${row.id}`} onClick={go(`/indicators?ind=${row.id}`)}>
+              <a key={row.id} className="ir" href={`/macro?ind=${row.id}`} onClick={go(`/macro?ind=${row.id}`)}>
                 <span className="k">{row.family}</span>
                 <span className="n">{row.name}</span>
                 <span className="why">{row.why}</span>
@@ -334,7 +334,7 @@ export default function HomePage() {
         </Reveal>
         <Reveal as="p" className="ind-note">
           Everything at a 3-year extreme or after an unusually large move for its own print schedule — daily, weekly, or monthly.
-          {moreCount > 0 && <> The {notable.length} most stretched are shown. <a href="/indicators" onClick={go('/indicators')}>{moreCount} more at extremes →</a></>}
+          {moreCount > 0 && <> The {notable.length} most stretched are shown. <a href="/macro" onClick={go('/macro')}>{moreCount} more at extremes →</a></>}
         </Reveal>
       </section>
 

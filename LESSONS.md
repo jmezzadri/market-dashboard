@@ -59,7 +59,7 @@ All five read from the data manifest + the freshness-tracking table — never ha
    - **Surfaces:** every human-visible spot — the page itself, its methodology section, the data-vendor table, the admin data-health scorecard, the footer source line, the file-lineage drawer, every tooltip that names the vendor.
    - **Knowledge/docs:** `data_manifest.json`, `data_vendors.md`, `methodology_changelog.json`, `dataRegistry.js`, `indicatorRegistry.js`, `feedLineage.js`, `useDataHealth.js`, LESSONS.md.
    - **Live verification plan:** the list of URLs to load post-deploy and what to check on each — executed in the browser after merge, with screenshots.
-3. **The three governance pages updated to match:** **Admin·Data** (element appears and is monitored with a real chip), **All Indicators** (visible, filterable row), **Methodology** (documented in the sources/method tables).
+3. **The three governance pages updated to match:** **Admin·Data** (element appears and is monitored with a real chip), **Macro Overview** (visible row in its category grid; the standalone All Indicators page was retired 2026-07-07 by Joe - Macro is the indicator inventory surface), **Methodology** (documented in the sources/method tables).
 
 Greps must cover the vendor name, table name, column name, element ID, AND every human-readable label that names them ("FRED", "Treasury.gov", "10Y TIPS", "T+1") — vendor labels show up under many phrasings. Forbidden: shipping without the map; calling a change "done" after fixing only the pointed-at surface; consumer lists from memory; specialist sign-off on a PR whose map is missing or shorter than the actual surface count.
 
