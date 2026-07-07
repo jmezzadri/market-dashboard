@@ -15,9 +15,14 @@
    - All counts derived from real useIndicators() hook.
    - Domain-strip freshness chip points to the OLDEST indicator in the
      domain (most likely to fail SLA first).
-   - View toggle persists to localStorage. */
+   - View toggle persists to localStorage.
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+   Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
+   scope to the shared home-v12 cream system (cream-system.css) with page
+   styles in macro-v12.css. RESKIN ONLY — classNames, layout wrappers and
+   CSS; zero data/logic/chip changes. */
+
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import FreshnessChip from '../components/FreshnessChip';
@@ -27,7 +32,8 @@ import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import useIndicators from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
-import '../styles/home-system.css';
+import '../styles/cream-system.css';
+import '../styles/macro-v12.css';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
 import DomainBars from '../components/DomainBars';
@@ -459,6 +465,22 @@ function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectP
   );
 }
 
+/* Reveal — scroll-reveal wrapper, same pattern as HomePage (v12 system).
+   Replays in BOTH directions; state lives in React so data-poll re-renders
+   preserve the revealed class. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
+}
+
 export default function MacroPage() {
   const { active: indicators, loading, indexSeries } = useIndicators();
   const regime = useEngineRegime();
@@ -588,38 +610,40 @@ export default function MacroPage() {
   const yieldTip = 'Yield regime · 3-month change in the 10-year'+(regime.yieldDeltaBp!=null?', '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nSets which defensive sleeve holds when the engine de-risks. Click for the full chart.';
 
   return (
-    <div className="home-v11 mt-fade">
+    <div className="home-v12 macro-v12">
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: '#0f1622', color: '#eef2f8', padding: '9px 12px', borderRadius: 9, fontSize: 11.5, lineHeight: 1.45, maxWidth: 320, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)' }}>{tip.text}</div>,
+        <div className="mac-tip" style={{ left: tip.x, top: tip.y - 8 }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
-      <div className="shell" style={{ paddingTop: 6 }}>
 
-        <div style={{ marginBottom: 14 }}>
-          <div className="ed-eyebrow">● Macro Overview</div>
-          <h1 style={{ fontFamily: 'var(--serif)', fontSize: 30, lineHeight: 1.08, letterSpacing: '-.5px', fontWeight: 700, margin: '7px 0 5px' }}>The engine read.</h1>
-          <p className="stance" style={{ maxWidth: 700 }}>Where the de-risk engine sits today, and every market indicator and positioning signal behind it — each ranked against its own 3-year range. Click any tile to open its detail.</p>
-        </div>
+      {/* hero */}
+      <div className="mac-hero wrap">
+        <Reveal className="eyebrow2 mac-eyebrow"><span className="dot" />Macro Overview</Reveal>
+        <Reveal as="h1" className="mac-h1">The engine read.</Reveal>
+        <Reveal as="p" className="sub">Where the de-risk engine sits today, and every market indicator and positioning signal behind it — each ranked against its own 3-year range. Click any tile to open its detail.</Reveal>
+      </div>
 
-        {!loading && (
-          <div className="glass tile mc-engine" style={{ marginBottom: 14 }}>
-            <div className="th"><span className="label">The Engine</span></div>
-            <div className="mc-engine-top">
-              <div className="eng-vcol">
-                <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
-                <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
-              </div>
-              <a className="g lk" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ display: 'block', cursor: 'pointer' }}>
-                <div className="gtop"><span className="gname">Stress signal · MOVE</span><span className="gval num">{fmtV(regime.move,0)}</span></div>
-                <div className="gtrack"><span className="z" style={{ width: stressG.on+'%', background: 'var(--up)' }} /><span className="z" style={{ width: stressG.watch+'%', background: 'var(--amber)' }} /><span className="z" style={{ width: stressG.off+'%', background: 'var(--down)' }} />{stressG.mk!=null && <span className="mk" style={{ left: stressG.mk+'%' }} />}</div>
-                <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
-                <div className={'gstate '+sCls}>● {sMsg}</div>
+      {/* the engine — ink card, same pattern as the shipped home page */}
+      {!loading && (
+        <section className="wrap">
+          <Reveal className="engine-card mac-engine">
+            <div>
+              <div className="eyebrow2"><span className="dot" />The Engine</div>
+              <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1]}</em>}</h2>
+              <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</p>
+            </div>
+            <div>
+              <a className="gauge" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ '--w': `${stressG.mk ?? 0}%` }}>
+                <div className="gl"><span>Stress signal · MOVE</span><b>{fmtV(regime.move,0)}</b></div>
+                <div className="track"><div className="fill" /><div className="pin" /></div>
+                <div className="ends"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
+                <div className={`read ${sCls==='up'?'ok':sCls==='amb'?'warm':sCls?'bad':''}`}>{sMsg}</div>
               </a>
-              <a className="g lk" onClick={openYield} onMouseEnter={(e)=>showTip(e, yieldTip)} onMouseLeave={hideTip} style={{ display: 'block', cursor: 'pointer' }}>
-                <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span><span className="gval num">{regime.yieldDeltaBp==null?'—':(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)} <small>bp</small></span></div>
-                <div className="gtrack"><span className="z" style={{ width: yieldG.defl+'%', background: 'var(--up)' }} /><span className="z" style={{ width: yieldG.neutral+'%', background: 'var(--track)' }} /><span className="z" style={{ width: yieldG.infl+'%', background: 'var(--amber)' }} />{yieldG.mk!=null && <span className="mk" style={{ left: yieldG.mk+'%' }} />}</div>
-                <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
-                <div className={'gstate '+yCls}>● {yMsg}</div>
+              <a className="gauge" onClick={openYield} onMouseEnter={(e)=>showTip(e, yieldTip)} onMouseLeave={hideTip} style={{ '--w': `${yieldG.mk ?? 0}%` }}>
+                <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp==null?'—':(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)} <i>bp</i></b></div>
+                <div className="track"><div className="fill" /><div className="pin" /></div>
+                <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
+                <div className={`read ${yCls==='amb'?'warm':yCls==='up'?'ok':''}`}>{yMsg}</div>
               </a>
             </div>
             {engHist && engHist.length > 0 && (() => {
@@ -627,59 +651,62 @@ export default function MacroPage() {
               const sC = (x) => x==='Risk On'?'var(--up)':x==='Watch'?'var(--amber)':x==='Risk Off'?'var(--down)':'var(--track)';
               const yC = (x) => x==='Deflationary'?'var(--up)':x==='Inflationary'?'var(--amber)':'var(--track)';
               return (
-                <div style={{ marginTop: 15, paddingTop: 13, borderTop: '1px solid var(--hair)' }}>
-                  <div className="label" style={{ marginBottom: 7 }}>Regime history · 2 years · top: stress signal · bottom: yield regime</div>
-                  <div style={{ display: 'flex', gap: 1.5, marginBottom: 2 }}>{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Stress: '+w.stress_state)} onMouseLeave={hideTip} style={{ flex: 1, height: 10, borderRadius: 1, background: sC(w.stress_state) }} />)}</div>
-                  <div style={{ display: 'flex', gap: 1.5 }}>{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Yield: '+w.yield_regime)} onMouseLeave={hideTip} style={{ flex: 1, height: 10, borderRadius: 1, background: yC(w.yield_regime) }} />)}</div>
-                  <div className="gbands" style={{ marginTop: 5 }}><span>{(wk[0]?.date||'').slice(0,7)}</span><span>now</span></div>
+                <div className="mac-hist">
+                  <div className="mac-histlbl">Regime history · 2 years · top: stress signal · bottom: yield regime</div>
+                  <div className="mac-histrow">{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Stress: '+w.stress_state)} onMouseLeave={hideTip} style={{ background: sC(w.stress_state) }} />)}</div>
+                  <div className="mac-histrow">{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Yield: '+w.yield_regime)} onMouseLeave={hideTip} style={{ background: yC(w.yield_regime) }} />)}</div>
+                  <div className="mac-histaxis"><span>{(wk[0]?.date||'').slice(0,7)}</span><span>now</span></div>
                 </div>
               );
             })()}
-          </div>
-        )}
+          </Reveal>
+        </section>
+      )}
 
-        {!loading && (
-          <div className="mc-catgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
+      {/* six domain tiles — putty cards with indicator + positioning rows */}
+      {!loading && (
+        <section className="wrap">
+          <Reveal className="mac-catgrid">
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
               const markets = cotPos?.domains?.[dom]?.markets || [];
               const ext = inds.filter((i) => i.state==='extreme').length;
               const elev = inds.filter((i) => i.state==='elevated').length;
               return (
-                <div key={dom} className="glass tile">
-                  <div className="th"><span className="label">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="label" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
-                  <div className="mc-rows">
+                <div key={dom} className="mac-cat">
+                  <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
+                  <div className="mac-rows">
                     {inds.map((ind) => { const dd=ddOf(ind); return (
-                      <a key={ind.id} className="lk mc-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
-                        <span className="mc-nm"><span className="mc-dot" style={{ background: stateColor(ind.state) }} /><span className="mc-name">{ind.name}</span></span>
-                        <span className="v1 num">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
-                        <span className={'chg'+(dd?' '+dd.cls:'')}>{dd ? dd.arrow+dd.txt : ''}</span>
-                        <span className="mc-pct">{ind.pct!=null ? ord(ind.pct) : ''}</span>
-                        <span className="mc-chev">›</span>
+                      <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
+                        <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
+                        <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
+                        <span className={'mac-chg'+(dd?' '+dd.cls:'')}>{dd ? dd.arrow+dd.txt : ''}</span>
+                        <span className="mac-pct">{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                        <span className="mac-chev">›</span>
                       </a>
                     ); })}
                     {markets.length > 0 && (
-                      <div className="mc-pos-head"><span className="label">Positioning · COT extremes</span></div>
+                      <div className="mac-poshead">Positioning · COT extremes</div>
                     )}
                     {markets.map((m) => { const ln=posLean(m.spec); const ps = (m.spec<=10||m.spec>=90)?'extreme':(m.spec<=25||m.spec>=75)?'elevated':'calm'; let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
-                      <a key={'pos-'+m.market} className="lk mc-irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
-                        <span className="mc-nm"><span className="mc-dot" style={{ background: stateColor(ps) }} /><span className="mc-name">{m.market}</span></span>
-                        <span className="mc-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
-                        <span className="chg" style={{ color: 'var(--muted)' }}>{chg}</span>
-                        <span className="mc-pct">{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
-                        <span className="mc-chev">›</span>
+                      <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
+                        <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
+                        <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
+                        <span className="mac-chg mut">{chg}</span>
+                        <span className="mac-pct">{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                        <span className="mac-chev">›</span>
                       </a>
                     ); })}
-                    {inds.length===0 && markets.length===0 && <div className="mvcap">No live elements.</div>}
+                    {inds.length===0 && markets.length===0 && <div className="mac-empty">No live elements.</div>}
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
+          </Reveal>
+        </section>
+      )}
 
-        {loading && <div className="glass tile" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>}
-      </div>
+      {loading && <section className="wrap"><div className="mac-loading">Loading…</div></section>}
 
       {selected && (
         <DetailModal onClose={() => setSelected(null)}>
