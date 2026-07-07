@@ -1,132 +1,146 @@
 {
-  "date": "2026-07-06",
-  "recap_session": "Thu Jul 3 (early close) / Wed Jul 2 last full session",
+  "date": "2026-07-07",
+  "recap_session": "Mon Jul 6",
   "eyebrow": "Morning Brief",
-  "headline": "Post-holiday futures open higher as a soft June jobs report cools rate-hike expectations, SpaceX joins the Nasdaq-100 today triggering forced passive buying, and oil slides on OPEC+ supply increases and easing Strait of Hormuz tensions.",
-  "stance": "<b>Cautiously constructive.</b> The first post-Independence Day session reopens with tech futures leading — Nasdaq-100 futures up ~1.1% overnight — propelled by a weak NFP print that dialed back September rate-hike odds from ~67% to ~50%. The dollar (DXY) is holding below 101, a tailwind for gold and risk assets. The week's big risk is Wednesday's FOMC minutes: the June dot plot showed half of voting members penciling in at least one hike, and Chair Warsh's hawkish reputation means markets will read every word carefully. Positioning remains a contrarian support — speculators are near 3-year short extremes in Nasdaq-100 and Russell 2000 futures, meaning any sustained rally could force short-covering.",
+  "headline": "Dow hits a fresh record close at 53,056, SpaceX joins the Nasdaq-100 today, and FOMC minutes arrive tomorrow — all against a jobs miss that is reshaping the Fed rate-hike debate.",
+  "stance": "The overnight setup is <b>cautiously constructive</b>: S&P 500 futures (OVERNIGHT/PRE-MARKET ~7,549) sit just above Monday's prior cash close of 7,537, with the Dow also at record territory. The soft June payroll print (+57K vs. ~115K expected) has taken some heat off the rate-hike story, but Chair Warsh's hawkish Sintra remarks keep a September hike alive at roughly 50/50 odds — so <b>Wednesday's FOMC minutes are the week's single biggest risk event</b>. VIX (PRIOR CASH CLOSE 15.57) signals calm, but the SKEW index (145.4) shows institutional investors are quietly paying up for tail-risk protection.",
   "news": [
     {
-      "head": "SpaceX joins Nasdaq-100 today",
-      "body": "SPCX is added to the Nasdaq-100 effective today (Jul 6), with tracker funds — including QQQ — estimated to buy roughly $4.3 billion in SPCX shares today alone, and total passive rebalancing across all Nasdaq-100 and linked index funds potentially reaching ~$27 billion; the stock has only ~3–5% of shares freely available to trade, creating a very tight supply-demand dynamic."
-    },
-    {
-      "head": "June NFP: 57K, far below 110K forecast",
-      "body": "The US economy added just 57,000 jobs in June — the smallest gain in four months and well below the 110,000 consensus — driving markets to cut the implied probability of a September Fed rate hike from ~67% to ~50%; the unemployment rate held at 4.2%, though the drop partly reflected a shrinking labor force."
+      "head": "SpaceX enters Nasdaq-100",
+      "body": "SpaceX (SPCX) officially joins the Nasdaq-100 before today's open, triggering an estimated $22–27 billion in forced buying by passive index funds, while Nasdaq trackers must trim Apple, Microsoft, and Nvidia to make room — a meaningful intraday liquidity test for mega-cap tech."
     },
     {
       "head": "FOMC minutes due Wednesday",
-      "body": "The Federal Reserve publishes its June meeting minutes Wednesday at 2 p.m. ET; during that meeting roughly half of voting members indicated they expected at least one rate increase before year-end, and with Chair Kevin Warsh seen as favoring tighter policy, the market will scrutinize the document closely for the next policy pivot."
+      "body": "The Federal Reserve releases minutes from Chair Kevin Warsh's first FOMC meeting (June 16–17) at 2 p.m. ET on July 8; markets want to know how close the committee was to raising rates and whether the dot plot's residual hike bias survived internal debate."
     },
     {
-      "head": "Iran ceasefire holds; OPEC+ opens taps",
-      "body": "Iran's week of state mourning for Supreme Leader Khamenei continued over the weekend without major escalation, and OPEC+ agreed to a modest output increase from August; oil shipments through the Strait of Hormuz are recovering, with Brent trading at an overnight level of ~$71.88 and WTI near ~$68.58."
+      "head": "June payrolls: big miss",
+      "body": "The economy added just 57,000 jobs in June — roughly half of the 110–115K consensus — with April and May revised down a combined 74K, the weakest two-month stretch since early 2025, pushing September rate-hike odds below 56%."
     },
     {
-      "head": "Dollar at multi-week low",
-      "body": "The DXY dollar index is holding below 101 overnight after its largest weekly decline since April, dragged lower by the soft NFP and reduced rate-hike expectations; a weaker dollar supports gold, commodities priced in dollars, and US multinationals."
+      "head": "Oil retreats, Hormuz normalizes",
+      "body": "WTI crude (PRIOR CASH CLOSE $68.78/bbl) is trading near pre-conflict lows as Strait of Hormuz tanker traffic steadily recovers and OPEC+ approved another +188,000 bbl/day quota increase; Saudi Arabia also cut its August Asia price to a $1.50/bbl discount."
     },
     {
-      "head": "TSMC June revenue due Friday",
-      "body": "Taiwan Semiconductor (TSM) reports June monthly revenue on Friday July 10, serving as a live bellwether for the entire US semiconductor and AI sector ahead of Q2 earnings season."
+      "head": "Gold steadies near $4,150",
+      "body": "Gold (PRIOR CASH CLOSE $4,187/oz, OVERNIGHT ~$4,150) is consolidating after last week's rally as markets await Wednesday's FOMC minutes; JPMorgan caps its Q3 forecast at $4,300, citing potentially softer demand ahead."
     },
     {
-      "head": "SpaceX analyst quiet period ends",
-      "body": "The mandatory post-IPO analyst quiet period for SpaceX expires this week, meaning Wall Street research firms can now publish their first formal ratings and price targets — adding a new price-discovery catalyst on top of today's index inclusion."
+      "head": "ISM Services: modest slowdown",
+      "body": "Monday's ISM Services PMI for June showed services activity still expanding but at a slightly slower pace, with price pressures easing to their softest level since February — a mild disinflationary signal that reinforces the patient-Fed narrative."
+    },
+    {
+      "head": "Samsung Q2 profit surges ~19x",
+      "body": "Samsung reported overnight a Q2 operating profit of ~89.4 trillion Korean won — up roughly 19-fold year-over-year and a record high — though revenue of ~171 trillion won missed consensus, a mixed read for the global chip supply chain."
+    },
+    {
+      "head": "Earnings season starts quietly",
+      "body": "Today carries no major data or earnings; the first Q2 earnings prints arrive Thursday (PepsiCo) and Friday (Delta Air Lines and TSMC June revenue), with big-bank reports from JPMorgan and Goldman Sachs following on July 14."
     }
   ],
   "implications": [
-    "The soft June jobs print is a double-edged sword: it lowers the near-term hike bar (equity-friendly) but also signals genuine labor market cooling at a moment when real rates sit at 2.26% — a level that is still a headwind for expensive growth stocks (S&P CAPE: 41.6x).",
-    "SpaceX's Nasdaq-100 inclusion creates a mechanical, time-sensitive buy event today: with only 3–5% of shares in free float and an estimated $4–27 billion in forced passive demand, SPCX could see extreme intraday price action that also reshuffles weights across other Nasdaq-100 members.",
-    "Wednesday's FOMC minutes are the week's highest-risk event: a hawkish tone (50% of members leaning toward a hike) could reverse the post-NFP rate-cut optimism and reprice both bonds and equities.",
-    "Oil's softness (WTI overnight ~$68.58, 35th percentile over 3 years) is good for inflation expectations (10-year breakeven: 2.23%) and airline/consumer stocks, but is a headwind for energy names.",
-    "<b>Positioning:</b> Speculators are near 3-year short extremes (extended short) in Nasdaq-100 futures (1st percentile), Russell 2000 futures (2nd percentile), and 3M SOFR (1st percentile) — a contrarian floor that means speculators have almost no bullish bets left in those markets, historically a setup where any positive catalyst can accelerate a short-covering rally. In copper, speculators are heavily positioned long (95th percentile) — a contrarian warning. British pound specs are also at a 3-year extended short (1st percentile), a contrarian-bullish lean for sterling."
+    "SpaceX's Nasdaq-100 entry today is a mechanical event, not a fundamental one — expect outsized SPCX volatility and possible drag on Apple/Microsoft/Nvidia early in the session as index funds rebalance.",
+    "The June payrolls miss reduces the Fed's urgency to hike but does not eliminate it: May CPI ran +4.2% YoY and Wednesday's minutes will reveal how divided — or unified — the committee was at the June meeting.",
+    "Oil's continued slide below $69 (PRIOR CASH CLOSE) is acting as a passive rate-cut substitute, easing energy-driven inflation and buying time for the Fed to stay patient into the July 29 decision.",
+    "Gold holding near multi-month highs even as equities set records is unusual and warrants attention — it suggests a segment of large buyers is hedging macro tail risk despite the surface calm.",
+    "USD/JPY (PRIOR CASH CLOSE 162.07) sits at a 3-year extreme (99.7th percentile) — Japanese authorities have previously intervened near these levels, and BOJ/Ministry of Finance action risk remains elevated.",
+    "<b>Positioning:</b> Speculators have almost no bullish bets left in Nasdaq 100 futures and Russell 2000 futures (near 3-year lows in positioning) — a contrarian floor that could amplify any rally. Copper speculators are at the 95th percentile of their 3-year range — an extended long and a contrarian warning for industrial metals. British pound speculators are also at a 3-year extreme short — a contrarian-bullish lean for GBP. High-yield bond dealer inventory sits at the 89th percentile — speculators are heavily positioned, a contrarian warning."
   ],
   "watch": [
     {
-      "head": "SPCX intraday liquidity crunch",
-      "body": "Watch SpaceX (SPCX) for extreme intraday moves as passive funds are forced to absorb shares in a thin float; sharp SPCX volatility could ripple into other large Nasdaq-100 weights as indices rebalance."
+      "head": "FOMC minutes (Wed 2pm ET)",
+      "body": "Any language suggesting the June committee was closer to hiking than markets assumed would send 2-year yields and the dollar sharply higher and pressure rate-sensitive equities."
     },
     {
-      "head": "10-year Treasury yield direction",
-      "body": "The 10-year yield closed at 4.49% (prior cash close Jul 2); a further drift lower would confirm the market is repricing the hike path, supporting equities — a move back above 4.55% would be a warning shot."
+      "head": "USD/JPY at 162",
+      "body": "The yen (PRIOR CASH CLOSE 162.07 ¥/$) is at a near-40-year low and at the 99.7th percentile of its 3-year range — watch for unannounced Bank of Japan or Ministry of Finance intervention, which would cause a rapid yen strengthening and global risk-off ripple."
     },
     {
-      "head": "DXY holds below 101",
-      "body": "If the dollar index (overnight ~100.88) continues to soften, that sustains the tailwind for gold (currently above $4,100 overnight), copper, and emerging-market assets; a surprise bounce back above 101.5 would pressure the reflation trade."
+      "head": "SPCX / NDX rebalance flows",
+      "body": "Watch intraday volume and price action in Apple, Microsoft, and Nvidia in the first 30 minutes — large index-driven selling to fund SpaceX inclusion could create a temporary dip-buy opportunity in mega-cap tech."
     },
     {
-      "head": "USD/JPY at 97.9th-pctile extreme",
-      "body": "The Japanese yen stands at 161.34 per dollar (prior close Jul 3) — a 3-year extreme — raising the risk of Bank of Japan intervention; any sudden yen strengthening would unwind carry trades and could spike volatility across risk assets globally."
+      "head": "10Y yield (currently 4.48%)",
+      "body": "The 10-year Treasury yield (PRIOR CASH CLOSE 4.48%) is the key equity valuation anchor — a sustained break above 4.55% would likely reprice growth stocks lower ahead of Wednesday's minutes."
     },
     {
-      "head": "Oil/Hormuz headlines",
-      "body": "With the ceasefire fragile and Iran's mourning period ongoing, any fresh Strait of Hormuz headline could rapidly reprice oil (Brent overnight ~$71.88) and re-inject geopolitical risk premium into broader markets."
+      "head": "Copper squeeze risk",
+      "body": "Copper (PRIOR CASH CLOSE $6.22/lb, 96th percentile) has speculators at a near-record extended long — any demand disappointment from China or a softer global growth print could trigger a sharp unwind."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "June payrolls came in at just 57K (prior cash data) vs. a 110K forecast — the weakest print in four months — pushing implied odds of a September Fed rate hike down from ~67% to ~50%.",
-        "The 10-year Treasury yield sits at 4.49% (prior cash close Jul 2) and the 2-year at 4.14%, keeping the yield curve at a modest +35 bps spread — steeper curves typically signal improving growth expectations.",
-        "Real interest rates (the inflation-adjusted rate) remain at 2.26% (as of Jul 2), still historically high and a structural drag on long-duration assets like expensive tech stocks.",
-        "The 10-year inflation breakeven (the market's guess for future inflation) stands at 2.23% (Jul 2) — contained, and drifting lower post-NFP, consistent with Fed rate-hike odds pulling back.",
-        "The DXY dollar index is holding below 101 overnight after its biggest weekly drop since April, as softer labor data reduces the case for near-term tightening.",
-        "Fed Chair Kevin Warsh noted inflation expectations are moderating while reaffirming the Fed's commitment to price stability — a carefully balanced message that keeps both hike and hold scenarios alive.",
-        "Wednesday's FOMC minutes (2 p.m. ET) are the week's primary macro event: the June dot plot showed ~50% of members expected a hike this year, and any hawkish nuance in the minutes could reverse the post-NFP rally.",
-        "Bank reserves stand at $2,967 billion (Jul 1) and the Treasury's cash account (TGA) at $880 billion — system liquidity remains ample, a backstop for credit markets.",
-        "Financial conditions indexes (ANFCI -0.49, STLFSI -0.64 as of Jun 26) both show easier-than-normal conditions — meaning credit is flowing freely and borrowing costs are below their historical average relative to the economy."
+        "10-year Treasury yield: PRIOR CASH CLOSE 4.48% — steady after the jobs miss pared earlier moves; the 2-year yield closed at 4.13%, giving a 35 bps positive slope (the curve is steepening slightly, meaning bond markets expect eventual easier policy but not yet).",
+        "Real (inflation-adjusted) 10-year yield stands at 2.24% — historically high, meaning money has genuine purchasing-power competition from Treasuries, which puts a ceiling on how stretched equity valuations can get.",
+        "The Fed funds target range holds at 3.50–3.75%; September rate-hike odds have fallen from ~64% pre-NFP to roughly 50% after June's 57K payroll print — but Chair Warsh at the ECB Sintra forum said inflation 'remains too high' and refused to signal a July cut.",
+        "10-year inflation breakeven: PRIOR CASH CLOSE 2.24% — oil's decline is doing disinflationary work; watch Wednesday's FOMC minutes for any shift in the committee's inflation tolerance.",
+        "Term premium (extra yield investors demand to hold long bonds): 68.4 bps — elevated, reflecting genuine uncertainty about the fiscal path and future rate direction.",
+        "Financial conditions remain loose: the Chicago Fed's ANFCI reads -0.49 and the St. Louis FSI reads -0.64 — both below zero means money is flowing freely, which is a backstop for risk assets even with a hawkish Fed rhetoric."
       ],
-      "positioning": "Speculators are near a 3-year extended short in 3M SOFR futures (1st percentile) — speculators have almost no bullish bets left, a contrarian floor suggesting rate-futures markets are priced for the worst and any dovish pivot could trigger a sharp reversal.",
-      "single_name": null
+      "positioning": "3M SOFR futures speculators have almost no bullish bets left — sitting at the 1st percentile of their 3-year range and in a divergence against hedgers (a contrarian-bullish lean for short rates, i.e. the market may be too pessimistic about near-term rate relief).",
+      "single_name": {
+        "ticker": "STNG",
+        "note": "<a class=\"tklink\" href=\"/ticker/STNG\" data-route=\"/ticker/STNG\">Scorpio Tankers</a> (Energy) — tanker demand benefits from normalizing Strait of Hormuz flows and oil-route stabilization; company insiders have been buying, large off-exchange block buying (quiet institutional accumulation) is live, and a burst of unusual options buying is present. Shorts are moderate at 4.0 days-to-cover with low borrow cost (0.29%) — limited squeeze risk but signal is fresh."
+      }
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500 prior cash close (Jul 2): 7,483.24; overnight futures (pre-market, ~6 a.m. ET): +0.5% — pointing to a gap-up open back toward the week's highs.",
-        "Nasdaq-100 prior cash close (Jul 2): 25,832.67; overnight futures: +1.1% — tech is leading the post-holiday bounce, driven by AI/semi tailwinds and SpaceX index-inclusion flows.",
-        "Dow Jones prior cash close (Jul 2): 52,900.07; Dow futures overnight are near flat, lagging tech — consistent with the rotation into growth names.",
-        "SpaceX (SPCX) officially joins the Nasdaq-100 before tomorrow's open (Jul 7), meaning passive fund managers must execute the bulk of their forced buying today (Jul 6); QQQ alone may need to purchase ~$4.3 billion in SPCX with only ~3–5% of shares freely available — expect elevated volatility in SPCX and ripple effects in other large Nasdaq-100 weights.",
-        "Market breadth remains healthy: 66.9% of S&P 500 stocks and 65.3% of Nasdaq-100 stocks are trading above their 200-day moving average (as of Jul 2) — a broad, not just mega-cap, rally.",
-        "The CAPE ratio (a smoothed long-term valuation measure) stands at 41.6x (Jul 2) — historically elevated, meaning the market is pricing in strong future earnings growth with little margin for disappointment.",
-        "The equity risk premium — the extra return stocks offer over bonds — sits at -2.05% (Jun 30): bonds are actually offering more expected return than stocks on a risk-adjusted basis, a valuation warning for buy-and-hold equity investors.",
-        "VIX (the S&P 500's 30-day fear gauge) closed at 15.81 (Jul 3), comfortably low — markets are not pricing significant near-term turbulence, though the SKEW index at 150 suggests options traders are paying up for tail-risk protection against a large sudden drop.",
-        "TSM (Taiwan Semiconductor) June revenue data due Friday July 10 — widely watched as a real-time read on AI chip demand ahead of the full Q2 earnings season.",
-        "Asia overnight: mostly positive — Hong Kong Hang Seng +0.4%, Jakarta +2.28%, but Japan's Nikkei -0.95% (a reminder that USD/JPY at extreme 161.34 level creates yen-volatility risk); Europe's Stoxx 600 near record highs."
+        "S&P 500 PRIOR CASH CLOSE: 7,537 (+0.72% Mon); OVERNIGHT/PRE-MARKET S&P futures ~7,549 — marginal upside implied at the open.",
+        "Nasdaq-100 PRIOR CASH CLOSE: 26,121 (+1.12% Mon); SpaceX officially joins the index today, with passive funds estimated to need $22–27 billion in SPCX shares — expect index-driven selling pressure on Apple, Microsoft, and Nvidia as weights are trimmed.",
+        "Dow Jones PRIOR CASH CLOSE: 53,056 — a record close; the index has now crossed 53,000 for the first time.",
+        "VIX (fear gauge): PRIOR CASH CLOSE 15.57 — calm, but SKEW at 145.4 means large players are buying out-of-the-money hedges, a sign of quiet tail-risk concern beneath the calm surface.",
+        "Breadth is healthy: 66.8% of S&P 500 stocks trade above their 50-day average and 66.9% above their 200-day average (as of Jul 2) — the rally has reasonable participation, not just a handful of large-caps.",
+        "CAPE (a long-run valuation measure comparing prices to 10-year average earnings): 41.97 — well above historical norms; equities are expensive relative to history, which amplifies downside risk if rates rise or earnings disappoint.",
+        "Equity risk premium (the extra return stocks offer vs. risk-free Treasuries): -2.05% — negative, meaning Treasuries currently out-yield stocks on a risk-adjusted basis; this is a structural valuation headwind."
       ],
-      "positioning": "Speculators are near 3-year extended short extremes in Nasdaq-100 futures (1st percentile) and Russell 2000 futures (2nd percentile) — speculators have almost no bullish bets left in these markets, a historically contrarian floor. VIX futures specs are also lightly short (12th percentile). A sustained rally could force aggressive short-covering, amplifying upside moves.",
+      "positioning": "Nasdaq 100 and Russell 2000 speculators sit at the 4th and 2nd percentiles of their 3-year net-position ranges respectively — speculators have almost no bullish bets left, a contrarian floor that historically precedes sharp squeezes higher when a catalyst arrives. VIX speculators are also near the low end (12th percentile) — the market is not positioned for a volatility spike.",
       "single_name": {
-        "ticker": "TSM",
-        "name": "Taiwan Semiconductor Manufacturing Co.",
-        "catalyst": "June monthly revenue report due Friday July 10; widely watched as a real-time bellwether for AI chip demand ahead of Q2 earnings season.",
-        "note": "Any revenue beat or raised guidance would likely lift the broader semiconductor complex; a miss could pressure AI-exposed names across the Nasdaq-100."
+        "ticker": "KMX",
+        "note": "<a class=\"tklink\" href=\"/ticker/KMX\" data-route=\"/ticker/KMX\">CarMax</a> (Consumer Cyclical — used-vehicle retailer) — company insiders have been buying (2 insider rules fired), large off-exchange block buying is live, and a burst of unusual options buying is present. Shorts are meaningful at 4.4 days-to-cover (some squeeze risk) with low borrow cost (0.32%), stock trading above its 200-day average. Signal is fresh."
       }
+    },
+    {
+      "title": "Credit & Liquidity",
+      "bullets": [
+        "High-yield vs. investment-grade spread: 274 bps (PRIOR CASH CLOSE) — the gap that junk bonds pay over safer investment-grade debt is not alarming but bears watching as the weakest end of the credit spectrum is first to crack in a slowdown.",
+        "Investment-grade option-adjusted spread: 75 bps — tight, reflecting easy financial conditions; credit markets are not pricing significant default risk.",
+        "FRA-OIS and SOFR-OIS spreads (measures of stress in short-term bank funding): both at just 1 bp — the plumbing is pristine, no funding stress in the banking system.",
+        "Bank reserves at the Fed: $2,967 billion — ample; system liquidity is not a concern near-term.",
+        "Overnight reverse repo (idle cash parked at the Fed): $2.7 billion — near zero; this pool of excess liquidity that once supported markets is essentially exhausted, removing a passive tailwind for risk assets.",
+        "M2 money supply growth: +5.6% year-over-year — running slightly above the long-run average, providing a supportive backdrop for nominal asset prices.",
+        "Weekly jobless claims (4-week average): 222K — labor market is softening at the margin but not breaking; initial claims at 215K remain below levels that would signal broad layoffs."
+      ],
+      "positioning": null,
+      "single_name": null
     }
   ],
   "movers": [
     {
+      "ticker": "SPCX",
+      "pct": null,
+      "link": true
+    },
+    {
       "ticker": "AUGO",
-      "pct": 8.2,
+      "pct": null,
+      "link": true
+    },
+    {
+      "ticker": "KMX",
+      "pct": null,
       "link": true
     },
     {
       "ticker": "STNG",
-      "pct": 5.0,
+      "pct": null,
       "link": true
     },
     {
-      "ticker": "NEWT",
-      "pct": -3.3,
-      "link": true
-    },
-    {
-      "ticker": "RH",
-      "pct": 3.1,
-      "link": true
-    },
-    {
-      "ticker": "EQPT",
-      "pct": -2.8,
+      "ticker": "MTDR",
+      "pct": null,
       "link": true
     }
   ]
