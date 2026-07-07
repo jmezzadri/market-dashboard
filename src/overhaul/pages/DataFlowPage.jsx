@@ -45,14 +45,20 @@
    Theming uses --mt-* tokens only (no hardcoded hex), so the page picks up the
    light / dark / navy themes via data-mt-theme on <html>. Every value carries
    a freshness chip.
+
+   Cream rebrand Phase B (2026-07-07): the page mounts on the home-v12 CREAM
+   system (root `home-v12 data-v12`; all page styles + responsive rules live in
+   data-v12.css, which also bridges the --mt-* tokens the shared FreshnessChip /
+   Tip read to the v12 palette). RESKIN ONLY — zero freshness-logic, grading,
+   data or copy changes.
 */
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../hooks/useDataHealth';
 import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
-import '../styles/home-system.css';
-import '../styles/data-glass.css';
+import '../styles/cream-system.css';
+import '../styles/data-v12.css';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
 import { gradeTwoClock } from '../../lib/freshnessClock';
@@ -628,6 +634,24 @@ function CotTableHead() {
       <div className="df-row-chip">Freshness</div>
     </div>
   );
+}
+
+/* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage/ScannerPage
+   (v12 system). Replays in BOTH directions; state lives in React so data-poll
+   re-renders preserve the revealed class. Used on the hero ONLY — the flow
+   board is measured with getBoundingClientRect for the lineage lines, so it
+   must never sit mid-transform. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
 // ─── Tile ─────────────────────────────────────────────────────────────────────
@@ -1483,19 +1507,18 @@ export default function DataFlowPage() {
   }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
 
   return (
-    <div className="home-v11 data-page mt-fade df-page">
-      <div className="shell">
-      <section className="sc-hero-solo">
-        <div className="glass sc-ed">
-          <div className="ed-eyebrow">● Data</div>
-          <h1>End-to-end <i>data flow</i>.</h1>
-          <p className="ed-deck">
-            Every source, every indicator we track, every engine, every surface — read straight from the
-            data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
-            fresh each feed is.
-          </p>
-        </div>
+    <div className="home-v12 data-v12">
+      <section className="wrap df-hero">
+        <Reveal className="eyebrow2"><span className="dot" />Data</Reveal>
+        <Reveal as="h1" className="df-h1">End-to-end <i>data flow</i>.</Reveal>
+        <Reveal as="p" className="sub">
+          Every source, every indicator we track, every engine, every surface — read straight from the
+          data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
+          fresh each feed is.
+        </Reveal>
       </section>
+
+      <section className="wrap df-stage">
 
       {loadErr && (
         <div className="df-banner df-banner--err">Could not load the data manifest: {loadErr}</div>
@@ -1604,145 +1627,7 @@ export default function DataFlowPage() {
           </div>
         </>
       )}
-
-      <style>{`
-        .df-page { padding-bottom: 40px; }
-
-        .df-banner { margin: 12px 0; padding: 12px 16px; background: var(--mt-surface-2);
-          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); color: var(--mt-ink-2); font-size: 13px; }
-        .df-banner--err { color: var(--mt-down); border-color: var(--mt-down); }
-
-        .df-totals { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 14px; padding: 11px 16px;
-          background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm);
-          font-size: 12.5px; color: var(--mt-ink-2); }
-        .df-totals b { color: var(--mt-ink-0); font-weight: 700; }
-
-        .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
-          margin: 0 0 16px; padding: 9px 14px; background: var(--mt-surface-2);
-          border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-sm); font-size: 11.5px; color: var(--mt-ink-1); }
-        .df-legend-top > span { display: inline-flex; align-items: center; }
-        .df-legend-grp-h { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
-        .df-legend-hint { color: var(--mt-ink-3); font-style: italic; font-size: 10.5px; margin-left: auto; }
-
-        /* Two-pane layout: flow on the left, detail panel on the right. */
-        .df-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr); gap: 18px; align-items: start; }
-
-        .df-flow { position: relative; padding: 4px 0; }
-        .df-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; color: var(--mt-accent); }
-        .df-svg path { fill: none; stroke: currentColor; stroke-width: 1.3; opacity: 0.5; }
-        .df-cols { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; position: relative; z-index: 2; }
-        .df-col { min-width: 0; }
-        .df-col-h { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--mt-line-0); }
-        .df-sub-h { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; margin: 12px 0 6px 2px; }
-        .df-stack { display: flex; flex-direction: column; gap: 6px; }
-
-        .df-tile { all: unset; box-sizing: border-box; cursor: pointer; display: block; position: relative;
-          background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-left: 3px solid var(--mt-accent);
-          border-radius: var(--mt-r-sm); padding: 7px 30px 7px 11px; min-height: 40px;
-          transition: opacity 0.18s var(--mt-ease), background 0.15s var(--mt-ease), border-color 0.15s var(--mt-ease), transform 0.12s var(--mt-ease); }
-        .df-tile:focus-visible { outline: 2px solid var(--mt-accent); outline-offset: 2px; }
-        .df-tile:hover { background: var(--mt-accent-soft); transform: translateY(-1px); }
-        .df-tile--derived { border-left-color: var(--mt-ink-3); }
-        .df-tile--engine { border-left-color: var(--mt-accent); background: var(--mt-surface-2); }
-        .df-tile--surface { border-left-color: var(--mt-up); background: var(--mt-surface-2); }
-        .df-tile--workflow { border-left-color: var(--mt-warn); background: var(--mt-surface-2); }
-        .df-tile--selected { background: var(--mt-accent-soft); box-shadow: 0 0 0 2px var(--mt-accent); }
-        .df-tile--lit { border-color: var(--mt-accent); background: var(--mt-accent-soft); }
-        .df-tile--dim { opacity: 0.22; }
-
-        .df-tile-name { display: block; font-size: 12px; font-weight: 600; color: var(--mt-ink-0); line-height: 1.25; }
-        .df-tile-cd { display: block; font-size: 10px; color: var(--mt-ink-2); margin-top: 2px; line-height: 1.25; }
-        .df-tile-count { position: absolute; top: 7px; right: 9px; font-size: 10px; font-weight: 700; color: var(--mt-ink-1);
-          background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: 9px; padding: 0 6px; min-width: 14px; text-align: center; line-height: 16px; }
-        .df-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mt-up); }
-        .df-dot--g { background: var(--mt-up); }
-        .df-dot--a { background: var(--mt-warn); }
-        .df-dot--r { background: var(--mt-down); }
-        .df-dot--u { background: var(--mt-ink-3); opacity: 0.55; }
-        .df-dot--inline { position: static; display: inline-block; vertical-align: 1px; margin-right: 6px; }
-        /* Static-positioned dot lives inside the .df-dot-tip hover target. */
-        .df-dot--static { display: block; }
-        /* Hover target for the dot's instant tooltip — pinned bottom-right of
-           the tile, slightly larger than the dot so it's easy to hit. */
-        .df-dot-tip { position: absolute; bottom: 6px; right: 7px; display: inline-flex;
-          align-items: center; justify-content: center; padding: 3px; }
-        .df-dot-tip:hover .df-dot { box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 22%, transparent); }
-
-        /* Non-scheduled / not-yet-tracked freshness cells in the detail table. */
-        .df-row-nature { font-size: 11px; color: var(--mt-ink-2); font-style: italic; }
-        .df-row-untracked { display: inline-flex; align-items: center; font-size: 11px; color: var(--mt-ink-2); }
-
-        /* ── Detail panel ── */
-        .df-detail { position: sticky; top: 12px; background: var(--mt-surface); border: 1px solid var(--mt-line-0);
-          border-radius: var(--mt-r-md); padding: 16px 18px; max-height: calc(100vh - 40px); overflow: auto; }
-        .df-detail-empty { color: var(--mt-ink-3); font-size: 12.5px; font-style: italic; padding: 8px 0; }
-        .df-detail-head { padding-bottom: 12px; margin-bottom: 10px; border-bottom: 1px solid var(--mt-line-0); }
-        .df-detail-desc { font-size: 12.5px; color: var(--mt-ink-1); line-height: 1.55; margin: 10px 0 0; }
-        .df-detail-role { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--mt-ink-3); font-weight: 600; }
-        .df-detail-title { font-size: 16px; font-weight: 700; margin: 3px 0 4px; color: var(--mt-ink-0); }
-        .df-detail-sub { font-size: 12px; color: var(--mt-ink-2); }
-        .df-detail-cost { color: var(--mt-ink-1); font-weight: 600; }
-        .df-detail-blast { font-size: 11.5px; color: var(--mt-ink-2); line-height: 1.5; margin: 8px 0 0; }
-
-        /* ── Per-element table (indicator-by-indicator) ──
-           The table is ONE CSS grid and every row uses display:contents, so all
-           rows share the SAME column tracks. Before this each .df-row was its own
-           grid: the content-sized last column ("Freshness") resolved WIDE in the
-           header (the label) but NARROW in the body (a dot), which shifted every
-           fractional column and left the data not lining up under its headers
-           (Joe 2026-06-23). One shared grid makes header and body columns
-           identical. The mobile card layout below re-declares .df-row as a grid. */
-        .df-table { display: grid;
-          grid-template-columns: minmax(0, 1.5fr) 1fr 0.8fr 0.95fr 0.5fr max-content;
-          column-gap: 8px; font-size: 11.5px; }
-        .df-row { display: contents; }
-        .df-row > * { align-self: center; min-width: 0; padding: 9px 0; border-bottom: 1px solid var(--mt-line-0); }
-        .df-table > .df-row:last-child > * { border-bottom: none; }
-        .df-row--head > * { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mt-ink-3);
-          font-weight: 600; padding: 6px 0; border-bottom: 1px solid var(--mt-line-1); }
-        .df-row--head .df-row-k { display: none; }
-        .df-row-main { min-width: 0; }
-        .df-row-name { font-weight: 600; color: var(--mt-ink-0); font-size: 12px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .df-row-vendor { color: var(--mt-ink-2); font-size: 10.5px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .df-row-cad { color: var(--mt-ink-1); }
-        .df-row-cad-t { color: var(--mt-ink-3); }
-        .df-row-asof, .df-row-pull, .df-row-sla { color: var(--mt-ink-1); }
-        .df-row-k { display: none; }
-        .df-row-chip { justify-self: end; }
-
-        /* COT positioning rows — the middle cell shows the two percentiles. */
-        .df-row--cot .df-row-cad { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
-        .df-cot-pct { color: var(--mt-ink-1); font-size: 11px; white-space: nowrap; }
-        .df-cot-pct b { color: var(--mt-ink-0); font-weight: 700; font-variant-numeric: tabular-nums; }
-        .df-cot-div { margin-left: 7px; color: var(--mt-warn); font-size: 10px; font-weight: 600; }
-
-        @media (max-width: 1180px) {
-          .df-layout { grid-template-columns: 1fr; }
-          .df-detail { position: static; max-height: none; }
-          .df-svg { display: none; }
-          .df-cols { grid-template-columns: 1fr 1fr; }
-        }
-        /* On narrow detail panels, stack the row into a card with labels.
-           Reset the desktop shared grid: the table goes back to a column of
-           independent row-grids, and the per-cell borders/padding are undone. */
-        @media (max-width: 1180px) {
-          .df-table { display: flex; flex-direction: column; }
-          .df-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas:
-            "main chip" "cad cad" "asof pull" "sla sla"; row-gap: 4px; column-gap: 8px;
-            padding: 9px 4px; border-bottom: 1px solid var(--mt-line-0); }
-          .df-row > * { padding: 0; border-bottom: none; }
-          .df-table > .df-row:last-child { border-bottom: none; }
-          .df-row--head { display: none; }
-          .df-row-main { grid-area: main; }
-          .df-row-chip { grid-area: chip; }
-          .df-row-cad { grid-area: cad; }
-          .df-row-asof { grid-area: asof; }
-          .df-row-pull { grid-area: pull; }
-          .df-row-sla { grid-area: sla; }
-          .df-row-k { display: inline; color: var(--mt-ink-3); margin-right: 5px; font-size: 10px; }
-        }
-      `}</style>
-      </div>{/* /.shell */}
+      </section>{/* /.df-stage */}
     </div>
   );
 }
