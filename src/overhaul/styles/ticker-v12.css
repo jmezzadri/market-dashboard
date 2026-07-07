@@ -1,0 +1,139 @@
+/* ============================================================================
+   Ticker Detail — page styles on the CREAM v12 system (cream-system.css).
+   Cream rebrand Phase B (2026-07-07). RESKIN ONLY: every selector here styles
+   markup that already existed under home-v11 glass — chart data, score math,
+   overlays, event markers and FreshnessChip usage are untouched. The shared
+   reveal/eyebrow/wrap patterns come from cream-system.css; this file covers
+   what the shared system doesn't: the big-symbol masthead (kept big — site
+   header standard), the putty section cards, the kv/tech stat tiles, the
+   chart pills and overlay buttons, the event/filing tables, the score
+   drill-down rows, and the related-name tiles.
+
+   TOKEN BRIDGE: the price chart (BigHistoryChart), score dial, freshness
+   chips, tags and every tk-* piece in chrome.css / proto-pages.css are styled
+   with the app's --mt-* tokens. We remap those tokens to the v12 cream
+   palette, scoped to .ticker-v12, so every embedded piece — including the
+   chart CANVAS (its SVG strokes/fills are var(--mt-*) references) — renders
+   native cream WITHOUT editing any shared component (same approach as
+   scanner-v12). The TradingView embed is the one exception: its widget
+   config hardcodes light/dark backgrounds in JS, so it keeps its own colors
+   (chart-internals theming is a later pass). Tip and FreshnessChip tooltips
+   portal to <body> — OUTSIDE this scope — and keep the app's solid tokens,
+   as before.
+   ========================================================================= */
+
+.home-v12.ticker-v12 {
+  /* v11 alias tokens (macro-v12 / scanner-v12 convention) */
+  --amber: var(--gold-deep);
+  --track: var(--hair);
+  padding-bottom: 76px;
+
+  /* --mt-* bridge for the embedded shared components + chart canvas */
+  --mt-surface: var(--bg2);
+  --mt-surface-2: color-mix(in srgb, var(--bg2) 60%, transparent);
+  --mt-surface-3: color-mix(in srgb, var(--ink) 7%, transparent);
+  --mt-ink-0: var(--ink);
+  --mt-ink-1: var(--ink-soft);
+  --mt-ink-2: var(--mut);
+  --mt-ink-3: var(--mut);
+  --mt-line-0: var(--hair);
+  --mt-line-1: var(--hair);
+  --mt-accent: var(--gold-deep);
+  --mt-accent-soft: color-mix(in srgb, var(--gold-deep) 16%, transparent);
+  --mt-accent-glow: color-mix(in srgb, var(--gold-deep) 26%, transparent);
+  --mt-up: var(--up);
+  --mt-down: var(--down);
+  --mt-warn: var(--amber);
+  --mt-amber: var(--amber);
+  /* serif display (symbol, price, section h2s, stat numerals), sans body */
+  --mt-font-display: var(--serif);
+  --mt-font-ui: var(--sans);
+}
+
+/* Neutralize the cream editorial section margin — this page keeps its own
+   mt-pagesection rhythm — and pull sections flush to the .wrap gutters. */
+.home-v12.ticker-v12 section { margin-top: 0; }
+.home-v12.ticker-v12 .mt-pagesection { padding-left: 0; padding-right: 0; }
+.home-v12.ticker-v12 .mt-pagehero { padding-left: 0; padding-right: 0; }
+.home-v12.ticker-v12 .tk-backrow { padding: 26px 0 0; }
+
+/* v12 eyebrow voice for the existing mt-eyebrow chrome */
+.home-v12.ticker-v12 .mt-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--mut); }
+
+/* ── masthead — big serif symbol (site standard: stays big), serif price ── */
+.home-v12.ticker-v12 .tk-hero { padding-top: 30px; padding-bottom: 12px; }
+.home-v12.ticker-v12 .tk-symbol { font-size: clamp(52px, 6vw, 88px); letter-spacing: -.5px; }
+.home-v12.ticker-v12 .tk-name { font-size: 23px; }
+.home-v12.ticker-v12 .tk-meta { font-size: 12.5px; }
+.home-v12.ticker-v12 .tk-price { font-size: 44px; }
+.home-v12.ticker-v12 .tk-pricemeta { font-size: 11.5px; }
+
+/* score tile beside the masthead — putty, open (no hairline box) */
+.home-v12.ticker-v12 .tk-scoreblock { background: var(--putty); border: 0; border-radius: 32px; padding: 22px 28px; transition: background .5s; }
+.home-v12.ticker-v12 .tk-noscore { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+
+/* ── section cards → putty, 40px radius, no hairline box ── */
+.home-v12.ticker-v12 .mt-card { background: var(--putty); border: 0; border-radius: 40px; padding: 30px 34px 28px; transition: background .5s; }
+
+/* kv / tech stat tiles. On the open cream page (key stats section) they are
+   putty tiles; inside a putty .mt-card (options / short-interest / overview)
+   they step down to bg2 so the nesting stays legible. */
+.home-v12.ticker-v12 .tk-kvcell { background: var(--putty); border: 0; border-radius: 18px; padding: 13px 16px; transition: background .5s; }
+.home-v12.ticker-v12 .tk-kvcell b { font-size: 19px; font-weight: 400; }
+.home-v12.ticker-v12 .tk-techcell { background: var(--putty); border-radius: 14px; padding: 11px 13px; transition: background .5s; }
+.home-v12.ticker-v12 .tk-techcell b.num { font-size: 17px; font-weight: 400; }
+.home-v12.ticker-v12 .mt-card .tk-kvcell,
+.home-v12.ticker-v12 .mt-card .tk-techcell { background: var(--bg2); }
+
+/* ── pills (chart mode / timeframe / tabs) — v12 rounded ghost language ── */
+.home-v12.ticker-v12 .mt-pillgroup { background: transparent; padding: 0; gap: 6px; flex-wrap: wrap; }
+.home-v12.ticker-v12 .mt-pill { border: 1px solid var(--hair); border-radius: 999px; padding: 7px 13px; font-size: 12px; font-weight: 600; color: var(--ink-soft); transition: color .25s, border-color .25s, background .25s; }
+.home-v12.ticker-v12 .mt-pill:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
+.home-v12.ticker-v12 .mt-pill.on { background: var(--ink); border-color: var(--ink); color: var(--bg); box-shadow: none; }
+
+/* overlay toggles / compare + date inputs / back button */
+.home-v12.ticker-v12 .mt-btn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.home-v12.ticker-v12 .mt-btn:hover { background: color-mix(in srgb, var(--bg2) 60%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
+.home-v12.ticker-v12 .mt-btn--ghost { border-color: transparent; }
+
+/* event / filing / dividend tables — cream row hover (was the glass skin's
+   accent wash); horizontal scroll stays INSIDE the card via .tk-tablewrap */
+.home-v12.ticker-v12 .tk-evttable tbody tr { transition: background .16s ease; }
+.home-v12.ticker-v12 .tk-evttable tbody tr:hover { background: color-mix(in srgb, var(--gold-deep) 7%, transparent); }
+
+/* related-name tiles — putty mvt language */
+.home-v12.ticker-v12 .tk-relcard { background: var(--putty); border: 0; border-radius: 26px; padding: 20px 22px; transition: background .5s, transform .25s, box-shadow .25s; }
+.home-v12.ticker-v12 .tk-relcard:hover { transform: translateY(-4px); box-shadow: var(--sh); }
+
+/* ── responsive — ALL ticker v12 responsive rules live here, not in
+      responsive.css (Phase B rule). The old .mt-overhaul mobile rules for
+      tk-keygrid / tk-relatedgrid / tk-hero (≤640) still apply and agree. ── */
+@media (max-width: 1100px) {
+  .home-v12.ticker-v12 .tk-keygrid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 900px) {
+  .home-v12.ticker-v12 .tk-keygrid { grid-template-columns: repeat(3, 1fr); }
+  .home-v12.ticker-v12 .tk-relatedgrid { grid-template-columns: repeat(2, 1fr); }
+  .home-v12.ticker-v12 .tk-fundheader,
+  .home-v12.ticker-v12 .tk-fundsplit { grid-template-columns: 1fr; }
+  .home-v12.ticker-v12 .tk-fundsplit > div { min-width: 0; overflow-x: auto; }
+  .home-v12.ticker-v12 .mt-card { border-radius: 28px; padding: 22px 18px 20px; }
+  .home-v12.ticker-v12 .tk-scoreblock { border-radius: 26px; padding: 18px 20px; }
+  .home-v12.ticker-v12 .tk-hero { padding-top: 14px; }
+  .home-v12.ticker-v12 .mt-pagesection { padding-top: 22px; padding-bottom: 22px; }
+  .home-v12.ticker-v12 .tk-backrow { padding-top: 18px; }
+}
+@media (max-width: 640px) {
+  .home-v12.ticker-v12 .tk-symwrap { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .home-v12.ticker-v12 .tk-keygrid { grid-template-columns: repeat(2, 1fr); }
+  /* score drill rows: drop the inline why/bar columns so 390 stays usable —
+     the detail lives in the expanded body */
+  .home-v12.ticker-v12 .tk-scard-head { grid-template-columns: 18px minmax(0, 1fr) 76px; }
+  .home-v12.ticker-v12 .tk-scard-why,
+  .home-v12.ticker-v12 .tk-scard-bar { display: none; }
+  .home-v12.ticker-v12 .tk-scard-body { padding-left: 4px; }
+  .home-v12.ticker-v12 .tk-compareinput { min-width: 0; flex: 1 1 160px; }
+}
+@media (max-width: 480px) {
+  .home-v12.ticker-v12 .tk-relatedgrid { grid-template-columns: 1fr !important; }
+}
