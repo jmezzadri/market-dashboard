@@ -1,17 +1,21 @@
-/* Trading Scanner — Liquid-Glass rebuild (Phase 2 site-wide redesign).
+/* Trading Scanner — CREAM "home-v12" system (cream rebrand Phase B).
 
-   Converted to the home-v11 glass design system to match Home + Macro
-   Overview: serif editorial hero, glass cards, light + navy themes, instant
-   styled tooltips. The results table (ScanList) keeps all of its behaviour —
-   every column shown by default, a gear show/hide chooser, drag a header to
-   reorder, click a header to sort, click a row to drill — and is reskinned to
-   glass through a token bridge in scanner-glass.css (no edit to the shared
-   table component). Every value remains live; the scan keeps its freshness
-   chip. Score-band boxes in the hero are plain counts, not filters.
+   Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
+   scope to the shared home-v12 cream system (cream-system.css) with page
+   styles in scanner-v12.css. RESKIN ONLY — classNames, layout wrappers and
+   CSS; zero data/logic/chip changes. The results table (ScanList) keeps all
+   of its behaviour — every column shown by default, a gear show/hide chooser,
+   drag a header to reorder, click a header to sort, click a row to drill —
+   and reads cream through a --mt-* token bridge in scanner-v12.css (no edit
+   to the shared table component; the row Tip tooltips portal OUTSIDE this
+   scope and keep the app's solid tokens, as before). Every value remains
+   live; the scan keeps its freshness chip. Score-band boxes in the hero are
+   plain counts, not filters.
 
-   History: refactored 2026-05-27 (Path-A); columns grouped 2026-06-17. */
+   History: refactored 2026-05-27 (Path-A); columns grouped 2026-06-17;
+   home-v11 glass era 2026-06-24 → 2026-07-07. */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
@@ -20,8 +24,8 @@ import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
-import '../styles/home-system.css';
-import '../styles/scanner-glass.css';
+import '../styles/cream-system.css';
+import '../styles/scanner-v12.css';
 
 function bucketFor(s) {
   if (s >= 5) return 'b5';
@@ -56,6 +60,22 @@ function loadColState() {
   } catch {
     return DEFAULT_COL_STATE;
   }
+}
+
+/* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage (v12
+   system). Replays in BOTH directions; state lives in React so data-poll
+   re-renders preserve the revealed class. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
 export default function ScannerPage() {
@@ -153,26 +173,25 @@ export default function ScannerPage() {
   };
 
   return (
-    <div className="home-v11 mt-fade sc-page">
+    <div className="home-v12 scanner-v12">
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y - 8, transform: 'translate(-50%,-100%)', background: '#0f1622', color: '#eef2f8', padding: '9px 12px', borderRadius: 9, fontSize: 11.5, lineHeight: 1.45, maxWidth: 320, whiteSpace: 'pre-line', textAlign: 'left', zIndex: 6000, pointerEvents: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)' }}>{tip.text}</div>,
+        <div className="sc-tip" style={{ left: tip.x, top: tip.y - 8 }}>{tip.text}</div>,
         document.body,
       )}
 
-      <div className="shell">
-        {/* Hero — editorial left, scan card right */}
-        <section className="sc-hero">
-          <div className="glass sc-ed">
-            <div className="ed-eyebrow">● Trading scanner</div>
+      {/* Hero — editorial left, scan card right */}
+      <section className="wrap sc-hero">
+        <Reveal className="sc-ed">
+          <div className="eyebrow2"><span className="dot" />Trading scanner</div>
             <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
             <ul className="impl">
               <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
               <li><b>Scanner indicates a buy with a Score ≥ 5</b>; position size is Score × $20K.{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
             </ul>
-          </div>
+        </Reveal>
 
-          <div className="glass sc-scan">
+        <Reveal className="sc-scan">
             <div className="sc-scantop">
               <div className="label">Today’s scan{scanDate ? ` · ${scanDate}` : ''}</div>
               <FreshnessChip
@@ -195,11 +214,12 @@ export default function ScannerPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+        </Reveal>
+      </section>
 
-        {/* Results — grouped columns, all shown. Gear hides columns; drag a
-            header to move a column; click a header to sort. */}
+      {/* Results — grouped columns, all shown. Gear hides columns; drag a
+          header to move a column; click a header to sort. */}
+      <section className="wrap sc-results">
         <div className="sc-toolbar">
           <span className="sc-hint">Drag a column header to reorder · click to sort</span>
           <button
@@ -238,7 +258,7 @@ export default function ScannerPage() {
           )}
         </div>
 
-        <div className="glass sc-tablecard">
+        <div className="sc-tablecard">
           {loading ? (
             <div className="sc-loading">Loading scan results…</div>
           ) : (
@@ -254,12 +274,14 @@ export default function ScannerPage() {
           )}
         </div>
         {toast && <div className="sc-toast mt-fade">{toast}</div>}
+      </section>
 
-        {/* How the score is built */}
-        <div className="glass sc-build">
+      {/* How the score is built */}
+      <section className="wrap">
+        <Reveal className="sc-build">
           <div className="sc-buildhead">
             <div>
-              <div className="ed-eyebrow">How the score is built</div>
+              <div className="eyebrow2"><span className="dot" />How the score is built</div>
               <h2>Four inputs, summed into one 0–10 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
             <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>
@@ -278,8 +300,8 @@ export default function ScannerPage() {
               );
             })}
           </div>
-        </div>
-      </div>
+        </Reveal>
+      </section>
     </div>
   );
 }

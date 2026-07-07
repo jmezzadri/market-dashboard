@@ -337,3 +337,21 @@
 @media (max-width: 900px) {
   .home-v12 .mac-catgrid { grid-template-columns: 1fr !important; }
 }
+
+/* ── home-v12 Trading Scanner (cream rebrand Phase B) — the hero splits to
+      one column, the score-build grid steps 4 → 2 → 1, and the results table
+      keeps scrolling horizontally INSIDE its putty card at natural column
+      widths (the shared ScanList owns its min-width + overflow-x; nothing
+      here forces table-layout:fixed or ellipsis). !important matches the
+      v12 block convention above. ── */
+@media (max-width: 1100px) {
+  .home-v12 section.sc-hero { grid-template-columns: 1fr !important; }
+  .home-v12 section.sc-hero > * { min-width: 0 !important; }
+}
+@media (max-width: 900px) {
+  .home-v12 .sc-buildgrid { grid-template-columns: 1fr 1fr !important; }
+  .home-v12 .sc-buildgrid > * { min-width: 0 !important; }
+}
+@media (max-width: 640px) {
+  .home-v12 .sc-buildgrid { grid-template-columns: 1fr !important; }
+}
