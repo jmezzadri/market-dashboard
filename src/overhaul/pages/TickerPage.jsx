@@ -24,11 +24,20 @@
    - useTradingOppsTop     → scanner row for price/score/signal/sector
 
    Layout follows the prototype tk-* class set unchanged.
+
+   Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
+   scope to the shared home-v12 cream system (cream-system.css) with page
+   styles in ticker-v12.css. RESKIN ONLY — classNames, layout wrappers and
+   CSS; zero data/logic/chip changes. The chart canvas keeps reading the
+   app's --mt-* theme tokens (SVG strokes/fills are var(--mt-*) references),
+   bridged to the cream palette in ticker-v12.css — no chart code touched.
+   The TradingView embed keeps its own hardcoded light/dark widget config
+   (chart-internals theming is a later pass).
 */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import '../styles/home-system.css';
-import '../styles/ticker-glass.css';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import '../styles/cream-system.css';
+import '../styles/ticker-v12.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
@@ -236,6 +245,22 @@ function insiderRoleLabel(payload) {
   return payload.title || '—';
 }
 
+/* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage/
+   ScannerPage (v12 system). Replays in BOTH directions; state lives in React
+   so data-poll re-renders preserve the revealed class. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
+}
+
 /* ---------- main component ---------- */
 
 export default function TickerPage() {
@@ -427,8 +452,8 @@ export default function TickerPage() {
   );
 
   return (
-    <div className="home-v11 ticker-page mt-fade tk-page">
-      <div className="shell">
+    <div className="home-v12 ticker-v12">
+      <div className="wrap">
       {/* Back row */}
       <div className="tk-backrow">
         <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate(-1)}>
@@ -438,7 +463,7 @@ export default function TickerPage() {
       </div>
 
       {/* Hero */}
-      <section className="mt-pagehero tk-hero">
+      <Reveal as="section" className="mt-pagehero tk-hero">
         <div>
           <div className="tk-symwrap">
             <h1 className="tk-symbol">{sym}</h1>
@@ -500,7 +525,7 @@ export default function TickerPage() {
             }</b>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* The verdict — expandable score drill-down, right under the identity */}
       <ScoreDrillSection
@@ -511,7 +536,7 @@ export default function TickerPage() {
       />
 
       {/* Price chart */}
-      <section className="mt-pagesection mt-pagesection--tight2">
+      <Reveal as="section" className="mt-pagesection mt-pagesection--tight2">
         <article className="mt-card">
           <div className="mt-sectionhead tk-charthead">
             <div>
@@ -628,10 +653,10 @@ export default function TickerPage() {
           </>
           )}
         </article>
-      </section>
+      </Reveal>
 
       {/* Key stats grid */}
-      <section className="mt-pagesection">
+      <Reveal as="section" className="mt-pagesection">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">
             Key stats{priceAsOf ? ` · ${isIntraday ? 'intraday' : 'prior close'} ${fmtDateShort(priceAsOf)}` : ''}
@@ -677,13 +702,13 @@ export default function TickerPage() {
           its definition. P/E, dividend yield, and beta require a fundamentals feed not
           yet wired.
         </div>
-      </section>
+      </Reveal>
 
       {/* Company overview — restored from the old detail view */}
       <CompanyOverview deep={deep} sector={sector} exchange={exchange} />
 
       {/* Recent activity & filings — detail feeds, switched by source */}
-      <section className="mt-pagesection">
+      <Reveal as="section" className="mt-pagesection">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">Recent activity &amp; filings</div>
         </div>
@@ -705,10 +730,10 @@ export default function TickerPage() {
         {tab === 'short'   && <ShortInterestTab pos={positioning} />}
         {tab === 'news'    && <NewsTab items={mergedNews} loading={liveNews.loading} />}
         {tab === 'fund'    && <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />}
-      </section>
+      </Reveal>
 
       {/* Related names */}
-      <section className="mt-pagesection">
+      <Reveal as="section" className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
             <div className="mt-eyebrow">{relatedSameSector ? 'Related names · same sector' : 'Related names'}</div>
@@ -740,8 +765,8 @@ export default function TickerPage() {
             <div className="tk-relempty">No related names available.</div>
           )}
         </div>
-      </section>
-      </div>{/* /.shell */}
+      </Reveal>
+      </div>{/* /.wrap */}
     </div>
   );
 }
@@ -1263,7 +1288,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
   const [open, setOpen] = useState(null);
   if (!scanRow || !comp) {
     return (
-      <section className="mt-pagesection">
+      <Reveal as="section" className="mt-pagesection">
         <article className="mt-card">
           <div className="mt-sectionhead-tight">
             <div className="mt-eyebrow">How the score is built</div>
@@ -1272,11 +1297,11 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
             This name isn't in today's scan, so there's no MacroTilt Score breakdown.
           </div>
         </article>
-      </section>
+      </Reveal>
     );
   }
   return (
-    <section className="mt-pagesection">
+    <Reveal as="section" className="mt-pagesection">
       <article className="mt-card">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">
@@ -1304,7 +1329,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
           Options-flow and dark-pool points add on top, toward a ceiling of 10.
         </div>
       </article>
-    </section>
+    </Reveal>
   );
 }
 
@@ -1508,7 +1533,7 @@ function CompanyOverview({ deep, sector, exchange }) {
   const listed = ref?.list_date || null;
   const site = ref?.homepage_url || null;
   return (
-    <section className="mt-pagesection">
+    <Reveal as="section" className="mt-pagesection">
       <article className="mt-card">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">Company overview</div>
@@ -1535,7 +1560,7 @@ function CompanyOverview({ deep, sector, exchange }) {
         )}
         <div className="tk-emptyfoot">Company profile from the reference data feed (Polygon).</div>
       </article>
-    </section>
+    </Reveal>
   );
 }
 
