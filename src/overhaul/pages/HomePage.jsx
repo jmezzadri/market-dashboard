@@ -187,7 +187,9 @@ export default function HomePage() {
     );
     root.querySelectorAll('.rv').forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+    // re-register whenever async hook content mounts new .rv elements —
+    // observing only at first paint left late-arriving sections stuck blurred
+  }, [brief, notable, posRows, scanRows, validMovers]);
 
   const CAD = { D: 'day', W: 'wk', M: 'mo' };
   const chgParts = (chg, dec, freq) => {
