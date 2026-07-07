@@ -45,9 +45,12 @@ export default function usePositioning() {
           });
         });
         out.sort((a, b) => b.rank - a.rank);
+        // Joe (2026-07-07): show EVERY market currently at a 3-yr positioning
+        // extreme (both directions), not just the deepest four. Card length
+        // varies week to week by design.
         const seen = new Set();
         const top = [];
-        for (const r of out) { if (seen.has(r.market)) continue; seen.add(r.market); top.push(r); if (top.length === 4) break; }
+        for (const r of out) { if (seen.has(r.market)) continue; seen.add(r.market); top.push(r); }
         setRows(top);
       })
       .catch(() => { if (!cancelled) setRows([]); });

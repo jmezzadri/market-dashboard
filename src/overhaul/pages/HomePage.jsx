@@ -13,7 +13,7 @@
      • Prices are prior-close, labeled "close".
      • Everything links to its detail route. */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
@@ -22,7 +22,8 @@ import usePositioning from '../lib/usePositioning';
 import useDailyBrief from '../lib/useDailyBrief';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import { getWeekGrid } from '../lib/econCalendar';
-import '../styles/home-system.css';
+import useNotableIndicators from '../lib/useNotableIndicators';
+import '../styles/cream-system.css';
 
 /* ── format helpers ─────────────────────────────────────────────────────── */
 function fmt(v, dec) {
@@ -171,210 +172,246 @@ export default function HomePage() {
     return a.length ? Math.max(...a) : 1;
   }, [validMovers]);
 
-  return (
-    <div className="home-v11">
-      <div className="shell">
 
-{/* ── ribbon ── */}
-        <div className="ribbon glass">
+  // Notable indicators — Joe's rule (2026-07-07): extremes + outsized moves.
+  const { rows: notable, moreCount } = useNotableIndicators();
+
+  // Scroll reveals — replay in BOTH directions (Joe 2026-07-07).
+  const rootRef = useRef(null);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => e.target.classList.toggle('in', e.isIntersecting)),
+      { threshold: 0.12 },
+    );
+    root.querySelectorAll('.rv').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  const CAD = { D: 'day', W: 'wk', M: 'mo' };
+  const chgParts = (chg, dec, freq) => {
+    if (chg == null || !Number.isFinite(chg)) return { cls: 'fl', txt: 'unch', cad: CAD[freq] || 'day' };
+    const d = Math.min(dec ?? 2, 2);
+    const r = Number(chg.toFixed(d));
+    if (r === 0) return { cls: 'fl', txt: 'unch', cad: CAD[freq] || 'day' };
+    const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    return { cls: r > 0 ? 'up' : 'dn', txt: (r > 0 ? '\u25b2 ' : '\u25bc ') + a, cad: CAD[freq] || 'day' };
+  };
+
+  const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
+
+  return (
+    <div className="home-v12" ref={rootRef}>
+
+      {/* hero */}
+      <div className="hero wrap">
+        <div className="coin" style={{ width: 64, height: 64, left: '6%', top: '30%', animationDelay: '-2s' }} />
+        <div className="coin" style={{ width: 38, height: 38, left: '14%', top: '64%', animationDelay: '-5s' }} />
+        <div className="coin" style={{ width: 52, height: 52, right: '7%', top: '26%', animationDelay: '-1s' }} />
+        <div className="coin" style={{ width: 30, height: 30, right: '15%', top: '60%', animationDelay: '-6.5s' }} />
+        <div className="rv in eyebrow"><span className="dot" />{todayLabel} · {marketOpen ? 'Market open' : 'Market pre-open'}</div>
+        <h1 className="rv in">{verdictParts[0]}.{verdictParts[1] && <><br /><em>{verdictParts[1]}.</em></>}</h1>
+        <p className="sub rv in">
+          {regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}{' '}
+          Stress: {stressZone === 'Risk On' ? 'calm' : stressZone === 'Watch' ? 'watch' : stressZone === 'Risk Off' ? 'breached' : '—'} at MOVE {fmt(regime.move, 0)}.
+          Yield regime: {(yReg || '—').toLowerCase()}{regime.yieldDeltaBp != null ? ` at ${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)} bp` : ''}.
+        </p>
+      </div>
+
+      {/* market tape */}
+      <div className="tape rv in">
+        <div className="wrap row">
           {RIBBON.map((r) => {
             const lv = level(r.key);
             const d = ddParts(lv?.dd, r.dec);
             return (
-              <a key={r.key} className="rc" href={r.route} onClick={go(r.route)}>
-                <span className="rk">{r.label}</span>
-                <span className="rv num">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
-                <span className={`rd ${d.cls}`}>{d.arrow}{d.txt} close</span>
+              <a key={r.key} className="t" href={r.route} onClick={go(r.route)}>
+                <span className="tk">{r.label}</span>
+                <span className="tv">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
+                <span className={`td ${d.cls || 'fl'}`}>{d.txt ? `${d.arrow} ${d.txt.replace(/^[+\u2212-]/, '')}` : '—'} <small>close</small></span>
               </a>
             );
           })}
         </div>
+      </div>
 
-        <div className="layout">
-
-          {/* ── LEFT: editorial ── */}
-          <div className="glass editorial" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
-            <div className="ed-eyebrow">● {brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
-            <h1>{brief?.headline || 'Reading the tape…'}</h1>
-            {brief?.stance && <Html tag="p" className="stance" html={brief.stance} />}
-
-            {brief?.news?.length > 0 && (
-              <div className="hl news">
-                <h3>Key News &amp; Events</h3>
-                {brief.news.map((n, i) => (
-                  <div className="ni" key={i}><span className="d" /><div><b><Html html={n.head} /></b> — <Html html={n.body} /></div></div>
-                ))}
-              </div>
-            )}
-
-            {brief?.implications?.length > 0 && (
-              <div className="hl">
-                <h3>Implications</h3>
-                <ul className="impl">{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
-              </div>
-            )}
-
-            {brief?.watch?.length > 0 && (
-              <div className="hl watch">
-                <h3>What to Watch Today</h3>
-                {brief.watch.map((w, i) => (
-                  <div className="wi" key={i}><span className="d" /><div><b><Html html={w.head} /></b> — <Html html={w.body} /></div></div>
-                ))}
-              </div>
-            )}
-
-            <div className="divider">The detail</div>
-
-            {(brief?.sections || []).map((s, i) => (
-              <div className="sec" key={i}>
-                <div className="sh">{s.title}</div>
-                {Array.isArray(s.bullets) && s.bullets.length > 0
-                  ? <ul className="impl">{s.bullets.map((b, j) => <li key={j}><Html html={b} /></li>)}</ul>
-                  : <Html tag="p" html={s.prose} />}
-                <div className="tagline">
-                  {s.positioning && (
-                    <div className="tg pos"><span className="k">Positioning</span><span>{s.positioning}</span></div>
-                  )}
-                  {s.single_name && (
-                    <div className="tg name"><span className="k">Single name</span><span>
-                      <a className="tklink" style={{ fontWeight: 800 }} href={`/ticker/${s.single_name.ticker}`} onClick={go(`/ticker/${s.single_name.ticker}`)}>{s.single_name.ticker} ↗</a> {s.single_name.note}
-                    </span></div>
-                  )}
-                </div>
+      {/* morning brief */}
+      <section className="wrap" id="brief">
+        <div className="brief-card rv" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
+          <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
+          <h1>{brief?.headline || 'Reading the tape…'}</h1>
+          <div className="newslist">
+            {(brief?.news || []).map((n, i) => (
+              <div className="ni" key={i}>
+                <button type="button" onClick={toggleNi}>
+                  <span className="hl"><b><Html html={n.head} /></b> <span>— <Html html={n.body} /></span></span>
+                  <span className="plus">+</span>
+                </button>
+                <div className="body"><div><Html html={n.body} /></div></div>
               </div>
             ))}
-          </div>
-
-          {/* ── RIGHT: data rail ── */}
-          <div className="rail">
-
-            {/* Engine */}
-            <div className="glass tile">
-              <div className="th"><span className="label">The Engine</span>
-                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/macro" onClick={go('/macro')}>Macro Overview</a></div>
-              <div className="verdict">{verdictParts[0]}{verdictParts[1] && <small> · {verdictParts[1]}</small>}</div>
-              <div className="vsub">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</div>
-
-              <a className="g lk" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ display: 'block' }}>
-                <div className="gtop"><span className="gname">Stress signal · MOVE</span>
-                  <span className="gval num">{fmt(regime.move, 0)} <small>{(() => { const d = ddParts(level('move')?.dd, 0); return `${d.arrow}${d.txt} d/d`; })()}</small></span></div>
-                <div className="gtrack">
-                  <span className="z" style={{ width: `${stress.on}%`, background: 'var(--up)' }} />
-                  <span className="z" style={{ width: `${stress.watch}%`, background: 'var(--amber)' }} />
-                  <span className="z" style={{ width: `${stress.off}%`, background: 'var(--down)' }} />
-                  {stress.mk != null && <span className="mk" style={{ left: `${stress.mk}%` }} />}
-                </div>
-                <div className="gbands"><span>Risk On ≤116</span><span>Watch</span><span>Off ≥124</span></div>
-                <div className={`gstate ${stressCls}`}>● {stressMsg}</div>
-              </a>
-
-              <a className="g lk" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ display: 'block' }}>
-                <div className="gtop"><span className="gname">Yield regime · 3M Δ 10Y</span>
-                  <span className="gval num">{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <small>bp</small></span></div>
-                <div className="gtrack">
-                  <span className="z" style={{ width: `${yld.defl}%`, background: 'var(--up)' }} />
-                  <span className="z" style={{ width: `${yld.neutral}%`, background: 'var(--track)' }} />
-                  <span className="z" style={{ width: `${yld.infl}%`, background: 'var(--amber)' }} />
-                  {yld.mk != null && <span className="mk" style={{ left: `${yld.mk}%` }} />}
-                </div>
-                <div className="gbands"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
-                <div className={`gstate ${yCls}`}>● {yMsg}</div>
-              </a>
-            </div>
-
-            {/* Movers */}
-            <div className="glass tile">
-              <span className="label">Biggest movers · prior session</span>
-              <div style={{ marginTop: 8 }}>
-                {validMovers.map((m) => {
-                  const w = Math.round((Math.abs(m.pct) / moversMax) * 100);
-                  const up = m.pct > 0;
-                  const inner = (
-                    <>
-                      <span className="t tklink">{m.ticker}</span>
-                      <span className="mvbar"><i className={up ? 'upbar' : ''} style={{ width: `${w}%` }} /></span>
-                      <span className={`p ${up ? 'upp' : ''}`}>{up ? '+' : '−'}{Math.abs(m.pct)}%</span>
-                      <span className="chev">›</span>
-                    </>
-                  );
-                  return m.link
-                    ? <a key={m.ticker} className="lk mv" href={`/ticker/${m.ticker}`} onClick={go(`/ticker/${m.ticker}`)}>{inner}</a>
-                    : <div key={m.ticker} className="mv">{inner}</div>;
-                })}
+            {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0) && (
+              <div className="ni fullbrief">
+                <button type="button" onClick={toggleNi}>
+                  <span className="hl"><b>The full brief</b> <span>— stance, implications, what to watch, and the detail</span></span>
+                  <span className="plus">+</span>
+                </button>
+                <div className="body"><div>
+                  {brief?.stance && <p><Html html={brief.stance} /></p>}
+                  {brief?.implications?.length > 0 && (
+                    <ul>{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+                  )}
+                  {(brief?.watch || []).map((w, i) => (
+                    <p key={i}><b><Html html={w.head} /></b> — <Html html={w.body} /></p>
+                  ))}
+                  {(brief?.sections || []).map((sec, i) => (
+                    <div key={i}>
+                      <p style={{ letterSpacing: '.1em', textTransform: 'uppercase', fontSize: 12, fontWeight: 700 }}>{sec.title}</p>
+                      {Array.isArray(sec.bullets) && sec.bullets.length > 0
+                        ? <ul>{sec.bullets.map((bt, jx) => <li key={jx}><Html html={bt} /></li>)}</ul>
+                        : <Html tag="p" html={sec.prose} />}
+                      {sec.positioning && <p><b>Positioning</b> — {sec.positioning}</p>}
+                      {sec.single_name && (
+                        <p><b>Single name</b> — <a className="tklink" href={`/ticker/${sec.single_name.ticker}`} onClick={go(`/ticker/${sec.single_name.ticker}`)}>{sec.single_name.ticker} ↗</a> <Html html={sec.single_name.note} /></p>
+                      )}
+                    </div>
+                  ))}
+                </div></div>
               </div>
-              {validMovers.length === 0 && <div className="mvcap">Movers refresh after the next cash session.</div>}
-              <div className="mvcap">Prior cash session · refreshes each morning.</div>
-            </div>
-
-            {/* Macro indicators */}
-            <div className="glass tile">
-              <div className="th"><span className="label">Macro Indicators</span>
-                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/indicators" onClick={go('/indicators')}>All Indicators</a></div>
-              <div style={{ marginTop: 3 }}>
-                {IND_ROWS.map((row) => {
-                  const lv = level(row.key);
-                  const d = ddParts(lv?.dd, row.dec);
-                  return (
-                    <a key={row.key} className="lk irow" href={`/indicators?ind=${row.key}`} onClick={go(`/indicators?ind=${row.key}`)}>
-                      <span className="g1">{row.g}</span>
-                      <span className="n1">{row.name}</span>
-                      <span className="v1 num">{lv ? fmt(lv.value, row.dec) + row.suffix : '—'}</span>
-                      <span className={`chg ${d.cls}`}>{d.arrow}{d.txt}</span>
-                      <span className="chev">›</span>
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Positioning */}
-            <div className="glass tile">
-              <div className="th"><span className="label">Positioning · COT extremes</span>
-                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/macro" onClick={go('/macro')}>Macro Overview</a></div>
-              <div style={{ marginTop: 3 }}>
-                {(posRows || []).map((p, i) => (
-                  <a key={i} className="lk prow" href={`/macro?pos=${encodeURIComponent(p.rawMarket || p.market)}`} onClick={go(`/macro?pos=${encodeURIComponent(p.rawMarket || p.market)}`)}>
-                    <span>{p.market}</span>
-                    <span><span className={`lean ${p.lean}`}>{p.label}</span><span className="chev">›</span></span>
-                  </a>
-                ))}
-                {posRows && posRows.length === 0 && <div className="mvcap">No positioning extremes right now.</div>}
-              </div>
-            </div>
-
-            {/* Scanner */}
-            <div className="glass tile">
-              <div className="th"><span className="label">Trading Scanner</span>
-                <a className="linkttl" style={{ fontSize: 10, fontWeight: 700 }} href="/scanner" onClick={go('/scanner')}>Trading Scanner</a></div>
-              <div>
-                {topScan.map((r) => (
-                  <a key={r.ticker} className="lk nm-row" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
-                    <div><span className="tk tklink">{r.ticker}</span><span className="chip">HIGH</span></div>
-                    <div><span className="score num">{fmt(r.score, 1)}</span><span className="chev">›</span></div>
-                  </a>
-                ))}
-              </div>
-              {bandCounts && <div className="mvcap">{bandCounts.total} longs cleared · {bandCounts.score5} top conviction.</div>}
-            </div>
-
-            {/* Upcoming data */}
-            <div className="glass tile">
-              <span className="label">Upcoming data</span>
-              <div style={{ marginTop: 5 }}>
-                {upcoming.map((u, i) => (
-                  <a key={i} className="lk cal-ev" href="/macro" onClick={go('/macro')}>
-                    <b>{weekdayDate(u.iso)}</b><span>{u.names.join(' · ')} <span className="chev">›</span></span>
-                  </a>
-                ))}
-                {upcoming.length === 0 && <div className="mvcap">No scheduled releases coming up.</div>}
-              </div>
-            </div>
-
+            )}
           </div>
         </div>
+      </section>
 
-        <p className="cap">Lands every morning as a recap of the prior session — news, implications and what to watch lead; the detail and live data follow. Every level is prior-close. Use ☀ / ☾ to switch themes.</p>
-      </div>
+      {/* the engine */}
+      <section className="wrap">
+        <div className="engine-card rv">
+          <div>
+            <div className="eyebrow2"><span className="dot" />The Engine</div>
+            <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
+            <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'} <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>Macro Overview ↗</a></p>
+          </div>
+          <div>
+            <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
+              <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)} <i>d/d</i></b></div>
+              <div className="track"><div className="fill" /><div className="pin" /></div>
+              <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
+              <div className={`read ${stressCls === 'up' ? 'ok' : stressCls === 'amb' ? 'warm' : stressCls ? 'bad' : ''}`}>{stressMsg}</div>
+            </a>
+            <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
+              <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <i>bp</i></b></div>
+              <div className="track"><div className="fill" /><div className="pin" /></div>
+              <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
+              <div className={`read ${yCls === 'amb' ? 'warm' : yCls === 'up' ? 'ok' : ''}`}>{yMsg}</div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* notable indicators */}
+      <section className="wrap">
+        <div className="sechead rv">
+          <div className="eyebrow2"><span className="dot" />Macro indicators · at extremes or after big moves</div>
+          <a href="/indicators" onClick={go('/indicators')}>All indicators →</a>
+        </div>
+        <div className="ind rv">
+          {notable.map((row) => {
+            const c = chgParts(row.lastChg, row.decimals, row.freq);
+            return (
+              <a key={row.id} className="ir" href={`/indicators?ind=${row.id}`} onClick={go(`/indicators?ind=${row.id}`)}>
+                <span className="k">{row.family}</span>
+                <span className="n">{row.name}</span>
+                <span className="why">{row.why}</span>
+                <span className="v">{fmt(row.value, Math.min(row.decimals ?? 2, 2))}{row.unit === '%' ? '%' : ''}</span>
+                <span className={`d ${c.cls}`}>{c.txt}<small>{c.cad}</small></span>
+              </a>
+            );
+          })}
+          {notable.length === 0 && <div className="secnote">Nothing is stretched right now — no indicator sits at a 3-year extreme or just made an outsized move.</div>}
+        </div>
+        <p className="ind-note rv">
+          Everything at a 3-year extreme or after an unusually large move for its own print schedule — daily, weekly, or monthly.
+          {moreCount > 0 && <> The {notable.length} most stretched are shown. <a href="/indicators" onClick={go('/indicators')}>{moreCount} more at extremes →</a></>}
+        </p>
+      </section>
+
+      {/* positioning */}
+      <section className="wrap">
+        <div className="gold-card rv">
+          <div className="eyebrow2"><span className="dot" />Positioning · COT extremes</div>
+          <h2>Markets at a speculative-positioning extreme this week: {(posRows || []).length}.</h2>
+          <div className="cotgrid">
+            {(posRows || []).map((p2, i) => (
+              <a key={i} className="cot-row" href={`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`} onClick={go(`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`)}>
+                <span className="nm">{p2.market}</span>
+                <span className="tag">{p2.label}</span>
+              </a>
+            ))}
+            {posRows && posRows.length === 0 && <div className="secnote">No positioning extremes right now.</div>}
+          </div>
+          <p className="note">Weekly CFTC futures data. Every market currently at a 3-year positioning extreme is listed — lows read as a contrarian floor, highs as a contrarian warning. The list changes weekly.</p>
+        </div>
+      </section>
+
+      {/* movers */}
+      <section className="wrap">
+        <div className="sechead rv">
+          <div className="eyebrow2"><span className="dot" />Biggest movers · prior session</div>
+          <a href="/scanner" onClick={go('/scanner')}>Trading scanner →</a>
+        </div>
+        <div className="mvgrid rv">
+          {validMovers.slice(0, 6).map((m) => (
+            <a key={m.ticker} className="mvt" href={`/ticker/${m.ticker}`} onClick={go(`/ticker/${m.ticker}`)}>
+              <span className="mtk">{m.ticker}</span>
+              <span className={`mpc ${m.pct > 0 ? 'up' : 'dn'}`}>{m.pct > 0 ? '+' : '−'}{Math.abs(m.pct)}%</span>
+            </a>
+          ))}
+          {validMovers.length === 0 && <div className="mvt">Movers refresh after the next cash session.</div>}
+        </div>
+      </section>
+
+      {/* scanner + upcoming */}
+      <section className="wrap">
+        <div className="sechead rv">
+          <div className="eyebrow2"><span className="dot" />Trading scanner · top conviction</div>
+          <a href="/scanner" onClick={go('/scanner')}>Full scanner →</a>
+        </div>
+        <div className="rows2 rv">
+          {topScan.map((r) => (
+            <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
+              <span className="tk">{r.ticker}</span>
+              <span className="sc">{fmt(r.score, 1)}</span>
+            </a>
+          ))}
+        </div>
+        {bandCounts && <p className="secnote rv">{bandCounts.total} longs cleared · {bandCounts.score5} top conviction.</p>}
+      </section>
+
+      <section className="wrap">
+        <div className="sechead rv">
+          <div className="eyebrow2"><span className="dot" />Upcoming data</div>
+          <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
+        </div>
+        <div className="rows2 rv">
+          {upcoming.map((u, i) => (
+            <a key={i} className="srow" href="/macro" onClick={go('/macro')}>
+              <span className="when">{weekdayDate(u.iso)}</span>
+              <span className="what">{u.names.join(' · ')}</span>
+            </a>
+          ))}
+          {upcoming.length === 0 && <div className="secnote">No scheduled releases coming up.</div>}
+        </div>
+      </section>
+
+      <footer>
+        <div className="micro">
+          MacroTilt · data through {newestAsOf || '—'} · {marketOpen ? 'market open' : 'market closed'} ·{' '}
+          <button type="button" onClick={flip} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', letterSpacing: 'inherit', cursor: 'pointer', textTransform: 'inherit' }}>
+            switch to {isDark ? 'light' : 'dark'} theme
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

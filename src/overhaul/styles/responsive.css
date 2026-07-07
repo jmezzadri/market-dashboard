@@ -313,3 +313,14 @@
   .mt-overhaul .me-formula,
   .mt-overhaul .me-section pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+
+/* ── home-v12 (cream rebrand, 2026-07-07) — every multi-column grid collapses ── */
+@media (max-width: 900px) {
+  .home-v12 .ind, .home-v12 .cotgrid, .home-v12 .rows2 { grid-template-columns: 1fr !important; }
+  .home-v12 .mvgrid { grid-template-columns: 1fr !important; }
+  .home-v12 .engine-card { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
+  .home-v12 .tape .row { grid-template-columns: repeat(2, 1fr) !important; }
+}
