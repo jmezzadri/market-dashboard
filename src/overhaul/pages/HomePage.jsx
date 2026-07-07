@@ -13,7 +13,7 @@
      • Prices are prior-close, labeled "close".
      • Everything links to its detail route. */
 
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
@@ -91,6 +91,21 @@ function yieldGauge(bp) {
   const infl = ((MAX - 32) / R) * 100;
   const mk = bp == null ? null : clampPct(((bp - MIN) / R) * 100);
   return { defl, neutral, infl, mk };
+}
+
+/* Reveal — scroll-reveal wrapper. Replays in BOTH directions (Joe 2026-07-07).
+   State lives in React so data-poll re-renders preserve the revealed class. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
 export default function HomePage() {
@@ -176,21 +191,6 @@ export default function HomePage() {
   // Notable indicators — Joe's rule (2026-07-07): extremes + outsized moves.
   const { rows: notable, moreCount } = useNotableIndicators();
 
-  // Scroll reveals — replay in BOTH directions (Joe 2026-07-07).
-  const rootRef = useRef(null);
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return undefined;
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => e.target.classList.toggle('in', e.isIntersecting)),
-      { threshold: 0.12 },
-    );
-    root.querySelectorAll('.rv').forEach((el) => io.observe(el));
-    return () => io.disconnect();
-    // re-register whenever async hook content mounts new .rv elements —
-    // observing only at first paint left late-arriving sections stuck blurred
-  }, [brief, notable, posRows, scanRows, validMovers]);
-
   const CAD = { D: 'day', W: 'wk', M: 'mo' };
   const chgParts = (chg, dec, freq) => {
     if (chg == null || !Number.isFinite(chg)) return { cls: 'fl', txt: 'unch', cad: CAD[freq] || 'day' };
@@ -204,7 +204,7 @@ export default function HomePage() {
   const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
 
   return (
-    <div className="home-v12" ref={rootRef}>
+    <div className="home-v12">
 
       {/* hero */}
       <div className="hero wrap">
@@ -212,17 +212,17 @@ export default function HomePage() {
         <div className="coin" style={{ width: 38, height: 38, left: '14%', top: '64%', animationDelay: '-5s' }} />
         <div className="coin" style={{ width: 52, height: 52, right: '7%', top: '26%', animationDelay: '-1s' }} />
         <div className="coin" style={{ width: 30, height: 30, right: '15%', top: '60%', animationDelay: '-6.5s' }} />
-        <div className="rv in eyebrow"><span className="dot" />{todayLabel} · {marketOpen ? 'Market open' : 'Market pre-open'}</div>
-        <h1 className="rv in">{verdictParts[0]}.{verdictParts[1] && <><br /><em>{verdictParts[1]}.</em></>}</h1>
-        <p className="sub rv in">
+        <Reveal className="eyebrow"><span className="dot" />{todayLabel} · {marketOpen ? 'Market open' : 'Market pre-open'}</Reveal>
+        <Reveal as="h1" className="hero-h1">{verdictParts[0]}.{verdictParts[1] && <><br /><em>{verdictParts[1]}.</em></>}</Reveal>
+        <Reveal as="p" className="sub">
           {regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}{' '}
           Stress: {stressZone === 'Risk On' ? 'calm' : stressZone === 'Watch' ? 'watch' : stressZone === 'Risk Off' ? 'breached' : '—'} at MOVE {fmt(regime.move, 0)}.
           Yield regime: {(yReg || '—').toLowerCase()}{regime.yieldDeltaBp != null ? ` at ${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)} bp` : ''}.
-        </p>
+        </Reveal>
       </div>
 
       {/* market tape */}
-      <div className="tape rv in">
+      <Reveal className="tape">
         <div className="wrap row">
           {RIBBON.map((r) => {
             const lv = level(r.key);
@@ -236,11 +236,11 @@ export default function HomePage() {
             );
           })}
         </div>
-      </div>
+      </Reveal>
 
       {/* morning brief */}
       <section className="wrap" id="brief">
-        <div className="brief-card rv" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
+        <Reveal className="brief-card" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
           <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
           <h1>{brief?.headline || 'Reading the tape…'}</h1>
           <div className="newslist">
@@ -283,12 +283,12 @@ export default function HomePage() {
               </div>
             )}
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* the engine */}
       <section className="wrap">
-        <div className="engine-card rv">
+        <Reveal className="engine-card">
           <div>
             <div className="eyebrow2"><span className="dot" />The Engine</div>
             <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
@@ -308,16 +308,16 @@ export default function HomePage() {
               <div className={`read ${yCls === 'amb' ? 'warm' : yCls === 'up' ? 'ok' : ''}`}>{yMsg}</div>
             </a>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* notable indicators */}
       <section className="wrap">
-        <div className="sechead rv">
+        <Reveal className="sechead">
           <div className="eyebrow2"><span className="dot" />Macro indicators · at extremes or after big moves</div>
           <a href="/indicators" onClick={go('/indicators')}>All indicators →</a>
-        </div>
-        <div className="ind rv">
+        </Reveal>
+        <Reveal className="ind">
           {notable.map((row) => {
             const c = chgParts(row.lastChg, row.decimals, row.freq);
             return (
@@ -331,16 +331,16 @@ export default function HomePage() {
             );
           })}
           {notable.length === 0 && <div className="secnote">Nothing is stretched right now — no indicator sits at a 3-year extreme or just made an outsized move.</div>}
-        </div>
-        <p className="ind-note rv">
+        </Reveal>
+        <Reveal as="p" className="ind-note">
           Everything at a 3-year extreme or after an unusually large move for its own print schedule — daily, weekly, or monthly.
           {moreCount > 0 && <> The {notable.length} most stretched are shown. <a href="/indicators" onClick={go('/indicators')}>{moreCount} more at extremes →</a></>}
-        </p>
+        </Reveal>
       </section>
 
       {/* positioning */}
       <section className="wrap">
-        <div className="gold-card rv">
+        <Reveal className="gold-card">
           <div className="eyebrow2"><span className="dot" />Positioning · COT extremes</div>
           <h2>Markets at a speculative-positioning extreme this week: {(posRows || []).length}.</h2>
           <div className="cotgrid">
@@ -353,16 +353,16 @@ export default function HomePage() {
             {posRows && posRows.length === 0 && <div className="secnote">No positioning extremes right now.</div>}
           </div>
           <p className="note">Weekly CFTC futures data. Every market currently at a 3-year positioning extreme is listed — lows read as a contrarian floor, highs as a contrarian warning. The list changes weekly.</p>
-        </div>
+        </Reveal>
       </section>
 
       {/* movers */}
       <section className="wrap">
-        <div className="sechead rv">
+        <Reveal className="sechead">
           <div className="eyebrow2"><span className="dot" />Biggest movers · prior session</div>
           <a href="/scanner" onClick={go('/scanner')}>Trading scanner →</a>
-        </div>
-        <div className="mvgrid rv">
+        </Reveal>
+        <Reveal className="mvgrid">
           {validMovers.slice(0, 6).map((m) => (
             <a key={m.ticker} className="mvt" href={`/ticker/${m.ticker}`} onClick={go(`/ticker/${m.ticker}`)}>
               <span className="mtk">{m.ticker}</span>
@@ -370,32 +370,32 @@ export default function HomePage() {
             </a>
           ))}
           {validMovers.length === 0 && <div className="mvt">Movers refresh after the next cash session.</div>}
-        </div>
+        </Reveal>
       </section>
 
       {/* scanner + upcoming */}
       <section className="wrap">
-        <div className="sechead rv">
+        <Reveal className="sechead">
           <div className="eyebrow2"><span className="dot" />Trading scanner · top conviction</div>
           <a href="/scanner" onClick={go('/scanner')}>Full scanner →</a>
-        </div>
-        <div className="rows2 rv">
+        </Reveal>
+        <Reveal className="rows2">
           {topScan.map((r) => (
             <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
               <span className="tk">{r.ticker}</span>
               <span className="sc">{fmt(r.score, 1)}</span>
             </a>
           ))}
-        </div>
-        {bandCounts && <p className="secnote rv">{bandCounts.total} longs cleared · {bandCounts.score5} top conviction.</p>}
+        </Reveal>
+        {bandCounts && <p className="secnote">{bandCounts.total} longs cleared · {bandCounts.score5} top conviction.</p>}
       </section>
 
       <section className="wrap">
-        <div className="sechead rv">
+        <Reveal className="sechead">
           <div className="eyebrow2"><span className="dot" />Upcoming data</div>
           <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
-        </div>
-        <div className="rows2 rv">
+        </Reveal>
+        <Reveal className="rows2">
           {upcoming.map((u, i) => (
             <a key={i} className="srow" href="/macro" onClick={go('/macro')}>
               <span className="when">{weekdayDate(u.iso)}</span>
@@ -403,7 +403,7 @@ export default function HomePage() {
             </a>
           ))}
           {upcoming.length === 0 && <div className="secnote">No scheduled releases coming up.</div>}
-        </div>
+        </Reveal>
       </section>
 
       <footer>
