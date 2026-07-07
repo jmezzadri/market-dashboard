@@ -44,10 +44,13 @@ import './styles/responsive.css';
 // DO NOT REMOVE without checking every v2/* component mounted in this file.
 import './styles/legacy-bridge.css';
 
+// CREAM chrome — top nav + header (loaded LAST so it overrides the v11 glass
+// chrome). Retires the sidebar + v11 glass shell. 2026-07-07.
+import './styles/chrome-v12.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 import TweaksPanel from './tweaks/TweaksPanel';
 
-import Sidebar from './chrome/Sidebar';
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
 import LoginScreen from '../auth/LoginScreen';
@@ -152,7 +155,6 @@ function Shell() {
   return (
     <div className="mt-overhaul">
       <div className="mt-app">
-        <Sidebar />
         <main className="mt-main">
           <TopNav />
           <PageHeader />

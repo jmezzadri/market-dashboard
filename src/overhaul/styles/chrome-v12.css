@@ -1,0 +1,88 @@
+/* ============================================================================
+   chrome-v12.css — CREAM shell chrome (top nav + utility header).
+   Final Phase B step: retires the sidebar + the v11 glass chrome. Palette
+   matches cream-system.css (home-v12). Theme-aware via <html data-mt-theme>:
+   light = cream, dark|navy = the Trump Accounts app ink palette.
+   Loaded LAST by OverhaulApp so it overrides chrome.css. Scoped to the nav /
+   header classes only — never touches .mt-app grid or page layout.
+   ========================================================================= */
+
+.mt-overhaul {
+  --ch-bg:#F2EEE6; --ch-surface:#F9F6F0; --ch-putty:#EDE9DF;
+  --ch-ink:#212C33; --ch-ink-soft:#465660; --ch-mut:#7C7668;
+  --ch-gold-deep:#B7975C; --ch-hair:rgba(33,44,51,.14);
+  --ch-nav-h:60px;
+  --ch-serif:'Instrument Serif','Iowan Old Style',Georgia,serif;
+}
+[data-mt-theme='dark'] .mt-overhaul,
+[data-mt-theme='navy'] .mt-overhaul {
+  --ch-bg:#0C1218; --ch-surface:#111927; --ch-putty:#161F2A;
+  --ch-ink:#F5EFE3; --ch-ink-soft:#C9C3B4; --ch-mut:#8B95A0;
+  --ch-gold-deep:#E0C285; --ch-hair:rgba(245,239,227,.13);
+}
+
+/* flat cream shell background (replaces the v11 gradient) */
+.mt-overhaul { background:var(--ch-bg); background-image:none; }
+
+/* ── row 1 · primary top nav ─────────────────────────────────────── */
+[data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
+.mt-overhaul .mt-topnav {
+  display:flex; align-items:center; gap:28px;
+  height:var(--ch-nav-h); padding:0 clamp(16px,3vw,32px);
+  background:color-mix(in srgb, var(--ch-bg) 88%, transparent);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--ch-hair);
+  position:sticky; top:0; z-index:50; overflow:visible;
+}
+.mt-overhaul .mt-wordmark {
+  font-family:var(--ch-serif); font-size:24px; line-height:1;
+  color:var(--ch-ink); text-decoration:none; white-space:nowrap; letter-spacing:.2px;
+}
+.mt-overhaul .mt-wordmark em { font-style:normal; color:var(--ch-gold-deep); }
+
+.mt-overhaul .mt-topnav-links { display:flex; align-items:center; gap:24px; margin-right:auto; }
+.mt-overhaul .mt-navlink {
+  color:var(--ch-ink-soft); text-decoration:none; font-size:14px; font-weight:500;
+  padding:6px 1px; position:relative; white-space:nowrap; transition:color .18s;
+}
+.mt-overhaul .mt-navlink:hover { color:var(--ch-ink); }
+.mt-overhaul .mt-navlink.on { color:var(--ch-ink); }
+.mt-overhaul .mt-navlink.on::after {
+  content:''; position:absolute; left:0; right:0; bottom:-2px; height:2px;
+  background:var(--ch-gold-deep); border-radius:2px;
+}
+.mt-overhaul .mt-navlink--admin { color:var(--ch-mut); font-size:13px; }
+
+.mt-overhaul .mt-topnav-auth { display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+.mt-overhaul .mt-topnav-email { font-size:12px; color:var(--ch-ink-soft); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mt-overhaul .mt-topnav-signout { background:transparent; border:none; color:var(--ch-ink-soft); font-size:12px; cursor:pointer; text-decoration:underline; padding:0; }
+.mt-overhaul .mt-topnav-signin { color:var(--ch-gold-deep); font-weight:600; font-size:13px; text-decoration:none; white-space:nowrap; }
+.mt-overhaul .mt-topnav-dim { opacity:.6; font-size:12px; }
+
+/* ── row 2 · utility header (market/date · search · feeds/theme/tweaks) ── */
+.mt-overhaul .mt-header {
+  background:color-mix(in srgb, var(--ch-bg) 82%, transparent);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--ch-hair);
+  top:var(--ch-nav-h); z-index:40;
+}
+.mt-overhaul .mt-headmeta { color:var(--ch-ink-soft); }
+.mt-overhaul .mt-headmeta b { color:var(--ch-ink); }
+.mt-overhaul .mt-headmeta-sep { background:var(--ch-hair); }
+.mt-overhaul .mt-iconbtn {
+  color:var(--ch-ink-soft); border:1px solid var(--ch-hair); background:var(--ch-surface);
+}
+.mt-overhaul .mt-iconbtn:hover { color:var(--ch-ink); border-color:var(--ch-gold-deep); }
+
+/* ── mobile: nav stays sticky and scrolls; utility row flows beneath ──── */
+@media (max-width:900px){
+  [data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
+  .mt-overhaul .mt-topnav {
+    gap:16px; height:auto; padding:10px 16px;
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    position:sticky; top:0;
+  }
+  .mt-overhaul .mt-topnav-links { gap:16px; }
+  .mt-overhaul .mt-topnav-email { max-width:120px; }
+  .mt-overhaul .mt-header { position:static; top:auto; }
+}

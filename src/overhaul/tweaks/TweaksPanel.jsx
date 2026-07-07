@@ -24,11 +24,6 @@ const OPTIONS = {
     ['balanced', 'Balanced'],
     ['dense', 'Dense'],
   ],
-  sidebar: [
-    ['rail', 'Sidebar'],
-    ['rail-collapsed', 'Collapsed rail'],
-    ['top', 'Top nav'],
-  ],
   fonts: [
     ['fraunces-inter', 'Fraunces + Inter'],
     ['inter-only', 'Inter only'],
@@ -44,7 +39,6 @@ const LABELS = {
   theme: 'Theme',
   accent: 'Accent',
   density: 'Density',
-  sidebar: 'Navigation',
   fonts: 'Type pairing',
   typeScale: 'Headline scale',
 };

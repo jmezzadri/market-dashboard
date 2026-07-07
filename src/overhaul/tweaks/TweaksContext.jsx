@@ -22,7 +22,7 @@ const DEFAULTS = {
   theme: 'light',
   accent: 'blue',
   density: 'balanced',
-  sidebar: 'rail',
+  sidebar: 'top',
   fonts: 'fraunces-inter',
   typeScale: 'editorial',
 };
@@ -82,7 +82,7 @@ export function TweaksProvider({ children }) {
     root.setAttribute('data-mt-theme', tweaks.theme);
     root.setAttribute('data-mt-accent', tweaks.accent);
     root.setAttribute('data-mt-density', tweaks.density);
-    root.setAttribute('data-mt-sidebar', tweaks.sidebar);
+    root.setAttribute('data-mt-sidebar', 'top'); // sidebar retired 2026-07-07 — always top nav
     root.setAttribute('data-mt-fonts', tweaks.fonts);
     root.setAttribute('data-mt-type', tweaks.typeScale);
     return () => {
