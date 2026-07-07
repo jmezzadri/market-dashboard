@@ -1,3 +1,7 @@
+# Re-armed 2026-07-07: GitHub silently dropped this workflow's schedule again
+# (no runs since 7/6 21:57 UTC; workflow state 'active'). A commit to this file
+# re-registers the cron (LESSONS 4.13). Backup: pg_cron 'paper-intraday-backup-hourly'
+# re-dispatches via the trigger-workflow edge function if an hour is missed.
 name: PAPER-PORTFOLIO-INTRADAY
 
 # MacroTilt paper-portfolio LIVE intraday refresh (Joe directive 2026-06-23).
