@@ -1,0 +1,167 @@
+/* ============================================================================
+   Trading Scanner — page styles on the CREAM v12 system (cream-system.css).
+   Cream rebrand Phase B (2026-07-07). RESKIN ONLY: every selector here styles
+   markup that already existed under home-v11 — data, hooks, sorting, column
+   picker, drill and FreshnessChip usage are untouched. Shared eyebrow / card /
+   reveal patterns come from cream-system.css; this file covers what the
+   shared system doesn't: the split hero (editorial + scan card), score-band
+   counts, movers, the toolbar + column picker, the putty table card, the ink
+   "how the score is built" card, the toast and the floating hover tooltip.
+
+   TOKEN BRIDGE: the results table (ScanList / ScanDrill), the score dial, the
+   score-trend spark and the freshness chip are all styled with the app's
+   `--mt-*` tokens. We remap those tokens to the v12 cream palette, scoped to
+   `.scanner-v12`, so every embedded piece reads as native cream WITHOUT
+   editing the shared components (same approach the v11 glass skin used).
+   The row Tip tooltips and any modal portal to <body> / .mt-overhaul —
+   OUTSIDE this scope — so they keep the app's solid tokens, as before.
+   ========================================================================= */
+
+.home-v12.scanner-v12 {
+  /* v11 alias tokens (macro-v12 convention) */
+  --amber: var(--gold-deep);
+  --track: var(--hair);
+  --sect: 64px; /* denser tool-page rhythm than the home editorial */
+  padding-bottom: 76px;
+
+  /* --mt-* bridge for the embedded shared components */
+  --mt-surface: transparent;
+  --mt-surface-2: color-mix(in srgb, var(--bg2) 72%, transparent);
+  --mt-surface-3: var(--bg2);
+  --mt-ink-0: var(--ink);
+  --mt-ink-1: var(--ink-soft);
+  --mt-ink-2: var(--mut);
+  --mt-ink-3: var(--mut);
+  --mt-line-0: var(--hair);
+  --mt-line-1: var(--hair);
+  --mt-accent: var(--gold-deep);
+  --mt-accent-soft: color-mix(in srgb, var(--gold-deep) 16%, transparent);
+  --mt-accent-glow: color-mix(in srgb, var(--gold-deep) 26%, transparent);
+  --mt-up: var(--up);
+  --mt-down: var(--down);
+  --mt-warn: var(--amber);
+  --mt-amber: var(--amber);
+}
+.home-v12.scanner-v12 .num { font-variant-numeric: tabular-nums; }
+.home-v12.scanner-v12 .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
+
+/* ── hero: editorial left + "Today's scan" putty card right ── */
+.home-v12 section.sc-hero { margin: 0 auto; padding-top: 48px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch; }
+.home-v12 .sc-ed { padding: 22px 8px 8px 2px; }
+.home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
+.home-v12 .sc-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
+.home-v12 .sc-ed h1 i { font-style: italic; color: var(--gold-deep); }
+.home-v12 .sc-ed .impl { margin: 0; padding: 0; list-style: none; max-width: 640px; }
+.home-v12 .sc-ed .impl li { position: relative; padding: 0 0 12px 22px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+.home-v12 .sc-ed .impl li:last-child { padding-bottom: 0; }
+.home-v12 .sc-ed .impl li::before { content: "\2192"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
+.home-v12 .sc-ed .impl li b { color: var(--ink); font-weight: 650; }
+.home-v12 .sc-ed .impl li a { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--hair); transition: color .25s, border-color .25s; }
+.home-v12 .sc-ed .impl li a:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
+
+/* scan card (putty) */
+.home-v12 .sc-scan { background: var(--putty); border-radius: 36px; padding: 26px 28px 24px; display: flex; flex-direction: column; transition: background .5s; }
+.home-v12 .sc-scantop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* score-band counts — bg2 tiles, serif numerals, state color on the left edge */
+.home-v12 .sc-bands { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: auto; }
+.home-v12 .sc-band { background: var(--bg2); border-radius: 18px; border-left: 3px solid var(--hair); padding: 14px 14px 12px; transition: background .5s; }
+.home-v12 .sc-band .n { font-family: var(--serif); font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.home-v12 .sc-band .l { font-size: 10px; color: var(--mut); font-weight: 700; margin-top: 7px; letter-spacing: .04em; }
+.home-v12 .sc-band.b5 { border-left-color: var(--up); }   .home-v12 .sc-band.b5 .n { color: var(--up); }
+.home-v12 .sc-band.b4 { border-left-color: var(--gold-deep); } .home-v12 .sc-band.b4 .n { color: var(--gold-deep); }
+.home-v12 .sc-band.b3 { border-left-color: var(--mut); }  .home-v12 .sc-band.b3 .n { color: var(--ink-soft); }
+
+/* movers — same DOM, cream row motion */
+.home-v12 .sc-movers { margin: 16px 0 18px; flex: 1; }
+.home-v12 .sc-movers-empty { font-size: 13px; color: var(--mut); margin-top: 9px; line-height: 1.5; }
+.home-v12 .sc-movers-list { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.home-v12 .sc-mover { display: grid; grid-template-columns: 14px 54px 1fr auto; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 6px 8px; cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--ink-soft); transition: background .25s, transform .25s; }
+.home-v12 .sc-mover:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(5px); }
+.home-v12 .sc-mv-arrow { font-size: 9px; }
+.home-v12 .sc-mv-arrow.up { color: var(--up); }
+.home-v12 .sc-mv-arrow.down { color: var(--down); }
+.home-v12 .sc-mv-tk { font-weight: 700; color: var(--ink); letter-spacing: .2px; }
+.home-v12 .sc-mv-path { color: var(--mut); font-size: 11.5px; }
+.home-v12 .sc-mv-d { font-weight: 700; justify-self: end; }
+.home-v12 .sc-mv-d.up { color: var(--up); }
+.home-v12 .sc-mv-d.down { color: var(--down); }
+
+/* ── results: wider stage than the 1240 editorial so the full column set
+      shows on a large desktop; below that the table scrolls INSIDE the card */
+.home-v12 section.sc-results { max-width: 1560px; }
+.home-v12 .sc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 10px 12px; position: relative; }
+.home-v12 .sc-hint { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
+.home-v12 .sc-gear { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); font-family: var(--sans); font-size: 15px; line-height: 1; cursor: pointer; transition: border-color .25s, color .25s; }
+.home-v12 .sc-gear:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.home-v12 .sc-gear.on { color: var(--gold-deep); border-color: var(--gold-deep); }
+.home-v12 .sc-gear .cnt { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* column picker dropdown — solid bg2 panel on the v12 shadow */
+.home-v12 .sc-colpick { position: absolute; top: 100%; right: 0; z-index: 30; margin-top: 8px; min-width: 320px; padding: 18px; border-radius: 22px; background: var(--bg2); border: 1px solid var(--hair); box-shadow: var(--sh); }
+.home-v12 .sc-colpick .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.home-v12 .sc-colpick .ph .lnk { background: none; border: 0; color: var(--gold-deep); font-family: var(--sans); font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; }
+.home-v12 .sc-colgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.home-v12 .sc-ctog { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; transition: background .2s; }
+.home-v12 .sc-ctog:hover { background: var(--putty); }
+.home-v12 .sc-ctog.on { color: var(--ink); }
+.home-v12 .sc-ctog.locked { opacity: .55; cursor: default; }
+.home-v12 .sc-ctog input { accent-color: var(--gold-deep); }
+.home-v12 .sc-foot { font-size: 10.5px; color: var(--mut); margin-top: 12px; letter-spacing: .02em; }
+
+/* ── putty table card — embedded ScanList reads cream via the token bridge;
+      the shared component keeps its own min column widths + overflow-x, so
+      at phone width the table scrolls inside this card (no fixed layout, no
+      ellipsis forced here) ── */
+.home-v12 .sc-tablecard { background: var(--putty); border-radius: 40px; padding: 14px 16px; transition: background .5s; }
+.home-v12 .sc-tablecard > div { background: transparent !important; border: 0 !important; border-radius: 24px !important; }
+.home-v12 .sc-loading { padding: 44px; text-align: center; color: var(--mut); font-size: 14px; }
+
+/* score-trend column: days-on-list tag under the dial (class rendered by
+   ScanList; styled at page level, exactly as the v11 skin did) */
+.home-v12 .sc-tenure { font-size: 9px; font-weight: 700; color: var(--mut); letter-spacing: .02em; }
+
+/* toast — theme-invariant ink chip, same palette as the hover tooltip */
+.home-v12 .sc-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 11px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 6000; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+/* ── "How the score is built" — ink card (home-v12 engine-card language) ── */
+.home-v12 .sc-build { background: var(--card-ink); color: var(--cream-text); border-radius: var(--card-r); padding: 48px 56px 44px; box-shadow: var(--sh); transition: transform .35s, box-shadow .35s; }
+.home-v12 .sc-build:hover { transform: translateY(-4px); }
+[data-mt-theme='dark'] .home-v12 .sc-build, [data-mt-theme='navy'] .home-v12 .sc-build { outline: 1px solid rgba(245,239,227,.08); }
+.home-v12 .sc-build .eyebrow2 { color: color-mix(in srgb, var(--cream-text) 62%, transparent); }
+.home-v12 .sc-build .eyebrow2 .dot { background: var(--gold-bar); }
+.home-v12 .sc-buildhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+.home-v12 .sc-buildhead h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.22; margin: 10px 0 0; max-width: 820px; }
+.home-v12 .sc-buildgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.home-v12 .sc-buildcell { background: rgba(247,243,232,.05); border: 1px solid rgba(247,243,232,.1); border-radius: 22px; padding: 18px; }
+.home-v12 .sc-buildcell .k { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-bar); font-weight: 700; }
+.home-v12 .sc-buildcell .why { font-size: 12.5px; color: color-mix(in srgb, var(--cream-text) 78%, transparent); line-height: 1.55; margin: 8px 0 10px; }
+.home-v12 .sc-buildcell .w { font-size: 11px; color: color-mix(in srgb, var(--cream-text) 55%, transparent); }
+.home-v12 .sc-buildcell .w b { font-family: var(--serif); font-size: 18px; font-weight: 400; color: var(--cream-text); font-variant-numeric: tabular-nums; }
+.home-v12 .sc-ghostbtn { background: transparent; border: 1px solid rgba(247,243,232,.28); border-radius: 999px; padding: 9px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--cream-text); cursor: pointer; white-space: nowrap; transition: border-color .25s, color .25s; }
+.home-v12 .sc-ghostbtn:hover { border-color: var(--gold-bar); color: var(--gold-bar); }
+
+/* Floating hover tooltip — portals to <body>, OUTSIDE the .home-v12 root, so
+   it is deliberately unscoped (unique sc- name, no collisions). Ink-card
+   palette from the v12 system; theme-invariant dark tip, as v11 was. */
+.sc-tip { position: fixed; transform: translate(-50%, -100%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 9px 12px; border-radius: 12px; font-size: 11.5px; line-height: 1.45; max-width: 320px; white-space: pre-line; text-align: left; z-index: 6000; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 1px solid rgba(247,243,232,.1); }
+
+/* ── responsive (mirrored with !important in responsive.css, LESSONS 8.7) ── */
+@media (max-width: 1100px) {
+  .home-v12 section.sc-hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .home-v12 section.sc-hero { padding-top: 34px; }
+  .home-v12 .sc-buildgrid { grid-template-columns: 1fr 1fr; }
+  .home-v12 .sc-buildhead { flex-direction: column; }
+  .home-v12 .sc-scan { border-radius: 28px; padding: 20px 18px 16px; }
+  .home-v12 .sc-tablecard { border-radius: 28px; padding: 10px; }
+  .home-v12 .sc-build { padding: 34px 26px; border-radius: 32px; }
+}
+@media (max-width: 640px) {
+  .home-v12 .sc-buildgrid { grid-template-columns: 1fr; }
+  .home-v12 .sc-ed h1 { font-size: 30px; }
+  .home-v12 .sc-bands { gap: 8px; }
+  .home-v12 .sc-band { padding: 12px 10px 10px; }
+  .home-v12 .sc-colpick { min-width: 280px; }
+}
