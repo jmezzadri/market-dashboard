@@ -1,6 +1,16 @@
 // PaperPortfolioPage — Paper Trading Portfolio results page.
 // rev: ticker-click + Score + Held (2026-05-29b) — cache-bust rebuild.
 //
+// Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
+// scope to the shared home-v12 cream system (cream-system.css) with page
+// styles in overhaul/styles/paper-v12.css. RESKIN ONLY — root scope,
+// classNames, layout wrappers and CSS; zero data/logic/chip changes. The
+// inline PAGE_CSS block below still styles the tables / drawer / popover
+// with the legacy V2 tokens; paper-v12.css remaps those tokens to the cream
+// palette at the page scope (token bridge, no logic edit) and restyles the
+// cards putty. All hooks, sleeve reconciliation, P&L math, sorting, column
+// resize/reorder and FreshnessChip usage are untouched.
+//
 // Brand-aligned 2026-05-27 (round 3, Joe directive): adopts the canonical
 // PageHero pattern used by EVERY other v2 page (Trading Opportunities,
 // Macro Overview, Asset Tilt, Portfolio Insights). Editorial Fraunces
@@ -28,8 +38,8 @@ import PageHero from '../components/PageHero';
 import FreshnessChip from '../../overhaul/components/FreshnessChip';
 import { supabase } from '../../lib/supabase';
 import { InfoTip } from '../../InfoTip';
-import '../../overhaul/styles/home-system.css';
-import './paper-glass.css';
+import '../../overhaul/styles/cream-system.css';
+import '../../overhaul/styles/paper-v12.css';
 
 const STARTING_CAPITAL = 1_000_000;       // $1M paper, locked
 
@@ -1006,6 +1016,22 @@ function RebalanceLog({ orders, fills }) {
   );
 }
 
+/* Reveal — scroll-reveal wrapper, same pattern as HomePage / MacroPage /
+   ScannerPage (v12 system). Replays in BOTH directions; state lives in React
+   so data-poll re-renders preserve the revealed class. */
+function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function PaperPortfolioPage({ onOpenTicker }) {
@@ -1184,24 +1210,29 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
 
   return (
-    <div className="home-v11 paper-page mt-fade">
+    <div className="home-v12 paper-v12">
       <style>{PAGE_CSS}</style>
-      <div className="shell">
 
-      <section className="sc-hero">
-        <div className="glass sc-ed">
-          <div className="ed-eyebrow">● Paper portfolio</div>
+      {/* Hero — editorial left, performance-matrix card right (the v12
+          split-hero pattern; pp- class names so the scanner page's sc- rules
+          can never leak in). Copy unchanged from the v11 hero. */}
+      <section className="wrap pp-hero">
+        <Reveal className="pp-ed">
+          <div className="eyebrow2"><span className="dot" />Paper portfolio</div>
           <h1>An <i>automated $1M paper portfolio</i>, rebalanced <i>daily on the open</i>.</h1>
           <ul className="impl">
             <li><b>$1M starting capital</b>, following the Trading Scanner recommendations.</li>
             <li><b>Scanner indicates a buy with a Score ≥ 5</b>; position size is Score × $20K.</li>
             <li><b>Long-only</b>, 2× max leverage.</li>
           </ul>
-        </div>
-        <SummaryCard navHistory={navForCard} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />
+        </Reveal>
+        <Reveal className="pp-heroright">
+          <SummaryCard navHistory={navForCard} sleeveAGross={sleeveAGross} sleeveBGross={sleeveBGross} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />
+        </Reveal>
       </section>
 
-      <div className="paper-shell">
+      <section className="wrap pp-main">
+        <Reveal>
         <PositionsPanel
           title="Equity Scanner — Long-Only"
           sleeve="B"
@@ -1219,6 +1250,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           scanScores={scanScores}
           infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; position size = Score × $20K (5 = $100K … 10 = $200K); up to 2× leverage when total signals exceed the $1M book."
         />
+        </Reveal>
+        {/* No Reveal around the rebalance log: its trades drawer is
+            position:fixed, and a revealed wrapper's filter/transform would
+            become the drawer's containing block (the drawer would pin to the
+            card instead of the viewport). */}
         <RebalanceLog orders={orders} fills={fills} />
 
         {err && (
@@ -1226,8 +1262,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             Data load error: {err}
           </div>
         )}
-      </div>
-      </div>
+      </section>
     </div>
   );
 }
