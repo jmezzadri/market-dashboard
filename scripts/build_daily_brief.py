@@ -354,7 +354,11 @@ def main():
         print("FATAL: brief failed to build/validate after retry; refusing to publish", file=sys.stderr)
         sys.exit(1)
     brief = scrub_banned(brief)  # enforce banned-copy guard before write + email
-    if not brief.get("movers"): brief["movers"] = movers
+    # Movers are DATA, not prose: always take the scan-table list (real
+    # change_pct), never the model's echo of the prompt (which carries no
+    # percentages -- that null-pct echo is why the homepage movers tile sat
+    # permanently empty; the page correctly refuses pct-less movers).
+    brief["movers"] = movers
     with open(out, "w", encoding="utf-8") as f:
         json.dump(brief, f, ensure_ascii=False, indent=2)
     print(f"wrote public/daily_brief.json — {today}: {brief['headline']}")
