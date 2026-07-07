@@ -672,6 +672,16 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+
+### 8.11 (2026-07-07) — No invented display copy; section names and headlines are the feed's, not the writer's
+
+**What happened:** The cream-rebrand mockups shipped with made-up section headlines ("Six dials that matter," "Four markets where the crowd has left," "Movers land after the close"). Joe: "PLEASE dont try and get cute with wording. You're only confusing me and readers."
+
+**Rule:** Every section heading on a data surface is the section's real name (the same name the feed/registry uses). Display-size text carries real content only: the engine's actual read, the brief's actual headline, real values. Explanatory footnotes state the selection rule factually ("every market at a 3-year extreme is listed"). Banned: metaphor headlines, editorial slogans, invented phrasings of data states. Companion to 8.4 (indicator copy factual) and the 2026-06-26 washed-out/crowded copy ban.
+
+**Applies to:** UX Designer + anyone writing UI copy. Every page.
+
+
 # 9 · RETIRED (archive — no longer binding; kept so the history isn't lost)
 
 - **2026-05-26 — "Site-overhaul brief lives on disk; read it before any redesign work."** Retired 2026-06-11: the overhaul shipped and became the default live site on 2026-05-30, and the page-by-page walk-through completed 2026-06-10. The entry's build-target instruction (the nested live folder) became actively wrong after the cutover — live source is the repo root. The design brief archive remains in the MacroTilt project folder's site-overhaul directory if ever needed. The surviving general principle — read the spec before redesign work — lives in 8.1.
