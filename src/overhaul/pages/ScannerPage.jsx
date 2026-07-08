@@ -34,9 +34,9 @@ function bucketFor(s) {
 }
 
 const BUCKETS = [
-  { key: 'b5', cls: 'b5', label: 'Score 5+ · Buy', tip: 'Score 5.0 or higher — the buy line. The paper book buys at Score ≥ 5 and exits below 5.' },
-  { key: 'b4', cls: 'b4', label: 'Score 4–4.99',    tip: 'Score 4.0–4.99 — on watch, just below the buy line.' },
-  { key: 'b3', cls: 'b3', label: 'Score 3–3.99',    tip: 'Score 3.0–3.99 — the entry threshold to make the watch list.' },
+  { key: 'b5', cls: 'b5', label: 'Score 5 · Top', tip: 'Score 5 — the maximum: a high-conviction insider buy in an uptrend. The paper book buys these.' },
+  { key: 'b4', cls: 'b4', label: 'Score 4 · Buy line',    tip: 'Score 4 — the buy line (out of a max of 5). A high-conviction insider buy, not in a downtrend. The $1M paper book buys at Score ≥ 4 and exits below 3.' },
+  { key: 'b3', cls: 'b3', label: 'Score 3 · Watch',    tip: 'Score 3 — on the watch list (a weaker/cluster signal), below the buy line.' },
 ];
 
 // Saved state is column order + show/hide. Every column is ON by default; the
@@ -186,7 +186,7 @@ export default function ScannerPage() {
             <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
             <ul className="impl">
               <li><b>Two signals</b> — insider activity and technicals — sum into one live MacroTilt Score from 0 to 5. A name needs at least 3 to make the list. Options shock and dark-pool prints show as context only (shelved from the score on 2026-07-07 — unvalidated).</li>
-              <li><b>Scanner indicates a buy with a Score ≥ 5</b>; the $1M paper book buys a fixed $100K per name (equal-weight, no leverage).{' '}
+              <li><b>Scanner indicates a buy at a Score ≥ 4</b> (4 or 5 out of a max of 5 — a high-conviction insider name); the $1M paper book buys a fixed $100K per name (equal-weight, no leverage).{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
             </ul>
         </Reveal>

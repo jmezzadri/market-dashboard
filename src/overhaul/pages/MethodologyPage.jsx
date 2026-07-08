@@ -10,7 +10,7 @@
      the live Macro Overview engine — NOT validation.asset_tilt (the retired
      sector-allocation overlay). The equity grid + defensive sleeve mix are
      re-sourced from scripts/compute_macrotilt_engine.py.
-   - §03 states the buy line (Score ≥ 5) explicitly.
+   - §03 states the buy line (Score ≥ 4, max 5) explicitly.
    - §04 rewritten as the automated $1M Paper Portfolio (the broker-CSV / Plaid
      import it described is dead); TOC entry renamed "Paper Portfolio".
 
@@ -279,7 +279,7 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               Each ticker earns points from two validated inputs. They are added together — not weighted —
               into a single score from 0 to 5. A name needs at least <b>3 points to appear</b> on the scanner;
-              the <b>buy line is a Score of 5</b> — the top of the range, and the level at which the $1M Paper
+              the <b>buy line is a Score of 4</b> (out of a maximum of 5 — a high-conviction insider name not in a downtrend), the level at which the $1M Paper
               Portfolio (section 04) actually buys a name.
             </p>
             <div className="me-formula">
@@ -313,7 +313,7 @@ export default function MethodologyPage() {
             <h2 className="me-h2">The automated $1M paper book</h2>
             <p className="me-body-p">
               MacroTilt runs a live <b>$1M paper portfolio</b> that trades the Trading Scanner long-only —
-              no manual input, no broker import. It buys every name <b>at or above the buy line (Score ≥ 5)</b>{' '}
+              no manual input, no broker import. It buys every name <b>at or above the buy line (Score ≥ 4)</b>{' '}
               at a <b>fixed $100K per name</b> (equal-weight, capped at 10% of the book), filling the
               highest-scored names first and resting the remainder in cash. <b>No leverage</b> — the book never
               borrows. (Rebuilt 2026-07-07: the old score-tiered sizing and 2× leverage were retired after a
@@ -327,7 +327,7 @@ export default function MethodologyPage() {
               and priced off the end-of-day feed, so profit and loss is cost-basis P/L, not a live mark.
             </p>
             <div className="me-formula">
-              buy  = Score ≥ 5 · size = fixed $100K equal-weight (≤10% of book) · no leverage<br />
+              buy  = Score ≥ 4 · size = fixed $100K equal-weight (≤10% of book) · no leverage<br />
               hold = keep the name until Score &lt; 3 (hold through the wobble)<br />
               sell = Score &lt; 3 → exit the whole position<br />
               unrealized_pl_$   = market_value − cost_basis<br />

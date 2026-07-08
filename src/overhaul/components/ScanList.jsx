@@ -291,9 +291,9 @@ export default function ScanList({
   return (
     <div
       style={{
-        background: 'var(--mt-surface)',
-        border: '1px solid var(--mt-line-0)',
-        borderRadius: 14,
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 0,
         overflowX: 'auto',
         overflowY: 'visible',
       }}

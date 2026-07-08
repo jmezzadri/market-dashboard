@@ -769,3 +769,13 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 **Rule:** (a) Any PR that adds a NEW multi-column grid, table, or fixed-width layout — regardless of whether it adds a class scope — is verified at 390px before merge (headless browser screenshot is sufficient; the harness lives in this session's playbook: playwright chromium at 390×844). (b) Never author layout grids as inline `style={{gridTemplateColumns}}` on classless divs; give the element a class so responsive.css can reach it. If an inline grid must stay, the collapsing rule needs `!important`. (c) Data tables on phone width scroll inside their card at natural column widths (the positions/scanner pattern) — never `table-layout:fixed` + ellipsis, which silently destroys every value. (d) Grid children that contain tables need `min-width:0`, or the table's intrinsic width blows out the track and clips every sibling.
 
 **Applies to:** UX Designer + Lead Developer.
+
+
+## NEVER GUESS · NEVER TAKE SHORTCUTS · ALWAYS VERIFY ON THE LIVE RENDERED SYSTEM (2026-07-08, Joe, emphatic)
+**What happened:** After the scoring rebuild I (a) left the paper-engine buy line at Score ≥ 5 when 5 had become the MAX score — so "buy" required a perfect score; (b) told Joe the blast radius was updated while the Scanner-page intro, methodology, tables and manifest still described the old 4-pillar / 0–10 / Score×$20K model; (c) repeatedly "fixed" things from source assumptions and said "let me stop guessing" and then guessed anyway.
+**Hard rule — binding:**
+1. **Never guess. Never say "let me stop guessing" and then infer.** Before asserting or fixing anything user-facing, INSPECT the live artifact — the rendered DOM (Chrome MCP / screenshot in the user's actual theme), the live DB row, the deployed file — and read what is actually there.
+2. **When a change alters a scale, threshold, or composition, recompute EVERY dependent number and update EVERY surface that shows it.** Enumerate them by grepping the WHOLE repo (score dial max, appear/buy/exit lines, funnel bands, methodology page, scanner intro copy, column set, drill-down, data_manifest consumers, vendor blast radius) — never from memory. A threshold like "buy ≥ N" must always sit strictly below the max.
+3. **After every deploy, load the rendered page and READ it** in the user's theme. "The source looks right" and "the DOM query says clean" are necessary but not sufficient — look at the pixels.
+4. **No shortcuts. A task is not done until the live rendered result is verified.**
+**Applies to:** All.
