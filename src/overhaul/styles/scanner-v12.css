@@ -43,6 +43,8 @@
   --mt-amber: var(--amber);
 }
 .home-v12.scanner-v12 .num { font-variant-numeric: tabular-nums; }
+/* 2026-07-08: pin the whole scanner table to the tabular brand sans (Geist), the same font the Paper table uses, so numbers match across the site and columns stay aligned. Panel title keeps var(--serif) via its own rule. Kills the stray Inter drift. */
+.home-v12.scanner-v12 .sc-tablecard { font-family: var(--sans); }
 .home-v12.scanner-v12 .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 
 /* ── hero: editorial left + "Today's scan" putty card right ── */

@@ -327,9 +327,9 @@ export default function ScanList({
             alignItems: 'stretch',
             borderBottom: '1px solid var(--mt-line-0)',
             background: 'var(--mt-surface)',
-            fontSize: 10.5,
-            fontWeight: 500,
-            letterSpacing: '0.14em',
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
             textTransform: 'uppercase',
             color: 'var(--mt-ink-2)',
           }}
