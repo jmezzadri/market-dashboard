@@ -10,8 +10,8 @@
 
    When `indicatorColumns` is set (Scanner page only), each row adds numeric
    columns for the real per-indicator points that SUM to the score: Insider,
-   Technicals (200-day + RSI). Options + Dark-pool are shown as CONTEXT only
-   (shelved from the score 2026-07-07 as unvalidated).
+   Technicals (200-day + RSI). The Options, Dark-pool and Flow columns were
+   REMOVED 2026-07-08 (shelved from the score; not scored, not shown).
 
    2026-06-04: the Scanner column picker is now LIVE. The caller passes an
    ordered `columns` array of column keys (a subset/reordering of
@@ -51,10 +51,7 @@ export const INDICATOR_COLS = {
   earn:    { key: 'earn',    label: 'Next earnings date',    head: 'Earnings', w: '74px',  grow: 1 },
   insider: { key: 'insider', label: 'Insider pts',           head: 'Insider',  w: '54px' },
   tech:    { key: 'tech',    label: 'Technicals pts',        head: 'Tech',     w: '46px' },
-  options: { key: 'options', label: 'Options pts',           head: 'Options',  w: '54px' },
-  dark:    { key: 'dark',    label: 'Dark-pool pts',         head: 'Dark',     w: '46px' },
   short:   { key: 'short',   label: 'Short interest %',      head: 'Short %',  w: '58px',  grow: 1 },
-  flow:    { key: 'flow',    label: 'Options flow net $',    head: 'Flow $',   w: '62px' },
   trend:   { key: 'trend',   label: 'Score trend',           head: 'Trend',    w: '76px' },
   score:   { key: 'score',   label: 'Score',                 head: 'Score',    w: '54px',  grow: 0.6, locked: true },
 };
@@ -67,7 +64,7 @@ export const INDICATOR_COL_KEYS = [
   'ticker', 'name', 'price',                       // Stock
   'day', 'chg30', 'from52hi',                      // Performance
   'rsi', 'vs200', 'rvol', 'ivrank',                // Technicals
-  'insider', 'tech', 'options', 'dark', 'flow',    // Signal scores
+  'insider', 'tech',                               // Signal scores
   'mktcap', 'short', 'earn',                       // Other
   'trend',                                         // Score trend
   'score',                                         // MacroTilt Score
@@ -81,7 +78,7 @@ export const COL_GROUP = {
   ticker: 'stock', name: 'stock', price: 'stock',
   day: 'performance', chg30: 'performance', from52hi: 'performance',
   rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', ivrank: 'technicals',
-  insider: 'signals', tech: 'signals', options: 'context', dark: 'context', flow: 'context',
+  insider: 'signals', tech: 'signals',
   mktcap: 'other', short: 'other', earn: 'other',
   trend: 'score', score: 'score',
 };
@@ -90,7 +87,6 @@ export const GROUP_LABEL = {
   performance: 'Performance',
   technicals: 'Technicals',
   signals: 'MacroTilt signal scores',
-  context: 'Context · not scored',
   other: 'Other',
   score: '',
 };
@@ -357,7 +353,7 @@ export default function ScanList({
               dark: 'Dark-pool anchor points',
               short: 'FINRA short interest as % of shares outstanding — context only, not scored',
               flow: 'Net call premium in the 30-day options flow-alert window — context only, not scored',
-              score: 'MacroTilt Score, 0–10 — the four signal points summed',
+              score: 'MacroTilt Score, 0–5 — the insider + technicals points summed',
             };
             // identity heads sit left; Last/Day right over their number cells;
             // everything else is centered over centered values.

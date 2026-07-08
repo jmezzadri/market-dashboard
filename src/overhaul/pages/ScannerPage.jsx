@@ -185,8 +185,8 @@ export default function ScannerPage() {
           <div className="eyebrow2"><span className="dot" />Trading scanner</div>
             <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
             <ul className="impl">
-              <li><b>Four signals</b> — insider activity, technicals, options shock, and dark-pool prints — sum into one live MacroTilt Score from 0 to 10. A name needs at least 3 to make the list.</li>
-              <li><b>Scanner indicates a buy with a Score ≥ 5</b>; position size is Score × $20K.{' '}
+              <li><b>Two signals</b> — insider activity and technicals — sum into one live MacroTilt Score from 0 to 5. A name needs at least 3 to make the list. Options shock and dark-pool prints show as context only (shelved from the score on 2026-07-07 — unvalidated).</li>
+              <li><b>Scanner indicates a buy with a Score ≥ 5</b>; the $1M paper book buys a fixed $100K per name (equal-weight, no leverage).{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
             </ul>
         </Reveal>
@@ -283,7 +283,7 @@ export default function ScannerPage() {
           <div className="sc-buildhead">
             <div>
               <div className="eyebrow2"><span className="dot" />How the score is built</div>
-              <h2>Four inputs, summed into one 0–10 score · a name needs ≥3 from insider + trend to launch.</h2>
+              <h2>Two inputs, summed into one 0–5 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
             <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>
               Full methodology →

@@ -83,13 +83,13 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
   - `scanner.v5-scan-composite` — MT Score + Band per ticker (the trading scanner output)
   - `scanner.universe-snapshot-uw` — IV Rank, market cap, screener fields
   - `scanner.insider-history-uw` — insider transactions (UNIVERSE: $300M-$25B market cap, expanded 2026-05-09)
-  - `scanner.options-flow-uw` — options flow alerts (informational context column, not scored)
+  - `scanner.options-flow-uw` — options flow alerts; ingested but NOT surfaced (removed from the scanner table 2026-07-08)
   - `scanner.congress-trades-uw` — congress trades (sub-score)
   - `scanner.analyst-ratings-uw` — analyst ratings (sub-score)
   - `scanner.short-interest-finra-uw` — UW continuous estimate (blended with FINRA settlement)
   - `scanner.ticker-events-uw` — News / Insider / Congress / Dark Pool event streams for Ticker Detail modal
-  - `scanner.darkpool-prints-uw` — dark-pool block prints; INFORMATIONAL context only (Dark Pool Anchor column + drill) — shelved from the score 2026-07-07 as unvalidated
-  - `scanner.options-eod-uw` — per-contract end-of-day options; INFORMATIONAL context only (Options Vol Shock + Group 3 columns) — shelved from the score 2026-07-07 as unvalidated
+  - `scanner.darkpool-prints-uw` — dark-pool block prints; ingested but NOT surfaced (removed from the scanner table + score 2026-07-08); retained for future validation
+  - `scanner.options-eod-uw` — per-contract end-of-day options; ingested but NOT surfaced (removed from the scanner table + score 2026-07-08); retained for future validation
   - `scanner.earnings-history-uw` — earnings beats/misses for Ticker Detail
   - `scanner.legacy-user-scan-data` — legacy daily scan (back-compat only)
   - `news.ticker-events-news` — News tab feed

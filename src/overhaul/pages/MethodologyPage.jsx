@@ -296,13 +296,11 @@ export default function MethodologyPage() {
               refresh 3× daily.
             </p>
             <p>
-              Several columns sit alongside the score as <b>context that does not enter it</b>. <b>Dark pool</b>
-              (large prints near the day's average price) and <b>Options shock</b> (an unusual surge in call
-              buying) counted toward the score until 2026-07-07, when they were <b>shelved as unvalidated</b> —
-              only weeks of history exist for them, not enough to prove they help, so they now inform but do not
-              score. <b>Short interest</b> (FINRA short position, days-to-cover, short-volume ratio, cost to
-              borrow) and <b>Options flow</b> (net call-minus-put premium across Unusual Whales alerts) round
-              out the context reads, refreshed each weekday morning.
+              <b>Dark pool</b>, <b>Options shock</b> and <b>Options flow</b> counted toward the score until
+              2026-07-07, when they were <b>shelved as unvalidated</b> — only weeks of history exist for them,
+              not enough to prove they help — and <b>removed from the scanner table</b> entirely on 2026-07-08.
+              <b>Short interest</b> (FINRA short position, days-to-cover, short-volume ratio, cost to borrow)
+              remains alongside the score as <b>context that does not enter it</b>, refreshed each weekday morning.
             </p>
           </div>
         </article>
