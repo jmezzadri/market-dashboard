@@ -443,12 +443,14 @@ def main():
         dp_by_t[t] = DP.score_darkpool(dp_prints.get(t, []), close, asof_dt)
         opt_by_t[t] = OP.score_options(
             (opt_rows.get(t) or {}).get("contracts"), close)
-        r["score"] = round(min(10.0, r["launch_score"]
-                           + dp_by_t[t]["points"] + opt_by_t[t]["points"]), 2)
+        # 2026-07-07 Conviction-Insider rebuild: dark-pool + options SHELVED from
+        # the score (unvalidated). Still computed above as informational
+        # columns only (like short-interest / flow). Score = insider + trend.
+        r["score"] = round(r["launch_score"], 2)
     dp_hits = sum(1 for v in dp_by_t.values() if v["points"] > 0)
     opt_hits = sum(1 for v in opt_by_t.values() if v["points"] > 0)
     print(f"    dark-pool scored {dp_hits}/{len(rows)} names; "
-          f"options scored {opt_hits}/{len(rows)} names; score ceiling 10")
+          f"options scored {opt_hits}/{len(rows)} names (informational; SHELVED from score)")
 
     print("[5] fetching reference + earnings + price history for launches ...")
     ref = fetch_reference(launched_tickers)
