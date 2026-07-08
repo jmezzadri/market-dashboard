@@ -220,21 +220,23 @@ export default function ScannerPage() {
       {/* Results — grouped columns, all shown. Gear hides columns; drag a
           header to move a column; click a header to sort. */}
       <section className="wrap sc-results">
-        <div className="sc-toolbar">
-          <span className="sc-hint">Drag a column header to reorder · click to sort</span>
-          <button
-            type="button"
-            className={`sc-gear ${showCols ? 'on' : ''}`}
-            onClick={() => setShowCols((v) => !v)}
-            aria-label="Show or hide columns"
-            onMouseEnter={(e) => showTip(e, 'Show or hide columns')}
-            onMouseLeave={hideTip}
-          >
-            <span aria-hidden="true">⚙</span>
-            {hiddenCount > 0 && <span className="cnt">{activeColumns.length}/{colState.length}</span>}
-          </button>
-          {showCols && (
-            <div className="sc-colpick mt-fade">
+        <div className="sc-tablecard">
+          <div className="sc-panelhead">
+            <h2 className="sc-paneltitle">Trading Scanner</h2>
+            <div className="sc-panelhead-tools">
+              <button
+                type="button"
+                className={`sc-colbtn ${showCols ? 'on' : ''}`}
+                onClick={() => setShowCols((v) => !v)}
+                aria-label="Show or hide columns"
+                onMouseEnter={(e) => showTip(e, 'Show or hide columns')}
+                onMouseLeave={hideTip}
+              >
+                <span aria-hidden="true">⋯</span> Columns
+                {hiddenCount > 0 && <span className="cnt">{activeColumns.length}/{colState.length}</span>}
+              </button>
+              {showCols && (
+                <div className="sc-colpick mt-fade">
               <div className="ph">
                 <div className="label">Show / hide columns</div>
                 <button type="button" className="lnk" onClick={() => setColState(DEFAULT_COL_STATE)}>Show all</button>
@@ -255,10 +257,9 @@ export default function ScannerPage() {
               </div>
               <div className="sc-foot">Reorder by dragging the column headers on the table.</div>
             </div>
-          )}
-        </div>
-
-        <div className="sc-tablecard">
+              )}
+            </div>
+          </div>
           {loading ? (
             <div className="sc-loading">Loading scan results…</div>
           ) : (

@@ -114,8 +114,17 @@
       the shared component keeps its own min column widths + overflow-x, so
       at phone width the table scrolls inside this card (no fixed layout, no
       ellipsis forced here) ── */
-.home-v12 .sc-tablecard { background: var(--putty); border-radius: 40px; padding: 14px 16px; transition: background .5s; }
-.home-v12 .sc-tablecard > div { background: transparent !important; border: 0 !important; border-radius: 24px !important; }
+.home-v12 .sc-tablecard { background: var(--putty); border-radius: 40px; padding: 0; overflow: hidden; transition: background .5s; }
+.home-v12 .sc-tablecard > div { background: transparent !important; border: 0 !important; border-radius: 0 !important; }
+
+/* panel head — mirrors the Paper Portfolio panel head (serif title + Columns
+   pill), so both tool tables read as one component (Joe, 2026-07-08). */
+.home-v12 .sc-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 26px 30px 14px; border-bottom: 1px solid var(--hair); }
+.home-v12 .sc-paneltitle { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.12; letter-spacing: 0; color: var(--ink); }
+.home-v12 .sc-panelhead-tools { position: relative; display: flex; align-items: center; gap: 10px; }
+.home-v12 .sc-colbtn { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); font-family: var(--sans); font-size: 13px; line-height: 1; cursor: pointer; transition: border-color .25s, color .25s; }
+.home-v12 .sc-colbtn:hover, .home-v12 .sc-colbtn.on { border-color: var(--gold-deep); color: var(--gold-deep); }
+.home-v12 .sc-colbtn .cnt { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .home-v12 .sc-loading { padding: 44px; text-align: center; color: var(--mut); font-size: 14px; }
 
 /* score-trend column: days-on-list tag under the dial (class rendered by

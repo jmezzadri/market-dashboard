@@ -242,18 +242,8 @@ export default function ScanList({
     ? activeKeys.reduce((sum, k) => sum + (parseInt(INDICATOR_COLS[k].w, 10) || 0), 0) + 22 + 36
     : null;
 
-  // Group the active columns into contiguous runs for the grouped header tier
-  // (Stock / Performance / Technicals / Signal scores / Other / Score).
-  const groupRuns = indicatorColumns ? (() => {
-    const runs = [];
-    activeKeys.forEach((k) => {
-      const g = COL_GROUP[k] || '';
-      const last = runs[runs.length - 1];
-      if (last && last.group === g) last.span += 1;
-      else runs.push({ group: g, span: 1 });
-    });
-    return runs;
-  })() : [];
+  // Grouped header tier removed 2026-07-08 — the Scanner table now uses a
+  // single clean header row to match the Paper Portfolio table (Joe).
 
   // Click-to-sort (Scanner / indicator mode only). Default: keep the order the
   // caller passed in — the scan arrives already ranked by score, high first.
@@ -330,42 +320,6 @@ export default function ScanList({
     >
       {indicatorColumns && (
         <li
-          style={{
-            display: 'grid',
-            gridTemplateColumns: grid,
-            gap: 0,
-            padding: '0 18px',
-            alignItems: 'stretch',
-            background: 'var(--mt-surface-2)',
-            borderBottom: '1px solid var(--mt-line-0)',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.10em',
-            textTransform: 'uppercase',
-            color: 'var(--mt-ink-1)',
-          }}
-        >
-          {groupRuns.map((run, i) => (
-            <div
-              key={i}
-              style={{
-                gridColumn: `span ${run.span}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '11px 8px 9px',
-                background: bandBg(run.group, true),
-                borderLeft: i > 0 ? '1px solid var(--mt-line-0)' : 'none',
-              }}
-            >
-              {GROUP_LABEL[run.group] || ''}
-            </div>
-          ))}
-          <span />
-        </li>
-      )}
-      {indicatorColumns && (
-        <li
           className="sc-scanhead"
           style={{
             display: 'grid',
@@ -375,9 +329,9 @@ export default function ScanList({
             alignItems: 'stretch',
             borderBottom: '1px solid var(--mt-line-0)',
             background: 'var(--mt-surface)',
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.04em',
+            fontSize: 10.5,
+            fontWeight: 500,
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
             color: 'var(--mt-ink-2)',
           }}
@@ -811,7 +765,7 @@ function SortHead({
   // direction), or drag onto another header to move the column there (Joe
   // 2026-06-17). Fills the full track so its section band runs edge to edge.
   const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
-  const inner = tip ? <Tip content={tip}>{children}</Tip> : children;
+  const inner = tip ? <Tip content={tip} bare>{children}</Tip> : children;
   const justify = align === 'right' ? 'flex-end' : align === 'left' ? 'flex-start' : 'center';
   return (
     <span
@@ -830,7 +784,7 @@ function SortHead({
         display: 'flex',
         alignItems: 'center',
         justifyContent: justify,
-        padding: '13px 8px',
+        padding: '11px 12px',
         background: bg || 'transparent',
         cursor: draggable ? 'grab' : 'pointer',
         userSelect: 'none',
