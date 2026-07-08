@@ -89,7 +89,7 @@
 
 /* ── results: wider stage than the 1240 editorial so the full column set
       shows on a large desktop; below that the table scrolls INSIDE the card */
-.home-v12 section.sc-results { max-width: 1560px; }
+.home-v12 section.sc-results { max-width: 1560px; background: transparent; border: 0; border-radius: 0; padding: 0; min-width: 0; } /* 2026-07-08: kill the legacy proto-pages outer card (.mt-overhaul .sc-results) so the table sits in ONE clean .sc-tablecard, matching the Paper page's pp-main stage. Fixes the nested double-border seam. */
 .home-v12 section.sc-buildsec { max-width: 1560px; } /* build card shares the results stage width */
 .home-v12 .sc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 10px 12px; position: relative; }
 .home-v12 .sc-hint { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
