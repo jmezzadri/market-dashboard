@@ -90,7 +90,7 @@
 .home-v12.methodology-v12 .me-section:first-of-type { border-top: 0; padding-top: 10px; }
 .home-v12.methodology-v12 .me-section > * { min-width: 0; }
 
-.home-v12.methodology-v12 .me-num { font-family: var(--serif); font-size: 56px; font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
+.home-v12.methodology-v12 .me-num { font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 56px; font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
 .home-v12.methodology-v12 .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
 .home-v12.methodology-v12 .me-h2 { font-family: var(--serif); font-size: clamp(27px, 2.6vw, 36px); font-weight: 400; line-height: 1.14; letter-spacing: -.3px; color: var(--ink); margin: 10px 0 18px; }
 
