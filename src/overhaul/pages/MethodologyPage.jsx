@@ -275,33 +275,34 @@ export default function MethodologyPage() {
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Trading scanner</div>
-            <h2 className="me-h2">Four signals · one MacroTilt Score (0–10)</h2>
+            <h2 className="me-h2">Two signals · one MacroTilt Score (0–5)</h2>
             <p className="me-body-p">
-              Each ticker earns points from four inputs. They are added together — not weighted — into a
-              single score from 0 to 10. A name needs at least <b>3 points to appear</b> on the scanner;
-              the <b>buy line is a Score of 5</b> — that is the level at which the $1M Paper Portfolio
-              (section 04) actually buys a name.
+              Each ticker earns points from two validated inputs. They are added together — not weighted —
+              into a single score from 0 to 5. A name needs at least <b>3 points to appear</b> on the scanner;
+              the <b>buy line is a Score of 5</b> — the top of the range, and the level at which the $1M Paper
+              Portfolio (section 04) actually buys a name.
             </p>
             <div className="me-formula">
-              Insider (up to +4) + Technicals (+1 / −2) + Options shock (up to +4) + Dark pool (up to +2)<br />
-              MacroTilt Score = the sum, capped at 10
+              Insider (up to +4) + Technicals (+1 / −2)<br />
+              MacroTilt Score = the sum, capped at 5
             </div>
             <p className="me-body-p">
               <b>Insider</b> fires on open-market buys in the last 30 days — a C-suite officer lifting their
               own stake ≥10% (≥$100k), combined buying ≥0.05% of the company, or 3+ different insiders —
               capped at +4 and faded with age. <b>Technicals</b> add +1 above the 200-day line (−2 below) and
-              −2 if the 14-day RSI is overbought. <b>Options shock</b> rewards an unusual surge in call buying,
-              and <b>dark pool</b> rewards large prints near the day's average price. <b>Universe scan</b> runs
-              once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
+              −2 if the 14-day RSI is overbought. This is the pairing we validated over 12 months — the
+              high-conviction insider slice beat the market roughly two-to-one on hit rate. <b>Universe scan</b>
+              runs once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
               refresh 3× daily.
             </p>
             <p>
-              Two context columns sit alongside the score and do not enter it: <b>Short interest</b> is the
-              FINRA bi-monthly short position as a percent of shares outstanding (with days-to-cover, the
-              daily short-volume ratio, and the annualized cost to borrow in the drill-down), and{' '}
-              <b>Options flow</b> is the net call-minus-put premium across Unusual Whales flow alerts in the
-              trailing 30-day window, with the share of premium printed at the ask and the sweep count.
-              Both refresh each weekday morning (06:00 / 06:40 ET).
+              Several columns sit alongside the score as <b>context that does not enter it</b>. <b>Dark pool</b>
+              (large prints near the day's average price) and <b>Options shock</b> (an unusual surge in call
+              buying) counted toward the score until 2026-07-07, when they were <b>shelved as unvalidated</b> —
+              only weeks of history exist for them, not enough to prove they help, so they now inform but do not
+              score. <b>Short interest</b> (FINRA short position, days-to-cover, short-volume ratio, cost to
+              borrow) and <b>Options flow</b> (net call-minus-put premium across Unusual Whales alerts) round
+              out the context reads, refreshed each weekday morning.
             </p>
           </div>
         </article>
@@ -315,20 +316,22 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               MacroTilt runs a live <b>$1M paper portfolio</b> that trades the Trading Scanner long-only —
               no manual input, no broker import. It buys every name <b>at or above the buy line (Score ≥ 5)</b>{' '}
-              and sizes each at <b>Score × $20K</b>: a Score of 5 buys $100K, 6 buys $120K, up to a Score of
-              10 at $200K. When total demand tops the $1M book it levers up to <b>2×</b> ($2M gross), filling
-              the highest-scored names first and pro-rating the marginal score band.
+              at a <b>fixed $100K per name</b> (equal-weight, capped at 10% of the book), filling the
+              highest-scored names first and resting the remainder in cash. <b>No leverage</b> — the book never
+              borrows. (Rebuilt 2026-07-07: the old score-tiered sizing and 2× leverage were retired after a
+              review found they — not the stock picks — were driving the losses.)
             </p>
             <p className="me-body-p">
-              The book is <b>signal-only</b>. A trade fires only when a name enters the list, drops off it
-              (sold in full), or its score moves enough to resize it past a tolerance band — never on price
-              drift alone. Every position is held at its <b>cost basis</b> and priced off the end-of-day
-              feed, the same prices the rest of the site uses, so profit and loss is cost-basis P/L, not a
-              live mark.
+              The book is <b>signal-only, and holds through the noise</b>. A name is bought once when it
+              crosses the buy line and <b>held until its score decays below 3</b> — a name that dips just under
+              the buy line for a day is kept, not dumped-and-rebought (that churn is what the rebuild fixed). It
+              never resizes on a price move or a one-point score wobble. Positions are held at <b>cost basis</b>
+              and priced off the end-of-day feed, so profit and loss is cost-basis P/L, not a live mark.
             </p>
             <div className="me-formula">
-              buy  = Score ≥ 5 · size = Score × $20K  (levers to 2× / $2M gross when demand exceeds the book)<br />
-              sell = Score &lt; 5 → exit the whole position<br />
+              buy  = Score ≥ 5 · size = fixed $100K equal-weight (≤10% of book) · no leverage<br />
+              hold = keep the name until Score &lt; 3 (hold through the wobble)<br />
+              sell = Score &lt; 3 → exit the whole position<br />
               unrealized_pl_$   = market_value − cost_basis<br />
               unrealized_pl_pct = (market_value − cost_basis) / cost_basis
             </div>

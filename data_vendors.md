@@ -83,20 +83,20 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
   - `scanner.v5-scan-composite` — MT Score + Band per ticker (the trading scanner output)
   - `scanner.universe-snapshot-uw` — IV Rank, market cap, screener fields
   - `scanner.insider-history-uw` — insider transactions (UNIVERSE: $300M-$25B market cap, expanded 2026-05-09)
-  - `scanner.options-flow-uw` — options flow alerts (sub-score)
+  - `scanner.options-flow-uw` — options flow alerts (informational context column, not scored)
   - `scanner.congress-trades-uw` — congress trades (sub-score)
   - `scanner.analyst-ratings-uw` — analyst ratings (sub-score)
   - `scanner.short-interest-finra-uw` — UW continuous estimate (blended with FINRA settlement)
   - `scanner.ticker-events-uw` — News / Insider / Congress / Dark Pool event streams for Ticker Detail modal
-  - `scanner.darkpool-prints-uw` — dark-pool block prints feeding the rebuilt Trading Opportunities screener's dark-pool layer (Phase 1 of the overhaul)
-  - `scanner.options-eod-uw` — per-contract end-of-day options feeding the rebuilt screener's options layer + the Group 3 options-sentiment columns (Phase 1 of the overhaul)
+  - `scanner.darkpool-prints-uw` — dark-pool block prints; INFORMATIONAL context only (Dark Pool Anchor column + drill) — shelved from the score 2026-07-07 as unvalidated
+  - `scanner.options-eod-uw` — per-contract end-of-day options; INFORMATIONAL context only (Options Vol Shock + Group 3 columns) — shelved from the score 2026-07-07 as unvalidated
   - `scanner.earnings-history-uw` — earnings beats/misses for Ticker Detail
   - `scanner.legacy-user-scan-data` — legacy daily scan (back-compat only)
   - `news.ticker-events-news` — News tab feed
   - `portfolio.option-mark-uw` — option leg marks
 - **Alternatives evaluated:** Bloomberg Terminal ($24k/year) and FactSet ($12k+/year) carry equivalent options-flow + insider feeds at institutional pricing. No retail-priced substitute for the combination of feeds UW bundles.
 - **Contract end date:** Month-to-month.
-- **Removal blast radius:** Catastrophic for Trading Opportunities. Every sub-score column (Insider / Options Flow / Congress / Analyst / Short Interest) renders em-dash. MT Score cannot be computed without sub-scores so the entire scanner table goes blank. Ticker Detail modal loses News, Insider, Congress, Dark Pool, Earnings tabs. Portfolio Insights option marks freeze. Trading Opportunities tab effectively dies.
+- **Removal blast radius:** Catastrophic for Trading Opportunities. The MacroTilt Score (now Insider + Technicals) loses its Insider input, so the Score + Band columns go blank and the paper portfolio has nothing to buy. Insider / Congress / Analyst / Short-Interest / Options-Flow / Dark-Pool columns render em-dash. Ticker Detail modal loses News, Insider, Congress, Dark Pool, Earnings tabs. Portfolio Insights option marks freeze. Trading Opportunities tab effectively dies.
 
 ---
 

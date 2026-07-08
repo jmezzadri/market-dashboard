@@ -4,8 +4,12 @@
    average of six factors. The nightly engine (trading-scanner
    run_screener.py) builds it as a simple SUM of point values:
 
-       score = insider_pts + sma200_pts + rsi_pts
-                            + dark_pool_pts + options_pts        (capped at 10)
+       score = insider_pts + sma200_pts + rsi_pts               (capped at 5)
+
+   2026-07-07 Conviction-Insider rebuild: dark_pool_pts and options_pts are
+   SHELVED from the score (unvalidated — only weeks of history). They still
+   arrive on the row but are INFORMATIONAL CONTEXT only; the ceiling dropped
+   from 10 to 5 when they came out.
 
    So the honest composition is additive — each component contributes its
    own points, and the points sum to the headline score exactly. There are
@@ -14,18 +18,17 @@
    the engine computes: Analyst and Congress are not scored by this engine
    at all, and on a typical day dark-pool and options contribute 0.
 
-   We group the five raw point fields into the FOUR components the engine
-   actually scores (Joe directive 2026-06-01 — "show the 4 real inputs
-   only"):
+   The engine now scores TWO components (2026-07-07 Conviction-Insider
+   rebuild — dark-pool and options shelved as unvalidated):
 
-     Technicals   = sma200_pts + rsi_pts
-     Insider      = insider_pts
-     Options shock = options_pts
-     Dark pool    = dark_pool_pts
+     Insider     = insider_pts               (up to +4)
+     Technicals  = sma200_pts + rsi_pts       (+1 above 200-day, −2 below / −2 hot RSI)
 
-   componentPoints(row) returns these four, in display order, and they sum
-   to row.score. The drill-down and the "How the score is built" cards both
-   read from here so they can never disagree. */
+   componentPoints(row) returns these two, in display order, and they sum to
+   row.score. Dark-pool and options points still arrive on the row but are
+   INFORMATIONAL CONTEXT only (see CONTEXT_SIGNALS) — never summed into the
+   score. The drill-down and the "How the score is built" cards read from here
+   so they can never disagree. */
 
 export const SCORE_COMPONENTS = [
   {
@@ -38,16 +41,14 @@ export const SCORE_COMPONENTS = [
     why: 'Trades above its 200-day line; penalty if RSI runs hot',
     fields: ['sma200_pts', 'rsi_pts'],
   },
-  {
-    key: 'Options shock',
-    why: 'Unusual options-volume shock (volume vs prior open interest)',
-    fields: ['options_pts'],
-  },
-  {
-    key: 'Dark pool',
-    why: 'Block prints anchored near VWAP',
-    fields: ['dark_pool_pts'],
-  },
+];
+
+/* Dark-pool + options were SHELVED from the score on 2026-07-07 (unvalidated —
+   see the rebuild note above). They still arrive on the scan row and surface as
+   informational context, never summed into the headline score. */
+export const CONTEXT_SIGNALS = [
+  { key: 'Options shock', why: 'Unusual options-volume shock (informational, not scored)', fields: ['options_pts'] },
+  { key: 'Dark pool',     why: 'Block prints anchored near VWAP (informational, not scored)', fields: ['dark_pool_pts'] },
 ];
 
 /* Sum the raw point fields for one component on a scan row. Missing fields

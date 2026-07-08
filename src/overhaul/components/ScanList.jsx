@@ -2,7 +2,7 @@
    Ported from prototype/lm-shared.jsx ScanList + lm-scancard structure.
    Drill renders below via the ScanDrill component the caller passes in.
 
-   Score is on a 0-10 scale (live scanner data).
+   Score is on a 0-5 scale (live scanner data; Insider + Technicals only).
 
    2026-06-01: every value here is now REAL — sparkline uses the engine's
    stored `spark` close series (no more synthetic random walk), price/change
@@ -10,7 +10,8 @@
 
    When `indicatorColumns` is set (Scanner page only), each row adds numeric
    columns for the real per-indicator points that SUM to the score: Insider,
-   Technicals (200-day + RSI), Options, Dark-pool.
+   Technicals (200-day + RSI). Options + Dark-pool are shown as CONTEXT only
+   (shelved from the score 2026-07-07 as unvalidated).
 
    2026-06-04: the Scanner column picker is now LIVE. The caller passes an
    ordered `columns` array of column keys (a subset/reordering of
@@ -80,7 +81,7 @@ export const COL_GROUP = {
   ticker: 'stock', name: 'stock', price: 'stock',
   day: 'performance', chg30: 'performance', from52hi: 'performance',
   rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', ivrank: 'technicals',
-  insider: 'signals', tech: 'signals', options: 'signals', dark: 'signals', flow: 'signals',
+  insider: 'signals', tech: 'signals', options: 'context', dark: 'context', flow: 'context',
   mktcap: 'other', short: 'other', earn: 'other',
   trend: 'score', score: 'score',
 };
@@ -89,6 +90,7 @@ export const GROUP_LABEL = {
   performance: 'Performance',
   technicals: 'Technicals',
   signals: 'MacroTilt signal scores',
+  context: 'Context · not scored',
   other: 'Other',
   score: '',
 };
@@ -464,7 +466,7 @@ export default function ScanList({
             case 'score':
               return (
                 <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <ScoreDial score={r.score} max={10} size={42} />
+                  <ScoreDial score={r.score} max={5} size={42} />
                   {Number.isFinite(Number(r.daysOnList)) && r.daysOnList > 0 && (
                     <Tip content={`On the list ${r.daysOnList} straight scan day${r.daysOnList > 1 ? 's' : ''}`} bare>
                       <span className="sc-tenure num">{r.daysOnList}d</span>
