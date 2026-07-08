@@ -1180,8 +1180,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       total_nav: liveNav.total_nav,
       sleeve_a_value: liveNav.sleeve_a_value, sleeve_b_value: liveNav.sleeve_b_value,
       sleeve_a_equity: liveNav.sleeve_a_equity, sleeve_b_equity: liveNav.sleeve_b_equity,
-      spy_close: liveNav.spy_close, spy_prev_close: liveNav.spy_prev_close,
-      spy_inception_close: liveNav.spy_inception_close,
+      spy_close: liveNav.spy_close, spy_prev_close: liveNav.spy_prev_close, spy_inception_close: liveNav.spy_inception_close,
+      // 2026-07-08 fix: forward ALL four benchmarks in live mode (was SPY only,
+      // which blanked the NASDAQ/Dow/Russell rows even though the data exists).
+      qqq_close: liveNav.qqq_close, qqq_prev_close: liveNav.qqq_prev_close, qqq_inception_close: liveNav.qqq_inception_close,
+      dia_close: liveNav.dia_close, dia_prev_close: liveNav.dia_prev_close, dia_inception_close: liveNav.dia_inception_close,
+      iwm_close: liveNav.iwm_close, iwm_prev_close: liveNav.iwm_prev_close, iwm_inception_close: liveNav.iwm_inception_close,
       sleeve_b_day_pnl: liveNav.day_pnl, portfolio_beta: liveNav.portfolio_beta,
       created_at: liveNav.updated_at,
     }];
