@@ -304,27 +304,27 @@ const PAGE_CSS = `
 
 // ── Right-slot summary card ───────────────────────────────────────────────
 
-// $K, integer, accounting-style parentheses for negatives.
+// $K, integer, minus sign for negatives.
 const fmtK = (n) => {
   if (n == null || Number.isNaN(n)) return '—';
   const k = Math.round(n / 1000);
   const s = `$${Math.abs(k).toLocaleString('en-US')}K`;
-  return n < 0 ? `(${s})` : s;
+  return n < 0 ? `-${s}` : s;
 };
-// Percent, accounting-style parentheses for negatives.
+// Percent, minus sign for negatives.
 const fmtPctP = (n, places = 1) => {
   if (n == null || Number.isNaN(n)) return '—';
   const s = `${(Math.abs(n) * 100).toFixed(places)}%`;
-  return n < 0 ? `(${s})` : `+${s}`;
+  return n < 0 ? `-${s}` : `+${s}`;
 };
 const dirClass = (n) => (n == null ? 'muted' : (n >= 0 ? 'up' : 'down'));
 
 // Full dollars (no K-rounding) for P&L deltas — daily moves are hundreds of
-// dollars and would render as "$0K". Accounting parentheses for negatives.
+// dollars and would render as "$0K". Minus sign for negatives.
 const fmt$Delta = (n) => {
   if (n == null || Number.isNaN(n)) return '—';
   const s = `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
-  return n < 0 ? `(${s})` : `+${s}`;
+  return n < 0 ? `-${s}` : `+${s}`;
 };
 
 // Beta of a value series vs the SPY close series (daily returns,

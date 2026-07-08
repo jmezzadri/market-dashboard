@@ -43,7 +43,7 @@
   --mt-warn: #c08428;
 
   /* — Type — */
-  --mt-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --mt-font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* 2026-07-08: unified number font — was Fraunces. All numeric displays now use one tabular sans (Geist). Headings keep --serif. */
   --mt-font-ui: 'Inter', -apple-system, system-ui, sans-serif;
   --mt-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
@@ -182,7 +182,7 @@
   --mt-font-display: var(--mt-font-ui);
 }
 [data-mt-fonts='ibm-mix'] {
-  --mt-font-display: 'IBM Plex Serif', Georgia, serif;
+  --mt-font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ─── App scope: scope to .mt-overhaul so the legacy app isn't touched. ── */
