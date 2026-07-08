@@ -25,11 +25,13 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import requests
+
+from paper_portfolio.config import SLEEVE_B_EXIT_THRESHOLD
 
 PROJECT_REF = "yqaqqzseepebrocgibcw"
 
@@ -53,6 +55,10 @@ class EquityScannerSnapshot:
     signals: list[EquitySignal]    # ONLY signals with buy_score >= buy_threshold
     all_count: int                 # total rows on scan_date for sanity
     raw_payload_sample: list[dict[str, Any]]  # first 25 rows, for audit
+    # {TICKER: buy_score} for EVERY launched (BUY·LONG) name at/above the exit
+    # floor — diff.py uses this so a held name is kept while it is still on the
+    # scan and only exited once it decays out (hysteresis; stops flap-churn).
+    scores_by_ticker: dict[str, float] = field(default_factory=dict)
 
 
 def _normalize_buy_score(score: float | None) -> float:
@@ -185,9 +191,16 @@ def load_equity_scanner_snapshot(
                 scan_date=r["scan_date"],
             ))
 
+    scores_by_ticker: dict[str, float] = {}
+    for r in rows:
+        bs = _normalize_buy_score(r.get("score"))
+        if bs >= SLEEVE_B_EXIT_THRESHOLD:
+            scores_by_ticker[str(r["ticker"]).upper()] = bs
+
     return EquityScannerSnapshot(
         scan_date=scan_date,
         signals=signals,
         all_count=len(rows),
         raw_payload_sample=rows[:25],
+        scores_by_ticker=scores_by_ticker,
     )

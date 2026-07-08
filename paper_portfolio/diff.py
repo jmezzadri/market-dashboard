@@ -35,8 +35,9 @@ from typing import Iterable
 
 from paper_portfolio.alpaca_client import AlpacaPosition, AlpacaPaperClient
 from paper_portfolio.config import (
-    SLEEVE_B_REBALANCE_DOLLAR_MIN,
+    SLEEVE_B_REBALANCE_DOLLAR_MIN,  # kept for import-compat (unused: no price/tier resize)
     SLEEVE_B_REBALANCE_PCT_MIN,
+    SLEEVE_B_EXIT_THRESHOLD,
 )
 from paper_portfolio.sleeves import SleeveTarget, TargetLine
 
@@ -74,104 +75,80 @@ def _qty_from_notional(notional: float, eod_price: float | None) -> float | None
 def build_order_intents(
     sleeve_b_target: SleeveTarget,
     live_positions: Iterable[AlpacaPosition],
+    held_scores: dict[str, float] | None = None,
+    exit_threshold: float = SLEEVE_B_EXIT_THRESHOLD,
     alpaca: AlpacaPaperClient | None = None,
     suppress_buys: bool = False,
     eod_prices: dict[str, float] | None = None,
     open_order_tickers: set[str] | None = None,
 ) -> list[OrderIntent]:
-    """Signal-only diff for the Equity Scanner sleeve. Trades on entry / exit /
-    signal-driven resize only.
+    """SIGNAL-ONLY diff with HYSTERESIS + FIXED SIZE (Conviction-Insider rebuild 2026-07-07).
 
-    `eod_prices` {TICKER: close} is the gold price source for share sizing.
-    `alpaca` is used only as a fallback EOD price for tickers missing from the
-    map (rare new listings); never for the rebalance decision itself.
-
-    Every held name absent from the Sleeve B target is emitted as a full exit
-    (sell whole position) — this is how the retired Sleeve-A ETFs are sold to
-    cash on the next run.
+      * BUY a target name (buy_score >= buy threshold) not yet held, at the
+        fixed target size. One entry, no top-ups, ever.
+      * HOLD a held name still in the buy target — no trade (never resize on
+        price OR score).
+      * HOLD a held name that slipped just below the buy line but is still
+        >= exit_threshold — this HYSTERESIS is the churn fix: a name bought at
+        5 that dips to 4 is held, not dumped-and-rebought the next session.
+      * EXIT (sell whole position) only when a held name's score decays below
+        exit_threshold, or it leaves the scan entirely (score unknown).
+    `held_scores` = {TICKER: current buy_score} for scanned names at/above the
+    exit floor. Missing ⇒ off-scan ⇒ decayed ⇒ exit.
     """
     eod_prices = eod_prices or {}
-
-    # IDEMPOTENCY GUARD (2026-06-04 fix): a ticker that already has an order
-    # working at the broker must NOT get a second order this run. The EOD job
-    # fires many times each morning; without this, every fire re-bought every
-    # name (orders queued-but-unfilled don't show as a held position yet), which
-    # stacked single names to ~6x their target. We skip ANY new intent for a
-    # ticker that already has a live order.
+    held_scores = {t.upper(): v for t, v in (held_scores or {}).items()}
     open_order_tickers = {t.upper() for t in (open_order_tickers or set())}
 
     def _has_open_order(ticker: str) -> bool:
         return ticker.upper() in open_order_tickers
 
-    def _eod_price(ticker: str) -> float | None:
+    def _eod_price(ticker: str):
         p = eod_prices.get(ticker.upper())
         if p and p > 0:
             return p
-        # Fallback ONLY when the gold feed has no row for this ticker.
         return alpaca.get_last_trade_price(ticker) if alpaca else None
 
     b_targets: dict[str, TargetLine] = {l.ticker: l for l in sleeve_b_target.lines}
-
-    # Held positions: QUANTITY + COST BASIS only (account truth from Alpaca).
     live: dict[str, AlpacaPosition] = {p.ticker: p for p in live_positions}
-
     intents: list[OrderIntent] = []
 
-    def _basis(ticker: str) -> float:
+    def _qty_held(ticker: str) -> float:
         pos = live.get(ticker)
-        return pos.cost_basis if pos else 0.0
+        return pos.qty if pos else 0.0
 
-    # ── Sleeve B — Scanner names ──
+    # ── ENTRIES — target names not held. Held target names: HOLD (skip, no resize). ──
     for ticker, line in b_targets.items():
-        held = _basis(ticker)
+        if _qty_held(ticker) > 0:
+            continue
+        if suppress_buys or _has_open_order(ticker):
+            continue
+        qty = _qty_from_notional(line.notional, _eod_price(ticker))
         score_int = int(round(line.score)) if line.score is not None else None
-        if held <= 0:
-            if suppress_buys or _has_open_order(ticker):
-                continue
-            qty = _qty_from_notional(line.notional, _eod_price(ticker))
-            intents.append(OrderIntent(
-                sleeve="B", ticker=ticker, side="buy",
-                target_quantity=qty, target_notional=round(line.notional, 2),
-                signal_score=score_int, signal_source="equity_scanner",
-                rebalance_trigger_reason=f"New scanner buy signal — {line.rationale}",
-            ))
-            continue
-        if _has_open_order(ticker):
-            continue
-        if not _resize_exceeds_band(line.notional, held):
-            continue
-        diff = line.notional - held
-        side = "buy" if diff > 0 else "sell"
-        if suppress_buys and side == "buy":
-            continue
-        qty = _qty_from_notional(abs(diff), _eod_price(ticker))
         intents.append(OrderIntent(
-            sleeve="B", ticker=ticker, side=side,
-            target_quantity=qty, target_notional=round(diff, 2),
+            sleeve="B", ticker=ticker, side="buy",
+            target_quantity=qty, target_notional=round(line.notional, 2),
             signal_score=score_int, signal_source="equity_scanner",
-            rebalance_trigger_reason=f"Scanner tier changed — {line.rationale}",
+            rebalance_trigger_reason=f"New scanner buy signal — {line.rationale}",
         ))
 
-    # ── EXITS — any held name whose signal is GONE (not in the target). ──
-    # This covers BOTH a scanner name that dropped below threshold AND every
-    # retired Sleeve-A ETF still on the book: with Sleeve A gone, those ETFs
-    # are not in the Sleeve B target, so they are sold to cash here. No held
-    # position is left unreconciled.
+    # ── EXITS with HYSTERESIS — held names not in the buy target. ──
     for ticker, pos in live.items():
         if ticker in b_targets:
             continue
-        if pos.qty == 0:
+        if pos.qty == 0 or _has_open_order(ticker):
             continue
-        if _has_open_order(ticker):
-            continue
+        cur = held_scores.get(ticker.upper())
+        if cur is not None and cur >= exit_threshold:
+            continue  # still above the exit floor — HOLD through the wobble (no churn)
+        reason = ("Signal decayed below exit floor — exit to cash"
+                  if cur is not None else "Signal gone from scan — exit to cash")
         intents.append(OrderIntent(
-            sleeve="B",
-            ticker=ticker, side="sell",
-            target_quantity=pos.qty,                       # sell the WHOLE position (qty = account truth)
-            target_notional=round(-pos.cost_basis, 2),     # report dollars at cost basis (not a live price)
-            signal_score=None,
-            signal_source="equity_scanner",
-            rebalance_trigger_reason="Signal gone — exit to cash",
+            sleeve="B", ticker=ticker, side="sell",
+            target_quantity=pos.qty,
+            target_notional=round(-pos.cost_basis, 2),
+            signal_score=None, signal_source="equity_scanner",
+            rebalance_trigger_reason=reason,
         ))
 
     return intents
