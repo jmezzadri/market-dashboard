@@ -76,7 +76,7 @@
 .home-v12.paper-v12 .down { color: var(--down); }
 
 /* ── hero: editorial left + performance-matrix putty card right ── */
-.home-v12 section.pp-hero { margin: 0 auto; padding-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 18px; align-items: stretch; }
+.home-v12 section.pp-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 18px; align-items: stretch; }
 .home-v12 section.pp-hero > * { min-width: 0; } /* LESSONS 8.10(d): the matrix's intrinsic width must not blow the track */
 .home-v12 .pp-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .pp-ed .eyebrow2 { margin-bottom: 18px; }
@@ -100,7 +100,7 @@
 
 /* ── main stage: wider than the 1240 editorial so the default column set
       fits without inner scroll on a large desktop (v11 shell was 1440) ── */
-.home-v12 section.pp-main { max-width: 1440px; }
+.home-v12 section.pp-main { max-width: 1560px; } /* one brand stage width, matches Scanner results */
 
 /* panels — putty cards (radius 40, hairlines). PAGE_CSS keeps the layout;
    the token bridge recolors it; these override the card chrome. */
@@ -149,3 +149,39 @@
   .home-v12.paper-v12 .paper-table th,
   .home-v12.paper-v12 .paper-table td { overflow: visible !important; text-overflow: clip !important; white-space: nowrap; }
 }
+
+
+/* ── Recent rebalances = ink card, matching Scanner "how the score is built"
+      (.sc-build). Same card-ink surface + cream text; token remaps keep the
+      embedded freshness chip + info (?) trigger legible on the dark surface.
+      The Paper Portfolio positions panel stays putty — only this tile flips. ── */
+.home-v12 .paper-panel.pp-rebal {
+  background: var(--card-ink);
+  color: var(--cream-text);
+  border-radius: var(--card-r);
+  box-shadow: var(--sh);
+  /* cream-scale remaps for embedded shared components on the ink surface */
+  --mt-ink-0: var(--cream-text);
+  --mt-ink-1: color-mix(in srgb, var(--cream-text) 78%, transparent);
+  --mt-ink-2: color-mix(in srgb, var(--cream-text) 55%, transparent);
+  --mt-ink-3: color-mix(in srgb, var(--cream-text) 45%, transparent);
+  --mt-surface: transparent;
+  --mt-surface-2: rgba(247,243,232,.06);
+  --mt-surface-3: rgba(247,243,232,.08);
+  --mt-line-0: rgba(247,243,232,.12);
+  --mt-line-1: rgba(247,243,232,.12);
+  /* theme.css family read by the InfoTip (?) trigger rendered in-scope */
+  --text: var(--cream-text);
+  --text-muted: color-mix(in srgb, var(--cream-text) 60%, transparent);
+  --border: rgba(247,243,232,.28);
+  --border-faint: rgba(247,243,232,.14);
+}
+[data-mt-theme='dark'] .home-v12 .paper-panel.pp-rebal,
+[data-mt-theme='navy'] .home-v12 .paper-panel.pp-rebal { outline: 1px solid rgba(245,239,227,.08); }
+.home-v12 .paper-panel.pp-rebal .paper-panel-head { border-bottom-color: rgba(247,243,232,.12); }
+.home-v12 .paper-panel.pp-rebal .paper-panel-title { color: var(--cream-text); }
+.home-v12 .paper-panel.pp-rebal .paper-rebal-date { color: var(--cream-text); }
+.home-v12 .paper-panel.pp-rebal .paper-rebal-meta,
+.home-v12 .paper-panel.pp-rebal .paper-rebal-source { color: color-mix(in srgb, var(--cream-text) 58%, transparent); }
+.home-v12 .paper-panel.pp-rebal .paper-rebal-clickable:hover { background: rgba(247,243,232,.06); }
+.home-v12 .paper-panel.pp-rebal .paper-rebal-clickable::after { color: var(--gold-bar); }

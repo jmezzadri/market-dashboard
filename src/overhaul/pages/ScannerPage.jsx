@@ -277,7 +277,7 @@ export default function ScannerPage() {
       </section>
 
       {/* How the score is built */}
-      <section className="wrap">
+      <section className="wrap sc-buildsec">
         <Reveal className="sc-build">
           <div className="sc-buildhead">
             <div>

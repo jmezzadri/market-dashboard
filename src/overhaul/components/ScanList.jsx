@@ -93,23 +93,14 @@ export const GROUP_LABEL = {
   score: '',
 };
 
-// Alternating section shading so the eye can anchor on a group across a wide
-// table (data-table research: column banding aids scanning in many-column
-// tables). `strong` = the group-label header tier; lighter = column heads +
-// data rows. Score gets a faint accent wash to set the headline apart.
+// Column groups are delineated by the header-tier labels + the left hairline
+// dividers between groups (see the grouped-header render) — NOT by shaded
+// column washes. The washes made the wide table read busy next to the clean
+// Paper Portfolio table (Joe, 2026-07-08: "make the tables look the same...
+// Scanner looks sloppy"). Kept as a single control point so the banding can be
+// re-introduced or re-tuned in one place. `group`/`strong` retained for that.
 function bandBg(group, strong) {
-  if (group === 'score') {
-    return strong
-      ? 'color-mix(in oklab, var(--mt-accent) 16%, transparent)'
-      : 'color-mix(in oklab, var(--mt-accent) 8%, transparent)';
-  }
-  const shaded = group === 'performance' || group === 'signals';
-  if (strong) {
-    return shaded
-      ? 'color-mix(in oklab, var(--mt-ink-2) 13%, transparent)'
-      : 'color-mix(in oklab, var(--mt-ink-2) 6%, transparent)';
-  }
-  return shaded ? 'color-mix(in oklab, var(--mt-ink-2) 6%, transparent)' : 'transparent';
+  return 'transparent';
 }
 
 // Horizontal alignment per column → flexbox justification for the banded cells.

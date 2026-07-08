@@ -912,7 +912,7 @@ function RebalanceLog({ orders, fills }) {
 
   return (
     <>
-    <div className="paper-panel">
+    <div className="paper-panel pp-rebal">
       <div className="paper-panel-head">
         <div>
           <h2 className="paper-panel-title">
