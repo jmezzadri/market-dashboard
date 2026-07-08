@@ -74,7 +74,7 @@ def load_asset_tilt_history(
 
 def load_scanner_history(
     path: str | Path = "v5_backtest_run_C.parquet",
-    buy_threshold: float = 5.0,
+    buy_threshold: float = 4.0,
 ) -> pd.DataFrame:
     """Load the v5 scanner backtest parquet and add a normalized buy_score
     column. Returns the full panel; the harness slices by scan_date as

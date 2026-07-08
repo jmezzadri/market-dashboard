@@ -9,7 +9,7 @@ filter on direction='long' (Sleeve B is long-only by spec) and
 signal='BUY · LONG' (the producer also emits WATCHLIST rows we ignore).
 
 Buy threshold and tier sizes (per locked Joe spec):
-    buy_score ≥ 5 : buy (≥ 5 is the launch + size threshold)
+    buy_score ≥ 4 : buy (the buy line on the 0–5 scale; recalibrated 2026-07-08)
     9 ≤ buy_score ≤ 10 : tier 1, $50K per name
     7 ≤ buy_score < 9  : tier 2, $40K per name
     5 ≤ buy_score < 7  : tier 3, $30K per name
@@ -144,7 +144,7 @@ def load_eod_price_map(tickers: list[str]) -> dict[str, float]:
 
 def load_equity_scanner_snapshot(
     scan_date: str | None = None,
-    buy_threshold: float = 5.0,
+    buy_threshold: float = 4.0,
 ) -> EquityScannerSnapshot:
     """Read the latest scan (or the named scan_date) from signal_intel_v5_daily.
 

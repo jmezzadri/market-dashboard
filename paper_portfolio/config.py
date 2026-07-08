@@ -28,7 +28,7 @@ PROJECT_REF = "yqaqqzseepebrocgibcw"
 
 # Buy / exit score cutoff on the normalized 0–10 buy-side scale.
 # (See signals.py for the v5 mt_score → 0–10 normalization.)
-SLEEVE_B_BUY_THRESHOLD = 5.0   # buy when normalized buy-score >= 5
+SLEEVE_B_BUY_THRESHOLD = 4.0   # buy at score >= 4 (MAX is 5). 4 = high-conviction insider (insider_pts=4) not in a downtrend; recalibrated 2026-07-08 when the ceiling dropped 10->5 (dark-pool/options shelved).
 SLEEVE_B_EXIT_THRESHOLD = 3.0  # HYSTERESIS (2026-07-07): buy>=5, but HOLD until score<3 — stops flap-churn
 
 # Sleeve B per-name sizing on the normalized 0–10 buy-score: notional = score

@@ -1222,7 +1222,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <h1>An <i>automated $1M paper portfolio</i>, rebalanced <i>daily on the open</i>.</h1>
           <ul className="impl">
             <li><b>$1M starting capital</b>, following the Trading Scanner recommendations.</li>
-            <li><b>Scanner indicates a buy with a Score ≥ 5</b>; each position is a fixed $100K (equal-weight, no leverage).</li>
+            <li><b>Scanner indicates a buy at a Score ≥ 4</b> (max is 5); each position is a fixed $100K (equal-weight, no leverage).</li>
             <li><b>Long-only</b>, 2× max leverage.</li>
           </ul>
         </Reveal>
@@ -1248,7 +1248,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           setCfg={setColCfg}
           headline={heads.b}
           scanScores={scanScores}
-          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 5; each position is a fixed $100K equal-weight (≤10% of the book), no leverage. A name is held until its score decays below 3."
+          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 4 (max 5); each position is a fixed $100K equal-weight (≤10% of the book), no leverage. A name is held until its score decays below 3."
         />
         </Reveal>
         {/* No Reveal around the rebalance log: its trades drawer is
