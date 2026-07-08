@@ -59,8 +59,8 @@ const HERO_TITLE = (
 
 const HERO_BULLETS = [
   '$1M starting capital, following the Trading Scanner recommendations',
-  'Scanner indicates a buy with a Score \u2265 5; position size is Score \u00d7 $20K',
-  'Long-only, 2\u00d7 max leverage',
+  'Scanner indicates a buy at a Score \u2265 4 (max 5); each position is a fixed $100K, equal-weight',
+  'Long-only, no leverage',
 ];
 
 // ── small helpers ──────────────────────────────────────────────────────────
@@ -1223,7 +1223,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <ul className="impl">
             <li><b>$1M starting capital</b>, following the Trading Scanner recommendations.</li>
             <li><b>Scanner indicates a buy at a Score ≥ 4</b> (max is 5); each position is a fixed $100K (equal-weight, no leverage).</li>
-            <li><b>Long-only</b>, 2× max leverage.</li>
+            <li><b>Long-only</b>, no leverage.</li>
           </ul>
         </Reveal>
         <Reveal className="pp-heroright">
