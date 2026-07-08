@@ -508,7 +508,7 @@ export default function TickerPage() {
           <div className="mt-eyebrow">MacroTilt Score</div>
           <div className="tk-bigdial">
             {score != null
-              ? <ScoreDial score={score} max={10} size={96} />
+              ? <ScoreDial score={score} max={5} size={96} />
               : <div className="tk-noscore">No score<span>not in today's scan</span></div>}
           </div>
           {signal && (
@@ -750,7 +750,7 @@ export default function TickerPage() {
             >
               <div className="tk-relhead">
                 <span className="lm-tkmain">{r.ticker}</span>
-                <ScoreDial score={r.score} max={10} size={36} />
+                <ScoreDial score={r.score} max={5} size={36} />
               </div>
               <div className="tk-relsub">{r.sector || '—'}</div>
               <div className="tk-relstats num">

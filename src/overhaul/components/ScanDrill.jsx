@@ -59,9 +59,10 @@ const compact$ = (v) => {
   return `${s}$${a.toFixed(0)}`;
 };
 
-/* Positioning context rows — informational reads from the short-interest and
-   options-flow feeds. NEVER part of the score: the composition table above
-   this block must keep summing to the headline score exactly. */
+/* Positioning + signal context rows — informational reads from short-interest,
+   options-flow, dark-pool and options-shock feeds. NEVER part of the score
+   (dark-pool + options shelved 2026-07-07): the composition table above this
+   block keeps summing to the headline score exactly (Insider + Technicals). */
 function PositioningContext({ row }) {
   const kv = (label, value) => (
     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '4px 0', borderTop: '1px solid var(--mt-line-0)' }}>
@@ -88,6 +89,7 @@ function PositioningContext({ row }) {
           {kv('Days to cover', dash(row.si_days_to_cover, (v) => v.toFixed(1)))}
           {kv('Short vol (daily)', dash(row.si_short_vol_ratio, (v) => `${(v * 100).toFixed(0)}%`))}
           {kv('Cost to borrow', dash(row.si_cost_to_borrow_pct, (v) => `${v.toFixed(1)}%`))}
+          {kv('Dark-pool anchor', dash(row.dark_pool_anchor, (v) => `$${Number(v).toFixed(2)}`))}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0 2px' }}>
@@ -102,6 +104,7 @@ function PositioningContext({ row }) {
           {kv('Printed at the ask', dash(row.flow_ask_side_share, (v) => `${Math.round(v * 100)}%`))}
           {kv('Sweep alerts', dash(row.flow_sweep_count, (v) => `${v.toFixed(0)}`))}
           {kv('Unusual alerts', dash(row.flow_unusual_count, (v) => `${v.toFixed(0)}`))}
+          {kv('Options vol shock', dash(row.options_vol_shock, (v) => `${Number(v).toFixed(2)}×`))}
         </div>
       </div>
     </div>
