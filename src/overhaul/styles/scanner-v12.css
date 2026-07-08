@@ -46,7 +46,7 @@
 .home-v12.scanner-v12 .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 
 /* ── hero: editorial left + "Today's scan" putty card right ── */
-.home-v12 section.sc-hero { margin: 0 auto; padding-top: 48px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch; }
+.home-v12 section.sc-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch; }
 .home-v12 .sc-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .sc-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
@@ -90,6 +90,7 @@
 /* ── results: wider stage than the 1240 editorial so the full column set
       shows on a large desktop; below that the table scrolls INSIDE the card */
 .home-v12 section.sc-results { max-width: 1560px; }
+.home-v12 section.sc-buildsec { max-width: 1560px; } /* build card shares the results stage width */
 .home-v12 .sc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 10px 12px; position: relative; }
 .home-v12 .sc-hint { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 .home-v12 .sc-gear { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); font-family: var(--sans); font-size: 15px; line-height: 1; cursor: pointer; transition: border-color .25s, color .25s; }
