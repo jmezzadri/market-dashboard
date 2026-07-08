@@ -142,6 +142,7 @@ def run(
 
     intents = build_order_intents(
         sleeve_b, live_positions,
+        held_scores=scanner.scores_by_ticker,   # hysteresis: keep held names still on the scan
         alpaca=alpaca,
         suppress_buys=suppress_buys,
         eod_prices=eod_prices,

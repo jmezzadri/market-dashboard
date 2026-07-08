@@ -29,7 +29,7 @@ PROJECT_REF = "yqaqqzseepebrocgibcw"
 # Buy / exit score cutoff on the normalized 0–10 buy-side scale.
 # (See signals.py for the v5 mt_score → 0–10 normalization.)
 SLEEVE_B_BUY_THRESHOLD = 5.0   # buy when normalized buy-score >= 5
-SLEEVE_B_EXIT_THRESHOLD = 5.0  # exit when normalized buy-score < 5
+SLEEVE_B_EXIT_THRESHOLD = 3.0  # HYSTERESIS (2026-07-07): buy>=5, but HOLD until score<3 — stops flap-churn
 
 # Sleeve B per-name sizing on the normalized 0–10 buy-score: notional = score
 # × $10K, stepped by integer score (Joe directive 2026-06-23, replacing the old
@@ -60,6 +60,16 @@ SLEEVE_B_REBALANCE_PCT_MIN    = 0.03
 
 # Order type defaults — never changed in v1.
 ORDER_TYPE_DEFAULT = "market_on_open"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Conviction-Insider rebuild 2026-07-07 — fixed sizing, no leverage, min hold.
+# Root-cause fix for the churn bleed (buy=exit=5.0 flap + score-tier sizing + 2x
+# leverage). Replaces SLEEVE_B_TIER_BANDS sizing with ONE fixed size per name.
+# ─────────────────────────────────────────────────────────────────────────────
+SLEEVE_B_ENTRY_NOTIONAL = 100_000.0   # fixed $ per launched name (was $100K–$200K score-tiered)
+SLEEVE_B_MAX_PCT_NAV    = 0.10        # never more than 10% of the book in one name at entry
+SLEEVE_B_USE_LEVERAGE   = False       # no borrowing (was up to 2x)
+SLEEVE_B_MIN_HOLD_DAYS  = 21          # documented target hold; hysteresis enforces the spirit in diff.py
 
 
 # ─────────────────────────────────────────────────────────────────────────────
