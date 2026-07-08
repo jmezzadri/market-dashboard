@@ -1305,7 +1305,7 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
       <article className="mt-card">
         <div className="mt-sectionhead-tight">
           <div className="mt-eyebrow">
-            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 10` : ''}
+            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
           </div>
         </div>
         <div className="tk-scorecards">
@@ -1322,11 +1322,11 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
         </div>
         <div className="tk-scoretotal">
           <span>Components add up to</span>
-          <b className="num">{comp.total.toFixed(2)}<i> / 10</i></b>
+          <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
         </div>
         <div className="tk-emptyfoot">
-          A name makes the list on its insider + trend score (3.0 or higher).
-          Options-flow and dark-pool points add on top, toward a ceiling of 10.
+          A name makes the list on its insider + trend score (3.0 or higher);
+          the $1M paper book buys at 4.0 or higher. Maximum score is 5.
         </div>
       </article>
     </Reveal>

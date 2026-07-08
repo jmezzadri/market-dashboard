@@ -159,7 +159,7 @@ export const DEFS = {
   "NET LIQUIDATION":
     "What the portfolio would be worth if every position were sold today at current prices, tracked over time.",
   "SCORE":
-    "MacroTilt's overall conviction in this stock, out of 10 — built from insider buying, price trend, dark-pool clustering, and options activity.",
+    "MacroTilt's overall conviction in this stock, out of 5 — built from insider buying and price trend.",
 };
 
 /**
