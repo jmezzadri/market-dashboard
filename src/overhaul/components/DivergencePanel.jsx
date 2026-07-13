@@ -153,7 +153,7 @@ export default function DivergencePanel() {
           </h2>
           <div className="dv-sub">
             {scanDate ? <>Daily scan of liquid US common stocks · close of {fmtDay(scanDate)} · </> : null}
-            RSI(14), simple-average method
+            refreshes 8:45 AM ET · RSI(14), simple-average method
             <FreshnessChip
               elementId="equity-rsi_divergences-daily"
               variant="dot"
