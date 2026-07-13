@@ -794,3 +794,11 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 3. **After every deploy, load the rendered page and READ it** in the user's theme. "The source looks right" and "the DOM query says clean" are necessary but not sufficient — look at the pixels.
 4. **No shortcuts. A task is not done until the live rendered result is verified.**
 **Applies to:** All.
+
+### 4.18 (2026-07-13) — PostgREST silently truncates at 1,000 rows, and Range-header paging on RPC calls is NOT honored: page in SQL, and treat a cap-sized response as a red flag
+
+**What happened:** The RSI divergence scanner's first production run "succeeded" while scanning only 1,000 of its 1,486-name universe. The producer called a set-returning database function through the REST layer, which caps any single response at max-rows (1,000 here) and gives no error, no header hint you can rely on, nothing — the truncation is silent, and the fail-loud minimum-universe gate (≥500) sailed right past it. The first fix attempt paged with `Range` headers, which our PostgREST config ignores on RPC calls: every "page" returned the same first 1,000 rows and the pager looped until the job was cancelled. The validation run hadn't caught any of this because it staged data server-side (SQL INSERT…SELECT), which has no response cap — the validation path and the production fetch path were not the same transport.
+
+**Rule:** (a) Any REST/PostgREST fetch that can return ≥1,000 rows MUST page with EXPLICIT `p_limit`/`p_offset` SQL parameters on the function itself (with a stable ORDER BY), looping until a short page — never Range headers on RPC, never a single trusting call. (b) A response of exactly the cap size (1,000) from an unpaged call is presumptively truncated — fail loud, never process it as complete. (c) Sanity gates sized as "at least N" don't catch truncation at a cap above N; when the expected cardinality is known (a universe, a panel), assert against a server-side count, not a floor. (d) If validation used a different transport than production (server-side SQL vs REST), the transport itself is untested — do one full production-path run and diff its counts against the validation run before calling the port done.
+
+**Applies to:** Lead Developer + Data Steward.
