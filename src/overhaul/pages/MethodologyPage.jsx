@@ -302,6 +302,17 @@ export default function MethodologyPage() {
               <b>Short interest</b> (FINRA short position, days-to-cover, short-volume ratio, cost to borrow)
               remains alongside the score as <b>context that does not enter it</b>, refreshed each weekday morning.
             </p>
+            <p className="me-body-p">
+              <b>RSI Divergences</b> is a separate daily screen on the scanner page and does not feed the
+              score. It compares price and 14-day RSI (simple-average method) at the two most recent
+              confirmed pivots — a pivot needs 5 bars on each side. A <b>bullish regular divergence</b> is a
+              lower price low with a higher RSI low; a <b>bearish regular divergence</b> is a higher price
+              high with a lower RSI high. Only fresh setups surface (newer pivot within 15 trading days,
+              pivots 5–30 days apart) across liquid US common stocks (last close ≥ $2, 45-day average
+              dollar volume ≥ $50M). Split-like price jumps and close-versus-VWAP disagreements are
+              filtered as data artifacts. A divergence flags a possible reversal — it is a screen to
+              investigate, not a trade signal, and it carries no timing claim.
+            </p>
           </div>
         </article>
 

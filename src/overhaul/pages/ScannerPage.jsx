@@ -23,6 +23,7 @@ import useScanScoreHistory from '../../hooks/useScanScoreHistory';
 import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
+import DivergencePanel from '../components/DivergencePanel';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 import '../styles/cream-system.css';
 import '../styles/scanner-v12.css';
@@ -276,6 +277,9 @@ export default function ScannerPage() {
         </div>
         {toast && <div className="sc-toast mt-fade">{toast}</div>}
       </section>
+
+      {/* RSI Divergences — daily price/RSI divergence screen */}
+      <DivergencePanel />
 
       {/* How the score is built */}
       <section className="wrap sc-buildsec">
