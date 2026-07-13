@@ -47,37 +47,66 @@ jobs:
               ti=[str(c).strip() if c else '' for c in rows[hi]].index('Ticker')
               return sorted({row[ti].strip() for row in rows[hi+1:] if row and ti<len(row) and isinstance(row[ti],str) and row[ti].strip() and row[ti].strip()!='-'})
           def qqq_members():
-              # Hardened 2026-06-10: the old parser scanned 8 rows for an exact
-              # 'ticker' header and raised StopIteration on a format change, so
-              # the NDX leg silently skipped while SPX kept publishing (found in
-              # the Joe indicator walk-through). Primary: Invesco CSV with a
-              # tolerant scan. Fallback: Wikipedia constituents (same source the
-              # scanner's index-membership loader uses). Hard-fail if neither
+              # Nasdaq-100 membership. 2026-07-13: Invesco's holdings CSV began
+              # returning HTTP 406 (bot-blocked) AND the Wikipedia page stopped
+              # exposing a parseable Ticker/Symbol column, so BOTH prior sources
+              # failed at once and the NDX leg silently skipped for days while
+              # SPX kept publishing (ndx breadth froze at Jul 8). Primary is now
+              # Slickcharts (server-rendered constituents table with a Symbol
+              # column, ~103 rows); Invesco (with an Accept header) and a
+              # heuristic Wikipedia parse remain as fallbacks. Hard-fail if none
               # yields a full list — never compute breadth on a partial universe.
               import csv
+              SYM=re.compile(r'^[A-Z][A-Z0-9.\-]{0,6}$')
+              def clean(vals):
+                  out=[]; seen=set()
+                  for v in vals:
+                      x=str(v).strip().upper().replace('.','-')
+                      if SYM.match(x) and x not in seen:
+                          seen.add(x); out.append(x)
+                  return sorted(out)
+              # Primary: Slickcharts
               try:
-                  r=requests.get("https://www.invesco.com/us/financial-products/etfs/holdings/main/holdings/0?audienceType=Investor&action=download&ticker=QQQ",headers={"User-Agent":UA},timeout=60)
-                  txt=r.content.decode('utf-8-sig',errors='ignore')
-                  rowsc=list(csv.reader(io.StringIO(txt)))
-                  hi=next((i for i,row in enumerate(rowsc[:40]) if any('ticker' in str(c).lower() for c in row)),None)
-                  if hi is not None:
-                      hdr=[str(c).strip().lower() for c in rowsc[hi]]
-                      ci=next((i for i,c in enumerate(hdr) if 'ticker' in c),None)
-                      if ci is not None:
-                          syms=sorted({row[ci].strip() for row in rowsc[hi+1:] if len(row)>ci and row[ci].strip() and row[ci].strip()!='-'})
-                          if len(syms)>=90: return syms
-                  print("NDX: Invesco CSV yielded too few names — falling back to Wikipedia")
+                  r=requests.get("https://www.slickcharts.com/nasdaq100",headers={"User-Agent":UA},timeout=40)
+                  r.raise_for_status()
+                  for t in pd.read_html(io.StringIO(r.text)):
+                      for c in t.columns:
+                          if 'symbol' in str(c).lower():
+                              syms=clean(t[c].tolist())
+                              if len(syms)>=90:
+                                  print("NDX: Slickcharts members",len(syms)); return syms
+                  print("NDX: Slickcharts yielded too few names — falling back to Invesco")
+              except Exception as e:
+                  print("NDX: Slickcharts fetch failed:",repr(e),"— falling back to Invesco")
+              # Fallback 1: Invesco CSV (tolerant scan; sends an Accept header)
+              try:
+                  r=requests.get("https://www.invesco.com/us/financial-products/etfs/holdings/main/holdings/0?audienceType=Investor&action=download&ticker=QQQ",headers={"User-Agent":UA,"Accept":"text/csv,*/*"},timeout=60)
+                  if r.status_code==200 and r.content:
+                      txt=r.content.decode('utf-8-sig',errors='ignore')
+                      rowsc=list(csv.reader(io.StringIO(txt)))
+                      hi=next((i for i,row in enumerate(rowsc[:40]) if any('ticker' in str(c).lower() for c in row)),None)
+                      if hi is not None:
+                          hdr=[str(c).strip().lower() for c in rowsc[hi]]
+                          ci=next((i for i,c in enumerate(hdr) if 'ticker' in c),None)
+                          if ci is not None:
+                              syms=clean(row[ci] for row in rowsc[hi+1:] if len(row)>ci)
+                              if len(syms)>=90:
+                                  print("NDX: Invesco members",len(syms)); return syms
+                  print("NDX: Invesco unusable (status",r.status_code,") — falling back to Wikipedia")
               except Exception as e:
                   print("NDX: Invesco fetch failed:",repr(e),"— falling back to Wikipedia")
-              r=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers={"User-Agent":UA},timeout=30)
-              r.raise_for_status()
-              for t in pd.read_html(io.StringIO(r.text)):
-                  for col in ("Ticker","Symbol"):
-                      if col in t.columns:
-                          syms=sorted({re.sub(r'[^A-Z.\-]','',str(x).upper()) for x in t[col].astype(str).tolist()})
-                          syms=[x for x in syms if 1<=len(x)<=6]
-                          if len(syms)>=90: return syms
-              raise RuntimeError("NDX membership unavailable from Invesco AND Wikipedia")
+              # Fallback 2: Wikipedia — heuristic (any column that is mostly ticker-shaped)
+              try:
+                  r=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers={"User-Agent":UA},timeout=30)
+                  r.raise_for_status()
+                  for t in pd.read_html(io.StringIO(r.text)):
+                      for c in t.columns:
+                          syms=clean(t[c].tolist())
+                          if len(syms)>=90:
+                              print("NDX: Wikipedia members",len(syms)); return syms
+              except Exception as e:
+                  print("NDX: Wikipedia fetch failed:",repr(e))
+              raise RuntimeError("NDX membership unavailable from Slickcharts, Invesco AND Wikipedia")
           def pull_closes(tickers, in_years=22, batch=25):
               # Fast INDEXED pull of (ticker, date, close); no recursive CTE. EMA is
               # computed in Python below — the recursion's cost scales with history
@@ -126,7 +155,7 @@ jobs:
               s=s[s.index>=s.index.max()-pd.Timedelta(days=365*wy)]
               if len(s)>20: s=s.clip(lower=s.quantile(0.01),upper=s.quantile(0.99))
               return {"mean":round(float(s.mean()),4),"sd":round(float(s.std()),4),"window":f"{wy}y","winsorize":"1%-99%","n":int(len(s)),"direction":direction}
-          out={}
+          out={}; errors=[]
           for code,memfn,k50,k200 in [("SPX",spy_members,"spx_above_50ema","spx_above_200ema"),("NDX",qqq_members,"ndx_above_50ema","ndx_above_200ema")]:
               try:
                   mem=memfn(); print(code,"members",len(mem))
@@ -143,6 +172,17 @@ jobs:
                   print(code,"days",len(p200),"range",p200[0][0],"->",p200[-1][0],"latest %>50d",p50[-1],"%>200d",p200[-1])
               except Exception as e:
                   print(code,"FAILED",repr(e))
+                  errors.append("%s: %r"%(code,e))
+          # Fail loud (LESSONS 4.5): if EITHER index failed, or the two indices
+          # do not agree on the latest session, refuse to publish. Publishing a
+          # partial file is exactly what froze NDX at Jul 8 while SPX advanced.
+          if errors:
+              raise SystemExit("BREADTH producer failed for: "+"; ".join(errors)+" — refusing to publish a partial/stale file.")
+          asofs={k:v["as_of"] for k,v in out.items()}
+          if len(out)<4:
+              raise SystemExit("BREADTH producer produced only %s of 4 series (%s) — refusing to publish."%(len(out),list(out)))
+          if len(set(asofs.values()))>1:
+              raise SystemExit("BREADTH indices disagree on latest session %s — one index is stale; refusing to publish."%asofs)
           fn="public/indicator_history.json"; d=json.load(open(fn)); d.update(out)
           json.dump(d,open(fn,"w"),separators=(",",":"))
           print("wrote keys:",list(out.keys()))

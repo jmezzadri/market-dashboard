@@ -710,6 +710,9 @@ async function handle(req: Request): Promise<Response> {
   try {
     const expectedDate = lastTradingDayUtcDate(now);
     for (const tbl of ["macro_commentary", "sector_commentary"] as const) {
+      const synthId = tbl === "macro_commentary" ? "narrative_macro" : "narrative_sector";
+      const label   = tbl === "macro_commentary" ? "Macro narrative blurb" : "Sector narrative blurb";
+
       const { data: latest, error: nErr } = await supabase
         .from(tbl)
         .select("generated_date,generated_at")
@@ -717,58 +720,90 @@ async function handle(req: Request): Promise<Response> {
         .limit(1);
       if (nErr) continue;
       const haveDate = (latest && latest[0]?.generated_date) || null;
+      const haveTs   = (latest && latest[0]?.generated_at)   || null;
       const isStale  = !haveDate || haveDate < expectedDate;
-      if (!isStale) continue;
 
-      // Synthetic health-row id for this surface, so debounce works.
-      const synthId = tbl === "macro_commentary" ? "narrative_macro" : "narrative_sector";
+      // Preserve debounce timestamp + prev_status across the upsert.
       const { data: prev } = await supabase
         .from("pipeline_health")
-        .select("last_alerted_at")
+        .select("status,last_alerted_at")
         .eq("indicator_id", synthId)
         .maybeSingle();
-      const lastAlertAge = prev?.last_alerted_at
-        ? (Date.now() - new Date(prev.last_alerted_at).getTime()) / 3600_000
-        : Infinity;
-      if (skipAlerts || lastAlertAge < ALERT_DEBOUNCE_HOURS) continue;
 
-      try {
-        await sendEmail({
-          to: ALERT_TO,
-          subject: `[MacroTilt] Editorial blurb missing for ${expectedDate}`,
-          html: `
-            <p>Hi Joe,</p>
-            <p>The <strong>${tbl === "macro_commentary" ? "macro" : "sector"}</strong> editorial blurb for the last trading day (${expectedDate}) was never generated.</p>
-            <ul>
-              <li><strong>Most recent row</strong>: ${haveDate || "(none in table)"}</li>
-              <li><strong>Expected for</strong>: ${expectedDate}</li>
-              <li><strong>Trigger</strong>: invoke <code>generate-commentary</code> manually or check that the nightly schedule is wired.</li>
-            </ul>
-            <p>This alert repeats at most once per ${ALERT_DEBOUNCE_HOURS}h.</p>
-          `,
-        });
-        narrativeAlertsSent++;
-        // Persist debounce timestamp on synthetic row (insert-on-conflict).
+      // 2026-07-13 fix — this block previously wrote the synthetic health row
+      // ONLY on staleness, and only ever with status="red". It never stamped
+      // a recovery, so narrative_sector was stuck red with last_good_at=null
+      // forever even though generate-commentary writes a sector blurb to
+      // sector_commentary every day. The row is now stamped on EVERY run:
+      // green with an honest last_good_at (the blurb's real generated_at)
+      // when the last trading day's blurb exists, red when it is missing —
+      // so it self-heals. The source label now names the ACTUAL table each
+      // surface reads instead of a hardcoded "macro_commentary table".
+      if (!isStale) {
         await supabase.from("pipeline_health").upsert([{
           indicator_id: synthId,
-          label: tbl === "macro_commentary" ? "Macro narrative blurb" : "Sector narrative blurb",
-          source: "macro_commentary table",
+          label,
+          source: `${tbl} table`,
           cadence: "D",
           expected_cadence_minutes: 1440,
           last_check_at: now.toISOString(),
-          last_alerted_at: now.toISOString(),
-          status: "red",
+          last_good_at: haveTs,
+          data_as_of: haveDate,
+          last_error: null,
+          status: "green",
+          prev_status: prev?.status ?? null,
+          last_alerted_at: prev?.last_alerted_at ?? null,
         }], { onConflict: "indicator_id" });
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error("[pipeline-health-check] Narrative-gap email error:", (e as Error).message);
+        continue;
       }
+
+      // Stale — most recent blurb is behind the last trading day. Debounced email.
+      const lastAlertAge = prev?.last_alerted_at
+        ? (Date.now() - new Date(prev.last_alerted_at).getTime()) / 3600_000
+        : Infinity;
+      const willAlert = !skipAlerts && lastAlertAge >= ALERT_DEBOUNCE_HOURS;
+      if (willAlert) {
+        try {
+          await sendEmail({
+            to: ALERT_TO,
+            subject: `[MacroTilt] Editorial blurb missing for ${expectedDate}`,
+            html: `
+              <p>Hi Joe,</p>
+              <p>The <strong>${tbl === "macro_commentary" ? "macro" : "sector"}</strong> editorial blurb for the last trading day (${expectedDate}) was never generated.</p>
+              <ul>
+                <li><strong>Most recent row</strong>: ${haveDate || "(none in table)"}</li>
+                <li><strong>Expected for</strong>: ${expectedDate}</li>
+                <li><strong>Trigger</strong>: invoke <code>generate-commentary</code> manually or check that the nightly schedule is wired.</li>
+              </ul>
+              <p>This alert repeats at most once per ${ALERT_DEBOUNCE_HOURS}h.</p>
+            `,
+          });
+          narrativeAlertsSent++;
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("[pipeline-health-check] Narrative-gap email error:", (e as Error).message);
+        }
+      }
+
+      await supabase.from("pipeline_health").upsert([{
+        indicator_id: synthId,
+        label,
+        source: `${tbl} table`,
+        cadence: "D",
+        expected_cadence_minutes: 1440,
+        last_check_at: now.toISOString(),
+        last_good_at: haveTs,
+        data_as_of: haveDate,
+        last_error: `blurb missing for ${expectedDate} (most recent ${haveDate || "none"})`,
+        status: "red",
+        prev_status: prev?.status ?? null,
+        last_alerted_at: willAlert ? now.toISOString() : (prev?.last_alerted_at ?? null),
+      }], { onConflict: "indicator_id" });
     }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[pipeline-health-check] Narrative-gap check failed:", (e as Error).message);
   }
-
   return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, narrativeAlertsSent });
 }
 
