@@ -62,7 +62,7 @@ $$;
 --     45-trading-day avg dollar volume >= $50M, >= 40 of the 45 days present,
 --     traded on the scan day itself. ADV cap $40B guards vendor bad-price
 --     rows (real single names do not print $40B/day averages).
-create or replace function public.divergence_universe(p_scan_date date)
+create or replace function public.divergence_universe(p_scan_date date, p_limit int default 1000, p_offset int default 0)
 returns table(ticker text, name text, adv_usd numeric, days_present int, last_close numeric)
 language sql stable as $$
   -- day window = panel-complete trading days only (>=5000 tickers), bounded
@@ -89,6 +89,8 @@ language sql stable as $$
      and avg(p.close * p.volume) >= 50e6
      and avg(p.close * p.volume) <  40e9
      and max(p.close) filter (where p.trade_date = p_scan_date) >= 2
+  order by p.ticker
+  limit p_limit offset p_offset
 $$;
 
 -- (c) Per-ticker OHLC bar arrays (ascending by date) for a ticker batch.
@@ -120,10 +122,10 @@ $$;
 
 -- Helper functions are for the backend producer only.
 revoke execute on function public.divergence_latest_complete_day(int) from public, anon, authenticated;
-revoke execute on function public.divergence_universe(date) from public, anon, authenticated;
+revoke execute on function public.divergence_universe(date, int, int) from public, anon, authenticated;
 revoke execute on function public.divergence_bars(date, text[], int) from public, anon, authenticated;
 grant  execute on function public.divergence_latest_complete_day(int) to service_role;
-grant  execute on function public.divergence_universe(date) to service_role;
+grant  execute on function public.divergence_universe(date, int, int) to service_role;
 grant  execute on function public.divergence_bars(date, text[], int) to service_role;
 
 -- 5) pipeline_health seed row (freshness chip; checker only updates EXISTING
