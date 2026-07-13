@@ -426,6 +426,21 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 ---
 
+### 2026-07-13 — Stale-feeds incident: a dead dispatcher, a silent breadth skip, and a health row that could only go red
+
+**What happened:** Four feeds plus the sector-narrative health row were stale at once, each from an independent, silent failure.
+(a) `trigger-workflow` — the edge function every Supabase-cron backup job calls to fire a GitHub Actions run — returned 503 BOOT_ERROR on every call; the deployed bundle was un-bootable (the management API could not even retrieve it). Every backup dispatch silently no-opped, so the two Paper intraday feeds went stale the first time GitHub also dropped the workflow's own schedule. A second latent bug hid behind the boot error: `PAPER-PORTFOLIO-INTRADAY.yml` was never in the dispatcher's allowlist, so even a booting dispatcher would have returned `workflow_not_allowed`.
+(b) The index-breadth producer (`BREADTH-DAILY`) wrapped each index in a per-index `try/except` that printed "FAILED" and let the job commit an S&P-only file and exit green. When both Nasdaq-100 membership sources broke at once (Invesco holdings CSV -> HTTP 406, Wikipedia dropped its parseable Ticker column), the NDX leg silently skipped and `ndx_above_50ema/200ema` froze at Jul 8 while the S&P pair advanced — no error, coverage still 100%.
+(c) `narrative_sector` was red with `last_good_at = null` forever. The health check's narrative-gap block only ever wrote the synthetic row with `status=red` on staleness and never stamped a green recovery, and its `source` label was hardcoded to `macro_commentary` for both surfaces — even though the sector blurb is written to `sector_commentary` daily.
+
+**Rule:**
+- A dispatcher whose failure silently disables a whole class of backup jobs must never boot-crash: read secrets lazily inside the handler (a missing secret returns a clean 500, not a dead isolate) and use the built-in `Deno.serve` so no module is fetched over the network at boot. Its allowlist is part of the contract — every workflow any pg_cron job dispatches through it must be listed; re-check `cron.job` whenever a workflow is renamed or added.
+- A multi-part producer NEVER publishes a partial file. If any part fails, or the parts disagree on the latest session, the whole run exits non-zero and commits nothing — a per-part `try/except` that lets the run "succeed" on a subset is the silent-staleness bug (4.5) in a new place. Index-membership sources are fragile and change without notice: keep a primary plus fallbacks and hard-fail if none yields a full universe (Nasdaq-100 now: Slickcharts primary, Invesco + Wikipedia fallback).
+- A health/watchdog row must be able to recover on its own. A check that only ever writes `red` (and skips the row when healthy) can never return to green — stamp the row every run: green with an honest `last_good_at` when the evidence exists, red when it does not. A row's `source` label names the ACTUAL table/file it reads, per surface — never a copy-paste of a sibling's source.
+
+**Applies to:** Lead Developer + Data Steward own; Senior Quant on the breadth membership + fail-loud. Every dispatcher, every multi-part producer, every synthetic health row.
+
+
 # 5 · QUANT METHODOLOGY
 
 ### 5.1 (2026-05-13) — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
