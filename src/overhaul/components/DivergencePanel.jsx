@@ -84,17 +84,21 @@ function DvTable({ rows, dir, watchlist, onPick }) {
             {COLS.map((c) => {
               const sortKey = c.key === 'ticker' ? 'ticker' : c.sortKey;
               const active = sortKey && sort.key === sortKey;
-              const th = (
+              /* Tip must live INSIDE the th — a wrapper between tr and th
+                 breaks table structure and the browser reparents the row. */
+              const label = c.tip
+                ? <Tip content={c.tip} bare><span>{c.label}</span></Tip>
+                : c.label;
+              return (
                 <th
                   key={c.key}
                   className={`${c.numeric ? 'num-h' : ''} ${sortKey ? 'sortable' : ''} ${active ? 'on' : ''}`}
                   aria-sort={active ? (sort.asc ? 'ascending' : 'descending') : undefined}
                   onClick={() => clickSort(sortKey)}
                 >
-                  {c.label}{active ? (sort.asc ? ' ↑' : ' ↓') : ''}
+                  {label}{active ? (sort.asc ? ' \u2191' : ' \u2193') : ''}
                 </th>
               );
-              return c.tip ? <Tip key={c.key} content={c.tip} bare>{th}</Tip> : th;
             })}
           </tr>
         </thead>
