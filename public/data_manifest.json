@@ -3829,6 +3829,40 @@
    "release_calendar": "us-business-day",
    "dependencies": [],
    "sla_basis": "Weekly job; PULL SLA = weekly cadence + grace (~8 days / 192h). Data window 480h covers the NY Fed publication lag."
+  },
+  {
+   "id": "equity-rsi_divergences-daily",
+   "category": "equity",
+   "name": "rsi_divergences",
+   "description": "Daily RSI divergence scan over liquid US common stocks: regular price/RSI(14) divergences at the two most recent confirmed pivots (bullish and bearish), shown on the Trading Scanner's RSI Divergences section. A screen, not a signal.",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt (computed from prices_eod + universe_master [Polygon Massive])",
+   "source_endpoint": "Supabase functions divergence_latest_complete_day / divergence_universe / divergence_bars (migration 076)",
+   "license_tier": "internal",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "08:45",
+   "refresh_trigger": "DIVERGENCE_SCAN_DAILY (workflow_run chain off MASSIVE-DAILY + 08:45 ET Tue-Sat crons)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "Supabase divergence_scan (append-only across scan_dates; delete+rewrite within a scan_date)",
+   "producer_script": "scripts/compute_divergences.py",
+   "consumer_surfaces": [
+    {
+     "tab": "scanner"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Fail-loud: stale upstream, small universe, missing bars, or write-verification mismatch all abort red with no partial publish; section holds last good dated scan and its chip reds.",
+   "owner": "Data Steward",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [
+    "market-prices_eod-daily"
+   ],
+   "as_of_cutoff_et": "16:00",
+   "as_of_cutoff_note": "as-of latest complete session close (T+1 morning compute)",
+   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. data_max_age 54h mirrors the sibling daily scan elements."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

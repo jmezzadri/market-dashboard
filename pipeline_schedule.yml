@@ -307,6 +307,19 @@ bespoke:
 #     present in the current worktree's .github/workflows/ — may be folded
 #     into V5_SCAN_DAILY or another orchestrator. Reconcile next review.
 
+  - DIVERGENCE_SCAN_DAILY.yml:
+      schedule: "08:45 ET Tue-Sat + chained off MASSIVE-DAILY completion"
+      manifest_element: equity-rsi_divergences-daily
+      reason: |
+        Computes from prices_eod, so it must run AFTER Massive's
+        next-morning "panel complete" ingest (~08:00 ET) — the same-day
+        T+0 batch covers only a few dozen tickers, the full T+1 panel
+        lands next morning. 08:45 keeps it clear of the trading-opps
+        screener's 08:30 window; the workflow_run chain also fires it as
+        soon as Massive finishes, whatever the clock says. Idempotent per
+        scan_date (delete+rewrite), so double-fires are harmless.
+      review_date: 2026-08-13
+
   - SCREENER_TRADING_OPPS_DAILY.yml:
       schedule: "19:00 ET weekdays"
       manifest_element: screener.trading-opps-signals

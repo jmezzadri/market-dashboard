@@ -1,0 +1,73 @@
+name: DIVERGENCE_SCAN_DAILY
+
+# Pipeline: equity-rsi_divergences-daily — the nightly RSI divergence scanner.
+#
+# Reads prices_eod + universe_master through three server-side helper
+# functions (divergence_latest_complete_day / divergence_universe /
+# divergence_bars, migration 076), computes regular price/RSI divergences
+# over the liquid US common-stock universe (~1,500 names: CS only, >= $2,
+# 45-day ADV >= $50M), and rewrites public.divergence_scan for the latest
+# complete close. Append-only across scan_dates; delete+rewrite within a
+# scan_date, so every fire is idempotent.
+#
+# Consumer: Trading Scanner -> "RSI Divergences" section.
+# Freshness: stamps pipeline_health row `rsi_divergences` green only after
+# a verified publish; any failure red-stamps and publishes nothing.
+#
+# Scheduled after Massive's next-morning "panel complete" ingest (~08:00 ET)
+# for the same reason the trading-opps screener runs mornings: the same-day
+# T+0 batch is only a few dozen tickers. 08:45 ET keeps clear of the
+# screener's 08:30 window; the workflow_run chain fires as soon as Massive
+# finishes regardless of clock time.
+#
+# Required GitHub secrets (already configured for sibling ingests):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    - cron: '45 12 * * 2-6'   # 08:45 ET (EDT); Tue-Sat = T+1 for Mon-Fri closes
+    - cron: '45 13 * * 2-6'   # 08:45 ET (EST); idempotent double-fire across DST
+  workflow_run:
+    workflows: ["MASSIVE-DAILY"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute + log only, do not write (true/false)"
+        required: false
+        default: 'false'
+
+concurrency:
+  group: divergence-scan-daily
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Unit tests (RSI + pivots + detector, hand-computed cases)
+        run: python3 scripts/test_divergences.py
+
+      - name: Run the divergence scan
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN:                   ${{ github.event.inputs.dry_run || 'false' }}
+        run: python3 scripts/compute_divergences.py
+
+      - name: Red stamp on failure
+        if: failure()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py rsi_divergences - red "DIVERGENCE_SCAN_DAILY failed — see workflow run logs"
