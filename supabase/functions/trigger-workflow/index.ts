@@ -29,6 +29,11 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml",
   "UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml",
   "MASSIVE-DAILY.yml",
+  // 2026-07-13 — the pg_cron backup `paper-intraday-backup-hourly` dispatches
+  // this to cover GitHub silently dropping the intraday schedule (LESSONS
+  // 4.13/4.17). It was missing here, so the backup returned workflow_not_allowed
+  // and the two Paper intraday feeds went stale whenever GitHub skipped a slot.
+  "PAPER-PORTFOLIO-INTRADAY.yml",
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last
