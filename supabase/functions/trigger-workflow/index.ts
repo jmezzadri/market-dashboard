@@ -8,12 +8,18 @@
 //
 // Request body: { workflow: string, ref?: string }
 // Response:     { triggered: boolean, ... }
+//
+// 2026-07-13 — Hardened against boot failure. The deployed bundle began
+// returning 503 BOOT_ERROR on every call, which silently no-opped every
+// Supabase-cron backup job that dispatches through this function (paper
+// intraday, indicator refresh, universe snapshots, massive daily, scan
+// backups). Two changes remove the boot-time failure surface: (1) use the
+// built-in Deno.serve instead of the external std/http `serve` import, so
+// there is no module fetched over the network at boot; (2) read all
+// secrets lazily inside the handler instead of at module load, so a
+// missing secret returns a clean 500 rather than crashing the isolate.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const GH_TOKEN   = Deno.env.get("GITHUB_TRIAGE_TOKEN")!;
-const GH_REPO    = Deno.env.get("GITHUB_REPO") || "jmezzadri/market-dashboard";
-const WH_TOKEN   = Deno.env.get("TRIAGE_WEBHOOK_TOKEN")!;
+const GH_API = "https://api.github.com";
 
 // Allowlist — only these workflows can be triggered by this function.
 // Prevents an exfiltrated TRIAGE_WEBHOOK_TOKEN from firing arbitrary
@@ -26,17 +32,8 @@ const ALLOWED_WORKFLOWS = new Set<string>([
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last
-// DEDUPE_WINDOW_MIN minutes, skip firing. Covers: GitHub's own cron
-// already fired, OR the caller retried within the same window.
+// DEDUPE_WINDOW_MIN minutes, skip firing.
 const DEDUPE_WINDOW_MIN = 90;
-
-const GH_API = "https://api.github.com";
-const ghHeaders = {
-  "Authorization": `Bearer ${GH_TOKEN}`,
-  "Accept": "application/vnd.github+json",
-  "X-GitHub-Api-Version": "2022-11-28",
-  "Content-Type": "application/json",
-};
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -45,28 +42,33 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-async function ghGet(path: string): Promise<unknown> {
-  const r = await fetch(`${GH_API}${path}`, { headers: ghHeaders });
-  if (!r.ok) {
-    throw new Error(`GH GET ${path} → ${r.status} ${await r.text()}`);
-  }
+function ghHeaders(token: string) {
+  return {
+    "Authorization": `Bearer ${token}`,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "Content-Type": "application/json",
+  };
+}
+
+async function ghGet(token: string, path: string): Promise<unknown> {
+  const r = await fetch(`${GH_API}${path}`, { headers: ghHeaders(token) });
+  if (!r.ok) throw new Error(`GH GET ${path} -> ${r.status} ${await r.text()}`);
   return r.json();
 }
 
 // POST /dispatches returns 204 with empty body — handle that case.
-async function ghDispatch(workflow: string, ref: string): Promise<void> {
-  const path = `/repos/${GH_REPO}/actions/workflows/${workflow}/dispatches`;
+async function ghDispatch(repo: string, token: string, workflow: string, ref: string): Promise<void> {
+  const path = `/repos/${repo}/actions/workflows/${workflow}/dispatches`;
   const r = await fetch(`${GH_API}${path}`, {
     method: "POST",
-    headers: ghHeaders,
+    headers: ghHeaders(token),
     body: JSON.stringify({ ref }),
   });
-  if (r.status !== 204) {
-    throw new Error(`GH POST ${path} → ${r.status} ${await r.text()}`);
-  }
+  if (r.status !== 204) throw new Error(`GH POST ${path} -> ${r.status} ${await r.text()}`);
 }
 
-async function recentSuccessfulRun(workflow: string, windowMin: number) {
+async function recentSuccessfulRun(repo: string, token: string, workflow: string, windowMin: number) {
   type Run = {
     id: number;
     status: string;
@@ -77,27 +79,32 @@ async function recentSuccessfulRun(workflow: string, windowMin: number) {
     event: string;
   };
   const data = await ghGet(
-    `/repos/${GH_REPO}/actions/workflows/${workflow}/runs?per_page=10`,
+    token,
+    `/repos/${repo}/actions/workflows/${workflow}/runs?per_page=10`,
   ) as { workflow_runs: Run[] };
 
   const cutoff = Date.now() - windowMin * 60_000;
   for (const run of data.workflow_runs) {
     const t = Date.parse(run.updated_at);
     if (t < cutoff) break; // runs are newest-first; stop scanning
-    if (run.status === "completed" && run.conclusion === "success") {
-      return run;
-    }
-    if (run.status === "queued" || run.status === "in_progress") {
-      // Treat in-flight runs as a dedupe hit too — don't stack.
-      return run;
-    }
+    if (run.status === "completed" && run.conclusion === "success") return run;
+    if (run.status === "queued" || run.status === "in_progress") return run;
   }
   return null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return json({ error: "method_not_allowed" }, 405);
+  }
+
+  // Lazy env reads — a missing secret returns a clean 500, never a boot crash.
+  const GH_TOKEN = Deno.env.get("GITHUB_TRIAGE_TOKEN") || "";
+  const GH_REPO  = Deno.env.get("GITHUB_REPO") || "jmezzadri/market-dashboard";
+  const WH_TOKEN = Deno.env.get("TRIAGE_WEBHOOK_TOKEN") || "";
+  if (!GH_TOKEN || !WH_TOKEN) {
+    const missing = [!GH_TOKEN ? "GITHUB_TRIAGE_TOKEN" : "", !WH_TOKEN ? "TRIAGE_WEBHOOK_TOKEN" : ""].filter(Boolean).join(", ");
+    return json({ error: "server_misconfigured", detail: `missing secret(s): ${missing}` }, 500);
   }
 
   // Auth
@@ -130,7 +137,7 @@ serve(async (req) => {
   // Dedupe check
   let recent;
   try {
-    recent = await recentSuccessfulRun(workflow, DEDUPE_WINDOW_MIN);
+    recent = await recentSuccessfulRun(GH_REPO, GH_TOKEN, workflow, DEDUPE_WINDOW_MIN);
   } catch (e) {
     return json({ error: "github_api_error", detail: String(e) }, 502);
   }
@@ -154,7 +161,7 @@ serve(async (req) => {
   // Fire dispatch
   const dispatchedAt = new Date().toISOString();
   try {
-    await ghDispatch(workflow, ref);
+    await ghDispatch(GH_REPO, GH_TOKEN, workflow, ref);
   } catch (e) {
     return json({ error: "github_dispatch_failed", detail: String(e) }, 502);
   }
