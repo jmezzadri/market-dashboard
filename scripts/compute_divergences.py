@@ -84,11 +84,14 @@ def _headers(key, extra=None):
     return h
 
 
-def rpc(name, payload, retries=3):
+PAGE = 1000  # PostgREST caps a single response at max-rows (1000 here)
+
+
+def rpc(name, payload, retries=3, headers_extra=None):
     url, key = _env()
     for attempt in range(1, retries + 1):
         try:
-            r = requests.post(f"{url}/rest/v1/rpc/{name}", headers=_headers(key),
+            r = requests.post(f"{url}/rest/v1/rpc/{name}", headers=_headers(key, headers_extra),
                               data=json.dumps(payload), timeout=180)
             if r.status_code < 300:
                 return r.json()
@@ -99,6 +102,27 @@ def rpc(name, payload, retries=3):
             print(f"  rpc {name} attempt {attempt} failed ({e}); retrying", file=sys.stderr)
             time.sleep(4 * attempt)
     return None
+
+
+def rpc_all(name, payload):
+    """Set-returning RPC, paginated with Range headers until a short page.
+
+    PostgREST silently truncates any response at its max-rows cap — the
+    2026-07-13 first-run bug: the universe came back as exactly 1,000 of
+    1,486 names and the run "succeeded" on a partial universe. Never trust
+    a single page; always walk pages until one comes back short.
+    """
+    out = []
+    start = 0
+    while True:
+        page = rpc(name, payload, headers_extra={
+            "Range-Unit": "items", "Range": f"{start}-{start + PAGE - 1}"})
+        if not isinstance(page, list):
+            raise RuntimeError(f"rpc {name} returned non-list page: {type(page)}")
+        out.extend(page)
+        if len(page) < PAGE:
+            return out
+        start += PAGE
 
 
 # ── math (pure; unit-tested in scripts/test_divergences.py) ─────────────────
@@ -220,7 +244,7 @@ def main():
     print(f"scan day: {scan_day} (complete-panel close, {age_days}d old)")
 
     # 2) universe
-    universe = rpc("divergence_universe", {"p_scan_date": scan_day})
+    universe = rpc_all("divergence_universe", {"p_scan_date": scan_day})
     if not isinstance(universe, list) or len(universe) < MIN_UNIVERSE:
         fail_red(f"universe too small: {0 if not isinstance(universe, list) else len(universe)} names (< {MIN_UNIVERSE})", t0)
     meta_by_ticker = {u["ticker"]: u for u in universe}
@@ -231,7 +255,7 @@ def main():
     bars_by_ticker = {}
     for i in range(0, len(tickers), CHUNK_TICKERS):
         chunk = tickers[i:i + CHUNK_TICKERS]
-        rows = rpc("divergence_bars", {"p_scan_date": scan_day, "p_tickers": chunk, "p_days": BARS_DAYS})
+        rows = rpc_all("divergence_bars", {"p_scan_date": scan_day, "p_tickers": chunk, "p_days": BARS_DAYS})
         for r in rows or []:
             bars_by_ticker[r["ticker"]] = r
     missing = [t for t in tickers if t not in bars_by_ticker]
