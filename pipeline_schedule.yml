@@ -320,6 +320,31 @@ bespoke:
         scan_date (delete+rewrite), so double-fires are harmless.
       review_date: 2026-08-13
 
+  - MOMENTUM-LIST-MONTHLY.yml:
+      schedule: "1st of month 06:00 ET"
+      manifest_element: equity-momentum_list-monthly
+      reason: |
+        Momentum sleeve monthly ranked list (Two-Sleeve build PR-1, spec
+        2026-07-14). Standard monthly-on-the-1st slow-data slot per the
+        normalization rule; computes off the PRIOR month's last
+        panel-complete day, so the 06:00 slot never races the price
+        ingest. Idempotent per rebalance_date (delete+rewrite), so the
+        DST double cron and manual re-fires are harmless.
+      review_date: 2026-08-13
+
+  - DIVERGENCE_SCAN_DAILY.yml (guard step):
+      schedule: "08:45 ET Tue-Sat + chained off MASSIVE-DAILY completion (rides the divergence workflow)"
+      manifest_element: market-momentum_guard-daily
+      reason: |
+        Daily SPY-vs-200-day crash-guard refresh for the Momentum sleeve.
+        The list is monthly but the cash/invested flag must never be a
+        month stale. Bespoke slot (not 06:00): it needs the same
+        panel-complete morning timing as prices_eod, so it rides
+        DIVERGENCE_SCAN_DAILY as a 1-script step instead of a new
+        workflow. Data Steward sign-off 2026-07-14; reason mirrored in
+        the manifest entry.
+      review_date: 2026-08-13
+
   - SCREENER_TRADING_OPPS_DAILY.yml:
       schedule: "19:00 ET weekdays"
       manifest_element: screener.trading-opps-signals
