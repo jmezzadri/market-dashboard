@@ -1,0 +1,62 @@
+name: DIVERGENCE-BACKTEST-ONEOFF
+
+# One-off dispatch study (approved 2026-07-13): does the RSI divergence
+# screen predict reversals? Re-runs the SHIPPED detector (imported from
+# scripts/compute_divergences.py) over weekly historical scan dates and
+# measures forward excess returns vs SPY at 5/21/63 trading days.
+#
+# NOT a scheduled pipeline: dispatch-only, read-only against the database,
+# produces a workflow artifact (CSVs + meta JSON) and writes nothing.
+# No manifest element / freshness row — there is no feed and no consumer
+# surface. Delete this workflow after the study concludes if unwanted.
+#
+# Required GitHub secrets (already configured for sibling ingests):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      study_start:
+        description: "First scan date (feasibility-set default: 2021-01-01)"
+        required: false
+        default: '2021-01-01'
+      scan_limit:
+        description: "Cap number of weekly scans (0 = all; use 6 for a smoke run)"
+        required: false
+        default: '0'
+
+concurrency:
+  group: divergence-backtest-oneoff
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Unit tests (shipped detector must still pass its hand-computed cases)
+        run: python3 scripts/test_divergences.py
+
+      - name: Run the backtest study
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STUDY_START:               ${{ github.event.inputs.study_start || '2021-01-01' }}
+          SCAN_LIMIT:                ${{ github.event.inputs.scan_limit || '0' }}
+          OUT_DIR:                   bt_out
+        run: python3 scripts/backtest_divergences.py
+
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: divergence-backtest-results
+          path: bt_out/
+          retention-days: 30
