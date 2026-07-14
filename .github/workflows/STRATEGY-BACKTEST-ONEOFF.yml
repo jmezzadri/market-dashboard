@@ -1,0 +1,58 @@
+name: STRATEGY-BACKTEST-ONEOFF
+
+# One-off dispatch study (approved via popup 2026-07-13): can a systematic
+# sleeve beat the S&P 500 long-term? Tests momentum, momentum + 200-day
+# crash guard, low-volatility, and insider-conviction portfolios, monthly
+# rebalance, net of costs, vs SPY and the equal-weight universe.
+#
+# NOT a scheduled pipeline: dispatch-only, read-only, artifact-only.
+# No manifest element / freshness row — no feed, no consumer surface yet;
+# any site exposure is a separate PR gated on these results (Policy A).
+#
+# Required GitHub secrets (already configured for sibling ingests):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      study_start:
+        description: "Calendar start (default 2003-01-02)"
+        required: false
+        default: '2003-01-02'
+      rebal_limit:
+        description: "Cap on monthly rebalances, most recent first (0 = all; 14 for a smoke run)"
+        required: false
+        default: '0'
+
+concurrency:
+  group: strategy-backtest-oneoff
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run the strategy backtest study
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STUDY_START:               ${{ github.event.inputs.study_start || '2003-01-02' }}
+          REBAL_LIMIT:               ${{ github.event.inputs.rebal_limit || '0' }}
+          OUT_DIR:                   bt_out
+        run: python3 scripts/backtest_strategies.py
+
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: strategy-backtest-results
+          path: bt_out/
+          retention-days: 30
