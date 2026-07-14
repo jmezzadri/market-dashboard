@@ -367,7 +367,10 @@ function splitBook(totalNav, insGross, momGross, insCap, momCap) {
    P&L, the gap to the S&P, and a compact strip of the four $1M buy-and-hold
    benchmarks. Same inputs as the old matrix (paper_nav_daily / intraday row +
    the benchmark closes stamped on it) — presentation only. */
-function BookCard({ navHistory, live = false, asOfIso = null }) {
+// day$Override: the SUM of the two sleeve cards' Today numbers (one shared
+// computation, Joe rule 2026-06-12 — the book card and the sleeve cards must
+// tie by construction, never two bases for the same word).
+function BookCard({ navHistory, live = false, asOfIso = null, day$Override = null }) {
   const empty = !navHistory || navHistory.length === 0;
   const latest = empty ? null : navHistory[navHistory.length - 1];
   const prev = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
@@ -382,9 +385,7 @@ function BookCard({ navHistory, live = false, asOfIso = null }) {
   }
   const TOTAL_CAP = STARTING_CAPITAL;
   const nav = latest.total_nav;
-  const day$ = (latest.sleeve_b_day_pnl != null && latest.sleeve_m_day_pnl == null)
-    ? latest.sleeve_b_day_pnl
-    : (prev?.total_nav != null && nav != null ? nav - prev.total_nav : null);
+  const day$ = day$Override;
   const dayPct = (day$ != null && prev?.total_nav) ? day$ / prev.total_nav : null;
   const incep$ = nav != null ? nav - TOTAL_CAP : null;
   const incepPct = nav != null ? nav / TOTAL_CAP - 1 : null;
@@ -1128,6 +1129,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   };
   const insLast = useMemo(() => lastActionFor('B'), [orders]);
   const momLast = useMemo(() => lastActionFor('M'), [orders]);
+  // ONE "Today" computation (Joe rule 2026-06-12): each sleeve's Today is the
+  // sum of its displayed positions' session P&L; the book card's Today is the
+  // sum of the two sleeve numbers — agreement by construction.
+  const dayB = sleeveB.length ? sleeveB.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
+  const dayM = sleeveM.length ? sleeveM.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
+  const dayBook = (dayB == null && dayM == null) ? null : (dayB || 0) + (dayM || 0);
 
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
@@ -1151,7 +1158,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </ul>
         </Reveal>
         <Reveal className="pp-heroright">
-          <BookCard navHistory={navForCard} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} />
+          <BookCard navHistory={navForCard} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} day$Override={dayBook} />
         </Reveal>
       </section>
 
@@ -1188,14 +1195,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
               cash: split.insCash, positions: sleeveB, last: insLast,
-              day$: sleeveB.length ? sleeveB.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null,
+              day$: dayB,
               incep: insIncep, spySame: momCap === 0 ? spyIncep : null,
               infoDef: 'Buys at Score ≥ 4 (max 5), a fixed $100K per name, holds until the score decays below 3; rebalanced daily on the open.',
             },
             {
               code: 'M', n: 2, name: 'Momentum', value: momCap > 0 ? split.momValue : null,
               cash: split.momCash, positions: sleeveM, last: momLast,
-              day$: sleeveM.length ? sleeveM.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null,
+              day$: dayM,
               incep: null, spySame: null,
               infoDef: 'Owns the current monthly momentum list equal-weight ($500K divided by the list size); the crash guard moves the sleeve to cash when the S&P 500 is below its 200-day average.',
             },
