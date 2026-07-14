@@ -26,7 +26,7 @@
      the insider sleeve's 11-month evidence window stated plainly.
    - §05 job table gains the monthly momentum list publish + daily guard
      refresh. §06 vendor table is manifest-derived and picks the new elements
-     up automatically. */
+     up automatically.
 
    Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
    scope to the shared home-v12 cream system (cream-system.css) with page
