@@ -65,6 +65,17 @@ jobs:
           DRY_RUN:                   ${{ github.event.inputs.dry_run || 'false' }}
         run: python3 scripts/compute_divergences.py
 
+      - name: Refresh momentum crash guard (market-momentum_guard-daily)
+        # Momentum sleeve daily guard (spec 2026-07-14): the list is monthly
+        # but the cash/invested flag must never be a month stale. Rides this
+        # workflow because it needs the same panel-complete timing + creds.
+        # Runs even if the divergence scan failed; stamps its own health row.
+        if: always()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/update_momentum_guard.py
+
       - name: Red stamp on failure
         if: failure()
         env:

@@ -3863,6 +3863,80 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest complete session close (T+1 morning compute)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. data_max_age 54h mirrors the sibling daily scan elements."
+  },
+  {
+   "id": "equity-momentum_list-monthly",
+   "category": "equity",
+   "name": "momentum_list",
+   "description": "Momentum sleeve monthly ranked list: 12-1 momentum (total return t-252 to t-21 trading days) over liquid US common stocks, top quintile clamped 20-50, computed on the prior month's last panel-complete day. Includes SPY-vs-200-day crash-guard state and a trailing-90d insider badge (display only). Rules mirror the cleared 22-year backtest.",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt (computed from prices_eod + universe_master + insider_history [Polygon Massive / SEC])",
+   "source_endpoint": "Supabase functions strategy_bt_calendar / strategy_bt_universe / strategy_bt_bars / strategy_bt_insider_buys (migration 078) + momentum_spy_closes (migration 079)",
+   "license_tier": "internal",
+   "monthly_cost_usd": 0,
+   "cadence": "monthly",
+   "scheduled_fetch_time_et": "06:00",
+   "refresh_trigger": "MOMENTUM-LIST-MONTHLY (1st of month 06:00 ET crons + workflow_dispatch)",
+   "freshness_sla_hours": 768,
+   "data_max_age_hours": 816,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "Supabase momentum_list (append-only across rebalance_dates; delete+rewrite within a rebalance_date)",
+   "producer_script": "scripts/compute_momentum_list.py",
+   "consumer_surfaces": [
+    {
+     "tab": "scanner"
+    },
+    {
+     "tab": "portfolio"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Fail-loud: short calendar, universe < 800, list outside the 20-50 clamp, incomplete guard input, or write-verification mismatch all abort red with no partial publish; panel holds the last good dated list and its chip reds.",
+   "owner": "Data Steward",
+   "release_calendar": "monthly (1st)",
+   "dependencies": [
+    "market-prices_eod-daily"
+   ],
+   "as_of_cutoff_et": "16:00",
+   "as_of_cutoff_note": "as-of the prior month's last panel-complete session close",
+   "sla_basis": "One-clock doctrine: monthly job = 768h, graded off the last successful publish; data_max_age 816h adds the standard grace."
+  },
+  {
+   "id": "market-momentum_guard-daily",
+   "category": "market",
+   "name": "momentum_guard",
+   "description": "Momentum sleeve crash guard, refreshed daily: invested iff SPY's latest close is at or above its 200-day simple average (Faber 2007). The monthly list carries the at-rebalance state; this element keeps the cash/invested flag current between rebalances.",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt (computed from prices_eod SPY closes [Polygon Massive])",
+   "source_endpoint": "Supabase function momentum_spy_closes (migration 079)",
+   "license_tier": "internal",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "08:45",
+   "refresh_trigger": "Step inside DIVERGENCE_SCAN_DAILY (workflow_run chain off MASSIVE-DAILY + 08:45 ET Tue-Sat crons); also upserted by each monthly list publish",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "Supabase momentum_guard (one row per evaluated trading day; flipped marks state changes)",
+   "producer_script": "scripts/update_momentum_guard.py",
+   "consumer_surfaces": [
+    {
+     "tab": "scanner"
+    },
+    {
+     "tab": "portfolio"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Fail-loud: fewer than exactly 200 SPY closes or a failed upsert aborts red with no write; strip holds the last good dated status and its chip reds; the paper engine treats a stale guard as a freshness-gate failure for the momentum sleeve.",
+   "owner": "Data Steward",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [
+    "market-prices_eod-daily"
+   ],
+   "as_of_cutoff_et": "16:00",
+   "as_of_cutoff_note": "as-of latest complete session close (T+1 morning compute)",
+   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. Bespoke 08:45 slot (not 06:00): needs the same panel-complete morning timing as its price input; reason recorded per the normalization rule."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

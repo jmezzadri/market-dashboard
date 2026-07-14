@@ -2219,6 +2219,51 @@
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h",
    "notes": "Inputs, one provider per source: (1) prices_eod [Polygon Massive EOD OHLCV, already registered as market.prices-eod-massive] for bars and liquidity; (2) universe_master [Polygon Massive reference] for the common-stock-only filter. Transform: RSI(14) on daily closes, simple-average method (Cutler); pivot lows/highs need 5 bars each side and 5 later bars to confirm; regular divergences only on the two most recent confirmed pivots (bullish: lower price low with higher RSI low; bearish: higher price high with lower RSI high); newer pivot within 15 bars; pivots 5-30 bars apart. Data-quality guards: pivot price ratio > 1.8x dropped (splits/artifacts), current close outside 0.5x-2x of the newer pivot dropped, close-vs-vwap disagreement > 50% on the scan day drops the ticker, ADV capped at $40B in the universe SQL, and the trading-day window counts only panel-complete days (>= 5,000 tickers). Universe: type CS active, last close >= $2, 45-trading-day avg dollar volume >= $50M, >= 40 of 45 days present (~1,500 names). Port validated 2026-07-13 against the prototype's reference run: 17/17 names reproduced with matching RSI values. Append-only across scan_dates; delete+rewrite within a scan_date (idempotent).",
    "id": "equity-rsi_divergences-daily"
+  },
+  "equity-momentum_list-monthly": {
+   "name": "momentum_list",
+   "category": "equity",
+   "element": "Momentum sleeve monthly ranked list (12-1 momentum, top quintile 20-50)",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (computed from prices_eod + universe_master + insider_history)",
+   "license_tier": "internal",
+   "cadence": "monthly",
+   "refresh_trigger": "github-actions: MOMENTUM-LIST-MONTHLY.yml (1st of month 06:00 ET crons + workflow_dispatch)",
+   "schedule_et": "06:00 ET on the 1st of each month (schedule-normalization: monthly-on-the-1st slow-data slot)",
+   "freshness_sla_hours": 768,
+   "consumer_surfaces": [
+    "Trading Scanner -> Momentum Sleeve panel -> ranked list + as-of/next-re-rank line + freshness chip",
+    "Paper engine -> momentum sleeve targets (PR-2)",
+    "Portfolio page -> Sleeve 2 holdings + rebalance entries (PR-3)"
+   ],
+   "target_storage": "Supabase: momentum_list",
+   "failure_mode": "Momentum panel holds the last good dated list and its chip reds; two consecutive failures raise the pipeline watchdog P1; the paper engine keeps its last targets and never trades a list past SLA.",
+   "owner": "Data Steward",
+   "sla_basis": "One-clock doctrine: monthly job = 768h; graded off the last successful publish (pipeline_health.last_good_at).",
+   "notes": "Rules mirror the cleared 22-year backtest verbatim (scripts/backtest_strategies.py -> shared scripts/momentum_rules.py; evidence Strategy_Backtest_2026-07-14.xlsx: +16.3%/yr headline, +4.7%/yr after survivorship control, t=1.8). Signal: 12-1 momentum (total return t-252 -> t-21 trading days on the panel-complete calendar; Jegadeesh & Titman 1993), top quintile clamped 20-50, computed on the PRIOR month's last panel-complete day. Universe: strategy_bt_universe (CS active, close >= $2, 45-day ADV $50M-$40B, >= 40/45 days present; era day-floors per strategy_bt_day_floor). guard_exposed: SPY close >= 200-day simple average at rebalance (Faber 2007). insider_badge: >= 1 officer/director open-market buyer trailing 90d, filing-date basis, 10b5-1 excluded \u2014 display info only, never filters the list (intersection test failed: 1-6 names/month). Fail-loud gates: universe >= 800, list within 20-50 clamp, exactly 200 SPY closes, post-write count verification. Paging: SQL p_limit/p_offset (LESSONS 4.18). Append-only across rebalance_dates; delete+rewrite within one (idempotent).",
+   "id": "equity-momentum_list-monthly"
+  },
+  "market-momentum_guard-daily": {
+   "name": "momentum_guard",
+   "category": "market",
+   "element": "Momentum sleeve crash guard (SPY vs 200-day average, daily)",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "MacroTilt (computed from prices_eod SPY closes)",
+   "license_tier": "internal",
+   "cadence": "daily",
+   "refresh_trigger": "github-actions: step inside DIVERGENCE_SCAN_DAILY.yml (workflow_run chain off MASSIVE-DAILY + 08:45 ET Tue-Sat backup crons); also upserted by each monthly list publish",
+   "schedule_et": "08:45 ET Tue-Sat, after the T+1 EOD price panel completes",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Trading Scanner -> Momentum Sleeve panel -> guard status strip (INVESTED / IN CASH + SPY vs 200-day values + last flip date)",
+    "Paper engine -> momentum sleeve guard-flip -> all-cash target (PR-2)"
+   ],
+   "target_storage": "Supabase: momentum_guard",
+   "failure_mode": "Guard strip holds the last good dated status and its chip reds; the paper engine treats a stale guard as a freshness-gate failure and does not trade the momentum sleeve that day.",
+   "owner": "Data Steward",
+   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull.",
+   "notes": "Faber (2007): invested iff SPY close >= 200-day simple average (momentum_spy_closes helper, exactly 200 closes required \u2014 fail loud otherwise). One row per evaluated day; flipped=true when state changed vs the prior row (last flip date = max(as_of) where flipped). Rides DIVERGENCE_SCAN_DAILY rather than a 06:00 slot because it needs the same panel-complete morning timing as its input feed \u2014 bespoke-schedule reason recorded here per the normalization rule (Data Steward sign-off 2026-07-14). Cheap by design: one RPC + one upsert.",
+   "id": "market-momentum_guard-daily"
   }
  }
 }
