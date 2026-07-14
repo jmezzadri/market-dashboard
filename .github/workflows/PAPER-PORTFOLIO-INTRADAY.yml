@@ -71,6 +71,7 @@ jobs:
           ALPACA_PAPER_KEY_ID:   ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:   ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL: ${{ secrets.ALPACA_PAPER_BASE_URL }}
+          MOMENTUM_SLEEVE_ENABLED:      "true"
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m paper_portfolio.runner --phase intraday --dry-run
