@@ -1190,7 +1190,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               cash: split.insCash, positions: sleeveB, last: insLast,
               day$: sleeveB.length ? sleeveB.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null,
               incep: insIncep, spySame: momCap === 0 ? spyIncep : null,
-              extra: null,
               infoDef: 'Buys at Score ≥ 4 (max 5), a fixed $100K per name, holds until the score decays below 3; rebalanced daily on the open.',
             },
             {
@@ -1198,7 +1197,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               cash: split.momCash, positions: sleeveM, last: momLast,
               day$: sleeveM.length ? sleeveM.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null,
               incep: null, spySame: null,
-              extra: momMeta,
               infoDef: 'Owns the current monthly momentum list equal-weight ($500K divided by the list size); the crash guard moves the sleeve to cash when the S&P 500 is below its 200-day average.',
             },
           ].map((s) => (
@@ -1213,8 +1211,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   <div><span>Holdings</span><b>{s.positions.length}</b></div>
                   <div><span>Idle cash</span><b>{fmtMoneyExact(s.cash)}</b></div>
                   <div><span>Last action</span><b>{s.last ? `${s.last.side === 'buy' ? 'Bought' : 'Sold'} · ${fmtDate(s.last.date)}` : '—'}</b></div>
-                  {s.extra && <div><span>Current list</span><b>{Object.keys(s.extra.ranks).length} names · as of {fmtDate(s.extra.asOf)}</b></div>}
-                  {s.extra?.next && <div><span>Next re-rank</span><b>{fmtDate(s.extra.next)}</b></div>}
                 </div>
               </div>
               <PositionsPanel
