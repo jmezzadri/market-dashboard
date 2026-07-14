@@ -13,6 +13,11 @@ split-adjusted, not dividend-adjusted — same basis as the SPY benchmark):
           200-day average at rebalance, hold cash (0%) instead. (Faber 2007.)
   LOWVOL  Rank by trailing 252-day daily volatility; own the LEAST volatile
           quintile, clamped 20-50. (Ang, Hodrick, Xing, Zhang 2006.)
+  COMBO   Momentum top-quintile names that ALSO have >= 1 officer/director
+          open-market buyer in the trailing 90 days (filing_date basis,
+          10b5-1 plans excluded). Equal weight; 100% cash in a month with
+          no qualifiers. Pre-declared rule — no parameter search. Only
+          testable 2025-08 onward, like INSIDER.
   INSIDER Rank by distinct officer/director open-market buyers over the
           trailing 90 days (filing_date basis — information-available date),
           require >= 2 buyers, tiebreak by dollars bought. Only testable
@@ -197,8 +202,16 @@ def main():
         scored.sort(reverse=True)
         return [t for _, t in scored[:N_MAX]]
 
+    def insider_any_buyers(rd):
+        lo = rd - timedelta(days=INS_WINDOW)
+        out = set()
+        for t in uni_by_reb[rd]:
+            if any(lo < e[0] <= rd for e in ins.get(t, [])):
+                out.add(t)
+        return out
+
     # 7) simulate
-    strat_names = ("MOM", "MOMG", "LOWVOL", "INSIDER")
+    strat_names = ("MOM", "MOMG", "LOWVOL", "INSIDER", "COMBO")
     prev_hold = {s: set() for s in strat_names}
     prev_exposed = True
     monthly, holdings_log = [], []
@@ -213,6 +226,8 @@ def main():
         mom_list = [t for _, t in mom_ranks(rd)][:n_port]
         vol_list = [t for _, t in vol_ranks(rd)][:n_port]
         ins_list = insider_picks(rd) if rd >= ins_start else None
+        combo_list = ([t for t in mom_list if t in insider_any_buyers(rd)]
+                      if rd >= ins_start else None)
         exposed = spy_sma[j0] is not None and spy[j0] > spy_sma[j0]
 
         rets_u = [r for r in (fwd_ret(t, j0, j1) for t in uni_by_reb[rd]) if r is not None]
@@ -222,9 +237,14 @@ def main():
         row = {"rebalance": str(rd), "next": str(nxt), "year": rd.year,
                "universe": len(uni_by_reb[rd]), "n_port": n_port,
                "spy": spy_ret, "ew_universe": ew_ret, "guard_exposed": int(exposed)}
-        for s, picks in (("MOM", mom_list), ("MOMG", mom_list), ("LOWVOL", vol_list), ("INSIDER", ins_list)):
+        for s, picks in (("MOM", mom_list), ("MOMG", mom_list), ("LOWVOL", vol_list),
+                         ("INSIDER", ins_list), ("COMBO", combo_list)):
             if picks is None:
                 row[s.lower()] = None
+                continue
+            if s == "COMBO" and not picks:
+                row[s.lower()] = 0.0          # no qualifiers -> cash for the month
+                prev_hold[s] = set()
                 continue
             held = set(picks)
             turn = 1.0 if not prev_hold[s] else 1.0 - len(held & prev_hold[s]) / max(len(held), 1)
@@ -264,6 +284,7 @@ def main():
     latest["MOM"] = [t for _, t in mom_ranks(rd)][:max(N_MIN, min(N_MAX, len(uni_by_reb[rd]) // 5))]
     latest["LOWVOL"] = [t for _, t in vol_ranks(rd)][:max(N_MIN, min(N_MAX, len(uni_by_reb[rd]) // 5))]
     latest["INSIDER"] = insider_picks(rd)
+    latest["COMBO"] = [t for t in latest["MOM"] if t in insider_any_buyers(rd)]
     latest["MOMG_exposed"] = bool(spy_sma[idx_of[rd]] and spy[idx_of[rd]] > spy_sma[idx_of[rd]])
     json.dump(latest, open(os.path.join(out_dir, "strat_latest.json"), "w"), indent=1)
 
@@ -294,6 +315,7 @@ def main():
     for s in ("mom", "momg", "lowvol", "ew_universe"):
         summary[s] = perf(s, monthly)
     summary["insider"] = perf("insider", [r for r in monthly if r["insider"] is not None])
+    summary["combo"] = perf("combo", [r for r in monthly if r["combo"] is not None])
     print("\nheadline (net of 10bps/side, price returns):")
     print(json.dumps(summary, indent=1))
     json.dump({"summary": summary, "params": {"cost_side": COST_SIDE, "n_min": N_MIN, "n_max": N_MAX,
