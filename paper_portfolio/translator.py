@@ -35,6 +35,7 @@ from paper_portfolio.signals import (
 )
 from paper_portfolio.sleeves import (
     SleeveTarget,
+    build_momentum_target,
     build_sleeve_b_target,
 )
 
@@ -49,6 +50,8 @@ logger = logging.getLogger("paper_translator")
 class TranslatorResult:
     sleeve_b_target: SleeveTarget
     intents: list[OrderIntent]
+    sleeve_m_target: SleeveTarget | None = None
+    momentum_action: str = ""      # '' = sleeve dark; else the trigger reason or 'hold'
     signal_capture_id: str | None = None
     orders_written: int = 0
     dry_run: bool = False
@@ -140,6 +143,71 @@ def run(
         logger.warning("EOD price map load failed (%s) — sizing falls back per-ticker", exc)
         eod_prices = {}
 
+    # ── Momentum sleeve (Two-Sleeve build PR-2; DARK unless flagged on) ──
+    # Runs only when MOMENTUM_SLEEVE_ENABLED='true' AND the account has
+    # momentum capital assigned. Target recomputes ONLY on a new monthly
+    # publish or a crash-guard flip; every other day it emits nothing.
+    sleeve_m = None
+    momentum_action = ""
+    m_intents: list[OrderIntent] = []
+    sleeve_m_held: dict[str, float] = {}
+    from paper_portfolio import momentum as momentum_mod
+    if momentum_mod.momentum_enabled() and cfg.sleeve_m_allocation > 0:
+        try:
+            m_snap = momentum_mod.load_momentum_snapshot()
+            sleeve_m_held = momentum_mod.load_sleeve_m_holdings()
+            # Guard freshness: the daily guard must be current with the
+            # scanner's session — a stale guard must not place momentum orders.
+            if m_snap.guard_as_of < scanner.scan_date:
+                raise RuntimeError(
+                    f"momentum guard is stale (guard {m_snap.guard_as_of} < "
+                    f"scanner session {scanner.scan_date}) — momentum skipped this run.")
+            trigger = momentum_mod.load_last_trigger_state()
+            fire, why = trigger.differs_from(m_snap)
+            sleeve_m = build_momentum_target(m_snap, cfg.sleeve_m_allocation)
+            if fire:
+                momentum_action = why
+                m_prices = load_eod_price_map(
+                    sorted({l.ticker for l in sleeve_m.lines} | set(sleeve_m_held)))
+                m_intents = momentum_mod.build_momentum_intents(
+                    sleeve_m, sleeve_m_held, m_prices)
+                logger.info("momentum FIRED (%s): %d intents, %d lines, idle $%s",
+                            why, len(m_intents), len(sleeve_m.lines),
+                            f"{sleeve_m.idle_cash:,.0f}")
+                if not dry_run:
+                    write_signal_capture(
+                        signal_source="momentum",
+                        signal_payload={
+                            "rebalance_date": m_snap.rebalance_date,
+                            "guard_invested": m_snap.guard_invested,
+                            "guard_as_of": m_snap.guard_as_of,
+                            "list_size": len(m_snap.entries),
+                            "trigger": why,
+                        },
+                        triggered_orders_count=len(m_intents),
+                    )
+            else:
+                momentum_action = "hold"
+                logger.info("momentum HOLD — %s (publish %s, guard %s)",
+                            why, m_snap.rebalance_date,
+                            "INVESTED" if m_snap.guard_invested else "IN CASH")
+        except Exception as exc:  # noqa: BLE001 — momentum must never break the scanner sleeve
+            momentum_action = f"skipped: {exc}"
+            logger.warning("momentum sleeve skipped this run — %s", exc)
+            try:
+                if not dry_run:
+                    from paper_portfolio.freshness import file_alert
+                    file_alert(
+                        title="Momentum sleeve skipped — data problem",
+                        description=(
+                            "The Momentum sleeve could not run this morning and was "
+                            f"skipped (the Insider Conviction sleeve ran normally). Reason: {exc}. "
+                            "The sleeve holds its prior positions until the data recovers."),
+                        priority="P1",
+                    )
+            except Exception:  # noqa: BLE001
+                logger.warning("momentum skip alert failed to file")
+
     intents = build_order_intents(
         sleeve_b, live_positions,
         held_scores=scanner.scores_by_ticker,   # hysteresis: keep held names still on the scan
@@ -147,7 +215,10 @@ def run(
         suppress_buys=suppress_buys,
         eod_prices=eod_prices,
         open_order_tickers=open_order_tickers,
+        sleeve_m_qty=sleeve_m_held,   # scanner never touches Momentum's shares
     )
+    intents = intents + [i for i in m_intents
+                         if not (i.ticker.upper() in open_order_tickers)]
     logger.info("diff produced %d order intents", len(intents))
 
     # 6 + 7 — write
@@ -186,6 +257,8 @@ def run(
         orders_written=orders_written,
         dry_run=dry_run,
         scanner_scan_date=scanner.scan_date,
+        sleeve_m_target=sleeve_m,
+        momentum_action=momentum_action,
     )
 
 

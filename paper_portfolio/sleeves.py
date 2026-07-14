@@ -124,3 +124,45 @@ def build_sleeve_b_target(
         leverage_ratio=(gross / sleeve_b_capital) if sleeve_b_capital else 0.0,
         lines=lines,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sleeve M — Momentum (Two-Sleeve build PR-2, 2026-07-14)
+# Equal-weight the current monthly momentum list; all-cash when the Faber
+# crash guard says SPY is under its 200-day average. Math mirrors the cleared
+# 22-year backtest (scripts/momentum_rules.py); any change needs a new
+# backtest (Policy A).
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_momentum_target(snapshot, capital: float) -> SleeveTarget:
+    """Momentum sleeve target: capital / list-size per name, long-only,
+    no leverage. Guard IN CASH -> zero lines (idle cash = full capital).
+
+    `snapshot` is a momentum.MomentumSnapshot (duck-typed: .entries with
+    .ticker/.rank/.ret_12_1, .guard_invested, .rebalance_date).
+    Worked example (Senior Quant): 25-name list, $500K capital ->
+    $20,000.00 per name, gross $500K, idle $0. Guard flips off -> 0 lines,
+    gross $0, idle $500K.
+    """
+    if capital <= 0 or not snapshot.guard_invested or not snapshot.entries:
+        return SleeveTarget(sleeve="M", capital_assigned=max(capital, 0), gross_long=0,
+                            leverage_used=0, idle_cash=max(capital, 0),
+                            leverage_ratio=0, lines=[])
+    n = len(snapshot.entries)
+    per_name = round(capital / n, 2)
+    lines = [
+        TargetLine(
+            sleeve="M", ticker=e.ticker, notional=per_name,
+            rationale=(f"rank {e.rank}/{n} on 12-month momentum "
+                       f"({e.ret_12_1 * 100:+.1f}%), equal-weight "
+                       f"${per_name:,.0f} of the {snapshot.rebalance_date} list"),
+            score=None,
+        )
+        for e in snapshot.entries
+    ]
+    gross = round(per_name * n, 2)
+    return SleeveTarget(
+        sleeve="M", capital_assigned=capital, gross_long=gross,
+        leverage_used=0.0, idle_cash=round(max(0.0, capital - gross), 2),
+        leverage_ratio=gross / capital, lines=lines,
+    )
