@@ -647,7 +647,9 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
 
       {positions.length === 0 ? (
         <div className="paper-empty">
-          {'Scanner found no qualifying buy signals at the moment. Positions appear here after the next rebalance cycle.'}
+          {sleeve === 'M'
+            ? 'No filled positions yet. Queued orders fill at the next market open and appear here.'
+            : 'Scanner found no qualifying buy signals at the moment. Positions appear here after the next rebalance cycle.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
