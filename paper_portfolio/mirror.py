@@ -741,6 +741,25 @@ def mirror_fills(
     since_iso = _to_rfc3339_utc(since_iso)
 
     orders = alpaca.list_orders(status="closed", after=since_iso, limit=500)
+
+    # Sleeve attribution (Two-Sleeve build PR-2): the ticker-based fallback
+    # cannot tell Momentum from the scanner sleeve, so prefer the sleeve the
+    # ORDER was written with — paper_orders carries it, keyed by the broker
+    # order id the submitter stored.
+    sleeve_by_order_id: dict[str, str] = {}
+    try:
+        _ids = sorted({o.get("id") for o in orders if o.get("id")})
+        if _ids:
+            _in = ", ".join(f"'{i}'" for i in _ids)
+            for r in _supabase_query(
+                "select alpaca_order_id, sleeve from public.paper_orders "
+                f"where alpaca_order_id in ({_in});"
+            ):
+                if r.get("alpaca_order_id") and r.get("sleeve"):
+                    sleeve_by_order_id[r["alpaca_order_id"]] = r["sleeve"]
+    except Exception as exc:  # noqa: BLE001 — fall back to ticker heuristic
+        logger.warning("order-id sleeve lookup failed (%s) — ticker fallback", exc)
+
     n_inserted = 0
     inserts: list[str] = []
     for o in orders:
@@ -759,7 +778,7 @@ def mirror_fills(
         # alpaca_fill_id-suffix" — we use alpaca_order_id + status as the
         # unique key on paper side.
         fill_id = f"{alpaca_order_id}:{o.get('status')}"
-        sleeve = _sleeve_for(ticker, sleeve_a_etfs)
+        sleeve = sleeve_by_order_id.get(alpaca_order_id) or _sleeve_for(ticker, sleeve_a_etfs)
         gross = filled_qty * avg_price
         if dry_run:
             logger.info("[dry-run] fill %s %s qty=%s @ $%.4f sleeve=%s",

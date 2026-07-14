@@ -206,17 +206,30 @@ def run_eod_phase(
                 f"Orders submitted to broker: {s_result.submitted}"
                 f" (rejected {s_result.rejected}, duplicates {s_result.duplicates})",
                 f"Buys: {len(buys)}  (~${buy_val:,.0f})    Sells: {len(sells)}  (~${sell_val:,.0f})",
-                "",
-                "Detail:",
             ]
-            for i in t_result.intents:
+            # ONE combined email, a section per sleeve (Two-Sleeve build PR-2).
+            SLEEVE_NAMES = {"B": "Insider Conviction", "M": "Momentum", "A": "Asset Tilt (retired)"}
+            def _fmt(i):
                 if i.target_quantity is not None:
                     sz = f"{i.target_quantity:g} sh"
                 elif i.target_notional is not None:
                     sz = f"${abs(i.target_notional):,.0f}"
                 else:
                     sz = "n/a"
-                lines.append(f"  {i.side.upper():4} {i.ticker:6} {sz:>10}  (sleeve {i.sleeve})")
+                return f"  {i.side.upper():4} {i.ticker:6} {sz:>10}"
+            for skey in ("B", "M", "A"):
+                s_ints = [i for i in t_result.intents if i.sleeve == skey]
+                if skey == "M" and not s_ints and not getattr(t_result, "momentum_action", ""):
+                    continue  # sleeve dark — no section
+                if skey == "A" and not s_ints:
+                    continue
+                lines += ["", f"— {SLEEVE_NAMES[skey]} —"]
+                if s_ints:
+                    lines += [_fmt(i) for i in s_ints]
+                elif skey == "M":
+                    lines.append(f"  No trades ({t_result.momentum_action}).")
+                else:
+                    lines.append("  No trades today.")
             if s_result.errors:
                 lines += ["", "Submit errors:"] + [f"  {e}" for e in s_result.errors[:8]]
             lines += ["", "These execute at the 9:30am ET opening auction. "

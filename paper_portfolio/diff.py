@@ -81,6 +81,7 @@ def build_order_intents(
     suppress_buys: bool = False,
     eod_prices: dict[str, float] | None = None,
     open_order_tickers: set[str] | None = None,
+    sleeve_m_qty: dict[str, float] | None = None,
 ) -> list[OrderIntent]:
     """SIGNAL-ONLY diff with HYSTERESIS + FIXED SIZE (Conviction-Insider rebuild 2026-07-07).
 
@@ -95,8 +96,15 @@ def build_order_intents(
         exit_threshold, or it leaves the scan entirely (score unknown).
     `held_scores` = {TICKER: current buy_score} for scanned names at/above the
     exit floor. Missing ⇒ off-scan ⇒ decayed ⇒ exit.
+
+    `sleeve_m_qty` = {TICKER: shares owned by the Momentum sleeve} (Two-Sleeve
+    build PR-2). The scanner sleeve reasons only about ITS OWN shares:
+    Momentum-owned shares are invisible here — never sold by a scanner exit,
+    and a name held only by Momentum still gets its scanner entry (overlap =
+    intended double position).
     """
     eod_prices = eod_prices or {}
+    sleeve_m_qty = {t.upper(): q for t, q in (sleeve_m_qty or {}).items()}
     held_scores = {t.upper(): v for t, v in (held_scores or {}).items()}
     open_order_tickers = {t.upper() for t in (open_order_tickers or set())}
 
@@ -114,8 +122,12 @@ def build_order_intents(
     intents: list[OrderIntent] = []
 
     def _qty_held(ticker: str) -> float:
+        """Shares the SCANNER sleeve owns = broker position minus the
+        Momentum sleeve's shares in the same name."""
         pos = live.get(ticker)
-        return pos.qty if pos else 0.0
+        if not pos:
+            return 0.0
+        return max(0.0, pos.qty - sleeve_m_qty.get(ticker.upper(), 0.0))
 
     # ── ENTRIES — target names not held. Held target names: HOLD (skip, no resize). ──
     for ticker, line in b_targets.items():
@@ -136,17 +148,19 @@ def build_order_intents(
     for ticker, pos in live.items():
         if ticker in b_targets:
             continue
-        if pos.qty == 0 or _has_open_order(ticker):
-            continue
+        own_qty = max(0.0, pos.qty - sleeve_m_qty.get(ticker.upper(), 0.0))
+        if own_qty <= 0.0001 or _has_open_order(ticker):
+            continue  # nothing of ours to sell (position is Momentum's)
         cur = held_scores.get(ticker.upper())
         if cur is not None and cur >= exit_threshold:
             continue  # still above the exit floor — HOLD through the wobble (no churn)
         reason = ("Signal decayed below exit floor — exit to cash"
                   if cur is not None else "Signal gone from scan — exit to cash")
+        own_basis = pos.cost_basis * (own_qty / pos.qty) if pos.qty else 0.0
         intents.append(OrderIntent(
             sleeve="B", ticker=ticker, side="sell",
-            target_quantity=pos.qty,
-            target_notional=round(-pos.cost_basis, 2),
+            target_quantity=own_qty,
+            target_notional=round(-own_basis, 2),
             signal_score=None, signal_source="equity_scanner",
             rebalance_trigger_reason=reason,
         ))

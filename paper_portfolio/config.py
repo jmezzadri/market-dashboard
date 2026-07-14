@@ -85,6 +85,7 @@ class PaperAccountConfig:
     sleeve_b_allocation: float
     max_leverage_sleeve_b: float
     status: str
+    sleeve_m_allocation: float = 0.0  # Momentum sleeve capital (0 = sleeve dark)
 
     @property
     def sleeve_b_max_gross(self) -> float:
@@ -116,7 +117,8 @@ def load_active_paper_account(account_number: str | None = None) -> PaperAccount
     if account_number is not None:
         sql = (
             "select account_number, broker, starting_capital, sleeve_a_allocation, "
-            "sleeve_b_allocation, max_leverage_sleeve_b, status "
+            "sleeve_b_allocation, max_leverage_sleeve_b, status, "
+            "coalesce(sleeve_m_allocation, 0) as sleeve_m_allocation "
             "from public.paper_accounts "
             f"where account_number = '{account_number}' "
             "limit 1;"
@@ -124,7 +126,8 @@ def load_active_paper_account(account_number: str | None = None) -> PaperAccount
     else:
         sql = (
             "select account_number, broker, starting_capital, sleeve_a_allocation, "
-            "sleeve_b_allocation, max_leverage_sleeve_b, status "
+            "sleeve_b_allocation, max_leverage_sleeve_b, status, "
+            "coalesce(sleeve_m_allocation, 0) as sleeve_m_allocation "
             "from public.paper_accounts where status = 'active' limit 1;"
         )
     rows = _supabase_query(sql)
@@ -141,4 +144,5 @@ def load_active_paper_account(account_number: str | None = None) -> PaperAccount
         sleeve_b_allocation=float(r["sleeve_b_allocation"]),
         max_leverage_sleeve_b=float(r["max_leverage_sleeve_b"]),
         status=r["status"],
+        sleeve_m_allocation=float(r.get("sleeve_m_allocation") or 0),
     )
