@@ -355,3 +355,14 @@
 @media (max-width: 640px) {
   .home-v12 .sc-buildgrid { grid-template-columns: 1fr !important; }
 }
+
+/* ── home-v12 two-sleeve build (2026-07-14) — the Momentum panel's two-column
+      ranked list collapses to one column (each half scrolls inside the card),
+      and the Portfolio per-sleeve cards stack. !important matches the v12
+      block convention above (LESSONS 8.7 mirror). ── */
+@media (max-width: 900px) {
+  .home-v12 .mo-grid { grid-template-columns: 1fr !important; }
+  .home-v12 .mo-grid > * { min-width: 0 !important; }
+  .home-v12 .pp-sleevecards { grid-template-columns: 1fr !important; }
+  .home-v12 .pp-sleevecards > * { min-width: 0 !important; }
+}

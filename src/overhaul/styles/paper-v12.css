@@ -125,6 +125,48 @@
 /* trades drawer — solid putty via the bridge; hairline edge */
 .home-v12 .paper-drawer { border-left: 1px solid var(--hair); }
 
+/* ── Two-sleeve build (2026-07-14): split bar, sleeve cards, table tags ── */
+.home-v12 .pp-splitwrap { margin-top: 24px; }
+.home-v12 .pp-splitbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--bg2); }
+.home-v12 .pp-seg { min-width: 0; }
+.home-v12 .pp-seg.ins { background: var(--gold-deep); }
+.home-v12 .pp-seg.mom { background: var(--up); }
+.home-v12 .pp-seg.cash { background: var(--hair); }
+.home-v12 .pp-splitlegend { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px; font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.home-v12 .pp-splitlegend > span { display: flex; align-items: center; gap: 7px; }
+.home-v12 .pp-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.home-v12 .pp-dot.ins { background: var(--gold-deep); }
+.home-v12 .pp-dot.mom { background: var(--up); }
+.home-v12 .pp-dot.cash { background: var(--hair); }
+.home-v12 .pp-splittotal { margin-left: auto; color: var(--ink); font-weight: 650; }
+
+.home-v12 .pp-sleevecards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.home-v12 .pp-sleevecards > .pp-sleevecard { min-width: 0; }
+.home-v12 .pp-sleevecard { background: var(--putty); border-radius: 28px; padding: 22px 26px 20px; transition: background .5s; font-family: var(--sans); }
+.home-v12 .pp-sc-eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; }
+.home-v12 .pp-sc-value { font-size: clamp(26px, 2.4vw, 34px); line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; margin: 10px 0 12px; }
+.home-v12 .pp-sc-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid var(--hair); font-size: 13px; }
+.home-v12 .pp-sc-rows span { color: var(--mut); }
+.home-v12 .pp-sc-rows b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.home-v12 .pp-sc-rows b.up { color: var(--up); }
+.home-v12 .pp-sc-rows b.down { color: var(--down); }
+.home-v12 .pp-sc-note { margin-top: 12px; font-size: 12.5px; color: var(--mut); line-height: 1.5; }
+
+/* sleeve tag in the holdings table */
+.home-v12 .pp-sleeve-tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.home-v12 .pp-sleeve-tag.b { color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 12%, transparent); }
+.home-v12 .pp-sleeve-tag.m { color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); }
+
+/* ×2 overlap marker — instant CSS tooltip (never the native title attribute) */
+.home-v12 .pp-x2 { position: relative; display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; color: var(--gold-deep); border: 1px solid var(--gold-deep); border-radius: 6px; padding: 1px 5px; cursor: help; }
+.home-v12 .pp-x2:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 8px 11px; border-radius: 10px; font-size: 11px; font-weight: 500; line-height: 1.45; width: 240px; white-space: normal; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+@media (max-width: 900px) {
+  .home-v12 .pp-sleevecards { grid-template-columns: 1fr; gap: 12px; }
+  .home-v12 .pp-splitlegend { gap: 12px; }
+  .home-v12 .pp-splittotal { margin-left: 0; }
+}
+
 /* ── responsive — ALL of this page's responsive rules live here (the lead
       consolidates responsive.css; do not add page rules there) ── */
 @media (max-width: 1100px) {

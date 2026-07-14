@@ -350,6 +350,38 @@ const seriesBeta = (vals, spys, minN = 6) => {
 
 const PAPER_SLEEVE_CAP = 1_000_000;  // single Equity Scanner book = the whole $1M (Sleeve A retired 2026-06-23)
 
+// Sleeve display names (two-sleeve build 2026-07-14). DB sleeve codes never
+// render raw (plain-English rule): B = the insider book, M = momentum.
+// A is the retired 2026-06-23 sleeve — historical rows only.
+const SLEEVE_NAMES = { A: 'Insider Conviction', B: 'Insider Conviction', M: 'Momentum' };
+const sleeveName = (s) => SLEEVE_NAMES[s] || s || '—';
+
+// ── Three-way split of the broker NAV (two-sleeve build 2026-07-14) ────────
+// Insider (sleeve B) holdings + Momentum (sleeve M) holdings + idle cash tie
+// to the Alpaca NAV by construction: cash = NAV − gross holdings, and each
+// sleeve's cash share follows its unused capacity below its allocation from
+// paper_accounts (sleeve_b_allocation / sleeve_m_allocation — the engine's own
+// caps). While the momentum sleeve is unfunded (allocation 0) it takes no
+// cash, so the insider sleeve remains the whole book — matching the engine.
+function splitBook(totalNav, insGross, momGross, insCap, momCap) {
+  if (totalNav == null) return { insValue: null, momValue: null, cash: null, insCash: null, momCash: null };
+  const ig = insGross || 0, mg = momGross || 0;
+  const cash = totalNav - ig - mg;
+  let insCash, momCash;
+  if (cash >= 0) {
+    const capI = Math.max(0, (insCap || 0) - ig), capM = Math.max(0, (momCap || 0) - mg);
+    const base = capI + capM;
+    if (base > 0) { insCash = cash * capI / base; momCash = cash * capM / base; }
+    else { insCash = cash; momCash = 0; }
+  } else {
+    const borI = Math.max(0, ig - (insCap || 0)), borM = Math.max(0, mg - (momCap || 0));
+    const base = borI + borM;
+    if (base > 0) { insCash = cash * borI / base; momCash = cash * borM / base; }
+    else { insCash = cash; momCash = 0; }
+  }
+  return { insValue: ig + insCash, momValue: mg + momCash, cash, insCash, momCash };
+}
+
 // Split the shared Alpaca account into two sleeve values that ALWAYS sum to
 // the broker total (total_nav). The account shares one cash pool and one
 // margin balance, so per-sleeve value = the sleeve's holdings + its share of
@@ -605,13 +637,16 @@ const POS_COLUMNS = [
   { key: 'unrealized_plpc',          label: 'Total P&L %', w: 100, align: 'right', fmt: 'pctDir', def: true },
   { key: 'weight',                   label: 'Weight %',    w: 84,  align: 'right', fmt: 'pctPlain', def: false },
   { key: 'entry_date',               label: 'Held',        w: 72,  align: 'right', fmt: 'held',   def: true },
-  { key: 'current_score',            label: 'Score',       w: 70,  align: 'right', fmt: 'score',  def: true, sleeveOnly: 'B' },
+  { key: 'sleeve',                   label: 'Sleeve',      w: 130, align: 'left',  fmt: 'sleeve', def: true },
+  // Score: the live scanner score for Insider Conviction rows; the current
+  // 12-month rank (#n) for Momentum rows (two-sleeve spec §4).
+  { key: 'current_score',            label: 'Score / Rank', w: 88, align: 'right', fmt: 'score',  def: true },
 ];
 
 // ONE shared column config (visibility + order + width) for BOTH sleeve
 // tables. Set once, persists once. Score is a Sleeve-B-only column.
 // (Sleeve A retired 2026-06-23; only the Equity Scanner sleeve renders.)
-const PAPER_COLS_KEY = 'mt_paper_cols_v3_shared';
+const PAPER_COLS_KEY = 'mt_paper_cols_v4_shared'; // v4: Sleeve column + Score/Rank (two-sleeve build); bump lands everyone on the new default set once
 const posDefaultCfg = () => POS_COLUMNS.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
 function loadPaperCols() {
   try {
@@ -632,14 +667,11 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {} }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {}, momentumRanks = {}, overlapTickers = null }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
-  // the parent, persisted once). This table renders only the columns that
-  // apply to its sleeve — Score is Sleeve-B-only and is filtered out elsewhere.
-  const appliesToSleeve = (key) => {
-    const m = POS_COLUMNS.find((c) => c.key === key);
-    return !!m && (!m.sleeveOnly || m.sleeveOnly === sleeve);
-  };
+  // the parent, persisted once). Both sleeves render in this one table
+  // (two-sleeve build 2026-07-14), so every column applies.
+  const appliesToSleeve = (key) => !!POS_COLUMNS.find((c) => c.key === key);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState('market_value');
@@ -672,10 +704,17 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     if (key === 'change_today') {                     // Day chg %  = price / prior close - 1
       return (p.current_price != null && p.lastday_price) ? p.current_price / p.lastday_price - 1 : (p.change_today ?? null);
     }
-    if (key === 'current_score') {            // LIVE scanner score (source of truth)
+    if (key === 'current_score') {
+      // Momentum rows sort/show by their current 12-month rank; Insider rows
+      // by the LIVE scanner score (source of truth, trading_opps_signals).
+      if (p.sleeve === 'M') {
+        const rk = momentumRanks?.[p.ticker];
+        return rk != null ? rk : null;
+      }
       const lv = scanScores?.[p.ticker];
       return lv != null ? lv : null;
     }
+    if (key === 'sleeve') return sleeveName(p.sleeve);
     return p[key];
   };
 
@@ -730,15 +769,20 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     const m = meta(col.key); const v = cellValue(p, col.key);
     if (!m) return '—';
     switch (m.fmt) {
-      case 'ticker': return onOpenTicker
-        ? <button type="button" className="paper-ticker-link" onClick={(e) => { e.stopPropagation(); onOpenTicker(p.ticker); }}>{p.ticker}</button>
-        : <span style={{ color: 'var(--ink-0)', fontWeight: 500 }}>{p.ticker}</span>;
+      case 'ticker': {
+        const twice = overlapTickers ? overlapTickers.has(p.ticker) : false;
+        const mark = twice ? <span className="pp-x2" data-tip="Held by both sleeves — one row per sleeve; combined exposure is the two rows summed">×2</span> : null;
+        return onOpenTicker
+          ? <><button type="button" className="paper-ticker-link" onClick={(e) => { e.stopPropagation(); onOpenTicker(p.ticker); }}>{p.ticker}</button>{mark}</>
+          : <><span style={{ color: 'var(--ink-0)', fontWeight: 500 }}>{p.ticker}</span>{mark}</>;
+      }
+      case 'sleeve': return <span className={`pp-sleeve-tag ${p.sleeve === 'M' ? 'm' : 'b'}`}>{v}</span>;
       case 'side': return v || 'long';
       case 'qty': return v != null ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
       case 'price': return v != null ? `$${Number(v).toFixed(2)}` : '—';
       case 'money': return fmtMoneyExact(v);
       case 'num': return v != null ? v : '—';
-      case 'score': return fmtScore(v);
+      case 'score': return p.sleeve === 'M' ? (v != null ? `#${v}` : '—') : fmtScore(v);
       case 'held': { const d = daysHeld(v); return d == null ? '—' : `${d}d`; }
       case 'pctPlain': return v != null ? `${(v * 100).toFixed(1)}%` : '—';
       case 'moneyDir': return <span className={(v || 0) >= 0 ? 'up' : 'down'}>{fmtMoneyExact(v)}</span>;
@@ -751,7 +795,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
     <div className="paper-panel">
       <div className="paper-panel-head">
         <div>
-          <h2 className="paper-panel-title">Paper Portfolio</h2>
+          <h2 className="paper-panel-title">{title || 'Holdings'}</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="pcol-wrap">
@@ -953,7 +997,7 @@ function RebalanceLog({ orders, fills }) {
                   </span>
                 </div>
                 <div className="paper-rebal-source">
-                  {[...new Set(rows.map((r) => r.signal_source))].join(' + ')}
+                  {[...new Set(rows.map((r) => sleeveName(r.sleeve)))].join(' + ')}
                 </div>
               </div>
             );
@@ -998,7 +1042,7 @@ function RebalanceLog({ orders, fills }) {
                     <tr key={`${l.ticker}-${i}`}>
                       <td className="ticker">{l.ticker}</td>
                       <td><span className={l.side === 'buy' ? 'up' : 'down'}>{(l.side || '').toUpperCase()}</span></td>
-                      <td>{l.sleeve}</td>
+                      <td>{sleeveName(l.sleeve)}</td>
                       <td className="r">{l.qty != null ? l.qty.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '\u2014'}</td>
                       <td className="r">{l.price != null ? `$${l.price.toFixed(2)}` : '\u2014'}</td>
                       <td className="r">{l.notional != null ? fmtMoneyExact(l.notional) : '\u2014'}</td>
@@ -1044,6 +1088,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [fills, setFills] = useState([]);
   const [account, setAccount] = useState(null);
   const [scanScores, setScanScores] = useState({});
+  const [momMeta, setMomMeta] = useState(null); // { ranks: {ticker: rank}, asOf, next }
   const [err, setErr] = useState(null);
 
   useEffect(() => {
@@ -1122,6 +1167,28 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           change_today: (r.lastday_price && r.current_price != null)
             ? (r.current_price / r.lastday_price - 1) : null,
         })));
+
+        // Momentum sleeve context (two-sleeve build 2026-07-14): the current
+        // monthly list supplies the Score/Rank column for sleeve-M rows and
+        // the sleeve card's dates. ≤50 rows by the quintile clamp.
+        const mrd = await supabase
+          .from('momentum_list')
+          .select('rebalance_date')
+          .order('rebalance_date', { ascending: false })
+          .limit(1);
+        const mDate = mrd?.data?.[0]?.rebalance_date;
+        if (mDate) {
+          const ml = await supabase
+            .from('momentum_list')
+            .select('ticker, rank, next_rebalance_date')
+            .eq('rebalance_date', mDate)
+            .order('rank', { ascending: true });
+          if (!cancelled) {
+            const ranks = {};
+            (ml.data || []).forEach((r) => { ranks[r.ticker] = r.rank; });
+            setMomMeta({ ranks, asOf: mDate, next: ml.data?.[0]?.next_rebalance_date || null });
+          }
+        }
       } catch (e) {
         if (!cancelled) setErr(e?.message || String(e));
       }
@@ -1193,6 +1260,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   const sleeveA = useMemo(() => displayPositions.filter((p) => p.sleeve === 'A'), [displayPositions]);
   const sleeveB = useMemo(() => displayPositions.filter((p) => p.sleeve === 'B'), [displayPositions]);
+  const sleeveM = useMemo(() => displayPositions.filter((p) => p.sleeve === 'M'), [displayPositions]);
+  // One combined holdings table — both sleeves, a name held by both shows one
+  // row per sleeve plus the ×2 marker (two-sleeve spec §4).
+  const bothSleeves = useMemo(() => displayPositions.filter((p) => p.sleeve === 'B' || p.sleeve === 'M'), [displayPositions]);
+  const overlapTickers = useMemo(() => {
+    const bT = new Set(sleeveB.map((p) => p.ticker));
+    return new Set(sleeveM.map((p) => p.ticker).filter((t) => bT.has(t)));
+  }, [sleeveB, sleeveM]);
 
   // Reconciled per-sleeve cash (idle) so each table can show a Cash line that
   // ties the sleeve's holdings + cash to the broker NAV.
@@ -1209,6 +1284,33 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const posUpdatedAt = liveMode ? (liveNav.updated_at || liveNav.as_of_date)
     : displayPositions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
 
+  // ── Two-sleeve split + per-sleeve cards (two-sleeve build 2026-07-14) ────
+  // One computation feeds the split bar AND both sleeve cards, so they can
+  // never disagree (shared-function rule 2026-06-12).
+  const momGross = useMemo(() => sleeveM.reduce((s, p) => s + (p.market_value || 0), 0), [sleeveM]);
+  const insCap = account?.sleeve_b_allocation != null ? Number(account.sleeve_b_allocation) : STARTING_CAPITAL;
+  const momCap = account?.sleeve_m_allocation != null ? Number(account.sleeve_m_allocation) : 0;
+  const split = useMemo(
+    () => splitBook(latestNav?.total_nav ?? null, sleeveBGross || 0, momGross, insCap, momCap),
+    [latestNav, sleeveBGross, momGross, insCap, momCap],
+  );
+  // Since-inception vs S&P 500 for each sleeve card. While the momentum
+  // sleeve is unfunded, the Insider Conviction sleeve IS the whole book, so
+  // its since-inception equals the book's (same inputs the Performance matrix
+  // uses). Once the momentum sleeve is funded, per-sleeve inception needs the
+  // engine's per-sleeve daily values — until those columns exist, the funded
+  // split renders em-dashes rather than a made-up basis.
+  const spyIncep = (latestNav?.spy_close && latestNav?.spy_inception_close)
+    ? latestNav.spy_close / latestNav.spy_inception_close - 1 : null;
+  const insIncep = (momCap === 0 && latestNav?.total_nav != null)
+    ? latestNav.total_nav / STARTING_CAPITAL - 1 : null;
+  const lastActionFor = (code) => {
+    const o = (orders || []).find((r) => r.sleeve === code && r.status !== 'cancelled');
+    return o ? { date: (o.created_at || '').split('T')[0], side: o.side } : null;
+  };
+  const insLast = useMemo(() => lastActionFor('B'), [orders]);
+  const momLast = useMemo(() => lastActionFor('M'), [orders]);
+
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
   useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
@@ -1223,11 +1325,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       <section className="wrap pp-hero">
         <Reveal className="pp-ed">
           <div className="eyebrow2"><span className="dot" />Paper portfolio</div>
-          <h1>An <i>automated $1M paper portfolio</i>, rebalanced <i>daily on the open</i>.</h1>
+          <h1>An <i>automated $1M paper portfolio</i>, run as <i>two rules-based sleeves</i>.</h1>
           <ul className="impl">
-            <li><b>$1M starting capital</b>, following the Trading Scanner recommendations.</li>
-            <li><b>Scanner indicates a buy at a Score ≥ 4</b> (max is 5); each position is a fixed $100K (equal-weight, no leverage).</li>
-            <li><b>Long-only</b>, no leverage.</li>
+            <li><b>Sleeve 1 — Insider Conviction</b>: buys at Score ≥ 4 (max 5), a fixed $100K per name, holds until the score decays below 3; rebalanced daily on the open.</li>
+            <li><b>Sleeve 2 — Momentum</b>: the top-quintile 12-month performers, equal-weight, re-ranked monthly, with a crash guard to cash when the S&P 500 is below its 200-day average.</li>
+            <li><b>Long-only, no leverage</b> in either sleeve; a name held by both sleeves is owned by both.</li>
           </ul>
         </Reveal>
         <Reveal className="pp-heroright">
@@ -1236,23 +1338,75 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       </section>
 
       <section className="wrap pp-main">
+        {/* Two-sleeve split bar — Insider / Momentum / cash, reconciled to the
+            broker NAV by construction (splitBook). Widths are proportional. */}
+        {latestNav?.total_nav != null && (
+          <Reveal className="pp-splitwrap">
+            <div className="pp-splitbar" aria-hidden="true">
+              {[
+                { k: 'ins', v: sleeveBGross || 0 },
+                { k: 'mom', v: momGross },
+                { k: 'cash', v: Math.max(0, split.cash || 0) },
+              ].map(({ k, v }) => (
+                <div key={k} className={`pp-seg ${k}`} style={{ flexGrow: Math.max(v, 0), flexBasis: 0 }} />
+              ))}
+            </div>
+            <div className="pp-splitlegend">
+              <span><span className="pp-dot ins" />Insider Conviction holdings {fmtMoneyShort(sleeveBGross || 0)}</span>
+              <span><span className="pp-dot mom" />Momentum holdings {fmtMoneyShort(momGross)}</span>
+              <span><span className="pp-dot cash" />Cash {fmtMoneyShort(split.cash)}</span>
+              <span className="pp-splittotal">Account value {fmtMoneyShort(latestNav.total_nav)}</span>
+            </div>
+          </Reveal>
+        )}
+
+        {/* Per-sleeve cards */}
+        <Reveal className="pp-sleevecards">
+          <div className="pp-sleevecard">
+            <div className="pp-sc-eyebrow">Sleeve 1 · Insider Conviction</div>
+            <div className="pp-sc-value">{fmtMoneyExact(split.insValue)}</div>
+            <div className="pp-sc-rows">
+              <div><span>Since inception</span><b className={dirClass(insIncep)}>{fmtPctP(insIncep)}</b></div>
+              <div><span>S&P 500 same period</span><b className={dirClass(spyIncep)}>{fmtPctP(spyIncep)}</b></div>
+              <div><span>Holdings</span><b>{sleeveB.length}</b></div>
+              <div><span>Last action</span><b>{insLast ? `${insLast.side === 'buy' ? 'Bought' : 'Sold'} · ${fmtDate(insLast.date)}` : '—'}</b></div>
+            </div>
+          </div>
+          <div className="pp-sleevecard">
+            <div className="pp-sc-eyebrow">Sleeve 2 · Momentum</div>
+            <div className="pp-sc-value">{momCap > 0 ? fmtMoneyExact(split.momValue) : '—'}</div>
+            <div className="pp-sc-rows">
+              <div><span>Since inception</span><b>—</b></div>
+              <div><span>Holdings</span><b>{sleeveM.length}</b></div>
+              <div><span>Last action</span><b>{momLast ? `${momLast.side === 'buy' ? 'Bought' : 'Sold'} · ${fmtDate(momLast.date)}` : '—'}</b></div>
+              <div><span>Current list</span><b>{momMeta ? `${Object.keys(momMeta.ranks).length} names · as of ${fmtDate(momMeta.asOf)}` : '—'}</b></div>
+              {momMeta?.next && <div><span>Next re-rank</span><b>{fmtDate(momMeta.next)}</b></div>}
+            </div>
+            {momCap === 0 && sleeveM.length === 0 && (
+              <div className="pp-sc-note">This sleeve has not placed its first trade yet. The current ranked list is on the Trading Scanner page.</div>
+            )}
+          </div>
+        </Reveal>
+
         <Reveal>
         <PositionsPanel
-          title="Equity Scanner — Long-Only"
+          title="Holdings"
           sleeve="B"
-          positions={sleeveB}
+          positions={bothSleeves}
           asOf={displayPosAsOf}
           updatedAt={posUpdatedAt}
           live={liveMode}
           freshnessId={liveMode ? 'portfolio.paper-positions-intraday' : 'portfolio.paper-positions-snapshot'}
-          cashValue={recon.bCash}
+          cashValue={split.cash}
           totalCapital={STARTING_CAPITAL}
           onOpenTicker={onOpenTicker}
           cfg={colCfg}
           setCfg={setColCfg}
           headline={heads.b}
           scanScores={scanScores}
-          infoDef="$1M following the Trading Scanner long-only. Buy at Score ≥ 4 (max 5); each position is a fixed $100K equal-weight (≤10% of the book), no leverage. A name is held until its score decays below 3."
+          momentumRanks={momMeta?.ranks || {}}
+          overlapTickers={overlapTickers}
+          infoDef="Both sleeves' positions in one table. Insider Conviction: buy at Score ≥ 4 (max 5), fixed $100K per name, hold until the score decays below 3. Momentum: equal-weight across the current monthly list. A name held by both sleeves shows one row per sleeve, marked ×2."
         />
         </Reveal>
         {/* No Reveal around the rebalance log: its trades drawer is

@@ -178,6 +178,60 @@
   .home-v12 .sc-colpick { min-width: 280px; }
 }
 
+/* ── Sleeve designation + rule lines (two-sleeve build, 2026-07-14) ────────
+   Small factual header furniture above/below both panel titles so the two
+   sleeve panels read as one visual system. */
+.home-v12 .sc-sleeve, .home-v12 .mo-sleeve { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin-bottom: 4px; }
+.home-v12 .sc-rule, .home-v12 .mo-rule { font-family: var(--sans); font-size: 13px; color: var(--mut); margin-top: 6px; line-height: 1.5; max-width: 760px; }
+
+/* ── Sleeve 2 — Momentum panel (two-sleeve build, 2026-07-14) ──────────────
+   Putty card on the shared 1560px stage: guard status strip, two-column
+   ranked list (collapses to one at phone width), badge legend. */
+.home-v12 section.mo-sec { max-width: 1560px; min-width: 0; }
+.home-v12 .mo-card { background: var(--putty); border-radius: 40px; padding: 0 0 18px; overflow: hidden; transition: background .5s; }
+.home-v12 .mo-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 26px 30px 16px; border-bottom: 1px solid var(--hair); }
+.home-v12 .mo-title { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.12; color: var(--ink); }
+.home-v12 .mo-asof { font-family: var(--sans); font-size: 12.5px; color: var(--mut); font-weight: 600; letter-spacing: .02em; display: flex; align-items: center; gap: 7px; padding-top: 6px; white-space: nowrap; }
+.home-v12 .mo-guard { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 30px 6px; padding: 12px 18px; border-radius: 16px; background: var(--bg2); border-left: 3px solid var(--hair); font-family: var(--sans); }
+.home-v12 .mo-guard.on { border-left-color: var(--up); }
+.home-v12 .mo-guard.off { border-left-color: var(--down); }
+.home-v12 .mo-guard-state { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--ink); }
+.home-v12 .mo-guard.on .mo-guard-state { color: var(--up); }
+.home-v12 .mo-guard.off .mo-guard-state { color: var(--down); }
+.home-v12 .mo-guard-detail { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.home-v12 .mo-guard-flip { font-size: 12px; color: var(--mut); margin-left: auto; }
+.home-v12 .mo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px; padding: 8px 30px 0; align-items: start; }
+.home-v12 .mo-grid > .mo-scroll { min-width: 0; }
+.home-v12 .mo-scroll { overflow-x: auto; }
+.home-v12 .mo-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
+.home-v12 .mo-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 10px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+.home-v12 .mo-table th.num-h { text-align: right; }
+.home-v12 .mo-table th:first-child { text-align: right; width: 44px; }
+.home-v12 .mo-table td { padding: 8px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; }
+.home-v12 .mo-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.home-v12 .mo-table td.num.up { color: var(--up); }
+.home-v12 .mo-table td.num.down { color: var(--down); }
+.home-v12 .mo-table tbody tr:last-child td { border-bottom: 0; }
+.home-v12 .mo-tk { display: flex; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
+.home-v12 .mo-tk b { font-weight: 700; }
+.home-v12 .mo-tk:hover b { color: var(--gold-deep); }
+.home-v12 .mo-name { font-size: 12px; color: var(--mut); max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.home-v12 .mo-badge { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold-deep); flex: none; align-self: center; }
+.home-v12 .mo-foot { font-family: var(--sans); font-size: 12px; color: var(--mut); padding: 14px 30px 4px; line-height: 1.5; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.home-v12 .mo-loading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 26px 30px; }
+
+@media (max-width: 900px) {
+  .home-v12 .mo-card { border-radius: 28px; }
+  .home-v12 .mo-head { padding: 20px 18px 12px; }
+  .home-v12 .mo-grid { grid-template-columns: 1fr; padding: 6px 18px 0; }
+  .home-v12 .mo-guard { margin: 14px 18px 4px; }
+  .home-v12 .mo-guard-flip { margin-left: 0; }
+  .home-v12 .mo-foot { padding: 12px 18px 2px; }
+}
+@media (max-width: 640px) {
+  .home-v12 .mo-name { max-width: 140px; }
+}
+
 /* ── RSI Divergences section (2026-07-13) ──────────────────────────────────
    Two putty cards on the shared 1560px stage: bullish and bearish regular
    divergences from the nightly divergence_scan. De-banded minimal tables,
