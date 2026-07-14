@@ -14,6 +14,20 @@
    - §04 rewritten as the automated $1M Paper Portfolio (the broker-CSV / Plaid
      import it described is dead); TOC entry renamed "Paper Portfolio".
 
+   Two-sleeve rewrite (2026-07-14, MOMENTUM_SLEEVE_BUILD_SPEC.md §5 — PR-4):
+   - §03/§04 REWRITTEN (not appended) around the two sleeves: Insider
+     Conviction (thresholds from paper_portfolio/config.py: buy ≥ 4, exit < 3)
+     and Momentum (rules from scripts/momentum_rules.py: 12-1 ranks, quintile
+     clamp 20–50, SPY-vs-200-day guard).
+   - Evidence block sourced from Strategy_Backtest_2026-07-14.xlsx: the
+     survivorship-controlled +4.7%/yr gets EQUAL BILLING with the 16.3%-vs-8.8%
+     headline; costs (10 bps/side, ~32%/mo turnover), drawdowns (−55.7%
+     unguarded / −23.8% guarded), the guard's 2026 whipsaw (−7% vs +21%), and
+     the insider sleeve's 11-month evidence window stated plainly.
+   - §05 job table gains the monthly momentum list publish + daily guard
+     refresh. §06 vendor table is manifest-derived and picks the new elements
+     up automatically.
+
    Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
    scope to the shared home-v12 cream system (cream-system.css) with page
    styles in methodology-v12.css. RESKIN ONLY -- classNames, layout wrappers
@@ -275,16 +289,26 @@ export default function MethodologyPage() {
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Trading scanner</div>
-            <h2 className="me-h2">Two signals · one MacroTilt Score (0–5)</h2>
+            <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Momentum</h2>
             <p className="me-body-p">
-              Each ticker earns points from two validated inputs. They are added together — not weighted —
-              into a single score from 0 to 5. A name needs at least <b>3 points to appear</b> on the scanner;
-              the <b>buy line is a Score of 4</b> (out of a maximum of 5 — a high-conviction insider name not in a downtrend), the level at which the $1M Paper
-              Portfolio (section 04) actually buys a name.
+              The Scanner page runs <b>two fully rules-based sleeves</b>. <b>Sleeve 1 — Insider Conviction</b>{' '}
+              buys when executives are buying and the trend confirms, event-driven and scanned daily.{' '}
+              <b>Sleeve 2 — Momentum</b> owns the strongest 12-month performers, re-ranked once a month.
+              The sleeves are deliberately separate: we tested requiring both signals at once, and the
+              overlap produced only 1–6 names a month — too few to hold a portfolio. So neither signal
+              vetoes the other; a stock that qualifies for both is owned by both, and total exposure
+              scales with the evidence.
+            </p>
+            <p className="me-body-p">
+              <b>Sleeve 1 scoring.</b> Each ticker earns points from two validated inputs, added — not
+              weighted — into a single score from 0 to 5. A name needs at least <b>3 points to appear</b>;
+              the <b>buy line is a Score of 4</b> (a high-conviction insider name not in a downtrend), the
+              level at which the Paper Portfolio (section 04) actually buys.
             </p>
             <div className="me-formula">
               Insider (up to +4) + Technicals (+1 / −2)<br />
-              MacroTilt Score = the sum, capped at 5
+              MacroTilt Score = the sum, capped at 5<br />
+              buy = Score ≥ 4 · hold until Score &lt; 3
             </div>
             <p className="me-body-p">
               <b>Insider</b> fires on open-market buys in the last 30 days — a C-suite officer lifting their
@@ -294,6 +318,39 @@ export default function MethodologyPage() {
               high-conviction insider slice beat the market roughly two-to-one on hit rate. <b>Universe scan</b>
               runs once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
               refresh 3× daily.
+            </p>
+            <p className="me-body-p">
+              <b>Sleeve 2 selection.</b> On the first of each month, every liquid US common stock (last
+              close ≥ $2, 45-day average dollar volume ≥ $50M) is ranked by its <b>12-month return
+              excluding the most recent month</b> (the standard "12-1" academic construction — the last
+              month is skipped because very recent winners tend to snap back). The sleeve owns the{' '}
+              <b>top fifth of that ranking, clamped to 20–50 names, equal-weight</b>, and holds them
+              untouched until the next monthly re-rank. A <b>portfolio-level crash guard</b> checks the
+              S&amp;P 500 against its own 200-day average every trading day: below it, the whole sleeve
+              moves to cash; back above, it re-enters at the next signal. An insider-badge dot on the
+              ranked list marks names where an officer or director also bought in the trailing 90 days —
+              information only, it does not affect selection.
+            </p>
+            <div className="me-formula">
+              rank  = total return from 12 months ago to 1 month ago, highest first<br />
+              own   = top quintile of the ranked universe, clamped to 20–50 names, equal-weight<br />
+              guard = S&amp;P 500 below its 200-day average → whole sleeve to cash (checked daily)
+            </div>
+            <p className="me-body-p">
+              <b>The evidence, stated honestly.</b> Over 270 monthly rebalances (Jan 2004 – Jun 2026),
+              momentum returned <b>16.3%/yr against the S&amp;P 500's 8.8%/yr</b>, net of modeled costs
+              (10 basis points per side on roughly a third of the list turning over each month). That
+              headline flatters: the deep price history only exists for companies still alive today, so
+              failed companies are missing. Controlling for that — comparing momentum against an
+              equal-weight portfolio of the <b>same</b> universe — the honest edge is{' '}
+              <b>about +4.7%/yr</b>, and that number deserves the same billing as the headline. The cost
+              is volatility: the unguarded sleeve's worst peak-to-trough loss was <b>−55.7%</b> (2008);
+              with the crash guard it was <b>−23.8%</b>, but the guard gives return back in whipsaw years —
+              in 2026 so far the guarded sleeve is <b>−7% against +21% unguarded</b>. Expect the guard to
+              cost return most years and pay for itself only in extended bear markets, and expect any
+              single year to lose to the index badly. The insider sleeve's evidence window is much
+              shorter — <b>11 months of filings history</b> (+6%/yr excess in that window) plus the
+              separate 12-month hit-rate study — directionally consistent, but not long-term proof.
             </p>
             <p>
               <b>Dark pool</b>, <b>Options shock</b> and <b>Options flow</b> counted toward the score until
@@ -321,26 +378,39 @@ export default function MethodologyPage() {
           <div className="me-num">04</div>
           <div>
             <div className="mt-eyebrow">Paper Portfolio</div>
-            <h2 className="me-h2">The automated $1M paper book</h2>
+            <h2 className="me-h2">One $1M paper account · two sleeves</h2>
             <p className="me-body-p">
-              MacroTilt runs a live <b>$1M paper portfolio</b> that trades the Trading Scanner long-only —
-              no manual input, no broker import. It buys every name <b>at or above the buy line (Score ≥ 4)</b>{' '}
-              at a <b>fixed $100K per name</b> (equal-weight, capped at 10% of the book), filling the
-              highest-scored names first and resting the remainder in cash. <b>No leverage</b> — the book never
-              borrows. (Rebuilt 2026-07-07: the old score-tiered sizing and 2× leverage were retired after a
-              review found they — not the stock picks — were driving the losses.)
+              MacroTilt runs a live <b>$1M paper portfolio</b> with no manual input and no broker import,
+              split <b>$500K to each sleeve</b>. <b>Long-only, no leverage</b> in either sleeve — the book
+              never borrows. A name held by both sleeves appears once per sleeve on the holdings table,
+              marked ×2; its total exposure is the two positions combined.
             </p>
             <p className="me-body-p">
-              The book is <b>signal-only, and holds through the noise</b>. A name is bought once when it
-              crosses the buy line and <b>held until its score decays below 3</b> — a name that dips just under
-              the buy line for a day is kept, not dumped-and-rebought (that churn is what the rebuild fixed). It
-              never resizes on a price move or a one-point score wobble. Positions are held at <b>cost basis</b>
-              and priced off the end-of-day feed, so profit and loss is cost-basis P/L, not a live mark.
+              <b>Sleeve 1 — Insider Conviction</b> buys every name at or above the buy line{' '}
+              (<b>Score ≥ 4</b>) at a <b>fixed $100K per name</b>, filling the highest-scored names first
+              and resting the remainder in cash, rebalanced daily on the open. It is{' '}
+              <b>signal-only, and holds through the noise</b>: a name is bought once and{' '}
+              <b>held until its score decays below 3</b> — a name that dips just under the buy line for a
+              day is kept, not dumped-and-rebought. (Rebuilt 2026-07-07: the old score-tiered sizing and
+              2× leverage were retired after a review found they — not the stock picks — were driving the
+              losses.)
+            </p>
+            <p className="me-body-p">
+              <b>Sleeve 2 — Momentum</b> trades once a month, on the list publish: it buys the current
+              ranked list <b>equal-weight, $500K divided by the list size</b> (20–50 names, so roughly
+              $10–25K per name), sells what dropped off, and otherwise does not touch positions between
+              re-ranks. The only intra-month action is the crash guard: if the S&amp;P 500 closes below
+              its 200-day average, the sleeve exits to cash. Expect roughly a third of the list to turn
+              over each month (~15 orders) — fine on paper, tax-inefficient in a real taxable account.
+            </p>
+            <p className="me-body-p">
+              Both sleeves share the account's order path: trades queue after the morning signal run and
+              fill at the open. Positions are held at <b>cost basis</b> and priced off the end-of-day
+              feed, so profit and loss is cost-basis P/L, not a live mark.
             </p>
             <div className="me-formula">
-              buy  = Score ≥ 4 · size = fixed $100K equal-weight (≤10% of book) · no leverage<br />
-              hold = keep the name until Score &lt; 3 (hold through the wobble)<br />
-              sell = Score &lt; 3 → exit the whole position<br />
+              Sleeve 1: buy = Score ≥ 4 · size = fixed $100K (≤10% of book) · hold until Score &lt; 3<br />
+              Sleeve 2: buy = current monthly list · size = $500K ÷ list size · guard → all cash<br />
               unrealized_pl_$   = market_value − cost_basis<br />
               unrealized_pl_pct = (market_value − cost_basis) / cost_basis
             </div>
@@ -392,6 +462,16 @@ export default function MethodologyPage() {
                   <td>9:00 AM</td>
                   <td>Paper Portfolio queue</td>
                   <td>Queues rebalance trades for the 9:30 open.</td>
+                </tr>
+                <tr>
+                  <td>8:45 AM</td>
+                  <td>Momentum crash guard</td>
+                  <td>Daily: re-checks the S&amp;P 500 against its 200-day average and updates the sleeve's invested / in-cash status.</td>
+                </tr>
+                <tr>
+                  <td>6:00 AM · 1st of month</td>
+                  <td>Momentum list publish</td>
+                  <td>Monthly: re-ranks the universe on the prior month's last complete day and publishes the 20–50 name list.</td>
                 </tr>
               </tbody>
             </table>
