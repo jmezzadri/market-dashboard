@@ -52,6 +52,7 @@ jobs:
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
           PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+          MOMENTUM_SLEEVE_ENABLED:      "true"
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m paper_portfolio.runner --phase eod --dry-run
@@ -68,4 +69,5 @@ jobs:
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
           PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+          MOMENTUM_SLEEVE_ENABLED:      "true"
         run: python -m scripts.paper_fill_now --force-live
