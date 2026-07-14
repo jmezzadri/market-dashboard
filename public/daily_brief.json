@@ -1,147 +1,148 @@
 {
-  "date": "2026-07-13",
-  "recap_session": "Fri Jul 10",
+  "date": "2026-07-14",
+  "recap_session": "Mon Jul 13",
   "eyebrow": "Morning Brief",
-  "headline": "Weekend US-Iran strikes shatter the interim peace deal: oil surges ~4% overnight, equity futures slide, and Treasuries sell off as rate-hike bets intensify ahead of Tuesday's CPI.",
-  "stance": "The weekend's multi-wave exchange of strikes — the US hitting 300+ Iranian targets, Iran retaliating against Gulf bases and declaring the Strait of Hormuz closed — has snapped the fragile truce and repriced risk across every asset class. <b>The dominant question for this week is whether Tuesday's June CPI (consensus: headline ~3.9%, core ~0.3% m/m) validates the hawkish drift already embedded in futures, or delivers a modest relief print that lets markets stabilise ahead of the big-bank earnings wave.</b> Until the geopolitical fog clears, headline risk is high and energy/rate volatility will set the tone.",
+  "headline": "Iran blockade revival sends oil up ~9%, chips and growth stocks drag S&P 500 and Nasdaq lower into a week stuffed with CPI, bank earnings, and Fed Chair Warsh's first congressional testimony.",
+  "stance": "The macro table is set for a binary day: a headline CPI print that consensus expects to go <i>negative</i> month-on-month (-0.1%) lands at 8:30 ET, followed by JPMorgan, Goldman Sachs, and Bank of America earnings. <b>The headline number will likely look disinflationary — do not be fooled.</b> Core CPI is expected to hold near 2.9% year-on-year, still running well above the Fed's 2% target; the energy relief that drives the soft headline reflected June gasoline prices that have already partially reversed with the Strait of Hormuz re-closure. Futures are modestly softer overnight (S&P –0.2%, Nasdaq –0.3%), consistent with wait-and-see positioning ahead of the data.",
   "news": [
     {
-      "head": "US-Iran: ceasefire in tatters",
-      "body": "Over the weekend, the US launched a fourth-plus wave of strikes on Iranian targets — hitting Bandar Abbas, petrochemical sites, air-defence and drone facilities — while Iran retaliated with strikes on US bases in Kuwait, Bahrain, Jordan, Oman and Qatar, and again declared the Strait of Hormuz closed; US CENTCOM disputed the closure claim, saying shipping continues on the southern route."
+      "head": "Trump reinstates Iran blockade",
+      "body": "President Trump announced he is reinstating what he called a blockade on Iranian shipping through the Strait of Hormuz, sparking a roughly 9% single-day surge in WTI crude to ~$78/bbl and Brent to ~$83/bbl on Monday."
     },
     {
-      "head": "Oil surges ~4% overnight",
-      "body": "OVERNIGHT LEVEL: Brent crude futures near $79 per barrel and WTI near $74 per barrel, each up roughly 4% from Friday's prior cash close (Brent $76, WTI $71.51), on fears of a genuine Hormuz supply disruption."
+      "head": "CPI June due 8:30 ET today",
+      "body": "Consensus expects headline CPI to fall 0.1% month-on-month — which would trim the annual rate from 4.2% to ~3.9% — but core CPI is forecast to stay sticky near 2.9% year-on-year, keeping the Fed in a difficult spot."
     },
     {
-      "head": "Gold slides despite the war escalation",
-      "body": "OVERNIGHT LEVEL: Gold fell as much as 1.4% to near $4,060/oz — counterintuitively lower from Friday's prior cash close of $4,129 — because higher oil re-fires inflation fears, which supports a hawkish Fed, lifts real yields, and that is gold's main headwind in 2026."
+      "head": "Big-bank earnings kick off",
+      "body": "JPMorgan Chase, Goldman Sachs, and Bank of America are among the first major banks to report Q2 results today, marking the unofficial start of an earnings season where S&P 500 companies are expected to post roughly 24% profit growth."
     },
     {
-      "head": "Equity futures in the red",
-      "body": "OVERNIGHT/PRE-MARKET: S&P 500 futures are down roughly 0.5%, Nasdaq 100 futures down roughly 1.2%, and Dow futures down roughly 0.4% from Friday's prior cash closes (SPX 7,575, NDX 26,282, DJI 52,637)."
+      "head": "TSMC June revenue surges 68% YoY",
+      "body": "Taiwan Semiconductor reported June 2026 consolidated revenue of approximately NT$442.68 billion, up 67.9% year-on-year and 6.2% from May, with H1 revenue up 35.6%; Q2 full earnings call is scheduled for July 16."
     },
     {
-      "head": "Treasuries sell off; 2Y hits post-Feb high",
-      "body": "OVERNIGHT LEVEL: The 2-year Treasury yield climbed ~3 bps to roughly 4.23% — the highest since February 2025 — while the 10-year yield also moved higher across the curve, versus Friday's prior cash closes of 2Y 4.21% and 10Y 4.56%."
+      "head": "Fed Chair Warsh testifies to Congress",
+      "body": "Fed Chair Kevin Warsh delivers his first semi-annual monetary policy testimony to Congress today (Tuesday), with markets watching for any signal on whether a September rate hike remains on the table — currently priced at a meaningful probability."
     },
     {
-      "head": "Rate-hike bets ratchet up",
-      "body": "Swaps are now pricing roughly 40 basis points of Fed hikes by December 2026 — up from about 15 bps in early June — and markets assign roughly 62% odds of a hike at the September meeting, reinforced by hawkish June FOMC minutes released last week."
+      "head": "SK Hynix Seoul reversal drags Asia",
+      "body": "SK Hynix shares tumbled more than 15% in Seoul on Monday as investors booked profits following its record Nasdaq IPO debut, dragging South Korea's Kospi down nearly 9% and Japan's Nikkei 225 down ~1.9%."
     },
     {
-      "head": "Big-bank earnings start Tuesday",
-      "body": "JPMorgan, Wells Fargo, Bank of America, Citigroup and Goldman Sachs all report Tuesday, with Morgan Stanley and BlackRock on Wednesday — the Q2 season is expected to show a second straight quarter of earnings growth above 20%."
-    },
-    {
-      "head": "CPI & Fed Chair Warsh on Tuesday",
-      "body": "June CPI (consensus headline ~3.9%, core ~0.3% m/m) lands Tuesday morning alongside Fed Chair Warsh's first semi-annual congressional testimony — the last major inflation print before the Fed meets later this month."
+      "head": "China June exports beat",
+      "body": "China's June exports came in above expectations, providing some macro support even as domestic demand remains subdued — a mild positive for global cyclical sentiment."
     }
   ],
   "implications": [
-    "Oil above $74 (WTI) re-opens the inflation-via-energy channel; if Tuesday's CPI core comes in at 0.3% m/m or hotter, the market will move the September hike probability materially higher and compress equity multiples — particularly in rate-sensitive growth stocks.",
-    "The equity sell-off is tech-led (Nasdaq futures -1.2% vs S&P -0.5%), consistent with duration-sensitive names bearing the brunt of rising rate expectations; energy stocks and tanker names should outperform at the open.",
-    "Strait of Hormuz ambiguity is the key unknown: US CENTCOM insists shipping is flowing; Iran insists it is closed. Any confirmation of a real blockade would be a step-change, not a continuation — current oil prices do not yet price a full closure.",
-    "Gold's counter-intuitive drop is a regime signal: in this cycle, geopolitical risk that raises oil and therefore inflation expectations is net-negative for gold, because the Fed hawkish response lifts real yields — gold's ceiling in 2026.",
-    "The dollar (DXY ~101, pre-market vs prior cash close 100.96) is catching a mild safe-haven bid; USD/JPY is pinned above 161 overnight (prior cash close 161.67), and EUR/USD is near 1.1404 (prior cash close 1.1419) — yen is outperforming G10 peers on geopolitical flight.",
-    "<b>Positioning:</b> In rates, speculators have almost no bullish bets left in 3M SOFR (2nd percentile of 3 years — a contrarian floor); in equities, the same is true for Russell 2000 futures (2nd percentile — a contrarian floor). In FX, British Pound speculative positioning is at a 3-year short extreme (2nd percentile, divergence with hedgers — a contrarian floor for GBP). In commodities, copper speculators are extended long at the 94th percentile — a contrarian warning, especially with copper already at an extreme 97th-percentile price level."
+    "Oil at $78/bbl (WTI, prior cash close) with the Strait of Hormuz dispute live again means the June CPI 'relief' on energy is already backward-looking; real-time reflationary pressure is rebuilding.",
+    "Core CPI's expected 2.9% print is the number the Fed actually targets — if it surprises to the upside, expect the 10-year yield (prior close 4.62%) to push higher and growth stocks to sell off further.",
+    "A soft headline CPI could temporarily lift risk assets in the first 30 minutes after the 8:30 print; watch whether the rally holds into the bank earnings — a failure to hold would be a bearish signal for the session.",
+    "Bank earnings (JPM, GS, BAC today; MS, BNY, BlackRock Wednesday) arrive with credit spreads still historically contained — HY-IG spread 269 bps, IG OAS 77 bps — providing a constructive backdrop for financial sector results.",
+    "<b>Positioning:</b> In rates, speculators have almost no bullish bets left on 3-month SOFR futures (2nd percentile of three years) — a contrarian floor for bonds if CPI surprises softer. In equities, Russell 2000 futures show the same pattern — specs at the 2nd percentile, a contrarian-bullish lean for small-caps. In FX, British Pound specs are at the 2nd percentile (extended short positioning, contrarian-bullish). In commodities, Copper specs are at the 94th percentile — speculators are heavily positioned long copper, a contrarian warning as WTI specs are also near lows (10th percentile, contrarian-bullish for oil)."
   ],
   "watch": [
     {
-      "head": "Tuesday 8:30am ET — June CPI",
-      "body": "The single most important print of the week: consensus is headline ~3.9% and core ~0.3% m/m; a beat on core would likely cement a September rate hike and extend Monday's equity and bond selling."
+      "head": "8:30 ET — June CPI",
+      "body": "The single most important number of the day: consensus headline -0.1% MoM / ~3.9% YoY, core +0.2-0.3% MoM / ~2.9% YoY — any upside surprise on core would likely push yields higher and pressure the S&P 500."
     },
     {
-      "head": "Tuesday — Warsh congressional testimony",
-      "body": "Fed Chair Warsh's first semi-annual Humphrey-Hawkins appearance before Congress; watch for any signal on whether renewed oil-driven inflation shifts the Fed's 'wait and watch' posture toward an explicit hike bias."
+      "head": "Pre-open — JPM, GS, BAC earnings",
+      "body": "The big banks report before the open; net interest income guidance and credit loss commentary will be the key market movers, not just the headline EPS beats."
     },
     {
-      "head": "Tuesday — JPM, GS, WFC, BAC, C earnings",
-      "body": "Five major banks report in the same morning; strong capital-markets revenue is expected — any guidance cautioning on credit quality or net-interest-margin pressure in a higher-for-longer rate environment will be the key surprise risk."
+      "head": "~TBD — Fed Chair Warsh testimony",
+      "body": "First congressional appearance as Fed chair; any language tightening the door on cuts — or opening it — will move both bond yields and the dollar materially."
     },
     {
-      "head": "Hormuz shipping status — intraday",
-      "body": "Watch CENTCOM statements and Lloyd's / maritime agency vessel-tracking reports for whether commercial tanker transits through the strait actually halt; that binary outcome will drive oil and the broader risk-off/risk-on tone all week."
+      "head": "9:15 ET — Industrial Production / Capacity Utilization (June)",
+      "body": "A secondary macro read on real economic momentum, coming alongside the inflation print."
     },
     {
-      "head": "Wednesday — June PPI",
-      "body": "Producer prices (consensus -0.2% m/m, +6.2% YoY) land the day after CPI; together the two prints will set final rate-path expectations before the Fed's next meeting."
+      "head": "10:00 ET — Michigan Consumer Sentiment (July prelim)",
+      "body": "Watch the one-year inflation expectations sub-index: it climbed to 3.7% in June — any further rise would add hawkish pressure on the Fed."
+    },
+    {
+      "head": "Crude oil intraday",
+      "body": "WTI closed ~$78/bbl (prior cash close) after a near-9% surge Monday; any fresh Hormuz headline could push energy stocks sharply in either direction through the session."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "PRIOR CASH CLOSE (Fri Jul 10): 10Y Treasury yield 4.56%, 2Y yield 4.21%; yield curve (2s10s) +35 bps — positively sloped but slim, consistent with a late-cycle slow-growth regime.",
-        "OVERNIGHT LEVEL: 2Y yield has risen ~3 bps to roughly 4.23% — highest since February 2025 — as oil's surge re-fires inflation fears and the market prices a higher probability of a Fed hike by September (now ~62%).",
-        "Real rates remain elevated at 2.32% (prior cash close); this is the structural headwind for growth equities and gold, and an oil shock that keeps inflation sticky only extends this constraint.",
-        "The 10-year breakeven inflation expectation (prior cash close: 2.24%) will likely tick higher Monday as energy reprices — watch this vs the 4.56% nominal yield for how the bond market splits the oil shock between 'inflation' and 'growth fear'.",
-        "MOVE index (bond-market volatility gauge) at 69.5 (prior cash close) is calm relative to recent peaks — but a hot CPI or an escalated Hormuz closure would push this sharply higher, which would ripple into credit spreads.",
-        "Term premium (how much extra yield investors demand to hold long bonds) stands at 73.2 bps — elevated and rising; this is partly a fiscal concern (Treasury General Account $774bn, reserves $3,099bn) and partly a geopolitical risk premium.",
-        "Financial conditions remain loose overall: the Chicago Fed's financial conditions index is -0.51 z-scores (easy) and the St. Louis Fed stress index is -0.72 (low stress) — but that was before this weekend's escalation."
+        "10-year Treasury yield closed at 4.62% (prior cash close Jul 13) — up materially from 4.56% a week ago as oil-driven inflation fears reignited.",
+        "2-year yield at 4.26% (prior cash close Jul 13), giving a 2s-10s curve of +36 bps — positively sloped but narrow, signaling the market does not fully trust the growth outlook.",
+        "10-year breakeven inflation (the bond market's price-inflation gauge) sits at 2.26% (prior close Jul 13) — relatively contained versus 4.2% actual headline CPI in May, suggesting bond buyers are betting energy shock is temporary.",
+        "Real (inflation-adjusted) 10-year rate is 2.36% (prior close Jul 13) — high by recent history and a meaningful headwind for expensive growth stocks.",
+        "The MOVE index — a measure of bond-market volatility, the rates equivalent of the VIX — sits at 77.8 (prior close Jul 13), relatively calm given the geopolitical backdrop, which may mean today's CPI is a bigger volatility event than current pricing implies.",
+        "Markets price a ~68% chance the Fed holds rates unchanged at the July meeting; a September hike remains in play, especially if today's core CPI does not soften.",
+        "The Fed's reverse repo facility — a key daily gauge of excess cash sloshing through the banking system — has nearly drained to $0.8bn (Jul 13), meaning the plumbing of markets is running lean; any sudden liquidity need would show up quickly in funding costs."
       ],
-      "positioning": "Speculators have almost no bullish bets left on 3M SOFR interest-rate futures — a 3-year low (2nd percentile) and the most extreme short position in the complex, sitting opposite to hedgers who are heavily long. This is a contrarian signal that the rate market may be over-pricing Fed hikes; a softer CPI print Tuesday could trigger a sharp rally in short-dated bonds.",
+      "positioning": "Speculators have almost no bullish bets left on 3-month SOFR (short-term interest rate) futures — sitting at the 2nd percentile of their 3-year range — a contrarian floor for bonds. Specs and commercial hedgers sit at opposite extremes, historically a reliable mean-reversion signal.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "PRIOR CASH CLOSE (Fri Jul 10): S&P 500 at 7,575, Nasdaq 100 at 26,282, Dow at 52,637 — all at or near record highs, with the S&P up ~11% year-to-date.",
-        "OVERNIGHT/PRE-MARKET: S&P 500 futures -0.5%, Nasdaq 100 futures -1.2%, Dow futures -0.4% — tech is leading the decline as rising rate-hike expectations hit the highest-duration growth names hardest.",
-        "PRIOR CASH CLOSE breadth check: 65.8% of S&P 500 stocks are above their 50-day average and 68.1% above their 200-day average — solid internal strength, meaning the index is not being carried by just a handful of mega-caps.",
-        "VIX (fear gauge — how much the options market is paying for S&P insurance) at 15.03 (prior cash close) is low and complacent; a geopolitical shock of this magnitude at 15 VIX means options are cheap to buy heading into a risk event, and a spike toward 20+ is feasible.",
-        "SKEW at 144.3 (prior cash close) is elevated — institutional investors are paying up for tail-risk protection (out-of-the-money puts), signalling that even with a low VIX the smart money is not fully complacent about a sharp drawdown.",
-        "Equity risk premium (ERP) is -2.05% — stocks are paying less than bonds after adjusting for risk, a structural caution flag; this makes equities more vulnerable to any upside yield surprise from CPI.",
-        "CAPE (the long-run valuation ratio that smooths earnings over 10 years) is 42.18 — historically stretched — but as BMO noted, recent S&P gains are earnings-driven rather than multiple-expansion, which is a healthier composition.",
-        "Q2 earnings season opens in earnest Tuesday; a second straight quarter of 20%+ earnings growth is expected — the bull case depends on results validating that growth story while the bears point to oil-driven margin pressure."
+        "S&P 500 prior cash close: 7,515.34 (down 0.79% on Mon Jul 13); overnight S&P 500 futures pointing roughly -0.2% as of pre-market ~6am ET.",
+        "Nasdaq Composite prior cash close: 25,873.18 (down 1.55% Mon), with Nasdaq-100 futures off ~-0.3% overnight — tech bore the brunt of the oil-inflation-rate anxiety.",
+        "Dow Jones Industrial Average prior cash close: 52,498.64 (down 0.26%, or 138 points Mon).",
+        "VIX (the S&P 500 fear gauge) closed at 17.16 (prior close Jul 13) — elevated but not panicked; VXN (Nasdaq equivalent) at 27.3, reflecting more stress in tech.",
+        "SKEW index at 145.7 (prior close Jul 13) — elevated, meaning the options market is pricing a meaningfully higher probability of a large downside move than a normal distribution would suggest; tail-risk hedging is live.",
+        "Breadth is holding: 65.8% of S&P 500 names trade above their 50-day average and 68.1% above their 200-day average (as of Jul 10) — the selloff is concentrated in large-cap tech, not broad.",
+        "The equity risk premium — roughly, the extra return stocks offer versus safe bonds — is at -2.05% (Jun 30 reading), meaning stocks as a group offer essentially zero extra compensation over risk-free Treasuries at current price levels; this is a valuation warning at a CAPE of 41.85.",
+        "TSMC reported June revenue up 67.9% year-on-year; Q2 earnings call is July 16 — this is the AI supply-chain litmus test for the entire semiconductor sector.",
+        "Bank earnings week begins today with JPMorgan, Goldman Sachs, and Bank of America; Q2 S&P 500 EPS growth expectations are running near 24% year-on-year — a high bar."
       ],
-      "positioning": "Speculators have almost no bullish bets left on Russell 2000 (small-cap) futures — a 3-year low at the 2nd percentile — sitting opposite to hedgers; this is a contrarian floor for small-caps. If CPI comes in tame and rate-hike fears fade, small-caps carry the most coiled upside from a positioning squeeze.",
+      "positioning": "Russell 2000 (small-cap) futures specs are at the 2nd percentile of their 3-year positioning range — speculators have almost no bullish bets left, a contrarian-bullish lean for small-caps relative to large-cap tech.",
       "single_name": {
-        "ticker": "KMX",
-        "note": "<a class=\"tklink\" href=\"/ticker/KMX\" data-route=\"/ticker/KMX\">CarMax</a> (used-auto retailer) — highest-conviction long setup: large off-exchange block buying (quiet institutional accumulation) confirmed, a burst of unusual options buying confirmed, 2 company insider buying rules fired, and the stock is trading above its 200-day average. Shorts are not heavy (4.4 days to cover), limiting squeeze risk but also reducing friction on a move higher. Signal is fresh as of July 10."
+        "ticker": "TSM",
+        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — the world's dominant AI chip foundry — just posted June revenue +67.9% year-on-year; with large off-exchange block buying (quiet institutional accumulation) and a burst of unusual options buying flagged in our scan, and company insiders have been buying, this is a fresh long setup above its 200-day line ahead of Q2 earnings on July 16."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "High-yield vs investment-grade spread at 270 bps (prior cash close Jul 9) — credit markets are not yet flashing distress; for context, IG option-adjusted spread is 76 bps (prior cash close), both calm.",
-        "Commercial paper spread (CPFF) at 18 bps (prior cash close) — short-term funding markets are not stressed; interbank plumbing (FRA-OIS and SOFR-OIS both -9 bps) is clean.",
-        "Bank credit growth is running at 5.93% year-over-year (as of Jul 1) and the leveraged-loan market is clearing at 6.98% (as of Jul 9) — credit supply is flowing, but loan rates this high create a slow-burn drag on capital-intensive businesses.",
-        "M2 money supply growing 5.58% YoY (as of May) with Fed balance sheet +1.1% YoY — liquidity is not being actively withdrawn, but the reverse-repo facility is nearly drained ($0.5bn, prior cash close), meaning that structural liquidity support is exhausted.",
-        "Bank reserves at $3,099bn (as of Jul 8) and TGA at $774bn — the Treasury has firepower; watch for any large TGA drawdown (spending) as a source of reserve injection that could ease money-market conditions.",
-        "ISM Manufacturing at 53.3 and Services PMI at 54.5 — both above the 50-line that separates contraction from expansion — means the real economy is still growing into this geopolitical shock, limiting the case for an imminent recession-driven credit blowup."
+        "High-yield to investment-grade bond spread at 269 bps (as of Jul 10) — credit markets remain relatively calm, not pricing a recession or a funding crisis despite the geopolitical noise.",
+        "Investment-grade option-adjusted spread at 77 bps (Jul 10) — tight by historical standards, meaning corporate borrowers of high quality are not paying a significant risk premium; supportive of equities.",
+        "Commercial paper funding rate (CPFF spread) at 18 bps (Jul 10) — short-term corporate borrowing markets are functioning normally; no stress signal.",
+        "Bank credit growth running at 5.93% year-on-year (Jul 1) — solid but not frothy, consistent with an economy that is growing but slowing.",
+        "M2 money supply growing 5.58% year-on-year (May) while the Fed balance sheet is expanding only 1.11% year-on-year (Jul 8) — the money supply is being driven by bank lending, not Fed printing.",
+        "4-week average jobless claims of 219K (week ending Jul 4) remain low, consistent with a still-tight labor market and limited near-term recession signal.",
+        "Financial conditions indexes (ANFCI -0.51 z-score, STLFSI -0.72) remain loose — meaning the broader lending and credit environment is still easy, which supports risk assets even as rates rise."
       ],
       "positioning": null,
       "single_name": {
         "ticker": "STNG",
-        "note": "<a class=\"tklink\" href=\"/ticker/STNG\" data-route=\"/ticker/STNG\">Scorpio Tankers</a> (product tanker operator) — directly exposed to the Hormuz disruption thesis: large off-exchange block buying and unusual options buying both live, 2 insider buying rules fired, trading above 200-day average. Shorts are moderate (4 days to cover). Signal is aging (88% weight remaining). An oil/shipping geopolitical shock is exactly the macro environment this name is set up for."
+        "note": "<a class=\"tklink\" href=\"/ticker/STNG\" data-route=\"/ticker/STNG\">Scorpio Tankers (STNG)</a> — product tanker operator — sits at the intersection of energy and credit themes: with the Strait of Hormuz dispute live, tanker day-rates could spike; large off-exchange block buying (quiet institutional accumulation), a burst of unusual options buying, and two insider buying signals have fired, with the stock trading above its 200-day line. Shorts hold 2.2 days-to-cover — a moderate squeeze risk if tanker rates move."
       }
     }
   ],
   "movers": [
     {
+      "ticker": "MTDR",
+      "pct": 3.4,
+      "link": true
+    },
+    {
+      "ticker": "TSM",
+      "pct": -2.9,
+      "link": true
+    },
+    {
       "ticker": "KMX",
-      "pct": 4.9,
+      "pct": 2.6,
       "link": true
     },
     {
       "ticker": "STNG",
-      "pct": 4.0,
+      "pct": -2.6,
       "link": true
     },
     {
       "ticker": "RH",
       "pct": -1.8,
-      "link": true
-    },
-    {
-      "ticker": "TSM",
-      "pct": -0.7,
-      "link": true
-    },
-    {
-      "ticker": "GLP",
-      "pct": 0.6,
       "link": true
     }
   ]
