@@ -24,6 +24,7 @@ import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
 import DivergencePanel from '../components/DivergencePanel';
+import MomentumPanel from '../components/MomentumPanel';
 import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 import '../styles/cream-system.css';
 import '../styles/scanner-v12.css';
@@ -184,11 +185,12 @@ export default function ScannerPage() {
       <section className="wrap sc-hero">
         <Reveal className="sc-ed">
           <div className="eyebrow2"><span className="dot" />Trading scanner</div>
-            <h1>Cutting through the noise with <i>proprietary signal intelligence</i> to find trading opportunities.</h1>
+            <h1>Two rules-based sleeves: <i>Insider Conviction</i> and <i>Momentum</i>.</h1>
             <ul className="impl">
-              <li><b>Two signals</b> — insider activity and technicals — sum into one live MacroTilt Score from 0 to 5. A name needs at least 3 to make the list. Options shock and dark-pool prints show as context only (shelved from the score on 2026-07-07 — unvalidated).</li>
-              <li><b>Scanner indicates a buy at a Score ≥ 4</b> (4 or 5 out of a max of 5 — a high-conviction insider name); the $1M paper book buys a fixed $100K per name (equal-weight, no leverage).{' '}
-                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the scoring methodology →</a></li>
+              <li><b>Sleeve 1 — Insider Conviction</b>: buys when executives are buying and the trend confirms (Score ≥ 4 of a max 5), holds until the score decays below 3; event-driven, scanned daily.</li>
+              <li><b>Sleeve 2 — Momentum</b>: owns the top-quintile 12-month performers, re-ranked monthly, with a crash guard that moves the sleeve to cash when the S&P 500 trades below its 200-day average.</li>
+              <li><b>The sleeves are independent</b> — a stock in both is owned by both; neither signal vetoes the other.{' '}
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the methodology →</a></li>
             </ul>
         </Reveal>
 
@@ -223,7 +225,11 @@ export default function ScannerPage() {
       <section className="wrap sc-results">
         <div className="sc-tablecard">
           <div className="sc-panelhead">
-            <h2 className="sc-paneltitle">Trading Scanner</h2>
+            <div>
+              <div className="sc-sleeve">Sleeve 1</div>
+              <h2 className="sc-paneltitle">Insider Conviction Scanner</h2>
+              <div className="sc-rule">Buys at Score ≥ 4 (max 5); a name is held until its score decays below 3.</div>
+            </div>
             <div className="sc-panelhead-tools">
               <button
                 type="button"
@@ -278,7 +284,11 @@ export default function ScannerPage() {
         {toast && <div className="sc-toast mt-fade">{toast}</div>}
       </section>
 
-      {/* RSI Divergences — daily price/RSI divergence screen */}
+      {/* Sleeve 2 — Momentum: guard strip + monthly ranked list */}
+      <MomentumPanel />
+
+      {/* RSI Divergences — daily price/RSI divergence screen (display-only,
+          below both sleeves per the two-sleeve spec) */}
       <DivergencePanel />
 
       {/* How the score is built */}
@@ -286,7 +296,7 @@ export default function ScannerPage() {
         <Reveal className="sc-build">
           <div className="sc-buildhead">
             <div>
-              <div className="eyebrow2"><span className="dot" />How the score is built</div>
+              <div className="eyebrow2"><span className="dot" />How the Sleeve 1 score is built</div>
               <h2>Two inputs, summed into one 0–5 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
             <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>
