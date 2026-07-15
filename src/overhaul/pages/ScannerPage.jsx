@@ -35,12 +35,6 @@ function bucketFor(s) {
   return 'b3';
 }
 
-const BUCKETS = [
-  { key: 'b5', cls: 'b5', label: 'Score 5 · Top', tip: 'Score 5 — the maximum: a high-conviction insider buy in an uptrend. The paper book buys these.' },
-  { key: 'b4', cls: 'b4', label: 'Score 4 · Buy line',    tip: 'Score 4 — the buy line (out of a max of 5). A high-conviction insider buy, not in a downtrend. The $1M paper book buys at Score ≥ 4 and exits below 3.' },
-  { key: 'b3', cls: 'b3', label: 'Score 3 · Watch',    tip: 'Score 3 — on the watch list (a weaker/cluster signal), below the buy line.' },
-];
-
 // Saved state is column order + show/hide. Every column is ON by default; the
 // gear only hides what you opt out of. Reorder by dragging the header cells on
 // the table. Ticker pinned left, Score pinned right. Key bump clears older
@@ -82,7 +76,7 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
 
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
-  const { byTicker: scoreHist, movers, priorDate } = useScanScoreHistory();
+  const { byTicker: scoreHist } = useScanScoreHistory();
   const [drillOpenKey, setDrillOpenKey] = useState(null);
   const [colState, setColState] = useState(loadColState);
   const [showCols, setShowCols] = useState(false);
@@ -117,12 +111,6 @@ export default function ScannerPage() {
     }),
     [rawRows, scoreHist],
   );
-
-  const counts = useMemo(() => {
-    const c = { b5: 0, b4: 0, b3: 0 };
-    rows.forEach((r) => { c[r.bucket] = (c[r.bucket] || 0) + 1; });
-    return c;
-  }, [rows]);
 
   function toggleCol(key) {
     if (LOCKED.includes(key)) return;
@@ -181,7 +169,7 @@ export default function ScannerPage() {
         document.body,
       )}
 
-      {/* Hero — editorial left, scan card right */}
+      {/* Hero — editorial, full width (scan summary card removed 2026-07-15, Joe) */}
       <section className="wrap sc-hero">
         <Reveal className="sc-ed">
           <div className="eyebrow2"><span className="dot" />Trading scanner</div>
@@ -194,30 +182,6 @@ export default function ScannerPage() {
             </ul>
         </Reveal>
 
-        <Reveal className="sc-scan">
-            <div className="sc-scantop">
-              <div className="label">Latest scan{scanDate ? ` · ${scanDate} close` : ''}</div>
-              <FreshnessChip
-                elementId="equity-trading_opps_scan-daily"
-                variant="dot"
-                fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
-              />
-            </div>
-            <ScanMovers movers={movers} priorDate={priorDate} onPick={(tk) => navigate(`/ticker/${tk}`)} />
-            <div className="sc-bands">
-              {BUCKETS.map((b) => (
-                <div
-                  key={b.key}
-                  className={`sc-band ${b.cls}`}
-                  onMouseEnter={(e) => showTip(e, b.tip)}
-                  onMouseLeave={hideTip}
-                >
-                  <div className="n">{counts[b.key] || 0}</div>
-                  <div className="l">{b.label}</div>
-                </div>
-              ))}
-            </div>
-        </Reveal>
       </section>
 
       {/* Results — grouped columns, all shown. Gear hides columns; drag a
@@ -229,6 +193,14 @@ export default function ScannerPage() {
               <div className="sc-sleeve">Sleeve 1</div>
               <h2 className="sc-paneltitle">Insider Conviction Scanner</h2>
               <div className="sc-rule">Buys at Score ≥ 4 (max 5); a name is held until its score decays below 3.</div>
+              <div className="sc-scanmeta">
+                <FreshnessChip
+                  elementId="equity-trading_opps_scan-daily"
+                  variant="dot"
+                  fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
+                />
+                <span>Latest scan{scanDate ? ` · ${scanDate} close` : ''}</span>
+              </div>
             </div>
             <div className="sc-panelhead-tools">
               <button
@@ -317,50 +289,6 @@ export default function ScannerPage() {
           </div>
         </Reveal>
       </section>
-    </div>
-  );
-}
-
-/* Short month-day label, e.g. "Jun 22". */
-function fmtDay(iso) {
-  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return '';
-  const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${MO[Number(m[2]) - 1]} ${Number(m[3])}`;
-}
-
-/* Compact score: whole numbers bare, fractions to two places trimmed. */
-function fmtScore(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return '—';
-  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
-}
-
-/* Biggest day-over-day score moves, ranked by magnitude. Green = climbing,
-   red = cooling. Fills the Today's Scan card; degrades to a plain line on a
-   quiet day so it never looks empty. */
-function ScanMovers({ movers, priorDate, onPick }) {
-  const list = Array.isArray(movers) ? movers.slice(0, 3) : [];
-  return (
-    <div className="sc-movers">
-      <div className="label">Biggest score moves{priorDate ? ` · since ${fmtDay(priorDate)}` : ''}</div>
-      {list.length === 0 ? (
-        <div className="sc-movers-empty">No score changes since the prior scan.</div>
-      ) : (
-        <div className="sc-movers-list">
-          {list.map((m) => {
-            const up = m.delta > 0;
-            return (
-              <button type="button" key={m.ticker} className="sc-mover" onClick={() => onPick?.(m.ticker)}>
-                <span className={`sc-mv-arrow ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'}</span>
-                <span className="sc-mv-tk">{m.ticker}</span>
-                <span className="sc-mv-path num">{fmtScore(m.prior)} → {fmtScore(m.today)}</span>
-                <span className={`sc-mv-d num ${up ? 'up' : 'down'}`}>{up ? '+' : '−'}{fmtScore(Math.abs(m.delta))}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

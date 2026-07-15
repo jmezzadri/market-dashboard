@@ -48,7 +48,7 @@
 .home-v12.scanner-v12 .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 
 /* ── hero: editorial left + "Today's scan" putty card right ── */
-.home-v12 section.sc-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch; }
+.home-v12 section.sc-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: 1fr; gap: 18px; align-items: stretch; }
 .home-v12 .sc-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .sc-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
@@ -61,33 +61,10 @@
 .home-v12 .sc-ed .impl li a { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--hair); transition: color .25s, border-color .25s; }
 .home-v12 .sc-ed .impl li a:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
 
-/* scan card (putty) */
-.home-v12 .sc-scan { background: var(--putty); border-radius: 36px; padding: 26px 28px 24px; display: flex; flex-direction: column; transition: background .5s; }
-.home-v12 .sc-scantop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
 /* score-band counts — bg2 tiles, serif numerals, state color on the left edge */
-.home-v12 .sc-bands { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: auto; }
-.home-v12 .sc-band { background: var(--bg2); border-radius: 18px; border-left: 3px solid var(--hair); padding: 14px 14px 12px; transition: background .5s; }
-.home-v12 .sc-band .n { font-family: var(--sans); font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
-.home-v12 .sc-band .l { font-size: 10px; color: var(--mut); font-weight: 700; margin-top: 7px; letter-spacing: .04em; }
-.home-v12 .sc-band.b5 { border-left-color: var(--up); }   .home-v12 .sc-band.b5 .n { color: var(--up); }
-.home-v12 .sc-band.b4 { border-left-color: var(--gold-deep); } .home-v12 .sc-band.b4 .n { color: var(--gold-deep); }
-.home-v12 .sc-band.b3 { border-left-color: var(--mut); }  .home-v12 .sc-band.b3 .n { color: var(--ink-soft); }
 
 /* movers — same DOM, cream row motion */
-.home-v12 .sc-movers { margin: 16px 0 18px; flex: 1; }
-.home-v12 .sc-movers-empty { font-size: 13px; color: var(--mut); margin-top: 9px; line-height: 1.5; }
-.home-v12 .sc-movers-list { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
-.home-v12 .sc-mover { display: grid; grid-template-columns: 14px 54px 1fr auto; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 6px 8px; cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--ink-soft); transition: background .25s, transform .25s; }
-.home-v12 .sc-mover:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(5px); }
-.home-v12 .sc-mv-arrow { font-size: 9px; }
-.home-v12 .sc-mv-arrow.up { color: var(--up); }
-.home-v12 .sc-mv-arrow.down { color: var(--down); }
-.home-v12 .sc-mv-tk { font-weight: 700; color: var(--ink); letter-spacing: .2px; }
-.home-v12 .sc-mv-path { color: var(--mut); font-size: 11.5px; }
-.home-v12 .sc-mv-d { font-weight: 700; justify-self: end; }
-.home-v12 .sc-mv-d.up { color: var(--up); }
-.home-v12 .sc-mv-d.down { color: var(--down); }
 
 /* ── results: wider stage than the 1240 editorial so the full column set
       shows on a large desktop; below that the table scrolls INSIDE the card */
@@ -166,15 +143,12 @@
   .home-v12 section.sc-hero { padding-top: 34px; }
   .home-v12 .sc-buildgrid { grid-template-columns: 1fr 1fr; }
   .home-v12 .sc-buildhead { flex-direction: column; }
-  .home-v12 .sc-scan { border-radius: 28px; padding: 20px 18px 16px; }
   .home-v12 .sc-tablecard { border-radius: 28px; padding: 10px; }
   .home-v12 .sc-build { padding: 34px 26px; border-radius: 32px; }
 }
 @media (max-width: 640px) {
   .home-v12 .sc-buildgrid { grid-template-columns: 1fr; }
   .home-v12 .sc-ed h1 { font-size: 30px; }
-  .home-v12 .sc-bands { gap: 8px; }
-  .home-v12 .sc-band { padding: 12px 10px 10px; }
   .home-v12 .sc-colpick { min-width: 280px; }
 }
 
@@ -183,6 +157,7 @@
    sleeve panels read as one visual system. */
 .home-v12 .sc-sleeve, .home-v12 .mo-sleeve { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin-bottom: 4px; }
 .home-v12 .sc-rule, .home-v12 .mo-rule { font-family: var(--sans); font-size: 13px; color: var(--mut); margin-top: 6px; line-height: 1.5; max-width: 760px; }
+.home-v12 .sc-scanmeta { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
 
 /* ── Sleeve 2 — Momentum panel (two-sleeve build, 2026-07-14) ──────────────
    Putty card on the shared 1560px stage: guard status strip, two-column

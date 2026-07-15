@@ -242,8 +242,8 @@
   }
   .mt-overhaul .home-v11 .ribbon .rc { flex: 0 0 auto; min-width: 116px; }
 
-  /* Scanner band counts + paper summary cards → one column. */
-  .mt-overhaul .home-v11 .sc-bands,
+  /* Scanner score-build cards → one column. (Band-count boxes removed with
+     the hero scan card, 2026-07-15.) */
   .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: 1fr !important; }
 }
 
