@@ -83,12 +83,13 @@ def build_order_intents(
     open_order_tickers: set[str] | None = None,
     sleeve_m_qty: dict[str, float] | None = None,
 ) -> list[OrderIntent]:
-    """SIGNAL-ONLY diff with HYSTERESIS + FIXED SIZE (Conviction-Insider rebuild 2026-07-07).
+    """SIGNAL-ONLY diff with HYSTERESIS + EQUAL-WEIGHT sizing (2026-07-15 rebuild).
 
       * BUY a target name (buy_score >= buy threshold) not yet held, at the
-        fixed target size. One entry, no top-ups, ever.
-      * HOLD a held name still in the buy target — no trade (never resize on
-        price OR score).
+        equal-weight target size ($500K ÷ N).
+      * RESIZE a held target name only when the equal-weight target differs
+        from the sleeve's cost basis in it by more than the tolerance band —
+        i.e. only when N changed enough to matter; price drift never trades.
       * HOLD a held name that slipped just below the buy line but is still
         >= exit_threshold — this HYSTERESIS is the churn fix: a name bought at
         5 that dips to 4 is held, not dumped-and-rebought the next session.
@@ -129,9 +130,38 @@ def build_order_intents(
             return 0.0
         return max(0.0, pos.qty - sleeve_m_qty.get(ticker.upper(), 0.0))
 
-    # ── ENTRIES — target names not held. Held target names: HOLD (skip, no resize). ──
+    # ── ENTRIES + RESIZES (equal-weight rebuild 2026-07-15) ──
+    # A target name not held is BOUGHT at the equal-weight notional. A HELD
+    # target name is RESIZED toward the new equal-weight notional only when
+    # its target differs from the sleeve's COST BASIS in the name by more
+    # than the band (max($500, 3% of target)). Comparing against cost basis
+    # keeps this signal-only: the target moves only when N (the qualifying
+    # count) changes, and basis moves only when we trade — price drift alone
+    # can never trip a trade.
     for ticker, line in b_targets.items():
-        if _qty_held(ticker) > 0:
+        held_qty = _qty_held(ticker)
+        if held_qty > 0:
+            pos = live.get(ticker)
+            own_basis = (pos.cost_basis * (held_qty / pos.qty)) if (pos and pos.qty) else 0.0
+            if not _resize_exceeds_band(line.notional, own_basis):
+                continue  # inside the band — HOLD, no churn
+            if _has_open_order(ticker):
+                continue
+            delta = line.notional - own_basis
+            if delta > 0 and suppress_buys:
+                continue
+            qty = _qty_from_notional(abs(delta), _eod_price(ticker))
+            if delta < 0 and qty is not None:
+                qty = min(qty, held_qty)  # never sell more than the sleeve owns
+            score_int = int(round(line.score)) if line.score is not None else None
+            intents.append(OrderIntent(
+                sleeve="B", ticker=ticker, side="buy" if delta > 0 else "sell",
+                target_quantity=qty, target_notional=round(delta, 2),
+                signal_score=score_int, signal_source="equity_scanner",
+                rebalance_trigger_reason=(
+                    f"Equal-weight re-split — resize from ${own_basis:,.0f} invested "
+                    f"to ${line.notional:,.0f} ({line.rationale})"),
+            ))
             continue
         if suppress_buys or _has_open_order(ticker):
             continue

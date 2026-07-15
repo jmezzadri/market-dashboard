@@ -132,6 +132,15 @@ class AlpacaPaperClient:
             ))
         return positions
 
+    def get_asset(self, ticker: str) -> dict | None:
+        """Asset metadata from /v2/assets/{symbol} — used for the
+        `fractionable` flag (2026-07-15 non-fractionable order fix).
+        Returns None when the symbol is unknown."""
+        try:
+            return self._get(f"/v2/assets/{ticker.upper()}")
+        except requests.HTTPError:
+            return None
+
     def get_last_trade_price(self, ticker: str) -> float | None:
         """Best-effort last-trade price for an exit/sizing notional. Returns
         None if Alpaca has no recent trade for the symbol on the paper feed."""

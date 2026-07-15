@@ -188,7 +188,7 @@ export default function ScannerPage() {
             <h1>Two rules-based sleeves: <i>Insider Conviction</i> and <i>Momentum</i>.</h1>
             <ul className="impl">
               <li><b>Sleeve 1 — Insider Conviction</b>: buys when executives are buying and the trend confirms (Score ≥ 4 of a max 5), holds until the score decays below 3; event-driven, scanned daily.</li>
-              <li><b>Sleeve 2 — Momentum</b>: owns the top-quintile 12-month performers, re-ranked monthly, with a crash guard that moves the sleeve to cash when the S&P 500 trades below its 200-day average.</li>
+              <li><b>Sleeve 2 — Momentum</b>: owns up to 15 names in confirmed uptrends that just broke to a new 10-day high on heavy volume while beating the S&P 500 by 5 points or more over 3 months; equal-weight, refreshed monthly, with unfilled slots resting in cash when fewer than 8 qualify.</li>
               <li><b>The sleeves are independent</b> — a stock in both is owned by both; neither signal vetoes the other.{' '}
                 <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the methodology →</a></li>
             </ul>
@@ -196,9 +196,9 @@ export default function ScannerPage() {
 
         <Reveal className="sc-scan">
             <div className="sc-scantop">
-              <div className="label">Today’s scan{scanDate ? ` · ${scanDate}` : ''}</div>
+              <div className="label">Latest scan{scanDate ? ` · ${scanDate} close` : ''}</div>
               <FreshnessChip
-                elementId="equity-latest_scan_data-daily"
+                elementId="equity-trading_opps_scan-daily"
                 variant="dot"
                 fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
               />
@@ -284,7 +284,7 @@ export default function ScannerPage() {
         {toast && <div className="sc-toast mt-fade">{toast}</div>}
       </section>
 
-      {/* Sleeve 2 — Momentum: guard strip + monthly ranked list */}
+      {/* Sleeve 2 — Momentum: the monthly Power Trend list */}
       <MomentumPanel />
 
       {/* RSI Divergences — daily price/RSI divergence screen (display-only,

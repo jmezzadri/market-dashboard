@@ -14,19 +14,21 @@
    - §04 rewritten as the automated $1M Paper Portfolio (the broker-CSV / Plaid
      import it described is dead); TOC entry renamed "Paper Portfolio".
 
-   Two-sleeve rewrite (2026-07-14, MOMENTUM_SLEEVE_BUILD_SPEC.md §5 — PR-4):
-   - §03/§04 REWRITTEN (not appended) around the two sleeves: Insider
-     Conviction (thresholds from paper_portfolio/config.py: buy ≥ 4, exit < 3)
-     and Momentum (rules from scripts/momentum_rules.py: 12-1 ranks, quintile
-     clamp 20–50, SPY-vs-200-day guard).
-   - Evidence block sourced from Strategy_Backtest_2026-07-14.xlsx: the
-     survivorship-controlled +4.7%/yr gets EQUAL BILLING with the 16.3%-vs-8.8%
-     headline; costs (10 bps/side, ~32%/mo turnover), drawdowns (−55.7%
-     unguarded / −23.8% guarded), the guard's 2026 whipsaw (−7% vs +21%), and
-     the insider sleeve's 11-month evidence window stated plainly.
-   - §05 job table gains the monthly momentum list publish + daily guard
-     refresh. §06 vendor table is manifest-derived and picks the new elements
-     up automatically.
+   Power Trend rewrite (2026-07-15) — supersedes the 2026-07-14 two-sleeve
+   copy IN PLACE (never appended):
+   - §03/§04 rewritten around the current rules: Insider Conviction (buy ≥ 4,
+     exit < 3, full $500K equal-weight across qualifying names, re-split daily,
+     3% drift band) and Momentum driven by the Power Trend signal (three tests
+     on daily closes — trend / relative strength / breakout trigger — top 15
+     by 3-month return, 8-name floor with unfilled slots in cash). The old
+     12-1 quintile list and its crash guard are retired everywhere.
+   - Evidence block = the 2020–2026 portfolio simulation with the 8-name
+     floor (18.2%/yr vs 14.8%, Sharpe 1.26, max drawdown −19.7% vs −20.7%),
+     with the survivor-cohort caveat and the short six-year window stated
+     plainly: live results should be expected to run below the backtest.
+   - §05 job table: crash-guard row removed (job retired); list publish row
+     reworded to the Power Trend list. §06 vendor table is manifest-derived
+     and picks the new elements up automatically.
 
    Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
    scope to the shared home-v12 cream system (cream-system.css) with page
@@ -289,11 +291,12 @@ export default function MethodologyPage() {
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Trading scanner</div>
-            <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Momentum</h2>
+            <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Power Trend</h2>
             <p className="me-body-p">
               The Scanner page runs <b>two fully rules-based sleeves</b>. <b>Sleeve 1 — Insider Conviction</b>{' '}
               buys when executives are buying and the trend confirms, event-driven and scanned daily.{' '}
-              <b>Sleeve 2 — Momentum</b> owns the strongest 12-month performers, re-ranked once a month.
+              <b>Sleeve 2 — Momentum</b> runs the <b>Power Trend</b> signal — strong, confirmed uptrends
+              that have just broken out again — refreshed once a month.
               The sleeves are deliberately separate: we tested requiring both signals at once, and the
               overlap produced only 1–6 names a month — too few to hold a portfolio. So neither signal
               vetoes the other; a stock that qualifies for both is owned by both, and total exposure
@@ -320,37 +323,34 @@ export default function MethodologyPage() {
               refresh 3× daily.
             </p>
             <p className="me-body-p">
-              <b>Sleeve 2 selection.</b> On the first of each month, every liquid US common stock (last
-              close ≥ $2, 45-day average dollar volume ≥ $50M) is ranked by its <b>12-month return
-              excluding the most recent month</b> (the standard "12-1" academic construction — the last
-              month is skipped because very recent winners tend to snap back). The sleeve owns the{' '}
-              <b>top fifth of that ranking, clamped to 20–50 names, equal-weight</b>, and holds them
-              untouched until the next monthly re-rank. A <b>portfolio-level crash guard</b> checks the
-              S&amp;P 500 against its own 200-day average every trading day: below it, the whole sleeve
-              moves to cash; back above, it re-enters at the next signal. An insider-badge dot on the
-              ranked list marks names where an officer or director also bought in the trailing 90 days —
-              information only, it does not affect selection.
+              <b>Sleeve 2 selection.</b> The Power Trend signal looks for stocks already in a strong,
+              confirmed uptrend that have just broken out again. Once a month, every liquid US common
+              stock (last close at least $2, 45-day average dollar volume of at least $50 million) is
+              put through three tests, all computed on daily closing prices. First, the <b>trend test</b>:
+              the price must sit above its 10-, 21-, 50- and 200-day exponential moving averages, and
+              its 3-month return must rank in the top 20% of the universe. Second, the{' '}
+              <b>relative-strength test</b>: its 3-month return must beat the S&amp;P 500&rsquo;s 3-month return
+              by at least 5 percentage points. Third, the <b>breakout trigger</b>: it must have closed at
+              a new 10-day high on volume more than 1.3 times its own 20-day average. Names passing all
+              three are ranked by 3-month return; the sleeve owns at most the <b>top 15, equal-weight</b>.
+              If fewer than 8 names pass, the sleeve does not concentrate further — the unfilled slots
+              stay in cash.
             </p>
             <div className="me-formula">
-              rank  = total return from 12 months ago to 1 month ago, highest first<br />
-              own   = top quintile of the ranked universe, clamped to 20–50 names, equal-weight<br />
-              guard = S&amp;P 500 below its 200-day average → whole sleeve to cash (checked daily)
+              trend    = price above the 10/21/50/200-day averages · 3-mo return in the top 20% of the universe<br />
+              strength = 3-mo return at least 5 points above the S&amp;P 500&rsquo;s<br />
+              trigger  = new 10-day closing high on volume above 1.3&times; the 20-day average<br />
+              own      = top 15 by 3-mo return, equal-weight · fewer than 8 fire → the rest stays in cash
             </div>
             <p className="me-body-p">
-              <b>The evidence, stated honestly.</b> Over 270 monthly rebalances (Jan 2004 – Jun 2026),
-              momentum returned <b>16.3%/yr against the S&amp;P 500's 8.8%/yr</b>, net of modeled costs
-              (10 basis points per side on roughly a third of the list turning over each month). That
-              headline flatters: the deep price history only exists for companies still alive today, so
-              failed companies are missing. Controlling for that — comparing momentum against an
-              equal-weight portfolio of the <b>same</b> universe — the honest edge is{' '}
-              <b>about +4.7%/yr</b>, and that number deserves the same billing as the headline. The cost
-              is volatility: the unguarded sleeve's worst peak-to-trough loss was <b>−55.7%</b> (2008);
-              with the crash guard it was <b>−23.8%</b>, but the guard gives return back in whipsaw years —
-              in 2026 so far the guarded sleeve is <b>−7% against +21% unguarded</b>. Expect the guard to
-              cost return most years and pay for itself only in extended bear markets, and expect any
-              single year to lose to the index badly. The insider sleeve's evidence window is much
-              shorter — <b>11 months of filings history</b> (+6%/yr excess in that window) plus the
-              separate 12-month hit-rate study — directionally consistent, but not long-term proof.
+              <b>The evidence, stated honestly.</b> In a 2020–2026 portfolio simulation with the 8-name
+              diversification floor, the rule returned <b>18.2% a year against 14.8% for the S&amp;P 500</b>,
+              with a Sharpe ratio of 1.26 and a worst peak-to-trough loss of <b>19.7%</b> — slightly
+              shallower than the index&rsquo;s own 20.7% over the same window. Two caveats. The test window is
+              six years — far shorter than the multi-decade evidence behind classic momentum. And the
+              simulation ran on a <b>survivor cohort</b>: companies that exist today. That flatters the
+              result, because the failures that would have been bought along the way are missing.{' '}
+              <b>Live results should be expected to run below the backtest.</b>
             </p>
             <p>
               <b>Dark pool</b>, <b>Options shock</b> and <b>Options flow</b> counted toward the score until
@@ -387,21 +387,20 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Sleeve 1 — Insider Conviction</b> buys every name at or above the buy line{' '}
-              (<b>Score ≥ 4</b>) at a <b>fixed $100K per name</b>, filling the highest-scored names first
-              and resting the remainder in cash, rebalanced daily on the open. It is{' '}
-              <b>signal-only, and holds through the noise</b>: a name is bought once and{' '}
-              <b>held until its score decays below 3</b> — a name that dips just under the buy line for a
-              day is kept, not dumped-and-rebought. (Rebuilt 2026-07-07: the old score-tiered sizing and
-              2× leverage were retired after a review found they — not the stock picks — were driving the
-              losses.)
+              (<b>Score ≥ 4</b>) and always deploys its <b>full $500K, split equally across every
+              qualifying name</b> — 3 names means about $167K each, 10 names means $50K each. A name is
+              held until its <b>score decays below 3</b>, and the sleeve re-splits daily on the open as
+              names enter and leave; drifts inside a 3% band are left alone so the book is not churned
+              by noise. It remains <b>signal-only</b>: entries and exits come from the score, never from
+              price moves. (The original score-tiered sizing and leverage were retired in an earlier
+              rebuild after a review found they — not the stock picks — were driving the losses.)
             </p>
             <p className="me-body-p">
-              <b>Sleeve 2 — Momentum</b> trades once a month, on the list publish: it buys the current
-              ranked list <b>equal-weight, $500K divided by the list size</b> (20–50 names, so roughly
-              $10–25K per name), sells what dropped off, and otherwise does not touch positions between
-              re-ranks. The only intra-month action is the crash guard: if the S&amp;P 500 closes below
-              its 200-day average, the sleeve exits to cash. Expect roughly a third of the list to turn
-              over each month (~15 orders) — fine on paper, tax-inefficient in a real taxable account.
+              <b>Sleeve 2 — Momentum</b>, driven by the Power Trend signal, trades once a month on the
+              list publish: it buys the current list <b>equal-weight — $500K divided by the number of
+              names, at most 15</b> — sells what dropped off, and keeps a name into the next month only
+              if it passes all three tests again. When fewer than 8 names qualify, the unfilled slots
+              rest in cash rather than concentrating the sleeve.
             </p>
             <p className="me-body-p">
               Both sleeves share the account's order path: trades queue after the morning signal run and
@@ -409,8 +408,8 @@ export default function MethodologyPage() {
               feed, so profit and loss is cost-basis P/L, not a live mark.
             </p>
             <div className="me-formula">
-              Sleeve 1: buy = Score ≥ 4 · size = fixed $100K (≤10% of book) · hold until Score &lt; 3<br />
-              Sleeve 2: buy = current monthly list · size = $500K ÷ list size · guard → all cash<br />
+              Sleeve 1: buy = Score ≥ 4 · size = $500K ÷ qualifying names · hold until Score &lt; 3<br />
+              Sleeve 2: buy = current monthly Power Trend list · size = $500K ÷ names (max 15) · fewer than 8 → rest in cash<br />
               unrealized_pl_$   = market_value − cost_basis<br />
               unrealized_pl_pct = (market_value − cost_basis) / cost_basis
             </div>
@@ -464,14 +463,9 @@ export default function MethodologyPage() {
                   <td>Queues rebalance trades for the 9:30 open.</td>
                 </tr>
                 <tr>
-                  <td>8:45 AM</td>
-                  <td>Momentum crash guard</td>
-                  <td>Daily: re-checks the S&amp;P 500 against its 200-day average and updates the sleeve's invested / in-cash status.</td>
-                </tr>
-                <tr>
                   <td>6:00 AM · 1st of month</td>
-                  <td>Momentum list publish</td>
-                  <td>Monthly: re-ranks the universe on the prior month's last complete day and publishes the 20–50 name list.</td>
+                  <td>Power Trend list publish</td>
+                  <td>Monthly: runs the three Power Trend tests on the prior month's closing prices and publishes the list of up to 15 names; when fewer than 8 qualify the unfilled slots stay in cash.</td>
                 </tr>
               </tbody>
             </table>

@@ -31,19 +31,6 @@ PROJECT_REF = "yqaqqzseepebrocgibcw"
 SLEEVE_B_BUY_THRESHOLD = 4.0   # buy at score >= 4 (MAX is 5). 4 = high-conviction insider (insider_pts=4) not in a downtrend; recalibrated 2026-07-08 when the ceiling dropped 10->5 (dark-pool/options shelved).
 SLEEVE_B_EXIT_THRESHOLD = 3.0  # HYSTERESIS (2026-07-07): buy>=5, but HOLD until score<3 — stops flap-churn
 
-# Sleeve B per-name sizing on the normalized 0–10 buy-score: notional = score
-# × $10K, stepped by integer score (Joe directive 2026-06-23, replacing the old
-# 3-tier $50K/$40K/$30K scheme). Score 5 → $100K, 6 → $120K, … 10 → $200K (Score × $20K).
-# Bands are half-open [lo, hi); listed largest-first = fill priority order.
-SLEEVE_B_TIER_BANDS = [
-    ("s10", 10.0, 10.01, 200_000.0),  # [10, 10.01)
-    ("s9",   9.0, 10.0,  180_000.0),  # [9, 10)
-    ("s8",   8.0,  9.0,  160_000.0),  # [8, 9)
-    ("s7",   7.0,  8.0,  140_000.0),  # [7, 8)
-    ("s6",   6.0,  7.0,  120_000.0),  # [6, 7)
-    ("s5",   5.0,  6.0,  100_000.0),  # [5, 6)
-]
-
 # Tolerance band — a holding only rebalances when it has drifted from its
 # target by MORE than max(dollar floor, pct × the position's own target).
 # Widened 2026-06-02 (Joe: "not so sensitive a $0.10 move triggers a
@@ -62,14 +49,21 @@ SLEEVE_B_REBALANCE_PCT_MIN    = 0.03
 ORDER_TYPE_DEFAULT = "market_on_open"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Conviction-Insider rebuild 2026-07-07 — fixed sizing, no leverage, min hold.
-# Root-cause fix for the churn bleed (buy=exit=5.0 flap + score-tier sizing + 2x
-# leverage). Replaces SLEEVE_B_TIER_BANDS sizing with ONE fixed size per name.
+# EQUAL-WEIGHT / FULL-CAPITAL rebuild 2026-07-15 (Joe decision).
+# The old "$100K fixed per name, max 5" was mathematically impossible against
+# the $500K sleeve on a typical day (~8–10 qualifying names, max seen 17).
+# New rule: always deploy 100% of the sleeve; per-name = capital ÷ N where
+# N = qualifying names (enter ≥4, held ≥3). 1 name → $500K; 17 → ~$29K each.
+# No leverage; long-only; resize decisions live in diff.py behind the band.
 # ─────────────────────────────────────────────────────────────────────────────
-SLEEVE_B_ENTRY_NOTIONAL = 100_000.0   # fixed $ per launched name (was $100K–$200K score-tiered)
-SLEEVE_B_MAX_PCT_NAV    = 0.10        # never more than 10% of the book in one name at entry
-SLEEVE_B_USE_LEVERAGE   = False       # no borrowing (was up to 2x)
+SLEEVE_B_USE_LEVERAGE   = False       # no borrowing, ever
 SLEEVE_B_MIN_HOLD_DAYS  = 21          # documented target hold; hysteresis enforces the spirit in diff.py
+
+# Sleeve M (Momentum / Power Trend, 2026-07-15 swap): the producer caps the
+# monthly list at 15 names; sizing divides by max(N, 8) so fewer than 8
+# qualifying names leaves the unfilled slots in cash (diversification floor).
+SLEEVE_M_MIN_NAMES_FLOOR = 8
+SLEEVE_M_MAX_NAMES       = 15
 
 
 # ─────────────────────────────────────────────────────────────────────────────

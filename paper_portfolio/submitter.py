@@ -87,6 +87,32 @@ def _sql_escape(s: str | None) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Fractionability cache (2026-07-15 — non-fractionable assets need whole shares)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_FRACTIONABLE_CACHE: dict[str, bool] = {}
+
+
+def _is_fractionable(alpaca: AlpacaPaperClient, ticker: str) -> bool:
+    """Whether Alpaca accepts fractional quantities for this asset. Cached per
+    run. Unknown/lookup-failure defaults to True (the historical behavior);
+    a wrong True simply reproduces the old rejection, which the next run's
+    fresh intent then corrects."""
+    t = ticker.upper()
+    if t in _FRACTIONABLE_CACHE:
+        return _FRACTIONABLE_CACHE[t]
+    frac = True
+    try:
+        asset = alpaca.get_asset(t)
+        if asset is not None and "fractionable" in asset:
+            frac = bool(asset.get("fractionable"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("asset lookup failed for %s (%s) — assuming fractionable", t, exc)
+    _FRACTIONABLE_CACHE[t] = frac
+    return frac
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Pending-orders reader + state writers
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -236,6 +262,36 @@ def submit_pending_orders(
             result.rejected += 1
             result.errors.append(f"{row.id} {row.ticker}: missing qty and notional")
             continue
+
+        # NON-FRACTIONABLE GUARD (2026-07-15, bug: SLS order dropped with
+        # "asset is not fractionable"). Ask Alpaca once per ticker whether the
+        # asset supports fractional shares; if not, submit WHOLE shares only.
+        if not _is_fractionable(alpaca, row.ticker):
+            if qty is None and notional is not None:
+                px = None
+                try:
+                    px = alpaca.get_last_trade_price(row.ticker)
+                except Exception:  # noqa: BLE001
+                    px = None
+                if px and px > 0:
+                    qty, notional = float(int(notional / px)), None
+                else:
+                    _mark_rejected(row.id, "non-fractionable and no price to size whole shares") \
+                        if not dry_run else None
+                    result.rejected += 1
+                    result.errors.append(f"{row.id} {row.ticker}: non-fractionable, no price")
+                    continue
+            else:
+                # floor to whole shares (a non-fractionable position can only
+                # ever hold whole shares, so floor is exact for sells too)
+                qty = float(int(qty))
+            if qty < 1:
+                if not dry_run:
+                    _mark_skipped(row.id, "non-fractionable — equal-weight target is under 1 share")
+                result.duplicates += 1
+                logger.info("row %s: %s target under 1 whole share (non-fractionable) — skipped",
+                            row.id, row.ticker)
+                continue
 
         if dry_run:
             logger.info(

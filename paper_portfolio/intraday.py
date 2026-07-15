@@ -31,10 +31,10 @@ from typing import Any
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.mirror import (
-    _build_sleeve_a_etf_universe,
     _entry_dates_by_ticker,
     _latest_scan_scores,
-    _sleeve_for,
+    _sleeve_share_map,
+    _split_position,
     _sql_escape,
     _supabase_exec,
     _supabase_query,
@@ -60,7 +60,7 @@ def ensure_intraday_schema() -> None:
     run even before migration 060 is formally applied."""
     ddl = """
     create table if not exists public.paper_intraday_positions (
-      sleeve text not null check (sleeve in ('A','B')),
+      sleeve text not null check (sleeve in ('A','B','M')),
       ticker text not null,
       quantity numeric not null,
       avg_cost numeric not null,
@@ -114,7 +114,11 @@ def ensure_intraday_schema() -> None:
       add column if not exists dia_inception_close numeric,
       add column if not exists iwm_close numeric,
       add column if not exists iwm_prev_close numeric,
-      add column if not exists iwm_inception_close numeric;
+      add column if not exists iwm_inception_close numeric,
+      add column if not exists sleeve_m_value numeric,
+      add column if not exists sleeve_m_equity numeric,
+      add column if not exists sleeve_b_cash numeric,
+      add column if not exists sleeve_m_cash numeric;
     alter table public.paper_intraday_positions enable row level security;
     alter table public.paper_intraday_nav enable row level security;
     """
@@ -160,21 +164,21 @@ def mirror_positions_intraday(
     alpaca = alpaca or AlpacaPaperClient()
     positions = alpaca.get_positions()
     today = _et_today()
-    sleeve_a_etfs = _build_sleeve_a_etf_universe()
+    share_map = _sleeve_share_map()  # fills provenance (2026-07-15 sleeve fix)
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
     scan_scores = {} if dry_run else _latest_scan_scores()
 
+    split_rows = [(s, sp) for p in positions for (s, sp) in _split_position(p, share_map)]
+
     if dry_run:
-        for p in positions:
-            sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
+        for sleeve, p in split_rows:
             logger.info("[dry-run] LIVE %s qty=%s last=$%.2f mv=$%.2f day=%+.2f%% sleeve=%s",
                         p.ticker, p.qty, p.current_price, p.market_value,
                         (p.unrealized_intraday_plpc or 0) * 100, sleeve)
         return len(positions)
 
     sql = ["begin;", "delete from public.paper_intraday_positions;"]
-    for p in positions:
-        sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
+    for sleeve, p in split_rows:
         ed = entry_dates.get(p.ticker)
         sc = scan_scores.get(p.ticker)
         score_sql = "NULL" if (sleeve != "B" or sc is None) else str(int(sc))
@@ -207,29 +211,41 @@ def write_nav_intraday(
     account = alpaca.get_account()
     positions = alpaca.get_positions()
     today = _et_today()
-    sleeve_a_etfs = _build_sleeve_a_etf_universe()
+    share_map = _sleeve_share_map()  # fills provenance (2026-07-15 sleeve fix)
 
-    SLEEVE_CAP = 1_000_000.0  # single $1M book (Sleeve A retired)
-    a_eq = b_eq = 0.0
-    a_n = b_n = 0
+    CAP_B = 500_000.0  # Insider Conviction
+    CAP_M = 500_000.0  # Momentum (Power Trend)
+    a_eq = b_eq = m_eq = 0.0
+    a_n = b_n = m_n = 0
     for p in positions:
-        if _sleeve_for(p.ticker, sleeve_a_etfs) == "A":
-            a_eq += p.market_value; a_n += 1
-        else:
-            b_eq += p.market_value; b_n += 1
+        for sleeve, sp in _split_position(p, share_map):
+            if sleeve == "A":
+                a_eq += sp.market_value; a_n += 1
+            elif sleeve == "M":
+                m_eq += sp.market_value; m_n += 1
+            else:
+                b_eq += sp.market_value; b_n += 1
     total_nav = float(account.equity)
-    gross = a_eq + b_eq
+    gross = a_eq + b_eq + m_eq
     margin = gross - total_nav
-    a_bor = max(0.0, a_eq - SLEEVE_CAP)
-    b_bor = max(0.0, b_eq - SLEEVE_CAP)
-    bor_base = a_bor + b_bor
-    if bor_base > 0:
-        a_val = a_eq - margin * (a_bor / bor_base)
+    b_bor = max(0.0, b_eq - CAP_B)
+    m_bor = max(0.0, m_eq - CAP_M)
+    bor_base = b_bor + m_bor
+    a_val = a_eq  # retired sleeve: no cash share
+    if bor_base > 0 and margin > 0:
         b_val = b_eq - margin * (b_bor / bor_base)
+        m_val = m_eq - margin * (m_bor / bor_base)
     else:
         idle = total_nav - gross
-        a_val = a_eq + idle / 2.0
-        b_val = b_eq + idle / 2.0
+        wb = max(0.0, CAP_B - b_eq)
+        wm = max(0.0, CAP_M - m_eq)
+        wbase = wb + wm
+        if wbase > 0:
+            b_val = b_eq + idle * (wb / wbase)
+            m_val = m_eq + idle * (wm / wbase)
+        else:
+            b_val = b_eq + idle / 2.0
+            m_val = m_eq + idle / 2.0
 
     prior = _prior_close_nav_row()
     prior_nav = float(prior["total_nav"]) if prior.get("total_nav") is not None else None
@@ -241,7 +257,7 @@ def write_nav_intraday(
 
     if dry_run:
         logger.info("[dry-run] LIVE NAV=$%.2f day=%+.2f vs prior close $%s; SPY=%s; %d positions",
-                    total_nav, (day_pnl or 0.0), prior_nav, spy_live, b_n + a_n)
+                    total_nav, (day_pnl or 0.0), prior_nav, spy_live, a_n + b_n + m_n)
         return {"total_nav": total_nav, "day_pnl": day_pnl}
 
     def num(v):
@@ -250,14 +266,18 @@ def write_nav_intraday(
     _supabase_exec(
         "insert into public.paper_intraday_nav "
         "(as_of_date, total_nav, cash, long_market_value, sleeve_a_value, sleeve_b_value, "
-        " sleeve_a_equity, sleeve_b_equity, day_pnl, prior_close_nav, spy_close, "
+        " sleeve_a_equity, sleeve_b_equity, sleeve_m_value, sleeve_m_equity, "
+        " sleeve_b_cash, sleeve_m_cash, "
+        " day_pnl, prior_close_nav, spy_close, "
         " spy_prev_close, spy_inception_close, "
         " qqq_close, qqq_prev_close, qqq_inception_close, "
         " dia_close, dia_prev_close, dia_inception_close, "
         " iwm_close, iwm_prev_close, iwm_inception_close, "
         " portfolio_beta, n_positions, updated_at) values ("
         f"'{today.isoformat()}', {num(total_nav)}, {num(account.cash)}, {num(account.long_market_value)}, "
-        f"{num(a_val)}, {num(b_val)}, {num(a_eq)}, {num(b_eq)}, {num(day_pnl)}, {num(prior_nav)}, "
+        f"{num(a_val)}, {num(b_val)}, {num(a_eq)}, {num(b_eq)}, {num(m_val)}, {num(m_eq)}, "
+        f"{num(max(0.0, CAP_B - b_eq))}, {num(max(0.0, CAP_M - m_eq))}, "
+        f"{num(day_pnl)}, {num(prior_nav)}, "
         # Live "prev" baseline = the latest OFFICIAL close (prior row's own
         # close). Carrying the close row's *_prev_close here (pre-2026-07-03
         # behavior for SPY) baselined the live Daily %% two sessions back.
@@ -265,11 +285,13 @@ def write_nav_intraday(
         f"{num(qqq_live)}, {num(prior.get('qqq_close'))}, {num(prior.get('qqq_inception_close'))}, "
         f"{num(dia_live)}, {num(prior.get('dia_close'))}, {num(prior.get('dia_inception_close'))}, "
         f"{num(iwm_live)}, {num(prior.get('iwm_close'))}, {num(prior.get('iwm_inception_close'))}, "
-        f"{num(prior.get('portfolio_beta'))}, {b_n + a_n}, now()) "
+        f"{num(prior.get('portfolio_beta'))}, {a_n + b_n + m_n}, now()) "
         "on conflict (as_of_date) do update set "
         "total_nav=excluded.total_nav, cash=excluded.cash, long_market_value=excluded.long_market_value, "
         "sleeve_a_value=excluded.sleeve_a_value, sleeve_b_value=excluded.sleeve_b_value, "
         "sleeve_a_equity=excluded.sleeve_a_equity, sleeve_b_equity=excluded.sleeve_b_equity, "
+        "sleeve_m_value=excluded.sleeve_m_value, sleeve_m_equity=excluded.sleeve_m_equity, "
+        "sleeve_b_cash=excluded.sleeve_b_cash, sleeve_m_cash=excluded.sleeve_m_cash, "
         "day_pnl=excluded.day_pnl, prior_close_nav=excluded.prior_close_nav, spy_close=excluded.spy_close, "
         "spy_prev_close=excluded.spy_prev_close, spy_inception_close=excluded.spy_inception_close, "
         "qqq_close=excluded.qqq_close, qqq_prev_close=excluded.qqq_prev_close, qqq_inception_close=excluded.qqq_inception_close, "
@@ -277,8 +299,8 @@ def write_nav_intraday(
         "iwm_close=excluded.iwm_close, iwm_prev_close=excluded.iwm_prev_close, iwm_inception_close=excluded.iwm_inception_close, "
         "portfolio_beta=excluded.portfolio_beta, n_positions=excluded.n_positions, updated_at=now();"
     )
-    logger.info("wrote LIVE NAV row: $%.2f (day %+.2f), %d positions", total_nav, (day_pnl or 0.0), b_n + a_n)
-    return {"total_nav": total_nav, "day_pnl": day_pnl, "n_positions": b_n + a_n}
+    logger.info("wrote LIVE NAV row: $%.2f (day %+.2f), %d positions", total_nav, (day_pnl or 0.0), a_n + b_n + m_n)
+    return {"total_nav": total_nav, "day_pnl": day_pnl, "n_positions": a_n + b_n + m_n}
 
 
 def stamp_intraday_pipeline_health(dry_run: bool = False) -> None:

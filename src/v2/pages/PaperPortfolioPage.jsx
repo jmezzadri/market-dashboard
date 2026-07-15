@@ -49,20 +49,6 @@ const UP_COLOR   = 'var(--up, #1f8a5a)';
 const DOWN_COLOR = 'var(--down, #b62121)';
 const WARN_COLOR = 'var(--warn, #b87000)';
 
-// ── Editorial hero copy — Fraunces italic accents inside the title ────────
-
-const HERO_TITLE = (
-  <>
-    An <em>automated $1M paper portfolio</em>, rebalanced <em>daily on the open</em>.
-  </>
-);
-
-const HERO_BULLETS = [
-  '$1M starting capital, following the Trading Scanner recommendations',
-  'Scanner indicates a buy at a Score \u2265 4 (max 5); each position is a fixed $100K, equal-weight',
-  'Long-only, no leverage',
-];
-
 // ── small helpers ──────────────────────────────────────────────────────────
 
 const fmtMoneyExact = (n) => {
@@ -116,6 +102,20 @@ const etDateKey = (iso) => {
   const dt = new Date(iso);
   if (Number.isNaN(dt.getTime())) return null;
   return dt.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+};
+
+// Day change % for a position — ONE rule, used everywhere the column renders
+// (2026-07-15 fix). A position opened TODAY has only moved since its entry:
+// measuring it against the prior close it never held through overstated the
+// "day" move (AEHR bought at the open after a +33% gap showed +22.6% while
+// actually down since entry). So: entry_date == the row's as-of date →
+// price / avg cost − 1; otherwise price / prior close − 1. Fraction form.
+const dayChangePct = (p, asOfIso) => {
+  if (p?.current_price == null) return null;
+  const boughtToday = p.entry_date && asOfIso
+    && String(p.entry_date).slice(0, 10) === String(asOfIso).slice(0, 10);
+  if (boughtToday && p.avg_cost) return p.current_price / p.avg_cost - 1;
+  return p.lastday_price ? p.current_price / p.lastday_price - 1 : null;
 };
 
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
@@ -337,15 +337,19 @@ const sleeveName = (s) => SLEEVE_NAMES[s] || s || '—';
 
 // ── Three-way split of the broker NAV (two-sleeve build 2026-07-14) ────────
 // Insider (sleeve B) holdings + Momentum (sleeve M) holdings + idle cash tie
-// to the Alpaca NAV by construction: cash = NAV − gross holdings, and each
-// sleeve's cash share follows its unused capacity below its allocation from
-// paper_accounts (sleeve_b_allocation / sleeve_m_allocation — the engine's own
-// caps). While the momentum sleeve is unfunded (allocation 0) it takes no
-// cash, so the insider sleeve remains the whole book — matching the engine.
-function splitBook(totalNav, insGross, momGross, insCap, momCap) {
+// to the Alpaca NAV by construction: cash = NAV − gross holdings.
+// 2026-07-15: the engine now writes each sleeve's OWN cash on the nav row
+// (sleeve_b_cash / sleeve_m_cash) — when those are present they are the
+// truth and are used directly. The old capacity-based inference below stays
+// only as a fallback for older rows where the columns are NULL.
+function splitBook(totalNav, insGross, momGross, insCap, momCap, bCash = null, mCash = null) {
   if (totalNav == null) return { insValue: null, momValue: null, cash: null, insCash: null, momCash: null };
   const ig = insGross || 0, mg = momGross || 0;
   const cash = totalNav - ig - mg;
+  if (bCash != null && mCash != null) {
+    const insCash = Number(bCash), momCash = Number(mCash);
+    return { insValue: ig + insCash, momValue: mg + momCash, cash, insCash, momCash };
+  }
   let insCash, momCash;
   if (cash >= 0) {
     const capI = Math.max(0, (insCap || 0) - ig), capM = Math.max(0, (momCap || 0) - mg);
@@ -447,7 +451,7 @@ const POS_COLUMNS = [
   { key: 'entry_date',               label: 'Held',        w: 72,  align: 'right', fmt: 'held',   def: true },
   { key: 'sleeve',                   label: 'Sleeve',      w: 130, align: 'left',  fmt: 'sleeve', def: true },
   // Score: the live scanner score for Insider Conviction rows; the current
-  // 12-month rank (#n) for Momentum rows (two-sleeve spec §4).
+  // Power Trend rank (#n) for Momentum rows (two-sleeve spec §4).
   { key: 'current_score',            label: 'Score / Rank', w: 88, align: 'right', fmt: 'score',  def: true },
 ];
 
@@ -509,12 +513,12 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
       const prior = (p.market_value != null && p.unrealized_intraday_pl != null) ? p.market_value - p.unrealized_intraday_pl : null;
       return (p.unrealized_intraday_pl != null && prior) ? p.unrealized_intraday_pl / prior : null;
     }
-    if (key === 'change_today') {                     // Day chg %  = price / prior close - 1
-      return (p.current_price != null && p.lastday_price) ? p.current_price / p.lastday_price - 1 : (p.change_today ?? null);
+    if (key === 'change_today') {                     // shared entry-aware helper (one rule everywhere)
+      return p.change_today != null ? p.change_today : dayChangePct(p, asOf);
     }
     if (key === 'current_score') {
-      // Momentum rows sort/show by their current 12-month rank; Insider rows
-      // by the LIVE scanner score (source of truth, trading_opps_signals).
+      // Momentum rows sort/show by their current Power Trend rank; Insider
+      // rows by the LIVE scanner score (source of truth, trading_opps_signals).
       if (p.sleeve === 'M') {
         const rk = momentumRanks?.[p.ticker];
         return rk != null ? rk : null;
@@ -794,7 +798,10 @@ function RebalanceLog({ orders: allOrders, fills: allFills, sleeve = null, title
           byDate.map(([date, rows]) => {
             const buys = rows.filter((r) => r.side === 'buy').length;
             const sells = rows.filter((r) => r.side === 'sell').length;
-            const pending = rows.filter((r) => r.status === 'pending').length;
+            // 'submitted' counts with 'pending': orders now normally reach
+            // 'filled' (reconciler, 2026-07-15), so anything still sitting in
+            // either state is genuinely awaiting a fill and must be visible.
+            const pending = rows.filter((r) => r.status === 'pending' || r.status === 'submitted').length;
             const rejected = rows.filter((r) => r.status === 'rejected').length;
             // Queued = when these orders were sent to the broker; Filled = when
             // they executed at the open (from the fills ledger, matched on the
@@ -808,7 +815,7 @@ function RebalanceLog({ orders: allOrders, fills: allFills, sleeve = null, title
                   {fmtDate(date)}
                   {' '}<span className="paper-rebal-meta">
                     &middot; {rows.length} orders ({buys} buys, {sells} sells)
-                    {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} pending</span></>}
+                    {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} awaiting fill</span></>}
                     {rejected > 0 && <> &middot; <span style={{ color: DOWN_COLOR }}>{rejected} rejected</span></>}
                     {queuedAt && <> &middot; queued {fmtTimeET(queuedAt)}</>}
                     {filledAt
@@ -937,13 +944,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             .order('market_value', { ascending: false });
           // Day chg % is the security's daily price move. The mirror never
           // wrote a `change_today` column, so this column read empty; derive
-          // it from the prior close + current price already on each row.
-          // Fraction form (current/lastday - 1) to match fmtPct (×100).
+          // it with the shared dayChangePct helper (entry-aware: names bought
+          // on the snapshot date measure from their fill, not the prior
+          // close). Fraction form to match fmtPct (×100).
           const posRows = (pos.data || []).map((r) => ({
             ...r,
-            change_today: (r.lastday_price && r.current_price != null)
-              ? (r.current_price / r.lastday_price - 1)
-              : null,
+            change_today: dayChangePct(r, ld),
           }));
           if (!cancelled) { setPositions(posRows); setPosAsOf(ld); }
         }
@@ -980,34 +986,34 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           .order('updated_at', { ascending: false })
           .limit(1);
         if (!cancelled) setLiveNav(lnav?.data?.[0] || null);
+        const liveAsOf = lnav?.data?.[0]?.as_of_date || null;
         const lpos = await supabase
           .from('paper_intraday_positions')
           .select('*')
           .order('market_value', { ascending: false });
         if (!cancelled) setLivePos((lpos?.data || []).map((r) => ({
           ...r,
-          change_today: (r.lastday_price && r.current_price != null)
-            ? (r.current_price / r.lastday_price - 1) : null,
+          change_today: dayChangePct(r, r.as_of_date || liveAsOf),
         })));
 
-        // Momentum sleeve context (two-sleeve build 2026-07-14): the current
-        // monthly list supplies the Score/Rank column for sleeve-M rows and
-        // the sleeve card's dates. ≤50 rows by the quintile clamp.
+        // Momentum sleeve context: the current monthly Power Trend list
+        // supplies the Rank column for sleeve-M rows and the sleeve card's
+        // dates. ≤15 rows; the CASH sentinel (rank 0) carries no rank.
         const mrd = await supabase
-          .from('momentum_list')
+          .from('power_trend_list')
           .select('rebalance_date')
           .order('rebalance_date', { ascending: false })
           .limit(1);
         const mDate = mrd?.data?.[0]?.rebalance_date;
         if (mDate) {
           const ml = await supabase
-            .from('momentum_list')
+            .from('power_trend_list')
             .select('ticker, rank, next_rebalance_date')
             .eq('rebalance_date', mDate)
             .order('rank', { ascending: true });
           if (!cancelled) {
             const ranks = {};
-            (ml.data || []).forEach((r) => { ranks[r.ticker] = r.rank; });
+            (ml.data || []).forEach((r) => { if (r.ticker !== 'CASH') ranks[r.ticker] = r.rank; });
             setMomMeta({ ranks, asOf: mDate, next: ml.data?.[0]?.next_rebalance_date || null });
           }
         }
@@ -1076,6 +1082,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       dia_close: liveNav.dia_close, dia_prev_close: liveNav.dia_prev_close, dia_inception_close: liveNav.dia_inception_close,
       iwm_close: liveNav.iwm_close, iwm_prev_close: liveNav.iwm_prev_close, iwm_inception_close: liveNav.iwm_inception_close,
       sleeve_b_day_pnl: liveNav.day_pnl, portfolio_beta: liveNav.portfolio_beta,
+      // Per-sleeve cash (2026-07-15): forward when the intraday view carries
+      // them; NULL falls back to splitBook's inference, never a made-up zero.
+      sleeve_b_cash: liveNav.sleeve_b_cash ?? null, sleeve_m_cash: liveNav.sleeve_m_cash ?? null,
       created_at: liveNav.updated_at,
     }];
   }, [liveMode, liveNav, navHistory]);
@@ -1110,19 +1119,21 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const insCap = account?.sleeve_b_allocation != null ? Number(account.sleeve_b_allocation) : STARTING_CAPITAL;
   const momCap = account?.sleeve_m_allocation != null ? Number(account.sleeve_m_allocation) : 0;
   const split = useMemo(
-    () => splitBook(latestNav?.total_nav ?? null, sleeveBGross || 0, momGross, insCap, momCap),
+    () => splitBook(latestNav?.total_nav ?? null, sleeveBGross || 0, momGross, insCap, momCap,
+      latestNav?.sleeve_b_cash ?? null, latestNav?.sleeve_m_cash ?? null),
     [latestNav, sleeveBGross, momGross, insCap, momCap],
   );
-  // Since-inception vs S&P 500 for each sleeve card. While the momentum
-  // sleeve is unfunded, the Insider Conviction sleeve IS the whole book, so
-  // its since-inception equals the book's (same inputs the Performance matrix
-  // uses). Once the momentum sleeve is funded, per-sleeve inception needs the
-  // engine's per-sleeve daily values — until those columns exist, the funded
-  // split renders em-dashes rather than a made-up basis.
+  // Since-inception vs S&P 500 for each sleeve card (2026-07-15: both
+  // sleeves are funded, so both get real values). A sleeve's inception
+  // return = its live NAV (holdings market value + its cash, from splitBook)
+  // over its allocation from paper_accounts, minus 1. The S&P line is the
+  // same for both — the sleeves share the account's inception date.
   const spyIncep = (latestNav?.spy_close && latestNav?.spy_inception_close)
     ? latestNav.spy_close / latestNav.spy_inception_close - 1 : null;
-  const insIncep = (momCap === 0 && latestNav?.total_nav != null)
-    ? latestNav.total_nav / STARTING_CAPITAL - 1 : null;
+  const insIncep = (split.insValue != null && insCap > 0)
+    ? split.insValue / insCap - 1 : null;
+  const momIncep = (split.momValue != null && momCap > 0)
+    ? split.momValue / momCap - 1 : null;
   const lastActionFor = (code) => {
     const o = (orders || []).find((r) => r.sleeve === code && r.status !== 'cancelled');
     return o ? { date: (o.created_at || '').split('T')[0], side: o.side } : null;
@@ -1152,8 +1163,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div className="eyebrow2"><span className="dot" />Paper portfolio</div>
           <h1>An <i>automated $1M paper portfolio</i>, run as <i>two rules-based sleeves</i>.</h1>
           <ul className="impl">
-            <li><b>Sleeve 1 — Insider Conviction</b>: buys at Score ≥ 4 (max 5), a fixed $100K per name, holds until the score decays below 3; rebalanced daily on the open.</li>
-            <li><b>Sleeve 2 — Momentum</b>: the top-quintile 12-month performers, equal-weight, re-ranked monthly, with a crash guard to cash when the S&P 500 is below its 200-day average.</li>
+            <li><b>Sleeve 1 — Insider Conviction</b>: buys at Score ≥ 4 (max 5) and holds until the score decays below 3; the full $500K is always deployed, split equally across every qualifying name; re-split daily on the open.</li>
+            <li><b>Sleeve 2 — Momentum (Power Trend)</b>: up to 15 names in confirmed uptrends that just broke out on above-average volume while beating the S&P 500 over 3 months; equal-weight, refreshed monthly; fewer than 8 qualifiers leaves the rest in cash.</li>
             <li><b>Long-only, no leverage</b> in either sleeve; a name held by both sleeves is owned by both.</li>
           </ul>
         </Reveal>
@@ -1196,15 +1207,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
               cash: split.insCash, positions: sleeveB, last: insLast,
               day$: dayB,
-              incep: insIncep, spySame: momCap === 0 ? spyIncep : null,
-              infoDef: 'Buys at Score ≥ 4 (max 5), a fixed $100K per name, holds until the score decays below 3; rebalanced daily on the open.',
+              incep: insIncep, spySame: spyIncep,
+              infoDef: 'Buys at Score ≥ 4 (max 5), holds until the score decays below 3. The sleeve’s full $500K is split equally across every qualifying name ($500K ÷ N) and re-split daily on the open; drifts inside a 3% band are left alone.',
             },
             {
-              code: 'M', n: 2, name: 'Momentum', value: momCap > 0 ? split.momValue : null,
+              code: 'M', n: 2, name: 'Momentum', value: split.momValue,
               cash: split.momCash, positions: sleeveM, last: momLast,
               day$: dayM,
-              incep: null, spySame: null,
-              infoDef: 'Owns the current monthly momentum list equal-weight ($500K divided by the list size); the crash guard moves the sleeve to cash when the S&P 500 is below its 200-day average.',
+              incep: momIncep, spySame: spyIncep,
+              infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st.',
             },
           ].map((s) => (
             <div key={s.code} className="pp-col">

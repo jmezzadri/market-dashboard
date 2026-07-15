@@ -450,6 +450,67 @@ def _sleeve_for(ticker: str, sleeve_a_universe: set[str]) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Sleeve attribution by FILLS PROVENANCE (2026-07-15 fix)
+#
+# Root cause of the 7/15 commingling bug: positions and NAV bucketed sleeves
+# by TICKER via _sleeve_for, which can only say A-or-B — all 49 Momentum
+# names landed in the Insider bucket. The fills ledger is the provenance
+# record (every fill carries its originating order's sleeve), so positions
+# and NAV must bucket from it. _sleeve_for survives only as the last-resort
+# fallback for names with no fills history.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _sleeve_share_map() -> dict[str, dict[str, float]]:
+    """{TICKER: {sleeve: net_shares}} from paper_fills (buys − sells)."""
+    try:
+        rows = _supabase_query(
+            "select sleeve, ticker, "
+            "sum(case when side='buy' then quantity else -quantity end) as net "
+            "from public.paper_fills group by 1, 2;")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("sleeve share-map query failed (%s) — everything attributes to B", exc)
+        return {}
+    out: dict[str, dict[str, float]] = {}
+    for r in rows:
+        q = float(r.get("net") or 0)
+        s = (r.get("sleeve") or "B").upper()
+        t = (r.get("ticker") or "").upper()
+        if q > 0.0001 and t:
+            out.setdefault(t, {})[s] = q
+    return out
+
+
+def _split_position(p, share_map: dict[str, dict[str, float]]):
+    """Split one broker position across sleeves in proportion to the fills
+    ledger's net share counts. Returns [(sleeve, scaled AlpacaPosition)].
+    A name owned by one sleeve passes through unscaled (fraction = 1);
+    a name with no fills history attributes whole to 'B' (legacy fallback).
+    Dollar fields scale linearly; per-share prices and % fields are
+    unchanged by an ownership split."""
+    from dataclasses import replace
+    net = share_map.get(p.ticker.upper())
+    if not net:
+        return [("B", p)]
+    total = sum(net.values())
+    if total <= 0:
+        return [("B", p)]
+    parts = []
+    for s in sorted(net):
+        f = net[s] / total
+        if f <= 0.0001:
+            continue
+        parts.append((s, p if f > 0.9999 else replace(
+            p,
+            qty=p.qty * f,
+            market_value=p.market_value * f,
+            cost_basis=p.cost_basis * f,
+            unrealized_pl=p.unrealized_pl * f,
+            unrealized_intraday_pl=p.unrealized_intraday_pl * f,
+        )))
+    return parts or [("B", p)]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Official-close pricing (close phase)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -527,13 +588,14 @@ def mirror_positions(
         positions, n_re = _reprice_positions_to_close(positions, closes)
         logger.info("close mode: %d/%d positions repriced to official %s closes",
                     n_re, len(positions), snapshot_date)
-    sleeve_a_etfs = _build_sleeve_a_etf_universe()
+    share_map = _sleeve_share_map()
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
     scan_scores = {} if dry_run else _latest_scan_scores()
 
+    split_rows = [(s, sp) for p in positions for (s, sp) in _split_position(p, share_map)]
+
     if dry_run:
-        for p in positions:
-            sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
+        for sleeve, p in split_rows:
             logger.info("[dry-run] %s %s qty=%s mv=$%.2f day=%+.2f%% total=%+.2f%% sleeve=%s",
                         snapshot_date, p.ticker, p.qty, p.market_value,
                         p.unrealized_intraday_plpc * 100, p.unrealized_plpc * 100, sleeve)
@@ -543,10 +605,9 @@ def mirror_positions(
         "begin;",
         f"delete from public.paper_positions where snapshot_date = '{snapshot_date.isoformat()}';",
     ]
-    for p in positions:
-        sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
+    for sleeve, p in split_rows:
         ed = entry_dates.get(p.ticker)
-        # Score column applies to Sleeve B (Scanner) only; Sleeve A is ETFs.
+        # Score column applies to the Insider sleeve (B) only.
         sc = scan_scores.get(p.ticker)
         score_sql = "NULL" if (sleeve != "B" or sc is None) else str(int(sc))
         sql_lines.append(
@@ -805,6 +866,48 @@ def mirror_fills(
         _supabase_exec("begin;\n" + "\n".join(inserts) + "\ncommit;")
         n_inserted = len(inserts)
 
+    # ── ORDER-STATUS RECONCILIATION (2026-07-15, bug: rows stuck on
+    # 'submitted' forever while the fill sat in paper_fills). Close the loop:
+    # every 'submitted' order whose broker order reached a terminal state gets
+    # its status updated here, in the same run that mirrors the fills. ──
+    if not dry_run:
+        try:
+            terminal: list[str] = []
+            for o in orders:
+                st = o.get("status")
+                oid = o.get("id")
+                if not oid:
+                    continue
+                if st in ("filled", "partially_filled"):
+                    fa = o.get("filled_at")
+                    terminal.append(
+                        "update public.paper_orders set status='filled', "
+                        f"filled_at = coalesce({_sql_escape(fa)}::timestamptz, filled_at, now()) "
+                        f"where alpaca_order_id = {_sql_escape(oid)} and status = 'submitted';")
+                elif st in ("canceled", "cancelled", "expired", "done_for_day"):
+                    terminal.append(
+                        "update public.paper_orders set status='cancelled', "
+                        f"rejection_reason = {_sql_escape('broker: ' + str(st))} "
+                        f"where alpaca_order_id = {_sql_escape(oid)} and status = 'submitted';")
+                elif st == "rejected":
+                    terminal.append(
+                        "update public.paper_orders set status='rejected', "
+                        f"rejection_reason = {_sql_escape('broker: rejected')} "
+                        f"where alpaca_order_id = {_sql_escape(oid)} and status = 'submitted';")
+            # Belt-and-braces: any 'submitted' order that already has a fills
+            # row (e.g. mirrored by an earlier run) flips to 'filled' too.
+            terminal.append(
+                "update public.paper_orders o set status='filled', "
+                "filled_at = coalesce(f.first_fill, o.filled_at, now()) "
+                "from (select alpaca_order_id, min(filled_at) as first_fill "
+                "      from public.paper_fills group by 1) f "
+                "where o.alpaca_order_id = f.alpaca_order_id and o.status = 'submitted';")
+            _supabase_exec("begin;\n" + "\n".join(terminal) + "\ncommit;")
+            logger.info("order-status reconciliation ran (%d broker updates + fills sweep)",
+                        len(terminal) - 1)
+        except Exception as exc:  # noqa: BLE001 — reconciliation must not undo a good fills mirror
+            logger.warning("order-status reconciliation failed (%s) — will retry next run", exc)
+
     logger.info("mirrored %d fills since %s", n_inserted, since_iso)
     return n_inserted
 
@@ -818,7 +921,7 @@ def _sleeve_day_pnl(
     positions,
     closes: dict,
     session_date: date,
-    sleeve_a_etfs: set[str],
+    share_map: dict[str, dict[str, float]],
 ) -> dict:
     """EXACT per-sleeve session P&L, decomposed so it ties out three ways:
       * held-through shares earn (close − prior close)
@@ -831,31 +934,32 @@ def _sleeve_day_pnl(
     idle-cash share between sleeves as their capacity gaps shift) is only
     the fallback. (Joe 2026-06-10: card said +$809 while the table said
     −$4,901 — never again.)"""
-    out = {"A": 0.0, "B": 0.0}
+    out = {"A": 0.0, "B": 0.0, "M": 0.0}
     try:
         fills = _supabase_query(
-            "select ticker, side, quantity, price from public.paper_fills "
+            "select sleeve, ticker, side, quantity, price from public.paper_fills "
             f"where (filled_at at time zone 'America/New_York')::date = '{session_date.isoformat()}';"
         )
     except Exception as exc:
         logger.warning("day-pnl: fills query failed (%s) — using holdings-only attribution", exc)
         fills = []
-    bought: dict[str, list] = {}
-    sold: dict[str, list] = {}
+    bought: dict[tuple, list] = {}   # (sleeve, ticker) → [qty, $]
+    sold: dict[tuple, list] = {}
     for f in fills:
         t = (f.get("ticker") or "").upper()
+        s = (f.get("sleeve") or "B").upper()
         q = float(f.get("quantity") or 0)
         px = float(f.get("price") or 0)
         if q <= 0 or px <= 0:
             continue
         side = (f.get("side") or "").lower()
         if side == "buy":
-            agg = bought.setdefault(t, [0.0, 0.0]); agg[0] += q; agg[1] += q * px
+            agg = bought.setdefault((s, t), [0.0, 0.0]); agg[0] += q; agg[1] += q * px
         elif side == "sell":
-            agg = sold.setdefault(t, [0.0, 0.0]); agg[0] += q; agg[1] += q * px
+            agg = sold.setdefault((s, t), [0.0, 0.0]); agg[0] += q; agg[1] += q * px
 
     # prior closes for names sold out today (not in the current position set)
-    missing = [t for t in sold if t not in closes]
+    missing = sorted({t for (_s, t) in sold if t not in closes})
     if missing:
         closes = {**closes, **official_closes(alpaca, missing, session_date)}
 
@@ -867,25 +971,24 @@ def _sleeve_day_pnl(
     # (close − prior close) the position-level number assumes.
     for p in positions:
         t = p.ticker.upper()
-        sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
-        out[sleeve] = out.get(sleeve, 0.0) + float(p.unrealized_intraday_pl or 0.0)
-        bq_all = bought.get(t)
-        if bq_all and bq_all[0] > 0:
-            cp = closes.get(t)
-            prev = cp[1] if (cp and cp[1]) else (p.lastday_price or None)
-            if prev:
-                bq = min(bq_all[0], p.qty)
-                avg_fill = bq_all[1] / bq_all[0]
-                out[sleeve] += bq * (prev - avg_fill)
+        for sleeve, sp in _split_position(p, share_map):
+            out[sleeve] = out.get(sleeve, 0.0) + float(sp.unrealized_intraday_pl or 0.0)
+            bq_all = bought.get((sleeve, t))
+            if bq_all and bq_all[0] > 0:
+                cp = closes.get(t)
+                prev = cp[1] if (cp and cp[1]) else (p.lastday_price or None)
+                if prev:
+                    bq = min(bq_all[0], sp.qty)
+                    avg_fill = bq_all[1] / bq_all[0]
+                    out[sleeve] += bq * (prev - avg_fill)
     # Sells: sold shares earned (fill − prior close); they are absent from
-    # the position rows, so add them here.
-    for t, (sq, snotional) in sold.items():
+    # the position rows, so add them here. The fill row carries its sleeve.
+    for (sleeve, t), (sq, snotional) in sold.items():
         cp = closes.get(t)
         prev = cp[1] if cp else None
         if prev is None:
             logger.warning("day-pnl: no prior close for sold name %s — its sold-share P&L omitted", t)
             continue
-        sleeve = _sleeve_for(t, sleeve_a_etfs)
         out[sleeve] = out.get(sleeve, 0.0) + sq * (snotional / sq - prev)
     return out
 
@@ -915,33 +1018,37 @@ def write_nav_daily(
                            snapshot_date)
             return {}
         positions, _ = _reprice_positions_to_close(positions, nav_closes)
-    sleeve_a_etfs = _build_sleeve_a_etf_universe()
+    share_map = _sleeve_share_map()
 
     STARTING_CAPITAL = 1_000_000.0
 
-    sleeve_a_equity = sleeve_b_equity = 0.0
-    sleeve_a_unrl = sleeve_b_unrl = 0.0
-    sleeve_a_n = sleeve_b_n = 0
+    # Three-way bucketing by fills provenance (2026-07-15 fix): A is the
+    # retired legacy sleeve (always zero), B = Insider Conviction, M =
+    # Momentum / Power Trend. _split_position handles both-sleeve overlap.
+    sleeve_a_equity = sleeve_b_equity = sleeve_m_equity = 0.0
+    sleeve_a_unrl = sleeve_b_unrl = sleeve_m_unrl = 0.0
+    sleeve_a_n = sleeve_b_n = sleeve_m_n = 0
     for p in positions:
-        sleeve = _sleeve_for(p.ticker, sleeve_a_etfs)
-        if sleeve == "A":
-            sleeve_a_equity += p.market_value
-            sleeve_a_unrl += p.unrealized_pl
-            sleeve_a_n += 1
-        else:
-            sleeve_b_equity += p.market_value
-            sleeve_b_unrl += p.unrealized_pl
-            sleeve_b_n += 1
+        for sleeve, sp in _split_position(p, share_map):
+            if sleeve == "A":
+                sleeve_a_equity += sp.market_value; sleeve_a_unrl += sp.unrealized_pl; sleeve_a_n += 1
+            elif sleeve == "M":
+                sleeve_m_equity += sp.market_value; sleeve_m_unrl += sp.unrealized_pl; sleeve_m_n += 1
+            else:
+                sleeve_b_equity += sp.market_value; sleeve_b_unrl += sp.unrealized_pl; sleeve_b_n += 1
 
-    # Cash split — proportional to the equity split; sleeves share Alpaca's
-    # single cash pool. Where one sleeve is 100 % cash we attribute by capital cap.
-    cap_a = 0.0          # Sleeve A retired 2026-06-23
-    cap_b = 1_000_000.0  # Equity Scanner is the whole $1M book
+    # Cash split — each sleeve's idle cash is its capital cap minus deployed
+    # equity (the sleeves share Alpaca's single cash pool).
+    cap_a = 0.0        # Sleeve A retired 2026-06-23
+    cap_b = 500_000.0  # Insider Conviction
+    cap_m = 500_000.0  # Momentum (Power Trend)
     sleeve_a_cash = max(0.0, cap_a - sleeve_a_equity)
     sleeve_b_cash = max(0.0, cap_b - sleeve_b_equity)
+    sleeve_m_cash = max(0.0, cap_m - sleeve_m_equity)
     sleeve_b_margin_used = max(0.0, sleeve_b_equity - cap_b)
     sleeve_a_nav = sleeve_a_cash + sleeve_a_equity
     sleeve_b_nav = sleeve_b_cash + sleeve_b_equity - sleeve_b_margin_used
+    sleeve_m_nav = sleeve_m_cash + sleeve_m_equity
     # Close mode values the book at official session closes (cash is static
     # after hours, so cash + Σ qty×close IS closing equity, to the cent, and
     # ties exactly to the positions snapshot written the same run). Live mode
@@ -972,7 +1079,7 @@ def write_nav_daily(
     # Realized = total book P&L minus what's still open (captures closed-trade
     # gains, fees, and any cash interest). Per-sleeve realized is the avg-cost
     # lot calc over fills (informational split).
-    total_unrl = sleeve_a_unrl + sleeve_b_unrl
+    total_unrl = sleeve_a_unrl + sleeve_b_unrl + sleeve_m_unrl
     total_realized = (total_nav - STARTING_CAPITAL) - total_unrl
     realized_by_sleeve = _realized_pnl_by_sleeve()
     beta = _portfolio_beta(snapshot_date)
@@ -987,30 +1094,40 @@ def write_nav_daily(
     # to the account equity — it overstated the book by ~$33K and made the
     # sleeves fail to sum to the total. realized_by_sleeve is still stored below
     # for reference, but it must not drive the sleeve value.
-    SLEEVE_CAP = 1_000_000.0  # single $1M book (Sleeve A retired)
-    _gross = sleeve_a_equity + sleeve_b_equity
+    # Two live sleeves at $500K caps each. Idle cash splits in proportion to
+    # each sleeve's UNDEPLOYED capital (cap − equity, floored at 0), so the
+    # values always sum to total_nav (the only true account value).
+    _gross = sleeve_a_equity + sleeve_b_equity + sleeve_m_equity
     _margin = _gross - total_nav                      # total borrowing across the book
-    _a_borrow = max(0.0, sleeve_a_equity - SLEEVE_CAP)
-    _b_borrow = max(0.0, sleeve_b_equity - SLEEVE_CAP)
-    _borrow_base = _a_borrow + _b_borrow
-    if _borrow_base > 0:
-        sleeve_a_value = sleeve_a_equity - _margin * (_a_borrow / _borrow_base)
+    _b_borrow = max(0.0, sleeve_b_equity - cap_b)
+    _m_borrow = max(0.0, sleeve_m_equity - cap_m)
+    _borrow_base = _b_borrow + _m_borrow
+    sleeve_a_value = sleeve_a_equity  # retired: no cash share
+    if _borrow_base > 0 and _margin > 0:
         sleeve_b_value = sleeve_b_equity - _margin * (_b_borrow / _borrow_base)
+        sleeve_m_value = sleeve_m_equity - _margin * (_m_borrow / _borrow_base)
     else:
-        _idle_cash = total_nav - _gross               # unlevered: split idle cash evenly
-        sleeve_a_value = sleeve_a_equity + _idle_cash / 2.0
-        sleeve_b_value = sleeve_b_equity + _idle_cash / 2.0
+        _idle_cash = total_nav - _gross
+        _wb = max(0.0, cap_b - sleeve_b_equity)
+        _wm = max(0.0, cap_m - sleeve_m_equity)
+        _wbase = _wb + _wm
+        if _wbase > 0:
+            sleeve_b_value = sleeve_b_equity + _idle_cash * (_wb / _wbase)
+            sleeve_m_value = sleeve_m_equity + _idle_cash * (_wm / _wbase)
+        else:
+            sleeve_b_value = sleeve_b_equity + _idle_cash / 2.0
+            sleeve_m_value = sleeve_m_equity + _idle_cash / 2.0
     sleeve_a_beta = _beta_for("sleeve_a_value")
     sleeve_b_beta = _beta_for("sleeve_b_value")
 
     # Exact per-sleeve session P&L (close mode only — needs official closes).
-    day_pnl = {"A": None, "B": None}
+    day_pnl = {"A": None, "B": None, "M": None}
     if price_mode == "close":
         try:
-            day_pnl = _sleeve_day_pnl(alpaca, positions, nav_closes, snapshot_date, sleeve_a_etfs)
+            day_pnl = _sleeve_day_pnl(alpaca, positions, nav_closes, snapshot_date, share_map)
         except Exception:
             logger.exception("sleeve day-pnl computation failed — storing NULLs (page falls back)")
-            day_pnl = {"A": None, "B": None}
+            day_pnl = {"A": None, "B": None, "M": None}
 
     # SPY benchmark anchors (inception / trailing-12m / prior close) so the
     # S&P 500 + Vs rows are real on day one. Page computes returns from these.
@@ -1068,6 +1185,9 @@ def write_nav_daily(
         " sleeve_a_positions, sleeve_b_positions, portfolio_beta, "
         " sleeve_a_value, sleeve_b_value, sleeve_a_beta, sleeve_b_beta, "
         " sleeve_a_day_pnl, sleeve_b_day_pnl, "
+        " sleeve_m_cash, sleeve_m_equity, sleeve_m_nav, sleeve_m_value, "
+        " sleeve_m_unrealized_pnl, sleeve_m_realized_pnl, sleeve_m_positions, "
+        " sleeve_m_day_pnl, "
         " spy_prev_close, spy_inception_close, spy_ttm_close, "
         " qqq_close, qqq_prev_close, qqq_inception_close, "
         " dia_close, dia_prev_close, dia_inception_close, "
@@ -1083,6 +1203,9 @@ def write_nav_daily(
         f"{sleeve_a_n}, {sleeve_b_n}, {_num(beta)}, "
         f"{sleeve_a_value}, {sleeve_b_value}, {_num(sleeve_a_beta)}, {_num(sleeve_b_beta)}, "
         f"{_num(day_pnl.get('A'))}, {_num(day_pnl.get('B'))}, "
+        f"{sleeve_m_cash}, {sleeve_m_equity}, {sleeve_m_nav}, {sleeve_m_value}, "
+        f"{sleeve_m_unrl}, {realized_by_sleeve.get('M', 0.0)}, {sleeve_m_n}, "
+        f"{_num(day_pnl.get('M'))}, "
         f"{_num(spy_prev_close)}, {_num(spy_inception_close)}, {_num(spy_ttm_close)}, "
         f"{_num(qqq_close)}, {_num(qqq_prev_close)}, {_num(qqq_inception_close)}, "
         f"{_num(dia_close)}, {_num(dia_prev_close)}, {_num(dia_inception_close)}, "
@@ -1115,6 +1238,14 @@ def write_nav_daily(
         "  sleeve_b_beta = excluded.sleeve_b_beta, "
         "  sleeve_a_day_pnl = excluded.sleeve_a_day_pnl, "
         "  sleeve_b_day_pnl = excluded.sleeve_b_day_pnl, "
+        "  sleeve_m_cash = excluded.sleeve_m_cash, "
+        "  sleeve_m_equity = excluded.sleeve_m_equity, "
+        "  sleeve_m_nav = excluded.sleeve_m_nav, "
+        "  sleeve_m_value = excluded.sleeve_m_value, "
+        "  sleeve_m_unrealized_pnl = excluded.sleeve_m_unrealized_pnl, "
+        "  sleeve_m_realized_pnl = excluded.sleeve_m_realized_pnl, "
+        "  sleeve_m_positions = excluded.sleeve_m_positions, "
+        "  sleeve_m_day_pnl = excluded.sleeve_m_day_pnl, "
         "  spy_prev_close = excluded.spy_prev_close, "
         "  spy_inception_close = excluded.spy_inception_close, "
         "  spy_ttm_close = excluded.spy_ttm_close, "
@@ -1138,9 +1269,11 @@ def write_nav_daily(
         "sleeve_a_cash": sleeve_a_cash, "sleeve_a_equity": sleeve_a_equity, "sleeve_a_nav": sleeve_a_nav,
         "sleeve_b_cash": sleeve_b_cash, "sleeve_b_equity": sleeve_b_equity, "sleeve_b_nav": sleeve_b_nav,
         "sleeve_b_margin_used": sleeve_b_margin_used,
+        "sleeve_m_cash": sleeve_m_cash, "sleeve_m_equity": sleeve_m_equity, "sleeve_m_nav": sleeve_m_nav,
         "total_nav": total_nav, "benchmark_spy_value": spy_value,
         "spy_close": spy_close, "agg_close": agg_close,
         "total_unrealized_pnl": total_unrl, "total_realized_pnl": total_realized,
         "sleeve_a_positions": sleeve_a_n, "sleeve_b_positions": sleeve_b_n,
+        "sleeve_m_positions": sleeve_m_n,
         "portfolio_beta": beta,
     }
