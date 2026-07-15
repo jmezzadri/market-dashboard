@@ -77,12 +77,15 @@ def main():
     url, key = _env()
     h = _headers(key)
 
-    # 1) panel date = max prices_eod trade_date (the scan's own d0)
-    rp = requests.get(f"{url}/rest/v1/prices_eod?select=trade_date&order=trade_date.desc&limit=1",
-                      headers=h, timeout=60)
-    if rp.status_code >= 300 or not rp.json():
-        fail_red(f"could not resolve panel date: HTTP {rp.status_code} {rp.text[:200]}", t0)
-    rebal = date.fromisoformat(rp.json()[0]["trade_date"])
+    # 1) panel date = last COMPLETE panel day (power_trend_panel_date —
+    # migration 082). Raw max(trade_date) is WRONG once the evening ingest
+    # has written a partial same-day panel (2026-07-15: 498 of ~12,400 names
+    # present emptied the universe); the scan and the producer must agree on
+    # the same complete-panel date, so both call the same function.
+    pd_res = rpc("power_trend_panel_date", {})
+    if not pd_res:
+        fail_red("could not resolve complete panel date (power_trend_panel_date)", t0)
+    rebal = date.fromisoformat(pd_res if isinstance(pd_res, str) else str(pd_res))
     print(f"panel date (rebalance_date) {rebal}")
 
     # 2) run the scan
