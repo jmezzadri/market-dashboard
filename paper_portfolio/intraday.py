@@ -216,36 +216,36 @@ def write_nav_intraday(
     CAP_B = 500_000.0  # Insider Conviction
     CAP_M = 500_000.0  # Momentum (Power Trend)
     a_eq = b_eq = m_eq = 0.0
+    b_basis = m_basis = 0.0
     a_n = b_n = m_n = 0
     for p in positions:
         for sleeve, sp in _split_position(p, share_map):
             if sleeve == "A":
                 a_eq += sp.market_value; a_n += 1
             elif sleeve == "M":
-                m_eq += sp.market_value; m_n += 1
+                m_eq += sp.market_value; m_basis += sp.cost_basis; m_n += 1
             else:
-                b_eq += sp.market_value; b_n += 1
+                b_eq += sp.market_value; b_basis += sp.cost_basis; b_n += 1
     total_nav = float(account.equity)
-    gross = a_eq + b_eq + m_eq
-    margin = gross - total_nav
-    b_bor = max(0.0, b_eq - CAP_B)
-    m_bor = max(0.0, m_eq - CAP_M)
-    bor_base = b_bor + m_bor
+    # Sleeve cash = cap − cost basis + realized (2026-07-15 fix: cap − market
+    # value forced every sleeve NAV to its cap and hid all P&L). Value =
+    # equity + cash, with the small broker residual split pro-rata so the
+    # sleeves always sum exactly to the account's true equity.
+    from paper_portfolio.mirror import _realized_pnl_by_sleeve
+    realized = _realized_pnl_by_sleeve()
+    b_cash = CAP_B - b_basis + realized.get("B", 0.0)
+    m_cash = CAP_M - m_basis + realized.get("M", 0.0)
     a_val = a_eq  # retired sleeve: no cash share
-    if bor_base > 0 and margin > 0:
-        b_val = b_eq - margin * (b_bor / bor_base)
-        m_val = m_eq - margin * (m_bor / bor_base)
+    raw_b = b_eq + b_cash
+    raw_m = m_eq + m_cash
+    resid = total_nav - a_val - raw_b - raw_m
+    wbase = abs(raw_b) + abs(raw_m)
+    if wbase > 0:
+        b_val = raw_b + resid * (abs(raw_b) / wbase)
+        m_val = raw_m + resid * (abs(raw_m) / wbase)
     else:
-        idle = total_nav - gross
-        wb = max(0.0, CAP_B - b_eq)
-        wm = max(0.0, CAP_M - m_eq)
-        wbase = wb + wm
-        if wbase > 0:
-            b_val = b_eq + idle * (wb / wbase)
-            m_val = m_eq + idle * (wm / wbase)
-        else:
-            b_val = b_eq + idle / 2.0
-            m_val = m_eq + idle / 2.0
+        b_val = raw_b + resid / 2.0
+        m_val = raw_m + resid / 2.0
 
     prior = _prior_close_nav_row()
     prior_nav = float(prior["total_nav"]) if prior.get("total_nav") is not None else None
@@ -276,7 +276,7 @@ def write_nav_intraday(
         " portfolio_beta, n_positions, updated_at) values ("
         f"'{today.isoformat()}', {num(total_nav)}, {num(account.cash)}, {num(account.long_market_value)}, "
         f"{num(a_val)}, {num(b_val)}, {num(a_eq)}, {num(b_eq)}, {num(m_val)}, {num(m_eq)}, "
-        f"{num(max(0.0, CAP_B - b_eq))}, {num(max(0.0, CAP_M - m_eq))}, "
+        f"{num(b_cash)}, {num(m_cash)}, "
         f"{num(day_pnl)}, {num(prior_nav)}, "
         # Live "prev" baseline = the latest OFFICIAL close (prior row's own
         # close). Carrying the close row's *_prev_close here (pre-2026-07-03
