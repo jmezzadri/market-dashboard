@@ -1027,6 +1027,7 @@ def write_nav_daily(
     # Momentum / Power Trend. _split_position handles both-sleeve overlap.
     sleeve_a_equity = sleeve_b_equity = sleeve_m_equity = 0.0
     sleeve_a_unrl = sleeve_b_unrl = sleeve_m_unrl = 0.0
+    sleeve_b_basis = sleeve_m_basis = 0.0
     sleeve_a_n = sleeve_b_n = sleeve_m_n = 0
     for p in positions:
         for sleeve, sp in _split_position(p, share_map):
@@ -1034,20 +1035,26 @@ def write_nav_daily(
                 sleeve_a_equity += sp.market_value; sleeve_a_unrl += sp.unrealized_pl; sleeve_a_n += 1
             elif sleeve == "M":
                 sleeve_m_equity += sp.market_value; sleeve_m_unrl += sp.unrealized_pl; sleeve_m_n += 1
+                sleeve_m_basis += sp.cost_basis
             else:
                 sleeve_b_equity += sp.market_value; sleeve_b_unrl += sp.unrealized_pl; sleeve_b_n += 1
+                sleeve_b_basis += sp.cost_basis
 
-    # Cash split — each sleeve's idle cash is its capital cap minus deployed
-    # equity (the sleeves share Alpaca's single cash pool).
+    # Cash — a sleeve's idle cash is its capital MINUS WHAT IT PAID for its
+    # current holdings (cost basis) plus what it has realized, NOT capital
+    # minus market value (that made every sleeve NAV identically equal its
+    # cap and hid all P&L — 2026-07-15 fix). Signed, never floored, so
+    # equity + cash always ties to the sleeve's true value.
     cap_a = 0.0        # Sleeve A retired 2026-06-23
     cap_b = 500_000.0  # Insider Conviction
     cap_m = 500_000.0  # Momentum (Power Trend)
-    sleeve_a_cash = max(0.0, cap_a - sleeve_a_equity)
-    sleeve_b_cash = max(0.0, cap_b - sleeve_b_equity)
-    sleeve_m_cash = max(0.0, cap_m - sleeve_m_equity)
-    sleeve_b_margin_used = max(0.0, sleeve_b_equity - cap_b)
+    realized_by_sleeve = _realized_pnl_by_sleeve()
+    sleeve_a_cash = 0.0
+    sleeve_b_cash = cap_b - sleeve_b_basis + realized_by_sleeve.get("B", 0.0)
+    sleeve_m_cash = cap_m - sleeve_m_basis + realized_by_sleeve.get("M", 0.0)
+    sleeve_b_margin_used = max(0.0, sleeve_b_basis - cap_b)
     sleeve_a_nav = sleeve_a_cash + sleeve_a_equity
-    sleeve_b_nav = sleeve_b_cash + sleeve_b_equity - sleeve_b_margin_used
+    sleeve_b_nav = sleeve_b_cash + sleeve_b_equity
     sleeve_m_nav = sleeve_m_cash + sleeve_m_equity
     # Close mode values the book at official session closes (cash is static
     # after hours, so cash + Σ qty×close IS closing equity, to the cent, and
@@ -1081,7 +1088,6 @@ def write_nav_daily(
     # lot calc over fills (informational split).
     total_unrl = sleeve_a_unrl + sleeve_b_unrl + sleeve_m_unrl
     total_realized = (total_nav - STARTING_CAPITAL) - total_unrl
-    realized_by_sleeve = _realized_pnl_by_sleeve()
     beta = _portfolio_beta(snapshot_date)
 
     # Sleeve value = NET EQUITY: the sleeve's gross holdings minus its share of
@@ -1094,29 +1100,21 @@ def write_nav_daily(
     # to the account equity — it overstated the book by ~$33K and made the
     # sleeves fail to sum to the total. realized_by_sleeve is still stored below
     # for reference, but it must not drive the sleeve value.
-    # Two live sleeves at $500K caps each. Idle cash splits in proportion to
-    # each sleeve's UNDEPLOYED capital (cap − equity, floored at 0), so the
-    # values always sum to total_nav (the only true account value).
-    _gross = sleeve_a_equity + sleeve_b_equity + sleeve_m_equity
-    _margin = _gross - total_nav                      # total borrowing across the book
-    _b_borrow = max(0.0, sleeve_b_equity - cap_b)
-    _m_borrow = max(0.0, sleeve_m_equity - cap_m)
-    _borrow_base = _b_borrow + _m_borrow
+    # Sleeve value = the sleeve's own equity + its own cash (basis-derived
+    # above). Any residual against the broker's true account equity (lot-calc
+    # rounding, fees, interest) is distributed pro-rata so the sleeves always
+    # sum EXACTLY to total_nav — the page's Total must equal its parts.
     sleeve_a_value = sleeve_a_equity  # retired: no cash share
-    if _borrow_base > 0 and _margin > 0:
-        sleeve_b_value = sleeve_b_equity - _margin * (_b_borrow / _borrow_base)
-        sleeve_m_value = sleeve_m_equity - _margin * (_m_borrow / _borrow_base)
+    _raw_b = sleeve_b_equity + sleeve_b_cash
+    _raw_m = sleeve_m_equity + sleeve_m_cash
+    _resid = total_nav - sleeve_a_value - _raw_b - _raw_m
+    _wbase = abs(_raw_b) + abs(_raw_m)
+    if _wbase > 0:
+        sleeve_b_value = _raw_b + _resid * (abs(_raw_b) / _wbase)
+        sleeve_m_value = _raw_m + _resid * (abs(_raw_m) / _wbase)
     else:
-        _idle_cash = total_nav - _gross
-        _wb = max(0.0, cap_b - sleeve_b_equity)
-        _wm = max(0.0, cap_m - sleeve_m_equity)
-        _wbase = _wb + _wm
-        if _wbase > 0:
-            sleeve_b_value = sleeve_b_equity + _idle_cash * (_wb / _wbase)
-            sleeve_m_value = sleeve_m_equity + _idle_cash * (_wm / _wbase)
-        else:
-            sleeve_b_value = sleeve_b_equity + _idle_cash / 2.0
-            sleeve_m_value = sleeve_m_equity + _idle_cash / 2.0
+        sleeve_b_value = _raw_b + _resid / 2.0
+        sleeve_m_value = _raw_m + _resid / 2.0
     sleeve_a_beta = _beta_for("sleeve_a_value")
     sleeve_b_beta = _beta_for("sleeve_b_value")
 
