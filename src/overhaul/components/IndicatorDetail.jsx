@@ -379,6 +379,13 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           justifyContent: 'flex-end',
         }}
       >
+        <button
+          type="button"
+          className="mt-btn"
+          onClick={() => navigate(`/methodology#${ind.familyId || ind.id}`)}
+        >
+          Methodology →
+        </button>
         <button type="button" className="mt-btn" onClick={onClose}>
           Close
         </button>

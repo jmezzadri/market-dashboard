@@ -189,7 +189,8 @@ export default function ScannerPage() {
             <ul className="impl">
               <li><b>Sleeve 1 — Insider Conviction</b>: buys when executives are buying and the trend confirms (Score ≥ 4 of a max 5), holds until the score decays below 3; event-driven, scanned daily.</li>
               <li><b>Sleeve 2 — Momentum</b>: owns the top-quintile 12-month performers, re-ranked monthly, with a crash guard that moves the sleeve to cash when the S&P 500 trades below its 200-day average.</li>
-              <li><b>The sleeves are independent</b> — a stock in both is owned by both; neither signal vetoes the other.</li>
+              <li><b>The sleeves are independent</b> — a stock in both is owned by both; neither signal vetoes the other.{' '}
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the methodology →</a></li>
             </ul>
         </Reveal>
 
@@ -298,6 +299,9 @@ export default function ScannerPage() {
               <div className="eyebrow2"><span className="dot" />How the Sleeve 1 score is built</div>
               <h2>Two inputs, summed into one 0–5 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
+            <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>
+              Full methodology →
+            </button>
           </div>
           <div className="sc-buildgrid">
             {SCORE_COMPONENTS.map((c) => {
