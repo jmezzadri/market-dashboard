@@ -243,15 +243,37 @@ const fmtRatio2 = (n) => (n == null || Number.isNaN(n)) ? '—' : n.toFixed(2);
 const fmtPctPlain1 = (n) => (n == null || Number.isNaN(n)) ? '—' : `${(n * 100).toFixed(1)}%`;
 const pctCls = (n) => (n == null ? 'mut' : (n >= 0 ? 'up' : 'down'));
 
-// Benchmark switcher choices (book card). Close series stamped on each
-// paper_nav_daily row by the nightly runner.
-const BENCHES = [
-  { k: 'spy', label: 'S&P 500' },
-  { k: 'qqq', label: 'NASDAQ 100' },
-  { k: 'dia', label: 'Dow 30' },
-  { k: 'iwm', label: 'Russell 2000' },
-];
-const BENCH_LS_KEY = 'mt-paper-bench';
+// Fixed benchmark set (2026-07-15, Joe directive): the switcher is gone —
+// S&P 500, NASDAQ 100 and Dow 30 render as always-visible rows. Benchmark
+// history is self-sufficient: fetched straight from prices_eod at mount
+// (~420 calendar days), so the rows populate even when paper_nav_daily is
+// empty right after an account reset.
+
+// Benchmark return since a given date: last close ÷ close on/nearest-before
+// sinceDate − 1. Used for the "Start" column (book/sleeve inception anchor).
+function returnSinceDate(series, sinceDate) {
+  if (!Array.isArray(series) || series.length === 0 || !sinceDate) return null;
+  let base = null;
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (String(series[i].d) <= String(sinceDate)) { base = series[i].v; break; }
+  }
+  const last = series[series.length - 1].v;
+  return (base && last != null) ? last / base - 1 : null;
+}
+
+// Pair a nav-row value series against a prices_eod benchmark series by date
+// (falls back to the row's stamped close — e.g. the live intraday row, whose
+// date has no prices_eod close yet). Feeds riskStats index-aligned.
+function pairAgainstBench(navRows, valueOf, benchSeries, stampField) {
+  const bMap = new Map((benchSeries || []).map((p) => [String(p.d).slice(0, 10), p.v]));
+  const pVals = [], bVals = [];
+  for (const r of (navRows || [])) {
+    pVals.push(valueOf(r));
+    const k = String(r.snapshot_date || '').slice(0, 10);
+    bVals.push(bMap.get(k) ?? (r[stampField] != null ? Number(r[stampField]) : null));
+  }
+  return { pVals, bVals };
+}
 
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
@@ -440,20 +462,6 @@ const PAGE_CSS = `
    Institutional returns table + risk strip. Light-mode first; tabular
    numerals everywhere; em-dash for insufficient history. */
 .pp-perf { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line-0); padding-top: 12px; }
-.pp-bench-seg {
-  display: inline-flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line-1);
-  border-radius: 8px; padding: 2px; width: max-content; max-width: 100%; flex-wrap: wrap;
-}
-.pp-bench-seg button {
-  font: inherit; font-size: 11px; font-weight: 500; letter-spacing: .01em;
-  color: var(--ink-2); background: none; border: none; border-radius: 6px;
-  padding: 4px 9px; cursor: pointer; white-space: nowrap;
-}
-.pp-bench-seg button:hover { color: var(--ink-0); }
-.pp-bench-seg button.on {
-  background: var(--bg-1); color: var(--ink-0);
-  box-shadow: 0 1px 3px rgba(15,23,42,.10); border: 1px solid var(--line-1); padding: 3px 8px;
-}
 .pp-rt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 .pp-rt { width: 100%; min-width: 460px; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
 .pp-rt.mini { min-width: 320px; }
@@ -500,7 +508,6 @@ const PAGE_CSS = `
   .pp-rt { min-width: 440px; }
   .pp-rt.mini { min-width: 320px; }
   .pp-risk { grid-template-columns: repeat(3, 1fr); }
-  .pp-bench-seg button { padding: 4px 7px; font-size: 10.5px; }
   .pp-tip:hover::after { width: 170px; }
 }
 `;
@@ -580,66 +587,70 @@ function RiskStat({ label, tip, value }) {
 }
 
 /* BookCard — the combined-account card in the hero (2026-07-15 institutional
-   redesign, Joe directive: trailing returns across timeframes vs a selectable
-   benchmark, an explicit excess line, and since-inception risk stats — no
-   more context-free "+0.4% / −0.3%" strip). Headline NAV unchanged; the
+   redesign, Joe directive: trailing returns across timeframes vs FIXED
+   benchmark rows — S&P 500, NASDAQ 100, Dow 30 — an explicit Excess-vs-S&P
+   line, and since-inception risk stats). Headline NAV unchanged; the
    holdings/cash split bar lives below the hero and is untouched. */
 // day$Override: the SUM of the two sleeve cards' Today numbers (one shared
 // computation, Joe rule 2026-06-12 — the book card and the sleeve cards must
 // tie by construction, never two bases for the same word).
-function BookCard({ navHistory, live = false, asOfIso = null, day$Override = null }) {
-  // Benchmark choice persists per device.
-  const [benchKey, setBenchKey] = useState(() => {
-    try {
-      const v = localStorage.getItem(BENCH_LS_KEY);
-      if (BENCHES.some((b) => b.k === v)) return v;
-    } catch { /* ignore */ }
-    return 'spy';
-  });
-  useEffect(() => {
-    try { localStorage.setItem(BENCH_LS_KEY, benchKey); } catch { /* ignore */ }
-  }, [benchKey]);
-
+// benchHistory: { spy, qqq, dia } ascending [{d, v}] series from prices_eod —
+// self-sufficient, so every benchmark row populates even with ZERO nav rows
+// (Joe 2026-07-15: no more all-em-dash table right after an account reset).
+function BookCard({ navHistory, benchHistory = {}, live = false, asOfIso = null, day$Override = null }) {
   const rows = navHistory || [];
-  const empty = rows.length === 0;
-  const latest = empty ? null : rows[rows.length - 1];
-  if (empty) {
-    return (
-      <div className="paper-tile-summary">
-        <div className="pts-head"><span className="pts-title">Paper portfolio</span></div>
-        <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>Awaiting first nightly run.</div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}><FreshnessChip elementId="portfolio.paper-nav-daily" /></div>
-      </div>
-    );
-  }
-  const bench = BENCHES.find((b) => b.k === benchKey) || BENCHES[0];
-  const nav = latest.total_nav;
+  const latest = rows.length ? rows[rows.length - 1] : null;
+  const nav = latest ? latest.total_nav : null;
   const day$ = day$Override;
   const incep$ = nav != null ? nav - STARTING_CAPITAL : null;
 
-  // Book and benchmark windows share the SAME session logic: both series are
-  // built from the same nav rows, close-to-close. In live mode the last row
-  // is the intraday overlay, so Day = live NAV vs prior close NAV, and the
-  // benchmark Day uses its live quote vs its own stamped prior close.
+  // Book windows come from the nav rows (close-to-close; live overlay is the
+  // last row in live mode, so Day = live NAV vs prior close NAV). Benchmark
+  // windows come from the prices_eod series with the SAME session logic
+  // (1/5/21/63 sessions; YTD vs last close of the prior year). In live mode
+  // each benchmark's Day is overridden by the live quote stamped on the
+  // intraday row when present.
   const navSeries = rows.filter((r) => r.total_nav != null)
     .map((r) => ({ d: r.snapshot_date, v: Number(r.total_nav) }));
-  const benchSeries = rows.filter((r) => r[`${bench.k}_close`] != null)
-    .map((r) => ({ d: r.snapshot_date, v: Number(r[`${bench.k}_close`]) }));
+  const inception = navSeries.length ? String(navSeries[0].d).slice(0, 10) : null;
   const book = windowReturns(navSeries, STARTING_CAPITAL);
-  const bm = windowReturns(benchSeries, null);
-  if (live && latest[`${bench.k}_close`] && latest[`${bench.k}_prev_close`]) {
-    bm.day = Number(latest[`${bench.k}_close`]) / Number(latest[`${bench.k}_prev_close`]) - 1;
-  }
+
+  const benchRow = (k) => {
+    const s = benchHistory[k] || [];
+    const bm = windowReturns(s, null);
+    // "Start" for a benchmark = its return since the BOOK's inception date
+    // (close on/nearest-before that date). Em-dash while the book has no rows.
+    bm.si = inception ? returnSinceDate(s, inception) : null;
+    if (live && latest && latest[`${k}_close`] && latest[`${k}_prev_close`]) {
+      bm.day = Number(latest[`${k}_close`]) / Number(latest[`${k}_prev_close`]) - 1;
+    }
+    return bm;
+  };
+  const spy = benchRow('spy');
   const cols = [['Day', 'day'], ['1W', 'w1'], ['1M', 'm1'], ['3M', 'm3'], ['YTD', 'ytd'], ['Start', 'si']];
+  const benchRows = [
+    ['S&P 500', spy],
+    ['NASDAQ 100', benchRow('qqq')],
+    ['Dow 30', benchRow('dia')],
+  ];
   const excess = {};
-  cols.forEach(([, k]) => { excess[k] = (book[k] != null && bm[k] != null) ? book[k] - bm[k] : null; });
-  const risk = riskStats(rows.map((r) => r.total_nav), rows.map((r) => r[`${bench.k}_close`]));
+  cols.forEach(([, k]) => { excess[k] = (book[k] != null && spy[k] != null) ? book[k] - spy[k] : null; });
+
+  // Risk strip is fixed vs the S&P 500: nav rows paired against the
+  // prices_eod SPY series by date (stamped spy_close as fallback for the
+  // live row), so beta/TE/IR build as soon as 20 book sessions exist.
+  const paired = pairAgainstBench(rows, (r) => r.total_nav, benchHistory.spy, 'spy_close');
+  const risk = riskStats(paired.pVals, paired.bVals);
+
+  // Honest-but-not-blank empty state: benchmarks always show; the quiet line
+  // below the table disappears once the book has its first return.
+  const bookHasReturn = navSeries.length >= 2 || book.day != null;
 
   return (
     <div className="paper-tile-summary pp-book">
       <div className="pts-head">
         <span className="pts-title">Paper portfolio · $1M start</span>
-        <span className="pts-asof">{live && asOfIso ? `AS OF ${(fmtTimeET(asOfIso) || '').toUpperCase()} ET · LIVE` : (latest.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—')}</span>
+        <span className="pts-asof">{live && asOfIso ? `AS OF ${(fmtTimeET(asOfIso) || '').toUpperCase()} ET · LIVE` : (latest?.snapshot_date ? `AS OF ${fmtDate(latest.snapshot_date).toUpperCase()} · CLOSE` : '—')}</span>
       </div>
       <div className="pp-book-nav">{fmtMoneyExact(nav)}</div>
       <div className="pp-book-rows">
@@ -647,11 +658,6 @@ function BookCard({ navHistory, live = false, asOfIso = null, day$Override = nul
         <div><span>Since inception</span><b className={dirClass(incep$)}>{fmt$Delta(incep$)}</b></div>
       </div>
       <div className="pp-perf">
-        <div className="pp-bench-seg" role="tablist" aria-label="Benchmark">
-          {BENCHES.map((b) => (
-            <button key={b.k} type="button" className={b.k === bench.k ? 'on' : ''} onClick={() => setBenchKey(b.k)}>{b.label}</button>
-          ))}
-        </div>
         <div className="pp-rt-scroll">
           <table className="pp-rt">
             <thead>
@@ -659,25 +665,30 @@ function BookCard({ navHistory, live = false, asOfIso = null, day$Override = nul
             </thead>
             <tbody>
               <tr><td className="rl">Book</td>{cols.map(([l, k]) => <td key={l} className={book[k] == null ? 'mut' : ''}>{fmtPctP(book[k], 1)}</td>)}</tr>
-              <tr><td className="rl">{bench.label}</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
-              <tr className="ex"><td className="rl">Excess</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
+              {benchRows.map(([label, bm]) => (
+                <tr key={label}><td className="rl">{label}</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
+              ))}
+              <tr className="ex"><td className="rl">Excess vs S&amp;P</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
             </tbody>
           </table>
         </div>
+        {!bookHasReturn && (
+          <div className="pp-risk-note">Book tracking starts at the first close after the account reset — benchmarks shown meanwhile.</div>
+        )}
         <div className="pp-risk">
           <RiskStat label="Ann. vol" value={fmtPctPlain1(risk.annVol)} tip="Annualized volatility: standard deviation of daily returns × √252, since inception." />
           <RiskStat label="Sharpe" value={fmtRatio2(risk.sharpe)} tip="Annualized return ÷ annualized volatility. Risk-free rate assumed 0." />
           <RiskStat label="Sortino" value={fmtRatio2(risk.sortino)} tip="Annualized return ÷ annualized downside deviation — only losing days count against the book." />
           <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in account value since inception." />
-          <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip={`Sensitivity to the ${bench.label}'s daily moves; 1.00 means the book moves in line with it.`} />
-          <RiskStat label="Info ratio" value={fmtRatio2(risk.ir)} tip={`Annualized excess return over the ${bench.label} ÷ tracking error — how consistently the book beats it.`} />
+          <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip="Sensitivity to the S&P 500's daily moves; 1.00 means the book moves in line with it." />
+          <RiskStat label="Info ratio" value={fmtRatio2(risk.ir)} tip="Annualized excess return over the S&P 500 ÷ tracking error — how consistently the book beats it." />
         </div>
         {risk.n < 20 && (
           <div className="pp-risk-note">Risk metrics build after 20 trading sessions ({risk.n} so far).</div>
         )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-        <FreshnessChip elementId={live ? 'portfolio.paper-nav-intraday' : 'portfolio.paper-nav-daily'} variant="label" fallback={{ asOfIso: live ? asOfIso : (latest.created_at || latest.snapshot_date), calendar: 'nyse' }} />
+        <FreshnessChip elementId={live ? 'portfolio.paper-nav-intraday' : 'portfolio.paper-nav-daily'} variant="label" fallback={{ asOfIso: live ? asOfIso : (latest ? (latest.created_at || latest.snapshot_date) : null), calendar: 'nyse' }} />
       </div>
     </div>
   );
@@ -686,19 +697,21 @@ function BookCard({ navHistory, live = false, asOfIso = null, day$Override = nul
 /* SleevePerf — one sleeve's mini returns table (Day · 1W · 1M · Start vs the
    S&P 500, with an explicit Excess line) plus a Sharpe / Max DD / Beta strip.
    Sleeve series = its value column on the nav rows (leading nulls skipped);
-   the S&P side is restricted to the SAME rows so both sides cover identical
-   sessions. SI base = the sleeve's allocation from paper_accounts. */
-function SleevePerf({ rows, valueField, alloc, live = false, liveDay$ = null }) {
+   the S&P side comes from the self-sufficient prices_eod SPY series
+   (spySeries prop), so it populates even with zero sleeve history. The S&P
+   "Start" is gated on the SLEEVE's own inception (close on/nearest-before
+   its first nav row). SI base = the sleeve's allocation from paper_accounts. */
+function SleevePerf({ rows, valueField, alloc, spySeries = [], live = false, liveDay$ = null }) {
   const sRows = (rows || []).filter((r) => r[valueField] != null);
   const series = sRows.map((r) => ({ d: r.snapshot_date, v: Number(r[valueField]) }));
-  const spySeries = sRows.filter((r) => r.spy_close != null)
-    .map((r) => ({ d: r.snapshot_date, v: Number(r.spy_close) }));
+  const inception = series.length ? String(series[0].d).slice(0, 10) : null;
   const sv = windowReturns(series, alloc > 0 ? alloc : null);
   const bm = windowReturns(spySeries, null);
+  bm.si = inception ? returnSinceDate(spySeries, inception) : null;
   if (live) {
     // Day = the sleeve card's live day P&L ÷ prior sleeve value (same number
     // the Today row used to show, as a return); S&P Day = live quote vs its
-    // own stamped prior close.
+    // own stamped prior close when the intraday row carries one.
     const prev = series.length >= 2 ? series[series.length - 2].v : null;
     if (liveDay$ != null && prev) sv.day = liveDay$ / prev;
     const lr = sRows[sRows.length - 1];
@@ -707,7 +720,8 @@ function SleevePerf({ rows, valueField, alloc, live = false, liveDay$ = null }) 
   const cols = [['Day', 'day'], ['1W', 'w1'], ['1M', 'm1'], ['Start', 'si']];
   const excess = {};
   cols.forEach(([, k]) => { excess[k] = (sv[k] != null && bm[k] != null) ? sv[k] - bm[k] : null; });
-  const risk = riskStats(sRows.map((r) => r[valueField]), sRows.map((r) => r.spy_close));
+  const paired = pairAgainstBench(sRows, (r) => r[valueField], spySeries, 'spy_close');
+  const risk = riskStats(paired.pVals, paired.bVals);
   return (
     <div className="pp-sc-perf">
       <div className="pp-rt-scroll">
@@ -1223,6 +1237,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [account, setAccount] = useState(null);
   const [scanScores, setScanScores] = useState({});
   const [momMeta, setMomMeta] = useState(null); // { ranks: {ticker: rank}, asOf, next }
+  // Self-sufficient benchmark history from prices_eod (2026-07-15): per-ticker
+  // ascending [{d, v}] series so the benchmark rows populate even when
+  // paper_nav_daily has zero rows (fresh account reset).
+  const [benchHistory, setBenchHistory] = useState({ spy: [], qqq: [], dia: [] });
   const [err, setErr] = useState(null);
 
   useEffect(() => {
@@ -1234,6 +1252,25 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           .select('*')
           .order('snapshot_date', { ascending: true });
         if (!cancelled) setNavHistory(nav.data || []);
+
+        // Benchmark closes, ~420 calendar days (covers 3M + YTD + prior-year
+        // anchor with margin). ~3×280 rows in one query.
+        const sinceIso = new Date(Date.now() - 420 * 86_400_000).toISOString().slice(0, 10);
+        const px = await supabase
+          .from('prices_eod')
+          .select('ticker,trade_date,close')
+          .in('ticker', ['SPY', 'QQQ', 'DIA'])
+          .gte('trade_date', sinceIso)
+          .order('trade_date', { ascending: true });
+        if (!cancelled) {
+          const key = { SPY: 'spy', QQQ: 'qqq', DIA: 'dia' };
+          const by = { spy: [], qqq: [], dia: [] };
+          (px.data || []).forEach((r) => {
+            const k = key[r.ticker];
+            if (k && r.close != null) by[k].push({ d: r.trade_date, v: Number(r.close) });
+          });
+          setBenchHistory(by);
+        }
 
         const latestDate = await supabase
           .from('paper_positions')
@@ -1465,7 +1502,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </ul>
         </Reveal>
         <Reveal className="pp-heroright">
-          <BookCard navHistory={navForCard} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} day$Override={dayBook} />
+          <BookCard navHistory={navForCard} benchHistory={benchHistory} live={liveMode} asOfIso={liveMode ? (liveNav.updated_at || liveNav.as_of_date) : null} day$Override={dayBook} />
         </Reveal>
       </section>
 
@@ -1520,6 +1557,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   rows={navForCard}
                   valueField={s.valueField}
                   alloc={s.alloc}
+                  spySeries={benchHistory.spy}
                   live={liveMode}
                   liveDay$={s.day$}
                 />
