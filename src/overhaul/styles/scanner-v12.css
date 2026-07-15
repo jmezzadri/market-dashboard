@@ -163,21 +163,7 @@
    Putty card on the shared 1560px stage: guard status strip, two-column
    ranked list (collapses to one at phone width), badge legend. */
 .home-v12 section.mo-sec { max-width: 1560px; min-width: 0; }
-.home-v12 .mo-card { background: var(--putty); border-radius: 40px; padding: 0 0 18px; overflow: hidden; transition: background .5s; }
-.home-v12 .mo-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 26px 30px 16px; border-bottom: 1px solid var(--hair); }
-.home-v12 .mo-title { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.12; color: var(--ink); }
-.home-v12 .mo-asof { font-family: var(--sans); font-size: 12.5px; color: var(--mut); font-weight: 600; letter-spacing: .02em; display: flex; align-items: center; gap: 7px; padding-top: 6px; white-space: nowrap; }
-.home-v12 .mo-guard { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 30px 6px; padding: 12px 18px; border-radius: 16px; background: var(--bg2); border-left: 3px solid var(--hair); font-family: var(--sans); }
-.home-v12 .mo-guard.on { border-left-color: var(--up); }
-.home-v12 .mo-guard.off { border-left-color: var(--down); }
-.home-v12 .mo-guard-state { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--ink); }
-.home-v12 .mo-guard.on .mo-guard-state { color: var(--up); }
-.home-v12 .mo-guard.off .mo-guard-state { color: var(--down); }
-.home-v12 .mo-guard-detail { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.home-v12 .mo-guard-flip { font-size: 12px; color: var(--mut); margin-left: auto; }
-.home-v12 .mo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px; padding: 8px 30px 0; align-items: start; }
-.home-v12 .mo-grid > .mo-scroll { min-width: 0; }
-.home-v12 .mo-scroll { overflow-x: auto; }
+.home-v12 .mo-scroll { overflow-x: auto; padding: 6px 30px 0; }
 .home-v12 .mo-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
 .home-v12 .mo-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 10px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .mo-table th.num-h { text-align: right; }
@@ -191,16 +177,34 @@
 .home-v12 .mo-tk b { font-weight: 700; }
 .home-v12 .mo-tk:hover b { color: var(--gold-deep); }
 .home-v12 .mo-name { font-size: 12px; color: var(--mut); max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
-.home-v12 .mo-badge { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold-deep); flex: none; align-self: center; }
+
+/* Momentum rows expand to an inline drawer — same interaction contract as
+   the Insider Conviction table (row = drawer, ticker text = ticker page). */
+.home-v12 .mo-table tbody tr.mo-row { cursor: pointer; }
+.home-v12 .mo-table tbody tr.mo-row:hover td { background: var(--bg2); }
+.home-v12 .mo-table th.mo-chev-h { width: 34px; }
+.home-v12 .mo-table td.mo-chev { text-align: right; color: var(--mut); font-size: 14px; }
+.home-v12 .mo-table td.mo-chev span { display: inline-block; transition: transform .2s ease; }
+.home-v12 .mo-table tr.mo-row.open td.mo-chev span { transform: rotate(90deg); }
+.home-v12 .mo-table tr.mo-drill td { padding: 0; }
+.home-v12 .mo-drillbody { background: var(--bg2); padding: 16px 22px 14px; font-family: var(--sans); white-space: normal; }
+.home-v12 .mo-drillhead { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); margin-bottom: 12px; }
+.home-v12 .mo-drillgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.home-v12 .mo-drillcell .k { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); margin-bottom: 3px; }
+.home-v12 .mo-drillcell .v { font-size: 16px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
+.home-v12 .mo-drillcell .why { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-top: 4px; }
+.home-v12 .mo-drillbtn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 15px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; transition: border-color .25s, color .25s; }
+.home-v12 .mo-drillbtn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.home-v12 .mo-drillfoot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .home-v12 .mo-drillgrid { grid-template-columns: 1fr; gap: 12px; }
+}
+
 .home-v12 .mo-foot { font-family: var(--sans); font-size: 12px; color: var(--mut); padding: 14px 30px 4px; line-height: 1.5; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .home-v12 .mo-loading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 26px 30px; }
 
 @media (max-width: 900px) {
-  .home-v12 .mo-card { border-radius: 28px; }
-  .home-v12 .mo-head { padding: 20px 18px 12px; }
-  .home-v12 .mo-grid { grid-template-columns: 1fr; padding: 6px 18px 0; }
-  .home-v12 .mo-guard { margin: 14px 18px 4px; }
-  .home-v12 .mo-guard-flip { margin-left: 0; }
+  .home-v12 .mo-scroll { padding: 4px 18px 0; }
   .home-v12 .mo-foot { padding: 12px 18px 2px; }
 }
 @media (max-width: 640px) {
@@ -212,15 +216,12 @@
    divergences from the nightly divergence_scan. De-banded minimal tables,
    hairline rows, numerics right-aligned — matches the results card. */
 .home-v12 section.sc-divsec { max-width: 1560px; min-width: 0; }
-.home-v12 .dv-headrow { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
-.home-v12 .dv-title { font-family: var(--serif); font-size: 27px; font-weight: 600; color: var(--ink); margin: 10px 0 6px; display: flex; align-items: center; gap: 9px; }
-.home-v12 .dv-info { color: var(--mut); font-size: 16px; cursor: help; line-height: 1; }
-.home-v12 .dv-sub { font-family: var(--sans); font-size: 13.5px; color: var(--mut); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.home-v12 .dv-filter { font-family: var(--sans); font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; padding-bottom: 4px; }
+.home-v12 .dv-info { color: var(--mut); font-size: 16px; cursor: help; line-height: 1; margin-left: 9px; }
+.home-v12 .dv-filter { font-family: var(--sans); font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; white-space: nowrap; }
 .home-v12 .dv-filter input { accent-color: var(--gold-deep); width: 15px; height: 15px; cursor: pointer; }
-.home-v12 .dv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.home-v12 .dv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; padding: 18px 30px 4px; }
 .home-v12 .dv-grid > .dv-card { min-width: 0; }
-.home-v12 .dv-card { background: var(--putty); border-radius: 28px; padding: 6px 0 10px; overflow: hidden; }
+.home-v12 .dv-card { background: var(--bg2); border-radius: 20px; padding: 6px 0 10px; overflow: hidden; }
 .home-v12 .dv-cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 16px 22px 10px; border-bottom: 1px solid var(--hair); }
 .home-v12 .dv-cardhead h3 { font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--ink); margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .home-v12 .dv-def { font-size: 12px; font-weight: 500; color: var(--mut); letter-spacing: .01em; }
@@ -247,18 +248,18 @@
 .home-v12 .dv-extreme.bull { color: var(--up); }
 .home-v12 .dv-extreme.bear { color: var(--down); }
 .home-v12 .dv-empty, .home-v12 .dv-loading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 22px; }
-.home-v12 .dv-caveat { font-family: var(--sans); font-size: 12.5px; color: var(--mut); margin-top: 14px; max-width: 860px; line-height: 1.5; }
+.home-v12 .dv-caveat { font-family: var(--sans); font-size: 12.5px; color: var(--mut); padding: 10px 30px 20px; max-width: 980px; line-height: 1.5; }
 
 @media (max-width: 1100px) {
   .home-v12 .dv-grid { gap: 14px; }
 }
 @media (max-width: 900px) {
-  .home-v12 .dv-grid { grid-template-columns: 1fr; }
+  .home-v12 .dv-grid { grid-template-columns: 1fr; padding: 14px 18px 2px; }
+  .home-v12 .dv-caveat { padding: 10px 18px 16px; }
 }
 @media (max-width: 640px) {
   .home-v12 .dv-card { border-radius: 20px; }
   .home-v12 .dv-cardhead { padding: 14px 16px 9px; }
   .home-v12 .dv-table th:first-child, .home-v12 .dv-table td:first-child { padding-left: 16px; }
   .home-v12 .dv-table th:last-child, .home-v12 .dv-table td:last-child { padding-right: 16px; }
-  .home-v12 .dv-title { font-size: 22px; }
 }
