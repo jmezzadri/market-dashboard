@@ -34,6 +34,9 @@ name: PAPER-PORTFOLIO-EOD-DAILY
 # 04:00 to 08:30 ET so even a multi-hour-late GitHub delivery still lands
 # in-window with margin before 9:28am.
 
+# Cron re-armed 2026-07-15 after the account-reset pause (LESSON 4.13:
+# a disabled->re-enabled workflow's schedule does not resume without a
+# commit touching this file).
 on:
   schedule:
     # Cron is UTC. EDT = UTC-4. 08:00 UTC = 04:00 ET ... 12:30 UTC = 08:30 ET.
