@@ -16,7 +16,7 @@
     "state": "Neutral",
     "delta_y_3m_bp": 25.0,
     "delta_y_3m_bp_live": 32.0,
-    "live_as_of": "2026-07-13",
+    "live_as_of": "2026-07-14",
     "delta_y_3m_percentile_5y": 0.64,
     "inflationary_threshold_bp": 33.0,
     "deflationary_threshold_bp": -10.0,
