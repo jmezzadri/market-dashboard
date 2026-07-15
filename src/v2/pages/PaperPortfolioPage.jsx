@@ -118,6 +118,23 @@ const dayChangePct = (p, asOfIso) => {
   return p.lastday_price ? p.current_price / p.lastday_price - 1 : null;
 };
 
+// Same entry-aware rule for the DOLLAR day column and the sleeve cards'
+// "Today" sums: a name bought on the as-of date has only earned its
+// since-entry P&L today, not (close − a prior close it never held through).
+// Applied once at row load so every consumer (row, total, card) agrees.
+const dayAwareRow = (p, asOfIso) => {
+  const boughtToday = p.entry_date && asOfIso
+    && String(p.entry_date).slice(0, 10) === String(asOfIso).slice(0, 10);
+  const dayPl = boughtToday
+    ? (p.unrealized_pnl ?? p.unrealized_intraday_pl ?? null)
+    : (p.unrealized_intraday_pl ?? null);
+  return {
+    ...p,
+    unrealized_intraday_pl: dayPl,
+    change_today: dayChangePct(p, asOfIso),
+  };
+};
+
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
 const PAGE_CSS = `
@@ -947,10 +964,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           // it with the shared dayChangePct helper (entry-aware: names bought
           // on the snapshot date measure from their fill, not the prior
           // close). Fraction form to match fmtPct (×100).
-          const posRows = (pos.data || []).map((r) => ({
-            ...r,
-            change_today: dayChangePct(r, ld),
-          }));
+          const posRows = (pos.data || []).map((r) => dayAwareRow(r, ld));
           if (!cancelled) { setPositions(posRows); setPosAsOf(ld); }
         }
 
@@ -991,10 +1005,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           .from('paper_intraday_positions')
           .select('*')
           .order('market_value', { ascending: false });
-        if (!cancelled) setLivePos((lpos?.data || []).map((r) => ({
-          ...r,
-          change_today: dayChangePct(r, r.as_of_date || liveAsOf),
-        })));
+        if (!cancelled) setLivePos((lpos?.data || []).map((r) => dayAwareRow(r, r.as_of_date || liveAsOf)));
 
         // Momentum sleeve context: the current monthly Power Trend list
         // supplies the Rank column for sleeve-M rows and the sleeve card's
