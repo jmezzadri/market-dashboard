@@ -59,6 +59,7 @@ import { useSession } from '../auth/useSession';
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
 import ScannerPage from './pages/ScannerPage';
+import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
 // Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
@@ -167,6 +168,7 @@ function Shell() {
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
+            <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
             <Route path="/admin/bugs" element={<AdminBugs />} />
