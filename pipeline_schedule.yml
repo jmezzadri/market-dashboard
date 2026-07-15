@@ -320,38 +320,31 @@ bespoke:
         scan_date (delete+rewrite), so double-fires are harmless.
       review_date: 2026-08-13
 
-  - MOMENTUM-LIST-MONTHLY.yml:
+  - POWER-TREND-LIST-MONTHLY.yml:
       schedule: "1st of month 06:00 ET"
-      manifest_element: equity-momentum_list-monthly
+      manifest_element: equity-power_trend_list-monthly
       reason: |
-        Momentum sleeve monthly ranked list (Two-Sleeve build PR-1, spec
-        2026-07-14). Standard monthly-on-the-1st slow-data slot per the
-        normalization rule; computes off the PRIOR month's last
-        panel-complete day, so the 06:00 slot never races the price
-        ingest. Idempotent per rebalance_date (delete+rewrite), so the
-        DST double cron and manual re-fires are harmless.
-      review_date: 2026-08-13
-
-  - DIVERGENCE_SCAN_DAILY.yml (guard step):
-      schedule: "08:45 ET Tue-Sat + chained off MASSIVE-DAILY completion (rides the divergence workflow)"
-      manifest_element: market-momentum_guard-daily
-      reason: |
-        Daily SPY-vs-200-day crash-guard refresh for the Momentum sleeve.
-        The list is monthly but the cash/invested flag must never be a
-        month stale. Bespoke slot (not 06:00): it needs the same
-        panel-complete morning timing as prices_eod, so it rides
-        DIVERGENCE_SCAN_DAILY as a 1-script step instead of a new
-        workflow. Data Steward sign-off 2026-07-14; reason mirrored in
-        the manifest entry.
+        Power Trend sleeve monthly ranked list (replaces the retired
+        12-1 momentum list; the Faber crash guard is retired with it —
+        a zero-signal month publishes a CASH sentinel row instead).
+        Standard monthly-on-the-1st slow-data slot per the normalization
+        rule; the scan runs on the latest prices_eod panel day, so the
+        06:00 slot never races the price ingest. Idempotent per
+        rebalance_date (delete+rewrite), so the DST double cron and
+        manual re-fires are harmless.
       review_date: 2026-08-13
 
   - SCREENER_TRADING_OPPS_DAILY.yml:
-      schedule: "19:00 ET weekdays"
+      schedule: "08:30 ET Tue-Sat + chained off MASSIVE-DAILY completion"
       manifest_element: screener.trading-opps-signals
       reason: |
-        Evening compute step for the Trading Opportunities screener. Must
-        run after MASSIVE-DAILY (prices_eod, primary fire 18:00 ET) has
-        settled, so it cannot share the 16:30 ET EOD slot. The producer is
-        idempotent (upsert on scan_date + ticker) and auto-falls-back to the
-        last fully-ingested close, so an early or late fire is a no-op.
-      review_at: 2026-06-20
+        Morning compute step for the Trading Opportunities screener. Must
+        run after Massive's next-morning panel-complete ingest — the
+        same-day T+0 batch covers only a few dozen tickers, so evening
+        runs kept falling back to the prior close (crons moved to 08:30
+        Tue-Sat on 2026-05-27; this doc previously drifted, stating the
+        old 19:00 ET weekday slot — corrected 2026-07-15). The producer
+        is idempotent (upsert on scan_date + ticker) and auto-falls-back
+        to the last fully-ingested close, so an early or late fire is a
+        no-op.
+      review_at: 2026-08-13

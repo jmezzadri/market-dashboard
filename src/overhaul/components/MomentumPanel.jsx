@@ -1,31 +1,33 @@
 /* MomentumPanel — Sleeve 2 (Momentum) panel on the Trading Scanner page.
-   Two-sleeve build PR-3 (2026-07-14, MOMENTUM_SLEEVE_BUILD_SPEC.md §3).
+   Power Trend rewrite (2026-07-15): the sleeve's engine is now the Power
+   Trend signal — up to 15 names, monthly refresh, 8-name diversification
+   floor. Replaces the retired 12-1 quintile list and its crash-guard strip.
 
-   Renders three pieces on the shared 1560px stage:
-     • guard status strip — INVESTED / IN CASH with the SPY close vs its
-       200-day average and the last flip date (from momentum_guard, daily);
-     • the ranked monthly list — rank, ticker, name, 12-month return,
-       insider-badge dot (from momentum_list, latest rebalance_date);
-     • "as of {rebalance date} · next re-rank {date}" line + freshness chips.
+   Renders on the shared 1560px stage:
+     • header — kicker / title / signal subtitle + the three-test rule copy;
+     • the ranked monthly list — rank, ticker+name, price, 3-month return,
+       margin over the S&P 500, breakout volume (from power_trend_list,
+       latest rebalance_date);
+     • "List of {rebalance date} · next refresh {date}" line + freshness chip;
+     • the backtest footnote with the survivorship caveat.
 
    Data notes (Senior Quant / Data Steward):
-     • momentum_list.ret_12_1 is a FRACTION (p1/p0 − 1 in momentum_rules.py),
-       so display multiplies by 100. Verified against prices_eod (AXTI
-       2.09 → 103 ≈ +4,882% over the 12-1 window — real, not a units bug).
-     • The latest list is ≤50 rows by the quintile clamp, and the guard read
-       is limit-1 — both far under the PostgREST 1,000-row cap (LESSONS 4.18
-       does not bite; no paging needed).
-     • Chips key the manifest ids equity-momentum_list-monthly and
-       market-momentum_guard-daily (pipeline_health short keys momentum_list /
-       momentum_guard, seeded in PR-1).
-     • guard flip date: most recent momentum_guard row with flipped = true;
-       none on record yet → the strip says so plainly (em-dash rule: honest,
-       never invented). */
+     • power_trend_list.roc_3m is a PERCENT (145.0 = +145%), rs_vs_spx is in
+       points (135.4 = 135.4 points over the index), breakout_volx is a plain
+       multiple (1.35 = 1.35× the 20-day average volume). No unit conversion.
+     • A single row with ticker='CASH' and rank=0 is the sentinel for "no
+       names passed all three tests this month" — the sleeve is all cash.
+     • The list is ≤15 rows — far under the PostgREST 1,000-row cap
+       (LESSONS 4.18 does not bite; no paging needed).
+     • Chip keys the manifest id equity-power_trend_list-monthly. */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import FreshnessChip from './FreshnessChip';
+
+const MAX_SLOTS = 15;
+const MIN_FILL = 8;
 
 const fmtDay = (iso) => {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -34,14 +36,27 @@ const fmtDay = (iso) => {
   return `${MO[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}`;
 };
 
-// 12-month (12-1) return, stored as a fraction. Big winners are real
-// (multi-thousand-percent moves happen in this list), so group thousands.
-const fmtRet = (v) => {
+// 3-month return, stored as a PERCENT (145.0 = +145%). Group thousands —
+// multi-hundred-percent movers are real in this list.
+const fmtPct1 = (v) => {
   const n = Number(v);
   if (!Number.isFinite(n)) return '—';
-  const pct = n * 100;
-  const s = `${Math.abs(pct).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`;
-  return pct < 0 ? `−${s}` : `+${s}`;
+  const s = `${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`;
+  return n < 0 ? `−${s}` : `+${s}`;
+};
+
+// Margin over the S&P 500's 3-month return, stored in points (135.4).
+const fmtPts = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  const s = `${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} pts`;
+  return n < 0 ? `−${s}` : `+${s}`;
+};
+
+// Breakout-day volume as a multiple of the 20-day average (1.35 → "1.35×").
+const fmtVolx = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? `${n.toFixed(2)}×` : '—';
 };
 
 const fmtPx = (v) => {
@@ -51,8 +66,7 @@ const fmtPx = (v) => {
 
 export default function MomentumPanel() {
   const [rows, setRows] = useState(null);      // null = loading, [] = none
-  const [guard, setGuard] = useState(null);
-  const [flipDate, setFlipDate] = useState(undefined); // undefined = loading, null = none on record
+  const [meta, setMeta] = useState(null);      // { asOf, next, allCash }
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,84 +74,33 @@ export default function MomentumPanel() {
     (async () => {
       try {
         const latest = await supabase
-          .from('momentum_list')
+          .from('power_trend_list')
           .select('rebalance_date')
           .order('rebalance_date', { ascending: false })
           .limit(1);
         const rd = latest?.data?.[0]?.rebalance_date;
-        if (rd) {
-          const list = await supabase
-            .from('momentum_list')
-            .select('rank, ticker, name, ret_12_1, insider_badge, rebalance_date, next_rebalance_date')
-            .eq('rebalance_date', rd)
-            .order('rank', { ascending: true });
-          if (!cancelled) setRows(list.data || []);
-        } else if (!cancelled) setRows([]);
-
-        const g = await supabase
-          .from('momentum_guard')
-          .select('as_of, spy_close, sma_200, invested')
-          .order('as_of', { ascending: false })
-          .limit(1);
-        if (!cancelled) setGuard(g?.data?.[0] || null);
-
-        const f = await supabase
-          .from('momentum_guard')
-          .select('as_of')
-          .eq('flipped', true)
-          .order('as_of', { ascending: false })
-          .limit(1);
-        if (!cancelled) setFlipDate(f?.data?.[0]?.as_of ?? null);
+        if (!rd) { if (!cancelled) setRows([]); return; }
+        const list = await supabase
+          .from('power_trend_list')
+          .select('rank, ticker, name, roc_3m, rs_vs_spx, breakout_volx, close, rebalance_date, next_rebalance_date')
+          .eq('rebalance_date', rd)
+          .order('rank', { ascending: true });
+        if (cancelled) return;
+        const all = list.data || [];
+        const allCash = all.length > 0 && all.every((r) => r.ticker === 'CASH' && Number(r.rank) === 0);
+        setRows(allCash ? [] : all.filter((r) => r.ticker !== 'CASH'));
+        setMeta({ asOf: rd, next: all[0]?.next_rebalance_date || null, allCash });
       } catch {
-        if (!cancelled) { setRows([]); setGuard(null); setFlipDate(null); }
+        if (!cancelled) { setRows([]); setMeta(null); }
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
-  const asOf = rows?.[0]?.rebalance_date || null;
-  const nextRerank = rows?.[0]?.next_rebalance_date || null;
-  const invested = guard ? !!guard.invested : null;
-
-  // Split the list into two columns of equal length so 20–50 names don't
-  // produce one very tall single table on desktop (classed grid; responsive
-  // collapses it to one column).
-  const [colA, colB] = useMemo(() => {
-    const r = rows || [];
-    const half = Math.ceil(r.length / 2);
-    return [r.slice(0, half), r.slice(half)];
-  }, [rows]);
-
-  const Table = ({ data }) => (
-    <div className="mo-scroll">
-      <table className="mo-table">
-        <thead>
-          <tr>
-            <th className="num-h">Rank</th>
-            <th>Ticker</th>
-            <th className="num-h">12-mo return</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((r) => (
-            <tr key={r.ticker}>
-              <td className="num">{r.rank}</td>
-              <td>
-                <button type="button" className="mo-tk" onClick={() => navigate(`/ticker/${r.ticker}`)}>
-                  <b>{r.ticker}</b>
-                  {r.insider_badge && (
-                    <span className="mo-badge" aria-label="At least one officer or director bought in the open market in the trailing 90 days" />
-                  )}
-                  <span className="mo-name">{r.name || ''}</span>
-                </button>
-              </td>
-              <td className={`num ${Number(r.ret_12_1) >= 0 ? 'up' : 'down'}`}>{fmtRet(r.ret_12_1)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const asOf = meta?.asOf || null;
+  const nextRefresh = meta?.next || null;
+  const allCash = !!meta?.allCash;
+  const filled = rows ? rows.length : 0;
 
   return (
     <section className="wrap mo-sec">
@@ -147,57 +110,79 @@ export default function MomentumPanel() {
             <div className="mo-sleeve">Sleeve 2</div>
             <h2 className="mo-title">Momentum Sleeve</h2>
             <div className="mo-rule">
-              Owns the top-quintile 12-month performers among liquid US stocks (20–50 names, equal-weight),
-              re-ranked monthly. A portfolio-level crash guard moves the sleeve to cash when the S&amp;P 500
-              trades below its 200-day average.
+              Power Trend signal — strong uptrends that just broke out on volume, outrunning the S&amp;P 500.
+            </div>
+            <div className="mo-rule">
+              Owns up to 15 liquid US names, equal-weight, refreshed monthly. Three tests, all on daily
+              closes: price above its 10-, 21-, 50- and 200-day moving averages with a 3-month return in
+              the top 20% of the universe; a 3-month return at least 5 points above the S&amp;P 500&rsquo;s; and a
+              close at a new 10-day high on volume more than 1.3&times; its 20-day average. Fewer than 8
+              qualifiers &rarr; the unfilled slots stay in cash.
             </div>
           </div>
           <div className="mo-asof">
-            {asOf ? <>As of {fmtDay(asOf)}{nextRerank ? <> · next re-rank {fmtDay(nextRerank)}</> : null}</> : '—'}
+            {asOf ? <>List of {fmtDay(asOf)}{nextRefresh ? <> · next refresh {fmtDay(nextRefresh)}</> : null}</> : '—'}
             {' '}
             <FreshnessChip
-              elementId="equity-momentum_list-monthly"
+              elementId="equity-power_trend_list-monthly"
               variant="dot"
               fallback={{ asOfIso: asOf, calendar: 'nyse-trading-day' }}
             />
           </div>
         </div>
 
-        {/* Crash-guard status strip */}
-        <div className={`mo-guard ${invested === null ? '' : invested ? 'on' : 'off'}`}>
-          <span className="mo-guard-state">
-            {invested === null ? '—' : invested ? 'Invested' : 'In cash'}
-          </span>
-          <span className="mo-guard-detail">
-            {guard
-              ? <>S&amp;P 500 (SPY) {fmtPx(guard.spy_close)} vs 200-day average {fmtPx(guard.sma_200)} · as of {fmtDay(guard.as_of)}</>
-              : 'Guard status unavailable'}
-          </span>
-          <span className="mo-guard-flip">
-            {flipDate === undefined ? '' : flipDate ? `Last flip ${fmtDay(flipDate)}` : 'No flip on record'}
-          </span>
-          <FreshnessChip
-            elementId="market-momentum_guard-daily"
-            variant="dot"
-            fallback={{ asOfIso: guard?.as_of, calendar: 'nyse-trading-day' }}
-          />
-        </div>
-
         {rows === null ? (
-          <div className="mo-loading">Loading the momentum list…</div>
+          <div className="mo-loading">Loading the Power Trend list…</div>
+        ) : allCash ? (
+          <div className="mo-loading">All cash this month — no names passed all three tests.</div>
         ) : rows.length === 0 ? (
-          <div className="mo-loading">No momentum list published yet.</div>
+          <div className="mo-loading">No Power Trend list published yet.</div>
         ) : (
           <>
-            <div className="mo-grid">
-              <Table data={colA} />
-              <Table data={colB} />
+            <div className="mo-scroll">
+              <table className="mo-table">
+                <thead>
+                  <tr>
+                    <th className="num-h">Rank</th>
+                    <th>Ticker</th>
+                    <th className="num-h">Price</th>
+                    <th className="num-h">3-mo return</th>
+                    <th className="num-h">Beat S&amp;P by</th>
+                    <th className="num-h">Breakout volume</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.ticker}>
+                      <td className="num">{r.rank}</td>
+                      <td>
+                        <button type="button" className="mo-tk" onClick={() => navigate(`/ticker/${r.ticker}`)}>
+                          <b>{r.ticker}</b>
+                          <span className="mo-name">{r.name || ''}</span>
+                        </button>
+                      </td>
+                      <td className="num">{fmtPx(r.close)}</td>
+                      <td className={`num ${Number(r.roc_3m) >= 0 ? 'up' : 'down'}`}>{fmtPct1(r.roc_3m)}</td>
+                      <td className={`num ${Number(r.rs_vs_spx) >= 0 ? 'up' : 'down'}`}>{fmtPts(r.rs_vs_spx)}</td>
+                      <td className="num">{fmtVolx(r.breakout_volx)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="mo-foot">
-              <span className="mo-badge" /> = at least one officer or director bought in the open market in the trailing 90 days (informational only — it does not affect this sleeve's selection).
-            </div>
+            {filled < MIN_FILL && (
+              <div className="mo-foot">
+                {filled} of {MAX_SLOTS} slots filled — the rest is cash.
+              </div>
+            )}
           </>
         )}
+
+        <div className="mo-foot">
+          Backtested 2020–2026 (portfolio simulation, 8-name floor): 18.2%/yr vs S&amp;P 14.8%, Sharpe 1.26,
+          max drawdown −19.7%. Run on a survivor cohort — live results should run below the backtest.
+          Details in Methodology.
+        </div>
       </div>
     </section>
   );

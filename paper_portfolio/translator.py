@@ -117,10 +117,24 @@ def run(
         scanner.scan_date, len(scanner.signals), scanner.all_count,
     )
 
-    # 4 — sleeve B (Equity Scanner) — the only sleeve
+    # 4 — sleeve B (Insider Conviction), equal-weight full-capital.
+    # The Momentum sleeve's share map is needed FIRST so held-name counting
+    # excludes shares that belong to sleeve M (overlap = intended double
+    # position, each sleeve reasons only about its own shares).
+    from paper_portfolio import momentum as momentum_mod
+    sleeve_m_held: dict[str, float] = {}
+    try:
+        sleeve_m_held = momentum_mod.load_sleeve_m_holdings()
+    except Exception as exc:  # noqa: BLE001 — missing map must not stop the sleeve
+        logger.warning("sleeve-M holdings map unavailable (%s) — assuming none", exc)
+
+    held_b_tickers = {
+        p.ticker.upper() for p in live_positions
+        if (p.qty - sleeve_m_held.get(p.ticker.upper(), 0.0)) > 0.0001
+    }
     sleeve_b = build_sleeve_b_target(
         scanner, cfg.sleeve_b_allocation,
-        max_leverage=cfg.max_leverage_sleeve_b,
+        held_tickers=held_b_tickers,
     )
     logger.info(
         "sleeve B: gross $%s, leverage used $%s (%.2fx), idle $%s, %d lines",
@@ -143,25 +157,26 @@ def run(
         logger.warning("EOD price map load failed (%s) — sizing falls back per-ticker", exc)
         eod_prices = {}
 
-    # ── Momentum sleeve (Two-Sleeve build PR-2; DARK unless flagged on) ──
+    # ── Momentum sleeve — POWER TREND signal (2026-07-15 swap) ──
     # Runs only when MOMENTUM_SLEEVE_ENABLED='true' AND the account has
     # momentum capital assigned. Target recomputes ONLY on a new monthly
-    # publish or a crash-guard flip; every other day it emits nothing.
+    # publish; every other day it emits nothing.
     sleeve_m = None
     momentum_action = ""
     m_intents: list[OrderIntent] = []
-    sleeve_m_held: dict[str, float] = {}
-    from paper_portfolio import momentum as momentum_mod
     if momentum_mod.momentum_enabled() and cfg.sleeve_m_allocation > 0:
         try:
             m_snap = momentum_mod.load_momentum_snapshot()
-            sleeve_m_held = momentum_mod.load_sleeve_m_holdings()
-            # Guard freshness: the daily guard must be current with the
-            # scanner's session — a stale guard must not place momentum orders.
-            if m_snap.guard_as_of < scanner.scan_date:
+            # Publish staleness: a monthly list older than ~40 days means the
+            # producer has missed a publish — do not keep trading it silently.
+            from datetime import date as _date
+            _pub = _date.fromisoformat(m_snap.rebalance_date)
+            _scan = _date.fromisoformat(scanner.scan_date)
+            if (_scan - _pub).days > 40:
                 raise RuntimeError(
-                    f"momentum guard is stale (guard {m_snap.guard_as_of} < "
-                    f"scanner session {scanner.scan_date}) — momentum skipped this run.")
+                    f"power_trend_list publish {m_snap.rebalance_date} is more than "
+                    f"40 days behind the scanner session {scanner.scan_date} — "
+                    "the monthly producer looks dead; momentum skipped this run.")
             trigger = momentum_mod.load_last_trigger_state()
             fire, why = trigger.differs_from(m_snap)
             sleeve_m = build_momentum_target(m_snap, cfg.sleeve_m_allocation)
@@ -179,8 +194,8 @@ def run(
                         signal_source="momentum",
                         signal_payload={
                             "rebalance_date": m_snap.rebalance_date,
-                            "guard_invested": m_snap.guard_invested,
-                            "guard_as_of": m_snap.guard_as_of,
+                            "signal": "power_trend",
+                            "all_cash": m_snap.all_cash,
                             "list_size": len(m_snap.entries),
                             "trigger": why,
                         },
@@ -188,9 +203,8 @@ def run(
                     )
             else:
                 momentum_action = "hold"
-                logger.info("momentum HOLD — %s (publish %s, guard %s)",
-                            why, m_snap.rebalance_date,
-                            "INVESTED" if m_snap.guard_invested else "IN CASH")
+                logger.info("momentum HOLD — %s (publish %s, %d names)",
+                            why, m_snap.rebalance_date, len(m_snap.entries))
         except Exception as exc:  # noqa: BLE001 — momentum must never break the scanner sleeve
             momentum_action = f"skipped: {exc}"
             logger.warning("momentum sleeve skipped this run — %s", exc)

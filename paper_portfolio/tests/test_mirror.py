@@ -129,11 +129,17 @@ def test_mirror_fills_only_filled_orders():
     alpaca = MockAlpaca(orders=orders)
     n = mirror_fills(alpaca=alpaca)
     assert n == 2          # NVDA + SOXX, AAPL canceled is excluded
-    sql = _executed[-1]    # last exec carries the insert batch
+    # the fills-insert batch is the exec containing the on-conflict clause
+    # (an order-status reconciliation batch now runs after it, 2026-07-15)
+    ins = [q for q in _executed if "on conflict (alpaca_fill_id) do nothing" in q]
+    assert ins, "no fills insert batch executed"
+    sql = ins[-1]
     assert "NVDA" in sql
     assert "SOXX" in sql
     assert "AAPL" not in sql
-    assert "on conflict (alpaca_fill_id) do nothing" in sql
+    # the reconciliation batch marks the canceled broker order 'cancelled'
+    rec = [q for q in _executed if "status='cancelled'" in q and "ord-2" in q]
+    assert rec, "canceled broker order was not reconciled"
 
 
 def test_write_nav_daily_with_long_only_positions():

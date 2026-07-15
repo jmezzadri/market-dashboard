@@ -1,23 +1,25 @@
-name: MOMENTUM-LIST-MONTHLY
+name: POWER-TREND-LIST-MONTHLY
 
-# Pipeline: equity-momentum_list-monthly — the Momentum sleeve's monthly
-# ranked list (Two-Sleeve build PR-1; spec approved 2026-07-14).
+# Pipeline: equity-power_trend_list-monthly — the Power Trend sleeve's monthly
+# ranked list (replaces the retired 12-1 momentum list; the Faber crash guard
+# is retired with it — a zero-signal month publishes a CASH sentinel row and
+# the paper engine reads a CASH-only list as all-cash).
 #
-# Computes 12-1 momentum (Jegadeesh & Titman 1993) over the liquid US
-# common-stock universe on the PRIOR month's last panel-complete day,
-# owns the top quintile clamped 20-50, records the SPY-vs-200-day crash
-# guard (Faber 2007) and a trailing-90d insider badge (display only).
-# Rules mirror the cleared 22-year backtest (scripts/backtest_strategies.py,
-# Strategy_Backtest_2026-07-14.xlsx) via shared scripts/momentum_rules.py.
+# The screen runs server-side (public.power_trend_scan, migration 081 —
+# validated logic): liquid US common stock universe (strategy_bt_universe),
+# 63-day ROC top-20% cross-sectional, relative strength >= 5 points vs SPY,
+# new 10-day closing high on > 1.3x 20-day avg volume, close above the
+# 10/21/50/200 EMAs. The producer caps the list at 15 names (roc_3m desc,
+# ticker-asc tiebreak) via shared scripts/power_trend_rules.py.
 #
-# Writes public.momentum_list — append-only across rebalance_dates,
+# Writes public.power_trend_list — append-only across rebalance_dates,
 # delete+rewrite within one (idempotent; safe to re-fire).
 #
 # Schedule: 1st of the month 06:00 ET (schedule-normalization rule: monthly
 # on the 1st, slow-data slot). Double cron across DST; idempotent.
 #
-# Consumers: Trading Scanner -> Momentum Sleeve panel (PR-3); paper engine
-# momentum sleeve (PR-2). Freshness: stamps pipeline_health.momentum_list
+# Consumers: Trading Scanner -> Power Trend panel; paper engine sleeve M;
+# Paper page rank column. Freshness: stamps pipeline_health.power_trend_list
 # green only after a verified publish; failures red-stamp and publish nothing.
 #
 # Required GitHub secrets (already configured for sibling ingests):
@@ -35,7 +37,7 @@ on:
         default: 'false'
 
 concurrency:
-  group: momentum-list-monthly
+  group: power-trend-list-monthly
   cancel-in-progress: false
 
 jobs:
@@ -50,19 +52,19 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Unit tests (momentum rules, hand-computed cases)
-        run: python3 scripts/test_momentum_rules.py
+      - name: Unit tests (power trend rules, hand-computed cases)
+        run: python3 scripts/test_power_trend_rules.py
 
-      - name: Compute + publish the monthly momentum list
+      - name: Compute + publish the monthly Power Trend list
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DRY_RUN:                   ${{ github.event.inputs.dry_run || 'false' }}
-        run: python3 scripts/compute_momentum_list.py
+        run: python3 scripts/compute_power_trend_list.py
 
       - name: Red stamp on failure
         if: failure()
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 scripts/upsert_pipeline_health.py momentum_list - red "MOMENTUM-LIST-MONTHLY failed — see workflow run logs"
+        run: python3 scripts/upsert_pipeline_health.py power_trend_list - red "POWER-TREND-LIST-MONTHLY failed — see workflow run logs"
