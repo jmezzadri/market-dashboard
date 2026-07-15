@@ -173,13 +173,7 @@ export default function ScannerPage() {
       <section className="wrap sc-hero">
         <Reveal className="sc-ed">
           <div className="eyebrow2"><span className="dot" />Trading scanner</div>
-            <h1>Two rules-based sleeves: <i>Insider Conviction</i> and <i>Momentum</i>.</h1>
-            <ul className="impl">
-              <li><b>Sleeve 1 — Insider Conviction</b>: buys when executives are buying and the trend confirms (Score ≥ 4 of a max 5), holds until the score decays below 3; event-driven, scanned daily.</li>
-              <li><b>Sleeve 2 — Momentum</b>: owns up to 15 names in confirmed uptrends that just broke to a new 10-day high on heavy volume while beating the S&P 500 by 5 points or more over 3 months; equal-weight, refreshed monthly, with unfilled slots resting in cash when fewer than 8 qualify.</li>
-              <li><b>The sleeves are independent</b> — a stock in both is owned by both; neither signal vetoes the other.{' '}
-                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/methodology#scanner'); }}>See the methodology →</a></li>
-            </ul>
+            <h1>Three rules-based scanners: <i>Insider Conviction</i>, <i>Momentum</i>, and <i>RSI Divergences</i>.</h1>
         </Reveal>
 
       </section>
@@ -190,8 +184,14 @@ export default function ScannerPage() {
         <div className="sc-tablecard">
           <div className="sc-panelhead">
             <div>
-              <div className="sc-sleeve">Sleeve 1</div>
+              <div className="sc-sleeve">Scanner 1 · Sleeve 1</div>
               <h2 className="sc-paneltitle">Insider Conviction Scanner</h2>
+              <div className="sc-rule">
+                Buys when executives are buying and the trend confirms. Every liquid US name is scored
+                0–5 on insider buying plus trend; event-driven, scanned daily. The sleeves are
+                independent — a stock on both lists is owned by both. Drives the $500K Insider
+                Conviction paper sleeve.
+              </div>
               <div className="sc-rule">Buys at Score ≥ 4 (max 5); a name is held until its score decays below 3.</div>
               <div className="sc-scanmeta">
                 <FreshnessChip
@@ -268,7 +268,7 @@ export default function ScannerPage() {
         <Reveal className="sc-build">
           <div className="sc-buildhead">
             <div>
-              <div className="eyebrow2"><span className="dot" />How the Sleeve 1 score is built</div>
+              <div className="eyebrow2"><span className="dot" />How the Insider Conviction score is built</div>
               <h2>Two inputs, summed into one 0–5 score · a name needs ≥3 from insider + trend to launch.</h2>
             </div>
             <button type="button" className="sc-ghostbtn" onClick={() => navigate('/methodology#scanner')}>

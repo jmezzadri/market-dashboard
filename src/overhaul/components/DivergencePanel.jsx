@@ -1,5 +1,9 @@
-/* DivergencePanel — "RSI Divergences" section on the Trading Scanner page.
-   Two putty cards (bullish / bearish) reading the latest nightly scan from
+/* DivergencePanel — Scanner 3 (RSI Divergence Scanner) on the Trading
+   Scanner page. Consistency pass (2026-07-15, Joe): the section now lives in
+   the SAME .sc-tablecard tile system as the two sleeve scanners, with a
+   Scanner 3 kicker, a plain-English description in the tile, and the shared
+   meta line + freshness chip. Inside the tile: two inset cards
+   (bullish / bearish) reading the latest nightly scan from
    public.divergence_scan via useDivergenceScan. Sortable columns, an
    RSI-extremes-only filter, watchlist stars, instant Tip tooltips, and the
    section's own freshness chip (element equity-rsi_divergences-daily).
@@ -144,56 +148,67 @@ export default function DivergencePanel() {
 
   return (
     <section className="wrap sc-divsec">
-      <div className="dv-headrow">
-        <div>
-          <div className="eyebrow2"><span className="dot" />RSI Divergences</div>
-          <h2 className="dv-title">
-            Price and RSI disagreeing at the pivots
-            <Tip content={EXPLAIN} bare><span className="dv-info" aria-label="What is a regular divergence?">ⓘ</span></Tip>
-          </h2>
-          <div className="dv-sub">
-            {scanDate ? <>Daily scan of liquid US common stocks · close of {fmtDay(scanDate)} · </> : null}
-            refreshes 8:45 AM ET · RSI(14), simple-average method
-            <FreshnessChip
-              elementId="equity-rsi_divergences-daily"
-              variant="dot"
-              fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
-            />
+      <div className="sc-tablecard">
+        <div className="sc-panelhead">
+          <div>
+            <div className="sc-sleeve">Scanner 3 · Display only</div>
+            <h2 className="sc-paneltitle">
+              RSI Divergence Scanner
+              <Tip content={EXPLAIN} bare><span className="dv-info" aria-label="What is a regular divergence?">ⓘ</span></Tip>
+            </h2>
+            <div className="sc-rule">
+              Daily screen of liquid US common stocks where price and RSI(14) disagree at their two
+              most recent pivots — bullish when price sets a lower low but RSI a higher low, bearish
+              when price sets a higher high but RSI a lower high. A screen, not a signal: a divergence
+              flags a possible reversal, says nothing about timing, and drives no trades.
+            </div>
+            <div className="sc-scanmeta">
+              <FreshnessChip
+                elementId="equity-rsi_divergences-daily"
+                variant="dot"
+                fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
+              />
+              <span>
+                {scanDate ? <>Latest scan · {fmtDay(scanDate)} close · </> : null}
+                refreshes 8:45 AM ET · RSI(14), simple-average method
+              </span>
+            </div>
+          </div>
+          <div className="sc-panelhead-tools">
+            <label className="dv-filter">
+              <input type="checkbox" checked={extremesOnly} onChange={(e) => setExtremesOnly(e.target.checked)} />
+              RSI-extreme pivots only
+            </label>
           </div>
         </div>
-        <label className="dv-filter">
-          <input type="checkbox" checked={extremesOnly} onChange={(e) => setExtremesOnly(e.target.checked)} />
-          RSI-extreme pivots only
-        </label>
-      </div>
 
-      {loading ? (
-        <div className="dv-loading">Loading divergence scan…</div>
-      ) : error ? (
-        <div className="dv-loading">Divergence scan unavailable — {String(error.message || 'data error')}.</div>
-      ) : (
-        <div className="dv-grid">
-          <div className="dv-card">
-            <div className="dv-cardhead">
-              <h3>Bullish <span className="dv-def">price lower low · RSI higher low</span></h3>
-              <span className="dv-count num">{bullShown.length}</span>
+        {loading ? (
+          <div className="dv-loading">Loading divergence scan…</div>
+        ) : error ? (
+          <div className="dv-loading">Divergence scan unavailable — {String(error.message || 'data error')}.</div>
+        ) : (
+          <div className="dv-grid">
+            <div className="dv-card">
+              <div className="dv-cardhead">
+                <h3>Bullish <span className="dv-def">price lower low · RSI higher low</span></h3>
+                <span className="dv-count num">{bullShown.length}</span>
+              </div>
+              <DvTable rows={bullShown} dir="bull" watchlist={watchlist} onPick={onPick} />
             </div>
-            <DvTable rows={bullShown} dir="bull" watchlist={watchlist} onPick={onPick} />
-          </div>
-          <div className="dv-card">
-            <div className="dv-cardhead">
-              <h3>Bearish <span className="dv-def">price higher high · RSI lower high</span></h3>
-              <span className="dv-count num">{bearShown.length}</span>
+            <div className="dv-card">
+              <div className="dv-cardhead">
+                <h3>Bearish <span className="dv-def">price higher high · RSI lower high</span></h3>
+                <span className="dv-count num">{bearShown.length}</span>
+              </div>
+              <DvTable rows={bearShown} dir="bear" watchlist={watchlist} onPick={onPick} />
             </div>
-            <DvTable rows={bearShown} dir="bear" watchlist={watchlist} onPick={onPick} />
           </div>
+        )}
+
+        <div className="dv-caveat">
+          Names with split-like price jumps or close-versus-VWAP disagreements are filtered out
+          before display.
         </div>
-      )}
-
-      <div className="dv-caveat">
-        A screen, not a signal — a regular divergence flags a possible reversal and says nothing
-        about timing. Names with split-like price jumps or close-versus-VWAP disagreements are
-        filtered out before display.
       </div>
     </section>
   );
