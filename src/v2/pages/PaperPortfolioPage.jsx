@@ -135,6 +135,124 @@ const dayAwareRow = (p, asOfIso) => {
   };
 };
 
+// ── Performance math (shared, pure) ────────────────────────────────────────
+// ONE module feeds the book card AND both sleeve cards, so every number on
+// the page comes from the same window logic (shared-function rule 2026-06-12).
+// Every function returns null on insufficient history; null renders as an
+// em-dash — the page never fabricates a number. Everything below populates
+// automatically as paper_nav_daily accrues rows after the account reset.
+
+// last / value k sessions back − 1. Needs k+1 points.
+function trailingReturn(values, k) {
+  if (!Array.isArray(values) || values.length < k + 1) return null;
+  const last = values[values.length - 1];
+  const base = values[values.length - 1 - k];
+  if (last == null || base == null || base === 0) return null;
+  return last / base - 1;
+}
+
+// series = [{ d:'YYYY-MM-DD', v }] ascending, nulls already removed.
+// siBase: the capital base for since-inception (a sleeve's $500K allocation /
+// the book's $1M); benchmarks pass null and measure from their first close.
+// Windows: Day=1, 1W=5, 1M=21, 3M=63 sessions; YTD = vs the last row dated
+// before Jan 1 of the latest row's year (series starts this year → YTD = SI).
+function windowReturns(series, siBase = null) {
+  const vals = series.map((p) => p.v);
+  const n = vals.length;
+  const out = {
+    day: trailingReturn(vals, 1), w1: trailingReturn(vals, 5),
+    m1: trailingReturn(vals, 21), m3: trailingReturn(vals, 63),
+    ytd: null, si: null,
+  };
+  if (n === 0) return out;
+  const last = vals[n - 1];
+  const base0 = siBase != null ? siBase : (n >= 2 ? vals[0] : null);
+  out.si = (last != null && base0) ? last / base0 - 1 : null;
+  const yr = String(series[n - 1].d || '').slice(0, 4);
+  let yBase = null;
+  for (let i = n - 1; i >= 0; i--) {
+    if (String(series[i].d || '').slice(0, 4) < yr) { yBase = vals[i]; break; }
+  }
+  out.ytd = yBase ? last / yBase - 1 : out.si;
+  return out;
+}
+
+const meanOf = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+const stdOf = (xs) => {
+  if (!xs || xs.length === 0) return null;
+  const m = meanOf(xs);
+  return Math.sqrt(xs.reduce((s, x) => s + (x - m) * (x - m), 0) / xs.length);
+};
+
+// Paired daily simple returns over rows where BOTH sides have a value, so
+// beta / tracking error always compare identical sessions.
+function pairedDailyReturns(pVals, bVals) {
+  const rp = [], rb = [];
+  let pp = null, pb = null, pFirst = null, bFirst = null, pLast = null, bLast = null;
+  for (let i = 0; i < pVals.length; i++) {
+    const a = pVals[i] != null ? Number(pVals[i]) : null;
+    const b = bVals[i] != null ? Number(bVals[i]) : null;
+    if (a == null || b == null || a === 0 || b === 0 || Number.isNaN(a) || Number.isNaN(b)) continue;
+    if (pFirst == null) { pFirst = a; bFirst = b; }
+    if (pp != null) { rp.push(a / pp - 1); rb.push(b / pb - 1); }
+    pp = a; pb = b; pLast = a; bLast = b;
+  }
+  return { rp, rb, pFirst, bFirst, pLast, bLast };
+}
+
+// Since-inception risk block vs one benchmark. Gates: max drawdown needs ≥5
+// daily returns; everything else needs ≥20 (n = daily-return count). rf = 0.
+// downside deviation = √(Σ min(r,0)² / n) — zero-target, n denominator.
+function riskStats(pVals, bVals) {
+  const { rp, rb, pFirst, bFirst, pLast, bLast } = pairedDailyReturns(pVals, bVals);
+  const n = rp.length;
+  const out = { n, annVol: null, annRet: null, sharpe: null, sortino: null, maxDD: null, beta: null, te: null, ir: null };
+  if (n >= 5) {
+    let peak = -Infinity, mdd = 0;
+    for (const raw of pVals) {
+      const v = raw != null ? Number(raw) : null;
+      if (v == null || Number.isNaN(v)) continue;
+      if (v > peak) peak = v;
+      const dd = peak > 0 ? v / peak - 1 : 0;
+      if (dd < mdd) mdd = dd;
+    }
+    out.maxDD = mdd;
+  }
+  if (n >= 20) {
+    const vol = stdOf(rp);
+    out.annVol = vol != null ? vol * Math.sqrt(252) : null;
+    out.annRet = (pFirst && pLast != null) ? Math.pow(pLast / pFirst, 252 / n) - 1 : null;
+    out.sharpe = (out.annRet != null && out.annVol) ? out.annRet / out.annVol : null;
+    const dDev = Math.sqrt(rp.reduce((s, r) => { const d = Math.min(r, 0); return s + d * d; }, 0) / n);
+    out.sortino = (out.annRet != null && dDev > 0) ? out.annRet / (dDev * Math.sqrt(252)) : null;
+    const mP = meanOf(rp), mB = meanOf(rb);
+    const varB = rb.reduce((s, x) => s + (x - mB) * (x - mB), 0) / n;
+    const cov = rp.reduce((s, x, i) => s + (x - mP) * (rb[i] - mB), 0) / n;
+    out.beta = varB > 0 ? cov / varB : null;
+    const te = stdOf(rp.map((r, i) => r - rb[i]));
+    out.te = te != null ? te * Math.sqrt(252) : null;
+    const annRetB = (bFirst && bLast != null) ? Math.pow(bLast / bFirst, 252 / n) - 1 : null;
+    out.ir = (out.annRet != null && annRetB != null && out.te > 0) ? (out.annRet - annRetB) / out.te : null;
+  }
+  return out;
+}
+
+// Risk-metric display formats. Ratios two decimals; vol/drawdown one-decimal
+// percent (drawdown carries its own minus sign).
+const fmtRatio2 = (n) => (n == null || Number.isNaN(n)) ? '—' : n.toFixed(2);
+const fmtPctPlain1 = (n) => (n == null || Number.isNaN(n)) ? '—' : `${(n * 100).toFixed(1)}%`;
+const pctCls = (n) => (n == null ? 'mut' : (n >= 0 ? 'up' : 'down'));
+
+// Benchmark switcher choices (book card). Close series stamped on each
+// paper_nav_daily row by the nightly runner.
+const BENCHES = [
+  { k: 'spy', label: 'S&P 500' },
+  { k: 'qqq', label: 'NASDAQ 100' },
+  { k: 'dia', label: 'Dow 30' },
+  { k: 'iwm', label: 'Russell 2000' },
+];
+const BENCH_LS_KEY = 'mt-paper-bench';
+
 // ── Page-scoped styles (component-local; no globals) ──────────────────────
 
 const PAGE_CSS = `
@@ -317,6 +435,74 @@ const PAGE_CSS = `
 .paper-drawer-table td { padding: 9px 8px; border-bottom: 1px solid var(--line-0); color: var(--ink-1); font-feature-settings: "tnum"; }
 .paper-drawer-table td.r { text-align: right; }
 .paper-drawer-table td.ticker { color: var(--ink-0); font-weight: 500; }
+
+/* ── Performance block (book card + sleeve cards), 2026-07-15 ─────────────
+   Institutional returns table + risk strip. Light-mode first; tabular
+   numerals everywhere; em-dash for insufficient history. */
+.pp-perf { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line-0); padding-top: 12px; }
+.pp-bench-seg {
+  display: inline-flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line-1);
+  border-radius: 8px; padding: 2px; width: max-content; max-width: 100%; flex-wrap: wrap;
+}
+.pp-bench-seg button {
+  font: inherit; font-size: 11px; font-weight: 500; letter-spacing: .01em;
+  color: var(--ink-2); background: none; border: none; border-radius: 6px;
+  padding: 4px 9px; cursor: pointer; white-space: nowrap;
+}
+.pp-bench-seg button:hover { color: var(--ink-0); }
+.pp-bench-seg button.on {
+  background: var(--bg-1); color: var(--ink-0);
+  box-shadow: 0 1px 3px rgba(15,23,42,.10); border: 1px solid var(--line-1); padding: 3px 8px;
+}
+.pp-rt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.pp-rt { width: 100%; min-width: 460px; border-collapse: collapse; font-feature-settings: "tnum","lnum"; }
+.pp-rt.mini { min-width: 320px; }
+.pp-rt th, .pp-rt td { padding: 7px 6px; text-align: right; white-space: nowrap; font-size: 12.5px; }
+.pp-rt thead th {
+  font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 500; border-bottom: 1px solid var(--line-1);
+}
+.pp-rt th:first-child, .pp-rt td:first-child { text-align: left; }
+.pp-rt tbody td { border-bottom: 1px solid var(--line-0); color: var(--ink-1); }
+.pp-rt tbody tr:last-child td { border-bottom: none; }
+.pp-rt .rl { color: var(--ink-0); font-weight: 500; }
+.pp-rt tr.ex td { border-top: 1px solid var(--line-1); }
+.pp-rt tr.ex .rl { color: var(--ink-1); font-weight: 500; }
+.pp-rt td.up { color: ${UP_COLOR}; }
+.pp-rt td.down { color: ${DOWN_COLOR}; }
+.pp-rt td.mut { color: var(--ink-3); }
+.pp-risk { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 10px; border-top: 1px solid var(--line-0); padding-top: 10px; }
+.pp-risk.mini { grid-template-columns: repeat(3, 1fr); }
+.pp-risk-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pp-risk-item .lbl {
+  font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 500; width: max-content; max-width: 100%;
+}
+.pp-risk-item .val { font-size: 12.5px; color: var(--ink-0); font-weight: 500; font-feature-settings: "tnum","lnum"; }
+.pp-risk-note { font-size: 10.5px; color: var(--ink-3); letter-spacing: .01em; }
+/* Instant CSS tooltip (page pattern — data-tip attribute, never native title). */
+.pp-tip { position: relative; cursor: help; border-bottom: 1px dotted var(--ink-3); }
+.pp-tip:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  width: 210px; white-space: normal;
+  background: var(--ink-0, #16181d); color: var(--bg-1, #fff);
+  font-size: 11px; line-height: 1.45; font-weight: 400; letter-spacing: 0; text-transform: none;
+  padding: 8px 10px; border-radius: 8px; z-index: 50;
+  box-shadow: 0 6px 20px rgba(15,23,42,.18); pointer-events: none;
+}
+.pp-risk-item:first-child .pp-tip:hover::after { left: 0; transform: none; }
+.pp-risk-item:last-child .pp-tip:hover::after { left: auto; right: 0; transform: none; }
+/* Sleeve-card mini block spacing (sits between the value and the stat rows). */
+.pp-sc-perf { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 12px; }
+@media (max-width: 640px) {
+  /* Returns tables scroll horizontally inside the card — never truncate. */
+  .pp-rt { min-width: 440px; }
+  .pp-rt.mini { min-width: 320px; }
+  .pp-risk { grid-template-columns: repeat(3, 1fr); }
+  .pp-bench-seg button { padding: 4px 7px; font-size: 10.5px; }
+  .pp-tip:hover::after { width: 170px; }
+}
 `;
 
 // ── Right-slot summary card ───────────────────────────────────────────────
@@ -382,19 +568,41 @@ function splitBook(totalNav, insGross, momGross, insCap, momCap, bCash = null, m
   return { insValue: ig + insCash, momValue: mg + momCash, cash, insCash, momCash };
 }
 
-/* BookCard — the combined-account card in the hero (2026-07-14 two-column
-   redesign, Joe directive: the old 7-column performance matrix read as stale
-   V2 chrome). One big number (broker NAV), the book's day and since-inception
-   P&L, the gap to the S&P, and a compact strip of the four $1M buy-and-hold
-   benchmarks. Same inputs as the old matrix (paper_nav_daily / intraday row +
-   the benchmark closes stamped on it) — presentation only. */
+// One compact risk stat with an instant CSS tooltip (data-tip pattern —
+// never the native title attribute).
+function RiskStat({ label, tip, value }) {
+  return (
+    <div className="pp-risk-item">
+      <span className="lbl pp-tip" data-tip={tip}>{label}</span>
+      <span className="val">{value}</span>
+    </div>
+  );
+}
+
+/* BookCard — the combined-account card in the hero (2026-07-15 institutional
+   redesign, Joe directive: trailing returns across timeframes vs a selectable
+   benchmark, an explicit excess line, and since-inception risk stats — no
+   more context-free "+0.4% / −0.3%" strip). Headline NAV unchanged; the
+   holdings/cash split bar lives below the hero and is untouched. */
 // day$Override: the SUM of the two sleeve cards' Today numbers (one shared
 // computation, Joe rule 2026-06-12 — the book card and the sleeve cards must
 // tie by construction, never two bases for the same word).
 function BookCard({ navHistory, live = false, asOfIso = null, day$Override = null }) {
-  const empty = !navHistory || navHistory.length === 0;
-  const latest = empty ? null : navHistory[navHistory.length - 1];
-  const prev = (!empty && navHistory.length >= 2) ? navHistory[navHistory.length - 2] : null;
+  // Benchmark choice persists per device.
+  const [benchKey, setBenchKey] = useState(() => {
+    try {
+      const v = localStorage.getItem(BENCH_LS_KEY);
+      if (BENCHES.some((b) => b.k === v)) return v;
+    } catch { /* ignore */ }
+    return 'spy';
+  });
+  useEffect(() => {
+    try { localStorage.setItem(BENCH_LS_KEY, benchKey); } catch { /* ignore */ }
+  }, [benchKey]);
+
+  const rows = navHistory || [];
+  const empty = rows.length === 0;
+  const latest = empty ? null : rows[rows.length - 1];
   if (empty) {
     return (
       <div className="paper-tile-summary">
@@ -404,20 +612,29 @@ function BookCard({ navHistory, live = false, asOfIso = null, day$Override = nul
       </div>
     );
   }
-  const TOTAL_CAP = STARTING_CAPITAL;
+  const bench = BENCHES.find((b) => b.k === benchKey) || BENCHES[0];
   const nav = latest.total_nav;
   const day$ = day$Override;
-  const dayPct = (day$ != null && prev?.total_nav) ? day$ / prev.total_nav : null;
-  const incep$ = nav != null ? nav - TOTAL_CAP : null;
-  const incepPct = nav != null ? nav / TOTAL_CAP - 1 : null;
-  const bench = (label, k) => {
-    const now = latest[`${k}_close`] ?? null;
-    const incepC = latest[`${k}_inception_close`] ?? null;
-    return { label, pct: (now && incepC) ? now / incepC - 1 : null };
-  };
-  const marks = [bench('S&P 500', 'spy'), bench('NASDAQ 100', 'qqq'), bench('Dow Jones', 'dia'), bench('Russell 2000', 'iwm')];
-  const spyPct = marks[0].pct;
-  const vsSpy$ = (incepPct != null && spyPct != null) ? (incepPct - spyPct) * TOTAL_CAP : null;
+  const incep$ = nav != null ? nav - STARTING_CAPITAL : null;
+
+  // Book and benchmark windows share the SAME session logic: both series are
+  // built from the same nav rows, close-to-close. In live mode the last row
+  // is the intraday overlay, so Day = live NAV vs prior close NAV, and the
+  // benchmark Day uses its live quote vs its own stamped prior close.
+  const navSeries = rows.filter((r) => r.total_nav != null)
+    .map((r) => ({ d: r.snapshot_date, v: Number(r.total_nav) }));
+  const benchSeries = rows.filter((r) => r[`${bench.k}_close`] != null)
+    .map((r) => ({ d: r.snapshot_date, v: Number(r[`${bench.k}_close`]) }));
+  const book = windowReturns(navSeries, STARTING_CAPITAL);
+  const bm = windowReturns(benchSeries, null);
+  if (live && latest[`${bench.k}_close`] && latest[`${bench.k}_prev_close`]) {
+    bm.day = Number(latest[`${bench.k}_close`]) / Number(latest[`${bench.k}_prev_close`]) - 1;
+  }
+  const cols = [['Day', 'day'], ['1W', 'w1'], ['1M', 'm1'], ['3M', 'm3'], ['YTD', 'ytd'], ['Start', 'si']];
+  const excess = {};
+  cols.forEach(([, k]) => { excess[k] = (book[k] != null && bm[k] != null) ? book[k] - bm[k] : null; });
+  const risk = riskStats(rows.map((r) => r.total_nav), rows.map((r) => r[`${bench.k}_close`]));
+
   return (
     <div className="paper-tile-summary pp-book">
       <div className="pts-head">
@@ -426,22 +643,93 @@ function BookCard({ navHistory, live = false, asOfIso = null, day$Override = nul
       </div>
       <div className="pp-book-nav">{fmtMoneyExact(nav)}</div>
       <div className="pp-book-rows">
-        <div><span>Today</span><b className={dirClass(day$)}>{fmt$Delta(day$)}{dayPct != null ? ` · ${fmtPctP(dayPct)}` : ''}</b></div>
-        <div><span>Since inception</span><b className={dirClass(incep$)}>{fmt$Delta(incep$)}{incepPct != null ? ` · ${fmtPctP(incepPct)}` : ''}</b></div>
-        <div><span>vs S&P 500 (since inception)</span><b className={dirClass(vsSpy$)}>{fmt$Delta(vsSpy$)}</b></div>
+        <div><span>Today</span><b className={dirClass(day$)}>{fmt$Delta(day$)}</b></div>
+        <div><span>Since inception</span><b className={dirClass(incep$)}>{fmt$Delta(incep$)}</b></div>
       </div>
-      <div className="pp-book-bench">
-        {marks.map((m) => (
-          <div key={m.label} className="pp-bench-cell">
-            <span>{m.label}</span>
-            <b className={dirClass(m.pct)}>{fmtPctP(m.pct)}</b>
-          </div>
-        ))}
-        <div className="pp-bench-note">$1M buy &amp; hold, since the book opened</div>
+      <div className="pp-perf">
+        <div className="pp-bench-seg" role="tablist" aria-label="Benchmark">
+          {BENCHES.map((b) => (
+            <button key={b.k} type="button" className={b.k === bench.k ? 'on' : ''} onClick={() => setBenchKey(b.k)}>{b.label}</button>
+          ))}
+        </div>
+        <div className="pp-rt-scroll">
+          <table className="pp-rt">
+            <thead>
+              <tr><th>Return</th>{cols.map(([l]) => <th key={l}>{l}</th>)}</tr>
+            </thead>
+            <tbody>
+              <tr><td className="rl">Book</td>{cols.map(([l, k]) => <td key={l} className={book[k] == null ? 'mut' : ''}>{fmtPctP(book[k], 1)}</td>)}</tr>
+              <tr><td className="rl">{bench.label}</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
+              <tr className="ex"><td className="rl">Excess</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="pp-risk">
+          <RiskStat label="Ann. vol" value={fmtPctPlain1(risk.annVol)} tip="Annualized volatility: standard deviation of daily returns × √252, since inception." />
+          <RiskStat label="Sharpe" value={fmtRatio2(risk.sharpe)} tip="Annualized return ÷ annualized volatility. Risk-free rate assumed 0." />
+          <RiskStat label="Sortino" value={fmtRatio2(risk.sortino)} tip="Annualized return ÷ annualized downside deviation — only losing days count against the book." />
+          <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in account value since inception." />
+          <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip={`Sensitivity to the ${bench.label}'s daily moves; 1.00 means the book moves in line with it.`} />
+          <RiskStat label="Info ratio" value={fmtRatio2(risk.ir)} tip={`Annualized excess return over the ${bench.label} ÷ tracking error — how consistently the book beats it.`} />
+        </div>
+        {risk.n < 20 && (
+          <div className="pp-risk-note">Risk metrics build after 20 trading sessions ({risk.n} so far).</div>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
         <FreshnessChip elementId={live ? 'portfolio.paper-nav-intraday' : 'portfolio.paper-nav-daily'} variant="label" fallback={{ asOfIso: live ? asOfIso : (latest.created_at || latest.snapshot_date), calendar: 'nyse' }} />
       </div>
+    </div>
+  );
+}
+
+/* SleevePerf — one sleeve's mini returns table (Day · 1W · 1M · Start vs the
+   S&P 500, with an explicit Excess line) plus a Sharpe / Max DD / Beta strip.
+   Sleeve series = its value column on the nav rows (leading nulls skipped);
+   the S&P side is restricted to the SAME rows so both sides cover identical
+   sessions. SI base = the sleeve's allocation from paper_accounts. */
+function SleevePerf({ rows, valueField, alloc, live = false, liveDay$ = null }) {
+  const sRows = (rows || []).filter((r) => r[valueField] != null);
+  const series = sRows.map((r) => ({ d: r.snapshot_date, v: Number(r[valueField]) }));
+  const spySeries = sRows.filter((r) => r.spy_close != null)
+    .map((r) => ({ d: r.snapshot_date, v: Number(r.spy_close) }));
+  const sv = windowReturns(series, alloc > 0 ? alloc : null);
+  const bm = windowReturns(spySeries, null);
+  if (live) {
+    // Day = the sleeve card's live day P&L ÷ prior sleeve value (same number
+    // the Today row used to show, as a return); S&P Day = live quote vs its
+    // own stamped prior close.
+    const prev = series.length >= 2 ? series[series.length - 2].v : null;
+    if (liveDay$ != null && prev) sv.day = liveDay$ / prev;
+    const lr = sRows[sRows.length - 1];
+    if (lr && lr.spy_close && lr.spy_prev_close) bm.day = Number(lr.spy_close) / Number(lr.spy_prev_close) - 1;
+  }
+  const cols = [['Day', 'day'], ['1W', 'w1'], ['1M', 'm1'], ['Start', 'si']];
+  const excess = {};
+  cols.forEach(([, k]) => { excess[k] = (sv[k] != null && bm[k] != null) ? sv[k] - bm[k] : null; });
+  const risk = riskStats(sRows.map((r) => r[valueField]), sRows.map((r) => r.spy_close));
+  return (
+    <div className="pp-sc-perf">
+      <div className="pp-rt-scroll">
+        <table className="pp-rt mini">
+          <thead>
+            <tr><th>Return</th>{cols.map(([l]) => <th key={l}>{l}</th>)}</tr>
+          </thead>
+          <tbody>
+            <tr><td className="rl">Sleeve</td>{cols.map(([l, k]) => <td key={l} className={sv[k] == null ? 'mut' : ''}>{fmtPctP(sv[k], 1)}</td>)}</tr>
+            <tr><td className="rl">S&amp;P 500</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
+            <tr className="ex"><td className="rl">Excess</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="pp-risk mini">
+        <RiskStat label="Sharpe" value={fmtRatio2(risk.sharpe)} tip="Annualized return ÷ annualized volatility, daily data since inception. Risk-free rate assumed 0." />
+        <RiskStat label="Max DD" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in sleeve value since inception." />
+        <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip="Sensitivity to the S&P 500's daily moves; 1.00 means the sleeve moves in line with it." />
+      </div>
+      {risk.n < 20 && (
+        <div className="pp-risk-note">Risk metrics build after 20 trading sessions ({risk.n} so far).</div>
+      )}
     </div>
   );
 }
@@ -1086,6 +1374,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       total_nav: liveNav.total_nav,
       sleeve_a_value: liveNav.sleeve_a_value, sleeve_b_value: liveNav.sleeve_b_value,
       sleeve_a_equity: liveNav.sleeve_a_equity, sleeve_b_equity: liveNav.sleeve_b_equity,
+      // 2026-07-15 perf redesign: forward the Momentum sleeve's live value +
+      // day P&L too (NULL-safe), so the sleeve mini returns tables see the
+      // live session. Never a made-up zero.
+      sleeve_m_value: liveNav.sleeve_m_value ?? null,
+      sleeve_m_day_pnl: liveNav.sleeve_m_day_pnl ?? null,
       spy_close: liveNav.spy_close, spy_prev_close: liveNav.spy_prev_close, spy_inception_close: liveNav.spy_inception_close,
       // 2026-07-08 fix: forward ALL four benchmarks in live mode (was SPY only,
       // which blanked the NASDAQ/Dow/Russell rows even though the data exists).
@@ -1134,17 +1427,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       latestNav?.sleeve_b_cash ?? null, latestNav?.sleeve_m_cash ?? null),
     [latestNav, sleeveBGross, momGross, insCap, momCap],
   );
-  // Since-inception vs S&P 500 for each sleeve card (2026-07-15: both
-  // sleeves are funded, so both get real values). A sleeve's inception
-  // return = its live NAV (holdings market value + its cash, from splitBook)
-  // over its allocation from paper_accounts, minus 1. The S&P line is the
-  // same for both — the sleeves share the account's inception date.
-  const spyIncep = (latestNav?.spy_close && latestNav?.spy_inception_close)
-    ? latestNav.spy_close / latestNav.spy_inception_close - 1 : null;
-  const insIncep = (split.insValue != null && insCap > 0)
-    ? split.insValue / insCap - 1 : null;
-  const momIncep = (split.momValue != null && momCap > 0)
-    ? split.momValue / momCap - 1 : null;
+  // Per-sleeve returns/risk now come from the shared performance math on the
+  // nav rows (SleevePerf) — the old single "since inception vs S&P" pair is
+  // superseded by the mini returns tables (2026-07-15 redesign).
   const lastActionFor = (code) => {
     const o = (orders || []).find((r) => r.sleeve === code && r.status !== 'cancelled');
     return o ? { date: (o.created_at || '').split('T')[0], side: o.side } : null;
@@ -1217,15 +1502,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
               cash: split.insCash, positions: sleeveB, last: insLast,
-              day$: dayB,
-              incep: insIncep, spySame: spyIncep,
+              day$: dayB, valueField: 'sleeve_b_value', alloc: insCap,
               infoDef: 'Buys at Score ≥ 4 (max 5), holds until the score decays below 3. The sleeve’s full $500K is split equally across every qualifying name ($500K ÷ N) and re-split daily on the open; drifts inside a 3% band are left alone.',
             },
             {
               code: 'M', n: 2, name: 'Momentum', value: split.momValue,
               cash: split.momCash, positions: sleeveM, last: momLast,
-              day$: dayM,
-              incep: momIncep, spySame: spyIncep,
+              day$: dayM, valueField: 'sleeve_m_value', alloc: momCap,
               infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st.',
             },
           ].map((s) => (
@@ -1233,10 +1516,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <div className="pp-sleevecard">
                 <div className="pp-sc-eyebrow">Sleeve {s.n} · {s.name}</div>
                 <div className="pp-sc-value">{fmtMoneyExact(s.value)}</div>
+                <SleevePerf
+                  rows={navForCard}
+                  valueField={s.valueField}
+                  alloc={s.alloc}
+                  live={liveMode}
+                  liveDay$={s.day$}
+                />
                 <div className="pp-sc-rows">
-                  <div><span>Today</span><b className={dirClass(s.day$)}>{fmt$Delta(s.day$)}</b></div>
-                  <div><span>Since inception</span><b className={dirClass(s.incep)}>{s.incep != null ? fmtPctP(s.incep) : '—'}</b></div>
-                  <div><span>S&P 500 same period</span><b className={dirClass(s.spySame)}>{s.spySame != null ? fmtPctP(s.spySame) : '—'}</b></div>
                   <div><span>Holdings</span><b>{s.positions.length}</b></div>
                   <div><span>Idle cash</span><b>{fmtMoneyExact(s.cash)}</b></div>
                   <div><span>Last action</span><b>{s.last ? `${s.last.side === 'buy' ? 'Bought' : 'Sold'} · ${fmtDate(s.last.date)}` : '—'}</b></div>
