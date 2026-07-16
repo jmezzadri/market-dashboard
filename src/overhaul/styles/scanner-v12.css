@@ -156,7 +156,7 @@
    Small factual header furniture above/below both panel titles so the two
    sleeve panels read as one visual system. */
 .home-v12 .sc-sleeve, .home-v12 .mo-sleeve { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin-bottom: 4px; }
-.home-v12 .sc-rule, .home-v12 .mo-rule { font-family: var(--sans); font-size: 13px; color: var(--mut); margin-top: 6px; line-height: 1.5; max-width: 760px; }
+.home-v12 .sc-rule, .home-v12 .mo-rule { font-family: var(--sans); font-size: 14.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.55; max-width: none; } /* 2026-07-15 Joe: no width cap — use the tile; ink-soft + 14.5px for readability */
 .home-v12 .sc-scanmeta { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
 
 /* ── Sleeve 2 — Momentum panel (two-sleeve build, 2026-07-14) ──────────────
@@ -168,38 +168,23 @@
 .home-v12 .mo-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 10px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .mo-table th.num-h { text-align: right; }
 .home-v12 .mo-table th:first-child { text-align: right; width: 44px; }
-.home-v12 .mo-table td { padding: 8px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; }
+.home-v12 .mo-table td { padding: 14px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; } /* 14px = Insider row rhythm */
 .home-v12 .mo-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .home-v12 .mo-table td.num.up { color: var(--up); }
 .home-v12 .mo-table td.num.down { color: var(--down); }
 .home-v12 .mo-table tbody tr:last-child td { border-bottom: 0; }
 .home-v12 .mo-tk { display: flex; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
-.home-v12 .mo-tk b { font-weight: 700; }
-.home-v12 .mo-tk:hover b { color: var(--gold-deep); }
+.home-v12 .mo-tk b { font-weight: 700; font-size: 16px; color: var(--gold-deep); } /* identical to the Insider table ticker */
 .home-v12 .mo-name { font-size: 12px; color: var(--mut); max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 
 /* Momentum rows expand to an inline drawer — same interaction contract as
    the Insider Conviction table (row = drawer, ticker text = ticker page). */
 .home-v12 .mo-table tbody tr.mo-row { cursor: pointer; }
-.home-v12 .mo-table tbody tr.mo-row:hover td { background: var(--bg2); }
 .home-v12 .mo-table th.mo-chev-h { width: 34px; }
 .home-v12 .mo-table td.mo-chev { text-align: right; color: var(--mut); font-size: 14px; }
 .home-v12 .mo-table td.mo-chev span { display: inline-block; transition: transform .2s ease; }
 .home-v12 .mo-table tr.mo-row.open td.mo-chev span { transform: rotate(90deg); }
 .home-v12 .mo-table tr.mo-drill td { padding: 0; }
-.home-v12 .mo-drillbody { background: var(--bg2); padding: 16px 22px 14px; font-family: var(--sans); white-space: normal; }
-.home-v12 .mo-drillhead { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); margin-bottom: 12px; }
-.home-v12 .mo-drillgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.home-v12 .mo-drillcell .k { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); margin-bottom: 3px; }
-.home-v12 .mo-drillcell .v { font-size: 16px; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
-.home-v12 .mo-drillcell .why { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-top: 4px; }
-.home-v12 .mo-drillbtn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 15px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; transition: border-color .25s, color .25s; }
-.home-v12 .mo-drillbtn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
-.home-v12 .mo-drillfoot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; }
-@media (max-width: 900px) {
-  .home-v12 .mo-drillgrid { grid-template-columns: 1fr; gap: 12px; }
-}
-
 .home-v12 .mo-foot { font-family: var(--sans); font-size: 12px; color: var(--mut); padding: 14px 30px 4px; line-height: 1.5; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .home-v12 .mo-loading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 26px 30px; }
 
