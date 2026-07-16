@@ -247,6 +247,17 @@ def run_eod_phase(
         except Exception as exc:  # noqa: BLE001
             logger.warning("queued-confirmation email failed: %s", exc)
 
+    # Stamp the paper feeds' freshness rows for the intents this phase just
+    # produced. Without this, the Recent-activity chip reds every morning
+    # between the pre-open submit (~04:00 ET) and the 09:45 open phase: the
+    # page shows orders created this morning while pipeline_health still
+    # carries yesterday evening's run as the last successful pull — tripping
+    # the data-after-pull invariant (an honest red, but a producer stamp gap,
+    # not a data problem). The open and close phases already stamp; this
+    # brings the one phase that CREATES the orders up to the same standard.
+    # (Joe 2026-07-16: red chips on the Paper page pre-open.)
+    stamp_paper_pipeline_health(dry_run=dry_run)
+
     return {"translator": t_result, "submitter": s_result}
 
 
