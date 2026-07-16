@@ -73,36 +73,120 @@ const fmtPx = (v) => {
   return Number.isFinite(n) ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}` : '—';
 };
 
-/* Drawer body — the three Power Trend tests this name passed on the list's
-   panel day, each with the REAL reading off the power_trend_list row. */
-function MomentumDrill({ row, asOf, onOpenTicker }) {
+/* MomentumDrill — drawer body under a Momentum row. SAME visual language as
+   ScanDrill on the Insider table (Joe 2026-07-15: the drawers must match):
+   mt-fade wrapper on --mt-surface-2, two-column grid; LEFT a composition-style
+   table (Test / Reading / Result), RIGHT the facts boxes + the same mt-btn
+   actions. Every value is a real power_trend_list field. */
+function MomentumDrill({ row, asOf, filled, navigate }) {
+  const [copied, setCopied] = useState(false);
+  const TESTS = [
+    {
+      key: 'Trend & strength',
+      why: '3-month return in the top 20% of the universe; price above its 10-, 21-, 50- and 200-day averages',
+      reading: `${fmtPct1(row.roc_3m)} over 3 months`,
+    },
+    {
+      key: 'Vs the S&P 500',
+      why: 'A 3-month return at least 5 points above the index\u2019s',
+      reading: `${fmtPts(row.rs_vs_spx)} over the index`,
+    },
+    {
+      key: 'Breakout',
+      why: 'A close at a new 10-day high on volume more than 1.3\u00d7 its 20-day average',
+      reading: `${fmtVolx(row.breakout_volx)} average volume`,
+    },
+  ];
   return (
-    <div className="mo-drillbody">
-      <div className="mo-drillhead">
-        Passed all three Power Trend tests on the {fmtDay(asOf)} panel
+    <div
+      className="mt-fade"
+      style={{
+        padding: '18px 18px 22px',
+        background: 'var(--mt-surface-2)',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 22,
+        whiteSpace: 'normal',
+      }}
+    >
+      {/* LEFT — the three Power Trend tests, composition-table style */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <div className="mt-eyebrow">Power Trend tests · {fmtDay(asOf)} panel</div>
+          <div className="num" style={{ fontSize: 14, color: 'var(--mt-ink-1)' }}>
+            <b style={{ color: 'var(--mt-accent)' }}>3</b>
+            <span style={{ color: 'var(--mt-ink-3)', marginLeft: 2 }}>/3 passed</span>
+          </div>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '6px 8px 6px 0', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Test</th>
+              <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Reading</th>
+              <th style={{ textAlign: 'right', padding: '6px 0 6px 8px', color: 'var(--mt-ink-2)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {TESTS.map((t) => (
+              <tr key={t.key} style={{ borderTop: '1px solid var(--mt-line-0)' }}>
+                <td style={{ padding: '8px 8px 8px 0' }}>
+                  <div style={{ color: 'var(--mt-ink-0)', fontWeight: 500 }}>{t.key}</div>
+                  <div style={{ fontSize: 11, color: 'var(--mt-ink-2)' }}>{t.why}</div>
+                </td>
+                <td className="num" style={{ padding: '8px', color: 'var(--mt-ink-1)' }}>{t.reading}</td>
+                <td className="num" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--mt-up)' }}>Pass</td>
+              </tr>
+            ))}
+            <tr style={{ borderTop: '2px solid var(--mt-line-1)' }}>
+              <td style={{ padding: '10px 8px 6px 0', fontWeight: 700 }} colSpan={2}>On the Power Trend list</td>
+              <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--mt-accent)', fontSize: 14 }}>
+                Rank {row.rank}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div className="mo-drillgrid">
-        <div className="mo-drillcell">
-          <div className="k">Trend &amp; strength</div>
-          <div className="v num">{fmtPct1(row.roc_3m)} over 3 months</div>
-          <div className="why">In the top 20% of the universe, with the close above its 10-, 21-, 50- and 200-day moving averages.</div>
+
+      {/* RIGHT — sleeve facts + the same trade-plan boxes and actions */}
+      <div>
+        <div className="mt-eyebrow" style={{ marginBottom: 8 }}>In the Momentum sleeve</div>
+        <div style={{ fontSize: 12.5, color: 'var(--mt-ink-1)', lineHeight: 1.5 }}>
+          Rank {row.rank} of {filled} on this month&rsquo;s list. Equal-weight slot in the $500K
+          Momentum paper sleeve; the list refreshes monthly on the 1st, and a name leaves the
+          sleeve only when it drops off the list.
         </div>
-        <div className="mo-drillcell">
-          <div className="k">Vs the S&amp;P 500</div>
-          <div className="v num">{fmtPts(row.rs_vs_spx)}</div>
-          <div className="why">Margin over the index&rsquo;s own 3-month return. The test requires at least 5 points.</div>
+        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {[
+            ['Panel close', fmtPx(row.close)],
+            ['3-mo return', fmtPct1(row.roc_3m)],
+            ['Beat S&P by', fmtPts(row.rs_vs_spx)],
+          ].map(([label, v]) => (
+            <div key={label} style={{ background: 'var(--mt-surface)', border: '1px solid var(--mt-line-0)', borderRadius: 8, padding: '8px 10px' }}>
+              <div className="mt-eyebrow">{label}</div>
+              <b className="num" style={{ fontSize: 13 }}>{v}</b>
+            </div>
+          ))}
         </div>
-        <div className="mo-drillcell">
-          <div className="k">Breakout</div>
-          <div className="v num">{fmtVolx(row.breakout_volx)} volume</div>
-          <div className="why">Closed at a new 10-day high on more than 1.3&times; its 20-day average volume.</div>
+        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="mt-btn mt-btn--primary"
+            onClick={() => navigate(`/ticker/${row.ticker}`)}
+          >
+            Open ticker detail →
+          </button>
+          <button
+            type="button"
+            className="mt-btn"
+            onClick={() => {
+              navigator.clipboard?.writeText(row.ticker);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+          >
+            {copied ? 'Copied ✓' : 'Copy ticker'}
+          </button>
         </div>
-      </div>
-      <div className="mo-drillfoot">
-        <span>Rank {row.rank} · {fmtPx(row.close)} at the panel close · equal-weight slot in the Momentum sleeve</span>
-        <button type="button" className="mo-drillbtn" onClick={onOpenTicker}>
-          Open ticker page →
-        </button>
       </div>
     </div>
   );
@@ -236,11 +320,7 @@ export default function MomentumPanel() {
                         {isOpen && (
                           <tr className="mo-drill">
                             <td colSpan={7}>
-                              <MomentumDrill
-                                row={r}
-                                asOf={asOf}
-                                onOpenTicker={() => navigate(`/ticker/${r.ticker}`)}
-                              />
+                              <MomentumDrill row={r} asOf={asOf} filled={filled} navigate={navigate} />
                             </td>
                           </tr>
                         )}
