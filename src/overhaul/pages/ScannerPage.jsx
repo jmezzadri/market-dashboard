@@ -29,6 +29,12 @@ import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 import '../styles/cream-system.css';
 import '../styles/scanner-v12.css';
 
+const MO_FMT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtScanDay(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${MO_FMT[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}` : '';
+}
+
 function bucketFor(s) {
   if (s >= 5) return 'b5';
   if (s >= 4) return 'b4';
@@ -197,7 +203,7 @@ export default function ScannerPage() {
                   variant="dot"
                   fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
                 />
-                <span>Latest scan{scanDate ? ` · ${scanDate} close` : ''}</span>
+                <span>Latest scan{scanDate ? ` · ${fmtScanDay(scanDate)} close` : ''} · refreshes daily</span>
                 <button type="button" className="sc-metalink" onClick={() => navigate('/methodology#scanner')}>
                   Methodology →
                 </button>

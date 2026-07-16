@@ -107,6 +107,8 @@
    gold bar + underlined ticker). */
 .home-v12 .sc-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
 .home-v12 .sc-table.dv-min { min-width: 520px; }
+.home-v12 .sc-table.dv-min td { padding: 12px 10px; }
+.home-v12 .sc-table.dv-min .sc-tk .nm { max-width: 170px; }
 .home-v12 .sc-table th { text-align: left; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 12px 10px 9px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .sc-table th.num-h { text-align: right; }
 .home-v12 .sc-table th.rank-h { width: 48px; }
