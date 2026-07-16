@@ -162,7 +162,7 @@
 /* ── Sleeve 2 — Momentum panel (two-sleeve build, 2026-07-14) ──────────────
    Putty card on the shared 1560px stage: guard status strip, two-column
    ranked list (collapses to one at phone width), badge legend. */
-.home-v12 section.mo-sec { max-width: 1560px; min-width: 0; }
+.home-v12 section.mo-sec { max-width: 1560px; min-width: 0; padding: 0; } /* padding 0 like sc-results — all three scanner tiles share the exact 1560px stage width (Joe 2026-07-15: equal tile size) */
 .home-v12 .mo-scroll { overflow-x: auto; padding: 6px 30px 0; }
 .home-v12 .mo-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
 .home-v12 .mo-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 10px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
@@ -215,7 +215,7 @@
    Two putty cards on the shared 1560px stage: bullish and bearish regular
    divergences from the nightly divergence_scan. De-banded minimal tables,
    hairline rows, numerics right-aligned — matches the results card. */
-.home-v12 section.sc-divsec { max-width: 1560px; min-width: 0; }
+.home-v12 section.sc-divsec { max-width: 1560px; min-width: 0; padding: 0; } /* padding 0 like sc-results — equal tile width */
 .home-v12 .dv-info { color: var(--mut); font-size: 16px; cursor: help; line-height: 1; margin-left: 9px; }
 .home-v12 .dv-filter { font-family: var(--sans); font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; white-space: nowrap; }
 .home-v12 .dv-filter input { accent-color: var(--gold-deep); width: 15px; height: 15px; cursor: pointer; }
