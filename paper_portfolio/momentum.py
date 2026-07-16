@@ -164,6 +164,46 @@ def load_last_trigger_state() -> MomentumTriggerState:
     return MomentumTriggerState(rebalance_date=payload.get("rebalance_date"))
 
 
+def load_trend_breaks(held_tickers: list[str]) -> set[str]:
+    """Held names whose latest complete-panel close sits below ALL FOUR EMAs
+    (10/21/50/200) — the daily trend-break stop (Joe decision 2026-07-15;
+    backtested: cuts worst drawdown −40% → −30% for ~6.6 CAGR points, fires
+    ~2×/month). Uses public.power_trend_trend_break (migration 083), the same
+    EMA math as the scan. Empty input → empty set; a lookup failure raises so
+    the caller can skip the check loudly rather than silently not stopping."""
+    if not held_tickers:
+        return set()
+    arr = ",".join("'" + t.upper().replace("'", "''") + "'" for t in sorted(set(held_tickers)))
+    rows = _sb(f"select ticker from public.power_trend_trend_break(array[{arr}]);")
+    return {r["ticker"].upper() for r in rows}
+
+
+def build_trend_break_intents(
+    breaks: set[str],
+    held_m: dict[str, float],
+    eod_prices: dict[str, float],
+) -> list[OrderIntent]:
+    """SELL (full sleeve position) every held name on the break list. Proceeds
+    rest in cash until the next monthly publish — no mid-month re-entry, per
+    the backtested rule."""
+    intents: list[OrderIntent] = []
+    for ticker in sorted(breaks):
+        qty = held_m.get(ticker.upper(), 0)
+        if qty <= 0.0001:
+            continue
+        price = eod_prices.get(ticker.upper())
+        notional = round(-(qty * price), 2) if price and price > 0 else 0.0
+        intents.append(OrderIntent(
+            sleeve="M", ticker=ticker.upper(), side="sell",
+            target_quantity=qty, target_notional=notional,
+            signal_score=None, signal_source="momentum",
+            rebalance_trigger_reason=("Trend break — closed below all four moving "
+                                      "averages (10/21/50/200-day); exit to cash "
+                                      "until the next monthly list"),
+        ))
+    return intents
+
+
 def load_sleeve_m_holdings() -> dict[str, float]:
     """{TICKER: net shares} owned by the Momentum sleeve, from paper_fills
     tagged sleeve='M' (buys - sells). Zero/negative nets are dropped."""

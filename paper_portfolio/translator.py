@@ -202,9 +202,37 @@ def run(
                         triggered_orders_count=len(m_intents),
                     )
             else:
-                momentum_action = "hold"
-                logger.info("momentum HOLD — %s (publish %s, %d names)",
-                            why, m_snap.rebalance_date, len(m_snap.entries))
+                # No new publish — run the DAILY TREND-BREAK stop (Joe decision
+                # 2026-07-15, backtested): sell any held name that closed below
+                # all four EMAs; cash rests until the next monthly publish.
+                # Publish days skip this — a broken name can't be on the new
+                # list (the list requires price above all four EMAs), so the
+                # monthly diff already sells it.
+                m_breaks = momentum_mod.load_trend_breaks(sorted(sleeve_m_held))
+                if m_breaks:
+                    momentum_action = "trend-break exit: " + ", ".join(sorted(m_breaks))
+                    b_prices = load_eod_price_map(sorted(m_breaks))
+                    m_intents = momentum_mod.build_trend_break_intents(
+                        m_breaks, sleeve_m_held, b_prices)
+                    logger.info("momentum TREND BREAK — selling %s (publish %s unchanged)",
+                                ", ".join(sorted(m_breaks)), m_snap.rebalance_date)
+                    if not dry_run:
+                        write_signal_capture(
+                            signal_source="momentum",
+                            signal_payload={
+                                # SAME rebalance_date — the monthly trigger state
+                                # must not change on a stop-out day.
+                                "rebalance_date": m_snap.rebalance_date,
+                                "signal": "power_trend",
+                                "trigger": "trend_break",
+                                "sold": sorted(m_breaks),
+                            },
+                            triggered_orders_count=len(m_intents),
+                        )
+                else:
+                    momentum_action = "hold"
+                    logger.info("momentum HOLD — %s (publish %s, %d names)",
+                                why, m_snap.rebalance_date, len(m_snap.entries))
         except Exception as exc:  # noqa: BLE001 — momentum must never break the scanner sleeve
             momentum_action = f"skipped: {exc}"
             logger.warning("momentum sleeve skipped this run — %s", exc)

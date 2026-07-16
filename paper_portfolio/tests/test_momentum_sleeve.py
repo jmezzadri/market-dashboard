@@ -150,6 +150,26 @@ def test_all_cash_sells_everything():
     assert len(out) == 2 and all(i.side == "sell" for i in out)
 
 
+
+# ── Daily trend-break stop (Joe decision 2026-07-15; backtested) ────────────
+
+def test_trend_break_sells_full_position():
+    from paper_portfolio.momentum import build_trend_break_intents
+    out = build_trend_break_intents({"AAA"}, {"AAA": 350.0, "BBB": 10.0}, _EOD)
+    assert len(out) == 1
+    o = out[0]
+    assert o.side == "sell" and o.ticker == "AAA"
+    assert o.target_quantity == 350.0
+    assert o.target_notional == -35_000.0  # 350 sh × $100
+    assert "all four" in o.rebalance_trigger_reason
+
+
+def test_trend_break_ignores_unheld_names():
+    from paper_portfolio.momentum import build_trend_break_intents
+    out = build_trend_break_intents({"ZZZ"}, {"AAA": 350.0}, _EOD)
+    assert out == []
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
