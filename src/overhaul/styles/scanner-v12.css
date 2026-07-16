@@ -163,19 +163,21 @@
    Putty card on the shared 1560px stage: guard status strip, two-column
    ranked list (collapses to one at phone width), badge legend. */
 .home-v12 section.mo-sec { max-width: 1560px; min-width: 0; padding: 0; } /* padding 0 like sc-results — all three scanner tiles share the exact 1560px stage width (Joe 2026-07-15: equal tile size) */
-.home-v12 .mo-scroll { overflow-x: auto; padding: 6px 30px 0; }
+.home-v12 .mo-scroll { overflow-x: auto; padding: 6px 18px 0; } /* 18px = Insider table gutter */
 .home-v12 .mo-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
-.home-v12 .mo-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 10px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+.home-v12 .mo-table th { text-align: left; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 8px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; } /* 12px/.12em = Insider header type */
+.home-v12 .mo-table th.sortable { cursor: pointer; }
+.home-v12 .mo-table th.sortable:hover, .home-v12 .mo-table th.on { color: var(--ink); }
 .home-v12 .mo-table th.num-h { text-align: right; }
 .home-v12 .mo-table th:first-child { text-align: right; width: 44px; }
-.home-v12 .mo-table td { padding: 14px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; } /* 14px = Insider row rhythm */
+.home-v12 .mo-table td { padding: 14px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; } /* 14px/8px = Insider cell rhythm */
 .home-v12 .mo-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .home-v12 .mo-table td.num.up { color: var(--up); }
 .home-v12 .mo-table td.num.down { color: var(--down); }
 .home-v12 .mo-table tbody tr:last-child td { border-bottom: 0; }
 .home-v12 .mo-tk { display: flex; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
 .home-v12 .mo-tk b { font-weight: 700; font-size: 16px; color: var(--gold-deep); } /* identical to the Insider table ticker */
-.home-v12 .mo-name { font-size: 12px; color: var(--mut); max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.home-v12 .mo-table td.mo-namecell { font-size: 12.5px; color: var(--ink-soft); max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
 
 /* Momentum rows expand to an inline drawer — same interaction contract as
    the Insider Conviction table (row = drawer, ticker text = ticker page). */
@@ -193,7 +195,7 @@
   .home-v12 .mo-foot { padding: 12px 18px 2px; }
 }
 @media (max-width: 640px) {
-  .home-v12 .mo-name { max-width: 140px; }
+  .home-v12 .mo-table td.mo-namecell { max-width: 140px; }
 }
 
 /* ── RSI Divergences section (2026-07-13) ──────────────────────────────────
@@ -213,7 +215,7 @@
 .home-v12 .dv-count { font-size: 13px; color: var(--ink-soft); }
 .home-v12 .dv-scroll { overflow-x: auto; }
 .home-v12 .dv-table { width: 100%; min-width: 520px; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
-.home-v12 .dv-table th { text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 12px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+.home-v12 .dv-table th { text-align: left; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 10px 12px 8px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .dv-table th.num-h { text-align: right; }
 .home-v12 .dv-table th.sortable { cursor: pointer; }
 .home-v12 .dv-table th.sortable:hover, .home-v12 .dv-table th.on { color: var(--ink); }

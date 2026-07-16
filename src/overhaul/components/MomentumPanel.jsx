@@ -196,6 +196,7 @@ export default function MomentumPanel() {
   const [rows, setRows] = useState(null);      // null = loading, [] = none
   const [meta, setMeta] = useState(null);      // { asOf, next, allCash }
   const [openTicker, setOpenTicker] = useState(null);
+  const [sort, setSort] = useState({ key: 'rank', asc: true });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -232,6 +233,35 @@ export default function MomentumPanel() {
   const filled = rows ? rows.length : 0;
 
   const toggleRow = (tk) => setOpenTicker((cur) => (cur === tk ? null : tk));
+
+  // Click a header to sort; click again to flip — same contract as the
+  // Insider table. Numeric columns start descending; rank and ticker ascending.
+  const clickSort = (key, numeric) => {
+    setSort((p) => (p.key === key ? { key, asc: !p.asc } : { key, asc: !numeric || key === 'rank' }));
+  };
+  const sortedRows = React.useMemo(() => {
+    if (!rows) return rows;
+    const arr = [...rows];
+    arr.sort((a, b) => {
+      const va = a[sort.key]; const vb = b[sort.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (va === vb) return Number(a.rank) - Number(b.rank);
+      return sort.asc ? (va < vb ? -1 : 1) : (va > vb ? -1 : 1);
+    });
+    return arr;
+  }, [rows, sort]);
+
+  const HEAD = [
+    { key: 'rank', label: 'Rank', numeric: true },
+    { key: 'ticker', label: 'Ticker', numeric: false },
+    { key: 'name', label: 'Name', numeric: false },
+    { key: 'close', label: 'Price', numeric: true },
+    { key: 'roc_3m', label: '3-mo return', numeric: true },
+    { key: 'rs_vs_spx', label: 'Beat S&P by', numeric: true },
+    { key: 'breakout_volx', label: 'Breakout volume', numeric: true },
+  ];
 
   return (
     <section className="wrap mo-sec">
@@ -277,17 +307,24 @@ export default function MomentumPanel() {
               <table className="mo-table">
                 <thead>
                   <tr>
-                    <th className="num-h">Rank</th>
-                    <th>Ticker</th>
-                    <th className="num-h">Price</th>
-                    <th className="num-h">3-mo return</th>
-                    <th className="num-h">Beat S&amp;P by</th>
-                    <th className="num-h">Breakout volume</th>
+                    {HEAD.map((h) => {
+                      const active = sort.key === h.key;
+                      return (
+                        <th
+                          key={h.key}
+                          className={`${h.numeric ? 'num-h' : ''} sortable ${active ? 'on' : ''}`}
+                          aria-sort={active ? (sort.asc ? 'ascending' : 'descending') : undefined}
+                          onClick={() => clickSort(h.key, h.numeric)}
+                        >
+                          {h.label}{active ? (sort.asc ? ' \u25b2' : ' \u25bc') : ''}
+                        </th>
+                      );
+                    })}
                     <th className="mo-chev-h" aria-hidden="true" />
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => {
+                  {sortedRows.map((r) => {
                     const isOpen = openTicker === r.ticker;
                     return (
                       <React.Fragment key={r.ticker}>
@@ -308,9 +345,9 @@ export default function MomentumPanel() {
                               onClick={(e) => { e.stopPropagation(); navigate(`/ticker/${r.ticker}`); }}
                             >
                               <b>{r.ticker}</b>
-                              <span className="mo-name">{r.name || ''}</span>
                             </button>
                           </td>
+                          <td className="mo-namecell">{r.name || '\u2014'}</td>
                           <td className="num">{fmtPx(r.close)}</td>
                           <td className={`num ${Number(r.roc_3m) >= 0 ? 'up' : 'down'}`}>{fmtPct1(r.roc_3m)}</td>
                           <td className={`num ${Number(r.rs_vs_spx) >= 0 ? 'up' : 'down'}`}>{fmtPts(r.rs_vs_spx)}</td>
@@ -319,7 +356,7 @@ export default function MomentumPanel() {
                         </tr>
                         {isOpen && (
                           <tr className="mo-drill">
-                            <td colSpan={7}>
+                            <td colSpan={8}>
                               <MomentumDrill row={r} asOf={asOf} filled={filled} navigate={navigate} />
                             </td>
                           </tr>
