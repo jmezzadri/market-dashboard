@@ -29,6 +29,12 @@ import { SCORE_COMPONENTS } from '../lib/scoreWeights';
 import '../styles/cream-system.css';
 import '../styles/scanner-v12.css';
 
+const MO_FMT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtScanDay(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${MO_FMT[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}` : '';
+}
+
 function bucketFor(s) {
   if (s >= 5) return 'b5';
   if (s >= 4) return 'b4';
@@ -173,7 +179,7 @@ export default function ScannerPage() {
       <section className="wrap sc-hero">
         <Reveal className="sc-ed">
           <div className="eyebrow2"><span className="dot" />Trading scanner</div>
-            <h1>Three rules-based scanners: <i>Insider Conviction</i>, <i>Momentum</i>, and <i>RSI Divergences</i>.</h1>
+            <h1>Three rules-based scanners: <i>Insider Conviction</i>, <i>Power Trend Momentum</i>, and <i>RSI Divergence</i>.</h1>
         </Reveal>
 
       </section>
@@ -184,22 +190,23 @@ export default function ScannerPage() {
         <div className="sc-tablecard">
           <div className="sc-panelhead">
             <div>
-              <div className="sc-sleeve">Scanner 1 · Sleeve 1</div>
+              <div className="sc-kicker">Scanner 1 · Daily scan</div>
               <h2 className="sc-paneltitle">Insider Conviction Scanner</h2>
               <div className="sc-rule">
-                Buys when executives are buying and the trend confirms. Every liquid US name is scored
-                0–5 on insider buying plus trend; event-driven, scanned daily. The sleeves are
-                independent — a stock on both lists is owned by both. Drives the $500K Insider
-                Conviction paper sleeve.
+                Flags names where executives are buying their own stock and the trend confirms. Every
+                liquid US name is scored 0–5 on insider buying plus trend; event-driven, scanned daily.
               </div>
-              <div className="sc-rule">Buys at Score ≥ 4 (max 5); a name is held until its score decays below 3.</div>
+              <div className="sc-rule">A name makes the list at Score ≥ 4 (max 5) and stays on it until its score decays below 3.</div>
               <div className="sc-scanmeta">
                 <FreshnessChip
                   elementId="equity-trading_opps_scan-daily"
                   variant="dot"
                   fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
                 />
-                <span>Latest scan{scanDate ? ` · ${scanDate} close` : ''}</span>
+                <span>Latest scan{scanDate ? ` · ${fmtScanDay(scanDate)} close` : ''} · refreshes daily</span>
+                <button type="button" className="sc-metalink" onClick={() => navigate('/methodology#scanner')}>
+                  Methodology →
+                </button>
               </div>
             </div>
             <div className="sc-panelhead-tools">
@@ -242,25 +249,26 @@ export default function ScannerPage() {
           {loading ? (
             <div className="sc-loading">Loading scan results…</div>
           ) : (
-            <ScanList
-              rows={rows}
-              drillOpenKey={drillOpenKey}
-              setDrillOpenKey={setDrillOpenKey}
-              indicatorColumns
-              columns={activeColumns}
-              onReorderColumn={reorderColumn}
-              renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
-            />
+            <div className="sc-inset">
+              <ScanList
+                rows={rows}
+                drillOpenKey={drillOpenKey}
+                setDrillOpenKey={setDrillOpenKey}
+                indicatorColumns
+                columns={activeColumns}
+                onReorderColumn={reorderColumn}
+                renderDrill={(r) => <ScanDrill row={r} onAct={flashToast} />}
+              />
+            </div>
           )}
         </div>
         {toast && <div className="sc-toast mt-fade">{toast}</div>}
       </section>
 
-      {/* Sleeve 2 — Momentum: the monthly Power Trend list */}
+      {/* Scanner 2 — Power Trend Momentum (monthly list) */}
       <MomentumPanel />
 
-      {/* RSI Divergences — daily price/RSI divergence screen (display-only,
-          below both sleeves per the two-sleeve spec) */}
+      {/* Scanner 3 — RSI Divergence (daily, display-only) */}
       <DivergencePanel />
 
       {/* How the score is built */}

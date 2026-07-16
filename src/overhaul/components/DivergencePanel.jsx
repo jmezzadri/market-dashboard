@@ -1,12 +1,16 @@
 /* DivergencePanel — Scanner 3 (RSI Divergence Scanner) on the Trading
-   Scanner page. Consistency pass (2026-07-15, Joe): the section now lives in
-   the SAME .sc-tablecard tile system as the two sleeve scanners, with a
-   Scanner 3 kicker, a plain-English description in the tile, and the shared
-   meta line + freshness chip. Inside the tile: two inset cards
-   (bullish / bearish) reading the latest nightly scan from
-   public.divergence_scan via useDivergenceScan. Sortable columns, an
-   RSI-extremes-only filter, watchlist stars, instant Tip tooltips, and the
-   section's own freshness chip (element equity-rsi_divergences-daily).
+   Scanner page.
+
+   Scanner-page consistency rebuild (2026-07-16, Joe): same tile anatomy as
+   the other two scanners — .sc-tablecard shell, .sc-kicker / .sc-paneltitle
+   / .sc-rule header, .sc-scanmeta chip line (chip first, same spot). The
+   bullish / bearish tables sit on the shared .sc-inset surface and use the
+   shared .sc-table styling (row hover, 16px gold tickers, green/red paths).
+
+   RSI-EXTREMES ONLY (Joe 2026-07-16): the panel now shows only divergences
+   whose older pivot printed from an RSI extreme (≤30 bullish / ≥70
+   bearish) — the strongest setups. The filter checkbox is gone; the
+   per-row extreme dot is gone (every shown row qualifies by definition).
 
    Copy is factual/academic: a regular divergence is a screen, not a signal.
    The RSI method is labeled (simple-average / Cutler) per the build spec. */
@@ -77,12 +81,12 @@ function DvTable({ rows, dir, watchlist, onPick }) {
   };
 
   if (!rows.length) {
-    return <div className="dv-empty">No fresh {dir === 'bull' ? 'bullish' : 'bearish'} divergences in the latest scan.</div>;
+    return <div className="dv-empty">No fresh {dir === 'bull' ? 'bullish' : 'bearish'} divergences from an RSI extreme in the latest scan.</div>;
   }
 
   return (
-    <div className="dv-scroll">
-      <table className="dv-table">
+    <div className="sc-insetscroll">
+      <table className="sc-table dv-min">
         <thead>
           <tr>
             {COLS.map((c) => {
@@ -100,7 +104,7 @@ function DvTable({ rows, dir, watchlist, onPick }) {
                   aria-sort={active ? (sort.asc ? 'ascending' : 'descending') : undefined}
                   onClick={() => clickSort(sortKey)}
                 >
-                  {label}{active ? (sort.asc ? ' \u2191' : ' \u2193') : ''}
+                  {label}{active ? (sort.asc ? ' ↑' : ' ↓') : ''}
                 </th>
               );
             })}
@@ -108,23 +112,18 @@ function DvTable({ rows, dir, watchlist, onPick }) {
         </thead>
         <tbody>
           {sorted.map((r) => (
-            <tr key={r.ticker}>
+            <tr key={r.ticker} className="sc-trow" onClick={() => onPick(r.ticker)}>
               <td>
-                <button type="button" className="dv-tk" onClick={() => onPick(r.ticker)}>
+                <button type="button" className="sc-tk" onClick={(e) => { e.stopPropagation(); onPick(r.ticker); }}>
                   {watchlist.has(r.ticker) && (
                     <Tip content="On your watchlist" bare><span className="dv-star" aria-label="On your watchlist">★</span></Tip>
                   )}
                   <b>{r.ticker}</b>
-                  {r.name ? <span className="dv-name">{r.name}</span> : null}
+                  {r.name ? <span className="nm">{r.name}</span> : null}
                 </button>
               </td>
               <td className="num">
                 <span className={`dv-path ${dir}`}>{fmtRsi(r.rsi1)} → {fmtRsi(r.rsi2)}</span>
-                {r.strong && (
-                  <Tip content={`Older pivot printed from an RSI extreme (${dir === 'bull' ? '30 or below' : '70 or above'}).`} bare>
-                    <span className={`dv-extreme ${dir}`} aria-label="RSI extreme">●</span>
-                  </Tip>
-                )}
               </td>
               <td className="num">{fmtPx(r.px1)} → {fmtPx(r.px2)}</td>
               <td className="num">{fmtPx(r.curClose)} · {fmtRsi(r.curRsi)}</td>
@@ -140,10 +139,11 @@ function DvTable({ rows, dir, watchlist, onPick }) {
 export default function DivergencePanel() {
   const navigate = useNavigate();
   const { bull, bear, scanDate, watchlist, loading, error } = useDivergenceScan();
-  const [extremesOnly, setExtremesOnly] = useState(false);
 
-  const bullShown = useMemo(() => (extremesOnly ? bull.filter((r) => r.strong) : bull), [bull, extremesOnly]);
-  const bearShown = useMemo(() => (extremesOnly ? bear.filter((r) => r.strong) : bear), [bear, extremesOnly]);
+  // Extremes only (Joe 2026-07-16): the older pivot must have printed from
+  // an RSI extreme — 30 or below for bullish, 70 or above for bearish.
+  const bullShown = useMemo(() => bull.filter((r) => r.strong), [bull]);
+  const bearShown = useMemo(() => bear.filter((r) => r.strong), [bear]);
   const onPick = (tk) => navigate(`/ticker/${tk}`);
 
   return (
@@ -151,7 +151,7 @@ export default function DivergencePanel() {
       <div className="sc-tablecard">
         <div className="sc-panelhead">
           <div>
-            <div className="sc-sleeve">Scanner 3 · Display only</div>
+            <div className="sc-kicker">Scanner 3 · Daily scan · Display only</div>
             <h2 className="sc-paneltitle">
               RSI Divergence Scanner
               <Tip content={EXPLAIN} bare><span className="dv-info" aria-label="What is a regular divergence?">ⓘ</span></Tip>
@@ -161,6 +161,10 @@ export default function DivergencePanel() {
               most recent pivots — bullish when price sets a lower low but RSI a higher low, bearish
               when price sets a higher high but RSI a lower high. A screen, not a signal: a divergence
               flags a possible reversal, says nothing about timing, and drives no trades.
+            </div>
+            <div className="sc-rule">
+              Only extremes are shown: the older pivot must have printed from an RSI extreme — 30 or
+              below for bullish setups, 70 or above for bearish.
             </div>
             <div className="sc-scanmeta">
               <FreshnessChip
@@ -172,20 +176,17 @@ export default function DivergencePanel() {
                 {scanDate ? <>Latest scan · {fmtDay(scanDate)} close · </> : null}
                 refreshes 8:45 AM ET · RSI(14), simple-average method
               </span>
+              <button type="button" className="sc-metalink" onClick={() => navigate('/methodology#scanner')}>
+                Methodology →
+              </button>
             </div>
-          </div>
-          <div className="sc-panelhead-tools">
-            <label className="dv-filter">
-              <input type="checkbox" checked={extremesOnly} onChange={(e) => setExtremesOnly(e.target.checked)} />
-              RSI-extreme pivots only
-            </label>
           </div>
         </div>
 
         {loading ? (
-          <div className="dv-loading">Loading divergence scan…</div>
+          <div className="sc-loading">Loading divergence scan…</div>
         ) : error ? (
-          <div className="dv-loading">Divergence scan unavailable — {String(error.message || 'data error')}.</div>
+          <div className="sc-loading">Divergence scan unavailable — {String(error.message || 'data error')}.</div>
         ) : (
           <div className="dv-grid">
             <div className="dv-card">
@@ -205,7 +206,7 @@ export default function DivergencePanel() {
           </div>
         )}
 
-        <div className="dv-caveat">
+        <div className="sc-tilefoot">
           Names with split-like price jumps or close-versus-VWAP disagreements are filtered out
           before display.
         </div>
