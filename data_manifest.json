@@ -41,6 +41,7 @@
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
     "Trading Opportunities \u2192 scanner table \u2192 Last close, day % change, 52w high/low",
+    "Trading Scanner \u2192 Power Trend Momentum Scanner tile \u2192 last close / 1-day / since-list display columns (added 2026-07-16)",
     "Portfolio Insights \u2192 position rows (equity marks)",
     "Portfolio Insights \u2192 'Prices as of {date}' chip",
     "Portfolio Insights \u2192 watchlist table \u2192 price-derived columns for unscored names (price, change, volume, 52w range, EMA/SMA, realized-vol stats, RSI, % vs 200-day)",
@@ -2232,7 +2233,7 @@
    "schedule_et": "06:00 ET on the 1st of each month (schedule-normalization: monthly-on-the-1st slow-data slot)",
    "freshness_sla_hours": 768,
    "consumer_surfaces": [
-    "Trading Scanner -> Power Trend panel -> ranked list + as-of/next-rebalance line + freshness chip",
+    "Trading Scanner -> Power Trend Momentum Scanner tile -> ranked list (last close / 1-day / since-list columns are display enrichment read from prices_eod) + meta line + freshness chip",
     "Paper engine -> sleeve M targets (latest rebalance_date of power_trend_list)",
     "Paper page -> sleeve M holdings + rank column"
    ],
