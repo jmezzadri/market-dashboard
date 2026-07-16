@@ -334,13 +334,18 @@ export default function MethodologyPage() {
               a new 10-day high on volume more than 1.3 times its own 20-day average. Names passing all
               three are ranked by 3-month return; the sleeve owns at most the <b>top 15, equal-weight</b>.
               If fewer than 8 names pass, the sleeve does not concentrate further — the unfilled slots
-              stay in cash.
+              stay in cash. One daily risk check runs between the monthly refreshes: a held name that
+              closes below all four of its moving averages — the same four the entry test requires it
+              to be above — is <b>sold that day</b>, and the cash rests until the next monthly list. In the
+              2020–2026 simulation this exit cut the worst peak-to-trough loss from about 40% to about
+              30%, at the cost of a few points of annual return.
             </p>
             <div className="me-formula">
               trend    = price above the 10/21/50/200-day averages · 3-mo return in the top 20% of the universe<br />
               strength = 3-mo return at least 5 points above the S&amp;P 500&rsquo;s<br />
               trigger  = new 10-day closing high on volume above 1.3&times; the 20-day average<br />
-              own      = top 15 by 3-mo return, equal-weight · fewer than 8 fire → the rest stays in cash
+              own      = top 15 by 3-mo return, equal-weight · fewer than 8 fire → the rest stays in cash<br />
+              exit     = a held name closing below all four averages is sold that day · cash rests until the next list
             </div>
             <p className="me-body-p">
               <b>The evidence, stated honestly.</b> In a 2020–2026 portfolio simulation with the 8-name
@@ -400,7 +405,7 @@ export default function MethodologyPage() {
               list publish: it buys the current list <b>equal-weight — $500K divided by the number of
               names, at most 15</b> — sells what dropped off, and keeps a name into the next month only
               if it passes all three tests again. When fewer than 8 names qualify, the unfilled slots
-              rest in cash rather than concentrating the sleeve.
+              rest in cash rather than concentrating the sleeve. Between publishes a daily stop watches every held name: a close below all four moving averages sells it that day, and the proceeds wait in cash for the next monthly list.
             </p>
             <p className="me-body-p">
               Both sleeves share the account's order path: trades queue after the morning signal run and

@@ -1546,7 +1546,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               code: 'M', n: 2, name: 'Momentum', value: split.momValue,
               cash: split.momCash, positions: sleeveM, last: momLast,
               day$: dayM, valueField: 'sleeve_m_value', alloc: momCap,
-              infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st.',
+              infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
             },
           ].map((s) => (
             <div key={s.code} className="pp-col">
