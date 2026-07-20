@@ -43,14 +43,6 @@ export const SCORE_COMPONENTS = [
   },
 ];
 
-/* Dark-pool + options were SHELVED from the score on 2026-07-07 (unvalidated —
-   see the rebuild note above). They still arrive on the scan row and surface as
-   informational context, never summed into the headline score. */
-export const CONTEXT_SIGNALS = [
-  { key: 'Options shock', why: 'Unusual options-volume shock (informational, not scored)', fields: ['options_pts'] },
-  { key: 'Dark pool',     why: 'Block prints anchored near VWAP (informational, not scored)', fields: ['dark_pool_pts'] },
-];
-
 /* Sum the raw point fields for one component on a scan row. Missing fields
    count as 0, so the four component totals always sum to the row score. */
 export function componentPoints(row, comp) {

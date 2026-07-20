@@ -147,7 +147,7 @@ export default function ScannerPage() {
 
   const universeTotal = bandCounts.total || rows.length || 0;
 
-  // Plain-English copy for the four scoring inputs (kept verbatim from the
+  // Plain-English copy for the scoring inputs (kept verbatim from the
   // approved scanner copy).
   const BUILD_COPY = {
     'Insider': {
@@ -157,14 +157,6 @@ export default function ScannerPage() {
     'Technicals': {
       max: '+1 / −2',
       rule: '+1 when it trades above its 200-day line, −2 below; a further −2 if the 14-day RSI is overbought (above 65).',
-    },
-    'Options shock': {
-      max: '+4',
-      rule: 'An unusual surge in call buying versus the contract’s own prior open interest.',
-    },
-    'Dark pool': {
-      max: '+2',
-      rule: 'Large off-exchange block prints clustered near the day’s average price.',
     },
   };
 

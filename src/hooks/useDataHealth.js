@@ -11,7 +11,7 @@
 // 1. The Admin landing tile, the UW page, the Massive page, and the
 //    Data Health page all need the same underlying rows. Querying once
 //    saves three round-trips on the admin home.
-// 2. Canonical vendor names ("Polygon Massive", "Unusual Whales", "FRED"
+// 2. Canonical vendor names ("Polygon Massive", "SEC EDGAR", "FRED"
 //    ...) come from a single mapping table here so the three surfaces
 //    can't disagree on labelling.
 // 3. The rollup math (per-vendor feed counts, per-vendor green vs red,
@@ -43,7 +43,6 @@ function notify() { listeners.forEach((fn) => fn()); }
 // roll those up into the canonical vendor names that match data_vendors.md.
 const VENDOR_RULES = [
   { test: (s) => /^massive$/i.test(s),              vendor: "Polygon Massive" },
-  { test: (s) => /^Unusual Whales\b/i.test(s),      vendor: "Unusual Whales" },
   { test: (s) => /^Treasury\.gov\b/i.test(s),       vendor: "U.S. Treasury" },
   { test: (s) => /^FRED\b/i.test(s),                vendor: "FRED" },
   { test: (s) => /^Yahoo\b/i.test(s),               vendor: "Yahoo Finance" },
@@ -73,8 +72,8 @@ export function canonicalVendor(source) {
 export const VENDOR_BLAST_RADIUS = {
   "Polygon Massive":
     "End-of-day prices for all 12,600 US-listed tickers, ticker names + sectors, dividends, splits. Powers Trading Opps screener, Portfolio Insights position marks, sector performance.",
-  "Unusual Whales":
-    "Options flow, insider buys, congress trades, analyst ratings, screener universe. Powers the v5 scanner, the Trading Opps composites, the Portfolio Insights option marks.",
+  "SEC EDGAR":
+    "Form 4/4A/5/5A insider filings, parsed nightly straight from the SEC. Powers the scanner's insider score and the Ticker page insider evidence.",
   "FRED":
     "25+ macro series (HY/IG spreads, claims, M2, balance sheet, term premium, RRP, SLOOS). Powers Macro Overview indicators and indicator drilldowns. Treasury yields + TIPS were migrated to Treasury.gov 2026-05-27 for same-day publication.",
   "U.S. Treasury":
@@ -110,7 +109,7 @@ export const VENDOR_BLAST_RADIUS = {
 // rollups that have no separate cost line item.
 export const VENDOR_MONTHLY_COST = {
   "Polygon Massive":         "$79",
-  "Unusual Whales":          "$150",
+  "SEC EDGAR":               "Free",
   "FRED":                    "Free",
   "U.S. Treasury":           "Free",
   "Yahoo Finance":           "Free",
@@ -123,7 +122,7 @@ export const VENDOR_MONTHLY_COST = {
   "ZeroHedge":               "$0 (cookie scrape)",
   "State Street SPDR":       "Free",
   "GitHub public roster":    "Free",
-  "Nasdaq / FINRA":          "Free (via UW)",
+  "Nasdaq / FINRA":          "Free (direct)",
   "MacroTilt in-house":      "—",
 };
 

@@ -6,7 +6,7 @@
 
    Data sources:
    - useTickerEvents       → insider / dark pool / news events (3x/weekday
-                             from Unusual Whales firehoses)
+                             event streams)
    - useUniverseSnapshot   → close, prev_close, high, low, 52w hi/lo,
                              avg vol, marketcap, IV rank, IV30d, implied
                              moves, call/put volume + premium, put/call
@@ -19,7 +19,6 @@
                              insider buy count + buy dollars (signal_intel_v5)
    - useTickerDeepDive     → ticker_reference (exchange, country, etc.),
                              recent dividends, recent splits
-   - useEarningsHistory    → last 4 quarters EPS estimate/actual/surprise
    - useMassiveTickerInfo  → full name from Polygon
    - useTradingOppsTop     → scanner row for price/score/signal/sector
 
@@ -54,7 +53,6 @@ import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
 import useV5ScanBatch from '../../hooks/useV5ScanBatch';
 import useEdgarInsider from '../../hooks/useEdgarInsider';
-import { useEarningsHistory } from '../../hooks/useEarningsHistory';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
 import { buildScanBreakdown } from '../lib/scoreWeights';
@@ -72,8 +70,6 @@ function readingForScan(key, r) {
     const trend = pct == null ? '—' : `${pct >= 0 ? 'above' : 'below'} 200-day by ${Math.abs(pct).toFixed(1)}%`;
     return `${trend}${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`;
   }
-  if (key === 'Options shock') return r.options_vol_shock != null ? `Vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : 'No options shock';
-  if (key === 'Dark pool') return r.dark_pool_anchor != null ? `Anchor $${Number(r.dark_pool_anchor).toFixed(2)}` : 'No anchor print';
   return '—';
 }
 
@@ -132,8 +128,6 @@ const BENCH_LABEL = Object.fromEntries(OVERLAY_UNIVERSE.flatMap(([, items]) => i
    it's an always-visible section, not a per-source feed. */
 /* Insider lives inside the score card now — not duplicated here. */
 const TABS = [
-  ['options', 'Options flow'],
-  ['dark',    'Dark pool'],
   ['short',   'Short interest'],
   ['news',    'News'],
   ['fund',    'Fundamentals'],
@@ -217,7 +211,7 @@ const INSIDER_RULES = {
   C: 'Three or more different insiders bought on the open market within the 30-day window.',
 };
 /* Positive ceiling each component can contribute — used only to size its bar. */
-const SCORE_CAPS = { Insider: 4, Technicals: 1, 'Options shock': 4, 'Dark pool': 2 };
+const SCORE_CAPS = { Insider: 4, Technicals: 1 };
 
 /* The engine fades insider points for age: full weight through day 15, then a
    straight line down to zero at day 31. Returns the share of full weight left. */
@@ -276,7 +270,6 @@ export default function TickerPage() {
   const tech = useTickerTechnicalsLive(sym);
   const deep = useTickerDeepDive(sym);
   const v5Map = useV5ScanBatch([sym]);
-  const earnings = useEarningsHistory(sym);
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
   const positioning = useTickerPositioning(sym);
@@ -429,10 +422,6 @@ export default function TickerPage() {
      EDGAR table directly (2026-07-20 UW cutover) — the same table the scanner
      scores from, so evidence and score can never disagree. */
   const insiderEvents = useEdgarInsider(sym, 90);
-  const darkEvents = useMemo(
-    () => [...(eventsForSym.darkpool || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
-    [eventsForSym.darkpool],
-  );
   const newsEvents = useMemo(
     () => [...(eventsForSym.news || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
     [eventsForSym.news],
@@ -720,16 +709,14 @@ export default function TickerPage() {
               className={`mt-pill ${tab === id ? 'on' : ''}`}
               onClick={() => setTab(id)}
             >
-              {l}{badgeForTab(id, eventsForBadge, earnings)}
+              {l}{badgeForTab(id, eventsForBadge)}
             </button>
           ))}
         </div>
 
-        {tab === 'options' && <OptionsTab snap={snap} scanRow={scanRow} flow={positioning.flow} />}
-        {tab === 'dark'    && <DarkPoolTab events={darkEvents} />}
         {tab === 'short'   && <ShortInterestTab pos={positioning} />}
         {tab === 'news'    && <NewsTab items={mergedNews} loading={liveNews.loading} />}
-        {tab === 'fund'    && <FundamentalsTab earnings={earnings} deep={deep} snap={snap} />}
+        {tab === 'fund'    && <FundamentalsTab deep={deep} />}
       </Reveal>
 
       {/* Related names */}
@@ -773,12 +760,9 @@ export default function TickerPage() {
 
 /* ---------- helpers ---------- */
 
-function badgeForTab(id, events, earnings) {
+function badgeForTab(id, events) {
   const ct =
-    id === 'insider' ? events.insider?.length :
-    id === 'dark'    ? events.darkpool?.length :
     id === 'news'    ? events.news?.length :
-    id === 'fund'    ? earnings.quarters?.length :
     null;
   if (ct == null || ct === 0) return null;
   return <span className="sc-colcount num"> {ct}</span>;
@@ -808,167 +792,10 @@ function TechCell({ label, value, tip }) {
   );
 }
 
-/* ---------- Insider tab ---------- */
-
-function InsiderTab({ events }) {
-  if (!events.length) {
-    return (
-      <article className="mt-card mt-fade">
-        <div className="tk-tabhead">
-          <div className="mt-eyebrow">Recent insider activity · 90d</div>
-        </div>
-        <div className="tk-empty">
-          No insider Form-4 activity reported in the last 90 days.
-        </div>
-      </article>
-    );
-  }
-  return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">Recent insider activity · 90d · {events.length} filings</div>
-      </div>
-      <div className="tk-tablewrap">
-        <table className="tk-evttable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Insider</th>
-              <th>Role</th>
-              <th>Action</th>
-              <th className="num">Shares</th>
-              <th className="num">Price</th>
-              <th className="num">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.slice(0, 50).map((r) => {
-              const p = r.payload || {};
-              const act = insiderActionLabel(p);
-              const role = insiderRoleLabel(p);
-              const shares = Number(p.amount) || null;
-              const value = Number(p.value) || (shares && p.price ? shares * Number(p.price) : null);
-              const isBuy = act.label === 'BUY';
-              return (
-                <tr key={`${r.event_ts}-${p.owner_name}-${shares}`}>
-                  <td className="num">{fmtDateShort(p.transaction_date || r.event_ts)}</td>
-                  <td>
-                    {p.owner_name || '—'}
-                    {p.is_10b5_1 && <Tip content="Rule 10b5-1 — automatic preset plan, not discretionary"><span className="tk-tag-soft">10b5-1</span></Tip>}
-                  </td>
-                  <td>{role}</td>
-                  <td><span className={`mt-tag ${act.cls}`}>{act.label}</span></td>
-                  <td className={`num ${isBuy ? 'up' : 'down'}`}>
-                    {shares != null ? (isBuy ? '+' : '−') + fmtVol(Math.abs(shares)) : '—'}
-                  </td>
-                  <td className="num">{p.price != null ? `$${fmt(p.price, 2)}` : '—'}</td>
-                  <td className={`num ${isBuy ? 'up' : 'down'}`}>
-                    {value != null ? fmt$(Math.abs(value), 0) : '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {events.length > 50 && (
-        <div className="tk-techfoot">Showing 50 of {events.length} filings.</div>
-      )}
-    </article>
-  );
-}
-
-/* ---------- Options tab ---------- */
-
-function OptionsTab({ snap, scanRow, flow }) {
-  // Snapshot covers large-caps only; for the scanner's discovery names fall back
-  // to the option fields stored on the scan row so the tab isn't all blanks.
-  const cpRatio = snap?.put_call_ratio ?? scanRow?.pc_ratio ?? null;
-  const ivRank = snap?.iv_rank ?? scanRow?.iv_rank ?? null;
-  const iv30 = snap?.iv30d != null ? fmtPctFraction(snap.iv30d)
-    : (scanRow?.iv != null ? `${Number(scanRow.iv).toFixed(1)}%` : '—');
-  const impMove = snap?.implied_move_perc_30 != null ? fmtPctFraction(snap.implied_move_perc_30)
-    : (scanRow?.implied_30d_pct != null ? `${Number(scanRow.implied_30d_pct).toFixed(1)}%` : '—');
-  return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">Options activity · latest snapshot</div>
-      </div>
-      <div className="tk-keygrid tk-keygrid--tight">
-        <KvCell label="Call vol"     value={fmtVol(snap?.call_volume)} />
-        <KvCell label="Put vol"      value={fmtVol(snap?.put_volume)} />
-        <KvCell label="C/P ratio"    value={cpRatio != null ? Number(cpRatio).toFixed(2) : '—'} />
-        <KvCell label="IV rank"      value={ivRank != null ? Math.round(ivRank) : '—'} />
-        <KvCell label="IV (30d)"     value={iv30} />
-        <KvCell label="Implied move 30d" value={impMove} />
-      </div>
-      <div className="tk-techstrip">
-        <div className="mt-eyebrow">Premium flow (latest)</div>
-        <div className="tk-techgrid">
-          <TechCell label="Call premium"   value={fmt$(snap?.call_premium, 0)} />
-          <TechCell label="Put premium"    value={fmt$(snap?.put_premium, 0)} />
-          <TechCell label="Net call $"     value={fmt$(snap?.net_call_premium, 0)} />
-          <TechCell label="Net put $"      value={fmt$(snap?.net_put_premium, 0)} />
-          <TechCell label="Bullish $"      value={fmt$(snap?.bullish_premium, 0)} />
-          <TechCell label="Bearish $"      value={fmt$(snap?.bearish_premium, 0)} />
-        </div>
-      </div>
-      <div className="tk-techstrip">
-        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          Flow alerts · trailing 30-day window
-          <FreshnessChip
-            elementId="equity-options_flow-daily"
-            variant="dot"
-            fallback={{ asOfIso: flow?.as_of_date }}
-          />
-        </div>
-        {flow ? (
-          <div className="tk-techgrid">
-            <TechCell label="Net call $" value={netFlow$(flow)} />
-            <TechCell
-              label="At the ask"
-              value={askShare(flow) != null ? `${Math.round(askShare(flow) * 100)}%` : '—'}
-              tip="Share of alert premium that printed at the ask — buyers paying up"
-            />
-            <TechCell label="Sweeps" value={flow.sweep_count ?? '—'} />
-            <TechCell label="Unusual" value={flow.unusual_count ?? '—'} />
-            <TechCell label="Call alerts" value={flow.call_count ?? '—'} />
-            <TechCell label="Put alerts" value={flow.put_count ?? '—'} />
-          </div>
-        ) : (
-          <div className="tk-emptyfoot">
-            No flow alerts for this name in the trailing 30 days — the alert
-            feed covers names with notable options activity, so quiet tickers
-            are legitimately absent.
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
-
-/* Net call premium + ask-side share off an options_flow_daily row. */
-function netFlow$(flow) {
-  const cp = Number(flow?.call_premium ?? NaN);
-  const pp = Number(flow?.put_premium ?? NaN);
-  if (!Number.isFinite(cp) || !Number.isFinite(pp)) return '—';
-  const n = cp - pp; const a = Math.abs(n); const s = n < 0 ? '-' : '';
-  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(0)}k`;
-  return `${s}$${a.toFixed(0)}`;
-}
-function askShare(flow) {
-  const ask = Number(flow?.ask_side_premium ?? NaN);
-  const bid = Number(flow?.bid_side_premium ?? NaN);
-  if (!Number.isFinite(ask) || !Number.isFinite(bid) || ask + bid <= 0) return null;
-  return ask / (ask + bid);
-}
-
 /* ---------- Short interest tab ---------- */
 
 function ShortInterestTab({ pos }) {
   const f = pos?.finra || null;
-  const d = pos?.daily || null;
   const pct1 = (v) => (v == null ? '—' : `${Number(v).toFixed(1)}%`);
   const ratioPct = (v) => (v == null ? '—' : `${(Number(v) * 100).toFixed(0)}%`);
   return (
@@ -979,7 +806,7 @@ function ShortInterestTab({ pos }) {
           <FreshnessChip
             elementId="equity-short_interest-daily"
             variant="dot"
-            fallback={{ asOfIso: d?.as_of_date || f?.as_of_date }}
+            fallback={{ asOfIso: f?.as_of_date }}
           />
         </div>
       </div>
@@ -995,80 +822,13 @@ function ShortInterestTab({ pos }) {
           value={f?.days_to_cover != null ? Number(f.days_to_cover).toFixed(1) : '—'}
           tip="Shares short ÷ average daily volume at the same settlement date"
         />
-        <KvCell
-          label="Short vol (daily)"
-          value={ratioPct(d?.short_volume_ratio)}
-          tip="Yesterday's short sale volume as a share of total volume (daily tape, not the FINRA settlement)"
-        />
-        <KvCell
-          label="Cost to borrow"
-          value={pct1(d?.cost_to_borrow_pct)}
-          tip="Annualized stock-borrow fee — elevated readings mark a hard-to-borrow, heavily-shorted name"
-        />
-        <KvCell label="Fails to deliver" value={fmtVol(d?.ftd_quantity)} />
       </div>
       <div className="tk-emptyfoot">
         {f
           ? `FINRA settlement as of ${fmtDateShort(f.as_of_date)}; bi-monthly with a reporting lag.`
           : 'No FINRA settlement row in the last 45 days for this name.'}
-        {d ? ` Daily short-volume tape as of ${fmtDateShort(d.as_of_date)}.` : ' No daily short-volume row in the last 7 days.'}
         {' '}Context only — short interest does not enter the MacroTilt Score.
       </div>
-    </article>
-  );
-}
-
-/* ---------- Dark pool tab ---------- */
-
-function DarkPoolTab({ events }) {
-  if (!events.length) {
-    return (
-      <article className="mt-card mt-fade">
-        <div className="tk-tabhead">
-          <div className="mt-eyebrow">Dark-pool prints · 90d</div>
-        </div>
-        <div className="tk-empty">
-          No off-exchange anchor prints detected at material size in the last 90 days.
-        </div>
-      </article>
-    );
-  }
-  return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">Dark-pool prints · 90d · {events.length} prints</div>
-      </div>
-      <div className="tk-tablewrap">
-        <table className="tk-evttable">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Exchange</th>
-              <th className="num">Price</th>
-              <th className="num">Size</th>
-              <th className="num">Notional</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.slice(0, 50).map((r) => {
-              const p = r.payload || {};
-              const notional = Number(p.premium) || (Number(p.price) && Number(p.size) ? Number(p.price) * Number(p.size) : null);
-              return (
-                <tr key={`${r.event_ts}-${p.price}-${p.size}`}>
-                  <td className="num">{fmtTimeAgo(p.executed_at || r.event_ts)}</td>
-                  <td>{p.exchange || '—'}</td>
-                  <td className="num">{p.price != null ? `$${fmt(p.price, 2)}` : '—'}</td>
-                  <td className="num">{fmtVol(p.size)}</td>
-                  <td className="num">{notional != null ? fmt$(notional, 0) : '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {events.length > 50 && (
-        <div className="tk-techfoot">Showing 50 of {events.length} prints.</div>
-      )}
     </article>
   );
 }
@@ -1174,8 +934,7 @@ function NewsTab({ items, loading }) {
 
 /* ---------- Fundamentals tab ---------- */
 
-function FundamentalsTab({ earnings, deep, snap }) {
-  const quarters = earnings.quarters || [];
+function FundamentalsTab({ deep }) {
   const dividends = deep.dividends || [];
   const splits = deep.splits || [];
 
@@ -1183,37 +942,6 @@ function FundamentalsTab({ earnings, deep, snap }) {
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
         <div className="mt-eyebrow">Fundamentals</div>
-      </div>
-
-      <div className="tk-fundheader">
-        <div>
-          <div className="mt-eyebrow">Last 4 quarters · EPS</div>
-          {quarters.length === 0 ? (
-            <div className="tk-empty">Earnings history not on file for this ticker.</div>
-          ) : (
-            <div className="tk-techgrid">
-              {quarters.map((q) => (
-                <div key={q.date} className="tk-techcell">
-                  <div className="mt-eyebrow">{fmtDateShort(q.date)}</div>
-                  <b className={`num ${q.beat ? 'up' : 'down'}`}>
-                    {q.actual != null ? `$${Number(q.actual).toFixed(2)}` : '—'}
-                  </b>
-                  <span className="tk-techsub num">
-                    est ${q.estimate != null ? Number(q.estimate).toFixed(2) : '—'}
-                    {q.surprisePct != null && (
-                      <> · {fmtPct(q.surprisePct, 1)}</>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div>
-          <div className="mt-eyebrow">Next earnings</div>
-          <b className="num">{snap?.next_earnings_date ? fmtDateShort(snap.next_earnings_date) : '—'}</b>
-          {snap?.er_time && <span className="tk-techsub num"> · {snap.er_time}</span>}
-        </div>
       </div>
 
       <div className="tk-fundsplit">
@@ -1269,8 +997,8 @@ function FundamentalsTab({ earnings, deep, snap }) {
 
       <div className="tk-emptyfoot">
         Revenue, margins, FCF, balance-sheet metrics require a full financial-statements
-        feed not yet wired. Earnings, dividends, splits, and next-ER date come from the
-        weekly earnings + Polygon corporate-actions pipelines.
+        feed not yet wired. Dividends and splits come from the Polygon
+        corporate-actions pipeline.
       </div>
     </article>
   );
@@ -1354,8 +1082,6 @@ function ScoreCard({ comp, scanRow, insiderEvents, open, onToggle }) {
         <div className="tk-scard-body">
           {comp.key === 'Insider'      && <InsiderDrill scanRow={scanRow} pts={pts} events={insiderEvents} />}
           {comp.key === 'Technicals'   && <TechnicalsDrill scanRow={scanRow} pts={pts} />}
-          {comp.key === 'Options shock' && <OptionsDrill scanRow={scanRow} pts={pts} />}
-          {comp.key === 'Dark pool'    && <DarkDrill scanRow={scanRow} pts={pts} />}
         </div>
       )}
     </div>
@@ -1434,42 +1160,6 @@ function TechnicalsDrill({ scanRow, pts }) {
         <span className="tk-drill-note"> a hot 14-day Wilder RSI subtracts 2</span>
       </div>
       <div className="tk-drill-total">Trend total → <b className="num">{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b></div>
-    </div>
-  );
-}
-
-function OptionsDrill({ scanRow, pts }) {
-  const shock = scanRow.options_vol_shock;
-  return (
-    <div className="tk-drill-math">
-      <div className="tk-drill-line">
-        Unusual options-volume shock versus the stock's own baseline:{' '}
-        {shock == null ? 'no qualifying flow detected' : `${Number(shock).toFixed(2)}× baseline`}
-        {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
-      </div>
-      <div className="tk-drill-note">
-        {pts > 0 ? '' : 'No qualifying unusual options flow right now. '}
-        Adds up to +4 when unusually heavy call buying shows up on moderately
-        out-of-the-money, near-dated contracts.
-      </div>
-    </div>
-  );
-}
-
-function DarkDrill({ scanRow, pts }) {
-  const anchor = scanRow.dark_pool_anchor;
-  return (
-    <div className="tk-drill-math">
-      <div className="tk-drill-line">
-        Large off-exchange block prints clustered near the day's average price:{' '}
-        {anchor == null ? 'none detected' : `anchored around $${fmt(anchor, 2)}`}
-        {' '}→ <b className={`num ${pts > 0 ? 'up' : 'is-zero'}`}>{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b>.
-      </div>
-      <div className="tk-drill-note">
-        {pts > 0 ? '' : 'No qualifying block prints near the average price right now. '}
-        Adds up to +2 when big institutional prints stack within ~1.5% of the
-        volume-weighted average price over a 72-hour window.
-      </div>
     </div>
   );
 }

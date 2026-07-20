@@ -43,6 +43,10 @@ RETIRED_FEEDS = {
     # guard were retired end-to-end; power_trend_list is the registered successor.
     "momentum_guard",
     "momentum_list",
+    # UW teardown (2026-07-20): options-flow / dark-pool / options-EOD ingests
+    # deleted (zero consumer surfaces since 2026-07-08).
+    "equity-options_flow-daily",
+    "options_chain",
 }
 # narrative_macro / narrative_sector are deliberately NOT in RETIRED_FEEDS:
 # the pipeline-health-check edge function still stamps those synthetic rows

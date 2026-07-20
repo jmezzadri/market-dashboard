@@ -3,7 +3,7 @@
 // UW ticker_events insider stream produced ({event_ts, payload:{...}}), so
 // InsiderDrill and any other consumer render unchanged.
 //
-// 2026-07-20 cutover: this replaces the Unusual Whales insider event stream
+// 2026-07-20 cutover: this replaces the legacy vendor insider event stream
 // as the Ticker page's insider evidence source. The scanner reads the same
 // table, so the drill's evidence list and the score can never disagree on
 // which filings exist.

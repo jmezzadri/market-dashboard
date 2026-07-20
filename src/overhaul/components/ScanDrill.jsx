@@ -37,16 +37,6 @@ function readingFor(key, row) {
     const rsi = row.rsi != null ? ` · RSI ${row.rsi.toFixed(0)}` : '';
     return `${trend}${rsi}`;
   }
-  if (key === 'Options shock') {
-    return row.options_vol_shock != null
-      ? `Vol shock ${Number(row.options_vol_shock).toFixed(2)}×`
-      : 'No options shock';
-  }
-  if (key === 'Dark pool') {
-    return row.dark_pool_anchor != null
-      ? `Anchor $${Number(row.dark_pool_anchor).toFixed(2)}`
-      : 'No anchor print';
-  }
   return '—';
 }
 
@@ -87,8 +77,6 @@ function PositioningContext({ row }) {
           </div>
           {kv('% of shares out', dash(row.si_float_pct, (v) => `${v.toFixed(1)}%`))}
           {kv('Days to cover', dash(row.si_days_to_cover, (v) => v.toFixed(1)))}
-          {kv('Short vol (daily)', dash(row.si_short_vol_ratio, (v) => `${(v * 100).toFixed(0)}%`))}
-          {kv('Cost to borrow', dash(row.si_cost_to_borrow_pct, (v) => `${v.toFixed(1)}%`))}
         </div>
       </div>
     </div>
