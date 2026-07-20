@@ -1395,7 +1395,10 @@ function PerfChartPanel({ rows, benchHistory, insCap, momCap, live }) {
         ))}
       </div>
       <div ref={wrapRef} style={{ position: 'relative', padding: '0 20px 16px' }}>
-        <svg width="100%" height={H} viewBox={`0 0 ${w} ${H}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{ display: 'block' }}>
+        {/* width={w} (not 100%): the svg's pixel width must equal its viewBox
+            width, or preserveAspectRatio letterboxes the drawing with blank
+            side margins and the hover x-math goes off by the margin. */}
+        <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{ display: 'block' }}>
           {ticks.map((t) => (
             <g key={t}>
               <line x1={padL} x2={w - padR} y1={Y(t)} y2={Y(t)} stroke="var(--line-0, #e6e2d8)" strokeWidth={t === 100 ? 0 : 1} />
