@@ -2,7 +2,9 @@
 
 Last updated: 2026-06-16. Owner: Data Steward.
 
-This is the cost + blast-radius ledger for every external data source that feeds the live site. Twelve vendors total (all additions since the count was last written are free). Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
+This is the cost + blast-radius ledger for every external data source AND paid infrastructure service that feeds the live site. Run-rate as of 2026-07-20 (verified against receipts in the 2026-07-08 cost sweep, which found this file understating true cost): approximately **$275/month (~$3,300/year) excluding the Claude subscription**; ~$525/month (~$6,300/year) including it. Prior versions of this file listed Unusual Whales at $150/YEAR — the receipt says **$150/MONTH** — and omitted Supabase and Vercel entirely.
+
+**2026-07-20 update — Unusual Whales replacement in flight.** UW renews 2026-08-13 (paid through 08-12) and is being replaced, not just cancelled: a free SEC EDGAR Form 4 ingest (`scanner-insider_edgar-daily.yml` -> `insider_history_edgar`) is live in shadow, with a full reconciliation + scanner-score parity gate (Senior Quant) required before cutover. Killing UW takes the run-rate down ~$1,800/yr.
 
 **2026-05-27 update — Treasury.gov added.** Daily Treasury par yields and TIPS real yields were migrated from FRED to Treasury.gov (the upstream publisher) for same-day publication. FRED publishes these series ~20:00 UTC, after our morning workflow; Treasury.gov posts the same data ~16:00 ET, captured by our afternoon workflow. Three indicators moved: `yield_curve` (10Y-2Y slope), `real_rates` (10Y TIPS), and `breakeven_10y` (computed). FRED stays primary for the rest of the macro series.
 
@@ -77,7 +79,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ## 5. Unusual Whales
 
-- **Monthly cost:** ~$12.50/month ($150/year UW API tier, kept per 2026-04-22 audit). The $63/month UW Retail Pro tier ($756/year) was **cancelled** on 2026-04-22. The Phase 1 dark-pool and per-contract options feeds added 2026-05-20 for the rebuilt Trading Opportunities screener are exposed on this same $150/year API tier — no upgrade cost (verified per Decision 2 of the Trading Opportunities overhaul).
+- **Monthly cost:** **$150/month ($1,800/year)** — verified from the 2026-04-13 signup receipt ('month, $150.00'). (This line previously said $150/YEAR — wrong by 12x.) Renews 2026-08-13; paid through 2026-08-12; being replaced by SEC EDGAR before the lapse. The $63/month UW Retail Pro tier ($756/year) was **cancelled** on 2026-04-22. The Phase 1 dark-pool and per-contract options feeds added 2026-05-20 for the rebuilt Trading Opportunities screener are exposed on this same $150/year API tier — no upgrade cost (verified per Decision 2 of the Trading Opportunities overhaul).
 - **License tier:** Paid API. Key `UNUSUAL_WHALES_API_KEY` in workflow secrets. Per the 2026-05-09 insider backfill memo, the API tier does NOT honor ticker filters — bulk endpoints stream global and we filter client-side.
 - **What it powers (manifest elements):**
   - `scanner.v5-scan-composite` — MT Score + Band per ticker (the trading scanner output)
@@ -195,6 +197,25 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
+## 13. SEC EDGAR (free — Unusual Whales insider replacement)
+
+- **Monthly cost:** $0 (public SEC data; descriptive User-Agent required, ~8 req/s ceiling observed)
+- **What it powers (manifest elements):** `scanner.insider-history-edgar` — Form 4/4A/5/5A ownership filings -> `insider_history_edgar` (shadow until cutover; becomes the scanner's insider input when the parity gate passes)
+- **Alternatives evaluated:** Unusual Whales (being retired, $1,800/yr); institutional feeds at $12k+/yr. EDGAR is the primary source both re-distribute.
+- **Contract end date:** None (public data).
+- **Removal blast radius (post-cutover):** same as the UW insider element it replaces — Insider sub-score, 'Insider buys' chip, Ticker Detail Insider tab.
+
+---
+
+## Infrastructure (not data vendors, but real monthly cost — previously missing from this file)
+
+- **Supabase Pro — $25/month.** The database behind the entire site (2.5 GB; 5x over the 500 MB free cap — cannot downgrade). Settled decision 2026-07: stays.
+- **Vercel Pro — $20/month.** Hosting + build pipeline for macrotilt.com. Settled decision 2026-07: stays ($20/mo is cheap insurance vs Hobby's commercial-use restrictions).
+- **Porkbun — ~$12/year.** The macrotilt.com domain.
+- **Anthropic API — de minimis.** Pay-as-you-go key for the daily market-brief writer.
+
+---
+
 ## Monthly run-rate summary
 
 | Vendor | Monthly cost | Status |
@@ -202,7 +223,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 | FRED | $0 | Active |
 | Yahoo Finance | $0 | Active |
 | Polygon Massive | ~$29-79 (Basic tier — exact tier unverified) | Active |
-| Unusual Whales API | ~$12.50 ($150/year) | Active |
+| Unusual Whales API | $150 (renews 8/13 — replacement in flight) | Active until 2026-08-12 |
 | Unusual Whales Retail Pro | $0 (cancelled 2026-04-22) | Cancelled |
 | Nasdaq/FINRA | $0 | Active |
 | ISM scrape | $0 | Active |
@@ -212,6 +233,11 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 | Numerco / Yellow Cake (uranium spot) | $0 | Active |
 | IndexMundi (uranium history) | $0 | One-time seed |
 | TradingView (embedded chart) | $0 | Active |
+| SEC EDGAR (Form 4 insider) | $0 | Shadow (cutover pending parity gate) |
+| Supabase Pro (database) | $25 | Active — infrastructure |
+| Vercel Pro (hosting) | $20 | Active — infrastructure |
+| Porkbun (domain) | ~$1 | Active — infrastructure |
+| Anthropic API (brief writer) | ~$0 (de minimis) | Active — infrastructure |
 | **Total active run-rate** | **~$71-121/month** | (~$852-1,452/year) |
 
 Plus Anthropic API at ~$125/month per Joe's auto-memory (separate line — used for site infra, not a data vendor). Including Anthropic, true MacroTilt data + infra run-rate is approximately **~$196-246/month** (~$2,352-2,952/year), comfortably under the $5,052 pre-audit baseline.
