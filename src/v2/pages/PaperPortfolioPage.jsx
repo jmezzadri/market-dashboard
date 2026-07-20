@@ -329,6 +329,23 @@ const PAGE_CSS = `
 }
 
 /* Section panels below the hero — same look as the rest of the v2 pages. */
+/* ── Performance chart panel (2026-07-20) ── */
+.pp-perfchart .paper-panel-head { align-items: flex-start; }
+.pp-pc-wins { display: inline-flex; gap: 4px; background: var(--surface-1, #f3efe7); border: 1px solid var(--line-0, #e6e2d8); border-radius: 999px; padding: 3px; }
+.pp-pc-win { border: none; background: transparent; font: inherit; font-size: 12px; color: var(--ink-2, #6b675e); padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.pp-pc-win.on { background: var(--surface-0, #fff); color: var(--ink-0, #111927); box-shadow: 0 1px 2px rgba(0,0,0,0.06); font-weight: 600; }
+.pp-pc-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 12px; }
+.pp-pc-tog { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-0, #e6e2d8); background: transparent; border-radius: 999px; font: inherit; font-size: 11.5px; color: var(--ink-3, #8a8578); padding: 4px 11px; cursor: pointer; }
+.pp-pc-tog.on { color: var(--ink-0, #111927); background: var(--surface-1, #f7f4ec); border-color: var(--line-1, #d8d3c6); }
+.pp-pc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.pp-pc-tip { position: absolute; top: 8px; background: var(--surface-0, #fff); border: 1px solid var(--line-1, #d8d3c6); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.10); pointer-events: none; min-width: 178px; z-index: 5; }
+.pp-pc-tipdate { color: var(--ink-2, #6b675e); font-weight: 600; margin-bottom: 4px; }
+.pp-pc-tiprow { display: flex; align-items: center; gap: 6px; padding: 1.5px 0; color: var(--ink-1, #3d3a33); }
+.pp-pc-tiprow b { margin-left: auto; font-weight: 600; }
+.pp-pc-tiprow b.up { color: ${UP_COLOR}; }
+.pp-pc-tiprow b.down { color: ${DOWN_COLOR}; }
+@media (max-width: 640px) { .pp-perfchart .paper-panel-head { flex-direction: column; gap: 10px; } }
+
 .paper-panel {
   background: var(--bg-1);
   border: 1px solid var(--line-1);
@@ -621,6 +638,13 @@ function BookCard({ navHistory, benchHistory = {}, live = false, asOfIso = null,
     // "Start" for a benchmark = its return since the BOOK's inception date
     // (close on/nearest-before that date). Em-dash while the book has no rows.
     bm.si = inception ? returnSinceDate(s, inception) : null;
+    // Same-window discipline (Joe 2026-07-20): the book's "YTD" is really
+    // since-inception while the book is younger than the calendar year, so the
+    // benchmark's YTD must measure from the SAME date — comparing a 3-day-old
+    // book against the S&P's calendar-year run produced a fictional "-10.7%
+    // YTD excess". Windows must be identical or the excess line is meaningless.
+    const curYear = new Date().getFullYear();
+    if (inception && Number(String(inception).slice(0, 4)) >= curYear) bm.ytd = bm.si;
     if (live && latest && latest[`${k}_close`] && latest[`${k}_prev_close`]) {
       bm.day = Number(latest[`${k}_close`]) / Number(latest[`${k}_prev_close`]) - 1;
     }
@@ -1237,6 +1261,173 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
+
+/* ── PerfChartPanel — indexed growth chart: book + sleeves vs benchmarks ────
+   Joe 2026-07-20: "show a chart so I can see how the portfolio is performing
+   over time relative to benchmarks — each sleeve, overall, timeframes,
+   different benchmarks." Every visible series is indexed to 100 at the start
+   of the selected window, so magnitudes are directly comparable on one axis
+   (BigHistoryChart normalizes compares to their own range — right for shape
+   overlays, wrong for performance comparison — hence this dedicated chart).
+   Window math mirrors BookCard/windowReturns: sessions not calendar days;
+   "Start" indexes the book at its capital base ($1M / $500K sleeves) so
+   day-one losses are visible, and benchmarks from their close on/nearest-
+   before inception (same anchor as the matrix's Start column). */
+const PERF_SERIES = [
+  { k: 'total', label: 'Total book',        color: 'var(--ink-0, #111927)', width: 2.2, dash: null },
+  { k: 'ins',   label: 'Insider Conviction', color: '#a07e2e', width: 1.6, dash: null },
+  { k: 'mom',   label: 'Momentum',           color: '#3e7a44', width: 1.6, dash: null },
+  { k: 'spy',   label: 'S&P 500',            color: '#8a8578', width: 1.4, dash: '5 4' },
+  { k: 'qqq',   label: 'NASDAQ 100',         color: '#5e7d9a', width: 1.4, dash: '5 4' },
+  { k: 'dia',   label: 'Dow 30',             color: '#9a6a5e', width: 1.4, dash: '5 4' },
+  { k: 'iwm',   label: 'Russell 2000',       color: '#7d6f9a', width: 1.4, dash: '5 4' },
+];
+const PERF_WINDOWS = [['1W', 5], ['1M', 21], ['3M', 63], ['Start', Infinity]];
+
+function benchAtOrBefore(series, dateIso) {
+  if (!series || !series.length || !dateIso) return null;
+  let v = null;
+  for (let i = 0; i < series.length; i++) {
+    if (series[i].d <= dateIso) v = series[i].v; else break;
+  }
+  return v;
+}
+
+function PerfChartPanel({ rows, benchHistory, insCap, momCap, live }) {
+  const [win, setWin] = useState('Start');
+  const [on, setOn] = useState({ total: true, ins: true, mom: true, spy: true, qqq: false, dia: false, iwm: false });
+  const wrapRef = useRef(null);
+  const [w, setW] = useState(860);
+  const [hover, setHover] = useState(null);
+  useEffect(() => {
+    if (!wrapRef.current) return undefined;
+    const ro = new ResizeObserver((es) => { for (const e of es) setW(Math.max(320, Math.round(e.contentRect.width))); });
+    ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Raw dollar value per series per book row (skip rows with no value).
+  const bookRows = useMemo(() => (rows || []).filter((r) => r.total_nav != null).map((r) => ({
+    d: String(r.snapshot_date).slice(0, 10),
+    total: Number(r.total_nav),
+    ins: r.sleeve_b_nav != null ? Number(r.sleeve_b_nav)
+      : (r.sleeve_b_equity != null ? Number(r.sleeve_b_equity) + Number(r.sleeve_b_cash ?? 0) : null),
+    mom: r.sleeve_m_nav != null ? Number(r.sleeve_m_nav)
+      : (r.sleeve_m_value != null ? Number(r.sleeve_m_value) + Number(r.sleeve_m_cash ?? 0) : null),
+  })), [rows]);
+
+  const model = useMemo(() => {
+    if (!bookRows.length) return null;
+    const nSess = PERF_WINDOWS.find(([l]) => l === win)?.[1] ?? Infinity;
+    const visRows = Number.isFinite(nSess) ? bookRows.slice(-(nSess + 1)) : bookRows;
+    const isStart = !Number.isFinite(nSess) || visRows.length === bookRows.length;
+    const inception = bookRows[0].d;
+    // Per-series base: capital allocations for the Start window (so the first
+    // session's P&L shows); first in-window value otherwise.
+    const base = {};
+    const first = visRows[0];
+    base.total = isStart ? STARTING_CAPITAL : first.total;
+    base.ins = isStart ? (insCap || null) : first.ins;
+    base.mom = isStart ? (momCap || null) : first.mom;
+    const anchorDate = isStart ? inception : first.d;
+    ['spy', 'qqq', 'dia', 'iwm'].forEach((k) => { base[k] = benchAtOrBefore(benchHistory?.[k], anchorDate); });
+    // Points: optional synthetic index-100 origin for Start, then one point
+    // per book session. x = session index (calendar gaps are not sessions).
+    const pts = [];
+    if (isStart) pts.push({ d: inception, label: 'Inception', vals: Object.fromEntries(PERF_SERIES.map(({ k }) => [k, 100])) });
+    visRows.forEach((r) => {
+      const vals = {};
+      PERF_SERIES.forEach(({ k }) => {
+        let raw = null;
+        if (k === 'total' || k === 'ins' || k === 'mom') raw = r[k];
+        else raw = benchAtOrBefore(benchHistory?.[k], r.d);
+        vals[k] = (raw != null && base[k]) ? (raw / base[k]) * 100 : null;
+      });
+      pts.push({ d: r.d, label: fmtDate(r.d), vals });
+    });
+    return { pts, isStart, inception };
+  }, [bookRows, benchHistory, win, insCap, momCap]);
+
+  if (!model || model.pts.length < 2) return null;
+  const { pts } = model;
+  const active = PERF_SERIES.filter(({ k }) => on[k] && pts.some((p) => p.vals[k] != null));
+  const H = 280; const padL = 46; const padR = 14; const padT = 14; const padB = 26;
+  const iw = Math.max(1, w - padL - padR); const ih = H - padT - padB;
+  const allVals = active.flatMap(({ k }) => pts.map((p) => p.vals[k]).filter((v) => v != null));
+  const lo = Math.min(...allVals, 100); const hi = Math.max(...allVals, 100);
+  const pad = Math.max((hi - lo) * 0.12, 0.4);
+  const y0 = lo - pad; const y1 = hi + pad;
+  const X = (i) => padL + (pts.length === 1 ? 0 : (i / (pts.length - 1)) * iw);
+  const Y = (v) => padT + (1 - (v - y0) / (y1 - y0)) * ih;
+  const ticks = [];
+  { const span = y1 - y0; const step = span > 12 ? 5 : span > 6 ? 2 : span > 2.4 ? 1 : 0.5;
+    for (let t = Math.ceil(y0 / step) * step; t <= y1; t += step) ticks.push(Number(t.toFixed(2))); }
+  const pathFor = (k) => pts.map((p, i) => (p.vals[k] == null ? null : `${X(i).toFixed(1)},${Y(p.vals[k]).toFixed(1)}`))
+    .reduce((acc, xy) => (xy == null ? acc : acc + (acc.endsWith('L') || acc === '' ? `${acc ? '' : 'M'}${xy}` : ` L${xy}`)), '');
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - r.left;
+    const i = Math.round(((px - padL) / iw) * (pts.length - 1));
+    setHover(Math.max(0, Math.min(pts.length - 1, i)));
+  };
+  const hp = hover != null ? pts[hover] : null;
+
+  return (
+    <div className="paper-panel pp-perfchart">
+      <div className="paper-panel-head">
+        <div>
+          <h2 className="paper-panel-title">
+            Performance <InfoTip term="Performance" def="Growth of every series indexed to 100 at the start of the selected window, so the book, each sleeve, and the benchmarks are directly comparable. The book indexes from its $1M start (sleeves from their $500K allocations); benchmarks from their close on the same date." size={12} />
+          </h2>
+          <div className="paper-panel-sub">Indexed to 100 at {win === 'Start' ? `inception (${fmtDate(model.inception)})` : `the start of the ${win} window`} · close-to-close{live ? ' · latest point is today, live' : ''}</div>
+        </div>
+        <div className="pp-pc-wins" role="tablist" aria-label="Timeframe">
+          {PERF_WINDOWS.map(([l]) => (
+            <button key={l} type="button" role="tab" aria-selected={win === l} className={`pp-pc-win${win === l ? ' on' : ''}`} onClick={() => setWin(l)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div className="pp-pc-legend">
+        {PERF_SERIES.map(({ k, label, color }) => (
+          <button key={k} type="button" className={`pp-pc-tog${on[k] ? ' on' : ''}`} aria-pressed={on[k]} onClick={() => setOn((o) => ({ ...o, [k]: !o[k] }))}>
+            <span className="pp-pc-dot" style={{ background: on[k] ? color : 'var(--ink-3, #9aa)' }} />{label}
+          </button>
+        ))}
+      </div>
+      <div ref={wrapRef} style={{ position: 'relative', padding: '0 20px 16px' }}>
+        <svg width="100%" height={H} viewBox={`0 0 ${w} ${H}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{ display: 'block' }}>
+          {ticks.map((t) => (
+            <g key={t}>
+              <line x1={padL} x2={w - padR} y1={Y(t)} y2={Y(t)} stroke="var(--line-0, #e6e2d8)" strokeWidth={t === 100 ? 0 : 1} />
+              <text x={padL - 8} y={Y(t) + 3.5} textAnchor="end" fontSize="10.5" fill="var(--ink-3, #8a8578)">{`${t - 100 > 0 ? '+' : ''}${(t - 100).toFixed(Math.abs(t - 100) < 1 && t !== 100 ? 1 : 0)}%`}</text>
+            </g>
+          ))}
+          <line x1={padL} x2={w - padR} y1={Y(100)} y2={Y(100)} stroke="var(--ink-3, #8a8578)" strokeWidth="1" strokeDasharray="2 3" />
+          {active.map(({ k, color, width, dash }) => (
+            <path key={k} d={pathFor(k)} fill="none" stroke={color} strokeWidth={width} strokeDasharray={dash || undefined} strokeLinejoin="round" strokeLinecap="round" />
+          ))}
+          {hp && <line x1={X(hover)} x2={X(hover)} y1={padT} y2={H - padB} stroke="var(--ink-3, #8a8578)" strokeWidth="1" strokeDasharray="2 2" />}
+          {hp && active.map(({ k, color }) => (hp.vals[k] == null ? null : <circle key={k} cx={X(hover)} cy={Y(hp.vals[k])} r="3" fill={color} />))}
+          {pts.map((p, i) => ((pts.length <= 8 || i === 0 || i === pts.length - 1 || i % Math.ceil(pts.length / 6) === 0) ? (
+            <text key={p.d + i} x={X(i)} y={H - 8} textAnchor={i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle'} fontSize="10.5" fill="var(--ink-3, #8a8578)">{p.label === 'Inception' ? 'Inception' : p.label}</text>
+          ) : null))}
+        </svg>
+        {hp && (
+          <div className="pp-pc-tip" style={{ left: Math.min(Math.max(X(hover) - 10, 0), w - 190) }}>
+            <div className="pp-pc-tipdate">{hp.label === 'Inception' ? `Inception · ${fmtDate(model.inception)}` : hp.label}</div>
+            {active.map(({ k, label, color }) => (hp.vals[k] == null ? null : (
+              <div key={k} className="pp-pc-tiprow">
+                <span className="pp-pc-dot" style={{ background: color }} />{label}
+                <b className={hp.vals[k] >= 100 ? 'up' : 'down'}>{`${hp.vals[k] - 100 >= 0 ? '+' : ''}${(hp.vals[k] - 100).toFixed(2)}%`}</b>
+              </div>
+            )))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function PaperPortfolioPage({ onOpenTicker }) {
@@ -1253,7 +1444,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // Self-sufficient benchmark history from prices_eod (2026-07-15): per-ticker
   // ascending [{d, v}] series so the benchmark rows populate even when
   // paper_nav_daily has zero rows (fresh account reset).
-  const [benchHistory, setBenchHistory] = useState({ spy: [], qqq: [], dia: [] });
+  const [benchHistory, setBenchHistory] = useState({ spy: [], qqq: [], dia: [], iwm: [] });
   const [err, setErr] = useState(null);
 
   useEffect(() => {
@@ -1272,12 +1463,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         const px = await supabase
           .from('prices_eod')
           .select('ticker,trade_date,close')
-          .in('ticker', ['SPY', 'QQQ', 'DIA'])
+          .in('ticker', ['SPY', 'QQQ', 'DIA', 'IWM'])
           .gte('trade_date', sinceIso)
           .order('trade_date', { ascending: true });
         if (!cancelled) {
-          const key = { SPY: 'spy', QQQ: 'qqq', DIA: 'dia' };
-          const by = { spy: [], qqq: [], dia: [] };
+          const key = { SPY: 'spy', QQQ: 'qqq', DIA: 'dia', IWM: 'iwm' };
+          const by = { spy: [], qqq: [], dia: [], iwm: [] };
           (px.data || []).forEach((r) => {
             const k = key[r.ticker];
             if (k && r.close != null) by[k].push({ d: r.trade_date, v: Number(r.close) });
@@ -1541,6 +1732,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </div>
           </Reveal>
         )}
+
+        {/* Performance chart — book + sleeves vs benchmarks, indexed (2026-07-20) */}
+        <Reveal>
+          <PerfChartPanel rows={navForCard} benchHistory={benchHistory} insCap={insCap} momCap={momCap} live={liveMode} />
+        </Reveal>
 
         {/* Two symmetric sleeve columns (Joe directive 2026-07-14): each
             column is sleeve card → full holdings → its own rebalance history.
