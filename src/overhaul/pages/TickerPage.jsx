@@ -551,12 +551,16 @@ export default function TickerPage() {
               <div className="tk-name">{info.loading ? 'Loading…' : (info.name || snap?.full_name || sym)}</div>
               <div className="tk-meta">
                 <span>{sector}</span>
-                <span className="lm-flowfootsep" />
-                <span>{exchange || '—'}</span>
+                {exchange && (
+                  <>
+                    <span className="lm-flowfootsep" />
+                    <span>{exchange}</span>
+                  </>
+                )}
                 <span className="lm-flowfootsep" />
                 <span>Mkt cap <b className="num">{fmtMcap(marketcap)}</b></span>
                 <span className="lm-flowfootsep" />
-                <span>Vol <b className="num">{fmtVol(stockVol)}</b></span>
+                <span>Vol <b className="num">{fmtVol(stockVol ?? lastBar?.volume)}</b></span>
               </div>
             </div>
           </div>
@@ -1369,7 +1373,9 @@ function CompanyOverview({ deep, sector, exchange }) {
         <div className="tk-keygrid">
           <KvCell label="Sector"    value={sector || '—'} />
           <KvCell label="Industry"  value={industry || '—'} />
-          <KvCell label="Exchange"  value={exchange || '—'} />
+          {/* Exchange only when known — the reference feed doesn't carry it
+              for most names, and a permanent em-dash tile reads as broken. */}
+          {exchange && <KvCell label="Exchange" value={exchange} />}
           <KvCell label="HQ"        value={hq || '—'} />
           <KvCell label="Employees" value={employees != null ? Number(employees).toLocaleString() : '—'} />
           <KvCell label="Listed"    value={listed ? `${fmtDateShort(listed)}, ${String(listed).slice(0, 4)}` : '—'} />
