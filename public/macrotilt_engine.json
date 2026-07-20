@@ -6,18 +6,18 @@
   "next_refresh": "2026-07-24",
   "stress": {
     "state": "Risk On",
-    "move_value": 68.2,
-    "move_percentile_5y": 0.123,
+    "move_value": 70.9,
+    "move_percentile_5y": 0.157,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
   },
   "yield_regime": {
     "state": "Neutral",
-    "delta_y_3m_bp": 31.0,
-    "delta_y_3m_bp_live": 25.0,
-    "live_as_of": "2026-07-16",
-    "delta_y_3m_percentile_5y": 0.682,
+    "delta_y_3m_bp": 29.0,
+    "delta_y_3m_bp_live": 29.0,
+    "live_as_of": "2026-07-17",
+    "delta_y_3m_percentile_5y": 0.663,
     "inflationary_threshold_bp": 33.0,
     "deflationary_threshold_bp": -9.0,
     "trailing_window_weeks": 261
