@@ -160,13 +160,21 @@ function trailingReturn(values, k) {
 // cash pieces. Chart, sleeve tables, and the Today numbers all read THIS.
 function sleeveNavOf(r, code) {
   if (!r) return null;
+  // Daily close rows: sleeve_*_nav partitions total_nav exactly (mirror.py).
+  // Live intraday rows have no *_nav; there, sleeve_*_value is the engine's
+  // residual-adjusted full sleeve value (equity + cash + pro-rata broker
+  // residual — intraday.py), which ALSO sums exactly to the account. Never
+  // rebuild it from equity/cash pieces: those are pre-residual raws, and
+  // value+cash double-counts cash — both left a ~$2.4K gap between the
+  // sleeves' sum and the book (Joe 2026-07-20, second report).
   if (code === 'B') {
     if (r.sleeve_b_nav != null) return Number(r.sleeve_b_nav);
+    if (r.sleeve_b_value != null) return Number(r.sleeve_b_value);
     if (r.sleeve_b_equity != null) return Number(r.sleeve_b_equity) + Number(r.sleeve_b_cash ?? 0);
     return null;
   }
   if (r.sleeve_m_nav != null) return Number(r.sleeve_m_nav);
-  if (r.sleeve_m_value != null) return Number(r.sleeve_m_value) + Number(r.sleeve_m_cash ?? 0);
+  if (r.sleeve_m_value != null) return Number(r.sleeve_m_value);
   return null;
 }
 
