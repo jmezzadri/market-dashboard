@@ -1,0 +1,76 @@
+name: PARITY-EDGAR-RESCORE
+
+# One-shot parity harness for the UW -> EDGAR insider cutover.
+# Runs the production screener TWICE in dry-run (no DB writes):
+#   run A: INSIDER_TABLE=insider_history        (live UW feed)
+#   run B: INSIDER_TABLE=insider_history_edgar  (EDGAR shadow)
+# then diffs the launch sets (tickers, scores, fired rules) and uploads
+# both JSON files + the diff as an artifact. Senior Quant gate for cutover.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: pip install -r requirements.txt 2>/dev/null || pip install requests pandas numpy
+      - name: Restore cached price history
+        uses: actions/cache/restore@v4
+        with:
+          path: trading-scanner/scanner/trading_opps/data
+          key: prices-eod-cache-${{ github.run_id }}
+          restore-keys: |
+            prices-eod-cache-
+      - name: Run A — UW insider table
+        working-directory: trading-scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INSIDER_TABLE: insider_history
+          DRY_RUN_JSON: /tmp/run_uw.json
+        run: PYTHONPATH=. python3 -m scanner.trading_opps.run_screener --dry-run
+      - name: Run B — EDGAR insider table
+        working-directory: trading-scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INSIDER_TABLE: insider_history_edgar
+          DRY_RUN_JSON: /tmp/run_edgar.json
+        run: PYTHONPATH=. python3 -m scanner.trading_opps.run_screener --dry-run
+      - name: Diff launch sets
+        run: |
+          python3 - << 'PY'
+          import json
+          A={r['ticker']:r for r in json.load(open('/tmp/run_uw.json'))}
+          B={r['ticker']:r for r in json.load(open('/tmp/run_edgar.json'))}
+          only_a=sorted(set(A)-set(B)); only_b=sorted(set(B)-set(A))
+          diffs=[]
+          for t in sorted(set(A)&set(B)):
+              for k in ('score','insider_pts','insider_rules','insider_age_days'):
+                  if A[t].get(k)!=B[t].get(k):
+                      diffs.append((t,k,A[t].get(k),B[t].get(k)))
+          print(f"PARITY RESULT: UW {len(A)} names | EDGAR {len(B)} names")
+          print(f"only-in-UW    : {only_a}")
+          print(f"only-in-EDGAR : {only_b}")
+          print(f"field diffs on shared names: {len(diffs)}")
+          for d in diffs[:100]: print("  ", d)
+          out={'uw_n':len(A),'edgar_n':len(B),'only_uw':only_a,'only_edgar':only_b,
+               'field_diffs':[list(d) for d in diffs]}
+          json.dump(out, open('/tmp/parity_diff.json','w'), indent=1)
+          PY
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-edgar-rescore
+          path: |
+            /tmp/run_uw.json
+            /tmp/run_edgar.json
+            /tmp/parity_diff.json
