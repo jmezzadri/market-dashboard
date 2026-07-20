@@ -575,6 +575,16 @@ def main():
             print(f"    score {label} backfill skipped: {exc}")
 
     if args.dry_run:
+        # Parity harness hook: dump the full launch set for machine diffing.
+        out = os.environ.get("DRY_RUN_JSON")
+        if out:
+            with open(out, "w") as fh:
+                json.dump(sorted(
+                    [{k: r.get(k) for k in ("ticker", "score",
+                      "insider_pts", "insider_rules",
+                      "insider_age_days", "so_what")} for r in snapshot],
+                    key=lambda r: r["ticker"]), fh, indent=1, default=str)
+            print(f"[dry-run] launch set written to {out}")
         print(f"\n[dry-run] {len(snapshot)} rows — top 5 by score:")
         for row in sorted(snapshot, key=lambda x: -x["score"])[:5]:
             print(f"  {row['ticker']:<6} score {row['score']:>4}  "
