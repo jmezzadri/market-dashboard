@@ -150,7 +150,7 @@ export default function FreshnessChip({
   // header can never say "All feeds current" over a visible red chip. The key
   // is stable per mount (elementId + a per-instance id).
   const instanceId = useRef(null);
-  if (instanceId.current == null) instanceId.current = `${elementId}#${Math.random().toString(36).slice(2, 8)}`;
+  if (instanceId.current == null) instanceId.current = `${elementId}#${Math.random().toString(36).slice(2, 8)}`; // synthetic-ok: per-mount registry key, never rendered as data
   useEffect(() => {
     if (f && !f.loading && (f.status === 'red' || f.status === 'amber' || f.status === 'green')) {
       registerMountedChip(instanceId.current, {

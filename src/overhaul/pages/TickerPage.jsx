@@ -55,6 +55,8 @@ import useV5ScanBatch from '../../hooks/useV5ScanBatch';
 import useEdgarInsider from '../../hooks/useEdgarInsider';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
+import usePowerTrendRank from '../../hooks/usePowerTrendRank';
+import useDivergenceScan from '../../hooks/useDivergenceScan';
 import { buildScanBreakdown } from '../lib/scoreWeights';
 
 /* Plain-English reading for each scanner score component, from the scan row.
@@ -111,6 +113,70 @@ function rsiWilder(rows, period = 14) {
 }
 
 const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
+
+/* Beta vs a benchmark from two [{date, close}] daily series: covariance of
+   daily returns over variance of benchmark returns, over the trailing
+   `lookback` overlapping sessions. Returns null when the overlap is too thin
+   to be meaningful (< 120 sessions ≈ 6 months). Standard market-model beta —
+   display-only, feeds no score. */
+function betaVsBench(rows, benchRows, lookback = 252) {
+  if (!rows?.length || !benchRows?.length) return null;
+  const bench = new Map(benchRows.map((r) => [r.date, r.close]));
+  const pairs = [];
+  for (const r of rows) {
+    const b = bench.get(r.date);
+    if (r.close != null && b != null) pairs.push([r.close, b]);
+  }
+  const win = pairs.slice(-Math.max(lookback + 1, 0));
+  if (win.length < 121) return null;
+  const rs = [], rb = [];
+  for (let i = 1; i < win.length; i++) {
+    rs.push(win[i][0] / win[i - 1][0] - 1);
+    rb.push(win[i][1] / win[i - 1][1] - 1);
+  }
+  const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  const ms = mean(rs), mb = mean(rb);
+  let cov = 0, varB = 0;
+  for (let i = 0; i < rs.length; i++) {
+    cov += (rs[i] - ms) * (rb[i] - mb);
+    varB += (rb[i] - mb) * (rb[i] - mb);
+  }
+  if (varB <= 0) return null;
+  return cov / varB;
+}
+
+/* Dividend yield from the stored corporate-actions rows (Polygon pipeline):
+   annualize the latest REGULAR cash dividend by its declared frequency
+   (falling back to a trailing-12-month sum when frequency is absent), divided
+   by the last close. Returns { value, note }:
+     value  — fraction (0.031 = 3.1%) or null
+     note   — 'none'  → no dividends on record (render "None")
+              'stale' → last dividend > ~13 months ago (render "—")
+              null    → value is current */
+function divYieldFromRecords(dividends, price) {
+  const rows = (dividends || []).filter((d) => d.cash_amount != null);
+  if (!rows.length) return { value: null, note: 'none' };
+  // Regular cash dividends only — specials (SC/LT/ST) don't annualize.
+  const regular = rows.filter((d) => !d.dividend_type || d.dividend_type === 'CD');
+  if (!regular.length || !(price > 0)) return { value: null, note: 'none' };
+  const latest = regular[0]; // hook returns ex-date DESC
+  const exDate = latest.ex_dividend_date ? new Date(`${latest.ex_dividend_date}T00:00:00Z`) : null;
+  if (exDate && (Date.now() - exDate.getTime()) > 400 * 24 * 3600 * 1000) {
+    return { value: null, note: 'stale' };
+  }
+  const freq = Number(latest.frequency);
+  let annual = null;
+  if (Number.isFinite(freq) && freq > 0) {
+    annual = Number(latest.cash_amount) * freq;
+  } else {
+    const cutoff = Date.now() - 366 * 24 * 3600 * 1000;
+    annual = regular
+      .filter((d) => d.ex_dividend_date && new Date(`${d.ex_dividend_date}T00:00:00Z`).getTime() >= cutoff)
+      .reduce((s, d) => s + Number(d.cash_amount || 0), 0);
+    if (!(annual > 0)) return { value: null, note: 'stale' };
+  }
+  return { value: annual / price, note: null };
+}
 
 /* Curated overlay universe for the compare box (all carried in prices_eod with
    ~6y of history), grouped for the dropdown. The user can also type ANY ticker
@@ -272,6 +338,9 @@ export default function TickerPage() {
   const v5Map = useV5ScanBatch([sym]);
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
+  const spyHist = useTickerEodHistory(sym === 'SPY' ? null : 'SPY'); // beta benchmark
+  const powerTrend = usePowerTrendRank(sym);
+  const divergence = useDivergenceScan();
   const positioning = useTickerPositioning(sym);
 
   const [tab, setTab] = useState('news');
@@ -317,8 +386,22 @@ export default function TickerPage() {
   const isIntraday = !!(priceAsOf && _completedIso && priceAsOf > _completedIso);
   const asOfVerb = isIntraday ? 'intraday' : 'close';
   const exchange  = deep?.ref?.primary_exchange || info?.exchange || null;
-  const marketcap = snap?.marketcap ?? scanRow?.marketCap ?? v5Row?.market_cap ?? null;
+  /* Market cap waterfall (2026-07-20): the retiring UW snapshot only covers
+     its own ≥$1B flickering universe, which left names like PBF blank.
+     ticker_reference (daily Massive cron, ~13K tickers) now backstops it. */
+  const marketcap = snap?.marketcap ?? scanRow?.marketCap ?? deep?.ref?.market_cap ?? v5Row?.market_cap ?? null;
   const stockVol  = snap?.stock_volume ?? scanRow?.volume ?? null;
+
+  /* Which scanner surfaced this name (2026-07-20) — the score block is scoped
+     to Insider-scan names; everything else shows its source scanner instead
+     of a dead "no score" dial. */
+  const ptRow = powerTrend.row;
+  const rsiHits = useMemo(() => {
+    const hits = [];
+    for (const r of (divergence.bull || [])) if (r.ticker === sym) hits.push({ dir: 'Bullish', strong: r.strong });
+    for (const r of (divergence.bear || [])) if (r.ticker === sym) hits.push({ dir: 'Bearish', strong: r.strong });
+    return hits;
+  }, [divergence.bull, divergence.bear, sym]);
 
   /* Signal pill — derive from scanner row only; hide otherwise. */
   const signal    = (scanRow?.signal || '').toString().toUpperCase();
@@ -343,9 +426,17 @@ export default function TickerPage() {
     (hist.length ? Math.min(...hist.slice(-252).map((r) => (r.low ?? r.close))) : null);
   const avgVol = snap?.avg30_volume ??
     (hist.length ? hist.slice(-30).reduce((s, r) => s + (r.volume || 0), 0) / Math.min(30, hist.length) : null);
-  const ivRankVal = snap?.iv_rank ?? scanRow?.iv_rank ?? null;
-  const iv30Display = snap?.iv30d != null ? fmtPctFraction(snap.iv30d)
-    : (scanRow?.iv != null ? `${Number(scanRow.iv).toFixed(1)}%` : '—');
+  /* Beta + dividend yield are computed from data we already store — a year of
+     daily closes vs SPY (prices_eod) and the Polygon corporate-actions rows.
+     The old IV Rank / IV 30d tiles are gone with the UW feed (retires 8/12). */
+  const beta1y = useMemo(
+    () => (sym === 'SPY' ? 1 : betaVsBench(hist, spyHist.rows || [], 252)),
+    [sym, hist, spyHist.rows],
+  );
+  const divYield = useMemo(
+    () => divYieldFromRecords(deep?.dividends, price),
+    [deep?.dividends, price],
+  );
   const sma50Full  = useMemo(() => sma(hist, 50), [hist]);
   const sma200Full = useMemo(() => sma(hist, 200), [hist]);
   const rsiFull    = useMemo(() => rsiWilder(hist, 14), [hist]);
@@ -494,25 +585,55 @@ export default function TickerPage() {
           </div>
         </div>
         <div className="tk-scoreblock">
-          <div className="mt-eyebrow">MacroTilt Score</div>
-          <div className="tk-bigdial">
-            {score != null
-              ? <ScoreDial score={score} max={5} size={96} />
-              : <div className="tk-noscore">No score<span>not in today's scan</span></div>}
-          </div>
-          {signal && (
-            <span className="mt-tag mt-tag--accent tk-sigpill">
-              {signal}{direction ? ` · ${direction}` : ''}
-            </span>
+          {score != null ? (
+            <>
+              {/* Insider Conviction scan name — the 0–5 score applies. */}
+              <div className="mt-eyebrow">MacroTilt Score</div>
+              <div className="tk-bigdial">
+                <ScoreDial score={score} max={5} size={96} />
+              </div>
+              {signal && (
+                <span className="mt-tag mt-tag--accent tk-sigpill">
+                  {signal}{direction ? ` · ${direction}` : ''}
+                </span>
+              )}
+              <div className="tk-scoredelta">
+                <span>Score change · 1 week</span>
+                <b className="num">{
+                  scanRow?.score_1w != null
+                    ? `${(score - scanRow.score_1w) >= 0 ? '+' : ''}${(score - scanRow.score_1w).toFixed(2)}`
+                    : '—'
+                }</b>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Not an Insider-scan name — the 0–5 score doesn't apply here.
+                  Say which scanner (if any) surfaced it instead of a dead dial. */}
+              <div className="mt-eyebrow">Scanner signal</div>
+              {(ptRow || rsiHits.length) ? (
+                <div className="tk-srcpills">
+                  {ptRow && (
+                    <span className="mt-tag mt-tag--accent tk-sigpill">
+                      Power Trend · #{ptRow.rank}
+                    </span>
+                  )}
+                  {rsiHits.map((h) => (
+                    <span key={h.dir} className="mt-tag mt-tag--accent tk-sigpill">
+                      RSI Divergence · {h.dir}{h.strong ? ' · strong' : ''}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="tk-noscore">Not in a scan<span>no current scanner signal</span></div>
+              )}
+              <div className="tk-scoredelta">
+                <span>{ptRow || rsiHits.length
+                  ? 'The 0–5 MacroTilt Score applies to Insider Conviction names only'
+                  : 'Scores appear when a scanner surfaces this name'}</span>
+              </div>
+            </>
           )}
-          <div className="tk-scoredelta">
-            <span>Score change · 1 week</span>
-            <b className="num">{
-              (score != null && scanRow?.score_1w != null)
-                ? `${(score - scanRow.score_1w) >= 0 ? '+' : ''}${(score - scanRow.score_1w).toFixed(2)}`
-                : '—'
-            }</b>
-          </div>
         </div>
       </Reveal>
 
@@ -654,17 +775,39 @@ export default function TickerPage() {
         </div>
         <div className="tk-keygrid">
           <KvCell label="Open"      tip={`Opening price of the last completed session${priceAsOf ? ` (${fmtDateShort(priceAsOf)})` : ''}.`} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <KvCell label="Prev close" tip="Closing price of the session before the one shown." value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
           <KvCell label="Day high"  tip="Intraday high of the last completed session — not the 52-week high below." value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : (snap?.high != null ? `$${fmt(snap.high, 2)}` : '—')} />
           <KvCell label="Day low"   tip="Intraday low of the last completed session — not the 52-week low below." value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : (snap?.low  != null ? `$${fmt(snap.low, 2)}`  : '—')} />
           <KvCell label="52w high"  tip="Highest intraday price over the trailing ~252 trading days (about one year)." value={hi52 != null ? `$${fmt(hi52, 2)}` : '—'} />
           <KvCell label="52w low"   tip="Lowest intraday price over the trailing ~252 trading days (about one year)." value={lo52 != null ? `$${fmt(lo52, 2)}` : '—'} />
           <KvCell label="Avg vol"   tip="Average daily share volume over the last 30 trading sessions." value={fmtVol(avgVol)} />
-          <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding." value={fmtMcap(marketcap)} />
-          <KvCell label="IV rank"   tip="Where current options-implied volatility sits in its own 52-week range, 0–100. Blank when this name has no options data." value={ivRankVal != null ? Math.round(ivRankVal) : '—'} />
-          <KvCell label="IV 30d"    tip="Options-implied volatility for about 30-day expiries, annualized." value={iv30Display} />
-          <KvCell label="P/E"       tip="Price-to-earnings. Needs a fundamentals feed that isn't wired yet." value="—" />
-          <KvCell label="Div yield" tip="Annual dividend as a percent of price. Needs a fundamentals feed that isn't wired yet." value="—" />
-          <KvCell label="Beta"      tip="Sensitivity to the broad market. Needs a fundamentals feed that isn't wired yet." value="—" />
+          <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding. From the daily reference feed." value={fmtMcap(marketcap)} />
+          <KvCell
+            label="Div yield"
+            tip={divYield.note === 'none'
+              ? 'No dividends on record in the corporate-actions pipeline.'
+              : divYield.note === 'stale'
+                ? 'Last recorded dividend was over a year ago — no current yield.'
+                : 'Latest regular cash dividend annualized by its declared frequency, divided by the last close. From the corporate-actions pipeline.'}
+            value={divYield.value != null
+              ? `${(divYield.value * 100).toFixed(2)}%`
+              : divYield.note === 'none' ? 'None' : '—'}
+          />
+          <KvCell
+            label="Beta · 1y"
+            tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year of daily closes. Dash when under six months of overlapping history."
+            value={beta1y != null ? beta1y.toFixed(2) : '—'}
+          />
+          <KvCell
+            label="Shares out"
+            tip="Weighted shares outstanding, from the daily reference feed."
+            value={fmtVol(deep?.ref?.weighted_shares_outstanding ?? deep?.ref?.share_class_shares_outstanding ?? null)}
+          />
+          <KvCell
+            label="Listed"
+            tip="Year this ticker first listed on its exchange."
+            value={deep?.ref?.list_date ? String(deep.ref.list_date).slice(0, 4) : '—'}
+          />
         </div>
 
         {/* Live technicals — moved here from the score tab; computed on the fly
@@ -685,11 +828,10 @@ export default function TickerPage() {
         </div>
 
         <div className="tk-emptyfoot">
-          Open, day high/low and average volume come from the daily price history;
-          52-week range, market cap, and implied volatility come from the latest scan.
-          Live technicals are computed from daily history. Hover the ⓘ on any tile for
-          its definition. P/E, dividend yield, and beta require a fundamentals feed not
-          yet wired.
+          Open, day high/low, average volume, and beta come from the daily price
+          history; market cap from the daily reference feed; dividend yield from the
+          corporate-actions pipeline. Live technicals are computed from daily history.
+          Hover the ⓘ on any tile for its definition.
         </div>
       </Reveal>
 
@@ -1014,20 +1156,10 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
   // drivers (rule text, filings table, readings) appear only when a row is
   // clicked. No data dumped in your face on load.
   const [open, setOpen] = useState(null);
-  if (!scanRow || !comp) {
-    return (
-      <Reveal as="section" className="mt-pagesection">
-        <article className="mt-card">
-          <div className="mt-sectionhead-tight">
-            <div className="mt-eyebrow">How the score is built</div>
-          </div>
-          <div className="tk-empty">
-            This name isn't in today's scan, so there's no MacroTilt Score breakdown.
-          </div>
-        </article>
-      </Reveal>
-    );
-  }
+  /* 2026-07-20: the score (and its breakdown) only exists for Insider
+     Conviction scan names. For everything else, render nothing — a card that
+     just says "no score" was noise on every non-scan ticker. */
+  if (!scanRow || !comp) return null;
   return (
     <Reveal as="section" className="mt-pagesection">
       <article className="mt-card">
@@ -1053,8 +1185,9 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
           <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
         </div>
         <div className="tk-emptyfoot">
-          A name makes the list on its insider + trend score (3.0 or higher);
-          the $1M paper book buys at 4.0 or higher. Maximum score is 5.
+          A name makes the Insider Conviction list on its insider + trend score
+          (3.0 or higher); the paper book's Insider sleeve buys at 4.0 or higher.
+          Maximum score is 5.
         </div>
       </article>
     </Reveal>
