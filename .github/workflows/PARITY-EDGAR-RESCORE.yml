@@ -9,9 +9,17 @@ name: PARITY-EDGAR-RESCORE
 
 on:
   workflow_dispatch: {}
+  # Pre-cutover monitoring: re-run the parity diff automatically after every
+  # EDGAR ingest completes (incl. tonight's gap-fill sweep), so the cutover
+  # gate has a fresh UW-vs-EDGAR comparison every day without manual dispatch.
+  # Dry-run only — writes nothing. Remove this trigger at cutover.
+  workflow_run:
+    workflows: ["scanner-insider_edgar-daily"]
+    types: [completed]
 
 jobs:
   parity:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
