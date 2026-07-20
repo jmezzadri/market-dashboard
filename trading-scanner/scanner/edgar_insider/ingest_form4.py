@@ -136,7 +136,12 @@ def parse_filing(body, acc, filing_date, tickers, cik2t, refmap):
             continue
         aff = flag(x, "aff10b5One")
         ref = refmap.get(ticker, {})
-        owners = x.findall("reportingOwner")
+        # Lead reporting owner ONLY. Group filings (e.g. an LP + its GP + its
+        # fund entities) list 2-4 affiliated owners for the SAME shares; one
+        # row per owner would multiply Rule B window dollars and let Rule C
+        # (3+ distinct insiders) fire off a single beneficial owner. UW
+        # attributes the row to the lead filer -- mirror that exactly.
+        owners = x.findall("reportingOwner")[:1]
         for tr in x.findall("nonDerivativeTable/nonDerivativeTransaction"):
             code = txt(tr, "transactionCoding/transactionCode")
             tdate = txt(tr, "transactionDate/value")
