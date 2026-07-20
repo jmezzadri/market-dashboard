@@ -1106,7 +1106,13 @@ function RebalanceLog({ orders: allOrders, fills: allFills, sleeve = null, title
             {title} <InfoTip term={title} def="Last five days on which the engine fired buy or sell intents to the paper broker for this sleeve. Filled / pending / rejected counts come from the broker's order ledger." size={12} />
           </h2>
         </div>
-        <FreshnessChip elementId="portfolio.paper-orders-intent" variant="label" fallback={{ asOfIso: orders?.[0]?.created_at, calendar: 'nyse' }} />
+        {/* Grade the ENGINE's intent feed (pipeline_health), not the sleeve's own
+            last order date. A monthly sleeve (Momentum / Power Trend) legitimately
+            goes weeks without orders — passing its last order as the on-screen
+            as-of made this chip red while the engine was running fine every
+            morning and simply choosing not to trade (Joe 2026-07-20). An empty
+            ledger is a fact, not staleness; the panel shows the dates anyway. */}
+        <FreshnessChip elementId="portfolio.paper-orders-intent" variant="label" />
       </div>
       <div style={{ padding: '20px 28px 24px' }}>
         {byDate.length === 0 ? (
