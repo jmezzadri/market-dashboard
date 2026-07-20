@@ -159,7 +159,7 @@ def parse_filing(body, acc, filing_date, tickers, cik2t, refmap):
                     "transaction_date": tdate[:10], "transaction_code": code,
                     "amount": int(round(shares)),
                     "stock_price": price,
-                    "owner_name": name, "owner_name_lower": name.lower(),
+                    "owner_name": name,
                     "is_officer": flag(ro, "reportingOwnerRelationship/isOfficer"),
                     "is_director": flag(ro, "reportingOwnerRelationship/isDirector"),
                     "is_ten_percent_owner": flag(ro, "reportingOwnerRelationship/isTenPercentOwner"),
@@ -175,7 +175,7 @@ def parse_filing(body, acc, filing_date, tickers, cik2t, refmap):
     return rows
 
 NATKEY = ("accession_no,owner_name_lower,transaction_date,"
-          "transaction_code,amount,stock_price,shares_owned_after")
+          "transaction_code,amount,stock_price,shares_owned_after")  # generated col fine in conflict target
 
 def insert(rows):
     n = 0
