@@ -2148,7 +2148,7 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 10:30\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 09:50\u201315:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
     "Paper tab \u2192 live holdings table (while market open)"
@@ -2167,7 +2167,7 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 10:30\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 09:50\u201315:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
     "Paper tab \u2192 Performance card (while market open)"

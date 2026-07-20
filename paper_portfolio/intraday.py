@@ -31,6 +31,7 @@ from typing import Any
 
 from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.mirror import (
+    mirror_fills,
     _entry_dates_by_ticker,
     _latest_scan_scores,
     _sleeve_share_map,
@@ -363,6 +364,18 @@ def run_intraday(dry_run: bool = False) -> dict:
         logger.warning("clock check failed (%s) — proceeding", exc)
     if not dry_run:
         ensure_intraday_schema()
+    # Fills mirror (2026-07-20): the OPEN phase's 09:45 ET cron routinely runs
+    # ~75-95 min late on GitHub's shared schedulers, so orders that filled at
+    # the 09:30 open sat on the Paper page as "awaiting fill" until ~11:15 ET.
+    # mirror_fills is idempotent (fill-id keyed; only advances status='submitted'
+    # rows), so running it every intraday pass flips order statuses within
+    # minutes of the first morning run instead of hours. Read-only vs Alpaca
+    # orders; still no order submission in this phase.
+    try:
+        n_fills = mirror_fills(alpaca=alpaca, dry_run=dry_run)
+        logger.info("intraday fills mirror: %s new fills", n_fills)
+    except Exception:  # noqa: BLE001 — fills lag must never block the live view
+        logger.exception("intraday fills mirror failed — continuing to live positions/NAV")
     n_pos = mirror_positions_intraday(alpaca=alpaca, dry_run=dry_run)
     nav = write_nav_intraday(alpaca=alpaca, dry_run=dry_run)
     stamp_intraday_pipeline_health(dry_run=dry_run)

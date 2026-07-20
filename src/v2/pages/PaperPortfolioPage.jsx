@@ -1128,18 +1128,25 @@ function RebalanceLog({ orders: allOrders, fills: allFills, sleeve = null, title
             const submits = rows.map((r) => r.submitted_at).filter(Boolean).sort();
             const queuedAt = submits[0] || null;
             const filledAt = fillByDate.get(etDateKey(queuedAt) || date) || null;
+            // Plain-English pending copy (2026-07-20): before the open a queued
+            // order is just waiting for the opening auction — nothing is wrong.
+            // After the open, fills confirm on the next mirror pass (~minutes).
+            const etNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const isToday = etDateKey(queuedAt) === new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            const preOpen = isToday && (etNow.getHours() * 60 + etNow.getMinutes()) < 9 * 60 + 30;
+            const pendingWord = preOpen ? 'queued for today\u2019s open' : 'awaiting fill confirmation';
             return (
               <div key={date} className="paper-rebal-row paper-rebal-clickable" onClick={() => setOpenDate(date)} role="button" tabIndex={0}>
                 <div className="paper-rebal-date">
                   {fmtDate(date)}
                   {' '}<span className="paper-rebal-meta">
                     &middot; {rows.length} orders ({buys} buys, {sells} sells)
-                    {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} awaiting fill</span></>}
+                    {pending > 0  && <> &middot; <span style={{ color: WARN_COLOR }}>{pending} {pendingWord}</span></>}
                     {rejected > 0 && <> &middot; <span style={{ color: DOWN_COLOR }}>{rejected} rejected</span></>}
                     {queuedAt && <> &middot; queued {fmtTimeET(queuedAt)}</>}
                     {filledAt
                       ? <> &middot; <span style={{ color: UP_COLOR }}>filled {fmtTimeET(filledAt)}</span></>
-                      : (queuedAt && <> &middot; <span style={{ color: WARN_COLOR }}>awaiting fill</span></>)}
+                      : (queuedAt && <> &middot; <span style={{ color: WARN_COLOR }}>{preOpen ? 'fills at the open' : 'fill confirmation pending'}</span></>)}
                   </span>
                 </div>
                 {!sleeve && (

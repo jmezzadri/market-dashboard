@@ -37,7 +37,13 @@ FALLBACK_PULL_SLA = {"D": 49, "W": 200, "M": 1200, "Q": 4800}
 # explicit allowlist — never auto-delete an unlisted orphan (a new feed not
 # yet registered must NOT be silently dropped). cmdty_uranium: source UX=F
 # discontinued, feed removed from producer + manifest + UI (2026-06-16).
-RETIRED_FEEDS = {"cmdty_uranium"}
+RETIRED_FEEDS = {
+    "cmdty_uranium",
+    # Power Trend swap (2026-07-15): compute_momentum_list.py + the Faber crash
+    # guard were retired end-to-end; power_trend_list is the registered successor.
+    "momentum_guard",
+    "momentum_list",
+}
 
 # ─── Calendar-aware age, ported from src/lib/freshnessClock.js so this watchdog
 #     grades byte-for-byte the way the chips and edge function do (the graders
