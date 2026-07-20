@@ -1,0 +1,45 @@
+name: scanner-insider_edgar-daily
+
+# SEC EDGAR Form 4/4A/5/5A ingest -> insider_history_edgar (shadow table).
+# Free replacement for the paid Unusual Whales insider feed (UW lapses
+# 2026-08-12). Runs at the daily-slow 06:00 ET default: EDGAR filing
+# acceptance closes ~22:00 ET, so the next-morning run captures the FULL
+# prior day (the UW job's 18:00 ET slot would miss evening filings).
+# Idempotent: natural-key unique index + ON CONFLICT ignore.
+#
+# Required GitHub secrets (already configured for INSIDER_INGEST_NIGHTLY):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 06:00 EDT (Mar-Nov)
+    - cron: '0 11 * * *'   # 06:00 EST (Nov-Mar); duplicate fire is a no-op
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "YYYY-MM-DD start (default: 5 days ago)"
+        required: false
+      end_date:
+        description: "YYYY-MM-DD end (default: today)"
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Ingest Form 4 from EDGAR
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.start_date }}" ]; then ARGS="$ARGS --start ${{ github.event.inputs.start_date }}"; fi
+          if [ -n "${{ github.event.inputs.end_date }}" ]; then ARGS="$ARGS --end ${{ github.event.inputs.end_date }}"; fi
+          python trading-scanner/scanner/edgar_insider/ingest_form4.py $ARGS

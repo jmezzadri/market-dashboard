@@ -1,27 +1,27 @@
 {
- "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown \u2014 needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from \u201cengine not yet built\u201d to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily. v7 (2026-05-22) registers news.market-headlines-multisource, the Home market-news headlines feed, after a SCAN_345PM idempotency-gate shell syntax error silently froze it at 2026-05-19. v8 (2026-05-22) moves that feed from the once-a-day scanner bake to an on-demand endpoint (api/macro-news.js), fetched on page load and CDN-cached ~10 min. v9 (2026-05-25) records the #1208 fix to the Trading Opportunities screener's prices_eod cold pull: the cross-run resume now paginates one ticker at a time (index-served range scans, no PostgREST or= disjunction that timed out) and mirrors the completed price panel to a durable Supabase Storage backstop (bucket screener-cache). v10 (2026-06-11) honest-stamp one-shot: +12 previously-untracked elements registered; stamp semantics fixed across all producers (last_good_at = real run time; data_as_of = business date, never future). v11 (2026-06-11) un-registered put_call/buffett/bank_unreal (killed 2026-06-10; mistakenly re-registered same day). v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron). v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags \u2014 per-series calibration queued. v14 (2026-07-07) Conviction-Insider rebuild: dark-pool + options SHELVED from the trading-opps screener SCORE (unvalidated, weeks of history only); run_screener.py composite now = insider + trend, ceiling 10->5. Both feeds stay ingested and surface as informational context columns/drill reads. Paper engine retired score-tiered sizing + 2x leverage for fixed $100K equal-weight + hysteresis hold-to-<3.",
+ "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the live site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. v2 (2026-05-12) is the first pass that backfills the registry from 8 entries (v1) to all 75 feeds catalogued in DATA_LINEAGE_2026-05-12.md. Feeds with cadence='unknown — needs verification' are flagged in the _open_questions block below. v3 (2026-05-15) adds the MacroTilt 2-axis engine snapshot as a derived indicator element. Engine validated 1986-2026 (locked 2026-05-13). v4 (2026-05-20) registers the two Phase 1 data feeds for the rebuilt Trading Opportunities screener: scanner.darkpool-prints-uw and scanner.options-eod-uw. v6 (2026-05-21) records the Trading Opportunities dark-pool and options scoring engines going live (darkpool_scoring.py / options_scoring.py): both feeds move from “engine not yet built” to a live consumer; the screener score ceiling rises 5 -> 10. v5 (2026-05-21) records the Macro Overview data-quality correction pass: IG OAS re-pointed from the BAA-minus-DGS10 proxy to the canonical ICE BofA series (BAMLC0A0CM); IG OAS, the HY/IG ratio, and the commercial-paper spread moved off period-end resampling that was publishing future-dated stamps; the copper/gold ratio rescaled to the desk convention (x1000); and term-premium cadence corrected to daily. v7 (2026-05-22) registers news.market-headlines-multisource, the Home market-news headlines feed, after a SCAN_345PM idempotency-gate shell syntax error silently froze it at 2026-05-19. v8 (2026-05-22) moves that feed from the once-a-day scanner bake to an on-demand endpoint (api/macro-news.js), fetched on page load and CDN-cached ~10 min. v9 (2026-05-25) records the #1208 fix to the Trading Opportunities screener's prices_eod cold pull: the cross-run resume now paginates one ticker at a time (index-served range scans, no PostgREST or= disjunction that timed out) and mirrors the completed price panel to a durable Supabase Storage backstop (bucket screener-cache). v10 (2026-06-11) honest-stamp one-shot: +12 previously-untracked elements registered; stamp semantics fixed across all producers (last_good_at = real run time; data_as_of = business date, never future). v11 (2026-06-11) un-registered put_call/buffett/bank_unreal (killed 2026-06-10; mistakenly re-registered same day). v12 (2026-06-11 PM): normalized 37 daily market-series SLAs 73h->49h to the documented daily standard (the 73h padding predated honest close-anchored stamps + the 16:30 ET EOD chain and is no longer needed); corrected stale fetch times (scanner 15:30->03:30 overnight run; allocation ->08:15 per its workflow cron). v13 (2026-06-11 PM, Joe SLA doctrine): stale = >24h past due. Same-evening dailies 49h; T+1-publishing FRED dailies 73h (documented basis per element); COT 504h->192h. Monthly/quarterly extended budgets allowed only for documented publication lags — per-series calibration queued. v14 (2026-07-07) Conviction-Insider rebuild: dark-pool + options SHELVED from the trading-opps screener SCORE (unvalidated, weeks of history only); run_screener.py composite now = insider + trend, ceiling 10->5. Both feeds stay ingested and surface as informational context columns/drill reads. Paper engine retired score-tiered sizing + 2x leverage for fixed $100K equal-weight + hysteresis hold-to-<3.",
  "version": 9,
- "_freshness_sla_basis": "One-clock (FRESHNESS_CHIP_SPEC 2026-06-16): freshness_sla_hours is the JOB's run cadence + grace, NOT the data's publication lag. The chip grades green/red off the LAST PULL (pipeline_health.last_good_at, the job's real last successful run) vs this SLA, calendar-aware so weekends/holidays never count. Daily job = 49h (~2 business days). Weekly job = 192h. Bi-monthly (FINRA) = 480h. Monthly job = 768h. Quarterly job = 2400h. A lagged data series (e.g. a monthly read by the daily job) stays GREEN while the daily job pulls \u2014 its weeks-old as_of no longer reds the chip.",
+ "_freshness_sla_basis": "One-clock (FRESHNESS_CHIP_SPEC 2026-06-16): freshness_sla_hours is the JOB's run cadence + grace, NOT the data's publication lag. The chip grades green/red off the LAST PULL (pipeline_health.last_good_at, the job's real last successful run) vs this SLA, calendar-aware so weekends/holidays never count. Daily job = 49h (~2 business days). Weekly job = 192h. Bi-monthly (FINRA) = 480h. Monthly job = 768h. Quarterly job = 2400h. A lagged data series (e.g. a monthly read by the daily job) stays GREEN while the daily job pulls — its weeks-old as_of no longer reds the chip.",
  "_open_questions": [
-  "portfolio.nav-chart \u2014 Vercel cron path /api/portfolio-history-snapshot referenced in code but not visible in vercel.json (only options-mark-batch is listed). Producer + schedule needs verification.",
-  "scanner.earnings-history-uw \u2014 workflow file name confirmed (EARNINGS_HISTORY_WEEKLY.yml) but ingest script path inside trading-scanner/ not confirmed from workflow YAML alone.",
-  "indicator.composite-share-badge and indicator.license-tier-badge \u2014 these are hand-curated metadata reads (dataRegistry.js + this file), not separate feeds. Listed under infra for completeness.",
-  "Sub-feed split between SCAN_345PM_WEEKDAYS.yml (current main) and V5_SCAN_DAILY.yml (lineage doc) \u2014 the lineage doc names V5_SCAN_DAILY but the worktree shows SCAN_345PM_WEEKDAYS. Both are listed; reconcile in next pass."
+  "portfolio.nav-chart — Vercel cron path /api/portfolio-history-snapshot referenced in code but not visible in vercel.json (only options-mark-batch is listed). Producer + schedule needs verification.",
+  "scanner.earnings-history-uw — workflow file name confirmed (EARNINGS_HISTORY_WEEKLY.yml) but ingest script path inside trading-scanner/ not confirmed from workflow YAML alone.",
+  "indicator.composite-share-badge and indicator.license-tier-badge — these are hand-curated metadata reads (dataRegistry.js + this file), not separate feeds. Listed under infra for completeness.",
+  "Sub-feed split between SCAN_345PM_WEEKDAYS.yml (current main) and V5_SCAN_DAILY.yml (lineage doc) — the lineage doc names V5_SCAN_DAILY but the worktree shows SCAN_345PM_WEEKDAYS. Both are listed; reconcile in next pass."
  ],
  "elements": {
   "commentary.daily-brief": {
    "category": "commentary",
-   "element": "Daily market brief \u2014 homepage editorial (writer updates the homepage file ONLY; the daily email is sent separately by the legacy routine)",
+   "element": "Daily market brief — homepage editorial (writer updates the homepage file ONLY; the daily email is sent separately by the legacy routine)",
    "sourcing_mode": "computed in-house",
    "source_vendor": "MacroTilt in-house (Anthropic API with web search, over the brief-latest + brief-positioning feeds and the prior-session scan movers)",
    "license_tier": "paid",
    "cadence": "daily",
    "refresh_trigger": "github-actions: DAILY-BRIEF-WRITER.yml (06:15 ET, writes homepage file); BRIEF-FRESHNESS-SELFHEAL.yml (dense morning backstop, every 30 min, regenerates if the live site is not today's). Both are EMAIL-OFF; the daily email is the legacy routine.",
-   "schedule_et": "Writer 06:15 ET weekdays; self-heal every 30 min 06:00\u201311:30 ET (both DST seasons). Cloud-only (GitHub Actions) \u2014 no laptop / no scheduled-task dependency.",
+   "schedule_et": "Writer 06:15 ET weekdays; self-heal every 30 min 06:00–11:30 ET (both DST seasons). Cloud-only (GitHub Actions) — no laptop / no scheduled-task dependency.",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Daily Brief (eyebrow, headline, stance, Key News, Implications, What to Watch, the three sections, movers)",
-    "(daily email sent separately by the legacy routine to gmail + EY \u2014 this writer is email-off to avoid duplicates)"
+    "Home → Daily Brief (eyebrow, headline, stance, Key News, Implications, What to Watch, the three sections, movers)",
+    "(daily email sent separately by the legacy routine to gmail + EY — this writer is email-off to avoid duplicates)"
    ],
    "target_storage": "Repo file public/daily_brief.json (committed by the writer; served static by Vercel)",
    "failure_mode": "Homepage serves the prior day's brief (stale, no error thrown). BRIEF-FRESHNESS-SELFHEAL sweeps every 30 min through mid-morning and regenerates from the LIVE outcome, so a single missed/lagged writer run cannot leave the page stale. Generator hard-requires only headline/stance/sections and defaults optional keys, so an omitted field never blocks the publish. Writer is email-off + idempotent so reruns never duplicate Joe's email.",
@@ -40,12 +40,12 @@
    "schedule_et": "18:00 ET weekdays primary + 20:00 ET + 23:00 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 scanner table \u2192 Last close, day % change, 52w high/low",
-    "Trading Scanner \u2192 Power Trend Momentum Scanner tile \u2192 last close / 1-day / since-list display columns (added 2026-07-16)",
-    "Portfolio Insights \u2192 position rows (equity marks)",
-    "Portfolio Insights \u2192 'Prices as of {date}' chip",
-    "Portfolio Insights \u2192 watchlist table \u2192 price-derived columns for unscored names (price, change, volume, 52w range, EMA/SMA, realized-vol stats, RSI, % vs 200-day)",
-    "Asset Tilt \u2192 sector performance (via sector-perf compute)"
+    "Trading Opportunities → scanner table → Last close, day % change, 52w high/low",
+    "Trading Scanner → Power Trend Momentum Scanner tile → last close / 1-day / since-list display columns (added 2026-07-16)",
+    "Portfolio Insights → position rows (equity marks)",
+    "Portfolio Insights → 'Prices as of {date}' chip",
+    "Portfolio Insights → watchlist table → price-derived columns for unscored names (price, change, volume, 52w range, EMA/SMA, realized-vol stats, RSI, % vs 200-day)",
+    "Asset Tilt → sector performance (via sector-perf compute)"
    ],
    "target_storage": "Supabase: prices_eod",
    "failure_mode": "Trading Opps + Portfolio Insights show stale prices and an amber/red freshness chip; day % change tile reads em-dash.",
@@ -64,10 +64,10 @@
    "schedule_et": "Every 4h (00:30 / 04:30 / 08:30 / 12:30 / 16:30 / 20:30 ET)",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 Ticker + Full name column",
-    "Trading Opportunities \u2192 Sector / Industry Group column",
-    "Trading Opportunities \u2192 funnel counts (All US-listed)",
-    "Portfolio Insights \u2192 watchlist table \u2192 company name / sector / market cap for unscored names"
+    "Trading Opportunities → Ticker + Full name column",
+    "Trading Opportunities → Sector / Industry Group column",
+    "Trading Opportunities → funnel counts (All US-listed)",
+    "Portfolio Insights → watchlist table → company name / sector / market cap for unscored names"
    ],
    "target_storage": "Supabase: ticker_reference",
    "failure_mode": "Scanner rows render with raw ticker but blank sector / company name. Funnel 'All US-listed' counter goes stale.",
@@ -77,7 +77,7 @@
   },
   "market.dividends-massive": {
    "category": "market",
-   "element": "Corporate actions \u2014 dividends",
+   "element": "Corporate actions — dividends",
    "sourcing_mode": "stp",
    "source_vendor": "Polygon Massive",
    "license_tier": "paid",
@@ -89,14 +89,14 @@
     "Reserved for future Total Return calc"
    ],
    "target_storage": "Supabase: dividends",
-   "failure_mode": "No live consumer yet \u2014 backfilled table only.",
+   "failure_mode": "No live consumer yet — backfilled table only.",
    "owner": "Data Steward",
    "notes": "Backfilled but no active consumer on the site as of 2026-05-12.",
    "id": "market.dividends-massive"
   },
   "market.splits-massive": {
    "category": "market",
-   "element": "Corporate actions \u2014 stock splits",
+   "element": "Corporate actions — stock splits",
    "sourcing_mode": "stp",
    "source_vendor": "Polygon Massive",
    "license_tier": "paid",
@@ -108,7 +108,7 @@
     "Reserved for split-adjusted price history"
    ],
    "target_storage": "Supabase: splits",
-   "failure_mode": "No live consumer yet \u2014 backfilled table only.",
+   "failure_mode": "No live consumer yet — backfilled table only.",
    "owner": "Data Steward",
    "notes": "Backfilled but no active consumer on the site as of 2026-05-12.",
    "id": "market.splits-massive"
@@ -124,7 +124,7 @@
    "schedule_et": "Manual / one-shot",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 funnel counts (All US-listed denominator)"
+    "Trading Opportunities → funnel counts (All US-listed denominator)"
    ],
    "target_storage": "Supabase: universe_master",
    "failure_mode": "Funnel denominator goes stale; no per-row impact (ticker_reference is the live source for joins).",
@@ -142,7 +142,7 @@
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Asset Tilt \u2192 sectors table benchmark (OW / UW deltas vs SPY)"
+    "Asset Tilt → sectors table benchmark (OW / UW deltas vs SPY)"
    ],
    "target_storage": "Supabase: spy_sector_weights",
    "failure_mode": "Asset Tilt sector deltas freeze at prior day's benchmark; OW/UW pills off by < 30bps until refresh.",
@@ -152,7 +152,7 @@
   },
   "market.sector-perf": {
    "category": "market",
-   "element": "Sector ETF performance \u2014 1M / 3M / TTM return + TTM vol",
+   "element": "Sector ETF performance — 1M / 3M / TTM return + TTM vol",
    "sourcing_mode": "derived",
    "source_vendor": "Polygon Massive",
    "license_tier": "paid",
@@ -161,12 +161,12 @@
    "schedule_et": "18:50 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Asset Tilt \u2192 sector performance columns (currently wired but not rendered)"
+    "Asset Tilt → sector performance columns (currently wired but not rendered)"
    ],
    "target_storage": "public/sector_perf.json",
    "failure_mode": "Sector perf columns blank on Asset Tilt when expansion ships. No current user impact (page does not render these columns yet).",
    "owner": "Data Steward",
-   "notes": "Producer running but consumer code path not yet live \u2014 flagged in lineage gap #2.",
+   "notes": "Producer running but consumer code path not yet live — flagged in lineage gap #2.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "market.sector-perf"
   },
@@ -181,9 +181,9 @@
    "schedule_et": "06:00 ET + 18:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 indicator historical charts",
-    "Macro Overview \u2192 indicator tiles (value, percentile, sparkline)",
-    "Methodology \u2192 data registry tiles"
+    "Macro Overview → indicator historical charts",
+    "Macro Overview → indicator tiles (value, percentile, sparkline)",
+    "Methodology → data registry tiles"
    ],
    "target_storage": "public/indicator_history.json",
    "failure_mode": "Indicator tiles render last-good values with stale freshness chip; sparklines flatten on the last point.",
@@ -203,7 +203,7 @@
    "schedule_et": "19:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 indicator drill expansion panels"
+    "Macro Overview → indicator drill expansion panels"
    ],
    "target_storage": "public/indicator_drills.json",
    "failure_mode": "Drill panels show last-good payload with stale chip.",
@@ -222,9 +222,9 @@
    "schedule_et": "5th of month + Mondays weeks 1-2, 10:00 ET",
    "freshness_sla_hours": 1200,
    "consumer_surfaces": [
-    "Macro Overview \u2192 Real Economy headline",
-    "Macro Overview \u2192 Real Economy sub-composite",
-    "Home \u2192 Macro tile (regime classifier input)"
+    "Macro Overview → Real Economy headline",
+    "Macro Overview → Real Economy sub-composite",
+    "Home → Macro tile (regime classifier input)"
    ],
    "target_storage": "Supabase: ism_history",
    "failure_mode": "Real Economy headline shows last-good value with stale chip; bug raised if scrape blocked.",
@@ -243,9 +243,9 @@
    "schedule_et": "5th of month + Mondays weeks 1-2, 10:00 ET",
    "freshness_sla_hours": 1200,
    "consumer_surfaces": [
-    "Macro Overview \u2192 Real Economy headline",
-    "Macro Overview \u2192 Real Economy sub-composite",
-    "Home \u2192 Macro tile (regime classifier input)"
+    "Macro Overview → Real Economy headline",
+    "Macro Overview → Real Economy sub-composite",
+    "Home → Macro tile (regime classifier input)"
    ],
    "target_storage": "Supabase: ism_history",
    "failure_mode": "Real Economy headline shows last-good value with stale chip; bug raised if scrape blocked.",
@@ -264,9 +264,9 @@
    "schedule_et": "18:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Macro Overview mini-card (composite + 6 mechanism scores)",
-    "Macro Overview \u2192 6-mechanism Cycle Board",
-    "Asset Tilt \u2192 'Cycle says X' backlink"
+    "Home → Macro Overview mini-card (composite + 6 mechanism scores)",
+    "Macro Overview → 6-mechanism Cycle Board",
+    "Asset Tilt → 'Cycle says X' backlink"
    ],
    "target_storage": "public/cycle_board_snapshot.json",
    "failure_mode": "Macro Overview Cycle Board freezes at prior snapshot; Home tile shows stale composite.",
@@ -286,8 +286,8 @@
    "schedule_et": "06:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 per-mechanism drill panels",
-    "Macro Overview \u2192 mechanism + composite-share badge"
+    "Macro Overview → per-mechanism drill panels",
+    "Macro Overview → mechanism + composite-share badge"
    ],
    "target_storage": "public/methodology_calibration_v11.json",
    "failure_mode": "Drill percentiles + composite-share badges go stale; mechanism panels show last-good KPIs.",
@@ -297,7 +297,7 @@
   },
   "indicator.cycle-v2-headline-cycle-value": {
    "category": "indicator",
-   "element": "Cycle & Value (Setup) headline gauge \u2014 v2",
+   "element": "Cycle & Value (Setup) headline gauge — v2",
    "sourcing_mode": "computed",
    "source_vendor": "FRED",
    "license_tier": "free",
@@ -306,9 +306,9 @@
    "schedule_et": "18:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Macro Overview mini-card (3 headlines)",
-    "Macro Overview \u2192 hero composite + Cycle & Value gauge",
-    "Macro Overview \u2192 headline registry"
+    "Home → Macro Overview mini-card (3 headlines)",
+    "Macro Overview → hero composite + Cycle & Value gauge",
+    "Macro Overview → headline registry"
    ],
    "target_storage": "public/cycle_v2.json",
    "failure_mode": "Headline gauge shows last-good score with stale chip.",
@@ -318,7 +318,7 @@
   },
   "indicator.cycle-v2-headline-market-stress": {
    "category": "indicator",
-   "element": "Market Stress (Panic) headline gauge \u2014 v2",
+   "element": "Market Stress (Panic) headline gauge — v2",
    "sourcing_mode": "computed",
    "source_vendor": "FRED",
    "license_tier": "free",
@@ -327,8 +327,8 @@
    "schedule_et": "18:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Macro Overview mini-card",
-    "Macro Overview \u2192 Market Stress gauge",
+    "Home → Macro Overview mini-card",
+    "Macro Overview → Market Stress gauge",
     "Macro Overview"
    ],
    "target_storage": "public/cycle_v2.json",
@@ -339,7 +339,7 @@
   },
   "indicator.cycle-v2-headline-real-economy": {
    "category": "indicator",
-   "element": "Real Economy (Truth) headline gauge \u2014 v2",
+   "element": "Real Economy (Truth) headline gauge — v2",
    "sourcing_mode": "computed",
    "source_vendor": "FRED",
    "license_tier": "free",
@@ -348,20 +348,20 @@
    "schedule_et": "18:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Macro Overview mini-card",
-    "Macro Overview \u2192 Real Economy gauge",
+    "Home → Macro Overview mini-card",
+    "Macro Overview → Real Economy gauge",
     "Macro Overview"
    ],
    "target_storage": "public/cycle_v2.json",
    "failure_mode": "Real Economy gauge shows last-good score; stale chip.",
    "owner": "Senior Quant",
-   "notes": "Inputs include ISM scrape \u2014 failure cascades from indicator.ism-mfg / indicator.ism-svc.",
+   "notes": "Inputs include ISM scrape — failure cascades from indicator.ism-mfg / indicator.ism-svc.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "indicator.cycle-v2-headline-real-economy"
   },
   "indicator.cycle-v2-regime-label": {
    "category": "indicator",
-   "element": "v2 regime label \u2014 4-cell from Setup \u00d7 Stress",
+   "element": "v2 regime label — 4-cell from Setup × Stress",
    "sourcing_mode": "computed",
    "source_vendor": "FRED",
    "license_tier": "free",
@@ -391,7 +391,7 @@
    "schedule_et": "Saturday 08:00 ET",
    "freshness_sla_hours": 192,
    "consumer_surfaces": [
-    "Macro Overview \u2192 headline drill historical chart"
+    "Macro Overview → headline drill historical chart"
    ],
    "target_storage": "public/cycle_v2_history.json",
    "failure_mode": "Headline drill history truncated to prior Saturday's data.",
@@ -400,7 +400,7 @@
   },
   "scanner.v5-scan-composite": {
    "category": "equity",
-   "element": "Scan composite MacroTilt Score + Band per ticker \u2014 SCORE = Insider + Technicals only (dark-pool & options SHELVED from the score 2026-07-07, now informational context; score ceiling 10\u21925)",
+   "element": "Scan composite MacroTilt Score + Band per ticker — SCORE = Insider + Technicals only (dark-pool & options SHELVED from the score 2026-07-07, now informational context; score ceiling 10→5)",
    "sourcing_mode": "computed",
    "source_vendor": "Unusual Whales",
    "license_tier": "paid",
@@ -409,9 +409,9 @@
    "schedule_et": "15:30 ET primary + 17:30 ET + 21:30 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Daily Opp Scan tile",
-    "Trading Opportunities \u2192 scanner table \u2192 MT Score + Band columns",
-    "Trading Opportunities \u2192 funnel counts (Actionable / Buy tier)"
+    "Home → Daily Opp Scan tile",
+    "Trading Opportunities → scanner table → MT Score + Band columns",
+    "Trading Opportunities → funnel counts (Actionable / Buy tier)"
    ],
    "target_storage": "Supabase: signal_intel_v5_daily + public/latest_scan_data.json",
    "failure_mode": "Trading Opps band column reads em-dash; Home tile shows 0 / 0 counts.",
@@ -430,10 +430,10 @@
    "schedule_et": "10:00 / 13:00 / 15:45 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 IV Rank column",
-    "Trading Opportunities \u2192 Market cap column",
-    "Trading Opportunities \u2192 funnel counts (Universe)",
-    "Portfolio Insights \u2192 watchlist table \u2192 options-sentiment columns (P/C, Net Prem, IV, IV Rank, Implied 7D/30D) + next earnings date for unscored names"
+    "Trading Opportunities → IV Rank column",
+    "Trading Opportunities → Market cap column",
+    "Trading Opportunities → funnel counts (Universe)",
+    "Portfolio Insights → watchlist table → options-sentiment columns (P/C, Net Prem, IV, IV Rank, Implied 7D/30D) + next earnings date for unscored names"
    ],
    "target_storage": "Supabase: universe_snapshots",
    "failure_mode": "IV Rank + market cap columns blank; funnel 'Universe' counter goes stale.",
@@ -451,9 +451,9 @@
    "schedule_et": "18:00 ET primary + 20:00 ET + 23:00 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 Insider sub-score",
-    "Trading Opportunities \u2192 'Insider buys' chip",
-    "Ticker Detail modal \u2192 Insider tab"
+    "Trading Opportunities → Insider sub-score",
+    "Trading Opportunities → 'Insider buys' chip",
+    "Ticker Detail modal → Insider tab"
    ],
    "target_storage": "Supabase: insider_history",
    "failure_mode": "Insider sub-score reads em-dash; chip absent; modal tab empty.",
@@ -468,7 +468,7 @@
    "source_vendor": "Unusual Whales",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: OPTIONS_FLOW_INGEST_DAILY.yml (per lineage doc; not visible in current worktree workflow set \u2014 may be folded into SCAN_345PM)",
+   "refresh_trigger": "github-actions: OPTIONS_FLOW_INGEST_DAILY.yml (per lineage doc; not visible in current worktree workflow set — may be folded into SCAN_345PM)",
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
@@ -477,7 +477,7 @@
    "target_storage": "Supabase: options_flow_daily",
    "failure_mode": "No user-facing impact -- options-flow is neither scored nor surfaced (removed 2026-07-08).",
    "owner": "Data Steward",
-   "notes": "Workflow file referenced in lineage but not present in current worktree \u2014 needs reconciliation.",
+   "notes": "Workflow file referenced in lineage but not present in current worktree — needs reconciliation.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "scanner.options-flow-uw"
   },
@@ -533,8 +533,8 @@
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 Congress sub-score",
-    "Ticker Detail modal \u2192 Congress tab"
+    "Trading Opportunities → Congress sub-score",
+    "Ticker Detail modal → Congress tab"
    ],
    "target_storage": "Supabase: congress_trades_daily",
    "failure_mode": "Congress sub-score reads em-dash; modal tab empty.",
@@ -553,7 +553,7 @@
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 Analyst sub-score"
+    "Trading Opportunities → Analyst sub-score"
    ],
    "target_storage": "Supabase: analyst_ratings_daily",
    "failure_mode": "Analyst sub-score reads em-dash.",
@@ -572,12 +572,12 @@
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities \u2192 Short Interest sub-score"
+    "Trading Opportunities → Short Interest sub-score"
    ],
    "target_storage": "Supabase: short_interest + short_interest_daily",
    "failure_mode": "Short Interest sub-score reads em-dash.",
    "owner": "Data Steward",
-   "notes": "Two-vendor blend \u2014 FINRA for the official settlement print, UW for the continuous between-settlement estimate.",
+   "notes": "Two-vendor blend — FINRA for the official settlement print, UW for the continuous between-settlement estimate.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "scanner.short-interest-finra-uw"
   },
@@ -592,10 +592,10 @@
    "schedule_et": "10:05 / 13:05 / 15:50 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 News tab",
-    "Ticker Detail modal \u2192 Insider tab (event stream)",
-    "Ticker Detail modal \u2192 Congress tab (event stream)",
-    "Ticker Detail modal \u2192 Dark Pool tab"
+    "Ticker Detail modal → News tab",
+    "Ticker Detail modal → Insider tab (event stream)",
+    "Ticker Detail modal → Congress tab (event stream)",
+    "Ticker Detail modal → Dark Pool tab"
    ],
    "target_storage": "Supabase: ticker_events",
    "failure_mode": "Ticker Detail modal tabs empty.",
@@ -613,7 +613,7 @@
    "schedule_et": "Sunday 07:00 ET",
    "freshness_sla_hours": 192,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 Earnings & Events strip"
+    "Ticker Detail modal → Earnings & Events strip"
    ],
    "target_storage": "Supabase: earnings_history",
    "failure_mode": "Earnings strip on Ticker Detail modal shows last-good payload with stale chip.",
@@ -631,12 +631,12 @@
    "schedule_et": "1st of month, 06:00 ET",
    "freshness_sla_hours": 1200,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 Congress trade roster (member name resolution)"
+    "Ticker Detail modal → Congress trade roster (member name resolution)"
    ],
    "target_storage": "src/data/congress_roster.json (committed via PR)",
    "failure_mode": "New members in Congress show as raw IDs until next monthly refresh; existing members unaffected.",
    "owner": "Data Steward",
-   "notes": "CC0 public-domain data \u2014 unitedstates/congress-legislators GitHub repo.",
+   "notes": "CC0 public-domain data — unitedstates/congress-legislators GitHub repo.",
    "id": "scanner.congress-roster"
   },
   "scanner.legacy-user-scan-data": {
@@ -650,10 +650,10 @@
    "schedule_et": "15:30 ET primary + 17:30 ET + 21:30 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Legacy fallback only \u2014 not consumed by active site"
+    "Legacy fallback only — not consumed by active site"
    ],
    "target_storage": "Supabase: user_scan_data",
-   "failure_mode": "No user-facing impact \u2014 superseded by signal_intel_v5_daily.",
+   "failure_mode": "No user-facing impact — superseded by signal_intel_v5_daily.",
    "owner": "Data Steward",
    "notes": "Legacy daily scan. Kept for back-compat; consumer code path retired.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
@@ -670,8 +670,8 @@
    "schedule_et": "16:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Portfolio Insights \u2192 position rows (option marks)",
-    "Portfolio Insights \u2192 Total NAL hero (option contribution)"
+    "Portfolio Insights → position rows (option marks)",
+    "Portfolio Insights → Total NAL hero (option contribution)"
    ],
    "target_storage": "Supabase: positions.price (overwritten)",
    "failure_mode": "Option position rows show last-good mark; NAL hero understates/overstates by option drift.",
@@ -691,13 +691,13 @@
    "schedule_et": "User uploads CSV via ImportTransactions modal",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Portfolio Insights \u2192 Realized P&L tile",
-    "Portfolio Insights \u2192 Trade History section"
+    "Portfolio Insights → Realized P&L tile",
+    "Portfolio Insights → Trade History section"
    ],
    "target_storage": "Supabase: transactions",
    "failure_mode": "RPC raises and surfaces a plain-English error in modal; partial-row errors render inline.",
    "owner": "Lead Developer",
-   "notes": "Today: Chase J.P. Morgan brokerage CSV. Schwab / Fidelity importers pending. source_vendor='Yahoo Finance' is a placeholder \u2014 user CSV has no upstream vendor; left as enum-compatible value.",
+   "notes": "Today: Chase J.P. Morgan brokerage CSV. Schwab / Fidelity importers pending. source_vendor='Yahoo Finance' is a placeholder — user CSV has no upstream vendor; left as enum-compatible value.",
    "id": "portfolio.transactions-broker-import"
   },
   "portfolio.positions": {
@@ -711,9 +711,9 @@
    "schedule_et": "Real-time on Portfolio Insights mount",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Portfolio Insights \u2192 Total NAL hero",
-    "Portfolio Insights \u2192 per-account tiles",
-    "Portfolio Insights \u2192 position rows"
+    "Portfolio Insights → Total NAL hero",
+    "Portfolio Insights → per-account tiles",
+    "Portfolio Insights → position rows"
    ],
    "target_storage": "Supabase: positions",
    "failure_mode": "Page fails to load positions table; Portfolio Insights shell renders empty.",
@@ -732,7 +732,7 @@
    "schedule_et": "Real-time on Portfolio Insights mount",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Portfolio Insights \u2192 per-account tiles"
+    "Portfolio Insights → per-account tiles"
    ],
    "target_storage": "Supabase: accounts",
    "failure_mode": "Account tile strip empty.",
@@ -745,17 +745,17 @@
    "sourcing_mode": "derived",
    "source_vendor": "Yahoo Finance",
    "license_tier": "n/a (user-owned data)",
-   "cadence": "unknown \u2014 needs verification",
+   "cadence": "unknown — needs verification",
    "refresh_trigger": "vercel-cron: /api/portfolio-history-snapshot (referenced in code; not visible in current vercel.json)",
    "schedule_et": "EOD nightly (inferred)",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Portfolio Insights \u2192 NAV chart"
+    "Portfolio Insights → NAV chart"
    ],
    "target_storage": "Supabase: portfolio_history",
    "failure_mode": "NAV chart truncates at last successful snapshot.",
    "owner": "Lead Developer",
-   "notes": "Producer + schedule needs verification \u2014 see _open_questions.",
+   "notes": "Producer + schedule needs verification — see _open_questions.",
    "id": "portfolio.nav-chart"
   },
   "scenario.v9-allocation-legacy": {
@@ -769,12 +769,12 @@
    "schedule_et": "Saturday 06:00 ET",
    "freshness_sla_hours": 192,
    "consumer_surfaces": [
-    "No active consumer \u2014 kept for back-compat"
+    "No active consumer — kept for back-compat"
    ],
    "target_storage": "public/v9_allocation.json",
-   "failure_mode": "No user-facing impact \u2014 back-compat artifact only.",
+   "failure_mode": "No user-facing impact — back-compat artifact only.",
    "owner": "Senior Quant",
-   "notes": "Lineage gap #3 \u2014 candidate for retirement to save compute.",
+   "notes": "Lineage gap #3 — candidate for retirement to save compute.",
    "id": "scenario.v9-allocation-legacy"
   },
   "scenario.v10-allocation": {
@@ -788,9 +788,9 @@
    "schedule_et": "18:45 ET weekdays (daily); Fri 17:30 ET + Mon-Thu 07:30 ET (V10-ASSET-ALLOCATION.yml)",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Home \u2192 Asset Tilt mini-card",
-    "Asset Tilt \u2192 hero, sectors table, IG table, top/bottom tilts, IG drill drawer, 'Cycle says X' backlink",
-    "Macro Overview \u2192 tile-level page stance label"
+    "Home → Asset Tilt mini-card",
+    "Asset Tilt → hero, sectors table, IG table, top/bottom tilts, IG drill drawer, 'Cycle says X' backlink",
+    "Macro Overview → tile-level page stance label"
    ],
    "target_storage": "public/v10_allocation.json",
    "failure_mode": "Asset Tilt freezes at prior day's allocation; Home Asset Tilt tile + Macro stance chip go stale.",
@@ -828,12 +828,12 @@
    "schedule_et": "10:05 / 13:05 / 15:50 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 News tab"
+    "Ticker Detail modal → News tab"
    ],
    "target_storage": "Supabase: ticker_events (event_type='news')",
    "failure_mode": "News tab on Ticker Detail modal empty.",
    "owner": "Data Steward",
-   "notes": "Subset of scanner.ticker-events-uw \u2014 listed separately for category clarity.",
+   "notes": "Subset of scanner.ticker-events-uw — listed separately for category clarity.",
    "id": "news.ticker-events-news"
   },
   "commentary.zerohedge-premium": {
@@ -847,7 +847,7 @@
    "schedule_et": "Saturday 07:30 ET",
    "freshness_sla_hours": 192,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 commentary feeds (when ZH is the source)"
+    "Ticker Detail modal → commentary feeds (when ZH is the source)"
    ],
    "target_storage": "Supabase: pipeline_health (id='zh_cookie') for canary; content fetched on-demand",
    "failure_mode": "Cookie expiry alerts; premium fetches start returning paywalled HTML.",
@@ -866,13 +866,13 @@
    "schedule_et": "Every 10 min, 10:00-23:50 ET weekdays",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Every page \u2192 freshness chip on every tile",
-    "Home \u2192 Daily Opp Scan / Macro Overview / Asset Tilt mini-card chips"
+    "Every page → freshness chip on every tile",
+    "Home → Daily Opp Scan / Macro Overview / Asset Tilt mini-card chips"
    ],
    "target_storage": "Supabase: pipeline_health",
    "failure_mode": "All chips fall back to 'unknown' state; no consumer breaks but trust signal degrades.",
    "owner": "Data Steward",
-   "notes": "Source vendor enum placeholder \u2014 watchdog reads multiple tables, doesn't fetch a single vendor.",
+   "notes": "Source vendor enum placeholder — watchdog reads multiple tables, doesn't fetch a single vendor.",
    "id": "infra.pipeline-freshness-watchdog"
   },
   "infra.daily-home-smoke": {
@@ -886,7 +886,7 @@
    "schedule_et": "07:00 ET daily",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Files P0 bugs on failure \u2014 no direct UI consumer"
+    "Files P0 bugs on failure — no direct UI consumer"
    ],
    "target_storage": "Supabase: bug_reports (P0 on failure)",
    "failure_mode": "P0 bug filed automatically; Joe gets a Resend email via workflow-failure-alerter.",
@@ -958,7 +958,7 @@
    "schedule_et": "Manual / on-demand",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Research artifact \u2014 no live consumer"
+    "Research artifact — no live consumer"
    ],
    "target_storage": "public/research/horse_race_v9_vs_extended.json",
    "failure_mode": "Research artifact stale; no UI impact.",
@@ -985,7 +985,7 @@
   },
   "infra.massive-v9-etf-backfill": {
    "category": "infra",
-   "element": "Massive v9-ETF backfill (18 ETFs \u00d7 20y)",
+   "element": "Massive v9-ETF backfill (18 ETFs × 20y)",
    "sourcing_mode": "stp",
    "source_vendor": "Polygon Massive",
    "license_tier": "paid",
@@ -1049,9 +1049,9 @@
    "schedule_et": "On code change / PR",
    "freshness_sla_hours": null,
    "consumer_surfaces": [
-    "Methodology \u2192 Data Registry tiles",
-    "Macro Overview \u2192 license-tier badge",
-    "Macro Overview \u2192 FRED/Yahoo seriesId display"
+    "Methodology → Data Registry tiles",
+    "Macro Overview → license-tier badge",
+    "Macro Overview → FRED/Yahoo seriesId display"
    ],
    "target_storage": "src/data/dataRegistry.js + public/data_manifest.json",
    "failure_mode": "Methodology Data Registry tiles render an older snapshot of the system; no runtime impact.",
@@ -1070,9 +1070,9 @@
    "schedule_et": "15:45 ET weekdays (Friday close drives Monday-open execution)",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 two-axis header (stress state, MOVE percentile, yield regime, \u0394Y-3M percentile, active sleeve, equity %)",
-    "Asset Tilt \u2192 active defensive sleeve composition + equity %",
-    "Home page tile \u2192 Macro Overview tile (regime + equity %)"
+    "Macro Overview → two-axis header (stress state, MOVE percentile, yield regime, ΔY-3M percentile, active sleeve, equity %)",
+    "Asset Tilt → active defensive sleeve composition + equity %",
+    "Home page tile → Macro Overview tile (regime + equity %)"
    ],
    "target_storage": "public/macrotilt_engine.json",
    "failure_mode": "Macro Overview header reads em-dash on stress + yield reads, Asset Tilt sleeve display blanks, freshness chip flips red after 49h.",
@@ -1145,19 +1145,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1182,19 +1182,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1219,19 +1219,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1256,19 +1256,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1293,19 +1293,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1330,19 +1330,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1367,19 +1367,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1404,19 +1404,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1441,19 +1441,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 Commodities tile + bucket modal card"
+     "tile": "Macro Overview — Commodities tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Thin history \u2192 ranked=false, shows price only.",
+   "failure_mode": "Thin history → ranked=false, shows price only.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "weekly-friday",
    "dependencies": []
@@ -1462,7 +1462,7 @@
    "id": "indicator-fx_eur-daily",
    "category": "indicator",
    "name": "fx_eur",
-   "description": "Euro exchange rate ($ per \u20ac), ranked into its own trailing 3-year range.",
+   "description": "Euro exchange rate ($ per €), ranked into its own trailing 3-year range.",
    "sourcing_mode": "STP",
    "source_vendor": "Yahoo Finance",
    "source_endpoint": "Yahoo chart API EURUSD=X",
@@ -1477,19 +1477,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 FX tile + bucket modal card"
+     "tile": "Macro Overview — FX tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1499,7 +1499,7 @@
    "id": "indicator-fx_jpy-daily",
    "category": "indicator",
    "name": "fx_jpy",
-   "description": "Japanese yen exchange rate (\u00a5 per $), ranked into its own trailing 3-year range.",
+   "description": "Japanese yen exchange rate (¥ per $), ranked into its own trailing 3-year range.",
    "sourcing_mode": "STP",
    "source_vendor": "Yahoo Finance",
    "source_endpoint": "Yahoo chart API JPY=X",
@@ -1514,19 +1514,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 FX tile + bucket modal card"
+     "tile": "Macro Overview — FX tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1536,7 +1536,7 @@
    "id": "indicator-fx_gbp-daily",
    "category": "indicator",
    "name": "fx_gbp",
-   "description": "British pound exchange rate ($ per \u00a3), ranked into its own trailing 3-year range.",
+   "description": "British pound exchange rate ($ per £), ranked into its own trailing 3-year range.",
    "sourcing_mode": "STP",
    "source_vendor": "Yahoo Finance",
    "source_endpoint": "Yahoo chart API GBPUSD=X",
@@ -1551,19 +1551,19 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 FX tile + bucket modal card"
+     "tile": "Macro Overview — FX tile + bucket modal card"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 grid row"
+     "tile": "Macro Overview — grid row"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 indicator sources table"
+     "tile": "Methodology — indicator sources table"
     }
    ],
    "current_status": "live",
-   "failure_mode": "Per-ticker try/except; missing \u2192 omitted; tile shows dash.",
+   "failure_mode": "Per-ticker try/except; missing → omitted; tile shows dash.",
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
@@ -1588,15 +1588,15 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Macro Overview \u2014 every asset-class tile positioning takeaway + positioning drill modal"
+     "tile": "Macro Overview — every asset-class tile positioning takeaway + positioning drill modal"
     },
     {
      "tab": "indicators",
-     "tile": "Macro Overview \u2014 positioning rows"
+     "tile": "Macro Overview — positioning rows"
     },
     {
      "tab": "readme",
-     "tile": "Methodology \u2014 positioning method section"
+     "tile": "Methodology — positioning method section"
     }
    ],
    "current_status": "live",
@@ -1608,7 +1608,7 @@
   },
   "indicator-spx_above_50ema-daily": {
    "category": "indicator",
-   "element": "S&P 500 breadth \u2014 % of members above 50-day EMA",
+   "element": "S&P 500 breadth — % of members above 50-day EMA",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "MacroTilt (Polygon prices_eod)",
    "license_tier": "free",
@@ -1617,7 +1617,7 @@
    "schedule_et": "11:00",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2014 Equities bucket (indicator)",
+    "Macro Overview — Equities bucket (indicator)",
     "Macro Overview"
    ],
    "target_storage": "public/indicator_history.json[spx_above_50ema]",
@@ -1628,7 +1628,7 @@
   },
   "indicator-spx_above_200ema-daily": {
    "category": "indicator",
-   "element": "S&P 500 breadth \u2014 % of members above 200-day EMA",
+   "element": "S&P 500 breadth — % of members above 200-day EMA",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "MacroTilt (Polygon prices_eod)",
    "license_tier": "free",
@@ -1637,7 +1637,7 @@
    "schedule_et": "11:00",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2014 Equities bucket (indicator)",
+    "Macro Overview — Equities bucket (indicator)",
     "Macro Overview"
    ],
    "target_storage": "public/indicator_history.json[spx_above_200ema]",
@@ -1648,7 +1648,7 @@
   },
   "indicator-ndx_above_50ema-daily": {
    "category": "indicator",
-   "element": "Nasdaq-100 breadth \u2014 % of members above 50-day EMA",
+   "element": "Nasdaq-100 breadth — % of members above 50-day EMA",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "MacroTilt (Polygon prices_eod)",
    "license_tier": "free",
@@ -1657,7 +1657,7 @@
    "schedule_et": "11:00",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2014 Equities bucket (indicator)",
+    "Macro Overview — Equities bucket (indicator)",
     "Macro Overview"
    ],
    "target_storage": "public/indicator_history.json[ndx_above_50ema]",
@@ -1668,7 +1668,7 @@
   },
   "indicator-ndx_above_200ema-daily": {
    "category": "indicator",
-   "element": "Nasdaq-100 breadth \u2014 % of members above 200-day EMA",
+   "element": "Nasdaq-100 breadth — % of members above 200-day EMA",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "MacroTilt (Polygon prices_eod)",
    "license_tier": "free",
@@ -1677,7 +1677,7 @@
    "schedule_et": "11:00",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2014 Equities bucket (indicator)",
+    "Macro Overview — Equities bucket (indicator)",
     "Macro Overview"
    ],
    "target_storage": "public/indicator_history.json[ndx_above_200ema]",
@@ -1690,7 +1690,7 @@
    "id": "indicator-cmdty_brent-daily",
    "category": "indicator",
    "name": "cmdty_brent",
-   "description": "Brent crude front-month futures (BZ=F) \u2014 the global oil benchmark, ranked into its own 3-year range.",
+   "description": "Brent crude front-month futures (BZ=F) — the global oil benchmark, ranked into its own 3-year range.",
    "sourcing_mode": "STP from vendor",
    "source_vendor": "Yahoo Finance",
    "source_endpoint": "Yahoo chart API BZ=F",
@@ -1705,7 +1705,7 @@
    "consumer_surfaces": [
     {
      "tab": "overview",
-     "tile": "Commodities/FX bucket \u2014 indicator"
+     "tile": "Commodities/FX bucket — indicator"
     },
     {
      "tab": "indicators"
@@ -1722,10 +1722,10 @@
    "id": "indicator-ust_10y-daily",
    "category": "indicator",
    "name": "ust_10y",
-   "description": "Nominal 10-year US Treasury par yield \u2014 the benchmark long-term interest rate.",
+   "description": "Nominal 10-year US Treasury par yield — the benchmark long-term interest rate.",
    "sourcing_mode": "STP from vendor",
    "source_vendor": "Treasury.gov",
-   "source_endpoint": "Treasury.gov daily par yield curve \u2014 10 Yr nominal",
+   "source_endpoint": "Treasury.gov daily par yield curve — 10 Yr nominal",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -1759,10 +1759,10 @@
    "id": "indicator-ust_2y-daily",
    "category": "indicator",
    "name": "ust_2y",
-   "description": "Nominal 2-year US Treasury par yield \u2014 most sensitive to Fed policy expectations.",
+   "description": "Nominal 2-year US Treasury par yield — most sensitive to Fed policy expectations.",
    "sourcing_mode": "STP from vendor",
    "source_vendor": "Treasury.gov",
-   "source_endpoint": "Treasury.gov daily par yield curve \u2014 2 Yr nominal",
+   "source_endpoint": "Treasury.gov daily par yield curve — 2 Yr nominal",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -1796,7 +1796,7 @@
    "id": "indicator-unrate-monthly",
    "category": "indicator",
    "name": "unrate",
-   "description": "US unemployment rate (U-3) \u2014 headline monthly jobless rate.",
+   "description": "US unemployment rate (U-3) — headline monthly jobless rate.",
    "sourcing_mode": "STP",
    "source_vendor": "FRED",
    "source_endpoint": "FRED UNRATE",
@@ -1817,7 +1817,7 @@
     },
     {
      "tab": "overview",
-     "tile": "v11 Growth mechanism modal \u2014 indicator row"
+     "tile": "v11 Growth mechanism modal — indicator row"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -1851,7 +1851,7 @@
     },
     {
      "tab": "overview",
-     "tile": "v11 Growth mechanism modal \u2014 indicator row"
+     "tile": "v11 Growth mechanism modal — indicator row"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -1871,11 +1871,11 @@
    "schedule_et": "06:00 ET weekdays primary + 18:00 ET second pass",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 indicator detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 positioning detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 drill \u2192 index overlay toggle"
+    "Macro Overview → indicator detail → index overlay toggle",
+    "Macro Overview → positioning detail → index overlay toggle",
+    "Macro Overview → drill → index overlay toggle"
    ],
-   "failure_mode": "missing \u2192 overlay absent; freshness dot on toggle goes red",
+   "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
    "owner": "Lead Dev (pipe), Data Steward (freshness)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "market.spx-index-overlay"
@@ -1891,11 +1891,11 @@
    "schedule_et": "06:00 ET weekdays primary + 18:00 ET second pass",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 indicator detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 positioning detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 drill \u2192 index overlay toggle"
+    "Macro Overview → indicator detail → index overlay toggle",
+    "Macro Overview → positioning detail → index overlay toggle",
+    "Macro Overview → drill → index overlay toggle"
    ],
-   "failure_mode": "missing \u2192 overlay absent; freshness dot on toggle goes red",
+   "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
    "owner": "Lead Dev (pipe), Data Steward (freshness)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "market.ndx-index-overlay"
@@ -1911,11 +1911,11 @@
    "schedule_et": "06:00 ET weekdays primary + 18:00 ET second pass",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 indicator detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 positioning detail \u2192 index overlay toggle",
-    "Macro Overview \u2192 drill \u2192 index overlay toggle"
+    "Macro Overview → indicator detail → index overlay toggle",
+    "Macro Overview → positioning detail → index overlay toggle",
+    "Macro Overview → drill → index overlay toggle"
    ],
-   "failure_mode": "missing \u2192 overlay absent; freshness dot on toggle goes red",
+   "failure_mode": "missing → overlay absent; freshness dot on toggle goes red",
    "owner": "Lead Dev (pipe), Data Steward (freshness)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "market.dji-index-overlay"
@@ -1931,10 +1931,10 @@
    "schedule_et": "11:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 Equities tile",
+    "Macro Overview → Equities tile",
     "Macro Overview table"
    ],
-   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale \u2192 red chip",
+   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
    "owner": "Lead Dev (pipe), Data Steward (freshness)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "indicator.ndx-above-50ema"
@@ -1950,10 +1950,10 @@
    "schedule_et": "11:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Macro Overview \u2192 Equities tile",
+    "Macro Overview → Equities tile",
     "Macro Overview table"
    ],
-   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale \u2192 red chip",
+   "failure_mode": "hard-fail if membership list incomplete; pipeline_health row goes stale → red chip",
    "owner": "Lead Dev (pipe), Data Steward (freshness)",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "indicator.ndx-above-200ema"
@@ -2065,7 +2065,7 @@
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
     {
-     "component": "freshness alarm + Admin\u00b7Data"
+     "component": "freshness alarm + Admin·Data"
     }
    ],
    "failure_mode": "alarm emails Joe; Admin row reds",
@@ -2148,10 +2148,10 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 10:30\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 10:30–15:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
-    "Paper tab \u2192 live holdings table (while market open)"
+    "Paper tab → live holdings table (while market open)"
    ],
    "output_destination": "Supabase public.paper_intraday_positions",
    "producer_script": "paper_portfolio/intraday.py (mirror_positions_intraday)",
@@ -2167,10 +2167,10 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 10:30\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 10:30–15:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
-    "Paper tab \u2192 Performance card (while market open)"
+    "Paper tab → Performance card (while market open)"
    ],
    "output_destination": "Supabase public.paper_intraday_nav",
    "producer_script": "paper_portfolio/intraday.py (write_nav_intraday)",
@@ -2180,7 +2180,7 @@
   },
   "portfolio.paper-nav-daily": {
    "category": "portfolio",
-   "element": "Paper portfolio OFFICIAL daily close NAV/P&L snapshot plus benchmark closes (SPY / QQQ / DIA / IWM buy-and-hold anchors) \u2014 the record the Paper page displays after 16:50 ET.",
+   "element": "Paper portfolio OFFICIAL daily close NAV/P&L snapshot plus benchmark closes (SPY / QQQ / DIA / IWM buy-and-hold anchors) — the record the Paper page displays after 16:50 ET.",
    "sourcing_mode": "computed",
    "source_vendor": "Alpaca (paper)",
    "license_tier": "free",
@@ -2189,8 +2189,8 @@
    "schedule_et": "16:50 ET close snapshot; re-certified next morning 09:45 ET against prices_eod",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Paper tab \u2192 Performance card (after close)",
-    "Paper tab \u2192 NAV history chart"
+    "Paper tab → Performance card (after close)",
+    "Paper tab → NAV history chart"
    ],
    "output_destination": "Supabase public.paper_nav_daily",
    "producer_script": "paper_portfolio/mirror.py (write_nav_daily)",
@@ -2241,8 +2241,27 @@
    "failure_mode": "Power Trend panel holds the last good dated list and its chip reds; the paper engine keeps its last targets and never trades a list past SLA. A zero-signal month is NOT a failure: the producer publishes a single CASH sentinel row (rank=0) the engine reads as all-cash.",
    "owner": "Data Steward",
    "sla_basis": "One-clock doctrine: monthly job = 768h; graded off the last successful publish (pipeline_health.last_good_at).",
-   "notes": "Replaces the retired 12-1 momentum list (equity-momentum_list-monthly) and the Faber crash guard (market-momentum_guard-daily), both retired 2026-07-15 with their producers deleted (LESSON 0.10). Screen runs server-side in public.power_trend_scan (migration 081, validated logic \u2014 do not re-derive client-side): universe = liquid US common stock via strategy_bt_universe (close >= $2, 45-day ADV $50M-$40B); 3-mo ROC = 63 trading days, top-20% cross-sectional; RS gate >= 5 points vs SPY; breakout = new 10-day closing high on > 1.3x 20-day avg volume; close above EMAs 10/21/50/200 (truncated weighted-sum over <= 720 rows, >= 250 required \u2014 recursive EMA times out at panel width). adv_usd is in DOLLARS (close x 20-day avg volume), not $M. Producer caps at 15 names (roc_3m desc, ticker-asc tiebreak; scripts/power_trend_rules.py); engine sizing = capital / max(n, 8) \u2014 the min-8 diversification floor, unfilled slots stay in cash. Fail-loud gates: PostgREST truncation guard (< 900 rows), <= 200 rows sane, universe >= 800, panel-date consistency, post-write count verification (LESSONS 4.18 / 4.5). Append-only across rebalance_dates; delete+rewrite within one (idempotent).",
+   "notes": "Replaces the retired 12-1 momentum list (equity-momentum_list-monthly) and the Faber crash guard (market-momentum_guard-daily), both retired 2026-07-15 with their producers deleted (LESSON 0.10). Screen runs server-side in public.power_trend_scan (migration 081, validated logic — do not re-derive client-side): universe = liquid US common stock via strategy_bt_universe (close >= $2, 45-day ADV $50M-$40B); 3-mo ROC = 63 trading days, top-20% cross-sectional; RS gate >= 5 points vs SPY; breakout = new 10-day closing high on > 1.3x 20-day avg volume; close above EMAs 10/21/50/200 (truncated weighted-sum over <= 720 rows, >= 250 required — recursive EMA times out at panel width). adv_usd is in DOLLARS (close x 20-day avg volume), not $M. Producer caps at 15 names (roc_3m desc, ticker-asc tiebreak; scripts/power_trend_rules.py); engine sizing = capital / max(n, 8) — the min-8 diversification floor, unfilled slots stay in cash. Fail-loud gates: PostgREST truncation guard (< 900 rows), <= 200 rows sane, universe >= 800, panel-date consistency, post-write count verification (LESSONS 4.18 / 4.5). Append-only across rebalance_dates; delete+rewrite within one (idempotent).",
    "id": "screener.power-trend-list"
+  },
+  "scanner.insider-history-edgar": {
+   "category": "equity",
+   "element": "Insider transaction history (SEC EDGAR shadow)",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "SEC EDGAR (free)",
+   "license_tier": "free",
+   "cadence": "daily",
+   "refresh_trigger": "github-actions: scanner-insider_edgar-daily.yml",
+   "schedule_et": "06:00 ET daily (daily-slow default; EDGAR acceptance closes ~22:00 ET, so next-morning run captures the full prior day)",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "NONE until UW cutover -- shadow of scanner.insider-history-uw. Parity reconciliation + scanner re-score diff must pass (Senior Quant sign-off) before this replaces the UW element ahead of the 2026-08-12 UW lapse."
+   ],
+   "target_storage": "Supabase: insider_history_edgar",
+   "failure_mode": "Shadow only pre-cutover: no user-facing impact. Post-cutover: inherits the UW element's failure mode.",
+   "owner": "Data Steward",
+   "sla_basis": "Mirrors scanner.insider-history-uw (49h) so the watchdog treats the shadow exactly like the feed it will replace.",
+   "id": "scanner.insider-history-edgar"
   }
  }
 }
