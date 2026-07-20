@@ -471,6 +471,28 @@ export function gradeTwoClock(input, nowMs) {
   if (o.marketHoursOnly && !o.lastError && !isMarketOpenET(nowMs)) {
     return { status: "green", clock: null, reason: "After hours \u2014 live feed resumes at the next market open; the close snapshot is the day\u2019s final value", ageHours: null };
   }
+  // Morning grace (2026-07-20): a market-hours-only live feed cannot be stale
+  // before its first mirror of the session has had a chance to land. First
+  // scheduled pass is 09:50 ET, and GitHub's shared cron runners routinely add
+  // 60-90 min, so before 11:30 ET a quiet live feed is EXPECTED (the page is
+  // showing the prior close, which is correct). Without this, both Paper live
+  // chips went red every trading morning 09:30\u2192~11:30 \u2014 a daily false alarm
+  // (LESSONS 8.9: a too-tight window erodes trust in the freshness system).
+  // A pull that already happened today re-enables normal grading, so a genuine
+  // mid-session stall still reds after 11:30 ET.
+  if (o.marketHoursOnly && !o.lastError && isMarketOpenET(nowMs)) {
+    const now = (typeof nowMs === "number") ? new Date(nowMs) : new Date();
+    const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const mins = et.getHours() * 60 + et.getMinutes();
+    const etDay = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const pullDay = o.lastPullIso
+      ? new Date(o.lastPullIso).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+      : null;
+    const pulledToday = pullDay != null && etDay != null && pullDay === etDay;
+    if (!pulledToday && mins < 11 * 60 + 30) {
+      return { status: "green", clock: null, reason: "Showing the last close \u2014 the first live mirror of the session lands by ~11:30 ET", ageHours: null };
+    }
+  }
   const pull = gradeByLastPull(o, nowMs);
   if (pull.status !== "green") {
     return { status: "red", clock: "pull", reason: pull.reason || "Not registered", ageHours: pull.ageHours == null ? null : pull.ageHours };
