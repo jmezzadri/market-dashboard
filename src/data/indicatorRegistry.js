@@ -142,7 +142,7 @@ jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.
 //     runtime from public/indicator_history.json. Hardcoded m1/m3/m6/m12 left
 //     null; UI computes them from real history. cur seeded as null → live.
 m2_yoy:["M2 Money Supply","M2 Money Stock YoY Growth","fincond",1,"% YoY",2,null,null,null,null,null,false,
-"Year-over-year growth in M2 — the nation's cash, checking, savings, and money-market balances. Growth above ~7% has historically accompanied loose conditions and rising asset valuations (2020–21); contraction is rare and tight — 2022–23 was the first since the 1930s. Pill flags the high tail: unusually fast money growth.",
+"Year-over-year growth in M2 — the nation's cash, checking, savings, and money-market balances. Growth above ~7% has historically accompanied loose conditions and rising asset valuations (2020–21); contraction is rare and tight — 2022–23 was the first since the 1930s. Pill flags the high tail: exceptionally fast money growth.",
 "M2 money stock, year-over-year % change. Source: FRED M2SL (monthly). Pill state: trailing 3-year percentile, high-warns (Elevated 75th, Extreme 85th)."],
 fed_bs:["Fed Balance Sheet","Fed Total Assets YoY Change","fincond",2,"% YoY",1,null,null,null,null,null,false,
 "Year-over-year change in the Fed's total assets — the headline gauge of QE versus QT: the Fed buying bonds and adding liquidity, versus letting them run off and draining it. Positive = expansion; negative = drain. Pill warns at the low end (aggressive runoff).",

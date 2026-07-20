@@ -333,7 +333,7 @@ export default function HomePage() {
           {notable.length === 0 && <div className="secnote">Nothing is stretched right now — no indicator sits at a 3-year extreme or just made an outsized move.</div>}
         </Reveal>
         <Reveal as="p" className="ind-note">
-          Everything at a 3-year extreme or after an unusually large move for its own print schedule — daily, weekly, or monthly.
+          Everything at a 3-year extreme or after an outsized move for its own print schedule — daily, weekly, or monthly.
           {moreCount > 0 && <> The {notable.length} most stretched are shown. <a href="/macro" onClick={go('/macro')}>{moreCount} more at extremes →</a></>}
         </Reveal>
       </section>
