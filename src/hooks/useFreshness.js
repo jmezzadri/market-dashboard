@@ -469,6 +469,29 @@ export function useFreshness(elementId, fallback) {
   };
 }
 
+// ─── Mounted-chip registry (2026-07-20) ─────────────────────────────────────
+// A chip can be handed a page-local as-of ("grade the exact value you are
+// rendering") that makes it stricter than the element’s global grade — that is
+// deliberate (Joe 2026-05-28: the user sees the published value, not the cron
+// log). But the header pill must NEVER read "All feeds current" while a chip
+// the user can see is red (Joe 2026-07-20, Momentum activity chip). So every
+// mounted FreshnessChip registers its own graded status here, and the rollup
+// below merges these in: a red on-screen chip reds the header even when the
+// element’s global grade is green. Unmount cleans up, so the header only ever
+// speaks for chips actually on the current page.
+const mountedChips = new Map(); // key -> { elementId, status, label, reason }
+export function registerMountedChip(key, entry) {
+  const prev = mountedChips.get(key);
+  if (prev && prev.status === entry.status && prev.label === entry.label) return;
+  mountedChips.set(key, entry);
+  for (const fn of listeners) { try { fn(); } catch { /* noop */ } }
+}
+export function unregisterMountedChip(key) {
+  if (!mountedChips.has(key)) return;
+  mountedChips.delete(key);
+  for (const fn of listeners) { try { fn(); } catch { /* noop */ } }
+}
+
 // ─── useFreshnessRollup — site-wide rollup for the global header pill ───────
 // Grades EVERY registered element with the exact same rollupStatus() the
 // per-element chips use, so the header count can never disagree with the
@@ -527,6 +550,17 @@ export function useFreshnessRollup() {
     else if (r.status === "amber") amber.push({ id: phKey, label });
     else if (r.status === "green") greenCount += 1;
     // "unknown"/"loading" are not counted — untracked is not a breakage.
+  }
+  // Merge in on-screen chips whose page-local grade is stricter than the
+  // element's global grade (see mounted-chip registry above). Dedup: if the
+  // element is already red in the global list, the chip adds nothing new.
+  for (const [, c] of mountedChips) {
+    if (c.status === "red" && !red.some((x) => x.id === c.elementId || x.label === c.label)) {
+      red.push({ id: c.elementId, label: c.label, reason: c.reason || null });
+    } else if (c.status === "amber" && !amber.some((x) => x.id === c.elementId || x.label === c.label)
+               && !red.some((x) => x.id === c.elementId || x.label === c.label)) {
+      amber.push({ id: c.elementId, label: c.label });
+    }
   }
   red.sort((a, b) => a.label.localeCompare(b.label));
   return { loading: false, red, amber, greenCount };

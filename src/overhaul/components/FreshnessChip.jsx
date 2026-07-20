@@ -11,9 +11,9 @@
    one of these.
 */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useFreshness } from '../../hooks/useFreshness';
+import { useFreshness, registerMountedChip, unregisterMountedChip } from '../../hooks/useFreshness';
 import { formatSlaDaysHours } from '../../lib/freshnessClock';
 
 // Relative-age label. When the hook supplies a calendar-aware age (weekends +
@@ -146,6 +146,23 @@ export default function FreshnessChip({
   style,
 }) {
   const f = useFreshness(elementId, fallback);
+  // Report this chip's on-screen grade to the site-wide header rollup, so the
+  // header can never say "All feeds current" over a visible red chip. The key
+  // is stable per mount (elementId + a per-instance id).
+  const instanceId = useRef(null);
+  if (instanceId.current == null) instanceId.current = `${elementId}#${Math.random().toString(36).slice(2, 8)}`;
+  useEffect(() => {
+    if (f && !f.loading && (f.status === 'red' || f.status === 'amber' || f.status === 'green')) {
+      registerMountedChip(instanceId.current, {
+        elementId,
+        status: f.status,
+        label: f.label || elementId,
+        reason: f.reason || null,
+      });
+    }
+    return undefined;
+  });
+  useEffect(() => () => unregisterMountedChip(instanceId.current), []);
   const [hover, setHover] = useState(false);
   const [tipXY, setTipXY] = useState(null);
   const ref = useRef(null);
