@@ -29,19 +29,25 @@ FORMS = {"4", "4/A", "5", "5/A"}
 MIN_INTERVAL = 0.13          # ~7.7 req/s, under SEC's 10/s ceiling
 _last = [0.0]
 
-def throttled_get(url, tries=3):
+SKIPPED = []                             # filings dropped after all retries
+
+def throttled_get(url, tries=6):
     for i in range(tries):
         wait = MIN_INTERVAL - (time.time() - _last[0])
         if wait > 0:
             time.sleep(wait)
         _last[0] = time.time()
-        r = requests.get(url, headers=UA, timeout=30)
+        try:
+            r = requests.get(url, headers=UA, timeout=30)
+        except requests.RequestException:
+            time.sleep(3 * (i + 1)); continue
         if r.status_code == 200:
             return r
         if r.status_code == 404:
             return None
-        time.sleep(2 * (i + 1))          # 429/5xx backoff
+        time.sleep(3 * (i + 1))          # 429/5xx exponential-ish backoff
     print(f"    WARN giving up on {url} (HTTP {r.status_code})")
+    SKIPPED.append(url)
     return None
 
 def sb_get_all(path_and_query):
@@ -64,6 +70,14 @@ def sb_get_all(path_and_query):
 def load_maps():
     uni = sb_get_all("universe_master?select=ticker,cik&active=is.true&order=ticker")
     tickers = {u["ticker"] for u in uni}
+    # alias map: dot/dash class-share variants -> canonical universe ticker
+    # (BRK.B was silently dropped: XML says BRK.B, we normalized to BRK-B,
+    # and the universe stores the dotted form)
+    alias = {}
+    for t in tickers:
+        alias[t] = t
+        alias[t.replace(".", "-")] = t
+        alias[t.replace("-", ".")] = t
     cik2t = {}
     for u in uni:
         if u["cik"]:
@@ -80,7 +94,7 @@ def load_maps():
     refmap = {x["ticker"]: x for x in ref}
     print(f"    universe: {len(tickers):,} tickers, {len(cik2t):,} CIKs mapped, "
           f"{len(refmap):,} reference rows")
-    return tickers, cik2t, refmap
+    return alias, cik2t, refmap
 
 def daily_accessions(day, cik2t):
     """{accession: (path, filing_date)} for universe-relevant ownership forms."""
@@ -125,8 +139,7 @@ def parse_filing(body, acc, filing_date, tickers, cik2t, refmap):
             continue
         form = txt(x, "documentType") or "4"
         sym = (txt(x, "issuer/issuerTradingSymbol") or "").upper().strip()
-        sym = sym.replace(".", "-")
-        ticker = sym if sym in tickers else None
+        ticker = tickers.get(sym) or tickers.get(sym.replace(".", "-"))
         if ticker is None:
             icik = txt(x, "issuer/issuerCik")
             cand = cik2t.get(int(icik)) if icik and icik.isdigit() else None
@@ -219,6 +232,12 @@ def main():
         total_rows += len(rows); total_filings += len(accs)
         day += dt.timedelta(days=1)
     print(f"DONE {start}..{end}: {total_filings:,} filings, {total_rows:,} rows upserted")
+    if SKIPPED:
+        print(f"WARN: {len(SKIPPED)} filings skipped after retries:")
+        for u in SKIPPED[:50]:
+            print("   ", u)
+        if total_filings and len(SKIPPED) > max(10, total_filings * 0.01):
+            sys.exit("FAIL-LOUD: >1% of filings skipped — rate-limited? Re-run sequentially.")
     if total_filings == 0 and (end - start).days >= 4:
         sys.exit("FAIL-LOUD: zero filings across a 5+ day window — index fetch broken?")
 
