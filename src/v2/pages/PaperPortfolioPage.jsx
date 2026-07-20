@@ -1296,15 +1296,20 @@ function benchAtOrBefore(series, dateIso) {
 function PerfChartPanel({ rows, benchHistory, insCap, momCap, live }) {
   const [win, setWin] = useState('Start');
   const [on, setOn] = useState({ total: true, ins: true, mom: true, spy: true, qqq: false, dia: false, iwm: false });
-  const wrapRef = useRef(null);
+  // CALLBACK ref, not useRef + mount effect: this component returns null until
+  // the nav rows load, so a mount-time effect ran before the div existed and
+  // the ResizeObserver never attached — the chart stayed at its 860px default
+  // inside a wider panel (caught in live UAT 2026-07-20). The state-ref
+  // re-fires the effect the moment the div actually appears.
+  const [wrapEl, setWrapEl] = useState(null);
   const [w, setW] = useState(860);
   const [hover, setHover] = useState(null);
   useEffect(() => {
-    if (!wrapRef.current) return undefined;
-    const ro = new ResizeObserver((es) => { for (const e of es) setW(Math.max(320, Math.round(e.contentRect.width))); });
-    ro.observe(wrapRef.current);
+    if (!wrapEl) return undefined;
+    const ro = new ResizeObserver((es) => { for (const e of es) setW(Math.max(320, Math.round(e.contentRect.width) - 40)); });
+    ro.observe(wrapEl);
     return () => ro.disconnect();
-  }, []);
+  }, [wrapEl]);
 
   // Raw dollar value per series per book row (skip rows with no value).
   const bookRows = useMemo(() => (rows || []).filter((r) => r.total_nav != null).map((r) => ({
@@ -1394,7 +1399,7 @@ function PerfChartPanel({ rows, benchHistory, insCap, momCap, live }) {
           </button>
         ))}
       </div>
-      <div ref={wrapRef} style={{ position: 'relative', padding: '0 20px 16px' }}>
+      <div ref={setWrapEl} style={{ position: 'relative', padding: '0 20px 16px' }}>
         {/* width={w} (not 100%): the svg's pixel width must equal its viewBox
             width, or preserveAspectRatio letterboxes the drawing with blank
             side margins and the hover x-math goes off by the margin. */}
