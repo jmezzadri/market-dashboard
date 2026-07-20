@@ -85,4 +85,5 @@ jobs:
           SPLIT_ADJUST_DAYS:         "10"
           PYTHONUNBUFFERED:          "1"
         run: |
+          pip install --quiet requests
           python3 scripts/adjust_splits_retroactive.py
