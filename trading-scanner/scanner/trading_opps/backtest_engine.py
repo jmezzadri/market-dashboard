@@ -352,9 +352,10 @@ def _pull_insider():
         # (raw->>shares_owned_before), which silently returned null if the
         # vendor blob's shape ever changed — reading the columns makes the
         # dependency explicit and a missing field loud instead of silent.
-        # INSIDER_TABLE env override exists ONLY for the EDGAR parity harness
-        # (PARITY-EDGAR-RESCORE.yml). Default is the production table.
-        _tbl = os.environ.get("INSIDER_TABLE", "insider_history")
+        # 2026-07-20 CUTOVER: SEC EDGAR is the production insider table.
+        # INSIDER_TABLE env override remains for the parity harness, which
+        # compares against the legacy UW table until it lapses 2026-08-12.
+        _tbl = os.environ.get("INSIDER_TABLE", "insider_history_edgar")
         sel = (f"{_tbl}?select=id,ticker,filing_date,transaction_date,"
                "transaction_code,amount,stock_price,officer_title,is_officer,"
                "is_director,is_ten_percent_owner,is_10b5_1,marketcap,sector,"

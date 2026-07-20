@@ -4,6 +4,8 @@ Last updated: 2026-06-16. Owner: Data Steward.
 
 This is the cost + blast-radius ledger for every external data source AND paid infrastructure service that feeds the live site. Run-rate as of 2026-07-20 (verified against receipts in the 2026-07-08 cost sweep, which found this file understating true cost): approximately **$275/month (~$3,300/year) excluding the Claude subscription**; ~$525/month (~$6,300/year) including it. Prior versions of this file listed Unusual Whales at $150/YEAR — the receipt says **$150/MONTH** — and omitted Supabase and Vercel entirely.
 
+**2026-07-20 CUTOVER EXECUTED — insiders now run on SEC EDGAR.** The scanner, universe gate and Ticker-page insider evidence read `insider_history_edgar` in production. The UW insider ingest runs as a parity-monitor comparison only until the subscription lapses 2026-08-12, then all UW pipelines retire.
+
 **2026-07-20 update — Unusual Whales replacement in flight.** UW renews 2026-08-13 (paid through 08-12) and is being replaced, not just cancelled: a free SEC EDGAR Form 4 ingest (`scanner-insider_edgar-daily.yml` -> `insider_history_edgar`) is live in shadow, with a full reconciliation + scanner-score parity gate (Senior Quant) required before cutover. Killing UW takes the run-rate down ~$1,800/yr.
 
 **2026-05-27 update — Treasury.gov added.** Daily Treasury par yields and TIPS real yields were migrated from FRED to Treasury.gov (the upstream publisher) for same-day publication. FRED publishes these series ~20:00 UTC, after our morning workflow; Treasury.gov posts the same data ~16:00 ET, captured by our afternoon workflow. Three indicators moved: `yield_curve` (10Y-2Y slope), `real_rates` (10Y TIPS), and `breakeven_10y` (computed). FRED stays primary for the rest of the macro series.

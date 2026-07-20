@@ -4018,9 +4018,12 @@
    "data_calendar": "trading_days",
    "output_destination": "Supabase: insider_history_edgar",
    "producer_script": "trading-scanner/scanner/edgar_insider/ingest_form4.py",
-   "consumer_surfaces": [],
-   "current_status": "shadow (pre-cutover; no live consumers)",
-   "failure_mode": "None pre-cutover. Post-cutover: inherits the UW insider element's failure mode.",
+   "consumer_surfaces": [
+    "Trading Opportunities scanner (insider score input)",
+    "Ticker page score drill (insider evidence)"
+   ],
+   "current_status": "live (production insider source as of 2026-07-20)",
+   "failure_mode": "Insider sub-score reads em-dash; score drill evidence empty.",
    "owner": "Data Steward",
    "sla_basis": "Mirrors the UW insider element (49h) so the watchdog grades the shadow like the feed it replaces."
   }

@@ -147,7 +147,7 @@ def build_screener_candidate_universe(
     ),
     recent_buys AS (
         SELECT DISTINCT ticker
-        FROM insider_history
+        FROM insider_history_edgar  -- 2026-07-20 cutover: SEC EDGAR is the insider source of truth
         WHERE transaction_code = 'P'
           AND filing_date >= CURRENT_DATE - INTERVAL '{insider_lookback_days} days'
     ),
