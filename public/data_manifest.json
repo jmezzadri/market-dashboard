@@ -3999,6 +3999,30 @@
      "tile": "Sector narrative freshness"
     }
    ]
+  },
+  {
+   "id": "equity-insider_edgar-daily",
+   "category": "equity",
+   "name": "insider_history_edgar",
+   "description": "SEC EDGAR Form 4/4A/5/5A insider transactions (free replacement for the Unusual Whales insider feed; shadow table until the scoring parity gate passes)",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "SEC EDGAR",
+   "source_endpoint": "https://www.sec.gov/Archives/edgar/daily-index (form index) + full submission .txt",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "06:00",
+   "refresh_trigger": "github-actions: scanner-insider_edgar-daily.yml",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 120,
+   "data_calendar": "trading_days",
+   "output_destination": "Supabase: insider_history_edgar",
+   "producer_script": "trading-scanner/scanner/edgar_insider/ingest_form4.py",
+   "consumer_surfaces": [],
+   "current_status": "shadow (pre-cutover; no live consumers)",
+   "failure_mode": "None pre-cutover. Post-cutover: inherits the UW insider element's failure mode.",
+   "owner": "Data Steward",
+   "sla_basis": "Mirrors the UW insider element (49h) so the watchdog grades the shadow like the feed it replaces."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
