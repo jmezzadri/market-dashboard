@@ -47,7 +47,6 @@ export const INDICATOR_COLS = {
   vs200:   { key: 'vs200',   label: '% vs 200-day line',     head: '% 200d',   w: '62px',  grow: 1 },
   rvol:    { key: 'rvol',    label: 'Relative volume',       head: 'Rel vol',  w: '58px',  grow: 1 },
   mktcap:  { key: 'mktcap',  label: 'Market cap',            head: 'Mkt cap',  w: '66px',  grow: 1 },
-  ivrank:  { key: 'ivrank',  label: 'IV rank',               head: 'IV rank',  w: '56px',  grow: 1 },
   earn:    { key: 'earn',    label: 'Next earnings date',    head: 'Earnings', w: '74px',  grow: 1 },
   insider: { key: 'insider', label: 'Insider pts',           head: 'Insider',  w: '54px' },
   tech:    { key: 'tech',    label: 'Technicals pts',        head: 'Tech',     w: '46px' },
@@ -63,7 +62,7 @@ export const INDICATOR_COLS = {
 export const INDICATOR_COL_KEYS = [
   'ticker', 'name', 'price',                       // Stock
   'day', 'chg30', 'from52hi',                      // Performance
-  'rsi', 'vs200', 'rvol', 'ivrank',                // Technicals
+  'rsi', 'vs200', 'rvol',                          // Technicals
   'insider', 'tech',                               // Signal scores
   'mktcap', 'short', 'earn',                       // Other
   'trend',                                         // Score trend
@@ -77,7 +76,7 @@ export const DEFAULT_VISIBLE_KEYS = [...INDICATOR_COL_KEYS];
 export const COL_GROUP = {
   ticker: 'stock', name: 'stock', price: 'stock',
   day: 'performance', chg30: 'performance', from52hi: 'performance',
-  rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', ivrank: 'technicals',
+  rsi: 'technicals', vs200: 'technicals', rvol: 'technicals',
   insider: 'signals', tech: 'signals',
   mktcap: 'other', short: 'other', earn: 'other',
   trend: 'score', score: 'score',
@@ -123,14 +122,12 @@ const SORT_ACCESSORS = {
   vs200:    (r) => num(r.sma200_pct),
   rvol:     (r) => num(r.relVolume),
   mktcap:   (r) => num(r.marketCap),
-  ivrank:   (r) => num(r.iv_rank),
   earn:     (r) => r.earningsDate || null,
   insider:  (r) => num(r.insider_pts),
   tech:     (r) => techPts(r),
   options:  (r) => num(r.options_pts),
   dark:     (r) => num(r.dark_pool_pts),
   short:    (r) => num(r.si_float_pct),
-  flow:     (r) => num(r.flow_net_call_prem_usd),
   trend:    (r) => num(r.scoreDelta),
   score:    (r) => num(r.score),
 };
@@ -139,15 +136,6 @@ const SORT_ACCESSORS = {
 const ASC_FIRST = new Set(['ticker', 'name', 'earn']);
 
 /* Signed compact dollars for the options-flow column: $1.2M / -$340k / $980. */
-function flowMoney(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return '—';
-  const sign = n < 0 ? '-' : '';
-  const a = Math.abs(n);
-  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(0)}k`;
-  return `${sign}$${a.toFixed(0)}`;
-}
 
 /* Compact market cap: $6.4B / $940M / $42M. */
 function capMoney(v) {
@@ -345,7 +333,6 @@ export default function ScanList({
               vs200: 'Percent the price sits above or below its 200-day average',
               rvol: "Today's volume vs its 30-day average — above 1 is heavier than usual",
               mktcap: 'Market value — shares outstanding times price',
-              ivrank: 'Where 30-day implied volatility sits in its own 1-year range, 0–100',
               earn: 'Next scheduled earnings date',
               insider: 'Insider Form-4 points (rules A/B/C, decayed by age)',
               tech: 'Technicals points: above 200-day line + RSI penalty',
@@ -410,8 +397,6 @@ export default function ScanList({
         const sparkData = r.sparkData;     // real close series, or null
 
         const insiderOn = (r.insider_pts ?? 0) > 0;
-        const darkOn = (r.dark_pool_pts ?? 0) > 0 || r.dark_pool_anchor != null;
-        const optionsOn = (r.options_pts ?? 0) > 0;
         const tp = techPts(r);
 
         const insiderTip = insiderOn
@@ -420,12 +405,6 @@ export default function ScanList({
         const techTip = r.sma200_pct != null
           ? `${r.sma200_pct >= 0 ? 'Above' : 'Below'} 200-day by ${Math.abs(r.sma200_pct).toFixed(1)}%${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`
           : 'No technicals reading';
-        const darkTip = darkOn
-          ? `Dark-pool points ${r.dark_pool_pts ?? 0}${r.dark_pool_anchor != null ? ` · anchor $${Number(r.dark_pool_anchor).toFixed(2)}` : ''}`
-          : 'No dark-pool points scored';
-        const optionsTip = optionsOn
-          ? `Options points ${r.options_pts}${r.options_vol_shock != null ? ` · vol shock ${Number(r.options_vol_shock).toFixed(2)}×` : ''}`
-          : 'Options layer scored 0 for this name';
 
         const cellFor = (k) => {
           switch (k) {
@@ -599,18 +578,6 @@ export default function ScanList({
                 </div>
               );
             }
-            case 'ivrank': {
-              const v = num(r.iv_rank);
-              return (
-                <div key={k} style={{ textAlign: 'center' }}>
-                  <Tip content={v != null ? `Implied-volatility rank ${Math.round(v)} of 100 over its own past year` : 'No options data for this name'} bare>
-                    <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v != null ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
-                      {v != null ? Math.round(v) : '—'}
-                    </span>
-                  </Tip>
-                </div>
-              );
-            }
             case 'earn': {
               const lbl = earningsLabel(r.earningsDate);
               return (
@@ -627,10 +594,6 @@ export default function ScanList({
               return <PtsCell key={k} value={r.insider_pts} on={insiderOn} tip={insiderTip} />;
             case 'tech':
               return <PtsCell key={k} value={tp} on={tp > 0} tip={techTip} />;
-            case 'options':
-              return <PtsCell key={k} value={r.options_pts} on={optionsOn} tip={optionsTip} />;
-            case 'dark':
-              return <PtsCell key={k} value={r.dark_pool_pts} on={darkOn} tip={darkTip} />;
             case 'short': {
               const v = r.si_float_pct;
               const tip = v != null
@@ -644,24 +607,6 @@ export default function ScanList({
                   <Tip content={tip} bare>
                     <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v != null ? 'var(--mt-ink-0)' : 'var(--mt-ink-3)' }}>
                       {v != null ? `${Number(v).toFixed(1)}%` : '—'}
-                    </span>
-                  </Tip>
-                </div>
-              );
-            }
-            case 'flow': {
-              const v = r.flow_net_call_prem_usd;
-              const tip = v != null
-                ? `Net call premium ${flowMoney(v)} over the 30-day flow-alert window`
-                  + (r.flow_ask_side_share != null ? ` · ${Math.round(r.flow_ask_side_share * 100)}% printed at the ask` : '')
-                  + (r.flow_sweep_count != null ? ` · ${r.flow_sweep_count} sweeps` : '')
-                  + (r.flow_as_of ? ` · as of ${r.flow_as_of}` : '')
-                : 'No options flow alerts stored for this name';
-              return (
-                <div key={k} style={{ textAlign: 'center' }}>
-                  <Tip content={tip} bare>
-                    <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v == null ? 'var(--mt-ink-3)' : v >= 0 ? 'var(--mt-up)' : 'var(--mt-down)' }}>
-                      {v != null ? flowMoney(v) : '—'}
                     </span>
                   </Tip>
                 </div>
@@ -720,12 +665,6 @@ export default function ScanList({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                     <Tip content={insiderTip}>
                       <Facet label="I" active={insiderOn} color="var(--mt-up)" />
-                    </Tip>
-                    <Tip content={darkTip}>
-                      <Facet label="D" active={darkOn} color="var(--mt-accent)" />
-                    </Tip>
-                    <Tip content={optionsTip}>
-                      <Facet label="O" active={optionsOn} color="var(--mt-warn)" />
                     </Tip>
                   </div>
                 </>

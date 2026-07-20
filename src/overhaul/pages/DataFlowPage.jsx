@@ -190,12 +190,12 @@ function buildCreditMembers(cotData) {
 
 // ─── Vendor canonicalisation ─────────────────────────────────────────────────
 // Manifest source_vendor strings are free-text ("Polygon (Massive)",
-// "Treasury.gov (computed)", "Unusual Whales + FINRA"). Reduce each to a
+// "Treasury.gov (computed)", "SEC EDGAR"). Reduce each to a
 // canonical vendor name that matches the VENDOR_MONTHLY_COST / blast-radius
 // tables in useDataHealth so cost + description aren't hand-typed here.
 const VENDOR_CANON = {
   polygon: 'Polygon Massive',
-  'unusual whales': 'Unusual Whales',
+  'sec edgar': 'SEC EDGAR',
   fred: 'FRED',
   'treasury.gov': 'U.S. Treasury',
   'yahoo finance': 'Yahoo Finance',
@@ -227,7 +227,7 @@ const INHOUSE_VENDOR = new Set([
 function vendorBase(raw) {
   if (!raw) return '';
   // Take the text before the first '(', '+', or '/' and lowercase it, so
-  // "Polygon (Massive)", "Unusual Whales + FINRA" and "Shiller / multpl.com"
+  // "Polygon (Massive)", "FINRA" and "Shiller / multpl.com"
   // all reduce to a single canonical key.
   return String(raw).split(/[(+/]/)[0].trim().toLowerCase();
 }
@@ -249,7 +249,7 @@ function isInhouseVendor(raw) {
   return INHOUSE_VENDOR.has(vendorBase(raw));
 }
 // Some computed feeds list MULTIPLE upstream vendors in one string
-// ("Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares"). canonVendor
+// ("Yahoo + ZeroHedge RSS + Wikipedia + iShares"). canonVendor
 // returns only the first; this returns EVERY canonical vendor named in the
 // string so an engine node can trace back to all the sources it is built from.
 function allCanonVendors(raw) {

@@ -29,7 +29,7 @@ slots:
       - INDICATOR-REFRESH_7AM_WEEKDAYS.yml: indicator.indicator-history-fred-yahoo
       - ANALYST_INGEST_DAILY.yml: scanner.analyst-ratings-uw
       - CONGRESS_INGEST_DAILY.yml: scanner.congress-trades-uw
-      - OPTIONS_FLOW_INGEST_DAILY.yml: scanner.options-flow-uw
+      - OPTIONS_FLOW_INGEST_DAILY.yml:  # RETIRED 2026-07-20 (UW teardown, workflow deleted) scanner.options-flow-uw
       - SHORT_INTEREST_INGEST_DAILY.yml: scanner.short-interest-finra-uw
       - DAILY-HOME-SMOKE.yml: infra.daily-home-smoke
       - scanner-insider_edgar-daily.yml: scanner.insider-history-edgar  # 2026-07-20 CUTOVER: production insider source; 06:00 ET captures full prior EDGAR day
@@ -41,8 +41,8 @@ slots:
       land before the evening compute slot at 18:00-19:00 ET.
     pipelines:
       - vercel-cron /api/options-mark-batch: portfolio.option-mark-uw
-      - DARKPOOL_INGEST_DAILY.yml: scanner.darkpool-prints-uw
-      - OPTIONS_EOD_INGEST_DAILY.yml: scanner.options-eod-uw
+      - DARKPOOL_INGEST_DAILY.yml:  # RETIRED 2026-07-20 (UW teardown, workflow deleted) scanner.darkpool-prints-uw
+      - OPTIONS_EOD_INGEST_DAILY.yml:  # RETIRED 2026-07-20 (UW teardown, workflow deleted) scanner.options-eod-uw
 
   weekly_saturday_am:
     description: |

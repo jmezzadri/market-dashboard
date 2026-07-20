@@ -466,14 +466,14 @@
    "source_vendor": "Unusual Whales",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: OPTIONS_FLOW_INGEST_DAILY.yml (per lineage doc; not visible in current worktree workflow set — may be folded into SCAN_345PM)",
+   "refresh_trigger": "RETIRED 2026-07-20 — workflow deleted",
    "schedule_et": "06:00 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "NONE as of 2026-07-08 -- options-flow column removed from the scanner table. Feed still ingested; retained for possible future validation."
+    "RETIRED 2026-07-20 (UW teardown): ingest workflow deleted; zero consumer surfaces since 2026-07-08."
    ],
    "target_storage": "Supabase: options_flow_daily",
-   "failure_mode": "No user-facing impact -- options-flow is neither scored nor surfaced (removed 2026-07-08).",
+   "failure_mode": "None — retired.",
    "owner": "Data Steward",
    "notes": "Workflow file referenced in lineage but not present in current worktree — needs reconciliation.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
@@ -486,14 +486,14 @@
    "source_vendor": "Unusual Whales",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: DARKPOOL_INGEST_DAILY.yml",
+   "refresh_trigger": "RETIRED 2026-07-20 — workflow deleted",
    "schedule_et": "16:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "NONE as of 2026-07-08 -- dark-pool removed from the scanner table + drill (shelved from the score 2026-07-07). Feed still ingested; retained for possible future validation."
+    "RETIRED 2026-07-20 (UW teardown): ingest workflow deleted; zero consumer surfaces since 2026-07-08."
    ],
    "target_storage": "Supabase: darkpool_prints",
-   "failure_mode": "No user-facing impact -- dark-pool is neither scored nor surfaced (removed 2026-07-08).",
+   "failure_mode": "None — retired.",
    "owner": "Data Steward",
    "notes": "Service-only ingestion table (Pattern C) -- no front-end tile reads it directly; the Phase 2 screener engine reads it. Phase 1 of the Trading Opportunities overhaul. Rolling-window table: per-print UPSERT on tracking_id, prints older than 4 days pruned each run.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
@@ -506,15 +506,14 @@
    "source_vendor": "Unusual Whales",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: OPTIONS_EOD_INGEST_DAILY.yml",
+   "refresh_trigger": "RETIRED 2026-07-20 — workflow deleted",
    "schedule_et": "16:30 ET weekdays",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "NONE as of 2026-07-08 -- options removed from the scanner table + drill (shelved from the score 2026-07-07). Feed still ingested; retained for possible future validation.",
-    "Trading Opportunities table -> Group 3 options-sentiment columns (P/C, Net Prem, IV, implied moves) -- Phase 3"
+    "RETIRED 2026-07-20 (UW teardown): ingest workflow deleted; zero consumer surfaces since 2026-07-08."
    ],
    "target_storage": "Supabase: options_eod_daily",
-   "failure_mode": "No user-facing impact -- options are neither scored nor surfaced (removed 2026-07-08).",
+   "failure_mode": "None — retired.",
    "owner": "Data Steward",
    "notes": "Service-only ingestion table (Pattern C). Phase 1 of the Trading Opportunities overhaul. One row per (ticker, as_of_date); per-contract detail stored as a 7-60 DTE superset jsonb so the Phase 2 backtest can move its candidate window without a re-ingest. Confirmed available on the current Unusual Whales API tier at no extra cost (Decision 2, 2026-05-20).",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",

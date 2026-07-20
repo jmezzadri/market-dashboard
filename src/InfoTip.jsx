@@ -24,7 +24,7 @@ export const DEFS = {
   IVR:
     "Implied Volatility Rank. Where the current 30-day implied vol sits in its 52-week range, 0–100. IVR 0 = IV at 1yr low (options cheap); IVR 100 = IV at 1yr high (options expensive). >70 favors premium selling (covered calls, cash-secured puts); <30 favors long options (buying calls/puts).",
   "P/C":
-    "Put/Call ratio. Dollar volume of puts divided by dollar volume of calls in unusual options flow. P/C > 1 means bearish bets outweighing bullish; P/C < 1 means bullish bets dominate. Extremes are contrarian signals — very high P/C often marks a bottom.",
+    "Put/Call ratio. Dollar volume of puts divided by dollar volume of calls in listed options volume. P/C > 1 means bearish bets outweighing bullish; P/C < 1 means bullish bets dominate. Extremes are contrarian signals — very high P/C often marks a bottom.",
   "RVOL":
     "Relative Volume. Today's options volume divided by the 30-day average. 2.0× = twice typical activity. >3× often precedes news or a big price move. Combined with IVR spikes and directional skew, it's a leading indicator of informed positioning.",
   "REL VOL":

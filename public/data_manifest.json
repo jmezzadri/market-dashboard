@@ -1111,7 +1111,7 @@
    "id": "market-universe_master-daily",
    "category": "market",
    "name": "massive-universe",
-   "description": "Canonical ticker universe (~12,500 active US stocks + ETFs + ADRs). Replaces UW screener as ticker master.",
+   "description": "Canonical ticker universe (~12,500 active US stocks + ETFs + ADRs). Canonical ticker master (replaced the legacy vendor screener).",
    "sourcing_mode": "STP",
    "source_vendor": "Polygon (Massive)",
    "source_endpoint": "api.polygon.io/v3/reference/tickers (paginated)",
@@ -1261,83 +1261,15 @@
    "consumer_surfaces_note": "planned — Stock-modal corporate-actions tile (dividends/splits); not live yet"
   },
   {
-   "id": "equity-universe_snapshots-3xday",
-   "category": "equity",
-   "name": "uw-universe-snapshots",
-   "description": "3x-weekday UW screener snapshot (~50 fields × ~1,694 tickers ≥$1B mcap).",
-   "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales",
-   "source_endpoint": "api.unusualwhales.com/api/screener/stocks (band-sliced by marketcap)",
-   "license_tier": "paid",
-   "monthly_cost_usd": 150,
-   "cadence": "3x weekday (10:00, 13:00, 15:45 ET)",
-   "scheduled_fetch_time_et": "10:00 / 13:00 / 15:45",
-   "refresh_trigger": "UNIVERSE_SNAPSHOT_3X_WEEKDAYS",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "Supabase public.universe_snapshots; pg_cron prune >30d",
-   "producer_script": "trading-scanner/run_universe_snapshot.py + scanner/universe_snapshot.py",
-   "consumer_surfaces": [
-    {
-     "tab": "ticker",
-     "tile": "IV rank/30D, options/dark-pool, event feed"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "UW 429/5xx retried 3×; supabase-py exception → workflow fails red, no auto-bug.",
-   "owner": "Lead Dev — Phase 2 candidate to replace with Massive (now that Polygon covers universe master)",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
-   "id": "equity-ticker_events-3xday",
-   "category": "equity",
-   "name": "uw-ticker-events",
-   "description": "3x-weekday UW firehose: per-ticker news, insider transactions, congress trades, dark pool prints.",
-   "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales",
-   "source_endpoint": "/api/news/headlines, /api/insider/transactions, /api/congress/recent-trades, /api/darkpool/recent",
-   "license_tier": "paid",
-   "monthly_cost_usd": 0,
-   "cost_shared_with": "equity-universe_snapshots-3xday (single $150 UW seat)",
-   "cadence": "3x weekday (10:05, 13:05, 15:50 ET)",
-   "scheduled_fetch_time_et": "10:05 / 13:05 / 15:50",
-   "refresh_trigger": "TICKER_EVENTS_3X_WEEKDAYS",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "Supabase public.ticker_events; pg_cron prune >30d",
-   "producer_script": "trading-scanner/run_ticker_events.py + scanner/ticker_events.py",
-   "consumer_surfaces": [
-    {
-     "tab": "ticker",
-     "tile": "IV rank/30D, options/dark-pool, event feed"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Per-source try/except — one source can fail without sinking others (status='partial').",
-   "owner": "Lead Dev",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
    "id": "equity-latest_scan_data-daily",
    "category": "equity",
    "name": "latest_scan",
    "description": "Composite scanner output: buy_opportunities, watch_items, signals (technicals/screener/news/etc), config.",
    "sourcing_mode": "computed",
-   "source_vendor": "Unusual Whales + Yahoo + ZeroHedge RSS + Wikipedia + iShares",
+   "source_vendor": "Yahoo + ZeroHedge RSS + Wikipedia + iShares",
    "source_endpoint": "trading-scanner/main.py intraday",
-   "license_tier": "paid (UW)",
+   "license_tier": "free (computed in-house)",
    "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
    "cadence": "daily",
    "scheduled_fetch_time_et": "03:30",
    "refresh_trigger": "SCAN_345PM_WEEKDAYS (filename misleading; actually runs at 15:30)",
@@ -1372,11 +1304,10 @@
    "name": "user_scan_data",
    "description": "Per-user × ticker scan supplement (technicals_json, screener_json, composite_json) for user's watchlist (excluded from public artifact).",
    "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales + Yahoo (computed)",
+   "source_vendor": "Yahoo (computed)",
    "source_endpoint": "scanner.supabase_io.write_user_scan_rows + api/scan-ticker.js",
-   "license_tier": "paid (UW)",
+   "license_tier": "free (computed in-house)",
    "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
    "cadence": "daily (with scan) + on-demand (per add-to-watchlist)",
    "scheduled_fetch_time_et": "15:30 + on-demand",
    "refresh_trigger": "SCAN_345PM_WEEKDAYS + api/scan-ticker.js (user action)",
@@ -1403,74 +1334,6 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "date-keyed"
-  },
-  {
-   "id": "equity-earnings_history-weekly",
-   "category": "equity",
-   "name": "earnings_history",
-   "description": "Last-N-quarters EPS estimate vs actual, surprise %, beat boolean.",
-   "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales (likely)",
-   "source_endpoint": "trading-scanner/run_earnings_history.py",
-   "license_tier": "paid",
-   "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
-   "cadence": "weekly",
-   "scheduled_fetch_time_et": "TBD",
-   "refresh_trigger": "EARNINGS_HISTORY_WEEKLY.yml (in _v11-iter3-wt2 worktree; verify on main)",
-   "freshness_sla_hours": 200,
-   "data_max_age_hours": 384,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "Supabase public.earnings_history (PK ticker, report_date)",
-   "producer_script": "trading-scanner/run_earnings_history.py",
-   "consumer_surfaces": [
-    {
-     "tab": "ticker",
-     "tile": "Fundamentals tab — last 4 quarters EPS est/actual/surprise"
-    }
-   ],
-   "current_status": "live (verify on main vs worktree)",
-   "failure_mode": "Per-ticker write isolated.",
-   "owner": "Lead Dev",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Weekly job; SLA = weekly cadence + grace (~200h), graded off last successful run. Data window 384h covers the 15-day FINRA short-interest lag."
-  },
-  {
-   "id": "equity-options_chain-on_demand",
-   "category": "equity",
-   "name": "options_chain",
-   "description": "Per-ticker option contracts (used in covered_call enrichment for buy_opportunities).",
-   "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales",
-   "source_endpoint": "api.unusualwhales.com/api/stock/{T}/option-contracts",
-   "license_tier": "paid",
-   "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
-   "cadence": "during scan",
-   "scheduled_fetch_time_et": "15:30",
-   "refresh_trigger": "SCAN_345PM_WEEKDAYS",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "embedded in latest_scan_data.json buy_opportunities[].covered_call",
-   "producer_script": "scanner/covered_calls.py",
-   "consumer_surfaces": [
-    {
-     "tab": "portopps"
-    },
-    {
-     "tab": "home"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Skipped per-ticker; ticker just won't have CC suggestion.",
-   "owner": "Lead Dev",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
    "id": "equity-zerohedge_public-daily",
@@ -1542,7 +1405,7 @@
    "freshness_sla_hours": 0,
    "data_max_age_hours": 0,
    "data_calendar": "wall-clock",
-   "output_destination": "Returned to client; merged with UW news in modal",
+   "output_destination": "Returned to client; merged with stored news in modal",
    "producer_script": "api/news-per-ticker.js",
    "consumer_surfaces": [
     {
@@ -1551,7 +1414,7 @@
     }
    ],
    "current_status": "live",
-   "failure_mode": "RSS fail → falls back to UW news only.",
+   "failure_mode": "RSS fail → falls back to stored news only.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
    "dependencies": []
@@ -1685,7 +1548,7 @@
    "id": "ops-api_usage_log-event",
    "category": "ops",
    "name": "api_usage_log",
-   "description": "Per-run UW API call accounting + rate-limit headers (used to monitor 20k/day limit).",
+   "description": "Per-run external-API call accounting + rate-limit headers (legacy; vendor feed retired 2026-07-20).",
    "sourcing_mode": "computed",
    "source_vendor": "n/a",
    "source_endpoint": "scanner/uw_usage_logger.py",
@@ -3689,61 +3552,22 @@
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
-   "id": "equity-scanner_v5-daily",
-   "name": "scanner-v5-daily",
-   "category": "equity",
-   "description": "Legacy V5 composite scan (signal-intel tables). Still consumed by the Ticker page batch score read; superseded for the Scanner page by the Trading Opportunities screener.",
-   "sourcing_mode": "computed in-house from UW + prices",
-   "source_vendor": "Unusual Whales + Yahoo",
-   "source_endpoint": "V5 scan workflows (21:00/22:00 UTC weekdays)",
-   "license_tier": "paid (UW plan)",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "17:00",
-   "refresh_trigger": "V5 scan workflow + safety net",
-   "release_calendar": "nyse-trading-day",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "as_of_cutoff_et": "16:00",
-   "as_of_cutoff_note": "scans the just-closed session",
-   "output_destination": "Supabase signal-intel tables",
-   "consumer_surfaces": [
-    {
-     "tab": "scanner",
-     "tile": "Scanner table + scores"
-    },
-    {
-     "tab": "ticker",
-     "tile": "Score drilldown (batch score read)"
-    }
-   ],
-   "dependencies": [],
-   "failure_mode": "Ticker score panes blank; chip reds",
-   "owner": "Data Steward",
-   "producer_script": "V5 scanner runner",
-   "current_status": "live (legacy consumer)",
-   "_review_note": "2026-06-11 audit: confirm whether the Ticker page batch read should move to trading_opps_signals; if so this feed and its two workflows can be retired.",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
-  },
-  {
    "id": "equity-short_interest-daily",
    "name": "short_interest_uw_finra",
    "category": "equity",
-   "description": "Per-ticker short positioning: FINRA bi-monthly settlement (shares short, % of shares outstanding, days to cover) + UW daily tape (short volume ratio, cost to borrow, borrow availability, fails to deliver).",
+   "description": "FINRA bi-monthly settlement short interest (direct from api.finra.org). The daily short-volume/borrow estimate retired with the vendor teardown.",
    "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales + FINRA",
+   "source_vendor": "FINRA (direct)",
    "source_endpoint": "/api/shorts/{ticker}/data, /shorts/{ticker}/volume-and-ratio, /shorts/{ticker}/ftds + FINRA Query API consolidatedShortInterest (bulk POST, settlementDate-windowed, no key)",
    "license_tier": "paid",
    "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
    "cadence": "daily",
    "scheduled_fetch_time_et": "06:00",
    "refresh_trigger": "SHORT_INTEREST_INGEST_DAILY",
    "freshness_sla_hours": 480,
    "data_max_age_hours": 480,
    "data_calendar": "us-business-day",
-   "output_destination": "public.short_interest (FINRA rows) + public.short_interest_daily (UW daily rows); context columns on public.trading_opps_signals",
+   "output_destination": "public.short_interest (FINRA rows); context columns on public.trading_opps_signals",
    "producer_script": "scanner/signal_intelligence_v5/short_interest_ingest.py",
    "consumer_surfaces": [
     {
@@ -3760,45 +3584,8 @@
    "owner": "Data Steward",
    "release_calendar": "us-business-day",
    "dependencies": [],
-   "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface; the 49h SLA tracks the DAILY UW tape.",
+   "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface.",
    "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace"
-  },
-  {
-   "id": "equity-options_flow-daily",
-   "name": "options_flow_alerts",
-   "category": "equity",
-   "description": "Per-ticker aggregates of UW options flow alerts over the trailing 30-day window: call/put premium, ask-side vs bid-side premium, sweep count, unusual-alert count.",
-   "sourcing_mode": "STP",
-   "source_vendor": "Unusual Whales",
-   "source_endpoint": "/api/option-trades/flow-alerts",
-   "license_tier": "paid",
-   "monthly_cost_usd": 0,
-   "cost_shared_with": "single $150 UW seat",
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "06:40",
-   "refresh_trigger": "OPTIONS_FLOW_INGEST_DAILY",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "us-business-day",
-   "output_destination": "public.options_flow_daily; context columns on public.trading_opps_signals",
-   "producer_script": "scanner/signal_intelligence_v5/options_ingest.py",
-   "consumer_surfaces": [
-    {
-     "tab": "scanner",
-     "component": "Flow $ column + drill positioning context"
-    },
-    {
-     "tab": "ticker",
-     "component": "Options flow tab · flow-alerts strip"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Run-slot gate retries on the second DST cron line; two consecutive missed days turn the chip amber via pipeline_health (equity-options_flow-daily). Alert feed covers only names with notable activity — absence for a quiet ticker is not staleness.",
-   "owner": "Data Steward",
-   "release_calendar": "us-business-day",
-   "dependencies": [],
-   "_note": "Aggregates the market-wide alert firehose (~100-150 tickers/day), NOT a per-candidate pull. The score's options layer reads options_eod_daily (volume-vs-open-interest shock) — a different element; this one is context-only and never scored.",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
   },
   {
    "id": "indicator-credit_positioning-weekly",
@@ -4004,7 +3791,7 @@
    "id": "equity-insider_edgar-daily",
    "category": "equity",
    "name": "insider_history_edgar",
-   "description": "SEC EDGAR Form 4/4A/5/5A insider transactions (free replacement for the Unusual Whales insider feed; shadow table until the scoring parity gate passes)",
+   "description": "SEC EDGAR Form 4/4A/5/5A insider transactions (production insider source as of the 2026-07-20 cutover)",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "SEC EDGAR",
    "source_endpoint": "https://www.sec.gov/Archives/edgar/daily-index (form index) + full submission .txt",
@@ -4025,7 +3812,7 @@
    "current_status": "live (production insider source as of 2026-07-20)",
    "failure_mode": "Insider sub-score reads em-dash; score drill evidence empty.",
    "owner": "Data Steward",
-   "sla_basis": "Mirrors the UW insider element (49h) so the watchdog grades the shadow like the feed it replaces."
+   "sla_basis": "49h: daily cadence, same-morning ingest + 24h grace."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

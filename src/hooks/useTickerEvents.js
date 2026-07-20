@@ -3,7 +3,7 @@
 // Why
 // ---
 // `public.ticker_events` is populated 3x/weekday by
-// trading-scanner/scanner/ticker_events.py from four Unusual Whales firehoses,
+// trading-scanner/scanner/ticker_events.py from the legacy vendor event feeds,
 // filtered by source PURPOSE (see scanner module docstring):
 //
 //     news     → tracked set (positions ∪ watchlist) — personal awareness
