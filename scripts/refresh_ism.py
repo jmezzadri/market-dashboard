@@ -67,8 +67,11 @@ SOURCES = {
 #   Svc May 2026 = 54.5 (released 2026-06-03), Apr 2026 = 53.6
 # ---------------------------------------------------------------------------
 LATEST_RELEASES: Dict[str, Dict[str, float]] = {
-    "ism_mfg": {"2026-04-01": 52.7, "2026-05-01": 54.0},
-    "ism_svc": {"2026-04-01": 53.6, "2026-05-01": 54.5},
+    #   Mfg Jun 2026 = 53.3 (released 2026-07-01), Svc Jun 2026 = 54.0
+    #   (released 2026-07-06, ISM press release; scrape was 403-blocked all
+    #   of July so the fallback missed the Services print for 2 weeks).
+    "ism_mfg": {"2026-04-01": 52.7, "2026-05-01": 54.0, "2026-06-01": 53.3},
+    "ism_svc": {"2026-04-01": 53.6, "2026-05-01": 54.5, "2026-06-01": 54.0},
 }
 
 MON3 = {"Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,"Jul":7,"Aug":8,
