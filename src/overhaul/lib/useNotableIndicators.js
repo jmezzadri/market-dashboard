@@ -3,7 +3,7 @@
    should know about: every non-deprecated indicator that is either
      (a) at a 3-year extreme — its site-wide percentile pill (pct, the same
          3-yr basis every pill uses) at >= 95 or <= 5, or
-     (b) just printed an unusually large move FOR ITS OWN CADENCE — the latest
+     (b) just printed an outsized move FOR ITS OWN CADENCE — the latest
          print-over-print change is >= 2.5 standard deviations from that
          indicator's own 3-yr distribution of print-over-print changes
          (daily series compare day moves, weekly compare week moves, monthly

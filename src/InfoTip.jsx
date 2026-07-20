@@ -46,7 +46,7 @@ export const DEFS = {
   MONEYNESS:
     "How far in-the-money (ITM) or out-of-the-money (OTM) the strike sits relative to the underlying. For calls: positive % = OTM; for puts: positive % = ITM. Far-OTM strikes are cheaper but require bigger moves to pay off.",
   "VOL / OI":
-    "Today's contract volume divided by open interest. Ratios >1 suggest fresh positioning (new contracts opened vs existing); ratios >5 are highly unusual and often precede news or catalyst events.",
+    "Today's contract volume divided by open interest. Ratios >1 suggest fresh positioning (new contracts opened vs existing); ratios >5 are rare and often precede news or catalyst events.",
   PREMIUM:
     "Total dollar premium paid on the trade — contract price × 100 shares per contract × number of contracts. Large premium prints (>$1M) signal institutional conviction.",
   STRIKE:
