@@ -44,6 +44,10 @@ RETIRED_FEEDS = {
     "momentum_guard",
     "momentum_list",
 }
+# narrative_macro / narrative_sector are deliberately NOT in RETIRED_FEEDS:
+# the pipeline-health-check edge function still stamps those synthetic rows
+# hourly (deleting them here would just fight the watchdog). They are
+# registered as manifest elements instead (2026-07-20).
 
 # ─── Calendar-aware age, ported from src/lib/freshnessClock.js so this watchdog
 #     grades byte-for-byte the way the chips and edge function do (the graders

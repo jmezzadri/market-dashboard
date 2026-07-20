@@ -32,6 +32,7 @@ slots:
       - OPTIONS_FLOW_INGEST_DAILY.yml: scanner.options-flow-uw
       - SHORT_INTEREST_INGEST_DAILY.yml: scanner.short-interest-finra-uw
       - DAILY-HOME-SMOKE.yml: infra.daily-home-smoke
+      - scanner-insider_edgar-daily.yml: scanner.insider-history-edgar  # 2026-07-20 UW-replacement shadow; 06:00 ET captures full prior EDGAR day
 
   daily_eod_1630_et:
     description: |

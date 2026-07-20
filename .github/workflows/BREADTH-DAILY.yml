@@ -196,4 +196,5 @@ jobs:
           git config user.name "macrotilt-bot"; git config user.email "bot@macrotilt.com"
           git add public/indicator_history.json
           git commit -m "Index breadth (% > 50d/200d EMA) refresh [skip ci]" || echo "no change"
+          git pull --rebase origin main   # another workflow may have pushed since checkout
           git push
