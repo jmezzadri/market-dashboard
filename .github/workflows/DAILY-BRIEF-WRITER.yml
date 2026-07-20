@@ -91,6 +91,7 @@ jobs:
           git add public/daily_brief.json
           if [[ -n "$(git diff --cached --name-only)" ]]; then
             git commit -m "Daily brief — $(date -u +%Y-%m-%d) [skip ci]"
+            git pull --rebase origin main   # another workflow may have pushed since checkout
             git push
           else
             echo "No change to daily brief"
