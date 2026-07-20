@@ -151,6 +151,25 @@ function trailingReturn(values, k) {
   return last / base - 1;
 }
 
+// ONE sleeve-NAV accessor (2026-07-20, Joe: "sync these up"). A sleeve's
+// value for ANY return math is its full account value — holdings + cash — so
+// selling a name at a loss moves the number (position-only sums silently drop
+// realized P&L: the Book said -0.5% while the sleeves read -0.3%/+0.1%
+// because the morning GGAL sale's realized loss existed only at book level).
+// Daily rows carry sleeve_*_nav; the live intraday row carries equity/value +
+// cash pieces. Chart, sleeve tables, and the Today numbers all read THIS.
+function sleeveNavOf(r, code) {
+  if (!r) return null;
+  if (code === 'B') {
+    if (r.sleeve_b_nav != null) return Number(r.sleeve_b_nav);
+    if (r.sleeve_b_equity != null) return Number(r.sleeve_b_equity) + Number(r.sleeve_b_cash ?? 0);
+    return null;
+  }
+  if (r.sleeve_m_nav != null) return Number(r.sleeve_m_nav);
+  if (r.sleeve_m_value != null) return Number(r.sleeve_m_value) + Number(r.sleeve_m_cash ?? 0);
+  return null;
+}
+
 // series = [{ d:'YYYY-MM-DD', v }] ascending, nulls already removed.
 // siBase: the capital base for since-inception (a sleeve's $500K allocation /
 // the book's $1M); benchmarks pass null and measure from their first close.
@@ -725,26 +744,30 @@ function BookCard({ navHistory, benchHistory = {}, live = false, asOfIso = null,
    (spySeries prop), so it populates even with zero sleeve history. The S&P
    "Start" is gated on the SLEEVE's own inception (close on/nearest-before
    its first nav row). SI base = the sleeve's allocation from paper_accounts. */
-function SleevePerf({ rows, valueField, alloc, spySeries = [], live = false, liveDay$ = null }) {
-  const sRows = (rows || []).filter((r) => r[valueField] != null);
-  const series = sRows.map((r) => ({ d: r.snapshot_date, v: Number(r[valueField]) }));
+function SleevePerf({ rows, sleeveCode, alloc, spySeries = [], live = false }) {
+  // NAV series (holdings + cash) via the shared accessor — the SAME family of
+  // numbers the Book matrix uses (total_nav), so Day/1W/1M/Start here are
+  // flow-adjusted and the two sleeves weighted-average exactly to the Book
+  // row. The old series used the gross-holdings column and overrode live Day
+  // with the positions' intraday P&L sum, which excludes anything realized on
+  // names SOLD today — the sleeves and the Book could disagree every
+  // rebalance morning (Joe caught -0.3%/+0.1% vs Book -0.5%, 2026-07-20).
+  const sRows = (rows || []).filter((r) => sleeveNavOf(r, sleeveCode) != null);
+  const series = sRows.map((r) => ({ d: r.snapshot_date, v: sleeveNavOf(r, sleeveCode) }));
   const inception = series.length ? String(series[0].d).slice(0, 10) : null;
   const sv = windowReturns(series, alloc > 0 ? alloc : null);
   const bm = windowReturns(spySeries, null);
   bm.si = inception ? returnSinceDate(spySeries, inception) : null;
   if (live) {
-    // Day = the sleeve card's live day P&L ÷ prior sleeve value (same number
-    // the Today row used to show, as a return); S&P Day = live quote vs its
-    // own stamped prior close when the intraday row carries one.
-    const prev = series.length >= 2 ? series[series.length - 2].v : null;
-    if (liveDay$ != null && prev) sv.day = liveDay$ / prev;
+    // S&P Day = live quote vs its own stamped prior close when present; the
+    // sleeve's Day already falls out of the NAV series (live vs prior close).
     const lr = sRows[sRows.length - 1];
     if (lr && lr.spy_close && lr.spy_prev_close) bm.day = Number(lr.spy_close) / Number(lr.spy_prev_close) - 1;
   }
   const cols = [['Day', 'day'], ['1W', 'w1'], ['1M', 'm1'], ['Start', 'si']];
   const excess = {};
   cols.forEach(([, k]) => { excess[k] = (sv[k] != null && bm[k] != null) ? sv[k] - bm[k] : null; });
-  const paired = pairAgainstBench(sRows, (r) => r[valueField], spySeries, 'spy_close');
+  const paired = pairAgainstBench(sRows, (r) => sleeveNavOf(r, sleeveCode), spySeries, 'spy_close');
   const risk = riskStats(paired.pVals, paired.bVals);
   return (
     <div className="pp-sc-perf">
@@ -1315,10 +1338,8 @@ function PerfChartPanel({ rows, benchHistory, insCap, momCap, live }) {
   const bookRows = useMemo(() => (rows || []).filter((r) => r.total_nav != null).map((r) => ({
     d: String(r.snapshot_date).slice(0, 10),
     total: Number(r.total_nav),
-    ins: r.sleeve_b_nav != null ? Number(r.sleeve_b_nav)
-      : (r.sleeve_b_equity != null ? Number(r.sleeve_b_equity) + Number(r.sleeve_b_cash ?? 0) : null),
-    mom: r.sleeve_m_nav != null ? Number(r.sleeve_m_nav)
-      : (r.sleeve_m_value != null ? Number(r.sleeve_m_value) + Number(r.sleeve_m_cash ?? 0) : null),
+    ins: sleeveNavOf(r, 'B'),
+    mom: sleeveNavOf(r, 'M'),
   })), [rows]);
 
   const model = useMemo(() => {
@@ -1691,8 +1712,21 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // ONE "Today" computation (Joe rule 2026-06-12): each sleeve's Today is the
   // sum of its displayed positions' session P&L; the book card's Today is the
   // sum of the two sleeve numbers — agreement by construction.
-  const dayB = sleeveB.length ? sleeveB.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
-  const dayM = sleeveM.length ? sleeveM.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
+  // Today $ = sleeve NAV (holdings + cash) live vs prior close — the same
+  // definition as the matrix's Day %, so a loss REALIZED on a morning sale
+  // shows up (a positions-only sum drops it; that's how Today read -$7.1K
+  // while the matrix said -1.1% of $983K). Falls back to the positions sum
+  // only when a NAV side is missing. Book Today stays the sleeve sum.
+  const posDayB = sleeveB.length ? sleeveB.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
+  const posDayM = sleeveM.length ? sleeveM.reduce((s, p) => s + (p.unrealized_intraday_pl || 0), 0) : null;
+  const priorNavRow = navForCard.length >= 2 ? navForCard[navForCard.length - 2] : null;
+  const lastNavRow = navForCard.length ? navForCard[navForCard.length - 1] : null;
+  const navDay = (code) => {
+    const a = sleeveNavOf(lastNavRow, code); const b = sleeveNavOf(priorNavRow, code);
+    return (a != null && b != null) ? a - b : null;
+  };
+  const dayB = navDay('B') ?? posDayB;
+  const dayM = navDay('M') ?? posDayM;
   const dayBook = (dayB == null && dayM == null) ? null : (dayB || 0) + (dayM || 0);
 
   // One shared column config for both sleeve tables — set once, persists for both.
@@ -1759,13 +1793,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
               cash: split.insCash, positions: sleeveB, last: insLast,
-              day$: dayB, valueField: 'sleeve_b_value', alloc: insCap,
+              day$: dayB, alloc: insCap,
               infoDef: 'Buys at Score ≥ 4 (max 5), holds until the score decays below 3. The sleeve’s full $500K is split equally across every qualifying name ($500K ÷ N) and re-split daily on the open; drifts inside a 3% band are left alone.',
             },
             {
               code: 'M', n: 2, name: 'Momentum', value: split.momValue,
               cash: split.momCash, positions: sleeveM, last: momLast,
-              day$: dayM, valueField: 'sleeve_m_value', alloc: momCap,
+              day$: dayM, alloc: momCap,
               infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
             },
           ].map((s) => (
@@ -1775,11 +1809,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <div className="pp-sc-value">{fmtMoneyExact(s.value)}</div>
                 <SleevePerf
                   rows={navForCard}
-                  valueField={s.valueField}
+                  sleeveCode={s.code}
                   alloc={s.alloc}
                   spySeries={benchHistory.spy}
                   live={liveMode}
-                  liveDay$={s.day$}
                 />
                 <div className="pp-sc-rows">
                   <div><span>Holdings</span><b>{s.positions.length}</b></div>
