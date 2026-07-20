@@ -1460,21 +1460,24 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         // Benchmark closes, ~420 calendar days (covers 3M + YTD + prior-year
         // anchor with margin). ~3×280 rows in one query.
         const sinceIso = new Date(Date.now() - 420 * 86_400_000).toISOString().slice(0, 10);
-        const px = await supabase
-          .from('prices_eod')
-          .select('ticker,trade_date,close')
-          .in('ticker', ['SPY', 'QQQ', 'DIA', 'IWM'])
-          .gte('trade_date', sinceIso)
-          .order('trade_date', { ascending: true });
-        if (!cancelled) {
-          const key = { SPY: 'spy', QQQ: 'qqq', DIA: 'dia', IWM: 'iwm' };
-          const by = { spy: [], qqq: [], dia: [], iwm: [] };
-          (px.data || []).forEach((r) => {
-            const k = key[r.ticker];
-            if (k && r.close != null) by[k].push({ d: r.trade_date, v: Number(r.close) });
-          });
-          setBenchHistory(by);
+        // ONE QUERY PER TICKER (2026-07-20): 4 tickers x ~280 sessions in a
+        // single .in() query crossed PostgREST's silent 1,000-row response cap
+        // (LESSONS 4.18) — the tail of EVERY series was truncated and the
+        // benchmark Start/YTD columns read +0.0%. ~280 rows per ticker per
+        // query stays far under the cap; a cap-sized response fails loud.
+        const benchTickers = [['SPY', 'spy'], ['QQQ', 'qqq'], ['DIA', 'dia'], ['IWM', 'iwm']];
+        const by = { spy: [], qqq: [], dia: [], iwm: [] };
+        for (const [tick, k] of benchTickers) {
+          const px = await supabase
+            .from('prices_eod')
+            .select('trade_date,close')
+            .eq('ticker', tick)
+            .gte('trade_date', sinceIso)
+            .order('trade_date', { ascending: true });
+          if ((px.data || []).length >= 1000) throw new Error(`benchmark ${tick} fetch hit the 1,000-row cap — series would be truncated`);
+          (px.data || []).forEach((r) => { if (r.close != null) by[k].push({ d: r.trade_date, v: Number(r.close) }); });
         }
+        if (!cancelled) setBenchHistory(by);
 
         const latestDate = await supabase
           .from('paper_positions')
