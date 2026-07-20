@@ -715,9 +715,9 @@ function BookCard({ navHistory, benchHistory = {}, live = false, asOfIso = null,
               <tr><th>Return</th>{cols.map(([l]) => <th key={l}>{l}</th>)}</tr>
             </thead>
             <tbody>
-              <tr><td className="rl">Book</td>{cols.map(([l, k]) => <td key={l} className={book[k] == null ? 'mut' : ''}>{fmtPctP(book[k], 1)}</td>)}</tr>
+              <tr><td className="rl">Book</td>{cols.map(([l, k]) => <td key={l} className={pctCls(book[k])}>{fmtPctP(book[k], 1)}</td>)}</tr>
               {benchRows.map(([label, bm]) => (
-                <tr key={label}><td className="rl">{label}</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
+                <tr key={label}><td className="rl">{label}</td>{cols.map(([l, k]) => <td key={l} className={pctCls(bm[k])}>{fmtPctP(bm[k], 1)}</td>)}</tr>
               ))}
               <tr className="ex"><td className="rl">Excess vs S&amp;P</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
             </tbody>
@@ -785,8 +785,8 @@ function SleevePerf({ rows, sleeveCode, alloc, spySeries = [], live = false }) {
             <tr><th>Return</th>{cols.map(([l]) => <th key={l}>{l}</th>)}</tr>
           </thead>
           <tbody>
-            <tr><td className="rl">Sleeve</td>{cols.map(([l, k]) => <td key={l} className={sv[k] == null ? 'mut' : ''}>{fmtPctP(sv[k], 1)}</td>)}</tr>
-            <tr><td className="rl">S&amp;P 500</td>{cols.map(([l, k]) => <td key={l} className={bm[k] == null ? 'mut' : ''}>{fmtPctP(bm[k], 1)}</td>)}</tr>
+            <tr><td className="rl">Sleeve</td>{cols.map(([l, k]) => <td key={l} className={pctCls(sv[k])}>{fmtPctP(sv[k], 1)}</td>)}</tr>
+            <tr><td className="rl">S&amp;P 500</td>{cols.map(([l, k]) => <td key={l} className={pctCls(bm[k])}>{fmtPctP(bm[k], 1)}</td>)}</tr>
             <tr className="ex"><td className="rl">Excess</td>{cols.map(([l, k]) => <td key={l} className={pctCls(excess[k])}>{fmtPctP(excess[k], 1)}</td>)}</tr>
           </tbody>
         </table>
