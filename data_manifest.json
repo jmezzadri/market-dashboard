@@ -451,12 +451,10 @@
    "schedule_et": "18:00 ET primary + 20:00 ET + 23:00 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "Trading Opportunities → Insider sub-score",
-    "Trading Opportunities → 'Insider buys' chip",
-    "Ticker Detail modal → Insider tab"
+    "NONE as of 2026-07-20 cutover -- production reads insider_history_edgar. UW ingest continues as the parity-monitor comparison source ONLY until the subscription lapses 2026-08-12, then retires."
    ],
    "target_storage": "Supabase: insider_history",
-   "failure_mode": "Insider sub-score reads em-dash; chip absent; modal tab empty.",
+   "failure_mode": "None (monitor-only). Retire at 2026-08-12 lapse.",
    "owner": "Data Steward",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "scanner.insider-history-uw"
@@ -2148,7 +2146,7 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 09:50\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 09:50–15:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
     "Paper tab → live holdings table (while market open)"
@@ -2167,7 +2165,7 @@
    "license_tier": "free",
    "cadence": "intraday (hourly, market hours)",
    "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
-   "schedule_et": "hourly 09:50\u201315:30 ET; final official update = 16:50 close",
+   "schedule_et": "hourly 09:50–15:30 ET; final official update = 16:50 close",
    "freshness_sla_hours": 3,
    "consumer_surfaces": [
     "Paper tab → Performance card (while market open)"
@@ -2255,7 +2253,8 @@
    "schedule_et": "06:00 ET daily (daily-slow default; EDGAR acceptance closes ~22:00 ET, so next-morning run captures the full prior day)",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
-    "NONE until UW cutover -- shadow of scanner.insider-history-uw. Parity reconciliation + scanner re-score diff must pass (Senior Quant sign-off) before this replaces the UW element ahead of the 2026-08-12 UW lapse."
+    "Trading Opportunities -> Insider sub-score (scanner + universe gate read insider_history_edgar as of 2026-07-20 cutover)",
+    "Ticker page -> Score drill insider evidence (useEdgarInsider hook)"
    ],
    "target_storage": "Supabase: insider_history_edgar",
    "failure_mode": "Shadow only pre-cutover: no user-facing impact. Post-cutover: inherits the UW element's failure mode.",

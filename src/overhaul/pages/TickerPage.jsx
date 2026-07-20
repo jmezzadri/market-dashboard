@@ -53,6 +53,7 @@ import { useUniverseSnapshot } from '../../hooks/useUniverseSnapshot';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
 import useV5ScanBatch from '../../hooks/useV5ScanBatch';
+import useEdgarInsider from '../../hooks/useEdgarInsider';
 import { useEarningsHistory } from '../../hooks/useEarningsHistory';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
@@ -424,11 +425,10 @@ export default function TickerPage() {
   const relatedSameSector = _sameSector.length > 0;
   const related = (relatedSameSector ? _sameSector : _others).slice(0, 4);
 
-  /* Sort events newest first for the tabs. */
-  const insiderEvents = useMemo(
-    () => [...(eventsForSym.insider || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
-    [eventsForSym.insider],
-  );
+  /* Sort events newest first for the tabs. Insider evidence reads the SEC
+     EDGAR table directly (2026-07-20 UW cutover) — the same table the scanner
+     scores from, so evidence and score can never disagree. */
+  const insiderEvents = useEdgarInsider(sym, 90);
   const darkEvents = useMemo(
     () => [...(eventsForSym.darkpool || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
     [eventsForSym.darkpool],
