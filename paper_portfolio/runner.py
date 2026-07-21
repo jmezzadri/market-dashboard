@@ -326,7 +326,50 @@ def run_close_phase(
     # Stamp each paper feed's freshness row so the chips read real (not
     # fake-green) status and the rebalance chip's positions dependency resolves.
     stamp_paper_pipeline_health(dry_run=dry_run)
+    if not dry_run:
+        _check_sleeve_cash_drift()
     return {"fills": n_fills, "positions": n_pos, "nav": nav}
+
+
+def _check_sleeve_cash_drift() -> None:
+    """Cash-band tripwire (2026-07-21, Joe directive): a sleeve's idle cash
+    is allowed to float within +/- CASH_DRIFT_ALERT_PCT of its NAV (the 1%
+    sizing buffer normally keeps it well inside). Beyond the band, file a P1
+    bug so drift can never build silently. Best-effort: never crashes the
+    close snapshot."""
+    try:
+        from paper_portfolio._sbq import sb_query
+        from paper_portfolio.config import CASH_DRIFT_ALERT_PCT
+        from paper_portfolio.freshness import file_alert
+        rows = sb_query(
+            "select snapshot_date::text as d, sleeve_b_cash, sleeve_b_nav, "
+            "sleeve_m_cash, sleeve_m_nav from public.paper_nav_daily "
+            "order by snapshot_date desc limit 1;")
+        if not rows:
+            return
+        r = rows[0]
+        for label, cash_key, nav_key in (
+                ("Insider Conviction", "sleeve_b_cash", "sleeve_b_nav"),
+                ("Momentum", "sleeve_m_cash", "sleeve_m_nav")):
+            cash = float(r.get(cash_key) or 0.0)
+            nav_v = float(r.get(nav_key) or 0.0)
+            if nav_v <= 0:
+                continue
+            frac = cash / nav_v
+            if abs(frac) > CASH_DRIFT_ALERT_PCT:
+                file_alert(
+                    title=(f"Paper {label} sleeve cash {frac:+.1%} of NAV — "
+                           f"outside the 2% band ({r['d']})"),
+                    description=(
+                        f"Sleeve cash ${cash:,.0f} vs NAV ${nav_v:,.0f}. "
+                        "Negative = unintended margin; positive = cash "
+                        "building instead of being redeployed. Sizing is "
+                        "meant to re-anchor to live NAV with a 1% buffer "
+                        "each rebalance — investigate why it drifted."),
+                    priority="P1")
+                logger.warning("cash drift tripwire fired: %s %.2f%%", label, frac * 100)
+    except Exception:  # noqa: BLE001
+        logger.exception("cash-drift tripwire failed (non-fatal)")
 
 
 def main(argv: list[str] | None = None) -> int:

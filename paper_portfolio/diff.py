@@ -65,11 +65,17 @@ def _resize_exceeds_band(target_notional: float, held_basis: float) -> bool:
 
 
 def _qty_from_notional(notional: float, eod_price: float | None) -> float | None:
-    """Convert a dollar trade into shares at the EOD close. Fractional shares
-    are allowed (the book is dollar-sized and orders are market/day)."""
+    """Convert a dollar trade into WHOLE shares at the EOD close (rounded
+    down). Whole-share orders (2026-07-21, Joe directive): fractional
+    quantities were an artifact of raw notional/price division, not a design
+    choice. Rounding down also reinforces the no-leverage rule — we can only
+    ever spend less than the dollar target, never more. A result of 0 shares
+    means the trade is smaller than one share; callers skip those intents.
+    Existing fractional POSITIONS are unaffected: exits sell the exact held
+    quantity."""
     if eod_price is None or eod_price <= 0:
         return None
-    return float(round(notional / eod_price, 4))
+    return float(int(abs(notional) // eod_price))
 
 
 def build_order_intents(
@@ -151,6 +157,8 @@ def build_order_intents(
             if delta > 0 and suppress_buys:
                 continue
             qty = _qty_from_notional(abs(delta), _eod_price(ticker))
+            if qty is not None and qty < 1:
+                continue  # resize is smaller than one whole share — hold
             if delta < 0 and qty is not None:
                 qty = min(qty, held_qty)  # never sell more than the sleeve owns
             score_int = int(round(line.score)) if line.score is not None else None
@@ -166,6 +174,8 @@ def build_order_intents(
         if suppress_buys or _has_open_order(ticker):
             continue
         qty = _qty_from_notional(line.notional, _eod_price(ticker))
+        if qty is not None and qty < 1:
+            continue  # target is smaller than one whole share — skip
         score_int = int(round(line.score)) if line.score is not None else None
         intents.append(OrderIntent(
             sleeve="B", ticker=ticker, side="buy",

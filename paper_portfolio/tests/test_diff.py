@@ -134,3 +134,26 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print(f"PASS {name}")
     print("test_diff: all tests passed")
+
+
+def test_whole_share_rounding_floors_buys():
+    """2026-07-21: buys size to WHOLE shares, rounded down (never overspend)."""
+    from paper_portfolio.diff import _qty_from_notional
+    assert _qty_from_notional(1000.0, 333.0) == 3.0     # 3.003 -> 3
+    assert _qty_from_notional(1000.0, 999.99) == 1.0
+    assert _qty_from_notional(500.0, 501.0) == 0.0      # sub-share -> 0 (caller skips)
+    assert _qty_from_notional(1000.0, None) is None
+
+
+def test_sub_share_buy_is_skipped():
+    """A target smaller than one share must not produce an order intent."""
+    from paper_portfolio.diff import build_order_intents
+    from paper_portfolio.sleeves import SleeveTarget, TargetLine
+    target = SleeveTarget(
+        sleeve="B", capital_assigned=100.0, gross_long=100.0, leverage_used=0,
+        idle_cash=0, leverage_ratio=0,
+        lines=[TargetLine(sleeve="B", ticker="BRK", notional=100.0, score=5,
+                          rationale="test")])
+    out = build_order_intents(target, [], held_scores={},
+                              eod_prices={"BRK": 700000.0})
+    assert out == []

@@ -42,6 +42,16 @@ SLEEVE_B_EXIT_THRESHOLD = 3.0  # HYSTERESIS (2026-07-07): buy>=5, but HOLD until
 SLEEVE_A_REBALANCE_DOLLAR_MIN = 500.0     # dollar floor (small lines)
 SLEEVE_A_REBALANCE_PCT_MIN    = 0.03      # 3% of THIS position's target
 
+
+# ── Sizing discipline (2026-07-21, Joe directive; Senior Quant sign-off) ──
+# Size each rebalance off the sleeve's LIVE NAV, not the fixed allocation,
+# with a small cash buffer so overnight gap-ups cannot overdraw cash (no
+# unintended margin). Because sizing re-anchors to NAV every rebalance, the
+# buffer is self-correcting and cash cannot build over time.
+SIZING_CASH_BUFFER_PCT = 0.01      # deploy 99% of live sleeve NAV
+CASH_DRIFT_ALERT_PCT = 0.02        # |sleeve cash| > 2% of NAV files a P1 bug
+SIZING_NAV_SANITY_BAND = (0.5, 1.5)  # NAV outside band vs allocation -> fall back
+
 SLEEVE_B_REBALANCE_DOLLAR_MIN = 500.0
 SLEEVE_B_REBALANCE_PCT_MIN    = 0.03
 

@@ -133,7 +133,7 @@ def run(
         if (p.qty - sleeve_m_held.get(p.ticker.upper(), 0.0)) > 0.0001
     }
     sleeve_b = build_sleeve_b_target(
-        scanner, cfg.sleeve_b_allocation,
+        scanner, _sleeve_sizing_capital(cfg.sleeve_b_allocation, "sleeve_b_nav"),
         held_tickers=held_b_tickers,
     )
     logger.info(
@@ -179,7 +179,8 @@ def run(
                     "the monthly producer looks dead; momentum skipped this run.")
             trigger = momentum_mod.load_last_trigger_state()
             fire, why = trigger.differs_from(m_snap)
-            sleeve_m = build_momentum_target(m_snap, cfg.sleeve_m_allocation)
+            sleeve_m = build_momentum_target(
+                m_snap, _sleeve_sizing_capital(cfg.sleeve_m_allocation, "sleeve_m_nav"))
             if fire:
                 momentum_action = why
                 m_prices = load_eod_price_map(
@@ -334,3 +335,39 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == "__main__":
     sys.exit(main())
 
+
+def _sleeve_sizing_capital(allocation: float, nav_col: str) -> float:
+    """Dollar base for sleeve sizing (2026-07-21, Joe directive; Senior Quant
+    sign-off). Uses the sleeve's latest daily NAV — holdings plus cash,
+    including negative cash — times (1 - SIZING_CASH_BUFFER_PCT), instead of
+    the fixed allocation. Two properties Joe asked for:
+      1. No unintended margin: sizing 1% under NAV absorbs normal overnight
+         gap-ups, so buys can no longer overdraw the sleeve's cash.
+      2. Self-correcting, no cash build-up: every rebalance re-anchors to
+         that day's NAV, so gap-down surplus cash is redeployed at the next
+         re-split rather than accumulating.
+    Falls back to the fixed allocation when the NAV row is missing (inception
+    day) or fails a sanity band vs the allocation (blast-radius guard: a bad
+    NAV read must not size a 2x order book)."""
+    from paper_portfolio._sbq import sb_query
+    from paper_portfolio.config import SIZING_CASH_BUFFER_PCT, SIZING_NAV_SANITY_BAND
+    base = float(allocation)
+    try:
+        rows = sb_query(
+            f"select {nav_col} as nav from public.paper_nav_daily "
+            "order by snapshot_date desc limit 1;")
+        nav = float(rows[0]["nav"]) if rows and rows[0].get("nav") is not None else 0.0
+        lo, hi = SIZING_NAV_SANITY_BAND
+        if allocation * lo <= nav <= allocation * hi:
+            base = nav
+        else:
+            logger.warning(
+                "sleeve NAV %s=%.2f outside sanity band [%.0f, %.0f] — sizing "
+                "falls back to fixed allocation %.0f",
+                nav_col, nav, allocation * lo, allocation * hi, allocation)
+    except Exception as exc:  # noqa: BLE001 — sizing must never crash the run
+        logger.warning("could not read %s for sizing (%s) — using fixed allocation", nav_col, exc)
+    capital = round(base * (1.0 - SIZING_CASH_BUFFER_PCT), 2)
+    logger.info("sizing capital for %s: $%.2f (base $%.2f, buffer %.1f%%)",
+                nav_col, capital, base, SIZING_CASH_BUFFER_PCT * 100)
+    return capital

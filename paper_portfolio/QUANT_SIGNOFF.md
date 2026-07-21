@@ -123,3 +123,31 @@ artifacts (`public/v10_allocation.json` for Sleeve A;
 `paper_signal_capture` carries the full IG list + top-25 scanner sample
 per run, sufficient for replay. `data_manifest.json` v10 entries cover
 all six paper portfolio tables.
+
+## 2026-07-21 — Whole-share sizing, live-NAV base + 1% buffer, 2% cash tripwire
+
+**Change (execution mechanics only — no signal, entry/exit, or cadence change):**
+1. Order quantities floor to whole shares (was raw notional/price to 4dp).
+2. Sleeve sizing base = latest sleeve NAV × 0.99 (was fixed $500K allocation).
+3. Close phase files a P1 bug if |sleeve cash| > 2% of sleeve NAV.
+
+**Why:** Fixed-allocation sizing overspends whenever the sleeve is below its
+allocation (observed: Insider −$9.0K cash on $496K NAV = unintended margin,
+1.8%), and overnight gap-ups add slippage on top (fixed share count × higher
+open price). Both violate the no-leverage design assumption of the backtests.
+
+**Impact bound (Policy A assessment — bound argument in lieu of re-run):**
+- Whole-share flooring forgoes at most 1 share per name per rebalance:
+  ≤ price/notional ≈ 0.03%–0.6% of a position (typ. $35K–$170K lines),
+  direction-unbiased, second-order vs daily price moves.
+- The 1% buffer is an ~1% cash allocation: expected drag ≈ 1% × sleeve
+  excess return — basis points per year — and removes an unmodeled ~1–2%
+  LEVERAGED exposure the backtest never had. Net effect brings live behavior
+  CLOSER to the backtested 100%-invested assumption, not further.
+- Self-correction: sizing re-anchors to live NAV each rebalance (daily for
+  Insider, monthly for Momentum), so cash drift is mean-reverting by
+  construction; the 2% tripwire catches any failure of that property.
+
+**Backtest status:** Signals, hysteresis, cadence, and universe untouched —
+the cleared strategy backtests (2026-07-07 Insider, 2026-07-14 Momentum)
+remain the governing evidence. Senior Quant signs off on the bound argument.
