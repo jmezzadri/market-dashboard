@@ -23,12 +23,17 @@ import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
 // plain-English label (Joe 2026-06-15: "make the header have a tooltip for
 // what's stale"). Mirrors the FreshnessChip tooltip look so it feels native.
 function AllFeedsPill() {
-  const { loading, red, amber } = useFreshnessRollup();
+  const { loading, red, amber, untracked = [] } = useFreshnessRollup();
   const [hover, setHover] = React.useState(false);
   const [xy, setXY] = React.useState(null);
   const ref = React.useRef(null);
 
-  const status = loading ? 'checking' : red.length > 0 ? 'red' : amber.length > 0 ? 'amber' : 'green';
+  // Untracked = a scheduled feed with no health record (a registration defect,
+  // e.g. the 2026-07-20 EDGAR cutover). It outranks green: the pill must never
+  // claim "All feeds current" while a feed exists that the system isn't
+  // watching (Joe 2026-07-21). Grey, not red — the feed may well be running;
+  // we just can't prove it.
+  const status = loading ? 'checking' : red.length > 0 ? 'red' : amber.length > 0 ? 'amber' : untracked.length > 0 ? 'untracked' : 'green';
   const color =
     status === 'red' ? 'var(--mt-down)'
       : status === 'amber' ? 'var(--mt-amber)'
@@ -38,7 +43,8 @@ function AllFeedsPill() {
     status === 'checking' ? 'Checking feeds…'
       : status === 'red' ? `${red.length} feed${red.length > 1 ? 's' : ''} stale`
         : status === 'amber' ? `${amber.length} feed${amber.length > 1 ? 's' : ''} lagging`
-          : 'All feeds current';
+          : status === 'untracked' ? `${untracked.length} feed${untracked.length > 1 ? 's' : ''} not tracked`
+            : 'All feeds current';
 
   const onEnter = () => {
     setHover(true);
@@ -79,6 +85,19 @@ function AllFeedsPill() {
     >
       {status === 'green' ? (
         <div style={{ color: 'var(--mt-ink-1)' }}>Every tracked feed across the whole site is within its freshness target.</div>
+      ) : status === 'untracked' ? (
+        <>
+          <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: 4 }}>
+            {untracked.length} scheduled feed{untracked.length > 1 ? 's' : ''} without freshness tracking
+          </div>
+          {untracked.map((item) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-ink-3)', flexShrink: 0, marginTop: 5 }} />
+              <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
+            </div>
+          ))}
+          <div style={{ marginTop: 6, color: 'var(--mt-ink-2)' }}>These feeds are registered but have no health record yet, so their freshness can't be verified.</div>
+        </>
       ) : status === 'checking' ? (
         <div style={{ color: 'var(--mt-ink-2)' }}>Checking feeds…</div>
       ) : (

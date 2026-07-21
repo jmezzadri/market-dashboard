@@ -1267,7 +1267,16 @@ export default function DataFlowPage() {
       const slaHours = Number(el.freshness_sla_hours) || 0;
       const maxDataAgeHours = Number(el.data_max_age_hours) || 0;
       let s;
-      if (slaHours <= 0 && maxDataAgeHours <= 0) {
+      if (!r) {
+        // No pipeline_health row at all — "not yet tracked". The per-element
+        // row already renders this as a neutral grey chip (never red), so the
+        // tile dot must agree: grading an absent row through gradeTwoClock
+        // synthesised a red that contradicted the grey row AND the header
+        // pill in the same viewport (Joe 2026-07-21, EDGAR cutover). The
+        // header pill now surfaces untracked scheduled feeds explicitly, so
+        // nothing is silently swallowed by this grey.
+        s = 'u';
+      } else if (slaHours <= 0 && maxDataAgeHours <= 0) {
         // Reference / event-driven / not-time-graded: no freshness target → a
         // neutral grey, never green (fake-green forbidden) and never red on a
         // tile rollup (an untracked member must not paint a tile red).
