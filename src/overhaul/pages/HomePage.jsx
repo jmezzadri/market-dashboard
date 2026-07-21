@@ -419,7 +419,7 @@ export default function HomePage() {
                 {momoRows.length > 0 && (
                   <div className="srow schead srow--mo">
                     <span className="tk" />
-                    <span className="stv">10 day</span>
+                    <span className="stv">{momoRows[0]?.rebalance_date ? `Since ${new Date(momoRows[0].rebalance_date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Since picked'}</span>
                     <span className="stv">Breakout vol</span>
                     <span className="stv">3 month</span>
                   </div>
@@ -427,7 +427,7 @@ export default function HomePage() {
                 {momoRows.map((r) => (
                   <a key={r.ticker} className="srow srow--mo" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
                     <span className="tk">{r.ticker}</span>
-                    <span className={`stv ${Number.isFinite(Number(r.ret_10d)) ? (Number(r.ret_10d) >= 0 ? 'up' : 'dn') : ''}`}>{fmtRoc(r.ret_10d)}</span>
+                    <span className={`stv ${Number.isFinite(Number(r.ret_since)) ? (Number(r.ret_since) >= 0 ? 'up' : 'dn') : ''}`}>{fmtRoc(r.ret_since)}</span>
                     <span className="stv">{Number.isFinite(Number(r.breakout_volx)) ? `${Number(r.breakout_volx).toFixed(2)}×` : '—'}</span>
                     <span className="stv stv--now">{fmtRoc(r.roc_3m)}</span>
                   </a>
@@ -435,7 +435,7 @@ export default function HomePage() {
                 {momoRows.length === 0 && <div className="secnote">No momentum signal this month — the list is in cash.</div>}
               </div>
             </div>
-            {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction, with last week’s score alongside. Momentum shows the 3-month run, the last 10 trading days, and breakout-day volume vs its 20-day average.</p>}
+            {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction, with last week’s score alongside. Momentum shows each name’s move since it was picked at the monthly refresh, breakout-day volume vs its 20-day average, and the 3-month run that qualified it.</p>}
           </Reveal>
 
         </div>
