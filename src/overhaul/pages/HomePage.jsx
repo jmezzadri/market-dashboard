@@ -401,7 +401,8 @@ export default function HomePage() {
                 {topScan.map((r) => (
                   <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
                     <span className="tk">{r.ticker}</span>
-                    <span className="sc">{fmt(r.score, 1)}</span>
+                    <span className="mst"><i>last week</i><b>{r.score_1w != null ? fmt(r.score_1w, 1) : 'new'}</b></span>
+                    <span className="mst"><i>score</i><b className="mst-big">{fmt(r.score, 1)}</b></span>
                   </a>
                 ))}
                 {topScan.length === 0 && <div className="secnote">No names clear the gate today.</div>}
@@ -411,13 +412,15 @@ export default function HomePage() {
                 {momoRows.map((r) => (
                   <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
                     <span className="tk">{r.ticker}</span>
-                    <span className="sc sc--pct">{fmtRoc(r.roc_3m)}</span>
+                    <span className="mst"><i>10 day</i><b className={Number.isFinite(Number(r.ret_10d)) ? (Number(r.ret_10d) >= 0 ? 'up' : 'dn') : ''}>{fmtRoc(r.ret_10d)}</b></span>
+                    <span className="mst"><i>breakout vol</i><b>{Number.isFinite(Number(r.breakout_volx)) ? `${Number(r.breakout_volx).toFixed(2)}\u00d7` : '\u2014'}</b></span>
+                    <span className="mst"><i>3 month</i><b className="mst-big">{fmtRoc(r.roc_3m)}</b></span>
                   </a>
                 ))}
                 {momoRows.length === 0 && <div className="secnote">No momentum signal this month — the list is in cash.</div>}
               </div>
             </div>
-            {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction. Momentum shows 3-month price runs.</p>}
+            {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction, with last week’s score alongside. Momentum shows the 3-month run, the last 10 trading days, and breakout-day volume vs its 20-day average.</p>}
           </Reveal>
 
         </div>
