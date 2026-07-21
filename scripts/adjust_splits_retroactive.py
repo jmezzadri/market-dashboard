@@ -35,7 +35,12 @@ from datetime import date, timedelta
 
 import requests
 
-TOLERANCE = 0.15          # |log(observed/expected)| tolerance for seam match
+TOLERANCE = 0.25          # |log(observed/expected)| tolerance for seam match.
+                          # 0.15 missed DFNS 2026-07-20 (125:1 reverse split whose
+                          # observed gap was 106x because the stock also fell ~15%
+                          # the same day - typical for microcap reverse splits).
+                          # A corroborating split record is still required, so the
+                          # wider band cannot fire on an uncorroborated price move.
 WINDOW_ROWS = 6           # trading rows scanned either side of execution date
 
 
