@@ -261,7 +261,9 @@ def build_momentum_intents(
             delta = line.notional - current
             if abs(delta) <= _band(line.notional):
                 continue  # inside the band — hold
-            qty = round(abs(delta) / price, 4)
+            qty = float(int(abs(delta) // price))  # whole shares (2026-07-21)
+            if qty < 1:
+                continue  # resize smaller than one whole share — hold
             if delta < 0:
                 qty = min(qty, held_qty)
             intents.append(OrderIntent(
@@ -273,7 +275,9 @@ def build_momentum_intents(
                     f"(${line.notional:,.0f}; {line.rationale})"),
             ))
             continue
-        qty = round(line.notional / price, 4) if price and price > 0 else None
+        qty = float(int(line.notional // price)) if price and price > 0 else None
+        if qty is not None and qty < 1:
+            continue  # entry smaller than one whole share — skip
         intents.append(OrderIntent(
             sleeve="M", ticker=ticker, side="buy",
             target_quantity=qty, target_notional=round(line.notional, 2),

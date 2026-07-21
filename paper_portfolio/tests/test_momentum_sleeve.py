@@ -175,3 +175,16 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print(f"PASS {name}")
     print("test_momentum_sleeve: all tests passed")
+
+
+def test_momentum_whole_share_entries():
+    """2026-07-21: momentum entries floor to whole shares."""
+    from paper_portfolio.momentum import build_momentum_intents
+    from paper_portfolio.sleeves import SleeveTarget, TargetLine
+    target = SleeveTarget(
+        sleeve="M", capital_assigned=1000.0, gross_long=1000.0, leverage_used=0,
+        idle_cash=0, leverage_ratio=0,
+        lines=[TargetLine(sleeve="M", ticker="AAA", notional=1000.0, score=None,
+                          rationale="test")])
+    out = build_momentum_intents(target, {}, {"AAA": 333.0})
+    assert len(out) == 1 and out[0].target_quantity == 3.0
