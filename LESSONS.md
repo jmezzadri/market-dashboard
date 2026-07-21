@@ -833,3 +833,11 @@ Joe's Scanner feedback escalated twice in one night because the first pass match
 
 ### 8.14 (2026-07-21) — Multi-stat tile rows get ONE shared-grid header and one figure font; never per-row labels or right-jammed mixed type
 The first cut of the scanner-tile detail put a tiny label over every number, pushed all stats against the right edge, and mixed serif display figures with sans small figures in the same row. Joe: "Why would you jam all numbers to the right? Use same fonts. It looks sloppy." When a tile row carries more than one stat, render a single muted header row that shares the row's grid template, spread the columns across the full row width, and set every value in the same sans tabular font — color and weight carry the hierarchy, not typeface changes.
+
+### 2026-07-21 — A feed cutover is not done until its tracking row and self-stamp ship in the same change
+
+**What happened:** The 2026-07-20 UW→EDGAR insider cutover registered the new feed in the data manifest and deployed the nightly ingest, but never seeded its `pipeline_health` row and never gave the workflow green/red stamp steps — repeating Hard Rule 0.1's exact failure mode. Result on Admin·Data: the SEC EDGAR vendor card graded RED (tile grader synthesised red from the absent row), the detail row said grey "Not yet tracked," and the header pill said "All feeds current" (it skipped feeds with no health row) — three contradictory answers in one viewport, over a feed that was actually running fine.
+
+**Rule:** (1) Cutover/new-feed checklist is atomic: manifest entry + `pipeline_health` seed row (honest timestamps from the real first run) + workflow green-after-publish and red-on-failure stamp steps, all in the same change. (2) All surfaces treat "no health row" identically: neutral grey "not yet tracked" — never a synthesized red, never green. (3) The header pill counts scheduled, SLA-carrying feeds that have no health row and reads "N feeds not tracked" (grey) — it must never read "All feeds current" while such a feed exists. (4) The `pipeline_health` key is the PUBLIC manifest's short `name` (e.g. `insider_history_edgar`) — the root registry's dotted ids do not resolve in the freshness hook.
+
+**Applies to:** Data Steward (owns) + Lead Developer. Every new feed, every vendor cutover.

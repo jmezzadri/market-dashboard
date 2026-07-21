@@ -517,13 +517,14 @@ export function useFreshnessRollup() {
   }, []);
 
   if (!cachedRows || !isManifestLoaded()) {
-    return { loading: true, red: [], amber: [], greenCount: 0 };
+    return { loading: true, red: [], amber: [], untracked: [], greenCount: 0 };
   }
 
   const els = getAllElements() || [];
   const seen = new Set();
   const red = [];
   const amber = [];
+  const untracked = [];
   let greenCount = 0;
   for (const el of els) {
     const name = el?.name;
@@ -537,7 +538,27 @@ export function useFreshnessRollup() {
     // count (38 vs the real handful). pipeline_health is keyed by the short
     // name, so a row keyed by name (or id) means it's a real tracked feed.
     const phKey = cachedRows.has(name) ? name : (cachedRows.has(id) ? id : null);
-    if (!phKey || seen.has(phKey)) continue;
+    if (!phKey) {
+      // UNTRACKED guard (Joe 2026-07-21, EDGAR cutover): a SCHEDULED feed with
+      // an SLA but NO pipeline_health row is a registration defect, not
+      // background noise — the 2026-07-20 EDGAR cutover shipped the manifest
+      // entry without a seed row, and this pill kept reading "All feeds
+      // current" while the Data page showed the feed red/grey. Count those
+      // here so the header can say so. Backend/event-driven catalog entries
+      // (no SLA, non-scheduled cadence) and internal ops watchdogs stay
+      // excluded — that's the "38 vs the real handful" balloon this loop
+      // already guards against.
+      const cad = String(el?.cadence || "").trim();
+      const scheduled = /^(daily|weekly|bi[- ]?weekly|bi[- ]?monthly|monthly|quarterly|annual|hourly|\d+x|every |during scan)\b/i.test(cad);
+      const sla = Number(el?.freshness_sla_hours) || 0;
+      const isOps = el?.category === "ops" || /^ops-/.test(String(id || ""));
+      if (scheduled && sla > 0 && !isOps && !seen.has(id || name)) {
+        seen.add(id || name);
+        untracked.push({ id: id || name, label: name || id });
+      }
+      continue;
+    }
+    if (seen.has(phKey)) continue;
     seen.add(phKey);
     let r;
     try { r = rollupStatus(name || id); } catch { continue; }
@@ -563,7 +584,8 @@ export function useFreshnessRollup() {
     }
   }
   red.sort((a, b) => a.label.localeCompare(b.label));
-  return { loading: false, red, amber, greenCount };
+  untracked.sort((a, b) => a.label.localeCompare(b.label));
+  return { loading: false, red, amber, untracked, greenCount };
 }
 
 // ─── useFetchLog (from PR #15, kept) ───────────────────────────────────────
