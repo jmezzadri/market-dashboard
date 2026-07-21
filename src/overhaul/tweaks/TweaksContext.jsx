@@ -1,13 +1,10 @@
-/* TweaksContext — persisted theme/accent/density/sidebar/fonts/typeScale.
-   Per site-overhaul brief baked-in decisions:
-     - First visit defaults to Light.
-     - Persists in localStorage under the keys below.
-     - Same for accent ("blue"), density ("balanced"), sidebar ("rail"),
-       fonts ("fraunces-inter"), typeScale ("editorial").
-   Apply tokens by setting data-mt-* attributes on <html>.
-
-   The full Tweaks panel UI lands in PR-O10; this context is the
-   foundation for it (and the gear button in PageHeader). */
+/* TweaksContext — persisted THEME ONLY (light / navy).
+   2026-07-21, Joe directive: the Tweaks panel (gear) is retired. The only
+   remaining user option is the light/dark theme toggle. Accent, density,
+   font pairing and headline scale are frozen at their defaults below —
+   persisted values from old sessions are intentionally ignored so nobody
+   is stuck on a retired combination with no UI to reset it.
+   Apply tokens by setting data-mt-* attributes on <html>. */
 
 import React, {
   createContext,
@@ -49,10 +46,9 @@ function writePersisted(key, value) {
 
 function loadInitial() {
   const out = { ...DEFAULTS };
-  for (const k of Object.keys(DEFAULTS)) {
-    const v = readPersisted(k);
-    if (v != null) out[k] = v;
-  }
+  // Theme is the ONLY persisted option (gear panel retired 2026-07-21).
+  const v = readPersisted('theme');
+  if (v != null) out.theme = v === 'dark' ? 'navy' : v; // legacy pure-black → navy
   return out;
 }
 
@@ -60,7 +56,6 @@ const TweaksCtx = createContext(null);
 
 export function TweaksProvider({ children }) {
   const [tweaks, setTweaks] = useState(loadInitial);
-  const [panelOpen, setPanelOpen] = useState(false);
 
   const setTweak = useCallback((key, value) => {
     setTweaks((prev) => {
@@ -98,16 +93,8 @@ export function TweaksProvider({ children }) {
   }, [tweaks.theme, tweaks.accent, tweaks.density, tweaks.sidebar, tweaks.fonts, tweaks.typeScale]);
 
   const value = useMemo(
-    () => ({
-      tweaks,
-      setTweak,
-      resetTweaks,
-      panelOpen,
-      openPanel: () => setPanelOpen(true),
-      closePanel: () => setPanelOpen(false),
-      togglePanel: () => setPanelOpen((p) => !p),
-    }),
-    [tweaks, setTweak, resetTweaks, panelOpen],
+    () => ({ tweaks, setTweak, resetTweaks }),
+    [tweaks, setTweak, resetTweaks],
   );
 
   return <TweaksCtx.Provider value={value}>{children}</TweaksCtx.Provider>;

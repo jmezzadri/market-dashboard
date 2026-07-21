@@ -10,6 +10,7 @@ import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
 
 const ITEMS = [
+  { to: '/', label: 'Home', end: true },
   { to: '/macro', label: 'Macro' },
   { to: '/scanner', label: 'Scanner' },
   { to: '/paper', label: 'Paper' },
@@ -38,6 +39,7 @@ export default function TopNav() {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end || false}
             className={({ isActive }) => `mt-navlink ${isActive ? 'on' : ''}`}
           >
             {item.label}

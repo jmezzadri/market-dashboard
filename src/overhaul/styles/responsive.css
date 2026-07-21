@@ -315,14 +315,23 @@
 }
 
 
-/* ── home-v12 (cream rebrand, 2026-07-07) — every multi-column grid collapses ── */
+/* ── home-v12 (cream rebrand 2026-07-07; six-tile grid 2026-07-21) —
+      every multi-column grid collapses. Tiles go full-width ≤1100px, the
+      scanner tile's two lists stack ≤900px, and rows inside tiles are
+      flex with ellipsis so they hold at 390px. ── */
+@media (max-width: 1100px) {
+  .home-v12 .sp7, .home-v12 .sp5 { grid-column: span 12 !important; }
+}
 @media (max-width: 900px) {
-  .home-v12 .ind, .home-v12 .cotgrid, .home-v12 .rows2 { grid-template-columns: 1fr !important; }
-  .home-v12 .mvgrid { grid-template-columns: 1fr !important; }
+  .home-v12 .ind, .home-v12 .cotgrid { grid-template-columns: 1fr !important; }
   .home-v12 .engine-card { grid-template-columns: 1fr !important; }
+  .home-v12 .scan-cols { grid-template-columns: 1fr !important; }
+  .home-v12 .bgrid { gap: 18px !important; }
 }
 @media (max-width: 640px) {
   .home-v12 .tape .row { grid-template-columns: repeat(2, 1fr) !important; }
+  .home-v12 .srow .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-v12 .cot-row .tag { max-width: 58%; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ── home-v12 Macro Overview (cream rebrand Phase B) — category tiles:

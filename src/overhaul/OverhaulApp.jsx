@@ -4,8 +4,7 @@
      - TweaksProvider (theme/accent/etc. persisted to localStorage)
      - BrowserRouter with the 9 page routes from the brief
      - Sidebar (rail / collapsed-rail) + TopNav (top) chrome variants
-     - PageHeader with date / search / freshness pill / theme / tweaks
-     - TweaksPanel slide-over
+     - PageHeader with date / search / freshness pill / theme toggle
 
    Activated by appending ?v=3 to any URL in the live app (legacy gate
    lives in src/App.jsx). When the overhaul is feature-complete, the
@@ -49,7 +48,6 @@ import './styles/legacy-bridge.css';
 import './styles/chrome-v12.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
-import TweaksPanel from './tweaks/TweaksPanel';
 
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
@@ -176,7 +174,6 @@ function Shell() {
           </Routes>
         </main>
       </div>
-      <TweaksPanel />
     </div>
   );
 }

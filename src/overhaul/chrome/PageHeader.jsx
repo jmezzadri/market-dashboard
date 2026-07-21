@@ -1,5 +1,6 @@
 /* PageHeader — sticky top header with market state, date, search,
-   freshness pill, theme cycler, and Tweaks toggle.
+   freshness pill, and the light/dark theme toggle.
+   (Tweaks gear retired 2026-07-21 — theme is the only remaining option.)
    Ported from site-overhaul prototype lm-core.jsx. */
 
 import React from 'react';
@@ -157,7 +158,7 @@ function formatToday(now = new Date()) {
 }
 
 export default function PageHeader() {
-  const { tweaks, setTweak, openPanel } = useTweaks();
+  const { tweaks, setTweak } = useTweaks();
   const ms = nyseMarketState();
   const today = formatToday();
 
@@ -202,15 +203,6 @@ export default function PageHeader() {
           title={`Theme: ${tweaks.theme}`}
         >
           {themeGlyph}
-        </button>
-        <button
-          type="button"
-          className="mt-iconbtn"
-          onClick={openPanel}
-          aria-label="Open tweaks panel"
-          title="Tweaks"
-        >
-          ⚙
         </button>
       </div>
     </header>
