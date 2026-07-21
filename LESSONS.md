@@ -811,6 +811,14 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 **Applies to:** Lead Developer + Data Steward + Senior Quant.
 
+### 8.13 (2026-07-21) — A reformat is not a redesign; every rendered claim must match what's on screen
+
+**What happened:** The six-tile homepage rework shipped with each tile keeping its old section's color (ink engine, gold positioning) purely by inheritance, a double-height Engine card full of dead space, pills overflowing the positioning tile, and a headline "Markets at a speculative-positioning extreme this week: 9" above a list showing only 6 (display cap) — where "this week" was also false (SOFR had been at its extreme for weeks). Joe: "thats a lazy reformatting job… think critically when redesigning."
+
+**Rule:** A redesign re-decides, from scratch: surface/color system (each color must have a stated reason — e.g. one accent card for the single most important read), sizing (no card taller than its content needs), and every piece of copy. Three copy checks are mandatory on any tile: (1) a rendered count must equal the number of items visibly listed — if a cap exists, either drop the count or drop the cap; (2) no time-window claim ("this week") unless the data actually resets on that window; (3) status labels are the shortest accurate words (Oversold/Overbought), not methodology sentences.
+
+**Applies to:** UX Designer and Lead Developer, every layout or copy change.
+
 ### 8.12 (2026-07-15) — "Make X look like Y" means component-level parity, not container-level
 Joe's Scanner feedback escalated twice in one night because the first pass matched the CARDS (same tile, width, header) but not the COMPONENTS inside them: the Momentum table kept its own ticker typography, row rhythm, and a bespoke drawer while the Insider table had 16px gold tickers and the ScanDrill drawer. Container parity without component parity reads as "not the same damn thing" to the user, every time.
 **Rule:** when two surfaces are supposed to match, diff every layer before calling it done: (1) container (card, width, padding, radius), (2) header furniture (kicker, title, description, meta), (3) table anatomy (header style, row padding, ticker cell font/size/color, value alignment), (4) interaction (what click does, hover, chevrons), (5) the expanded/drawer state's full visual language (background, grid, typography, buttons). Reuse the existing component's exact markup patterns and classes instead of approximating them. Also: body copy in tiles is never smaller than 14px, never lighter than ink-soft, and never width-capped below the tile's content width.
