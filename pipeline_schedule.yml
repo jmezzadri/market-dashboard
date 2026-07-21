@@ -69,6 +69,19 @@ slots:
 
 bespoke:
 
+  - PAPER-PORTFOLIO-INTRADAY.yml:
+      schedule: "09:47 ET open pass (pg_cron 'paper-intraday-open-1347utc' exact-time dispatch, 13:47 UTC wk) + hourly 10:30-15:30 ET (GitHub cron; pg_cron 'paper-intraday-backup-hourly' :45 backup)"
+      manifest_element: portfolio.paper-nav-intraday + portfolio.paper-positions-intraday
+      reason: |
+        Open-auction fills must show on the Paper page before 10:00 ET
+        (Joe directive 2026-07-21). GitHub schedule crons on this repo run
+        75-95 min late in morning slots, so the 09:50 ET GitHub cron cannot
+        meet that; Supabase pg_cron (fires on time) dispatches the workflow
+        at 13:47 UTC weekdays via the trigger-workflow edge function. The
+        workflow self-skips when the market is closed (EST-winter 08:47 ET
+        fire is a no-op; the 14:45 UTC hourly backup covers 09:45 ET EST).
+      review_at: 2026-08-21
+
   - macrotilt-engine-daily.yml:
       schedule: "15:45 ET weekdays"
       manifest_element: indicator.macrotilt-engine
