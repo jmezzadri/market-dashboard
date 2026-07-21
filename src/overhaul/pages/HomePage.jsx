@@ -6,6 +6,14 @@
    data. Biggest Movers is retired. Hero, tape, scroll-reveal and hover
    animations are kept.
 
+   Second pass (Joe, same day): deliberate tile color SYSTEM, not inherited
+   section colors — every data tile shares the neutral putty surface; ink is
+   reserved for exactly one card, The Engine (the page's single most
+   important read); gold is demoted from a tile background to micro-accents.
+   The Engine is compact and stacks with Upcoming Data in the right column
+   at similar heights (no double-height card). Positioning pills read
+   Oversold / Overbought — the long contrarian phrasing is gone.
+
    Design rules honored (these caused the rework):
      • Engine data wins — the stress signal is MOVE (bands 116 / 124) and the
        yield regime is the 3-month change in the 10-year, both from the engine
@@ -186,9 +194,10 @@ export default function HomePage() {
   const notableShown = notable.slice(0, 6);
   const notableMore = moreCount + Math.max(0, notable.length - 6);
 
-  // Positioning tile — every extreme still one click away; tile lists 6.
-  const posShown = (posRows || []).slice(0, 6);
-  const posMore = Math.max(0, (posRows || []).length - 6);
+  // Positioning tile — Joe (2026-07-21): list EVERY market at an extreme,
+  // no count headline (a count that disagrees with the visible list reads
+  // as a bug), and no "this week" claim — an extreme can persist for weeks;
+  // the data is simply the latest weekly CFTC print.
 
   const fmtRoc = (v) => {
     const n = Number(v);
@@ -244,8 +253,10 @@ export default function HomePage() {
         </div>
       </Reveal>
 
-      {/* six-tile grid — 1 brief · 2 engine · 3 indicators · 4 positioning
-          · 5 scanner · 6 upcoming. Biggest Movers retired 2026-07-21. */}
+      {/* six-tile grid — one surface system: putty data tiles, ink reserved
+          for The Engine, gold demoted to accents. Row 1: Brief | (Engine +
+          Upcoming, similar heights). Row 2: Indicators | Positioning.
+          Row 3: Scanner full-width, both lists. */}
       <section className="wrap">
         <div className="bgrid">
 
@@ -295,28 +306,46 @@ export default function HomePage() {
           </div>
         </Reveal>
 
-          {/* 2 · the engine */}
-          <Reveal className="tile engine-card engine-tile sp5">
-            <div>
-              <div className="eyebrow2"><span className="dot" />The Engine</div>
-              <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
-              <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'} <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>Macro Overview ↗</a></p>
-            </div>
-            <div>
-              <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
-                <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)} <i>d/d</i></b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
-                <div className={`read ${stressCls === 'up' ? 'ok' : stressCls === 'amb' ? 'warm' : stressCls ? 'bad' : ''}`}>{stressMsg}</div>
-              </a>
-              <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
-                <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <i>bp</i></b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
-                <div className={`read ${yCls === 'amb' ? 'warm' : yCls === 'up' ? 'ok' : ''}`}>{yMsg}</div>
-              </a>
-            </div>
-          </Reveal>
+          {/* right column — 2 · the engine (compact) + 6 · upcoming data */}
+          <div className="bcol sp5">
+            <Reveal className="tile engine-card engine-tile">
+              <div>
+                <div className="eyebrow2"><span className="dot" />The Engine</div>
+                <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
+                <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'} <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>Macro Overview ↗</a></p>
+              </div>
+              <div>
+                <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
+                  <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)} <i>d/d</i></b></div>
+                  <div className="track"><div className="fill" /><div className="pin" /></div>
+                  <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
+                  <div className={`read ${stressCls === 'up' ? 'ok' : stressCls === 'amb' ? 'warm' : stressCls ? 'bad' : ''}`}>{stressMsg}</div>
+                </a>
+                <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
+                  <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <i>bp</i></b></div>
+                  <div className="track"><div className="fill" /><div className="pin" /></div>
+                  <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
+                  <div className={`read ${yCls === 'amb' ? 'warm' : yCls === 'up' ? 'ok' : ''}`}>{yMsg}</div>
+                </a>
+              </div>
+            </Reveal>
+
+            <Reveal className="tile putty-card cal-tile">
+              <div className="tilehead">
+                <div className="eyebrow2"><span className="dot" />Upcoming data</div>
+                <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
+              </div>
+              <div className="calrows">
+                {upcoming.map((u, i) => (
+                  <a key={i} className="srow" href="/macro" onClick={go('/macro')}>
+                    <span className="when">{weekdayDate(u.iso)}</span>
+                    <span className="what">{u.names.join(' · ')}</span>
+                  </a>
+                ))}
+                {upcoming.length === 0 && <div className="secnote">No scheduled releases coming up.</div>}
+              </div>
+            </Reveal>
+          </div>
 
           {/* 3 · macro indicators */}
           <Reveal className="tile putty-card sp7">
@@ -343,23 +372,25 @@ export default function HomePage() {
           </Reveal>
 
           {/* 4 · positioning */}
-          <Reveal className="tile gold-card sp5">
-            <div className="eyebrow2"><span className="dot" />Positioning · COT extremes</div>
-            <h2>Markets at a speculative-positioning extreme this week: {(posRows || []).length}.</h2>
-            <div className="cotgrid cotgrid--tile">
-              {posShown.map((p2, i) => (
-                <a key={i} className="cot-row" href={`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`} onClick={go(`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`)}>
-                  <span className="nm">{p2.market}</span>
-                  <span className="tag">{p2.label}</span>
+          <Reveal className="tile putty-card sp5">
+            <div className="tilehead">
+              <div className="eyebrow2"><span className="dot" />Positioning · COT extremes</div>
+              <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
+            </div>
+            <div className="posrows">
+              {(posRows || []).map((p2, i) => (
+                <a key={i} className="srow" href={`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`} onClick={go(`/macro?pos=${encodeURIComponent(p2.rawMarket || p2.market)}`)}>
+                  <span className="tk">{p2.market}</span>
+                  <span className={`pos-tag ${p2.lean === 'wash' ? 'os' : 'ob'}`}>{p2.lean === 'wash' ? 'Oversold' : 'Overbought'}</span>
                 </a>
               ))}
               {posRows && posRows.length === 0 && <div className="secnote">No positioning extremes right now.</div>}
             </div>
-            <p className="note">Weekly CFTC futures data — lows read as a contrarian floor, highs as a contrarian warning.{posMore > 0 && <> <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 700 }}>{posMore} more →</a></>}</p>
+            <p className="tilenote">Every market whose speculative futures positioning sits at a 3-year extreme, per the latest weekly CFTC data.</p>
           </Reveal>
 
-          {/* 5 · trading scanner — both scanners */}
-          <Reveal className="tile putty-card sp7">
+          {/* 5 · trading scanner — both scanners, full width */}
+          <Reveal className="tile putty-card sp12">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot" />Trading scanner · top conviction</div>
               <a href="/scanner" onClick={go('/scanner')}>Full scanner →</a>
@@ -387,23 +418,6 @@ export default function HomePage() {
               </div>
             </div>
             {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction. Momentum shows 3-month price runs.</p>}
-          </Reveal>
-
-          {/* 6 · upcoming data */}
-          <Reveal className="tile putty-card sp5">
-            <div className="tilehead">
-              <div className="eyebrow2"><span className="dot" />Upcoming data</div>
-              <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
-            </div>
-            <div className="calrows">
-              {upcoming.map((u, i) => (
-                <a key={i} className="srow" href="/macro" onClick={go('/macro')}>
-                  <span className="when">{weekdayDate(u.iso)}</span>
-                  <span className="what">{u.names.join(' · ')}</span>
-                </a>
-              ))}
-              {upcoming.length === 0 && <div className="secnote">No scheduled releases coming up.</div>}
-            </div>
           </Reveal>
 
         </div>
