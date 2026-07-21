@@ -398,23 +398,38 @@ export default function HomePage() {
             <div className="scan-cols">
               <div>
                 <h3 className="subhead">Insider Conviction</h3>
+                {topScan.length > 0 && (
+                  <div className="srow schead srow--ins">
+                    <span className="tk" />
+                    <span className="stv">Last week</span>
+                    <span className="stv">Score</span>
+                  </div>
+                )}
                 {topScan.map((r) => (
-                  <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
+                  <a key={r.ticker} className="srow srow--ins" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
                     <span className="tk">{r.ticker}</span>
-                    <span className="mst"><i>last week</i><b>{r.score_1w != null ? fmt(r.score_1w, 1) : 'new'}</b></span>
-                    <span className="mst"><i>score</i><b className="mst-big">{fmt(r.score, 1)}</b></span>
+                    <span className="stv">{r.score_1w != null ? fmt(r.score_1w, 1) : 'new'}</span>
+                    <span className="stv stv--now">{fmt(r.score, 1)}</span>
                   </a>
                 ))}
                 {topScan.length === 0 && <div className="secnote">No names clear the gate today.</div>}
               </div>
               <div>
-                <h3 className="subhead">Power Trend Momentum</h3>
+<h3 className="subhead">Power Trend Momentum</h3>
+                {momoRows.length > 0 && (
+                  <div className="srow schead srow--mo">
+                    <span className="tk" />
+                    <span className="stv">10 day</span>
+                    <span className="stv">Breakout vol</span>
+                    <span className="stv">3 month</span>
+                  </div>
+                )}
                 {momoRows.map((r) => (
-                  <a key={r.ticker} className="srow" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
+                  <a key={r.ticker} className="srow srow--mo" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
                     <span className="tk">{r.ticker}</span>
-                    <span className="mst"><i>10 day</i><b className={Number.isFinite(Number(r.ret_10d)) ? (Number(r.ret_10d) >= 0 ? 'up' : 'dn') : ''}>{fmtRoc(r.ret_10d)}</b></span>
-                    <span className="mst"><i>breakout vol</i><b>{Number.isFinite(Number(r.breakout_volx)) ? `${Number(r.breakout_volx).toFixed(2)}\u00d7` : '\u2014'}</b></span>
-                    <span className="mst"><i>3 month</i><b className="mst-big">{fmtRoc(r.roc_3m)}</b></span>
+                    <span className={`stv ${Number.isFinite(Number(r.ret_10d)) ? (Number(r.ret_10d) >= 0 ? 'up' : 'dn') : ''}`}>{fmtRoc(r.ret_10d)}</span>
+                    <span className="stv">{Number.isFinite(Number(r.breakout_volx)) ? `${Number(r.breakout_volx).toFixed(2)}×` : '—'}</span>
+                    <span className="stv stv--now">{fmtRoc(r.roc_3m)}</span>
                   </a>
                 ))}
                 {momoRows.length === 0 && <div className="secnote">No momentum signal this month — the list is in cash.</div>}

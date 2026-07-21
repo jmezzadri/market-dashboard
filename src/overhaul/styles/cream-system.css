@@ -225,14 +225,18 @@
 .home-v12 .subhead{font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--mut);text-transform:uppercase;margin:0 0 4px;padding:0 6px}
 .home-v12 .scan-cols .srow:hover,.home-v12 .calrows .srow:hover,.home-v12 .posrows .srow:hover{background:var(--bg2)}
 .home-v12 .sc--pct{font-size:20px;font-weight:600;font-family:var(--sans);font-variant-numeric:tabular-nums}
-/* scanner tile stat columns (2026-07-21): micro label over value; the
-   rightmost stat (.mst-big) keeps the serif anchor the tile had before */
-.home-v12 .srow .mst{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:62px;flex:none}
-.home-v12 .srow .mst i{font-style:normal;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:600;white-space:nowrap}
-.home-v12 .srow .mst b{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-soft);line-height:1}
-.home-v12 .srow .mst b.up{color:var(--up)}
-.home-v12 .srow .mst b.dn{color:var(--down)}
-.home-v12 .srow .mst b.mst-big{font-family:var(--serif);font-size:23px;font-weight:500;color:var(--ink)}
+/* scanner tile stat columns (2026-07-21 v2, Joe: spread across the row,
+   one font). Header + rows share one grid so columns line up; every
+   value is the same sans tabular figure. */
+.home-v12 .srow--ins{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:0 18px;align-items:center}
+.home-v12 .srow--mo{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:0 18px;align-items:center}
+.home-v12 .srow .stv{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-soft);text-align:right;white-space:nowrap}
+.home-v12 .srow .stv--now{color:var(--ink)}
+.home-v12 .srow .stv.up{color:var(--up)}
+.home-v12 .srow .stv.dn{color:var(--down)}
+.home-v12 .schead{height:30px;border-bottom:1px solid var(--hair)}
+.home-v12 .schead:hover{background:none;transform:none;cursor:default}
+.home-v12 .schead .stv{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600}
 .home-v12 .cal-tile{display:flex;flex-direction:column}
 .home-v12 .calrows{flex:1;display:flex;flex-direction:column;justify-content:space-around}
 .home-v12 .calrows .srow{height:auto;min-height:48px}
