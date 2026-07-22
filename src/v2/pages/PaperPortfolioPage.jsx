@@ -1711,12 +1711,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // Per-sleeve returns/risk now come from the shared performance math on the
   // nav rows (SleevePerf) — the old single "since inception vs S&P" pair is
   // superseded by the mini returns tables (2026-07-15 redesign).
-  const lastActionFor = (code) => {
-    const o = (orders || []).find((r) => r.sleeve === code && r.status !== 'cancelled');
-    return o ? { date: (o.created_at || '').split('T')[0], side: o.side } : null;
-  };
-  const insLast = useMemo(() => lastActionFor('B'), [orders]);
-  const momLast = useMemo(() => lastActionFor('M'), [orders]);
+  // (Sleeve-card Holdings / Idle cash / Last action mini-rows removed
+  // 2026-07-21, Joe directive — duplicative of the positions table and
+  // the recent-activity panel.)
   // ONE "Today" computation (Joe rule 2026-06-12): each sleeve's Today is the
   // sum of its displayed positions' session P&L; the book card's Today is the
   // sum of the two sleeve numbers — agreement by construction.
@@ -1800,13 +1797,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           {[
             {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
-              cash: split.insCash, positions: sleeveB, last: insLast,
+              cash: split.insCash, positions: sleeveB,
               day$: dayB, alloc: insCap,
               infoDef: 'Buys at Score ≥ 4 (max 5), holds until the score decays below 3. The sleeve’s full $500K is split equally across every qualifying name ($500K ÷ N) and re-split daily on the open; drifts inside a 3% band are left alone.',
             },
             {
               code: 'M', n: 2, name: 'Momentum', value: split.momValue,
-              cash: split.momCash, positions: sleeveM, last: momLast,
+              cash: split.momCash, positions: sleeveM,
               day$: dayM, alloc: momCap,
               infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
             },
@@ -1822,11 +1819,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   spySeries={benchHistory.spy}
                   live={liveMode}
                 />
-                <div className="pp-sc-rows">
-                  <div><span>Holdings</span><b>{s.positions.length}</b></div>
-                  <div><span>Idle cash</span><b>{fmtMoneyExact(s.cash)}</b></div>
-                  <div><span>Last action</span><b>{s.last ? `${s.last.side === 'buy' ? 'Bought' : 'Sold'} · ${fmtDate(s.last.date)}` : '—'}</b></div>
-                </div>
               </div>
               <PositionsPanel
                 title={s.name}
