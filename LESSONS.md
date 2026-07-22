@@ -748,6 +748,8 @@ When in doubt, check the vendor's actual history: the SLA must be at least the t
 
 **Applies to:** Data Steward + Lead Developer. All.
 
+**Amendment (2026-07-22, Joe-approved):** The "never a Cowork/Claude scheduled task" clause has ONE approved exception: the "MacroTilt Daily X Chart" scheduled task, which runs entirely in Anthropic's cloud (Joe's laptop closed or open makes no difference) and produces a chart + caption Joe posts to X manually. The rationale of the rule — nothing depends on Joe's MacBook — is preserved. Site/data automation remains cloud-scheduler-only; no other Cowork scheduled tasks without Joe's explicit approval.
+
 ---
 
 ### 4.15 (2026-06-30) — `supabase_get_all` raises `SystemExit`, not `Exception`; and `except Exception` silently swallows the contract
