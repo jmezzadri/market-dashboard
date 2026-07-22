@@ -636,23 +636,9 @@ function CotTableHead() {
   );
 }
 
-/* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage/ScannerPage
-   (v12 system). Replays in BOTH directions; state lives in React so data-poll
-   re-renders preserve the revealed class. Used on the hero ONLY — the flow
-   board is measured with getBoundingClientRect for the lineage lines, so it
-   must never sit mid-transform. */
-function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
-  const ref = useRef(null);
-  const [vis, setVis] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
-    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
-}
+/* (Reveal wrapper removed 2026-07-22 with the hero header — it was used on
+   the hero ONLY; the flow board is measured with getBoundingClientRect for
+   the lineage lines, so it must never sit mid-transform.) */
 
 // ─── Tile ─────────────────────────────────────────────────────────────────────
 // The status dot carries an INSTANT tooltip (the site's portal-rendered <Tip>,
@@ -1517,16 +1503,8 @@ export default function DataFlowPage() {
 
   return (
     <div className="home-v12 data-v12">
-      <section className="wrap df-hero">
-        <Reveal className="eyebrow2"><span className="dot" />Data</Reveal>
-        <Reveal as="h1" className="df-h1">End-to-end <i>data flow</i>.</Reveal>
-        <Reveal as="p" className="sub">
-          Every source, every indicator we track, every engine, every surface — read straight from the
-          data manifest. Click any tile to see, indicator-by-indicator, exactly what is in it and how
-          fresh each feed is.
-        </Reveal>
-      </section>
-
+      {/* Hero header removed 2026-07-22 (Joe: too much space; it also sat
+          indented relative to the wider stage below). */}
       <section className="wrap df-stage">
 
       {loadErr && (

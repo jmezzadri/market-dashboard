@@ -34,6 +34,8 @@
 import { useEffect, useState } from "react";
 import { Monogram, Wordmark } from "../components/Logo";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import "../overhaul/styles/cream-system.css";
+import "./login-v12.css";
 
 // Read Supabase auth error params from the URL (e.g. after a failed magic-link
 // click, Supabase redirects back with ?error=access_denied&error_code=otp_expired
@@ -217,397 +219,266 @@ export default function LoginScreen() {
     }
   };
 
-  // ---- styling -----------------------------------------------------------
-
-  const card = {
-    maxWidth: 460,
-    margin: "min(12vh, 96px) auto",
-    padding: "var(--space-7) var(--space-7) var(--space-6)",
-    background: "var(--surface-2)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-lg)",
-    boxShadow: "var(--shadow-sm)",
-  };
-
-  const inputBase = {
-    // box-sizing: border-box is critical — without it, width:100% + padding +
-    // border made the inputs render wider than the card, so text bumped right
-    // against (or past) the borders. Joe flagged 2026-04-27.
-    boxSizing: "border-box",
-    width: "100%",
-    padding: "12px 14px",
-    fontSize: 14,
-    color: "var(--text)",
-    background: "var(--surface-1)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    fontFamily: "var(--font-ui)",
-    outline: "none",
-  };
-
-  const label = {
-    display: "block",
-    fontSize: 12,
-    color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)",
-    letterSpacing: "0.06em",
-    marginTop: 14,
-    marginBottom: 6,
-  };
-
-  const primaryBtn = (disabled) => ({
-    marginTop: 18,
-    width: "100%",
-    padding: "12px 16px",
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#fff",
-    background: "var(--accent)",
-    border: "none",
-    borderRadius: "var(--radius-sm)",
-    cursor: disabled ? "wait" : "pointer",
-    opacity: disabled ? 0.6 : 1,
-    transition: "opacity 0.15s",
-  });
-
-  const linkBtn = {
-    padding: "4px 0",
-    fontSize: 13,
-    color: "var(--accent)",
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    textDecoration: "underline",
-    fontFamily: "inherit",
-  };
-
   // ---- render ------------------------------------------------------------
+  // 2026-07-22 redesign (Joe): the old card was small and generic. The screen
+  // now lives on the cream design system — serif headline, putty page, ink
+  // primary button — sized like a real page, not a widget. All auth logic
+  // above is unchanged.
 
   const busy = status === "sending" || status === "verifying";
   const disabledInputs = busy || !isSupabaseConfigured;
 
-  // Intro text varies by mode so the hero copy matches the form below it.
+  // Headline + intro vary by mode so the hero copy matches the form below it.
+  const heads = {
+    signin:   <>Welcome <em>back</em>.</>,
+    signup:   <>Create your <em>account</em>.</>,
+    code:     <>Sign in with a <em>code</em>.</>,
+    codeSent: <>Check your <em>email</em>.</>,
+  };
   const intro = {
     signin:
       "Portfolio & Insights is private to each user. Sign in with your email and password — your browser can save it so next time is one click.",
     signup:
-      "Create an account with your email and a password. You'll stay signed in on this device after signup.",
+      "Your email and a password is all it takes. You'll stay signed in on this device after signup.",
     code:
       "We'll email you a 6-digit sign-in code. Use this for first-time signup, password reset, or if you'd rather not set a password at all.",
     codeSent:
-      "Check your email for a 6-digit code and enter it below.",
+      "Enter the 6-digit code we just sent you and you're in.",
   }[mode];
 
   return (
-    <main className="fade-in main-padded" style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
-      {/* Brand wordmark above the sign-in card */}
-      <div style={{ display: "flex", justifyContent: "center", marginTop: "min(8vh, 64px)" }}>
-        <span className="login-brand-logo" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <Monogram size={40} color="var(--accent)" />
-          <Wordmark size={17} />
-        </span>
-      </div>
-      <div style={{ ...card, margin: "var(--space-5) auto 0" }}>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 6 }}>
-          {mode === "signup" ? "CREATE ACCOUNT" : mode === "code" || mode === "codeSent" ? "EMAIL CODE" : "SIGN IN REQUIRED"}
+    <main className="home-v12 login-v12 fade-in">
+      <div className="lg-wrap">
+        <div className="lg-brand">
+          <Monogram size={44} color="var(--gold-deep)" />
+          <Wordmark size={18} />
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 600, color: "var(--text)", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
-          {mode === "signup" ? "Create your account" :
-           mode === "code" ? "Sign in with an email code" :
-           mode === "codeSent" ? "Enter your 6-digit code" :
-           "Sign in to view portfolio data"}
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5, margin: "0 0 24px" }}>
-          {intro}
-        </p>
 
-        {!isSupabaseConfigured && (
-          <div style={{ padding: 12, marginBottom: 16, background: "rgba(255, 149, 0, 0.1)", border: "1px solid rgba(255, 149, 0, 0.3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text)" }}>
-            Supabase is not configured (missing env vars). Contact the admin.
-          </div>
-        )}
+        <div className="lg-eyebrow"><span className="dot" />
+          {mode === "signup" ? "Create account" : mode === "code" || mode === "codeSent" ? "Email code" : "Member access"}
+        </div>
+        <h1 className="lg-h1">{heads[mode]}</h1>
+        <p className="lg-sub">{intro}</p>
 
-        {urlErr && (
-          <div style={{ padding: 12, marginBottom: 16, background: "rgba(255, 59, 48, 0.08)", border: "1px solid rgba(255, 59, 48, 0.3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text)", lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              That sign-in link didn't work
+        <div className="lg-card">
+          {!isSupabaseConfigured && (
+            <div className="lg-banner lg-banner--err">
+              Sign-in is temporarily unavailable. Contact the admin.
             </div>
-            <div style={{ color: "var(--text-muted)" }}>
+          )}
+
+          {urlErr && (
+            <div className="lg-banner lg-banner--err">
+              <b>That sign-in link didn't work</b>
               {urlErr.description
                 ? urlErr.description.replace(/\+/g, " ")
                 : `Auth error: ${urlErr.errorCode || urlErr.error}.`}
               {" "}Sign in below with your email and password, or request a 6-digit code.
-            </div>
-            <button
-              type="button"
-              onClick={() => { clearAuthUrlError(); setUrlErr(null); }}
-              style={{
-                marginTop: 10,
-                padding: "6px 10px",
-                fontSize: 11,
-                color: "var(--text-muted)",
-                background: "transparent",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {infoMsg && (
-          <div style={{ padding: 12, marginBottom: 16, background: "rgba(52, 199, 89, 0.08)", border: "1px solid rgba(52, 199, 89, 0.25)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text)", lineHeight: 1.5 }}>
-            {infoMsg}
-          </div>
-        )}
-
-        {/* --- SIGN IN (email + password) --- */}
-        {mode === "signin" && (
-          <form onSubmit={onSignIn}>
-            <label style={{ ...label, marginTop: 0 }}>EMAIL</label>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              autoFocus
-              disabled={disabledInputs}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputBase}
-            />
-            <label style={label}>PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              required
-              disabled={disabledInputs}
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={inputBase}
-            />
-            <button
-              type="submit"
-              disabled={busy || !isSupabaseConfigured || !email.trim() || !password}
-              style={primaryBtn(busy || !email.trim() || !password || !isSupabaseConfigured)}
-            >
-              {busy ? "Signing in…" : "Sign in"}
-            </button>
-            {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
-                {errorMsg}
-              </div>
-            )}
-
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-muted)", flexWrap: "wrap", gap: 8 }}>
-              <span>
-                First time?{" "}
-                <button type="button" onClick={() => switchMode("signup")} style={linkBtn}>
-                  Create one
+              <div className="lg-btnrow">
+                <button type="button" className="lg-ghost" onClick={() => { clearAuthUrlError(); setUrlErr(null); }}>
+                  Dismiss
                 </button>
-              </span>
-              <button type="button" onClick={() => switchMode("code")} style={linkBtn}>
-                Forgot password / use email code
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* --- SIGN UP (email + password + confirm) --- */}
-        {mode === "signup" && (
-          <form onSubmit={onSignUp}>
-            <label style={{ ...label, marginTop: 0 }}>EMAIL</label>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              autoFocus
-              disabled={disabledInputs}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputBase}
-            />
-            <label style={label}>PASSWORD (6+ chars)</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              disabled={disabledInputs}
-              placeholder="Choose a password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={inputBase}
-            />
-            <label style={label}>CONFIRM PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              disabled={disabledInputs}
-              placeholder="Type it again"
-              value={passwordConf}
-              onChange={(e) => setPasswordConf(e.target.value)}
-              style={inputBase}
-            />
-            <button
-              type="submit"
-              disabled={busy || !isSupabaseConfigured || !email.trim() || password.length < 6}
-              style={primaryBtn(busy || !email.trim() || password.length < 6 || !isSupabaseConfigured)}
-            >
-              {busy ? "Creating account…" : "Create account"}
-            </button>
-            {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
-                {errorMsg}
               </div>
-            )}
-
-            <div style={{ marginTop: 20, fontSize: 13, color: "var(--text-muted)" }}>
-              Already have an account?{" "}
-              <button type="button" onClick={() => switchMode("signin")} style={linkBtn}>
-                Sign in
-              </button>
             </div>
-          </form>
-        )}
+          )}
 
-        {/* --- CODE: email entry --- */}
-        {mode === "code" && (
-          <form onSubmit={onSendCode}>
-            <label style={{ ...label, marginTop: 0 }}>EMAIL</label>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              autoFocus
-              disabled={disabledInputs}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputBase}
-            />
-            <button
-              type="submit"
-              disabled={busy || !isSupabaseConfigured || !email.trim()}
-              style={primaryBtn(busy || !email.trim() || !isSupabaseConfigured)}
-            >
-              {busy ? "Sending…" : "Email me a code"}
-            </button>
-            {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
-                {errorMsg}
+          {infoMsg && <div className="lg-banner lg-banner--ok">{infoMsg}</div>}
+
+          {/* --- SIGN IN (email + password) --- */}
+          {mode === "signin" && (
+            <form onSubmit={onSignIn}>
+              <label className="lg-label">Email</label>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                autoFocus
+                disabled={disabledInputs}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="lg-input"
+              />
+              <label className="lg-label">Password</label>
+              <input
+                type="password"
+                autoComplete="current-password"
+                required
+                disabled={disabledInputs}
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="lg-input"
+              />
+              <button
+                type="submit"
+                disabled={busy || !isSupabaseConfigured || !email.trim() || !password}
+                className="lg-primary"
+              >
+                {busy ? "Signing in…" : "Sign in"}
+              </button>
+              {errorMsg && <div className="lg-error">{errorMsg}</div>}
+
+              <div className="lg-switchrow">
+                <span>
+                  First time?{" "}
+                  <button type="button" onClick={() => switchMode("signup")} className="lg-link">
+                    Create an account
+                  </button>
+                </span>
+                <button type="button" onClick={() => switchMode("code")} className="lg-link">
+                  Forgot password / use email code
+                </button>
               </div>
-            )}
+            </form>
+          )}
 
-            <div style={{ marginTop: 20, fontSize: 13, color: "var(--text-muted)" }}>
-              <button type="button" onClick={() => switchMode("signin")} style={linkBtn}>
-                ← Back to password sign-in
+          {/* --- SIGN UP (email + password + confirm) --- */}
+          {mode === "signup" && (
+            <form onSubmit={onSignUp}>
+              <label className="lg-label">Email</label>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                autoFocus
+                disabled={disabledInputs}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="lg-input"
+              />
+              <label className="lg-label">Password (6+ characters)</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                disabled={disabledInputs}
+                placeholder="Choose a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="lg-input"
+              />
+              <label className="lg-label">Confirm password</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                disabled={disabledInputs}
+                placeholder="Type it again"
+                value={passwordConf}
+                onChange={(e) => setPasswordConf(e.target.value)}
+                className="lg-input"
+              />
+              <button
+                type="submit"
+                disabled={busy || !isSupabaseConfigured || !email.trim() || password.length < 6}
+                className="lg-primary"
+              >
+                {busy ? "Creating account…" : "Create account"}
               </button>
-            </div>
-          </form>
-        )}
+              {errorMsg && <div className="lg-error">{errorMsg}</div>}
 
-        {/* --- CODE: enter the 6-digit code --- */}
-        {mode === "codeSent" && (
-          <form onSubmit={onVerifyCode}>
-            <div style={{ padding: 14, marginBottom: 8, background: "rgba(52, 199, 89, 0.08)", border: "1px solid rgba(52, 199, 89, 0.25)", borderRadius: "var(--radius-sm)", fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
-              We sent a 6-digit code to <strong>{email}</strong>.
-            </div>
-
-            <label style={label}>6-DIGIT CODE</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]*"
-              maxLength={6}
-              required
-              autoFocus
-              disabled={disabledInputs}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              style={{
-                ...inputBase,
-                fontSize: 20,
-                letterSpacing: "0.3em",
-                textAlign: "center",
-                fontFamily: "var(--font-mono)",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={busy || !isSupabaseConfigured || code.length !== 6}
-              style={primaryBtn(busy || code.length !== 6 || !isSupabaseConfigured)}
-            >
-              {busy ? "Verifying…" : "Sign in"}
-            </button>
-            {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
-                {errorMsg}
+              <div className="lg-switchrow">
+                <span>
+                  Already have an account?{" "}
+                  <button type="button" onClick={() => switchMode("signin")} className="lg-link">
+                    Sign in
+                  </button>
+                </span>
               </div>
-            )}
+            </form>
+          )}
 
-            <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {/* --- CODE: email entry --- */}
+          {mode === "code" && (
+            <form onSubmit={onSendCode}>
+              <label className="lg-label">Email</label>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                autoFocus
+                disabled={disabledInputs}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="lg-input"
+              />
               <button
-                type="button"
-                onClick={() => switchMode("code")}
-                style={{
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius-sm)",
-                  cursor: "pointer",
-                }}
+                type="submit"
+                disabled={busy || !isSupabaseConfigured || !email.trim()}
+                className="lg-primary"
               >
-                Use a different email
+                {busy ? "Sending…" : "Email me a code"}
               </button>
-              <button
-                type="button"
-                onClick={(e) => { setCode(""); setErrorMsg(""); onSendCode(e); }}
-                disabled={busy}
-                style={{
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius-sm)",
-                  cursor: "pointer",
-                }}
-              >
-                Resend code
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMode("signin")}
-                style={{
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius-sm)",
-                  cursor: "pointer",
-                }}
-              >
-                Use password instead
-              </button>
-            </div>
-          </form>
-        )}
+              {errorMsg && <div className="lg-error">{errorMsg}</div>}
 
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-          Only the Portfolio & Insights tab requires sign-in. The macro dashboard, indicators, trading opportunities, and methodology are public.
+              <div className="lg-switchrow">
+                <button type="button" onClick={() => switchMode("signin")} className="lg-link">
+                  ← Back to password sign-in
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* --- CODE: enter the 6-digit code --- */}
+          {mode === "codeSent" && (
+            <form onSubmit={onVerifyCode}>
+              <div className="lg-banner lg-banner--ok">
+                We sent a 6-digit code to <strong>{email}</strong>.
+              </div>
+
+              <label className="lg-label">6-digit code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                required
+                autoFocus
+                disabled={disabledInputs}
+                placeholder="123456"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="lg-input lg-input--code"
+              />
+              <button
+                type="submit"
+                disabled={busy || !isSupabaseConfigured || code.length !== 6}
+                className="lg-primary"
+              >
+                {busy ? "Verifying…" : "Sign in"}
+              </button>
+              {errorMsg && <div className="lg-error">{errorMsg}</div>}
+
+              <div className="lg-btnrow">
+                <button type="button" onClick={() => switchMode("code")} className="lg-ghost">
+                  Use a different email
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { setCode(""); setErrorMsg(""); onSendCode(e); }}
+                  disabled={busy}
+                  className="lg-ghost"
+                >
+                  Resend code
+                </button>
+                <button type="button" onClick={() => switchMode("signin")} className="lg-ghost">
+                  Use password instead
+                </button>
+              </div>
+            </form>
+          )}
         </div>
+
+        <p className="lg-note">
+          Only the Portfolio &amp; Insights tab requires sign-in. The macro dashboard,
+          indicators, trading opportunities, and methodology are public.
+        </p>
       </div>
     </main>
   );

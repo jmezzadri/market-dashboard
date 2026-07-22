@@ -24,6 +24,7 @@
      • Everything links to its detail route. */
 
 import React, { useMemo, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
@@ -137,12 +138,11 @@ export default function HomePage() {
   const todayISO = new Date().toISOString().slice(0, 10);
   const weeks = useMemo(() => getWeekGrid(todayISO, 6), [todayISO]);
 
-  // Header: market open/closed + honest "data as of" (newest displayed level).
+  // Footer: market open/closed + honest "data as of" (newest displayed level).
   const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const dow = nowET.getDay();
   const mins = nowET.getHours() * 60 + nowET.getMinutes();
   const marketOpen = dow >= 1 && dow <= 5 && mins >= 570 && mins < 960;
-  const todayLabel = nowET.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const newestAsOf = useMemo(() => {
     const ds = RIBBON.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
     return ds.length ? ds[ds.length - 1] : null;
@@ -218,23 +218,21 @@ export default function HomePage() {
 
   const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
 
+  // Full-brief modal (Joe 2026-07-22: expanding the tile in place jacked up
+  // the grid spacing — the detail now opens in a portal modal instead).
+  const [briefOpen, setBriefOpen] = useState(false);
+  useEffect(() => {
+    if (!briefOpen) return undefined;
+    const k = (e) => { if (e.key === 'Escape') setBriefOpen(false); };
+    window.addEventListener('keydown', k);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+  }, [briefOpen]);
+  const modalTarget = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
+
   return (
     <div className="home-v12">
-
-      {/* hero */}
-      <div className="hero wrap">
-        <div className="coin" style={{ width: 64, height: 64, left: '6%', top: '30%', animationDelay: '-2s' }} />
-        <div className="coin" style={{ width: 38, height: 38, left: '14%', top: '64%', animationDelay: '-5s' }} />
-        <div className="coin" style={{ width: 52, height: 52, right: '7%', top: '26%', animationDelay: '-1s' }} />
-        <div className="coin" style={{ width: 30, height: 30, right: '15%', top: '60%', animationDelay: '-6.5s' }} />
-        <Reveal className="eyebrow"><span className="dot" />{todayLabel} · {marketOpen ? 'Market open' : 'Market pre-open'}</Reveal>
-        <Reveal as="h1" className="hero-h1">{verdictParts[0]}.{verdictParts[1] && <><br /><em>{verdictParts[1]}.</em></>}</Reveal>
-        <Reveal as="p" className="sub">
-          {regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}{' '}
-          Stress: {stressZone === 'Risk On' ? 'calm' : stressZone === 'Watch' ? 'watch' : stressZone === 'Risk Off' ? 'breached' : '—'} at MOVE {fmt(regime.move, 0)}.
-          Yield regime: {(yReg || '—').toLowerCase()}{regime.yieldDeltaBp != null ? ` at ${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)} bp` : ''}.
-        </Reveal>
-      </div>
 
       {/* market tape */}
       <Reveal className="tape">
@@ -276,31 +274,10 @@ export default function HomePage() {
             ))}
             {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0) && (
               <div className="ni fullbrief">
-                <button type="button" onClick={toggleNi}>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setBriefOpen(true); }}>
                   <span className="hl"><b>The full brief</b> <span>— stance, implications, what to watch, and the detail</span></span>
                   <span className="plus">+</span>
                 </button>
-                <div className="body"><div>
-                  {brief?.stance && <p><Html html={brief.stance} /></p>}
-                  {brief?.implications?.length > 0 && (
-                    <ul>{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
-                  )}
-                  {(brief?.watch || []).map((w, i) => (
-                    <p key={i}><b><Html html={w.head} /></b> — <Html html={w.body} /></p>
-                  ))}
-                  {(brief?.sections || []).map((sec, i) => (
-                    <div key={i}>
-                      <p style={{ letterSpacing: '.1em', textTransform: 'uppercase', fontSize: 12, fontWeight: 700 }}>{sec.title}</p>
-                      {Array.isArray(sec.bullets) && sec.bullets.length > 0
-                        ? <ul>{sec.bullets.map((bt, jx) => <li key={jx}><Html html={bt} /></li>)}</ul>
-                        : <Html tag="p" html={sec.prose} />}
-                      {sec.positioning && <p><b>Positioning</b> — {sec.positioning}</p>}
-                      {sec.single_name && (
-                        <p><b>Single name</b> — <a className="tklink" href={`/ticker/${sec.single_name.ticker}`} onClick={go(`/ticker/${sec.single_name.ticker}`)}>{sec.single_name.ticker} ↗</a> <Html html={sec.single_name.note} /></p>
-                      )}
-                    </div>
-                  ))}
-                </div></div>
               </div>
             )}
           </div>
@@ -449,6 +426,39 @@ export default function HomePage() {
           </button>
         </div>
       </footer>
+
+      {/* full-brief modal — portals to the app root so the tile grid never reflows */}
+      {briefOpen && modalTarget && createPortal(
+        <div onClick={() => setBriefOpen(false)} className="home-v12 briefmodal-veil">
+          <div onClick={(e) => e.stopPropagation()} className="briefmodal">
+            <button type="button" className="briefmodal-x" onClick={() => setBriefOpen(false)} aria-label="Close">×</button>
+            <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}</div>
+            <h2 className="briefmodal-h">The full brief</h2>
+            <div className="briefmodal-body">
+              {brief?.stance && <p><Html html={brief.stance} /></p>}
+              {brief?.implications?.length > 0 && (
+                <ul>{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+              )}
+              {(brief?.watch || []).map((w, i) => (
+                <p key={i}><b><Html html={w.head} /></b> — <Html html={w.body} /></p>
+              ))}
+              {(brief?.sections || []).map((sec, i) => (
+                <div key={i}>
+                  <p className="briefmodal-sec">{sec.title}</p>
+                  {Array.isArray(sec.bullets) && sec.bullets.length > 0
+                    ? <ul>{sec.bullets.map((bt, jx) => <li key={jx}><Html html={bt} /></li>)}</ul>
+                    : <Html tag="p" html={sec.prose} />}
+                  {sec.positioning && <p><b>Positioning</b> — {sec.positioning}</p>}
+                  {sec.single_name && (
+                    <p><b>Single name</b> — <a className="tklink" href={`/ticker/${sec.single_name.ticker}`} onClick={go(`/ticker/${sec.single_name.ticker}`)}>{sec.single_name.ticker} ↗</a> <Html html={sec.single_name.note} /></p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        modalTarget,
+      )}
     </div>
   );
 }

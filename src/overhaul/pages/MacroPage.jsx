@@ -617,14 +617,8 @@ export default function MacroPage() {
         document.querySelector('.mt-overhaul') || document.body,
       )}
 
-      {/* hero */}
-      <div className="mac-hero wrap">
-        <Reveal className="eyebrow2 mac-eyebrow"><span className="dot" />Macro Overview</Reveal>
-        <Reveal as="h1" className="mac-h1">The engine read.</Reveal>
-        <Reveal as="p" className="sub">Where the de-risk engine sits today, and every market indicator and positioning signal behind it — each ranked against its own 3-year range. Click any tile to open its detail.</Reveal>
-      </div>
-
-      {/* the engine — ink card, same pattern as the shipped home page */}
+      {/* the engine — ink card, same pattern as the shipped home page.
+          (Hero header removed 2026-07-22, Joe: took up too much space.) */}
       {!loading && (
         <section className="wrap">
           <Reveal className="engine-card mac-engine">
