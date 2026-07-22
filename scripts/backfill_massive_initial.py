@@ -397,7 +397,16 @@ def main():
                 "apikey": SK,
                 "Authorization": f"Bearer {SK}",
             }
-            tickers_set = set()
+            # (0) Benchmark ETFs — ALWAYS included (2026-07-21 fix).
+            #     The Paper page index comps (SPY/QQQ/DIA/IWM) read
+            #     prices_eod. On 2026-07-21 Polygon's T+0 batch hadn't
+            #     published by the last evening fire, the fallback
+            #     universe (positions ∪ watchlist ∪ scan) didn't contain
+            #     the benchmark ETFs, and the Paper page rendered
+            #     MONDAY's index moves labeled as "today" all evening
+            #     while the book's NAV was current. Benchmarks must be
+            #     same-day fresh whenever the book is.
+            tickers_set = {"SPY", "QQQ", "DIA", "IWM"}
 
             # (a) Active positions
             status, body = http_json(
