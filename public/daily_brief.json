@@ -1,151 +1,138 @@
 {
-  "date": "2026-07-21",
-  "recap_session": "Mon Jul 20",
+  "date": "2026-07-22",
+  "recap_session": "Tue Jul 21",
   "eyebrow": "Morning Brief",
-  "headline": "Asia equities rebound on Iran diplomacy hopes while chip stocks recover, but Houthi maritime embargo on Saudi Arabia keeps oil elevated and rate-hike risk alive ahead of Wednesday's Alphabet/Tesla earnings.",
-  "stance": "The prior cash close left the <a class=\"tklink\" href=\"/ticker/SPX\" data-route=\"/ticker/SPX\">S&P 500</a> at 7,443.28 (prior cash close), pulled lower by oil-driven inflation anxiety and Apple weakness. Overnight, Asian markets reversed — the MSCI Asia Pacific gained ~1.7%, led by chipmakers Samsung and <a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">TSM</a> — after Iran signalled openness to negotiations, though the Houthi maritime embargo against Saudi Arabia (announced Monday) sustains upside risk in Brent crude (prior cash close $88.92). <b>The week's binary hinge is Wednesday after-close:</b> Alphabet and Tesla earnings will either validate AI-capex spending and revive the tech rally, or accelerate last week's rotation out of growth and into defensives.",
+  "headline": "Stocks snapped a three-day skid Tuesday as chip names led a broad recovery, though Iran strikes continue and fresh 50% Canada tariffs add a new trade-war front heading into a pivotal earnings week.",
+  "stance": "<b>Risk appetite is recovering but on thin ice.</b> The S&P 500 (prior cash close 7,509) and Nasdaq (prior cash close 25,837) broke three straight losing sessions, driven by semiconductors; overnight Asia-Pacific markets extended that move, with MSCI Asia-Pac +1.3%. Headwinds are real: the 10th consecutive night of US strikes on Iran keeps Brent crude (prior cash close $91.44) elevated, new 50% tariffs on Canada open a fresh trade front, and Jamie Dimon publicly warned markets are underpricing geopolitical and fiscal risk. <b>Earnings season is the near-term swing factor</b> — with ~88% of the ~66 S&P 500 reporters so far beating estimates, bulls have a tailwind, but Alphabet, Tesla, and Intel report later this week.",
   "news": [
     {
-      "head": "Iran diplomacy flicker",
-      "body": "Iran's foreign ministry told reporters that mediators had exchanged messages and that negotiations with the US could be pursued based on national interests — lifting Asian markets overnight, though Iran also said it would continue defending itself 'resolutely.'"
+      "head": "Iran: Night 10, Ceasefire Proposal",
+      "body": "US Central Command carried out its tenth consecutive night of strikes on Iran; a senior Iranian official confirmed Tehran received a mediator proposal for a 10-day ceasefire, including potential relief for Strait of Hormuz shipping."
     },
     {
-      "head": "Houthi Saudi embargo",
-      "body": "Yemen's Houthi forces declared a 'maritime embargo' against Saudi Arabia effective immediately, threatening Red Sea oil export routes from Yanbu (~4.5m barrels per day) and offsetting any geopolitical relief from the Iran signals."
+      "head": "Canada 50% Tariff Shock",
+      "body": "President Trump unveiled a 50% tariff on a wide range of Canadian imports, accusing Ottawa of unfair practices on American cars, alcohol, and dairy — opening a new front in the global trade war (Canadian crude oil was exempted)."
     },
     {
-      "head": "Asia chip bounce",
-      "body": "The MSCI Asia Pacific Index climbed ~1.7% overnight, with South Korea and Taiwan both up more than 2.5%; Samsung and TSMC were the largest contributors as the Philadelphia Semiconductor Index tries to stabilise after entering bear-market territory last week."
+      "head": "Dimon Rings the Bell",
+      "body": "JPMorgan CEO Jamie Dimon said in a late-Monday interview that investors are underestimating geopolitical and fiscal risks, and that he would not buy equities or long-dated Treasuries at current prices."
     },
     {
-      "head": "Alphabet & Tesla Wednesday",
-      "body": "Alphabet and Tesla report Wednesday after the close — the most consequential single evening of Q2 earnings season; market focus centres on whether Alphabet will hold or expand AI capital expenditure, a signal that would reverberate through the entire semiconductor supply chain."
+      "head": "Chip Rally Extends into Asia",
+      "body": "Semiconductor stocks drove Tuesday's US gains — the Philadelphia Semiconductor Index rose 3.7% — and the rally extended overnight, with MSCI Asia-Pacific equities up 1.3%, though the sector remains more than 20% below its late-June record high."
     },
     {
-      "head": "Fed July 29 decision looms",
-      "body": "Markets are pricing roughly a 55% probability of a Fed rate hike in September (up from ~51% a day earlier), with the July 29 FOMC meeting now just eight days away; Fed Chair Warsh has maintained a hawkish, data-dependent tone."
+      "head": "Earnings: Today Pre-Open",
+      "body": "GE Vernova, AT&T, Moody's, CME Group, Otis, and Northern Trust are among names reporting before the open Wednesday; Alphabet, Tesla, and Intel are the week's marquee reports due later."
     },
     {
-      "head": "Q2 earnings beat rate strong",
-      "body": "With roughly 88% of reporting S&P 500 companies beating profit estimates and blended Q2 earnings growth tracking ~25.7% year-over-year, the fundamental earnings backdrop remains resilient even as macro risks build."
-    },
-    {
-      "head": "UK PM change",
-      "body": "Andy Burnham took over from Keir Starmer as UK prime minister on Monday, becoming the country's fifth leader in four years; markets are watching cabinet appointments, particularly the choice of finance minister."
-    },
-    {
-      "head": "ADP employment today",
-      "body": "ADP weekly employment change data is due today (Tuesday Jul 21) — the first notable economic release of a data-heavy week that also includes Thursday's initial jobless claims, GDP, PCE, and personal income prints the day after the FOMC decision."
+      "head": "AI Competition: Kimi K3",
+      "body": "China's Moonshot AI released Kimi K3, a large language model reported to rival cutting-edge US systems, renewing questions about AI competitive moats for US mega-cap tech."
     }
   ],
   "implications": [
-    "Oil staying elevated (WTI prior cash close $82.42; Brent $88.92) sustains the 'higher-for-longer' rates narrative — real rates already sit at 2.35% — which compresses the equity risk premium that is already deeply negative at -2.05%, a structural valuation warning for equities at a CAPE of 41.45.",
-    "The Houthi embargo against Saudi Arabia is a new supply-chain fault line: even if US-Iran talks progress, Houthi disruption of Red Sea routes is an independent upside oil shock that markets have not fully priced.",
-    "Asian chipmakers rallying overnight on Iran diplomacy hints is a positive lead for US semis pre-market, but the sector's recovery is entirely conditional on Alphabet's AI-capex guidance Wednesday — any cut to spending plans re-accelerates the rotation.",
-    "<b>Positioning:</b> Speculators in WTI Crude futures are at the 6th percentile of a 3-year range — speculators have almost no bullish bets left, a contrarian floor — while Copper futures specs are at the 91st percentile, speculators are heavily positioned long, a contrarian warning. Russell 2000 futures specs are at the 2nd percentile (speculators have almost no bullish bets left — a contrarian floor), and 2-Year Treasury specs are at the 85th percentile (speculators are heavily positioned long — a contrarian warning for 2Y yields moving lower). GBP and Euro specs are both extended short, contrarian-bullish for sterling and the euro versus the dollar."
+    "With ~88% of early S&P 500 reporters beating bottom-line estimates, earnings momentum is strong — but the bar rises sharply as Big Tech (Alphabet, Tesla, Intel) steps up this week.",
+    "Iran ceasefire diplomacy is keeping risk assets bid overnight, but a breakdown in talks would likely send Brent back above $91-$92 and re-pressurize inflation expectations.",
+    "New 50% Canada tariffs add a stagflation-lite risk: higher input costs for US manufacturers, particularly autos, at a time when payroll growth (57K in June) is already soft.",
+    "Real 10-year yields at 2.37% remain a structural headwind for long-duration equities; the CAPE ratio at 40.98 leaves little margin for disappointment.",
+    "<b>Positioning:</b> Speculators have almost no bullish bets left in Russell 2000 (2nd percentile, 3-year low) — a contrarian floor for small-caps. WTI specs are similarly at the 6th percentile — a contrarian floor for crude. Offsetting that, 2-year Treasury specs are extended long (85th percentile) — a contrarian warning on short rates, and Copper specs are heavily positioned (91st percentile) — a contrarian warning given copper is already at extreme 3-year highs ($6.53/lb, 99.6th percentile)."
   ],
   "watch": [
     {
-      "head": "ADP employment (8:15am ET today)",
-      "body": "A materially weak print could claw back some of the September rate-hike probability that has crept up to ~55%; a strong number cements the hawkish path and keeps pressure on rate-sensitive equities."
+      "head": "Alphabet / Tesla / Intel Earnings",
+      "body": "These three reports (due Thu-Fri) are the week's biggest risk events — AI capex commentary from Alphabet and Intel guidance on data-center chips will set the tone for the broader tech-and-AI trade."
     },
     {
-      "head": "Oil intraday: Houthi vs. Iran diplomacy",
-      "body": "WTI (prior cash close $82.42) is caught between the Houthi Saudi embargo — a supply-disruptive escalation — and Iran's diplomatic signals; a sustained move above $85 or below $79 changes the inflation-and-rates story materially."
+      "head": "Iran Ceasefire / Hormuz",
+      "body": "Any confirmed truce or breakdown in the 10-day ceasefire proposal will directly move Brent crude, gold, and risk sentiment; Houthi maritime blockade of Saudi Arabia adds a second pressure point."
     },
     {
-      "head": "Alphabet/Tesla after-close Wednesday",
-      "body": "Alphabet's AI capex guidance is the single highest-stakes data point for the AI-infrastructure trade this week; a beat-and-raise flips the Nasdaq-100 back toward its prior cash close of 25,508.07, while a miss extends tech's drawdown."
+      "head": "Canada Tariff Retaliation",
+      "body": "Ottawa's response to the 50% tariff — and whether it targets US agriculture or autos — will determine the inflation and supply-chain read-through for US producers."
     },
     {
-      "head": "10Y Treasury yield (prior close 4.60%)",
-      "body": "The 10-year yield sitting at 4.60% with a 39bp 2s10s curve and real rates at 2.35% is already a significant drag on growth stocks; watch whether overnight demand at Asia/European hours keeps the yield pinned or pushes it toward 4.70%."
+      "head": "NDX Internals",
+      "body": "Only 44.6% of Nasdaq 100 stocks are above their 50-day moving average (vs. 65.3% above the 200-day) — the index is being carried by a narrow group of large-caps; watch breadth for confirmation of any rally."
     },
     {
-      "head": "USD/JPY (prior close ¥162.48)",
-      "body": "USD/JPY is at a 3-year extreme (99.5th percentile) — an intervention-risk zone; any Japan BoJ commentary or Ministry of Finance action could produce a sharp yen reversal with knock-on effects across risk assets."
-    },
-    {
-      "head": "Fed July 29 rate decision",
-      "body": "Thursday's GDP and PCE prints (the day after the FOMC decision) either vindicate or contradict whatever path Warsh telegraphs Wednesday afternoon — the data-to-decision sequencing makes Thursday the most information-dense 24h of the month."
+      "head": "USD/JPY at 163",
+      "body": "The yen (prior cash close 163.14 per dollar, 100th percentile of its 3-year range) is at an extreme — any surprise from the Bank of Japan or a de-escalation in the Middle East could trigger a sharp unwind."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "10Y Treasury yield: 4.60% (prior cash close); 2Y: 4.21% (prior cash close) — the yield curve is only 39bp positive (2s10s), historically slim given the level of rates.",
-        "Real rates at 2.35% and the 10Y breakeven inflation at 2.25% (prior cash close) mean the market is pricing moderate long-run inflation but exceptionally high real borrowing costs — a headwind for growth assets.",
-        "The term premium stands at 77.9bps — investors are demanding extra compensation to hold long-dated Treasuries, consistent with fiscal and geopolitical uncertainty.",
-        "Financial conditions remain loose: the Chicago Fed ANFCI is -0.535 (most recent reading) and the St. Louis FSI is -0.88, both indicating financial conditions are easier than normal despite high rates — equity markets have not yet tightened credit.",
-        "Bank reserves at $3,142.7bn (as of Jul 15) are ample; the Fed's overnight reverse repo facility has drained to $0bn, meaning all excess cash has moved out of the Fed's facility and into money markets and Treasuries — no systemic liquidity stress.",
-        "4-week moving average of jobless claims: 214K (as of Jul 11) and weekly claims 208K — the labour market remains tight, giving the Fed room to hold or hike rather than cut.",
-        "M2 money supply growing at 5.58% YoY (as of May) while the Fed balance sheet is up only 1.26% YoY — monetary conditions are easing at the broad money level even as the Fed stays restrictive.",
-        "ADP employment data due at 8:15am ET today is the first of three critical labour/activity releases this week before the Jul 29 FOMC."
+        "10-year Treasury yield prior cash close 4.63%; 2-year yield 4.26% — the yield curve (2s10s) sits at just +37 basis points, still historically flat, consistent with sluggish but positive growth expectations.",
+        "Real 10-year yield at 2.37% is near the top of its 3-year range, keeping non-yielding assets (gold, growth equities) under structural pressure even as geopolitical demand sustains them.",
+        "Term premium — the extra yield investors demand to hold long bonds instead of rolling short ones — stands at 77.9 basis points, elevated and consistent with Dimon's concern about fiscal and geopolitical risk being underpriced.",
+        "10-year breakeven inflation at 2.26% suggests the bond market is not yet pricing an Iran-driven oil shock into long-run inflation; that could change if Hormuz shipping is disrupted further.",
+        "Fed policy: real fed funds at 0.21% — barely positive — while ISM Manufacturing (53.3) and Services (54.0) are both in expansion; the Fed is unlikely to cut soon given sticky real yields and geopolitical oil risk.",
+        "4-week average jobless claims at 214K and weekly at 208K remain historically low — the labor market is not breaking, but June payrolls of 57K were soft and bear watching."
       ],
-      "positioning": "Speculators in 3M SOFR futures are at the 3rd percentile of a 3-year range — speculators have almost no bullish bets left on short rates, a contrarian floor implying rate cuts could surprise to the upside if the macro narrative shifts. Conversely, 2Y Treasury specs are at the 85th percentile — speculators are heavily positioned long duration at the 2-year point, a contrarian warning that a hawkish surprise could force a rapid unwind.",
+      "positioning": "2-year Treasury specs are extended long (85th percentile, 3-year range) — a contrarian warning: if rate-cut bets fade further, extended longs face unwinding pressure. 3-month SOFR specs are at an extended short (3rd percentile) — speculators have almost no bullish bets left there — a contrarian-bullish lean for near-term rates.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500: 7,443.28 (prior cash close), off 0.19% Monday; Nasdaq Composite: 25,508.07 (prior cash close), off 0.05%; Dow Jones: 51,839.26 (prior cash close), off 0.59%.",
-        "Asian equities rose overnight for the first time in four days — MSCI Asia Pacific +~1.7%, South Korea and Taiwan each up more than 2.5% — led by chipmakers after Iran's diplomatic overture.",
-        "Japan's Nikkei 225 rose ~2.2% overnight as trading resumed after a Monday holiday.",
-        "The PHLX Semiconductor Index entered bear-market territory last week (down 20%+ from peak); Monday saw early signs of stabilisation, with the SOX up ~2% intraday at the open.",
-        "Only 61.2% of S&P 500 members trade above their 50-day moving average and 66.7% above their 200-day (as of Jul 17) — market breadth is not confirming index levels, a warning that the rally is narrowly held.",
-        "For the Nasdaq-100 specifically, only 44.6% of members are above their 50-day average — less than half the index — indicating significant underlying technical deterioration beneath the headline level.",
-        "CAPE ratio at 41.45 and equity risk premium at -2.05% (stocks effectively yield less than bonds on a risk-adjusted basis) — valuations leave no margin for earnings disappointment.",
-        "Q2 earnings season is tracking well: 88% of reporters have beaten estimates and blended growth is ~25.7% YoY — but Wednesday's Alphabet/Tesla prints are the acid test for whether AI-capex remains the engine of that growth."
+        "S&P 500 prior cash close 7,509.20; Nasdaq Composite prior cash close 25,837.21; Dow prior cash close 52,224.64 — all broke three-session losing streaks Tuesday led by semiconductors.",
+        "Overnight: Nasdaq 100 futures trading near 28,967 (OVERNIGHT/PRE-MARKET level) — implying the Nasdaq 100 is being tracked at a meaningfully higher level than its prior cash close of 25,837 on the composite index, consistent with a continued chip rally.",
+        "CAPE ratio of 40.98 and a negative equity risk premium (-2%) mean stocks offer no valuation cushion — returns depend entirely on earnings delivery and multiple expansion, neither of which is guaranteed at these levels.",
+        "Market breadth is mixed: 58.2% of S&P 500 stocks are above their 50-day moving average and 65.7% above their 200-day — healthy but not euphoric. Nasdaq 100 internals are weaker: only 44.6% above the 50-day, suggesting the index rally is narrow and leadership-dependent.",
+        "Semiconductor sector confirmed a bear market (more than 20% off late-June highs) even as it remains up ~72% year-to-date — the sector is in a high-volatility correction within a powerful uptrend, making earnings delivery critical.",
+        "SKEW index at 151.7 signals options markets are pricing elevated tail risk — large investors are buying downside protection even as the index climbs.",
+        "VIX prior cash close 17.05 — low enough to suggest near-term complacency; VXN (Nasdaq volatility) at 26.66 reflects the higher uncertainty specific to tech names."
       ],
-      "positioning": "Speculators in Russell 2000 futures are at the 2nd percentile of a 3-year range — speculators have almost no bullish bets left on small caps, a contrarian floor. Small caps fell with mega-caps last week, but positioning this light historically precedes sharp reversals when a catalyst materialises.",
+      "positioning": "Russell 2000 specs are at an extended short (2nd percentile, 3-year low) with hedgers at the opposite extreme — speculators have almost no bullish bets left, a contrarian floor for small-caps. A short squeeze is plausible if macro conditions stabilize.",
       "single_name": {
         "ticker": "TSM",
-        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor Manufacturing (TSM)</a> — the world's dominant chip foundry — is a fresh insider-activity setup trading above its 200-day moving average; company insiders have been buying, dark-pool and options activity is elevated, and the overnight Asian chip rally (+2.5% in Taiwan) is a direct pre-market tailwind for the US-listed shares."
+        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — world's largest contract chipmaker and the physical backbone of the AI trade. Company insiders have been buying (1 insider rule fired); stock is trading above its 200-day line; signal is fresh. With the chip sector in a correction but AI demand described as 'extremely robust,' TSM is the highest-conviction single-name read-through for this week's Big Tech earnings."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HY-IG spread ratio: 273bps (as of Jul 17) — high-yield bonds are not pricing stress relative to investment-grade; credit is not sounding an alarm that equity volatility would normally warrant.",
-        "IG option-adjusted spread: 79bps (as of Jul 17) — investment-grade corporate bonds trade tight, consistent with strong bank earnings and solid Q2 results.",
-        "Commercial paper spreads (CPFF): 14bps (as of Jul 17) — short-term funding markets are calm; no sign of money-market stress.",
-        "FRA-OIS and SOFR-OIS spreads both at -4bps (as of Jul 17) — interbank funding is benign, no stress in the plumbing.",
-        "Equity-credit correlation at 0.693 (prior cash close) — stocks and credit are moving together, meaning a significant equity sell-off would likely be accompanied by credit spread widening, amplifying any drawdown.",
-        "SLOOS data (as of Apr 1) showed 8.1% net tightening of C&I lending standards and 2.0% net tightening on CRE — banks are still cautiously tightening, a mild headwind to credit growth, though bank credit is still expanding at 5.98% YoY (as of Jul 8).",
-        "The VIX closed at 18.65 (prior cash close) — moderate fear, not panic; the MOVE index (bond volatility) at 72.7 is also contained, suggesting fixed-income markets are not yet pricing a disorderly rates move."
+        "High-yield spreads at 269 basis points and investment-grade spreads at 78 basis points — both reflect contained credit stress; credit is not flashing a recession warning.",
+        "The HY/IG ETF ratio at 1.3415 and the equity-credit correlation at 0.687 suggest stocks and credit are moving together — when stocks sell off, credit will likely follow.",
+        "FRA-OIS and SOFR-OIS spreads both at -6 basis points — interbank funding markets are functioning smoothly with no signs of stress.",
+        "Commercial paper funding spread at 14 basis points — well within normal range; short-term funding markets are calm.",
+        "Fed reverse repo facility (RRP) effectively at $0.3 billion — nearly zero — meaning excess cash has left the overnight facility; bank reserves remain large at $3,142.7 billion, keeping system liquidity ample.",
+        "M2 money supply growing at 5.58% year-over-year and bank credit at 5.98% YoY — moderate liquidity expansion, neither inflationary nor restrictive.",
+        "The Treasury General Account (TGA) stands at $756.2 billion — a large government cash balance that, when drawn down for spending, injects liquidity into the banking system.",
+        "ANFCI financial conditions index at -0.535 and STLFSI at -0.88 — both in accommodative territory, meaning overall financial conditions remain loose despite elevated yields."
       ],
-      "positioning": "Primary-dealer credit inventory sits mid-range — high-yield bond positioning is at the 37th percentile of its 3-year net range — neither a stress signal nor a complacency extreme.",
+      "positioning": null,
       "single_name": {
         "ticker": "JEF",
-        "note": "<a class=\"tklink\" href=\"/ticker/JEF\" data-route=\"/ticker/JEF\">Jefferies Financial Group (JEF)</a> — a broker-dealer that earns fees from capital markets activity — is a fresh insider-activity setup with company insiders buying, dark-pool and options signals live, trading above its 200-day line, and short interest is light (1.17 days to cover), reducing squeeze risk but also indicating no contrarian fuel from forced short covering."
+        "note": "<a class=\"tklink\" href=\"/ticker/JEF\" data-route=\"/ticker/JEF\">Jefferies Financial Group (JEF)</a> — mid-size broker-dealer that acts as a leading indicator for capital markets activity and deal flow. Company insiders have been buying (1 insider rule fired); stock is above its 200-day line; signal is fresh and has appeared on two consecutive scan dates. Shorts are light (1.17 days to cover) — minimal squeeze risk but also no forced-buying catalyst. A read on whether credit and equity underwriting conditions are improving."
       }
     }
   ],
   "movers": [
     {
-      "ticker": "GABC",
-      "pct": -1.6,
-      "link": true
-    },
-    {
-      "ticker": "MPB",
-      "pct": -1.4,
-      "link": true
-    },
-    {
       "ticker": "TSM",
-      "pct": 1.0,
+      "pct": 5.5,
+      "link": true
+    },
+    {
+      "ticker": "AVO",
+      "pct": -3.1,
       "link": true
     },
     {
       "ticker": "JEF",
-      "pct": 0.6,
+      "pct": 2.8,
       "link": true
     },
     {
-      "ticker": "YORW",
-      "pct": 0.4,
+      "ticker": "RH",
+      "pct": -2.1,
+      "link": true
+    },
+    {
+      "ticker": "GGAL",
+      "pct": 2.0,
       "link": true
     }
   ]
