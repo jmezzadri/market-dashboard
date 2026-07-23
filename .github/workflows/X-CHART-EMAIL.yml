@@ -1,0 +1,44 @@
+# Emails the MacroTilt Daily X Chart (PNG attachment + caption) to Joe.
+# Fires on every push of a new chart to this branch. One push per weekday
+# morning (from the cloud chart producer) -> exactly one email.
+name: X-CHART-EMAIL
+on:
+  push:
+    branches: [x-charts]
+    paths: ["chart.png", "caption.txt"]
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Email chart + caption to Joe
+        env:
+          SMTP_USER:     ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:    ${{ secrets.EMAIL_FROM }}
+        run: |
+          python - <<'EOF'
+          import os, smtplib, datetime
+          from zoneinfo import ZoneInfo
+          from email.mime.multipart import MIMEMultipart
+          from email.mime.text import MIMEText
+          from email.mime.image import MIMEImage
+
+          today = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%B %-d, %Y")
+          caption = open("caption.txt").read().strip()
+          msg = MIMEMultipart()
+          msg["Subject"] = f"MacroTilt Daily X Chart - {today}"
+          msg["From"] = os.environ["EMAIL_FROM"]
+          msg["To"] = os.environ["EMAIL_TO"]
+          body = ("Today's chart is attached. Caption to paste:\n\n" + caption +
+                  "\n\n(Save the image, paste the caption, post to X.)")
+          msg.attach(MIMEText(body))
+          img = MIMEImage(open("chart.png", "rb").read(), name="macrotilt_daily_chart.png")
+          img.add_header("Content-Disposition", "attachment", filename="macrotilt_daily_chart.png")
+          msg.attach(img)
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+              s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
+              s.send_message(msg)
+          print("sent")
+          EOF
