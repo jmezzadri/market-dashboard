@@ -9,6 +9,7 @@ from datetime import timedelta
 
 TOP_N = 15       # hold at most the 15 strongest names
 MIN_NAMES = 8    # diversification floor for per-name sizing
+INDUSTRY_CAP = 3  # max names per 2-digit-SIC industry group (2026-07-23 review)
 
 
 def cap_top15(rows):
@@ -19,6 +20,32 @@ def cap_top15(rows):
     roc_3m 20 down to 6; two rows tied at roc_3m=6 keep the alphabetically
     earlier ticker."""
     return sorted(rows, key=lambda r: (-float(r["roc_3m"]), r["ticker"]))[:TOP_N]
+
+
+def cap_top15_industry(rows, cap=INDUSTRY_CAP):
+    """Selection rule since 2026-07-23 (backtested: 27.0%/yr vs 25.3%
+    uncapped, smaller drawdown — Momentum_Sleeve_Review_2026-07-23.xlsx).
+
+    Walk candidates by roc_3m descending (ticker asc on ties). Take a name
+    unless its industry group ('sic2', 2-digit SIC) already has `cap` names
+    selected; skipped names are replaced by the next-ranked candidates from
+    other industries. Names with no industry mapping (sic2 None/'' ) are
+    never capped. Stop at 15.
+
+    Worked example: 6 software names ranked 1-6 plus 12 others ranked 7-18 ->
+    software ranks 1,2,3 selected, ranks 4,5,6 skipped, and the final list is
+    ranks 1,2,3,7,8,...,18 (15 names, exactly 3 software)."""
+    sel, counts = [], {}
+    for r in sorted(rows, key=lambda r: (-float(r["roc_3m"]), r["ticker"])):
+        grp = r.get("sic2") or None
+        if grp is not None and counts.get(grp, 0) >= cap:
+            continue
+        sel.append(r)
+        if grp is not None:
+            counts[grp] = counts.get(grp, 0) + 1
+        if len(sel) == TOP_N:
+            break
+    return sel
 
 
 def per_name_notional(capital, n):

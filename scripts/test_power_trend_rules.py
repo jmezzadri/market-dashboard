@@ -7,7 +7,8 @@ import sys
 from datetime import date
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from power_trend_rules import cap_top15, per_name_notional, next_first_of_month
+from power_trend_rules import (cap_top15, cap_top15_industry, per_name_notional,
+                               next_first_of_month)
 
 
 def check(name, got, want):
@@ -42,6 +43,22 @@ ok &= check("floor cash n=3", 500_000 - per * 3, 312_500.0)
 
 # n=0 (CASH-sentinel month) -> 0.0, no division blow-up
 ok &= check("n=0 all cash", per_name_notional(500_000, 0), 0.0)
+
+# cap_top15_industry: 6 software (sic2 '73') ranked 1-6 by roc, 12 others in
+# distinct industries ranked 7-18 -> software ranks 1,2,3 kept, 4,5,6 skipped,
+# next-ranked others fill to 15.
+rows_i = [{"ticker": f"SW{i}", "roc_3m": 100 - i, "sic2": "73"} for i in range(6)]
+rows_i += [{"ticker": f"OT{i:02d}", "roc_3m": 90 - i, "sic2": f"{20 + i}"} for i in range(12)]
+sel = cap_top15_industry(rows_i)
+ok &= check("industry cap length", len(sel), 15)
+ok &= check("industry cap sw count", sum(1 for r in sel if r["sic2"] == "73"), 3)
+ok &= check("industry cap keeps top sw", sel[0]["ticker"], "SW0")
+ok &= check("industry cap skips 4th sw", any(r["ticker"] == "SW3" for r in sel), False)
+ok &= check("industry cap backfills", any(r["ticker"] == "OT11" for r in sel), True)
+
+# unmapped industry (sic2 None) is never capped: 16 unmapped -> plain top 15
+rows_u = [{"ticker": f"U{i:02d}", "roc_3m": i, "sic2": None} for i in range(16)]
+ok &= check("unmapped never capped", len(cap_top15_industry(rows_u)), 15)
 
 # next_first_of_month, including year end
 ok &= check("next month mid", next_first_of_month(date(2026, 7, 15)), date(2026, 8, 1))

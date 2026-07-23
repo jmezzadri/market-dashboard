@@ -151,3 +151,35 @@ open price). Both violate the no-leverage design assumption of the backtests.
 **Backtest status:** Signals, hysteresis, cadence, and universe untouched —
 the cleared strategy backtests (2026-07-07 Insider, 2026-07-14 Momentum)
 remain the governing evidence. Senior Quant signs off on the bound argument.
+
+## 2026-07-23 — Power Trend fire-window fix + industry cap (Senior Quant sign-off)
+
+**Change:** `power_trend_scan()` (migration 084) now qualifies a name when its
+breakout (new 10-day closing high on volume > 1.3x its 20-day average) occurred
+on ANY of the trailing 21 sessions, with the trend (above 10/21/50/200 EMAs),
+momentum (top-20% 3-mo ROC) and relative-strength (>=5 pts vs SPY) gates
+evaluated as of the panel date. Producer selection is now
+`cap_top15_industry` — roc_3m desc, max 3 names per 2-digit-SIC industry
+group, next-ranked backfill, top 15, min-8 floor unchanged.
+
+**Why:** the 2026-07-23 review found the deployed one-day-snapshot rule had
+monthly-return correlation -0.05 vs the 7/15 validation study over 75 months —
+the live rule was effectively unvalidated and returned ~10%/yr (zero-cost)
+vs SPY 13.6%/yr over 2020-2026.
+
+**Evidence (Momentum_Sleeve_Review_2026-07-23.xlsx, zero trading costs per
+Joe's directive):** monthly fixed rule + industry cap 27.0%/yr, Sharpe 1.08,
+MaxDD -24.1% vs SPY 13.6%/yr / QQQ 19.8%/yr, 2020-01 -> 2026-07-22.
+Uncapped 25.3%/yr. Also tested and REJECTED (all worse): daily tactical
+cadence with EMA exits (best 15.4%/yr), RVOL thresholds 1.5x/2.0x
+(monotonically worse), bottoming entries (5.3%/yr, 31% win rate).
+Caveats preserved: survivor-leaning cohort; a single half-month can lose
+~20% (Jul 1-14 2026 in-sample).
+
+**Worked example (industry cap):** 6 software names ranked 1-6 plus 12 other
+industries ranked 7-18 -> selected = software ranks 1,2,3 + others ranks 7-18
+(15 names, exactly 3 software). Unit-tested in test_power_trend_rules.py.
+
+**Deployment:** one-off mid-month republish + rebalance at the 2026-07-24 open
+(Joe's explicit call: not holding the defective list to Aug 1). Monthly
+cadence unchanged thereafter.

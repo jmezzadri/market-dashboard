@@ -153,15 +153,15 @@ export default function MomentumPanel() {
             <div className="sc-kicker">Scanner 2 · Monthly list</div>
             <h2 className="sc-paneltitle">Power Trend Momentum Scanner</h2>
             <div className="sc-rule">
-              Strong uptrends that just broke out on volume and are outrunning the S&amp;P 500. Three
+              Strong uptrends that broke out on volume and are outrunning the S&amp;P 500. Three
               tests, all on daily closes: price above its 10-, 21-, 50- and 200-day moving averages
               with a 3-month return in the top 20% of the universe; a 3-month return at least 5 points
               above the S&amp;P 500&rsquo;s; and a close at a new 10-day high on volume more than 1.3&times; its
-              20-day average.
+              20-day average at some point in the trailing month.
             </div>
             <div className="sc-rule">
-              Up to {MAX_SLOTS} liquid US names, refreshed monthly after each month-end close — the
-              refresh cadence that performed best in backtesting (daily and weekly refreshes were
+              Up to {MAX_SLOTS} liquid US names, at most 3 per industry group, refreshed monthly —
+              the refresh cadence that performed best in backtesting (daily and weekly refreshes were
               tested and did worse). A name that closes below all four moving averages drops out the
               same day.
             </div>

@@ -51,12 +51,14 @@ import requests
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from compute_divergences import rpc, rpc_paged, _env, _headers  # noqa: E402
-from power_trend_rules import cap_top15, next_first_of_month     # noqa: E402
+from power_trend_rules import cap_top15_industry, next_first_of_month  # noqa: E402
 
 TABLE            = "power_trend_list"
 INDICATOR        = "power_trend_list"
 MIN_UNIVERSE     = 800
-MAX_SCAN_ROWS    = 200   # sane upper bound for names clearing every gate
+MAX_SCAN_ROWS    = 300   # sane upper bound for names clearing every gate
+                         # (trailing-21-session fire window — migration 084 —
+                         # surfaces more candidates than the old one-day rule)
 TRUNCATION_GUARD = 900   # PostgREST caps at 1000; near-cap = truncated read
 
 
@@ -108,8 +110,11 @@ def main():
         fail_red(f"universe too small: {len(universe)} names (< {MIN_UNIVERSE})", t0)
     print(f"universe: {len(universe)} names on {rebal}")
 
-    # 4) cap to 15, rank 1..N by roc_3m desc (cap_top15 output is pre-sorted)
-    picks = cap_top15(rows)
+    # 4) select: roc_3m desc with the max-3-per-industry cap (2-digit SIC via
+    # the scan's sic2 column), then rank 1..N (output is pre-sorted).
+    # Backtested 2026-07-23: 27.0%/yr capped vs 25.3% uncapped, smaller
+    # drawdown — Momentum_Sleeve_Review_2026-07-23.xlsx.
+    picks = cap_top15_industry(rows)
     nxt = next_first_of_month(rebal)
 
     # 5) company names (trivial lookup carried over from compute_momentum_list)

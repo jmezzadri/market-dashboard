@@ -330,11 +330,14 @@ export default function MethodologyPage() {
               the price must sit above its 10-, 21-, 50- and 200-day exponential moving averages, and
               its 3-month return must rank in the top 20% of the universe. Second, the{' '}
               <b>relative-strength test</b>: its 3-month return must beat the S&amp;P 500&rsquo;s 3-month return
-              by at least 5 percentage points. Third, the <b>breakout trigger</b>: it must have closed at
-              a new 10-day high on volume more than 1.3 times its own 20-day average. Names passing all
-              three are ranked by 3-month return; the sleeve owns at most the <b>top 15, equal-weight</b>.
-              If fewer than 8 names pass, the sleeve does not concentrate further — the unfilled slots
-              stay in cash. One daily risk check runs between the monthly refreshes: a held name that
+              by at least 5 percentage points. Third, the <b>breakout trigger</b>: at some point in the
+              trailing month (the last 21 trading days) it must have closed at a new 10-day high on
+              volume more than 1.3 times its own 20-day average — while the trend and relative-strength
+              tests still hold as of the list date. Names passing all three are ranked by 3-month
+              return; the sleeve owns at most the <b>top 15, equal-weight</b>, with an <b>industry cap</b>:
+              no more than 3 names from the same industry group, with skipped slots filled by the
+              next-ranked names from other industries. If fewer than 8 names pass, the sleeve does not
+              concentrate further — the unfilled slots stay in cash. One daily risk check runs between the monthly refreshes: a held name that
               closes below all four of its moving averages — the same four the entry test requires it
               to be above — is <b>sold that day</b>, and the cash rests until the next monthly list. In the
               2020–2026 simulation this exit cut the worst peak-to-trough loss from about 40% to about
@@ -343,19 +346,23 @@ export default function MethodologyPage() {
             <div className="me-formula">
               trend    = price above the 10/21/50/200-day averages · 3-mo return in the top 20% of the universe<br />
               strength = 3-mo return at least 5 points above the S&amp;P 500&rsquo;s<br />
-              trigger  = new 10-day closing high on volume above 1.3&times; the 20-day average<br />
-              own      = top 15 by 3-mo return, equal-weight · fewer than 8 fire → the rest stays in cash<br />
+              trigger  = a new 10-day closing high on volume above 1.3&times; the 20-day average, any day in the trailing month<br />
+              own      = top 15 by 3-mo return, equal-weight · max 3 per industry group · fewer than 8 fire → the rest stays in cash<br />
               exit     = a held name closing below all four averages is sold that day · cash rests until the next list
             </div>
             <p className="me-body-p">
-              <b>The evidence, stated honestly.</b> In a 2020–2026 portfolio simulation with the 8-name
-              diversification floor, the rule returned <b>18.2% a year against 14.8% for the S&amp;P 500</b>,
-              with a Sharpe ratio of 1.26 and a worst peak-to-trough loss of <b>19.7%</b> — slightly
-              shallower than the index&rsquo;s own 20.7% over the same window. Two caveats. The test window is
-              six years — far shorter than the multi-decade evidence behind classic momentum. And the
-              simulation ran on a <b>survivor cohort</b>: companies that exist today. That flatters the
-              result, because the failures that would have been bought along the way are missing.{' '}
-              <b>Live results should be expected to run below the backtest.</b>
+              <b>The evidence, stated honestly.</b> In a January&nbsp;2020&nbsp;–&nbsp;July&nbsp;2026 portfolio
+              simulation (monthly cadence, 8-name floor, industry cap, no trading costs) the rule
+              returned <b>27.0% a year against 13.6% for the S&amp;P 500</b>, with a Sharpe ratio of 1.08
+              and a worst peak-to-trough loss of <b>24.1%</b> — shallower than the index&rsquo;s own 34% over
+              the same window. This re-validation (2026-07-23) replaced an earlier study that had
+              measured a different fire-window than the deployed rule and stopped in March 2026. Two
+              caveats stand. The test window is six and a half years — far shorter than the multi-decade
+              evidence behind classic momentum. And the simulation ran on a <b>survivor-leaning
+              cohort</b>: mostly companies that exist today. That flatters the result, because failures
+              that would have been bought along the way are under-represented.{' '}
+              <b>Live results should be expected to run below the backtest, and single months can be
+              brutal — the same rule would have lost roughly 20% in the first half of July 2026.</b>
             </p>
             <p>
               <b>Dark pool</b>, <b>Options shock</b> and <b>Options flow</b> counted toward the score until
