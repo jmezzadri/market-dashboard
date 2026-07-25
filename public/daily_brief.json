@@ -1,135 +1,130 @@
 {
-  "date": "2026-07-24",
-  "recap_session": "Thu Jul 23",
+  "date": "2026-07-25",
+  "recap_session": "Fri Jul 24",
   "eyebrow": "Morning Brief",
-  "headline": "Tech earnings shock and surging oil drove the S&P 500's biggest single-day drop in a month; Brent crossed $100 overnight and rate-hike odds climbed sharply heading into next week's Fed meeting.",
-  "stance": "Two forces collided Wednesday after the close and carried into Thursday's session: <b>AI capex sticker-shock</b> from Alphabet and Tesla (both posted negative free cash flow) met a <b>genuine energy-inflation scare</b> after Houthi attacks on Saudi tankers sent Brent above $100 for the first time in two months. The 10-year Treasury yield (prior close 4.71%) is at its highest since January 2025, markets are now pricing more than a 33% chance of a rate hike at next week's July 29 Fed meeting, and the probability of a September hike has risen to above 78%. The risk backdrop is genuinely tighter than it was 48 hours ago, but positioning is a counterweight: speculators are at historic short extremes in WTI crude, Russell 2000, and short-term rates — all contrarian-bullish signals if sentiment inflects.",
+  "headline": "S&P 500 barely held flat Friday while the Nasdaq fell 0.64% as chip-sector selling and Middle East oil risk capped a recovery from Thursday's 500-point Dow drop.",
+  "stance": "<b>Cautious into the Fed.</b> Oil pulling back from $100+ gives equities a modest overnight bid — S&P futures are up ~0.1% and Nasdaq-100 futures ~0.2% in pre-market — but the FOMC meets in four days with market-implied hike odds now near 38%, up from 11% a week ago. Real rates at 2.43% and a 10-year yield at 4.69% (both prior cash close) are already a stiff headwind for long-duration tech. The Iran conflict's pressure on energy prices remains the single biggest macro swing factor this week.",
   "news": [
     {
-      "head": "Alphabet & Tesla earnings: capex shock",
-      "body": "Alphabet beat on revenue ($119.8 bn) and cloud (+82% YoY) but raised its 2026 capex guide to $195–205 bn, sending shares down ~7% on the session; Tesla missed on profit, reported negative free cash flow for Q2, and fell ~14% — megacap tech's worst collective session since the April 2025 tariff rout."
+      "head": "Iran/Hormuz oil risk eases slightly overnight",
+      "body": "Brent crude slipped to a pre-market level near $96.18/bbl (prior cash close $98.38) and WTI to roughly $88.62/bbl (prior cash close $90.47) after Iran-peace-talk hopes briefly re-emerged, though Secretary of State Rubio said Iran is 'not serious about talks.'"
     },
     {
-      "head": "Brent crude crosses $100 — Middle East escalation",
-      "body": "Iran-backed Houthis claimed attacks on two Saudi oil tankers in the Red Sea overnight, pushing Brent above $100/bbl (prior cash close $100.55) and WTI to ~$92/bbl (prior cash close $92.36), the highest levels in months as the conflict adds a new chokepoint beyond the Strait of Hormuz."
+      "head": "Fed hike odds near 38% ahead of Jul 29 FOMC",
+      "body": "Fed funds futures now price roughly a 38% chance the Fed raises rates at Wednesday's meeting — up from just 11% two weeks ago — driven by oil-fueled inflation and May PCE running at 4.1%, more than double the 2% target."
     },
     {
-      "head": "10Y yield hits highest since Jan 2025",
-      "body": "The 10-year Treasury yield closed at 4.71% Thursday — up for a fourth straight session — as surging energy prices stoked fears the Fed may need to hike rates; markets now price a >33% chance of a hike on July 29 and >78% for September."
+      "head": "Tech capex fears weighed on Nasdaq last week",
+      "body": "The Roundhill Magnificent Seven ETF fell more than 5% on the week as investors worried AI data-center spending was consuming cash flow faster than it was generating returns, even as Intel beat earnings expectations."
     },
     {
-      "head": "Rate-hike odds reset; Fed meeting July 29",
-      "body": "The Fed is widely expected to hold at its July 29 meeting, but the probability of a September hike jumped from ~61% to above 78% in a single session, a significant repricing that is keeping pressure on duration and growth stocks heading into the weekend."
+      "head": "Uber -4.3% Friday on Waymo split",
+      "body": "Uber shed roughly 4.3% Friday — wiping ~$6.1bn in market cap — after reports that Waymo is considering withdrawing from their robotaxi partnership."
     },
     {
-      "head": "Yen at 3-year extreme; US Treasury flags weakness",
-      "body": "USD/JPY held near 163.79 (prior cash close) — a 3-year percentile extreme per positioning data — as the US Treasury separately called for more Bank of Japan tightening, citing excessive yen weakness despite narrowing US-Japan rate differentials."
+      "head": "PMI flash: services up, manufacturing slows, prices hot",
+      "body": "July flash PMIs showed US services activity strengthening while manufacturing growth slowed and price pressures intensified, adding to the stagflationary narrative that is keeping yields elevated."
     },
     {
-      "head": "Q2 earnings season broadly strong despite megacap drag",
-      "body": "Of roughly 50 S&P 500 companies reporting so far, 88% have beaten EPS estimates; Google Cloud's 82% revenue jump and record Tesla deliveries (480,126 vehicles, first annual growth in two years) illustrate that underlying business trends remain robust even as capital-spending fears dominated the tape."
+      "head": "Paramount hits 52-week low after Warner deal blocked",
+      "body": "Paramount closed at $8.21, touching its 52-week low of $8.17, after a court halted its proposed acquisition of Warner Bros. Discovery."
     }
   ],
   "implications": [
-    "Oil above $100 (Brent, prior cash close) re-introduces a cost-push inflation channel the market had largely dismissed — watch whether next week's PCE and any Fed communication acknowledge the energy pass-through risk.",
-    "Alphabet and Tesla's combined negative free cash flow in Q2 is a direct challenge to the 'AI spend = future revenue' narrative; Meta (reporting next week) and Microsoft's commentary will be binary for the NDX.",
-    "The 10-year at 4.71% (prior cash close) with an equity risk premium of –2% means equities are compensating investors less for risk than cash — a structural headwind for CAPE-40 multiples until yields retreat or earnings accelerate.",
-    "Real rates at 2.43% (prior cash close) are deeply restrictive; a further energy-driven inflation beat would widen the gap between nominal and real policy settings, pressuring leveraged and long-duration positions.",
-    "<b>Positioning:</b> Speculators are at extended short extremes in WTI crude (6th percentile, 3-year range) — a contrarian floor — even as the price is at the 93rd percentile; a squeeze catalyst exists if geopolitical risk fades. Russell 2000 specs are at the 2nd percentile (almost no bullish bets left — a contrarian floor), diverging sharply from hedger positioning. In rates, 3M SOFR specs are at a 3-year low (3rd percentile) — a contrarian-bullish lean for front-end rates. Copper specs are extended long (91st percentile) at the 97th price percentile — a contrarian warning for industrial metals. Wheat specs similarly extended long at the 90th percentile with prices at the 98th percentile."
+    "The overnight oil pullback is welcome but not decisive — Brent is still near multi-year highs (prior cash close $98.38/bbl, 93.8th percentile of its 3-year range) and one Strait of Hormuz headline could reverse it instantly.",
+    "A 38% market-implied probability of a July Fed hike means the FOMC on Wednesday is a genuine coin-flip risk event, not a rubber-stamp; any hawkish surprise would likely hit long-duration tech and rate-sensitive names hard.",
+    "Real rates at 2.43% combined with a CAPE ratio of 40.46 leave equities with very little cushion — the equity risk premium is negative at -2%, meaning bonds are offering more expected return than stocks on a risk-adjusted basis.",
+    "<b>Positioning:</b> Speculators are almost entirely out of Russell 2000 futures (2nd percentile of a 3-year range — a contrarian floor), and WTI crude futures specs are at the 6th percentile (also a contrarian floor despite high spot prices). Copper specs are at the 91st percentile — speculators are heavily positioned long, a contrarian warning. In rates, 2-year Treasury specs are at the 85th percentile — also an extended long and a contrarian warning for a bond rally."
   ],
   "watch": [
     {
-      "head": "July 29 FOMC decision",
-      "body": "The Fed is almost certain to hold, but any acknowledgment of energy-driven inflation risk or shift in the dot-plot language could validate the repricing of a September hike above 78% and push 10-year yields through 4.80%."
+      "head": "FOMC Wed Jul 29 — hold or hike?",
+      "body": "The Fed announces at 2pm ET Wednesday; with ~38% hike odds priced, any move or notably hawkish language from Chair Warsh (who gives minimal forward guidance) could jolt rates and equities simultaneously."
     },
     {
-      "head": "Meta & Microsoft earnings (next week)",
-      "body": "Both are major AI capex spenders; if they follow Alphabet's playbook of raising spend guidance the NDX faces a second round of selling, but any capex discipline or strong cloud monetization could reverse Wednesday's damage."
+      "head": "Oil — Strait of Hormuz headlines",
+      "body": "Brent is in overnight pre-market retreat but any new Houthi tanker attack or Hormuz closure headline could push it back above $100 and re-price the entire hike-odds curve higher within hours."
     },
     {
-      "head": "Red Sea / Hormuz shipping updates",
-      "body": "Brent above $100 is the single biggest macro variable right now; any de-escalation signal would rapidly compress the oil risk premium and relieve pressure on yields and inflation expectations simultaneously."
+      "head": "10-year yield — 5% test?",
+      "body": "The 10-year closed at 4.69% (prior cash close) after a four-session rally to its highest since January 2025; analysts note 5% is a plausible next target if oil re-accelerates or the Fed surprises hawkish."
     },
     {
-      "head": "USD/JPY at 163.79 — BOJ & Treasury pressure",
-      "body": "With USD/JPY at a 3-year extreme (100th percentile) and the US Treasury calling for BOJ action, intervention risk is elevated; a sudden yen strengthening move would tighten global financial conditions further and hit carry-funded risk positions."
-    },
-    {
-      "head": "VIX at 18.7 — complacency gap",
-      "body": "Despite a 1.2% S&P drop and oil above $100, implied volatility (VIX prior close 18.7) remains relatively subdued; a break above 20 would likely trigger systematic de-risking by vol-targeting funds."
+      "head": "Big tech earnings this week",
+      "body": "Amazon and Apple both report this week (Amazon Wednesday, Apple Friday), giving the market a chance to either confirm or dismiss AI-capex spending fears that crushed Magnificent Seven names last week."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "10-year Treasury yield: 4.71% (prior cash close) — highest since January 2025, up ~31 bps over four weeks; 2-year yield: 4.37% (prior cash close), yield curve 2s10s +34 bps (prior cash close) — positively sloped but narrow.",
-        "Real rates 2.43% (prior cash close) and term premium 77.9 bps remain deeply restrictive; 10-year breakeven inflation 2.28% (prior cash close) has not yet fully priced the energy shock.",
-        "Markets now price >33% probability of a July 29 rate hike and >78% for September, a sharp single-session repricing driven by Brent crossing $100 and Middle East escalation.",
-        "Financial conditions remain accommodative on the index level: ANFCI –0.55 and STLFSI –0.70 (both as of Jul 17) suggest the system is not yet in stress, but the oil/yield combo is the fastest-moving tightening channel right now.",
-        "Fed balance sheet +1.35% YoY (as of Jul 22); bank reserves $3,062 bn and TGA $829.6 bn (both as of Jul 22) — system liquidity still ample, limiting a credit crunch scenario near-term."
+        "10-year Treasury yield: 4.69% (prior cash close), at its highest since January 2025 after a four-session climb driven by oil-inflation fears; the 2-year sits at 4.33% (prior cash close), leaving the 2s10s curve at +36 bps — still positive but slim.",
+        "10-year breakeven inflation (the bond market's inflation forecast) is at 2.26% (prior cash close), meaning real rates are a restrictive 2.43% — genuine headwind for growth assets.",
+        "Term premium — the extra yield investors demand for holding long-term bonds — stands at 77.9 bps, reflecting genuine fiscal and inflation uncertainty rather than purely rate expectations.",
+        "Fed funds futures price ~38% odds of a 25 bp hike at the July 29 FOMC, up from ~11% two weeks ago; September hike odds are near 82% — markets are pricing two hikes as the base case for 2026.",
+        "July flash PMI showed services expanding but manufacturing slowing with intensifying price pressures — a stagflationary mix that complicates the Fed's calculus.",
+        "DXY (dollar index): 101.46 (prior cash close); USD/JPY: 163.791 (prior cash close) — yen is at a 3-year extreme (99.9th percentile), with the BOJ under pressure to hike and squeeze carry trades."
       ],
-      "positioning": "Speculators are at a 3-year low in 3M SOFR futures (3rd percentile, extended short — a contrarian-bullish lean for front-end rates), while 2-year Treasury specs sit at the 85th percentile (extended long — a contrarian warning). The divergence between those two signals suggests the market is positioned for a specific 'hike then cut' path; any data that disrupts that view could move short-end rates sharply.",
+      "positioning": "In rates, speculative positioning on 3-month SOFR is at the 3rd percentile of its 3-year range — specs are nearly entirely out (an extended short), which is a contrarian-bullish lean for short rates (i.e., a signal rates could fall). Conversely, 2-year Treasury specs are at the 85th percentile — an extended long, a contrarian warning that the bond-bull trade is overloaded.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500: 7,408.30 (prior cash close, –1.21%); Nasdaq Composite: 25,137.69 (prior cash close, –2.15%); Dow: 51,711.65 (prior cash close, –0.97%) — megacap tech's worst collective session since the April 2025 tariff selloff.",
-        "Alphabet fell ~7% on its raised 2026 capex guide ($195–205 bn vs prior $180–190 bn range); Tesla fell ~14% after missing on profit and reporting negative free cash flow for Q2 — both events hit other hyperscalers (Meta, Microsoft, Amazon) in sympathy.",
-        "Breadth indicator: 60.6% of S&P 500 members above their 50-day moving average and 65.7% above their 200-day (as of Jul 22) — market internals are still majority-bullish despite Wednesday's damage, suggesting the sell-off was concentrated rather than broad.",
-        "NDX breadth is narrower: only 46.5% of Nasdaq-100 members above their 50-day moving average (as of Jul 22), consistent with the large-cap tech drag.",
-        "SKEW index 145.9 (prior cash close) — options market is pricing a meaningful tail-risk premium, meaning traders are paying up to hedge against a bigger downside move.",
-        "CAPE ratio 40.42 (prior cash close) with equity risk premium at –2% — by historical standards equities remain expensive relative to bonds at current yield levels.",
-        "Q2 earnings season backdrop remains constructive: 88% of early S&P 500 reporters beat EPS estimates, and full-season growth is tracking ~24.7% YoY — the negative megacap reactions are valuation/capex stories, not fundamental deterioration."
+        "S&P 500 prior cash close: 7,411.98; Nasdaq Composite prior cash close: 24,975.82 (down 0.64% Friday); Dow prior cash close: 51,947.25 (up 0.46% as Apple's 3.5% jump lifted blue chips).",
+        "S&P 500 futures: ~+0.1% pre-market; Nasdaq-100 futures: ~+0.2% pre-market — modest overnight relief as oil retreats.",
+        "Only 58.4% of S&P 500 stocks trade above their 50-day moving average, and 41.6% of Nasdaq-100 stocks are above theirs — the index-level recovery is not broadly supported by the average stock.",
+        "VIX (fear gauge): 18.58 (prior cash close) — moderate, not panicked; SKEW at 147.3 signals investors are paying up for protection against a sharp left-tail move (a crash hedge).",
+        "Tesla shed roughly 19% on the week after a record ~$214.5bn single-day market-cap loss Thursday on AI-capex concerns; the Magnificent Seven ETF fell more than 5% on the week.",
+        "CAPE (cyclically adjusted P/E) at 40.46 and a negative equity risk premium of -2% signal that stocks are priced for perfection at a moment when rates are rising and inflation is re-accelerating."
       ],
-      "positioning": "Russell 2000 speculators are at the 2nd percentile of their 3-year net position range — almost no bullish bets left, a contrarian floor — with hedger positioning pointing in the opposite direction (divergence flag). Small caps have outperformed YTD (IWM +19% YTD per recent reporting) and this extended short positioning adds asymmetric squeeze risk if the macro narrative stabilizes.",
+      "positioning": "Russell 2000 futures specs are at the 2nd percentile of their 3-year net-position range — speculators have almost no bullish bets left, a contrarian floor for small-caps. This diverges sharply from commercial hedger positioning, adding a squeeze-risk dimension.",
       "single_name": {
-        "ticker": "GGAL",
-        "note": "<a class=\"tklink\" href=\"/ticker/GGAL\" data-route=\"/ticker/GGAL\">Grupo Financiero Galicia</a> (Argentine financial) — highest-conviction setup in the scan (score 5, fresh signal on both Jul 21 & 22); company insiders have been buying, stock is trading above its 200-day line. Short interest is 6.3 days-to-cover with borrow cost 0.87% — shorts are moderately heavy, adding squeeze risk if Argentine macro or the broader EM risk appetite stabilizes."
+        "ticker": "TSM",
+        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — company insiders have been buying (1 insider rule fired); stock trades above its 200-day moving average with a fresh signal; low short interest (1.8 days to cover) limits squeeze risk but also means any institutional selling is unimpeded."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HY-IG spread 268 bps (as of Jul 22) and IG OAS 78 bps (as of Jul 22) — credit spreads remain contained; no panic in the corporate bond market despite the equity selloff, which is a stabilizing signal.",
-        "HY/IG ETF ratio 1.3412 (prior cash close) and equity-credit correlation 0.69 (prior cash close) — high correlation means equity stress and credit stress are moving together; watch for spread widening if oil sustains above $100.",
-        "FRA-OIS and SOFR-OIS both at –1 bp (as of Jul 22) — interbank funding markets are essentially stress-free; no sign of a liquidity crunch.",
-        "Commercial paper spread (CPFF) 14 bps (as of Jul 17) — very tight, confirming short-term funding markets are functioning normally.",
-        "Bank credit growth +5.98% YoY (as of Jul 8) and syndicated loan rate 7.06% (as of Jul 22) — lending is still expanding but at a cost that reflects the higher-rate environment.",
-        "M2 money supply +5.58% YoY (as of May) and Fed balance sheet +1.35% YoY — monetary backdrop is modestly expansionary, providing a floor against a sharp tightening shock."
+        "High-yield spreads: 277 bps (as of Jul 23) — the gap extra yield junk-bond investors demand over safe Treasuries; investment-grade spreads at 79 bps. Neither is blowing out, suggesting credit markets are not yet pricing a recession.",
+        "FRA-OIS and SOFR-OIS spreads (measures of stress in short-term bank funding) are both just 1 bp — essentially zero, meaning interbank funding is orderly with no sign of a liquidity crunch.",
+        "Commercial paper funding spread (how much extra it costs companies to borrow for 30-90 days): 18 bps — benign; no funding-market stress visible.",
+        "Bank reserves: $3,062bn (as of Jul 22) — ample; the Fed's overnight reverse repo facility (RRP) is nearly drained at $0.7bn, meaning almost all excess cash has left the Fed's parking lot and is circulating in markets.",
+        "M2 money supply growing at 5.58% year-over-year (as of May) — above trend, consistent with inflation staying elevated even before the oil shock.",
+        "Bank credit expanding at 6.4% year-over-year (as of Jul 15); syndicated loan yields at 7.19% — lending conditions are tightening in cost but not in availability per the SLOOS (loan officer survey)."
       ],
       "positioning": null,
       "single_name": {
         "ticker": "JEF",
-        "note": "<a class=\"tklink\" href=\"/ticker/JEF\" data-route=\"/ticker/JEF\">Jefferies Financial Group</a> (investment bank / broker-dealer) — score 5, fresh signal Jul 21 & 22; company insiders have been buying, stock above its 200-day line. Short interest only 1.17 days-to-cover (shorts are light, low squeeze risk) with borrow at 0.27% — the setup is driven by insider conviction rather than a short squeeze dynamic. Relevant here given active debt capital markets and M&A advisory exposure to the current rate environment."
+        "note": "<a class=\"tklink\" href=\"/ticker/JEF\" data-route=\"/ticker/JEF\">Jefferies Financial Group (JEF)</a> — company insiders have been buying (1 insider rule fired); stock trades above its 200-day moving average with a fresh, high-conviction signal (score 5/5); short interest is light at 1.2 days to cover, so no squeeze risk — this is a clean insider-buying setup in a broker-dealer that benefits from rising rates and deal activity."
       }
     }
   ],
   "movers": [
     {
-      "ticker": "GGAL",
-      "pct": -5.8,
-      "link": true
-    },
-    {
       "ticker": "RH",
-      "pct": -3.0,
+      "pct": -5.1,
       "link": true
     },
     {
       "ticker": "TSM",
-      "pct": -1.3,
+      "pct": -2.9,
       "link": true
     },
     {
-      "ticker": "GABC",
+      "ticker": "GGAL",
+      "pct": -1.7,
+      "link": true
+    },
+    {
+      "ticker": "EOI",
       "pct": -0.9,
       "link": true
     },
     {
       "ticker": "JEF",
-      "pct": -0.7,
+      "pct": 0.5,
       "link": true
     }
   ]
