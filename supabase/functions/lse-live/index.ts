@@ -153,7 +153,7 @@ async function modeQuotes(symbols: string[]) {
   if (stale.length) {
     const key = await lseKey();
     const nowIso = new Date().toISOString();
-    const updates = await pool(stale, 2, async (sym) => {
+    const fetchOne = async (sym: string): Promise<Json | null> => {
       try {
         const bars = await lse("/candles", { symbol: sym, timeframe: "1m", order: "desc", limit: "1" }, key);
         const b = Array.isArray(bars) ? bars[0] : null;
@@ -181,7 +181,18 @@ async function modeQuotes(symbols: string[]) {
         vendorErr = msg.slice(0, 300);
         return null;
       }
-    });
+    };
+    let updates = await pool(stale, 2, fetchOne);
+    // One retry round for transient vendor errors — live UAT (2026-07-27)
+    // caught a batch where half the book errored on the first pass and every
+    // one succeeded seconds later; a covered name must not read as an
+    // em-dash because of a single hiccup.
+    const failedSyms = stale.filter((_, i) => updates[i] === null);
+    if (failedSyms.length) {
+      await new Promise((res) => setTimeout(res, 400));
+      const second = await pool(failedSyms, 2, fetchOne);
+      updates = updates.concat(second);
+    }
     const rows = updates.filter(Boolean) as Json[];
     if (rows.length) {
       const r = await sb("lse_live_quotes?on_conflict=symbol", {
