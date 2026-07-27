@@ -29,6 +29,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import FreshnessChip from './FreshnessChip';
+import useLseIvDaily from '../../hooks/useLseIvDaily';
 
 const MAX_SLOTS = 15;
 
@@ -140,6 +141,7 @@ export default function MomentumPanel() {
     return () => { cancelled = true; };
   }, []);
 
+  const { byTicker: ivDaily } = useLseIvDaily(); // Vol rank (LSE implied vol)
   const asOf = meta?.asOf || null;
   const nextRefresh = meta?.next || null;
   const allCash = !!meta?.allCash;
@@ -203,6 +205,7 @@ export default function MomentumPanel() {
                       <th className="num-h">3-mo return</th>
                       <th className="num-h">vs S&amp;P 500</th>
                       <th className="num-h">Breakout volume</th>
+                      <th className="num-h">Vol rank</th>
                       <th className="num-h">Avg $/day</th>
                     </tr>
                   </thead>
@@ -228,6 +231,11 @@ export default function MomentumPanel() {
                           <td className={`num ${cls(r.roc_3m)}`}>{fmtPct1(r.roc_3m)}</td>
                           <td className={`num ${cls(r.rs_vs_spx)}`}>{fmtPts(r.rs_vs_spx)}</td>
                           <td className="num">{fmtVolx(r.breakout_volx)}</td>
+                          {/* Options-implied volatility rank (LSE): percentile
+                              of ~30-day ATM implied vol across today's covered
+                              scan names. Em-dash = no listed options on the
+                              feed (accepted coverage gap, Joe 2026-07-27). */}
+                          <td className="num">{ivDaily[r.ticker]?.volRank != null ? Math.round(ivDaily[r.ticker].volRank) : '—'}</td>
                           <td className="num">{fmtAdv(r.adv_usd)}</td>
                         </tr>
                       );
