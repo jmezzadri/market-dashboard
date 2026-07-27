@@ -195,3 +195,8 @@
   --mt-warn: var(--amber);
   --mt-amber: var(--amber);
 }
+
+/* Tickers anywhere in the Lab click through to the ticker page (Joe, 7/27).
+   Button reset + the same quiet link affordance as the Paper table. */
+.home-v12.lab-v12 .lab-ticklink { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; letter-spacing: inherit; }
+.home-v12.lab-v12 .lab-ticklink:hover { color: var(--gold-deep); text-decoration: underline; text-underline-offset: 3px; }

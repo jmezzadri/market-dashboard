@@ -22,7 +22,7 @@
    public indicator history (registered, chipped feeds). */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
 import useLabPrices, { useRiskFree, riskFreeForHorizon } from '../lib/useLabPrices';
@@ -321,6 +321,7 @@ function GrowthChart({ dates, lines }) {
 
 export default function PortfolioLabPage() {
   const { session, user, loading: authLoading } = useSession();
+  const navigate = useNavigate();
 
   const [holdings, setHoldings] = useState([]); // {ticker, weight(%), method, scenarios}
   const [horizon, setHorizon] = useState('1y');
@@ -761,7 +762,7 @@ export default function PortfolioLabPage() {
                     <tr>
                       <th>Ticker</th>
                       <th className="num">Last</th>
-                      <th className="num">Beta</th>
+                      <th className="num">Beta · 5y</th>
                       <th className="num">Volatility</th>
                       <th className="num">Weight %</th>
                       <th>Method</th>
@@ -777,7 +778,9 @@ export default function PortfolioLabPage() {
                       return (
                         <React.Fragment key={h.ticker}>
                           <tr className={failed[h.ticker] ? 'dim' : ''}>
-                            <td className="tick">{h.ticker}</td>
+                            <td className="tick">
+                              <button type="button" className="lab-ticklink" onClick={() => navigate(`/ticker/${h.ticker}`)}>{h.ticker}</button>
+                            </td>
                             <td className="num">{money(lastPrice[h.ticker])}</td>
                             <td className="num">{ps?.beta == null ? '—' : ps.beta.toFixed(2)}</td>
                             {/* The volatility the optimizer actually uses for
@@ -922,7 +925,7 @@ export default function PortfolioLabPage() {
                 ['Volatility', pct(portfolio.volH), selBench ? pct(selBench.vol * Math.sqrt(years)) : '—'],
                 ['Sharpe ratio', portfolio.sharpe == null ? '—' : portfolio.sharpe.toFixed(2),
                   selBench && selBench.vol > 0 ? ((selBench.erAnnual - rfH) / selBench.vol).toFixed(2) : '—'],
-                ['Beta vs SPY', portfolio.beta == null ? '—' : portfolio.beta.toFixed(2),
+                ['Beta vs SPY · 5y', portfolio.beta == null ? '—' : portfolio.beta.toFixed(2),
                   selBench?.beta == null ? '—' : selBench.beta.toFixed(2)],
                 ['Max drawdown (5y)', pct(portfolio.mdd), (() => {
                   const b = selBench?.ticker;
@@ -943,7 +946,7 @@ export default function PortfolioLabPage() {
                 <h3 className="label">Contribution to risk</h3>
                 {portfolio.valid.map((t, i) => (
                   <div key={t} className="lab-rcrow">
-                    <span className="tick">{t}</span>
+                    <button type="button" className="tick lab-ticklink" onClick={() => navigate(`/ticker/${t}`)}>{t}</button>
                     <span className="lab-rcbar"><i style={{ width: `${Math.max(portfolio.rc[i] * 100, 0)}%` }} /></span>
                     <span className="num">{pct(portfolio.rc[i], 0)}</span>
                   </div>
@@ -954,10 +957,12 @@ export default function PortfolioLabPage() {
                   <h3 className="label">Correlation of daily returns</h3>
                   <div className="lab-corr" style={{ gridTemplateColumns: `52px repeat(${analysis.have.length}, 1fr)` }}>
                     <span />
-                    {analysis.have.map((t) => <span key={`h${t}`} className="lab-corrhead">{t}</span>)}
+                    {analysis.have.map((t) => (
+                      <button key={`h${t}`} type="button" className="lab-corrhead lab-ticklink" onClick={() => navigate(`/ticker/${t}`)}>{t}</button>
+                    ))}
                     {analysis.have.map((t, i) => (
                       <React.Fragment key={`r${t}`}>
-                        <span className="lab-corrhead">{t}</span>
+                        <button type="button" className="lab-corrhead lab-ticklink" onClick={() => navigate(`/ticker/${t}`)}>{t}</button>
                         {analysis.have.map((u, j) => {
                           const v = analysis.C[i][j];
                           return (

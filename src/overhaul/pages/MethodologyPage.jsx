@@ -463,7 +463,10 @@ export default function MethodologyPage() {
               <b>Method 1 — CAPM.</b> Expected return = risk-free rate + beta × equity risk premium.
               Beta is measured by comparing the stock&rsquo;s daily moves to SPY&rsquo;s over the shared five-year
               window (at least one full year of history is required — thinner names show &ldquo;insufficient
-              history&rdquo; instead of a number). The risk-free rate is the live 2-year Treasury yield (a
+              history&rdquo; instead of a number). This long-window beta is the right input for a
+              multi-year expected return; it can differ from the &ldquo;Beta · 1y&rdquo; tile on a ticker&rsquo;s
+              detail page, which deliberately measures only the trailing year — a stock whose character
+              changed recently (ONDS, for example) reads higher on the one-year measure. The risk-free rate is the live 2-year Treasury yield (a
               2y–10y blend for the 3-year horizon), and the equity risk premium is Damodaran&rsquo;s published
               implied premium for the US market, reviewed quarterly.
             </p>
