@@ -119,6 +119,8 @@
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-line.b0,
 [data-mt-theme='navy'] .home-v12.lab-v12 .lab-line.b0 { stroke: var(--ink-soft); }
 
+.home-v12.lab-v12 .lab-chartctl { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.home-v12.lab-v12 .lab-seg.small button { padding: 5px 11px; font-size: 12.5px; }
 .home-v12.lab-v12 .lab-benchpick { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .home-v12.lab-v12 .lab-benchpick button { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink-soft); border-radius: 999px; font: inherit; font-size: 12.5px; padding: 5px 13px; cursor: pointer; }
 .home-v12.lab-v12 .lab-benchpick button.on { border-color: var(--gold-deep); color: var(--ink); font-weight: 700; box-shadow: 0 0 0 1px var(--gold-deep) inset; }

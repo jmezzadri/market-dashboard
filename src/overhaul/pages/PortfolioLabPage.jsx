@@ -148,10 +148,17 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
   const pts = frontier.points;
   const xs = pts.map((p) => p.vol).concat(current ? [current.vol] : [], benches.map((b) => b.vol));
   const ys = pts.map((p) => p.ret).concat(current ? [current.ret] : [], benches.map((b) => b.ret));
-  const xmin = 0;
-  const xmax = Math.max(...xs) * 1.12;
-  const ymin = Math.min(0, ...ys) * 1.1;
-  const ymax = Math.max(...ys) * 1.15;
+  /* Pad around the DATA on both axes (never anchor at 0): with a high-vol
+     holding in the book a 0-anchored scale crushed every point into the top
+     corner, above the last gridline (Joe, 7/27). */
+  const xlo = Math.min(...xs); const xhi = Math.max(...xs);
+  const ylo = Math.min(...ys); const yhi = Math.max(...ys);
+  const xpad = (xhi - xlo) * 0.18 || xhi * 0.15 || 0.02;
+  const ypad = (yhi - ylo) * 0.22 || Math.abs(yhi) * 0.15 || 0.02;
+  const xmin = Math.max(0, xlo - xpad);
+  const xmax = xhi + xpad;
+  const ymin = ylo - ypad;
+  const ymax = yhi + ypad;
   const X = (v) => P.l + ((v - xmin) / (xmax - xmin)) * (W - P.l - P.r);
   const Y = (v) => H - P.b - ((v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.vol).toFixed(1)},${Y(p.ret).toFixed(1)}`).join(' ');
@@ -209,13 +216,21 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
         {marks.map((m) => (
           <g key={m.label}>
             <circle cx={X(m.p.vol)} cy={Y(m.p.ret)} r="4.5" className="lab-markdot" />
-            <text x={X(m.p.vol) + m.dx} y={Y(m.p.ret) + m.dy} className="lab-dotlabel" textAnchor={m.anchor}>{m.label}</text>
+            <text
+              x={Math.min(Math.max(X(m.p.vol) + m.dx, P.l + 4), W - P.r - 4)}
+              y={Math.min(Math.max(Y(m.p.ret) + m.dy, P.t + 12), H - P.b - 6)}
+              className="lab-dotlabel" textAnchor={m.anchor}
+            >{m.label}</text>
           </g>
         ))}
         {current && (
           <g>
             <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />
-            <text x={X(current.vol) + 2} y={Y(current.ret) - 11} className="lab-dotlabel you" textAnchor="middle">Your portfolio</text>
+            <text
+              x={Math.min(Math.max(X(current.vol) + 2, P.l + 40), W - P.r - 40)}
+              y={Math.max(Y(current.ret) - 11, P.t + 12)}
+              className="lab-dotlabel you" textAnchor="middle"
+            >Your portfolio</text>
           </g>
         )}
         {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
@@ -274,6 +289,7 @@ export default function PortfolioLabPage() {
   const [horizon, setHorizon] = useState('1y');
   const [benchSel, setBenchSel] = useState(['SPY']);
   const [openScen, setOpenScen] = useState(null); // ticker with scenario drawer open
+  const [growthWin, setGrowthWin] = useState('max'); // growth-chart lookback
   const [saved, setSaved] = useState([]);
   const [activeName, setActiveName] = useState('');
   const [saveName, setSaveName] = useState('');
@@ -418,7 +434,16 @@ export default function PortfolioLabPage() {
     const all = { ...Object.fromEntries(analysis.valid.map((t) => [t, series[t]])) };
     for (const b of want) if (series[b]?.length) all[b] = series[b];
     for (const e of Object.keys(mixWeights)) all[e] = series[e];
-    const { dates, closes } = alignSeries(all);
+    let { dates, closes } = alignSeries(all);
+    // Chart lookback picker: slice the common history to the chosen window,
+    // then every line re-bases to $10K at the window start.
+    const WIN_DAYS = { '1y': 252, '2y': 504, '3y': 756, max: Infinity };
+    const keep = Math.min(dates.length, WIN_DAYS[growthWin] ?? Infinity);
+    if (keep < dates.length) {
+      const i0 = dates.length - keep;
+      dates = dates.slice(i0);
+      closes = Object.fromEntries(Object.entries(closes).map(([k, v]) => [k, v.slice(i0)]));
+    }
     if (dates.length < 30) return { dates: [], lines: [] };
     const raw = analysis.valid.map((t) => Number(holdings.find((h) => h.ticker === t)?.weight) || 0);
     const tot = raw.reduce((a, b) => a + b, 0) || 1;
@@ -438,7 +463,7 @@ export default function PortfolioLabPage() {
       });
     }
     return { dates, lines };
-  }, [portfolio, analysis, benchSel.join(','), series, sicMap, JSON.stringify(holdings.map((h) => [h.ticker, h.weight]))]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [portfolio, analysis, benchSel.join(','), growthWin, series, sicMap, JSON.stringify(holdings.map((h) => [h.ticker, h.weight]))]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── saved portfolios ─────────────────────────────────────────────── */
   const refreshSaved = () => {
@@ -796,15 +821,22 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Growth of $10,000</h2>
-              <div className="lab-benchpick">
-                {[...BENCHMARKS, SECTOR_MIX].map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    className={benchSel.includes(b) ? 'on' : ''}
-                    onClick={() => setBenchSel((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]))}
-                  >{b}</button>
-                ))}
+              <div className="lab-chartctl">
+                <div className="lab-seg small">
+                  {[['1y', '1 year'], ['2y', '2 years'], ['3y', '3 years'], ['max', 'Max']].map(([k, l]) => (
+                    <button key={k} type="button" className={growthWin === k ? 'on' : ''} onClick={() => setGrowthWin(k)}>{l}</button>
+                  ))}
+                </div>
+                <div className="lab-benchpick">
+                  {[...BENCHMARKS, SECTOR_MIX].map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      className={benchSel.includes(b) ? 'on' : ''}
+                      onClick={() => setBenchSel((s) => (s.includes(b) ? s.filter((x) => x !== b) : [...s, b]))}
+                    >{b}</button>
+                  ))}
+                </div>
               </div>
             </div>
             {growth.lines.length ? (
@@ -819,9 +851,10 @@ export default function PortfolioLabPage() {
                   ))}
                 </div>
                 <p className="lab-foot">
-                  Historical performance of today&rsquo;s weights, rebalanced monthly, over the common price
-                  history of every line. {benchSel.includes(SECTOR_MIX)
-                    ? 'Sector mix holds each stock&rsquo;s sector ETF at the same weight.' : ''}
+                  Historical performance of today&rsquo;s weights, rebalanced monthly. Every line starts at
+                  $10,000 on {growth.dates[0]} — the chart can only go back as far as the shortest price
+                  history among your holdings and the selected benchmarks (up to 5 years).
+                  {benchSel.includes(SECTOR_MIX) ? ' Sector mix holds each stock’s sector ETF at the same weight.' : ''}
                 </p>
               </>
             ) : <p className="lab-empty">Loading benchmark history…</p>}
