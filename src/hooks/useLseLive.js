@@ -42,13 +42,17 @@ export default function useLseLive(tickers, { enabled = true } = {}) {
       return undefined;
     }
     const symbols = key.split(',');
+    let fetchedOnce = false;
 
     async function tick() {
-      // Pause polling in hidden tabs — resume on visibility.
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      // Always fetch the first time (a background tab should have data the
+      // moment it's switched to); after that, pause the polling loop while
+      // hidden and resume instantly on visibilitychange below.
+      if (fetchedOnce && typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         timer.current = setTimeout(tick, POLL_OPEN_MS);
         return;
       }
+      fetchedOnce = true;
       try {
         const { data, error } = await supabase.functions.invoke('lse-live', {
           body: { mode: 'quotes', symbols },
@@ -78,9 +82,19 @@ export default function useLseLive(tickers, { enabled = true } = {}) {
 
     setState((s) => ({ ...s, loading: true }));
     tick();
+    // Coming back to a hidden tab refreshes immediately instead of waiting
+    // out the paused poll cycle.
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(timer.current);
+        tick();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       alive.current = false;
       clearTimeout(timer.current);
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, [key, enabled]);
 
