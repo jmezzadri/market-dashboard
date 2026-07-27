@@ -908,7 +908,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Efficient frontier</h2>
-              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from the holdings&rsquo; shared daily history ({windowLabel}, up to 5 years); Implied vol rows swap in options-implied volatility</span>
+              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from the holdings&rsquo; shared daily history ({windowLabel === '5y' ? '5 years' : `${windowLabel} — the longest history every holding shares, capped at 5 years`}); Implied vol rows swap in options-implied volatility</span>
             </div>
             {frontier && portfolio ? (
               <FrontierChart
@@ -932,7 +932,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Portfolio statistics</h2>
-              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · shared history of all holdings ({windowLabel}, up to 5 years)</span>
+              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · {windowLabel === '5y' ? '5 years of shared daily history' : `${windowLabel} of shared daily history — the longest window every holding covers`}</span>
             </div>
             <div className="lab-statgrid" role="table" aria-label="Portfolio statistics vs benchmark">
               <div className="lab-statrow head" role="row">
