@@ -476,7 +476,7 @@ export default function PortfolioLabPage() {
 
   async function savePortfolio() {
     const name = (saveName || activeName || '').trim();
-    if (!user || !name || !holdings.length) { setSaveMsg('Name it first'); return; }
+    if (!user || !name) { setSaveMsg('Name it first'); return; }
     const row = {
       user_id: user.id, name, holdings, horizon,
       benchmark: benchSel.join(','), updated_at: new Date().toISOString(),
