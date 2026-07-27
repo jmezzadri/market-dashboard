@@ -107,6 +107,16 @@
 .home-v12.lab-v12 .lab-eqdot { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
 .home-v12.lab-v12 .lab-fmarks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
 .home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: 6px; }
+.home-v12.lab-v12 .lab-fmark.asbtn { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: 12.5px; padding: 0; cursor: pointer; }
+.home-v12.lab-v12 .lab-fmark.asbtn:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+/* pointer-events:all — a hollow (fill:none) SVG circle otherwise only
+   responds on its thin outline, so clicks in the middle fell through */
+.home-v12.lab-v12 .lab-clickmark { cursor: pointer; pointer-events: all; }
+/* every non-interactive dot ignores the pointer so the clickable preset
+   markers are reachable even when points coincide */
+.home-v12.lab-v12 svg .lab-youdot,
+.home-v12.lab-v12 svg .lab-hoverdot,
+.home-v12.lab-v12 svg .lab-benchdot { pointer-events: none; }
 .home-v12.lab-v12 .lab-fmark svg { overflow: visible; }
 .home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--bg2); stroke-width: 2; }
 .home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 2; }

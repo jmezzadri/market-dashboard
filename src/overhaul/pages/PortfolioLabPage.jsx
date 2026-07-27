@@ -182,6 +182,7 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
     return best;
   };
   const handleMove = (e) => {
+    if (e.target?.classList?.contains('lab-clickmark')) return; // marker hover owns the read line
     const box = e.currentTarget.getBoundingClientRect();
     const mx = ((e.clientX - box.left) / box.width) * W;
     const my = ((e.clientY - box.top) / box.height) * H;
@@ -193,9 +194,9 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
      (Joe, 7/27 ×3). Each mark gets a distinct marker style and the names
      live in a legend row below the chart, where they can never collide. */
   const marks = [
-    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 5 },
-    { p: frontier.minVol, cls: 'lab-ringdot', r: 5 },
-    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4 },
+    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 5, label: 'Max Sharpe' },
+    { p: frontier.minVol, cls: 'lab-ringdot', r: 5, label: 'Min volatility' },
+    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4, label: 'Equal weight' },
   ];
   return (
     <div className="lab-chartwrap">
@@ -225,22 +226,34 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
             <text x={X(b.vol) - 7} y={Y(b.ret) + 4} className="lab-dotlabel" textAnchor="end">{b.ticker}</text>
           </g>
         ))}
-        {marks.map((m) => (
-          <circle key={m.cls} cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r} className={m.cls} />
-        ))}
+        {/* portfolio dot renders FIRST and ignores the pointer, so the
+            clickable preset markers are never buried underneath it when the
+            points coincide */}
         {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />}
+        {marks.map((m) => (
+          <circle
+            key={m.cls}
+            cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
+            className={`${m.cls} lab-clickmark`}
+            onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
+            onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
+          />
+        ))}
         {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
       </svg>
       <div className="lab-fmarks">
         <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="5" className="lab-youdot" /></svg>Your portfolio</span>
-        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-markdot" /></svg>Max Sharpe</span>
-        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-ringdot" /></svg>Min volatility</span>
-        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4" className="lab-eqdot" /></svg>Equal weight</span>
+        {marks.map((m) => (
+          <button key={m.cls} type="button" className="lab-fmark asbtn" onClick={() => onPick(m.p)}>
+            <svg width="12" height="12"><circle cx="6" cy="6" r={Math.min(m.r, 4.5)} className={m.cls} /></svg>
+            {m.label}
+          </button>
+        ))}
       </div>
       <div className="lab-frontier-read">
         {hover
-          ? <>At {pct(hover.vol)} volatility the frontier expects {signPct(hover.ret)} a year — click to load these weights.</>
-          : <>Click any point on the curve to load its weights into the table. Sharpe uses a {pct(rf, 2)} risk-free rate.</>}
+          ? <>{hover.label ? `${hover.label}: ` : 'At '}{pct(hover.vol)} volatility{hover.label ? '' : ' the frontier'} expects {signPct(hover.ret)} a year — click to load these weights.</>
+          : <>Click any point on the curve — or a marked point / its legend name — to load those weights into the table. Sharpe uses a {pct(rf, 2)} risk-free rate.</>}
       </div>
     </div>
   );
