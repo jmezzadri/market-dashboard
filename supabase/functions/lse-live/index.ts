@@ -5,6 +5,12 @@
 //   { mode: "iv", symbol: "AAPL" }             -> ATM implied-vol term structure (per expiry)
 //   { mode: "scan_iv" }                        -> daily batch: ATM IV + vol rank for scanner names
 //
+// verify_jwt is OFF (site convention — the prod client ships the new
+// sb_publishable key, which the platform JWT check rejects; every other
+// site-called function here is verify_jwt=false too). Abuse is bounded
+// server-side: shared cache TTLs gate vendor calls, 45-symbol cap per
+// request, negative-cache for unknown symbols.
+//
 // Design rules (LESSONS-driven):
 // - The LSE key NEVER leaves the server: read via public.get_lse_api_key()
 //   (security definer, service-role-only) using this function's service key.
