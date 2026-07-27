@@ -3813,6 +3813,39 @@
    "failure_mode": "Insider sub-score reads em-dash; score drill evidence empty.",
    "owner": "Data Steward",
    "sla_basis": "49h: daily cadence, same-morning ingest + 24h grace."
+  },
+  {
+   "id": "lab-price_history-ondemand",
+   "category": "lab",
+   "name": "lab_price_history",
+   "description": "Portfolio Lab price history - split/dividend-adjusted daily closes for holdings, benchmarks and sector ETFs, fetched live per ticker (trailing 5 years).",
+   "sourcing_mode": "STP",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "/api/price-history (Yahoo v8 chart API)",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "on-demand",
+   "scheduled_fetch_time_et": null,
+   "refresh_trigger": "Fetched on Portfolio Lab page load / ticker add; edge-cached",
+   "freshness_sla_hours": null,
+   "data_max_age_hours": null,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "None - in-session only, never persisted",
+   "producer_script": "api/price-history.js",
+   "consumer_surfaces": [
+    {
+     "tab": "lab",
+     "tile": "Holdings table / frontier / statistics / growth chart"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology - Portfolio Lab section"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Failed ticker flagged on-page and excluded from every computation; no synthetic fallback.",
+   "owner": "Senior Quant (methods), Lead Dev (endpoint), Data Steward (governance)",
+   "notes": "On-demand element (no pipeline_health row - no scheduled producer); page states 'Prices through {date}, fetched live'. Registered 2026-07-27 with the Portfolio Lab page."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

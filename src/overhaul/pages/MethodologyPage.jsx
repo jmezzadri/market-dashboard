@@ -49,6 +49,7 @@ const SECTIONS = [
   ['engine',    'Engine read'],
   ['scanner',   'Trading scanner'],
   ['portfolio', 'Paper Portfolio'],
+  ['lab',       'Portfolio Lab'],
   ['freshness', 'Data freshness contract'],
   ['sources',   'Data sources & vendors'],
 ];
@@ -57,10 +58,10 @@ const SECTIONS = [
    at runtime, so it can never drift. */
 const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
   readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
-  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data' };
+  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data', lab: 'Portfolio Lab' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News',
-  commentary: 'Commentary', ops: 'Operations' };
+  commentary: 'Commentary', ops: 'Operations', lab: 'Portfolio Lab' };
 
 function fmtPct(v, digits = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -428,9 +429,56 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 05 — Freshness */}
-        <article id="freshness" className="me-section">
+        {/* 05 — Portfolio Lab */}
+        <article id="lab" className="me-section">
           <div className="me-num">05</div>
+          <div>
+            <div className="mt-eyebrow">Portfolio Lab</div>
+            <h2 className="me-h2">Expected return, two ways · one optimizer</h2>
+            <p className="me-body-p">
+              The <b>Portfolio Lab</b> (signed-in users) estimates the expected return of any US stock or
+              ETF, builds portfolios from those estimates, and compares the result against benchmarks.
+              Every price on the page is a <b>split- and dividend-adjusted daily close</b> fetched live
+              from Yahoo Finance&rsquo;s public chart data — one price source for every series on the page —
+              covering the trailing five years.
+            </p>
+            <p className="me-body-p">
+              <b>Method 1 — CAPM.</b> Expected return = risk-free rate + beta × equity risk premium.
+              Beta is measured by comparing the stock&rsquo;s daily moves to SPY&rsquo;s over the shared five-year
+              window (at least one full year of history is required — thinner names show &ldquo;insufficient
+              history&rdquo; instead of a number). The risk-free rate is the live 2-year Treasury yield (a
+              2y–10y blend for the 3-year horizon), and the equity risk premium is Damodaran&rsquo;s published
+              implied premium for the US market, reviewed quarterly.
+            </p>
+            <p className="me-body-p">
+              <b>Method 2 — Weighted Scenarios.</b> You supply Bull / Base / Bear target prices for the
+              chosen horizon and a probability for each (they must sum to 100%). Expected return is the
+              probability-weighted average of the three implied returns. This method uses your inputs
+              only — no model.
+            </p>
+            <p className="me-body-p">
+              <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected
+              return, the mix of your holdings with the lowest volatility, where expected returns come
+              from each holding&rsquo;s selected method and risk (volatility and correlations) always comes
+              from the five-year price history. Clicking a point loads its weights. Marked points:
+              minimum volatility, maximum Sharpe ratio, and equal weight. Portfolio statistics —
+              volatility, Sharpe, beta, maximum drawdown, contribution to risk — are computed from the
+              same daily history with the portfolio rebalanced monthly to its current weights. The
+              &ldquo;Sector mix&rdquo; benchmark holds each stock&rsquo;s sector ETF at the same weight, mapped from the
+              company&rsquo;s SEC industry classification.
+            </p>
+            <div className="me-formula">
+              CAPM: expected_return = risk_free + beta × equity_risk_premium<br />
+              Scenarios: expected_return = Σ probability × (target_price ÷ last_price − 1)<br />
+              Frontier: minimize portfolio_variance subject to target return · weights ≥ 0 · weights sum to 100%<br />
+              horizon scaling: return compounds by years · volatility scales by √years
+            </div>
+          </div>
+        </article>
+
+        {/* 06 — Freshness */}
+        <article id="freshness" className="me-section">
+          <div className="me-num">06</div>
           <div>
             <div className="mt-eyebrow">Data freshness contract</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
@@ -493,9 +541,9 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 06 — Sources */}
+        {/* 07 — Sources */}
         <article id="sources" className="me-section">
-          <div className="me-num">06</div>
+          <div className="me-num">07</div>
           <div>
             <div className="mt-eyebrow">Data sources &amp; vendors</div>
             <h2 className="me-h2">Where every number comes from</h2>

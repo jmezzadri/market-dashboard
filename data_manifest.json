@@ -2260,6 +2260,36 @@
       "owner": "Data Steward",
       "sla_basis": "Mirrors scanner.insider-history-uw (49h) so the watchdog treats the shadow exactly like the feed it will replace.",
       "id": "scanner.insider-history-edgar"
+    },
+    "lab.price-history-yahoo": {
+      "category": "lab",
+      "element": "Portfolio Lab price history (adjusted daily closes for holdings, benchmarks and sector ETFs)",
+      "sourcing_mode": "stp",
+      "source_vendor": "Yahoo Finance (public chart API via api/price-history.js)",
+      "license_tier": "free",
+      "cadence": "on-demand",
+      "refresh_trigger": "On-demand: api/price-history.js serverless endpoint fetches the Yahoo chart API per ticker when the Portfolio Lab page loads or a ticker is added",
+      "schedule_et": "n/a - fetched on page load per ticker (5y window), edge-cached",
+      "freshness_sla_hours": null,
+      "inputs": [
+        {
+          "provider": "Yahoo Finance",
+          "dataset": "Daily OHLCV + adjusted close per ticker, trailing 5 years",
+          "location": "https://query1.finance.yahoo.com/v8/finance/chart/{ticker} via /api/price-history",
+          "method": "API"
+        }
+      ],
+      "consumer_surfaces": [
+        "Portfolio Lab -> holdings table (last price, expected return, range)",
+        "Portfolio Lab -> efficient frontier (covariance, betas)",
+        "Portfolio Lab -> statistics card (volatility, Sharpe, beta, max drawdown, correlations)",
+        "Portfolio Lab -> growth-of-$10K benchmark chart"
+      ],
+      "target_storage": "None - fetched live per session (module cache), never persisted. Risk-free inputs come from the already-registered ust_2y / ust_10y feeds via public/indicator_history.json.",
+      "failure_mode": "A ticker whose fetch fails is flagged 'No price history found' on the page and excluded from every computation - no synthetic fallback (LESSONS 4.4). If the risk-free fetch fails, CAPM values render em-dash.",
+      "owner": "Data Steward",
+      "notes": "Registered 2026-07-27 with the Portfolio Lab page (PORTFOLIO_LAB_BUILD_SPEC.md). On-demand governance pattern mirrors news.market-headlines-multisource (v8 precedent): registered element, page-stated as-of, no pipeline_health row because no scheduled producer exists. Same endpoint the ticker technicals panel uses. Phase 3 (options-implied method) will register its own element when an options source is chosen.",
+      "id": "lab.price-history-yahoo"
     }
   }
 }

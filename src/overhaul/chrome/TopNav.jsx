@@ -14,6 +14,7 @@ const ITEMS = [
   { to: '/macro', label: 'Macro' },
   { to: '/scanner', label: 'Scanner' },
   { to: '/paper', label: 'Paper' },
+  { to: '/portfolio-lab', label: 'Portfolio Lab' },
   { to: '/methodology', label: 'Methodology' },
   { to: '/admin/data', label: 'Data' },
 ];

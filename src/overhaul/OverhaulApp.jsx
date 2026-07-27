@@ -57,6 +57,7 @@ import { useSession } from '../auth/useSession';
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
 import ScannerPage from './pages/ScannerPage';
+import PortfolioLabPage from './pages/PortfolioLabPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
@@ -165,6 +166,7 @@ function Shell() {
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<PaperRoute />} />
+            <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
