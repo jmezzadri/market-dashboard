@@ -708,6 +708,7 @@ export default function PortfolioLabPage() {
                     <tr>
                       <th>Ticker</th>
                       <th className="num">Last</th>
+                      <th className="num">Beta</th>
                       <th className="num">Weight %</th>
                       <th>Method</th>
                       <th className="num">Expected return · {HORIZONS[horizon].label}</th>
@@ -724,6 +725,7 @@ export default function PortfolioLabPage() {
                           <tr className={failed[h.ticker] ? 'dim' : ''}>
                             <td className="tick">{h.ticker}</td>
                             <td className="num">{money(lastPrice[h.ticker])}</td>
+                            <td className="num">{ps?.beta == null ? '—' : ps.beta.toFixed(2)}</td>
                             <td className="num">
                               <input
                                 className="lab-w"
@@ -762,7 +764,7 @@ export default function PortfolioLabPage() {
                           </tr>
                           {scenOpen && h.scenarios && (
                             <tr className="lab-scenrow">
-                              <td colSpan={7}>
+                              <td colSpan={8}>
                                 <div className="lab-scen">
                                   {['bull', 'base', 'bear'].map((k) => (
                                     <div key={k} className="lab-scencase">
