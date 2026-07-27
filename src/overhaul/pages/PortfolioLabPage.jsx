@@ -780,7 +780,15 @@ export default function PortfolioLabPage() {
                             <td className="tick">{h.ticker}</td>
                             <td className="num">{money(lastPrice[h.ticker])}</td>
                             <td className="num">{ps?.beta == null ? '—' : ps.beta.toFixed(2)}</td>
-                            <td className="num">{ps?.vol == null || !Number.isFinite(ps.vol) ? '—' : pct(ps.vol, 0)}</td>
+                            {/* The volatility the optimizer actually uses for
+                                this row: options-implied for Implied vol rows
+                                (marked), realized 5y daily otherwise — one
+                                concept, one source per row (2026-06-12b). */}
+                            <td className="num">
+                              {h.method === 'ivol' && ps?.implVol != null
+                                ? <>{pct(ps.implVol, 0)}<span className="lab-ivtag">impl</span></>
+                                : (ps?.vol == null || !Number.isFinite(ps.vol) ? '—' : pct(ps.vol, 0))}
+                            </td>
                             <td className="num">
                               <input
                                 className="lab-w"
