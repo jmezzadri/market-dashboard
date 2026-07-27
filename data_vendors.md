@@ -54,6 +54,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 - **What it powers (manifest elements):**
   - `indicator.indicator-history-fred-yahoo` — DX-Y.NYB (USD), HG=F (copper), GC=F (gold), BKX (banks), SPX, plus other equity tickers used in v11 inputs
   - `infra.yfinance-bootstrap` — one-shot 2003-2024 ETF history backfill (already shipped; no recurring cost)
+  - `eod-backfill-history` edge function (2026-07-27) — on-demand deep-history backfill of `prices_eod` for viewed tickers whose series is shallower than ~4.7 years (the bulk universe only carried ~18 months from the capped Polygon backfill). Yahoo daily bars from the 1996 floor, current split basis, 1%-tolerance seam check on overlapping sessions before any write, older rows only, `source='yahoo-backfill'`. One vendor call per ticker ever (no-op once deep).
 - **Alternatives evaluated:** Polygon Massive covers EOD equity prices and could replace yfinance for non-FX/commodity series. DX-Y.NYB and the commodity futures don't have direct Massive equivalents at Basic tier — that's why yfinance stays.
 - **Contract end date:** None (no contract; informal terms-of-service).
 - **Removal blast radius:** Moderate. USD index, copper, gold, and bank-index inputs to the cycle board would go stale; ~5 indicators on /#indicators render last-good with a stale chip. v9/v10 allocator falls back to last-known prices for these symbols.

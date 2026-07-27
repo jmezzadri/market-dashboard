@@ -207,3 +207,7 @@
 .home-v12.lab-v12 .lab-table tbody tr.lab-row { cursor: pointer; transition: background .16s ease, transform .16s ease; }
 .home-v12.lab-v12 .lab-table tbody tr.lab-row:hover { background: color-mix(in srgb, var(--gold-deep) 8%, transparent); }
 .home-v12.lab-v12 .lab-table tbody tr.lab-row:hover td.tick .lab-ticklink { color: var(--gold-deep); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Holdings card header: set-all-methods segment beside the add box. */
+.home-v12.lab-v12 .lab-headtools { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.home-v12.lab-v12 .lab-allmethod { display: flex; flex-direction: column; gap: 6px; }

@@ -661,6 +661,16 @@ export default function PortfolioLabPage() {
     return next.map((h, i) => ({ ...h, weight: i === 0 ? first : w }));
   });
   const removeTicker = (t) => setHoldings((hs) => hs.filter((h) => h.ticker !== t));
+  // One click sets every holding's method (spec §2's global switcher —
+  // built 2026-07-27 on Joe's ask; per-row overrides still work after).
+  const setAllMethods = (m) => {
+    setHoldings((hs) => hs.map((h) => ({
+      ...h,
+      method: m,
+      scenarios: m === 'scen' ? (h.scenarios || defaultScen(h.ticker)) : h.scenarios,
+    })));
+    setOpenScen(null);
+  };
   const patch = (t, up) => setHoldings((hs) => hs.map((h) => (h.ticker === t ? { ...h, ...up } : h)));
   const patchScen = (t, k, f, v) => setHoldings((hs) => hs.map((h) => (
     h.ticker === t
@@ -758,7 +768,22 @@ export default function PortfolioLabPage() {
         <Reveal as="section" className="lab-card">
           <div className="lab-cardhead">
             <h2 className="serif">Holdings</h2>
-            <TickerAdd onAdd={addTicker} existing={held} />
+            <div className="lab-headtools">
+              {holdings.length >= 2 && (
+                <div className="lab-ctl lab-allmethod">
+                  <span className="label">Set all methods</span>
+                  <div className="lab-seg small">
+                    {Object.entries(METHODS).map(([k, v]) => {
+                      const allOn = holdings.length > 0 && holdings.every((h) => h.method === k);
+                      return (
+                        <button key={k} type="button" className={allOn ? 'on' : ''} onClick={() => setAllMethods(k)}>{v}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <TickerAdd onAdd={addTicker} existing={held} />
+            </div>
           </div>
 
           {failedHeld.length > 0 && (

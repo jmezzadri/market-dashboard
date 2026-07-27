@@ -1152,7 +1152,7 @@
    "monthly_cost_usd": 0,
    "cadence": "daily",
    "scheduled_fetch_time_et": "18:00 (UTC 22:00)",
-   "refresh_trigger": "MASSIVE-DAILY.yml + pg_cron backup",
+   "refresh_trigger": "MASSIVE-DAILY.yml + pg_cron backup; on-demand deep-history backfill (eod-backfill-history, Yahoo, seam-checked, older rows only) when a viewed ticker's series is shallow",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
    "data_calendar": "nyse-trading-day",

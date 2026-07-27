@@ -36,7 +36,7 @@
    "source_vendor": "Polygon Massive",
    "license_tier": "paid",
    "cadence": "daily",
-   "refresh_trigger": "github-actions: MASSIVE-DAILY.yml",
+   "refresh_trigger": "github-actions: MASSIVE-DAILY.yml; edge function eod-backfill-history (on-demand deep history: viewing a ticker whose stored series is younger than ~4.7y triggers a one-time Yahoo backfill to the 1996 floor \u2014 seam-checked within 1% on overlapping sessions, older rows only, source tag yahoo-backfill)",
    "schedule_et": "18:00 ET weekdays primary + 20:00 ET + 23:00 ET backups",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
@@ -48,7 +48,7 @@
     "Asset Tilt \u2192 sector performance (via sector-perf compute)"
    ],
    "target_storage": "Supabase: prices_eod",
-   "failure_mode": "Trading Opps + Portfolio Insights show stale prices and an amber/red freshness chip; day % change tile reads em-dash. | Split seams: series must stay on one share basis; MASSIVE-DAILY runs scripts/adjust_splits_retroactive.py after ingest to re-base history across new splits (LESSONS 4.20, migration 084). One-off manual re-base of ~40 tickers applied 2026-07-20.",
+   "failure_mode": "Trading Opps + Portfolio Insights show stale prices and an amber/red freshness chip; day % change tile reads em-dash. | Split seams: series must stay on one share basis; MASSIVE-DAILY runs scripts/adjust_splits_retroactive.py after ingest to re-base history across new splits (LESSONS 4.20, migration 084). One-off manual re-base of ~40 tickers applied 2026-07-20. | Backfill basis mismatch (409) writes nothing \u2014 the Max chart just stays short for that name.",
    "owner": "Data Steward",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
    "id": "market.prices-eod-massive"
