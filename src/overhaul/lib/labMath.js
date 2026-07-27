@@ -145,6 +145,50 @@ export function annualFromHorizon(horizonER, years) {
   return Math.pow(g, 1 / years) - 1;
 }
 
+/* ── implied-volatility method (Phase 3, LSE options feed, 2026-07-27) ──
+   Options prices give the market's expected RANGE, not a directional
+   expected return (risk-neutral drift ≈ risk-free — useless for ranking),
+   so the method is framed honestly: drift stays CAPM; the volatility input
+   swaps from historical to options-implied (spec §3.3). */
+
+// Interpolate the ATM implied vol to a horizon, linear in TOTAL VARIANCE
+// (σ²·T) between the two bracketing expiries — the standard term-structure
+// interpolation. Flat extrapolation beyond the last listed expiry (stated
+// on the Methodology page). term: [{dte, iv}] (calendar days, annualized
+// decimal vol); horizonDays in calendar days. Returns annualized vol.
+export function ivAtHorizon(term, horizonDays) {
+  const pts = (term || [])
+    .filter((t) => Number(t.dte) > 0 && Number(t.iv) > 0)
+    .sort((a, b) => a.dte - b.dte);
+  if (!pts.length || !(horizonDays > 0)) return null;
+  if (horizonDays <= pts[0].dte) return pts[0].iv;
+  const last = pts[pts.length - 1];
+  if (horizonDays >= last.dte) return last.iv;
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i].dte >= horizonDays) {
+      const lo = pts[i - 1];
+      const hi = pts[i];
+      const vLo = lo.iv * lo.iv * lo.dte;
+      const vHi = hi.iv * hi.iv * hi.dte;
+      const v = vLo + ((vHi - vLo) * (horizonDays - lo.dte)) / (hi.dte - lo.dte);
+      return Math.sqrt(v / horizonDays);
+    }
+  }
+  return last.iv;
+}
+
+// Swap the covariance diagonal to implied vols while keeping historical
+// correlations: S'_ij = S_ij · (σ'_i/σ_i) · (σ'_j/σ_j), where σ'/σ = 1 for
+// holdings without an implied vol. Standard practitioner blend (spec §3.3).
+export function rescaleCovToImplied(S, order, histVolByTicker, implVolByTicker) {
+  const scale = order.map((t) => {
+    const h = histVolByTicker[t];
+    const im = implVolByTicker[t];
+    return im != null && h > 0 ? im / h : 1;
+  });
+  return S.map((row, i) => row.map((v, j) => v * scale[i] * scale[j]));
+}
+
 /* ── portfolio statistics ──────────────────────────────────────────────── */
 
 export function portfolioER(weights, mu) {

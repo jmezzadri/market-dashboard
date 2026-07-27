@@ -137,3 +137,8 @@
 @media (max-width: 480px) {
   .home-v12.ticker-v12 .tk-relatedgrid { grid-template-columns: 1fr !important; }
 }
+
+/* ── Live price line (LSE 1-minute feed, 2026-07-27) ── */
+.home-v12.ticker-v12 .tk-liveline { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
+.home-v12.ticker-v12 .tk-livelabel { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); }
+.home-v12.ticker-v12 .tk-livedim { color: var(--mut); font-size: 12.5px; }

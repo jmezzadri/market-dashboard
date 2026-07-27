@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import useScanScoreHistory from '../../hooks/useScanScoreHistory';
+import useLseIvDaily from '../../hooks/useLseIvDaily';
 import FreshnessChip from '../components/FreshnessChip';
 import ScanList, { INDICATOR_COLS, INDICATOR_COL_KEYS } from '../components/ScanList';
 import ScanDrill from '../components/ScanDrill';
@@ -45,7 +46,7 @@ function bucketFor(s) {
 // gear only hides what you opt out of. Reorder by dragging the header cells on
 // the table. Ticker pinned left, Score pinned right. Key bump clears older
 // saved layouts so everyone lands on the full grouped set once.
-const COLS_KEY = 'mt-scanner-cols-v6';
+const COLS_KEY = 'mt-scanner-cols-v7'; // v7: Vol rank column (LSE implied vol, 2026-07-27) lands in the Technicals group for everyone
 const LOCKED = ['ticker', 'score'];
 const DEFAULT_COL_STATE = INDICATOR_COL_KEYS.map((key) => ({ key, on: true }));
 
@@ -83,6 +84,7 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
 export default function ScannerPage() {
   const { rows: rawRows, bandCounts, scanDate, loading } = useTradingOppsTop(100);
   const { byTicker: scoreHist } = useScanScoreHistory();
+  const { byTicker: ivDaily } = useLseIvDaily(); // Vol rank column (LSE feed)
   const [drillOpenKey, setDrillOpenKey] = useState(null);
   const [colState, setColState] = useState(loadColState);
   const [showCols, setShowCols] = useState(false);
@@ -106,6 +108,7 @@ export default function ScannerPage() {
   const rows = useMemo(
     () => (rawRows || []).map((r) => {
       const h = scoreHist[r.ticker];
+      const iv = ivDaily[r.ticker];
       return {
         ...r,
         bucket: bucketFor(Number(r.score) || 0),
@@ -113,9 +116,11 @@ export default function ScannerPage() {
         scoreDelta: h?.delta ?? null,
         daysOnList: h?.daysOnList ?? null,
         scorePeak: h?.peak ?? null,
+        volRank: iv?.volRank ?? null,
+        atmIv: iv?.atmIv ?? null,
       };
     }),
-    [rawRows, scoreHist],
+    [rawRows, scoreHist, ivDaily],
   );
 
   function toggleCol(key) {
@@ -196,6 +201,8 @@ export default function ScannerPage() {
                   fallback={{ asOfIso: scanDate, calendar: 'nyse-trading-day' }}
                 />
                 <span>Latest scan{scanDate ? ` · ${fmtScanDay(scanDate)} close` : ''} · refreshes daily</span>
+                <FreshnessChip elementId="equity-lse_iv_scan-daily" variant="dot" />
+                <span>Vol rank · implied volatility</span>
                 <button type="button" className="sc-metalink" onClick={() => navigate('/methodology#scanner')}>
                   Methodology →
                 </button>

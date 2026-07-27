@@ -3846,6 +3846,103 @@
    "failure_mode": "Failed ticker flagged on-page and excluded from every computation; no synthetic fallback.",
    "owner": "Senior Quant (methods), Lead Dev (endpoint), Data Steward (governance)",
    "notes": "On-demand element (no pipeline_health row - no scheduled producer); page states 'Prices through {date}, fetched live'. Registered 2026-07-27 with the Portfolio Lab page."
+  },
+  {
+   "id": "market-lse_intraday-live",
+   "category": "market",
+   "name": "lse_intraday",
+   "description": "Live intraday price \u2014 latest 1-minute bar from London Strategic Edge (~10 s behind the tape). Display only: every engine stays on official end-of-day closes.",
+   "sourcing_mode": "STP",
+   "source_vendor": "London Strategic Edge",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "owner": "Data Steward",
+   "source_endpoint": "api.londonstrategicedge.com/vault/candles (1m, latest bar)",
+   "cadence": "intraday",
+   "cadence_label": "Live \u00b7 refreshes while you watch (about every 45 s)",
+   "scheduled_fetch_time_et": null,
+   "refresh_trigger": "Edge function lse-live (quotes) \u2014 on view, shared 45 s server cache",
+   "freshness_sla_hours": 3,
+   "data_max_age_hours": 3,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "market_hours_only": true,
+   "output_destination": "Supabase lse_live_quotes",
+   "producer_script": "supabase/functions/lse-live/index.ts",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Positions tables \u2014 Live price column"
+    },
+    {
+     "tab": "ticker",
+     "tile": "Hero price block \u2014 Live line"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Live price shows em-dash / last cached bar; engines unaffected.",
+   "sla_basis": "Market-hours clock, 3h (paper-intraday precedent); pauses at the close."
+  },
+  {
+   "id": "options-lse_atm_iv-ondemand",
+   "category": "options",
+   "name": "lse_atm_iv",
+   "description": "At-the-money implied-volatility term structure per underlying (calls, per expiry), from London Strategic Edge's own pricing models. Feeds the Portfolio Lab's Implied vol method.",
+   "sourcing_mode": "STP",
+   "source_vendor": "London Strategic Edge",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "owner": "Data Steward",
+   "source_endpoint": "api.londonstrategicedge.com/vault/options/chain",
+   "cadence": "daily",
+   "cadence_label": "On view (cached 30 min) \u00b7 daily heartbeat 17:50 ET",
+   "scheduled_fetch_time_et": "17:50",
+   "refresh_trigger": "Edge function lse-live (iv) on Portfolio Lab view; daily heartbeat via the scanner IV batch",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 0,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "output_destination": "Supabase lse_iv_term",
+   "producer_script": "supabase/functions/lse-live/index.ts",
+   "consumer_surfaces": [
+    {
+     "tab": "portfolio-lab",
+     "tile": "Implied vol expected-return method (range + optimizer volatility)"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Implied vol rows show em-dash; method falls back to CAPM + historical volatility.",
+   "sla_basis": "49h daily budget; the scan batch is the guaranteed daily pull."
+  },
+  {
+   "id": "equity-lse_iv_scan-daily",
+   "category": "equity",
+   "name": "lse_iv_scan",
+   "description": "~30-day at-the-money implied vol per scanner name plus a cross-sectional volatility rank (percentile of implied vol across the day's covered scan names).",
+   "sourcing_mode": "STP",
+   "source_vendor": "London Strategic Edge",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "owner": "Data Steward",
+   "source_endpoint": "api.londonstrategicedge.com/vault/options/chain",
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "17:50",
+   "refresh_trigger": "pg_cron lse-scan-iv-daily (21:50 UTC weekdays) -> edge function lse-live (scan_iv)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 78,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "output_destination": "Supabase lse_iv_daily",
+   "producer_script": "supabase/functions/lse-live/index.ts",
+   "consumer_surfaces": [
+    {
+     "tab": "scanner",
+     "tile": "Insider Conviction table \u2014 Vol rank column"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Vol rank column all em-dash + red chip. Structural coverage gaps (LSE options universe covers actively-traded names only) show em-dash per name by design.",
+   "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

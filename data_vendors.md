@@ -209,6 +209,23 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
+## 14. London Strategic Edge (free tier — live prices + options implied vol)
+
+- **Monthly cost:** $0 (free tier on Joe's signup; key in Supabase Vault).
+- **License tier:** Free API key. Verified plan limits (2026-07-27, live probe of the usage endpoint): 200 calls/minute, 2 concurrent vault reads, 50 GB/month data allowance (~13 MB used at integration time). No licensing/provenance story published — **continuity is the known risk**; the shadow-trial monitor (below) is the mitigation.
+- **What it powers (manifest elements):**
+  - `market.lse-intraday-live` — live 1-minute-bar prices, display only: Paper Portfolio positions "Live price" column + Ticker page "Live" line. Shared 45 s server cache (`lse_live_quotes`) via the `lse-live` edge function; engines stay on `prices_eod` + broker fills.
+  - `options.lse-atm-iv-ondemand` — ATM implied-vol term structure for the Portfolio Lab's Implied vol method (`lse_iv_term` cache).
+  - `equity.lse-iv-scan-daily` — ~30-day ATM IV + cross-sectional volatility rank for scanner names (`lse_iv_daily`, pg_cron 17:50 ET weekdays).
+- **Coverage (verified 2026-07-27):** prices ~4,000 US stocks + major ETFs — Portfolio Lab test names 7/7, Paper book 32/33, benchmarks 4/4; options universe is much thinner (actively-traded names only — 3 of 22 names on the 2026-07-24 scan list had chains). Uncovered names render an em-dash everywhere, never a substituted value. Joe accepted these gaps 2026-07-27.
+- **Data quirks (from the shadow trial + build, binding on any new consumer):** daily candles are midnight-UTC days including after-hours — the official close is the 20:00Z (EDT) 1m bar's OPEN; default row order is oldest-first (always pass order=desc); per-contract `underlying_price` and `dte` are stamped at that contract's own last update and can be days/weeks stale (anchor ATM to the freshest contract; compute days-to-expiry locally); options chains include long-expired contracts.
+- **Quality vs. official tape:** Friday-close parity on SPY/DIA exact to the penny, QQQ −0.6 bps, IWM +1.4 bps (auction print vs last trade); 1m bars ~10 s behind; IV internally consistent vs Black-Scholes cross-check.
+- **Alternatives evaluated:** Unusual Whales (paid, $150/mo — lapses 2026-08-12, the reason this feed exists); Polygon options Starter (~$29/mo — Joe declined 2026-07-27, "augment at $0"); Massive paid tiers (Joe declined — do not re-pitch).
+- **Contract end date:** None (free key). Health monitored continuously: the shadow-trial loggers (`lse-shadow-pull`, every 30 min market hours + daily close parity) stay live, and the Aug 10 automated health report reviews the feed before the UW lapse.
+- **Removal blast radius:** Cosmetic-to-moderate, engines untouched. Paper "Live price" column and Ticker "Live" line go em-dash; Portfolio Lab's Implied vol method falls back to CAPM + historical volatility for every name; Scanner "Vol rank" column goes em-dash with a red chip. No trade, score, or allocation changes anywhere — the feed is display/analytics only by design.
+
+---
+
 ## Infrastructure (not data vendors, but real monthly cost — previously missing from this file)
 
 - **Supabase Pro — $25/month.** The database behind the entire site (2.5 GB; 5x over the 500 MB free cap — cannot downgrade). Settled decision 2026-07: stays.

@@ -174,3 +174,7 @@
 .home-v12.lab-v12 .lab-corrcell { padding: 5px 0; text-align: center; border-radius: 6px; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .home-v12.lab-v12 .lab-method-foot { color: var(--mut); font-size: 12.5px; max-width: 860px; margin: 8px 0 0; }
+
+/* ── Implied vol method (Phase 3, LSE feed, 2026-07-27) ── */
+.home-v12.lab-v12 .lab-ivnote { display: block; color: var(--mut); font-size: 11.5px; margin-top: 2px; white-space: nowrap; }
+.home-v12.lab-v12 .lab-ivchip { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; }

@@ -43,6 +43,7 @@ import BigHistoryChart from '../components/BigHistoryChart';
 import TradingViewChart, { tvSymbolFor } from '../components/TradingViewChart';
 import ScoreDial from '../components/ScoreDial';
 import FreshnessChip from '../components/FreshnessChip';
+import useLseLive from '../../hooks/useLseLive';
 import Tip from '../components/Tip';
 import useMassiveTickerInfo from '../../hooks/useMassiveTickerInfo';
 import useTradingOppsTop from '../../hooks/useTradingOppsTop';
@@ -395,6 +396,18 @@ export default function TickerPage() {
   /* Which scanner surfaced this name (2026-07-20) — the score block is scoped
      to Insider-scan names; everything else shows its source scanner instead
      of a dead "no score" dial. */
+  /* Live price — LSE 1-minute bars (display only; ~10 s behind the tape,
+     shared server cache). Uncovered names (LSE carries ~4,000 US stocks +
+     major ETFs) render an em-dash — never a substituted number
+     (Joe 2026-07-27; LESSONS 4.4). */
+  const lseLive = useLseLive([sym], { enabled: !!sym });
+  const liveQ = lseLive.bySymbol?.[sym] || null;
+  const livePrice = liveQ && liveQ.covered && liveQ.price != null ? liveQ.price : null;
+  // Move vs the last COMPLETED close: when the EOD row is itself an intraday
+  // print, the completed close is prev_close; otherwise it is last_close.
+  const liveBase = isIntraday ? prevClose : (price || null);
+  const livePct = livePrice != null && liveBase > 0 ? ((livePrice / liveBase) - 1) * 100 : null;
+
   const ptRow = powerTrend.row;
   const rsiHits = useMemo(() => {
     const hits = [];
@@ -586,6 +599,23 @@ export default function TickerPage() {
                 ? <>prev close ${fmt(prevClose, 2)}</>
                 : <>prev close —</>}
             </div>
+            {liveQ && (
+              <div className="tk-liveline num">
+                <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
+                {livePrice != null ? (
+                  <>
+                    <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
+                    {livePct != null && (
+                      <span className={livePct >= 0 ? 'up' : 'down'}>
+                        {' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}% vs last close
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <><span className="tk-livelabel">Live</span> — <span className="tk-livedim">not covered by the live price feed</span></>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="tk-scoreblock">

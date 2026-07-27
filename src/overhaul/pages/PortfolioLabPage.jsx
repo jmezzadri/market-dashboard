@@ -6,9 +6,14 @@
    core statistics vs a benchmark, growth-of-$10K comparison, and saved
    portfolios per user (portfolio_lab_portfolios, RLS owner-only).
 
-   ER methods live (Phase 1–2): CAPM and Weighted Scenarios. The
-   options-implied method is Phase 3, pending an options data source
-   (Joe decision 2026-07-27) — deliberately NOT rendered as a dead option.
+   ER methods live: CAPM, Weighted Scenarios, and (Phase 3, 2026-07-27)
+   Implied vol — options-implied expected range from the London Strategic
+   Edge ATM implied-vol term structure (lse-live edge function). Honest
+   framing per spec §3.3: options give a RANGE, not a directional expected
+   return, so drift stays CAPM and the volatility input swaps from
+   historical to implied (correlations stay historical). A name with no
+   listed options shows an em-dash and falls back to CAPM — never a
+   fabricated value (LESSONS 4.4).
 
    Math: src/overhaul/lib/labMath.js — every formula paper-checked in
    labMath.test.mjs (LESSONS 3.4). Prices: api/price-history (Yahoo,
@@ -21,11 +26,13 @@ import { Navigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
 import useLabPrices, { useRiskFree, riskFreeForHorizon } from '../lib/useLabPrices';
+import useLseIv from '../lib/useLseIv';
+import FreshnessChip from '../components/FreshnessChip';
 import {
   HORIZONS, alignSeries, dailyReturns, annualVol, betaVs, covMatrix, corrMatrix,
   capmAnnualER, scenarioHorizonER, horizonFromAnnual, annualFromHorizon,
   portfolioER, portfolioVol, riskContribution, portfolioPath, maxDrawdown,
-  efficientFrontier, sicToSectorEtf,
+  efficientFrontier, sicToSectorEtf, ivAtHorizon, rescaleCovToImplied,
 } from '../lib/labMath';
 import { ERP_ANNUAL, ERP_SOURCE, MIN_HISTORY_DAYS } from '../lib/labConfig';
 import '../styles/cream-system.css';
@@ -33,7 +40,7 @@ import '../styles/lab-v12.css';
 
 const BENCHMARKS = ['SPY', 'QQQ', 'IWM', 'DIA'];
 const SECTOR_MIX = 'Sector mix';
-const METHODS = { capm: 'CAPM', scen: 'Scenarios' };
+const METHODS = { capm: 'CAPM', scen: 'Scenarios', ivol: 'Implied vol' };
 
 const pct = (v, dp = 1) => (v == null || !Number.isFinite(v) ? '—' : `${(v * 100).toFixed(dp)}%`);
 const signPct = (v, dp = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(dp)}%`);
@@ -359,6 +366,10 @@ export default function PortfolioLabPage() {
   const { series, lastPrice, asOf, loading: pricesLoading, failed } = useLabPrices(wanted);
   const rfCurve = useRiskFree();
   const rfH = riskFreeForHorizon(rfCurve, horizon);   // for Sharpe/CAPM (annual rate)
+  /* ATM implied-vol term structures — fetched only for rows on the
+     Implied vol method (LSE options feed, server-cached). */
+  const ivolTickers = holdings.filter((h) => h.method === 'ivol').map((h) => h.ticker);
+  const { byTicker: ivMap, loading: ivLoading } = useLseIv(ivolTickers);
 
   /* ── analysis pipeline ────────────────────────────────────────────── */
   const analysis = useMemo(() => {
@@ -379,6 +390,8 @@ export default function PortfolioLabPage() {
       let erAnnual = null;
       let erH = null;
       let range = null;
+      let implVol = null;
+      let ivMissing = false;
       if (h.method === 'scen') {
         erH = scenarioHorizonER(h.scenarios, lastPrice[t]);
         erAnnual = annualFromHorizon(erH, years);
@@ -386,20 +399,41 @@ export default function PortfolioLabPage() {
           range = [h.scenarios.bear.price / lastPrice[t] - 1, h.scenarios.bull.price / lastPrice[t] - 1];
         }
       } else {
+        // CAPM drift — for both the CAPM method and the Implied vol method
+        // (options carry no usable directional drift; spec §3.3).
         erAnnual = enough.includes(t) ? capmAnnualER(beta, rfH, ERP_ANNUAL) : null;
         erH = horizonFromAnnual(erAnnual, years);
-        if (erH != null) {
+        if (h.method === 'ivol') {
+          implVol = ivAtHorizon(ivMap[t]?.term, years * 365);
+          if (implVol != null && erH != null) {
+            const moveH = implVol * Math.sqrt(years); // market-implied expected move over the horizon
+            range = [erH - moveH, erH + moveH];
+          } else {
+            ivMissing = true; // no listed options → em-dash; math falls back to CAPM/historical
+            if (erH != null) {
+              const volH = vol * Math.sqrt(years);
+              range = [erH - volH, erH + volH];
+            }
+          }
+        } else if (erH != null) {
           const volH = vol * Math.sqrt(years);
           range = [erH - volH, erH + volH];
         }
       }
-      perStock[t] = { beta: enough.includes(t) ? beta : null, vol, erAnnual, erH, range, thin: !enough.includes(t) };
+      perStock[t] = { beta: enough.includes(t) ? beta : null, vol, erAnnual, erH, range, implVol, ivMissing, thin: !enough.includes(t) };
     }
     const valid = have.filter((t) => perStock[t].erAnnual != null && !perStock[t].thin);
-    const S = covMatrix(rets, valid);
+    // Covariance: historical, then the Implied vol rows' diagonal swaps to
+    // options-implied vol (correlations stay historical) — ONE matrix feeds
+    // the frontier, portfolio vol, and risk contribution (2026-06-12b: one
+    // shared computation per concept).
+    const Shist = covMatrix(rets, valid);
+    const histVolMap = Object.fromEntries(valid.map((t) => [t, annualVol(rets[t])]));
+    const implVolMap = Object.fromEntries(valid.filter((t) => perStock[t].implVol != null).map((t) => [t, perStock[t].implVol]));
+    const S = Object.keys(implVolMap).length ? rescaleCovToImplied(Shist, valid, histVolMap, implVolMap) : Shist;
     const C = corrMatrix(rets, have);
     return { dates, closes, rets, perStock, valid, have, S, C };
-  }, [held.join(','), JSON.stringify(holdings), series, lastPrice, rfH, years]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [held.join(','), JSON.stringify(holdings), series, lastPrice, rfH, years, ivMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const weightsSum = holdings.reduce((s, h) => s + (Number(h.weight) || 0), 0);
 
@@ -661,6 +695,12 @@ export default function PortfolioLabPage() {
             and compare it against benchmarks. Prices through {asOf || '—'} · adjusted daily closes,
             fetched live · Risk-free {pct(rfH, 2)} ({horizon === '3y' ? '2y–10y Treasury blend' : '2-year Treasury'}
             {rfCurve.asOf ? `, ${rfCurve.asOf}` : ''}).
+            {ivolTickers.length > 0 && (
+              <span className="lab-ivchip">
+                <FreshnessChip elementId="options-lse_atm_iv-ondemand" variant="label" />
+                {ivLoading ? ' Fetching options data…' : null}
+              </span>
+            )}
           </p>
 
           <div className="lab-controls">
@@ -768,11 +808,22 @@ export default function PortfolioLabPage() {
                               )}
                             </td>
                             <td className={`num strong ${ps?.erH > 0 ? 'up' : ps?.erH < 0 ? 'down' : ''}`}>
-                              {ps?.thin && h.method === 'capm'
+                              {ps?.thin && (h.method === 'capm' || h.method === 'ivol')
                                 ? <span className="lab-dim">— insufficient history</span>
                                 : signPct(ps?.erH)}
                             </td>
-                            <td className="num">{ps?.range ? `${signPct(ps.range[0], 0)} to ${signPct(ps.range[1], 0)}` : '—'}</td>
+                            <td className="num">
+                              {h.method === 'ivol' && ps?.ivMissing
+                                ? <span className="lab-dim">— no listed options; using CAPM</span>
+                                : ps?.range
+                                  ? <>
+                                      {signPct(ps.range[0], 0)} to {signPct(ps.range[1], 0)}
+                                      {h.method === 'ivol' && ps?.implVol != null && (
+                                        <span className="lab-ivnote">market-implied · 1y IV {pct(ivAtHorizon(ivMap[h.ticker]?.term, 365), 0)}</span>
+                                      )}
+                                    </>
+                                  : '—'}
+                            </td>
                             <td className="num">
                               <button type="button" className="lab-x" aria-label={`Remove ${h.ticker}`} onClick={() => removeTicker(h.ticker)}>×</button>
                             </td>
@@ -826,7 +877,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Efficient frontier</h2>
-              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from 5 years of daily prices</span>
+              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from 5 years of daily prices; Implied vol rows swap in options-implied volatility</span>
             </div>
             {frontier && portfolio ? (
               <FrontierChart
@@ -966,7 +1017,9 @@ export default function PortfolioLabPage() {
         <Reveal as="p" className="lab-method-foot">
           CAPM expected return = risk-free rate + beta × {pct(ERP_ANNUAL, 2)} equity risk premium ({ERP_SOURCE}).
           Scenario expected return = probability-weighted return across your Bull / Base / Bear targets.
-          Full detail on the Methodology page.
+          Implied vol keeps the CAPM expected return and swaps the risk input to the options market&rsquo;s
+          at-the-money implied volatility (London Strategic Edge feed, interpolated to your horizon);
+          the range shown is the market-implied expected move. Full detail on the Methodology page.
         </Reveal>
 
       </div>

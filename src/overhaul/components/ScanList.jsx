@@ -46,6 +46,7 @@ export const INDICATOR_COLS = {
   rsi:     { key: 'rsi',     label: 'RSI (14-day)',          head: 'RSI',      w: '46px',  grow: 1 },
   vs200:   { key: 'vs200',   label: '% vs 200-day line',     head: '% 200d',   w: '62px',  grow: 1 },
   rvol:    { key: 'rvol',    label: 'Relative volume',       head: 'Rel vol',  w: '58px',  grow: 1 },
+  volrank: { key: 'volrank', label: 'Volatility rank',       head: 'Vol rank', w: '62px',  grow: 1 },
   mktcap:  { key: 'mktcap',  label: 'Market cap',            head: 'Mkt cap',  w: '66px',  grow: 1 },
   earn:    { key: 'earn',    label: 'Next earnings date',    head: 'Earnings', w: '74px',  grow: 1 },
   insider: { key: 'insider', label: 'Insider pts',           head: 'Insider',  w: '54px' },
@@ -62,7 +63,7 @@ export const INDICATOR_COLS = {
 export const INDICATOR_COL_KEYS = [
   'ticker', 'name', 'price',                       // Stock
   'day', 'chg30', 'from52hi',                      // Performance
-  'rsi', 'vs200', 'rvol',                          // Technicals
+  'rsi', 'vs200', 'rvol', 'volrank',               // Technicals
   'insider', 'tech',                               // Signal scores
   'mktcap', 'short', 'earn',                       // Other
   'trend',                                         // Score trend
@@ -76,7 +77,7 @@ export const DEFAULT_VISIBLE_KEYS = [...INDICATOR_COL_KEYS];
 export const COL_GROUP = {
   ticker: 'stock', name: 'stock', price: 'stock',
   day: 'performance', chg30: 'performance', from52hi: 'performance',
-  rsi: 'technicals', vs200: 'technicals', rvol: 'technicals',
+  rsi: 'technicals', vs200: 'technicals', rvol: 'technicals', volrank: 'technicals',
   insider: 'signals', tech: 'signals',
   mktcap: 'other', short: 'other', earn: 'other',
   trend: 'score', score: 'score',
@@ -121,6 +122,7 @@ const SORT_ACCESSORS = {
   rsi:      (r) => num(r.rsi),
   vs200:    (r) => num(r.sma200_pct),
   rvol:     (r) => num(r.relVolume),
+  volrank:  (r) => num(r.volRank),
   mktcap:   (r) => num(r.marketCap),
   earn:     (r) => r.earningsDate || null,
   insider:  (r) => num(r.insider_pts),
@@ -561,6 +563,23 @@ export default function ScanList({
                   <Tip content={v != null ? `Today's volume is ${v.toFixed(2)}× its 30-day average` : 'No volume reading for this name'} bare>
                     <span className="num" style={{ fontSize: 13, fontWeight: v != null && v >= 1.5 ? 700 : 600, color: v == null ? 'var(--mt-ink-3)' : v >= 1.5 ? 'var(--mt-ink-0)' : 'var(--mt-ink-2)' }}>
                       {v != null ? `${v.toFixed(2)}×` : '—'}
+                    </span>
+                  </Tip>
+                </div>
+              );
+            }
+            case 'volrank': {
+              // Options-implied volatility rank (London Strategic Edge feed):
+              // percentile of the name's ~30-day at-the-money implied vol
+              // across today's covered scan names. Coverage gaps (foreign
+              // names, some funds) show an em-dash — accepted (Joe 2026-07-27).
+              const v = num(r.volRank);
+              const iv = num(r.atmIv);
+              return (
+                <div key={k} style={{ textAlign: 'center' }}>
+                  <Tip content={v != null ? `Options market prices this name as more volatile than ${v.toFixed(0)}% of today's scanned names${iv != null ? ` (implied vol ${(iv * 100).toFixed(0)}%, ~30-day at-the-money)` : ''}` : 'No listed-options data on the live feed for this name'} bare>
+                    <span className="num" style={{ fontSize: 13, fontWeight: 600, color: v == null ? 'var(--mt-ink-3)' : v >= 80 ? 'var(--mt-down)' : 'var(--mt-ink-0)' }}>
+                      {v != null ? v.toFixed(0) : '—'}
                     </span>
                   </Tip>
                 </div>

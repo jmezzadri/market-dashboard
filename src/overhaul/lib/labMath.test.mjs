@@ -9,6 +9,7 @@ import {
   capmAnnualER, scenarioHorizonER, horizonFromAnnual, annualFromHorizon,
   portfolioER, portfolioVol, riskContribution, portfolioPath, maxDrawdown,
   projectSimplex, minVarianceForTarget, efficientFrontier, sicToSectorEtf,
+  ivAtHorizon, rescaleCovToImplied,
 } from './labMath.js';
 
 const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} !~ ${b} (tol ${tol})`);
@@ -143,4 +144,41 @@ test('SIC → sector ETF: software→XLK, banks→XLF, pharma→XLV, none→SPY'
   assert.equal(sicToSectorEtf(2836), 'XLV');
   assert.equal(sicToSectorEtf(2911), 'XLE');
   assert.equal(sicToSectorEtf(null), 'SPY');
+});
+
+/* ── implied-vol method paper checks (Phase 3, 2026-07-27) ─────────────── */
+
+test('ivAtHorizon by hand: 20% at 30d, 25% at 90d → 60d = sqrt((1.2+0.5·4.425)/60)', () => {
+  // Total variances (σ²·dte): 0.04·30 = 1.2 ; 0.0625·90 = 5.625.
+  // At 60d (halfway): v = 1.2 + (5.625−1.2)·(30/60) = 3.4125.
+  // σ(60d) = sqrt(3.4125/60) = sqrt(0.056875) = 0.238484800354…
+  const term = [{ dte: 30, iv: 0.20 }, { dte: 90, iv: 0.25 }];
+  close(ivAtHorizon(term, 60), 0.238484800354, 1e-9);
+});
+
+test('ivAtHorizon clamps: before first expiry and beyond last expiry are flat', () => {
+  const term = [{ dte: 30, iv: 0.20 }, { dte: 90, iv: 0.25 }];
+  close(ivAtHorizon(term, 10), 0.20, 1e-12);   // shorter than shortest listed
+  close(ivAtHorizon(term, 365), 0.25, 1e-12);  // flat extrapolation past last
+  assert.equal(ivAtHorizon([], 30), null);
+  assert.equal(ivAtHorizon([{ dte: 0, iv: 0.3 }], 30), null); // dte 0 excluded
+});
+
+test('ivAtHorizon exact at a listed expiry returns that expiry\'s vol', () => {
+  const term = [{ dte: 30, iv: 0.20 }, { dte: 90, iv: 0.25 }];
+  close(ivAtHorizon(term, 90), 0.25, 1e-12);
+});
+
+test('rescaleCovToImplied by hand: 2-asset diagonal swap keeps correlation', () => {
+  // Historical: σA=0.20 (var 0.04), σB=0.30 (var 0.09), cov 0.012 (ρ=0.2).
+  // Implied σA′=0.30 → scaleA=1.5, B unchanged → scaleB=1.
+  // S′ = [[0.04·2.25, 0.012·1.5], [0.012·1.5, 0.09]] = [[0.09, 0.018], [0.018, 0.09]].
+  const S = [[0.04, 0.012], [0.012, 0.09]];
+  const S2 = rescaleCovToImplied(S, ['A', 'B'], { A: 0.20, B: 0.30 }, { A: 0.30 });
+  close(S2[0][0], 0.09, 1e-12);
+  close(S2[0][1], 0.018, 1e-12);
+  close(S2[1][0], 0.018, 1e-12);
+  close(S2[1][1], 0.09, 1e-12);
+  // Correlation preserved: 0.018 / (0.3·0.3) = 0.2 — same ρ as before.
+  close(S2[0][1] / Math.sqrt(S2[0][0] * S2[1][1]), 0.2, 1e-12);
 });

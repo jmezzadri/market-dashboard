@@ -58,9 +58,10 @@ const SECTIONS = [
    at runtime, so it can never drift. */
 const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
   readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
-  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data', lab: 'Portfolio Lab' };
+  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data', lab: 'Portfolio Lab',
+  'portfolio-lab': 'Portfolio Lab' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
-  portfolio: 'Portfolio', news: 'News',
+  portfolio: 'Portfolio', news: 'News', options: 'Options data',
   commentary: 'Commentary', ops: 'Operations', lab: 'Portfolio Lab' };
 
 function fmtPct(v, digits = 2) {
@@ -324,6 +325,16 @@ export default function MethodologyPage() {
               refresh 3× daily.
             </p>
             <p className="me-body-p">
+              <b>Vol rank</b> (a table column, not a score input) reads the options market: each scanned
+              name&rsquo;s <b>~30-day at-the-money implied volatility</b> from the London Strategic Edge
+              options chain, shown as a percentile across that day&rsquo;s covered scan names — 0 is the
+              calmest name on the list, 100 the most volatile. It answers one question for position
+              sizing: how much movement is the options market pricing into this name versus the rest of
+              the list. The feed lists options for actively-traded names only; a name without listed
+              options shows an em-dash, never a substituted number. Refreshed once per trading day at
+              5:50 PM ET, after the scan.
+            </p>
+            <p className="me-body-p">
               <b>Sleeve 2 selection.</b> The Power Trend signal looks for stocks already in a strong,
               confirmed uptrend that have just broken out again. Once a month, every liquid US common
               stock (last close at least $2, 45-day average dollar volume of at least $50 million) is
@@ -420,6 +431,12 @@ export default function MethodologyPage() {
               fill at the open. Positions are held at <b>cost basis</b> and priced off the end-of-day
               feed, so profit and loss is cost-basis P/L, not a live mark.
             </p>
+            <p className="me-body-p">
+              The positions tables also show a <b>Live price</b> column — the latest 1-minute bar from
+              London Strategic Edge, about 10 seconds behind the tape, refreshed while the page is open.
+              It is <b>display only</b>: every trade decision, fill and P&amp;L figure stays on official
+              closes and broker fills. A name the live feed doesn&rsquo;t carry shows an em-dash.
+            </p>
             <div className="me-formula">
               Sleeve 1: buy = Score ≥ 4 · size = $500K ÷ qualifying names · hold until Score &lt; 3<br />
               Sleeve 2: buy = current monthly Power Trend list · size = $500K ÷ names (max 15) · fewer than 8 → rest in cash<br />
@@ -434,7 +451,7 @@ export default function MethodologyPage() {
           <div className="me-num">05</div>
           <div>
             <div className="mt-eyebrow">Portfolio Lab</div>
-            <h2 className="me-h2">Expected return, two ways · one optimizer</h2>
+            <h2 className="me-h2">Expected return, three ways · one optimizer</h2>
             <p className="me-body-p">
               The <b>Portfolio Lab</b> (signed-in users) estimates the expected return of any US stock or
               ETF, builds portfolios from those estimates, and compares the result against benchmarks.
@@ -457,10 +474,25 @@ export default function MethodologyPage() {
               only — no model.
             </p>
             <p className="me-body-p">
+              <b>Method 3 — Implied vol.</b> Options prices reveal the market&rsquo;s expected <i>range</i>
+              for a stock, not a directional expected return, and the method is framed exactly that way:
+              the expected return stays CAPM, and the risk input swaps from historical volatility to the
+              options market&rsquo;s at-the-money implied volatility. The implied vol comes from the London
+              Strategic Edge options chain — the at-the-money call at each listed expiry (strike within
+              10% of the current price, anchored to the most recently updated contract) — and is
+              interpolated to your horizon linearly in total variance between the two nearest expiries
+              (held flat beyond the last listed expiry). The range shown is the market-implied expected
+              move over the horizon around the CAPM expected return. In the optimizer, a holding on this
+              method keeps historical correlations but its volatility is replaced by the implied figure —
+              a standard practitioner blend. A name with no listed options on the feed shows an em-dash
+              and falls back to CAPM with historical volatility.
+            </p>
+            <p className="me-body-p">
               <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected
               return, the mix of your holdings with the lowest volatility, where expected returns come
-              from each holding&rsquo;s selected method and risk (volatility and correlations) always comes
-              from the five-year price history. Clicking a point loads its weights. Marked points:
+              from each holding&rsquo;s selected method and risk (volatility and correlations) comes
+              from the five-year price history — except holdings on the Implied vol method, whose own
+              volatility is options-implied (correlations stay historical). Clicking a point loads its weights. Marked points:
               minimum volatility, maximum Sharpe ratio, and equal weight. Portfolio statistics —
               volatility, Sharpe, beta, maximum drawdown, contribution to risk — are computed from the
               same daily history with the portfolio rebalanced monthly to its current weights. The
@@ -470,6 +502,8 @@ export default function MethodologyPage() {
             <div className="me-formula">
               CAPM: expected_return = risk_free + beta × equity_risk_premium<br />
               Scenarios: expected_return = Σ probability × (target_price ÷ last_price − 1)<br />
+              Implied vol: expected_range = ± implied_vol(horizon) × √years, around the CAPM expected return<br />
+              term interpolation: variance(horizon) is linear in σ²·days between the two nearest expiries<br />
               Frontier: minimize portfolio_variance subject to target return · weights ≥ 0 · weights sum to 100%<br />
               horizon scaling: return compounds by years · volatility scales by √years
             </div>

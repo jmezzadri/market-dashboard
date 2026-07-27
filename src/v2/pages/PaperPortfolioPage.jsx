@@ -37,6 +37,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
 import FreshnessChip from '../../overhaul/components/FreshnessChip';
 import { supabase } from '../../lib/supabase';
+import useLseLive from '../../hooks/useLseLive';
 import { InfoTip } from '../../InfoTip';
 import '../../overhaul/styles/cream-system.css';
 import '../../overhaul/styles/paper-v12.css';
@@ -812,7 +813,15 @@ const POS_COLUMNS = [
   { key: 'side',                     label: 'Side',        w: 64,  align: 'left',  fmt: 'side',   def: false },
   { key: 'quantity',                 label: 'Qty',         w: 92,  align: 'right', fmt: 'qty',    def: true },
   { key: 'avg_cost',                 label: 'Avg entry',   w: 92,  align: 'right', fmt: 'price',  def: true },
-  { key: 'current_price',            label: 'Price',       w: 84,  align: 'right', fmt: 'price',  def: true },
+  // Live price — London Strategic Edge 1-minute bars (~10 s behind the tape),
+  // shared server cache, DISPLAY ONLY: the engine trades on EOD closes and
+  // broker fills exactly as before (LESSONS 8.6). Uncovered names show an
+  // em-dash — never a substituted value (LESSONS 4.4; Joe 2026-07-27).
+  { key: 'live_price',               label: 'Live price',  w: 92,  align: 'right', fmt: 'liveprice', def: true },
+  // Broker mark from the last portfolio mirror (up to ~30 min old in market
+  // hours) — kept for P&L reconciliation, off by default now that the live
+  // column exists (different basis, different name, not shown side-by-side).
+  { key: 'current_price',            label: 'Price (broker mark)', w: 84, align: 'right', fmt: 'price', def: false },
   { key: 'lastday_price',            label: 'Prior close', w: 96,  align: 'right', fmt: 'price',  def: false },
   { key: 'change_today',             label: 'Day chg %',   w: 90,  align: 'right', fmt: 'pctDir', def: true },
   { key: 'market_value',             label: 'Market value',w: 120, align: 'right', fmt: 'money',  def: true, strong: true },
@@ -832,7 +841,7 @@ const POS_COLUMNS = [
 // ONE shared column config (visibility + order + width) for BOTH sleeve
 // tables. Set once, persists once. Score is a Sleeve-B-only column.
 // (Sleeve A retired 2026-06-23; only the Equity Scanner sleeve renders.)
-const PAPER_COLS_KEY = 'mt_paper_cols_v4_shared'; // v4: Sleeve column + Score/Rank (two-sleeve build); bump lands everyone on the new default set once
+const PAPER_COLS_KEY = 'mt_paper_cols_v5_shared'; // v5: Live price column (LSE feed, 2026-07-27); bump lands everyone on the new default set once
 const posDefaultCfg = () => POS_COLUMNS.map((c) => ({ key: c.key, visible: c.def, w: c.w }));
 function loadPaperCols() {
   try {
@@ -853,7 +862,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {}, momentumRanks = {}, overlapTickers = null, hideSleeveColumn = false }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {}, momentumRanks = {}, overlapTickers = null, hideSleeveColumn = false, liveQuotes = {} }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). In the two-column layout each panel is a
   // single sleeve, so the redundant Sleeve column is dropped there.
@@ -899,6 +908,10 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
       }
       const lv = scanScores?.[p.ticker];
       return lv != null ? lv : null;
+    }
+    if (key === 'live_price') {
+      const q = liveQuotes[p.ticker];
+      return q && q.covered && q.price != null ? q.price : null;
     }
     if (key === 'sleeve') return sleeveName(p.sleeve);
     return p[key];
@@ -966,6 +979,7 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
       case 'side': return v || 'long';
       case 'qty': return v != null ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
       case 'price': return v != null ? `$${Number(v).toFixed(2)}` : '—';
+      case 'liveprice': return v != null ? `$${Number(v).toFixed(2)}` : '—';
       case 'money': return fmtMoneyExact(v);
       case 'num': return v != null ? v : '—';
       case 'score': return p.sleeve === 'M' ? (v != null ? `#${v}` : '—') : fmtScore(v);
@@ -1020,6 +1034,9 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
               </div>
             )}
           </div>
+          {visibleCols.some((c) => c.key === 'live_price') && (
+            <FreshnessChip elementId="market-lse_intraday-live" variant="label" />
+          )}
           <FreshnessChip elementId={freshnessId} variant="label" fallback={{ asOfIso: updatedAt || asOf, calendar: 'nyse' }} />
         </div>
       </div>
@@ -1677,6 +1694,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const sleeveA = useMemo(() => displayPositions.filter((p) => p.sleeve === 'A'), [displayPositions]);
   const sleeveB = useMemo(() => displayPositions.filter((p) => p.sleeve === 'B'), [displayPositions]);
   const sleeveM = useMemo(() => displayPositions.filter((p) => p.sleeve === 'M'), [displayPositions]);
+  /* Live intraday prices (LSE 1-minute bars) for every held name — display
+     only; all P&L stays on the broker/EOD basis (LESSONS 8.6). */
+  const heldTickers = useMemo(() => [...new Set(displayPositions.map((p) => p.ticker))], [displayPositions]);
+  const lseLive = useLseLive(heldTickers, { enabled: heldTickers.length > 0 });
   // One combined holdings table — both sleeves, a name held by both shows one
   // row per sleeve plus the ×2 marker (two-sleeve spec §4).
   const bothSleeves = useMemo(() => displayPositions.filter((p) => p.sleeve === 'B' || p.sleeve === 'M'), [displayPositions]);
@@ -1838,6 +1859,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 overlapTickers={overlapTickers}
                 hideSleeveColumn
                 infoDef={s.infoDef}
+                liveQuotes={lseLive.bySymbol}
               />
               <RebalanceLog orders={orders} fills={fills} sleeve={s.code} title={`${s.name} — recent activity`} />
             </div>
