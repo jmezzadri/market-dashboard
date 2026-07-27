@@ -103,6 +103,11 @@
 .home-v12.lab-v12 .lab-frontier { cursor: crosshair; }
 .home-v12.lab-v12 .lab-benchdot { fill: var(--mut); }
 .home-v12.lab-v12 .lab-markdot { fill: var(--gold-deep); }
+.home-v12.lab-v12 .lab-ringdot { fill: none; stroke: var(--gold-deep); stroke-width: 2; }
+.home-v12.lab-v12 .lab-eqdot { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
+.home-v12.lab-v12 .lab-fmarks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+.home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: 6px; }
+.home-v12.lab-v12 .lab-fmark svg { overflow: visible; }
 .home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--bg2); stroke-width: 2; }
 .home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 2; }
 .home-v12.lab-v12 .lab-dotlabel { fill: var(--ink-soft); font-size: 11px; font-family: var(--sans); }

@@ -187,12 +187,15 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
     const my = ((e.clientY - box.top) / box.height) * H;
     setHover(nearest(mx, my));
   };
-  /* Fixed distinct label offsets so the three preset labels and the
-     portfolio label never stack on one another when the points cluster. */
+  /* No on-canvas labels for the marked points — the min-vol / max-Sharpe /
+     equal-weight points routinely sit within a few pixels of each other and
+     of the portfolio dot, so ANY text placement scheme eventually stacks
+     (Joe, 7/27 ×3). Each mark gets a distinct marker style and the names
+     live in a legend row below the chart, where they can never collide. */
   const marks = [
-    { p: frontier.minVol, label: 'Min volatility', dx: 8, dy: 18, anchor: 'start' },
-    { p: frontier.maxSharpe, label: 'Max Sharpe', dx: 8, dy: -8, anchor: 'start' },
-    { p: frontier.equalWeight, label: 'Equal weight', dx: -10, dy: 18, anchor: 'end' },
+    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 5 },
+    { p: frontier.minVol, cls: 'lab-ringdot', r: 5 },
+    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4 },
   ];
   return (
     <div className="lab-chartwrap">
@@ -223,27 +226,17 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
           </g>
         ))}
         {marks.map((m) => (
-          <g key={m.label}>
-            <circle cx={X(m.p.vol)} cy={Y(m.p.ret)} r="4.5" className="lab-markdot" />
-            <text
-              x={Math.min(Math.max(X(m.p.vol) + m.dx, P.l + 4), W - P.r - 4)}
-              y={Math.min(Math.max(Y(m.p.ret) + m.dy, P.t + 12), H - P.b - 6)}
-              className="lab-dotlabel" textAnchor={m.anchor}
-            >{m.label}</text>
-          </g>
+          <circle key={m.cls} cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r} className={m.cls} />
         ))}
-        {current && (
-          <g>
-            <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />
-            <text
-              x={Math.min(Math.max(X(current.vol) + 2, P.l + 40), W - P.r - 40)}
-              y={Math.max(Y(current.ret) - 11, P.t + 12)}
-              className="lab-dotlabel you" textAnchor="middle"
-            >Your portfolio</text>
-          </g>
-        )}
+        {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />}
         {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
       </svg>
+      <div className="lab-fmarks">
+        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="5" className="lab-youdot" /></svg>Your portfolio</span>
+        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-markdot" /></svg>Max Sharpe</span>
+        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-ringdot" /></svg>Min volatility</span>
+        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4" className="lab-eqdot" /></svg>Equal weight</span>
+      </div>
       <div className="lab-frontier-read">
         {hover
           ? <>At {pct(hover.vol)} volatility the frontier expects {signPct(hover.ret)} a year — click to load these weights.</>
