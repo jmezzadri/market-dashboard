@@ -69,14 +69,21 @@ function TickerAdd({ onAdd, existing }) {
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       const id = ++reqId.current;
-      const { data } = await supabase
-        .from('ticker_reference')
-        .select('ticker,name')
-        .or(`ticker.ilike.${term}%,name.ilike.%${term}%`)
-        .order('market_cap', { ascending: false, nullsFirst: false })
-        .limit(7);
+      // Exact symbol first, always — ETFs carry no market cap, so ranking by
+      // cap alone buried SPY under name matches like Spyre (Joe, 7/27).
+      const upper = term.toUpperCase();
+      const [exact, fuzzy] = await Promise.all([
+        supabase.from('ticker_reference').select('ticker,name').eq('ticker', upper).limit(1),
+        supabase.from('ticker_reference').select('ticker,name')
+          .or(`ticker.ilike.${term}%,name.ilike.%${term}%`)
+          .order('market_cap', { ascending: false, nullsFirst: false })
+          .limit(7),
+      ]);
       if (id !== reqId.current) return;
-      setRes(data || []);
+      const merged = [...(exact.data || []), ...(fuzzy.data || [])]
+        .filter((r, i, a) => a.findIndex((x) => x.ticker === r.ticker) === i)
+        .slice(0, 7);
+      setRes(merged);
       setOpen(true);
       setHi(0);
     }, 140);

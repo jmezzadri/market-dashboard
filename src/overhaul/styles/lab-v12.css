@@ -48,6 +48,10 @@
 
 /* ── cards ── */
 .home-v12.lab-v12 .lab-card { background: var(--putty); border-radius: var(--card-r); box-shadow: var(--sh); padding: 34px 38px 32px; margin: 26px 0; }
+/* While the add-ticker menu is open, lift its card above the later cards —
+   the reveal animation's filter makes every card a stacking context, which
+   otherwise paints the next card over the open menu (Joe, 7/27). */
+.home-v12.lab-v12 .lab-card:has(.lab-add-menu) { position: relative; z-index: 40; }
 .home-v12.lab-v12 .lab-cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
 .home-v12.lab-v12 .lab-cardhead h2 { font-size: 27px; margin: 0; }
 .home-v12.lab-v12 .lab-empty { color: var(--mut); font-size: 14px; padding: 12px 0 4px; }
