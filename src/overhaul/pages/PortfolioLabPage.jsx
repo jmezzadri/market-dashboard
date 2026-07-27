@@ -128,16 +128,19 @@ function TickerAdd({ onAdd, existing }) {
   );
 }
 
-/* Nice round axis ticks: step ∈ {1,2,2.5,5,10}×10^k covering [min,max]. */
-function niceTicks(min, max, count = 4) {
-  const range = max - min;
-  if (!(range > 0)) return [min];
-  const rough = range / count;
+/* Nice axis domain: snaps [lo,hi] outward to round-number bounds and returns
+   gridline positions at every step — so the plot's edges ARE gridlines and no
+   point can ever float above the last line (Joe, 7/27 ×2). */
+function niceDomain(lo, hi, count = 4) {
+  if (!(hi > lo)) hi = lo + (Math.abs(lo) || 1) * 0.1;
+  const rough = (hi - lo) / count;
   const mag = Math.pow(10, Math.floor(Math.log10(rough)));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= rough) || 10 * mag;
+  const min = Math.floor(lo / step) * step;
+  const max = Math.ceil(hi / step) * step;
   const ticks = [];
-  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) ticks.push(v);
-  return ticks;
+  for (let v = min; v <= max + step * 1e-6; v += step) ticks.push(v);
+  return { min, max, step, ticks };
 }
 
 /* Efficient-frontier chart (SVG). Click loads the nearest point's weights. */
@@ -146,24 +149,30 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
   const [hover, setHover] = useState(null);
   if (!frontier || frontier.points.length < 2) return null;
   const pts = frontier.points;
-  const xs = pts.map((p) => p.vol).concat(current ? [current.vol] : [], benches.map((b) => b.vol));
-  const ys = pts.map((p) => p.ret).concat(current ? [current.ret] : [], benches.map((b) => b.ret));
-  /* Pad around the DATA on both axes (never anchor at 0): with a high-vol
-     holding in the book a 0-anchored scale crushed every point into the top
-     corner, above the last gridline (Joe, 7/27). */
+  /* Scale to the CURVE + your portfolio only — reference dots must never
+     dictate the domain (an SPY dot far from a high-vol book crushed the
+     curve into the top corner). Bounds snap to round gridlines via
+     niceDomain, so the plot edges are gridlines. Benchmarks render only
+     when they land inside the visible window; the statistics card always
+     carries the full benchmark comparison. */
+  const xs = pts.map((p) => p.vol).concat(current ? [current.vol] : []);
+  const ys = pts.map((p) => p.ret).concat(current ? [current.ret] : []);
   const xlo = Math.min(...xs); const xhi = Math.max(...xs);
   const ylo = Math.min(...ys); const yhi = Math.max(...ys);
-  const xpad = (xhi - xlo) * 0.18 || xhi * 0.15 || 0.02;
-  const ypad = (yhi - ylo) * 0.22 || Math.abs(yhi) * 0.15 || 0.02;
-  const xmin = Math.max(0, xlo - xpad);
-  const xmax = xhi + xpad;
-  const ymin = ylo - ypad;
-  const ymax = yhi + ypad;
+  const xr = (xhi - xlo) || xhi * 0.2 || 0.02;
+  const yr = (yhi - ylo) || Math.abs(yhi) * 0.2 || 0.02;
+  const xd = niceDomain(Math.max(0, xlo - xr * 0.25), xhi + xr * 0.25);
+  const yd = niceDomain(ylo - yr * 0.3, yhi + yr * 0.3);
+  const xmin = xd.min; const xmax = xd.max;
+  const ymin = yd.min; const ymax = yd.max;
+  const visBenches = benches.filter((b) => b.vol >= xmin && b.vol <= xmax && b.ret >= ymin && b.ret <= ymax);
+  const xdp = xd.step < 0.01 ? 1 : 0;
+  const ydp = yd.step < 0.01 ? 1 : 0;
   const X = (v) => P.l + ((v - xmin) / (xmax - xmin)) * (W - P.l - P.r);
   const Y = (v) => H - P.b - ((v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.vol).toFixed(1)},${Y(p.ret).toFixed(1)}`).join(' ');
-  const xticks = niceTicks(xmin, xmax, 4);
-  const yticks = niceTicks(ymin, ymax, 4);
+  const xticks = xd.ticks;
+  const yticks = yd.ticks;
   const nearest = (mx, my) => {
     let best = null; let bd = Infinity;
     for (const p of pts) {
@@ -199,15 +208,15 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
         {yticks.map((v, i) => (
           <g key={`y${i}`}>
             <line x1={P.l} x2={W - P.r} y1={Y(v)} y2={Y(v)} className="lab-grid" />
-            <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, 0)}</text>
+            <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, ydp)}</text>
           </g>
         ))}
         {xticks.map((v, i) => (
-          <text key={`x${i}`} x={X(v)} y={H - P.b + 22} className="lab-tick" textAnchor="middle">{pct(v, 0)}</text>
+          <text key={`x${i}`} x={X(v)} y={H - P.b + 22} className="lab-tick" textAnchor="middle">{pct(v, xdp)}</text>
         ))}
         <text x={(P.l + W - P.r) / 2} y={H - 4} className="lab-axis" textAnchor="middle">Volatility (annual)</text>
         <path d={path} className="lab-curve" fill="none" />
-        {benches.map((b) => (
+        {visBenches.map((b) => (
           <g key={b.ticker}>
             <circle cx={X(b.vol)} cy={Y(b.ret)} r="4" className="lab-benchdot" />
             <text x={X(b.vol) - 7} y={Y(b.ret) + 4} className="lab-dotlabel" textAnchor="end">{b.ticker}</text>
@@ -249,8 +258,10 @@ function GrowthChart({ dates, lines }) {
   const W = 940; const H = 300; const P = { l: 58, r: 12, t: 12, b: 30 };
   if (!dates.length || !lines.length) return null;
   const all = lines.flatMap((l) => l.nav);
-  const ymin = Math.min(...all) * 0.98;
-  const ymax = Math.max(...all) * 1.02;
+  /* Snap the dollar axis to round gridlines that enclose every line. */
+  const yd = niceDomain(Math.min(...all) * 10000 * 0.99, Math.max(...all) * 10000 * 1.01);
+  const ymin = yd.min / 10000;
+  const ymax = yd.max / 10000;
   const X = (i) => P.l + (i / (dates.length - 1)) * (W - P.l - P.r);
   const Y = (v) => H - P.b - ((v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
   const yearMarks = [];
@@ -261,7 +272,7 @@ function GrowthChart({ dates, lines }) {
   });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="lab-growth" role="img" aria-label="Growth of $10,000: portfolio vs benchmarks">
-      {niceTicks(ymin * 10000, ymax * 10000, 4).map((d, k) => (
+      {yd.ticks.map((d, k) => (
         <g key={k}>
           <line x1={P.l} x2={W - P.r} y1={Y(d / 10000)} y2={Y(d / 10000)} className="lab-grid" />
           <text x={P.l - 8} y={Y(d / 10000) + 4} className="lab-tick" textAnchor="end">{money(d)}</text>
