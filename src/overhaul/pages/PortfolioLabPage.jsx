@@ -305,6 +305,9 @@ export default function PortfolioLabPage() {
   const [activeName, setActiveName] = useState('');
   const [saveName, setSaveName] = useState('');
   const [saveMsg, setSaveMsg] = useState('');
+  const [autoMsg, setAutoMsg] = useState('');
+  const lastSavedRef = useRef(null); // JSON snapshot of the last persisted state
+  const autoTimer = useRef(null);
   const [undoW, setUndoW] = useState(null);
   const [sicMap, setSicMap] = useState({});
 
@@ -476,39 +479,100 @@ export default function PortfolioLabPage() {
     return { dates, lines };
   }, [portfolio, analysis, benchSel.join(','), growthWin, series, sicMap, JSON.stringify(holdings.map((h) => [h.ticker, h.weight]))]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── saved portfolios ─────────────────────────────────────────────── */
-  const refreshSaved = () => {
+  /* ── saved portfolios ──────────────────────────────────────────────
+     The active portfolio is a live container: once a book has a name,
+     every change (holdings, weights, methods, scenarios, horizon,
+     benchmarks) AUTO-SAVES, and returning to the page restores the most
+     recently touched portfolio — clicking away never loses work
+     (Joe, 7/27: added 4 stocks, navigated away, book came back empty). */
+  const snapshot = (h, hz, bs) => JSON.stringify({ h, hz, bs });
+
+  /* Chip clicks re-fetch the row so a book auto-saved since the list was
+     last read never loads stale contents (caught in UAT: switch between two
+     portfolios returned the older copy). */
+  async function openPortfolio(row) {
+    const { data } = await supabase.from('portfolio_lab_portfolios')
+      .select('id,name,holdings,horizon,benchmark,updated_at')
+      .eq('id', row.id).maybeSingle();
+    loadPortfolio(data || row);
+  }
+
+  function loadPortfolio(row) {
+    const h = Array.isArray(row.holdings) ? row.holdings : [];
+    const hz = row.horizon && HORIZONS[row.horizon] ? row.horizon : '1y';
+    const bs = String(row.benchmark || 'SPY').split(',').filter(Boolean);
+    lastSavedRef.current = snapshot(h, hz, bs.join(','));
+    setHoldings(h);
+    setHorizon(hz);
+    setBenchSel(bs);
+    setActiveName(row.name);
+    setAutoMsg('');
+  }
+
+  const refreshSaved = (autoloadIfBlank = false) => {
     if (!user) return;
     supabase.from('portfolio_lab_portfolios').select('id,name,holdings,horizon,benchmark,updated_at')
       .order('updated_at', { ascending: false })
-      .then(({ data }) => setSaved(data || []));
+      .then(({ data }) => {
+        setSaved(data || []);
+        if (autoloadIfBlank && data?.length && !activeName && !holdings.length) loadPortfolio(data[0]);
+      });
   };
-  useEffect(refreshSaved, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => refreshSaved(true), [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function savePortfolio() {
-    const name = (saveName || activeName || '').trim();
-    if (!user || !name) { setSaveMsg('Name it first'); return; }
+  async function persist(name) {
     const row = {
       user_id: user.id, name, holdings, horizon,
       benchmark: benchSel.join(','), updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('portfolio_lab_portfolios')
       .upsert(row, { onConflict: 'user_id,name' });
+    if (!error) {
+      lastSavedRef.current = snapshot(holdings, horizon, benchSel.join(','));
+      // keep the in-memory chip list current so a later chip click can never
+      // resurrect a pre-auto-save copy
+      setSaved((s) => s.map((r) => (r.name === name
+        ? { ...r, holdings, horizon, benchmark: benchSel.join(','), updated_at: row.updated_at }
+        : r)));
+    }
+    return error;
+  }
+
+  /* Auto-save: debounce any change while a portfolio is active. */
+  useEffect(() => {
+    if (!user || !activeName) return undefined;
+    const snap = snapshot(holdings, horizon, benchSel.join(','));
+    if (snap === lastSavedRef.current) return undefined;
+    setAutoMsg('Saving…');
+    clearTimeout(autoTimer.current);
+    autoTimer.current = setTimeout(async () => {
+      const error = await persist(activeName);
+      setAutoMsg(error ? `Not saved — ${error.message}` : 'All changes saved');
+    }, 800);
+    return () => clearTimeout(autoTimer.current);
+  }, [user?.id, activeName, JSON.stringify(holdings), horizon, benchSel.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function savePortfolio() {
+    const name = (saveName || activeName || '').trim();
+    if (!user || !name) { setSaveMsg('Name it first'); return; }
+    const error = await persist(name);
     setSaveMsg(error ? `Save failed: ${error.message}` : 'Saved');
     if (!error) { setActiveName(name); setSaveName(''); refreshSaved(); }
     setTimeout(() => setSaveMsg(''), 2500);
   }
 
-  function loadPortfolio(row) {
-    setHoldings(Array.isArray(row.holdings) ? row.holdings : []);
-    setHorizon(row.horizon && HORIZONS[row.horizon] ? row.horizon : '1y');
-    setBenchSel(String(row.benchmark || 'SPY').split(',').filter(Boolean));
-    setActiveName(row.name);
+  function newPortfolio() {
+    clearTimeout(autoTimer.current);
+    lastSavedRef.current = null;
+    setHoldings([]);
+    setActiveName('');
+    setSaveName('');
+    setAutoMsg('');
   }
 
   async function deletePortfolio(row) {
     await supabase.from('portfolio_lab_portfolios').delete().eq('id', row.id);
-    if (activeName === row.name) setActiveName('');
+    if (activeName === row.name) newPortfolio();
     refreshSaved();
   }
 
@@ -595,7 +659,7 @@ export default function PortfolioLabPage() {
                 {saved.length === 0 && <span className="lab-dim">None yet</span>}
                 {saved.map((r) => (
                   <span key={r.id} className={`lab-savedchip${activeName === r.name ? ' on' : ''}`}>
-                    <button type="button" onClick={() => loadPortfolio(r)}>{r.name}</button>
+                    <button type="button" onClick={() => openPortfolio(r)}>{r.name}</button>
                     <button type="button" className="x" aria-label={`Delete ${r.name}`} onClick={() => deletePortfolio(r)}>×</button>
                   </span>
                 ))}
@@ -603,11 +667,15 @@ export default function PortfolioLabPage() {
               <div className="lab-saverow">
                 <input
                   value={saveName}
-                  placeholder={activeName ? `Save as “${activeName}”` : 'Portfolio name'}
+                  placeholder={activeName ? 'Rename / save a copy…' : 'Portfolio name'}
                   onChange={(e) => setSaveName(e.target.value)}
                 />
                 <button type="button" className="lab-btn" onClick={savePortfolio}>Save</button>
+                <button type="button" className="lab-btn ghost" onClick={newPortfolio}>New</button>
                 {saveMsg && <span className="lab-dim">{saveMsg}</span>}
+                {!saveMsg && activeName && (
+                  <span className="lab-dim">{autoMsg || `Working on “${activeName}” — changes save automatically`}</span>
+                )}
               </div>
             </div>
           </div>
