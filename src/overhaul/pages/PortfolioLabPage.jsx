@@ -438,6 +438,19 @@ export default function PortfolioLabPage() {
 
   const weightsSum = holdings.reduce((s, h) => s + (Number(h.weight) || 0), 0);
 
+  /* The shared history window actually used for beta / volatility /
+     correlations / drawdown: the intersection of every holding's history
+     with SPY's, capped at 5 years by the price fetch. Label it honestly —
+     one young holding shrinks the window for the whole book (Joe, 7/27:
+     "what if we don't have 5 years?"). */
+  const windowLabel = useMemo(() => {
+    if (!analysis?.dates?.length) return '5y';
+    const years = analysis.dates.length / 252;
+    if (years >= 4.8) return '5y';
+    if (years >= 1) return `${(Math.round(years * 10) / 10).toString().replace(/\.0$/, '')}y`;
+    return `${Math.round(years * 12)}mo`;
+  }, [analysis]);
+
   const portfolio = useMemo(() => {
     if (!analysis || analysis.valid.length < 1) return null;
     const { perStock, valid, S, rets, dates, closes } = analysis;
@@ -762,7 +775,7 @@ export default function PortfolioLabPage() {
                     <tr>
                       <th>Ticker</th>
                       <th className="num">Last</th>
-                      <th className="num">Beta · 5y</th>
+                      <th className="num">Beta · {windowLabel}</th>
                       <th className="num">Volatility</th>
                       <th className="num">Weight %</th>
                       <th>Method</th>
@@ -777,7 +790,14 @@ export default function PortfolioLabPage() {
                       const scenOpen = openScen === h.ticker;
                       return (
                         <React.Fragment key={h.ticker}>
-                          <tr className={failed[h.ticker] ? 'dim' : ''}>
+                          <tr
+                            className={`lab-row${failed[h.ticker] ? ' dim' : ''}`}
+                            onClick={(e) => {
+                              // controls keep their own behavior; anywhere else in the row opens the ticker page
+                              if (e.target.closest('button, input, select, a')) return;
+                              navigate(`/ticker/${h.ticker}`);
+                            }}
+                          >
                             <td className="tick">
                               <button type="button" className="lab-ticklink" onClick={() => navigate(`/ticker/${h.ticker}`)}>{h.ticker}</button>
                             </td>
@@ -888,7 +908,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Efficient frontier</h2>
-              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from 5 years of daily prices; Implied vol rows swap in options-implied volatility</span>
+              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from the holdings&rsquo; shared daily history ({windowLabel}, up to 5 years); Implied vol rows swap in options-implied volatility</span>
             </div>
             {frontier && portfolio ? (
               <FrontierChart
@@ -912,7 +932,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Portfolio statistics</h2>
-              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · history over the last 5 years</span>
+              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · shared history of all holdings ({windowLabel}, up to 5 years)</span>
             </div>
             <div className="lab-statgrid" role="table" aria-label="Portfolio statistics vs benchmark">
               <div className="lab-statrow head" role="row">
@@ -925,9 +945,9 @@ export default function PortfolioLabPage() {
                 ['Volatility', pct(portfolio.volH), selBench ? pct(selBench.vol * Math.sqrt(years)) : '—'],
                 ['Sharpe ratio', portfolio.sharpe == null ? '—' : portfolio.sharpe.toFixed(2),
                   selBench && selBench.vol > 0 ? ((selBench.erAnnual - rfH) / selBench.vol).toFixed(2) : '—'],
-                ['Beta vs SPY · 5y', portfolio.beta == null ? '—' : portfolio.beta.toFixed(2),
+                [`Beta vs SPY · ${windowLabel}`, portfolio.beta == null ? '—' : portfolio.beta.toFixed(2),
                   selBench?.beta == null ? '—' : selBench.beta.toFixed(2)],
-                ['Max drawdown (5y)', pct(portfolio.mdd), (() => {
+                [`Max drawdown (${windowLabel})`, pct(portfolio.mdd), (() => {
                   const b = selBench?.ticker;
                   if (!b || !series[b]?.length) return '—';
                   return pct(maxDrawdown(series[b].map((p) => p.c)));
