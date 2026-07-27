@@ -200,10 +200,12 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
      of the portfolio dot, so ANY text placement scheme eventually stacks
      (Joe, 7/27 ×3). Each mark gets a distinct marker style and the names
      live in a legend row below the chart, where they can never collide. */
+  /* Ring radii exceed the filled dots so a ring stays visible as a halo
+     even when its point coincides with another marker. */
   const marks = [
     { p: frontier.maxSharpe, cls: 'lab-markdot', r: 5, label: 'Max Sharpe' },
-    { p: frontier.minVol, cls: 'lab-ringdot', r: 5, label: 'Min volatility' },
-    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4, label: 'Equal weight' },
+    { p: frontier.minVol, cls: 'lab-ringdot', r: 8.5, label: 'Min volatility' },
+    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 10.5, label: 'Equal weight' },
   ];
   return (
     <div className="lab-chartwrap">
@@ -238,13 +240,17 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
             points coincide */}
         {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />}
         {marks.map((m) => (
-          <circle
-            key={m.cls}
-            cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
-            className={`${m.cls} lab-clickmark`}
-            onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
-            onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
-          />
+          <g key={m.cls}>
+            {/* casing in the card color keeps a ring visible even when it
+                sits exactly on the filled gold dot (same hue) */}
+            <circle cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r + 1.5} className="lab-ringcase" />
+            <circle
+              cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
+              className={`${m.cls} lab-clickmark`}
+              onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
+              onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
+            />
+          </g>
         ))}
         {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
       </svg>

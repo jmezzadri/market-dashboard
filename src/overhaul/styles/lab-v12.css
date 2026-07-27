@@ -109,6 +109,7 @@
 .home-v12.lab-v12 .lab-markdot { fill: var(--gold-deep); }
 .home-v12.lab-v12 .lab-ringdot { fill: none; stroke: var(--gold-deep); stroke-width: 2; }
 .home-v12.lab-v12 .lab-eqdot { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
+.home-v12.lab-v12 .lab-ringcase { fill: none; stroke: var(--putty); stroke-width: 3.5; pointer-events: none; }
 .home-v12.lab-v12 .lab-fmarks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
 .home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: 6px; }
 .home-v12.lab-v12 .lab-fmark.asbtn { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: 12.5px; padding: 0; cursor: pointer; }
