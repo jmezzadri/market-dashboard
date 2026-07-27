@@ -128,6 +128,18 @@ function TickerAdd({ onAdd, existing }) {
   );
 }
 
+/* Nice round axis ticks: step ∈ {1,2,2.5,5,10}×10^k covering [min,max]. */
+function niceTicks(min, max, count = 4) {
+  const range = max - min;
+  if (!(range > 0)) return [min];
+  const rough = range / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= rough) || 10 * mag;
+  const ticks = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) ticks.push(v);
+  return ticks;
+}
+
 /* Efficient-frontier chart (SVG). Click loads the nearest point's weights. */
 function FrontierChart({ frontier, current, benches, rf, onPick }) {
   const W = 640; const H = 340; const P = { l: 54, r: 16, t: 14, b: 36 };
@@ -143,7 +155,8 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
   const X = (v) => P.l + ((v - xmin) / (xmax - xmin)) * (W - P.l - P.r);
   const Y = (v) => H - P.b - ((v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.vol).toFixed(1)},${Y(p.ret).toFixed(1)}`).join(' ');
-  const xticks = 4; const yticks = 4;
+  const xticks = niceTicks(xmin, xmax, 4);
+  const yticks = niceTicks(ymin, ymax, 4);
   const nearest = (mx, my) => {
     let best = null; let bd = Infinity;
     for (const p of pts) {
@@ -158,10 +171,12 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
     const my = ((e.clientY - box.top) / box.height) * H;
     setHover(nearest(mx, my));
   };
+  /* Fixed distinct label offsets so the three preset labels and the
+     portfolio label never stack on one another when the points cluster. */
   const marks = [
-    { p: frontier.minVol, label: 'Min volatility' },
-    { p: frontier.maxSharpe, label: 'Max Sharpe' },
-    { p: frontier.equalWeight, label: 'Equal weight' },
+    { p: frontier.minVol, label: 'Min volatility', dx: 8, dy: 18, anchor: 'start' },
+    { p: frontier.maxSharpe, label: 'Max Sharpe', dx: 8, dy: -8, anchor: 'start' },
+    { p: frontier.equalWeight, label: 'Equal weight', dx: -10, dy: 18, anchor: 'end' },
   ];
   return (
     <div className="lab-chartwrap">
@@ -174,39 +189,33 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
         role="img"
         aria-label="Efficient frontier: annual volatility vs expected return"
       >
-        {Array.from({ length: yticks + 1 }, (_, i) => {
-          const v = ymin + ((ymax - ymin) * i) / yticks;
-          return (
-            <g key={`y${i}`}>
-              <line x1={P.l} x2={W - P.r} y1={Y(v)} y2={Y(v)} className="lab-grid" />
-              <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, 0)}</text>
-            </g>
-          );
-        })}
-        {Array.from({ length: xticks + 1 }, (_, i) => {
-          const v = xmin + ((xmax - xmin) * i) / xticks;
-          return (
-            <text key={`x${i}`} x={X(v)} y={H - P.b + 22} className="lab-tick" textAnchor="middle">{pct(v, 0)}</text>
-          );
-        })}
+        {yticks.map((v, i) => (
+          <g key={`y${i}`}>
+            <line x1={P.l} x2={W - P.r} y1={Y(v)} y2={Y(v)} className="lab-grid" />
+            <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, 0)}</text>
+          </g>
+        ))}
+        {xticks.map((v, i) => (
+          <text key={`x${i}`} x={X(v)} y={H - P.b + 22} className="lab-tick" textAnchor="middle">{pct(v, 0)}</text>
+        ))}
         <text x={(P.l + W - P.r) / 2} y={H - 4} className="lab-axis" textAnchor="middle">Volatility (annual)</text>
         <path d={path} className="lab-curve" fill="none" />
         {benches.map((b) => (
           <g key={b.ticker}>
             <circle cx={X(b.vol)} cy={Y(b.ret)} r="4" className="lab-benchdot" />
-            <text x={X(b.vol) + 7} y={Y(b.ret) + 4} className="lab-dotlabel">{b.ticker}</text>
+            <text x={X(b.vol) - 7} y={Y(b.ret) + 4} className="lab-dotlabel" textAnchor="end">{b.ticker}</text>
           </g>
         ))}
         {marks.map((m) => (
           <g key={m.label}>
             <circle cx={X(m.p.vol)} cy={Y(m.p.ret)} r="4.5" className="lab-markdot" />
-            <text x={X(m.p.vol) + 7} y={Y(m.p.ret) - 6} className="lab-dotlabel">{m.label}</text>
+            <text x={X(m.p.vol) + m.dx} y={Y(m.p.ret) + m.dy} className="lab-dotlabel" textAnchor={m.anchor}>{m.label}</text>
           </g>
         ))}
         {current && (
           <g>
             <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />
-            <text x={X(current.vol) + 9} y={Y(current.ret) + 4} className="lab-dotlabel you">Your portfolio</text>
+            <text x={X(current.vol) + 2} y={Y(current.ret) - 11} className="lab-dotlabel you" textAnchor="middle">Your portfolio</text>
           </g>
         )}
         {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
@@ -237,15 +246,12 @@ function GrowthChart({ dates, lines }) {
   });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="lab-growth" role="img" aria-label="Growth of $10,000: portfolio vs benchmarks">
-      {[0, 1, 2, 3].map((k) => {
-        const v = ymin + ((ymax - ymin) * k) / 3;
-        return (
-          <g key={k}>
-            <line x1={P.l} x2={W - P.r} y1={Y(v)} y2={Y(v)} className="lab-grid" />
-            <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{money(v * 10000)}</text>
-          </g>
-        );
-      })}
+      {niceTicks(ymin * 10000, ymax * 10000, 4).map((d, k) => (
+        <g key={k}>
+          <line x1={P.l} x2={W - P.r} y1={Y(d / 10000)} y2={Y(d / 10000)} className="lab-grid" />
+          <text x={P.l - 8} y={Y(d / 10000) + 4} className="lab-tick" textAnchor="end">{money(d)}</text>
+        </g>
+      ))}
       {yearMarks.slice(1).map((m) => (
         <text key={m.y} x={X(m.i)} y={H - 8} className="lab-tick" textAnchor="middle">{m.y}</text>
       ))}
@@ -479,9 +485,13 @@ export default function PortfolioLabPage() {
       bear: { price: Math.round(p * 0.85 * 100) / 100, prob: 25 },
     };
   };
+  // Adding a name re-splits the book equally — predictable starting point;
+  // set weights by hand or click the frontier afterwards.
   const addTicker = (t) => setHoldings((hs) => {
-    const w = hs.length ? Math.max(0, 100 - hs.reduce((s, h) => s + (Number(h.weight) || 0), 0)) : 100;
-    return [...hs, { ticker: t, weight: Math.round(w * 10) / 10, method: 'capm', scenarios: null }];
+    const next = [...hs, { ticker: t, weight: 0, method: 'capm', scenarios: null }];
+    const w = Math.round((100 / next.length) * 10) / 10;
+    const first = Math.round((100 - w * (next.length - 1)) * 10) / 10; // rounding remainder
+    return next.map((h, i) => ({ ...h, weight: i === 0 ? first : w }));
   });
   const removeTicker = (t) => setHoldings((hs) => hs.filter((h) => h.ticker !== t));
   const patch = (t, up) => setHoldings((hs) => hs.map((h) => (h.ticker === t ? { ...h, ...up } : h)));
@@ -492,8 +502,12 @@ export default function PortfolioLabPage() {
   )));
   const rebalance = () => setHoldings((hs) => {
     const s = hs.reduce((a, h) => a + (Number(h.weight) || 0), 0);
-    if (s <= 0) return hs.map((h) => ({ ...h, weight: Math.round((100 / hs.length) * 10) / 10 }));
-    return hs.map((h) => ({ ...h, weight: Math.round(((Number(h.weight) || 0) / s) * 1000) / 10 }));
+    const scaled = s <= 0
+      ? hs.map(() => Math.round((100 / hs.length) * 10) / 10)
+      : hs.map((h) => Math.round(((Number(h.weight) || 0) / s) * 1000) / 10);
+    const drift = Math.round((100 - scaled.reduce((a, b) => a + b, 0)) * 10) / 10;
+    if (scaled.length) scaled[0] = Math.round((scaled[0] + drift) * 10) / 10;
+    return hs.map((h, i) => ({ ...h, weight: scaled[i] }));
   });
   const applyFrontier = (pt) => {
     if (!analysis) return;
