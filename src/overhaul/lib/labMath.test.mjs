@@ -100,6 +100,21 @@ test('3-asset frontier: top point concentrates in the highest-ER asset', () => {
   close(equalWeight.ret, (0.12 + 0.08 + 0.04) / 3, 1e-12);
 });
 
+test('frontier is monotone: return rises and volatility rises point-to-point (no zigzag)', () => {
+  // correlated 3-asset case — the shape that produced optimizer jitter
+  const S = [
+    [0.09, 0.03, 0.02],
+    [0.03, 0.04, 0.015],
+    [0.02, 0.015, 0.0225],
+  ];
+  const { points } = efficientFrontier(S, [0.12, 0.09, 0.07], 0.04, 60);
+  assert.ok(points.length >= 5, `only ${points.length} points survived`);
+  for (let i = 1; i < points.length; i++) {
+    assert.ok(points[i].ret > points[i - 1].ret, `ret not rising at ${i}`);
+    assert.ok(points[i].vol > points[i - 1].vol - 1e-12, `vol dips at ${i}: ${points[i - 1].vol} -> ${points[i].vol}`);
+  }
+});
+
 test('max drawdown by hand: [1, 1.2, 0.9, 1.1] → −25%', () => {
   close(maxDrawdown([1, 1.2, 0.9, 1.1]), -0.25, 1e-12);
 });

@@ -269,15 +269,31 @@ export function efficientFrontier(S, mu, rf, nPoints = 40) {
   const retMin = portfolioER(wMinVol, mu);
   const retMax = Math.max(...mu);
 
-  const points = [];
+  const raw = [];
   for (let k = 0; k < nPoints; k++) {
     const target = retMin + ((retMax - retMin) * k) / (nPoints - 1);
     const w = minVarianceForTarget(S, mu, target, P);
-    points.push({ ret: portfolioER(w, mu), vol: portfolioVol(w, S), weights: w });
+    raw.push({ ret: portfolioER(w, mu), vol: portfolioVol(w, S), weights: w });
   }
-  points.sort((a, b) => a.vol - b.vol);
-
   const minVol = { ret: retMin, vol: portfolioVol(wMinVol, S), weights: wMinVol };
+
+  /* Keep ONLY the efficient upper edge. The optimizer's solutions jitter
+     near the minimum-volatility point; drawing them raw produced a zigzag
+     blob at the curve's left end (Joe, 7/27). Sort by return, then drop any
+     point that another point dominates (equal-or-higher return at
+     equal-or-lower volatility) — the survivors are monotone: return rises,
+     volatility rises. */
+  raw.push(minVol);
+  raw.sort((a, b) => a.ret - b.ret);
+  const points = [];
+  for (const p of raw) {
+    while (points.length && points[points.length - 1].vol >= p.vol - 1e-10) points.pop();
+    const last = points[points.length - 1];
+    if (last && Math.abs(p.ret - last.ret) < 1e-6 && Math.abs(p.vol - last.vol) < 1e-6) continue;
+    points.push(p);
+  }
+  if (!points.length) points.push(minVol);
+
   let maxSharpe = points[0];
   let best = -Infinity;
   for (const p of points) {
