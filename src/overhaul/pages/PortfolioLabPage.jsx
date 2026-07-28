@@ -175,8 +175,10 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
   const ylo = Math.min(...ys); const yhi = Math.max(...ys);
   const xr = (xhi - xlo) || xhi * 0.2 || 0.02;
   const yr = (yhi - ylo) || Math.abs(yhi) * 0.2 || 0.02;
-  const xd = niceDomain(Math.max(0, xlo - xr * 0.25), xhi + xr * 0.25);
-  const yd = niceDomain(ylo - yr * 0.3, yhi + yr * 0.3);
+  /* Tight padding + denser gridlines (Joe 7/27: the loose 25-30% padding
+     left the curve crushed into a corner of a mostly-empty plot). */
+  const xd = niceDomain(Math.max(0, xlo - xr * 0.08), xhi + xr * 0.08, 6);
+  const yd = niceDomain(ylo - yr * 0.12, yhi + yr * 0.12, 5);
   const xmin = xd.min; const xmax = xd.max;
   const ymin = yd.min; const ymax = yd.max;
   const visBenches = benches.filter((b) => b.vol >= xmin && b.vol <= xmax && b.ret >= ymin && b.ret <= ymax);
@@ -202,18 +204,27 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
     const my = ((e.clientY - box.top) / box.height) * H;
     setHover(nearest(mx, my));
   };
-  /* No on-canvas labels for the marked points — the min-vol / max-Sharpe /
-     equal-weight points routinely sit within a few pixels of each other and
-     of the portfolio dot, so ANY text placement scheme eventually stacks
-     (Joe, 7/27 ×3). Each mark gets a distinct marker style and the names
-     live in a legend row below the chart, where they can never collide. */
-  /* Ring radii exceed the filled dots so a ring stays visible as a halo
-     even when its point coincides with another marker. */
-  const marks = [
-    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 5, label: 'Max Sharpe' },
-    { p: frontier.minVol, cls: 'lab-ringdot', r: 8.5, label: 'Min volatility' },
-    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 10.5, label: 'Equal weight' },
+  /* Marker discipline (Joe 7/27, superseding the halo experiment): every
+     marker is SMALL (4.5px) and coincident points are DEDUPLICATED on the
+     canvas instead of stacked — when two presets land within a few pixels
+     of each other (or of the portfolio dot), only the first renders; the
+     legend below always carries all three names and stays clickable, so
+     nothing is lost. Names never render on-canvas (they collide). */
+  const markDefs = [
+    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 4.5, label: 'Max Sharpe' },
+    { p: frontier.minVol, cls: 'lab-minvoldot', r: 4.5, label: 'Min volatility' },
+    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4.5, label: 'Equal weight' },
   ];
+  const placedPx = current ? [[X(current.vol), Y(current.ret)]] : [];
+  const marks = [];
+  for (const m of markDefs) {
+    const mx = X(m.p.vol);
+    const my = Y(m.p.ret);
+    if (!placedPx.some(([px, py]) => (px - mx) ** 2 + (py - my) ** 2 < 121)) { // 11px apart minimum
+      marks.push(m);
+      placedPx.push([mx, my]);
+    }
+  }
   return (
     <div className="lab-chartwrap">
       <svg
@@ -245,27 +256,23 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
         {/* portfolio dot renders FIRST and ignores the pointer, so the
             clickable preset markers are never buried underneath it when the
             points coincide */}
-        {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="6" className="lab-youdot" />}
+        {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="5" className="lab-youdot" />}
         {marks.map((m) => (
-          <g key={m.cls}>
-            {/* casing in the card color keeps a ring visible even when it
-                sits exactly on the filled gold dot (same hue) */}
-            <circle cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r + 1.5} className="lab-ringcase" />
-            <circle
-              cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
-              className={`${m.cls} lab-clickmark`}
-              onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
-              onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
-            />
-          </g>
+          <circle
+            key={m.cls}
+            cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
+            className={`${m.cls} lab-clickmark`}
+            onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
+            onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
+          />
         ))}
-        {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="5" className="lab-hoverdot" />}
+        {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="4" className="lab-hoverdot" />}
       </svg>
       <div className="lab-fmarks">
-        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="5" className="lab-youdot" /></svg>Your portfolio</span>
-        {marks.map((m) => (
+        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-youdot" /></svg>Your portfolio</span>
+        {markDefs.map((m) => (
           <button key={m.cls} type="button" className="lab-fmark asbtn" onClick={() => onPick(m.p)}>
-            <svg width="12" height="12"><circle cx="6" cy="6" r={Math.min(m.r, 4.5)} className={m.cls} /></svg>
+            <svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className={m.cls} /></svg>
             {m.label}
           </button>
         ))}
