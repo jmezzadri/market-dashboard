@@ -9,7 +9,7 @@ import {
   capmAnnualER, scenarioHorizonER, horizonFromAnnual, annualFromHorizon,
   portfolioER, portfolioVol, riskContribution, portfolioPath, maxDrawdown,
   projectSimplex, minVarianceForTarget, efficientFrontier, sicToSectorEtf,
-  ivAtHorizon, rescaleCovToImplied,
+  ivAtHorizon, rescaleCovToImplied, riskCompensationER,
 } from './labMath.js';
 
 const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} !~ ${b} (tol ${tol})`);
@@ -181,4 +181,17 @@ test('rescaleCovToImplied by hand: 2-asset diagonal swap keeps correlation', () 
   close(S2[1][1], 0.09, 1e-12);
   // Correlation preserved: 0.018 / (0.3·0.3) = 0.2 — same ρ as before.
   close(S2[0][1] / Math.sqrt(S2[0][0] * S2[1][1]), 0.2, 1e-12);
+});
+
+test('riskCompensationER by hand: rf 4%, ERP 4.23%, SPY IV 16.5%, stock IV 101%', () => {
+  // lambda = 0.0423 / 0.165 = 0.2563636...; ER = 0.04 + 0.2563636 x 1.01
+  //        = 0.04 + 0.25892727... = 0.29892727...
+  close(riskCompensationER(0.04, 0.0423, 0.165, 1.01), 0.298927272727, 1e-9);
+});
+
+test('riskCompensationER: market-vol stock earns exactly rf + ERP; guards return null', () => {
+  close(riskCompensationER(0.04, 0.0423, 0.165, 0.165), 0.0823, 1e-12);
+  assert.equal(riskCompensationER(0.04, 0.0423, 0, 0.5), null);
+  assert.equal(riskCompensationER(null, 0.0423, 0.165, 0.5), null);
+  assert.equal(riskCompensationER(0.04, 0.0423, 0.165, null), null);
 });

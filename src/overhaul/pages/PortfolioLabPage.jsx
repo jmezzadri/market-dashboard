@@ -32,7 +32,7 @@ import {
   HORIZONS, alignSeries, dailyReturns, annualVol, betaVs, covMatrix, corrMatrix,
   capmAnnualER, scenarioHorizonER, horizonFromAnnual, annualFromHorizon,
   portfolioER, portfolioVol, riskContribution, portfolioPath, maxDrawdown,
-  efficientFrontier, sicToSectorEtf, ivAtHorizon, rescaleCovToImplied,
+  efficientFrontier, sicToSectorEtf, ivAtHorizon, rescaleCovToImplied, riskCompensationER,
 } from '../lib/labMath';
 import { ERP_ANNUAL, ERP_SOURCE, MIN_HISTORY_DAYS } from '../lib/labConfig';
 import '../styles/cream-system.css';
@@ -377,7 +377,9 @@ export default function PortfolioLabPage() {
   /* ATM implied-vol term structures — fetched only for rows on the
      Implied vol method (LSE options feed, server-cached). */
   const ivolTickers = holdings.filter((h) => h.method === 'ivol').map((h) => h.ticker);
-  const { byTicker: ivMap, loading: ivLoading } = useLseIv(ivolTickers);
+  // SPY's implied vol is the market leg of the risk-compensation formula —
+  // fetched whenever any holding is on the Implied vol method.
+  const { byTicker: ivMap, loading: ivLoading } = useLseIv(ivolTickers.length ? [...ivolTickers, 'SPY'] : []);
 
   /* ── analysis pipeline ────────────────────────────────────────────── */
   const analysis = useMemo(() => {
@@ -407,25 +409,40 @@ export default function PortfolioLabPage() {
           range = [h.scenarios.bear.price / lastPrice[t] - 1, h.scenarios.bull.price / lastPrice[t] - 1];
         }
       } else {
-        // CAPM drift — for both the CAPM method and the Implied vol method
-        // (options carry no usable directional drift; spec §3.3).
-        erAnnual = enough.includes(t) ? capmAnnualER(beta, rfH, ERP_ANNUAL) : null;
-        erH = horizonFromAnnual(erAnnual, years);
         if (h.method === 'ivol') {
+          // Risk-compensation expected return (Joe-approved 2026-07-27):
+          // ER = risk-free + market Sharpe ratio × the stock's option-implied
+          // volatility, both vols at the 1-year point. Market leg = SPY
+          // implied vol (historical SPY vol as fallback). The ER now MOVES
+          // with the options market; no listed options → CAPM fallback +
+          // em-dash note (LESSONS 4.4).
           implVol = ivAtHorizon(ivMap[t]?.term, years * 365);
-          if (implVol != null && erH != null) {
-            const moveH = implVol * Math.sqrt(years); // market-implied expected move over the horizon
-            range = [erH - moveH, erH + moveH];
+          const stockIv1y = ivAtHorizon(ivMap[t]?.term, 365);
+          const marketVol = ivAtHorizon(ivMap.SPY?.term, 365) ?? (rets.SPY ? annualVol(rets.SPY) : null);
+          if (stockIv1y != null && implVol != null) {
+            erAnnual = riskCompensationER(rfH, ERP_ANNUAL, marketVol, stockIv1y);
+            erH = horizonFromAnnual(erAnnual, years);
+            if (erH != null) {
+              const moveH = implVol * Math.sqrt(years); // market-implied expected move over the horizon
+              range = [erH - moveH, erH + moveH];
+            }
           } else {
-            ivMissing = true; // no listed options → em-dash; math falls back to CAPM/historical
+            ivMissing = true; // no listed options → CAPM drift + historical vol
+            erAnnual = enough.includes(t) ? capmAnnualER(beta, rfH, ERP_ANNUAL) : null;
+            erH = horizonFromAnnual(erAnnual, years);
             if (erH != null) {
               const volH = vol * Math.sqrt(years);
               range = [erH - volH, erH + volH];
             }
           }
-        } else if (erH != null) {
-          const volH = vol * Math.sqrt(years);
-          range = [erH - volH, erH + volH];
+        } else {
+          // CAPM
+          erAnnual = enough.includes(t) ? capmAnnualER(beta, rfH, ERP_ANNUAL) : null;
+          erH = horizonFromAnnual(erAnnual, years);
+          if (erH != null) {
+            const volH = vol * Math.sqrt(years);
+            range = [erH - volH, erH + volH];
+          }
         }
       }
       perStock[t] = { beta: enough.includes(t) ? beta : null, vol, erAnnual, erH, range, implVol, ivMissing, thin: !enough.includes(t) };
@@ -871,16 +888,9 @@ export default function PortfolioLabPage() {
                               )}
                             </td>
                             <td className={`num strong ${ps?.erH > 0 ? 'up' : ps?.erH < 0 ? 'down' : ''}`}>
-                              {ps?.thin && (h.method === 'capm' || h.method === 'ivol')
+                              {ps?.erH == null && ps?.thin && (h.method === 'capm' || h.method === 'ivol')
                                 ? <span className="lab-dim">— insufficient history</span>
-                                : <>
-                                    {signPct(ps?.erH)}
-                                    {/* Implied vol deliberately keeps the CAPM expected
-                                        return — options price a RANGE, not a direction
-                                        (Joe q 7/27; Methodology, Method 3). Tag it so the
-                                        unchanged number reads as intent, not a bug. */}
-                                    {h.method === 'ivol' && ps?.implVol != null && <span className="lab-ivtag">capm drift</span>}
-                                  </>}
+                                : signPct(ps?.erH)}
                             </td>
                             <td className="num">
                               {h.method === 'ivol' && ps?.ivMissing
@@ -1089,9 +1099,10 @@ export default function PortfolioLabPage() {
         <Reveal as="p" className="lab-method-foot">
           CAPM expected return = risk-free rate + beta × {pct(ERP_ANNUAL, 2)} equity risk premium ({ERP_SOURCE}).
           Scenario expected return = probability-weighted return across your Bull / Base / Bear targets.
-          Implied vol keeps the CAPM expected return and swaps the risk input to the options market&rsquo;s
-          at-the-money implied volatility (London Strategic Edge feed, interpolated to your horizon);
-          the range shown is the market-implied expected move. Full detail on the Methodology page.
+          Implied vol prices the risk directly: expected return = risk-free rate + the market&rsquo;s going
+          rate of return per unit of volatility (equity risk premium ÷ SPY&rsquo;s implied volatility) ×
+          the stock&rsquo;s own option-implied volatility — so it moves with the options market. The range
+          shown is the market-implied expected move. Full detail on the Methodology page.
         </Reveal>
 
       </div>

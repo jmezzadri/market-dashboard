@@ -477,18 +477,21 @@ export default function MethodologyPage() {
               only — no model.
             </p>
             <p className="me-body-p">
-              <b>Method 3 — Implied vol.</b> Options prices reveal the market&rsquo;s expected <i>range</i>
-              for a stock, not a directional expected return, and the method is framed exactly that way:
-              the expected return stays CAPM, and the risk input swaps from historical volatility to the
-              options market&rsquo;s at-the-money implied volatility. The implied vol comes from the London
-              Strategic Edge options chain — the at-the-money call at each listed expiry (strike within
-              10% of the current price, anchored to the most recently updated contract) — and is
-              interpolated to your horizon linearly in total variance between the two nearest expiries
+              <b>Method 3 — Implied vol.</b> This method prices risk directly from the options market.
+              The expected return is the return the market&rsquo;s own going rate demands for the stock&rsquo;s
+              volatility: risk-free rate + (equity risk premium ÷ SPY&rsquo;s option-implied volatility) ×
+              the stock&rsquo;s option-implied volatility, with both volatilities read at the one-year point.
+              A stock exactly as volatile as the market earns exactly risk-free + the equity risk
+              premium; a stock the options market prices at six times SPY&rsquo;s volatility must offer six
+              times the premium. It is the return <i>required to justify the risk</i> at the market&rsquo;s
+              going rate — not a forecast that the stock will earn it. Implied volatility comes from the
+              London Strategic Edge options chain — the at-the-money call at each listed expiry (strike
+              within 10% of the current price, anchored to the most recently updated contract) —
+              interpolated to the horizon linearly in total variance between the two nearest expiries
               (held flat beyond the last listed expiry). The range shown is the market-implied expected
-              move over the horizon around the CAPM expected return. In the optimizer, a holding on this
-              method keeps historical correlations but its volatility is replaced by the implied figure —
-              a standard practitioner blend. A name with no listed options on the feed shows an em-dash
-              and falls back to CAPM with historical volatility.
+              move over the horizon. In the optimizer, a holding on this method keeps historical
+              correlations but its volatility is replaced by the implied figure. A name with no listed
+              options on the feed shows an em-dash and falls back to CAPM with historical volatility.
             </p>
             <p className="me-body-p">
               <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected
@@ -505,7 +508,8 @@ export default function MethodologyPage() {
             <div className="me-formula">
               CAPM: expected_return = risk_free + beta × equity_risk_premium<br />
               Scenarios: expected_return = Σ probability × (target_price ÷ last_price − 1)<br />
-              Implied vol: expected_range = ± implied_vol(horizon) × √years, around the CAPM expected return<br />
+              Implied vol: expected_return = risk_free + (equity_risk_premium ÷ SPY_implied_vol) × stock_implied_vol<br />
+              Implied vol: expected_range = ± implied_vol(horizon) × √years, around that expected return<br />
               term interpolation: variance(horizon) is linear in σ²·days between the two nearest expiries<br />
               Frontier: minimize portfolio_variance subject to target return · weights ≥ 0 · weights sum to 100%<br />
               horizon scaling: return compounds by years · volatility scales by √years

@@ -177,6 +177,22 @@ export function ivAtHorizon(term, horizonDays) {
   return last.iv;
 }
 
+// Risk-compensation expected return (Method 3 upgrade, Joe-approved
+// 2026-07-27): the return the market's own price of risk demands for this
+// stock's option-implied volatility.
+//   ER = rf + (ERP / sigma_market) x sigma_stock
+// where ERP / sigma_market is the market Sharpe ratio (the going rate of
+// return per unit of volatility) and both volatilities are options-implied
+// at the 1-year point (market = SPY; historical fallback if SPY IV is
+// unavailable). Framing: the return REQUIRED to justify the risk at the
+// market's going rate — not a forecast of what the stock will earn.
+// Property: a stock with exactly the market's volatility earns exactly
+// rf + ERP (paper-checked).
+export function riskCompensationER(rf, erp, marketVol, stockVol) {
+  if (rf == null || erp == null || !(marketVol > 0) || !(stockVol > 0)) return null;
+  return rf + (erp / marketVol) * stockVol;
+}
+
 // Swap the covariance diagonal to implied vols while keeping historical
 // correlations: S'_ij = S_ij · (σ'_i/σ_i) · (σ'_j/σ_j), where σ'/σ = 1 for
 // holdings without an implied vol. Standard practitioner blend (spec §3.3).
