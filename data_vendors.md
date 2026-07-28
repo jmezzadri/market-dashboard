@@ -1,8 +1,8 @@
 # MacroTilt Data Vendor Ledger
 
-Last updated: 2026-06-16. Owner: Data Steward.
+Last updated: 2026-07-28 (Polygon Massive corrected to $0 — free 2-yr tier, verified by API probes 7/27; Joe caught the stale $79 on the Data page 7/28). Owner: Data Steward.
 
-This is the cost + blast-radius ledger for every external data source AND paid infrastructure service that feeds the live site. Run-rate as of 2026-07-20 (verified against receipts in the 2026-07-08 cost sweep, which found this file understating true cost): approximately **$275/month (~$3,300/year) excluding the Claude subscription**; ~$525/month (~$6,300/year) including it. Prior versions of this file listed Unusual Whales at $150/YEAR — the receipt says **$150/MONTH** — and omitted Supabase and Vercel entirely.
+This is the cost + blast-radius ledger for every external data source AND paid infrastructure service that feeds the live site. Run-rate as of 2026-07-20 (verified against receipts in the 2026-07-08 cost sweep, which found this file understating true cost): approximately **$221/month excluding the Claude subscription** (drops to ~$71/month after Unusual Whales lapses 2026-08-12; the previously-stated ~$275 included a Polygon charge that turned out not to exist); ~$525/month (~$6,300/year) including it. Prior versions of this file listed Unusual Whales at $150/YEAR — the receipt says **$150/MONTH** — and omitted Supabase and Vercel entirely.
 
 **2026-07-20 CUTOVER EXECUTED — insiders now run on SEC EDGAR.** The scanner, universe gate and Ticker-page insider evidence read `insider_history_edgar` in production. The UW insider ingest runs as a parity-monitor comparison only until the subscription lapses 2026-08-12, then all UW pipelines retire.
 
@@ -63,7 +63,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ## 4. Polygon Massive
 
-- **Monthly cost:** ~$29-79/month (Basic tier; exact tier needs verification). Capped at ~2 years of historical aggregates per the 2026-04-30 memo on Polygon Basic's 2-year cap.
+- **Monthly cost:** $0 — the key is Massive's FREE 2-year tier (verified 2026-07-27 by live API probes + billing check; the earlier ~$29-79 'Basic tier' figures in this ledger had no receipt behind them and were wrong). Historical aggregates still cap at ~2 years per the 2026-04-30 memo.
 - **License tier:** Paid. API key `MASSIVE_API_KEY` in workflow + edge function secrets.
 - **What it powers (manifest elements):**
   - `market.prices-eod-massive` — EOD equity prices for ~12,600 US-listed tickers
@@ -243,7 +243,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 |---|---|---|
 | FRED | $0 | Active |
 | Yahoo Finance | $0 | Active |
-| Polygon Massive | ~$29-79 (Basic tier — exact tier unverified) | Active |
+| Polygon Massive | $0 (free 2-yr tier, verified 2026-07-27) | Active |
 | Unusual Whales API | $150 (renews 8/13 — replacement in flight) | Active until 2026-08-12 |
 | Unusual Whales Retail Pro | $0 (cancelled 2026-04-22) | Cancelled |
 | Nasdaq/FINRA | $0 | Active |

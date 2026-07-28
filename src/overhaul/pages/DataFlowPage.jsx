@@ -394,7 +394,11 @@ function displayName(el) {
   const n = el.name;
   if (ENGINE_DISPLAY[n]) return ENGINE_DISPLAY[n];
   if (REG_DISPLAY[n]) return REG_DISPLAY[n];
-  // Spell out the commonest non-registry families nicely.
+  // Manifest-supplied plain-English name (added 2026-07-28 — Joe: internal
+  // ids like "Lse Archive Iv" are useless on a human surface; every
+  // non-registry element now carries display_name in the manifest).
+  if (el.display_name) return el.display_name;
+  // Last resort for anything unregistered — title-cased id, better than raw.
   return humanise(n);
 }
 

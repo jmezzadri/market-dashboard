@@ -108,7 +108,11 @@ export const VENDOR_BLAST_RADIUS = {
 // public APIs that only require an API key. "—" for derived (in-house)
 // rollups that have no separate cost line item.
 export const VENDOR_MONTHLY_COST = {
-  "Polygon Massive":         "$79",
+  // Verified 2026-07-27 (API probes + billing check): the key is Massive's
+  // FREE 2-year tier — the old "$54-79/mo" ledger figures had no receipt
+  // behind them. Joe flagged the stale $79 on the Data page 2026-07-28.
+  "Polygon Massive":         "Free (2-yr tier)",
+  "London Strategic Edge":   "Free",
   "SEC EDGAR":               "Free",
   "FRED":                    "Free",
   "U.S. Treasury":           "Free",

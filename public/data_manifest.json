@@ -1138,7 +1138,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Stock universe (all US listings)"
   },
   {
    "id": "market-prices_eod-daily",
@@ -1167,7 +1168,8 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "planned \u2014 Stock-modal price chart (to replace the Yahoo price-history route); not live yet"
+   "consumer_surfaces_note": "planned \u2014 Stock-modal price chart (to replace the Yahoo price-history route); not live yet",
+   "display_name": "Daily closing prices (full US market)"
   },
   {
    "id": "market-ticker_reference-rolling",
@@ -1200,7 +1202,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Rolling ticker-reference backfill cycles the universe over days; SLA = full-cycle + grace"
+   "sla_basis": "Rolling ticker-reference backfill cycles the universe over days; SLA = full-cycle + grace",
+   "display_name": "Company reference details (name, sector, shares)"
   },
   {
    "id": "market-dividends-daily",
@@ -1229,7 +1232,8 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet"
+   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet",
+   "display_name": "Dividend history"
   },
   {
    "id": "market-splits-daily",
@@ -1258,7 +1262,8 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet"
+   "consumer_surfaces_note": "planned \u2014 Stock-modal corporate-actions tile (dividends/splits); not live yet",
+   "display_name": "Stock split records"
   },
   {
    "id": "equity-latest_scan_data-daily",
@@ -1296,7 +1301,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest session close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Scanner output bundle (signals + watch items)"
   },
   {
    "id": "equity-user_scan_data-daily",
@@ -1333,7 +1339,8 @@
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
+   "as_of_cutoff_note": "date-keyed",
+   "display_name": "Watchlist scan supplement (per user)"
   },
   {
    "id": "equity-zerohedge_public-daily",
@@ -1360,7 +1367,8 @@
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed."
+   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed.",
+   "display_name": "ZeroHedge headlines (public feed)"
   },
   {
    "id": "equity-zerohedge_premium-live",
@@ -1387,7 +1395,8 @@
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed."
+   "consumer_surfaces_note": "External source. Ingested into the scan file but not rendered on any live surface; held for the homepage redesign (Joe 2026-06-17). Modeled in External Sources, not as a page feed.",
+   "display_name": "ZeroHedge Premium articles"
   },
   {
    "id": "equity-google_news_per_ticker-on_demand",
@@ -1417,7 +1426,8 @@
    "failure_mode": "RSS fail \u2192 falls back to stored news only.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "Per-stock news headlines (Google News)"
   },
   {
    "id": "equity-tradingview_chart-on_demand",
@@ -1447,7 +1457,8 @@
    "failure_mode": "If the TradingView CDN is unreachable the chart area is blank; the default MacroTilt price chart is unaffected.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "Interactive price chart (TradingView embed)"
   },
   {
    "id": "equity-short_interest-biweekly",
@@ -1478,7 +1489,8 @@
    "owner": "Lead Dev",
    "release_calendar": "us-business-day",
    "dependencies": [],
-   "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace"
+   "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace",
+   "display_name": "Short interest per stock (FINRA, bi-weekly)"
   },
   {
    "id": "equity-index_membership-daily",
@@ -1508,7 +1520,8 @@
    "owner": "Lead Dev",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Index membership lists (S&P 500 / Nasdaq-100 / Dow / Russell 2000)"
   },
   {
    "id": "equity-wide_universe-daily",
@@ -1542,7 +1555,8 @@
     "market-universe_master-daily",
     "equity-index_membership-daily"
    ],
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Extended scan universe (filtered index members)"
   },
   {
    "id": "ops-api_usage_log-event",
@@ -1572,7 +1586,8 @@
    "failure_mode": "Per-run row write; missing row = no usage chart for that run.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "Vendor API usage log"
   },
   {
    "id": "ops-pipeline_health-30min",
@@ -1606,7 +1621,8 @@
    "release_calendar": "wall-clock",
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
-   "as_of_cutoff_note": "as-of latest session close"
+   "as_of_cutoff_note": "as-of latest session close",
+   "display_name": "Feed health tracking table"
   },
   {
    "id": "ops-bug_reports-event",
@@ -1637,7 +1653,8 @@
    "release_calendar": "wall-clock",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
+   "as_of_cutoff_note": "date-keyed",
+   "display_name": "Bug reports"
   },
   {
    "id": "ops-bug_status_log-event",
@@ -1668,7 +1685,8 @@
    "release_calendar": "wall-clock",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "date-keyed"
+   "as_of_cutoff_note": "date-keyed",
+   "display_name": "Bug status history"
   },
   {
    "id": "ops-admin_users-static",
@@ -1700,7 +1718,8 @@
    "failure_mode": "Empty seed (memory rule #21 trap) \u2192 admin pages 403.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "Site user accounts"
   },
   {
    "id": "ops-user_preferences-on_change",
@@ -1732,7 +1751,8 @@
    "failure_mode": "Silent fail \u2192 table reverts to defaults next session.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "User preferences"
   },
   {
    "id": "commentary-macro_commentary-daily",
@@ -1762,7 +1782,8 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "date-keyed",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17)."
+   "consumer_surfaces_note": "In-house generated narrative (Claude), not an external feed. Not surfaced on any live page yet; held for the homepage redesign (Joe 2026-06-17).",
+   "display_name": "Daily macro commentary blurb"
   },
   {
    "id": "ops-bug_screenshots-event",
@@ -1791,7 +1812,8 @@
    "failure_mode": "Upload failure surfaced to user.",
    "owner": "Lead Dev",
    "release_calendar": "wall-clock",
-   "dependencies": []
+   "dependencies": [],
+   "display_name": "Bug report screenshots"
   },
   {
    "id": "indicator-cfnai_3ma-monthly",
@@ -1989,7 +2011,8 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest session close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "fetch_grace_hours": 3
+   "fetch_grace_hours": 3,
+   "display_name": "Interbank credit stress spread (engine input)"
   },
   {
    "id": "indicator-real_fedfunds-monthly",
@@ -2024,7 +2047,8 @@
    "as_of_cutoff_note": "observation period figure",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "publication_lag_days": 15,
-   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 15d source lag + 12d buffer = 87d. Derived."
+   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 15d source lag + 12d buffer = 87d. Derived.",
+   "display_name": "Real Fed funds rate (engine input)"
   },
   {
    "id": "indicator-sofr_ois-daily",
@@ -2058,7 +2082,8 @@
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest session close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "fetch_grace_hours": 3
+   "fetch_grace_hours": 3,
+   "display_name": "Overnight funding stress spread (engine input)"
   },
   {
    "id": "indicator-ic4wsa-weekly",
@@ -2091,7 +2116,8 @@
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "observation period figure",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Jobless claims, 4-week average (engine input)"
   },
   {
    "id": "indicator-bkx_spx_v11-daily",
@@ -2124,7 +2150,8 @@
    "owner": "Senior Quant, Lead Dev, Data Steward",
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "US market close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Banks vs market ratio (engine input)"
   },
   {
    "id": "indicator-fed_bs-weekly",
@@ -2358,7 +2385,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest session close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Paper portfolio value (daily)"
   },
   {
    "id": "portfolio.paper-positions-snapshot",
@@ -2391,7 +2419,8 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "date-keyed",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Paper portfolio positions (daily snapshot)"
   },
   {
    "id": "portfolio.paper-orders-intent",
@@ -2426,7 +2455,8 @@
    ],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest session close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Paper portfolio orders"
   },
   {
    "id": "portfolio.paper-positions-intraday",
@@ -2460,7 +2490,8 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "live broker marks; only shown while market is open",
-   "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight."
+   "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight.",
+   "display_name": "Paper portfolio positions (intraday)"
   },
   {
    "id": "portfolio.paper-nav-intraday",
@@ -2494,7 +2525,8 @@
    "dependencies": [],
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "live broker marks; only shown while market is open",
-   "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight."
+   "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight.",
+   "display_name": "Paper portfolio value (intraday)"
   },
   {
    "id": "indicator-cftc-cot-weekly",
@@ -2529,7 +2561,8 @@
    "as_of_cutoff_note": "observation period figure",
    "last_success_utc": "2026-07-25T11:59:06+00:00",
    "data_as_of": "2026-07-21",
-   "sla_basis": "COT producer runs weekly (Saturday batch); SLA = weekly job cadence + grace"
+   "sla_basis": "COT producer runs weekly (Saturday batch); SLA = weekly job cadence + grace",
+   "display_name": "Futures positioning (weekly CFTC report)"
   },
   {
    "id": "indicator-spx_above_50ema-daily",
@@ -3276,7 +3309,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "NYSE cash close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "S&P 500 index level"
   },
   {
    "id": "market-ndx_index-daily",
@@ -3317,7 +3351,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "NYSE cash close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Nasdaq-100 index level"
   },
   {
    "id": "market-dji_index-daily",
@@ -3358,7 +3393,8 @@
    "dependencies": [],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "NYSE cash close",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Dow Jones index level"
   },
   {
    "id": "indicator-ndx_above_50ema-daily",
@@ -3470,7 +3506,8 @@
    "current_status": "live",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "publication_lag_days": 1,
-   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 1d source lag + 12d buffer = 73d. Derived."
+   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 1d source lag + 12d buffer = 73d. Derived.",
+   "display_name": "ISM Manufacturing survey"
   },
   {
    "id": "indicator-ism_svc-monthly",
@@ -3504,7 +3541,8 @@
    "current_status": "live",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "publication_lag_days": 3,
-   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 3d source lag + 12d buffer = 75d. Derived."
+   "freshness_window_basis": "Monthly: 60d (reference label + next reference) + 3d source lag + 12d buffer = 75d. Derived.",
+   "display_name": "ISM Services survey"
   },
   {
    "id": "site-indicator_history-aggregate",
@@ -3549,7 +3587,8 @@
    "owner": "Data Steward",
    "producer_script": "indicator history producer",
    "current_status": "live",
-   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age."
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "display_name": "Indicator history compiler"
   },
   {
    "id": "equity-short_interest-daily",
@@ -3585,7 +3624,8 @@
    "release_calendar": "us-business-day",
    "dependencies": [],
    "_note": "Distinct from equity-short_interest-biweekly (legacy v5 Yahoo enrichment, still feeding v5-era columns). FINRA settlement values carry their own as-of date in every surface.",
-   "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace"
+   "sla_basis": "FINRA short interest settles twice monthly; SLA = bi-monthly publish cadence + grace",
+   "display_name": "Short interest history (FINRA direct)"
   },
   {
    "id": "indicator-credit_positioning-weekly",
@@ -3615,7 +3655,8 @@
    "owner": "Data Steward",
    "release_calendar": "us-business-day",
    "dependencies": [],
-   "sla_basis": "Weekly job; PULL SLA = weekly cadence + grace (~8 days / 192h). Data window 480h covers the NY Fed publication lag."
+   "sla_basis": "Weekly job; PULL SLA = weekly cadence + grace (~8 days / 192h). Data window 480h covers the NY Fed publication lag.",
+   "display_name": "Dealer credit inventory (NY Fed, weekly)"
   },
   {
    "id": "equity-rsi_divergences-daily",
@@ -3649,7 +3690,8 @@
    ],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest complete session close (T+1 morning compute)",
-   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. data_max_age 54h mirrors the sibling daily scan elements."
+   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. data_max_age 54h mirrors the sibling daily scan elements.",
+   "display_name": "RSI divergence scan results"
   },
   {
    "id": "equity-power_trend_list-monthly",
@@ -3686,7 +3728,8 @@
    ],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of the latest complete session close at publish (max prices_eod trade_date)",
-   "sla_basis": "One-clock doctrine: monthly job = 768h, graded off the last successful publish; data_max_age 816h adds the standard grace. Consumers: Scanner page Power Trend panel; paper engine sleeve M; Paper page rank column."
+   "sla_basis": "One-clock doctrine: monthly job = 768h, graded off the last successful publish; data_max_age 816h adds the standard grace. Consumers: Scanner page Power Trend panel; paper engine sleeve M; Paper page rank column.",
+   "display_name": "Power Trend momentum list"
   },
   {
    "id": "equity-trading_opps_scan-daily",
@@ -3723,7 +3766,8 @@
    ],
    "as_of_cutoff_et": "16:00",
    "as_of_cutoff_note": "as-of latest complete session close (T+1 morning compute)",
-   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. Consumers: Scanner hero Latest scan tile + results table + Paper page live scores."
+   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h; graded off last successful pull. Consumers: Scanner hero Latest scan tile + results table + Paper page live scores.",
+   "display_name": "Insider Conviction scan results"
   },
   {
    "category": "commentary",
@@ -3754,7 +3798,8 @@
      "tab": "macro",
      "tile": "Narrative blurb freshness"
     }
-   ]
+   ],
+   "display_name": "Macro narrative blurb"
   },
   {
    "category": "commentary",
@@ -3785,7 +3830,8 @@
      "tab": "macro",
      "tile": "Sector narrative freshness"
     }
-   ]
+   ],
+   "display_name": "Sector narrative blurb"
   },
   {
    "id": "equity-insider_edgar-daily",
@@ -3812,7 +3858,8 @@
    "current_status": "live (production insider source as of 2026-07-20)",
    "failure_mode": "Insider sub-score reads em-dash; score drill evidence empty.",
    "owner": "Data Steward",
-   "sla_basis": "49h: daily cadence, same-morning ingest + 24h grace."
+   "sla_basis": "49h: daily cadence, same-morning ingest + 24h grace.",
+   "display_name": "Insider trading filings (SEC EDGAR)"
   },
   {
    "id": "lab-price_history-ondemand",
@@ -3845,7 +3892,8 @@
    "current_status": "live",
    "failure_mode": "Failed ticker flagged on-page and excluded from every computation; no synthetic fallback.",
    "owner": "Senior Quant (methods), Lead Dev (endpoint), Data Steward (governance)",
-   "notes": "On-demand element (no pipeline_health row - no scheduled producer); page states 'Prices through {date}, fetched live'. Registered 2026-07-27 with the Portfolio Lab page."
+   "notes": "On-demand element (no pipeline_health row - no scheduled producer); page states 'Prices through {date}, fetched live'. Registered 2026-07-27 with the Portfolio Lab page.",
+   "display_name": "Portfolio Lab price history"
   },
   {
    "id": "market-lse_intraday-live",
@@ -3881,7 +3929,8 @@
    ],
    "current_status": "live",
    "failure_mode": "Live price shows em-dash / last cached bar; engines unaffected.",
-   "sla_basis": "Market-hours clock, 3h (paper-intraday precedent); pauses at the close."
+   "sla_basis": "Market-hours clock, 3h (paper-intraday precedent); pauses at the close.",
+   "display_name": "Live stock prices (1-minute)"
   },
   {
    "id": "options-lse_atm_iv-ondemand",
@@ -3912,7 +3961,8 @@
    ],
    "current_status": "live",
    "failure_mode": "Implied vol rows show em-dash; method falls back to CAPM + historical volatility.",
-   "sla_basis": "49h daily budget; the scan batch is the guaranteed daily pull."
+   "sla_basis": "49h daily budget; the scan batch is the guaranteed daily pull.",
+   "display_name": "Options implied volatility (live)"
   },
   {
    "id": "equity-lse_iv_scan-daily",
@@ -3942,7 +3992,8 @@
    ],
    "current_status": "live",
    "failure_mode": "Vol rank column all em-dash + red chip. Structural coverage gaps (LSE options universe covers actively-traded names only) show em-dash per name by design.",
-   "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends."
+   "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends.",
+   "display_name": "Scanner volatility rank (daily batch)"
   },
   {
    "id": "options-lse_archive_iv-daily",
@@ -3973,7 +4024,8 @@
    ],
    "current_status": "live",
    "failure_mode": "Archive rows absent/stale \u2192 the name reverts to the honest CAPM fallback note.",
-   "sla_basis": "49h daily budget, calendar-aware (weekend hours don\u2019t count)."
+   "sla_basis": "49h daily budget, calendar-aware (weekend hours don\u2019t count).",
+   "display_name": "Options implied volatility (nightly, for names the live feed skips)"
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
