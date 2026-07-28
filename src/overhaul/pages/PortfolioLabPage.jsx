@@ -894,7 +894,7 @@ export default function PortfolioLabPage() {
                             </td>
                             <td className="num">
                               {h.method === 'ivol' && ps?.ivMissing
-                                ? <span className="lab-dim">— no listed options; using CAPM</span>
+                                ? <span className="lab-dim">— not covered by the live options feed; using CAPM</span>
                                 : ps?.range
                                   ? <>
                                       {signPct(ps.range[0], 0)} to {signPct(ps.range[1], 0)}
