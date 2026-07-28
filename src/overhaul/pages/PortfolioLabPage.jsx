@@ -900,10 +900,13 @@ export default function PortfolioLabPage() {
                                       {signPct(ps.range[0], 0)} to {signPct(ps.range[1], 0)}
                                       {h.method === 'ivol' && ps?.implVol != null && (
                                         <span className="lab-ivnote">
+                                          {/* Every row states its data vintage the same way (Joe
+                                              2026-07-28): live-feed names read "live", nightly-
+                                              archive names read "as of <date> close". */}
                                           market-implied · 1y IV {pct(ivAtHorizon(ivMap[h.ticker]?.term, 365), 0)}
                                           {ivMap[h.ticker]?.source === 'archive' && ivMap[h.ticker]?.asOf
-                                            ? ` · as of ${ivMap[h.ticker].asOf} close`
-                                            : ''}
+                                            ? ` · as of ${new Date(`${ivMap[h.ticker].asOf}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} close`
+                                            : ' · live'}
                                         </span>
                                       )}
                                     </>
