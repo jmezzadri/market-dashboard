@@ -407,6 +407,12 @@ export default function TickerPage() {
   // print, the completed close is prev_close; otherwise it is last_close.
   const liveBase = isIntraday ? prevClose : (price || null);
   const livePct = livePrice != null && liveBase > 0 ? ((livePrice / liveBase) - 1) * 100 : null;
+  /* Live-first hero (Joe 2026-07-28): while the market is OPEN and the live
+     feed covers this name, the live price is the headline number — nobody
+     leads with yesterday's close during trading hours. The official close
+     demotes to the small reference line. Closed market, uncovered names, or
+     a missing base keep the close-first block unchanged. */
+  const liveHero = lseLive.marketOpen === true && livePrice != null && livePct != null;
 
   const ptRow = powerTrend.row;
   const rsiHits = useMemo(() => {
@@ -578,6 +584,25 @@ export default function TickerPage() {
             </div>
           </div>
           <div className="tk-priceblock">
+            {liveHero ? (
+              <>
+                <div className="tk-price num">${fmt(livePrice, 2)}</div>
+                <div className={`tk-priceΔ num ${livePct >= 0 ? 'up' : 'down'}`}>
+                  {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)}{' '}
+                  ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%) today
+                </div>
+                <div className="tk-liveline num">
+                  <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
+                  <span className="tk-livelabel">Live</span>
+                  <span>
+                    {isIntraday
+                      ? <>vs prev close ${fmt(liveBase, 2)}</>
+                      : <>vs close{priceAsOf ? <> {fmtDateShort(priceAsOf)}</> : null} ${fmt(liveBase, 2)}</>}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="tk-price num">${fmt(price, 2)}</div>
             <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
               {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(
@@ -615,6 +640,8 @@ export default function TickerPage() {
                   <><span className="tk-livelabel">Live</span> — <span className="tk-livedim">not covered by the live price feed</span></>
                 )}
               </div>
+            )}
+              </>
             )}
           </div>
         </div>
