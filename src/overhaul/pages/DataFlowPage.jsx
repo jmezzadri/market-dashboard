@@ -557,7 +557,12 @@ function ElementRow({ el }) {
         <div className="df-row-vendor">{vendor}</div>
       </div>
       <div className="df-row-cad">
-        {cad}{fetchAt ? <span className="df-row-cad-t"> · {fetchAt}</span> : null}
+        {el.cadence_display
+          /* One coherent "how this updates" line per element (2026-07-28 —
+             Joe: a row must not mix three clocks. Sourced from the ACTUAL
+             producer schedules, kept in the manifest, never hand-typed here). */
+          ? el.cadence_display
+          : <>{cad}{fetchAt ? <span className="df-row-cad-t"> · {fetchAt}</span> : null}</>}
       </div>
       <div className="df-row-asof"><span className="df-row-k">As of</span>{showSchedule ? asOf : '—'}</div>
       <div className="df-row-pull"><span className="df-row-k">Last pull</span>{showSchedule ? lastPull : '—'}</div>
@@ -616,7 +621,7 @@ function ElementTableHead() {
   return (
     <div className="df-row df-row--head" aria-hidden>
       <div className="df-row-main">Element · source</div>
-      <div className="df-row-cad">Cadence · fetch</div>
+      <div className="df-row-cad">How it updates</div>
       <div className="df-row-asof">As of</div>
       <div className="df-row-pull">Last pull</div>
       <div className="df-row-sla">SLA</div>
