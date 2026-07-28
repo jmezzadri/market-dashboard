@@ -3930,7 +3930,7 @@
    "current_status": "live",
    "failure_mode": "Live price shows em-dash / last cached bar; engines unaffected.",
    "sla_basis": "Market-hours clock, 3h (paper-intraday precedent); pauses at the close.",
-   "display_name": "Live stock prices (1-minute)"
+   "display_name": "Live prices (1-minute)"
   },
   {
    "id": "options-lse_atm_iv-ondemand",
@@ -3962,7 +3962,7 @@
    "current_status": "live",
    "failure_mode": "Implied vol rows show em-dash; method falls back to CAPM + historical volatility.",
    "sla_basis": "49h daily budget; the scan batch is the guaranteed daily pull.",
-   "display_name": "Options implied volatility (live)"
+   "display_name": "Implied vol \u2014 live"
   },
   {
    "id": "equity-lse_iv_scan-daily",
@@ -3993,7 +3993,7 @@
    "current_status": "live",
    "failure_mode": "Vol rank column all em-dash + red chip. Structural coverage gaps (LSE options universe covers actively-traded names only) show em-dash per name by design.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends.",
-   "display_name": "Scanner volatility rank (daily batch)"
+   "display_name": "Scanner vol rank"
   },
   {
    "id": "options-lse_archive_iv-daily",
@@ -4025,7 +4025,7 @@
    "current_status": "live",
    "failure_mode": "Archive rows absent/stale \u2192 the name reverts to the honest CAPM fallback note.",
    "sla_basis": "49h daily budget, calendar-aware (weekend hours don\u2019t count).",
-   "display_name": "Options implied volatility (nightly, for names the live feed skips)"
+   "display_name": "Implied vol \u2014 nightly backup"
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
