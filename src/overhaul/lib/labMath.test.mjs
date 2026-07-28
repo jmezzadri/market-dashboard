@@ -108,11 +108,22 @@ test('frontier is monotone: return rises and volatility rises point-to-point (no
     [0.03, 0.04, 0.015],
     [0.02, 0.015, 0.0225],
   ];
-  const { points } = efficientFrontier(S, [0.12, 0.09, 0.07], 0.04, 60);
+  const { points, minVol } = efficientFrontier(S, [0.12, 0.09, 0.07], 0.04, 60);
   assert.ok(points.length >= 5, `only ${points.length} points survived`);
   for (let i = 1; i < points.length; i++) {
     assert.ok(points[i].ret > points[i - 1].ret, `ret not rising at ${i}`);
     assert.ok(points[i].vol > points[i - 1].vol - 1e-12, `vol dips at ${i}: ${points[i - 1].vol} -> ${points[i].vol}`);
+  }
+  // the curve starts AT the lowest-volatility point — no tail below it
+  const volFloor = Math.min(...points.map((p) => p.vol));
+  close(points[0].vol, volFloor, 1e-12);
+  close(points[0].vol, minVol.vol, 1e-12);
+  assert.ok(points.every((p) => p.ret >= minVol.ret - 1e-12), 'point below min-vol return survived');
+  // concavity: slope only flattens as volatility rises — no elbows possible
+  for (let i = 2; i < points.length; i++) {
+    const s1 = (points[i - 1].ret - points[i - 2].ret) / (points[i - 1].vol - points[i - 2].vol);
+    const s2 = (points[i].ret - points[i - 1].ret) / (points[i].vol - points[i - 1].vol);
+    assert.ok(s2 <= s1 + 1e-7, `slope steepens at ${i}: ${s1} -> ${s2}`);
   }
 });
 

@@ -325,34 +325,56 @@ export function efficientFrontier(S, mu, rf, nPoints = 40) {
   const scale = Math.max(...mu.map(Math.abs), 0.01);
   const P = (100 * Math.max(...S.map((r, i) => S[i][i]))) / (scale * scale);
 
-  const wMinVol = minVarianceForTarget(S, mu, 0, 0);
+  const wMinVol = minVarianceForTarget(S, mu, 0, 0, 2400);
   const retMin = portfolioER(wMinVol, mu);
   const retMax = Math.max(...mu);
 
   const raw = [];
   for (let k = 0; k < nPoints; k++) {
     const target = retMin + ((retMax - retMin) * k) / (nPoints - 1);
-    const w = minVarianceForTarget(S, mu, target, P);
+    const w = minVarianceForTarget(S, mu, target, P, 1500);
     raw.push({ ret: portfolioER(w, mu), vol: portfolioVol(w, S), weights: w });
   }
-  const minVol = { ret: retMin, vol: portfolioVol(wMinVol, S), weights: wMinVol };
+  raw.push({ ret: retMin, vol: portfolioVol(wMinVol, S), weights: wMinVol });
 
-  /* Keep ONLY the efficient upper edge. The optimizer's solutions jitter
-     near the minimum-volatility point; drawing them raw produced a zigzag
-     blob at the curve's left end (Joe, 7/27). Sort by return, then drop any
-     point that another point dominates (equal-or-higher return at
-     equal-or-lower volatility) — the survivors are monotone: return rises,
-     volatility rises. */
-  raw.push(minVol);
+  /* Keep ONLY the efficient upper edge, anchored at the TRUE lowest-vol
+     point. Two failure modes seen live (Joe, 7/27 ×2): optimizer jitter
+     drew a zigzag blob, and near-converged points just BELOW the min-vol
+     point survived as a spurious tail with a sharp elbow. So: the min-vol
+     anchor is whichever computed point has the smallest volatility,
+     everything with a lower return than it is discarded (that's the
+     frontier's inefficient lower branch), and the rest keep only points
+     that nothing else dominates — return rises, volatility rises. */
+  const minVol = raw.reduce((b, p) => (p.vol < b.vol ? p : b));
   raw.sort((a, b) => a.ret - b.ret);
   const points = [];
   for (const p of raw) {
+    if (p.ret < minVol.ret - 1e-12) continue; // lower branch
     while (points.length && points[points.length - 1].vol >= p.vol - 1e-10) points.pop();
     const last = points[points.length - 1];
     if (last && Math.abs(p.ret - last.ret) < 1e-6 && Math.abs(p.vol - last.vol) < 1e-6) continue;
     points.push(p);
   }
-  if (!points.length) points.push(minVol);
+  if (!points.length || points[0].vol > minVol.vol + 1e-10) points.unshift(minVol);
+
+  /* The true frontier is CONCAVE viewed as return-vs-volatility (slope only
+     ever flattens as risk rises). A solver point that sags below the line
+     joining its neighbours is under-converged and draws a visible elbow —
+     drop it (upper concave hull), which makes kinks geometrically
+     impossible. */
+  const hull = [];
+  for (const p of points) {
+    while (hull.length >= 2) {
+      const a = hull[hull.length - 2];
+      const bpt = hull[hull.length - 1];
+      const s1 = (bpt.ret - a.ret) / Math.max(bpt.vol - a.vol, 1e-12);
+      const s2 = (p.ret - bpt.ret) / Math.max(p.vol - bpt.vol, 1e-12);
+      if (s2 > s1 + 1e-9) hull.pop(); else break;
+    }
+    hull.push(p);
+  }
+  points.length = 0;
+  points.push(...hull);
 
   let maxSharpe = points[0];
   let best = -Infinity;
