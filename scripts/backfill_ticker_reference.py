@@ -66,24 +66,39 @@ def load_dotenv():
     return out
 
 
-def http_json(url, method="GET", headers=None, body=None, timeout=60):
+def http_json(url, method="GET", headers=None, body=None, timeout=60, retries=2):
+    """One HTTP call -> (status, parsed_json).
+
+    2026-07-28 hardening: the 17:53 UTC run died on a raw socket
+    ``TimeoutError`` raised MID-READ (after connect), which is not a URLError
+    on that path — it escaped the except and crashed the whole run, paging
+    Joe for a transient vendor blip. Timeouts and connection drops now retry
+    (2x, short backoff) and, if still failing, return (0, error) so the
+    caller's own error handling decides — never a raw traceback.
+    """
     headers = dict(headers or {})
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         headers.setdefault("Content-Type", "application/json")
-    req = Request(url, data=data, headers=headers, method=method)
-    try:
-        with urlopen(req, timeout=timeout) as r:
-            payload = r.read()
-            return r.status, json.loads(payload) if payload else None
-    except HTTPError as e:
+    last_err = None
+    for attempt in range(retries + 1):
+        req = Request(url, data=data, headers=headers, method=method)
         try:
-            return e.code, json.loads(e.read() or b"{}")
-        except Exception:
-            return e.code, {"error": "non-json error body"}
-    except URLError as e:
-        return 0, {"error": str(e)}
+            with urlopen(req, timeout=timeout) as r:
+                payload = r.read()
+                return r.status, json.loads(payload) if payload else None
+        except HTTPError as e:
+            try:
+                return e.code, json.loads(e.read() or b"{}")
+            except Exception:
+                return e.code, {"error": "non-json error body"}
+        except (URLError, TimeoutError, OSError) as e:
+            last_err = e
+            if attempt < retries:
+                time.sleep(2 * (attempt + 1))
+                continue
+    return 0, {"error": f"network failure after {retries + 1} attempts: {last_err}"}
 
 
 def supabase_get_all(sb_url, sb_key, table, columns, page_size=1000):
