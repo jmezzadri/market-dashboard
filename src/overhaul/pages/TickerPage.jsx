@@ -204,8 +204,10 @@ const TABS = [
 
 function fmt(v, decimals = 2) {
   if (v == null || !Number.isFinite(Number(v))) return '—';
+  /* Prices always render the full decimal count ($7.70, never $7.7) — every
+     call on this page is a price; standard quote convention (2026-07-28). */
   return Number(v).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
