@@ -843,3 +843,11 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 **Rule:** (1) Cutover/new-feed checklist is atomic: manifest entry + `pipeline_health` seed row (honest timestamps from the real first run) + workflow green-after-publish and red-on-failure stamp steps, all in the same change. (2) All surfaces treat "no health row" identically: neutral grey "not yet tracked" — never a synthesized red, never green. (3) The header pill counts scheduled, SLA-carrying feeds that have no health row and reads "N feeds not tracked" (grey) — it must never read "All feeds current" while such a feed exists. (4) The `pipeline_health` key is the PUBLIC manifest's short `name` (e.g. `insider_history_edgar`) — the root registry's dotted ids do not resolve in the freshness hook.
 
 **Applies to:** Data Steward (owns) + Lead Developer. Every new feed, every vendor cutover.
+
+### 2026-07-28 — During market hours the live price is the headline; never lead with yesterday's close
+
+**What happened:** The Ticker page hero showed the prior session's close in 44px with the live price in a small footnote line underneath ("close Jul 27 $8.02" big, "LIVE $7.72" small). Joe: "Who displays stock quotes like this?" No quote surface anywhere leads with a stale close while the market is trading.
+
+**Rule:** When the market is open AND the live feed covers the name, the live price is the big number, the day's move ($ and %) computes against the last completed close, and the official close demotes to the small reference line. Closed market / uncovered names keep the close-first layout. Prices always render full decimals ($7.70, never $7.7). Any new price-quoting surface follows the same hierarchy.
+
+**Applies to:** UX Designer + Lead Developer. Every surface that quotes a price.
