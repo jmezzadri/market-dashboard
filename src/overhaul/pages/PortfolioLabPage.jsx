@@ -873,7 +873,14 @@ export default function PortfolioLabPage() {
                             <td className={`num strong ${ps?.erH > 0 ? 'up' : ps?.erH < 0 ? 'down' : ''}`}>
                               {ps?.thin && (h.method === 'capm' || h.method === 'ivol')
                                 ? <span className="lab-dim">— insufficient history</span>
-                                : signPct(ps?.erH)}
+                                : <>
+                                    {signPct(ps?.erH)}
+                                    {/* Implied vol deliberately keeps the CAPM expected
+                                        return — options price a RANGE, not a direction
+                                        (Joe q 7/27; Methodology, Method 3). Tag it so the
+                                        unchanged number reads as intent, not a bug. */}
+                                    {h.method === 'ivol' && ps?.implVol != null && <span className="lab-ivtag">capm drift</span>}
+                                  </>}
                             </td>
                             <td className="num">
                               {h.method === 'ivol' && ps?.ivMissing
