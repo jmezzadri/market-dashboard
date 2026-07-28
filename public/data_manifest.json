@@ -3943,6 +3943,37 @@
    "current_status": "live",
    "failure_mode": "Vol rank column all em-dash + red chip. Structural coverage gaps (LSE options universe covers actively-traded names only) show em-dash per name by design.",
    "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends."
+  },
+  {
+   "id": "options-lse_archive_iv-daily",
+   "category": "options",
+   "name": "lse_archive_iv",
+   "description": "Previous-close ATM implied-vol term structure for names the LIVE options feed does not cover (derived nightly from London Strategic Edge\u2019s options-prints research archive; strikes within \u00b110% of the close, days-to-expiry computed from the expiry date, discounted Black-76). Rows are dated and the Portfolio Lab labels them \u201cas of <date> close\u201d. Names with live coverage are untouched \u2014 live wins.",
+   "sourcing_mode": "STP",
+   "source_vendor": "London Strategic Edge",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "owner": "Data Steward",
+   "source_endpoint": "api.londonstrategicedge.com/vault/export (dataset=options, 1d)",
+   "cadence": "daily",
+   "cadence_label": "Nightly \u00b7 22:30 ET \u00b7 Mon\u2013Fri",
+   "scheduled_fetch_time_et": "22:30",
+   "refresh_trigger": "GitHub Actions LSE-ARCHIVE-IV \u2192 scripts/lse_archive_iv.py",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 0,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "output_destination": "Supabase lse_iv_term (source=archive)",
+   "producer_script": "scripts/lse_archive_iv.py",
+   "consumer_surfaces": [
+    {
+     "tab": "portfolio-lab",
+     "tile": "Implied vol expected-return method (range + optimizer volatility)"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Archive rows absent/stale \u2192 the name reverts to the honest CAPM fallback note.",
+   "sla_basis": "49h daily budget, calendar-aware (weekend hours don\u2019t count)."
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

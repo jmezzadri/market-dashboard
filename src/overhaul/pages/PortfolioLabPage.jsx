@@ -899,7 +899,12 @@ export default function PortfolioLabPage() {
                                   ? <>
                                       {signPct(ps.range[0], 0)} to {signPct(ps.range[1], 0)}
                                       {h.method === 'ivol' && ps?.implVol != null && (
-                                        <span className="lab-ivnote">market-implied · 1y IV {pct(ivAtHorizon(ivMap[h.ticker]?.term, 365), 0)}</span>
+                                        <span className="lab-ivnote">
+                                          market-implied · 1y IV {pct(ivAtHorizon(ivMap[h.ticker]?.term, 365), 0)}
+                                          {ivMap[h.ticker]?.source === 'archive' && ivMap[h.ticker]?.asOf
+                                            ? ` · as of ${ivMap[h.ticker].asOf} close`
+                                            : ''}
+                                        </span>
                                       )}
                                     </>
                                   : '—'}

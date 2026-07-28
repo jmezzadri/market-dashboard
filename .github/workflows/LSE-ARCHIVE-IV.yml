@@ -1,0 +1,33 @@
+# LSE-ARCHIVE-IV — nightly EOD implied vol for names the live options feed
+# skips (Joe-approved 2026-07-28; sized in the skew-density study Coverage tab).
+# Writes dated source='archive' rows into lse_iv_term so the Portfolio Lab's
+# Implied vol method covers KTOS/RCAT/HUT-class names at T+1 instead of
+# falling back to CAPM. Health row: lse_archive_iv (stamp-after-publish).
+# Not morning-critical (the Lab degrades gracefully to CAPM), so a single
+# cron + manual dispatch is acceptable per 4.17's criticality test; the
+# freshness chip surfaces any missed run.
+name: LSE-ARCHIVE-IV
+
+on:
+  schedule:
+    - cron: '30 2 * * 2-6'   # 22:30 ET (DST) Mon-Fri evenings
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  archive-iv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet pandas pyarrow
+      - name: Derive archive EOD IV for uncovered names
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/lse_archive_iv.py

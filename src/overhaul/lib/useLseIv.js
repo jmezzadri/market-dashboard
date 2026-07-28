@@ -28,6 +28,10 @@ export function fetchIvTerm(ticker) {
         term: (data.term || []).filter((t) => Number(t.dte) > 0 && Number(t.iv) > 0),
         underlyingPrice: data.underlyingPrice ?? null,
         fetchedAt: data.fetchedAt || null,
+        // 'archive' = nightly previous-close derivation for names the live
+        // feed skips (088); the Lab dates these values on the row.
+        source: data.source || 'live',
+        asOf: data.asOf || null,
         error: null,
       };
     })

@@ -490,8 +490,12 @@ export default function MethodologyPage() {
               interpolated to the horizon linearly in total variance between the two nearest expiries
               (held flat beyond the last listed expiry). The range shown is the market-implied expected
               move over the horizon. In the optimizer, a holding on this method keeps historical
-              correlations but its volatility is replaced by the implied figure. A name with no listed
-              options on the feed shows an em-dash and falls back to CAPM with historical volatility.
+              correlations but its volatility is replaced by the implied figure. A name the live feed
+              does not cover but whose options trade on the vendor&rsquo;s research archive gets a
+              previous-close implied-vol curve derived overnight from actual traded option prices
+              (strikes within 10% of the close, discounted Black-76 against the 3-month Treasury
+              rate) — the row is labeled with its data date. A name with no usable options anywhere
+              shows an em-dash and falls back to CAPM with historical volatility.
             </p>
             <p className="me-body-p">
               <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected

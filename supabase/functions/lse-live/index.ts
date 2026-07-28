@@ -284,11 +284,22 @@ async function modeIv(symbol: string) {
   const ttlS = open ? IV_TTL_OPEN_S : IV_TTL_CLOSED_S;
 
   const cached = await sbJson(`lse_iv_term?select=*&symbol=eq.${encodeURIComponent(sym)}&order=dte.asc`);
+  // Archive rows (nightly EOD derivation for live-feed-uncovered names, 088)
+  // run on their own clock: fresh until ~30h old (next nightly run + grace).
+  const isArchive = cached.length > 0 && String(cached[0].source ?? "live") === "archive";
+  const archivePayload = () => ({
+    symbol: sym, cached: true, source: "archive",
+    asOf: cached.reduce((m, r) => (String(r.as_of ?? "") > m ? String(r.as_of) : m), ""),
+    underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
+    term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
+    fetchedAt: cached[0].fetched_at,
+  });
   if (cached.length) {
     const age = (Date.now() - (Date.parse(String(cached[0].fetched_at)) || 0)) / 1000;
-    if (age <= ttlS) {
+    if (isArchive && age <= 30 * 3600) return archivePayload();
+    if (!isArchive && age <= ttlS) {
       return {
-        symbol: sym, cached: true,
+        symbol: sym, cached: true, source: "live",
         underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
         term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
         fetchedAt: cached[0].fetched_at,
@@ -314,8 +325,17 @@ async function modeIv(symbol: string) {
     const live = liveRows(chain, todayIso);
     const nowIso = new Date().toISOString();
     if (!live.length) {
-      // No live contracts — treat like uncovered: cache an empty marker row so
-      // repeat views don't hammer the vendor. (dte -1 marker, filtered on read.)
+      // No live contracts. If the nightly archive job (088) has rows for this
+      // name, they stay authoritative — serve them and DO NOT overwrite (the
+      // pre-088 behavior deleted them here on every cache expiry, silently
+      // reverting the name to the CAPM fallback until the next night).
+      // Tolerate up to 6 days of archive age (long weekend + one missed run);
+      // beyond that the honest answer is uncovered.
+      if (isArchive && cached.some((r) => String(r.as_of ?? "") >= new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10))) {
+        return archivePayload();
+      }
+      // Truly uncovered: cache an empty marker row so repeat views don't
+      // hammer the vendor. (dte -1 marker, filtered on read.)
       await sb(`lse_iv_term?symbol=eq.${encodeURIComponent(sym)}`, { method: "DELETE" });
       await sb("lse_iv_term", {
         method: "POST",
@@ -341,16 +361,17 @@ async function modeIv(symbol: string) {
     }, 0);
     await stamp("lse_atm_iv", true, newest ? new Date(newest).toISOString() : nowIso);
     return {
-      symbol: sym, cached: false, underlyingPrice: und,
+      symbol: sym, cached: false, source: "live", underlyingPrice: und,
       term: term.map(({ expiry, dte, iv, strike }) => ({ expiry, dte, iv, strike })),
       fetchedAt: nowIso,
     };
   } catch (e) {
     await stamp("lse_atm_iv", false, null, String(e));
     // Serve stale cache rather than nothing (age is visible in fetchedAt).
+    if (isArchive) return archivePayload();
     if (cached.length) {
       return {
-        symbol: sym, cached: true, stale: true,
+        symbol: sym, cached: true, stale: true, source: "live",
         underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
         term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
         fetchedAt: cached[0].fetched_at,

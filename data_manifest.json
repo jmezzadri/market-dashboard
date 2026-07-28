@@ -2374,6 +2374,34 @@
    "owner": "Data Steward",
    "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h.",
    "id": "equity.lse-iv-scan-daily"
+  },
+  "options.lse-archive-iv-daily": {
+   "category": "options",
+   "element": "Archive EOD implied vol (live-feed-uncovered names)",
+   "sourcing_mode": "stp",
+   "source_vendor": "London Strategic Edge",
+   "inputs": [
+    {
+     "provider": "London Strategic Edge",
+     "dataset": "Options prints research archive (1d aggregation) + daily candles + US3M series",
+     "location": "api.londonstrategicedge.com/vault/export (dataset=options) + /candles + /series",
+     "method": "API"
+    }
+   ],
+   "license_tier": "free",
+   "cadence": "on-demand (30 min server cache in market hours)",
+   "refresh_trigger": "GitHub Actions LSE-ARCHIVE-IV nightly",
+   "schedule_et": "22:30",
+   "freshness_sla_hours": 49,
+   "consumer_surfaces": [
+    "Portfolio Lab \u2192 Implied vol ER method (expected-range per holding; optimizer volatility input)",
+    "Methodology \u2192 Portfolio Lab section (implied-vol method description)"
+   ],
+   "target_storage": "Supabase lse_iv_term (source=archive, dated as_of)",
+   "failure_mode": "Archive rows go stale/absent; the name reverts to the honest CAPM fallback with the em-dash note.",
+   "owner": "Data Steward",
+   "sla_basis": "49h daily budget (calendar-aware); nightly weekday run at 22:30 ET",
+   "id": "options-lse_archive_iv-daily"
   }
  }
 }
