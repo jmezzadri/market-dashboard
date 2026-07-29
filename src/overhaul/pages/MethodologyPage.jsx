@@ -236,7 +236,7 @@ export default function MethodologyPage() {
             <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
               Every indicator on MacroTilt is sorted into one of the categories you can filter on the
-              All Indicators page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
+              Macro page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
               <b> FX</b>, and <b>Financial Conditions &amp; Economy</b>. Within a category, each indicator is
               tagged by where it sits in the business cycle — <b>Lead</b>, <b>Coincident</b>, or <b>Lag</b>.
             </p>
