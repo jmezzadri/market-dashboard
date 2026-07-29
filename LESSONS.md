@@ -869,3 +869,15 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 **Update (2026-07-28, Joe):** The Methodology TOC is ONE entry per nav page, named EXACTLY as the nav names it — no concept-level entries ("The Engine", "Data freshness contract"). Concepts fold inside their page's section with in-page anchors kept for deep links.
 
 **Applies to:** UX Designer, Lead Developer — any nav, page-name, or manifest-surface change.
+
+### 2026-07-29 — A regime gate with no entry confirmation sells the bottom; and any signal is judged by the history the user can SEE
+
+**What happened:** Joe spot-checked the visible regime strip on the Macro engine card and found the engine went Risk Off on 4 April 2025 — the exact bottom of a 10% S&P drawdown — and back to Risk On on 18 April, after the rebound. His verdict: "the only history on this indicator visible to users proves to them that the indicator is garbage." Both halves of that were right. The gate fired off a single Friday above the 75th-percentile line, and the card showed only the trailing two years, which contained that whipsaw and none of the 2008 / 2020 / 2022 episodes the engine was built for.
+
+**What the review found:** across 1986–2026 the unfiltered gate produced 69 de-risk episodes, 48 of them four weeks or shorter, and only 26 of 69 beat simply staying invested. Requiring the percentile to hold at or above the line for two consecutive Fridays before a de-risk STARTS (exit unchanged) cut that to 45 episodes and improved return, Sharpe and maximum drawdown together — 12.01%/yr, 0.606, −33.3% against 11.60%, 0.584, −34.9%. Two weeks beat one, three and four; it held in both halves of the sample and at every threshold pair tested.
+
+**Rule:** (a) Any threshold-crossing regime signal that trades on a single observation is presumed to whipsaw until an entry-confirmation variant has been tested against it — test confirmation length as an interior optimum (k−1, k, k+1) and in both sample halves before adopting. Asymmetry is the point: confirm on the way in, exit immediately. (b) A signal's on-page history window is part of the signal's credibility. Never show a window so short that it contains the misses and none of the saves — if the full record is defensible, show the full record, and give the user a way to see it against what the market actually did.
+
+**Also:** when re-deriving a locked backtest artifact, first reproduce the locked numbers exactly with the OLD rule as a control. Reverse-engineering the artifact's own conventions (years = weeks/52, Sharpe = (CAGR − 3.25%)/vol, state applied to the FOLLOWING week's return) caught a one-week lag error that would otherwise have silently shifted every published figure. `scripts/apply_gate_to_backtest.py` runs that control.
+
+**Applies to:** the macro engine, the paper sleeves, the scanners, and any future rules-based signal with a threshold.

@@ -229,6 +229,129 @@ function shortLabel(n) {
 function posRead(p){ return p>=90?'extended long':p<=10?'extended short':p>=75?'leaning long':p<=25?'leaning short':'neutral'; }
 function posAccent(p){ const x=posState(p); return x==='extreme'?'var(--mt-down)':x==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 
+/* Engine track record — the S&P 500 with every de-risked stretch shaded, so a
+   reader can judge the stress signal against what the market actually did
+   instead of inferring it from a two-year colour strip. Added 2026-07-29
+   alongside the confirmation filter on the stress gate. */
+function EngineHistoryDetail({ weeks = [], spx = [] }) {
+  const [bt, setBt] = useState(null);
+  useEffect(() => {
+    let c = false;
+    fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null)).then((d) => { if (!c) setBt(d); }).catch(() => {});
+    return () => { c = true; };
+  }, []);
+
+  const rows = useMemo(() => {
+    if (!weeks.length || !spx.length) return [];
+    const out = []; let j = 0;
+    for (const w of weeks) {
+      while (j + 1 < spx.length && spx[j + 1][0] <= w.date) j += 1;
+      const p = spx[j];
+      if (!p || p[0] > w.date || !Number.isFinite(p[1])) continue;
+      out.push({ date: w.date, v: p[1], st: w.stress_state });
+    }
+    return out;
+  }, [weeks, spx]);
+
+  const W = 1000, H = 300, PADL = 4, PADB = 22;
+  const geom = useMemo(() => {
+    if (rows.length < 8) return null;
+    const vs = rows.map((r) => Math.log(r.v));
+    const lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
+    const x = (i) => PADL + (i / (rows.length - 1)) * (W - PADL * 2);
+    const y = (v) => (H - PADB) - ((Math.log(v) - lo) / span) * (H - PADB - 10);
+    const line = rows.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(r.v).toFixed(1)}`).join('');
+    const bands = []; let cur = null;
+    rows.forEach((r, i) => {
+      const off = r.st && r.st !== 'Risk On';
+      if (off && !cur) cur = { a: i, b: i, st: r.st };
+      else if (off) { cur.b = i; if (r.st === 'Risk Off') cur.st = 'Risk Off'; }
+      else if (cur) { bands.push(cur); cur = null; }
+    });
+    if (cur) bands.push(cur);
+    const ticks = [];
+    let lastYr = null;
+    rows.forEach((r, i) => {
+      const yr = r.date.slice(0, 4);
+      if (yr !== lastYr && Number(yr) % 3 === 0) { ticks.push({ x: x(i), label: yr }); lastYr = yr; }
+      else if (yr !== lastYr) lastYr = yr;
+    });
+    return { x, y, line, bands, ticks };
+  }, [rows]);
+
+  const eps = bt?.drawdowns || [];
+  const v = bt?.validation;
+  const fmtPct = (n) => (n == null ? '—' : `${(n * 100).toFixed(1)}%`);
+
+  return (
+    <div className="eng-track">
+      <div className="mt-eyebrow">The engine · track record</div>
+      <h3>Every stretch the engine spent defensive, against the S&amp;P 500</h3>
+      <p className="eng-lede">
+        The line is the S&amp;P 500 on a log scale since {rows[0]?.date.slice(0, 4) || '2006'}. Shaded stretches are
+        the weeks the stress signal had the engine out of full equity — amber at the watch line, red at the
+        de-risk line. A de-risk only starts after two consecutive Fridays above the line, which is what keeps
+        one-week volatility spikes from turning into a round trip.
+      </p>
+      {geom ? (
+        <>
+          <svg viewBox={`0 0 ${W} ${H}`} className="eng-svg" preserveAspectRatio="none" role="img"
+               aria-label="S&P 500 with de-risked periods shaded">
+            {geom.bands.map((b, i) => (
+              <rect key={i} x={geom.x(b.a)} y={0} width={Math.max(1.5, geom.x(b.b) - geom.x(b.a))}
+                    height={H - PADB} fill={b.st === 'Risk Off' ? 'var(--mt-down)' : 'var(--mt-warn)'}
+                    opacity={b.st === 'Risk Off' ? 0.16 : 0.13} />
+            ))}
+            <path d={geom.line} fill="none" stroke="var(--mt-ink-0)" strokeWidth="1.6"
+                  vectorEffect="non-scaling-stroke" />
+          </svg>
+          <div className="eng-axis">
+            {geom.ticks.map((t, i) => (
+              <span key={i} style={{ left: `${(t.x / W) * 100}%` }}>{t.label}</span>
+            ))}
+          </div>
+        </>
+      ) : <p className="eng-lede">Chart data loading…</p>}
+
+      <div className="eng-key">
+        <span><i className="eng-sw off" />De-risked · 50% equity</span>
+        <span><i className="eng-sw watch" />Watch · 80% equity</span>
+        <span><i className="eng-sw on" />Fully invested</span>
+      </div>
+
+      {eps.length > 0 && (
+        <>
+          <h4 className="eng-h4">How deep each drawdown got · full backtest window, 1986 onward</h4>
+          <table className="eng-tbl">
+            <thead><tr><th>Episode</th><th>S&amp;P 500</th><th>The engine</th><th>Difference</th></tr></thead>
+            <tbody>
+              {eps.map((e) => (
+                <tr key={e.name}>
+                  <td>{e.name}</td>
+                  <td className="num">{fmtPct(e.spy_depth)}</td>
+                  <td className="num">{fmtPct(e.engine_depth)}</td>
+                  <td className={`num ${e.diff_pp > 0.05 ? 'good' : ''}`}>
+                    {e.diff_pp > 0.05 ? `${e.diff_pp.toFixed(1)}% shallower` : 'no material difference'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {v && (
+            <p className="eng-foot">
+              Full window {(bt.weekly?.[0]?.date || '').slice(0, 4)}–{(bt.weekly?.[bt.weekly.length - 1]?.date || '').slice(0, 4)}:
+              {' '}the engine returned <b>{v.engine.cagr}% a year</b> against <b>{v.spy.cagr}%</b> for the S&amp;P 500,
+              with a worst drawdown of <b>{fmtPct(v.engine.max_drawdown)}</b> against <b>{fmtPct(v.spy.max_drawdown)}</b>.
+              Signal read at Friday close, executed the following Monday open. {bt.calibration_label}.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function DetailModal({ onClose, children }) {
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') onClose(); };
@@ -494,6 +617,7 @@ export default function MacroPage() {
   const [cotPos, setCotPos] = useState(null);
   const [selectedPos, setSelectedPos] = useState(null);
   const [selectedBucket, setSelectedBucket] = useState(null);
+  const [engOpen, setEngOpen] = useState(false);
   const [tip, setTip] = useState(null);
   const showTip = (e, text) => { const r = e.currentTarget.getBoundingClientRect(); setTip({ text, x: r.left + r.width / 2, y: r.top }); };
   const hideTip = () => setTip(null);
@@ -625,7 +749,16 @@ export default function MacroPage() {
             <div>
               <div className="eyebrow2"><span className="dot" />The Engine</div>
               <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1]}</em>}</h2>
-              <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'}</p>
+              {/* Copy replaced 2026-07-29. The old line quoted an equity split
+                  that no longer appears anywhere on the site, and said nothing
+                  about why these two dials are the ones on the card. Every
+                  number below is from the workbook behind the engine spec. */}
+              <p className="so">
+                Bond volatility beat fifteen other stress gauges at seeing S&amp;P 500 drawdowns coming — since
+                2006 it ranked the −10% quarters above the calm ones 72% of the time, against 67% for the
+                equity volatility index. Above the watch line the engine de-risks, and the 3-month change in
+                the 10-year picks the hedge: long Treasuries only rally into a drawdown when yields are falling.
+              </p>
             </div>
             <div>
               <a className="gauge" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ '--w': `${stressG.mk ?? 0}%` }}>
@@ -641,16 +774,38 @@ export default function MacroPage() {
                 <div className={`read ${yCls==='amb'?'warm':yCls==='up'?'ok':''}`}>{yMsg}</div>
               </a>
             </div>
+            {/* Regime history — FULL history, monthly cells (was the trailing 2
+                years, weekly). Two years showed only the April 2025 read and
+                none of the episodes the engine was built for, which read as
+                evidence against the signal. Each cell takes the most defensive
+                state seen in that month so a one-week de-risk stays visible. */}
             {engHist && engHist.length > 0 && (() => {
-              const wk = engHist.slice(-104);
+              const RANK = { 'Risk Off': 3, Watch: 2, 'Risk On': 1 };
+              const YRANK = { Inflationary: 3, Deflationary: 2, Neutral: 1 };
+              const months = [];
+              const seen = new Map();
+              engHist.forEach((w) => {
+                const m = (w.date || '').slice(0, 7);
+                if (!m) return;
+                let cell = seen.get(m);
+                if (!cell) { cell = { m, stress: 'Risk On', yreg: 'Neutral' }; seen.set(m, cell); months.push(cell); }
+                if ((RANK[w.stress_state] || 0) > (RANK[cell.stress] || 0)) cell.stress = w.stress_state;
+                if ((YRANK[w.yield_regime] || 0) > (YRANK[cell.yreg] || 0)) cell.yreg = w.yield_regime;
+              });
               const sC = (x) => x==='Risk On'?'var(--up)':x==='Watch'?'var(--amber)':x==='Risk Off'?'var(--down)':'var(--track)';
               const yC = (x) => x==='Deflationary'?'var(--up)':x==='Inflationary'?'var(--amber)':'var(--track)';
+              const first = months[0]?.m || '';
               return (
-                <div className="mac-hist">
-                  <div className="mac-histlbl">Regime history · 2 years · top: stress signal · bottom: yield regime</div>
-                  <div className="mac-histrow">{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Stress: '+w.stress_state)} onMouseLeave={hideTip} style={{ background: sC(w.stress_state) }} />)}</div>
-                  <div className="mac-histrow">{wk.map((w,i)=><span key={i} onMouseEnter={(e)=>showTip(e, w.date+' · Yield: '+w.yield_regime)} onMouseLeave={hideTip} style={{ background: yC(w.yield_regime) }} />)}</div>
-                  <div className="mac-histaxis"><span>{(wk[0]?.date||'').slice(0,7)}</span><span>now</span></div>
+                <div className="mac-hist mac-hist--click" role="button" tabIndex={0}
+                     onClick={() => setEngOpen(true)}
+                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEngOpen(true); } }}>
+                  <div className="mac-histlbl">
+                    Regime history · monthly since {first.slice(0, 4)} · top: stress signal · bottom: yield regime
+                    <span className="mac-histcta">See it against the market ↗</span>
+                  </div>
+                  <div className="mac-histrow">{months.map((w)=><span key={w.m} onMouseEnter={(e)=>showTip(e, w.m+' · Stress: '+w.stress)} onMouseLeave={hideTip} style={{ background: sC(w.stress) }} />)}</div>
+                  <div className="mac-histrow">{months.map((w)=><span key={w.m} onMouseEnter={(e)=>showTip(e, w.m+' · Yield: '+w.yreg)} onMouseLeave={hideTip} style={{ background: yC(w.yreg) }} />)}</div>
+                  <div className="mac-histaxis"><span>{first}</span><span>now</span></div>
                 </div>
               );
             })()}
@@ -706,6 +861,14 @@ export default function MacroPage() {
       {selected && (
         <DetailModal onClose={() => setSelected(null)}>
           <IndicatorDetail ind={selected} onClose={() => setSelected(null)} catalog={overlayCatalog} indexSeries={indexSeries} />
+        </DetailModal>
+      )}
+      {engOpen && (
+        <DetailModal onClose={() => setEngOpen(false)}>
+          <EngineHistoryDetail
+            weeks={engHist || []}
+            spx={(indexSeries.find((x) => x.key === 'spx_index') || {}).points || []}
+          />
         </DetailModal>
       )}
       {selectedPos && (

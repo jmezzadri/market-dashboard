@@ -274,6 +274,8 @@ export default function MethodologyPage() {
             <div className="me-formula">
               stress_signal = MOVE<br />
               stress_zone   = MOVE &lt; 116 → Risk On · 116 ≤ MOVE &lt; 124 → Watch · MOVE ≥ 124 → Risk Off<br />
+              entry_filter  = a de-risk only starts after 2 consecutive Fridays at or above 116;
+              the return to full equity is immediate<br />
               equity_pct    = Risk On 100% · Watch 80% · Risk Off 50%  (set by stress alone)<br />
               yield_regime  = 3M Δ 10y ≥ +32 bp → Inflationary · ≤ −11 bp → Deflationary · else Neutral<br />
               defensive_mix = Inflationary 50% cash / 30% gold / 20% short Treasuries ·
@@ -284,7 +286,14 @@ export default function MethodologyPage() {
               <b>Validated {validatedRange}</b> over <b className="num">{validatedWeeks}</b> weeks.{' '}
               <b>CAGR {cagrEngine}</b> vs SPY {cagrSpy}, Sharpe {sharpeEng} vs {sharpeSpy},
               max drawdown {ddEng} vs {ddSpy} — the engine takes far less of the drawdown for a
-              comparable return. The defensive bucket fills only when stress crosses Watch.{' '}
+              comparable return. The defensive bucket fills only when stress crosses Watch.
+              {' '}The two-week entry filter was added on 29 July 2026 after a review of every de-risk the
+              engine has ever made: without it the gate fired on one-week volatility spikes, producing 69
+              de-risk episodes since 1986 of which 48 lasted four weeks or less — including one that sold
+              the exact bottom of the April 2025 drawdown. Requiring confirmation cuts that to 45 episodes
+              and improves return, Sharpe and maximum drawdown together, in both halves of the sample and
+              at every threshold pair tested. The Macro Overview page charts every de-risked stretch
+              against the S&amp;P 500.{' '}
               <FreshnessChip elementId="indicator-move-daily" variant="dot" />
             </p>
           </div>

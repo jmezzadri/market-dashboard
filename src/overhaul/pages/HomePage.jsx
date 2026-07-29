@@ -289,7 +289,10 @@ export default function HomePage() {
               <div>
                 <div className="eyebrow2"><span className="dot" />The Engine</div>
                 <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
-                <p className="so">{regime.sleeveMix ? 'Defensive sleeve engaged.' : '100% equity, defensive on standby.'} <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>Macro Overview ↗</a></p>
+                {/* Copy replaced 2026-07-29 — see the matching note on MacroPage.
+                    Short form here; the full explanation and the track-record
+                    chart live on the Macro Overview card. */}
+                <p className="so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006. Above the watch line the 3-month change in the 10-year picks the hedge. <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>See the track record ↗</a></p>
               </div>
               <div>
                 <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>

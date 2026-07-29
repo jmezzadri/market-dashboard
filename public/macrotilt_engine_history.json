@@ -1,7 +1,7 @@
 {
   "_doc": "Live weekly observation history for the MacroTilt 2-axis engine (MOVE value + percentile, \u0394Y-3M + percentile, classified regime per Friday close). Refreshed by scripts/compute_macrotilt_engine.py / macrotilt-engine-daily. Separate from the locked strategy backtest.",
   "as_of": "2026-07-24",
-  "calibration_label": "1986-2026 validated (locked 2026-05-13)",
+  "calibration_label": "1986-2026 validated (confirmation filter added 2026-07-29)",
   "weekly": [
     {
       "date": "2003-11-07",
@@ -388,10 +388,10 @@
       "delta_y_3m_pctile_5y": 0.8199,
       "inflationary_threshold_bp": 15.0,
       "deflationary_threshold_bp": -34.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2004-05-07",
@@ -2953,10 +2953,10 @@
       "delta_y_3m_pctile_5y": 0.6628,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Neutral",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2007-08-17",
@@ -2998,10 +2998,10 @@
       "delta_y_3m_pctile_5y": 0.1226,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2007-09-07",
@@ -3148,10 +3148,10 @@
       "delta_y_3m_pctile_5y": 0.0383,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2007-11-16",
@@ -3178,10 +3178,10 @@
       "delta_y_3m_pctile_5y": 0.0268,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2007-11-30",
@@ -3748,10 +3748,10 @@
       "delta_y_3m_pctile_5y": 0.4598,
       "inflationary_threshold_bp": 19.0,
       "deflationary_threshold_bp": -21.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Neutral",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2008-08-22",
@@ -3793,10 +3793,10 @@
       "delta_y_3m_pctile_5y": 0.249,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -22.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2008-09-12",
@@ -4243,10 +4243,10 @@
       "delta_y_3m_pctile_5y": 0.8851,
       "inflationary_threshold_bp": 16.0,
       "deflationary_threshold_bp": -26.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2009-04-10",
@@ -4288,10 +4288,10 @@
       "delta_y_3m_pctile_5y": 0.8544,
       "inflationary_threshold_bp": 17.0,
       "deflationary_threshold_bp": -26.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2009-05-01",
@@ -7573,10 +7573,10 @@
       "delta_y_3m_pctile_5y": 0.9923,
       "inflationary_threshold_bp": 16.0,
       "deflationary_threshold_bp": -35.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2013-07-12",
@@ -8773,10 +8773,10 @@
       "delta_y_3m_pctile_5y": 0.2184,
       "inflationary_threshold_bp": 10.0,
       "deflationary_threshold_bp": -23.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2015-01-23",
@@ -8818,10 +8818,10 @@
       "delta_y_3m_pctile_5y": 0.2414,
       "inflationary_threshold_bp": 9.0,
       "deflationary_threshold_bp": -25.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2015-02-13",
@@ -9148,10 +9148,10 @@
       "delta_y_3m_pctile_5y": 0.8927,
       "inflationary_threshold_bp": 10.0,
       "deflationary_threshold_bp": -23.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2015-07-17",
@@ -9253,10 +9253,10 @@
       "delta_y_3m_pctile_5y": 0.6437,
       "inflationary_threshold_bp": 12.0,
       "deflationary_threshold_bp": -20.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Neutral",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2015-09-04",
@@ -9613,10 +9613,10 @@
       "delta_y_3m_pctile_5y": 0.0728,
       "inflationary_threshold_bp": 8.0,
       "deflationary_threshold_bp": -20.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2016-02-19",
@@ -10198,10 +10198,10 @@
       "delta_y_3m_pctile_5y": 0.9579,
       "inflationary_threshold_bp": 9.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2016-11-18",
@@ -12223,10 +12223,10 @@
       "delta_y_3m_pctile_5y": 0.0345,
       "inflationary_threshold_bp": 11.0,
       "deflationary_threshold_bp": -18.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2019-06-21",
@@ -12343,10 +12343,10 @@
       "delta_y_3m_pctile_5y": 0.0038,
       "inflationary_threshold_bp": 11.0,
       "deflationary_threshold_bp": -20.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2019-08-16",
@@ -12778,10 +12778,10 @@
       "delta_y_3m_pctile_5y": 0.0192,
       "inflationary_threshold_bp": 12.0,
       "deflationary_threshold_bp": -20.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2020-03-06",
@@ -13558,10 +13558,10 @@
       "delta_y_3m_pctile_5y": 0.954,
       "inflationary_threshold_bp": 15.0,
       "deflationary_threshold_bp": -22.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2021-03-05",
@@ -13873,10 +13873,10 @@
       "delta_y_3m_pctile_5y": 0.2261,
       "inflationary_threshold_bp": 20.0,
       "deflationary_threshold_bp": -19.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2021-07-30",
@@ -14068,10 +14068,10 @@
       "delta_y_3m_pctile_5y": 0.8621,
       "inflationary_threshold_bp": 20.0,
       "deflationary_threshold_bp": -19.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2021-10-29",
@@ -15448,10 +15448,10 @@
       "delta_y_3m_pctile_5y": 0.8697,
       "inflationary_threshold_bp": 26.0,
       "deflationary_threshold_bp": -22.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2023-08-04",
@@ -15583,10 +15583,10 @@
       "delta_y_3m_pctile_5y": 0.9157,
       "inflationary_threshold_bp": 29.0,
       "deflationary_threshold_bp": -22.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Inflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2023-10-06",
@@ -15733,10 +15733,10 @@
       "delta_y_3m_pctile_5y": 0.4291,
       "inflationary_threshold_bp": 29.0,
       "deflationary_threshold_bp": -22.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Neutral",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2023-12-15",
@@ -15778,10 +15778,10 @@
       "delta_y_3m_pctile_5y": 0.0651,
       "inflationary_threshold_bp": 29.0,
       "deflationary_threshold_bp": -23.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2024-01-05",
@@ -16393,10 +16393,10 @@
       "delta_y_3m_pctile_5y": 0.318,
       "inflationary_threshold_bp": 33.0,
       "deflationary_threshold_bp": -12.0,
-      "stress_state": "Watch",
+      "stress_state": "Risk On",
       "yield_regime": "Neutral",
-      "equity_pct": 80,
-      "defensive_pct": 20
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2024-10-18",
@@ -16768,10 +16768,10 @@
       "delta_y_3m_pctile_5y": 0.0766,
       "inflationary_threshold_bp": 38.0,
       "deflationary_threshold_bp": -8.0,
-      "stress_state": "Risk Off",
+      "stress_state": "Risk On",
       "yield_regime": "Deflationary",
-      "equity_pct": 50,
-      "defensive_pct": 50
+      "equity_pct": 100,
+      "defensive_pct": 0
     },
     {
       "date": "2025-04-11",

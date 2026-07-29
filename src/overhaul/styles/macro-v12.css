@@ -88,3 +88,40 @@
 @media (max-width: 640px) {
   .home-v12 .mac-rows { column-gap: 6px; }
 }
+
+/* ── Engine regime history: clickable strip + track-record modal (2026-07-29) ── */
+.home-v12 .mac-hist--click { cursor: pointer; border-radius: 8px; transition: background .25s; }
+.home-v12 .mac-hist--click:hover { background: rgba(247,243,232,.05); }
+.home-v12 .mac-hist--click:focus-visible { outline: 2px solid var(--gold-bar); outline-offset: 4px; }
+.home-v12 .mac-histlbl { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.home-v12 .mac-histcta { opacity: .75; font-weight: 700; letter-spacing: .1em; white-space: nowrap; }
+.home-v12 .mac-hist--click:hover .mac-histcta { opacity: 1; }
+
+.eng-track { padding: 26px 28px 30px; color: var(--mt-ink-1); }
+.eng-track h3 { font-family: var(--mt-font-display); font-weight: 400; font-size: 30px; line-height: 1.15;
+  letter-spacing: -0.02em; margin: 6px 0 12px; color: var(--mt-ink-0); }
+.eng-track .eng-lede { font-size: 14.5px; line-height: 1.65; color: var(--mt-ink-2); max-width: 78ch; margin: 0 0 20px; }
+.eng-svg { width: 100%; height: 300px; display: block; }
+.eng-axis { position: relative; height: 16px; margin-top: 2px; }
+.eng-axis span { position: absolute; transform: translateX(-50%); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .08em; color: var(--mt-ink-3); }
+.eng-key { display: flex; gap: 22px; flex-wrap: wrap; margin: 14px 0 6px; font-size: 11.5px;
+  font-weight: 600; color: var(--mt-ink-2); }
+.eng-key i { display: inline-block; width: 22px; height: 9px; border-radius: 2px; margin-right: 8px;
+  vertical-align: middle; }
+.eng-sw.off { background: var(--mt-down); opacity: .34; }
+.eng-sw.watch { background: var(--mt-warn); opacity: .3; }
+.eng-sw.on { background: var(--mt-surface-3); }
+.eng-h4 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+  color: var(--mt-ink-3); margin: 26px 0 10px; }
+.eng-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.eng-tbl th { text-align: right; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--mt-ink-3); font-weight: 700; padding: 0 0 8px; border-bottom: 1px solid var(--mt-line-1); }
+.eng-tbl th:first-child, .eng-tbl td:first-child { text-align: left; }
+.eng-tbl td { padding: 9px 0; border-bottom: 1px solid var(--mt-line-1); color: var(--mt-ink-1); }
+.eng-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.eng-tbl td.good { color: var(--mt-up); font-weight: 600; }
+.eng-foot { font-size: 12.5px; line-height: 1.6; color: var(--mt-ink-3); margin: 16px 0 0; max-width: 82ch; }
+/* Engine blurb: longer explanatory copy needs a smaller step and a wider
+   measure than the one-line status text this replaced (2026-07-29). */
+.home-v12 .mac-engine .so { font-size: 14.5px; line-height: 1.6; max-width: 480px; }

@@ -3,8 +3,10 @@
 compute_macrotilt_engine.py — daily/weekly compute for the MacroTilt 2-axis
 regime engine.
 
-This is the production version of the engine validated 2026-05-13 over the
-1986-2026 window (Sharpe 0.61, max drawdown 35.0% vs SPY's 54.6%).
+This is the production version of the engine, first validated 2026-05-13 and
+re-validated 2026-07-29 with the confirmation entry filter over the same
+1986-2026 window (12.34%/yr, Sharpe 0.664, max drawdown 33.4% vs the S&P's
+11.16%, 0.532 and 54.6%).
 
 Reads:
   - public/indicator_history.json  (spliced MOVE series; 2002-11-12 onward)
@@ -21,7 +23,8 @@ Schedule: Friday 15:45 ET (19:45 UTC standard time / 20:45 UTC during DST)
 via .github/workflows/macrotilt-engine-daily.yml. Also runs daily on weekdays
 to keep the as-of stamp current and catch mid-week vol spikes.
 
-ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
+ENGINE SPEC (locked 2026-05-13, confirmation filter added 2026-07-29 —
+do not change without re-validation):
 
   AXIS 1 — STRESS SIGNAL (drives the de-risking decision)
     Source:           ICE BofA MOVE Index (Yahoo ^MOVE), 2002-11-12 onward
@@ -33,6 +36,20 @@ ENGINE SPEC (locked 2026-05-13 — do not change without re-validation):
                         < 75th pctile  -> Risk On     (100% equity)
                        75-85th pctile  -> Watch       (80% equity / 20% defensive)
                         >= 85th pctile -> Risk Off    (50% equity / 50% defensive)
+    Entry filter:     CONFIRMATION (added 2026-07-29, re-validated over the same
+                      1986-2026 window). A de-risk only STARTS after the
+                      percentile has been at or above the 75th for two
+                      consecutive Fridays. Exit back to full equity is
+                      unchanged and immediate. Without this filter the gate
+                      fired on one-week volatility spikes: 69 de-risk episodes
+                      since 1986, 48 of them four weeks or shorter, and it sold
+                      the exact bottom of the April 2025 drawdown (Risk Off
+                      4 Apr, Risk On 18 Apr). With it: 12.34%/yr, Sharpe 0.664,
+                      max drawdown -33.4% versus 11.89% / 0.641 / -35.0% for the
+                      unfiltered rule and 11.16% / 0.532 / -54.6% for the S&P.
+                      Two weeks beats one, three and four, holds in both halves
+                      of the sample, and holds at every threshold pair tested.
+                      Workbook: MacroTilt_Stress_Gate_Backtest_2026-07-29.xlsx.
 
   AXIS 2 — YIELD DIRECTION (selects defensive sleeve when de-risked)
     Source:           10Y Treasury yield (FRED DGS10)
@@ -88,6 +105,9 @@ INFLATIONARY_PCTILE = 0.70
 DEFLATIONARY_PCTILE = 0.30
 ROLLING_YEARS = 5
 MIN_OBS_WEEKLY = 52  # at least one year of weekly data before producing a read
+# Consecutive Fridays at/above WATCH_PCTILE required before a de-risk STARTS.
+# 1 = the pre-2026-07-29 behaviour. See the ENGINE SPEC block above.
+CONFIRM_WEEKS = 2
 
 ALLOCATION = {
     "Risk On":  {"equity_pct": 100, "defensive_pct": 0},
@@ -181,11 +201,47 @@ def threshold_value(weekly: pd.Series, asof: pd.Timestamp, q: float,
 # ── Engine logic ─────────────────────────────────────────────────────
 
 def classify_stress(move_pctile: float) -> str:
+    """Raw percentile read, no confirmation filter. Callers that need the
+    LIVE state must use stress_path() — the live state is path-dependent."""
     if move_pctile >= RISK_OFF_PCTILE:
         return "Risk Off"
     if move_pctile >= WATCH_PCTILE:
         return "Watch"
     return "Risk On"
+
+
+def stress_path(pctiles: pd.Series) -> pd.Series:
+    """Classify a whole percentile path with the CONFIRM_WEEKS entry filter.
+
+    A de-risk only begins once the percentile has been at or above
+    WATCH_PCTILE for CONFIRM_WEEKS consecutive Fridays. Once de-risked the
+    raw read governs (including a step up from Watch to Risk Off), and the
+    exit back to Risk On is immediate. Because the state depends on the path,
+    this must always be evaluated from the first week with a valid percentile
+    so the snapshot and the history agree.
+    """
+    vals = pctiles.values
+    states, prev = [], "Risk On"
+    for i, p in enumerate(vals):
+        st = classify_stress(p)
+        if st != "Risk On" and prev == "Risk On":
+            recent = vals[max(0, i - CONFIRM_WEEKS + 1): i + 1]
+            if len(recent) < CONFIRM_WEEKS or int((recent >= WATCH_PCTILE).sum()) < CONFIRM_WEEKS:
+                st = "Risk On"
+        states.append(st)
+        prev = st
+    return pd.Series(states, index=pctiles.index)
+
+
+def percentile_path(weekly: pd.Series, index) -> pd.Series:
+    """Trailing-window percentile for every date in `index` that has enough
+    history. Dates without a full window are dropped."""
+    out = {}
+    for asof in index:
+        pct, _ = trailing_pctile(weekly, asof)
+        if pct is not None:
+            out[asof] = pct
+    return pd.Series(out).sort_index()
 
 
 def classify_yield_regime(delta_pctile: float) -> str:
@@ -266,7 +322,10 @@ def compute_engine() -> dict:
             f"(move_n={move_n}, delta_n={delta_n}; need >= {MIN_OBS_WEEKLY})"
         )
 
-    stress_state = classify_stress(move_pct)
+    # The stress state is PATH-DEPENDENT (CONFIRM_WEEKS entry filter), so it is
+    # evaluated over the whole percentile path and read at `asof`.
+    stress_states = stress_path(percentile_path(move_weekly, common_idx))
+    stress_state = str(stress_states.loc[asof])
     yield_regime_state = classify_yield_regime(delta_pct)
     alloc = ALLOCATION[stress_state]
     sleeve_comp = DEFENSIVE_SLEEVE[yield_regime_state]
@@ -275,13 +334,14 @@ def compute_engine() -> dict:
         "_doc": (
             "MacroTilt 2-axis regime engine. Axis 1 (stress) drives the de-risking "
             "decision from MOVE percentile. Axis 2 (yield direction) selects the "
-            "defensive sleeve when de-risked. Validated 1986-2026 (Sharpe 0.61, max "
-            "drawdown 35.0% vs SPY's 54.6%). Refreshed weekly Friday 15:45 ET by "
+            "defensive sleeve when de-risked, and a de-risk only starts after two "
+            "consecutive Fridays above the line. Validated 1986-2026 (Sharpe 0.66, max "
+            "drawdown 33.4% vs SPY's 54.6%). Refreshed weekly Friday 15:45 ET by "
             "scripts/compute_macrotilt_engine.py via "
             ".github/workflows/macrotilt-engine-daily.yml."
         ),
         "framework": "MacroTilt 2-axis engine",
-        "calibration_label": "1986-2026 validated (locked 2026-05-13)",
+        "calibration_label": "1986-2026 validated (confirmation filter added 2026-07-29)",
         "as_of": asof.date().isoformat(),
         "next_refresh": next_friday_after(asof.date()).isoformat(),
         "stress": {
@@ -335,13 +395,15 @@ def compute_history() -> dict:
     common_idx = move_weekly.index.intersection(delta_y_3m.index)
     common_idx = common_idx[common_idx <= today]
 
+    stress_states = stress_path(percentile_path(move_weekly, common_idx))
+
     rows = []
     for asof in common_idx:
         move_pct, _ = trailing_pctile(move_weekly, asof)
         delta_pct, _ = trailing_pctile(delta_y_3m, asof)
         if move_pct is None or delta_pct is None:
             continue  # not enough trailing window yet (pre-~2007)
-        stress_state = classify_stress(move_pct)
+        stress_state = str(stress_states.loc[asof])
         yield_regime_state = classify_yield_regime(delta_pct)
         alloc = ALLOCATION[stress_state]
         rows.append({
@@ -368,7 +430,7 @@ def compute_history() -> dict:
             "macrotilt-engine-daily. Separate from the locked strategy backtest."
         ),
         "as_of": rows[-1]["date"] if rows else None,
-        "calibration_label": "1986-2026 validated (locked 2026-05-13)",
+        "calibration_label": "1986-2026 validated (confirmation filter added 2026-07-29)",
         "weekly": rows,
     }
 

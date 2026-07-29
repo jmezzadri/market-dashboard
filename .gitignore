@@ -22,3 +22,6 @@ logs/
 dist/
 *.log
 *.patch
+node_modules/
+dist/
+shot.mjs
