@@ -65,8 +65,9 @@ const SECTIONS = [
    standalone All Indicators page was retired 2026-07-07; Macro is the
    indicator inventory surface). */
 const TAB_LABEL = { home: 'Home', overview: 'Macro', indicators: 'Macro',
-  readme: 'Methodology', methodology: 'Methodology', scanner: 'Scanner',
-  paper: 'Paper', ticker: 'Ticker', data: 'Data', lab: 'Portfolio Lab',
+  macro: 'Macro', 'asset-tilt': 'Macro', readme: 'Methodology',
+  methodology: 'Methodology', scanner: 'Scanner', paper: 'Paper',
+  portfolio: 'Paper', ticker: 'Ticker', data: 'Data', lab: 'Portfolio Lab',
   'portfolio-lab': 'Portfolio Lab' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News', options: 'Options data',
