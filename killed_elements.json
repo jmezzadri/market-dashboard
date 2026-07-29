@@ -182,6 +182,16 @@
       "residue": [
         "supabase/functions/generate-commentary/ left deployed-but-unscheduled and in-repo as archive; delete folder if it ever confuses anyone. macro_commentary/sector_commentary tables frozen at 2026-07-28."
       ]
+    },
+    {
+      "id": "market.spy-sector-weights",
+      "name": "SPY GICS sector weights (benchmark for tilt deltas)",
+      "killed": "2026-07-29",
+      "reason": "Never ingested a single row since build (Bug #1087 Phase 1 / Bug #1227): SSGA removed sector values from the public holdings file AND the exact-minute cron gate skipped every run. Zero consumer surfaces in the codebase - the only listed consumer (Asset Tilt sector benchmark) was retired 2026-06-22. Joe-approved retirement 2026-07-29: workflow + ingest script + manifest entry removed, empty table dropped.",
+      "status": "removed",
+      "residue": [
+        "supabase/migrations/020_spy_sector_weights.sql kept as migration history"
+      ]
     }
   ]
 }

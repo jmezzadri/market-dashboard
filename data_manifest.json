@@ -131,25 +131,6 @@
    "owner": "Data Steward",
    "id": "market.universe-master-massive"
   },
-  "market.spy-sector-weights": {
-   "category": "market",
-   "element": "SPY GICS sector weights (benchmark for tilt deltas)",
-   "sourcing_mode": "stp",
-   "source_vendor": "State Street SPDR",
-   "license_tier": "free",
-   "cadence": "daily",
-   "refresh_trigger": "github-actions: SPY_SECTOR_WEIGHTS_DAILY.yml",
-   "schedule_et": "06:00 ET weekdays",
-   "freshness_sla_hours": 49,
-   "consumer_surfaces": [
-    "Asset Tilt \u2192 sectors table benchmark (OW / UW deltas vs SPY)"
-   ],
-   "target_storage": "Supabase: spy_sector_weights",
-   "failure_mode": "Asset Tilt sector deltas freeze at prior day's benchmark; OW/UW pills off by < 30bps until refresh.",
-   "owner": "Data Steward",
-   "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening ingest + 24h grace = 49h",
-   "id": "market.spy-sector-weights"
-  },
   "market.sector-perf": {
    "category": "market",
    "element": "Sector ETF performance \u2014 1M / 3M / TTM return + TTM vol",
