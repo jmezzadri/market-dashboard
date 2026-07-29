@@ -67,8 +67,8 @@ const SECTIONS = [
 const TAB_LABEL = { home: 'Home', overview: 'Macro', indicators: 'Macro',
   macro: 'Macro', 'asset-tilt': 'Macro', readme: 'Methodology',
   methodology: 'Methodology', scanner: 'Scanner', paper: 'Paper',
-  portfolio: 'Paper', ticker: 'Ticker', data: 'Data', lab: 'Portfolio Lab',
-  'portfolio-lab': 'Portfolio Lab' };
+  portfolio: 'Paper', portopps: 'Scanner', ticker: 'Ticker', data: 'Data',
+  admin: 'Data', lab: 'Portfolio Lab', 'portfolio-lab': 'Portfolio Lab' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News', options: 'Options data',
   commentary: 'Commentary', ops: 'Operations', lab: 'Portfolio Lab' };
