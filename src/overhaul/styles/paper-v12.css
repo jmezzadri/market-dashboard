@@ -65,6 +65,12 @@
   --accent: var(--gold-deep);
   --warn: var(--gold-deep);
 
+  /* The page's inline PAGE_CSS also reaches for --surface-0/--surface-1, which
+     nothing ever defined — so its light-mode literal fallbacks (#fff, #f3efe7)
+     rendered in EVERY theme. Mapped here so any future use is theme-aware. */
+  --surface-0: var(--bg2);
+  --surface-1: var(--putty);
+
   /* theme.css family — read by the InfoTip (?) trigger rendered in-scope */
   --surface-solid: var(--bg2);
   --text: var(--ink);
@@ -234,3 +240,26 @@
 .home-v12 .paper-panel.pp-rebal .paper-rebal-source { color: color-mix(in srgb, var(--cream-text) 58%, transparent); }
 .home-v12 .paper-panel.pp-rebal .paper-rebal-clickable:hover { background: rgba(247,243,232,.06); }
 .home-v12 .paper-panel.pp-rebal .paper-rebal-clickable::after { color: var(--gold-bar); }
+
+
+/* ── Performance card controls (fixed 2026-07-29) ──────────────────────────
+   The timeframe segmented control, the series toggles and the hover tooltip
+   were styled in the page's inline CSS against --surface-0 / --surface-1,
+   tokens that were never defined. Every theme therefore got the hard-coded
+   cream fallbacks: in dark and navy that painted cream chips under cream text
+   (contrast 1.04:1 — invisible). Restated here, scoped so these win over the
+   inline block, following the .lab-seg convention already used site-wide. */
+.home-v12.paper-v12 .pp-pc-wins { background: var(--bg2); border: 1px solid var(--hair); }
+.home-v12.paper-v12 .pp-pc-win { color: var(--ink-soft); background: transparent; }
+.home-v12.paper-v12 .pp-pc-win:hover { color: var(--ink); }
+.home-v12.paper-v12 .pp-pc-win.on { background: var(--ink); color: var(--bg); font-weight: 700; box-shadow: none; }
+[data-mt-theme='dark'] .home-v12.paper-v12 .pp-pc-win.on,
+[data-mt-theme='navy'] .home-v12.paper-v12 .pp-pc-win.on { background: var(--gold-deep); color: #16202B; }
+
+.home-v12.paper-v12 .pp-pc-tog { color: var(--mut); background: transparent; border: 1px solid var(--hair); }
+.home-v12.paper-v12 .pp-pc-tog:hover { color: var(--ink); }
+.home-v12.paper-v12 .pp-pc-tog.on { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); border-color: color-mix(in srgb, var(--ink) 26%, transparent); font-weight: 600; }
+
+.home-v12.paper-v12 .pp-pc-tip { background: var(--bg2); border: 1px solid var(--hair); color: var(--ink); box-shadow: var(--sh); }
+.home-v12.paper-v12 .pp-pc-tipdate { color: var(--mut); }
+.home-v12.paper-v12 .pp-pc-tiprow { color: var(--ink-soft); }
