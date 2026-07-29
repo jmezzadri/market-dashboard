@@ -44,11 +44,16 @@ import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
 import '../styles/methodology-v12.css';
 
+/* TOC labels = the nav's real page names (LESSONS 8.11 — section names are
+   the feed's, not the writer's). Macro/Scanner/Paper were renamed in the nav
+   across the v12 redesigns; this list is kept in lock-step with NAV_ITEMS in
+   chrome/TopNav.jsx. "The Engine" is the section's real name on the Macro
+   page. The last two document site-wide contracts, not pages. */
 const SECTIONS = [
-  ['macro',     'Macro overview'],
-  ['engine',    'Engine read'],
-  ['scanner',   'Trading scanner'],
-  ['portfolio', 'Paper Portfolio'],
+  ['macro',     'Macro'],
+  ['engine',    'The Engine'],
+  ['scanner',   'Scanner'],
+  ['portfolio', 'Paper'],
   ['lab',       'Portfolio Lab'],
   ['freshness', 'Data freshness contract'],
   ['sources',   'Data sources & vendors'],
@@ -56,9 +61,12 @@ const SECTIONS = [
 
 /* The vendor table is DERIVED from the data manifest (single source of truth)
    at runtime, so it can never drift. */
-const TAB_LABEL = { home: 'Home', overview: 'Macro Overview', indicators: 'All Indicators',
-  readme: 'Methodology', methodology: 'Methodology', scanner: 'Trading Scanner',
-  paper: 'Paper Portfolio', ticker: 'Ticker', data: 'Admin / Data', lab: 'Portfolio Lab',
+/* Values = the nav's current page names. 'indicators' folds into Macro (the
+   standalone All Indicators page was retired 2026-07-07; Macro is the
+   indicator inventory surface). */
+const TAB_LABEL = { home: 'Home', overview: 'Macro', indicators: 'Macro',
+  readme: 'Methodology', methodology: 'Methodology', scanner: 'Scanner',
+  paper: 'Paper', ticker: 'Ticker', data: 'Data', lab: 'Portfolio Lab',
   'portfolio-lab': 'Portfolio Lab' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News', options: 'Options data',
@@ -224,7 +232,7 @@ export default function MethodologyPage() {
         <article id="macro" className="me-section">
           <div className="me-num">01</div>
           <div>
-            <div className="mt-eyebrow">Macro overview</div>
+            <div className="mt-eyebrow">Macro</div>
             <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
               Every indicator on MacroTilt is sorted into one of the categories you can filter on the
@@ -261,7 +269,7 @@ export default function MethodologyPage() {
         <article id="engine" className="me-section">
           <div className="me-num">02</div>
           <div>
-            <div className="mt-eyebrow">Engine read</div>
+            <div className="mt-eyebrow">The Engine</div>
             <h2 className="me-h2">Two axes set the regime · stress &amp; yield</h2>
             <p className="me-body-p">
               Bond-market volatility (<b>MOVE</b>) sets the <b>stress axis</b> — it decides how much of the
@@ -292,7 +300,7 @@ export default function MethodologyPage() {
         <article id="scanner" className="me-section">
           <div className="me-num">03</div>
           <div>
-            <div className="mt-eyebrow">Trading scanner</div>
+            <div className="mt-eyebrow">Scanner</div>
             <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Power Trend</h2>
             <p className="me-body-p">
               The Scanner page runs <b>two fully rules-based sleeves</b>. <b>Sleeve 1 — Insider Conviction</b>{' '}
@@ -401,7 +409,7 @@ export default function MethodologyPage() {
         <article id="portfolio" className="me-section">
           <div className="me-num">04</div>
           <div>
-            <div className="mt-eyebrow">Paper Portfolio</div>
+            <div className="mt-eyebrow">Paper</div>
             <h2 className="me-h2">One $1M paper account · two sleeves</h2>
             <p className="me-body-p">
               MacroTilt runs a live <b>$1M paper portfolio</b> with no manual input and no broker import,
