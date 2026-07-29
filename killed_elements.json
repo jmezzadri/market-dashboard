@@ -81,7 +81,7 @@
       "id": "put_call",
       "name": "Put/Call ratio (indicator)",
       "killed": "2026-06-10",
-      "reason": "Phantom feed killed by Joe. NOTE: 'put_call' also appears as an options-flow column in trading-scanner/scanner/scorer.py — that is a DIFFERENT, live use (option side), not this indicator.",
+      "reason": "Phantom feed killed by Joe. NOTE: 'put_call' also appears as an options-flow column in trading-scanner/scanner/scorer.py \u2014 that is a DIFFERENT, live use (option side), not this indicator.",
       "status": "removed_from_framework",
       "residue": [
         "scripts/generate_indicator_drills.py"
@@ -141,7 +141,7 @@
       "id": "cycle_board_horizon_aware_v2",
       "name": "Cycle board (horizon-aware) / cycle-v2",
       "killed": "2026-06-15",
-      "reason": "Dead-end engine — not read by any user-facing page. Producers, workflows, output files, and UI references removed.",
+      "reason": "Dead-end engine \u2014 not read by any user-facing page. Producers, workflows, output files, and UI references removed.",
       "status": "removed",
       "residue": []
     },
@@ -162,16 +162,26 @@
       "reason": "Purged 6 keys read by zero live surfaces: fx_dollar (dup of usd/DXY), hy_ig_ratio (dup of the deep hy_ig_etf the modal shows), and killed residue adv_dec/bank_unreal/buffett/naaim. Removed from the store, their producers, and the manifest together so they cannot regenerate.",
       "status": "removed",
       "residue": [
-        "ism tile still wired to the sparse 38-pt ism key instead of the deep ism_mfg (56y)/ism_svc (29y) — REWIRE, do not delete the deep series. Flagged by the new daily reconciler."
+        "ism tile still wired to the sparse 38-pt ism key instead of the deep ism_mfg (56y)/ism_svc (29y) \u2014 REWIRE, do not delete the deep series. Flagged by the new daily reconciler."
       ]
     },
     {
       "id": "cmdty_uranium",
       "name": "Uranium (spot)",
       "killed": "2026-06-16",
-      "reason": "Unsourceable cleanly — yfinance UX=F returned ONE point ever (frozen 2026-05-27). The 504h SLA (21d) on a weekly feed masked it as green. Removed producer fetch + manifest element + store key rather than keep a feed that cannot stay fresh.",
+      "reason": "Unsourceable cleanly \u2014 yfinance UX=F returned ONE point ever (frozen 2026-05-27). The 504h SLA (21d) on a weekly feed masked it as green. Removed producer fetch + manifest element + store key rather than keep a feed that cannot stay fresh.",
       "status": "removed",
       "residue": []
+    },
+    {
+      "id": "editorial_commentary_chain_2026-07-29",
+      "name": "Editorial commentary chain (macro_commentary / narrative_macro / narrative_sector)",
+      "killed": "2026-07-29",
+      "reason": "generate-commentary wrote a daily AI macro/sector blurb to macro_commentary + sector_commentary, but NOTHING read those tables: the Home brief and the daily email both come from /daily_brief.json (DAILY-BRIEF-WRITER). The only visible artifact was the watchdog rows going red and putting a stale banner on every page (9-day outage, LESSONS 2026-07-29). Joe approved killing the chain: pg_cron generate-commentary-daily-1130utc unscheduled, watchdog narrative-gap check removed, 3 manifest elements + 3 pipeline_health rows deleted, names in reconciler RETIRED_FEEDS. Tables kept as a frozen archive (no producer).",
+      "status": "removed",
+      "residue": [
+        "supabase/functions/generate-commentary/ left deployed-but-unscheduled and in-repo as archive; delete folder if it ever confuses anyone. macro_commentary/sector_commentary tables frozen at 2026-07-28."
+      ]
     }
   ]
 }

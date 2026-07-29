@@ -2402,36 +2402,6 @@
    "owner": "Data Steward",
    "sla_basis": "49h daily budget (calendar-aware); nightly weekday run at 22:30 ET",
    "id": "options-lse_archive_iv-daily"
-  },
-  "commentary.narrative-macro": {
-   "category": "commentary",
-   "sourcing_mode": "derived",
-   "source_vendor": "MacroTilt (in-house)",
-   "cadence": "daily (NYSE trading days)",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "current_status": "live",
-   "owner": "Data Steward",
-   "display_name": "Macro narrative blurb",
-   "source_endpoint": "Supabase public.macro_commentary (generated_date)",
-   "producer_script": "supabase/functions/generate-commentary/index.ts (7:30 AM ET pg_cron); freshness stamped by pipeline-health-check",
-   "public_manifest_name": "narrative_macro",
-   "description": "Daily AI-written blurb stored in macro_commentary. Editorial archive only \u2014 no site page displays it today."
-  },
-  "commentary.narrative-sector": {
-   "category": "commentary",
-   "sourcing_mode": "derived",
-   "source_vendor": "MacroTilt (in-house)",
-   "cadence": "daily (NYSE trading days)",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "current_status": "live",
-   "owner": "Data Steward",
-   "display_name": "Sector narrative blurb",
-   "source_endpoint": "Supabase public.sector_commentary (generated_date)",
-   "producer_script": "supabase/functions/generate-commentary/index.ts (7:30 AM ET pg_cron); freshness stamped by pipeline-health-check",
-   "public_manifest_name": "narrative_sector",
-   "description": "Daily AI-written blurb stored in sector_commentary. Editorial archive only \u2014 no site page displays it today."
   }
  }
 }

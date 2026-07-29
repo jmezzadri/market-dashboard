@@ -47,11 +47,26 @@ RETIRED_FEEDS = {
     # deleted (zero consumer surfaces since 2026-07-08).
     "equity-options_flow-daily",
     "options_chain",
+    # Editorial commentary chain killed 2026-07-29 (Joe-approved; see
+    # killed_elements.json editorial_commentary_chain_2026-07-29): the blurbs
+    # had zero consumers. The watchdog's narrative-gap check is gone too, so
+    # retiring these no longer fights it (the 2026-07-20 zombie loop is dead).
+    "macro_commentary",
+    "narrative_macro",
+    "narrative_sector",
 }
-# narrative_macro / narrative_sector are deliberately NOT in RETIRED_FEEDS:
-# the pipeline-health-check edge function still stamps those synthetic rows
-# hourly (deleting them here would just fight the watchdog). They are
-# registered as manifest elements instead (2026-07-20).
+
+# UW-lapse keepers (until 2026-08-12): live health rows whose manifest entries
+# were deliberately removed in the UW teardown (#1411) so no UW vendor shows on
+# rendered pages. They self-stamp via their producers; the watchdog skips them
+# (no manifest entry = ungradable, 2026-07-29 fix). The orphan check must not
+# fail red on them. AT LAPSE: move each to RETIRED_FEEDS.
+UNLISTED_UNTIL_UW_LAPSE = {
+    "uw-universe-snapshots",
+    "uw-ticker-events",
+    "earnings_history",
+    "scanner-v5-daily",
+}
 
 # ─── Calendar-aware age, ported from src/lib/freshnessClock.js so this watchdog
 #     grades byte-for-byte the way the chips and edge function do (the graders
@@ -193,7 +208,6 @@ TABLE_FEEDS = {
     "paper-orders-intent":       ("paper_orders",       ["created_at", "order_date"],            49,  True),
     # --- registered 2026-06-18: live feeds that previously had no tracking row ---
     "earnings_history":          ("earnings_history",   ["updated_at", "report_date"],          200, False),
-    "macro_commentary":          ("macro_commentary",   ["generated_date", "generated_at"],     49,  True),
     "zerohedge_public":          ("trading_opps_signals", ["scan_date"],                        49,  True),
     "zerohedge_premium":         ("trading_opps_signals", ["scan_date"],                        49,  True),
     "options_chain":             ("trading_opps_signals", ["scan_date"],                        49,  True),
@@ -391,6 +405,10 @@ def main():
             if commit and delete_row(iid):
                 print(f"  retired orphan row deleted: {iid}")
         orphans = [o for o in orphans if o not in RETIRED_FEEDS]
+        skipped_keepers = [o for o in orphans if o in UNLISTED_UNTIL_UW_LAPSE]
+        if skipped_keepers:
+            print(f"  unlisted UW-lapse keepers (rows live, deliberately not in manifest until 2026-08-12): {sorted(skipped_keepers)}")
+        orphans = [o for o in orphans if o not in UNLISTED_UNTIL_UW_LAPSE]
         if orphans:
             print(f"\nORPHAN TRACKING ROWS (no registry entry — half-retired or unregistered): {sorted(orphans)}")
             print("Fix: delete the row (retired) or register the element (live). Exiting red.")

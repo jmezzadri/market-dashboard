@@ -723,131 +723,15 @@ async function handle(req: Request): Promise<Response> {
   const red   = updates.filter((u) => u.status === "red").length;
   // (escalationsSent surfaced in the response below)
 
-  // 7) Editorial-narrative gap check (#1078)
-  //    The Home page editorial blurb relies on macro_commentary and
-  //    sector_commentary having one row per trading day. Closes the
-  //    case where the nightly generate-commentary fn was scheduled
-  //    out from underneath us (Friday 2026-04-24 was missed for 3
-  //    days because no health check looked here).
-  //
-  //    Rule: if today is a weekday, expect today's row OR yesterday's
-  //    row (depending on time of day). If today is Mon, expect Fri's
-  //    row. We check that the most-recent row in each table is at
-  //    most 1 trading-day stale; otherwise flag and alert (debounced
-  //    against the same last_alerted_at field on a synthetic
-  //    pipeline_health row id "narrative_macro" / "narrative_sector").
-  let narrativeAlertsSent = 0;
-  try {
-    const expectedDate = lastTradingDayUtcDate(now);
-    for (const tbl of ["macro_commentary", "sector_commentary"] as const) {
-      const synthId = tbl === "macro_commentary" ? "narrative_macro" : "narrative_sector";
-      const label   = tbl === "macro_commentary" ? "Macro narrative blurb" : "Sector narrative blurb";
-
-      const { data: latest, error: nErr } = await supabase
-        .from(tbl)
-        .select("generated_date,generated_at")
-        .order("generated_date", { ascending: false })
-        .limit(1);
-      if (nErr) continue;
-      const haveDate = (latest && latest[0]?.generated_date) || null;
-      const haveTs   = (latest && latest[0]?.generated_at)   || null;
-      const isStale  = !haveDate || haveDate < expectedDate;
-
-      // Preserve debounce timestamp + prev_status across the upsert.
-      const { data: prev } = await supabase
-        .from("pipeline_health")
-        .select("status,last_alerted_at")
-        .eq("indicator_id", synthId)
-        .maybeSingle();
-
-      // 2026-07-13 fix — this block previously wrote the synthetic health row
-      // ONLY on staleness, and only ever with status="red". It never stamped
-      // a recovery, so narrative_sector was stuck red with last_good_at=null
-      // forever even though generate-commentary writes a sector blurb to
-      // sector_commentary every day. The row is now stamped on EVERY run:
-      // green with an honest last_good_at (the blurb's real generated_at)
-      // when the last trading day's blurb exists, red when it is missing —
-      // so it self-heals. The source label now names the ACTUAL table each
-      // surface reads instead of a hardcoded "macro_commentary table".
-      if (!isStale) {
-        await supabase.from("pipeline_health").upsert([{
-          indicator_id: synthId,
-          label,
-          source: `${tbl} table`,
-          cadence: "D",
-          expected_cadence_minutes: 1440,
-          last_check_at: now.toISOString(),
-          last_good_at: haveTs,
-          data_as_of: haveDate,
-          last_error: null,
-          status: "green",
-          prev_status: prev?.status ?? null,
-          last_alerted_at: prev?.last_alerted_at ?? null,
-        }], { onConflict: "indicator_id" });
-        continue;
-      }
-
-      // Stale — most recent blurb is behind the last trading day. Debounced email.
-      const lastAlertAge = prev?.last_alerted_at
-        ? (Date.now() - new Date(prev.last_alerted_at).getTime()) / 3600_000
-        : Infinity;
-      const willAlert = !skipAlerts && lastAlertAge >= ALERT_DEBOUNCE_HOURS;
-      if (willAlert) {
-        try {
-          await sendEmail({
-            to: ALERT_TO,
-            subject: `[MacroTilt] Editorial blurb missing for ${expectedDate}`,
-            html: `
-              <p>Hi Joe,</p>
-              <p>The <strong>${tbl === "macro_commentary" ? "macro" : "sector"}</strong> editorial blurb for the last trading day (${expectedDate}) was never generated.</p>
-              <ul>
-                <li><strong>Most recent row</strong>: ${haveDate || "(none in table)"}</li>
-                <li><strong>Expected for</strong>: ${expectedDate}</li>
-                <li><strong>Trigger</strong>: invoke <code>generate-commentary</code> manually or check that the nightly schedule is wired.</li>
-              </ul>
-              <p>This alert repeats at most once per ${ALERT_DEBOUNCE_HOURS}h.</p>
-            `,
-          });
-          narrativeAlertsSent++;
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error("[pipeline-health-check] Narrative-gap email error:", (e as Error).message);
-        }
-      }
-
-      await supabase.from("pipeline_health").upsert([{
-        indicator_id: synthId,
-        label,
-        source: `${tbl} table`,
-        cadence: "D",
-        expected_cadence_minutes: 1440,
-        last_check_at: now.toISOString(),
-        last_good_at: haveTs,
-        data_as_of: haveDate,
-        last_error: `blurb missing for ${expectedDate} (most recent ${haveDate || "none"})`,
-        status: "red",
-        prev_status: prev?.status ?? null,
-        last_alerted_at: willAlert ? now.toISOString() : (prev?.last_alerted_at ?? null),
-      }], { onConflict: "indicator_id" });
-    }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("[pipeline-health-check] Narrative-gap check failed:", (e as Error).message);
-  }
-  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, narrativeAlertsSent, failedRows });
-}
-
-// Returns YYYY-MM-DD for the most recent UTC weekday.
-// If today is Monday, returns last Friday. If today is Sun, returns Fri.
-// Otherwise returns yesterday.
-function lastTradingDayUtcDate(now: Date): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  // Step back one day, then back further across weekends.
-  d.setUTCDate(d.getUTCDate() - 1);
-  while (d.getUTCDay() === 0 /* Sun */ || d.getUTCDay() === 6 /* Sat */) {
-    d.setUTCDate(d.getUTCDate() - 1);
-  }
-  return d.toISOString().slice(0, 10);
+  // 7) [RETIRED 2026-07-29] The editorial-narrative gap check (#1078) is gone.
+  //    generate-commentary wrote daily macro/sector blurbs that NO site surface
+  //    or email has read since the Home brief moved to /daily_brief.json (the
+  //    DAILY-BRIEF-WRITER pipeline). Joe approved killing the whole chain:
+  //    pg_cron job unscheduled, manifest elements removed, health rows deleted,
+  //    names added to killed_elements.json + reconciler RETIRED_FEEDS. Do NOT
+  //    re-add a narrative_macro / narrative_sector / macro_commentary row or
+  //    check here — that is the zombie loop killed_elements.json exists to stop.
+  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, failedRows });
 }
 
 serve(handle);
