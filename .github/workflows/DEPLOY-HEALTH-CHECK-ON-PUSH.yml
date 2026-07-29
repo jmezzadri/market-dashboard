@@ -1,0 +1,38 @@
+name: DEPLOY-HEALTH-CHECK-ON-PUSH
+
+# Auto-deploys the pipeline-health-check edge function whenever its source
+# (or the shared freshness/email libs) changes on main. Added 2026-07-29
+# after the 9-day watchdog outage: the fix was ready in git but the only
+# deploy path was a manual workflow_dispatch (blocked from the agent
+# sandbox), leaving prod running the broken bundle. Push-to-main is the
+# deterministic deploy path for THIS function; other functions still use
+# DEPLOY-EDGE-FUNCTION.yml.
+#
+# --no-verify-jwt is REQUIRED: pg_cron invokes this function with a non-JWT
+# bearer; verify_jwt=true silently kills the 30-minute schedule
+# (2026-06-16 incident, LESSONS).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/pipeline-health-check/**"
+      - "supabase/functions/_shared/freshnessClock.ts"
+      - "supabase/functions/_shared/email.ts"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy pipeline-health-check (no-verify-jwt)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy pipeline-health-check \
+            --project-ref yqaqqzseepebrocgibcw --no-verify-jwt

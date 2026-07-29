@@ -852,3 +852,5 @@ function lastTradingDayUtcDate(now: Date): string {
 
 serve(handle);
 
+
+// deploy marker 2026-07-29: watchdog outage fix (see LESSONS 2026-07-29)
