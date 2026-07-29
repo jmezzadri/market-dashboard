@@ -866,4 +866,6 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 
 **Rule:** A page rename or retirement is a data change with a blast radius (companion to 2.x). Grep the whole repo for the OLD page name and update every hit the same day: NAV_ITEMS, the Methodology SECTIONS list and eyebrows, body copy naming the page, TAB_LABEL, and any doc. TAB_LABEL must cover EVERY tab id in BOTH data_manifest.json files (repo root AND public/ — the page fetches public/); an unmapped id renders as a raw slug, which is a bug. Section/TOC labels are the nav's real page names (8.11) — never a former or invented name.
 
+**Update (2026-07-28, Joe):** The Methodology TOC is ONE entry per nav page, named EXACTLY as the nav names it — no concept-level entries ("The Engine", "Data freshness contract"). Concepts fold inside their page's section with in-page anchors kept for deep links.
+
 **Applies to:** UX Designer, Lead Developer — any nav, page-name, or manifest-surface change.
