@@ -157,25 +157,33 @@ function trailingReturn(values, k) {
 // selling a name at a loss moves the number (position-only sums silently drop
 // realized P&L: the Book said -0.5% while the sleeves read -0.3%/+0.1%
 // because the morning GGAL sale's realized loss existed only at book level).
-// Daily rows carry sleeve_*_nav; the live intraday row carries equity/value +
-// cash pieces. Chart, sleeve tables, and the Today numbers all read THIS.
+// Both daily close rows and the live intraday row carry sleeve_*_value.
+// Chart, sleeve tables, and the Today numbers all read THIS.
 function sleeveNavOf(r, code) {
   if (!r) return null;
-  // Daily close rows: sleeve_*_nav partitions total_nav exactly (mirror.py).
-  // Live intraday rows have no *_nav; there, sleeve_*_value is the engine's
-  // residual-adjusted full sleeve value (equity + cash + pro-rata broker
-  // residual — intraday.py), which ALSO sums exactly to the account. Never
-  // rebuild it from equity/cash pieces: those are pre-residual raws, and
-  // value+cash double-counts cash — both left a ~$2.4K gap between the
-  // sleeves' sum and the book (Joe 2026-07-20, second report).
+  // sleeve_*_value is the ONLY column that partitions total_nav exactly, on
+  // BOTH row types: mirror.py and intraday.py each spread the broker residual
+  // (account equity vs our lot-based reconstruction) pro-rata across the two
+  // sleeves, so sleeve_b_value + sleeve_m_value == total_nav to the cent.
+  //
+  // sleeve_*_nav does NOT tie: it is derived cash (capital − cost basis +
+  // realized) + equity, so the sleeve pair overshoots the book by the whole
+  // residual — $2.6K on 2026-07-28, $4.6K on 2026-07-23. Reading *_nav on the
+  // close row and *_value on the live row therefore compared two different
+  // bases across the day boundary: on 2026-07-29 the hero said Today −$1,249
+  // while the account was genuinely +$1,387, because −$1,249 was nothing but
+  // that day's residual with a minus sign (Joe 2026-07-29: "down money but
+  // + return"). *_nav is a sizing input (translator.py), never a display base.
+  //
+  // Never rebuild from equity/cash pieces either: those are pre-residual raws
+  // and value+cash double-counts cash (Joe 2026-07-20, second report).
   if (code === 'B') {
-    if (r.sleeve_b_nav != null) return Number(r.sleeve_b_nav);
     if (r.sleeve_b_value != null) return Number(r.sleeve_b_value);
-    if (r.sleeve_b_equity != null) return Number(r.sleeve_b_equity) + Number(r.sleeve_b_cash ?? 0);
+    if (r.sleeve_b_nav != null) return Number(r.sleeve_b_nav);
     return null;
   }
-  if (r.sleeve_m_nav != null) return Number(r.sleeve_m_nav);
   if (r.sleeve_m_value != null) return Number(r.sleeve_m_value);
+  if (r.sleeve_m_nav != null) return Number(r.sleeve_m_nav);
   return null;
 }
 
@@ -1753,7 +1761,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   };
   const dayB = navDay('B') ?? posDayB;
   const dayM = navDay('M') ?? posDayM;
-  const dayBook = (dayB == null && dayM == null) ? null : (dayB || 0) + (dayM || 0);
+  // Book Today = the account's own NAV move (broker truth), which is exactly
+  // what the matrix's Day % is a percentage OF. The sleeve sum ties to it by
+  // construction now that both sleeves read the residual-adjusted *_value
+  // partition; this line is the backstop that keeps the headline dollar and
+  // the headline percent from ever disagreeing in SIGN again if a sleeve
+  // column goes null and its positions-sum fallback kicks in (Joe 2026-07-29).
+  const sleeveSumDay = (dayB == null && dayM == null) ? null : (dayB || 0) + (dayM || 0);
+  const bookNavDay = (lastNavRow?.total_nav != null && priorNavRow?.total_nav != null)
+    ? Number(lastNavRow.total_nav) - Number(priorNavRow.total_nav)
+    : null;
+  const dayBook = bookNavDay ?? sleeveSumDay;
 
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
