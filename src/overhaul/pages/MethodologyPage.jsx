@@ -44,19 +44,16 @@ import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
 import '../styles/methodology-v12.css';
 
-/* TOC labels = the nav's real page names (LESSONS 8.11 — section names are
-   the feed's, not the writer's). Macro/Scanner/Paper were renamed in the nav
-   across the v12 redesigns; this list is kept in lock-step with NAV_ITEMS in
-   chrome/TopNav.jsx. "The Engine" is the section's real name on the Macro
-   page. The last two document site-wide contracts, not pages. */
+/* TOC = the site's pages, one entry per nav page, EXACTLY as named in
+   NAV_ITEMS (chrome/TopNav.jsx) — Joe 2026-07-28. The Engine folds into
+   Macro (that's the page it lives on); freshness + sources fold into Data.
+   #engine / #freshness / #sources stay as in-page anchors for deep links. */
 const SECTIONS = [
   ['macro',     'Macro'],
-  ['engine',    'The Engine'],
   ['scanner',   'Scanner'],
   ['portfolio', 'Paper'],
   ['lab',       'Portfolio Lab'],
-  ['freshness', 'Data freshness contract'],
-  ['sources',   'Data sources & vendors'],
+  ['data',      'Data'],
 ];
 
 /* The vendor table is DERIVED from the data manifest (single source of truth)
@@ -263,14 +260,10 @@ export default function MethodologyPage() {
               map x (state)        = extreme +0.62 · elevated +0.20 · calm −0.55<br />
               map y (macro ladder) = Rates +0.45 · Credit +0.20 · Equities −0.10 · Money −0.40 · Economy −0.65
             </div>
-          </div>
-        </article>
 
-        {/* 02 — Engine read */}
-        <article id="engine" className="me-section">
-          <div className="me-num">02</div>
-          <div>
-            <div className="mt-eyebrow">The Engine</div>
+            {/* The Engine — lives on the Macro page; folded into this section
+                2026-07-28 so the TOC matches the nav exactly. Anchor kept. */}
+            <div className="mt-eyebrow" id="engine" style={{ marginTop: 34, scrollMarginTop: 120 }}>The Engine</div>
             <h2 className="me-h2">Two axes set the regime · stress &amp; yield</h2>
             <p className="me-body-p">
               Bond-market volatility (<b>MOVE</b>) sets the <b>stress axis</b> — it decides how much of the
@@ -297,9 +290,9 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 03 — Scanner */}
+        {/* 02 — Scanner */}
         <article id="scanner" className="me-section">
-          <div className="me-num">03</div>
+          <div className="me-num">02</div>
           <div>
             <div className="mt-eyebrow">Scanner</div>
             <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Power Trend</h2>
@@ -317,7 +310,7 @@ export default function MethodologyPage() {
               <b>Sleeve 1 scoring.</b> Each ticker earns points from two validated inputs, added — not
               weighted — into a single score from 0 to 5. A name needs at least <b>3 points to appear</b>;
               the <b>buy line is a Score of 4</b> (a high-conviction insider name not in a downtrend), the
-              level at which the Paper Portfolio (section 04) actually buys.
+              level at which the Paper Portfolio (section 03) actually buys.
             </p>
             <div className="me-formula">
               Insider (up to +4) + Technicals (+1 / −2)<br />
@@ -408,7 +401,7 @@ export default function MethodologyPage() {
 
         {/* 04 — Paper Portfolio */}
         <article id="portfolio" className="me-section">
-          <div className="me-num">04</div>
+          <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Paper</div>
             <h2 className="me-h2">One $1M paper account · two sleeves</h2>
@@ -458,7 +451,7 @@ export default function MethodologyPage() {
 
         {/* 05 — Portfolio Lab */}
         <article id="lab" className="me-section">
-          <div className="me-num">05</div>
+          <div className="me-num">04</div>
           <div>
             <div className="mt-eyebrow">Portfolio Lab</div>
             <h2 className="me-h2">Expected return, three ways · one optimizer</h2>
@@ -531,11 +524,12 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 06 — Freshness */}
-        <article id="freshness" className="me-section">
-          <div className="me-num">06</div>
+        {/* 05 — Data (freshness contract + sources & vendors;
+            #freshness / #sources anchors kept for deep links) */}
+        <article id="data" className="me-section">
+          <div className="me-num">05</div>
           <div>
-            <div className="mt-eyebrow">Data freshness contract</div>
+            <div className="mt-eyebrow" id="freshness" style={{ scrollMarginTop: 120 }}>Data</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
             <p className="me-body-p">
               Every value, chart, gauge and table on MacroTilt sits next to a <b>freshness chip</b>. The
@@ -590,17 +584,13 @@ export default function MethodologyPage() {
               close intra-evening — the canonical "data is complete" run is the 8 AM morning one.
             </p>
             <p className="me-body-p">
-              For per-feed freshness across all sources at any time, the <b>Admin · Data → Data Health</b>{' '}
+              For per-feed freshness across all sources at any time, the <b>Data</b>{' '}
               page shows every feed, when it last refreshed, and what's on its dependency chain.
             </p>
-          </div>
-        </article>
 
-        {/* 07 — Sources */}
-        <article id="sources" className="me-section">
-          <div className="me-num">07</div>
-          <div>
-            <div className="mt-eyebrow">Data sources &amp; vendors</div>
+            {/* Data sources & vendors — merged into the Data section
+                2026-07-28; anchor kept for deep links. */}
+            <div className="mt-eyebrow" id="sources" style={{ marginTop: 34, scrollMarginTop: 120 }}>Data sources &amp; vendors</div>
             <h2 className="me-h2">Where every number comes from</h2>
             <p className="me-body-p">
               Every indicator and every market-data field is registered in the data manifest with its
