@@ -17,7 +17,7 @@
    Power Trend rewrite (2026-07-15) — supersedes the 2026-07-14 two-sleeve
    copy IN PLACE (never appended):
    - §03/§04 rewritten around the current rules: Insider Conviction (buy ≥ 4,
-     exit < 3, full $500K equal-weight across qualifying names, re-split daily,
+     exit < 3, full $500K equal-weight across held names, rebalanced daily,
      3% drift band) and Momentum driven by the Power Trend signal (three tests
      on daily closes — trend / relative strength / breakout trigger — top 15
      by 3-month return, 8-name floor with unfilled slots in cash). The old
@@ -413,7 +413,7 @@ export default function MethodologyPage() {
               <b>Sleeve 1 — Insider Conviction</b> buys every name at or above the buy line{' '}
               (<b>Score ≥ 4</b>) and always deploys its <b>full $500K, split equally across every
               qualifying name</b> — 3 names means about $167K each, 10 names means $50K each. A name is
-              held until its <b>score decays below 3</b>, and the sleeve re-splits daily on the open as
+              held until its <b>score decays below 3</b>, and the sleeve is rebalanced every day on the open as
               names enter and leave; drifts inside a 3% band are left alone so the book is not churned
               by noise. It remains <b>signal-only</b>: entries and exits come from the score, never from
               price moves. (The original score-tiered sizing and leverage were retired in an earlier
@@ -422,9 +422,10 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               <b>Sleeve 2 — Momentum</b>, driven by the Power Trend signal, trades once a month on the
               list publish: it buys the current list <b>equal-weight — $500K divided by the number of
-              names, at most 15</b> — sells what dropped off, and keeps a name into the next month only
-              if it passes all three tests again. When fewer than 8 names qualify, the unfilled slots
-              rest in cash rather than concentrating the sleeve. Between publishes a daily stop watches every held name: a close below all four moving averages sells it that day, and the proceeds wait in cash for the next monthly list.
+              names, at most 15 and never more than one-eighth of the sleeve in a single name</b> — sells
+              what dropped off, and keeps a name into the next month only if it passes all three tests
+              again. When fewer than 8 names qualify, each still gets only an eighth, so the unfilled
+              slots rest in cash rather than concentrating the sleeve. Between publishes a daily stop watches every held name: a close below all four moving averages sells it that day, and the proceeds wait in cash for the next monthly list.
             </p>
             <p className="me-body-p">
               Both sleeves share the account's order path: trades queue after the morning signal run and
@@ -439,7 +440,7 @@ export default function MethodologyPage() {
             </p>
             <div className="me-formula">
               Sleeve 1: buy = Score ≥ 4 · size = $500K ÷ qualifying names · hold until Score &lt; 3<br />
-              Sleeve 2: buy = current monthly Power Trend list · size = $500K ÷ names (max 15) · fewer than 8 → rest in cash<br />
+              Sleeve 2: buy = current monthly Power Trend list · size = $500K ÷ names, capped at $500K ÷ 8 · fewer than 8 → rest in cash<br />
               unrealized_pl_$   = market_value − cost_basis<br />
               unrealized_pl_pct = (market_value − cost_basis) / cost_basis
             </div>

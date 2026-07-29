@@ -1771,8 +1771,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div className="eyebrow2"><span className="dot" />Paper portfolio</div>
           <h1>An <i>automated $1M paper portfolio</i>, run as <i>two rules-based sleeves</i>.</h1>
           <ul className="impl">
-            <li><b>Sleeve 1 — Insider Conviction</b>: buys at Score ≥ 4 (max 5) and holds until the score decays below 3; the full $500K is always deployed, split equally across every qualifying name; re-split daily on the open.</li>
-            <li><b>Sleeve 2 — Momentum (Power Trend)</b>: up to 15 names in confirmed uptrends that just broke out on above-average volume while beating the S&P 500 over 3 months; equal-weight, refreshed monthly; fewer than 8 qualifiers leaves the rest in cash.</li>
+            <li><b>Sleeve 1 — Insider Conviction</b>: buys any name whose insider score reaches <b>4 or higher</b> (max 5) and sells only when the score <b>decays below 3</b> — a name sitting at 3 is held, not bought. The full $500K stays invested, split equally across every name held, and the sleeve is rebalanced every day at the open as names enter and leave.</li>
+            <li><b>Sleeve 2 — Momentum (Power Trend)</b>: up to 15 names passing three tests — a confirmed uptrend (price above its 10-, 21-, 50- and 200-day moving averages, with a 3-month return in the top 20% of the market), relative strength (that 3-month return at least 5 points ahead of the S&P 500&rsquo;s), and a fresh breakout (a new 10-day closing high on volume above 1.3&times; its own 20-day average, within the past month) — at most 3 from any one industry. Each name gets an equal slice of the $500K, capped at one-eighth of it, so fewer than 8 qualifiers leaves the rest in cash. The list refreshes monthly on the 1st; between refreshes, any held name that closes below all four of those moving averages is sold that day, and the cash waits for the next list.</li>
             <li><b>Long-only, no leverage</b> in either sleeve; a name held by both sleeves is owned by both.</li>
           </ul>
         </Reveal>
@@ -1782,27 +1782,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       </section>
 
       <section className="wrap pp-main">
-        {/* Two-sleeve split bar — Insider / Momentum / cash, reconciled to the
-            broker NAV by construction (splitBook). Widths are proportional. */}
-        {latestNav?.total_nav != null && (
-          <Reveal className="pp-splitwrap">
-            <div className="pp-splitbar" aria-hidden="true">
-              {[
-                { k: 'ins', v: sleeveBGross || 0 },
-                { k: 'mom', v: momGross },
-                { k: 'cash', v: Math.max(0, split.cash || 0) },
-              ].map(({ k, v }) => (
-                <div key={k} className={`pp-seg ${k}`} style={{ flexGrow: Math.max(v, 0), flexBasis: 0 }} />
-              ))}
-            </div>
-            <div className="pp-splitlegend">
-              <span><span className="pp-dot ins" />Insider Conviction holdings {fmtMoneyShort(sleeveBGross || 0)}</span>
-              <span><span className="pp-dot mom" />Momentum holdings {fmtMoneyShort(momGross)}</span>
-              <span><span className="pp-dot cash" />Cash {fmtMoneyShort(split.cash)}</span>
-              <span className="pp-splittotal">Account value {fmtMoneyShort(latestNav.total_nav)}</span>
-            </div>
-          </Reveal>
-        )}
+        {/* Two-sleeve split bar removed 2026-07-28 (Joe: "adds zero value").
+            splitBook + sleeve gross values still feed the sleeve cards below. */}
 
         {/* Performance chart — book + sleeves vs benchmarks, indexed (2026-07-20) */}
         <Reveal>
@@ -1820,13 +1801,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
               cash: split.insCash, positions: sleeveB,
               day$: dayB, alloc: insCap,
-              infoDef: 'Buys at Score ≥ 4 (max 5), holds until the score decays below 3. The sleeve’s full $500K is split equally across every qualifying name ($500K ÷ N) and re-split daily on the open; drifts inside a 3% band are left alone.',
+              infoDef: 'Buys at Score ≥ 4 (max 5) and sells only when the score decays below 3 — a name at 3 is held, not bought. The sleeve’s full $500K is split equally across every name held and rebalanced every day at the open; drifts inside a 3% band are left alone.',
             },
             {
               code: 'M', n: 2, name: 'Momentum', value: split.momValue,
               cash: split.momCash, positions: sleeveM,
               day$: dayM, alloc: momCap,
-              infoDef: 'Owns the current monthly Power Trend list equal-weight ($500K ÷ number of names, max 15). If fewer than 8 names qualify, the unfilled slots stay in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
+              infoDef: 'Owns the current monthly Power Trend list equal-weight: each name gets $500K ÷ the number of names, capped at one-eighth of the sleeve — so if fewer than 8 names qualify, the rest stays in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
             },
           ].map((s) => (
             <div key={s.code} className="pp-col">

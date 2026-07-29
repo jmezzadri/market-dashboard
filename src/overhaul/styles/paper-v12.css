@@ -125,21 +125,8 @@
 /* trades drawer — solid putty via the bridge; hairline edge */
 .home-v12 .paper-drawer { border-left: 1px solid var(--hair); }
 
-/* ── Two-sleeve build (2026-07-14): split bar, sleeve cards, table tags ── */
-.home-v12 .pp-splitwrap { margin-top: 24px; }
-.home-v12 .pp-splitbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--bg2); }
-.home-v12 .pp-seg { min-width: 0; }
-.home-v12 .pp-seg.ins { background: var(--gold-deep); }
-.home-v12 .pp-seg.mom { background: var(--up); }
-.home-v12 .pp-seg.cash { background: var(--hair); }
-.home-v12 .pp-splitlegend { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px; font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.home-v12 .pp-splitlegend > span { display: flex; align-items: center; gap: 7px; }
-.home-v12 .pp-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.home-v12 .pp-dot.ins { background: var(--gold-deep); }
-.home-v12 .pp-dot.mom { background: var(--up); }
-.home-v12 .pp-dot.cash { background: var(--hair); }
-.home-v12 .pp-splittotal { margin-left: auto; color: var(--ink); font-weight: 650; }
-
+/* ── Two-sleeve build (2026-07-14): sleeve cards, table tags.
+   Split bar removed 2026-07-28 (Joe: added zero value). ── */
 .home-v12 .pp-sleevecard { background: var(--putty); border-radius: 28px; padding: 22px 26px 20px; transition: background .5s; font-family: var(--sans); }
 .home-v12 .pp-sc-eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; }
 .home-v12 .pp-sc-value { font-size: clamp(26px, 2.4vw, 34px); line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; margin: 10px 0 12px; }
