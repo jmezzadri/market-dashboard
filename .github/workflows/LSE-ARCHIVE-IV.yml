@@ -6,6 +6,13 @@
 # Not morning-critical (the Lab degrades gracefully to CAPM), so a single
 # cron + manual dispatch is acceptable per 4.17's criticality test; the
 # freshness chip surfaces any missed run.
+#
+# 2026-07-29 — first-ever scheduled fire (02:30 UTC) never ran; GitHub
+# silently skipped it (LESSONS 4.13: new/edited cron files sometimes don't
+# register until a subsequent push touches them). This edit re-registers the
+# schedule. Second path per 4.17: pg_cron job `lse-archive-iv-backup-0330utc`
+# dispatches via the trigger-workflow function at 03:30 UTC (90-min dedupe
+# skips it when GitHub's own cron ran).
 name: LSE-ARCHIVE-IV
 
 on:
