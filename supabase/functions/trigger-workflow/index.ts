@@ -39,6 +39,14 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   // dispatches through here; the 90-min dedupe window skips it when GitHub's
   // own cron did run.
   "LSE-ARCHIVE-IV.yml",
+  // 2026-07-29 — the EDGAR Form 4 ingest is a single-schedule job with no
+  // backup path and no alerting. GitHub silently skipped its 10:00/11:00 UTC
+  // fire on 7/29, so insider_history_edgar stopped at filing_date 2026-07-27
+  // while the paid UW feed stayed current — and the health row still read
+  // green. This matters more every week: UW lapses 2026-08-12, after which
+  // EDGAR is the ONLY insider source. pg_cron backup at 11:30 UTC dispatches
+  // through here; the 90-min dedupe skips it when GitHub's own cron did run.
+  "scanner-insider_edgar-daily.yml",
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last
