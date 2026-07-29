@@ -644,9 +644,10 @@ function RiskStat({ label, tip, value }) {
    benchmark rows — S&P 500, NASDAQ 100, Dow 30 — an explicit Excess-vs-S&P
    line, and since-inception risk stats). Headline NAV unchanged; the
    holdings/cash split bar lives below the hero and is untouched. */
-// day$Override: the SUM of the two sleeve cards' Today numbers (one shared
-// computation, Joe rule 2026-06-12 — the book card and the sleeve cards must
-// tie by construction, never two bases for the same word).
+// day$Override: the account's own NAV move for the session. The two sleeve
+// Today figures are then rounded to SUM to it, so the hero, both sleeve cards
+// and both holdings-table Totals are one arithmetic (Joe rule 2026-06-12,
+// re-grounded on the account 2026-07-29 — never two bases for the same word).
 // benchHistory: { spy, qqq, dia } ascending [{d, v}] series from prices_eod —
 // self-sufficient, so every benchmark row populates even with ZERO nav rows
 // (Joe 2026-07-15: no more all-em-dash table right after an account reset).
@@ -870,7 +871,7 @@ const daysHeld = (iso) => {
   return Number.isNaN(ms) ? null : Math.max(0, Math.round(ms / 86_400_000));
 };
 
-function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {}, momentumRanks = {}, overlapTickers = null, hideSleeveColumn = false, liveQuotes = {} }) {
+function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpenTicker, asOf, updatedAt, cashValue, cfg, setCfg, headline = null, live = false, freshnessId = 'portfolio.paper-positions-snapshot', scanScores = {}, momentumRanks = {}, overlapTickers = null, hideSleeveColumn = false, liveQuotes = {}, dayTotal = null }) {
   // Column visibility / order / widths come from ONE shared config (lifted to
   // the parent, persisted once). In the two-column layout each panel is a
   // single sleeve, so the redundant Sleeve column is dropped there.
@@ -886,6 +887,17 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
   const visibleCols = cfg.filter((c) => c.visible && appliesToSleeve(c.key));
 
   const grossLong = positions.reduce((s, p) => s + (p.market_value || 0), 0);
+  // Cash side of the day: whatever the sleeve moved that the NAME rows do not
+  // account for. Null (blank cell) when the sleeve's own day figure is missing
+  // or the remainder rounds to nothing — never a fabricated zero.
+  // Rounded per row, exactly as the rows RENDER, so the column adds up on
+  // screen and not merely in the underlying floats.
+  const cashDay = (() => {
+    if (dayTotal == null) return null;
+    const names = positions.reduce((s, p) => s + Math.round(Number(p.unrealized_intraday_pl) || 0), 0);
+    const d = Math.round(dayTotal) - names;
+    return d === 0 ? null : d;
+  })();
   // Sleeve headline numbers live on the sleeve card above this table (one
   // computation, shown once — 2026-07-14 two-column redesign).
   const leverageRatio = totalCapital > 0 ? grossLong / totalCapital : 0;
@@ -1100,7 +1112,25 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
                     if (c.key === 'ticker') content = 'Cash (idle)';
                     else if (c.key === 'market_value') content = fmtMoneyExact(cashValue);
                     else if (c.key === 'weight') content = grossLong + cashValue > 0 ? `${(cashValue / (grossLong + cashValue) * 100).toFixed(1)}%` : '';
-                    return <td key={c.key} className={cls.trim()} style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{content}</td>;
+                    // The column has to ADD UP (Joe 2026-07-29). The names' own
+                    // day P&L never sums to the sleeve's change on the day: it
+                    // misses profit or loss REALIZED on anything sold today, any
+                    // cash movement, and the small gap between the broker's
+                    // prior-close prices and our official closing snapshot. That
+                    // remainder belongs to the cash line, so it is shown here
+                    // rather than swallowed into the Total.
+                    else if (c.key === 'unrealized_intraday_pl' && cashDay != null) {
+                      content = (
+                        <span
+                          className={`pp-tip ${cashDay >= 0 ? 'up' : 'down'}`}
+                          data-tip="Cash side of today's move: profit or loss realized on anything sold today, cash in or out, and the small difference between the broker's prior-close prices and our official closing snapshot. Shown so this column adds to the sleeve's change on the day."
+                        >{fmtMoneyExact(cashDay)}</span>
+                      );
+                    }
+                    // The tooltip on the cash-day cell has to escape the cell,
+                    // so that one cell opts out of the ellipsis clipping.
+                    const isTip = c.key === 'unrealized_intraday_pl' && cashDay != null;
+                    return <td key={c.key} className={cls.trim()} style={isTip ? { overflow: 'visible' } : { overflow: 'hidden', textOverflow: 'ellipsis' }}>{content}</td>;
                   })}
                 </tr>
               )}
@@ -1108,7 +1138,10 @@ function PositionsPanel({ title, sleeve, positions, totalCapital, infoDef, onOpe
                 const sum = (k) => sorted.reduce((s, p) => s + (Number(cellValue(p, k)) || 0), 0);
                 const totMV = sum('market_value') + (cashValue || 0);
                 const totCost = sum('cost_basis');
-                const totDay = sum('unrealized_intraday_pl');
+                // Total Day = the SLEEVE's change on the day (its share of the
+                // account's NAV move), never the bare sum of the name rows —
+                // the two sleeve Totals must add to the hero's Today exactly.
+                const totDay = dayTotal != null ? dayTotal : sum('unrealized_intraday_pl');
                 const totPL = sum('unrealized_pnl');
                 return (
                   <tr className="paper-total-row">
@@ -1773,6 +1806,40 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     : null;
   const dayBook = bookNavDay ?? sleeveSumDay;
 
+  // ── One arithmetic, top to bottom (Joe 2026-07-29, second report) ─────────
+  // Every dollar on this page now descends from the SAME partition of the
+  // account: sleeve_*_value, which sums to total_nav to the cent on every row.
+  //
+  //   sleeve 1 value + sleeve 2 value            = the hero NAV
+  //   sleeve 1 Today + sleeve 2 Today            = the hero Today
+  //   each table's Total row                     = that sleeve's Today
+  //
+  // The old splitBook path used each sleeve's RAW reconstructed cash (capital −
+  // cost basis + realized), which runs above the broker's real cash by the
+  // reconciliation residual — $2,635 today. That made the two sleeve headlines
+  // sum to $946,277 against a $943,284 book, and showed $8,445 of idle cash the
+  // account did not have ($5,810). Deriving each sleeve's cash as
+  // value − holdings closes both gaps at once: the residual lands where it
+  // belongs, in cash, split the same way the engine splits it.
+  const rawValB = sleeveNavOf(latestNav, 'B') ?? split.insValue;
+  const rawValM = sleeveNavOf(latestNav, 'M') ?? split.momValue;
+  // Two parts that must add to a whole ON SCREEN: round the whole and the
+  // first part, then make the second part the remainder. Rounding all three
+  // independently leaves a $1 gap, and a $1 gap in a table of dollars reads
+  // as a broken page (Joe 2026-07-29).
+  const tieToWhole = (whole, part) => {
+    if (whole == null || part == null) return [part, null];
+    const W = Math.round(Number(whole)), A = Math.round(Number(part));
+    return [A, W - A];
+  };
+  const bookNavNow = latestNav?.total_nav ?? null;
+  const [sleeveValB, sleeveValM] = bookNavNow != null && rawValB != null
+    ? tieToWhole(bookNavNow, rawValB) : [rawValB, rawValM];
+  const [sleeveDayB, sleeveDayM] = dayBook != null && dayB != null
+    ? tieToWhole(dayBook, dayB) : [dayB, dayM];
+  const cashB = sleeveValB != null ? sleeveValB - (sleeveBGross || 0) : split.insCash;
+  const cashM = sleeveValM != null ? sleeveValM - (momGross || 0) : split.momCash;
+
   // One shared column config for both sleeve tables — set once, persists for both.
   const [colCfg, setColCfg] = useState(loadPaperCols);
   useEffect(() => { try { localStorage.setItem(PAPER_COLS_KEY, JSON.stringify(colCfg)); } catch { /* ignore */ } }, [colCfg]);
@@ -1816,15 +1883,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         <div className="pp-twocol">
           {[
             {
-              code: 'B', n: 1, name: 'Insider Conviction', value: split.insValue,
-              cash: split.insCash, positions: sleeveB,
-              day$: dayB, alloc: insCap,
+              code: 'B', n: 1, name: 'Insider Conviction', value: sleeveValB,
+              cash: cashB, positions: sleeveB,
+              day$: sleeveDayB, alloc: insCap,
               infoDef: 'Buys at Score ≥ 4 (max 5) and sells only when the score decays below 3 — a name at 3 is held, not bought. The sleeve’s full $500K is split equally across every name held and rebalanced every day at the open; drifts inside a 3% band are left alone.',
             },
             {
-              code: 'M', n: 2, name: 'Momentum', value: split.momValue,
-              cash: split.momCash, positions: sleeveM,
-              day$: dayM, alloc: momCap,
+              code: 'M', n: 2, name: 'Momentum', value: sleeveValM,
+              cash: cashM, positions: sleeveM,
+              day$: sleeveDayM, alloc: momCap,
               infoDef: 'Owns the current monthly Power Trend list equal-weight: each name gets $500K ÷ the number of names, capped at one-eighth of the sleeve — so if fewer than 8 names qualify, the rest stays in cash. Refreshed monthly on the 1st; a held name that closes below all four of its moving averages is sold that day, and the cash waits for the next refresh.',
             },
           ].map((s) => (
@@ -1859,6 +1926,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 hideSleeveColumn
                 infoDef={s.infoDef}
                 liveQuotes={lseLive.bySymbol}
+                dayTotal={s.day$}
               />
               <RebalanceLog orders={orders} fills={fills} sleeve={s.code} title={`${s.name} — recent activity`} />
             </div>
