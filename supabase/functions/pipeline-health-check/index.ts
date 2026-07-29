@@ -505,6 +505,21 @@ async function handle(req: Request): Promise<Response> {
     // (green / red) plus grey for untracked/reference. There is no "lagging"
     // state anywhere on the site.
     const isConfigGap = slaH <= 0 && winH <= 0;
+    // 2026-07-29 (9-day watchdog outage post-mortem): a row that is NOT in the
+    // public manifest at all is one this watchdog cannot grade — it was either
+    // deliberately unlisted (the UW teardown #1411 kept 4 health rows live but
+    // removed their public manifest entries) or is producer-owned. Writing
+    // "unknown" for those rows tripped the pipeline_health_status_check
+    // constraint (green/amber/red only at the time), which killed the SINGLE
+    // batch upsert below and 500'd the whole function on every run from
+    // 7/20 to 7/29 — no narrative-blurb stamping, no stale alerts, while the
+    // header showed "2 feeds stale" every day. Anti-clobber doctrine applies:
+    // leave the producer's own stamp untouched and skip the row entirely.
+    // (Migration 089 also widened the constraints to allow 'unknown' as a
+    // backstop for any future config-gap row that IS manifest-listed.)
+    if (isConfigGap && !mfGrade) {
+      continue;
+    }
     const newStatus: "green" | "red" | "unknown" =
       isConfigGap ? "unknown" : (graded.status === "green" ? "green" : "red");
 
@@ -614,11 +629,26 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
-  // 4) Upsert in a single batch
+  // 4) Upsert in a single batch — with a per-row fallback so ONE poisoned row
+  //    can never take down the whole watchdog again (2026-07-29 post-mortem:
+  //    a single constraint-violating row 500'd every run for 9 days, silently
+  //    killing all stale alerts AND the narrative-blurb green stamps).
+  const failedRows: string[] = [];
   const { error: upErr } = await supabase
     .from("pipeline_health")
     .upsert(updates, { onConflict: "indicator_id" });
-  if (upErr) return json({ ok: false, error: `upsert: ${upErr.message}` }, 500);
+  if (upErr) {
+    console.error("[pipeline-health-check] batch upsert failed, falling back to per-row:", upErr.message);
+    for (const u of updates) {
+      const { error: rowErr } = await supabase
+        .from("pipeline_health")
+        .upsert([u], { onConflict: "indicator_id" });
+      if (rowErr) {
+        failedRows.push(u.indicator_id);
+        console.error(`[pipeline-health-check] row upsert failed (${u.indicator_id}):`, rowErr.message);
+      }
+    }
+  }
 
   // 4b) Append the run to pipeline_fetch_log. Compute the per-row run duration
   //     by attributing the total elapsed time evenly across all rows in the
@@ -804,7 +834,7 @@ async function handle(req: Request): Promise<Response> {
     // eslint-disable-next-line no-console
     console.error("[pipeline-health-check] Narrative-gap check failed:", (e as Error).message);
   }
-  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, narrativeAlertsSent });
+  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, narrativeAlertsSent, failedRows });
 }
 
 // Returns YYYY-MM-DD for the most recent UTC weekday.

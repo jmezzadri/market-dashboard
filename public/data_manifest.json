@@ -3886,20 +3886,15 @@
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "failure_mode": "Watchdog reds the row and emails (debounced) when the blurb table falls more than one trading day behind.",
+   "failure_mode": "If stale, the daily macro blurb archive has stopped being written. No page content is affected \u2014 nothing on the site reads this table today.",
    "id": "commentary-narrative_macro-daily",
    "name": "narrative_macro",
-   "description": "Freshness watchdog on the Macro page narrative blurb (macro_commentary table): confirms a blurb exists for the last trading day.",
+   "description": "Daily AI-written macro market blurb (macro_commentary table), generated every trading morning at 7:30 AM ET. Stored as an editorial archive \u2014 no site page displays it today, so a stale blurb affects no on-page content.",
    "source_endpoint": "Supabase public.macro_commentary (generated_date)",
    "output_destination": "pipeline_health synthetic row narrative_macro",
    "producer_script": "supabase/functions/pipeline-health-check/index.ts",
    "scheduled_fetch_time_et": "hourly watchdog sweep",
-   "consumer_surfaces": [
-    {
-     "tab": "macro",
-     "tile": "Narrative blurb freshness"
-    }
-   ],
+   "consumer_surfaces": [],
    "display_name": "Macro narrative blurb",
    "cadence_display": "Daily \u00b7 written 7:30 AM, health-checked hourly"
   },
@@ -3919,20 +3914,15 @@
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "failure_mode": "Watchdog reds the row and emails (debounced) when the blurb table falls more than one trading day behind.",
+   "failure_mode": "If stale, the daily sector blurb archive has stopped being written. No page content is affected \u2014 nothing on the site reads this table today.",
    "id": "commentary-narrative_sector-daily",
    "name": "narrative_sector",
-   "description": "Freshness watchdog on the Sector narrative blurb (sector_commentary table): confirms a blurb exists for the last trading day.",
+   "description": "Daily AI-written sector rotation blurb (sector_commentary table), generated every trading morning at 7:30 AM ET. Stored as an editorial archive \u2014 no site page displays it today, so a stale blurb affects no on-page content.",
    "source_endpoint": "Supabase public.sector_commentary (generated_date)",
    "output_destination": "pipeline_health synthetic row narrative_sector",
    "producer_script": "supabase/functions/pipeline-health-check/index.ts",
    "scheduled_fetch_time_et": "hourly watchdog sweep",
-   "consumer_surfaces": [
-    {
-     "tab": "macro",
-     "tile": "Sector narrative freshness"
-    }
-   ],
+   "consumer_surfaces": [],
    "display_name": "Sector narrative blurb",
    "cadence_display": "Daily \u00b7 written 7:30 AM, health-checked hourly"
   },
