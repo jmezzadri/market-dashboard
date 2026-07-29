@@ -47,10 +47,15 @@ import './styles/legacy-bridge.css';
 // chrome). Retires the sidebar + v11 glass shell. 2026-07-07.
 import './styles/chrome-v12.css';
 
+// Site-wide footer + static prose pages (About / Terms / Privacy /
+// Disclaimer). 2026-07-29.
+import './styles/footer-v12.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
+import SiteFooter from './chrome/SiteFooter';
 import LoginScreen from '../auth/LoginScreen';
 import { useSession } from '../auth/useSession';
 
@@ -61,6 +66,7 @@ import PortfolioLabPage from './pages/PortfolioLabPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
+import { AboutPage, TermsPage, PrivacyPage, DisclaimerPage } from './pages/StaticPages';
 // Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
 // dropped /paper also swapped this route to a placeholder, breaking the
 // bugs page. The page itself lives at src/AdminBugs.jsx and still works.
@@ -172,8 +178,13 @@ function Shell() {
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
             <Route path="/admin/bugs" element={<AdminBugs />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/disclaimer" element={<DisclaimerPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <SiteFooter />
         </main>
       </div>
     </div>

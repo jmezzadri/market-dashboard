@@ -1,0 +1,139 @@
+/* ============================================================================
+   footer-v12.css — site-wide footer, cream (v12) chrome.
+   Theme-aware via the --ch-* vars set on .mt-overhaul in chrome-v12.css
+   (light = cream, dark|navy = ink). Loaded by OverhaulApp after chrome-v12.
+   Design approved by Joe 2026-07-29 (footer mockup, light + dark).
+   ========================================================================= */
+
+.mt-overhaul .mt-footer {
+  background: var(--ch-putty);
+  border-top: 1px solid var(--ch-hair);
+  padding: 44px clamp(24px, 4vw, 48px) 0;
+  color: var(--ch-ink-soft);
+  margin-top: 56px;
+}
+
+.mt-overhaul .mt-footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 32px;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-bottom: 36px;
+}
+@media (max-width: 760px) {
+  .mt-overhaul .mt-footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.mt-overhaul .mt-footer-wordmark {
+  font-family: var(--ch-serif);
+  font-size: 26px;
+  color: var(--ch-ink);
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  display: inline-block;
+}
+.mt-overhaul .mt-footer-wordmark em { font-style: normal; color: var(--ch-gold-deep); }
+
+.mt-overhaul .mt-footer-tag {
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin-top: 10px;
+  max-width: 300px;
+  color: var(--ch-ink-soft);
+}
+
+.mt-overhaul .mt-footer-loc { font-size: 12.5px; margin-top: 16px; color: var(--ch-mut); }
+.mt-overhaul .mt-footer-loc a {
+  color: var(--ch-mut);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ch-hair);
+  transition: color 0.18s, border-color 0.18s;
+}
+.mt-overhaul .mt-footer-loc a:hover { color: var(--ch-gold-deep); border-color: var(--ch-gold-deep); }
+
+.mt-overhaul .mt-footer-col h4 {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ch-mut);
+  margin: 0 0 14px;
+}
+.mt-overhaul .mt-footer-col ul { list-style: none; margin: 0; padding: 0; }
+.mt-overhaul .mt-footer-col li { margin-bottom: 10px; }
+.mt-overhaul .mt-footer-col a {
+  color: var(--ch-ink-soft);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.mt-overhaul .mt-footer-col a:hover { color: var(--ch-gold-deep); }
+
+.mt-overhaul .mt-footer-legalband { border-top: 1px solid var(--ch-hair); }
+.mt-overhaul .mt-footer-legalband .inner { max-width: 1160px; margin: 0 auto; padding: 18px 0 8px; }
+.mt-overhaul .mt-footer-disclaimer {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ch-mut);
+  max-width: 840px;
+  margin: 0;
+}
+
+.mt-overhaul .mt-footer-bottom {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 14px 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mt-overhaul .mt-footer-copy { font-size: 12px; color: var(--ch-mut); }
+.mt-overhaul .mt-footer-bottomlinks { display: flex; gap: 20px; }
+.mt-overhaul .mt-footer-bottomlinks a {
+  font-size: 12px;
+  color: var(--ch-mut);
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.mt-overhaul .mt-footer-bottomlinks a:hover { color: var(--ch-gold-deep); }
+
+/* ── static prose pages (/about, /terms, /privacy, /disclaimer) ────────── */
+.mt-overhaul .mt-static-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px clamp(20px, 4vw, 40px) 72px;
+  color: var(--ch-ink-soft);
+}
+.mt-overhaul .mt-static-page h1 {
+  font-family: var(--ch-serif);
+  font-size: clamp(30px, 4.5vw, 40px);
+  font-weight: 400;
+  color: var(--ch-ink);
+  margin: 0 0 6px;
+  letter-spacing: 0.2px;
+}
+.mt-overhaul .mt-static-updated {
+  font-size: 12.5px;
+  color: var(--ch-mut);
+  margin: 0 0 30px;
+}
+.mt-overhaul .mt-static-page h2 {
+  font-family: var(--ch-serif);
+  font-size: 21px;
+  font-weight: 400;
+  color: var(--ch-ink);
+  margin: 34px 0 10px;
+}
+.mt-overhaul .mt-static-page p,
+.mt-overhaul .mt-static-page li {
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.mt-overhaul .mt-static-page p { margin: 0 0 14px; }
+.mt-overhaul .mt-static-page ul { margin: 0 0 14px; padding-left: 22px; }
+.mt-overhaul .mt-static-page strong { color: var(--ch-ink); font-weight: 600; }
+.mt-overhaul .mt-static-page a { color: var(--ch-gold-deep); text-decoration: none; }
+.mt-overhaul .mt-static-page a:hover { text-decoration: underline; }
