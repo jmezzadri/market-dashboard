@@ -1,0 +1,62 @@
+name: BRIEF-EMAIL-SMOKE
+
+# One-shot proof that the cloud writer can actually SEND Joe's morning brief.
+#
+# Context (2026-07-30 incident): until today the brief Joe received was written by
+# a scheduled Claude task into a Gmail DRAFT and sent ~06:45 ET by a Google Apps
+# Script (backups/market-brief-autosend.gs in the MacroTilt folder). That prompt
+# lived outside version control and shipped two fabricated claims. The fix moves
+# authorship to scripts/build_daily_brief.py, which now carries a hard accuracy
+# contract — but its SMTP send path had never once been exercised in production
+# (BRIEF_SEND_EMAIL had been unset since June). This workflow exercises it, in
+# test mode (Joe's gmail only), before the legacy chain is retired.
+#
+# Runs on push when this file changes, so it can be fired without the Actions API.
+# Safe to delete once the cutover is confirmed. Does NOT commit the brief.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/BRIEF-EMAIL-SMOKE.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Report which secrets are present (names only, never values)
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for v in SMTP_USER SMTP_PASSWORD EMAIL_TO EMAIL_FROM ANTHROPIC_API_KEY SUPABASE_SERVICE_ROLE_KEY; do
+            if [[ -n "${!v}" ]]; then echo "$v: PRESENT (${#-} chars hidden)"; else echo "$v: MISSING"; fi
+          done
+
+      - name: Generate a corrected brief and email it to Joe (test mode)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRIEF_SEND_EMAIL: "true"
+          BRIEF_SEND_MODE: "test"      # Joe's gmail only; EY list untouched
+          BRIEF_FORCE_REBUILD: "1"     # today's brief already exists; regenerate anyway
+        run: python scripts/build_daily_brief.py
