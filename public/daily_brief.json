@@ -1,135 +1,134 @@
 {
-  "date": "2026-07-29",
-  "recap_session": "Tue Jul 28",
+  "date": "2026-07-30",
+  "recap_session": "Tue Jul 29",
   "eyebrow": "Morning Brief",
-  "headline": "Iran re-escalates with ballistic missile strike on US forces; oil surges ~4% overnight as markets brace for the Fed, Microsoft, and Meta on the same afternoon.",
-  "stance": "<b>Risk-off pre-market: equities flat-to-lower on geopolitical flare-up, oil leading the tape higher.</b> Today stacks three simultaneous catalysts — the Fed's rate decision at 2pm ET (hold widely expected, but Chair Warsh's tone on September is the live question), then Microsoft and Meta earnings after the close. Positioning in S&P 500 futures is extended long (speculators heavily positioned — a contrarian warning), while Russell 2000 and SOFR futures sit at the opposite extreme — speculators have almost no bullish bets left, a contrarian floor for small-caps and rate bulls.",
+  "headline": "Fed holds at 3.5–3.75% but three officials dissented for a hike, sending the 30-year Treasury yield to its highest level in 19 years and dragging equities sharply lower into the close.",
+  "stance": "<b>The overnight takeaway: a hawkish hold.</b> Chair Warsh kept rates unchanged but offered no forward guidance and made clear the Fed has no soft inflation target — the bond market heard it as a warning shot, not a reprieve. <b>The 30-year Treasury yield hit 5.21%, its highest since 2007</b>, even as the 2-year fell slightly — the curve is steepening for the wrong reasons (inflation fear, not growth hope). Today's session pivots on AAPL and AMZN earnings after the close and whether Brent crude — which entered a new price extreme yesterday — stays elevated as Iran diplomacy remains stalled.",
   "news": [
     {
-      "head": "Iran fires ballistic missiles at US troops",
-      "body": "The US military said it intercepted an IRGC ballistic missile salvo targeting American forces in the Middle East overnight, snapping a brief pause in hostilities and sending oil surging more than 4% in pre-market trade."
+      "head": "Fed holds, hawks dissent",
+      "body": "The FOMC left its benchmark rate at 3.5%–3.75% for the fifth straight meeting, but Cleveland's Hammack, Minneapolis's Kashkari, and Dallas's Logan all voted for an immediate quarter-point hike — the most dissents since September 2016."
     },
     {
-      "head": "WTI back above $82 pre-market",
-      "body": "WTI crude (OVERNIGHT/PRE-MARKET) is quoted near $82.09/bbl and Brent near $86.97/bbl after the renewed attack, reversing the prior session's three-day slide and reigniting Strait-of-Hormuz supply-disruption fears."
+      "head": "30-year yield at 19-year high",
+      "body": "After Warsh's press conference, the 30-year Treasury yield surged 12 basis points to 5.21% — its highest level since 2007 — as investors concluded the Fed is behind the curve on inflation; the 10-year settled at a prior cash-close of 4.67% (up 7bps on the day)."
     },
     {
-      "head": "Fed holds at 3.50-3.75% expected today",
-      "body": "The FOMC concludes its two-day meeting today with a hold at 3.50%–3.75% widely anticipated; markets will focus entirely on whether Chair Warsh's press conference at 2:30pm ET signals that a September hike is on the table."
+      "head": "Stocks sold off hard",
+      "body": "The Dow fell roughly 1,153 points and the S&P 500 dropped about 1% after Warsh's remarks; the SPX prior cash close stands at 7,316.15 and the NDX at 24,442.94."
     },
     {
-      "head": "Microsoft and Meta report after the close",
-      "body": "Microsoft and Meta both post Q2 results this evening — the market's main question for both is whether massive AI capital spending (Meta guided $125–145bn for 2026, Microsoft ~$190bn for its fiscal year) is translating into measurable revenue."
+      "head": "Iran: Hormuz diplomacy stalls",
+      "body": "Tehran rejected Oman's proposal for joint regional management of the Strait of Hormuz, dashing hopes for de-escalation and keeping an upward floor under energy prices."
     },
     {
-      "head": "Ford surges ~4% after hours on earnings beat",
-      "body": "Ford Motor jumped nearly 4% in after-hours trading on Tuesday after topping earnings expectations and raising its full-year 2026 outlook."
+      "head": "Brent crude new extreme",
+      "body": "Brent crude reached a prior cash close of $90.54/bbl — its first session at an 'elevated' 3-year price extreme — while WTI settled at $84.60/bbl; both spiked sharply Wednesday on Trump's retaliation warning against Iran."
     },
     {
-      "head": "Semis under renewed selling pressure",
-      "body": "The prior session saw chip stocks remain under broad pressure, with the semiconductor sell-off that began on reports of a Chinese chip-making breakthrough continuing to weigh on Nasdaq breadth."
+      "head": "AAPL & AMZN due after bell",
+      "body": "Apple (consensus EPS $1.88–$1.89, revenue ~$108.9B) and Amazon (consensus EPS $1.81, revenue ~$196.5B) both report tonight; capex guidance and AI-spend commentary are the swing factors after Alphabet's elevated spending alarmed investors earlier this month."
+    },
+    {
+      "head": "MSFT & META reported last night",
+      "body": "Microsoft and Meta reported after Wednesday's close; results and management commentary on AI capital expenditure plans will shape pre-market tone for the Nasdaq this morning."
     }
   ],
   "implications": [
-    "Oil re-pricing higher complicates the Fed's inflation calculus and raises the bar for any dovish pivot language from Warsh — a hawkish tone today could pressure long-duration assets and high-multiple tech.",
-    "The equity-credit correlation reading of 0.684 means stocks and credit spreads are moving together; any geopolitical shock that widens HY spreads (currently 281 bps over IG) is likely to hit equities simultaneously — limited natural hedge between the two.",
-    "The 10-year breakeven inflation expectation sits at 2.20% while the real 10-year yield is 2.41% — markets are not yet embedding a large energy-driven re-inflation premium, but another leg higher in oil could change that quickly.",
-    "<b>Positioning:</b> S&P 500 futures: speculators are heavily positioned long (85th percentile) — a contrarian warning. Russell 2000 futures: speculators have almost no bullish bets left (4th percentile) — a contrarian floor. 3M SOFR: extended short positioning (4th percentile) — a contrarian-bullish lean on near-term rates. Copper futures: speculators are heavily positioned long (96th percentile) — a contrarian warning. Wheat futures: speculators are heavily positioned long (98th percentile) — a contrarian warning. Euro FX: speculators have almost no bullish bets left (10th percentile) — a contrarian floor for EUR."
+    "Three dissents signal that the path of least resistance for rates is still higher, not lower — a September hike is a live risk and bond investors are pricing it aggressively into the long end of the curve.",
+    "Steep curve via rising long yields without Fed easing is a <b>margin compression signal</b> for equities: it raises the discount rate on future earnings while borrowing costs for companies stay elevated.",
+    "Stalled Iran diplomacy keeps a geopolitical risk premium embedded in Brent crude, which feeds directly into inflation expectations (10-year breakeven: 2.26%) and complicates the Fed's ability to cut.",
+    "Real rates at 2.41% remain a stiff headwind for growth and tech multiples; the equity risk premium (ERP) is already negative at -2%, meaning Treasuries offer better risk-adjusted returns than stocks on this reading — a structural caution.",
+    "<b>Positioning:</b> Speculators just moved to a <b>newly extended long</b> on S&P 500 futures (85th percentile, NEW this week) — speculators are heavily positioned on the long side, a contrarian warning at these levels. Simultaneously, speculators are now at an extended short on VIX futures (10th percentile, NEW this week) — they have almost no bullish bets left on volatility, which is a contrarian floor for the VIX and a warning that complacency in the options market may unwind quickly if earnings disappoint."
   ],
   "watch": [
     {
-      "head": "Fed statement & Warsh presser (2pm ET)",
-      "body": "Any language suggesting the FOMC is 'meeting-by-meeting' and that September is 'live' for a hike would likely lift the dollar, push 10Y yields toward 4.70%, and reprice rate-sensitive equities lower."
+      "head": "AAPL & AMZN after close",
+      "body": "Apple and Amazon report tonight — capex guidance and any commentary on tariff or supply-chain impact from Middle East tensions will determine whether the Nasdaq can recoup Wednesday's losses."
     },
     {
-      "head": "Microsoft & Meta AI capex guidance",
-      "body": "Both companies reporting tonight must justify enormous AI spending — a reassuring capex-to-revenue narrative from Meta at 4:30pm ET sets the tone for Microsoft's call and the broader tech sector open Thursday."
+      "head": "30-year yield — 5.25% resistance",
+      "body": "The 30-year Treasury yield is at its highest since 2007; a sustained push above 5.25% would tighten financial conditions further and put additional pressure on rate-sensitive sectors including real estate and utilities."
     },
     {
-      "head": "EIA crude inventory report",
-      "body": "Wednesday's EIA weekly crude stocks report could add or subtract from the overnight oil spike — a draw would confirm tight physical supply; a surprise build would moderate the geopolitical bid."
+      "head": "Brent crude & Hormuz headlines",
+      "body": "With Tehran having rejected the latest diplomatic framework, any new strike activity or tanker incident in the Strait of Hormuz could push Brent — already at a fresh price extreme — sharply higher, re-igniting the inflation-fear loop."
     },
     {
-      "head": "USD/JPY at extreme levels",
-      "body": "The yen (PRIOR CASH CLOSE 163.79 ¥/$) is at the 99.9th percentile of its three-year range — a historically extreme level of yen weakness; any hawkish Bank of Japan commentary or risk-off shift could trigger a sharp yen strengthening move, with knock-on effects across carry trades."
+      "head": "Jackson Hole (Aug) — Warsh signal",
+      "body": "The next FOMC meeting is Sep 15–16, but Warsh is expected to speak at Jackson Hole in August; his remarks there will be the market's first real read on whether the committee is tilting toward a September hike."
     },
     {
-      "head": "Nasdaq breadth divergence",
-      "body": "Only 46.5% of Nasdaq 100 stocks trade above their 50-day average (vs. 67.2% for the S&P 500) — a divergence that suggests the index-level calm masks deteriorating conditions under the surface in tech."
+      "head": "VIX complacency risk",
+      "body": "The VIX closed at 20.66 (prior cash close) and speculators are newly extended short on VIX futures — if big-tech earnings disappoint tonight, that short-volatility positioning could unwind rapidly, amplifying any equity move lower."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "10-year Treasury yield: PRIOR CASH CLOSE 4.61%; 2-year yield: PRIOR CASH CLOSE 4.26% — the curve (2s10s) sits at +35 bps, a modest positive slope after months of inversion, meaning bond investors are slightly more worried about the long run than the near term.",
-        "Real (inflation-adjusted) 10-year yield stands at 2.41% — a high level that makes equities expensive to justify on a pure income comparison: the stock market's earnings yield (inverse of valuations) must clear that hurdle to attract new capital.",
-        "10-year breakeven inflation expectation is 2.20% — still near the Fed's 2% goal, but the overnight oil spike risks pushing this higher if sustained.",
-        "Term premium (the extra yield investors demand for holding long bonds instead of rolling short ones) is 83.8 bps — elevated, and a sign that bond buyers are requiring more compensation for uncertainty, which puts upward pressure on mortgage rates and corporate borrowing costs.",
-        "Financial conditions (ANFCI -0.55 z-score, STLFSI -0.70) remain accommodative — easier than average — which is one reason the Fed has not felt urgency to cut; the Iran flare-up has not yet tightened conditions materially.",
-        "The Fed's balance sheet is growing only 1.35% year-over-year, and overnight Fed repo usage (the daily cash-parking facility) has nearly drained to $1.1bn — meaning excess cash in the banking system is being deployed, not hoarded."
+        "Fed funds rate held at 3.5%–3.75% for the fifth consecutive meeting; three FOMC members (Hammack, Kashkari, Logan) dissented in favor of an immediate 25bps hike — the most dissents since 2016.",
+        "The 10-year Treasury yield settled at a prior cash close of 4.67%, up 7 basis points on the day; the 30-year surged 12bps to 5.21% — its highest level since 2007 — while the 2-year dipped 4bps to 4.22%.",
+        "The yield curve (2s/10s, the gap between short and long rates) sits at 45bps (prior close) — it is steepening as long yields rise faster than short ones, driven by inflation fear rather than growth optimism.",
+        "Real rates (the inflation-adjusted cost of borrowing) stand at 2.41% — a high reading that acts as a brake on business investment and asset valuations.",
+        "10-year inflation expectations (breakeven) are 2.26%, sitting above the Fed's 2% target; Tehran's rejection of a Hormuz diplomatic framework keeps upside risk to energy-driven inflation alive.",
+        "Bond-market stress gauges are calm: the MOVE index (bond volatility, analogous to VIX for stocks) is 74.2 (prior close) and FRA-OIS / SOFR-OIS spreads (a measure of bank-to-bank lending stress — near zero means banks trust each other) are each just 2bps — no credit-crunch signal yet.",
+        "Financial conditions overall remain loose: the Chicago Fed's conditions indexes (ANFCI: -0.56, STLFSI: -0.83) are both below zero, meaning money is still easy to borrow relative to history — the rate-hike risk is forward-looking, not yet realized in the plumbing."
       ],
-      "positioning": "3M SOFR futures: speculators have almost no bullish bets left (4th percentile, 3-year low) — a contrarian floor suggesting the market has over-priced rate-hike risk in the short end; any dovish Fed nuance today could trigger a sharp rally in short-term rate futures.",
+      "positioning": "Speculators have almost no bullish bets left on 3-month interest rate futures (SOFR, 4th percentile over 3 years, extended short for 14 weeks) — a standing contrarian-bullish lean on short-term rates, though this is background context, not a new development this week.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500: PRIOR CASH CLOSE 7,428.78; S&P 500 futures indicated slightly lower OVERNIGHT/PRE-MARKET near 7,425 — equities absorbing the oil shock with limited panic so far.",
-        "Nasdaq 100: PRIOR CASH CLOSE 24,876.91 — chip-stock weakness and AI capex scrutiny kept the index marginally negative Tuesday while the Dow gained 1.03% on strong non-tech earnings.",
-        "Dow Jones: PRIOR CASH CLOSE 52,747.32 — the Dow's outperformance vs. Nasdaq reflects a rotation away from high-multiple semis toward more traditional industrials and financials.",
-        "VIX (fear gauge — measures how much investors are paying to insure against a market drop): PRIOR CASH CLOSE 18.21 — calm for now; VXN (Nasdaq-specific fear gauge) at 28.61 is notably higher, confirming tech-specific anxiety is elevated.",
-        "SKEW index at 143 — investors are paying a meaningful premium to protect against a large, sudden market drop, even as headline VIX looks modest.",
-        "67.2% of S&P 500 stocks trade above their 50-day average, and 69.1% above their 200-day average — broad market internals are healthy; the weakness is concentrated in mega-cap tech and semis.",
-        "CAPE (long-run valuation measure comparing current prices to 10-year average earnings): 40.57 — historically elevated, leaving little margin of safety if earnings disappoint or rates rise further."
+        "Prior cash closes: S&P 500 at 7,316.15, Nasdaq 100 at 24,442.94, Dow at 51,594.14 — all fell sharply after Warsh's press conference Wednesday.",
+        "Market breadth was solid before the Fed: 71.4% of S&P 500 stocks were above their 50-day moving average and 73.7% above their 200-day average (as of Jul 28), but a hawkish-hold reaction could dent those readings today.",
+        "The Nasdaq 100 shows narrower breadth: only 50.5% of its stocks are above their 50-day moving average (vs. 68.3% above the 200-day), signaling that recent strength has been concentrated in a handful of large names.",
+        "CAPE (the long-run price-to-earnings ratio that smooths out business cycles) sits at 39.93 — historically stretched; the equity risk premium is -2%, meaning broad equities are priced to deliver less than Treasuries on a risk-adjusted basis.",
+        "The equity-credit correlation is 0.684 (prior close) — stocks and credit spreads are moving closely together, so any widening in credit markets would amplify equity pressure.",
+        "SKEW index at 139.6 (prior close) — options traders are paying elevated prices to hedge against a big market drop, suggesting sophisticated investors are cautious even if the VIX headline number looks moderate.",
+        "Apple and Amazon report after today's close; capex guidance is the single biggest swing factor for the Nasdaq given investor sensitivity to AI-infrastructure spending following Alphabet's earlier raise."
       ],
-      "positioning": "S&P 500 futures: speculators are heavily positioned long (85th percentile) — a contrarian warning. Russell 2000 futures: speculators have almost no bullish bets left (4th percentile) — a contrarian floor; small-cap shorts are heavy with meaningful squeeze risk if the Fed surprises dovishly or geopolitical news calms.",
-      "single_name": {
-        "ticker": "TSM",
-        "note": "<a class=\"tklink\" href=\"/ticker/TSM\" data-route=\"/ticker/TSM\">Taiwan Semiconductor (TSM)</a> — company insiders have been buying, stock trades above its 200-day line, and active dark-pool and options flow are live; with semis under broad selling pressure, an insider-buying signal in the sector's dominant foundry is worth tracking for a potential divergence."
-      }
+      "positioning": "Speculators are newly extended long on S&P 500 futures (85th percentile of 3-year range, NEW this week) — speculators are heavily positioned on the long side, a contrarian warning. Simultaneously, speculators moved to an extended short on VIX futures (10th percentile, NEW this week) — they have almost no bullish bets left on volatility, which is a contrarian floor for the VIX. Together these two new extremes suggest the options and futures market is priced for calm, making it vulnerable to a sharp unwind if earnings or geopolitics surprise.",
+      "single_name": null
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HY-IG spread (the gap between what risky companies pay to borrow vs. safe ones): 281 bps — wide enough to signal some stress but not at crisis levels; investment-grade spreads at 81 bps are similarly contained.",
-        "Bank credit growth is running at 6.4% year-over-year — a healthy pace indicating banks are still lending, not pulling back.",
-        "Commercial paper funding spread (the cost for large companies to borrow overnight in the money market): 18 bps — benign; no signs of a funding squeeze.",
-        "FRA-OIS and SOFR-OIS spreads (measures of stress in short-term bank-to-bank lending) at 1 bp each — essentially zero, confirming interbank plumbing is clear.",
-        "Bank reserves at $3,062bn and TGA (Treasury's cash account) at $829.6bn — ample system liquidity; no near-term risk of a 'repo market seizure' like 2019.",
-        "M2 money supply growing 5.53% year-over-year — moderate, not inflationary on its own, but combined with an oil shock it adds to the inflation watch list."
+        "High-yield credit spreads (the extra yield junk bonds pay over safe government bonds — wider = more stress) sit at 284bps (as of Jul 28) with investment-grade at 81bps — neither is at an extreme, and the HY/IG ratio is 1.34, indicating credit markets are not flashing recession risk.",
+        "Bank lending growth is solid at 6.4% year-over-year (as of mid-July); commercial-paper funding spreads (a short-term corporate borrowing gauge) are just 18bps — companies can still fund themselves cheaply in the short-term market.",
+        "Bank reserves held at the Fed total $3,062bn (as of Jul 22) — ample system liquidity; the Fed's overnight reverse repo facility (RRP, cash parked at the Fed overnight) has drained to just $2.6bn (Jul 29), meaning excess cash has moved into productive uses, a healthy sign.",
+        "The Treasury's cash account (TGA) holds $829.6bn (Jul 22) — a large buffer that, if spent down, would add liquidity to the system and provide a modest offset to any tightening from the rate-hike risk.",
+        "Loan syndication rates at 7.15% (Jul 28) and senior loan officer surveys (SLOOS) show only modest net tightening in C&I lending standards (8.1%) and commercial real estate (2%) as of Q2 — credit availability has not seized up despite the rate backdrop."
       ],
       "positioning": null,
-      "single_name": {
-        "ticker": "FSBC",
-        "note": "<a class=\"tklink\" href=\"/ticker/FSBC\" data-route=\"/ticker/FSBC\">Five Star Bancorp (FSBC)</a> — two insider-buying rules fired, stock trades above its 200-day line, shorts are heavy at 5.69 days-to-cover with meaningful squeeze risk; a regional bank signaling insider confidence during a rate-uncertainty backdrop."
-      }
+      "single_name": null
     }
   ],
   "movers": [
     {
-      "ticker": "JEF",
-      "pct": 1.8,
+      "ticker": "LILA",
+      "pct": 6.6,
       "link": true
     },
     {
       "ticker": "TSM",
-      "pct": -1.7,
+      "pct": -4.5,
       "link": true
     },
     {
-      "ticker": "GGAL",
-      "pct": -1.6,
+      "ticker": "JEF",
+      "pct": -3.7,
+      "link": true
+    },
+    {
+      "ticker": "YORW",
+      "pct": 3.1,
       "link": true
     },
     {
       "ticker": "FSBC",
-      "pct": 1.3,
-      "link": true
-    },
-    {
-      "ticker": "GABC",
-      "pct": 0.8,
+      "pct": -0.9,
       "link": true
     }
   ]
