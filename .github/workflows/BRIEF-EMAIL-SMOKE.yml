@@ -62,3 +62,4 @@ jobs:
         run: python scripts/build_daily_brief.py
 
 # Re-run 2026-07-30: verify the plumbing-leak scrub and empty-section fallback.
+# Re-run 3: verify rule 5 (percent-only extended-hours) and the vendor-name / meta-commentary ban.
