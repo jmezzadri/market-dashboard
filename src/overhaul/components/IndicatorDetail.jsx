@@ -72,7 +72,9 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
     if (!overlayKey) return null;
     const c = catalog.find((x) => x.key === overlayKey);
     if (!c || !c.points?.length) return null;
-    return { points: sliceByTimeframe(c.points, tf), label: c.label };
+    // The " (index)" suffix is dropdown-only disambiguation — strip it here so
+    // the chart legend reads "S&P 500 (indexed)", not "S&P 500 (index) (indexed)".
+    return { points: sliceByTimeframe(c.points, tf), label: c.label.replace(/ \(index\)$/, '') };
   }, [overlayKey, catalog, tf]);
   // Amber/red pill zones, in value space. Computed from the SAME trailing
   // 3-year distribution that colors the pill (useIndicators pctRank), so the

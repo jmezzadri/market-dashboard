@@ -436,7 +436,8 @@ function PositioningDetail({ item, onClose, catalog = [], indexSeries = [] }) {
     if (!overlayKey) return null;
     const c = catalog.find((x) => x.key === overlayKey);
     if (!c || !c.points?.length) return null;
-    return { points: slicePos(c.points, tf), label: c.label };
+    // Strip the dropdown-only " (index)" suffix so the legend doesn't read "(index) (indexed)".
+    return { points: slicePos(c.points, tf), label: c.label.replace(/ \(index\)$/, '') };
   }, [overlayKey, catalog, tf]);
   // Amber/red zones in value space — from the SAME trailing 3-year (156-week)
   // window the positioning percentile uses, so chart shading and pill agree.
@@ -705,12 +706,17 @@ export default function MacroPage() {
   // price on a positioning chart (indexed, since the scales differ).
   const overlayCatalog = useMemo(() => {
     const out = [];
+    // Major equity indexes first — Joe looked for them in this dropdown
+    // (2026-07-30) and they were only available as the toggle pills below it.
+    // Same series the pills draw (from useIndicators.indexSeries), so the two
+    // entry points can never disagree.
+    (indexSeries || []).forEach((x) => { if (x.points?.length) out.push({ key: 'idx:' + x.key, label: x.label + ' (index)', points: x.points }); });
     (indicators || []).forEach((i) => { if (i.points?.length) out.push({ key: 'ind:' + i.id, label: i.name, points: i.points }); });
     if (cotPos?.domains) Object.values(cotPos.domains).forEach((d) => (d.markets || []).forEach((m) => {
       if (m.history?.length) out.push({ key: 'pos:' + m.market, label: m.market + ' (positioning)', points: m.history.map((r) => [r[0], r[1]]) });
     }));
     return out;
-  }, [indicators, cotPos]);
+  }, [indicators, cotPos, indexSeries]);
 
   const clampPct = (x) => Math.max(0, Math.min(100, x));
   const ddOf = (ind) => { const p=ind.points; if(!p||p.length<2) return null; const last=p[p.length-1][1], prev=p[p.length-2][1]; if(!Number.isFinite(last)||!Number.isFinite(prev)) return null; const dec=Math.min(ind.decimals??2,2); const r=Number((last-prev).toFixed(dec)); if(r===0) return null; const a=Math.abs(r).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return {arrow:r>0?'▲':'▼', txt:a, cls:r>0?'up':'down'}; };
