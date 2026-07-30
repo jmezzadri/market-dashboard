@@ -79,6 +79,11 @@ import AdminBugs from '../AdminBugs';
 import PaperPortfolioPage from '../v2/pages/PaperPortfolioPage';
 import PageErrorBoundary from '../v2/components/ErrorBoundary';
 
+// Site-wide "Report a bug" widget. Renders on every route for signed-in users
+// and is the front door to the bug_reports table / /admin/bugs triage board
+// that has existed server-side since migration 004. 2026-07-30.
+import ReportBug from '../components/ReportBug';
+
 // Small wrapper so the /paper route can navigate to a ticker without needing
 // useNavigate at the top of Shell (keeps the route self-contained).
 
@@ -185,6 +190,7 @@ function Shell() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <SiteFooter />
+          <ReportBug />
         </main>
       </div>
     </div>
