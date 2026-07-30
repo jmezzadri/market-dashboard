@@ -63,7 +63,7 @@
 }
 
 .home-v12 *{box-sizing:border-box}
-.home-v12 .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+.home-v12 .wrap{max-width:1560px;margin:0 auto;padding:0 40px} /* 2026-07-30: one brand stage width across ALL pages — was 1240px, which made Home/Macro/Ticker/Lab/Methodology feel jammed vs Scanner/Paper/Data's 1560px sections */
 .home-v12 .serif{font-family:var(--serif);font-weight:400}
 
 /* reveal motion — replays in BOTH directions (class toggles on viewport exit) */
