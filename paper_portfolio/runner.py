@@ -234,14 +234,25 @@ def run_eod_phase(
                 lines += ["", "Submit errors:"] + [f"  {e}" for e in s_result.errors[:8]]
             lines += ["", "These execute at the 9:30am ET opening auction. "
                           "A separate confirmation follows after the open."]
-            status = "queued" if s_result.submitted else "NO ORDERS submitted"
+            # Subject must not read like a failure on a healthy quiet day
+            # (2026-07-30). Zero intents = the book already matches its
+            # targets, which is normal and most common. Only intents that
+            # were computed and then NOT submitted are a problem.
+            if s_result.submitted:
+                status = "queued"
+            elif not t_result.intents:
+                status = "nothing to trade"
+            else:
+                status = "NO ORDERS submitted"
             # Once per ET day: the workflow fires redundantly on purpose
             # (cron-lateness insurance) and reruns are no-op duplicates of
             # the same decision, so only the first run of the day emails.
             send_alert_email_once(
                 "morning_summary",
                 f"[MacroTilt paper] Morning rebalance {status} — "
-                f"{s_result.submitted} orders for the open",
+                f"{s_result.submitted} orders for the open"
+                if status != "nothing to trade" else
+                "[MacroTilt paper] Morning rebalance — nothing to trade today",
                 "\n".join(lines),
             )
         except Exception as exc:  # noqa: BLE001
