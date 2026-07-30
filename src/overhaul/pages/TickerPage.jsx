@@ -52,6 +52,7 @@ import { useTickerEvents } from '../../hooks/useTickerEvents';
 import { useUniverseSnapshot } from '../../hooks/useUniverseSnapshot';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
+import useTickerSuggestions from '../../hooks/useTickerSuggestions';
 import useV5ScanBatch from '../../hooks/useV5ScanBatch';
 import useEdgarInsider from '../../hooks/useEdgarInsider';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
@@ -372,6 +373,11 @@ export default function TickerPage() {
      canonical so the header price, the chart, and the freshness chip all
      agree on one date. Snapshot / scanner only fill gaps. */
   const price   = eod?.last_close ?? snap?.close ?? scanRow?.price ?? 0;
+  /* Whether a REAL price exists anywhere. The `?? 0` above keeps the chart and
+     the derived maths from blowing up on a null, but a rendered "$0.00" is a
+     substituted number, which we never show (LESSONS 4.4) — a covered symbol
+     with no stored close yet (fresh listing, thin name) gets an em-dash. */
+  const hasPrice = eod?.last_close != null || snap?.close != null || scanRow?.price != null;
   const chgPct  = eod?.day_pct != null
     ? Number(eod.day_pct)
     : (snap?.perc_change != null
@@ -552,6 +558,40 @@ export default function TickerPage() {
     [eventsForSym, mergedNews],
   );
 
+  /* ---- Does this symbol exist at all? (Joe 2026-07-30) ----------------
+     /ticker/APPL (a typo for AAPL) used to render the entire page shell —
+     $0.00 price, empty chart, empty company overview, empty news — because
+     nothing here asked the question. A symbol is REAL if any of our own
+     sources carries it: the reference list (~13K US listings), a stored
+     close, stored daily history, the large-cap snapshot, or a scanner row.
+     Nothing at all, once every one of those has finished loading, means the
+     symbol is not one we cover — say so instead of drawing zeros. */
+  const resolveLoading = deep.loading || eod.loading || histAll.loading || universe.loading || info.loading;
+  const symbolKnown = !!(
+    deep?.ref ||
+    eod?.last_close != null ||
+    (histAll.rows || []).length > 0 ||
+    snap ||
+    scanRow ||
+    info?.name
+  );
+  /* A failed reference read is NOT evidence of absence — if the lookup itself
+     errored (offline, RLS, PostgREST hiccup) fall through to the normal page
+     rather than telling the user a real symbol doesn't exist. */
+  const unknownSymbol = !!sym && !resolveLoading && !symbolKnown && !deep.error && !eod?.error;
+  const suggestions = useTickerSuggestions(sym, { enabled: unknownSymbol, limit: 4 });
+
+  if (unknownSymbol) {
+    return (
+      <UnknownTicker
+        sym={sym}
+        suggestions={suggestions}
+        onBack={() => navigate(-1)}
+        onPick={(t) => navigate(`/ticker/${t}`)}
+      />
+    );
+  }
+
   return (
     <div className="home-v12 ticker-v12">
       <div className="wrap">
@@ -605,7 +645,8 @@ export default function TickerPage() {
               </>
             ) : (
               <>
-            <div className="tk-price num">${fmt(price, 2)}</div>
+            <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : '—'}</div>
+            {hasPrice && (
             <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
               {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(
                 /* actual price move = price − prior close. The old code used
@@ -620,6 +661,7 @@ export default function TickerPage() {
               ).toFixed(2)}{' '}
               ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
             </div>
+            )}
             <div className="tk-pricemeta num">
               {priceAsOf ? <>{asOfVerb} {fmtDateShort(priceAsOf)} · </> : null}
               {prevClose != null
@@ -1453,3 +1495,75 @@ function CompanyOverview({ deep, sector, exchange }) {
 }
 
 
+
+/* ---------- Symbol we don't cover (Joe 2026-07-30) ----------
+   The honest answer to /ticker/APPL. No zeros, no empty chart, no blank
+   company card — one card that says the symbol isn't in our reference list
+   and offers the names it most likely was meant to be. */
+
+function UnknownTicker({ sym, suggestions, onBack, onPick }) {
+  const rows = suggestions?.rows || [];
+  const best = rows[0] || null;
+  return (
+    <div className="home-v12 ticker-v12">
+      <div className="wrap">
+        <div className="tk-backrow">
+          <button type="button" className="mt-btn mt-btn--ghost" onClick={onBack}>
+            ← Back
+          </button>
+        </div>
+
+        <Reveal as="section" className="mt-pagesection">
+          <article className="mt-card tk-nfcard">
+            <div className="mt-eyebrow">Symbol not found</div>
+            <h1 className="tk-symbol tk-nfsym">{sym}</h1>
+            <p className="tk-nftext">
+              We don&rsquo;t carry a symbol called <b>{sym}</b>. Our reference list covers
+              roughly 13,000 US-listed stocks and exchange-traded funds, and this
+              one isn&rsquo;t in it &mdash; so there is no price, no history and no company
+              profile to show.
+              {best && (
+                <> Closest match: <b>{best.ticker}</b> &mdash; {String(best.name || '').replace(/\.$/, '')}.</>
+              )}
+            </p>
+
+            {suggestions?.loading ? (
+              <div className="tk-empty">Looking for close matches&hellip;</div>
+            ) : rows.length > 0 ? (
+              <>
+                <div className="mt-eyebrow tk-nfsubhead">Did you mean</div>
+                <div className="tk-relatedgrid">
+                  {rows.map((r) => (
+                    <button
+                      key={r.ticker}
+                      type="button"
+                      className="tk-relcard"
+                      onClick={() => onPick(r.ticker)}
+                    >
+                      <div className="tk-relhead">
+                        <span className="lm-tkmain">{r.ticker}</span>
+                      </div>
+                      <div className="tk-relsub">{r.name || '—'}</div>
+                      <div className="tk-relstats num">
+                        <span>Mkt cap {fmtMcap(r.market_cap)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="tk-empty">
+                No close matches either. Try the search box at the top of the page.
+              </div>
+            )}
+
+            <div className="tk-emptyfoot">
+              Non-US listings and names that have been delisted are outside the
+              reference list, so they land here too.
+            </div>
+          </article>
+        </Reveal>
+      </div>
+    </div>
+  );
+}

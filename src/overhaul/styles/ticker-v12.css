@@ -142,3 +142,24 @@
 .home-v12.ticker-v12 .tk-liveline { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
 .home-v12.ticker-v12 .tk-livelabel { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); }
 .home-v12.ticker-v12 .tk-livedim { color: var(--mut); font-size: 12.5px; }
+
+/* ── Company overview description: use the full card width (Joe 2026-07-30).
+   proto-pages.css caps .tk-about at 74ch, which on a 1,600px card wrapped a
+   two-sentence profile into a narrow column with two thirds of the row empty.
+   The description now runs the width of the card, so a typical profile is one
+   or two lines instead of six. ── */
+.home-v12.ticker-v12 .tk-about { max-width: none; }
+
+/* ── Symbol-not-found card (2026-07-30) ── */
+.home-v12.ticker-v12 .tk-nfcard { padding-top: 30px; padding-bottom: 26px; }
+.home-v12.ticker-v12 .tk-nfsym { margin: 10px 0 14px; }
+.home-v12.ticker-v12 .tk-nftext {
+  max-width: none;
+  margin: 0 0 22px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.home-v12.ticker-v12 .tk-nfsubhead { margin-bottom: 12px; }
+.home-v12.ticker-v12 .tk-nfcard .tk-relcard { background: var(--bg2); }
+.home-v12.ticker-v12 .tk-nfcard .tk-relsub { min-height: 34px; }

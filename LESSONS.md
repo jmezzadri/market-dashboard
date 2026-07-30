@@ -914,3 +914,21 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 - Self-UAT for any numeric surface means literally adding the rendered columns yourself before declaring it done. 8.16 was verified by checking that two numbers agreed in sign; it shipped with four more that didn't add up. Check every total on the page, not the one the user complained about.
 
 **Applies to:** Lead Developer, Senior Quant — the Paper page and every table, tile row, or breakdown that shows components beside a total.
+
+### 8.18 (2026-07-30) — A page must first answer "does this thing exist?"; an empty shell full of zeros is a lie, not a loading state
+
+**What happened:** Joe opened `macrotilt.com/ticker/APPL` — a one-letter typo for AAPL — and got the complete ticker page: a `$0.00` headline with a green `▲ $0.00 (0.00%)`, an empty 5-year chart, twenty-three em-dashed stat tiles, an empty company overview and an empty news list. His read was "What is going on? Nothing for APPL?" — which is exactly the wrong conclusion to invite, because the truthful answer was never "we have no data for this company", it was "there is no such symbol." Nothing on the page ever asked whether the symbol existed. The header search box compounded it: pressing Enter with no matching suggestion navigates to the raw typed text, so any typo lands on a page that looks like a data outage.
+
+**Root cause:** every hook on the page is written to degrade gracefully to `null`/`—` for a *covered* name with a thin feed, and the price line had a `?? 0` fallback that turned "no price anywhere" into a rendered `$0.00`. Graceful degradation for a real symbol and graceful degradation for a nonexistent one are different requirements, and only the first had been built. A dozen independent "no data" states, each individually correct, compose into a page that reads as broken.
+
+**Rule:** Any page keyed on a user-supplied identifier resolves that identifier *first* and renders an explicit not-found state when it doesn't resolve — before any of the per-field empty states get a chance to imply an outage. Concretely: (a) treat "every source finished loading and none of them carries this key" as not-found, and never treat a *failed* read as evidence of absence (an errored lookup falls through to the normal page — offline is not "doesn't exist"); (b) the not-found state names what was asked for, says plainly what the coverage boundary is, and offers the closest real matches as one click, so a typo costs a click instead of a bug report; (c) `?? 0` on a displayed price is a substituted number (4.4) — a covered symbol with no stored close shows an em-dash, never `$0.00`, and the change line hides rather than printing a fake `+0.00%`; (d) suggestion ranking is part of the fix, not decoration: plain edit distance puts micro-caps above household names (PAPL above AAPL for APPL, and MSFT off the list entirely for MFST, because a swapped pair costs 2 edits), so score letter-scrambles and blend a bounded market-cap prominence term, then verify the obvious typos by hand.
+
+**Applies to:** Lead Developer, UX Designer — the ticker page today, and any future route that takes a symbol, ID, or slug from the URL or a free-text box.
+
+### 8.19 (2026-07-30, same report) — A hard `max-width` on body copy inside a full-bleed card wastes most of the row
+
+**What happened:** in the same message Joe added "can we please not wrap the text on the company overview, it wastes so much space." The company description was capped at `74ch` inside a ~1,450px card, so Apple's four-sentence profile ran as a narrow 500px column with two-thirds of the row empty beside it, pushing everything below it down the page.
+
+**Rule:** A measure cap is a typographic default, not a layout decision — when body copy sits inside a card that is already width-constrained by the page grid, let it use the card. Check any `max-width: Nch` against the actual rendered card width at 1,600px before keeping it; if the cap is doing nothing but stranding whitespace, drop it. This applies to descriptions, methodology prose, and tooltip bodies inside cards, not to the site's genuinely full-bleed editorial columns where the cap is the point.
+
+**Applies to:** UX Designer — every card that renders a paragraph.
