@@ -60,3 +60,5 @@ jobs:
           BRIEF_SEND_MODE: "test"      # Joe's gmail only; EY list untouched
           BRIEF_FORCE_REBUILD: "1"     # today's brief already exists; regenerate anyway
         run: python scripts/build_daily_brief.py
+
+# Re-run 2026-07-30: verify the plumbing-leak scrub and empty-section fallback.

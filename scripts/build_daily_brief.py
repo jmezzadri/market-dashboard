@@ -34,6 +34,15 @@ MODEL = os.environ.get("BRIEF_MODEL", "claude-sonnet-4-6")
 def _scrub_text(s):
     if not isinstance(s, str):
         return s
+    # --- Plumbing guard (2026-07-30): the hardened accuracy contract made the model
+    # label every figure, and it began leaking its own bookkeeping into reader copy --
+    # "(prior cash close, Jul 29 DATA)", "(is_new_this_week: true)". The prompt forbids
+    # it; this is the deterministic backstop, same pattern as the banned-copy guard.
+    import re as _re
+    s = _re.sub(r",?\s*(?:as of\s*)?[A-Z][a-z]{2}\s+\d{1,2}\s+DATA\b", "", s)
+    s = _re.sub(r",?\s*\bDATA\b(?=\s*[),])", "", s)
+    s = _re.sub(r"\s*\((?:is_new_this_week|is_new_extreme|weeks_at_extreme|trading_days_at_extreme|pctile_3yr|spec_pctile|pctile_change_wow)\s*:\s*[^)]*\)", "", s)
+    s = _re.sub(r"\(\s*,\s*", "(", s).replace("( ", "(").replace(" )", ")").replace("()", "")
     for a, b in (("crowded long", "extended long"), ("Crowded long", "Extended long"),
                  ("washed out", "extended short"), ("Washed out", "Extended short"),
                  ("washed-out", "extended short"), ("Washed-out", "Extended short"),
@@ -95,7 +104,7 @@ HARD ACCURACY CONTRACT (read first; overrides every other instruction here. A wr
  4. EARNINGS ARE EVENTS WITH DATES — CHECK THE DATE BEFORE YOU WRITE. Before writing anything about any company's results, confirm the scheduled report date from a source you fetch this run. If the report is TODAY or LATER, the ONLY permitted phrasing is "reports after today's close" / "reports before tomorrow's open". NEVER state or imply that a company topped, missed, guided, or moved on results that have not been published. If a company genuinely reported in the last 18h, you must have fetched the release itself or a story published AFTER that report.
  5. NO SINGLE-STOCK PRE-MARKET OR AFTER-HOURS PRICES. This pipeline has no source for extended-hours quotes. Do not print one, in dollars or percent, ever.
  6. SELF-CHECK BEFORE RETURNING. Re-read every number and every direction word and name to yourself which fetch produced it and what time it is stamped; delete anything that fails. Then check the output does not contradict itself (a company cannot both have beaten after Wednesday's close and report today).
-NEVER name a data source, feed, URL, or vendor anywhere in the output.
+READER-FACING LABELS ONLY. The contract above governs how you think; it must never show in the copy. Label a figure in the words a reader uses — "Wednesday's close", "overnight (~6am ET)", "pre-market" — and NEVER print an internal field name, key, or the word DATA (no "(prior cash close, Jul 29 DATA)", no "(is_new_this_week: true)", no "pctile_3yr"). NEVER name a publication, wire, network, vendor, feed or URL — write "reported as the highest since 2007", never "CNBC reported". NEVER narrate your own rules to the reader ("no pre-market claims are made here", "per confirmed earnings calendars") — just state the fact ("Apple and Amazon report after today's close"). NEVER name a data source, feed, URL, or vendor anywhere in the output.
 
 PLAIN ENGLISH for a smart non-trader. Translate jargon every time: short interest/days-to-cover -> "shorts are heavy ... squeeze risk"; insider rules -> "company insiders have been buying"; COT low percentile -> "speculators have almost no bullish bets left - a contrarian floor"; COT high percentile -> "speculators are piled into longs - a contrarian warning".
 
@@ -259,7 +268,13 @@ def render_email_html(b):
         style = (f'font-family:{SERIF};font-size:26px;color:{INK};margin-bottom:10px' if n == 1
                  else f'margin:16px 0 5px 0;font-family:{SANS};font-size:13px;font-weight:700;color:{BLUE}')
         out.append(f'<div style="{style}">{n}. {sec.get("title", title)}</div>')
-        for bl in (sec.get("bullets") or ([sec["prose"]] if sec.get("prose") else [])):
+        _bl = (sec.get("bullets") or ([sec["prose"]] if sec.get("prose") else []))
+        # A numbered header with nothing under it reads as a broken email. The prompt
+        # says to write "nothing material." for a quiet section; back it deterministically
+        # so the reader always sees an answer. (2026-07-30)
+        if not _bl and not sec.get("positioning") and not sec.get("single_name"):
+            _bl = ["nothing material."]
+        for bl in _bl:
             out.append(_bullet(bl))
         if sec.get("positioning"):
             out.append(_bullet(f'<strong style="color:{INK}">Positioning:</strong> {sec["positioning"]}'))
@@ -288,7 +303,10 @@ def render_email_text(b):
     for i, t in enumerate(titles):
         sec = b["sections"][i] if i < len(b["sections"]) else {}
         L.append(f"{i+1}. {sec.get('title', t)}")
-        for bl in (sec.get("bullets") or ([sec.get("prose")] if sec.get("prose") else [])):
+        _bl = (sec.get("bullets") or ([sec.get("prose")] if sec.get("prose") else []))
+        if not _bl and not sec.get("positioning") and not sec.get("single_name"):
+            _bl = ["nothing material."]
+        for bl in _bl:
             L.append(f"- {bl}")
         if sec.get("positioning"): L.append(f"- Positioning: {sec['positioning']}")
         if sec.get("single_name"):
