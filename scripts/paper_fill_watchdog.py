@@ -7,11 +7,14 @@ asked. This watchdog runs after the open each trading day and verifies the
 rebalance ACTUALLY HAPPENED end-to-end. If not, it files a P1 alert so a
 silent failure can never run for days again.
 
-Checks (per the last closed trading session's queue):
-  1. Did the morning run produce pending intents at all? (0 intents on a
-     trading day = the producer/translator silently failed.)
-  2. Of today's submitted orders, how many actually FILLED at Alpaca?
-  3. If 0 submitted OR submitted>0 but 0 filled → P1 alert with specifics.
+Checks (per the ET session day):
+  1. Did the engine run at all? (paper_signal_capture rows written today.)
+  2. How many orders did it EXPECT to place (sum of triggered_orders_count)
+     versus how many were actually written to paper_orders?
+  3. Of those, how many actually FILLED at Alpaca?
+  4. P1 alert only on a real gap. A day where the engine ran and expected
+     zero orders is a SUCCESS, not a failure — see the 2026-07-30 note in
+     main().
 
 Runs read-only against Alpaca + Supabase. Manual + scheduled (~10:00 ET).
 """
@@ -58,17 +61,47 @@ def main() -> int:
         logger.info("not a trading day — watchdog no-op")
         return 0
 
-    # 1 — did today's morning run create any orders? (rows created in last 12h)
+    # 0 — DID THE PRODUCER RUN, AND WHAT DID IT EXPECT TO TRADE? (2026-07-30)
+    # The old watchdog treated "0 orders created" as failure. But the engine
+    # legitimately produces ZERO orders on any day the target book already
+    # matches the holdings — most days. That fired a false P1 on 6/15, 6/22,
+    # 7/23 and 7/29 (on each of those the producer HAD run and correctly had
+    # nothing to do), which is why the alert kept coming back after every
+    # "fix": there was nothing to fix on the trading side.
+    # public.paper_signal_capture is the oracle the old logic ignored: the
+    # producer writes one row per signal each morning with the number of
+    # orders that signal should trigger. Across 7/16-7/30 expected == actual
+    # on every single day, including the 0/0 days. So:
+    #   heartbeat rows == 0            -> producer never ran      (REAL P1)
+    #   expected == 0 and created == 0 -> nothing to trade        (SUCCESS)
+    #   expected  > 0 and created == 0 -> translator dropped them (REAL P1)
+    #   created < expected             -> partial write           (REAL P1)
+    heartbeat = _sb(
+        "select count(*)::int as rows_, "
+        "coalesce(sum(triggered_orders_count),0)::int as expected "
+        "from public.paper_signal_capture "
+        "where (captured_at at time zone 'America/New_York')::date "
+        "    = (now() at time zone 'America/New_York')::date;"
+    )
+    n_heartbeat = heartbeat[0]["rows_"] if heartbeat else 0
+    n_expected = heartbeat[0]["expected"] if heartbeat else 0
+
+    # 1 — how many orders did today's morning run actually create?
+    # Windowed on the ET SESSION DAY, not a rolling 12h UTC window (the old
+    # window drifted across the run's own two DST timers).
     created = _sb(
         "select count(*)::int as n from public.paper_orders "
-        "where created_at >= (now() - interval '12 hours');"
+        "where (created_at at time zone 'America/New_York')::date "
+        "    = (now() at time zone 'America/New_York')::date;"
     )
     n_created = created[0]["n"] if created else 0
 
     # 2 — of those, how many are 'submitted' and how many filled at Alpaca?
     submitted = _sb(
         "select count(*)::int as n from public.paper_orders "
-        "where created_at >= (now() - interval '12 hours') and status = 'submitted';"
+        "where (created_at at time zone 'America/New_York')::date "
+        "    = (now() at time zone 'America/New_York')::date "
+        "  and status = 'submitted';"
     )
     n_submitted = submitted[0]["n"] if submitted else 0
 
@@ -81,8 +114,9 @@ def main() -> int:
         logger.warning("could not list Alpaca orders (%s)", exc)
         n_filled = -1
 
-    logger.info("watchdog: created=%d submitted=%d filled_at_alpaca=%d",
-                n_created, n_submitted, n_filled)
+    logger.info("watchdog: heartbeat=%d expected=%d created=%d submitted=%d "
+                "filled_at_alpaca=%d",
+                n_heartbeat, n_expected, n_created, n_submitted, n_filled)
 
     # 3 — alert conditions.
     # FILLS ARE THE SOURCE OF TRUTH (fixed 2026-06-01). The DB 'submitted'
@@ -90,14 +124,29 @@ def main() -> int:
     # fill-now route) set differently — judging success by it caused a
     # false "0 submitted" alarm on a day when 30 orders actually filled.
     # What matters to Joe is: did orders fill at the broker? So:
-    #   - 0 created           -> producer/translator failed (real problem)
-    #   - created>0 but 0 filled AND 0 submitted -> nothing reached the broker
-    #   - created>0, submitted>0, 0 filled       -> rejected at the open
+    #   - no engine trace at all                  -> producer failed
+    #   - engine ran, expected 0, created 0       -> QUIET DAY, success (7/30)
+    #   - expected>0 but created<expected         -> translator dropped orders
+    #   - created>0 but 0 filled AND 0 submitted  -> nothing reached the broker
+    #   - created>0, submitted>0, 0 filled        -> rejected at the open
     #   - filled>0                                -> SUCCESS, whatever the status string
     problems = []
-    if n_created == 0:
-        problems.append("No paper orders were created this morning at all — the "
-                        "translator/producer did not run or found no signals.")
+    quiet_day = False
+    if n_heartbeat == 0 and n_created == 0 and n_filled <= 0:
+        problems.append("The morning engine run left no trace at all today "
+                        "(no signal rows were written) — the producer did not "
+                        "run. Check the pre-open workflow.")
+    elif n_expected == 0 and n_created == 0 and n_filled <= 0:
+        # Healthy no-trade day: the engine ran, compared the target book to the
+        # holdings, and correctly had nothing to do. NOT a problem.
+        quiet_day = True
+    elif n_created == 0:
+        problems.append(f"The engine computed {n_expected} order(s) this morning "
+                        "but none were written to the order book — the "
+                        "translator dropped them.")
+    elif n_created < n_expected:
+        problems.append(f"The engine computed {n_expected} order(s) but only "
+                        f"{n_created} were written to the order book.")
     elif n_filled == 0 and n_submitted == 0:
         problems.append(f"{n_created} orders were computed but none reached the "
                         "broker (0 submitted, 0 filled) — submission was blocked "
@@ -144,6 +193,15 @@ def main() -> int:
                 f"Did NOT execute:               {n_not_filled}\n"
                 f"Orders computed this morning:  {n_created}\n\n"
                 "Investigate the pipeline.")
+    elif quiet_day:
+        logger.info("watchdog OK — engine ran, no trades needed today")
+        subject = "[MacroTilt paper] No trades needed today"
+        body = ("The engine ran this morning and the book already matched its "
+                "targets, so there was nothing to trade. Nothing needs your "
+                "attention.\n\n"
+                f"Signals checked:               {n_heartbeat}\n"
+                "Orders required:               0\n"
+                "Orders placed:                 0\n")
     else:
         logger.info("watchdog OK — rebalance completed end-to-end (%d filled)", n_filled)
         subject = f"[MacroTilt paper] Rebalance executed — {n_filled} filled, 0 failed"

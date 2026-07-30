@@ -942,3 +942,31 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 **Rule:** (a) **Sourced-or-omitted.** Every figure in a generated brief comes from the injected data block or from a page fetched in that run with a visible publication timestamp. No number from recall, inference, or an undated snippet. An omitted figure is correct; a wrong one is a failure. (b) **No direction word without two sourced points.** "Eased back", "stabilized", "off its highs", "little changed" are claims about a path; they require two timestamped levels where the later one supports the claim. State the level and its timestamp otherwise. (c) **Never call a level a high** unless a fetched source says so and no later sourced level exceeds it — and if one does, the story is the new high. (d) **An earnings result requires a published release.** Confirm the scheduled date first; if the report is today or later, the only permitted phrasing is "reports after today's close". (e) **No single-stock extended-hours prices** while no feed supplies them. (f) **One generator, in version control.** A surface that goes to readers under the MacroTilt name is never produced by a prompt that cannot be reviewed in a PR; the site brief and the email brief are the same artifact from the same hardened prompt. (g) When a story is about an instrument the feed does not carry, that gap is a data ticket, not a thing to write around — `ust_30y` is now on the backlog for exactly this reason.
 
 **Applies to:** Lead Developer, Senior Quant — the daily brief, and every generated surface that quotes a price, a level, or a corporate event.
+
+### 8.20 (2026-07-30) — A monitor must be able to tell "nothing to do" from "nothing happened"; if it can't, it is not a monitor, it is a false alarm on a timer
+
+The paper-portfolio watchdog filed a P1 "Paper rebalance did not complete
+today" whenever it saw zero orders for the session. But the two-sleeve engine
+correctly produces zero orders on any day the target book already matches the
+holdings — most days. The alert text itself admitted the ambiguity ("the
+producer did not run OR found no signals") and then filed a P1 anyway. Result:
+the same bug reappeared on 6/15, 6/22, 7/23 and 7/29, was "closed" each time
+(there was nothing on the trading side to fix), and came straight back — while
+a real silent failure would have been indistinguishable from the noise.
+
+Rules:
+1. Before a monitor can call an absence a failure, it must hold evidence that
+   the work was EXPECTED. Here that evidence already existed and was ignored:
+   `paper_signal_capture.triggered_orders_count` records, every morning, how
+   many orders the engine intends to place. Expected==actual on every day of
+   7/16-7/30, including the zero days. Alert on expected != actual, never on
+   actual == 0.
+2. A monitor needs a separate liveness signal from its outcome signal. "Engine
+   ran" (heartbeat rows written) and "engine traded" are different facts;
+   collapsing them into one count is what created the ambiguity.
+3. If an alert's own message contains "or" between two opposite diagnoses, the
+   check is not finished — do not ship it.
+4. Session-scoped work is windowed on the ET session date, not a rolling
+   "last 12 hours" from whenever the job happened to fire.
+5. A bug that returns after being closed is a defect in the DETECTOR until
+   proven otherwise. Re-closing it is the wrong move.
