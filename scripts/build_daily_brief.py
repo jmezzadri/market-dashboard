@@ -267,7 +267,10 @@ def render_email_html(b):
         n += 1
         style = (f'font-family:{SERIF};font-size:26px;color:{INK};margin-bottom:10px' if n == 1
                  else f'margin:16px 0 5px 0;font-family:{SANS};font-size:13px;font-weight:700;color:{BLUE}')
-        out.append(f'<div style="{style}">{n}. {sec.get("title", title)}</div>')
+        # Fixed headers. The model occasionally renames slot 3 ("Movers"), which silently
+        # drops Credit & Liquidity from the email and duplicates the movers data field.
+        # Sections 1-3 are a contract with the reader, not the model's choice. (2026-07-30)
+        out.append(f'<div style="{style}">{n}. {title}</div>')
         _bl = (sec.get("bullets") or ([sec["prose"]] if sec.get("prose") else []))
         # A numbered header with nothing under it reads as a broken email. The prompt
         # says to write "nothing material." for a quiet section; back it deterministically
@@ -302,7 +305,7 @@ def render_email_text(b):
     titles = ["Macro & Rates", "Equity Markets", "Credit & Liquidity"]
     for i, t in enumerate(titles):
         sec = b["sections"][i] if i < len(b["sections"]) else {}
-        L.append(f"{i+1}. {sec.get('title', t)}")
+        L.append(f"{i+1}. {t}")   # fixed headers — see render_email_html
         _bl = (sec.get("bullets") or ([sec.get("prose")] if sec.get("prose") else []))
         if not _bl and not sec.get("positioning") and not sec.get("single_name"):
             _bl = ["nothing material."]
