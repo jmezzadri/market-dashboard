@@ -69,6 +69,13 @@ type HealthRow = {
 // stale. These offsets widen the green window for cadences where the release
 // schedule is predictable.
 // ────────────────────────────────────────────────────────────────────────────
+// Human label per cadence code. The old inline ternary only handled D/W/M and
+// silently called EVERYTHING else "quarterly" — an hourly live feed was emailed
+// to Joe as "Expected cadence: quarterly" (2026-07-30).
+const CADENCE_LABEL: Record<string, string> = {
+  H: "hourly", D: "daily", W: "weekly", M: "monthly", Q: "quarterly",
+};
+
 const CADENCE_TOLERANCE_MINUTES: Record<CadenceCode, number> = {
   D: 360,    //  6h  — markets closed weekends; small grace for FRED release time
   W: 2880,   // 48h  — release days vary (Thu/Wed/Mon)
@@ -677,8 +684,8 @@ async function handle(req: Request): Promise<Response> {
           <ul>
             <li><strong>Indicator</strong>: ${row.indicator_id}</li>
             <li><strong>Source</strong>: ${row.source}</li>
-            <li><strong>Expected cadence</strong>: ${row.cadence === "D" ? "daily" : row.cadence === "W" ? "weekly" : row.cadence === "M" ? "monthly" : "quarterly"}</li>
-            <li><strong>Age</strong>: ${ageMinutes != null ? Math.round(ageMinutes / 60 / 24) : "?"} days</li>
+            <li><strong>Expected cadence</strong>: ${CADENCE_LABEL[row.cadence] || "unknown"}</li>
+            <li><strong>Age</strong>: ${ageMinutes == null ? "?" : ageMinutes < 1440 ? `${Math.round(ageMinutes / 60)} hours` : `${Math.round(ageMinutes / 60 / 24)} days`}</li>
             <li><strong>Last error</strong>: ${row.last_error || "—"}</li>
           </ul>
           <p>Check the scheduled workflow on GitHub Actions. This alert repeats at most once per ${ALERT_DEBOUNCE_HOURS}h.</p>
