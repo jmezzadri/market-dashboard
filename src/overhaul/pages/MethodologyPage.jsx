@@ -30,6 +30,35 @@
      reworded to the Power Trend list. §06 vendor table is manifest-derived
      and picks the new elements up automatically.
 
+   Scanner methodology rewrite (2026-07-30, Joe: "it doesn't actually explain
+   the scanners... doesn't give the methodology, it's very vague") —
+   supersedes the compressed §02 copy IN PLACE. §02 is now a step-by-step
+   document re-sourced from the production engine
+   (trading-scanner/scanner/trading_opps/run_screener.py +
+   calibrated_config.json + backtest_engine.py, and supabase/migrations/
+   078|081..084 for Power Trend):
+   - Step 1 universe gate ($5 close, $1.5M 90-day MEDIAN dollar volume, ETFs
+     excluded); Step 2 Form 4 code table (only code P scores; A/M/F/S/G
+     discarded) + the 10b5-1 and 10%-owner exclusions + buy-only rationale;
+     Step 3 rules A/B/C table with exact point values (4/4/2, layer cap 4) and
+     the stake-lift definition; Step 4 age decay (plateau 15d, zero at 31d,
+     insider layer only); Step 5 trend overlay (+1/−2 vs SMA200, −2 RSI>65);
+     Step 6 score + publish 3 / buy 4 / hold 3, display banding (>=4.5 -> 5,
+     3.5-4.49 -> 4) and SIX worked examples computed from the real rules.
+   - Corrections: the "3x daily event firehoses" line was stale (dark-pool /
+     options ingests retired 2026-07-20; EDGAR insider is 06:00 ET daily); the
+     vague "beat the market two-to-one on hit rate" replaced with the
+     calibrated_config figure (67% vs 57% base, 12mo / ~730k obs); entry/stop/
+     target labelled NOT backtested (risk_levels.status = DRAFT).
+   - Power Trend universe now states the $40B ADV ceiling (migration 078) and
+     that the averages are EMAs; §03 sizing corrected from "full $500K" to 99%
+     of live sleeve NAV with the fixed-allocation fallback (config.py
+     SIZING_CASH_BUFFER_PCT / SIZING_NAV_SANITY_BAND, translator.py
+     _sleeve_sizing_capital).
+   - New .me-h3 sub-head class in methodology-v12.css (serif, hairline above)
+     so a long section reads as a document. TOC unchanged — LESSONS 8.15 keeps
+     one entry per nav page; the new sub-heads carry in-page anchors only.
+
    Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
    scope to the shared home-v12 cream system (cream-system.css) with page
    styles in methodology-v12.css. RESKIN ONLY -- classNames, layout wrappers
@@ -307,33 +336,261 @@ export default function MethodologyPage() {
             <h2 className="me-h2">Two independent sleeves · Insider Conviction &amp; Power Trend</h2>
             <p className="me-body-p">
               The Scanner page runs <b>two fully rules-based sleeves</b>. <b>Sleeve 1 — Insider Conviction</b>{' '}
-              buys when executives are buying and the trend confirms, event-driven and scanned daily.{' '}
-              <b>Sleeve 2 — Momentum</b> runs the <b>Power Trend</b> signal — strong, confirmed uptrends
-              that have just broken out again — refreshed once a month.
+              buys when executives are buying and the trend confirms, event-driven and scanned every
+              trading day. <b>Sleeve 2 — Momentum</b> runs the <b>Power Trend</b> signal — strong,
+              confirmed uptrends that have just broken out again — refreshed once a month.
               The sleeves are deliberately separate: we tested requiring both signals at once, and the
               overlap produced only 1–6 names a month — too few to hold a portfolio. So neither signal
               vetoes the other; a stock that qualifies for both is owned by both, and total exposure
-              scales with the evidence.
+              scales with the evidence. Everything below is the rule the production engine actually
+              runs, including the exact thresholds.
             </p>
+
+            {/* ── Sleeve 1 ─────────────────────────────────────────────── */}
+            <h3 className="me-h3" id="insider-conviction" style={{ scrollMarginTop: 120 }}>
+              Sleeve 1 — Insider Conviction: how a stock earns its score
+            </h3>
             <p className="me-body-p">
-              <b>Sleeve 1 scoring.</b> Each ticker earns points from two validated inputs, added — not
-              weighted — into a single score from 0 to 5. A name needs at least <b>3 points to appear</b>;
-              the <b>buy line is a Score of 4</b> (a high-conviction insider name not in a downtrend), the
-              level at which the Paper Portfolio (section 03) actually buys.
+              The score is a <b>sum of points</b>, not a weighted average of factors. Two things earn
+              points — <b>insider conviction</b> (up to +4) and a <b>trend overlay</b> (+1 or −2, and a
+              further −2 if the stock is overbought). Nothing else on the page enters the number. The
+              ceiling is <b>5</b>. The steps below run in order, every trading day, on the whole US
+              equity universe.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 1 · Which stocks are eligible.</b> The nightly price batch covers roughly 12,000
+              US tickers. A name is only scoreable if it clears a liquidity gate on the scan date:
+              a <b>last close of at least $5</b> and a <b>90-day median daily dollar volume of at least
+              $1.5 million</b>. ETFs and leveraged / sector funds are excluded outright. The gate is
+              sized for real $10K–$30K positions — it removes names where a fill would move the price,
+              not names we dislike. The scanner header on the Scanner page shows both counts for the
+              day: how many tickers were scanned, and how many cleared the gate.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 2 · What counts as an insider buy.</b> Insider data is Form 4 filings pulled
+              from <b>SEC EDGAR every morning at 6:00 AM ET</b>, which captures the full prior filing
+              day. A Form 4 reports many different kinds of transaction, and <b>only one of them
+              scores</b>: transaction code <b>P</b>, an open-market purchase made with the insider&rsquo;s
+              own money. Every other code is discarded before scoring.
+            </p>
+            <table className="me-vendors">
+              <thead>
+                <tr>
+                  <th>Form 4 code</th>
+                  <th>What it is</th>
+                  <th>Scored?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>P</td>
+                  <td>Open-market purchase — the insider paid cash at the market price</td>
+                  <td>Yes — the only code that scores</td>
+                </tr>
+                <tr>
+                  <td>S</td>
+                  <td>Open-market sale</td>
+                  <td>No — see below</td>
+                </tr>
+                <tr>
+                  <td>A</td>
+                  <td>Grant, award or other acquisition from the company</td>
+                  <td>No — compensation, not a decision to buy</td>
+                </tr>
+                <tr>
+                  <td>M</td>
+                  <td>Exercise or conversion of a derivative (option exercise)</td>
+                  <td>No — an exercise, not a purchase at the market price</td>
+                </tr>
+                <tr>
+                  <td>F</td>
+                  <td>Shares withheld by the company to cover tax</td>
+                  <td>No — administrative</td>
+                </tr>
+                <tr>
+                  <td>G, and all other codes</td>
+                  <td>Gifts, inheritances, plan mechanics</td>
+                  <td>No — no market decision behind them</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="me-body-p">
+              Two further filters are applied to the surviving <b>P</b> buys. <b>10b5-1 plan trades are
+              excluded</b>: those purchases were scheduled months in advance under a written plan, so
+              they say nothing about what the insider thinks today. <b>Buys by 10%-or-greater
+              stakeholders are excluded</b>: a large outside holder adding to a position is a
+              shareholder decision, and the rules below are looking specifically for
+              <i> management</i> conviction. The sleeve is also <b>buy-only — insider selling is never
+              scored</b>, in either direction. Executives sell for diversification, tax and liquidity
+              reasons that carry no view on the business; buying is the one side with a single obvious
+              motive.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 3 · The three conviction rules.</b> All eligible buys <b>filed in the trailing 30
+              calendar days</b> ending on the scan date are rolled up per ticker, and three rules are
+              tested against that window. A name needs <b>only one</b> to fire.
+            </p>
+            <table className="me-vendors">
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>Fires when</th>
+                  <th>Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>A — C-suite conviction</td>
+                  <td>
+                    A <b>C-suite officer</b> — CEO, CFO, or the filing&rsquo;s designated principal
+                    executive / principal financial officer — makes an open-market buy that lifts{' '}
+                    <b>their own holding in the company by 10% or more</b> and is worth{' '}
+                    <b>at least $100,000</b>. Both conditions, one purchase.
+                  </td>
+                  <td>+4</td>
+                </tr>
+                <tr>
+                  <td>B — size versus the company</td>
+                  <td>
+                    Every eligible buy in the 30-day window, added together, is worth{' '}
+                    <b>at least 0.05% of the company&rsquo;s market cap</b>. This is how a mid-cap gets
+                    credit for a genuinely large cluster of buying even when no single officer
+                    qualifies under Rule A.
+                  </td>
+                  <td>+4</td>
+                </tr>
+                <tr>
+                  <td>C — cluster</td>
+                  <td>
+                    <b>Three or more different insiders</b> bought in the window. Independent people
+                    reaching the same conclusion in the same month.
+                  </td>
+                  <td>+2</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="me-body-p">
+              The &ldquo;lift their own holding by 10%&rdquo; test in Rule A is read straight off the
+              Form 4: (shares owned after − shares owned before) ÷ shares owned before. An insider
+              opening a brand-new position counts as a 100% lift. Points from rules that fire together
+              are <b>added and then capped at +4</b> — so A alone is 4, B alone is 4, C alone is 2, and
+              A + C is 6 capped back to 4. The cap is why the insider layer can never dominate the
+              trend overlay.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 4 · The signal fades with age.</b> An insider buy is only actionable while it is
+              fresh. The <b>most recent eligible filing in the window</b> sets the clock, and the
+              capped insider points are multiplied by an age factor: <b>full weight through day 15</b>,
+              then a straight line down to <b>zero at day 31</b>. A rule-A name filed 18 days ago
+              carries 4 × 0.81 = 3.25 insider points, not 4. The trend overlay is <b>not</b> decayed.
+              This decay was added because it lifted the launched list&rsquo;s win rate by roughly 3
+              points with no cost to fresh signals.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 5 · The trend overlay.</b> Two price checks, computed on the same closing prices,
+              stop the sleeve from buying conviction into a falling stock or chasing one that has
+              already run: <b>+1</b> if the close is above the <b>200-day simple moving average</b>,{' '}
+              <b>−2</b> if it is below, and a further <b>−2</b> if the <b>14-day Wilder RSI is above
+              65</b>. The −2 below the 200-day is deliberately double the +1 above it: a stock in a
+              downtrend has to clear a much higher bar of insider evidence to appear at all.
+            </p>
+
+            <p className="me-body-p">
+              <b>Step 6 · The score, and who gets published.</b> Insider points plus trend points, and
+              nothing else. A name is <b>published to the Scanner only at 3 or above</b>. The{' '}
+              <b>buy line is 4</b> — the level at which the Paper Portfolio (section 03) actually buys —
+              and a held name is kept until its score falls <b>below 3</b>.
             </p>
             <div className="me-formula">
-              Insider (up to +4) + Technicals (+1 / −2)<br />
-              MacroTilt Score = the sum, capped at 5<br />
-              buy = Score ≥ 4 · hold until Score &lt; 3
+              insider_pts = min(4×rule_A + 4×rule_B + 2×rule_C, 4) × age_decay(days since freshest filing)<br />
+              age_decay   = 1.00 through day 15 · (31 − age) ÷ 16 from day 16 to 30 · 0.00 from day 31<br />
+              trend_pts   = +1 close above the 200-day SMA · −2 close below it · −2 if 14-day Wilder RSI &gt; 65<br />
+              MacroTilt Score = insider_pts + trend_pts   (ceiling 5)<br />
+              publish = Score ≥ 3 · buy = Score ≥ 4 · hold until Score &lt; 3
             </div>
             <p className="me-body-p">
-              <b>Insider</b> fires on open-market buys in the last 30 days — a C-suite officer lifting their
-              own stake ≥10% (≥$100k), combined buying ≥0.05% of the company, or 3+ different insiders —
-              capped at +4 and faded with age. <b>Technicals</b> add +1 above the 200-day line (−2 below) and
-              −2 if the 14-day RSI is overbought. This is the pairing we validated over 12 months — the
-              high-conviction insider slice beat the market roughly two-to-one on hit rate. <b>Universe scan</b>
-              runs once per trading day; <b>event firehoses</b> (insider Form 4, dark-pool prints, options, news)
-              refresh 3× daily.
+              Because the age decay is continuous, the stored score is a decimal. The badge on the
+              table shows it as a <b>3, 4 or 5</b>: <b>4.5 and above shows 5</b>, <b>3.5 to 4.49 shows
+              4</b>, and everything else published shows 3. Six worked examples, each computed exactly
+              as the engine would:
+            </p>
+            <table className="me-vendors">
+              <thead>
+                <tr>
+                  <th>Situation</th>
+                  <th>Insider</th>
+                  <th>Trend</th>
+                  <th>Score</th>
+                  <th>Shown as</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Rule B fires; freshest buy filed 6 days ago; stock above its 200-day line; RSI 58</td>
+                  <td>4.00</td>
+                  <td>+1</td>
+                  <td>5.00</td>
+                  <td>5 — buy</td>
+                </tr>
+                <tr>
+                  <td>Rule A fires; freshest buy filed 18 days ago (81% weight left); above the 200-day; RSI 61</td>
+                  <td>3.25</td>
+                  <td>+1</td>
+                  <td>4.25</td>
+                  <td>4 — buy</td>
+                </tr>
+                <tr>
+                  <td>Rules A and C both fire (6 points, capped at 4), fresh; above the 200-day; RSI 71 (overbought)</td>
+                  <td>4.00</td>
+                  <td>+1 −2</td>
+                  <td>3.00</td>
+                  <td>3 — appears, below the buy line</td>
+                </tr>
+                <tr>
+                  <td>Rule C only — three insiders bought, fresh; above the 200-day; RSI 52</td>
+                  <td>2.00</td>
+                  <td>+1</td>
+                  <td>3.00</td>
+                  <td>3 — appears, below the buy line</td>
+                </tr>
+                <tr>
+                  <td>Rule A fires, fresh — but the stock is below its 200-day line</td>
+                  <td>4.00</td>
+                  <td>−2</td>
+                  <td>2.00</td>
+                  <td>not published</td>
+                </tr>
+                <tr>
+                  <td>Rule B fired 26 days ago (31% weight left); above the 200-day</td>
+                  <td>1.25</td>
+                  <td>+1</td>
+                  <td>2.25</td>
+                  <td>not published</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="me-body-p">
+              Two consequences worth stating plainly. <b>A perfect 5 requires all three of</b>: a rule
+              that pays 4 points (A or B), a filing no more than 15 days old, and a stock trading above
+              its 200-day line without being overbought. And <b>a stock in a downtrend can essentially
+              never reach the buy line</b> — the −2 caps it at 2.
+            </p>
+
+            <p className="me-body-p">
+              <b>What is deliberately not in the score.</b> Dark-pool prints, options shock and options
+              flow counted toward the score until 2026-07-07, when they were <b>shelved as
+              unvalidated</b> — only weeks of history existed, not enough to prove they help — and
+              removed from the scanner table entirely on 2026-07-08; the ceiling dropped from 10 to 5
+              when they came out. <b>Short interest</b> (FINRA short position, days-to-cover,
+              short-volume ratio, cost to borrow), <b>analyst actions</b>, <b>congressional trades</b>{' '}
+              and <b>news</b> are shown or available as context but <b>never enter the score</b>. The
+              standing rule is that nothing scores until it has roughly twelve months of history and a
+              backtest behind it.
             </p>
             <p className="me-body-p">
               <b>Vol rank</b> (a table column, not a score input) reads the options market: each scanned
@@ -346,28 +603,60 @@ export default function MethodologyPage() {
               5:50 PM ET, after the scan.
             </p>
             <p className="me-body-p">
-              <b>Sleeve 2 selection.</b> The Power Trend signal looks for stocks already in a strong,
-              confirmed uptrend that have just broken out again. Once a month, every liquid US common
-              stock (last close at least $2, 45-day average dollar volume of at least $50 million) is
-              put through three tests, all computed on daily closing prices. First, the <b>trend test</b>:
-              the price must sit above its 10-, 21-, 50- and 200-day exponential moving averages, and
-              its 3-month return must rank in the top 20% of the universe. Second, the{' '}
-              <b>relative-strength test</b>: its 3-month return must beat the S&amp;P 500&rsquo;s 3-month return
-              by at least 5 percentage points. Third, the <b>breakout trigger</b>: at some point in the
-              trailing month (the last 21 trading days) it must have closed at a new 10-day high on
-              volume more than 1.3 times its own 20-day average — while the trend and relative-strength
-              tests still hold as of the list date. Names passing all three are ranked by 3-month
-              return; the sleeve owns at most the <b>top 15, equal-weight</b>, with an <b>industry cap</b>:
-              no more than 3 names from the same industry group, with skipped slots filled by the
-              next-ranked names from other industries. If fewer than 8 names pass, the sleeve does not
-              concentrate further — the unfilled slots stay in cash. One daily risk check runs between the monthly refreshes: a held name that
-              closes below all four of its moving averages — the same four the entry test requires it
-              to be above — is <b>sold that day</b>, and the cash rests until the next monthly list. In the
-              2020–2026 simulation this exit cut the worst peak-to-trough loss from about 40% to about
-              30%, at the cost of a few points of annual return.
+              <b>The evidence.</b> The insider edge was validated over 12 months and roughly 730,000
+              ticker-day observations. The <b>high-conviction slice</b> the rules above isolate — large
+              executive and director buys, and clusters — won <b>67% of the time against a 57% base
+              rate</b> for the eligible universe. The rule values themselves (window length, point
+              values, the 200-day and RSI cut-points, the age-decay shape) are backtest-calibrated
+              against forward returns at a 21-trading-day horizon, not chosen by judgment. Entry, stop
+              and target levels displayed alongside a name are a <b>3% stop and 15% target off the
+              scan-date close</b>, and are <b>not yet backtested</b> — they are a display convention,
+              not a validated rule.
+            </p>
+
+            {/* ── Sleeve 2 ─────────────────────────────────────────────── */}
+            <h3 className="me-h3" id="power-trend" style={{ scrollMarginTop: 120 }}>
+              Sleeve 2 — Momentum: the Power Trend list
+            </h3>
+            <p className="me-body-p">
+              The Power Trend signal looks for stocks already in a strong, confirmed uptrend that have
+              just broken out again. It runs <b>once a month, on the 1st at 6:00 AM ET</b>, on the prior
+              month&rsquo;s closing prices, and publishes a list of up to 15 names.
+            </p>
+            <p className="me-body-p">
+              <b>The universe</b> is liquid US common stock: an active common-stock listing with a{' '}
+              <b>last close of at least $2</b> and a <b>45-day average daily dollar volume between $50
+              million and $40 billion</b>. The upper bound keeps a handful of mega-cap index proxies
+              from crowding the list. Every test below is computed on daily closing prices.
+            </p>
+            <p className="me-body-p">
+              <b>Test 1 — trend.</b> The price must sit above its <b>10-, 21-, 50- and 200-day
+              exponential moving averages</b>, and its <b>3-month return</b> (63 trading days) must rank
+              in the <b>top 20%</b> of that day&rsquo;s universe. <b>Test 2 — relative strength.</b> That
+              same 3-month return must beat the S&amp;P 500&rsquo;s 3-month return by <b>at least 5
+              percentage points</b>. <b>Test 3 — breakout trigger.</b> At some point in the trailing
+              month (the last 21 trading days) the stock must have closed at a <b>new 10-day closing
+              high on volume more than 1.3&times; its own 20-day average</b> — while tests 1 and 2 still
+              hold as of the list date.
+            </p>
+            <p className="me-body-p">
+              <b>Construction.</b> Names passing all three are ranked by 3-month return; the sleeve owns
+              at most the <b>top 15, equal-weight</b>, with an <b>industry cap</b>: no more than 3 names
+              from the same industry group (2-digit SIC), with skipped slots filled by the next-ranked
+              names from other industries. If fewer than 8 names pass, the sleeve does not concentrate
+              further — sizing always divides by at least 8, so the unfilled slots stay in cash. A month
+              where nothing qualifies publishes an explicit all-cash list.
+            </p>
+            <p className="me-body-p">
+              <b>The one risk check between refreshes.</b> Daily, a held name that closes below all four
+              of its moving averages — the same four the entry test requires it to be above — is{' '}
+              <b>sold that day</b>, and the cash rests until the next monthly list. In the 2020–2026
+              simulation this exit cut the worst peak-to-trough loss from about 40% to about 30%, at the
+              cost of a few points of annual return.
             </p>
             <div className="me-formula">
-              trend    = price above the 10/21/50/200-day averages · 3-mo return in the top 20% of the universe<br />
+              universe = US common stock · close ≥ $2 · 45-day average dollar volume $50M–$40B<br />
+              trend    = price above the 10/21/50/200-day EMAs · 3-mo return in the top 20% of the universe<br />
               strength = 3-mo return at least 5 points above the S&amp;P 500&rsquo;s<br />
               trigger  = a new 10-day closing high on volume above 1.3&times; the 20-day average, any day in the trailing month<br />
               own      = top 15 by 3-mo return, equal-weight · max 3 per industry group · fewer than 8 fire → the rest stays in cash<br />
@@ -387,23 +676,23 @@ export default function MethodologyPage() {
               <b>Live results should be expected to run below the backtest, and single months can be
               brutal — the same rule would have lost roughly 20% in the first half of July 2026.</b>
             </p>
-            <p>
-              <b>Dark pool</b>, <b>Options shock</b> and <b>Options flow</b> counted toward the score until
-              2026-07-07, when they were <b>shelved as unvalidated</b> — only weeks of history exist for them,
-              not enough to prove they help — and <b>removed from the scanner table</b> entirely on 2026-07-08.
-              <b>Short interest</b> (FINRA short position, days-to-cover, short-volume ratio, cost to borrow)
-              remains alongside the score as <b>context that does not enter it</b>, refreshed each weekday morning.
-            </p>
+
+            {/* ── Divergences ──────────────────────────────────────────── */}
+            <h3 className="me-h3" id="divergences" style={{ scrollMarginTop: 120 }}>
+              RSI Divergences — a screen, not a signal
+            </h3>
             <p className="me-body-p">
-              <b>RSI Divergences</b> is a separate daily screen on the scanner page and does not feed the
-              score. It compares price and 14-day RSI (simple-average method) at the two most recent
-              confirmed pivots — a pivot needs 5 bars on each side. A <b>bullish regular divergence</b> is a
-              lower price low with a higher RSI low; a <b>bearish regular divergence</b> is a higher price
-              high with a lower RSI high. Only fresh setups surface (newer pivot within 15 trading days,
-              pivots 5–30 days apart) across liquid US common stocks (last close ≥ $2, 45-day average
-              dollar volume ≥ $50M). Split-like price jumps and close-versus-VWAP disagreements are
-              filtered as data artifacts. A divergence flags a possible reversal — it is a screen to
-              investigate, not a trade signal, and it carries no timing claim.
+              <b>RSI Divergences</b> is a separate daily screen on the scanner page. It does <b>not</b>{' '}
+              feed either sleeve and the Paper Portfolio never trades on it. It compares price and
+              14-day RSI (simple-average method) at the two most recent confirmed pivots — a pivot needs
+              5 bars on each side, which is why the newest possible pivot is always 5 days old. A{' '}
+              <b>bullish regular divergence</b> is a lower price low with a higher RSI low; a{' '}
+              <b>bearish regular divergence</b> is a higher price high with a lower RSI high. Only fresh
+              setups surface (newer pivot within 15 trading days, pivots 5–30 days apart) across the
+              same liquid US common-stock universe the Power Trend sleeve uses (last close ≥ $2, 45-day
+              average dollar volume ≥ $50M). Split-like price jumps and close-versus-VWAP disagreements
+              are filtered out as data artifacts. A divergence flags a possible reversal — it is a
+              screen to investigate, not a trade signal, and it carries no timing claim.
             </p>
           </div>
         </article>
@@ -422,21 +711,35 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Sleeve 1 — Insider Conviction</b> buys every name at or above the buy line{' '}
-              (<b>Score ≥ 4</b>) and always deploys its <b>full $500K, split equally across every
-              qualifying name</b> — 3 names means about $167K each, 10 names means $50K each. A name is
-              held until its <b>score decays below 3</b>, and the sleeve is rebalanced every day on the open as
-              names enter and leave; drifts inside a 3% band are left alone so the book is not churned
-              by noise. It remains <b>signal-only</b>: entries and exits come from the score, never from
-              price moves. (The original score-tiered sizing and leverage were retired in an earlier
-              rebuild after a review found they — not the stock picks — were driving the losses.)
+              (<b>Score ≥ 4</b> on the Scanner&rsquo;s 0–5 scale, section 02) and always deploys the{' '}
+              <b>whole sleeve, split equally across every qualifying name</b> — 3 names means about
+              $165K each, 10 names means about $50K each. A name is held until its{' '}
+              <b>score decays below 3</b>, and the sleeve is rebalanced every day on the open as names
+              enter and leave; drifts inside a 3% band (or $500, whichever is larger) are left alone so
+              the book is not churned by noise. It remains <b>signal-only</b>: entries and exits come
+              from the score, never from price moves. (The original score-tiered sizing and leverage
+              were retired in an earlier rebuild after a review found they — not the stock picks — were
+              driving the losses.)
             </p>
             <p className="me-body-p">
               <b>Sleeve 2 — Momentum</b>, driven by the Power Trend signal, trades once a month on the
-              list publish: it buys the current list <b>equal-weight — $500K divided by the number of
-              names, at most 15 and never more than one-eighth of the sleeve in a single name</b> — sells
-              what dropped off, and keeps a name into the next month only if it passes all three tests
-              again. When fewer than 8 names qualify, each still gets only an eighth, so the unfilled
-              slots rest in cash rather than concentrating the sleeve. Between publishes a daily stop watches every held name: a close below all four moving averages sells it that day, and the proceeds wait in cash for the next monthly list.
+              list publish: it buys the current list <b>equal-weight — the sleeve divided by the number
+              of names, at most 15 and never more than one-eighth of the sleeve in a single name</b> —
+              sells what dropped off, and keeps a name into the next month only if it passes all three
+              tests again. When fewer than 8 names qualify, each still gets only an eighth, so the
+              unfilled slots rest in cash rather than concentrating the sleeve. Between publishes a
+              daily stop watches every held name: a close below all four moving averages sells it that
+              day, and the proceeds wait in cash for the next monthly list.
+            </p>
+            <p className="me-body-p">
+              <b>How &ldquo;the whole sleeve&rdquo; is measured.</b> Both sleeves size off{' '}
+              <b>99% of their own live net asset value</b> — holdings plus cash as of the latest daily
+              snapshot — not off the fixed $500K they started with. Two reasons: the 1% buffer absorbs
+              an overnight gap-up so a buy can never overdraw cash into unintended margin, and
+              re-anchoring to NAV at every rebalance means a sleeve that has gained redeploys the gain
+              and one that has lost sizes down, instead of letting cash quietly build up. If the NAV
+              read is missing or lands outside half to one-and-a-half times the sleeve&rsquo;s
+              allocation, sizing falls back to the fixed $500K rather than trusting a bad number.
             </p>
             <p className="me-body-p">
               Both sleeves share the account's order path: trades queue after the morning signal run and

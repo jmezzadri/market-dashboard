@@ -93,6 +93,10 @@
 .home-v12.methodology-v12 .me-num { font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 56px; font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
 .home-v12.methodology-v12 .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
 .home-v12.methodology-v12 .me-h2 { font-family: var(--serif); font-size: clamp(27px, 2.6vw, 36px); font-weight: 400; line-height: 1.14; letter-spacing: -.3px; color: var(--ink); margin: 10px 0 18px; }
+/* me-h3 — sub-heads INSIDE a section (added 2026-07-30 for the Scanner
+   methodology rewrite). Same serif voice as me-h2, a clear step down in size,
+   with a hairline above so a long section reads as a document, not a wall. */
+.home-v12.methodology-v12 .me-h3 { font-family: var(--serif); font-size: clamp(20px, 1.7vw, 24px); font-weight: 400; line-height: 1.2; letter-spacing: -.2px; color: var(--ink); margin: 38px 0 14px; padding-top: 22px; border-top: 1px solid var(--hair); }
 
 /* long-form body: generous measure and leading — the site's reading page */
 .home-v12.methodology-v12 .me-section p { font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); max-width: 72ch; margin: 0 0 16px; }
