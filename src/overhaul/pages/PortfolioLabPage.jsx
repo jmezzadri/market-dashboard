@@ -385,17 +385,31 @@ export default function PortfolioLabPage() {
   const analysis = useMemo(() => {
     const have = held.filter((t) => series[t]?.length);
     if (!have.length || !series.SPY?.length) return null;
-    const { dates, closes } = alignSeries(
-      Object.fromEntries([...have, 'SPY'].map((t) => [t, series[t]])),
-    );
-    if (dates.length < 30) return null;
-    const rets = {};
-    for (const t of [...have, 'SPY']) rets[t] = dailyReturns(closes[t]);
-    const enough = have.filter(() => dates.length >= MIN_HISTORY_DAYS);
+
+    /* Per-holding stats come from THAT holding's own overlap with SPY —
+       never the book-wide intersection (LESSONS 8.21). One young name used
+       to truncate every other series to its own length: adding a June-2026
+       IPO with 32 bars blanked beta and expected return for all ten
+       holdings and printed a 32-day annualized vol for names carrying
+       thirty years of history (Joe, 7/30 — "everything is blank").
+       A single holding's history is now a fact about that holding. */
+    const own = {};
+    for (const t of have) {
+      const a = alignSeries({ x: series[t], SPY: series.SPY });
+      own[t] = {
+        days: a.dates.length,
+        rets: dailyReturns(a.closes.x),
+        spy: dailyReturns(a.closes.SPY),
+      };
+    }
+    const enough = have.filter((t) => own[t].days >= MIN_HISTORY_DAYS);
+    if (!have.some((t) => own[t].days >= 30)) return null;
+    const spyVol = annualVol(dailyReturns(series.SPY.map((p) => p.c)));
+
     const perStock = {};
     for (const t of have) {
-      const beta = betaVs(rets[t], rets.SPY);
-      const vol = annualVol(rets[t]);
+      const beta = own[t].days >= 30 ? betaVs(own[t].rets, own[t].spy) : null;
+      const vol = own[t].days >= 30 ? annualVol(own[t].rets) : null;
       const h = holdings.find((x) => x.ticker === t);
       let erAnnual = null;
       let erH = null;
@@ -418,7 +432,7 @@ export default function PortfolioLabPage() {
           // em-dash note (LESSONS 4.4).
           implVol = ivAtHorizon(ivMap[t]?.term, years * 365);
           const stockIv1y = ivAtHorizon(ivMap[t]?.term, 365);
-          const marketVol = ivAtHorizon(ivMap.SPY?.term, 365) ?? (rets.SPY ? annualVol(rets.SPY) : null);
+          const marketVol = ivAtHorizon(ivMap.SPY?.term, 365) ?? spyVol;
           if (stockIv1y != null && implVol != null) {
             erAnnual = riskCompensationER(rfH, ERP_ANNUAL, marketVol, stockIv1y);
             erH = horizonFromAnnual(erAnnual, years);
@@ -445,9 +459,25 @@ export default function PortfolioLabPage() {
           }
         }
       }
-      perStock[t] = { beta: enough.includes(t) ? beta : null, vol, erAnnual, erH, range, implVol, ivMissing, thin: !enough.includes(t) };
+      perStock[t] = {
+        beta: enough.includes(t) ? beta : null,
+        vol, erAnnual, erH, range, implVol, ivMissing,
+        days: own[t].days,
+        thin: !enough.includes(t),
+      };
     }
     const valid = have.filter((t) => perStock[t].erAnnual != null && !perStock[t].thin);
+    const excluded = have.filter((t) => perStock[t].thin);
+
+    /* The optimizer's shared window is the intersection over the names it
+       actually uses (valid + SPY) — a holding that is too young to be
+       optimized must not shorten the window for the ones that aren't
+       (LESSONS 8.21). */
+    const covNames = [...valid, 'SPY'];
+    const { dates, closes } = alignSeries(Object.fromEntries(covNames.map((t) => [t, series[t]])));
+    const rets = {};
+    for (const t of covNames) rets[t] = dailyReturns(closes[t]);
+
     // Covariance: historical, then the Implied vol rows' diagonal swaps to
     // options-implied vol (correlations stay historical) — ONE matrix feeds
     // the frontier, portfolio vol, and risk contribution (2026-06-12b: one
@@ -456,24 +486,37 @@ export default function PortfolioLabPage() {
     const histVolMap = Object.fromEntries(valid.map((t) => [t, annualVol(rets[t])]));
     const implVolMap = Object.fromEntries(valid.filter((t) => perStock[t].implVol != null).map((t) => [t, perStock[t].implVol]));
     const S = Object.keys(implVolMap).length ? rescaleCovToImplied(Shist, valid, histVolMap, implVolMap) : Shist;
-    const C = corrMatrix(rets, have);
-    return { dates, closes, rets, perStock, valid, have, S, C };
+
+    /* Correlations run on the SAME window and the SAME names as the covariance
+       that feeds the frontier — one concept, one computation (2026-06-12b).
+       Including a 33-day IPO would drag the whole grid down to 33 days, and a
+       two-month correlation printed beside 1.5-year risk numbers is the same
+       class of mistake this fix exists to remove. Short names are named in the
+       excluded note above the table instead. */
+    const C = valid.length >= 2 ? corrMatrix(rets, valid) : null;
+
+    return { dates, closes, rets, perStock, valid, have, excluded, S, C };
   }, [held.join(','), JSON.stringify(holdings), series, lastPrice, rfH, years, ivMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const weightsSum = holdings.reduce((s, h) => s + (Number(h.weight) || 0), 0);
 
-  /* The shared history window actually used for beta / volatility /
-     correlations / drawdown: the intersection of every holding's history
-     with SPY's, capped at 5 years by the price fetch. Label it honestly —
-     one young holding shrinks the window for the whole book (Joe, 7/27:
-     "what if we don't have 5 years?"). */
-  const windowLabel = useMemo(() => {
-    if (!analysis?.dates?.length) return '5y';
-    const years = analysis.dates.length / 252;
-    if (years >= 4.8) return '5y';
-    if (years >= 1) return `${(Math.round(years * 10) / 10).toString().replace(/\.0$/, '')}y`;
-    return `${Math.round(years * 12)}mo`;
-  }, [analysis]);
+  /* Turn a count of trading days into the page's window label. */
+  const spanLabel = (days) => {
+    if (!days) return '5y';
+    const y = days / 252;
+    if (y >= 4.8) return '5y';
+    if (y >= 1) return `${(Math.round(y * 10) / 10).toString().replace(/\.0$/, '')}y`;
+    return `${Math.round(y * 12)}mo`;
+  };
+
+  /* The shared window behind the PORTFOLIO numbers — vol, Sharpe, drawdown,
+     the frontier: the intersection across the holdings the optimizer can
+     actually use, capped at 5 years by the price fetch. Per-holding beta and
+     vol no longer live here; each of those uses that holding's own overlap
+     with SPY (LESSONS 8.21), so one young name can no longer shrink the
+     window for the whole book (Joe, 7/27 "what if we don't have 5 years?",
+     7/30 "everything is blank"). */
+  const windowLabel = useMemo(() => spanLabel(analysis?.dates?.length), [analysis]);
 
   const portfolio = useMemo(() => {
     if (!analysis || analysis.valid.length < 1) return null;
@@ -824,7 +867,10 @@ export default function PortfolioLabPage() {
                     <tr>
                       <th>Ticker</th>
                       <th className="num">Last</th>
-                      <th className="num">Beta · {windowLabel}</th>
+                      {/* Beta and volatility are per-holding facts, each from
+                          that name's own history vs SPY (up to 5y) — not the
+                          book-wide window (LESSONS 8.21). */}
+                      <th className="num">Beta · vs SPY</th>
                       <th className="num">Volatility</th>
                       <th className="num">Weight %</th>
                       <th>Method</th>
@@ -888,8 +934,11 @@ export default function PortfolioLabPage() {
                               )}
                             </td>
                             <td className={`num strong ${ps?.erH > 0 ? 'up' : ps?.erH < 0 ? 'down' : ''}`}>
+                              {/* Say WHICH holding is short and by how much —
+                                  "insufficient history" on ten rows at once
+                                  reads as an outage (Joe, 7/30). */}
                               {ps?.erH == null && ps?.thin && (h.method === 'capm' || h.method === 'ivol')
-                                ? <span className="lab-dim">— insufficient history</span>
+                                ? <span className="lab-dim">— {ps.days}d of history · needs {MIN_HISTORY_DAYS}</span>
                                 : signPct(ps?.erH)}
                             </td>
                             <td className="num">
@@ -947,6 +996,16 @@ export default function PortfolioLabPage() {
                   </tbody>
                 </table>
               </div>
+              {/* Names the optimizer had to drop, and why — a holding
+                  silently missing from the risk numbers is worse than a
+                  holding you were told about (LESSONS 8.21). */}
+              {analysis?.excluded?.length > 0 && (
+                <p className="lab-dim lab-excluded">
+                  {analysis.excluded.join(', ')} {analysis.excluded.length === 1 ? 'has' : 'have'} under{' '}
+                  {MIN_HISTORY_DAYS} days of price history, so {analysis.excluded.length === 1 ? 'it is' : 'they are'} left
+                  out of the expected return, risk and frontier numbers below. Every other holding is unaffected.
+                </p>
+              )}
               <div className="lab-tally">
                 <span className={Math.round(weightsSum * 10) / 10 === 100 ? 'ok' : 'warn'}>
                   Weights sum to {Math.round(weightsSum * 10) / 10}%
@@ -965,7 +1024,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Efficient frontier</h2>
-              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · risk from the holdings&rsquo; shared daily history ({windowLabel === '5y' ? '5 years' : `${windowLabel} — the longest history every holding shares, capped at 5 years`}); Implied vol rows swap in options-implied volatility</span>
+              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · beta and volatility from each holding&rsquo;s own daily history vs SPY (up to 5 years) · portfolio risk from the shared history of the optimized holdings ({windowLabel === '5y' ? '5 years' : `${windowLabel} — the longest window they all cover, capped at 5 years`}); Implied vol rows swap in options-implied volatility</span>
             </div>
             {frontier && portfolio ? (
               <FrontierChart
@@ -989,7 +1048,7 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Portfolio statistics</h2>
-              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · {windowLabel === '5y' ? '5 years of shared daily history' : `${windowLabel} of shared daily history — the longest window every holding covers`}</span>
+              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · {windowLabel === '5y' ? '5 years of shared daily history' : `${windowLabel} of shared daily history — the longest window the optimized holdings all cover`}</span>
             </div>
             <div className="lab-statgrid" role="table" aria-label="Portfolio statistics vs benchmark">
               <div className="lab-statrow head" role="row">
@@ -1029,18 +1088,23 @@ export default function PortfolioLabPage() {
                   </div>
                 ))}
               </div>
-              {analysis && analysis.have.length >= 2 && (
+              {analysis && analysis.C && analysis.valid.length >= 2 && (
                 <div className="lab-sub-col">
                   <h3 className="label">Correlation of daily returns</h3>
-                  <div className="lab-corr" style={{ gridTemplateColumns: `52px repeat(${analysis.have.length}, 1fr)` }}>
+                  {/* Same names and same window as the frontier and the risk
+                      table — holdings too young to be optimized are named in
+                      the note under the Holdings table, not silently folded
+                      into a two-month correlation (LESSONS 8.21). */}
+                  <span className="lab-dim">{windowLabel === '5y' ? '5 years' : windowLabel} of shared daily history — the same window as the risk numbers</span>
+                  <div className="lab-corr" style={{ gridTemplateColumns: `52px repeat(${analysis.valid.length}, 1fr)` }}>
                     <span />
-                    {analysis.have.map((t) => (
+                    {analysis.valid.map((t) => (
                       <button key={`h${t}`} type="button" className="lab-corrhead lab-ticklink" onClick={() => navigate(`/ticker/${t}`)}>{t}</button>
                     ))}
-                    {analysis.have.map((t, i) => (
+                    {analysis.valid.map((t, i) => (
                       <React.Fragment key={`r${t}`}>
                         <button type="button" className="lab-corrhead lab-ticklink" onClick={() => navigate(`/ticker/${t}`)}>{t}</button>
-                        {analysis.have.map((u, j) => {
+                        {analysis.valid.map((u, j) => {
                           const v = analysis.C[i][j];
                           return (
                             <span

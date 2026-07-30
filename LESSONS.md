@@ -970,3 +970,21 @@ Rules:
    "last 12 hours" from whenever the job happened to fire.
 5. A bug that returns after being closed is a defect in the DETECTOR until
    proven otherwise. Re-closing it is the wrong move.
+
+### 8.21 (2026-07-30) — One holding's history is a fact about that holding, never about the book; a shared window is only for the numbers that genuinely need one
+
+**What happened:** Joe built a ten-name portfolio in the Lab and reported "everything is blank." Beta was an em-dash on every row, expected return read "insufficient history" on every row, and the volatility column printed noise dressed as fact — MSFT at 59% against a true 28%, CIEN at 78% against 50%, SNDK at 164% against 107%. Nothing was down: the price API returned 1,254 clean adjusted closes for eight of the ten names.
+
+The Lab aligned every holding onto ONE book-wide intersection of trading dates, then gated history off that single length. Joe had added SPCX, which listed on 2026-06-12 and had 33 bars. The intersection of ten names including a 33-bar name is 33 days. Every other series was silently truncated to those 33 days, all ten rows failed the 252-day gate, `valid` came back empty, and the frontier, portfolio statistics and risk contribution all had nothing to compute. One young ticker took down a page full of thirty-year names.
+
+The message made it worse. Ten rows of "insufficient history" against household tickers reads as an outage, not as an input problem, and it named neither the holding at fault nor the threshold — so the one fact that would have explained the whole screen (SPCX has 33 days, the gate is 252) was the one fact not on it.
+
+**Rule:**
+
+1. A per-holding statistic — beta, volatility, its own history gate — is computed on that holding's OWN overlap with the benchmark. Never on an intersection that includes unrelated holdings. Adding or removing an unrelated row must not change a number on any other row; if it can, the alignment is wrong.
+2. A shared window belongs only to the numbers that genuinely need one — a covariance matrix, a correlation grid, a portfolio NAV path. Compute that window over the names actually entering the calculation, AFTER the eligibility filter, so a name that is excluded cannot shorten the window for the names that are not.
+3. Never run two windows of different length side by side without saying so. A two-month correlation printed beside 1.5-year risk statistics is the same defect in a smaller box; align the grid to the risk window or label both.
+4. An exclusion is a fact the user is owed, and it names the holding, its actual value and the threshold — "SPCX · 33d of history · needs 252", plus a line naming what was dropped and confirming the rest is unaffected. A blanket status string repeated down a column is indistinguishable from an outage (4.4 governs the em-dash; this governs what sits next to it).
+5. Truncation must never pass silently into a statistic. Annualizing 33 days is arithmetically valid and financially meaningless; if a window shrank because of an input, that is a reportable event, not a smaller number.
+
+**Applies to:** Senior Quant and Lead Developer — the Portfolio Lab today, and every surface that aligns multiple time series before computing: the Paper sleeve statistics, backtest harnesses, the scanner's cross-sectional ranks, and any future multi-asset comparison.

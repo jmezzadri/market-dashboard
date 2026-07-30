@@ -91,6 +91,10 @@
 .home-v12.lab-v12 .lab-scensum.ok { color: var(--mut); }
 .home-v12.lab-v12 .lab-scensum.bad { color: var(--down); font-weight: 700; }
 
+/* Holdings the optimizer had to drop — a quiet, factual note directly under
+   the table, not an alarm bar (UX Designer, 7/30). */
+.home-v12.lab-v12 .lab-excluded { margin: 14px 0 0; font-size: 13px; line-height: 1.5; }
+
 .home-v12.lab-v12 .lab-tally { display: flex; align-items: center; gap: 14px; padding-top: 14px; font-size: 13.5px; }
 .home-v12.lab-v12 .lab-tally .ok { color: var(--mut); }
 .home-v12.lab-v12 .lab-tally .warn { color: var(--down); font-weight: 700; }

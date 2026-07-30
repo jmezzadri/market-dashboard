@@ -11,6 +11,7 @@ import {
   projectSimplex, minVarianceForTarget, efficientFrontier, sicToSectorEtf,
   ivAtHorizon, rescaleCovToImplied, riskCompensationER,
 } from './labMath.js';
+import { MIN_HISTORY_DAYS } from './labConfig.js';
 
 const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} !~ ${b} (tol ${tol})`);
 
@@ -205,4 +206,52 @@ test('riskCompensationER: market-vol stock earns exactly rf + ERP; guards return
   assert.equal(riskCompensationER(0.04, 0.0423, 0, 0.5), null);
   assert.equal(riskCompensationER(null, 0.0423, 0.165, 0.5), null);
   assert.equal(riskCompensationER(0.04, 0.0423, 0.165, null), null);
+});
+
+/* Regression — LESSONS 8.21 (Joe, 2026-07-30: "I just tried to build a new
+   portfolio. Whats going on? Everything is blank.")
+
+   The Lab used to align EVERY holding on one book-wide intersection and then
+   gate history off that single length. Adding SPCX — a June-2026 listing with
+   33 bars — cut all ten holdings to 33 aligned days, so every row failed the
+   252-day gate ("insufficient history") and the volatility column annualized
+   33 days of noise: MSFT printed 59% against a true 28%.
+
+   A holding's history is a fact about that holding. Beta/vol/gating come from
+   its own overlap with SPY; only the optimizer's covariance needs a shared
+   window, and that window spans the names it actually uses. */
+test('one young holding must not truncate the rest of the book', () => {
+  const day = (i) => `2020-${String(1 + Math.floor(i / 28)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`;
+  const walk = (n, seed) => {
+    let c = 100; const out = [];
+    for (let i = 0; i < n; i++) { c *= 1 + Math.sin((i + seed) * 1.7) * 0.01; out.push({ d: day(i), c }); }
+    return out;
+  };
+  const LONG = 600;
+  const spy = walk(LONG, 0);
+  const old = walk(LONG, 1);          // 600 days of history
+  const young = walk(LONG, 2).slice(-33); // listed 33 days ago
+
+  // Book-wide intersection: what the page used to do.
+  const bookWide = alignSeries({ OLD: old, YOUNG: young, SPY: spy });
+  assert.equal(bookWide.dates.length, 33, 'the young name defines the shared window');
+
+  // Per-holding alignment: what it does now.
+  const ownOld = alignSeries({ x: old, SPY: spy });
+  const ownYoung = alignSeries({ x: young, SPY: spy });
+  assert.equal(ownOld.dates.length, LONG, 'the old name keeps its own 600 days');
+  assert.equal(ownYoung.dates.length, 33, 'the young name is still correctly short');
+
+  // The gate applies per holding, so exactly one row is excluded — not both.
+  assert.equal(ownOld.dates.length >= MIN_HISTORY_DAYS, true);
+  assert.equal(ownYoung.dates.length >= MIN_HISTORY_DAYS, false);
+
+  // And the vol the old name reports is its real vol, not 33 days of noise.
+  const volOwn = annualVol(dailyReturns(ownOld.closes.x));
+  const volTruncated = annualVol(dailyReturns(bookWide.closes.OLD));
+  assert.notEqual(volOwn.toFixed(3), volTruncated.toFixed(3));
+
+  // The optimizer window spans only the names it can use — here, just OLD.
+  const cov = alignSeries({ OLD: old, SPY: spy });
+  assert.equal(cov.dates.length, LONG);
 });
