@@ -566,7 +566,13 @@ export default function TickerPage() {
      close, stored daily history, the large-cap snapshot, or a scanner row.
      Nothing at all, once every one of those has finished loading, means the
      symbol is not one we cover — say so instead of drawing zeros. */
-  const resolveLoading = deep.loading || eod.loading || histAll.loading || universe.loading || info.loading;
+  /* Gate on the three per-ticker lookups only. The large-cap snapshot and the
+     scanner batch are whole-table reads that can take ~10 s while signed in,
+     and waiting on them meant a typo showed the full em-dashed shell for ten
+     seconds before the not-found card replaced it. Anything in those feeds is
+     in the reference list or has stored prices anyway, so they add evidence
+     below but never delay the verdict. */
+  const resolveLoading = deep.loading || eod.loading || histAll.loading;
   const symbolKnown = !!(
     deep?.ref ||
     eod?.last_close != null ||
