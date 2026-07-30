@@ -473,9 +473,11 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Method 1 — CAPM.</b> Expected return = risk-free rate + beta × equity risk premium.
-              Beta is measured by comparing the stock&rsquo;s daily moves to SPY&rsquo;s over the shared five-year
-              window (at least one full year of history is required — thinner names show &ldquo;insufficient
-              history&rdquo; instead of a number). This long-window beta is the right input for a
+              Beta is measured by comparing the stock&rsquo;s daily moves to SPY&rsquo;s over that
+              stock&rsquo;s own history, up to five years — so a recently listed name never shortens the
+              beta window of anything else in the book. A holding with under a full trading year of
+              history states how much it has and is left out of the expected-return, risk and frontier
+              numbers; the rest of the book is unaffected. This long-window beta is the right input for a
               multi-year expected return; it can differ from the &ldquo;Beta · 1y&rdquo; tile on a ticker&rsquo;s
               detail page, which deliberately measures only the trailing year — a stock whose character
               changed recently (ONDS, for example) reads higher on the one-year measure. The risk-free rate is the live 2-year Treasury yield (a
@@ -513,7 +515,8 @@ export default function MethodologyPage() {
               <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected
               return, the mix of your holdings with the lowest volatility, where expected returns come
               from each holding&rsquo;s selected method and risk (volatility and correlations) comes
-              from the five-year price history — except holdings on the Implied vol method, whose own
+              from the longest daily history that every optimized holding shares, up to five years —
+              except holdings on the Implied vol method, whose own
               volatility is options-implied (correlations stay historical). Clicking a point loads its weights. Marked points:
               minimum volatility, maximum Sharpe ratio, and equal weight. Portfolio statistics —
               volatility, Sharpe, beta, maximum drawdown, contribution to risk — are computed from the
