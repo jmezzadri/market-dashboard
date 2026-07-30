@@ -366,6 +366,19 @@
   .home-v12 .sc-buildgrid { grid-template-columns: 1fr !important; }
 }
 
+/* ── home-v12 Scanner cockpit (2026-07-30, LESSONS 8.7 mirror) — the three
+      scanner tiles stack to one column, and the desk-view card tightens its
+      stage margins; every embedded table keeps scrolling horizontally inside
+      its own card as before. ── */
+@media (max-width: 1020px) {
+  .home-v12 section.sc-cockpit { grid-template-columns: 1fr !important; }
+  .home-v12 section.sc-cockpit > * { min-width: 0 !important; }
+}
+@media (max-width: 900px) {
+  .home-v12 .sc-ctile { border-radius: 28px !important; padding: 20px 18px 14px !important; }
+  .sc-desk .sc-deskcard { margin: 12px 8px 24px !important; border-radius: 24px !important; padding: 16px 12px 22px !important; }
+}
+
 /* ── home-v12 two-sleeve build (2026-07-14) — the Momentum panel's two-column
       ranked list collapses to one column (each half scrolls inside the card),
       and the Portfolio per-sleeve cards stack. !important matches the v12

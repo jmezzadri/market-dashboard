@@ -239,3 +239,84 @@
   .home-v12 .sc-table th:last-child, .home-v12 .sc-table td:last-child { padding-right: 16px; }
   .home-v12 .sc-tk .nm { max-width: 140px; }
 }
+
+/* ── Cockpit landing (2026-07-30, Joe-approved mockup) ─────────────────────
+   One tile per scanner: kicker/title/cadence, a small real-data SVG viz on
+   the putty inset, the top-conviction rows, a freshness-chip meta line and
+   an "Open desk view" footer. The whole tile opens the desk overlay. All
+   colors are v12 tokens so the tiles read correctly in every theme. */
+.home-v12 .sc-sub { font-size: 15.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.6; }
+.home-v12 section.sc-cockpit { max-width: 1560px; min-width: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+.home-v12 .sc-ctile { background: var(--bg2); border: 1px solid var(--hair); border-radius: 40px; box-shadow: var(--sh); padding: 26px 26px 18px; display: flex; flex-direction: column; cursor: pointer; min-width: 0; transition: transform .25s, box-shadow .25s, background .5s; }
+.home-v12 .sc-ctile:hover { transform: translateY(-3px); box-shadow: 0 4px 6px rgba(33,44,51,.05), 0 26px 60px rgba(33,44,51,.11); }
+.home-v12 .sc-ctile:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+.home-v12 .sc-ctitle { font-family: var(--serif); font-weight: 600; font-size: 27px; line-height: 1.12; letter-spacing: -.3px; color: var(--ink); margin: 4px 0 2px; }
+.home-v12 .sc-ccadence { font-family: var(--sans); font-size: 12.5px; color: var(--mut); margin-bottom: 14px; }
+.home-v12 .sc-cloading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 26px 4px; }
+/* mini viz — putty inset, same surface language as the table insets */
+.home-v12 .sc-cviz { background: var(--putty); border-radius: 18px; padding: 14px 14px 8px; margin-bottom: 12px; transition: background .5s; }
+.home-v12 .sc-cvizlab { font-family: var(--sans); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--mut); font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
+.home-v12 .sc-cviz svg { display: block; }
+.home-v12 .sc-cbarlab { font-family: var(--sans); font-size: 11px; font-weight: 700; fill: var(--gold-deep); }
+.home-v12 .sc-cbarval { font-family: var(--sans); font-size: 11px; font-weight: 700; fill: var(--ink); }
+.home-v12 .sc-cbartrack { fill: var(--hair); }
+.home-v12 .sc-cbarfill { fill: var(--gold-bar); }
+.home-v12 .sc-cax { stroke: var(--hair); stroke-width: 1; }
+.home-v12 .sc-cbub { fill: var(--gold-bar); opacity: .78; }
+.home-v12 .sc-cbublab { font-family: var(--sans); font-size: 9.5px; font-weight: 700; fill: var(--card-ink); }
+[data-mt-theme='dark'] .home-v12 .sc-cbublab, [data-mt-theme='navy'] .home-v12 .sc-cbublab { fill: #16202B; }
+.home-v12 .sc-cband.bull { fill: var(--up); opacity: .1; }
+.home-v12 .sc-cband.bear { fill: var(--down); opacity: .1; }
+.home-v12 .sc-cbandlab { font-family: var(--sans); font-size: 9px; fill: var(--mut); }
+.home-v12 .sc-cpath.bull line { stroke: var(--up); stroke-width: 2; }
+.home-v12 .sc-cpath.bull circle { fill: var(--up); }
+.home-v12 .sc-cpath.bear line { stroke: var(--down); stroke-width: 2; }
+.home-v12 .sc-cpath.bear circle { fill: var(--down); }
+.home-v12 .sc-cpath circle.new { opacity: .55; }
+.home-v12 .sc-cpath .lab { font-family: var(--sans); font-size: 10.5px; font-weight: 700; }
+.home-v12 .sc-cpath.bull .lab { fill: var(--up); }
+.home-v12 .sc-cpath.bear .lab { fill: var(--down); }
+/* top-conviction rows */
+.home-v12 .sc-crows { display: flex; flex-direction: column; flex: 1; }
+.home-v12 .sc-crow { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--hair); font-family: var(--sans); font-size: 13.5px; color: var(--ink); min-width: 0; }
+.home-v12 .sc-crow:first-child { border-top: 0; }
+.home-v12 .sc-crow .tk { font-weight: 700; color: var(--gold-deep); font-size: 15px; width: 54px; flex: none; }
+.home-v12 .sc-crow .nm { color: var(--ink-soft); font-size: 12.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-v12 .sc-crow .val { text-align: right; white-space: nowrap; }
+.home-v12 .sc-crow .val.up { color: var(--up); }
+.home-v12 .sc-crow .val.down { color: var(--down); }
+.home-v12 .sc-crow .val.age { color: var(--mut); width: 56px; flex: none; }
+.home-v12 .sc-crow .pill { background: var(--ink); color: var(--bg2); border-radius: 999px; font-size: 12px; font-weight: 700; padding: 2px 9px; min-width: 40px; text-align: center; flex: none; }
+.home-v12 .sc-crow .tag { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--hair); border-radius: 999px; padding: 1px 8px; color: var(--mut); white-space: nowrap; flex: none; }
+.home-v12 .sc-crow .tag.bull { color: var(--up); border-color: var(--up); }
+.home-v12 .sc-crow .tag.bear { color: var(--down); border-color: var(--down); }
+/* meta + footer */
+.home-v12 .sc-cmeta { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--sans); font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; flex-wrap: wrap; cursor: default; }
+.home-v12 .sc-copen { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hair); font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--ink); display: flex; justify-content: space-between; align-items: center; }
+.home-v12 .sc-copen .arr { transition: transform .2s; }
+.home-v12 .sc-ctile:hover .sc-copen .arr { transform: translateX(4px); }
+.home-v12 .sc-ctile:hover .sc-copen { color: var(--gold-deep); }
+
+/* ── Desk view overlay — the full scanner section, unchanged, on a modal
+      stage. The backdrop is theme-invariant ink glass (same language as the
+      hover tooltip); the card is the page background so every embedded
+      tablecard reads exactly as it did on the stacked page. */
+.sc-desk { position: fixed; inset: 0; background: rgba(33,44,51,.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 5000; overflow-y: auto; overscroll-behavior: contain; }
+.sc-desk .sc-deskcard { max-width: 1400px; margin: 34px auto 60px; background: var(--bg); border-radius: 34px; box-shadow: 0 30px 90px rgba(0,0,0,.35); padding: 22px 30px 34px; }
+.sc-desk .sc-deskbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.sc-desk .sc-dtabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.sc-desk .sc-dtab { border: 1px solid var(--hair); background: transparent; border-radius: 999px; padding: 7px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink-soft); cursor: pointer; transition: border-color .25s, color .25s, background .25s; }
+.sc-desk .sc-dtab:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+.sc-desk .sc-dtab.on { background: var(--ink); color: var(--bg2); border-color: var(--ink); }
+.sc-desk .sc-deskback { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 7px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; transition: border-color .25s, color .25s; }
+.sc-desk .sc-deskback:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
+/* embedded sections drop the page-stage margins inside the desk card */
+.sc-desk .sc-deskbody section.wrap { margin: 18px 0 0; max-width: none; padding: 0; }
+
+@media (max-width: 1020px) {
+  .home-v12 section.sc-cockpit { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .home-v12 .sc-ctile { border-radius: 28px; padding: 20px 18px 14px; }
+  .sc-desk .sc-deskcard { margin: 12px 8px 24px; border-radius: 24px; padding: 16px 12px 22px; }
+}

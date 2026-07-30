@@ -28,7 +28,9 @@ const fmtPx = (v) => {
   return n >= 1000 ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
                    : `$${n.toFixed(2)}`;
 };
-const fmtAge = (b) => (b == null ? '—' : b === 0 ? 'today' : b === 1 ? '1 bar' : `${b} bars`);
+// Age in trading days — "2d" language (Joe, cockpit build 2026-07-30; the
+// column tooltip spells out "trading days since the newer pivot printed").
+const fmtAge = (b) => (b == null ? '—' : b === 0 ? 'today' : `${b}d`);
 
 function fmtDay(iso) {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
