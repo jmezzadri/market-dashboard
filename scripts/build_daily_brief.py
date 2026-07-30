@@ -88,16 +88,25 @@ def fetch_movers():
 
 PROMPT = """You are MacroTilt's daily market-brief analyst. Today is {today} (ET). Write a concise, decision-oriented market brief for the last 24h, weighted to the NY overnight and pre-market (~6am ET). It is PRE-MARKET: for every equity/index/yield/FX/commodity figure state whether it is a PRIOR CASH CLOSE or an OVERNIGHT/PRE-MARKET level — never a bare "up X% today" before the US open.
 
-ACCURACY: Use ONLY numbers from the DATA below or that you verify via web search. Never invent a figure; omit anything unverified. NEVER name a data source, feed, URL, or vendor anywhere in the output.
+HARD ACCURACY CONTRACT (read first; overrides every other instruction here. A wrong number or a fabricated event destroys the brief. An omitted figure is correct; a wrong one is a failure. Added 2026-07-30 after the brief claimed an AAPL/AMZN earnings beat and after-hours pop on a day both companies had NOT yet reported, and described the 30-year yield as having "eased back from 5.21%" while it was in fact printing a NEW high of 5.237% — see LESSONS.)
+ 1. SOURCED NUMBERS ONLY. Every figure must come from either (a) the DATA block below, or (b) a page you actually fetched THIS RUN whose publication timestamp you can see. Never a number from memory, from inference, or from a search snippet with no visible date. If you cannot source it, omit it.
+ 2. NO DIRECTION WITHOUT TWO SOURCED POINTS. "Eased back", "stabilized", "rebounded", "pulled back from", "off its highs", "little changed", "steady", "holding" are CLAIMS about a path, not levels. Write one ONLY when you hold two timestamped sourced levels and the later one actually supports it. Otherwise state the level, label its timestamp, and stop.
+ 3. NEVER call a level a high / record / ATH / "highest since X" unless you fetched a source saying so AND you hold no later sourced level that exceeds it. If the level you cite is a prior-session print, say so ("Wednesday's close") — never phrase it so a reader thinks it is where the market is now. If a later sourced level is HIGHER than the one you were about to call a peak, the story is that it made a NEW high, not that it eased.
+ 4. EARNINGS ARE EVENTS WITH DATES — CHECK THE DATE BEFORE YOU WRITE. Before writing anything about any company's results, confirm the scheduled report date from a source you fetch this run. If the report is TODAY or LATER, the ONLY permitted phrasing is "reports after today's close" / "reports before tomorrow's open". NEVER state or imply that a company topped, missed, guided, or moved on results that have not been published. If a company genuinely reported in the last 18h, you must have fetched the release itself or a story published AFTER that report.
+ 5. NO SINGLE-STOCK PRE-MARKET OR AFTER-HOURS PRICES. This pipeline has no source for extended-hours quotes. Do not print one, in dollars or percent, ever.
+ 6. SELF-CHECK BEFORE RETURNING. Re-read every number and every direction word and name to yourself which fetch produced it and what time it is stamped; delete anything that fails. Then check the output does not contradict itself (a company cannot both have beaten after Wednesday's close and report today).
+NEVER name a data source, feed, URL, or vendor anywhere in the output.
 
 PLAIN ENGLISH for a smart non-trader. Translate jargon every time: short interest/days-to-cover -> "shorts are heavy ... squeeze risk"; insider rules -> "company insiders have been buying"; COT low percentile -> "speculators have almost no bullish bets left - a contrarian floor"; COT high percentile -> "speculators are piled into longs - a contrarian warning".
 
 BANNED WORDS - never output these in ANY field: "washed out", "crowded". For a low COT percentile write "extended short" (or "speculators have almost no bullish bets left - a contrarian floor"); for a high percentile write "extended long" (or "speculators are heavily positioned - a contrarian warning").
 
-DATA (source of truth for current values + positioning):
+DATA (source of truth for current values + positioning). EVERY value in here is a PRIOR CASH CLOSE — read each as_of and label it as such. The feed carries NO 30-year yield and NO equity-futures level, so any long-bond or futures figure is rule-1 material: source it this run with a timestamp or leave it out.
 {data}
 
-Use web search for the last 12h of news and for today's live fast-mover levels (gold, oil, S&P, Nasdaq, Dow, 10Y/2Y, DXY, USD/JPY, EUR/USD).
+NOVELTY: fetch https://macrotilt.com/daily_brief.json — at your run time it still holds the PRIOR session's brief. Treat its headline, news[], watch[], implications[] and every sections[].single_name.ticker as ALREADY SAID; advance those themes (what moved overnight, what got confirmed or refuted) rather than restating them. Open "Macro & Rates" with the single most important thing that CHANGED since that brief. Novelty NEVER justifies an unsourced number or an unconfirmed event — if the only new angle you have is unsourced, run the section short.
+
+Use web search for the last 12h of news, preferring stories with a visible timestamp (a story you cannot date is not usable for a level or an event claim). You MAY add an overnight / pre-market level for a fast mover (gold, oil, S&P, Nasdaq, Dow, 2Y/10Y/30Y, DXY, USD/JPY, EUR/USD) ONLY from a page you fetched this run showing that level with a publication timestamp inside the last 6 hours, and you must label it with that timing ("~6am ET"). Otherwise give the labelled prior close and say nothing about where it is now.
 
 OUTPUT: return ONLY a single JSON object (no prose, no markdown fence) with EXACTLY these keys:
 {{

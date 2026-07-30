@@ -40,6 +40,10 @@ on:
         description: "Email recipients: test (Joe only) or live (full list)"
         required: false
         default: "live"
+      force:
+        description: "Regenerate even if today's brief already exists (1 = force)"
+        required: false
+        default: "0"
 
 permissions:
   contents: write
@@ -67,6 +71,14 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BRIEF_SEND_MODE: ${{ github.event.inputs.send_mode || 'live' }}
+          # 2026-07-30: this writer is now the SOLE emailer of Joe's morning brief. The
+          # legacy 05:45 ET scheduled-task emailer produced a brief from an un-auditable
+          # prompt and shipped two fabricated claims (an AAPL/AMZN beat on a day neither
+          # had reported; a 30-year yield "easing back" while it made a new high). Site
+          # and email now come from ONE hardened generator, so both carry the same
+          # messaging and the prompt lives in version control where it can be reviewed.
+          BRIEF_SEND_EMAIL: "true"
+          BRIEF_FORCE_REBUILD: ${{ github.event.inputs.force || '0' }}
         run: python scripts/build_daily_brief.py
 
       - name: Verify brief is current + well-formed
