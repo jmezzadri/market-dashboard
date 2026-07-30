@@ -10,6 +10,9 @@ on:
     - cron: '0 14 * * 1-5'   # 10:00 ET (EDT), ~30 min after the open
     - cron: '0 15 * * 1-5'   # 10:00 ET (EST) coverage
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/PAPER-PORTFOLIO-WATCHDOG.yml'   # temp: live UAT trigger
 
 concurrency:
   group: paper-portfolio-watchdog
