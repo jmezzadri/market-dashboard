@@ -1,190 +1,133 @@
 {
-  "date": "2026-08-01",
-  "recap_session": "Thu Jul 31",
+  "date": "2026-07-31",
+  "recap_session": "Thu Jul 30",
   "eyebrow": "Morning Brief",
-  "headline": "Hyperscalers rewarded, Apple punished as Q2 earnings season peaks; GDP slowed to 1.5% and employment costs ran hot, leaving the Fed on hold with real rates at 2.47%.",
-  "stance": "<b>The market is sending a clear bifurcation signal:</b> cloud and AI infrastructure spending is being rewarded — Amazon and Microsoft surged on massive AWS and Azure beats — while Apple's miss on Services and China revenues drew a sharp ~9% sell-off on Thursday. Q2 GDP came in at 1.5% annualised, the softest quarter since late 2024, and employment costs printed slightly above consensus; neither print changes the Fed's calculus materially. With the S&P 500's Thursday close at 7,489.72 and real rates still at 2.47%, the equity risk premium is negative (-2.15%) and CAPE stands at 40.9 — valuations leave little margin for error if the growth deceleration deepens.",
+  "headline": "Tech earnings split the tape after hours: Amazon surged on an AWS cloud beat while Apple slid on weak guidance, as Thursday's cash session closed sharply higher on Microsoft's 16% surge and softer-than-expected June PCE data.",
+  "stance": "<b>The macro backdrop is genuinely two-sided heading into Friday.</b> Thursday's June PCE print — headline down to 3.7% year-over-year, core at 3.3% — offered the market a brief reprieve, and equities used it: the S&P 500 closed up 1.7% at 7,437.63 (Thursday's cash close). But the Fed's 9-3 vote to hold, three dissents in favor of a hike, and Chair Warsh's explicit warning that rate increases \"could well be part of the solution\" keep the rate-hike risk alive. <b>The post-close split between Amazon (~+8% after hours) and Apple (~-6% after hours) means index futures face conflicting forces at the open</b> — neither story cleanly dominates, and the 30-year yield continues to hover near its post-2007 high.",
   "news": [
     {
-      "head": "Amazon Q2 blowout",
-      "body": "Amazon reported Q2 revenue of $200.6 billion (+20% YoY) and AWS grew 37% — its fastest pace in 18 quarters — to $42.2 billion, well above the $40.5 billion consensus; operating income rose 43% to $27.5 billion."
+      "head": "Fed holds, three dissent",
+      "body": "The Federal Reserve left its benchmark rate at 3.5%–3.75% on Wednesday, but three regional presidents voted for a 25-basis-point hike, and Chair Warsh said higher rates \"could well be part of the solution\" to bring inflation down — keeping September hike risk squarely on the table."
     },
     {
-      "head": "Apple slumps on Services miss",
-      "body": "Apple topped headline estimates (revenue $109.4 billion, EPS $1.91 vs. $1.89 expected) but the stock fell roughly 9% on Thursday after weaker-than-expected Services and China revenues disappointed investors."
+      "head": "June PCE cools but stays hot",
+      "body": "The Fed's preferred inflation gauge fell 0.1% in June, pulling the year-over-year rate to 3.7% from May's 4.1%; core PCE came in at 3.3% year-over-year — in line with forecasts, but nearly double the 2% target, and driven largely by a temporary Iran ceasefire that has since broken down."
     },
     {
-      "head": "GDP slows to 1.5%",
-      "body": "Q2 real GDP grew at a 1.5% annualised rate, down from 2.1% in Q1, driven by consumer spending and exports but held back by a decline in government spending."
+      "head": "Q2 GDP misses at 1.5%",
+      "body": "Second-quarter GDP growth slowed to a 1.5% annualized rate, below expectations, with the shortfall traced mainly to a decline in federal government spending and inventories rather than any broad deterioration in private demand."
     },
     {
-      "head": "Employment costs run slightly hot",
-      "body": "The Employment Cost Index rose 0.9% QoQ in Q2, a tick above the 0.8% consensus, keeping the Fed's inflation-sensitive mandate in focus."
+      "head": "Amazon ~+8% after hours on AWS beat",
+      "body": "Amazon reported Q2 net sales of $200.6 billion, up 20% year-over-year and ahead of estimates, with cloud revenue accelerating for the fifth straight quarter — shares jumped roughly 8% in extended trading after Thursday's close."
     },
     {
-      "head": "Middle East tensions persist",
-      "body": "US and Iran exchanged strikes again this week; traders are watching for weekend escalation, with Japan sourcing nearly all its crude from the Middle East adding supply-chain complexity."
+      "head": "Apple ~-6% after hours on weak guidance",
+      "body": "Apple's fiscal Q3 revenue came in at $109.4 billion — a slight beat — but the stock slid roughly 6% in extended trading after the company flagged a weaker-than-expected revenue outlook and deepening supply constraints."
     },
     {
-      "head": "Canada tariff friction",
-      "body": "New US tariffs on Canadian goods — with retaliatory measures signalled by Ottawa — represent a fresh drag on North American supply chains heading into H2."
+      "head": "Microsoft adds ~$450bn in a single session",
+      "body": "Microsoft surged 16% in Thursday's cash session after reporting Azure-driven cloud growth that beat expectations, adding roughly $450 billion in market value — the single largest one-day gain by any stock on record — and pulling the information-technology sector up nearly 5% for the day."
+    },
+    {
+      "head": "US strikes Iran, ceasefire stalled",
+      "body": "US forces carried out fresh strikes on Iranian targets after Tehran attacked American assets in the region; both sides remain deadlocked over the Strait of Hormuz, sustaining elevated energy-price and inflation risk."
     }
   ],
   "implications": [
-    "Cloud infrastructure is the clear Q2 earnings winner: Amazon, Microsoft, and Alphabet all surged on AI-driven demand, while Apple and Meta were punished by the market for differing reasons — watch for rotation within megacap tech.",
-    "Q2 GDP at 1.5% with employment costs above consensus is the soft-landing tightrope: growth is slowing but not collapsing, and inflation pressures have not fully cleared — the Fed remains on hold.",
-    "Real rates at 2.47% and a negative equity risk premium (-2.15%) mean equities need continued earnings beats to justify CAPE of 40.9; any guidance disappointment will be met with outsized selling.",
-    "<b>Positioning:</b> Speculative positioning in S&P 500 futures reached the 85th percentile of its three-year range this week — a new development — meaning speculators are heavily positioned long, a contrarian warning. Separately, VIX futures specs moved to the 10th percentile (also new this week), indicating almost no bullish volatility bets — a contrarian signal that the market may be under-hedged."
+    "The 9-3 Fed dissent means the next meeting is live: markets are now pricing roughly a 63% probability of a September rate hike — a meaningful jump from the sub-56% level seen just before the decision.",
+    "June PCE cooling was real but mechanically energy-driven, and the energy disinflationary impulse reverses if Iran hostilities resume in July — the Q2 quarterly PCE price index surged 5.1% annualized, a reminder of the pipeline still building.",
+    "Thursday's tech-led rally (+1.7% SPX) was narrow: the information-technology sector carried nearly all the weight via Microsoft; the Apple after-hours drop (~-6%) and its roughly 7% index weight could restrain the Nasdaq at Friday's open.",
+    "<b>Positioning:</b> Speculators flipped to an extended long in S&P 500 futures this week — reaching the 85th percentile of their 3-year positioning range, a contrarian-bearish signal on a one-to-four-week horizon — while simultaneously cutting volatility protection to a 3-year low (VIX futures at the 10th percentile short, a contrarian-bullish lean on implied vol). The combination means the index is fully priced for calm; any shock reprices both legs at once.",
+    "Brent crude entered a new elevated-crowding extreme this week at $89.45/bbl (Thursday's cash close) — the first such reading in recent sessions — consistent with geopolitical risk being freshly priced in energy rather than fading."
   ],
   "watch": [
     {
-      "head": "July payrolls (8:30am ET)",
-      "body": "Today's jobs report is the most important near-term data point: with GDP at 1.5% and claims at 197K, a payrolls miss could cement rate-cut expectations while a beat cements the Fed's on-hold stance."
+      "head": "Employment Cost Index (8:30am ET)",
+      "body": "The Q2 Employment Cost Index lands before the open — a hot print would add fuel to the September hike debate and could push the long end of the yield curve higher."
     },
     {
-      "head": "ISM Manufacturing (10am ET)",
-      "body": "The July ISM Manufacturing print follows June's solid 53.3; any softening toward contraction territory would sharpen recession concern given the slowing GDP backdrop."
+      "head": "Chicago PMI & Michigan Sentiment (9:45 / 10am ET)",
+      "body": "End-of-month sentiment and regional activity data round out the week; a soft Michigan inflation-expectations reading would be the most market-moving outcome given the current rate debate."
     },
     {
-      "head": "Weekend Middle East developments",
-      "body": "Stonex flagged that market closures frequently see notable reversals in geopolitical strategy on Iran; energy markets and safe-haven trades are most exposed to a weekend surprise."
+      "head": "Apple and Amazon opening prints",
+      "body": "With Apple down ~6% and Amazon up ~8% after hours, watch whether index-level moves offset at the open or whether Apple's larger weight tips the Nasdaq lower — and whether Amazon's AWS enthusiasm spills into broader cloud and AI names."
     },
     {
-      "head": "Amazon stock open",
-      "body": "Amazon rose roughly +8% in after-hours trading on Thursday after its Q2 beat; how the stock opens and holds through today's session will signal whether institutional buyers step in or take profit."
+      "head": "30-year yield and the 2007 high",
+      "body": "The long bond has been trading near its highest level since 2007 post-Fed; any further push higher would tighten financial conditions and pressure duration-sensitive equities and real estate."
     },
     {
-      "head": "Apple damage assessment",
-      "body": "Apple's roughly 9% Thursday decline may attract dip-buyers today given the headline beat, but Services and China trajectory questions linger into the September quarter."
+      "head": "Bank of Japan decision",
+      "body": "The BOJ is widely expected to hold rates unchanged; any surprise shift in language on yield-curve control could jolt the yen — which closed Thursday at 159.55 per dollar (Thursday's cash close), its weakest range in nearly three years."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Q2 real GDP printed at 1.5% annualised — the softest reading since late 2024 — driven by consumer spending and exports but weighed down by falling government outlays; Thursday's prior close on the 10-year Treasury yield was 4.75% and the 2-year was 4.28%, leaving the 2s10s curve at +47 basis points.",
-        "The Employment Cost Index rose 0.9% QoQ in Q2, modestly above the 0.8% estimate, reinforcing that wage pressure has not fully normalised — a key reason real fed funds remain positive at 0.34% and real 10-year rates stand at 2.47%.",
-        "The 10-year breakeven inflation rate closed Thursday at 2.28%, suggesting the bond market sees inflation broadly under control even as employment costs firm — the tension between those two readings is the Fed's current dilemma.",
-        "The MOVE index closed at 83 on Thursday — a relatively calm level — while the term premium sits at 83.8 basis points, meaning investors are still demanding meaningful compensation to hold long-dated Treasuries.",
-        "Financial conditions remain accommodative: commercial paper spreads are negligible at 25 basis points, IG OAS closed at 80 basis points, and HY spreads were 284 basis points as of Wednesday's close."
+        "The single biggest change since Thursday's open: June PCE printed -0.1% month-over-month, pulling the year-over-year rate to 3.7% from 4.1% in May — yet Chair Warsh said the cooler data \"did not factor significantly\" into the hold decision, and three FOMC members dissented for a hike; markets now price roughly a 63% chance of a September increase.",
+        "Q2 GDP advanced at a 1.5% annualized rate — below expectations — with the miss concentrated in government spending and inventories; private consumption held up, with real PCE +0.4% in June.",
+        "The 10-year Treasury closed Thursday at 4.68% (Thursday's cash close); the 2-year at 4.23% (Thursday's cash close), leaving the 2s10s curve at +45 basis points — still positive but narrowed by the hike-risk repricing.",
+        "The 30-year yield is hovering near its highest level since 2007 following the Fed decision — an ongoing constraint on mortgage rates, capex financing, and long-duration equity valuations.",
+        "Real rates (10-year TIPS-implied) closed at 2.41% Thursday — a level that historically compresses equity multiples; the Shiller CAPE at 40.6x means the margin of safety against further rate increases is thin.",
+        "Gold closed Thursday at $4,162.80/oz; overnight (~6am ET) it was printing near $4,086 — reflecting a reassessment of Fed hike odds offsetting the geopolitical bid.",
+        "US-Iran hostilities continued overnight, with fresh American strikes reported; Tehran's insistence on Strait of Hormuz control keeps a sustained energy-price floor under inflation."
       ],
-      "positioning": "Speculators in 3-month SOFR futures hold almost no bullish bets — at the 3-year low for that contract — a standing contrarian-bullish lean on short rates, though this positioning has been in place for 14 weeks and is background context rather than a new development.",
+      "positioning": "Speculators hold almost no bullish bets left in 3M SOFR interest-rate futures — a 3-year low and a contrarian-bullish lean for front-end rates — but this positioning has been in place for 14 straight weeks and is background context rather than a fresh signal.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "The S&P 500 closed Thursday at 7,489.72, the Nasdaq 100 at 25,373.85, and the Dow at 52,485.03 — all prior cash closes; VIX closed at 15.99 and VXN at 26.",
-        "Breadth improved Thursday: 63.4% of S&P 500 members trade above their 50-day moving average and 67.7% above their 200-day, while Nasdaq breadth is narrower at 47.5% above the 50-day and 66.3% above the 200-day.",
-        "The equity risk premium is negative at -2.15% using Thursday's close — meaning equities offer no risk premium over risk-free rates on an earnings-yield basis — and CAPE stands at 40.91, both historically elevated readings.",
-        "Amazon rose roughly +8% in after-hours trading Thursday after its Q2 beat; Apple fell roughly 9% in Thursday's regular session after reporting Wednesday evening, and Meta fell 8% Thursday following its own earnings release earlier in the week.",
-        "Microsoft surged approximately 15% after its Tuesday earnings beat, with Azure growth of 43% driving the move — the stock's gain alone added meaningful points to cap-weighted indices."
+        "The S&P 500 closed Thursday at 7,437.63 (+1.7%), the Nasdaq Composite at 25,122.18 (+2.8%), and the Dow at 52,208.06 (+1.2%) — all prior cash closes.",
+        "Microsoft's 16% single-session gain drove information technology to its best day since April 2025, accounting for the bulk of the index move; breadth was narrow, with about 65% of S&P 500 members above their 50-day moving average as of Wednesday.",
+        "Apple (~-6% after hours) reported fiscal Q3 revenue of $109.4 billion — a slight beat — but a weaker forward revenue outlook and supply-chain constraints drove the after-hours drop; Apple's roughly 7% S&P 500 weight means Friday's open will feel it.",
+        "Amazon (~+8% after hours) posted Q2 net sales of $200.6 billion, up 20% year-over-year, with AWS cloud revenue accelerating for the fifth straight quarter — the cleanest AI-infrastructure proof point from the megacap cohort this cycle.",
+        "VIX closed Thursday at 17.09 (Thursday's cash close) — an elevated-complacency reading given the rate backdrop; skew at 139.9 shows the options market is pricing tail risk more actively than the VIX headline suggests.",
+        "Breadth split: about 49% of Nasdaq 100 members are above their 50-day moving average (as of Wednesday's close), meaning the index rally is being driven by a relatively small number of large names."
       ],
-      "positioning": "S&P 500 speculative futures positioning reached the 85th percentile of its three-year range this week — a new development flagged by COT data — representing a extended long that historically precedes mean-reversion episodes. VIX futures specs simultaneously moved to the 10th percentile, also new this week, suggesting the market is materially under-hedged relative to recent history. Russell 2000 specs remain at an extended short (13 consecutive weeks), a contrarian-bullish lean on small caps that has not yet resolved.",
+      "positioning": "NEW this week: speculators flipped to an extended long in S&P 500 futures — 85th percentile of the 3-year range, a contrarian-bearish warning — while simultaneously cutting their volatility (VIX futures) protection to a 3-year low (10th percentile short, a contrarian-bullish lean on implied vol). Both moves are new in the current week. Separately, speculators have almost no bullish bets left in Russell 2000 futures — near a 3-year low — a contrarian-bullish lean for small-caps, though that position has been in place for 13 weeks and is background context.",
       "single_name": null
     },
     {
-      "title": "FX & Commodities",
+      "title": "Credit & Liquidity",
       "bullets": [
-        "The US dollar index closed Thursday at 99.8; EUR/USD at 1.1527, USD/JPY at 157.4, and GBP/USD at 1.3487 — all prior cash closes.",
-        "Gold closed Thursday at $4,098.60 per ounce and silver at $57.775 per ounce; with real 10-year rates at 2.47%, gold's continued strength at these levels reflects geopolitical risk and central bank demand rather than a rate-driven bid.",
-        "WTI crude closed at $86.80 and Brent at $90.12 on Thursday; Middle East tensions between the US and Iran are the primary upside risk to energy prices heading into the weekend.",
-        "Copper closed at $6.51 per pound Thursday; the copper-to-gold ratio stands at 1.588, a level that historically correlates with moderate global growth expectations — neither recessionary nor strongly expansionary.",
-        "Natural gas closed at $2.792, wheat at 638 cents per bushel, and corn at 463.75 cents per bushel on Thursday; uranium closed at $86.50 per pound."
-      ],
-      "positioning": "WTI crude, Brent, and GBP each registered new crowding extremes in COT data this week — all within the past one to five days — representing fresh positioning signals worth monitoring for reversal. Wheat COT sits at the 98th percentile (two weeks running) and copper at the 96th percentile (15 weeks), both background-level extended longs.",
-      "single_name": null
-    },
-    {
-      "title": "Liquidity & Credit",
-      "bullets": [
-        "The Fed's balance sheet grew 1.44% year-over-year as of July 29; bank reserves stood at $2,984.6 billion and the Treasury General Account at $910.8 billion as of July 29.",
-        "Overnight reverse repo usage fell to $2.2 billion on Thursday — effectively drained — confirming that excess liquidity has largely exited the RRP facility and is now sitting in bank reserves or deployed into risk assets.",
-        "M2 money supply grew 5.53% year-over-year through June, a moderate pace that is broadly consistent with nominal GDP growth and does not signal either a liquidity squeeze or an inflationary surge.",
-        "IG OAS closed at 80 basis points and HY spreads at 284 basis points as of Wednesday — both historically tight, consistent with risk-on positioning and low near-term default expectations.",
-        "Weekly jobless claims for the week ending July 25 came in at 197K, with the four-week average at 203K — both well below recessionary thresholds and consistent with a still-resilient labour market heading into today's payrolls report."
+        "High-yield spreads closed at 287 basis points over investment grade (as of Tuesday's close) — elevated but not signaling stress; investment-grade option-adjusted spreads were 81 basis points (Tuesday's close).",
+        "Short-term funding stress gauges remain quiet: FRA-OIS and SOFR-OIS both sat at 2 basis points (Tuesday's close), and the commercial paper funding spread was 18 basis points (as of July 24) — no signs of wholesale funding pressure.",
+        "Bank reserves at $2,984.6 billion and the Treasury General Account at $910.8 billion (both as of Wednesday) leave system liquidity ample; the overnight reverse-repo facility has essentially drained to $1.1 billion (Thursday's close), removing a former buffer.",
+        "The 10-year breakeven inflation rate closed Thursday at 2.27%, well below the realized PCE readings — suggesting the bond market expects energy-driven inflation to partially reverse, though the ongoing Iran conflict is a material upside risk to that assumption.",
+        "The equity-credit correlation at 0.70 (Thursday's close) means risk-off episodes in bonds and stocks are moving together — a diversification headwind for balanced portfolios if the rate-hike narrative reasserts."
       ],
       "positioning": null,
       "single_name": null
     }
   ],
-  "levels": {
-    "as_of": "Thu Jul 31 cash close",
-    "equities": {
-      "SPX": 7489.72,
-      "NDX": 25373.85,
-      "DJI": 52485.03,
-      "VIX": 15.99,
-      "VXN": 26.0
-    },
-    "rates": {
-      "10Y": 4.75,
-      "2Y": 4.28,
-      "2s10s_bps": 47,
-      "real_10Y": 2.47,
-      "breakeven_10Y": 2.28,
-      "real_fed_funds": 0.34,
-      "MOVE": 83,
-      "term_premium_bps": 83.8
-    },
-    "fx": {
-      "DXY": 99.8,
-      "EURUSD": 1.1527,
-      "USDJPY": 157.4,
-      "GBPUSD": 1.3487
-    },
-    "commodities": {
-      "gold_oz": 4098.6,
-      "silver_oz": 57.775,
-      "WTI": 86.8,
-      "brent": 90.12,
-      "copper_lb": 6.51,
-      "natgas": 2.792,
-      "wheat_bu": 638.0,
-      "corn_bu": 463.75,
-      "uranium_lb": 86.5
-    },
-    "credit": {
-      "IG_OAS_bps": 80,
-      "HY_spread_bps": 284,
-      "CPFF_bps": 25
-    },
-    "valuation": {
-      "CAPE": 40.91,
-      "ERP_pct": -2.15
-    },
-    "liquidity": {
-      "fed_bs_yoy_pct": 1.44,
-      "bank_reserves_bn": 2984.6,
-      "TGA_bn": 910.8,
-      "RRP_bn": 2.2,
-      "M2_yoy_pct": 5.53
-    }
-  },
   "movers": [
     {
-      "ticker": "LILA",
-      "pct": -4.9,
-      "link": true
-    },
-    {
       "ticker": "GGAL",
-      "pct": -3.6,
-      "link": true
-    },
-    {
-      "ticker": "EOI",
-      "pct": 2.0,
-      "link": true
-    },
-    {
-      "ticker": "JEF",
-      "pct": -0.9,
+      "pct": 5.0,
       "link": true
     },
     {
       "ticker": "TSM",
-      "pct": 0.2,
+      "pct": -4.5,
+      "link": true
+    },
+    {
+      "ticker": "LILA",
+      "pct": 2.6,
+      "link": true
+    },
+    {
+      "ticker": "EOI",
+      "pct": -1.8,
+      "link": true
+    },
+    {
+      "ticker": "YORW",
+      "pct": -1.1,
       "link": true
     }
   ]

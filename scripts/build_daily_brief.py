@@ -28,6 +28,77 @@ ET = ZoneInfo("America/New_York")
 BASE = "https://yqaqqzseepebrocgibcw.supabase.co"
 MODEL = os.environ.get("BRIEF_MODEL", "claude-sonnet-4-6")
 
+# --- WHEN a brief may exist at all (2026-08-01) -------------------------------
+# This writer is fired by cron AND by workflow_run on three other pipelines, one
+# of which (MONITOR-RECONCILE) runs every 6h. While the writer only wrote a JSON
+# file that was harmless. The moment it also became the emailer it started
+# mailing Joe a "morning brief" at 2:00am ET -- including Saturday 2026-08-01,
+# a day with no session to brief. A brief is a PRE-MARKET artifact: it may only
+# be built on an NYSE trading day, inside the morning window, full stop.
+NYSE_HOLIDAYS = {
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25",
+    "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31",
+    "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
+}
+BUILD_FROM_HOUR_ET = 5    # never build "today's" brief before 05:00 ET
+EMAIL_UNTIL_HOUR_ET = 10  # never email a "morning" brief after 10:00 ET
+
+def is_trading_day(d):
+    return d.weekday() < 5 and d.isoformat() not in NYSE_HOLIDAYS
+
+def prev_trading_day(d):
+    from datetime import timedelta
+    p = d - timedelta(days=1)
+    while not is_trading_day(p):
+        p -= timedelta(days=1)
+    return p
+
+def _ignore_calendar():
+    """Manual escape hatch for a dispatched backfill. Deliberately NOT the same
+    flag as BRIEF_FORCE_REBUILD, which the self-heal sets on every run -- the
+    self-heal must stay inside the calendar, or it re-opens this same hole."""
+    return os.environ.get("BRIEF_IGNORE_CALENDAR", "").lower() in ("1", "true", "yes")
+
+def _status(value):
+    """Tell the workflow what happened so its verify step knows a skip from a failure."""
+    print(f"brief status: {value}")
+    try:
+        with open("/tmp/brief_status.txt", "w") as f:
+            f.write(value)
+    except Exception:
+        pass
+    return value
+
+def claim_email_send(today):
+    """Atomically claim the right to send TODAY's brief email. The table's primary
+    key is the mutex: the concurrent run that loses gets a 409 and stays quiet.
+    (2026-07-31: two runs 106 seconds apart each sent Joe the same brief.)"""
+    url = os.environ.get("SUPABASE_URL", BASE).rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not key:
+        print("WARN: no service key; cannot dedupe the send", file=sys.stderr)
+        return True
+    body = json.dumps({"brief_date": today,
+                       "sent_by": os.environ.get("GITHUB_RUN_ID", "local")}).encode()
+    req = urllib.request.Request(
+        f"{url}/rest/v1/brief_email_log",
+        data=body, method="POST",
+        headers={"apikey": key, "Authorization": f"Bearer {key}",
+                 "Content-Type": "application/json", "Prefer": "return=minimal"})
+    try:
+        with urllib.request.urlopen(req, timeout=20):
+            return True
+    except urllib.error.HTTPError as e:
+        if e.code == 409:
+            print(f"email for {today} already sent by another run — skipping send")
+            return False
+        print(f"WARN: send-lock insert failed ({e.code}); sending anyway", file=sys.stderr)
+        return True
+    except Exception as e:
+        print(f"WARN: send-lock unreachable ({e}); sending anyway", file=sys.stderr)
+        return True
+
 # --- Banned-copy guard (Joe, 2026-06-26): never publish "washed out" / "crowded".
 # Low COT percentile -> "extended short"; high -> "extended long". Deterministic
 # backstop to the prompt rule, so a model slip can never reach the site or email.
@@ -230,6 +301,10 @@ def validate(brief, today):
     if not isinstance(brief.get("sections"), list) or not brief["sections"]:
         raise ValueError("brief.sections empty")
     brief["date"] = today  # force correct date
+    # The prior-session label is a calendar fact, not a judgement call: the model
+    # labelled Friday 2026-07-31 as "Thu Jul 31" in the 8/1 brief. Compute it.
+    _d = datetime.date.fromisoformat(today)
+    brief["recap_session"] = prev_trading_day(_d).strftime("%a %b %-d")
     if not brief.get("eyebrow"):
         brief["eyebrow"] = "Morning Brief"
     # SOFT keys: a model response that omits ONE optional list must never freeze
@@ -341,6 +416,16 @@ def send_email(b, today):
         to = [user]  # rollout-safe: Joe only
     if not (user and pw and to):
         print("WARN: email not configured; skipping send", file=sys.stderr); return False
+    # Morning window + trading-day gate, checked again here so no future caller can
+    # route around it, and a send-once claim so concurrent runs can't double-mail.
+    now = datetime.datetime.now(ET)
+    if not _ignore_calendar():
+        if not is_trading_day(now.date()):
+            print(f"not a trading day ({now:%Y-%m-%d %a}) — no email"); return False
+        if not (BUILD_FROM_HOUR_ET <= now.hour < EMAIL_UNTIL_HOUR_ET):
+            print(f"outside the morning email window ({now:%H:%M} ET) — no email"); return False
+    if not claim_email_send(today):
+        return False
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"Market Brief — {today}" + (" [test]" if mode != "live" else "")
@@ -355,8 +440,17 @@ def send_email(b, today):
         print(f"WARN: email send failed (non-fatal): {e}", file=sys.stderr); return False
 
 def main():
-    today = datetime.datetime.now(ET).strftime("%Y-%m-%d")
+    now = datetime.datetime.now(ET)
+    today = now.strftime("%Y-%m-%d")
     out = os.path.join(os.path.dirname(__file__), "..", "public", "daily_brief.json")
+    # A brief is a pre-market artifact. Off a trading day there is no session to
+    # brief, and before 05:00 ET there is no overnight to summarise -- the site
+    # correctly keeps the last trading day's brief in both cases.
+    if not _ignore_calendar():
+        if not is_trading_day(now.date()):
+            return _status("skipped_not_trading_day")
+        if now.hour < BUILD_FROM_HOUR_ET:
+            return _status("skipped_too_early")
     # Idempotency: if the committed brief is already today's, do nothing -- no model
     # call, no commit, no email. Any number of runs/day (the dual EDT/EST writer cron,
     # the dense self-heal, a manual dispatch) thus collapse to ONE generation. Set
@@ -366,7 +460,7 @@ def main():
         try:
             if json.load(open(out, encoding="utf-8")).get("date") == today:
                 print(f"brief already current ({today}); nothing to do")
-                return
+                return _status("already_current")
         except Exception:
             pass
     feeds = fetch_feeds()
@@ -392,6 +486,7 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         json.dump(brief, f, ensure_ascii=False, indent=2)
     print(f"wrote public/daily_brief.json — {today}: {brief['headline']}")
+    _status("generated")
     send_email(brief, today)
 
 if __name__ == "__main__":

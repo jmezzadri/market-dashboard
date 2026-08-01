@@ -61,7 +61,18 @@ def alert(today, prev):
 
 
 def main():
-    today = datetime.datetime.now(ET).strftime("%Y-%m-%d")
+    now = datetime.datetime.now(ET)
+    today = now.strftime("%Y-%m-%d")
+    # A brief only exists on trading days (2026-08-01). Off one, the site
+    # correctly carries the last trading day's brief -- that is NOT stale, and
+    # treating it as stale is how a safety net turns into a Saturday 2am email.
+    # After 07:00 ET only, so the 06:15 writer gets its shot before we step in.
+    if not bdb.is_trading_day(now.date()):
+        print(f"{today} is not a trading day — the brief is not expected to be today's")
+        return
+    if now.hour < 7:
+        print(f"{now:%H:%M} ET is before the writer's window closes — not yet stale")
+        return
     prev = live_date()
     if prev == today:
         print(f"brief current ({today}) — no action needed")

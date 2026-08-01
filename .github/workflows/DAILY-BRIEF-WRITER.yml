@@ -83,6 +83,16 @@ jobs:
 
       - name: Verify brief is current + well-formed
         run: |
+          # The writer deliberately does nothing off a trading day or before 05:00 ET
+          # (this workflow is also fired by workflow_run on pipelines that run at 2am).
+          # A skip is a correct outcome, not a failure -- asserting "date == today"
+          # unconditionally would turn every weekend run into a red build and a
+          # WORKFLOW_FAILURE_ALERT email to Joe.
+          STATUS="$(cat /tmp/brief_status.txt 2>/dev/null || echo unknown)"
+          if [ "$STATUS" != "generated" ] && [ "$STATUS" != "already_current" ]; then
+            echo "writer skipped on purpose ($STATUS) — nothing to verify"
+            exit 0
+          fi
           test -s public/daily_brief.json
           python -c "
           import json, datetime
