@@ -1,8 +1,8 @@
 {
   "source": "https://github.com/unitedstates/congress-legislators",
   "license": "CC0",
-  "generated_at": "2026-04-30T15:08:39Z",
-  "count": 536,
+  "generated_at": "2026-08-01T11:10:11Z",
+  "count": 537,
   "members": [
     {
       "name": "Maria Cantwell",
@@ -69,12 +69,6 @@
       "aliases": [
         "Richard Durbin"
       ]
-    },
-    {
-      "name": "Lindsey Graham",
-      "party": "R",
-      "chamber": "Senate",
-      "state": "SC"
     },
     {
       "name": "Mitch McConnell",
@@ -3828,6 +3822,21 @@
       "party": "D",
       "chamber": "House",
       "state": "NJ"
+    },
+    {
+      "name": "James Gallagher",
+      "party": "R",
+      "chamber": "House",
+      "state": "CA"
+    },
+    {
+      "name": "Darline Graham",
+      "party": "R",
+      "chamber": "Senate",
+      "state": "SC",
+      "aliases": [
+        "Darline Graham Nordone"
+      ]
     }
   ]
 }
