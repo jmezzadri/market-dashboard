@@ -605,16 +605,16 @@
    "source_vendor": "GitHub:unitedstates",
    "license_tier": "public",
    "cadence": "monthly",
-   "refresh_trigger": "github-actions: REFRESH-CONGRESS-ROSTER.yml",
+   "refresh_trigger": "RETIRED 2026-08-01 \u2014 workflow deleted",
    "schedule_et": "1st of month, 06:00 ET",
    "freshness_sla_hours": 1200,
    "consumer_surfaces": [
-    "Ticker Detail modal \u2192 Congress trade roster (member name resolution)"
+    "RETIRED 2026-08-01: the monthly run failed at its open-a-PR step and alerted Joe, and a full-repo grep found NO code that reads src/data/congress_roster.json \u2014 the 'Ticker Detail Congress tab' consumer named here did not survive the 2026-07-20 ticker-page rescope. The UW congress-trade feed it existed to label is dropped at the 2026-08-12 UW lapse."
    ],
-   "target_storage": "src/data/congress_roster.json (committed via PR)",
-   "failure_mode": "New members in Congress show as raw IDs until next monthly refresh; existing members unaffected.",
+   "target_storage": "src/data/congress_roster.json (frozen in place \u2014 536 members, generated 2026-04-30)",
+   "failure_mode": "None \u2014 retired.",
    "owner": "Data Steward",
-   "notes": "CC0 public-domain data \u2014 unitedstates/congress-legislators GitHub repo.",
+   "notes": "CC0 public-domain data \u2014 unitedstates/congress-legislators GitHub repo. Zero code consumers verified by full-repo grep 2026-08-01; no pipeline_health row existed, so there was nothing to deregister.",
    "id": "scanner.congress-roster"
   },
   "scanner.legacy-user-scan-data": {

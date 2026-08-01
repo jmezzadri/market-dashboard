@@ -58,8 +58,7 @@ slots:
     description: |
       First-of-month, 06:00 ET. Used for low-cadence reference data
       that updates monthly or less.
-    pipelines:
-      - REFRESH-CONGRESS-ROSTER.yml: scanner.congress-roster
+    pipelines: []   # REFRESH-CONGRESS-ROSTER.yml retired 2026-08-01 (zero consumers; failed its monthly run and alerted Joe)
 
 
 # Pipelines deliberately NOT on a normalized slot, with reason.

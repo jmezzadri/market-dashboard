@@ -147,10 +147,10 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 - **Monthly cost:** $0 (CC0 public domain)
 - **License tier:** Public, CC0 license.
 - **What it powers (manifest elements):**
-  - `scanner.congress-roster` — names / party / state of US senators and reps (member-ID lookup in Ticker Detail Congress tab)
+  - `scanner.congress-roster` — **RETIRED 2026-08-01.** Names / party / state of US senators and reps. The monthly refresh workflow was deleted after it failed its 2026-08-01 run and alerted Joe; a full-repo grep found no code reading `src/data/congress_roster.json`, so the "Ticker Detail Congress tab" consumer recorded here had already gone away in the 2026-07-20 ticker-page rescope. The UW congress-trade feed this roster labelled is dropped at the 2026-08-12 UW lapse.
 - **Alternatives evaluated:** ProPublica Congress API (free, requires key). Senate.gov + House.gov scrape (more brittle).
 - **Contract end date:** None.
-- **Removal blast radius:** Trivial. New members of Congress would show as raw IDs in the Ticker Detail Congress tab until next monthly refresh; existing members are already cached in `src/data/congress_roster.json`.
+- **Removal blast radius:** None — retired with zero consumers. The frozen roster file stays in the repo (536 members, generated 2026-04-30); if a Congress surface is ever rebuilt, restore the workflow from git history and give it push rights instead of the PR step that failed.
 
 ---
 
