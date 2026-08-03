@@ -286,15 +286,21 @@ def apply_cash_conservation(
     for i in buys:
         px = _price(eod_prices, i.ticker)
         target = abs(float(i.target_notional or 0.0)) * scale
-        if i.target_quantity is not None and px is not None:
-            qty = float(floor(_buy_cost(i, eod_prices) * scale / px))
+        if i.target_quantity is not None:
+            # Share-sized order: scale the SHARE COUNT and re-floor to whole
+            # shares. It must be the share count, not just the dollar figure:
+            # submitter.py sizes off target_quantity whenever it is present,
+            # so scaling only the notional would leave the real spend
+            # unchanged. Flooring can only ever spend less.
+            qty = float(floor(abs(float(i.target_quantity)) * scale))
             if qty < 1:
                 dropped.append(i.ticker.upper())
                 continue
-            cost = qty * px
+            cost = qty * px if px is not None else target
         else:
-            # No share count / no price: the submitter will size in dollars.
-            qty = i.target_quantity
+            # Dollar-sized order (no EOD price to convert): the submitter
+            # sizes it in notional, so scaling the notional is the whole fix.
+            qty = None
             cost = target
             if cost <= 0:
                 dropped.append(i.ticker.upper())

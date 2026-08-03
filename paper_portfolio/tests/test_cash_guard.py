@@ -352,3 +352,26 @@ def test_guard_is_a_no_op_on_a_quiet_morning():
     kept, res = apply_cash_conservation(
         [], sleeve="M", sleeve_cash=-50_000.0, eod_prices={})
     assert kept == [] and res.scale_factor == 1.0
+
+
+def test_share_sized_buy_without_a_price_still_shrinks():
+    """A buy that carries a share count but whose ticker is missing from the
+    EOD price map must still have its SHARE COUNT reduced. submitter.py sizes
+    off target_quantity whenever it is present, so scaling only the dollar
+    figure would leave the real spend unchanged — the guard would look like it
+    worked and the sleeve would still overdraw.
+
+    Sells $100,000 at prior close -> proceeds $98,600 -> budget $97,268.90;
+    two $50,000 buys -> scale 0.9726890; both floor to 486 of 500 shares.
+    """
+    prices = {"SELLME": 100.0, "AAA": 100.0}          # no price for NOPX
+    intents = [_sell("SELLME", 1000.0, -100_000.0),
+               _buy("AAA", 500.0, 50_000.0),
+               _buy("NOPX", 500.0, 50_000.0)]
+    kept, res = apply_cash_conservation(
+        intents, sleeve="M", sleeve_cash=0.0, eod_prices=prices)
+    buys = {i.ticker: i for i in kept if i.side == "buy"}
+    assert buys["AAA"].target_quantity == 486.0
+    assert buys["NOPX"].target_quantity == 486.0
+    assert buys["NOPX"].target_notional < 50_000.0
+    assert res.projected_cash >= 0
