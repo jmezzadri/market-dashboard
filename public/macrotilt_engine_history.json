@@ -17795,16 +17795,16 @@
     },
     {
       "date": "2026-07-31",
-      "move": 77.1,
-      "move_pctile_5y": 0.2184,
+      "move": 83.0,
+      "move_pctile_5y": 0.2759,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
-      "delta_y_3m_bp": 29.0,
-      "delta_y_3m_pctile_5y": 0.659,
+      "delta_y_3m_bp": 36.0,
+      "delta_y_3m_pctile_5y": 0.7241,
       "inflationary_threshold_bp": 34.0,
       "deflationary_threshold_bp": -9.0,
       "stress_state": "Risk On",
-      "yield_regime": "Neutral",
+      "yield_regime": "Inflationary",
       "equity_pct": 100,
       "defensive_pct": 0
     }

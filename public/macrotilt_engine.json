@@ -6,18 +6,18 @@
   "next_refresh": "2026-08-07",
   "stress": {
     "state": "Risk On",
-    "move_value": 77.1,
-    "move_percentile_5y": 0.218,
+    "move_value": 83.0,
+    "move_percentile_5y": 0.276,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
   },
   "yield_regime": {
-    "state": "Neutral",
-    "delta_y_3m_bp": 29.0,
-    "delta_y_3m_bp_live": 28.0,
-    "live_as_of": "2026-07-30",
-    "delta_y_3m_percentile_5y": 0.659,
+    "state": "Inflationary",
+    "delta_y_3m_bp": 36.0,
+    "delta_y_3m_bp_live": 36.0,
+    "live_as_of": "2026-07-31",
+    "delta_y_3m_percentile_5y": 0.724,
     "inflationary_threshold_bp": 34.0,
     "deflationary_threshold_bp": -9.0,
     "trailing_window_weeks": 261
@@ -25,12 +25,12 @@
   "allocation": {
     "equity_pct": 100,
     "defensive_pct": 0,
-    "active_sleeve_label": "Neutral",
+    "active_sleeve_label": "Inflationary",
     "active_sleeve_composition": {
       "cash": 0.5,
-      "GLD": 0.25,
-      "SHY": 0.0,
-      "TLT": 0.25
+      "GLD": 0.3,
+      "SHY": 0.2,
+      "TLT": 0.0
     }
   },
   "sources": {
