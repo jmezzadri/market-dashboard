@@ -52,6 +52,46 @@ SIZING_CASH_BUFFER_PCT = 0.01      # deploy 99% of live sleeve NAV
 CASH_DRIFT_ALERT_PCT = 0.02        # |sleeve cash| > 2% of NAV files a P1 bug
 SIZING_NAV_SANITY_BAND = (0.5, 1.5)  # NAV outside band vs allocation -> fall back
 
+
+# ── Cash-conservation constraint (2026-08-03 incident; Senior Quant) ─────────
+# SIZING_CASH_BUFFER_PCT above is anchored to sleeve NAV. The overnight
+# execution exposure is proportional to TURNOVER, not NAV: share counts are
+# fixed off the PRIOR EOD close and the orders fill at the next opening
+# auction, so a gap-up on the buy book and a gap-down on the sell book both
+# come straight out of cash. On 2026-08-03 sleeve M turned over ~73% of NAV;
+# the buy book filled +0.72% above prior close while the sell book filled
+# -1.78% below it, and a 1%-of-NAV buffer ($4,782) could not absorb $8,669 of
+# execution drag. Sleeve M ended the morning at -$2,535.51 — a margin debit,
+# which the sleeve spec ("long-only, no leverage") forbids.
+#
+# cash_guard.py sizes the buy book against the cash the sleeve will actually
+# have rather than against NAV:
+#   expected_proceeds = SUM(sell qty x prior close) x (1 - SELL_GAP_HAIRCUT_PCT)
+#   buy_budget        = (sleeve cash + expected_proceeds) x (1 - BUY_GAP_BUFFER_PCT)
+#
+# CALIBRATION (empirical, prices_eod, 2023-08-01 -> 2026-08-03).
+# Universe: every name the Power Trend list or the Insider scanner has ever
+# selected (97 tickers), restricted to name-days in the state the sleeves buy
+# in (trailing 63-day return >= +20%) — 9,911 name-days. Overnight gap =
+# (open - prior close) / prior close, split seams excluded (|gap| > 30%,
+# 19 of 50,644 raw rows; LESSON 4.20).
+#
+# The exposure is a BOOK-level gap, not a single-name gap, so the measurement
+# samples same-day baskets (which preserves the common market factor) rather
+# than reading a single-name percentile. Diversification matters a lot:
+#     single name              95th pctile gap  +2.05%
+#     11-name equal-wt basket  95th pctile gap  +1.30%   <- buy book
+#     14-name equal-wt basket   5th pctile gap  -1.34%   <- sell book
+# 24,640 sampled baskets. Constants are those percentiles rounded up.
+#
+# Cost of carrying them: on a full-turnover rebalance the pair leaves ~2.7%
+# of the buy book (~2.2% of sleeve NAV) uninvested until the next monthly
+# publish redeploys it — roughly 0.3%/yr of forgone sleeve return. Measured
+# against the whole 3-year sample, the pair covers the joint (buy gap-up AND
+# sell gap-down) exposure on 99.5% of mornings.
+SELL_GAP_HAIRCUT_PCT = 0.0140   # assume sells fill 1.40% below prior close
+BUY_GAP_BUFFER_PCT   = 0.0135   # assume buys fill 1.35% above prior close
+
 SLEEVE_B_REBALANCE_DOLLAR_MIN = 500.0
 SLEEVE_B_REBALANCE_PCT_MIN    = 0.03
 

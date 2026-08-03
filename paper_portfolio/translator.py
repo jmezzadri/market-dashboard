@@ -190,6 +190,17 @@ def run(
                 logger.info("momentum FIRED (%s): %d intents, %d lines, idle $%s",
                             why, len(m_intents), len(sleeve_m.lines),
                             f"{sleeve_m.idle_cash:,.0f}")
+                # CASH-CONSERVATION CONSTRAINT (2026-08-03 incident). Sizing
+                # is anchored to NAV; the overnight execution exposure scales
+                # with TURNOVER. Cap the buy book at the cash the sleeve will
+                # actually have. Sizing only — this cannot create an intent.
+                m_intents, m_guard = _guard_sleeve_cash(m_intents, "M", m_prices)
+                if m_guard.get("aborted"):
+                    momentum_action += " — buy orders held back to protect cash"
+                elif m_guard.get("scale_factor", 1.0) < 1.0:
+                    momentum_action += (
+                        f" — buys trimmed ${m_guard['dollars_trimmed']:,.0f} "
+                        f"to stay inside the sleeve's cash")
                 if not dry_run:
                     write_signal_capture(
                         signal_source="momentum",
@@ -199,7 +210,11 @@ def run(
                             "all_cash": m_snap.all_cash,
                             "list_size": len(m_snap.entries),
                             "trigger": why,
+                            "cash_guard": m_guard,
                         },
+                        # Written AFTER the guard so the watchdog's
+                        # expected-vs-actual check (LESSON 8.20) compares
+                        # against the orders that are really submitted.
                         triggered_orders_count=len(m_intents),
                     )
             else:
@@ -260,6 +275,10 @@ def run(
         open_order_tickers=open_order_tickers,
         sleeve_m_qty=sleeve_m_held,   # scanner never touches Momentum's shares
     )
+    # Same cash-conservation constraint on the scanner sleeve: it carries the
+    # identical exposure (whole-share counts fixed at the prior close, filled
+    # at the next open) and is equally specified long-only, no leverage.
+    intents, _b_guard = _guard_sleeve_cash(intents, "B", eod_prices)
     intents = intents + [i for i in m_intents
                          if not (i.ticker.upper() in open_order_tickers)]
     logger.info("diff produced %d order intents", len(intents))
@@ -334,6 +353,66 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def _guard_sleeve_cash(
+    intents: list[OrderIntent],
+    sleeve: str,
+    eod_prices: dict[str, float],
+) -> tuple[list[OrderIntent], dict]:
+    """Apply the cash-conservation constraint to one sleeve's intents.
+
+    SIZING ONLY. It can shrink or drop buys; it can never add an order and
+    never decides whether a rebalance happens. With no buy intents it is a
+    no-op, so on the ~95% of mornings that produce no trades nothing changes.
+
+    On the hard-invariant abort the buy book is dropped, the SELLS are kept
+    (they raise cash — they are the repair, not the cause) and a P1 bug is
+    filed so a sleeve that cannot fund itself is never silent.
+    """
+    from paper_portfolio.cash_guard import (
+        CashConservationError,
+        apply_cash_conservation,
+        load_sleeve_cash,
+    )
+    if not intents:
+        return intents, {}
+    cash = load_sleeve_cash(sleeve)
+    try:
+        kept, res = apply_cash_conservation(
+            intents, sleeve=sleeve, sleeve_cash=cash, eod_prices=eod_prices)
+        return kept, res.as_payload()
+    except CashConservationError as exc:
+        # The full arithmetic goes to the RUN LOG. The alert Joe reads is
+        # plain English with no internal names (LESSON 0.4).
+        logger.error("sleeve %s buy book aborted by the cash guard: %s", sleeve, exc)
+        name = "Momentum" if sleeve == "M" else "Insider Conviction"
+        r = exc.result
+        try:
+            from paper_portfolio.freshness import file_alert
+            detail = ""
+            if r is not None:
+                detail = (
+                    f"The sleeve was holding ${r.starting_cash:,.0f} in cash and its "
+                    f"sales were expected to bring in about ${r.expected_proceeds:,.0f}, "
+                    f"against ${r.buy_notional_requested:,.0f} of buying. ")
+            file_alert(
+                title=f"Paper {name} sleeve — buy orders held back to protect cash",
+                description=(
+                    f"This morning's buy orders for the {name} sleeve were not placed. "
+                    + detail +
+                    "There was not enough cash to pay for them without borrowing, and "
+                    "this sleeve is not allowed to borrow. The sell orders still went "
+                    "ahead, which puts cash back in, and the sleeve keeps everything "
+                    "else it already owns. Nothing needs to be done before the market "
+                    "opens; the next rebalance will size itself against the cash that "
+                    "is actually there."),
+                priority="P1")
+        except Exception:  # noqa: BLE001 — alerting must not break the run
+            logger.warning("cash-guard abort alert failed to file")
+        payload = exc.result.as_payload() if exc.result else {}
+        payload["aborted"] = True
+        return exc.sell_intents, payload
 
 
 def _sleeve_sizing_capital(allocation: float, nav_col: str) -> float:
