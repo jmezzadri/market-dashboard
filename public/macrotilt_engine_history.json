@@ -17795,8 +17795,8 @@
     },
     {
       "date": "2026-07-31",
-      "move": 83.0,
-      "move_pctile_5y": 0.2759,
+      "move": 70.9,
+      "move_pctile_5y": 0.1571,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 36.0,
