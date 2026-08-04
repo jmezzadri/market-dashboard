@@ -1,4 +1,9 @@
-Nasdaq options price a 1.6% daily swing. S&P options: 1.0%.
-That 63% hedging gap is at 20-year records — set with a war on in the Gulf.
-The vol market isn't hedging Hormuz, it's hedging the AI trade. Since Jun 15 tech has lagged the S&P by 4 pts.
+Nasdaq vol: 8+ pts over the VIX for 40 straight days — never in 20 years of data.
+
+Prior record: 14 days, Sept 2020. Nasdaq slid 12% in 3 weeks.
+
+S&P at a record; Nasdaq 4% off its high, moving 2x as fast.
+
+Last time, the gap closed from the VIX side.
+
 macrotilt.com
