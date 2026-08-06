@@ -158,6 +158,24 @@ function SignInRoute() {
   );
 }
 
+// RequireAuth — login gate for routes that must not be public. First use:
+// /paper (Joe directive 2026-08-06) — the paper book is under a performance
+// review and stays behind sign-in until the quant team clears it. Renders the
+// shared LoginScreen in place (no redirect), so after signing in the user
+// lands right back on the page they asked for.
+function RequireAuth({ children }) {
+  const { session, loading } = useSession();
+  if (loading) return null;
+  if (!session) {
+    return (
+      <main className="mt-main-wrap">
+        <LoginScreen />
+      </main>
+    );
+  }
+  return children;
+}
+
 function Shell() {
   // The Home route is the full-bleed Daily-Brief design (its own header +
   // ribbon). Every other route keeps the standard sidebar + top chrome until
@@ -176,7 +194,7 @@ function Shell() {
             <Route path="/tilt" element={<Navigate to="/macro" replace />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/signin" element={<SignInRoute />} />
-            <Route path="/paper" element={<PaperRoute />} />
+            <Route path="/paper" element={<RequireAuth><PaperRoute /></RequireAuth>} />
             <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />

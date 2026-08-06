@@ -24,6 +24,11 @@ export default function TopNav() {
   const signedIn = !!user;
   const email = user?.email || '';
 
+  // Paper is login-gated while its performance is under review (Joe directive
+  // 2026-08-06): hide the nav item from signed-out visitors. The /paper route
+  // itself is wrapped in RequireAuth, so deep links land on the sign-in card.
+  const items = ITEMS.filter((item) => item.to !== '/paper' || signedIn);
+
   async function handleSignOut() {
     try { await supabase.auth.signOut(); } catch (e) { /* best effort */ }
     if (typeof window !== 'undefined') window.location.assign('/');
@@ -36,7 +41,7 @@ export default function TopNav() {
       </NavLink>
 
       <nav className="mt-topnav-links" aria-label="Primary">
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
