@@ -58,38 +58,65 @@ jobs:
       contents: read
       actions: read
     steps:
-      - name: Was this a real failure or a GitHub runner-shortage cancel?
+      - name: Check out repo (for the failure classifier)
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4.2.2
+
+      - name: Was this a real failure or GitHub infra noise?
         if: github.event_name == 'workflow_run'
         # 2026-05-06 (Joe directive — "why is my data refreshing always failing,
         # I get dozens of these emails"). GitHub Actions runner shortages cause
-        # workflows to finish with conclusion=failure even when no code failed —
-        # the job sits in "Waiting for a runner" until GH gives up and marks
-        # everything cancelled. Each of those false-positive cancellations was
-        # firing this alert. New rule: fetch the run's job-level conclusions;
-        # only send the email if at least one job has conclusion=failure (i.e.
-        # an actual step blew up). All-cancelled => GH infra noise, suppress.
+        # workflows to finish in a failed state even when no code failed.
+        #
+        # 2026-08-06 — that rule only caught ONE of the two shapes. Shape (a):
+        # the job never gets a runner, GitHub cancels everything (conclusion=
+        # cancelled) — already suppressed. Shape (b): a runner IS assigned but
+        # "Set up job" hangs and GitHub marks THAT STEP failed, ending the job
+        # with conclusion=failure. Shape (b) is indistinguishable from a real
+        # failure at the JOB level, so `any(job.conclusion=='failure')` alerted
+        # on it. Three such emails fired for PAPER-PORTFOLIO-EOD-DAILY on
+        # 2026-08-06 (runs 31114532783, 31116873789 — each with exactly one
+        # step, "Set up job" = failure, and no checkout).
+        #
+        # The discriminator is WHICH STEP failed: if the only failed steps are
+        # GitHub's own scaffolding ("Set up job" / "Set up runner" /
+        # "Complete job"), the runner never came up and our code never ran.
+        # A genuine failure always fails a step the workflow author wrote.
+        # Classification logic lives in .github/scripts/classify_run_failure.py
+        # so it is unit-testable (tests/test_classify_run_failure.py).
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
           WF_NAME:   ${{ github.event.workflow_run.name }}
         run: |
-          # Pull job-level conclusions for the failed run.
-          JOBS_JSON=$(curl -fsS --max-time 10             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${WF_RUN_ID}/jobs?per_page=100")
-          ANY_FAILURE=$(echo "$JOBS_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if any((j.get('conclusion')=='failure') for j in d.get('jobs',[])) else 'false')")
-          ALL_CANCELLED=$(echo "$JOBS_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); j=d.get('jobs',[]); print('true' if (j and all(x.get('conclusion')=='cancelled' for x in j)) else 'false')")
-          echo "Workflow: $WF_NAME  ·  any-job-failure=$ANY_FAILURE  ·  all-jobs-cancelled=$ALL_CANCELLED"
-          if [ "$ANY_FAILURE" = "true" ]; then
-            echo "::notice::Real failure — alert will be sent."
-            echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
-          elif [ "$ALL_CANCELLED" = "true" ]; then
-            echo "::notice::All jobs cancelled — likely GitHub runner-shortage. Suppressing alert."
-            echo "IS_REAL_FAILURE=false" >> "$GITHUB_ENV"
-          else
-            # No failed jobs but also not all-cancelled (e.g. a mix of skipped and timed-out).
-            # Default to alerting so we err toward visibility on edge cases.
-            echo "::notice::Ambiguous outcome — alerting to be safe."
-            echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
-          fi
+          set -euo pipefail
+          JOBS_JSON=$(curl -fsS --max-time 15 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${WF_RUN_ID}/jobs?per_page=100")
+
+          VERDICT=$(printf '%s' "$JOBS_JSON" | python3 .github/scripts/classify_run_failure.py)
+          echo "Workflow: $WF_NAME  ·  run: $WF_RUN_ID  ·  verdict: $VERDICT"
+
+          case "$VERDICT" in
+            real)
+              echo "::notice::Real failure (an author-written step failed) — alert will be sent."
+              echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
+              ;;
+            infra_cancelled)
+              echo "::notice::All jobs cancelled — GitHub runner shortage. Suppressing alert."
+              echo "IS_REAL_FAILURE=false" >> "$GITHUB_ENV"
+              ;;
+            infra_setup)
+              echo "::notice::Failure confined to GitHub's own setup/teardown steps (runner never provisioned; our code never ran). Suppressing alert."
+              echo "IS_REAL_FAILURE=false" >> "$GITHUB_ENV"
+              ;;
+            *)
+              # Mixed / unrecognised shape — err toward visibility.
+              echo "::notice::Ambiguous outcome — alerting to be safe."
+              echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
+              ;;
+          esac
 
       - name: Send alert email (Gmail SMTP — same channel as the daily brief)
         if: env.IS_REAL_FAILURE == 'true' || github.event_name == 'workflow_dispatch'
