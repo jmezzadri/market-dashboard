@@ -45,6 +45,17 @@ on:
       - SCREENER_TRADING_OPPS_DAILY
       - PAPER-PORTFOLIO-EOD-DAILY
       - MARKET-INDICATORS-EOD
+      # Homepage brief chain + weekly positioning + the freshness guards
+      # themselves — added 2026-08-06 after DAILY-BRIEF-WRITER failed 60+
+      # runs across three trading days (homepage sat on the Jul 31 brief)
+      # with zero alert emails: none of these were on this watchlist.
+      - DAILY-BRIEF-WRITER
+      - BRIEF-FRESHNESS-SELFHEAL
+      - CFTC-COT-WEEKLY
+      - PIPELINE-FRESHNESS-WATCHDOG
+      - PAPER-PORTFOLIO-INTRADAY
+      - macrotilt-engine-daily
+      - INDICATOR-DRILLS-DAILY
     types:
       - completed
   workflow_dispatch: {}   # manual TEST send — proves the channel end-to-end

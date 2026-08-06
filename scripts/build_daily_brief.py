@@ -473,7 +473,17 @@ def main():
             brief = validate(call_model(feeds, movers, today), today)
             break
         except Exception as e:
-            print(f"WARN: brief build attempt {attempt} failed: {e}", file=sys.stderr)
+            # Diagnosability (2026-08-06): urllib's HTTPError repr is just
+            # "HTTP Error 400: Bad Request" — the API's actual error body
+            # (credits exhausted / bad model id / bad tool spec) was being
+            # swallowed, which hid a 3-day outage. Always print the body.
+            detail = ""
+            if isinstance(e, urllib.error.HTTPError):
+                try:
+                    detail = " — body: " + e.read().decode(errors="replace")[:500]
+                except Exception:
+                    pass
+            print(f"WARN: brief build attempt {attempt} failed: {e}{detail}", file=sys.stderr)
     if brief is None:
         print("FATAL: brief failed to build/validate after retry; refusing to publish", file=sys.stderr)
         sys.exit(1)
