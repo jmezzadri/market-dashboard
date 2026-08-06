@@ -60,6 +60,11 @@ jobs:
     steps:
       - name: Check out repo (for the failure classifier)
         if: github.event_name == 'workflow_run'
+        # continue-on-error: this alert is the last line of defence against a
+        # silent red. A checkout hiccup must degrade to "alert anyway" (handled
+        # below), never to "no email" — that is exactly the failure mode this
+        # workflow exists to prevent (0.1: fake green is forbidden).
+        continue-on-error: true
         uses: actions/checkout@v4.2.2
 
       - name: Was this a real failure or GitHub infra noise?
@@ -89,13 +94,30 @@ jobs:
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
           WF_NAME:   ${{ github.event.workflow_run.name }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          CLASSIFIER=.github/scripts/classify_run_failure.py
+
+          # Every path that stops us from CLASSIFYING must still ALERT.
+          if [ ! -f "$CLASSIFIER" ]; then
+            echo "::warning::Classifier not found (checkout failed?) — alerting unclassified."
+            echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
           JOBS_JSON=$(curl -fsS --max-time 15 \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${WF_RUN_ID}/jobs?per_page=100")
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${WF_RUN_ID}/jobs?per_page=100") || {
+            echo "::warning::Could not fetch job list — alerting unclassified."
+            echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
+            exit 0
+          }
 
-          VERDICT=$(printf '%s' "$JOBS_JSON" | python3 .github/scripts/classify_run_failure.py)
+          VERDICT=$(printf '%s' "$JOBS_JSON" | python3 "$CLASSIFIER") || {
+            echo "::warning::Classifier errored — alerting unclassified."
+            echo "IS_REAL_FAILURE=true" >> "$GITHUB_ENV"
+            exit 0
+          }
           echo "Workflow: $WF_NAME  ·  run: $WF_RUN_ID  ·  verdict: $VERDICT"
 
           case "$VERDICT" in
