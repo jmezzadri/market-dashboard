@@ -75,13 +75,15 @@ approved by Joe via email button, published via Typefully).
 2. **X policy blocks Typefully instant-publish of posts containing URLs** ("Direct publishing of X
    drafts containing URLs is blocked"). `x-post-approval` v3 always publishes via the scheduled queue
    ~90s out — verified live tonight. Approve page says "posts within ~2 minutes."
-3. **KNOWN ISSUE — approval pages render as raw code:** supabase.co edge functions now coerce
-   text/html responses to text/plain (anti-phishing, started mid-evening Aug 6). The Approve button
-   still WORKS (action fires server-side) but the result page shows source, and the Request-changes
-   FORM is unusable. Interim: Joe requests changes by telling the agent in chat. FIX PLAN: add a
-   proxy route on macrotilt.com (Vercel app, e.g. /api/xapprove) that forwards to the Supabase
-   function and returns the HTML with correct content-type; then update meta.json URL bases in the
-   three trigger prompts.
+3. **FIXED 2026-08-07 morning — approval pages rendered as raw code:** supabase.co coerces
+   text/html to text/plain + sandbox CSP for BROWSER user-agents (curl still sees text/html —
+   that's why smoke tests passed while Joe's phone showed source; his "clicked approve and
+   nothing happened" this morning was this + a ~5s sync page). Fix shipped: **`api/xapprove.js`**
+   proxy on macrotilt.com forwards to the Supabase function and returns real text/html;
+   `x-post-approval` v5 builds every link/form against `https://macrotilt.com/api/xapprove`
+   (PUBLIC_BASE); v4 also made Approve ack in <1s (background publish via EdgeRuntime.waitUntil)
+   with a self-refreshing `a=status` page that lands on the exact x.com status URL (backfilled by
+   polling Typefully). All three trigger prompts' meta.json bases now point at the proxy.
 4. Trigger roster (all delivery via gh-push): Daily Chart trig_01UaY4TiJ5mQ4PhN3fPduKce (7:05a ET wd),
    queue checker trig_01QFJXd8JCtXoX4LgYQHC18p (8:35a–1:35p ET wd hourly), Tax & Spend
    trig_01PGunLQjiXTt4qNrtHnu6jd (Sun/Tue/Thu 12:30p ET). Typefully creds: ops_secrets
