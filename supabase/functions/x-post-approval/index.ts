@@ -184,11 +184,15 @@ async function typefullyPublish(caption: string, png: Uint8Array, apiKey: string
     if (j?.status === "failed") throw new Error("typefully media processing failed");
     await new Promise((res) => setTimeout(res, 2000));
   }
+  // publish_at:"now" is rejected by X policy for posts containing URLs ("Direct publishing of X
+  // drafts containing URLs is blocked") — captions end in macrotilt.com, so ALWAYS publish via the
+  // scheduled queue ~90s out, which X permits. Verified live 2026-08-06.
+  const when = new Date(Date.now() + 90_000).toISOString().replace(/\.\d{3}Z$/, "+00:00");
   const dr = await fetch(`https://api.typefully.com/v2/social-sets/${setId}/drafts`, {
     method: "POST", headers: H,
     body: JSON.stringify({
       platforms: { x: { enabled: true, posts: [{ text: caption, media_ids: [media_id] }] } },
-      publish_at: "now",
+      publish_at: when,
     }),
   });
   if (!dr.ok) throw new Error(`typefully draft ${dr.status}: ${(await dr.text()).slice(0, 200)}`);
@@ -287,7 +291,7 @@ Deno.serve(async (req: Request) => {
             status: "posted", tweet_url: url,
             posted_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: null,
           }).eq("id", id);
-          return page("Posted", `<h1 class="ok">Publishing &#10003;</h1><p>Sent to X via Typefully &mdash; it'll be on the timeline in under a minute.</p>
+          return page("Posted", `<h1 class="ok">Publishing &#10003;</h1><p>Approved &mdash; it posts to X within ~2 minutes (queued publish; X blocks instant API posts with links).</p>
             <a class="btn gold" href="${url}">Open @WeTheSheeple46</a>`);
         } else {
           await supabase.from(TABLE).update({ status: "pending", error: "posting_not_configured", updated_at: new Date().toISOString() }).eq("id", id);
