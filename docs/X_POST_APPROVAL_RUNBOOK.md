@@ -31,9 +31,14 @@ Other exits: `failed` (posting error; retry allowed), `expired` (not same-day), 
 
 ## Activation checklist (in order — do not flip the trigger prompt early)
 
-1. Posting credentials in `ops_secrets` (names the function reads):
-   - X API route: `x_api_key`, `x_api_secret`, `x_access_token`, `x_access_token_secret`
+1. Posting credentials in `ops_secrets` (names the function reads) — EITHER route:
+   - **Route A, X API:** `x_api_key`, `x_api_secret`, `x_access_token`, `x_access_token_secret`
      (X developer app on @WeTheSheeple46, Read+Write, pay-per-use credits).
+     ⚠ 2026-08-06: X blocked @WeTheSheeple46's developer signup — "account has been flagged,
+     contact support." Route A unavailable until the flag clears.
+   - **Route B, Typefully (implemented, active fallback):** `typefully_api_key` only.
+     Function auto-discovers and caches `typefully_social_set_id`. Flow: media slot →
+     presigned PUT → poll ready → draft with `publish_at: "now"`.
 2. Merge the `x-charts` workflow PR and the `main` function-source PR.
 3. Dry-run: insert a manual test row + push a test meta.json off-hours; Joe taps approve on a
    throwaway caption; verify tweet lands; delete the tweet if desired.
