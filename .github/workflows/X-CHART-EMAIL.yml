@@ -1,11 +1,16 @@
-# Emails the MacroTilt Daily X Chart (PNG attachment + caption) to Joe.
-# Fires on every push of a new chart to this branch. One push per weekday
-# morning (from the cloud chart producer) -> exactly one email.
+# Emails the MacroTilt Daily X Chart to Joe.
+# Fires on every push of a new chart to this branch.
+#
+# v2: if meta.json is present (approval flow), sends an HTML email with the chart
+# inline, the caption, and two buttons — "Approve & post" and "Request changes" —
+# wired to the x-post-approval Supabase edge function. Nothing posts to X without
+# the approve tap. If meta.json is absent or stale, falls back to the original
+# plain email (manual posting), so the old flow keeps working unchanged.
 name: X-CHART-EMAIL
 on:
   push:
     branches: [x-charts]
-    paths: ["chart.png", "caption.txt"]
+    paths: ["chart.png", "caption.txt", "meta.json"]
 jobs:
   email:
     runs-on: ubuntu-latest
@@ -19,26 +24,71 @@ jobs:
           EMAIL_FROM:    ${{ secrets.EMAIL_FROM }}
         run: |
           python - <<'EOF'
-          import os, smtplib, datetime
+          import os, json, smtplib, datetime, html
           from zoneinfo import ZoneInfo
           from email.mime.multipart import MIMEMultipart
           from email.mime.text import MIMEText
           from email.mime.image import MIMEImage
 
-          today = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%B %-d, %Y")
+          now_et = datetime.datetime.now(ZoneInfo("America/New_York"))
+          today_iso = now_et.strftime("%Y-%m-%d")
+          today = now_et.strftime("%B %-d, %Y")
           caption = open("caption.txt").read().strip()
-          msg = MIMEMultipart()
-          msg["Subject"] = f"MacroTilt Daily X Chart - {today}"
+
+          meta = None
+          if os.path.exists("meta.json"):
+              try:
+                  m = json.load(open("meta.json"))
+                  if m.get("post_date") == today_iso and m.get("approve_url") and m.get("changes_url"):
+                      meta = m
+              except Exception:
+                  meta = None
+
+          img_bytes = open("chart.png", "rb").read()
+
+          if meta:
+              subject = f"Approve today's X chart - {today}"
+              revised = " (revised)" if meta.get("revision") else ""
+              msg = MIMEMultipart("related")
+              cap_html = html.escape(caption).replace("\n", "<br>")
+              body_html = f"""<!doctype html><html><body style="margin:0;background:#faf8f4;font-family:Georgia,serif;color:#1a1a14">
+              <div style="max-width:600px;margin:0 auto;padding:28px 18px">
+                <div style="font-size:21px;font-weight:bold">Macro<span style="color:#b8860b;font-style:italic">Tilt</span>
+                  <span style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#8a8374;font-weight:normal">&nbsp;Daily X Chart{revised} &middot; {today}</span></div>
+                <div style="background:#ffffff;border:1px solid #e6e1d6;border-radius:12px;padding:18px;margin-top:14px">
+                  <img src="cid:chart" alt="Today's chart" style="width:100%;height:auto;border-radius:6px">
+                  <div style="background:#f6f3ec;border-radius:8px;padding:14px;margin-top:14px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45">{cap_html}</div>
+                  <a href="{meta['approve_url']}" style="display:block;text-align:center;background:#b8860b;color:#ffffff;text-decoration:none;
+                     padding:16px;border-radius:10px;margin-top:16px;font-family:Helvetica,Arial,sans-serif;font-size:17px;font-weight:bold">&#10003;&nbsp; Approve &amp; post to X</a>
+                  <a href="{meta['changes_url']}" style="display:block;text-align:center;background:#f0ece2;color:#1a1a14;text-decoration:none;
+                     padding:14px;border-radius:10px;margin-top:10px;font-family:Helvetica,Arial,sans-serif;font-size:15px">&#9998;&nbsp; Request changes</a>
+                  <p style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#8a8374;margin:14px 0 0">
+                    Nothing posts without your tap. Unapproved charts expire at midnight ET.</p>
+                </div>
+              </div></body></html>"""
+              alt = MIMEMultipart("alternative")
+              alt.attach(MIMEText(f"Approve today's chart: {meta['approve_url']}\n\nRequest changes: {meta['changes_url']}\n\nCaption:\n{caption}"))
+              alt.attach(MIMEText(body_html, "html"))
+              msg.attach(alt)
+              inline = MIMEImage(img_bytes, name="macrotilt_daily_chart.png")
+              inline.add_header("Content-ID", "<chart>")
+              inline.add_header("Content-Disposition", "inline", filename="macrotilt_daily_chart.png")
+              msg.attach(inline)
+          else:
+              subject = f"MacroTilt Daily X Chart - {today}"
+              msg = MIMEMultipart()
+              body = ("Today's chart is attached. Caption to paste:\n\n" + caption +
+                      "\n\n(Save the image, paste the caption, post to X.)")
+              msg.attach(MIMEText(body))
+              img = MIMEImage(img_bytes, name="macrotilt_daily_chart.png")
+              img.add_header("Content-Disposition", "attachment", filename="macrotilt_daily_chart.png")
+              msg.attach(img)
+
+          msg["Subject"] = subject
           msg["From"] = os.environ["EMAIL_FROM"]
           msg["To"] = os.environ["EMAIL_TO"]
-          body = ("Today's chart is attached. Caption to paste:\n\n" + caption +
-                  "\n\n(Save the image, paste the caption, post to X.)")
-          msg.attach(MIMEText(body))
-          img = MIMEImage(open("chart.png", "rb").read(), name="macrotilt_daily_chart.png")
-          img.add_header("Content-Disposition", "attachment", filename="macrotilt_daily_chart.png")
-          msg.attach(img)
           with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
               s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
               s.send_message(msg)
-          print("sent")
+          print("sent", "approval" if meta else "legacy")
           EOF
