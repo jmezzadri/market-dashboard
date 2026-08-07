@@ -1013,3 +1013,17 @@ The 2026-05-06 suppressor was written for the shape we had seen: no runner is ev
 4. **An out-of-window no-op that dies on infra is not an incident.** Before escalating any alert on the paper-portfolio chain, check the ET clock against the phase's accept window. A failure at 11:39 ET on a workflow that only acts between 03:00 and 09:25 ET has zero blast radius, and saying so is most of the answer.
 
 **Applies to:** Lead Developer — `WORKFLOW_FAILURE_ALERT.yml` and every watchdog that grades a third party's status field as if it were our own.
+
+### 4.24 (2026-08-06) — A metered vendor account is a data feed; its balance is the freshness. And a watchlist alarm covers exactly what someone remembered to list
+
+**What happened:** the Anthropic API account ran out of credits. Every AI-generated surface died on the same day-window with the same invisible error: `generate-commentary` stopped writing the macro/sector tiles after 7/28, and DAILY-BRIEF-WRITER failed every trading morning from 8/3 — 90+ failed runs across three days — so the homepage carried the Jul 31 brief through Aug 6. Nobody was told, three ways at once: (a) urllib printed `HTTP Error 400: Bad Request` and swallowed the response body, which said in plain English "Your credit balance is too low"; (b) DAILY-BRIEF-WRITER, BRIEF-FRESHNESS-SELFHEAL, CFTC-COT-WEEKLY and PIPELINE-FRESHNESS-WATCHDOG were never on WORKFLOW_FAILURE_ALERT's watchlist, so 90+ reds emailed nothing; (c) every redundancy layer (cron sibling, three workflow_run piggybacks, the Vercel brief-ensure backstop, the self-heal) re-fired the same broken API call — redundant *triggers* are not redundant *capability*. Separately, CFTC-COT-WEEKLY hung on 8/1, hit its 15-minute job timeout, and a weekly job has no retry — one cancelled run bought 12 days of red on two positioning chips.
+
+**Rule:**
+
+1. **Every metered external account gets a balance probe.** A daily one-token ping (the ANTHROPIC-API-DIAG shape) that alerts on the *body* of the refusal, before the first production call of the morning needs it. Credits, API quotas, SMTP send limits — all of them.
+2. **Print the refusal.** An HTTP error without its response body is a diagnosis withheld; this outage was one `e.read()` away from naming itself on day one.
+3. **Alert coverage is an inventory, not a habit.** Any workflow whose failure can stale a user-visible surface goes on the watchlist the day it ships. The gap list found today is the price of doing this by memory.
+4. **N triggers into one broken call is one failure, N times.** When adding a redundant path, ask what failure mode it is redundant *against*; if all paths share a dependency, the dependency needs its own monitor (rule 1).
+5. **A weekly job that fails waits a week to disagree with you.** Weekly fetchers get a next-morning retry on failure/cancellation, or their miss cost is a full cadence.
+
+**Applies to:** Lead Developer, Senior Quant — every generator that calls a paid API, every weekly fetcher, and WORKFLOW_FAILURE_ALERT's watchlist.
