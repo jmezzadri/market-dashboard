@@ -1,96 +1,94 @@
 {
-  "date": "2026-08-06",
-  "recap_session": "Wed Aug 5",
-  "eyebrow": "Market Brief",
-  "headline": "Stocks slipped from Wednesday's record Dow close as Brent crude jumped 3.8% and the 10-year yield rose to 4.67%, with the July jobs report due Friday after the weakest private-payrolls month in six months.",
-  "stance": "Into Friday's July jobs report, the tape is being pulled in two directions: hiring data softened all week — <b>44,000 private-sector jobs added in July, the weakest in six months</b> — while oil re-accelerated, with Brent settling up 3.8% Thursday as the Strait of Hormuz reopening stayed unresolved. Equities eased off Wednesday's record Dow close rather than broke, and credit stayed calm. Friday's print decides whether the roughly 62% market-implied odds of a September hike survive the week.",
+  "date": "2026-08-07",
+  "recap_session": "Thu Aug 6",
+  "eyebrow": "Morning Brief",
+  "headline": "The July jobs report lands before this morning's open with S&P 500 futures up about 0.1%, after Iran said it struck targets in the Strait of Hormuz and Brent crude extended above $83 overnight.",
+  "stance": "Today is the week's verdict: the July jobs report — consensus near <b>83,000 jobs with unemployment at 4.2%</b> — arrives before the open, after a week in which private-sector hiring badly missed. Overnight the other pillar moved the wrong way: Iran said it struck targets in the Strait of Hormuz and a draft before its parliament would tighten shipping conditions, pushing Brent above $83 for a second day of gains. Midweek futures pricing put roughly 62% odds on a quarter-point hike at the September 16 meeting — a soft print pulls that down; a hot one, with oil re-accelerating, cements it.",
   "news": [
     {
-      "head": "Private payrolls miss badly",
-      "body": "Private-sector payrolls data showed just 44,000 jobs added in July versus roughly 75,000 expected — the weakest monthly gain in six months — one day before the official July jobs report."
+      "head": "Strait strikes stall the reopening story",
+      "body": "Iran said it struck what it described as hostile targets in the Strait of Hormuz after explosions were reported near Qeshm Island, a day after signaling a shipping-route deal with Oman was close — and a draft before Iran's parliament would impose stricter conditions on commercial shipping than markets had expected."
     },
     {
-      "head": "Hiring slows, firing doesn't",
-      "body": "Weekly unemployment claims stayed historically low at 199,000 for the week ending August 1 (below forecasts), and announced July job cuts fell 27% from June to the lowest monthly total in two years."
+      "head": "Oil extends the climb",
+      "body": "Brent rose above $83 early Friday — about $83.60 by ~6am ET, up roughly 1% — building on Thursday's 3.8% jump to an $82.49 settle; US crude sat near $78.20 overnight."
     },
     {
-      "head": "Oil jumps as a Hormuz deal hangs in the balance",
-      "body": "Brent settled at $82.49 Thursday, up 3.8%; Iran said shipping-route coordinates through the Strait of Hormuz have been agreed with Oman after three weeks of talks, with a joint announcement expected soon — but the strait remains blockaded."
+      "head": "Jobs day: consensus 83,000",
+      "body": "The official July employment report is due before the open; forecasts center on about 83,000 jobs added with unemployment holding at 4.2%, after this week's 44,000 private-payrolls miss and against June's 57,000."
     },
     {
-      "head": "Dow slips from Wednesday's record",
-      "body": "Thursday's cash session: the Dow fell 0.9% to 53,885.10 a day after its record close, the S&P 500 lost 0.2% to 7,709.96, and the Nasdaq eased 0.1% to 26,348.35 as oil's jump pressured the tape."
+      "head": "Yen gives back intervention gains",
+      "body": "The yen weakened to about ¥158.5 per dollar overnight (~6am ET), reported early Friday as having surrendered nearly half its gains from the joint US-Japan currency intervention; the pair now sits in the 85th percentile of its three-year range, a stretch reading that turned fresh this week."
     },
     {
-      "head": "Earnings sort winners from losers",
-      "body": "Honeywell Aerospace fell 23.2% and AppLovin 19.7% Thursday on results that fell short; Warner Bros. Discovery rose 1.7% on a beat — then after the close, Atlassian jumped about 33% and Doximity about 66% on their reports."
+      "head": "Gold eases despite the strait",
+      "body": "Gold traded near $4,292 an ounce early Friday (~6am ET), down from about $4,342 Thursday evening, even as crude climbed; silver sat near $61.60."
     },
     {
-      "head": "SpaceX rallies through its lockup",
-      "body": "SpaceX rose 6.1% Thursday as a share lockup expired, after trading near all-time lows earlier in the week; Nvidia rose 3% Wednesday after an exclusivity announcement tied to SpaceX."
+      "head": "Insiders cluster in small-cap pharma",
+      "body": "Filings dated Wednesday show six distinct insiders at one small-cap drug developer (MBRX) buying about $3.4 million of stock and nine buyers at another (CAMP) about $3.3 million — two of the week's largest insider-buying clusters."
     }
   ],
   "implications": [
-    "Friday's jobs print is the swing factor for the front end: futures pricing implies roughly 62% odds of a quarter-point September hike — a soft payrolls number after this week's weak private-sector data would pull that down, while a hot one would cement it with oil already re-tightening the inflation channel.",
-    "Thursday paired rising oil with rising yields and falling stocks — the stagflation-flavored mix — but the full week still shows equities up about 3.7% and credit spreads narrower; which picture sticks rides on Friday's data.",
-    "A confirmed Hormuz reopening would hit the inflation channel fast: the bond market's 10-year inflation expectation closed Wednesday at just 2.22% against 3.7% realized June inflation — bonds are already betting the energy impulse fades, and a reopening validates that bet while another disruption breaks it.",
-    "<b>Positioning:</b> New this week: speculators' Treasury longs reached the 97th percentile of the last three years in 5-year futures and the 87th in 2-year — the bond market has piled into bets that rates fall, a contrarian warning for those notes if payrolls print hot."
+    "The print sets the September path: midweek pricing implied roughly 62% odds of a quarter-point hike at the September 16 meeting — a soft number after the 44,000 private-payrolls miss pulls that down, while a hot one lands on top of a fresh oil impulse.",
+    "The overnight strikes and the stricter-shipping draft cut against the reopening hopes that had capped crude, and the bond market's bet that the energy shock fades is eroding at the margin: the 10-year breakeven inflation rate closed Thursday at 2.26%, up from 2.22% Wednesday.",
+    "The options market carries little cushion into the number: the VIX closed Thursday at 15.2, down from 15.8 Wednesday — equity volatility declined into the event rather than bracing for it.",
+    "<b>Positioning:</b> New in the latest weekly futures data: speculators added grain longs — corn at the 87th percentile of the past three years, soybeans at the 88th — while natural-gas specs went extended short (8th percentile) with commercial hedgers on the other side; wheat longs sit a third week at the 99th. The Treasury-belly longs flagged yesterday (5-year at the 97th percentile, 2-year at the 87th) remain the standing exposure into this morning's print."
   ],
   "watch": [
     {
-      "head": "July jobs report (before Friday's open)",
-      "body": "Consensus sits near 85,000 jobs (forecast range roughly 80,000–100,000) with unemployment expected at 4.2%–4.3%, against June's 57,000; after the 44,000 private-payrolls miss, this is the week's decisive print."
+      "head": "July jobs report (before the open)",
+      "body": "Consensus near 83,000 with unemployment at 4.2%, against June's 57,000 and this week's 44,000 private-payrolls miss — the decisive input for the September 16 meeting."
     },
     {
-      "head": "Strait of Hormuz announcement",
-      "body": "Iran says a shipping-route agreement with Oman is close; a confirmed reopening would relieve the supply squeeze that had Brent up 3.8% Thursday, while no announcement — or a new disruption — keeps the pressure on."
+      "head": "Hormuz next moves",
+      "body": "Whether Iran's parliament advances the stricter shipping draft and whether the still-unannounced Oman corridor deal lands — the two headlines that could swing crude in either direction after overnight strikes."
     },
     {
-      "head": "Software follow-through at Friday's open",
-      "body": "Atlassian (~+33%), Doximity (~+66%), Twilio and Cloudflare (~+16% each) all surged in Thursday's after-market on earnings; whether those gains hold at the open is the cleanest read on enterprise-software demand."
+      "head": "Software follow-through at the open",
+      "body": "Thursday evening's after-market surges — Atlassian roughly +33%, Doximity about +66%, Twilio and Cloudflare about +16% each — face their first regular-session test today; whether they hold is the cleanest read on enterprise-software demand."
     },
     {
-      "head": "10-year yield at 4.67%",
-      "body": "Thursday's rise came from oil; a hot jobs number on top of it would add pressure on long rates, while a soft one relieves it — the fastest-moving input into equity valuations right now."
+      "head": "Yen at ¥158.5",
+      "body": "With nearly half the intervention gains reported gone, a hot US jobs number would press the pair further while a soft one gives Tokyo breathing room."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The biggest change since the last brief: the labor market visibly cooled into Friday's July jobs report. Private payrolls rose just 44,000 in July (weakest in six months, versus roughly 75,000 expected) while weekly claims held historically low at 199,000 — an economy hiring less without firing more.",
-        "Consensus for Friday's official report is near 85,000 jobs (range roughly 80,000–100,000) with the unemployment rate expected at 4.2%–4.3%, against June's 57,000.",
-        "The 10-year Treasury yield rose to 4.67% Thursday from Wednesday's 4.63% close as oil jumped; the 2-year closed Wednesday at 4.18%, leaving the curve at +45 basis points (Wednesday's closes).",
-        "Futures pricing implies roughly 62% odds of a quarter-point September hike (as of Tuesday–Wednesday) — essentially unchanged from a week ago; Friday's report is the swing factor.",
-        "Brent settled at $82.49 Thursday, up 3.8%: Iran said shipping-route coordinates through the Strait of Hormuz have been agreed with Oman after three weeks of talks, but the strait remains blockaded and the joint announcement has not come.",
-        "Gold sat at multiweek highs near $4,342 Thursday evening, up from Wednesday's $4,308 close; the 10-year real (inflation-adjusted) yield closed Wednesday at 2.41%."
+        "The biggest change overnight: the Hormuz de-escalation story stalled. Iran said it struck what it called hostile targets in the strait after explosions were reported near Qeshm Island, and a draft before its parliament would set stricter conditions on commercial shipping than markets had anticipated — Brent pushed above $83 early Friday (about $83.60 by ~6am ET) after settling at $82.49 Thursday, up 3.8%.",
+        "The July employment report is due before the open: consensus centers on about 83,000 jobs with unemployment at 4.2%, after June's 57,000 and a 44,000 private-payrolls reading for July that badly missed expectations earlier this week.",
+        "Yields rose into it: the 10-year Treasury closed Thursday at 4.69% (4.63% Wednesday), the 2-year at 4.25%, leaving the curve at +44 basis points; midweek futures pricing implied roughly 62% odds of a quarter-point hike at the September 16 meeting.",
+        "Inflation expectations are creeping up with oil: the 10-year breakeven rate closed Thursday at 2.26% versus 2.22% Wednesday, while the 10-year real (inflation-adjusted) yield closed at 2.43%.",
+        "In currencies, the yen weakened overnight to about ¥158.5 per dollar (~6am ET), reported early Friday as having given back nearly half its gains from the joint US-Japan intervention; the dollar index closed Thursday just under 100 and the euro sat near $1.15 overnight.",
+        "Gold eased to about $4,292 early Friday (~6am ET) from roughly $4,342 Thursday evening even as crude climbed; silver traded near $61.60."
       ],
-      "positioning": "New this week: speculators are extended long the belly of the Treasury curve — 5-year futures positioning at the 97th percentile of the last three years, 2-year at the 87th. In plain English: the bond market has piled into bets that rates fall, a contrarian warning for those notes if Friday's jobs number comes in hot.",
+      "positioning": "Standing backdrop into the print, not new: speculators remain extended long the belly of the Treasury curve — 5-year futures at the 97th percentile of the past three years, 2-year at the 87th in the latest weekly data. In plain English: the bond market's most piled-into bet is that rates fall, and a hot payrolls number is what would punish it.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Thursday's cash closes: S&P 500 down 0.2% at 7,709.96, Dow down 0.9% at 53,885.10 a day after Wednesday's record close, Nasdaq down 0.1% at 26,348.35 — oil's jump did the damage.",
-        "The pullback is small against the week: the S&P 500 remains up about 3.7% from its July 30 close after last week's earnings-driven surge.",
-        "Earnings did the sorting Thursday: Honeywell Aerospace fell 23.2% and AppLovin 19.7% on results that fell short; Warner Bros. Discovery added 1.7% on a beat.",
-        "After Thursday's close: Atlassian about +33%, Doximity about +66%, Twilio and Cloudflare about +16% each on their reports — early-evening indications, not Friday opening prints.",
-        "SpaceX rose 6.1% Thursday as a share lockup expired, after trading near all-time lows earlier in the week; Nvidia rose 3% Wednesday after an exclusivity announcement tied to SpaceX.",
-        "Volatility stayed quiet and breadth improved: the VIX held near 15.9 Thursday evening (15.81 at Wednesday's close), tail-risk pricing eased to 133 Wednesday from about 140 a week earlier, and 58% of Nasdaq-100 members now sit above their 50-day trend line versus 49% at the end of July."
+        "S&P 500 futures were up about 0.1% early Friday (~5am ET) ahead of the print, after Thursday's oil-driven slip: the S&P 500 closed down 0.2% at 7,709.96, the Dow down 0.9% at 53,885.10, and the Nasdaq down 0.1% at 26,348.35.",
+        "The options market goes into jobs day priced calm: the VIX closed Thursday at 15.2, down from 15.8 at Wednesday's close.",
+        "Breadth at Thursday's close: about 65% of S&P 500 members traded above their 50-day trend line, and 55% of Nasdaq-100 members did.",
+        "Fresh insider buying clustered in small-cap pharma — filings dated Wednesday show six distinct insiders at MBRX buying about $3.4 million of stock and nine at CAMP about $3.3 million — and Thursday's newest filings added a roughly $588,000 purchase at ATTO."
       ],
-      "positioning": "Standing backdrop, not new: speculators have held almost no bullish bets in Russell 2000 futures for 14 straight weeks — a three-year low that acts as a contrarian floor under small caps.",
+      "positioning": null,
       "single_name": {
-        "ticker": "CMCO",
-        "note": "(Columbus McKinnon — construction machinery and lifting gear) - company insiders have been buying, with a fresh purchase filing this week; the shares trade above their 200-day trend line and the setup's dark-pool and options signals are live."
+        "ticker": "TSM",
+        "note": "(Taiwan Semiconductor — the main contract manufacturer of advanced chips) - company insiders filed a fresh purchase this week, the shares trade above their 200-day trend line, and the setup's dark-pool and options signals are live after 40 sessions on the scan list."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Credit took the week's rally and Thursday's oil jump in stride: the high-yield-over-investment-grade spread narrowed to 273 basis points (Tuesday's close) from 287 in late July, and investment-grade spreads sit at 78 basis points (Tuesday's close).",
-        "Short-term funding is quiet: the key bank-funding spreads closed Wednesday at about 1 basis point, and the commercial-paper funding spread was 25 basis points at end-July — no stress signals.",
-        "System liquidity remains ample but the spare cushion is gone: bank reserves stood at $2,984.6 billion and the Treasury's cash account at $910.8 billion (both as of July 29), while the overnight reverse-repo facility — the system's spare-cash pool — is essentially empty at $1.6 billion (Wednesday).",
-        "The bond market still treats the oil-driven inflation impulse as temporary: the 10-year breakeven inflation rate closed Wednesday at 2.22% against 3.7% realized June inflation — Thursday's oil move is a direct test of that assumption."
+        "Credit is taking the oil re-escalation in stride so far: the high-yield-over-investment-grade spread sat at 275 basis points at Wednesday's close, versus 287 in late July, with investment-grade spreads at 78 basis points.",
+        "Short-term funding remains quiet: the key bank-funding spreads closed Wednesday near 1 basis point, and the commercial-paper funding spread's latest reading eased to 22 basis points from 25 at end-July.",
+        "The system's spare-cash cushion is still gone: the overnight reverse-repo facility held $1.4 billion Thursday, with bank reserves at $2,993.3 billion and the Treasury's cash account at $907.3 billion in Wednesday's weekly snapshot.",
+        "Bank lending keeps expanding in the background — commercial-bank credit rose 6.11% year-over-year in the latest weekly reading (late July), and the average rate on new syndicated loans sat at 7.08%."
       ],
       "positioning": null,
       "single_name": null
@@ -104,7 +102,7 @@
     },
     {
       "ticker": "TSM",
-      "pct": -0.8,
+      "pct": 1.0,
       "link": true
     },
     {
@@ -115,11 +113,6 @@
     {
       "ticker": "JEF",
       "pct": 0.2,
-      "link": true
-    },
-    {
-      "ticker": "LILA",
-      "pct": 0.0,
       "link": true
     }
   ]
