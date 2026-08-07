@@ -150,6 +150,50 @@ async function createPost(text: string, mediaId: string, creds: any): Promise<{ 
   return { id, url: `https://x.com/WeTheSheeple46/status/${id}` };
 }
 
+// ---------- Typefully publish (fallback route: no X developer account needed) ----------
+async function typefullySocialSetId(apiKey: string): Promise<string> {
+  const { data } = await supabase.from("ops_secrets").select("value").eq("name", "typefully_social_set_id").maybeSingle();
+  if (data?.value) return data.value;
+  const r = await fetch("https://api.typefully.com/v2/social-sets?limit=10", { headers: { Authorization: `Bearer ${apiKey}` } });
+  if (!r.ok) throw new Error(`typefully social-sets ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = await r.json();
+  const sets = Array.isArray(j) ? j : (j?.results ?? j?.data ?? j?.social_sets ?? []);
+  const first = Array.isArray(sets) ? sets[0] : null;
+  if (!first?.id) throw new Error("no typefully social set found — is the X account connected in Typefully?");
+  await supabase.from("ops_secrets").upsert(
+    { name: "typefully_social_set_id", value: String(first.id), note: "auto-cached by x-post-approval", updated_at: new Date().toISOString() },
+    { onConflict: "name" },
+  );
+  return String(first.id);
+}
+
+async function typefullyPublish(caption: string, png: Uint8Array, apiKey: string): Promise<void> {
+  const setId = await typefullySocialSetId(apiKey);
+  const H = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+  const up = await fetch(`https://api.typefully.com/v2/social-sets/${setId}/media/upload`, {
+    method: "POST", headers: H, body: JSON.stringify({ file_name: "chart.png" }),
+  });
+  if (!up.ok) throw new Error(`typefully media slot ${up.status}: ${(await up.text()).slice(0, 200)}`);
+  const { media_id, upload_url } = await up.json();
+  const put = await fetch(upload_url, { method: "PUT", body: png });
+  if (!put.ok) throw new Error(`typefully media put ${put.status}`);
+  for (let i = 0; i < 10; i++) {
+    const st = await fetch(`https://api.typefully.com/v2/social-sets/${setId}/media/${media_id}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+    const j = await st.json().catch(() => ({} as any));
+    if (j?.status === "ready") break;
+    if (j?.status === "failed") throw new Error("typefully media processing failed");
+    await new Promise((res) => setTimeout(res, 2000));
+  }
+  const dr = await fetch(`https://api.typefully.com/v2/social-sets/${setId}/drafts`, {
+    method: "POST", headers: H,
+    body: JSON.stringify({
+      platforms: { x: { enabled: true, posts: [{ text: caption, media_ids: [media_id] }] } },
+      publish_at: "now",
+    }),
+  });
+  if (!dr.ok) throw new Error(`typefully draft ${dr.status}: ${(await dr.text()).slice(0, 200)}`);
+}
+
 // ---------- handler ----------
 Deno.serve(async (req: Request) => {
   try {
@@ -235,10 +279,20 @@ Deno.serve(async (req: Request) => {
           }).eq("id", id);
           return page("Posted", `<h1 class="ok">Posted &#10003;</h1><p>The chart is live on @WeTheSheeple46.</p>
             <a class="btn gold" href="${post.url}">View the post on X</a>`);
+        } else if (s.typefully_api_key) {
+          const png = await fetchChartPng(row.chart_sha, s.github_pat);
+          await typefullyPublish(row.caption, png, s.typefully_api_key);
+          const url = "https://x.com/WeTheSheeple46";
+          await supabase.from(TABLE).update({
+            status: "posted", tweet_url: url,
+            posted_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: null,
+          }).eq("id", id);
+          return page("Posted", `<h1 class="ok">Publishing &#10003;</h1><p>Sent to X via Typefully &mdash; it'll be on the timeline in under a minute.</p>
+            <a class="btn gold" href="${url}">Open @WeTheSheeple46</a>`);
         } else {
           await supabase.from(TABLE).update({ status: "pending", error: "posting_not_configured", updated_at: new Date().toISOString() }).eq("id", id);
           return page("Not configured", `<h1 class="bad">Posting isn't wired up yet</h1>
-            <p>Approval works, but no X credentials are configured on the backend, so nothing went out. Once they're added, this same button will post for real.</p>`, false);
+            <p>Approval works, but no posting credentials are configured on the backend, so nothing went out. Once they're added, this same button will post for real.</p>`, false);
         }
       } catch (e) {
         await supabase.from(TABLE).update({ status: "failed", error: String(e).slice(0, 500), updated_at: new Date().toISOString() }).eq("id", id);
