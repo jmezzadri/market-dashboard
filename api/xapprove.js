@@ -26,7 +26,7 @@
 
 const UPSTREAM = "https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/x-post-approval";
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
     const init = {
@@ -61,4 +61,4 @@ module.exports = async (req, res) => {
       `<p style="color:#8a8374;font-size:13px">${String(e && e.name === "TimeoutError" ? "Upstream timeout" : e).slice(0, 120)}</p></body>`,
     );
   }
-};
+}
