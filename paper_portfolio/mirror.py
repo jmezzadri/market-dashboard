@@ -305,8 +305,9 @@ def _latest_scan_scores() -> dict[str, int]:
 def _realized_pnl_by_sleeve() -> dict[str, float]:
     """Lifetime realized P&L per sleeve via average-cost lot accounting over
     paper_fills. Buys raise the cost base; sells realize (sell - avg_cost) x qty.
-    Returns {'A': $, 'B': $}. Informational per-sleeve split; the headline
-    realized number is derived exactly from NAV minus open P&L in the writer."""
+    Returns {'A': $, 'B': $}. These per-sleeve figures ARE the book's realized
+    record: the writer's headline total_realized_pnl is their sum (2026-08-06
+    deep-dive: the old NAV-minus-open-P&L plug absorbed any broker-NAV error)."""
     try:
         rows = _supabase_query(
             "select sleeve, ticker, side, quantity, price, filled_at "
@@ -334,6 +335,31 @@ def _realized_pnl_by_sleeve() -> dict[str, float]:
             realized[sleeve] = realized.get(sleeve, 0.0) + qty * (price - lot["avg"])
             lot["qty"] = max(0.0, lot["qty"] - qty)
     return realized
+
+
+def _fill_cashflows_by_sleeve() -> dict[str, float]:
+    """Net cash flow per sleeve from the ACTUAL fills ledger:
+    sum(sell proceeds) - sum(buy costs). Sleeve cash is initial capital plus
+    this number — one accounting method end-to-end. (2026-08-06 deep-dive:
+    sleeve cash was rederived as capital - broker FIFO-lot basis + avg-cost
+    realized, mixing two lot methods; on multi-lot partial sells the book cash
+    drifted from fill-implied cash by exactly avg-cost minus FIFO realized.)"""
+    try:
+        rows = _supabase_query(
+            "select sleeve, "
+            "sum(case when lower(side) = 'sell' then quantity * price "
+            "         when lower(side) = 'buy'  then -quantity * price "
+            "         else 0 end) as net_cash "
+            "from public.paper_fills group by 1;"
+        )
+    except Exception as e:
+        logger.warning("fill-cashflow query failed (%s); defaulting to 0", e)
+        return {}
+    out: dict[str, float] = {}
+    for r in rows:
+        s = (r.get("sleeve") or "B").upper()
+        out[s] = out.get(s, 0.0) + float(r.get("net_cash") or 0)
+    return out
 
 
 def _beta_for(value_col: str) -> float | None:
@@ -510,6 +536,70 @@ def _split_position(p, share_map: dict[str, dict[str, float]]):
     return parts or [("B", p)]
 
 
+def _restore_missing_tracked_positions(
+    positions: list[AlpacaPosition],
+    share_map: dict[str, dict[str, float]],
+) -> list[AlpacaPosition]:
+    """Refuse to book a phantom close when the broker positions feed omits a
+    tracked name. (2026-08-06 deep-dive: on 8/4 Alpaca's positions response
+    was missing PBF — 436.7992 sh held since 7/16, no sell fills — and the
+    sync closed the book position AT COST, crediting sleeve cash $25,945.87
+    with zero realized P&L, then re-opened it 8/5 when the feed healed.)
+
+    A ticker with net shares in the fills ledger (buys - sells > 0, i.e. no
+    sell fill ever closed it) that is absent from the broker feed is a FEED
+    ERROR, not a liquidation: only a sell FILL may close a position. Book
+    nothing — emit a loud greppable ::error:: line so the job output is
+    red/alertable, and carry the book position forward at its last known
+    snapshot price (close mode then re-marks it at the official session close
+    as usual). Returns the positions list with the missing names restored."""
+    broker = {p.ticker.upper() for p in positions}
+    missing = sorted(
+        t for t, sleeves in share_map.items()
+        if t not in broker and sum(sleeves.values()) > 0.0001
+    )
+    if not missing:
+        return positions
+    out = list(positions)
+    for t in missing:
+        msg = (f"PAPER-SYNC position {t} missing from broker feed — no sell "
+               "fills — refusing phantom close; carrying book position at "
+               "last known price")
+        print(f"::error::{msg}", flush=True)  # GitHub Actions error annotation
+        logger.error(msg)
+        try:
+            rows = _supabase_query(
+                "select sum(quantity) as qty, sum(cost_basis) as cb, "
+                "max(current_price) as px from public.paper_positions "
+                f"where upper(ticker) = {_sql_escape(t)} and snapshot_date = "
+                "(select max(snapshot_date) from public.paper_positions "
+                f"where upper(ticker) = {_sql_escape(t)});"
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error("PAPER-SYNC could not read last book row for %s (%s) "
+                         "— position cannot be carried this run", t, exc)
+            continue
+        r = rows[0] if rows else {}
+        qty = float(r.get("qty") or 0)
+        cb = float(r.get("cb") or 0)
+        px = float(r.get("px") or 0)
+        if qty <= 0 or px <= 0:
+            logger.error("PAPER-SYNC no usable prior book row for %s "
+                         "(qty=%s px=%s) — position cannot be carried this run", t, qty, px)
+            continue
+        mv = qty * px
+        out.append(AlpacaPosition(
+            ticker=t, qty=qty,
+            avg_entry_price=(cb / qty if qty else 0.0),
+            market_value=mv, cost_basis=cb,
+            unrealized_pl=mv - cb, side="long",
+            unrealized_plpc=((mv - cb) / cb if cb else 0.0),
+            unrealized_intraday_pl=0.0, unrealized_intraday_plpc=0.0,
+            current_price=px, lastday_price=px,
+        ))
+    return out
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Official-close pricing (close phase)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -583,12 +673,16 @@ def mirror_positions(
     alpaca = alpaca or AlpacaPaperClient()
     snapshot_date = snapshot_date or _et_today()
     positions = alpaca.get_positions()
+    share_map = _sleeve_share_map()
+    # (2026-08-06 deep-dive: broker-feed omission was booked as a phantom
+    # at-cost liquidation) — a tracked name missing from the feed stays on the
+    # book; only a sell fill may close a position.
+    positions = _restore_missing_tracked_positions(positions, share_map)
     if price_mode == "close":
         closes = official_closes(alpaca, sorted({p.ticker.upper() for p in positions}), snapshot_date)
         positions, n_re = _reprice_positions_to_close(positions, closes)
         logger.info("close mode: %d/%d positions repriced to official %s closes",
                     n_re, len(positions), snapshot_date)
-    share_map = _sleeve_share_map()
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
     scan_scores = {} if dry_run else _latest_scan_scores()
 
@@ -1006,6 +1100,11 @@ def write_nav_daily(
 
     account = alpaca.get_account()
     positions = alpaca.get_positions()
+    share_map = _sleeve_share_map()
+    # (2026-08-06 deep-dive: broker-feed omission was booked as a phantom
+    # at-cost liquidation) — a tracked name missing from the feed stays on the
+    # book; only a sell fill may close a position.
+    positions = _restore_missing_tracked_positions(positions, share_map)
     nav_closes: dict = {}
     if price_mode == "close":
         nav_closes = official_closes(
@@ -1018,16 +1117,13 @@ def write_nav_daily(
                            snapshot_date)
             return {}
         positions, _ = _reprice_positions_to_close(positions, nav_closes)
-    share_map = _sleeve_share_map()
-
-    STARTING_CAPITAL = 1_000_000.0
 
     # Three-way bucketing by fills provenance (2026-07-15 fix): A is the
     # retired legacy sleeve (always zero), B = Insider Conviction, M =
     # Momentum / Power Trend. _split_position handles both-sleeve overlap.
     sleeve_a_equity = sleeve_b_equity = sleeve_m_equity = 0.0
     sleeve_a_unrl = sleeve_b_unrl = sleeve_m_unrl = 0.0
-    sleeve_b_basis = sleeve_m_basis = 0.0
+    sleeve_b_basis = 0.0     # still feeds sleeve_b_margin_used below
     sleeve_a_n = sleeve_b_n = sleeve_m_n = 0
     for p in positions:
         for sleeve, sp in _split_position(p, share_map):
@@ -1035,23 +1131,25 @@ def write_nav_daily(
                 sleeve_a_equity += sp.market_value; sleeve_a_unrl += sp.unrealized_pl; sleeve_a_n += 1
             elif sleeve == "M":
                 sleeve_m_equity += sp.market_value; sleeve_m_unrl += sp.unrealized_pl; sleeve_m_n += 1
-                sleeve_m_basis += sp.cost_basis
             else:
                 sleeve_b_equity += sp.market_value; sleeve_b_unrl += sp.unrealized_pl; sleeve_b_n += 1
                 sleeve_b_basis += sp.cost_basis
 
-    # Cash — a sleeve's idle cash is its capital MINUS WHAT IT PAID for its
-    # current holdings (cost basis) plus what it has realized, NOT capital
-    # minus market value (that made every sleeve NAV identically equal its
-    # cap and hid all P&L — 2026-07-15 fix). Signed, never floored, so
-    # equity + cash always ties to the sleeve's true value.
+    # Cash — a sleeve's idle cash is its initial capital plus the NET CASH
+    # FLOW of its actual fills (sum of sell proceeds minus sum of buy costs),
+    # one accounting method end-to-end. (2026-08-06 deep-dive: the old
+    # capital − broker FIFO-lot basis + avg-cost realized rederivation mixed
+    # two lot methods and drifted from fill-implied cash by exactly avg-cost
+    # minus FIFO realized on every multi-lot partial sell.) Signed, never
+    # floored, so equity + cash always ties to the sleeve's true value.
     cap_a = 0.0        # Sleeve A retired 2026-06-23
     cap_b = 500_000.0  # Insider Conviction
     cap_m = 500_000.0  # Momentum (Power Trend)
     realized_by_sleeve = _realized_pnl_by_sleeve()
+    fill_cash = _fill_cashflows_by_sleeve()
     sleeve_a_cash = 0.0
-    sleeve_b_cash = cap_b - sleeve_b_basis + realized_by_sleeve.get("B", 0.0)
-    sleeve_m_cash = cap_m - sleeve_m_basis + realized_by_sleeve.get("M", 0.0)
+    sleeve_b_cash = cap_b + fill_cash.get("B", 0.0)
+    sleeve_m_cash = cap_m + fill_cash.get("M", 0.0)
     sleeve_b_margin_used = max(0.0, sleeve_b_basis - cap_b)
     sleeve_a_nav = sleeve_a_cash + sleeve_a_equity
     sleeve_b_nav = sleeve_b_cash + sleeve_b_equity
@@ -1083,11 +1181,14 @@ def write_nav_daily(
     spy_value = spy_close * 100 if spy_close else None
 
     # P&L decomposition. Open (unrealized) P&L is exact from Alpaca per-position.
-    # Realized = total book P&L minus what's still open (captures closed-trade
-    # gains, fees, and any cash interest). Per-sleeve realized is the avg-cost
-    # lot calc over fills (informational split).
+    # Realized = the SUM of the per-sleeve average-cost realized figures over
+    # the fills ledger. (2026-08-06 deep-dive: total_realized_pnl was a plug —
+    # total_nav − $1M − unrealized — so any broker-NAV error landed in the
+    # realized column; the per-sleeve avg-cost figures are the record.)
     total_unrl = sleeve_a_unrl + sleeve_b_unrl + sleeve_m_unrl
-    total_realized = (total_nav - STARTING_CAPITAL) - total_unrl
+    total_realized = (realized_by_sleeve.get("A", 0.0)
+                      + realized_by_sleeve.get("B", 0.0)
+                      + realized_by_sleeve.get("M", 0.0))
     beta = _portfolio_beta(snapshot_date)
 
     # Sleeve value = NET EQUITY: the sleeve's gross holdings minus its share of

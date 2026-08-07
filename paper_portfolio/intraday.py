@@ -33,7 +33,9 @@ from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.mirror import (
     mirror_fills,
     _entry_dates_by_ticker,
+    _fill_cashflows_by_sleeve,
     _latest_scan_scores,
+    _restore_missing_tracked_positions,
     _sleeve_share_map,
     _split_position,
     _sql_escape,
@@ -166,6 +168,9 @@ def mirror_positions_intraday(
     positions = alpaca.get_positions()
     today = _et_today()
     share_map = _sleeve_share_map()  # fills provenance (2026-07-15 sleeve fix)
+    # (2026-08-06 deep-dive: broker-feed omission was booked as a phantom
+    # at-cost liquidation) — only a sell fill may close a position.
+    positions = _restore_missing_tracked_positions(positions, share_map)
     entry_dates = {} if dry_run else _entry_dates_by_ticker()
     scan_scores = {} if dry_run else _latest_scan_scores()
 
@@ -213,29 +218,32 @@ def write_nav_intraday(
     positions = alpaca.get_positions()
     today = _et_today()
     share_map = _sleeve_share_map()  # fills provenance (2026-07-15 sleeve fix)
+    # (2026-08-06 deep-dive: broker-feed omission was booked as a phantom
+    # at-cost liquidation) — only a sell fill may close a position.
+    positions = _restore_missing_tracked_positions(positions, share_map)
 
     CAP_B = 500_000.0  # Insider Conviction
     CAP_M = 500_000.0  # Momentum (Power Trend)
     a_eq = b_eq = m_eq = 0.0
-    b_basis = m_basis = 0.0
     a_n = b_n = m_n = 0
     for p in positions:
         for sleeve, sp in _split_position(p, share_map):
             if sleeve == "A":
                 a_eq += sp.market_value; a_n += 1
             elif sleeve == "M":
-                m_eq += sp.market_value; m_basis += sp.cost_basis; m_n += 1
+                m_eq += sp.market_value; m_n += 1
             else:
-                b_eq += sp.market_value; b_basis += sp.cost_basis; b_n += 1
+                b_eq += sp.market_value; b_n += 1
     total_nav = float(account.equity)
-    # Sleeve cash = cap − cost basis + realized (2026-07-15 fix: cap − market
-    # value forced every sleeve NAV to its cap and hid all P&L). Value =
-    # equity + cash, with the small broker residual split pro-rata so the
-    # sleeves always sum exactly to the account's true equity.
-    from paper_portfolio.mirror import _realized_pnl_by_sleeve
-    realized = _realized_pnl_by_sleeve()
-    b_cash = CAP_B - b_basis + realized.get("B", 0.0)
-    m_cash = CAP_M - m_basis + realized.get("M", 0.0)
+    # Sleeve cash = cap + net fill cash flow (sells − buys), same single
+    # accounting method as the daily writer. (2026-08-06 deep-dive: the old
+    # cap − broker basis + avg-cost realized rederivation mixed two lot
+    # methods and drifted on multi-lot partial sells.) Value = equity + cash,
+    # with the small broker residual split pro-rata so the sleeves always sum
+    # exactly to the account's true equity.
+    fill_cash = _fill_cashflows_by_sleeve()
+    b_cash = CAP_B + fill_cash.get("B", 0.0)
+    m_cash = CAP_M + fill_cash.get("M", 0.0)
     a_val = a_eq  # retired sleeve: no cash share
     raw_b = b_eq + b_cash
     raw_m = m_eq + m_cash
@@ -300,6 +308,26 @@ def write_nav_intraday(
         "iwm_close=excluded.iwm_close, iwm_prev_close=excluded.iwm_prev_close, iwm_inception_close=excluded.iwm_inception_close, "
         "portfolio_beta=excluded.portfolio_beta, n_positions=excluded.n_positions, updated_at=now();"
     )
+    # ── WRITE-VERIFY (2026-08-06 deep-dive: a 20:45Z run reported success
+    # while paper_intraday_nav's row still carried 17:51Z — the upsert never
+    # landed). Read the row back and HARD-FAIL the run unless updated_at
+    # proves this run's write: a monitor must distinguish "ran" from "wrote"
+    # (LESSONS 8.20). ──
+    verify = _supabase_query(
+        "select updated_at::text as updated_at, "
+        "(now() - updated_at) < interval '5 minutes' as fresh "
+        f"from public.paper_intraday_nav where as_of_date = '{today.isoformat()}';"
+    )
+    if not verify or not bool(verify[0].get("fresh")):
+        stamp = (verify[0].get("updated_at") if verify else None) or "NO ROW"
+        msg = (f"PAPER-INTRADAY write-verify FAILED — paper_intraday_nav row for "
+               f"{today.isoformat()} was not updated by this run (updated_at={stamp}). "
+               "The upsert did not land; failing the job so the miss is alertable.")
+        print(f"::error::{msg}", flush=True)  # GitHub Actions error annotation
+        logger.error(msg)
+        raise RuntimeError(msg)
+    logger.info("write-verify OK — paper_intraday_nav %s updated_at=%s",
+                today.isoformat(), verify[0]["updated_at"])
     logger.info("wrote LIVE NAV row: $%.2f (day %+.2f), %d positions", total_nav, (day_pnl or 0.0), a_n + b_n + m_n)
     return {"total_nav": total_nav, "day_pnl": day_pnl, "n_positions": a_n + b_n + m_n}
 
