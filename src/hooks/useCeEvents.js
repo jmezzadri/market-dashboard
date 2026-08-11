@@ -45,11 +45,60 @@ export const CE_ACTIONS = {
 export const ceActionMeta = (action) =>
   CE_ACTIONS[action] || { label: String(action || '—').replace(/_/g, ' '), tone: 'mut' };
 
-// gate_fail_reason arrives as engine text. Display it with any raw enum
-// residue softened (underscores → spaces); never invent a reason.
+// gate_fail_reason arrives as engine text, semicolon-joined when more than
+// one gate failed. The engine writes it for developers, so it carries table
+// names and abbreviations ("not in universe_master", "previous close $4.00
+// <= 50-day SMA $4.20"). This is a TRANSLATION table, not new copy: every
+// number the engine wrote is carried through unchanged, and any reason the
+// table does not recognise falls through verbatim (underscores softened) —
+// never invented, never dropped (LESSONS 0.4 plain English, 8.11 no invented
+// display copy).
+//
+// The reason is the most-read content on the Scanner desk, so it renders
+// INLINE beside the action chip there; the Paper page's event ledger shows
+// the same sentence on its chip tooltip. One translator, both surfaces
+// (LESSONS 2026-06-12b).
+const CE_REASON_RULES = [
+  // Confirmation gate — the 50-day average.
+  [/^previous close \$([\d,.]+) <=? 50-day SMA \$([\d,.]+)$/i,
+    (m) => `Below its 50-day average price — a $${m[1]} close against a 50-day average of $${m[2]}.`],
+  [/^only (\d+) trading days of history — cannot compute 50-day SMA$/i,
+    (m) => `Only ${m[1]} trading days of price history — not enough to confirm the 50-day average.`],
+  // Universe gates.
+  [/^not in universe_master$/i,
+    () => 'Not in the tradable universe.'],
+  [/^universe type\/active fails/i,
+    () => 'Not an active listed common stock in the tradable universe.'],
+  [/^no prices_eod history before the session$/i,
+    () => 'No stored price history for this name before that morning.'],
+  [/^previous close \$([\d,.]+) < \$([\d,.]+)$/i,
+    (m) => `Share price below the $${m[2]} minimum — it closed at $${m[1]}.`],
+  [/^21-day avg dollar volume \$([\d,]+) < \$([\d,]+)$/i,
+    (m) => `Too thinly traded — $${m[1]} of stock changes hands on an average day, against a $${m[2]} minimum.`],
+  // Book-capacity skips.
+  [/^concurrent-position ceiling reached \((\d+) open\)$/i,
+    (m) => `The book was already holding its maximum of ${m[1]} positions.`],
+  [/^insufficient cash for a 10% position \(needs \$([\d,]+), \$([\d,]+) available\)$/i,
+    (m) => `Not enough cash for a full position — it needed $${m[1]} and the book had $${m[2]}.`],
+  [/^cannot size: .*\/prev close \$([\d,.]+)\) = 0 whole shares$/i,
+    (m) => `A full position would have rounded to zero shares at $${m[1]}.`],
+];
+
+const ceReasonPart = (part) => {
+  const s = part.trim();
+  if (!s) return null;
+  for (const [re, say] of CE_REASON_RULES) {
+    const m = s.match(re);
+    if (m) return say(m);
+  }
+  return s.replace(/_/g, ' ');
+};
+
 export const ceReasonText = (r) => {
   const s = String(r || '').trim();
-  return s ? s.replace(/_/g, ' ') : null;
+  if (!s) return null;
+  const parts = s.split(';').map(ceReasonPart).filter(Boolean);
+  return parts.length ? parts.join(' ') : null;
 };
 
 // insider_names may land as an array, a "; "-joined string, or a single name.

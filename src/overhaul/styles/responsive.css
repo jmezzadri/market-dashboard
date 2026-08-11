@@ -154,11 +154,6 @@
   .mt-overhaul .at-keygrid,
   .mt-overhaul .at-engineread { grid-template-columns: 1fr !important; }
 
-  /* Scanner */
-  .mt-overhaul .sc-buckets,
-  .mt-overhaul .sc-colgrid,
-  .mt-overhaul .sc-buildgrid { grid-template-columns: 1fr !important; }
-
   /* Portfolio */
   .mt-overhaul .pf-keygrid,
   .mt-overhaul .pf-acctgrid,
@@ -172,9 +167,6 @@
      content's intrinsic width and pushes past the screen edge). */
   .mt-overhaul .mc-grid > *,
   .mt-overhaul .at-keygrid > *,
-  .mt-overhaul .sc-buckets > *,
-  .mt-overhaul .sc-colgrid > *,
-  .mt-overhaul .sc-buildgrid > *,
   .mt-overhaul .pf-keygrid > *,
   .mt-overhaul .pf-acctgrid > *,
   .mt-overhaul .pf-acctkv > *,
@@ -215,17 +207,14 @@
   .mt-overhaul .home-v11 .layout { grid-template-columns: 1fr !important; }
 
   /* Scanner glass grids. */
-  .mt-overhaul .home-v11 .sc-hero,
-  .mt-overhaul .home-v11 .sc-colgrid { grid-template-columns: 1fr !important; }
-  .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .mt-overhaul .home-v11 .sc-hero { grid-template-columns: 1fr !important; }
 
   /* Paper Portfolio hero (chart + summary). */
   .mt-overhaul .home-v11.paper-page .mt-page-hero-inner { grid-template-columns: 1fr !important; }
 
   /* Let any glass child shrink to its track instead of re-opening it. */
   .mt-overhaul .home-v11 .layout > *,
-  .mt-overhaul .home-v11 .sc-hero > *,
-  .mt-overhaul .home-v11 .sc-buildgrid > * { min-width: 0 !important; }
+  .mt-overhaul .home-v11 .sc-hero > * { min-width: 0 !important; }
 
   /* Editorial headline cap so it never overflows the card. */
   .mt-overhaul .home-v11 .editorial h1 { font-size: clamp(24px, 7vw, 30px) !important; }
@@ -241,10 +230,6 @@
     -webkit-overflow-scrolling: touch;
   }
   .mt-overhaul .home-v11 .ribbon .rc { flex: 0 0 auto; min-width: 116px; }
-
-  /* Scanner score-build cards → one column. (Band-count boxes removed with
-     the hero scan card, 2026-07-15.) */
-  .mt-overhaul .home-v11 .sc-buildgrid { grid-template-columns: 1fr !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -348,35 +333,23 @@
   .home-v12 .mac-catgrid { grid-template-columns: 1fr !important; }
 }
 
-/* ── home-v12 Trading Scanner (cream rebrand Phase B) — the hero splits to
-      one column, the score-build grid steps 4 → 2 → 1, and the results table
-      keeps scrolling horizontally INSIDE its putty card at natural column
-      widths (the shared ScanList owns its min-width + overflow-x; nothing
-      here forces table-layout:fixed or ellipsis). !important matches the
-      v12 block convention above. ── */
+/* ── home-v12 Trading Scanner — the Conviction Events desk (2026-08-11,
+      LESSONS 8.7 / 8.10 mirror). The page is one editorial hero over two
+      stacked full-width table cards, so there is no multi-column grid left
+      to collapse; what phone width needs is the hero column unlocked, the
+      card padding stepped down, and the event tables scrolling horizontally
+      INSIDE their own card at natural column widths (.sc-insetscroll owns
+      overflow-x — never table-layout:fixed + ellipsis, which would destroy
+      the skip reasons). !important matches the v12 block convention. ── */
 @media (max-width: 1100px) {
   .home-v12 section.sc-hero { grid-template-columns: 1fr !important; }
   .home-v12 section.sc-hero > * { min-width: 0 !important; }
 }
 @media (max-width: 900px) {
-  .home-v12 .sc-buildgrid { grid-template-columns: 1fr 1fr !important; }
-  .home-v12 .sc-buildgrid > * { min-width: 0 !important; }
-}
-@media (max-width: 640px) {
-  .home-v12 .sc-buildgrid { grid-template-columns: 1fr !important; }
-}
-
-/* ── home-v12 Scanner cockpit (2026-07-30, LESSONS 8.7 mirror) — the three
-      scanner tiles stack to one column, and the desk-view card tightens its
-      stage margins; every embedded table keeps scrolling horizontally inside
-      its own card as before. ── */
-@media (max-width: 1020px) {
-  .home-v12 section.sc-cockpit { grid-template-columns: 1fr !important; }
-  .home-v12 section.sc-cockpit > * { min-width: 0 !important; }
-}
-@media (max-width: 900px) {
-  .home-v12 .sc-ctile { border-radius: 28px !important; padding: 20px 18px 14px !important; }
-  .sc-desk .sc-deskcard { margin: 12px 8px 24px !important; border-radius: 24px !important; padding: 16px 12px 22px !important; }
+  .home-v12.scanner-v12 .sc-tablecard { border-radius: 28px !important; padding: 10px !important; }
+  .home-v12.scanner-v12 .sc-inset { margin: 10px 10px 14px !important; }
+  .home-v12.scanner-v12 .ce-note { margin: 10px 10px 0 !important; }
+  .home-v12.scanner-v12 .sc-panelhead { padding: 22px 18px 12px !important; }
 }
 
 /* ── home-v12 Portfolio Lab (2026-07-27, LESSONS 8.7 / 8.10) — the controls
