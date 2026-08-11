@@ -2127,6 +2127,7 @@
       "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
       "schedule_et": "hourly 09:50–15:30 ET; final official update = 16:50 close",
       "freshness_sla_hours": 3,
+      "market_hours_only": true,
       "consumer_surfaces": [
         "Paper tab → live holdings table (while market open)"
       ],
@@ -2146,6 +2147,7 @@
       "refresh_trigger": "github-actions: PAPER-PORTFOLIO-INTRADAY.yml",
       "schedule_et": "hourly 09:50–15:30 ET; final official update = 16:50 close",
       "freshness_sla_hours": 3,
+      "market_hours_only": true,
       "consumer_surfaces": [
         "Paper tab → Performance card (while market open)"
       ],
@@ -2312,6 +2314,7 @@
       "refresh_trigger": "supabase edge function lse-live (mode quotes) — called by the site while a consuming page is open; server cache in lse_live_quotes so N viewers cost one vendor pull",
       "schedule_et": "No schedule — refreshes while viewed, 45 s cache in market hours / 30 min closed. Cloud-only.",
       "freshness_sla_hours": 3,
+      "market_hours_only": true,
       "consumer_surfaces": [
         "Paper Portfolio → positions tables → Live price column (both sleeves)",
         "Ticker page → hero price block → Live line"
@@ -2340,6 +2343,7 @@
       "refresh_trigger": "supabase edge function lse-live (mode iv) — called when a Portfolio Lab holding uses the Implied vol method; daily green heartbeat from the lse-scan-iv-daily cron (same vendor endpoint + extraction)",
       "schedule_et": "No schedule — refreshes on view; daily heartbeat ~17:50 ET weekdays via the scan batch. Cloud-only.",
       "freshness_sla_hours": 49,
+      "market_hours_only": true,
       "consumer_surfaces": [
         "Portfolio Lab → Implied vol ER method (expected-range per holding; optimizer volatility input)",
         "Methodology → Portfolio Lab section (implied-vol method description)"

@@ -1039,3 +1039,20 @@ The 2026-05-06 suppressor was written for the shape we had seen: no runner is ev
 3. **An alert that fires on a healthy day trains Joe to ignore the channel.** Any alarm that has fired on a day nothing was wrong is a bug in the alarm — fix the alarm the same day, do not filter the mail.
 
 **Applies to:** Lead Developer, Data Steward — every workflow that consumes an artifact another process produces on a schedule.
+
+### 4.26 (2026-08-11) — A feed whose producer only runs during market hours goes red every night unless it says so; and a live-trading flag on a step that never trades is a rogue order waiting for a bug
+
+**What happened:** two findings on the Conviction Events day-1 close check, both variants of "the config lied about the shape of the work."
+
+*(a) The nightly red.* `data_manifest.json` carries no `market_hours_only` flag on ANY element — the string appears zero times in the file — yet both `freshnessClock` copies (server `supabase/functions/_shared/` and client `src/lib/`) have implemented `marketHoursOnly` since 2026-06-23, pausing both clocks outside market hours. Dead config: three feeds whose producers only run 09:50–15:30 ET (`portfolio.paper-nav-intraday`, `portfolio.paper-positions-intraday`, `market.lse-intraday-live`) each carry a **3-hour** SLA. Last mirror 15:30 ET + 3h = red at 18:30 ET, red all night, red all weekend, green again mid-morning only because of the 11:30 ET grace rule. This is the manufacturing plant behind "why do I have stale feeds" — the same complaint on 8/6 and again on 8/11, and the three cadence misconfigs fixed that morning (`ce_events` SLA 0, `lse_intraday` graded at 1 minute, `lse_atm_iv` at 30) were the same defect wearing different numbers.
+
+*(b) The armed flag.* `CONVICTION-KILL-CHECK.yml` passed `PAPER_LIVE_TRADING_ENABLED: "true"` to BOTH steps. The second step (catastrophe stops) may genuinely sell, so it needs it. The first step runs `paper_portfolio.runner --phase close`, which is pure accounting — `mirror_fills` / `mirror_positions` / `write_nav_daily` / health stamp, not one order-submit call on the path — and it printed `WARNING LIVE TRADING ENABLED` into the log of the very first post-close run of a book that, nine hours earlier, had ~$1M of retired-strategy orders (FSBC 10,720sh + CMCO 25,544sh) queued and cancelled because that same flag was true on a step nobody thought would trade.
+
+**Rule:**
+
+1. **A feed's SLA must be measured in the clock its producer actually runs on.** If the producer only runs during market hours, the element carries `market_hours_only: true`. An SLA shorter than the overnight gap on a market-hours feed is not a tight SLA, it is a scheduled false alarm — and a chip that is red every evening teaches Joe that red means nothing.
+2. **A config key that no data uses is not implemented.** Grep the data for every flag the grader reads before believing a rule is live; `market_hours_only` shipped in code on 6/23 and was still unused on 8/11.
+3. **Least privilege on the trading flag.** `PAPER_LIVE_TRADING_ENABLED: "true"` belongs ONLY on a step whose code can submit an order. Every other step gets `"false"`, in the workflow file, with the reason written next to it. The flag is not workflow-scoped context, it is a per-step capability grant.
+4. **Read the log of the first live run of anything.** The accounting step's `LIVE TRADING ENABLED` warning was the only evidence of (b), and it existed for exactly one run before anyone looked.
+
+**Applies to:** Lead Developer, Data Steward — `data_manifest.json` for every intraday element, and every workflow step that sets `PAPER_LIVE_TRADING_ENABLED`.

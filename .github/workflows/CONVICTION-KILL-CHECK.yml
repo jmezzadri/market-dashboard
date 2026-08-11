@@ -73,7 +73,14 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "true"   # LIVE — Conviction Events cutover 2026-08-11 (Joe go)
+          # FALSE, deliberately. run_close_phase() is pure accounting —
+          # mirror_fills / mirror_positions / write_nav_daily / health stamp;
+          # it never submits an order. On 2026-08-11 a retired-strategy path
+          # queued ~$1M of orders (FSBC 10,720sh + CMCO 25,544sh, cancelled)
+          # precisely because this flag was left true on a step that did not
+          # need it. Least privilege: only the step that may actually sell
+          # (the catastrophe-stop step below) gets the live flag.
+          PAPER_LIVE_TRADING_ENABLED:   "false"
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m paper_portfolio.runner --phase close --dry-run
