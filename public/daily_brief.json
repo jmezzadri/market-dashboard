@@ -1,123 +1,118 @@
 {
-  "date": "2026-08-10",
-  "recap_session": "Fri Aug 7",
+  "date": "2026-08-11",
+  "recap_session": "Mon Aug 10",
   "eyebrow": "Morning Brief",
-  "headline": "Futures edge higher and the 10-year yield sits near 4.60% after July's payrolls contraction flipped September pricing toward a hold, while Brent trades near $84.50 with the Hormuz reopening still unproven.",
-  "stance": "The question the market takes into this week inverted on Friday: the economy shed <b>23,000 jobs</b> in July against forecasts near an 83,000 gain — June was revised down to a 20,000 increase — and by Sunday afternoon prediction-market pricing put <b>65% odds on the Fed holding</b> at the September 16 meeting, with a quarter-point hike near 33% versus roughly 62% midweek. Equities chose the rate relief over the growth message, closing Friday higher with yields down. The unresolved piece is oil: Iran said its Oman shipping-route agreement is in \"final stages\" while conditioning any Hormuz reopening on further US concessions, attacks resumed on the Red Sea port of Mocha, and Brent traded near $84.50 early Monday — about $2 above Friday's close. Wednesday's consumer-price report (forecast <b>+0.1% headline, +0.2% core</b>) is the test of whether the hold case survives the energy pass-through.",
+  "headline": "Brent trades near $89.80 overnight after Washington rebuffed Iran's reopening conditions, September pricing tilts back toward a hike at 44%, and the 10-year yield sits at 4.72% with tomorrow's consumer-price report left to decide which trade wins.",
+  "stance": "Monday ran Friday's jobs trade in reverse, and oil did the pushing: Brent settled at <b>$87.85</b> — up from $82.27 at Friday's close — and traded near <b>$89.80</b> overnight (~5am ET) after President Trump dismissed Iran's conditions for reopening the Strait of Hormuz, which now run to sanctions relief, unfrozen assets, a US force withdrawal and war reparations. Rates followed: the 10-year Treasury yield closed at <b>4.72%</b> (4.65% Friday), the 2-year at 4.25% (4.19%), and by this morning prediction-market pricing put <b>56% on a September hold and 44% on a quarter-point hike</b> — from roughly 65% and 33% Sunday afternoon. The first Fed voice after the payrolls shock leaned the same way: Cleveland's Beth Hammack, who dissented in July in favor of a hike, said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy.\" Equities barely reacted — the S&P 500 slipped 0.1% to 7,753.11, just below Friday's record close — leaving tomorrow's 8:30am consumer-price report (forecasts near +0.1–0.2% headline, +0.2% core) to settle whether July's jobs contraction or $89 oil is the story that sticks.",
   "news": [
     {
-      "head": "Jobs shock: payrolls fell 23,000 in July",
-      "body": "Friday's employment report showed the economy shed 23,000 jobs in July, against forecasts near an 83,000 gain, and June was revised down to a 20,000 increase from the 57,000 first reported. The unemployment rate came in at 4.1%, versus expectations it would hold at 4.2%."
+      "head": "Oil unwound the rate-relief trade",
+      "body": "Brent settled Monday at $87.85, up from $82.27 at Friday's close, and traded near $89.80 overnight (~5am ET), up a further 2.4%; US crude settled at $82.30 and traded near $84.28. The push came after President Trump dismissed Iran's conditions for reopening Hormuz — sanctions relief, unfrozen assets, a US force withdrawal, war reparations — while traffic through the strait ran at 8–15 vessels a day in early August against roughly 130 before the war."
     },
     {
-      "head": "September repriced within hours",
-      "body": "Midweek pricing had implied roughly 62% odds of a quarter-point hike at the September 16 meeting; by Sunday afternoon, prediction-market pricing put about 65% odds on the Fed holding and roughly 33% on a hike. Treasury yields fell Friday — the 2-year closed at 4.19% from 4.25% Thursday, the 10-year at 4.65% from 4.69% — and the 10-year traded near 4.60% early Monday (~4am ET)."
+      "head": "September tilted back toward a hike",
+      "body": "Prediction-market pricing this morning puts 56% on the Fed holding at the September 16 meeting and 44% on a quarter-point hike — from roughly 65% and 33% Sunday afternoon. No new US data landed in between: the repricing was energy. The payrolls-built hold case lasted one session against rising crude."
     },
     {
-      "head": "Stocks took it as relief",
-      "body": "The S&P 500 closed Friday up 0.6% at 7,757.64, the Dow up 0.3% at 54,036.93, and the Nasdaq up 1.3% at 26,690.62 — the tape read the weak print as rate relief rather than a growth alarm. Early Monday (~4am ET), S&P 500 futures were up about 0.1%, Nasdaq futures up about 0.3–0.4%, and Dow futures little changed."
+      "head": "First Fed voice after the jobs shock was hawkish",
+      "body": "Cleveland Fed President Beth Hammack — who dissented at July's meeting in favor of a hike — said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy,\" argued the current 3.50–3.75% setting is not restrictive enough, and said businesses are not signaling restraint on investment plans."
     },
     {
-      "head": "Hormuz: \"final stages,\" with conditions",
-      "body": "Iran said over the weekend that its agreement with Oman on new shipping routes is in \"final stages\" but that the strait reopens only if the US meets further conditions; the US Treasury secretary countered that redirected pipeline flows would make the strait \"irrelevant,\" and Houthi attacks resumed on the Red Sea port of Mocha. Brent traded near $84.50 early Monday (~4am ET), about $2 above Friday's $82.27 close, with US crude near $79 against a $77.08 Friday close."
+      "head": "Metals pressed higher; the yen broke to a new extreme",
+      "body": "Gold closed Monday at $4,448.60, up from Friday's $4,401.30 — a second straight session at the top of its three-year range (87th percentile) — and silver rose to $65.88 from $63.80. The yen weakened to ¥159.22 per dollar at Monday's close from ¥157.75 Friday, a fresh three-year-range extreme, and traded near ¥159.35 overnight despite last week's warning from Japan's finance minister that authorities \"would not hesitate\" to step in."
     },
     {
-      "head": "Gold closes at the top of its range",
-      "body": "Gold reversed Friday's early dip — from about $4,292 early Friday to a $4,401 close, near the top of its three-year range — and held around $4,400 overnight (~4am ET). Silver closed Friday at $63.80, up from about $61.60 early Friday."
+      "head": "Stocks marked time just under records",
+      "body": "The S&P 500 eased 0.1% Monday to 7,753.11 — just below Friday's record close — with the Dow down 0.1% at 53,975.98 and the Nasdaq down 0.3% at 26,605.36. The VIX rose to 15.46 from Friday's 14.9, still low. Overnight (~5am ET), S&P 500 and Dow futures sat about 0.1% lower; Asia was mixed, with Seoul up 0.7% and Hong Kong down 1.1%."
     },
     {
-      "head": "Friday's insider filings: two new clusters",
-      "body": "Filings dated Friday show seven distinct insiders at BRVE buying about $3.9 million of stock and five at ATTO about $2.7 million — the two largest new clusters in the newest filings, following the midweek pharma buying already covered last week."
+      "head": "Monday's insider filings: smaller, single-buyer purchases",
+      "body": "The newest filings, dated Monday, show about $1.6 million bought at TISI by a single insider, $900,000 across two filings at CLVT, and $618,000 at COE — a quieter tape than the multi-buyer clusters at BRVE and ATTO in Friday's filings."
     }
   ],
   "implications": [
-    "The September call now leans hold, but it is oil's to flip: hike odds fell from about 62% midweek to roughly 33% by Sunday, and Wednesday's consumer-price report — forecast +0.1% headline, +0.2% core — is the first test of whether the energy shock is reaching prices faster than the labor market is cooling.",
-    "The bond rally has contrarian fuel behind it: the latest weekly futures data shows speculators newly flipped to extended short in 10-year Treasury futures (the 12th percentile of the past three years) — extended shorts are potential buyers if yields keep falling — while the long-standing extended-long position in 2-year futures was finally rewarded by Friday's drop in short yields.",
-    "Equities carry a contrarian cushion into the inflation number: bullish bets on Nasdaq 100 futures sit at the 1st percentile of the past three years even after Friday's 1.3% Nasdaq gain — skepticism, not euphoria, is the backdrop — though with the VIX closing Friday at 14.9, little hedging is in place if Wednesday's report runs hot.",
-    "The dollar is the newly exposed trade: speculators went extended long the dollar index (90th percentile, new this week) just as the jobs miss knocked the currency — the yen firmed from about ¥158.5 per dollar early Friday to ¥157.75 at Friday's close — and Japan's finance minister said authorities \"would not hesitate\" to intervene again."
+    "The September call is now an oil call: hike odds rose 11 points in a day with no new inflation data — pure energy pass-through fear. Tomorrow's report is forecast near +0.1–0.2% headline and +0.2% core; a print in that range keeps the hold case alive, while visible energy effects with Brent near $90 would likely complete the swing back toward a hike.",
+    "The bond market is treating this as an inflation problem, not a growth problem: the 10-year yield rose 7 basis points Monday while the 10-year breakeven inflation rate climbed to 2.29% from 2.25% and the 10-year real yield to 2.43% from 2.40%. A growth scare would have pushed those the other way.",
+    "Gold's rally now carries positioning risk: the latest weekly futures data shows speculators extended long — the 87th percentile of the past three years, up 32 percentile points in a week — just as the price reached a fresh range extreme. Extended longs are potential sellers on a cool inflation print or a real Hormuz reopening.",
+    "Equities still hold their contrarian cushion — bullish bets on Nasdaq 100 futures remain near three-year lows in the same weekly data, unchanged from yesterday's report — but with the VIX at 15.46, protection is thin for a two-sided event like tomorrow's inflation print with oil near $90."
   ],
   "watch": [
     {
-      "head": "Proof on the strait",
-      "body": "What settles the oil question is evidence rather than statements: free tanker movement through Hormuz or a documented, published agreement. Until one appears, the weekend attacks near Mocha argue the risk premium stays in crude."
+      "head": "Tomorrow's consumer-price report, 8:30am ET",
+      "body": "The decider for September. Forecasts center near +0.1–0.2% headline and +0.2% core; what matters most is visible energy pass-through. A benign print keeps the hold case alive at these odds — a hot one, with Brent near $90, likely flips the lean back to a hike."
     },
     {
-      "head": "First Fed voice after the print",
-      "body": "Cleveland Fed President Beth Hammack appears today — the first scheduled read on how officials weigh a shrinking payroll count against oil back above $84 ahead of the September 16 meeting."
+      "head": "CoreWeave after today's close",
+      "body": "The week's first big test of AI-infrastructure demand: consensus is about $2.55 billion in revenue and a loss of about $1.23 a share, with attention on how fast the $99.4 billion contract backlog converts into revenue. Cisco and Applied Materials follow later this week."
     },
     {
-      "head": "Wednesday's consumer-price report",
-      "body": "Forecasts center on +0.1% headline and +0.2% core. With hold odds near 65%, a hot reading — particularly visible energy pass-through — is what would put the September hike back on the table; July retail sales follow Friday (forecast +0.2%)."
+      "head": "Proof, again, on the strait",
+      "body": "Brent has gone from $82.27 at Friday's close to near $89.80 overnight on conditions and rebuffs alone. Transits are still running 8–15 vessels a day against roughly 130 pre-war; only free tanker movement or a published, verifiable agreement settles the oil question in either direction."
     },
     {
-      "head": "Today's and this week's calendar",
-      "body": "Simon Property Group reports after today's close; Applied Materials, Cisco and CoreWeave are scheduled later this week — the first broad earnings test of whether the rate-relief rally extends."
+      "head": "Today's smaller data",
+      "body": "Small-business optimism at 6am ET and existing-home sales at 10am — secondary to tomorrow's inflation report, but the first read on whether July's payrolls contraction is showing up in confidence."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The biggest change since Friday morning: the July employment report showed the economy shed 23,000 jobs — forecasts were near an 83,000 gain — with June revised down to a 20,000 increase and the unemployment rate at 4.1%. The number the whole week pointed at landed on the other side of zero.",
-        "Rates repriced immediately: the 2-year Treasury yield closed Friday at 4.19% (4.25% Thursday), the 10-year at 4.65% (4.69%), steepening the curve slightly to +46 basis points from +44 — and the 10-year traded near 4.60% early Monday (~4am ET). By Sunday afternoon, prediction-market pricing put about 65% odds on the Fed holding on September 16 and roughly 33% on a quarter-point hike, versus roughly 62% hike odds midweek.",
-        "Inflation compensation barely moved on the jobs news: the 10-year breakeven rate closed Friday at 2.25% (2.26% Thursday) with the 10-year real, inflation-adjusted yield at 2.40% (2.43% Thursday) — the bond market is treating this as a growth story for now, with the oil test still ahead.",
-        "The yen strengthened through Friday's session after the data — from about ¥158.5 per dollar early Friday to ¥157.75 at the close, touching ¥156.68 intraday — and Japan's finance minister said authorities \"would not hesitate\" to step in again after the prior week's joint intervention. The dollar index closed Friday at 99.6, the euro at $1.156, and the pound at $1.3493 — a fresh upper extreme for the pound, in the 86th percentile of its three-year range.",
-        "Brent settled Friday at $82.27, easing from Thursday's $82.49, then gapped higher over the weekend to trade near $84.50 early Monday (~4am ET) as the reopening stayed unproven; US crude closed Friday at $77.08 and traded near $79 overnight.",
-        "Gold reversed Friday's early dip — about $4,292 early Friday to a $4,401.30 close, a fresh extreme near the top of its three-year range (86th percentile) — and held near $4,400 overnight; silver closed Friday at $63.80, up from about $61.60 early Friday."
+        "The biggest change since yesterday morning: the September hold case built on Friday's payrolls contraction lost ground to oil. Prediction-market pricing this morning puts 56% on a hold and 44% on a quarter-point hike — from roughly 65% and 33% Sunday afternoon — with no new US data in between; crude did the repricing.",
+        "Brent settled Monday at $87.85 — up from $82.27 at Friday's close — and traded near $89.80 overnight (~5am ET), up a further 2.4%, after President Trump dismissed Iran's reopening conditions; US crude settled at $82.30 and traded near $84.28 overnight. Traffic through the strait ran 8–15 vessels a day in early August versus roughly 130 before the war.",
+        "Treasuries gave back the payrolls rally: the 10-year yield closed Monday at 4.72% (4.65% Friday), the 2-year at 4.25% (4.19%), with the curve near +47 basis points. The move reads as inflation rather than growth: the 10-year breakeven inflation rate rose to 2.29% from 2.25% and the 10-year real, inflation-adjusted yield to 2.43% from 2.40%.",
+        "Cleveland Fed President Beth Hammack — the July dissenter in favor of a hike — said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy\" and that the current 3.50–3.75% policy setting is not restrictive enough. She was the first official to speak after Friday's jobs report.",
+        "Gold closed at $4,448.60, up from $4,401.30 Friday — a second straight session at the top of its three-year range (87th percentile) — with silver at $65.88 from $63.80. The yen weakened to ¥159.22 at Monday's close from ¥157.75 Friday, a fresh three-year-range extreme (89th percentile), and traded near ¥159.35 overnight despite last week's intervention warnings from Tokyo."
       ],
-      "positioning": "New in the latest weekly futures data (positions as of Tuesday): speculators flipped to extended short in 10-year Treasury futures — the 12th percentile of the past three years, a contrarian-bullish lean, since extended shorts are potential buyers if yields keep falling — and went extended long both the dollar index (90th percentile) and gold (87th percentile), contrarian-bearish leans that Friday's post-jobs dollar slide already began to test. Standing background, not new: the extended-long position in 2-year Treasury futures sits at the 100th percentile of the past three years — the market's most stretched bet that short rates fall, and Friday finally paid it.",
+      "positioning": "New in the latest weekly futures data: speculators moved to extended long in gold — the 87th percentile of the past three years, up 32 percentile points in a week — just as the spot price pushed to a fresh range extreme. Extended longs are potential sellers if the inflation or Hormuz story breaks the other way.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Friday's close: S&P 500 up 0.6% at 7,757.64, Dow up 0.3% at 54,036.93, Nasdaq up 1.3% at 26,690.62 — a rate-relief rally on a payrolls contraction. Early Monday (~4am ET), S&P 500 futures were up about 0.1%, Nasdaq futures up about 0.3–0.4%, and Dow futures little changed.",
-        "Volatility went home lower on jobs day: the VIX closed Friday at 14.9, down from 15.2 Thursday — thin protection in place ahead of Wednesday's consumer-price report.",
-        "Breadth improved at Friday's close: about 68% of S&P 500 members traded above their 50-day trend line (roughly 65% Thursday), and 62% of Nasdaq-100 members did (55% Thursday).",
-        "Friday's newest insider filings added two clusters: seven distinct buyers at BRVE totaling about $3.9 million and five at ATTO totaling about $2.7 million — the two largest in the newest filings."
+        "Monday's close: S&P 500 down 0.1% at 7,753.11 — just below Friday's record close — Dow down 0.1% at 53,975.98, Nasdaq down 0.3% at 26,605.36. Overnight (~5am ET), S&P 500 and Dow futures sat about 0.1% lower; Asia was mixed, with Seoul up 0.7% and Hong Kong down 1.1%.",
+        "Protection stayed thin into tomorrow's inflation report: the VIX closed Monday at 15.46, up from 14.9 Friday but still low, and its Nasdaq-100 counterpart closed at 23.04.",
+        "Breadth softened with the tape: 65.3% of S&P 500 members closed above their 50-day trend line, from about 68% Friday; 55% of Nasdaq-100 members did, from 62%.",
+        "CoreWeave reports after today's close — consensus is about $2.55 billion in revenue and a loss of about $1.23 a share, with attention on how fast its $99.4 billion contract backlog converts into revenue — the week's first big read on AI-infrastructure demand, with Cisco and Applied Materials later in the week.",
+        "Monday's newest insider filings were smaller and mostly single-buyer: about $1.6 million at TISI, $900,000 across two filings at CLVT, and $618,000 at COE — a quieter tape than the multi-buyer clusters in Friday's filings."
       ],
-      "positioning": "New in the latest weekly futures data: speculators' net position in Nasdaq 100 futures fell to the 1st percentile of the past three years — almost no bullish bets outstanding — with hedgers at the opposite extreme, a contrarian-bullish divergence. In plain English: the fast money came into Friday's 1.3% Nasdaq gain positioned against it, and positioning that one-sided means much of the potential selling is already sold.",
+      "positioning": "Unchanged background from the latest weekly futures data: bullish bets in Nasdaq 100 futures sit at the 1st percentile of the past three years — skepticism, not exuberance, underneath a tape just off its record — with hedgers at the opposite extreme.",
       "single_name": {
-        "ticker": "ABTC",
-        "note": "(American Bitcoin Corp., a finance-services name) — a fresh insider purchase was filed Friday, the shares trade above their 200-day trend line, and the setup's dark-pool and options signals are both live; it joined the scan list Friday with a top score."
+        "ticker": "TSM",
+        "note": "(Taiwan Semiconductor, the world's largest contract chipmaker) — a fresh insider purchase was filed Monday, the shares trade above their 200-day trend line, and the setup's dark-pool and options signals are both live; it has been on the scan list since mid-June."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Credit shrugged at the growth scare, at least through Thursday (spread data runs a day behind): the high-yield-over-investment-grade spread narrowed to 271 basis points at Thursday's close from 275 Wednesday, with investment-grade spreads steady at 78 basis points.",
-        "Bond-market volatility sits low for a jobs-shock week: the MOVE index — the Treasury market's version of the VIX — closed Friday at 72.",
-        "Short-term funding stayed quiet through the data: the key bank-funding spreads closed Thursday near 2 basis points, and the commercial-paper funding spread eased to 20 basis points Friday from 22 earlier in the week.",
-        "The system's spare-cash cushion remains gone: the overnight reverse-repo facility held $1.4 billion Friday, with bank reserves at $2,993.3 billion and the Treasury's cash account at $907.3 billion in Wednesday's weekly snapshot. Bank credit grew 6.2% year-over-year in the late-July weekly reading, and the average rate on new syndicated loans sat at 7.1%."
+        "Credit ignored the oil move through the latest data (spread data runs a day behind): the high-yield-over-investment-grade spread was 270 basis points in Friday's data, from 271 Thursday, with investment-grade spreads at 78 basis points.",
+        "The hedging ahead of tomorrow's report is happening in Treasuries rather than stocks: the MOVE index — the Treasury market's version of the VIX — closed Monday at 75.5, up from 72 Friday, while the VIX rose about half a point.",
+        "Short-term funding stayed quiet: the key bank-funding spreads sat near -1 basis point and the commercial-paper funding spread at 21 basis points in Friday's data.",
+        "The system's spare-cash cushion is still gone: the overnight reverse-repo facility held $1 billion Monday, with bank reserves at $2,993.3 billion and the Treasury's cash account at $907.3 billion in Wednesday's weekly snapshot."
       ],
-      "positioning": "Primary-dealer high-yield inventory sits mid-range — the 35th percentile of its three-year span in the weekly dealer data — no stress signal on either side of the credit book.",
+      "positioning": "Primary-dealer high-yield inventory remains mid-range — the 35th percentile of its three-year span, unchanged — no stress signal on either side of the credit book.",
       "single_name": null
     }
   ],
   "movers": [
     {
       "ticker": "ABTC",
-      "pct": 4.5,
+      "pct": 9.3,
       "link": true
     },
     {
       "ticker": "CMCO",
-      "pct": -2.6,
+      "pct": -4.5,
       "link": true
     },
     {
-      "ticker": "LILA",
-      "pct": -2.2,
+      "ticker": "TSM",
+      "pct": -0.4,
       "link": true
     },
     {
       "ticker": "FSBC",
-      "pct": -0.8,
-      "link": true
-    },
-    {
-      "ticker": "JEF",
-      "pct": 0.5,
+      "pct": -0.1,
       "link": true
     }
   ]
