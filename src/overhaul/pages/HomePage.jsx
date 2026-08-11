@@ -373,7 +373,9 @@ export default function HomePage() {
           <Reveal className="tile putty-card sp12">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot" />Trading scanner · top conviction</div>
-              <a href="/scanner" onClick={go('/scanner')}>Full scanner →</a>
+              {/* "Full scanner →" removed 2026-08-11: /scanner is retired. This
+                  tile still renders the insider-conviction and power-trend
+                  lists, which are their own feeds and keep running. */}
             </div>
             <div className="scan-cols">
               <div>

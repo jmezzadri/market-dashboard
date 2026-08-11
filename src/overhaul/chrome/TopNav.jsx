@@ -12,7 +12,6 @@ import { supabase } from '../../lib/supabase';
 const ITEMS = [
   { to: '/', label: 'Home', end: true },
   { to: '/macro', label: 'Macro' },
-  { to: '/scanner', label: 'Scanner' },
   { to: '/paper', label: 'Paper' },
   { to: '/portfolio-lab', label: 'Portfolio Lab' },
   { to: '/methodology', label: 'Methodology' },

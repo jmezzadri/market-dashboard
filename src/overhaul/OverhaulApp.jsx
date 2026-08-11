@@ -61,7 +61,6 @@ import { useSession } from '../auth/useSession';
 
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
-import ScannerPage from './pages/ScannerPage';
 import PortfolioLabPage from './pages/PortfolioLabPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
@@ -192,7 +191,13 @@ function Shell() {
             <Route path="/" element={<HomePage />} />
             <Route path="/macro" element={<MacroPage />} />
             <Route path="/tilt" element={<Navigate to="/macro" replace />} />
-            <Route path="/scanner" element={<ScannerPage />} />
+            {/* /scanner RETIRED 2026-08-11 (Joe). The Conviction Events desk
+                and the Paper page's event ledger were reading the same
+                ce_events rows through the same hook — two surfaces, one feed.
+                The book's page won, the public desk was killed. Redirect, not
+                404: the page was linked from the homepage and was public, so
+                bookmarks and search results still land somewhere real. */}
+            <Route path="/scanner" element={<Navigate to="/" replace />} />
             <Route path="/signin" element={<SignInRoute />} />
             <Route path="/paper" element={<RequireAuth><PaperRoute /></RequireAuth>} />
             <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
