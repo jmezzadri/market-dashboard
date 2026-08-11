@@ -208,7 +208,7 @@ def run_eod_phase(
                 f"Buys: {len(buys)}  (~${buy_val:,.0f})    Sells: {len(sells)}  (~${sell_val:,.0f})",
             ]
             # ONE combined email, a section per sleeve (Two-Sleeve build PR-2).
-            SLEEVE_NAMES = {"B": "Insider Conviction", "M": "Momentum", "A": "Asset Tilt (retired)"}
+            SLEEVE_NAMES = {"B": "Conviction Events", "M": "Momentum (retired)", "A": "Asset Tilt (retired)"}
             def _fmt(i):
                 if i.target_quantity is not None:
                     sz = f"{i.target_quantity:g} sh"
@@ -360,8 +360,8 @@ def _check_sleeve_cash_drift() -> None:
             return
         r = rows[0]
         for label, cash_key, nav_key in (
-                ("Insider Conviction", "sleeve_b_cash", "sleeve_b_nav"),
-                ("Momentum", "sleeve_m_cash", "sleeve_m_nav")):
+                ("Conviction Events", "sleeve_b_cash", "sleeve_b_nav"),
+                ("Momentum (retired)", "sleeve_m_cash", "sleeve_m_nav")):
             cash = float(r.get(cash_key) or 0.0)
             nav_v = float(r.get(nav_key) or 0.0)
             if nav_v <= 0:

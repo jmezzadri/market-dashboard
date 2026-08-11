@@ -2396,8 +2396,8 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "16:50 (close mirror; certified 09:45 next session from prices_eod)",
-   "refresh_trigger": "PAPER-PORTFOLIO-CLOSE-DAILY",
+   "scheduled_fetch_time_et": "17:15 (close mirror via CONVICTION-KILL-CHECK; certified 09:45 next session from prices_eod)",
+   "refresh_trigger": "CONVICTION-KILL-CHECK",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
    "data_calendar": "nyse-trading-day",
@@ -2418,7 +2418,7 @@
    "as_of_cutoff_note": "as-of latest session close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "display_name": "Paper portfolio value (daily)",
-   "cadence_display": "Daily \u00b7 4:50 PM close (certified 9:45 AM next day)"
+   "cadence_display": "Daily \u00b7 5:15 PM close (certified 9:45 AM next day)"
   },
   {
    "id": "portfolio.paper-positions-snapshot",
@@ -2431,8 +2431,8 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "16:50 (close mirror; certified 09:45 next session from prices_eod)",
-   "refresh_trigger": "PAPER-PORTFOLIO-CLOSE-DAILY",
+   "scheduled_fetch_time_et": "17:15 (close mirror via CONVICTION-KILL-CHECK; certified 09:45 next session from prices_eod)",
+   "refresh_trigger": "CONVICTION-KILL-CHECK",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
    "data_calendar": "nyse-trading-day",
@@ -2453,7 +2453,7 @@
    "as_of_cutoff_note": "date-keyed",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "display_name": "Paper portfolio positions (daily snapshot)",
-   "cadence_display": "Daily \u00b7 4:50 PM close (certified 9:45 AM next day)"
+   "cadence_display": "Daily \u00b7 5:15 PM close (certified 9:45 AM next day)"
   },
   {
    "id": "portfolio.paper-orders-intent",

@@ -337,6 +337,31 @@ def _realized_pnl_by_sleeve() -> dict[str, float]:
     return realized
 
 
+def _sleeve_initial_capital() -> tuple[float, float]:
+    """Initial capital (the sleeve cash BASE) for sleeves B and M, read from
+    public.paper_accounts allocations.
+
+    CONFIGURATION ONLY (Conviction Events cutover 2026-08-11): these were the
+    hardcoded 500_000/500_000 constants from the two-sleeve era. The epoch
+    reset (scripts/ce_reset_epoch.py) rewrites the allocations (whole account
+    into the Sleeve B slot, sleeve_m_allocation 0), so the cash bases must
+    follow the same config row — the accounting method is unchanged:
+    sleeve cash = initial capital + net fill cash flow (2026-08-06 fix).
+
+    Fail-loud: a NAV row must never be written against a guessed capital base
+    (LESSONS 4.4/4.5) — if this read fails the write itself would fail on the
+    same connection anyway."""
+    rows = _supabase_query(
+        "select sleeve_b_allocation, coalesce(sleeve_m_allocation, 0) as sleeve_m_allocation "
+        "from public.paper_accounts where status = 'active' limit 1;")
+    if not rows or rows[0].get("sleeve_b_allocation") is None:
+        raise RuntimeError(
+            "no active paper_accounts row — cannot derive sleeve capital bases "
+            "(run migration 058 / the epoch reset first)")
+    return (float(rows[0]["sleeve_b_allocation"]),
+            float(rows[0].get("sleeve_m_allocation") or 0))
+
+
 def _fill_cashflows_by_sleeve() -> dict[str, float]:
     """Net cash flow per sleeve from the ACTUAL fills ledger:
     sum(sell proceeds) - sum(buy costs). Sleeve cash is initial capital plus
@@ -1143,8 +1168,10 @@ def write_nav_daily(
     # minus FIFO realized on every multi-lot partial sell.) Signed, never
     # floored, so equity + cash always ties to the sleeve's true value.
     cap_a = 0.0        # Sleeve A retired 2026-06-23
-    cap_b = 500_000.0  # Insider Conviction
-    cap_m = 500_000.0  # Momentum (Power Trend)
+    # B/M capital bases come from paper_accounts allocations (config, not
+    # accounting): 500K/500K in the two-sleeve era; whole-account/0 after the
+    # Conviction Events epoch reset.
+    cap_b, cap_m = _sleeve_initial_capital()
     realized_by_sleeve = _realized_pnl_by_sleeve()
     fill_cash = _fill_cashflows_by_sleeve()
     sleeve_a_cash = 0.0
