@@ -70,7 +70,7 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "true"
+          PAPER_LIVE_TRADING_ENABLED:   "false"   # FROZEN 2026-08-10 (Joe: full strategy reset) — flip back to "true" only at the new-strategy cutover
           MOMENTUM_SLEEVE_ENABLED:      "true"
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
