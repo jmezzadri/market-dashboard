@@ -1,5 +1,6 @@
-/* MomentumPanel — Scanner 2 (Power Trend Momentum Scanner) on the Trading
-   Scanner page.
+/* MomentumPanel — the Power Trend Momentum Scanner on the Trading Scanner
+   page. An idea feed — not auto-traded (strategy reset 2026-08: the paper
+   book trades Conviction Events only).
 
    Scanner-page consistency rebuild (2026-07-16, Joe): the panel now renders
    on the EXACT same tile anatomy as the Insider Conviction and RSI
@@ -152,7 +153,7 @@ export default function MomentumPanel() {
       <div className="sc-tablecard">
         <div className="sc-panelhead">
           <div>
-            <div className="sc-kicker">Scanner 2 · Monthly list</div>
+            <div className="sc-kicker">Scanner · Monthly list</div>
             <h2 className="sc-paneltitle">Power Trend Momentum Scanner</h2>
             <div className="sc-rule">
               Strong uptrends that broke out on volume and are outrunning the S&amp;P 500. Three
@@ -176,6 +177,7 @@ export default function MomentumPanel() {
               <span>
                 {asOf ? <>List of {fmtDay(asOf)}{nextRefresh ? <> · next refresh {fmtDay(nextRefresh)}</> : null}</> : '—'}
                 {px.asOf ? <> · prices as of {fmtDay(px.asOf)} close</> : null}
+                {' · idea feed — not auto-traded'}
               </span>
               <button type="button" className="sc-metalink" onClick={() => navigate('/methodology#scanner')}>
                 Backtest &amp; methodology →
