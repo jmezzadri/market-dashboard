@@ -43,7 +43,7 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   ${{ secrets.PAPER_LIVE_TRADING_ENABLED }}
+          PAPER_LIVE_TRADING_ENABLED:   "false"   # RETIRED 2026-08-11: the two-sleeve translator must never trade again. On cutover morning it woke up and queued FSBC + CMCO (~$1M of retired-strategy orders) beside the Conviction book because the repo SECRET still read "true". Hardcoded off so no secret value can revive it; these workflows remain for bookkeeping/manual tools only.
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m scripts.paper_fill_now
