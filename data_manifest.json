@@ -2163,8 +2163,8 @@
    "source_vendor": "Alpaca (paper)",
    "license_tier": "free",
    "cadence": "daily (NYSE trading days)",
-   "refresh_trigger": "github-actions: PAPER-PORTFOLIO-CLOSE-DAILY.yml",
-   "schedule_et": "16:50 ET close snapshot; re-certified next morning 09:45 ET against prices_eod",
+   "refresh_trigger": "github-actions: CONVICTION-KILL-CHECK.yml",
+   "schedule_et": "17:15 ET close snapshot (21:15Z; kill-check step follows); re-certified against prices_eod",
    "freshness_sla_hours": 49,
    "consumer_surfaces": [
     "Paper tab \u2192 Performance card (after close)",

@@ -65,16 +65,26 @@ class FakeDB:
     """Routes the mirror/intraday SQL by shape and answers from the synthetic
     fills/positions fixtures — a miniature paper_fills / paper_positions."""
 
-    def __init__(self, fills=None, prior_positions=None, intraday_nav_verify=None):
+    def __init__(self, fills=None, prior_positions=None, intraday_nav_verify=None,
+                 alloc_b=CAP_B, alloc_m=CAP_M):
         self.fills = fills if fills is not None else list(FILLS)
         self.prior_positions = prior_positions or []
         self.intraday_nav_verify = intraday_nav_verify or []
+        self.alloc_b = alloc_b
+        self.alloc_m = alloc_m
         self.executed: list[str] = []
 
     def exec_(self, sql: str) -> None:
         self.executed.append(sql)
 
     def query(self, sql: str):
+        # _sleeve_initial_capital: capital bases from paper_accounts
+        # allocations (Conviction Events cutover 2026-08-11 — previously the
+        # hardcoded 500K/500K constants; the two-sleeve fixtures keep those
+        # values so every pre-existing assertion is unchanged).
+        if "sleeve_b_allocation" in sql:
+            return [{"sleeve_b_allocation": self.alloc_b,
+                     "sleeve_m_allocation": self.alloc_m}]
         # _fill_cashflows_by_sleeve: net cash per sleeve from actual fills.
         if "as net_cash" in sql:
             agg: dict[str, float] = {}
@@ -306,3 +316,36 @@ def test_paper_intraday_write_verify_passes_on_fresh_row(monkeypatch):
     # The intraday sleeve cash uses the same fills-ledger derivation (b).
     upsert = [q for q in db.executed if "insert into public.paper_intraday_nav" in q]
     assert upsert, "no intraday NAV upsert executed"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# (e) Conviction Events epoch (2026-08-11): the sleeve capital bases are
+# CONFIGURATION from paper_accounts allocations, not hardcoded 500K/500K.
+# After scripts/ce_reset_epoch.py sets B = the whole account and M = 0, the
+# same cash accounting (cap + net fill cash flow) must re-anchor to those.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_paper_sleeve_caps_follow_paper_accounts_allocations(monkeypatch):
+    e0 = 1_037_000.0                      # account equity at the epoch reset
+    fills = [
+        {"sleeve": "B", "ticker": "XYZ", "side": "buy", "quantity": 100,
+         "price": 10.0, "filled_at": "2026-08-12T13:30:00+00"},
+    ]
+    db = FakeDB(fills=fills, alloc_b=e0, alloc_m=0.0)
+    _patch_db(monkeypatch, db)
+    account = AlpacaAccountSnapshot(
+        account_number="PA3ENEE9XT8L",
+        cash=e0 - 1_000.0, equity=e0 + 100.0, buying_power=2_000_000,
+        portfolio_value=e0 + 100.0, long_market_value=1_100.0,
+        short_market_value=0, initial_margin=0, maintenance_margin=0,
+        status="ACTIVE",
+    )
+    alpaca = MockAlpaca(positions=[_pos("XYZ", 100, 11.0, 1_000.0)],
+                        account=account)
+    nav = write_nav_daily(alpaca=alpaca)
+    # Cash base = the NEW allocation, same accounting method (cap + net fills).
+    assert nav["sleeve_b_cash"] == pytest.approx(e0 - 1_000.0)
+    assert nav["sleeve_m_cash"] == pytest.approx(0.0)
+    assert nav["sleeve_b_nav"] == pytest.approx(nav["sleeve_b_cash"] + 1_100.0)
+    # The dead sleeve M carries nothing.
+    assert nav["sleeve_m_positions"] == 0

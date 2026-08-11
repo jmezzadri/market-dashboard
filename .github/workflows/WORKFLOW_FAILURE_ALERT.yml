@@ -56,6 +56,11 @@ on:
       - PAPER-PORTFOLIO-INTRADAY
       - macrotilt-engine-daily
       - INDICATOR-DRILLS-DAILY
+      # Conviction Events engine (2026-08-11) — the one book replacing the
+      # two retired sleeves. KILL-CHECK deliberately FAILS on a fresh
+      # kill-switch trip so this watchlist emails the trip.
+      - CONVICTION-OPEN-DAILY
+      - CONVICTION-KILL-CHECK
     types:
       - completed
   workflow_dispatch: {}   # manual TEST send — proves the channel end-to-end

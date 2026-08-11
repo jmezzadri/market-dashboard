@@ -181,6 +181,30 @@ def _mark_skipped(row_id: str, reason: str) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Conviction Events kill switch (pre-registered, in-engine)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _conviction_kill_switch_tripped() -> bool:
+    """True when the Conviction Events kill switch is tripped OR its state is
+    unreadable. While tripped, the submitter REFUSES all new Conviction
+    entries (buys); exits (sells) always pass. Fail-SAFE: if the state cannot
+    be read, entries are refused — an unverifiable switch must never admit a
+    trade (same fail-safe direction as the freshness + trading-day gates).
+    Only consulted lazily, when a conviction_events buy row is actually
+    pending, so legacy submit paths never take the extra query."""
+    try:
+        rows = _supabase_query(
+            "select tripped from public.ce_kill_switch where id = 1;")
+        if not rows:
+            logger.warning("ce_kill_switch has no state row — refusing conviction entries")
+            return True
+        return bool(rows[0].get("tripped"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ce_kill_switch unreadable (%s) — refusing conviction entries", exc)
+        return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Submission loop
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -227,8 +251,28 @@ def submit_pending_orders(
         logger.warning("could not list open orders (%s) — proceeding without ticker guard", exc)
 
     submitted_this_run: set[tuple[str, str]] = set()
+    kill_tripped: bool | None = None   # lazily fetched, once per run
 
     for row in pending:
+        # ── CONVICTION KILL-SWITCH REFUSAL ─────────────────────────────────
+        # While ce_kill_switch is tripped (or unreadable), NEW ENTRIES for the
+        # Conviction Events book are refused at the last line of defence —
+        # exits (sells) still execute. Rows are closed out as 'cancelled'
+        # (policy refusal, not an error) with the reason on the row.
+        if row.signal_source == "conviction_events" and row.side.lower() == "buy":
+            if kill_tripped is None:
+                kill_tripped = _conviction_kill_switch_tripped()
+            if kill_tripped:
+                msg = ("kill switch tripped — conviction entries refused "
+                       "(exits still execute)")
+                print(f"::warning::CONVICTION submitter refused BUY {row.ticker} — {msg}",
+                      flush=True)
+                logger.warning("row %s: REFUSED buy %s — %s", row.id, row.ticker, msg)
+                if not dry_run:
+                    _mark_skipped(row.id, msg)
+                result.duplicates += 1
+                continue
+
         key = (row.ticker.upper(), row.side.lower())
         if key in open_ticker_sides or key in submitted_this_run:
             logger.info("row %s: %s %s already has a working order — skipping (idempotent)",

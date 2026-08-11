@@ -65,6 +65,10 @@ def _fake_query(sql: str):
     # Route by query shape. The realized-P&L lookup reads paper_fills rows
     # (needs 'ticker'); return none so the lots loop short-circuits. Everything
     # else (e.g. "max(filled_at)") gets the harmless single-row default.
+    if "sleeve_b_allocation" in sql:
+        # _sleeve_initial_capital — the two-sleeve era allocations, so every
+        # pre-existing assertion (e.g. margin over the $500K cap) is unchanged.
+        return [{"sleeve_b_allocation": 500_000.0, "sleeve_m_allocation": 500_000.0}]
     if "from public.paper_fills" in sql:
         return []
     if "from public.paper_nav_daily" in sql:

@@ -60,7 +60,7 @@ def write_signal_capture(
     captured_at: datetime | None = None,
 ) -> str:
     """Insert one paper_signal_capture row, return the generated UUID."""
-    if signal_source not in ("equity_scanner", "momentum"):
+    if signal_source not in ("equity_scanner", "momentum", "conviction_events"):
         raise ValueError(f"invalid signal_source: {signal_source}")
     cap_id = str(uuid.uuid4())
     ts = (captured_at or datetime.now(tz=timezone.utc)).isoformat()
