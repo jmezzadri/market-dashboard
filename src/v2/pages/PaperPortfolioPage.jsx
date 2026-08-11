@@ -69,6 +69,32 @@ const fmtMoneyExact = (n) => {
   return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 };
 
+// Whole shares — the engine only ever buys whole shares, so no decimals.
+const fmtShares = (n) => {
+  const v = Number(n);
+  if (n == null || !Number.isFinite(v)) return '—';
+  return Math.round(v).toLocaleString('en-US');
+};
+
+// Per-share price, two decimals.
+const fmtPrice = (n) => {
+  const v = Number(n);
+  if (n == null || !Number.isFinite(v)) return '—';
+  return `$${v.toFixed(2)}`;
+};
+
+// What the book paid per share. avg_cost is the broker's average fill; when it
+// is missing, derive it from cost basis and share count rather than render a
+// dash for a number the row already contains.
+const entryPrice = (p) => {
+  const avg = Number(p?.avg_cost);
+  if (Number.isFinite(avg) && avg > 0) return avg;
+  const cb = Number(p?.cost_basis);
+  const q = Number(p?.quantity);
+  if (Number.isFinite(cb) && Number.isFinite(q) && q > 0) return cb / q;
+  return null;
+};
+
 const fmtPct = (n, places = 2) => {
   if (n == null || Number.isNaN(n)) return '—';
   const sign = n > 0 ? '+' : '';
@@ -569,10 +595,13 @@ function KillSwitchLine({ row, loading }) {
 }
 
 /* ── PositionsPanel — the book's open positions ─────────────────────────────
-   Columns per the strategy spec: ticker, price, day P&L, total P&L, entered
-   date, exit due in N days, and WHY the book holds it (the qualifying insider
-   purchase, from ce_events). Numbers in the rows; explanations live in the
-   header tooltips and the one meta line. Row count is whatever the cash has
+   Columns: ticker, shares, entry price, price, value, day P&L, total P&L,
+   entered date, exit due in N days, and WHY the book holds it (the qualifying
+   insider purchase, from ce_events). Shares / entry price / value added
+   2026-08-11 (Joe): the table showed what a position is DOING but never what
+   the book actually owns, and quantity + avg_cost were already in every
+   paper_positions row. Numbers in the rows; explanations live in the header
+   tooltips and the one meta line. Row count is whatever the cash has
    funded — about 10 names, 13 at the hard ceiling; there is no denominator to
    render against (2026-08-11: the old "N of 8" is gone with the 8-slot rule). */
 function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, live }) {
@@ -629,7 +658,10 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
             <thead>
               <tr>
                 <th>Ticker</th>
+                <th className="r"><span className="pp-tip" data-tip="Whole shares the book holds. Sizing buys whole shares only, so the dollar amount lands just under the target.">Shares</span></th>
+                <th className="r"><span className="pp-tip" data-tip="What the book paid per share — the average fill price at the morning open after the qualifying event.">Entry price</span></th>
                 <th className="r"><span className="pp-tip" data-tip="The position's price on the displayed snapshot — the latest mark during market hours, the official close after 4 PM ET.">Price</span></th>
+                <th className="r"><span className="pp-tip" data-tip="What the position is worth right now: shares times price.">Value</span></th>
                 <th className="r"><span className="pp-tip" data-tip="Change in this position's value today, in dollars (profit and loss). A name entered today measures from its entry price.">Day P&amp;L</span></th>
                 <th className="r"><span className="pp-tip" data-tip="Profit and loss since entry, in dollars: the position's value now minus what it cost.">Total P&amp;L</span></th>
                 <th className="r"><span className="pp-tip" data-tip="The day the book bought it — the morning open after its qualifying event.">Entered</span></th>
@@ -648,7 +680,10 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
                         ? <button type="button" className="paper-ticker-link" onClick={() => onOpenTicker(r.ticker)}>{r.ticker}</button>
                         : r.ticker}
                     </td>
-                    <td className="r">{r.current_price != null ? `$${Number(r.current_price).toFixed(2)}` : '—'}</td>
+                    <td className="r">{fmtShares(r.quantity)}</td>
+                    <td className="r">{fmtPrice(entryPrice(r))}</td>
+                    <td className="r">{fmtPrice(r.current_price)}</td>
+                    <td className="r">{r.market_value != null ? fmtMoneyExact(Number(r.market_value)) : '—'}</td>
                     <td className={`r ${dirClass(r.unrealized_intraday_pl)}`}>{r.unrealized_intraday_pl != null ? fmtMoneyExact(r.unrealized_intraday_pl) : '—'}</td>
                     <td className={`r ${dirClass(r.unrealized_pnl)}`}>{r.unrealized_pnl != null ? fmtMoneyExact(r.unrealized_pnl) : '—'}</td>
                     <td className="r">{fmtDate(r.entry_date || r.ev?.entered_at)}</td>
