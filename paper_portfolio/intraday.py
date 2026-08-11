@@ -36,6 +36,7 @@ from paper_portfolio.mirror import (
     _fill_cashflows_by_sleeve,
     _latest_scan_scores,
     _restore_missing_tracked_positions,
+    _sleeve_initial_capital,
     _sleeve_share_map,
     _split_position,
     _sql_escape,
@@ -222,8 +223,10 @@ def write_nav_intraday(
     # at-cost liquidation) — only a sell fill may close a position.
     positions = _restore_missing_tracked_positions(positions, share_map)
 
-    CAP_B = 500_000.0  # Insider Conviction
-    CAP_M = 500_000.0  # Momentum (Power Trend)
+    # B/M capital bases from paper_accounts allocations (config, not
+    # accounting): 500K/500K in the two-sleeve era; whole-account/0 after the
+    # Conviction Events epoch reset. Same source as the daily writer.
+    CAP_B, CAP_M = _sleeve_initial_capital()
     a_eq = b_eq = m_eq = 0.0
     a_n = b_n = m_n = 0
     for p in positions:
