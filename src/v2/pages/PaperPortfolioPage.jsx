@@ -50,7 +50,7 @@ import {
 import '../../overhaul/styles/cream-system.css';
 import '../../overhaul/styles/paper-v12.css';
 
-const STARTING_CAPITAL = 1_000_000; // $1M paper base; paper_accounts overrides when present
+const STARTING_CAPITAL = 100_000; // paper base fallback; paper_accounts overrides when present
 
 // Risk-on / risk-off palette (fallbacks because the global tokens aren't
 // defined at the page scope).
@@ -1041,7 +1041,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       <section className="wrap pp-hero">
         <Reveal className="pp-ed">
           <div className="eyebrow2"><span className="dot" />Paper portfolio</div>
-          <h1><i>Conviction Events</i> — an automated $1M paper book.</h1>
+          <h1><i>Conviction Events</i> — an automated paper book.</h1>
           <ul className="impl">
             <li><b>The signal</b>: large real insider purchases — aggregated open-market buys of <b>$250,000 or more</b> per name per day, automatic (10b5-1) plan purchases excluded.</li>
             <li><b>The confirmation</b>: the stock must be trading <b>above its 50-day average price</b>.</li>

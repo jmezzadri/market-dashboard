@@ -424,9 +424,9 @@ export default function MethodologyPage() {
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Paper</div>
-            <h2 className="me-h2">One $1M paper book · Conviction Events</h2>
+            <h2 className="me-h2">One paper book · Conviction Events</h2>
             <p className="me-body-p">
-              MacroTilt runs a live <b>$1M paper account</b> with no manual input and no broker
+              MacroTilt runs a live <b>paper account</b> with no manual input and no broker
               import. It trades a single rules-based book, <b>Conviction Events</b>: large real
               insider purchases, confirmed by trend, held for a fixed window. Every rule below is
               the deployed rule; every decision the book makes is written to the event ledger shown
