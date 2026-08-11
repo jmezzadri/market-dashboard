@@ -565,7 +565,7 @@ function KillSwitchLine({ row, loading }) {
   if (loading) return null;
   if (!row) {
     return (
-      <div className="pp-ks" role="status" title={KS_RULE}>
+      <div className="pp-ks" role="status" data-tip={KS_RULE}>
         <span className="ksdot" />
         <span><b>Kill switch — no reading yet.</b></span>
       </div>
@@ -573,7 +573,7 @@ function KillSwitchLine({ row, loading }) {
   }
   if (row.tripped) {
     return (
-      <div className="pp-ks tripped" role="status" title={KS_RULE}>
+      <div className="pp-ks tripped" role="status" data-tip={KS_RULE}>
         <span className="ksdot" />
         <span>
           <b>Kill switch tripped{row.tripped_at ? ` ${fmtDate(row.tripped_at)}` : ''} — the owner has been alerted.</b>
@@ -586,7 +586,7 @@ function KillSwitchLine({ row, loading }) {
   // State only — the thresholds are stated once, in the hero rule list above
   // (2026-08-11, Joe: the same sentence appeared twice on one page).
   return (
-    <div className="pp-ks quiet" role="status" title={KS_RULE}>
+    <div className="pp-ks quiet" role="status" data-tip={KS_RULE}>
       <span className="ksdot" />
       <span><b>Kill switch quiet.</b></span>
       {row.checked_at && <span className="ksmeta">checked {fmtStampET(row.checked_at)}</span>}
