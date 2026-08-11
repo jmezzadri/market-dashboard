@@ -2425,7 +2425,7 @@
    "category": "portfolio",
    "name": "ce_events",
    "display_name": "Conviction Events ledger",
-   "description": "Conviction Events decision ledger \u2014 every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, skipped (book full / already held / failed gates), or blocked by the kill switch. Companion single-row table ce_kill_switch (tripped / reason / checked_at) rides this element.",
+   "description": "Conviction Events decision ledger \u2014 every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, or skipped (not enough cash for a full position / already held / failed gates). Companion single-row table ce_kill_switch (tripped / reason / checked_at) rides this element \u2014 a monitor that raises an alert to the owner; it never blocks a trade.",
    "sourcing_mode": "computed in-house from raw",
    "source_vendor": "SEC EDGAR (free)",
    "source_endpoint": "Computed from insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation) \u2014 each input is its own registered element",

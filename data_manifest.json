@@ -2178,7 +2178,7 @@
   },
   "portfolio.ce-events-daily": {
    "category": "portfolio",
-   "element": "Conviction Events decision ledger \u2014 qualifying insider-purchase events (aggregated open-market buys of $250,000 or more per name per day, automatic 10b5-1 plan purchases excluded; 50-day-average confirmation) and the action taken (entered / skipped / blocked). Includes the single-row companion ce_kill_switch.",
+   "element": "Conviction Events decision ledger \u2014 qualifying insider-purchase events (aggregated open-market buys of $250,000 or more per name per day, automatic 10b5-1 plan purchases excluded; 50-day-average confirmation) and the action taken (entered / skipped, with the reason). Includes the single-row companion ce_kill_switch \u2014 a monitor that raises an alert to the owner; it never blocks a trade.",
    "sourcing_mode": "computed",
    "source_vendor": "SEC EDGAR (free)",
    "license_tier": "free",

@@ -46,9 +46,8 @@ export default function ConvictionEventsPanel() {
     const meta = ceActionMeta(r.action);
     const reason = r.action === 'skipped_gate' ? ceReasonText(r.gate_fail_reason) : null;
     const tip = reason
-      || (r.action === 'skipped_full' ? 'The book already held 8 positions when this event qualified.' : null)
-      || (r.action === 'skipped_dup' ? 'The book already held this name.' : null)
-      || (r.action === 'blocked_kill_switch' ? 'The kill switch had frozen new entries when this event qualified.' : null);
+      || (r.action === 'skipped_full' ? 'The book did not have the cash for a full position when this event qualified (or was already at its 13-position ceiling).' : null)
+      || (r.action === 'skipped_dup' ? 'The book already held this name.' : null);
     const el = <span className={`ce-chip ${meta.tone}`}>{meta.label}</span>;
     return tip ? <span className="ce-tip" data-tip={tip}>{el}</span> : el;
   };
@@ -66,9 +65,10 @@ export default function ConvictionEventsPanel() {
               excluded — confirmed by the stock trading above its 50-day average.
             </div>
             <div className="sc-rule">
-              A qualifying event is bought at the next morning&rsquo;s open, one of up to 8 equal
-              positions, and exits at the open of the 21st trading day. Each row below carries the
-              action the engine took — hover a chip for the reason.
+              A qualifying event is bought at the next morning&rsquo;s open, sized at 10% of the
+              book&rsquo;s equity, and exits at the open of the 21st trading day — or sooner, at
+              the next open, if it closes 15% or more below the price it was bought at. Each row
+              below carries the action the engine took — hover a chip for the reason.
             </div>
             <div className="sc-scanmeta">
               <FreshnessChip

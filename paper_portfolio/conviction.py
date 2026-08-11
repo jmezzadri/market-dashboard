@@ -26,29 +26,63 @@ frozen 2026-08-10). Strategy is the validated spec, implemented exactly:
                * previous close > 50-day SMA (prices_eod).
 
   ENTRY      at the next market open after filing (market-on-open order
-             queued pre-open). Sizing: floor((equity / 8) / previous close)
-             WHOLE shares — 1/8 of current account equity per position.
-             Max 8 concurrent positions, one position per ticker; when the
-             book is full, same-morning events are ranked by total dollar
-             size and the overflow is skipped.
+             queued pre-open). Sizing is FIXED FRACTION: every new position
+             is 10% of CURRENT account equity —
+             floor((equity * 0.10) / previous close) WHOLE shares. There is
+             no fixed name cap; entries stop when the available cash (broker
+             cash plus the proceeds of the exits filling at the same opening
+             auction) cannot fund the next full 10% position, so the book
+             self-limits at ~10 names. One position per ticker; same-morning
+             events are ranked by total dollar size (largest first) and any
+             event the cash cannot fund is recorded 'skipped_full'. A HARD
+             SAFETY CEILING of 13 concurrent positions (the maximum
+             concurrency observed in the 239-event study) stops a data
+             anomaly from opening an unbounded book — events beyond it are
+             recorded 'skipped_full' too.
+             (2026-08-11, Joe: replaced the fixed 8-slot / equity-over-8
+             rule. Sizing is decided ONCE, at entry — positions opened under
+             the old rule keep the share counts they were entered with.)
 
   EXIT       market sell at the open of the 21st trading day after entry,
              counting the entry day as day 1 — i.e. the 20th trading session
              strictly after the entry session (held 20 full trading days).
              NYSE trading-day calendar via the broker calendar (the same
-             source freshness.is_trading_session uses). NO stops, NO profit
-             targets.
+             source freshness.is_trading_session uses). NO profit targets,
+             and exactly ONE risk exit — the catastrophe stop below.
 
-  KILL       pre-registered, in-engine. After each close the kill-check
-  SWITCH     phase computes the book's return since the new inception vs SPY
-             since inception, and the max drawdown from the book's peak,
-             from public.paper_nav_daily. If (>= 40 trading days since
-             inception AND the book trails SPY by >= 10 percentage points)
-             OR (drawdown >= 15%): the trip is recorded in
-             public.ce_kill_switch and the submitter refuses ALL new entries
-             while tripped (exits still execute). A fresh trip emits a
-             ::error:: annotation and fails the job so WORKFLOW_FAILURE_ALERT
-             emails. Tripped state LATCHES until a human resets the row.
+  STOP       per position, evaluated in the post-close phase against THAT
+             DAY'S official close: when the close is 15% or more below the
+             entry price, the exit is pulled forward to the NEXT open — the
+             same market-on-open path scheduled exits take (the event's
+             exit_due_date moves to the next trading session; the reason is
+             written to gate_fail_reason only when that column is null, so
+             no new column is needed). A position already due to exit at or
+             before that open is left alone — never a double exit.
+             NO tighter stop: across 239 historical events, stops at
+             5/8/10/12% cut the per-event mean monotonically (+6.8% ->
+             +2.9%) because ~50-55% of stopped names traded back above the
+             stop price inside the original 20-day window; forgone upside on
+             those (+18% to +32%) far exceeded the loss avoided on the
+             genuinely bad ones (+8% to +14%). Insiders buy INTO weakness,
+             so a post-entry dip is the thesis, not its refutation. The wide
+             15% level binds 22 of 239 events, is ~return-neutral, and
+             improved portfolio drawdown/Sharpe at the margin (best Sharpe
+             cell in the study).
+
+  KILL       pre-registered, in-engine — a MONITOR ONLY; it never stops
+  SWITCH     trading. After each close the kill-check phase computes the
+             book's return since the new inception vs SPY since inception,
+             and the max drawdown from the book's peak, from
+             public.paper_nav_daily. If (>= 40 trading days since inception
+             AND the book trails SPY by >= 10 percentage points) OR
+             (drawdown >= 15%): the trip is recorded in
+             public.ce_kill_switch and a fresh trip emits a ::error::
+             annotation and fails the job so WORKFLOW_FAILURE_ALERT emails
+             Joe. ENTRIES ARE NEVER REFUSED — trading continues unaffected
+             (2026-08-11, Joe: "no point freezing new buys just because
+             existing names are losing"; loss control is per-position, via
+             the catastrophe stop above). Tripped state LATCHES until a
+             human resets the row.
 
 BOOKKEEPING — the book lives in the existing paper_* tables in the SLEEVE B
 slot (sleeve 'B', signal_source 'conviction_events'); sleeve_m allocation is
@@ -57,12 +91,16 @@ is reused untouched (the 87906a84 fixes carry over).
 
 Phases (CLI):
   --phase open        pre-open (CONVICTION-OPEN-DAILY, ~12:45Z): reconcile
-                      fills into ce_events, place exits due today FIRST, then
-                      build events, apply gates, place entries; record the
-                      expected entry/exit counts in paper_signal_capture
-                      (scripts/ce_capture.py, LESSONS 8.20).
+                      fills into ce_events, place exits due today FIRST
+                      (scheduled 21st-day exits AND catastrophe stops pulled
+                      forward last night), then build events, apply gates,
+                      place entries; record the expected entry/exit counts in
+                      paper_signal_capture (scripts/ce_capture.py,
+                      LESSONS 8.20).
   --phase kill-check  post-close (CONVICTION-KILL-CHECK, 21:15Z): reconcile
-                      fills, evaluate + record the kill switch.
+                      fills, screen every held position against the -15%
+                      catastrophe stop at today's official close, then
+                      evaluate + record the kill-switch MONITOR.
 
 Honors PAPER_LIVE_TRADING_ENABLED exactly like paper_portfolio.runner: unless
 the env var is the literal 'true' (or --force-live is passed), a non-dry-run
@@ -83,7 +121,7 @@ from typing import Any, Iterable
 from paper_portfolio.alpaca_client import AlpacaPaperClient
 from paper_portfolio.diff import OrderIntent
 from paper_portfolio.freshness import file_alert, is_trading_session
-from paper_portfolio.mirror import _et_today, _sql_escape
+from paper_portfolio.mirror import _et_today, _sql_escape, official_closes
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(message)s")
@@ -99,9 +137,11 @@ MIN_PREV_CLOSE_USD = 5.0             # gate: previous close >= $5
 MIN_AVG_DOLLAR_VOLUME_USD = 2_000_000.0   # gate: 21-day AVG close*volume >= $2M
 DOLLAR_VOLUME_WINDOW_DAYS = 21       # trading rows, window ending at prev close
 SMA_WINDOW_DAYS = 50                 # gate: prev close > 50-day SMA (no look-ahead)
-MAX_CONCURRENT_POSITIONS = 8         # book capacity
-SLOT_FRACTION = 1.0 / 8.0            # 1/8 of current account equity per position
+POSITION_FRACTION = 0.10             # every new position = 10% of CURRENT equity
+MAX_CONCURRENT_POSITIONS = 13        # HARD SAFETY CEILING (historical max concurrency),
+                                     # not a target: the book self-limits on cash at ~10
 HOLD_FULL_TRADING_DAYS = 20          # exit at open of 21st trading day (entry day = day 1)
+CATASTROPHE_STOP_DROP = 0.15         # close <= 15% below entry -> sell at the NEXT open
 KILL_MIN_TRADING_DAYS = 40           # underperformance arm needs >= 40 trading days
 KILL_TRAIL_SPY_PTS = 0.10            # book trails SPY by >= 10 percentage points
 KILL_MAX_DRAWDOWN = 0.15             # drawdown from the book's peak >= 15%
@@ -277,54 +317,84 @@ def rank_same_morning(events: list[ConvictionEvent]) -> list[ConvictionEvent]:
     return sorted(events, key=lambda e: (-e.total_usd, e.ticker))
 
 
+def _append_reason(event: ConvictionEvent, text: str) -> None:
+    """Semicolon-append to gate_fail_reason (the ledger's only free-text
+    column — the ce_events column list is locked, so every 'why not' rides
+    here)."""
+    event.gate_fail_reason = (
+        (event.gate_fail_reason + "; ") if event.gate_fail_reason else "") + text
+
+
 def decide_actions(
     events: list[ConvictionEvent],
-    free_slots: int,
-    kill_switch_tripped: bool,
+    cash_available: float,
     blocked_tickers: set[str],
     equity: float,
     prev_closes: dict[str, float | None],
     sessions: list["date"],
     session: "date",
+    open_position_count: int = 0,
 ) -> list[ConvictionEvent]:
     """Assign the final action to every gated event and size the entries.
     PURE — this is the production decision path the open phase runs.
 
     Precedence per event: gate failure -> 'skipped_gate'; ticker already in
-    the book (one position per ticker) -> 'skipped_dup'; kill switch tripped
-    -> 'blocked_kill_switch'; then the survivors are ranked by total dollar
-    size and fill the free slots — overflow -> 'skipped_full'. An entry that
-    sizes to 0 whole shares (floor((equity/8)/prev close)) cannot be taken
-    and records 'skipped_gate' with the sizing reason appended. Entered
-    events get entry_qty + exit_due_date (open of the 21st trading day,
-    entry day = day 1). Returns the entered events in rank order."""
+    the book (one position per ticker) -> 'skipped_dup'; then the survivors
+    are ranked by total dollar size (largest first) and taken while the cash
+    lasts.
+
+    FIXED-FRACTION SIZING (2026-08-11): each entry is 10% of CURRENT account
+    equity — floor((equity * 0.10) / prev close) WHOLE shares — and costs
+    qty * prev close, which is deducted from `cash_available` as the book
+    fills. There is no slot count: an event whose cost the remaining cash
+    cannot cover records 'skipped_full' with "insufficient cash for a 10%
+    position", which is what makes the book self-limit at ~10 names.
+    MAX_CONCURRENT_POSITIONS is a hard safety ceiling on top of that (a data
+    anomaly must not open an unbounded book), counted from
+    `open_position_count` (positions already open that are NOT exiting at
+    this morning's auction); events beyond it also record 'skipped_full'.
+    An entry that sizes to 0 whole shares (price above the 10% target)
+    cannot be taken and records 'skipped_gate' with the sizing reason
+    appended. Entered events get entry_qty + exit_due_date (open of the 21st
+    trading day, entry day = day 1). Returns the entered events in rank
+    order."""
     survivors: list[ConvictionEvent] = []
     for e in events:
         if not e.passed_gates:
             e.action = "skipped_gate"
         elif e.ticker in blocked_tickers:
             e.action = "skipped_dup"          # one position per ticker
-        elif kill_switch_tripped:
-            e.action = "blocked_kill_switch"
         else:
             survivors.append(e)
 
+    cash = float(cash_available)
+    held = int(open_position_count)
     entered: list[ConvictionEvent] = []
     for e in rank_same_morning(survivors):
-        if len(entered) >= free_slots:
+        if held >= MAX_CONCURRENT_POSITIONS:
             e.action = "skipped_full"
+            _append_reason(e, f"concurrent-position ceiling reached "
+                              f"({MAX_CONCURRENT_POSITIONS} open)")
             continue
         prev_close = prev_closes.get(e.ticker)
         qty = size_entry(equity, prev_close)
         if qty < 1:
             e.action = "skipped_gate"
-            e.gate_fail_reason = ((e.gate_fail_reason + "; ") if e.gate_fail_reason else "") + (
-                f"cannot size: floor((equity/8)/prev close ${prev_close}) = 0 whole shares")
+            _append_reason(e, f"cannot size: floor((equity x {POSITION_FRACTION:.0%})"
+                              f"/prev close ${prev_close}) = 0 whole shares")
+            continue
+        cost = qty * float(prev_close)
+        if cost > cash:
+            e.action = "skipped_full"
+            _append_reason(e, f"insufficient cash for a 10% position "
+                              f"(needs ${cost:,.0f}, ${cash:,.0f} available)")
             continue
         e.action = "entered"
         e.entry_qty = qty
         due = exit_due_session(sessions, session)
         e.exit_due_date = due.isoformat() if due else None
+        cash -= cost
+        held += 1
         entered.append(e)
     return entered
 
@@ -403,10 +473,12 @@ def apply_gates(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def size_entry(equity: float, price: float | None) -> int:
-    """floor((equity / 8) / price) whole shares. 0 when unpriceable."""
+    """FIXED FRACTION: floor((equity * 10%) / price) whole shares — 10% of
+    CURRENT account equity per new position. 0 when unpriceable or when the
+    price exceeds the 10% target (that event cannot be taken)."""
     if not price or price <= 0 or equity <= 0:
         return 0
-    return int(math.floor((equity * SLOT_FRACTION) / price))
+    return int(math.floor((equity * POSITION_FRACTION) / price))
 
 
 def next_session_after(sessions: list[date], d: date) -> date | None:
@@ -443,6 +515,94 @@ def load_trading_sessions(alpaca: AlpacaPaperClient,
         except (KeyError, ValueError, TypeError):
             continue
     return sorted(set(out))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Catastrophe stop — pure evaluation over the held book at today's close
+#
+# The ONLY risk exit. Aggressive stops are HARMFUL on this strategy (see the
+# module docstring's STOP block: 5/8/10/12% stops cut the per-event mean
+# monotonically because insiders buy INTO weakness). A WIDE 15% stop bound
+# only 22 of 239 events, was ~return-neutral, and improved drawdown/Sharpe.
+# ─────────────────────────────────────────────────────────────────────────────
+
+STOP_REASON_PREFIX = "catastrophe stop"
+
+
+@dataclass(frozen=True)
+class StopHit:
+    """One held position whose close breached the catastrophe stop."""
+    event_id: int
+    ticker: str
+    entry_price: float
+    close_price: float
+    close_date: str
+    drop: float                 # signed return vs entry (-0.163 = -16.3%)
+    already_due: bool           # already exiting at/before the next open
+
+
+def stop_triggered(entry_price: float | None, close_price: float | None,
+                   drop: float = CATASTROPHE_STOP_DROP) -> bool:
+    """True when `close_price` is `drop` or more BELOW `entry_price`.
+
+    Boundary is inclusive: at a $100 entry, a $85.00 close (-15.0%) triggers
+    and a $85.10 close (-14.9%) does not. The 1e-12 slack absorbs binary
+    representation error on the ratio only — it is ~1e-10 of a percentage
+    point, far below any price tick."""
+    if not entry_price or float(entry_price) <= 0 or close_price is None:
+        return False
+    return (float(close_price) / float(entry_price) - 1.0) <= -abs(drop) + 1e-12
+
+
+def stop_reason_text(entry_price: float, close_price: float, close_date: str,
+                     drop: float = CATASTROPHE_STOP_DROP) -> str:
+    """The ledger/log line for a stop. Written to gate_fail_reason ONLY when
+    that column is null (the ce_events column list is locked)."""
+    ret = float(close_price) / float(entry_price) - 1.0
+    return (f"{STOP_REASON_PREFIX} — {close_date} close ${float(close_price):,.2f} is "
+            f"{ret:+.1%} vs the ${float(entry_price):,.2f} entry (limit "
+            f"-{abs(drop):.0%}); selling at the next open")
+
+
+def evaluate_catastrophe_stops(
+    open_events: list[dict],
+    closes: dict[str, float],
+    next_session: "date | None",
+    close_date: str,
+    drop: float = CATASTROPHE_STOP_DROP,
+) -> tuple[list[StopHit], list[str]]:
+    """PURE — the production stop decision. Returns (hits, unevaluated).
+
+    `open_events` are load_open_events() rows (action='entered', not exited);
+    `closes` maps TICKER -> that session's official close. A position whose
+    entry_price or close is missing cannot be judged and is returned in
+    `unevaluated` (the caller logs it — silence would be the fake-green
+    failure mode).
+
+    A hit whose exit_due_date is already at or before `next_session` is
+    flagged already_due=True: it is exiting at that same open anyway, so the
+    caller must NOT touch it (no double exit)."""
+    hits: list[StopHit] = []
+    unevaluated: list[str] = []
+    nxt = next_session.isoformat() if next_session else None
+    for row in open_events:
+        ticker = (row.get("ticker") or "").upper()
+        entry = row.get("entry_price")
+        close = closes.get(ticker)
+        if entry is None or close is None:
+            unevaluated.append(ticker)
+            continue
+        if not stop_triggered(entry, close, drop):
+            continue
+        due = row.get("exit_due_date")
+        hits.append(StopHit(
+            event_id=int(row["id"]), ticker=ticker,
+            entry_price=float(entry), close_price=float(close),
+            close_date=close_date,
+            drop=float(close) / float(entry) - 1.0,
+            already_due=bool(nxt and due and str(due) <= nxt),
+        ))
+    return hits, unevaluated
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -603,10 +763,13 @@ def load_price_histories(tickers: list[str], session_date: str,
 
 
 def load_open_events() -> list[dict]:
-    """ce_events rows that are OPEN positions (entered, not exited)."""
+    """ce_events rows that are OPEN positions (entered, not exited).
+    gate_fail_reason rides along because a catastrophe stop records its
+    reason there (locked column list — no new column); the open phase reads
+    it to label the exit order."""
     return _supabase_query(
         "select id, ticker, filing_date::text as filing_date, entered_at::text as entered_at, "
-        "entry_qty, entry_price, exit_due_date::text as exit_due_date "
+        "entry_qty, entry_price, exit_due_date::text as exit_due_date, gate_fail_reason "
         "from public.ce_events "
         "where action = 'entered' and exited_at is null "
         "order by exit_due_date, ticker;")
@@ -638,8 +801,11 @@ def _ce_schema_present() -> bool:
 
 
 def load_kill_switch() -> dict:
-    """The single ce_kill_switch row. Raises when unreadable — the open phase
-    must not guess whether entries are allowed (fail-safe: no read, no entry)."""
+    """The single ce_kill_switch row. Raises when unreadable — the kill-check
+    phase MUST read the prior state before it writes (the latch depends on
+    it). The open phase reads through _kill_switch_monitor_state() instead:
+    since 2026-08-11 the switch gates nothing, so an unreadable row must
+    never block trading."""
     rows = _supabase_query(
         "select tripped, tripped_at::text as tripped_at, reason, book_return, "
         "spy_return, max_drawdown, checked_at::text as checked_at "
@@ -647,6 +813,34 @@ def load_kill_switch() -> dict:
     if not rows:
         raise RuntimeError("ce_kill_switch has no state row — apply migration 094.")
     return rows[0]
+
+
+def _kill_switch_monitor_state() -> dict | None:
+    """MONITOR read for the open phase. The kill switch no longer gates
+    anything (2026-08-11), so an unreadable row logs and returns None rather
+    than blocking the morning's trading. Never use this in the kill-check
+    phase — the latch needs the real prior state."""
+    try:
+        return load_kill_switch()
+    except Exception as exc:  # noqa: BLE001 — monitor read, must not block trading
+        logger.warning("ce_kill_switch unreadable (%s) — monitor state unknown; "
+                       "trading is unaffected either way", exc)
+        return None
+
+
+def write_stop_exit_scheduled(event_id: int, exit_due_date: str, reason: str) -> None:
+    """Pull a position's exit forward to `exit_due_date` (the next trading
+    session) because the catastrophe stop tripped, and record WHY.
+
+    The ce_events column list is LOCKED, so the reason rides in the existing
+    gate_fail_reason column — and only when that column is null, which
+    `coalesce` does atomically (an event that carries a real gate note keeps
+    it; the log line below is the belt-and-braces record either way)."""
+    _supabase_exec(
+        "update public.ce_events set "
+        f"exit_due_date = '{exit_due_date}', "
+        f"gate_fail_reason = coalesce(gate_fail_reason, {_sql_escape(reason)}) "
+        f"where id = {int(event_id)} and exited_at is null;")
 
 
 def write_event_row(ev: ConvictionEvent, entered_at_sql: str = "NULL") -> None:
@@ -791,8 +985,8 @@ def _order_exists_today(ticker: str, side: str) -> bool:
 
 def _write_and_submit(intents: list[OrderIntent], dry_run: bool) -> dict:
     """Write pending paper_orders rows then hand them to the shared submitter
-    (client_order_id idempotency + open-order ticker guard + kill-switch entry
-    refusal all live there)."""
+    (client_order_id idempotency + open-order ticker guard live there; the
+    submitter no longer refuses anything on the kill switch — 2026-08-11)."""
     from paper_portfolio.audit import write_order_intents
     from paper_portfolio.submitter import submit_pending_orders
     if not intents:
@@ -857,11 +1051,17 @@ def run_open_phase(dry_run: bool = False,
     except Exception:  # noqa: BLE001 — reconciliation lag must not block trading
         logger.exception("fill reconciliation failed — continuing")
 
-    # broker truth: held book + account equity
+    # broker truth: held book + account equity + settled cash. Equity sizes
+    # each new position (10% of CURRENT equity); cash is what the book can
+    # actually fund this morning, and it is what limits the name count now
+    # that the fixed 8 slots are gone. Both read directly — an account object
+    # missing either field is a broken client, not a reason to trade blind.
     positions = {p.ticker.upper(): p for p in alpaca.get_positions()}
-    equity = float(alpaca.get_account().equity)
-    logger.info("account equity $%s, broker positions: %d",
-                f"{equity:,.0f}", len(positions))
+    account = alpaca.get_account()
+    equity = float(account.equity)
+    cash = float(account.cash)
+    logger.info("account equity $%s, cash $%s, broker positions: %d",
+                f"{equity:,.0f}", f"{cash:,.0f}", len(positions))
 
     open_events = load_open_events()
     session_iso = session.isoformat()
@@ -887,13 +1087,20 @@ def run_open_phase(dry_run: bool = False,
                 write_exit_marked(int(e["id"]),
                                   datetime.now(tz=timezone.utc).isoformat(), None, None)
             continue
+        # A stop pulled forward last night carries its reason in
+        # gate_fail_reason (locked column list); label the order honestly so
+        # the ledger and the morning email say WHY this name is being sold.
+        note = str(e.get("gate_fail_reason") or "")
+        if note.startswith(STOP_REASON_PREFIX):
+            trigger = f"Conviction exit — {note} (entered off the {e['filing_date']} filing)"
+        else:
+            trigger = (f"Conviction exit — 21st trading day (entered off the "
+                       f"{e['filing_date']} filing; due {e['exit_due_date']})")
         exit_intents.append(OrderIntent(
             sleeve=SLEEVE, ticker=t, side="sell",
             target_quantity=qty, target_notional=0.0,
             signal_score=None, signal_source=SIGNAL_SOURCE,
-            rebalance_trigger_reason=(
-                f"Conviction exit — 21st trading day (entered off the "
-                f"{e['filing_date']} filing; due {e['exit_due_date']})"),
+            rebalance_trigger_reason=trigger,
         ))
     exit_result = _write_and_submit(exit_intents, dry_run)
     logger.info("exits due today: %d (orders queued: %d)",
@@ -928,27 +1135,28 @@ def run_open_phase(dry_run: bool = False,
     for e in events:
         apply_gates(e, session_iso, universe.get(e.ticker), histories.get(e.ticker, []))
 
-    # ── 4) KILL SWITCH + slots + one-per-ticker + ranking ──────────────────
-    kill = load_kill_switch()
-    tripped = bool(kill.get("tripped"))
+    # ── 4) KILL-SWITCH MONITOR + fundable cash + one-per-ticker + ranking ──
+    # The kill switch is a MONITOR ONLY (2026-08-11, Joe): it is read here for
+    # the morning summary and never gates a single order. Loss control is
+    # per-position, via the catastrophe stop in the post-close phase.
+    kill = _kill_switch_monitor_state()
+    tripped = bool(kill.get("tripped")) if kill is not None else None
     if tripped:
-        print("::error::CONVICTION kill switch is TRIPPED "
-              f"({kill.get('reason') or 'see ce_kill_switch'}) — refusing all "
-              "new entries; exits still execute", flush=True)
+        logger.warning("KILL-SWITCH MONITOR is TRIPPED (%s) — recorded for review; "
+                       "trading continues unaffected",
+                       kill.get("reason") or "see ce_kill_switch")
 
     held_or_open = ({t for t in positions}
                     | {(e["ticker"] or "").upper() for e in open_events})
     due_exit_tickers = {(e["ticker"] or "").upper() for e in exits_due}
-    # Exits due today free their slot CAPACITY for this morning's entries
-    # (exits are placed first; both legs fill at the same opening auction) —
-    # but the exiting TICKER itself stays blocked for the day: submitting an
-    # opposing buy for a symbol we are selling at the same auction would
-    # violate one-position-per-ticker mid-auction (and brokers reject
-    # opposite-side working orders on one symbol).
-    occupied = len({(e["ticker"] or "").upper() for e in open_events} - due_exit_tickers)
-    free_slots = max(0, MAX_CONCURRENT_POSITIONS - occupied)
-    logger.info("book: %d occupied after today's exits, %d free slot(s)%s",
-                occupied, free_slots, " — KILL SWITCH TRIPPED" if tripped else "")
+    # Exits due today free their CAPITAL for this morning's entries (exits are
+    # placed first; both legs fill at the same opening auction) — but the
+    # exiting TICKER itself stays blocked for the day: submitting an opposing
+    # buy for a symbol we are selling at the same auction would violate
+    # one-position-per-ticker mid-auction (and brokers reject opposite-side
+    # working orders on one symbol).
+    open_after_exits = len(
+        {(e["ticker"] or "").upper() for e in open_events} - due_exit_tickers)
 
     # sizing at the previous close (prices_eod — the gold source; LESSONS 8.6)
     def _prev_close(t: str) -> float | None:
@@ -956,14 +1164,39 @@ def run_open_phase(dry_run: bool = False,
         return hist[-1].close if hist else None
 
     prev_closes = {e.ticker: _prev_close(e.ticker) for e in events}
+
+    # Cash the book can actually deploy at this auction = settled cash plus
+    # the proceeds of the exits queued above, valued at the previous close
+    # (prices_eod, same source as entry sizing). A name whose close we cannot
+    # read contributes $0 — that under-invests by one name at worst, where
+    # over-counting would buy stock the account cannot pay for.
+    exit_proceeds = 0.0
+    if exit_intents:
+        exit_closes = load_price_histories([i.ticker for i in exit_intents],
+                                           session_iso, n_rows=1)
+        for i in exit_intents:
+            bars = exit_closes.get(i.ticker.upper()) or []
+            if bars:
+                exit_proceeds += float(i.target_quantity) * bars[-1].close
+            else:
+                logger.warning("no previous close for exiting %s — counting $0 of "
+                               "proceeds toward this morning's cash", i.ticker)
+    cash_available = cash + exit_proceeds
+    logger.info("book: %d open after today's exits (ceiling %d); fundable cash "
+                "$%s = $%s settled + $%s exit proceeds; 10%% position = $%s",
+                open_after_exits, MAX_CONCURRENT_POSITIONS, f"{cash_available:,.0f}",
+                f"{cash:,.0f}", f"{exit_proceeds:,.0f}",
+                f"{equity * POSITION_FRACTION:,.0f}")
+
     if exit_due_session(sessions, session) is None:
         # calendar window too short (long shutdown?) — extend rather than
         # enter positions with no tracked exit date
         sessions = load_trading_sessions(alpaca, cal_start, session + timedelta(days=120))
     entered = decide_actions(
-        events=events, free_slots=free_slots, kill_switch_tripped=tripped,
+        events=events, cash_available=cash_available,
         blocked_tickers=held_or_open, equity=equity,
-        prev_closes=prev_closes, sessions=sessions, session=session)
+        prev_closes=prev_closes, sessions=sessions, session=session,
+        open_position_count=open_after_exits)
     entry_intents: list[OrderIntent] = []
     for e in entered:
         entry_intents.append(OrderIntent(
@@ -1003,10 +1236,11 @@ def run_open_phase(dry_run: bool = False,
             "skipped_gate": [e.ticker for e in events if e.action == "skipped_gate"],
             "skipped_full": [e.ticker for e in events if e.action == "skipped_full"],
             "skipped_dup": [e.ticker for e in events if e.action == "skipped_dup"],
-            "blocked_kill_switch": [e.ticker for e in events
-                                    if e.action == "blocked_kill_switch"],
-            "kill_switch_tripped": tripped,
-            "free_slots": free_slots,
+            "kill_switch_tripped": tripped,   # MONITOR only — never blocks a trade
+            "open_positions_after_exits": open_after_exits,
+            "position_ceiling": MAX_CONCURRENT_POSITIONS,
+            "cash_available": cash_available,
+            "position_target_usd": equity * POSITION_FRACTION,
             "equity": equity,
         },
         dry_run=dry_run,
@@ -1018,17 +1252,23 @@ def run_open_phase(dry_run: bool = False,
             from paper_portfolio.emailer import send_alert_email_once
             lines = [
                 f"Conviction Events — orders queued for today's open ({session_iso}).", "",
-                f"Exits due (21st trading day): {len(exit_intents)}",
-                *(f"  SELL {i.ticker} x{i.target_quantity:g}" for i in exit_intents),
-                f"Entries: {len(entry_intents)}"
-                + (" — BLOCKED: kill switch tripped" if tripped else ""),
+                f"Exits (held 20 full trading days, or stopped out): {len(exit_intents)}",
+                *(f"  SELL {i.ticker} x{i.target_quantity:g}  ({i.rebalance_trigger_reason})"
+                  for i in exit_intents),
+                f"Entries: {len(entry_intents)}",
                 *(f"  BUY  {i.ticker} x{i.target_quantity:g}  ({i.rebalance_trigger_reason})"
                   for i in entry_intents),
             ]
             skipped = [e for e in events if e.action and e.action != "entered"]
             if skipped:
                 lines += ["", "Events not entered:"]
-                lines += [f"  {e.ticker} ({e.filing_date}) — {e.action}" for e in skipped]
+                lines += [f"  {e.ticker} ({e.filing_date}) — {e.action}"
+                          + (f": {e.gate_fail_reason}" if e.gate_fail_reason else "")
+                          for e in skipped]
+            if tripped:
+                lines += ["", "Kill-switch monitor: TRIPPED "
+                          f"({kill.get('reason') or 'see the kill-switch row'}). "
+                          "This is a monitor only — trading continues as normal."]
             lines += ["", "Orders execute at the 9:30am ET opening auction."]
             n_orders = len(exit_intents) + len(entry_intents)
             subject = (f"[MacroTilt paper] Conviction Events — {n_orders} order(s) "
@@ -1042,23 +1282,122 @@ def run_open_phase(dry_run: bool = False,
         "session": session_iso,
         "exits_due": len(exits_due), "exit_orders": len(exit_intents),
         "events": len(events), "entries": len(entry_intents),
-        "kill_switch_tripped": tripped,
+        "kill_switch_tripped": tripped,   # MONITOR only — never blocks a trade
+        "cash_available": cash_available,
+        "open_positions_after_exits": open_after_exits,
         "exit_result": exit_result, "entry_result": entry_result,
     }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# KILL-CHECK phase (post-close)
+# POST-CLOSE phase — catastrophe stops (an ACTION) + kill-switch MONITOR
 # ─────────────────────────────────────────────────────────────────────────────
 
+def run_catastrophe_stop_check(alpaca: AlpacaPaperClient | None = None,
+                               session_date: date | None = None,
+                               dry_run: bool = False) -> dict[str, Any]:
+    """Screen every held position against the -15% catastrophe stop at TODAY'S
+    official close and pull the breached ones forward to the NEXT open.
+
+    Price source: mirror.official_closes — the market-data daily bar for the
+    session, i.e. the SAME official close the close snapshot in this workflow
+    just marked the book at (LESSONS 2026-06-12b: one concept, one shared
+    computation). prices_eod is NOT usable here: its complete panel only
+    lands in the next-morning batch (MASSIVE-DAILY), so at 21:15Z it still
+    carries the PRIOR session and the stop would run a day late.
+
+    Mechanism: the breached event's exit_due_date moves to the next trading
+    session, so the open phase sells it market-on-open down the SAME path as
+    a scheduled 21st-day exit. No new column, no second order path. A
+    position already due at or before that open is left untouched (never a
+    double exit)."""
+    session = session_date or _et_today()
+    session_iso = session.isoformat()
+
+    # Read the book BEFORE touching the broker: an empty book needs no client,
+    # no calendar call and no market-data call.
+    open_events = load_open_events()
+    if not open_events:
+        logger.info("catastrophe stop: no open positions to screen")
+        return {"screened": 0, "stopped": 0, "already_due": 0, "unevaluated": []}
+
+    alpaca = alpaca or AlpacaPaperClient()
+
+    # Trading-day gate (LESSONS 4.16): there is no close to screen against on
+    # a weekday holiday, and warning about every held name would be a false
+    # alarm on a healthy day (LESSONS 4.25).
+    if not is_trading_session(alpaca, session):
+        logger.info("catastrophe stop: %s is not a trading session — nothing to screen",
+                    session_iso)
+        return {"skipped": "market-closed", "screened": 0, "stopped": 0,
+                "already_due": 0, "unevaluated": []}
+
+    tickers = sorted({(e["ticker"] or "").upper() for e in open_events})
+    closes = {t: c for t, (c, _prev) in
+              official_closes(alpaca, tickers, session).items()}
+    sessions = load_trading_sessions(alpaca, session, session + timedelta(days=30))
+    nxt = next_session_after(sessions, session)
+    if nxt is None:
+        raise RuntimeError(
+            f"catastrophe stop: no trading session after {session_iso} in the "
+            "broker calendar — cannot schedule a stop exit")
+
+    hits, unevaluated = evaluate_catastrophe_stops(
+        open_events, closes, nxt, close_date=session_iso)
+
+    if unevaluated:
+        # Never silent: a held name with no close or no reconciled entry price
+        # was NOT screened tonight, and saying so is the difference between a
+        # monitor and fake green (LESSONS 0.1 / 4.5).
+        print("::warning::CONVICTION catastrophe stop could not screen "
+              f"{len(unevaluated)} held position(s) tonight (no official "
+              f"{session_iso} close or no reconciled entry price): "
+              f"{', '.join(unevaluated)}", flush=True)
+
+    stopped = 0
+    for h in hits:
+        if h.already_due:
+            logger.info("catastrophe stop: %s is %.1f%% below entry but already "
+                        "exits at/before %s — leaving its exit as scheduled",
+                        h.ticker, h.drop * 100, nxt.isoformat())
+            continue
+        reason = stop_reason_text(h.entry_price, h.close_price, h.close_date)
+        msg = (f"CONVICTION CATASTROPHE STOP — {h.ticker}: {h.close_date} close "
+               f"${h.close_price:,.2f} is {h.drop:+.1%} vs the ${h.entry_price:,.2f} "
+               f"entry (limit -{CATASTROPHE_STOP_DROP:.0%}). Selling at the "
+               f"{nxt.isoformat()} open (market-on-open, the same path as a "
+               f"scheduled exit).")
+        logger.warning(msg)
+        print(f"::notice::{msg}", flush=True)
+        if not dry_run:
+            write_stop_exit_scheduled(h.event_id, nxt.isoformat(), reason)
+        stopped += 1
+
+    logger.info("catastrophe stop: screened %d position(s) at the %s close — "
+                "%d stopped, %d already exiting, %d unevaluated",
+                len(open_events), session_iso, stopped,
+                sum(1 for h in hits if h.already_due), len(unevaluated))
+    return {"screened": len(open_events), "stopped": stopped,
+            "already_due": sum(1 for h in hits if h.already_due),
+            "unevaluated": unevaluated, "next_open": nxt.isoformat()}
+
+
 def run_kill_check(dry_run: bool = False) -> int:
-    """Recompute the kill metrics from paper_nav_daily since the new
-    inception, upsert ce_kill_switch, and FAIL the job (nonzero exit) on a
-    fresh trip so WORKFLOW_FAILURE_ALERT emails. An already-tripped switch
-    stays loud in the log (::error:: line) but exits 0 — the failure email
-    fires once per trip, not daily (LESSONS 4.12)."""
+    """Post-close phase: catastrophe stops FIRST (they place tomorrow's
+    exits), then the kill-switch MONITOR.
+
+    The kill switch recomputes its metrics from paper_nav_daily since the new
+    inception, upserts ce_kill_switch, and FAILS the job (nonzero exit) on a
+    fresh trip so WORKFLOW_FAILURE_ALERT emails Joe. It does NOT stop trading
+    — entries and exits run untouched while tripped (2026-08-11, Joe). An
+    already-tripped switch stays loud in the log (::error:: line) but exits 0
+    — the failure email fires once per trip, not daily (LESSONS 4.12).
+
+    A failing stop screen also fails the job (held positions went unscreened,
+    which is exactly the silent-staleness failure mode), but it never stops
+    the monitor from stamping its metrics for the evening."""
     logger.info("=" * 60)
-    logger.info("CONVICTION EVENTS — KILL-CHECK phase")
+    logger.info("CONVICTION EVENTS — POST-CLOSE phase (stops, then kill monitor)")
     logger.info("=" * 60)
     if not _ce_schema_present():
         if dry_run:
@@ -1072,7 +1411,18 @@ def run_kill_check(dry_run: bool = False) -> int:
     try:
         reconcile_fills(dry_run=dry_run)
     except Exception:  # noqa: BLE001
-        logger.exception("fill reconciliation failed — continuing to kill check")
+        logger.exception("fill reconciliation failed — continuing to the stop screen")
+
+    # ── catastrophe stops (the only risk exit) ─────────────────────────────
+    stop_failed = False
+    try:
+        run_catastrophe_stop_check(dry_run=dry_run)
+    except Exception as exc:  # noqa: BLE001 — must not cost the evening's monitor
+        stop_failed = True
+        msg = (f"CONVICTION catastrophe-stop screen FAILED ({exc}) — held "
+               "positions were NOT checked against the -15% stop tonight.")
+        print(f"::error::{msg}", flush=True)
+        logger.exception(msg)
 
     nav_rows = _supabase_query(
         "select snapshot_date::text as snapshot_date, total_nav, spy_close "
@@ -1091,11 +1441,12 @@ def run_kill_check(dry_run: bool = False) -> int:
         logger.info("[dry-run] kill-check complete — state not written "
                     "(should_trip=%s%s)", decision.should_trip,
                     f": {decision.reason}" if decision.reason else "")
-        return 0
+        return 1 if stop_failed else 0
     state = load_kill_switch()
     if fresh_trip:
-        msg = (f"CONVICTION KILL SWITCH TRIPPED — {decision.reason}. New entries "
-               "are refused until the switch is manually reset; exits still execute.")
+        msg = (f"CONVICTION KILL SWITCH TRIPPED — {decision.reason}. This is a "
+               "MONITOR: trading continues unaffected (entries and exits both "
+               "run). The state latches until a human resets the row.")
         print(f"::error::{msg}", flush=True)
         logger.error(msg)
         file_alert(title="Conviction Events kill switch TRIPPED",
@@ -1103,11 +1454,11 @@ def run_kill_check(dry_run: bool = False) -> int:
         return 1
     if bool(state.get("tripped")):
         print("::error::CONVICTION kill switch remains TRIPPED "
-              f"({state.get('reason') or 'see ce_kill_switch'}) — entries refused",
-              flush=True)
+              f"({state.get('reason') or 'see ce_kill_switch'}) — monitor only; "
+              "trading continues", flush=True)
     else:
-        logger.info("kill switch clear — entries allowed")
-    return 0
+        logger.info("kill-switch monitor clear")
+    return 1 if stop_failed else 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

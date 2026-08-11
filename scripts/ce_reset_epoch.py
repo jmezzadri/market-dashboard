@@ -188,8 +188,10 @@ def main(argv: list[str] | None = None) -> int:
     # ── 3) paper_accounts allocations (2026-06-23 reset model) ─────────────
     notes = (
         f"Conviction Events epoch — reset {inception_date}: one book in the "
-        "Sleeve B slot (insider-buy events >= $250K, 1/8-equity slots, max 8, "
-        "20-trading-day holds, pre-registered kill switch in ce_kill_switch). "
+        "Sleeve B slot (insider-buy events >= $250K, positions sized at 10% of "
+        "current equity with a hard 13-position ceiling, 20-trading-day holds, "
+        "a -15% catastrophe stop selling at the next open, and a kill switch "
+        "in ce_kill_switch that MONITORS only — it never blocks a trade). "
         "Sleeves A and M retired; sleeve_m_allocation 0, no sleeve-M trades ever."
     ).replace("'", "''")
     acct_sql = (
