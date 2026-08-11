@@ -8,16 +8,23 @@ Every case is hand-computed against the locked spec:
   * gates: CS/ADRC universe, previous close >= $5, 21-day AVG dollar volume
     >= $2M, previous close > 50-day SMA — all windows END at the previous
     close (no look-ahead);
-  * slot filling: max 8 concurrent, one per ticker, exits due today free
-    their slots, same-morning overflow ranked by event dollar size;
+  * book filling (2026-08-11 FIXED FRACTION): each entry is 10% of current
+    equity, entries stop when the available cash cannot fund the next full
+    10% position ('skipped_full'), a hard 13-position ceiling backstops a
+    data anomaly, one position per ticker, exits due today return their
+    capital, same-morning ranking by event dollar size;
   * exit math: open of the 21st trading day counting the entry day as day 1
     (= 20 sessions strictly after entry; held 20 full trading days), across
     weekends and holidays;
-  * kill switch: both arms + the 40-trading-day guard on the SPY arm;
-  * sizing: floor((equity/8)/price) whole shares;
-  * submitter refusal: conviction BUYS refused while the kill switch is
-    tripped (or unreadable) — SELLS still execute; and the CLI downgrades to
-    dry-run when PAPER_LIVE_TRADING_ENABLED is not 'true'.
+  * catastrophe stop (2026-08-11): a close 15% or more below entry pulls the
+    exit forward to the NEXT open via the scheduled-exit path; -14.9% does
+    not trigger; a position already due is never double-exited;
+  * kill switch: both arms + the 40-trading-day guard on the SPY arm — and
+    it is a MONITOR: it must never block an entry, in the engine OR the
+    submitter (explicit regression tests);
+  * sizing: floor((equity * 10%)/price) whole shares;
+  * the CLI downgrades to dry-run when PAPER_LIVE_TRADING_ENABLED is not
+    'true'.
 """
 
 from __future__ import annotations
@@ -27,6 +34,8 @@ from datetime import date
 import pytest
 
 from paper_portfolio.conviction import (
+    CATASTROPHE_STOP_DROP,
+    MAX_CONCURRENT_POSITIONS,
     ConvictionEvent,
     InsiderRow,
     KillDecision,
@@ -36,11 +45,14 @@ from paper_portfolio.conviction import (
     collapse_joint_lots,
     decide_actions,
     dedup_exact,
+    evaluate_catastrophe_stops,
     evaluate_kill_switch,
     exit_due_session,
     next_session_after,
     rank_same_morning,
     size_entry,
+    stop_reason_text,
+    stop_triggered,
 )
 
 
@@ -255,20 +267,30 @@ def test_gate_insufficient_history_fails_sma():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Sizing floor
+# Sizing floor — FIXED FRACTION: 10% of CURRENT equity, whole shares
+# (hand-computed; LESSONS 3.4)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_sizing_floor_whole_shares():
-    # equity $1,000,000 -> slot $125,000; price $30 -> floor(4166.67) = 4166
-    assert size_entry(1_000_000, 30.0) == 4166
-    # exact division: $125,000 / $125 = 1000
-    assert size_entry(1_000_000, 125.0) == 1000
-    # price above the slot -> 0 shares (cannot enter)
-    assert size_entry(1_000_000, 130_000.0) == 0
+def test_sizing_is_ten_percent_of_current_equity_floored():
+    # equity $1,000,000 -> position target $100,000; price $30
+    # -> 100000/30 = 3333.33 -> floor = 3333 shares ($99,990 cost)
+    assert size_entry(1_000_000, 30.0) == 3333
+    # exact division: $100,000 / $125 = 800 shares, no remainder
+    assert size_entry(1_000_000, 125.0) == 800
+    # drifted equity: $973,456 x 10% = $97,345.60 -> / $87.65 = 1110.61 -> 1110
+    assert size_entry(973_456, 87.65) == 1110
+    # equity moves -> the dollar target moves with it (10% of CURRENT equity):
+    # $1,200,000 x 10% = $120,000 -> / $30 = 4000 shares
+    assert size_entry(1_200_000, 30.0) == 4000
+
+
+def test_sizing_unfundable_or_unpriceable_returns_zero():
+    # price above the whole 10% target -> 0 shares (cannot enter at all)
+    assert size_entry(1_000_000, 100_001.0) == 0
+    assert size_entry(1_000_000, 100_000.0) == 1        # exactly the target: 1 share
     assert size_entry(1_000_000, None) == 0
+    assert size_entry(1_000_000, 0) == 0
     assert size_entry(0, 30.0) == 0
-    # drifted equity: $973,456/8 = $121,682 -> / $87.65 = 1388.38 -> 1388
-    assert size_entry(973_456, 87.65) == 1388
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -331,7 +353,11 @@ def test_next_session_after_weekend_and_holiday():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Slot filling + same-morning ranking (production decision path)
+# Book filling on CASH + same-morning ranking (production decision path)
+#
+# Every entry is 10% of equity. At $1,000,000 equity the target is $100,000:
+#   $10 -> 10,000 sh = $100,000     $20 -> 5,000 sh = $100,000
+#   $30 ->  3,333 sh =  $99,990     $40 -> 2,500 sh = $100,000
 # ─────────────────────────────────────────────────────────────────────────────
 
 SESSIONS = _weekday_sessions(date(2026, 8, 1), date(2026, 12, 1))
@@ -353,34 +379,95 @@ def test_rank_same_morning_by_total_dollar_size():
     assert [e.ticker for e in rank_same_morning(evs)] == ["BIG", "MID", "SMALL"]
 
 
-def test_slot_filling_ranks_and_marks_overflow_skipped_full():
+def test_entries_fill_by_rank_until_the_cash_runs_out():
+    # $250,000 of cash: BBB costs $100,000 (5,000 x $20) -> $150,000 left;
+    # CCC costs $99,990 (3,333 x $30) -> $50,010 left; AAA needs $100,000 and
+    # cannot be funded -> skipped_full.
     evs = [_gated_event("AAA", 300_000), _gated_event("BBB", 800_000),
            _gated_event("CCC", 500_000)]
     prev = {"AAA": 10.0, "BBB": 20.0, "CCC": 30.0}
-    entered = decide_actions(evs, free_slots=2, kill_switch_tripped=False,
+    entered = decide_actions(evs, cash_available=250_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes=prev, sessions=SESSIONS, session=TODAY)
     assert [e.ticker for e in entered] == ["BBB", "CCC"]     # biggest $ first
     by = {e.ticker: e for e in evs}
-    assert by["AAA"].action == "skipped_full"
     assert by["BBB"].action == "entered"
-    assert by["BBB"].entry_qty == 6250                        # floor(125K/20)
+    assert by["BBB"].entry_qty == 5000                        # floor(100K/20)
     assert by["BBB"].exit_due_date == exit_due_session(SESSIONS, TODAY).isoformat()
-    assert by["CCC"].entry_qty == 4166                        # floor(125K/30)
+    assert by["CCC"].entry_qty == 3333                        # floor(100K/30)
+    assert by["AAA"].action == "skipped_full"
+    assert "insufficient cash for a 10% position" in by["AAA"].gate_fail_reason
 
 
-def test_zero_free_slots_skips_everything_as_full():
+def test_ten_percent_sizing_self_limits_the_book_at_about_ten_names():
+    # A full $1,000,000 of cash and eleven equally-priced candidates: ten
+    # $100,000 positions exhaust the cash exactly, the eleventh is unfundable.
+    evs = [_gated_event(f"T{i:02d}", 900_000 - i) for i in range(11)]
+    prev = {e.ticker: 10.0 for e in evs}
+    entered = decide_actions(evs, cash_available=1_000_000,
+                             blocked_tickers=set(), equity=1_000_000,
+                             prev_closes=prev, sessions=SESSIONS, session=TODAY)
+    assert len(entered) == 10
+    assert all(e.entry_qty == 10_000 for e in entered)        # floor(100K/10)
+    leftover = [e for e in evs if e.action == "skipped_full"]
+    assert len(leftover) == 1
+    assert "insufficient cash for a 10% position" in leftover[0].gate_fail_reason
+
+
+def test_no_cash_skips_everything_as_full_with_the_cash_reason():
     evs = [_gated_event("AAA", 300_000)]
-    entered = decide_actions(evs, free_slots=0, kill_switch_tripped=False,
+    entered = decide_actions(evs, cash_available=0.0,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes={"AAA": 10.0}, sessions=SESSIONS, session=TODAY)
     assert entered == []
     assert evs[0].action == "skipped_full"
+    assert "insufficient cash for a 10% position" in evs[0].gate_fail_reason
+
+
+def test_cash_exactly_funds_the_position():
+    # Boundary: cost == cash is fundable; one cent less is not.
+    evs = [_gated_event("AAA", 300_000)]
+    entered = decide_actions(evs, cash_available=100_000.0,
+                             blocked_tickers=set(), equity=1_000_000,
+                             prev_closes={"AAA": 10.0}, sessions=SESSIONS, session=TODAY)
+    assert [e.ticker for e in entered] == ["AAA"]
+    evs2 = [_gated_event("AAA", 300_000)]
+    assert decide_actions(evs2, cash_available=99_999.99,
+                          blocked_tickers=set(), equity=1_000_000,
+                          prev_closes={"AAA": 10.0}, sessions=SESSIONS,
+                          session=TODAY) == []
+
+
+def test_hard_ceiling_of_13_concurrent_positions_blocks_further_entries():
+    # A data anomaly floods the morning with fundable events while 12 names
+    # are already open: exactly ONE more may open (13th), the rest are full.
+    evs = [_gated_event(f"N{i:02d}", 900_000 - i) for i in range(4)]
+    prev = {e.ticker: 10.0 for e in evs}
+    entered = decide_actions(evs, cash_available=10_000_000,
+                             blocked_tickers=set(), equity=1_000_000,
+                             prev_closes=prev, sessions=SESSIONS, session=TODAY,
+                             open_position_count=12)
+    assert MAX_CONCURRENT_POSITIONS == 13
+    assert [e.ticker for e in entered] == ["N00"]             # the 13th slot
+    ceiling_skips = [e for e in evs if e.action == "skipped_full"]
+    assert [e.ticker for e in ceiling_skips] == ["N01", "N02", "N03"]
+    assert "ceiling reached (13 open)" in ceiling_skips[0].gate_fail_reason
+
+
+def test_ceiling_binds_even_with_unlimited_cash():
+    evs = [_gated_event("AAA", 900_000)]
+    entered = decide_actions(evs, cash_available=10_000_000,
+                             blocked_tickers=set(), equity=1_000_000,
+                             prev_closes={"AAA": 10.0}, sessions=SESSIONS,
+                             session=TODAY, open_position_count=13)
+    assert entered == []
+    assert evs[0].action == "skipped_full"
+    assert "ceiling" in evs[0].gate_fail_reason
 
 
 def test_one_position_per_ticker_marks_skipped_dup():
     evs = [_gated_event("HELD", 900_000), _gated_event("NEW", 300_000)]
-    entered = decide_actions(evs, free_slots=8, kill_switch_tripped=False,
+    entered = decide_actions(evs, cash_available=1_000_000,
                              blocked_tickers={"HELD"}, equity=1_000_000,
                              prev_closes={"HELD": 10.0, "NEW": 10.0},
                              sessions=SESSIONS, session=TODAY)
@@ -388,36 +475,118 @@ def test_one_position_per_ticker_marks_skipped_dup():
     assert evs[0].action == "skipped_dup"
 
 
-def test_kill_switch_blocks_entries_in_decision_path():
-    evs = [_gated_event("AAA", 900_000)]
-    entered = decide_actions(evs, free_slots=8, kill_switch_tripped=True,
-                             blocked_tickers=set(), equity=1_000_000,
-                             prev_closes={"AAA": 10.0}, sessions=SESSIONS, session=TODAY)
-    assert entered == []
-    assert evs[0].action == "blocked_kill_switch"
-
-
-def test_gate_failed_events_record_skipped_gate_even_when_tripped():
+def test_gate_failed_events_record_skipped_gate():
     e = _gated_event("AAA", 900_000)
     e.passed_gates = False
     e.gate_fail_reason = "previous close $4.00 < $5"
-    decide_actions([e], free_slots=8, kill_switch_tripped=True,
+    decide_actions([e], cash_available=1_000_000,
                    blocked_tickers=set(), equity=1_000_000,
                    prev_closes={"AAA": 4.0}, sessions=SESSIONS, session=TODAY)
     assert e.action == "skipped_gate"
 
 
-def test_unsizeable_entry_records_reason_and_frees_the_slot():
-    # BRK.A-style price above the slot: floor -> 0 shares; the next-ranked
-    # event still takes the slot.
+def test_unsizeable_entry_records_reason_and_leaves_the_cash_for_the_next():
+    # BRK.A-style price above the whole 10% target: floor -> 0 shares; the
+    # next-ranked event still gets the capital.
     evs = [_gated_event("PRICY", 900_000), _gated_event("OK", 300_000)]
-    entered = decide_actions(evs, free_slots=1, kill_switch_tripped=False,
+    entered = decide_actions(evs, cash_available=100_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes={"PRICY": 700_000.0, "OK": 10.0},
                              sessions=SESSIONS, session=TODAY)
     assert [e.ticker for e in entered] == ["OK"]
     assert evs[0].action == "skipped_gate"
     assert "0 whole shares" in evs[0].gate_fail_reason
+
+
+def test_decide_actions_has_no_kill_switch_input_at_all():
+    """REGRESSION (2026-08-11): the kill switch is a monitor. There is no way
+    to ask the decision path to block an entry — the parameter is gone."""
+    import inspect
+
+    from paper_portfolio.conviction import decide_actions as da
+    params = inspect.signature(da).parameters
+    assert "kill_switch_tripped" not in params
+    assert "free_slots" not in params
+    assert "cash_available" in params
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Catastrophe stop — the ONLY risk exit (hand-computed boundaries)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_stop_triggers_at_exactly_minus_15_percent_not_at_minus_14_9():
+    # $100.00 entry -> the stop price is exactly $85.00.
+    assert stop_triggered(100.0, 85.00) is True      # -15.0% — inclusive
+    assert stop_triggered(100.0, 84.99) is True      # -15.01%
+    assert stop_triggered(100.0, 85.10) is False     # -14.9% — holds
+    assert stop_triggered(100.0, 100.0) is False
+    assert stop_triggered(100.0, 140.0) is False
+    # A non-round entry: $47.30 x 0.85 = $40.205
+    assert stop_triggered(47.30, 40.20) is True
+    assert stop_triggered(47.30, 40.21) is False
+    # The locked level is 15%, and it is the only stop in the engine.
+    assert CATASTROPHE_STOP_DROP == 0.15
+
+
+def test_stop_cannot_fire_without_a_usable_entry_price():
+    assert stop_triggered(None, 10.0) is False
+    assert stop_triggered(0.0, 10.0) is False
+    assert stop_triggered(100.0, None) is False
+
+
+def _open_row(event_id, ticker, entry, due="2026-09-15"):
+    return {"id": event_id, "ticker": ticker, "entry_price": entry,
+            "exit_due_date": due, "filing_date": "2026-08-07",
+            "entered_at": "2026-08-10 12:45:00+00", "entry_qty": 100,
+            "gate_fail_reason": None}
+
+
+def test_evaluate_stops_flags_only_the_breached_positions():
+    rows = [_open_row(1, "DOWN", 50.0),       # close 42.00 = -16.0% -> stop
+            _open_row(2, "FLAT", 50.0),       # close 42.60 = -14.8% -> hold
+            _open_row(3, "UP", 50.0)]         # close 60.00 = +20%   -> hold
+    closes = {"DOWN": 42.0, "FLAT": 42.6, "UP": 60.0}
+    hits, unevaluated = evaluate_catastrophe_stops(
+        rows, closes, date(2026, 8, 12), close_date="2026-08-11")
+    assert [h.ticker for h in hits] == ["DOWN"]
+    assert hits[0].event_id == 1
+    assert hits[0].drop == pytest.approx(-0.16)
+    assert hits[0].already_due is False
+    assert unevaluated == []
+
+
+def test_evaluate_stops_never_double_exits_a_position_already_due():
+    """A breached name whose scheduled exit is at (or before) the same next
+    open is already being sold — flagged already_due so the caller leaves its
+    exit_due_date alone."""
+    rows = [_open_row(1, "DUETODAY", 50.0, due="2026-08-12"),   # exactly next open
+            _open_row(2, "OVERDUE", 50.0, due="2026-08-11"),    # already past due
+            _open_row(3, "LATER", 50.0, due="2026-08-13")]      # still to run
+    closes = {"DUETODAY": 40.0, "OVERDUE": 40.0, "LATER": 40.0}   # all -20%
+    hits, _ = evaluate_catastrophe_stops(
+        rows, closes, date(2026, 8, 12), close_date="2026-08-11")
+    by = {h.ticker: h for h in hits}
+    assert by["DUETODAY"].already_due is True
+    assert by["OVERDUE"].already_due is True
+    assert by["LATER"].already_due is False
+
+
+def test_evaluate_stops_reports_positions_it_could_not_judge():
+    rows = [_open_row(1, "NOCLOSE", 50.0),          # no bar for the session
+            _open_row(2, "NOENTRY", None),          # entry price not reconciled
+            _open_row(3, "FINE", 50.0)]
+    hits, unevaluated = evaluate_catastrophe_stops(
+        rows, {"FINE": 40.0, "NOENTRY": 10.0}, date(2026, 8, 12),
+        close_date="2026-08-11")
+    assert [h.ticker for h in hits] == ["FINE"]
+    assert sorted(unevaluated) == ["NOCLOSE", "NOENTRY"]
+
+
+def test_stop_reason_text_carries_the_numbers_a_reader_needs():
+    txt = stop_reason_text(50.0, 42.0, "2026-08-11")
+    assert txt.startswith("catastrophe stop")
+    assert "$42.00" in txt and "$50.00" in txt and "-16.0%" in txt
+    assert "2026-08-11" in txt
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -506,7 +675,7 @@ def test_kill_missing_spy_disables_only_the_spy_arm():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Submitter refusal — kill switch tripped / trading disabled
+# Submitter — the kill switch must NEVER refuse an order (2026-08-11)
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _FakeAlpaca:
@@ -535,61 +704,49 @@ def _pending(tid, ticker, side, source="conviction_events", qty=100.0):
                            signal_source=source, rebalance_trigger_reason=None)
 
 
-def test_submitter_refuses_conviction_buys_when_tripped_but_sells_execute(monkeypatch):
+def test_submitter_submits_conviction_buys_and_never_reads_the_kill_switch(monkeypatch):
+    """REGRESSION (2026-08-11, Joe rejected the entry freeze): a tripped kill
+    switch must not cost a single buy. The submitter no longer consults
+    ce_kill_switch at all — any query touching it here is a resurrection of
+    the deleted refusal branch."""
     from paper_portfolio import submitter as sub
     alp = _FakeAlpaca()
-    skipped, submitted = [], []
+    queries, skipped, submitted = [], [], []
     monkeypatch.setattr(sub, "fetch_pending_orders", lambda limit=500: [
         _pending("row-buy", "AAA", "buy"),
         _pending("row-sell", "BBB", "sell"),
     ])
-    monkeypatch.setattr(sub, "_conviction_kill_switch_tripped", lambda: True)
+    monkeypatch.setattr(sub, "_supabase_query",
+                        lambda sql: queries.append(sql) or [])
     monkeypatch.setattr(sub, "_mark_skipped", lambda rid, reason: skipped.append((rid, reason)))
     monkeypatch.setattr(sub, "_mark_submitted", lambda rid, aid: submitted.append(rid))
     res = sub.submit_pending_orders(alpaca=alp, dry_run=False)
-    # BUY refused, never reached the broker; SELL executed.
-    assert [t for (t, s, q) in alp.submitted] == ["BBB"]
-    assert res.submitted == 1
-    assert skipped and skipped[0][0] == "row-buy"
-    assert "kill switch" in skipped[0][1]
-    assert submitted == ["row-sell"]
+    assert [t for (t, s, q) in alp.submitted] == ["AAA", "BBB"]
+    assert res.submitted == 2
+    assert skipped == []
+    assert sorted(submitted) == ["row-buy", "row-sell"]
+    assert not any("ce_kill_switch" in q for q in queries)
 
 
-def test_submitter_allows_conviction_buys_when_clear(monkeypatch):
+def test_submitter_has_no_kill_switch_reader_left():
+    """The refusal helper is DELETED, not disabled (LESSONS 0.10 / 4.25: a
+    capability left armed 'just in case' is a scheduled failure)."""
+    from paper_portfolio import submitter as sub
+    assert not hasattr(sub, "_conviction_kill_switch_tripped")
+    src = open(sub.__file__, encoding="utf-8").read()
+    # The only surviving mentions are the comment recording the removal.
+    assert "select tripped from public.ce_kill_switch" not in src
+
+
+def test_submitter_legacy_sources_still_submit(monkeypatch):
     from paper_portfolio import submitter as sub
     alp = _FakeAlpaca()
-    monkeypatch.setattr(sub, "fetch_pending_orders", lambda limit=500: [
-        _pending("row-buy", "AAA", "buy"),
-    ])
-    monkeypatch.setattr(sub, "_conviction_kill_switch_tripped", lambda: False)
-    monkeypatch.setattr(sub, "_mark_submitted", lambda rid, aid: None)
-    res = sub.submit_pending_orders(alpaca=alp, dry_run=False)
-    assert [t for (t, s, q) in alp.submitted] == ["AAA"]
-    assert res.submitted == 1
-
-
-def test_submitter_refusal_fails_safe_when_state_unreadable(monkeypatch):
-    from paper_portfolio import submitter as sub
-
-    def _boom(sql):
-        raise RuntimeError("ce_kill_switch unreachable")
-    monkeypatch.setattr(sub, "_supabase_query", _boom)
-    assert sub._conviction_kill_switch_tripped() is True   # unreadable = refuse
-
-
-def test_submitter_ignores_kill_switch_for_legacy_sources(monkeypatch):
-    from paper_portfolio import submitter as sub
-    alp = _FakeAlpaca()
-    calls = []
     monkeypatch.setattr(sub, "fetch_pending_orders", lambda limit=500: [
         _pending("row-legacy", "CCC", "buy", source="equity_scanner"),
     ])
-    monkeypatch.setattr(sub, "_conviction_kill_switch_tripped",
-                        lambda: calls.append(1) or True)
     monkeypatch.setattr(sub, "_mark_submitted", lambda rid, aid: None)
     res = sub.submit_pending_orders(alpaca=alp, dry_run=False)
-    assert res.submitted == 1                      # legacy buy unaffected
-    assert calls == []                             # state never even consulted
+    assert res.submitted == 1
 
 
 def test_cli_downgrades_to_dry_run_when_trading_disabled(monkeypatch):
@@ -663,10 +820,13 @@ def test_fresh_trip_latches_and_repeat_check_does_not_retrip(monkeypatch):
 class _FakeBroker:
     """Alpaca stand-in for the open phase: calendar, positions, account."""
 
-    def __init__(self, sessions, positions, equity):
+    def __init__(self, sessions, positions, equity, cash=None):
         self._sessions = sessions
         self._positions = positions
         self._equity = equity
+        # Default: enough settled cash for two 10% positions, so a fixture
+        # that does not care about funding still enters.
+        self._cash = equity * 0.2 if cash is None else cash
 
     def _get(self, path):
         # /v2/calendar?start=...&end=... — used by the calendar loader AND
@@ -681,8 +841,9 @@ class _FakeBroker:
         return self._positions
 
     def get_account(self):
-        class _A:  # only .equity is read
+        class _A:  # equity sizes the position, cash funds it
             equity = self._equity
+            cash = self._cash
         return _A
 
 
@@ -766,9 +927,8 @@ def test_open_phase_dry_run_exits_first_then_gated_entry(monkeypatch, capsys):
     assert res["kill_switch_tripped"] is False
 
 
-def test_open_phase_dry_run_blocks_entries_when_tripped(monkeypatch):
-    import paper_portfolio.conviction as conv
-
+def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0):
+    """One qualifying event, an empty book, and a TRIPPED kill switch."""
     today = date(2026, 8, 10)
     sessions = _weekday_sessions(date(2026, 7, 27), date(2026, 11, 30))
     closes = [10.0] * 50 + [12.0] * 10
@@ -790,12 +950,50 @@ def test_open_phase_dry_run_blocks_entries_when_tripped(monkeypatch):
     }
     monkeypatch.setattr(conv, "_supabase_query", _open_phase_router(state))
     monkeypatch.setattr(conv, "_supabase_exec", lambda sql: None)
-    broker = _FakeBroker(sessions, [], equity=1_000_000.0)
+    broker = _FakeBroker(sessions, [], equity=1_000_000.0, cash=cash)
     monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
+    return today
 
+
+def test_open_phase_still_enters_while_the_kill_switch_is_tripped(monkeypatch):
+    """REGRESSION (2026-08-11, Joe): the kill switch is a MONITOR. A tripped
+    switch is recorded and reported, and the morning's entry goes in anyway.
+    Prior behaviour — refusing every entry — is deleted."""
+    import paper_portfolio.conviction as conv
+    today = _tripped_kill_switch_fixture(monkeypatch, conv)
     res = conv.run_open_phase(dry_run=True, session_date=today)
-    assert res["entries"] == 0                          # refused while tripped
-    assert res["kill_switch_tripped"] is True
+    assert res["entries"] == 1                          # NOT blocked
+    assert res["kill_switch_tripped"] is True           # still monitored
+
+
+def test_open_phase_trades_even_when_the_kill_switch_row_is_unreadable(monkeypatch):
+    """A monitor that cannot be read must not stop the book. (The old
+    fail-safe refused entries when ce_kill_switch was unreadable — that was
+    correct while it gated trading and is wrong now.)"""
+    import paper_portfolio.conviction as conv
+    today = _tripped_kill_switch_fixture(monkeypatch, conv)
+    inner = conv._supabase_query
+
+    def q(sql):
+        if "from public.ce_kill_switch" in sql and "select tripped" in sql:
+            raise RuntimeError("ce_kill_switch unreachable")
+        return inner(sql)
+    monkeypatch.setattr(conv, "_supabase_query", q)
+    res = conv.run_open_phase(dry_run=True, session_date=today)
+    assert res["entries"] == 1
+    assert res["kill_switch_tripped"] is None           # unknown, not assumed
+
+
+def test_open_phase_skips_an_entry_it_cannot_fund(monkeypatch):
+    """10% of $1,000,000 equity is $100,000; at NEWCO's $12 previous close
+    that is floor(100000/12) = 8,333 shares costing $99,996 — with only
+    $20,000 of cash the entry is unfundable and no order is queued."""
+    import paper_portfolio.conviction as conv
+    today = _tripped_kill_switch_fixture(monkeypatch, conv, cash=20_000.0)
+    res = conv.run_open_phase(dry_run=True, session_date=today)
+    assert res["events"] == 1
+    assert res["entries"] == 0
+    assert res["cash_available"] == pytest.approx(20_000.0)
 
 
 def test_open_phase_no_ops_on_a_non_trading_day(monkeypatch):
@@ -908,6 +1106,224 @@ def test_kill_check_without_migration_skips_in_dry_run_and_raises_live(monkeypat
     assert conv.run_kill_check(dry_run=True) == 0
     with pytest.raises(RuntimeError, match="migration 094"):
         conv.run_kill_check(dry_run=False)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Catastrophe stop — orchestration (post-close screen → next-open sell)
+# ─────────────────────────────────────────────────────────────────────────────
+
+STOP_SESSIONS = _weekday_sessions(date(2026, 8, 1), date(2026, 10, 1))
+
+
+def _stop_env(monkeypatch, conv, open_events, closes, session=date(2026, 8, 11)):
+    """Wire the post-close stop screen: book rows, official closes, calendar.
+    Returns (session, executed_sql_list)."""
+    executed: list[str] = []
+
+    def q(sql):
+        if "where action = 'entered' and exited_at is null" in sql:
+            return open_events
+        return []
+    monkeypatch.setattr(conv, "_supabase_query", q)
+    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
+    monkeypatch.setattr(conv, "official_closes",
+                        lambda alpaca, tickers, session_date: {
+                            t: (closes[t], None) for t in tickers if t in closes})
+    return session, executed
+
+
+def test_stop_check_pulls_the_exit_forward_to_the_next_open(monkeypatch, capsys):
+    """DEEP is 20% below its entry at the 8/11 close: its exit_due_date moves
+    to the next trading session (Wed 8/12), so the morning phase sells it
+    market-on-open down the SAME path as a scheduled exit. FINE is untouched."""
+    import paper_portfolio.conviction as conv
+    rows = [_open_row(7, "DEEP", 50.0, due="2026-09-15"),      # close 40 = -20%
+            _open_row(8, "FINE", 50.0, due="2026-09-15")]      # close 48 = -4%
+    session, executed = _stop_env(monkeypatch, conv, rows,
+                                  {"DEEP": 40.0, "FINE": 48.0})
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=session)
+
+    assert res["stopped"] == 1 and res["screened"] == 2
+    assert res["next_open"] == "2026-08-12"
+    assert len(executed) == 1
+    sql = executed[0]
+    assert "update public.ce_events" in sql
+    assert "exit_due_date = '2026-08-12'" in sql
+    assert "where id = 7" in sql and "exited_at is null" in sql
+    # the reason rides in the EXISTING column, and only when it is null
+    assert "gate_fail_reason = coalesce(gate_fail_reason, 'catastrophe stop" in sql
+    out = capsys.readouterr().out
+    assert "CATASTROPHE STOP" in out and "DEEP" in out
+
+
+def test_stop_check_does_not_touch_a_position_already_due(monkeypatch):
+    """A stopped name that already exits at that same open is left alone —
+    one sell order, not two."""
+    import paper_portfolio.conviction as conv
+    rows = [_open_row(9, "DEEP", 50.0, due="2026-08-12")]      # already due
+    session, executed = _stop_env(monkeypatch, conv, rows, {"DEEP": 40.0})
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=session)
+    assert res["stopped"] == 0 and res["already_due"] == 1
+    assert executed == []
+
+
+def test_stop_check_holds_a_position_at_minus_14_9_percent(monkeypatch):
+    import paper_portfolio.conviction as conv
+    rows = [_open_row(10, "NEARLY", 100.0)]
+    session, executed = _stop_env(monkeypatch, conv, rows, {"NEARLY": 85.10})
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=session)
+    assert res["stopped"] == 0
+    assert executed == []
+    # one cent lower (-15.0%) and it goes
+    rows2 = [_open_row(10, "NEARLY", 100.0)]
+    session2, executed2 = _stop_env(monkeypatch, conv, rows2, {"NEARLY": 85.00})
+    conv.run_catastrophe_stop_check(alpaca=broker, session_date=session2)
+    assert len(executed2) == 1
+
+
+def test_stop_check_dry_run_writes_nothing(monkeypatch):
+    import paper_portfolio.conviction as conv
+    rows = [_open_row(11, "DEEP", 50.0)]
+    session, executed = _stop_env(monkeypatch, conv, rows, {"DEEP": 40.0})
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=session,
+                                          dry_run=True)
+    assert res["stopped"] == 1
+    assert executed == []
+
+
+def test_stop_check_warns_loudly_about_positions_it_could_not_screen(monkeypatch, capsys):
+    import paper_portfolio.conviction as conv
+    rows = [_open_row(12, "NOBAR", 50.0)]
+    session, executed = _stop_env(monkeypatch, conv, rows, {})   # no close
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=session)
+    assert res["unevaluated"] == ["NOBAR"]
+    assert executed == []
+    assert "::warning::" in capsys.readouterr().out
+
+
+def test_stop_check_no_ops_on_a_market_holiday(monkeypatch):
+    import paper_portfolio.conviction as conv
+    holiday = date(2026, 9, 7)                                  # Monday holiday
+    sessions = _weekday_sessions(date(2026, 8, 1), date(2026, 10, 1),
+                                 holidays=(holiday,))
+    rows = [_open_row(13, "DEEP", 50.0)]
+    _session, executed = _stop_env(monkeypatch, conv, rows, {"DEEP": 40.0})
+    broker = _FakeBroker(sessions, [], equity=1_000_000.0)
+    res = conv.run_catastrophe_stop_check(alpaca=broker, session_date=holiday)
+    assert res == {"skipped": "market-closed", "screened": 0, "stopped": 0,
+                   "already_due": 0, "unevaluated": []}
+    assert executed == []
+
+
+def test_open_phase_sells_a_stopped_name_at_the_open_and_labels_it(monkeypatch):
+    """End of the stop's path: last night's screen moved STOPPED's
+    exit_due_date to today and wrote the reason, so this morning it is an
+    ordinary market-on-open SELL — labelled as the stop, not as a 21st-day
+    exit."""
+    import paper_portfolio.conviction as conv
+    today = date(2026, 8, 10)
+    sessions = _weekday_sessions(date(2026, 7, 27), date(2026, 11, 30))
+    state = {
+        "open_events": [
+            {"id": 1, "ticker": "STOPPED", "filing_date": "2026-07-20",
+             "entered_at": "2026-07-21 12:45:00+00", "entry_qty": 100,
+             "entry_price": 50.0, "exit_due_date": today.isoformat(),
+             "gate_fail_reason": ("catastrophe stop — 2026-08-07 close $40.00 is "
+                                  "-20.0% vs the $50.00 entry (limit -15%); "
+                                  "selling at the next open")},
+            {"id": 2, "ticker": "TIMED", "filing_date": "2026-07-10",
+             "entered_at": "2026-07-13 12:45:00+00", "entry_qty": 10,
+             "entry_price": 20.0, "exit_due_date": today.isoformat(),
+             "gate_fail_reason": None},
+        ],
+        "insider_rows": [], "universe": [], "price_rows": [],
+        "kill_row": {"tripped": False, "reason": None},
+    }
+    monkeypatch.setattr(conv, "_supabase_query", _open_phase_router(state))
+    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: None)
+    broker = _FakeBroker(sessions,
+                         [_BrokerPos("STOPPED", 100.0), _BrokerPos("TIMED", 10.0)],
+                         equity=1_000_000.0)
+    monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
+
+    captured: list = []
+    real = conv._write_and_submit
+    monkeypatch.setattr(conv, "_write_and_submit",
+                        lambda intents, dry_run: (captured.extend(intents),
+                                                  real(intents, dry_run))[1])
+
+    res = conv.run_open_phase(dry_run=True, session_date=today)
+    assert res["exit_orders"] == 2
+    reasons = {i.ticker: i.rebalance_trigger_reason for i in captured}
+    assert all(i.side == "sell" for i in captured)
+    assert "catastrophe stop" in reasons["STOPPED"]
+    assert "-20.0%" in reasons["STOPPED"]
+    assert "21st trading day" in reasons["TIMED"]     # unchanged path
+    assert "catastrophe stop" not in reasons["TIMED"]
+
+
+def test_kill_check_runs_the_stop_screen_then_stamps_the_monitor(monkeypatch, capsys):
+    """The post-close phase does both jobs: it schedules tomorrow's stop exit
+    AND records the kill-switch metrics."""
+    import paper_portfolio.conviction as conv
+    executed: list[str] = []
+    rows = [_open_row(21, "DEEP", 50.0, due="2026-09-15")]
+
+    def q(sql):
+        if "where action = 'entered' and exited_at is null" in sql:
+            return rows
+        if "from public.paper_nav_daily" in sql:
+            return [{"snapshot_date": "2026-08-10", "total_nav": 1_000_000.0,
+                     "spy_close": 600.0},
+                    {"snapshot_date": "2026-08-11", "total_nav": 1_004_000.0,
+                     "spy_close": 601.0}]
+        if "from public.ce_kill_switch" in sql:
+            return [{"tripped": False, "reason": None}]
+        return []
+    monkeypatch.setattr(conv, "_supabase_query", q)
+    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
+    monkeypatch.setattr(conv, "official_closes",
+                        lambda alpaca, tickers, session_date: {"DEEP": (40.0, None)})
+    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
+    monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
+    monkeypatch.setattr(conv, "_et_today", lambda: date(2026, 8, 11))
+
+    rc = conv.run_kill_check(dry_run=False)
+    assert rc == 0                                    # healthy book, stop is not a failure
+    assert any("exit_due_date = '2026-08-12'" in s for s in executed)
+    assert any("checked_at = now()" in s for s in executed)
+    assert "CATASTROPHE STOP" in capsys.readouterr().out
+
+
+def test_kill_check_fails_the_job_when_the_stop_screen_breaks(monkeypatch, capsys):
+    """Unscreened positions must never be silent (LESSONS 4.5): the monitor
+    still stamps, and the job goes red."""
+    import paper_portfolio.conviction as conv
+    executed: list[str] = []
+
+    def q(sql):
+        if "from public.paper_nav_daily" in sql:
+            return [{"snapshot_date": "2026-08-11", "total_nav": 1_000_000.0,
+                     "spy_close": 600.0}]
+        if "from public.ce_kill_switch" in sql:
+            return [{"tripped": False, "reason": None}]
+        if "where action = 'entered' and exited_at is null" in sql:
+            raise RuntimeError("ce_events unreachable")
+        return []
+    monkeypatch.setattr(conv, "_supabase_query", q)
+    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
+
+    rc = conv.run_kill_check(dry_run=False)
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "::error::" in out and "catastrophe-stop screen FAILED" in out
+    assert any("checked_at = now()" in s for s in executed)   # monitor still stamped
 
 
 def test_open_phase_never_reenters_a_ticker_exiting_the_same_morning(monkeypatch):

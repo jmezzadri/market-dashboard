@@ -10,17 +10,21 @@ name: CONVICTION-OPEN-DAILY
 #      so this morning's events are built from a complete filing set.
 #   1. Engine open phase:
 #        a. reconcile fills into ce_events (entry/exit prices);
-#        b. place EXITS DUE TODAY FIRST (21st-trading-day opens);
+#        b. place EXITS DUE TODAY FIRST — both 21st-trading-day exits and any
+#           -15% catastrophe stop the previous evening pulled forward;
 #        c. build events (>= $250K deduped insider buys per ticker+filing
 #           date, 10b5-1 excluded), apply gates (CS/ADRC, >= $5, 21-day avg
 #           dollar volume >= $2M, close > 50-day SMA — windows end at the
-#           previous close), then place entries (1/8-equity whole-share
-#           slots, max 8, same-morning ranking by event dollar size);
+#           previous close), then place entries (FIXED FRACTION: 10% of
+#           current equity per position, whole shares, same-morning ranking
+#           by event dollar size; entries stop when the cash cannot fund the
+#           next full 10% position, with a hard 13-position safety ceiling);
 #        d. record expected entry/exit counts in paper_signal_capture
 #           (scripts/ce_capture.py) so the post-open watchdog grades
 #           expected-vs-actual (LESSONS 8.20).
-#      The engine consults ce_kill_switch: while tripped, entries are refused
-#      (engine AND submitter), exits still execute.
+#      ce_kill_switch is a MONITOR ONLY (2026-08-11): the engine reads it for
+#      the morning summary and NEVER refuses a trade on it. Loss control is
+#      per-position, via the catastrophe stop set in CONVICTION-KILL-CHECK.
 #
 # Schedule (cron is UTC): ~12:45Z weekdays = 08:45 ET (EDT) / 07:45 ET (EST)
 # — after the 06:00 ET EDGAR ingest and the overnight price batch, before
