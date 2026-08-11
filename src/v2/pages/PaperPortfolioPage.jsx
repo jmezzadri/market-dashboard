@@ -531,28 +531,30 @@ function KillSwitchLine({ row, loading }) {
   if (loading) return null;
   if (!row) {
     return (
-      <div className="pp-ks" role="status">
+      <div className="pp-ks" role="status" title={KS_RULE}>
         <span className="ksdot" />
-        <span><b>Kill switch — no reading yet.</b> {KS_RULE}</span>
+        <span><b>Kill switch — no reading yet.</b></span>
       </div>
     );
   }
   if (row.tripped) {
     return (
-      <div className="pp-ks tripped" role="status">
+      <div className="pp-ks tripped" role="status" title={KS_RULE}>
         <span className="ksdot" />
         <span>
           <b>Kill switch tripped{row.tripped_at ? ` ${fmtDate(row.tripped_at)}` : ''} — new entries are frozen.</b>
-          {ceReasonText(row.reason) ? ` ${ceReasonText(row.reason)}.` : ''} Open positions still exit on their scheduled day. {KS_RULE}
+          {ceReasonText(row.reason) ? ` ${ceReasonText(row.reason)}.` : ''} Open positions still exit on their scheduled day.
         </span>
         {row.checked_at && <span className="ksmeta">checked {fmtStampET(row.checked_at)}</span>}
       </div>
     );
   }
+  // State only — the thresholds are stated once, in the hero rule list above
+  // (2026-08-11, Joe: the same sentence appeared twice on one page).
   return (
-    <div className="pp-ks quiet" role="status">
+    <div className="pp-ks quiet" role="status" title={KS_RULE}>
       <span className="ksdot" />
-      <span><b>Kill switch quiet.</b> {KS_RULE}</span>
+      <span><b>Kill switch quiet.</b></span>
       {row.checked_at && <span className="ksmeta">checked {fmtStampET(row.checked_at)}</span>}
     </div>
   );
