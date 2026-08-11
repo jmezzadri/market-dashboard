@@ -2176,6 +2176,28 @@
    "failure_mode": "Page falls back to the official close snapshot if the live read/write fails or is stale; the close record is unaffected.",
    "notes": "Live broker marks, deliberately separate from the close-anchored book of record so the daily NAV history is never contaminated (Joe directive 2026-06-23)."
   },
+  "portfolio.ce-events-daily": {
+   "category": "portfolio",
+   "element": "Conviction Events decision ledger \u2014 qualifying insider-purchase events (aggregated open-market buys of $250,000 or more per name per day, automatic 10b5-1 plan purchases excluded; 50-day-average confirmation) and the action taken (entered / skipped / blocked). Includes the single-row companion ce_kill_switch.",
+   "sourcing_mode": "computed",
+   "source_vendor": "SEC EDGAR (free)",
+   "license_tier": "free",
+   "cadence": "daily (NYSE trading days)",
+   "refresh_trigger": "Conviction Events engine (in build) \u2014 cutover steps in NOTES.md at the repo root",
+   "schedule_et": "pre-open, after the 06:00 ET insider filings pull (final time set at engine cutover)",
+   "freshness_sla_hours": 0,
+   "consumer_surfaces": [
+    "Paper tab -> Event ledger + positions why-held cells + kill-switch line",
+    "Scanner tab -> Conviction Events panel",
+    "Methodology -> Scanner & Paper sections"
+   ],
+   "output_destination": "Supabase public.ce_events (+ public.ce_kill_switch), anon-readable",
+   "producer_script": "Conviction Events engine (separate build; not in this repo yet)",
+   "owner": "Lead Developer (engine) + Data Steward (freshness)",
+   "failure_mode": "Every consumer renders its awaiting-first-events empty state when the table is unreadable or empty; no synthesized values.",
+   "notes": "Inputs, each its own registered source: insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation). SLA deliberately 0 until the engine's first real run; at cutover set 49h (data window 73h) and seed the pipeline_health row in the SAME change (LESSONS 2026-07-21). pipeline_health row key: ce_events.",
+   "id": "portfolio.ce-events-daily"
+  },
   "equity-rsi_divergences-daily": {
    "name": "rsi_divergences",
    "category": "equity",

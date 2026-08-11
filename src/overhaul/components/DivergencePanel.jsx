@@ -1,4 +1,4 @@
-/* DivergencePanel — Scanner 3 (RSI Divergence Scanner) on the Trading
+/* DivergencePanel — the RSI Divergence Scanner on the Trading
    Scanner page.
 
    Scanner-page consistency rebuild (2026-07-16, Joe): same tile anatomy as
@@ -153,7 +153,7 @@ export default function DivergencePanel() {
       <div className="sc-tablecard">
         <div className="sc-panelhead">
           <div>
-            <div className="sc-kicker">Scanner 3 · Daily scan · Display only</div>
+            <div className="sc-kicker">Scanner · Daily scan · Display only</div>
             <h2 className="sc-paneltitle">
               RSI Divergence Scanner
               <Tip content={EXPLAIN} bare><span className="dv-info" aria-label="What is a regular divergence?">ⓘ</span></Tip>

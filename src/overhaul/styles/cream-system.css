@@ -292,3 +292,21 @@
 .home-v12.briefmodal-veil,
 [data-mt-theme='dark'] .home-v12.briefmodal-veil,
 [data-mt-theme='navy'] .home-v12.briefmodal-veil{background:rgba(20,23,28,.55);min-height:100vh}
+
+/* ── Conviction Events shared atoms (strategy reset 2026-08) ───────────────
+   One chip + one instant tooltip class for every surface that shows the
+   ce_events decision ledger (Paper event ledger / positions "why" cells,
+   Scanner Conviction Events panel), so the two pages render one visual
+   system (LESSONS 8.12) from one shared read (LESSONS 2026-06-12b).
+   Tones: up = the engine traded · mut = a quiet skip · down = a hard stop.
+   All colors are v12 tokens — correct in light and dark/navy (LESSONS 6.4). */
+.home-v12 .ce-chip{display:inline-flex;align-items:center;font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 9px;white-space:nowrap;border:1px solid var(--hair);color:var(--mut);background:transparent}
+.home-v12 .ce-chip.up{color:var(--up);border-color:color-mix(in srgb, var(--up) 55%, transparent);background:color-mix(in srgb, var(--up) 10%, transparent)}
+.home-v12 .ce-chip.down{color:var(--down);border-color:color-mix(in srgb, var(--down) 55%, transparent);background:color-mix(in srgb, var(--down) 10%, transparent)}
+
+/* Instant CSS tooltip — appears on hover with ZERO delay (LESSONS 6.13;
+   never the native title attribute). Ink bubble reads on both themes. */
+.home-v12 .ce-tip{position:relative;cursor:help}
+.home-v12 .ce-tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);width:230px;white-space:normal;background:rgba(33,44,51,.97);color:rgba(247,243,232,.97);font-family:var(--sans);font-size:11px;line-height:1.45;font-weight:500;letter-spacing:0;text-transform:none;padding:8px 10px;border-radius:10px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.25);pointer-events:none}
+.home-v12 td:last-child .ce-tip:hover::after{left:auto;right:0;transform:none}
+.home-v12 td:first-child .ce-tip:hover::after{left:0;transform:none}

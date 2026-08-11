@@ -1295,10 +1295,11 @@ function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
           <span>Components add up to</span>
           <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
         </div>
+        {/* Stale paper-book claim removed 2026-08 (strategy reset): the paper
+            book trades Conviction Events, not this score. */}
         <div className="tk-emptyfoot">
           A name makes the Insider Conviction list on its insider + trend score
-          (3.0 or higher); the paper book's Insider sleeve buys at 4.0 or higher.
-          Maximum score is 5.
+          (3.0 or higher). Maximum score is 5.
         </div>
       </article>
     </Reveal>
