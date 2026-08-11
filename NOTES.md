@@ -110,26 +110,33 @@ kill-switch line's live book-vs-S&P readings.
 
 ## 5 · Retired-machinery teardown (one atomic change, LESSONS 0.10 / 0.2)
 
-Replacing the scanner's insider-score panel left these UNREACHABLE from the
-live site (bundler tree-shakes them out of the bundle, but the weekly
-dead-UI detector will flag the files). Deleting them belongs to the engine
-cutover's full teardown of the insider-score scanner — do it in the same
-change as the producer retirement, with `killed_elements.json` entries:
+DONE 2026-08-11 with the Conviction Events desk rebuild of `/scanner` (Joe:
+the two panels that do not feed the paper book come off the site). Deleted:
+`ScanList.jsx`, `ScanDrill.jsx`, `useScanScoreHistory.js`, and — with the
+Power Trend Momentum and RSI Divergence panels — `MomentumPanel.jsx`,
+`DivergencePanel.jsx`, `usePowerTrendList.js`, `useLseIvDaily.js`, plus every
+dead CSS block those panels owned in `scanner-v12.css` and its mirrors in
+`responsive.css`. No `killed_elements.json` entries: the FEEDS were not
+killed. The divergence scan and the monthly power-trend list keep running and
+keep their manifest registration; only their site surfaces are gone, and each
+element's `consumer_surfaces` now names where it actually renders (home page
+tile and ticker-page signal pills).
 
-- `src/overhaul/components/ScanList.jsx` (only ever consumed by the old
-  scanner page; self-references ScanDrill)
-- `src/overhaul/components/ScanDrill.jsx`
-- `src/hooks/useScanScoreHistory.js` (zero importers now)
-- Dead CSS blocks in `src/overhaul/styles/scanner-v12.css` for the removed
-  desk: `.sc-results`, `.sc-buildsec`, `.sc-toolbar`, `.sc-hint`,
-  `.sc-gear`, `.sc-colpick`, `.sc-colgrid`, `.sc-ctog`, `.sc-foot`,
-  `.sc-panelhead-tools`, `.sc-colbtn`, `.sc-toast`, `.sc-build*`,
-  `.sc-ghostbtn`, `.sc-tenure`, `.sc-tip` (+ their responsive rules)
+Still open:
+
+- `equity.lse-iv-scan-daily` (the daily implied-volatility / vol-rank feed)
+  now has NO consumer surface. Its last renderer was the Power Trend table's
+  Vol rank column. The pg_cron job still runs and the element is still
+  registered — surfacing it somewhere or retiring it is Joe's call, and until
+  he makes it the manifest says so in words rather than quietly dropping it.
 - Decide the fate of the Ticker page's insider-score drill (it still reads
   `trading_opps_signals` and documents the 0–5 score; the methodology for
   that score was deleted with the scanner panel). Keeping the scanner feed
   alive as a ticker-page feature vs retiring it is an engine-cutover
   product call — whichever way, copy + producers + manifest move together.
+- `scanner.v5-scan-composite` and `scanner.insider-history-edgar` still list
+  "Trading Opportunities" consumer surfaces; that page no longer exists under
+  that name. Same audit, same decision point.
 - Obsolete localStorage keys (harmless, self-expiring): the old scanner
   column state `mt-scanner-cols-v7`, the old paper column state
   `mt_paper_cols_v5_shared`.
@@ -139,8 +146,9 @@ change as the producer retirement, with `killed_elements.json` entries:
 - Load /paper signed in: hero card shows the re-seeded book; positions carry
   "why it's here" from `ce_events`; ledger chips render; kill-switch line
   reads quiet with a real checked-at stamp; freshness dots green.
-- Load /scanner signed out: Conviction Events tile ranks real events by
-  buy total; Power Trend + RSI Divergence unchanged.
+- Load /scanner signed out: today's events rank by buy total, every skip
+  carries its plain-English reason inline, and the recent-events history
+  groups the prior days newest first.
 - /methodology: backtest figures render VERBATIM from the spec (+112% vs
   +24%, Sharpe 2.3, 61%, ~18-day hold, +53% ex-top-5, June 2025–August 2026,
   ~14 months, zero costs) — if the engine team re-runs the study and the

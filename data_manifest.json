@@ -41,7 +41,6 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Trading Opportunities → scanner table → Last close, day % change, 52w high/low",
-        "Trading Scanner → Power Trend Momentum Scanner tile → last close / 1-day / since-list display columns (added 2026-07-16)",
         "Portfolio Insights → position rows (equity marks)",
         "Portfolio Insights → 'Prices as of {date}' chip",
         "Portfolio Insights → watchlist table → price-derived columns for unscored names (price, change, volume, 52w range, EMA/SMA, realized-vol stats, RSI, % vs 200-day)",
@@ -2188,7 +2187,7 @@
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
         "Paper tab -> Event ledger + positions why-held cells + kill-switch line",
-        "Scanner tab -> Conviction Events panel",
+        "Scanner page -> the whole page (Conviction Events desk): today's events + the recent-events history",
         "Methodology -> Scanner & Paper sections"
       ],
       "output_destination": "Supabase public.ce_events (+ public.ce_kill_switch), anon-readable",
@@ -2212,12 +2211,10 @@
       "schedule_et": "08:45 ET Tue-Sat, after the T+1 EOD price panel completes",
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
-        "Trading Scanner -> RSI Divergences section -> bullish table",
-        "Trading Scanner -> RSI Divergences section -> bearish table",
-        "Trading Scanner -> RSI Divergences section -> freshness chip + scan-date line"
+        "Ticker page -> Scanner signal pills -> 'RSI Divergence · Bullish / Bearish' (with the strong-setup marker)"
       ],
       "target_storage": "Supabase: divergence_scan",
-      "failure_mode": "RSI Divergences section holds the last good dated scan and its chip reds; two consecutive failures raise the pipeline watchdog P1.",
+      "failure_mode": "The ticker page's divergence signal pill holds the last good dated scan and its chip reds; two consecutive failures raise the pipeline watchdog P1.",
       "owner": "Data Steward",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h",
       "notes": "Inputs, one provider per source: (1) prices_eod [Polygon Massive EOD OHLCV, already registered as market.prices-eod-massive] for bars and liquidity; (2) universe_master [Polygon Massive reference] for the common-stock-only filter. Transform: RSI(14) on daily closes, simple-average method (Cutler); pivot lows/highs need 5 bars each side and 5 later bars to confirm; regular divergences only on the two most recent confirmed pivots (bullish: lower price low with higher RSI low; bearish: higher price high with lower RSI high); newer pivot within 15 bars; pivots 5-30 bars apart. Data-quality guards: pivot price ratio > 1.8x dropped (splits/artifacts), current close outside 0.5x-2x of the newer pivot dropped, close-vs-vwap disagreement > 50% on the scan day drops the ticker, ADV capped at $40B in the universe SQL, and the trading-day window counts only panel-complete days (>= 5,000 tickers). Universe: type CS active, last close >= $2, 45-trading-day avg dollar volume >= $50M, >= 40 of 45 days present (~1,500 names). Port validated 2026-07-13 against the prototype's reference run: 17/17 names reproduced with matching RSI values. Append-only across scan_dates; delete+rewrite within a scan_date (idempotent).",
@@ -2235,12 +2232,13 @@
       "schedule_et": "06:00 ET on the 1st of each month (schedule-normalization: monthly-on-the-1st slow-data slot)",
       "freshness_sla_hours": 768,
       "consumer_surfaces": [
-        "Trading Scanner -> Power Trend Momentum Scanner tile -> ranked list (last close / 1-day / since-list columns are display enrichment read from prices_eod) + meta line + freshness chip",
+        "Home -> Trading Scanner tile -> Power Trend Momentum list (top 3: move since picked, breakout volume, 3-month return)",
+        "Ticker page -> Scanner signal pills -> 'Power Trend · #rank'",
         "Paper engine -> sleeve M targets (latest rebalance_date of power_trend_list)",
         "Paper page -> sleeve M holdings + rank column"
       ],
       "target_storage": "Supabase: power_trend_list",
-      "failure_mode": "Power Trend panel holds the last good dated list and its chip reds; the paper engine keeps its last targets and never trades a list past SLA. A zero-signal month is NOT a failure: the producer publishes a single CASH sentinel row (rank=0) the engine reads as all-cash.",
+      "failure_mode": "The home tile and ticker signal pill hold the last good dated list and the chip reds; the paper engine keeps its last targets and never trades a list past SLA. A zero-signal month is NOT a failure: the producer publishes a single CASH sentinel row (rank=0) the engine reads as all-cash.",
       "owner": "Data Steward",
       "sla_basis": "One-clock doctrine: monthly job = 768h; graded off the last successful publish (pipeline_health.last_good_at).",
       "notes": "Replaces the retired 12-1 momentum list (equity-momentum_list-monthly) and the Faber crash guard (market-momentum_guard-daily), both retired 2026-07-15 with their producers deleted (LESSON 0.10). Screen runs server-side in public.power_trend_scan (migration 081, validated logic — do not re-derive client-side): universe = liquid US common stock via strategy_bt_universe (close >= $2, 45-day ADV $50M-$40B); 3-mo ROC = 63 trading days, top-20% cross-sectional; RS gate >= 5 points vs SPY; breakout = new 10-day closing high on > 1.3x 20-day avg volume; close above EMAs 10/21/50/200 (truncated weighted-sum over <= 720 rows, >= 250 required — recursive EMA times out at panel width). adv_usd is in DOLLARS (close x 20-day avg volume), not $M. Producer caps at 15 names (roc_3m desc, ticker-asc tiebreak; scripts/power_trend_rules.py); engine sizing = capital / max(n, 8) — the min-8 diversification floor, unfilled slots stay in cash. Fail-loud gates: PostgREST truncation guard (< 900 rows), <= 200 rows sane, universe >= 800, panel-date consistency, post-write count verification (LESSONS 4.18 / 4.5). Append-only across rebalance_dates; delete+rewrite within one (idempotent).",
@@ -2371,11 +2369,10 @@
       "schedule_et": "17:50 ET weekdays (after the daily scan lands). Cloud-only (Supabase pg_cron).",
       "freshness_sla_hours": 49,
       "consumer_surfaces": [
-        "Trading Scanner → Insider Conviction table → Vol rank column (Technicals group)",
-        "Methodology → Scanner section (volatility-rank definition)"
+        "NONE as of 2026-08-11 — the last surface was the Power Trend Momentum table's Vol rank column, deleted with that panel when the Scanner page became the Conviction Events desk (Joe 2026-08-11). The methodology's volatility-rank paragraph went with it. The daily feed keeps running and stays registered; re-surfacing it is an open product decision, NOT a retirement."
       ],
       "target_storage": "Supabase: lse_iv_daily",
-      "failure_mode": "Vol rank column shows em-dash for all names + red chip. Coverage gaps are structural (LSE lists options for actively-traded names only — 3/22 covered on the 2026-07-24 scan list; Joe accepted 2026-07-27); uncovered names em-dash with a plain-English tooltip.",
+      "failure_mode": "No site surface renders this feed as of 2026-08-11, so a failure is visible only on the Admin data-health scorecard (red chip). Coverage gaps are structural (LSE lists options for actively-traded names only — 3/22 covered on the 2026-07-24 scan list; Joe accepted 2026-07-27); uncovered names em-dash with a plain-English tooltip.",
       "owner": "Data Steward",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h.",
       "id": "equity.lse-iv-scan-daily"

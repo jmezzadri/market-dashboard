@@ -298,13 +298,15 @@ export default function MethodologyPage() {
           <div className="me-num">02</div>
           <div>
             <div className="mt-eyebrow">Scanner</div>
-            <h2 className="me-h2">Three panels · one book feed, two idea scanners</h2>
+            <h2 className="me-h2">One book feed, two idea screens</h2>
             <p className="me-body-p">
-              The Scanner page shows three panels. <b>Conviction Events</b> is the decision feed the
-              Paper book (section 03) actually trades — every large insider purchase the strategy
-              evaluated, with the action it took. <b>Power Trend Momentum</b> is an{' '}
-              <b>idea feed — not auto-traded</b>, published monthly. <b>RSI Divergences</b> is a
-              daily screen — also not a trade signal. Everything below is the rule each panel
+              The Scanner page is the <b>Conviction Events</b> desk: the decision feed the Paper book
+              (section 03) actually trades — every large insider purchase the strategy evaluated,
+              with the action it took. Two other screens run on their own schedules and are not
+              published on that page. <b>Power Trend Momentum</b> is an{' '}
+              <b>idea feed — not auto-traded</b>, published monthly and shown on the home page and on
+              a ticker&rsquo;s own page. <b>RSI Divergences</b> is a daily screen — also not a trade
+              signal — shown on a ticker&rsquo;s own page. Everything below is the rule each one
               actually runs, including the exact thresholds.
             </p>
 
@@ -327,7 +329,7 @@ export default function MethodologyPage() {
               downtrend. Every evaluated event is written to a decision ledger with the action
               taken — <b>entered</b>, or <b>skipped</b> (the cash could not fund a full position,
               the name was already held, or a gate failed, with the reason). That ledger
-              is what this panel and the Paper page&rsquo;s event ledger render. The full entry,
+              is what the Scanner page and the Paper page&rsquo;s event ledger render. The full entry,
               sizing and exit rules, the one risk exit, the kill switch, and the backtest live in
               section 03.
             </p>
@@ -377,16 +379,12 @@ export default function MethodologyPage() {
               list     = top 15 by 3-mo return · max 3 per industry group · nothing qualifies → an explicit all-cash list<br />
               drop     = a listed name closing below all four averages leaves the list that day
             </div>
-            <p className="me-body-p">
-              <b>Vol rank</b> (a table column, not a test input) reads the options market: each listed
-              name&rsquo;s <b>~30-day at-the-money implied volatility</b>, shown as a percentile across
-              that day&rsquo;s covered names — 0 is the calmest name on the list, 100 the most volatile.
-              It answers one question for anyone sizing an idea from the list: how much movement is the
-              options market pricing into this name versus the rest. Implied volatility comes from the
-              London Strategic Edge options chain; the feed lists options for actively-traded names
-              only, so a name without listed options shows an em-dash, never a substituted number.
-              Refreshed once per trading day at 5:50 PM ET.
-            </p>
+            {/* The Vol rank paragraph was removed 2026-08-11 with the Power Trend
+                Momentum panel: it documented a column on that table, and the site no
+                longer renders the implied-volatility reading anywhere. The daily feed
+                itself keeps running (manifest element equity.lse-iv-scan-daily, now
+                with no consumer surface) — documenting a column no reader can see is
+                the defect LESSONS 8.13 governs. */}
             <p className="me-body-p">
               <b>The evidence, stated honestly.</b> In a January&nbsp;2020&nbsp;–&nbsp;July&nbsp;2026 portfolio
               simulation (monthly cadence, 8-name floor, industry cap, no trading costs) the rule
@@ -408,7 +406,8 @@ export default function MethodologyPage() {
               RSI Divergences — a screen, not a signal
             </h3>
             <p className="me-body-p">
-              <b>RSI Divergences</b> is a separate daily screen on the scanner page. It does <b>not</b>{' '}
+              <b>RSI Divergences</b> is a separate daily screen; its result appears as a signal on a
+              ticker&rsquo;s own page. It does <b>not</b>{' '}
               feed the Paper book, which never trades on it. It compares price and
               14-day RSI (simple-average method) at the two most recent confirmed pivots — a pivot needs
               5 bars on each side, which is why the newest possible pivot is always 5 days old. A{' '}

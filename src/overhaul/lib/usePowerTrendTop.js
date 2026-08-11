@@ -2,11 +2,14 @@
 // scanner) list, for the homepage Trading Scanner tile.
 //
 // Reads the latest rebalance batch of power_trend_list (monthly, migration
-// 081) — same table, same batch-selection logic as the Scanner page's
-// MomentumPanel and the ticker header's usePowerTrendRank. No new math:
-// rank, roc_3m (already in PERCENT units) and breakout_volx (breakout-day
-// volume as a multiple of the 20-day average — the Scanner page's
-// "Breakout volume" column) pass straight through.
+// 081) — same table, same batch-selection logic as the ticker header's
+// usePowerTrendRank. No new math: rank, roc_3m (already in PERCENT units)
+// and breakout_volx (breakout-day volume as a multiple of the 20-day
+// average) pass straight through.
+//
+// 2026-08-11: the Scanner page's Power Trend Momentum panel was deleted with
+// the Conviction Events rebuild, so this hook and usePowerTrendRank are the
+// list's only two site surfaces. The monthly producer keeps running.
 // ret_since is display enrichment: the latest prices_eod close vs the
 // selection-day close stored on the list row itself, in percent — "how is
 // this pick doing since it was picked" (Joe, 2026-07-21: a live 10-day

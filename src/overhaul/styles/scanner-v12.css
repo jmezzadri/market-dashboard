@@ -1,20 +1,19 @@
 /* ============================================================================
    Trading Scanner — page styles on the CREAM v12 system (cream-system.css).
-   Cream rebrand Phase B (2026-07-07). RESKIN ONLY: every selector here styles
-   markup that already existed under home-v11 — data, hooks, sorting, column
-   picker, drill and FreshnessChip usage are untouched. Shared eyebrow / card /
-   reveal patterns come from cream-system.css; this file covers what the
-   shared system doesn't: the split hero (editorial + scan card), score-band
-   counts, movers, the toolbar + column picker, the putty table card, the ink
-   "how the score is built" card, the toast and the floating hover tooltip.
+   Cream rebrand Phase B (2026-07-07); reduced to the Conviction Events desk
+   on 2026-08-11 (Joe): the Power Trend Momentum and RSI Divergence panels
+   came off the site, so every selector that existed only for them — the
+   three-tile cockpit, the desk-view overlay, the bullish/bearish divergence
+   cards, the old score-build card, the results toolbar and column picker,
+   the ScanList row/tenure/toast/floating-tip rules — was deleted with them.
+   What remains is the editorial hero plus the shared table-card anatomy the
+   Conviction Events desk renders on.
 
-   TOKEN BRIDGE: the results table (ScanList / ScanDrill), the score dial, the
-   score-trend spark and the freshness chip are all styled with the app's
-   `--mt-*` tokens. We remap those tokens to the v12 cream palette, scoped to
-   `.scanner-v12`, so every embedded piece reads as native cream WITHOUT
-   editing the shared components (same approach the v11 glass skin used).
-   The row Tip tooltips and any modal portal to <body> / .mt-overhaul —
-   OUTSIDE this scope — so they keep the app's solid tokens, as before.
+   TOKEN BRIDGE: the freshness chip embedded in the panel meta lines is
+   styled with the app's `--mt-*` tokens. We remap those tokens to the v12
+   cream palette, scoped to `.scanner-v12`, so the embedded piece reads as
+   native cream WITHOUT editing the shared component (same approach the v11
+   glass skin used).
    ========================================================================= */
 
 .home-v12.scanner-v12 {
@@ -46,81 +45,40 @@
 .home-v12.scanner-v12 .num { font-variant-numeric: tabular-nums; }
 /* 2026-07-08: pin the whole scanner table to the tabular brand sans (Geist), the same font the Paper table uses, so numbers match across the site and columns stay aligned. Panel title keeps var(--serif) via its own rule. Kills the stray Inter drift. */
 .home-v12.scanner-v12 .sc-tablecard { font-family: var(--sans); }
-.home-v12.scanner-v12 .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 
-/* ── hero: editorial left + "Today's scan" putty card right ── */
+/* ── hero: editorial column — the strategy in one line, then the two links
+      a reader needs (the book these events feed, and the methodology) ── */
 .home-v12 section.sc-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: 1fr; gap: 18px; align-items: stretch; }
 .home-v12 .sc-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .sc-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
 .home-v12 .sc-ed h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .sc-ed .impl { margin: 0; padding: 0; list-style: none; max-width: 640px; }
-.home-v12 .sc-ed .impl li { position: relative; padding: 0 0 12px 22px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
-.home-v12 .sc-ed .impl li:last-child { padding-bottom: 0; }
-.home-v12 .sc-ed .impl li::before { content: "\2192"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
-.home-v12 .sc-ed .impl li b { color: var(--ink); font-weight: 650; }
-.home-v12 .sc-ed .impl li a { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--hair); transition: color .25s, border-color .25s; }
-.home-v12 .sc-ed .impl li a:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
+.home-v12 .sc-sub { font-size: 15.5px; color: var(--ink-soft); max-width: 880px; line-height: 1.6; }
+.home-v12 .sc-links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
+.home-v12 .sc-links .sc-metalink { font-size: 13.5px; }
 
-
-/* score-band counts — bg2 tiles, serif numerals, state color on the left edge */
-
-/* movers — same DOM, cream row motion */
-
-/* ── results: wider stage than the 1240 editorial so the full column set
-      shows on a large desktop; below that the table scrolls INSIDE the card */
-.home-v12 section.sc-results { max-width: 1560px; background: transparent; border: 0; border-radius: 0; padding: 0; min-width: 0; } /* 2026-07-08: kill the legacy proto-pages outer card (.mt-overhaul .sc-results) so the table sits in ONE clean .sc-tablecard, matching the Paper page's pp-main stage. Fixes the nested double-border seam. */
-.home-v12 section.sc-buildsec { max-width: 1560px; } /* build card shares the results stage width */
-.home-v12 .sc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 10px 12px; position: relative; }
-.home-v12 .sc-hint { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
-.home-v12 .sc-gear { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); font-family: var(--sans); font-size: 15px; line-height: 1; cursor: pointer; transition: border-color .25s, color .25s; }
-.home-v12 .sc-gear:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
-.home-v12 .sc-gear.on { color: var(--gold-deep); border-color: var(--gold-deep); }
-.home-v12 .sc-gear .cnt { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-/* column picker dropdown — solid bg2 panel on the v12 shadow */
-.home-v12 .sc-colpick { position: absolute; top: 100%; right: 0; z-index: 30; margin-top: 8px; min-width: 320px; padding: 18px; border-radius: 22px; background: var(--bg2); border: 1px solid var(--hair); box-shadow: var(--sh); }
-.home-v12 .sc-colpick .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.home-v12 .sc-colpick .ph .lnk { background: none; border: 0; color: var(--gold-deep); font-family: var(--sans); font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; }
-.home-v12 .sc-colgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.home-v12 .sc-ctog { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; transition: background .2s; }
-.home-v12 .sc-ctog:hover { background: var(--putty); }
-.home-v12 .sc-ctog.on { color: var(--ink); }
-.home-v12 .sc-ctog.locked { opacity: .55; cursor: default; }
-.home-v12 .sc-ctog input { accent-color: var(--gold-deep); }
-.home-v12 .sc-foot { font-size: 10.5px; color: var(--mut); margin-top: 12px; letter-spacing: .02em; }
-
-/* ── putty table card — embedded ScanList reads cream via the token bridge;
-      the shared component keeps its own min column widths + overflow-x, so
-      at phone width the table scrolls inside this card (no fixed layout, no
+/* ── putty table card — the desk panels sit on this shell; the table scrolls
+      horizontally INSIDE the card at phone width (no fixed layout, no
       ellipsis forced here) ── */
 .home-v12 .sc-tablecard { background: var(--putty); border-radius: 40px; padding: 0; overflow: hidden; transition: background .5s; }
 .home-v12 .sc-tablecard > div:not(.sc-inset) { background: transparent !important; border: 0 !important; border-radius: 0 !important; }
-/* Shared inset table surface (2026-07-16 consistency pass): every scanner's
-   table sits on the SAME bg2 inset inside the putty tile, 18px gutters. */
+/* Shared inset table surface (2026-07-16 consistency pass): every table sits
+   on the SAME bg2 inset inside the putty tile, 18px gutters. */
 .home-v12 .sc-inset { background: var(--bg2); border-radius: 24px; margin: 14px 18px 20px; overflow: hidden; transition: background .5s; }
 .home-v12 .sc-inset > div { background: transparent !important; border: 0 !important; border-radius: 0 !important; }
 .home-v12 .sc-insetscroll { overflow-x: auto; }
-/* Shared scanner table — ONE anatomy for Momentum + Divergence tables,
-   matched to the embedded Insider table (12px/.12em headers, 14px cell
-   rhythm, 13.5px body, 16px gold tickers, hover = gold-tint row + inset
-   gold bar + underlined ticker). */
+/* Shared scanner table — 12px/.12em headers, 14px cell rhythm, 13.5px body,
+   16px gold tickers, hover = gold-tint row + inset gold bar + underlined
+   ticker. */
 .home-v12 .sc-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
-.home-v12 .sc-table.dv-min { min-width: 520px; }
-.home-v12 .sc-table.dv-min td { padding: 12px 10px; }
-.home-v12 .sc-table.dv-min .sc-tk .nm { max-width: 170px; }
 .home-v12 .sc-table th { text-align: left; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 12px 10px 9px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .sc-table th.num-h { text-align: right; }
-.home-v12 .sc-table th.rank-h { width: 48px; }
-.home-v12 .sc-table th.sortable { cursor: pointer; }
-.home-v12 .sc-table th.sortable:hover, .home-v12 .sc-table th.on { color: var(--ink); }
 .home-v12 .sc-table th:first-child, .home-v12 .sc-table td:first-child { padding-left: 22px; }
 .home-v12 .sc-table th:last-child, .home-v12 .sc-table td:last-child { padding-right: 22px; }
 .home-v12 .sc-table td { padding: 14px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; vertical-align: middle; }
 .home-v12 .sc-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .home-v12 .sc-table td.num.up { color: var(--up); }
 .home-v12 .sc-table td.num.down { color: var(--down); }
-.home-v12 .sc-table td.rank { color: var(--mut); }
 .home-v12 .sc-table tbody tr:last-child td { border-bottom: 0; }
 .home-v12 .sc-table tbody tr.sc-trow { cursor: pointer; transition: background .15s ease, box-shadow .15s ease; }
 .home-v12 .sc-table tbody tr.sc-trow:hover { background: var(--rowhover); box-shadow: inset 3px 0 0 var(--gold-deep); }
@@ -128,68 +86,14 @@
 .home-v12 .sc-tk { display: flex; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
 .home-v12 .sc-tk b { font-weight: 700; font-size: 16px; color: var(--gold-deep); }
 .home-v12 .sc-tk .nm { font-size: 12.5px; color: var(--ink-soft); max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
-/* Insider table (embedded ScanList) hover — same gold tint as the shared
-   table so all three scanners animate identically on hover. */
-.home-v12.scanner-v12 .sc-row:hover { background: var(--rowhover); }
-.home-v12.scanner-v12 .sc-row.sc-row--open { background: var(--rowhover); }
-/* Tile footnote — same voice + position on every scanner tile. */
+/* Panel footnote — same voice + position on every panel. */
 .home-v12 .sc-tilefoot { font-family: var(--sans); font-size: 12.5px; color: var(--mut); padding: 0 30px 22px; line-height: 1.5; }
 
-/* panel head — mirrors the Paper Portfolio panel head (serif title + Columns
-   pill), so both tool tables read as one component (Joe, 2026-07-08). */
+/* panel head — mirrors the Paper Portfolio panel head (serif title), so both
+   tool tables read as one component (Joe, 2026-07-08). */
 .home-v12 .sc-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 26px 30px 14px; border-bottom: 1px solid var(--hair); }
 .home-v12 .sc-paneltitle { margin: 2px 0 0; font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1.1; letter-spacing: -.3px; color: var(--ink); }
-.home-v12 .sc-panelhead-tools { position: relative; display: flex; align-items: center; gap: 10px; }
-.home-v12 .sc-colbtn { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); font-family: var(--sans); font-size: 13px; line-height: 1; cursor: pointer; transition: border-color .25s, color .25s; }
-.home-v12 .sc-colbtn:hover, .home-v12 .sc-colbtn.on { border-color: var(--gold-deep); color: var(--gold-deep); }
-.home-v12 .sc-colbtn .cnt { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .home-v12 .sc-loading { padding: 44px; text-align: center; color: var(--mut); font-size: 14px; }
-
-/* score-trend column: days-on-list tag under the dial (class rendered by
-   ScanList; styled at page level, exactly as the v11 skin did) */
-.home-v12 .sc-tenure { font-size: 9px; font-weight: 700; color: var(--mut); letter-spacing: .02em; }
-
-/* toast — theme-invariant ink chip, same palette as the hover tooltip */
-.home-v12 .sc-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 11px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 6000; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-
-/* ── "How the score is built" — ink card (home-v12 engine-card language) ── */
-.home-v12 .sc-build { background: var(--card-ink); color: var(--cream-text); border-radius: var(--card-r); padding: 48px 56px 44px; box-shadow: var(--sh); transition: transform .35s, box-shadow .35s; }
-.home-v12 .sc-build:hover { transform: translateY(-4px); }
-[data-mt-theme='dark'] .home-v12 .sc-build, [data-mt-theme='navy'] .home-v12 .sc-build { outline: 1px solid rgba(245,239,227,.08); }
-.home-v12 .sc-build .eyebrow2 { color: color-mix(in srgb, var(--cream-text) 62%, transparent); }
-.home-v12 .sc-build .eyebrow2 .dot { background: var(--gold-bar); }
-.home-v12 .sc-buildhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
-.home-v12 .sc-buildhead h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.22; margin: 10px 0 0; max-width: 820px; }
-.home-v12 .sc-buildgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.home-v12 .sc-buildcell { background: rgba(247,243,232,.05); border: 1px solid rgba(247,243,232,.1); border-radius: 22px; padding: 18px; }
-.home-v12 .sc-buildcell .k { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-bar); font-weight: 700; }
-.home-v12 .sc-buildcell .why { font-size: 12.5px; color: color-mix(in srgb, var(--cream-text) 78%, transparent); line-height: 1.55; margin: 8px 0 10px; }
-.home-v12 .sc-buildcell .w { font-size: 11px; color: color-mix(in srgb, var(--cream-text) 55%, transparent); }
-.home-v12 .sc-buildcell .w b { font-family: var(--sans); font-size: 18px; font-weight: 400; color: var(--cream-text); font-variant-numeric: tabular-nums; }
-.home-v12 .sc-ghostbtn { background: transparent; border: 1px solid rgba(247,243,232,.28); border-radius: 999px; padding: 9px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--cream-text); cursor: pointer; white-space: nowrap; transition: border-color .25s, color .25s; }
-.home-v12 .sc-ghostbtn:hover { border-color: var(--gold-bar); color: var(--gold-bar); }
-
-/* Floating hover tooltip — portals to <body>, OUTSIDE the .home-v12 root, so
-   it is deliberately unscoped (unique sc- name, no collisions). Ink-card
-   palette from the v12 system; theme-invariant dark tip, as v11 was. */
-.sc-tip { position: fixed; transform: translate(-50%, -100%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 9px 12px; border-radius: 12px; font-size: 11.5px; line-height: 1.45; max-width: 320px; white-space: pre-line; text-align: left; z-index: 6000; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 1px solid rgba(247,243,232,.1); }
-
-/* ── responsive (mirrored with !important in responsive.css, LESSONS 8.7) ── */
-@media (max-width: 1100px) {
-  .home-v12 section.sc-hero { grid-template-columns: 1fr; }
-}
-@media (max-width: 900px) {
-  .home-v12 section.sc-hero { padding-top: 34px; }
-  .home-v12 .sc-buildgrid { grid-template-columns: 1fr 1fr; }
-  .home-v12 .sc-buildhead { flex-direction: column; }
-  .home-v12 .sc-tablecard { border-radius: 28px; padding: 10px; }
-  .home-v12 .sc-build { padding: 34px 26px; border-radius: 32px; }
-}
-@media (max-width: 640px) {
-  .home-v12 .sc-buildgrid { grid-template-columns: 1fr; }
-  .home-v12 .sc-ed h1 { font-size: 30px; }
-  .home-v12 .sc-colpick { min-width: 280px; }
-}
 
 /* ── Panel designation + rule lines ────────────────────────────────────────
    Small factual header furniture above/below the panel titles so all desk
@@ -200,128 +104,56 @@
 .home-v12 .sc-metalink { background: none; border: 0; padding: 0; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--gold-deep); cursor: pointer; border-bottom: 1px solid transparent; transition: border-color .25s; }
 .home-v12 .sc-metalink:hover { border-color: var(--gold-deep); }
 
-/* ── Scanner 2 — Power Trend Momentum tile (consistency pass 2026-07-16) ──
-   The panel renders on the shared .sc-tablecard / .sc-panelhead / .sc-inset
-   / .sc-table system above. Only the stage-width rule lives here. */
-.home-v12 section.mo-sec { max-width: 1560px; min-width: 0; padding: 0; } /* padding 0 like sc-results — all three scanner tiles share the exact 1560px stage width */
-
-/* ── Conviction Events desk panel (strategy reset 2026-08) — the book's
-   event feed renders on the shared .sc-tablecard / .sc-panelhead / .sc-inset
-   / .sc-table system above. Only the stage-width rule lives here. ── */
+/* ── Conviction Events desk (2026-08-11) — the whole page body. Both panels
+      render on the shared table-card anatomy above; what is specific here is
+      the event row: who bought, and what the book did about it with the
+      reason INLINE (the rejects are the most-read content on the page, so
+      the reason is never hidden behind a hover). ── */
 .home-v12 section.ce-sec { max-width: 1560px; min-width: 0; padding: 0; }
+/* Below this width the table scrolls inside its card rather than crushing the
+   reason column (LESSONS 8.10c). Column widths are pinned (as hints on an
+   auto-layout table, never table-layout:fixed) so today's events and the
+   recent-events history line up column for column — same columns, same
+   geometry; the reason column takes whatever is left. */
+.home-v12 .sc-table.ce-min { min-width: 900px; }
+.home-v12 .sc-table.ce-min th:nth-child(1) { width: 110px; }
+.home-v12 .sc-table.ce-min th:nth-child(2) { width: 250px; }
+.home-v12 .sc-table.ce-min th:nth-child(3) { width: 150px; }
+.home-v12 .sc-table.ce-min th:nth-child(4) { width: 110px; }
+.home-v12 .sc-table td.ce-who { color: var(--ink-soft); }
+.home-v12 .ce-name { display: inline-block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.home-v12 .sc-table td.ce-act { white-space: normal; min-width: 360px; }
+.home-v12 .ce-why { font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-left: 10px; }
+/* "No insider purchase cleared $250,000 today" — stated in words, above the
+   most recent day's table, instead of rendering an empty one. */
+.home-v12 .ce-note { font-family: var(--sans); font-size: 13.5px; color: var(--ink-soft); background: var(--bg2); border-radius: 18px; margin: 14px 18px 0; padding: 14px 20px; line-height: 1.55; transition: background .5s; }
+/* Day separator inside the recent-events table. */
+.home-v12 .sc-table tr.ce-grouprow td { padding: 14px 22px 8px; border-bottom: 1px solid var(--hair); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 5%, transparent); }
 
-/* ── Scanner 3 — RSI Divergence tile ───────────────────────────────────────
-   Same shell; the bullish/bearish split renders as two .dv-card insets
-   (the .sc-inset surface, side by side) with the shared .sc-table inside. */
-.home-v12 section.sc-divsec { max-width: 1560px; min-width: 0; padding: 0; } /* padding 0 like sc-results — equal tile width */
-.home-v12 .dv-info { color: var(--mut); font-size: 17px; cursor: help; line-height: 1; margin-left: 10px; font-family: var(--sans); font-weight: 400; }
-.home-v12 .dv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; padding: 14px 18px 20px; }
-.home-v12 .dv-grid > .dv-card { min-width: 0; }
-.home-v12 .dv-card { background: var(--bg2); border-radius: 24px; padding: 4px 0 8px; overflow: hidden; transition: background .5s; }
-.home-v12 .dv-cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 16px 22px 10px; border-bottom: 1px solid var(--hair); }
-.home-v12 .dv-cardhead h3 { font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--ink); margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.home-v12 .dv-def { font-size: 12px; font-weight: 500; color: var(--mut); letter-spacing: .01em; }
-.home-v12 .dv-count { font-size: 13px; color: var(--ink-soft); }
-.home-v12 .dv-tk b { font-weight: 700; }
-.home-v12 .dv-star { color: var(--gold-deep); font-size: 12px; }
-.home-v12 .dv-path.bull { color: var(--up); }
-.home-v12 .dv-path.bear { color: var(--down); }
-.home-v12 .dv-empty { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 22px; }
-
-@media (max-width: 1100px) {
-  .home-v12 .dv-grid { gap: 14px; }
-}
+/* ── responsive (mirrored with !important in responsive.css, LESSONS 8.7) ── */
 @media (max-width: 900px) {
+  .home-v12 section.sc-hero { padding-top: 34px; }
+  .home-v12 .sc-tablecard { border-radius: 28px; padding: 10px; }
   .home-v12 .sc-inset { margin: 10px 10px 14px; border-radius: 20px; }
-  .home-v12 .dv-grid { grid-template-columns: 1fr; padding: 10px 10px 14px; }
-  .home-v12 .dv-card { border-radius: 20px; }
+  .home-v12 .ce-note { margin: 10px 10px 0; padding: 12px 16px; }
   .home-v12 .sc-tilefoot { padding: 0 18px 18px; }
   .home-v12 .sc-paneltitle { font-size: 27px; }
 }
 @media (max-width: 640px) {
-  .home-v12 .dv-cardhead { padding: 14px 16px 9px; }
+  .home-v12 .sc-ed h1 { font-size: 30px; }
   .home-v12 .sc-table th:first-child, .home-v12 .sc-table td:first-child { padding-left: 16px; }
   .home-v12 .sc-table th:last-child, .home-v12 .sc-table td:last-child { padding-right: 16px; }
+  .home-v12 .sc-table tr.ce-grouprow td { padding-left: 16px; padding-right: 16px; }
   .home-v12 .sc-tk .nm { max-width: 140px; }
-}
-
-/* ── Cockpit landing (2026-07-30, Joe-approved mockup) ─────────────────────
-   One tile per scanner: kicker/title/cadence, a small real-data SVG viz on
-   the putty inset, the top-conviction rows, a freshness-chip meta line and
-   an "Open desk view" footer. The whole tile opens the desk overlay. All
-   colors are v12 tokens so the tiles read correctly in every theme. */
-.home-v12 .sc-sub { font-size: 15.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.6; }
-.home-v12 section.sc-cockpit { max-width: 1560px; min-width: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
-.home-v12 .sc-ctile { background: var(--bg2); border: 1px solid var(--hair); border-radius: 40px; box-shadow: var(--sh); padding: 26px 26px 18px; display: flex; flex-direction: column; cursor: pointer; min-width: 0; transition: transform .25s, box-shadow .25s, background .5s; }
-.home-v12 .sc-ctile:hover { transform: translateY(-3px); box-shadow: 0 4px 6px rgba(33,44,51,.05), 0 26px 60px rgba(33,44,51,.11); }
-.home-v12 .sc-ctile:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
-.home-v12 .sc-ctitle { font-family: var(--serif); font-weight: 600; font-size: 27px; line-height: 1.12; letter-spacing: -.3px; color: var(--ink); margin: 4px 0 2px; }
-.home-v12 .sc-ccadence { font-family: var(--sans); font-size: 12.5px; color: var(--mut); margin-bottom: 14px; }
-.home-v12 .sc-cloading { font-family: var(--sans); font-size: 13.5px; color: var(--mut); padding: 26px 4px; }
-/* mini viz — putty inset, same surface language as the table insets */
-.home-v12 .sc-cviz { background: var(--putty); border-radius: 18px; padding: 14px 14px 8px; margin-bottom: 12px; transition: background .5s; }
-.home-v12 .sc-cvizlab { font-family: var(--sans); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--mut); font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
-.home-v12 .sc-cviz svg { display: block; }
-.home-v12 .sc-cbarlab { font-family: var(--sans); font-size: 11px; font-weight: 700; fill: var(--gold-deep); }
-.home-v12 .sc-cbarval { font-family: var(--sans); font-size: 11px; font-weight: 700; fill: var(--ink); }
-.home-v12 .sc-cbartrack { fill: var(--hair); }
-.home-v12 .sc-cbarfill { fill: var(--gold-bar); }
-.home-v12 .sc-cax { stroke: var(--hair); stroke-width: 1; }
-.home-v12 .sc-cbub { fill: var(--gold-bar); opacity: .78; }
-.home-v12 .sc-cbublab { font-family: var(--sans); font-size: 9.5px; font-weight: 700; fill: var(--card-ink); }
-[data-mt-theme='dark'] .home-v12 .sc-cbublab, [data-mt-theme='navy'] .home-v12 .sc-cbublab { fill: #16202B; }
-.home-v12 .sc-cband.bull { fill: var(--up); opacity: .1; }
-.home-v12 .sc-cband.bear { fill: var(--down); opacity: .1; }
-.home-v12 .sc-cbandlab { font-family: var(--sans); font-size: 9px; fill: var(--mut); }
-.home-v12 .sc-cpath.bull line { stroke: var(--up); stroke-width: 2; }
-.home-v12 .sc-cpath.bull circle { fill: var(--up); }
-.home-v12 .sc-cpath.bear line { stroke: var(--down); stroke-width: 2; }
-.home-v12 .sc-cpath.bear circle { fill: var(--down); }
-.home-v12 .sc-cpath circle.new { opacity: .55; }
-.home-v12 .sc-cpath .lab { font-family: var(--sans); font-size: 10.5px; font-weight: 700; }
-.home-v12 .sc-cpath.bull .lab { fill: var(--up); }
-.home-v12 .sc-cpath.bear .lab { fill: var(--down); }
-/* top-conviction rows */
-.home-v12 .sc-crows { display: flex; flex-direction: column; flex: 1; }
-.home-v12 .sc-crow { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--hair); font-family: var(--sans); font-size: 13.5px; color: var(--ink); min-width: 0; }
-.home-v12 .sc-crow:first-child { border-top: 0; }
-.home-v12 .sc-crow .tk { font-weight: 700; color: var(--gold-deep); font-size: 15px; width: 54px; flex: none; }
-.home-v12 .sc-crow .nm { color: var(--ink-soft); font-size: 12.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.home-v12 .sc-crow .val { text-align: right; white-space: nowrap; }
-.home-v12 .sc-crow .val.up { color: var(--up); }
-.home-v12 .sc-crow .val.down { color: var(--down); }
-.home-v12 .sc-crow .val.age { color: var(--mut); width: 56px; flex: none; }
-.home-v12 .sc-crow .pill { background: var(--ink); color: var(--bg2); border-radius: 999px; font-size: 12px; font-weight: 700; padding: 2px 9px; min-width: 40px; text-align: center; flex: none; }
-.home-v12 .sc-crow .tag { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--hair); border-radius: 999px; padding: 1px 8px; color: var(--mut); white-space: nowrap; flex: none; }
-.home-v12 .sc-crow .tag.bull { color: var(--up); border-color: var(--up); }
-.home-v12 .sc-crow .tag.bear { color: var(--down); border-color: var(--down); }
-/* meta + footer */
-.home-v12 .sc-cmeta { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--sans); font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; flex-wrap: wrap; cursor: default; }
-.home-v12 .sc-copen { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hair); font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--ink); display: flex; justify-content: space-between; align-items: center; }
-.home-v12 .sc-copen .arr { transition: transform .2s; }
-.home-v12 .sc-ctile:hover .sc-copen .arr { transform: translateX(4px); }
-.home-v12 .sc-ctile:hover .sc-copen { color: var(--gold-deep); }
-
-/* ── Desk view overlay — the full scanner section, unchanged, on a modal
-      stage. The backdrop is theme-invariant ink glass (same language as the
-      hover tooltip); the card is the page background so every embedded
-      tablecard reads exactly as it did on the stacked page. */
-.sc-desk { position: fixed; inset: 0; background: rgba(33,44,51,.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 5000; overflow-y: auto; overscroll-behavior: contain; }
-.sc-desk .sc-deskcard { max-width: 1400px; margin: 34px auto 60px; background: var(--bg); border-radius: 34px; box-shadow: 0 30px 90px rgba(0,0,0,.35); padding: 22px 30px 34px; }
-.sc-desk .sc-deskbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.sc-desk .sc-dtabs { display: flex; gap: 8px; flex-wrap: wrap; }
-.sc-desk .sc-dtab { border: 1px solid var(--hair); background: transparent; border-radius: 999px; padding: 7px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink-soft); cursor: pointer; transition: border-color .25s, color .25s, background .25s; }
-.sc-desk .sc-dtab:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
-.sc-desk .sc-dtab.on { background: var(--ink); color: var(--bg2); border-color: var(--ink); }
-.sc-desk .sc-deskback { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 7px 16px; font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; transition: border-color .25s, color .25s; }
-.sc-desk .sc-deskback:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
-/* embedded sections drop the page-stage margins inside the desk card */
-.sc-desk .sc-deskbody section.wrap { margin: 18px 0 0; max-width: none; padding: 0; }
-
-@media (max-width: 1020px) {
-  .home-v12 section.sc-cockpit { grid-template-columns: 1fr; }
-}
-@media (max-width: 900px) {
-  .home-v12 .sc-ctile { border-radius: 28px; padding: 20px 18px 14px; }
-  .sc-desk .sc-deskcard { margin: 12px 8px 24px; border-radius: 24px; padding: 16px 12px 22px; }
+  /* Phone: tighten every column so the swipe that reaches the action and its
+     reason is short. The table still scrolls at natural widths inside its own
+     card — never table-layout:fixed + ellipsis, which would cut the reasons
+     off mid-sentence (LESSONS 8.10c). */
+  .home-v12 .sc-table.ce-min { min-width: 640px; }
+  .home-v12 .sc-table.ce-min th:nth-child(1) { width: 66px; }
+  .home-v12 .sc-table.ce-min th:nth-child(2) { width: 118px; }
+  .home-v12 .sc-table.ce-min th:nth-child(3) { width: 104px; }
+  .home-v12 .sc-table.ce-min th:nth-child(4) { width: 58px; }
+  .home-v12 .sc-table td.ce-act { min-width: 230px; }
+  .home-v12 .ce-name { max-width: 108px; }
 }
