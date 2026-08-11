@@ -2421,6 +2421,46 @@
    "cadence_display": "Daily \u00b7 5:15 PM close (certified 9:45 AM next day)"
   },
   {
+   "id": "portfolio.ce-events-daily",
+   "category": "portfolio",
+   "name": "ce_events",
+   "display_name": "Conviction Events ledger",
+   "description": "Conviction Events decision ledger \u2014 every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, skipped (book full / already held / failed gates), or blocked by the kill switch. Companion single-row table ce_kill_switch (tripped / reason / checked_at) rides this element.",
+   "sourcing_mode": "computed in-house from raw",
+   "source_vendor": "SEC EDGAR (free)",
+   "source_endpoint": "Computed from insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation) \u2014 each input is its own registered element",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "cadence_display": "Every morning \u00b7 before the open",
+   "refresh_trigger": "Conviction Events engine (in build \u2014 cutover steps in NOTES.md at the repo root)",
+   "freshness_sla_hours": 0,
+   "data_max_age_hours": 0,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "output_destination": "Supabase public.ce_events (anon-readable)",
+   "producer_script": "Conviction Events engine (separate build; not in this repo yet)",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Event ledger + positions why-held cells + kill-switch line"
+    },
+    {
+     "tab": "scanner",
+     "tile": "Conviction Events panel"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology \u2014 Scanner & Paper sections"
+    }
+   ],
+   "current_status": "pending-first-run",
+   "failure_mode": "Every consumer renders its awaiting-first-events empty state when the table is unreadable or empty; no synthesized values, no error panels.",
+   "owner": "Lead Developer (engine) + Data Steward (freshness)",
+   "dependencies": [],
+   "sla_basis": "Deliberately 0 until the engine's first real run \u2014 an SLA armed before a producer exists manufactures a false red; a registered element with no target grades grey (reference), matching the no-health-row doctrine (LESSONS 2026-07-21). At cutover, in the SAME change as the pipeline_health seed row: set freshness_sla_hours 49 / data_max_age_hours 73 and dependencies [\"insider_history_edgar\", \"market-prices_eod-daily\"]. See NOTES.md."
+  },
+  {
    "id": "portfolio.paper-positions-snapshot",
    "category": "portfolio",
    "name": "paper-positions-snapshot",

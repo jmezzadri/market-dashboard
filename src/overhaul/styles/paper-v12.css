@@ -1,15 +1,12 @@
 /* ============================================================================
-   Paper Portfolio — page styles on the CREAM v12 system (cream-system.css).
-   Cream rebrand Phase B (2026-07-07). RESKIN ONLY: every selector here styles
-   markup that already existed under the v11 glass page — data, hooks, sleeve
-   reconciliation, P&L math, sorting, column resize/reorder and FreshnessChip
-   usage are untouched. Shared eyebrow / reveal / wrap patterns come from
-   cream-system.css; this file covers what the shared system doesn't: the
-   split hero (editorial + performance-matrix card), the putty panels, table
-   chrome, the column-picker pill + popover, rebalance rows and the drawer.
+   Paper — the Conviction Events book, on the CREAM v12 system
+   (cream-system.css). Strategy reset 2026-08: the page is a single book — the
+   sleeve cards, two-column sleeve layout, column-picker popover, rebalance
+   drawer and performance matrix from the earlier build are deleted with it
+   (retired means deleted, LESSONS 0.10).
 
    TOKEN BRIDGE: the page keeps its component-local <style> block (PAGE_CSS),
-   which styles the tables / popover / drawer with the legacy V2 token family
+   which styles the tables / panels with the legacy V2 token family
    (--bg-1 / --line-0 / --ink-0 / --accent / --warn). Rather than editing that
    block's logic, we remap those tokens — plus the --mt-* family read by the
    embedded FreshnessChip and the theme.css family read by the InfoTip (?)
@@ -20,11 +17,9 @@
    scope — so they keep the app's solid tokens, as before.
 
    RESPONSIVE: rule of the phase — ALL responsive rules for this page live in
-   THIS file (the lead consolidates responsive.css). LESSONS 8.10: at ≤640px
-   the .pmx performance matrix AND the positions table scroll INSIDE their
-   card at natural column widths — never a fixed table layout + ellipsis, so a
-   value can never truncate. !important where needed to beat the table's
-   inline style attributes.
+   THIS file. LESSONS 8.10: at ≤640px the tables scroll INSIDE their card at
+   natural column widths — never a fixed table layout + ellipsis, so a value
+   can never truncate.
    ========================================================================= */
 
 .home-v12.paper-v12 {
@@ -65,9 +60,8 @@
   --accent: var(--gold-deep);
   --warn: var(--gold-deep);
 
-  /* The page's inline PAGE_CSS also reaches for --surface-0/--surface-1, which
-     nothing ever defined — so its light-mode literal fallbacks (#fff, #f3efe7)
-     rendered in EVERY theme. Mapped here so any future use is theme-aware. */
+  /* The chart panel's segmented control reads --surface-0/--surface-1; mapped
+     here so it is theme-aware (the literal fallbacks are light-mode only). */
   --surface-0: var(--bg2);
   --surface-1: var(--putty);
 
@@ -81,32 +75,33 @@
 .home-v12.paper-v12 .up { color: var(--up); }
 .home-v12.paper-v12 .down { color: var(--down); }
 
-/* ── hero: editorial left + performance-matrix putty card right ── */
-.home-v12 section.pp-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 18px; align-items: stretch; }
-.home-v12 section.pp-hero > * { min-width: 0; } /* LESSONS 8.10(d): the matrix's intrinsic width must not blow the track */
+/* ── hero: strategy blurb left + book-vs-S&P putty card right ── */
+.home-v12 section.pp-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 560px; gap: 18px; align-items: stretch; }
+.home-v12 section.pp-hero > * { min-width: 0; } /* LESSONS 8.10(d): the card table's intrinsic width must not blow the track */
 .home-v12 .pp-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .pp-ed .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .pp-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
 .home-v12 .pp-ed h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .pp-ed .impl { margin: 0; padding: 0; list-style: none; max-width: 640px; }
+.home-v12 .pp-ed .impl { margin: 0; padding: 0; list-style: none; max-width: 680px; }
 .home-v12 .pp-ed .impl li { position: relative; padding: 0 0 12px 22px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
 .home-v12 .pp-ed .impl li:last-child { padding-bottom: 0; }
 .home-v12 .pp-ed .impl li::before { content: "\2192"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
 .home-v12 .pp-ed .impl li b { color: var(--ink); font-weight: 650; }
+.home-v12 .pp-methlink { margin-top: 18px; }
+.home-v12 .pp-methlink a { font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--gold-deep); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .25s; }
+.home-v12 .pp-methlink a:hover { border-color: var(--gold-deep); }
 .home-v12 .pp-heroright { display: flex; }
-.home-v12 .pp-heroright > .paper-tile-summary { flex: 1; min-width: 0; } /* min-width:auto would let the matrix's intrinsic width push the card past a phone viewport (LESSONS 8.10(d) applies to flex too) */
+.home-v12 .pp-heroright > .paper-tile-summary { flex: 1; min-width: 0; } /* min-width:auto would let the table's intrinsic width push the card past a phone viewport (LESSONS 8.10(d) applies to flex too) */
 
-/* performance-matrix card (putty). Colors arrive via the token bridge; this
-   is shape + type. Values stay SANS + tabular-nums on purpose: Instrument
-   Serif has no tabular figures, and 7 money columns must stay aligned. */
+/* book card (putty). Colors arrive via the token bridge; this is shape +
+   type. Values stay SANS + tabular-nums on purpose: Instrument Serif has no
+   tabular figures, and money columns must stay aligned. */
 .home-v12 .paper-tile-summary { background: var(--putty); border: 0; border-radius: 36px; padding: 26px 28px 22px; transition: background .5s; }
 .home-v12 .pts-title { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
 .home-v12 .pts-asof { font-size: 10.5px; letter-spacing: .08em; color: var(--mut); font-weight: 600; }
-.home-v12 .pmx { font-variant-numeric: tabular-nums; }
 
-/* ── main stage: wider than the 1240 editorial so the default column set
-      fits without inner scroll on a large desktop (v11 shell was 1440) ── */
-.home-v12 section.pp-main { max-width: 1560px; } /* one brand stage width, matches Scanner results */
+/* ── main stage: one brand stage width, matches Scanner results ── */
+.home-v12 section.pp-main { max-width: 1560px; }
 
 /* panels — putty cards (radius 40, hairlines). PAGE_CSS keeps the layout;
    the token bridge recolors it; these override the card chrome. */
@@ -115,73 +110,20 @@
 .home-v12 .paper-panel-title { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.12; letter-spacing: 0; }
 .home-v12 .paper-table th { background: transparent; }
 .home-v12 .paper-table tbody tr { transition: background .16s ease, transform .16s ease; }
-.home-v12 .paper-table tbody tr:not(.paper-cash-row):not(.paper-total-row):hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(4px); }
+.home-v12 .paper-table tbody tr:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(4px); }
 
-/* column pill + popover — scanner sc-gear / sc-colpick language */
-.home-v12 .pcol-btn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; color: var(--ink-soft); transition: border-color .25s, color .25s; }
-.home-v12 .pcol-btn:hover { background: transparent; border-color: var(--gold-deep); color: var(--gold-deep); }
-.home-v12 .pcol-pop { background: var(--bg2); border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--sh); }
-.home-v12 .pcol-item:hover { background: var(--putty); }
+/* kill-switch line — putty strip, hairline-free like the panels */
+.home-v12 .pp-ks { background: var(--putty); border: 0; border-radius: 20px; transition: background .5s; font-family: var(--sans); }
 
-/* rebalance rows — v12 row motion (PAGE_CSS hover was a flat hairline fill) */
-.home-v12 .paper-rebal-clickable { transition: background .25s, transform .25s; }
-.home-v12 .paper-rebal-clickable:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(5px); }
-.home-v12 .paper-rebal-clickable::after { color: var(--gold-deep); }
-
-/* trades drawer — solid putty via the bridge; hairline edge */
-.home-v12 .paper-drawer { border-left: 1px solid var(--hair); }
-
-/* ── Two-sleeve build (2026-07-14): sleeve cards, table tags.
-   Split bar removed 2026-07-28 (Joe: added zero value). ── */
-.home-v12 .pp-sleevecard { background: var(--putty); border-radius: 28px; padding: 22px 26px 20px; transition: background .5s; font-family: var(--sans); }
-.home-v12 .pp-sc-eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; }
-.home-v12 .pp-sc-value { font-size: clamp(26px, 2.4vw, 34px); line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; margin: 10px 0 12px; }
-.home-v12 .pp-sc-note { margin-top: 12px; font-size: 12.5px; color: var(--mut); line-height: 1.5; }
-
-/* ── Two-column sleeve layout (2026-07-14 redesign): sleeve card + holdings
-      + history stacked inside each column, columns side by side ── */
-.home-v12 .pp-twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; align-items: start; }
-.home-v12 .pp-twocol > .pp-col { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-.home-v12 .pp-col .paper-panel { margin-top: 0; }
-
-/* Book card (hero right) — replaces the old 7-column performance matrix */
+/* book card headline rows */
 .home-v12 .pp-book-nav { font-family: var(--sans); font-size: clamp(34px, 3vw, 46px); line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums; margin: 14px 0 12px; }
 .home-v12 .pp-book-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--hair); font-family: var(--sans); font-size: 13.5px; }
 .home-v12 .pp-book-rows span { color: var(--mut); }
 .home-v12 .pp-book-rows b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
 .home-v12 .pp-book-rows b.up { color: var(--up); }
 .home-v12 .pp-book-rows b.down { color: var(--down); }
-.home-v12 .pp-book-bench { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
-.home-v12 .pp-book-bench > .pp-bench-cell { min-width: 0; background: var(--bg2); border-radius: 14px; padding: 10px 12px; font-family: var(--sans); }
-.home-v12 .pp-bench-cell span { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.home-v12 .pp-bench-cell b { display: block; margin-top: 5px; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--ink); }
-.home-v12 .pp-bench-cell b.up { color: var(--up); }
-.home-v12 .pp-bench-cell b.down { color: var(--down); }
-.home-v12 .pp-book-bench .pp-bench-note { grid-column: 1 / -1; font-family: var(--sans); font-size: 11px; color: var(--mut); }
 
-@media (max-width: 1100px) {
-  .home-v12 .pp-twocol { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  .home-v12 .pp-book-bench { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* sleeve tag in the holdings table */
-.home-v12 .pp-sleeve-tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-.home-v12 .pp-sleeve-tag.b { color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 12%, transparent); }
-.home-v12 .pp-sleeve-tag.m { color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); }
-
-/* ×2 overlap marker — instant CSS tooltip (never the native title attribute) */
-.home-v12 .pp-x2 { position: relative; display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; color: var(--gold-deep); border: 1px solid var(--gold-deep); border-radius: 6px; padding: 1px 5px; cursor: help; }
-.home-v12 .pp-x2:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); background: rgba(33,44,51,.97); color: rgba(247,243,232,.97); padding: 8px 11px; border-radius: 10px; font-size: 11px; font-weight: 500; line-height: 1.45; width: 240px; white-space: normal; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-
-@media (max-width: 900px) {
-  .home-v12 .pp-splitlegend { gap: 12px; }
-  .home-v12 .pp-splittotal { margin-left: 0; }
-}
-
-/* ── responsive — ALL of this page's responsive rules live here (the lead
-      consolidates responsive.css; do not add page rules there) ── */
+/* ── responsive — ALL of this page's responsive rules live here ── */
 @media (max-width: 1100px) {
   .home-v12 section.pp-hero { grid-template-columns: 1fr; }
 }
@@ -193,62 +135,21 @@
 }
 @media (max-width: 640px) {
   .home-v12 .pp-ed h1 { font-size: 30px; }
-  /* LESSONS 8.10: both tables scroll INSIDE their putty card at natural
-     column widths at phone width — never a fixed layout + ellipsis
-     (which silently truncates every value). !important beats the tables'
-     inline style attributes. */
-  .home-v12.paper-v12 .pmx { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; table-layout: auto !important; width: auto !important; min-width: 0; }
-  .home-v12.paper-v12 .pmx th,
-  .home-v12.paper-v12 .pmx td { overflow: visible !important; text-overflow: clip !important; }
+  /* LESSONS 8.10: tables scroll INSIDE their putty card at natural column
+     widths at phone width — never a fixed layout + ellipsis (which silently
+     truncates every value). */
   .home-v12.paper-v12 .paper-table { table-layout: auto !important; }
   .home-v12.paper-v12 .paper-table th,
   .home-v12.paper-v12 .paper-table td { overflow: visible !important; text-overflow: clip !important; white-space: nowrap; }
+  .home-v12.paper-v12 .paper-table td.why { white-space: normal; min-width: 220px; }
 }
 
-
-/* ── Recent rebalances = ink card, matching Scanner "how the score is built"
-      (.sc-build). Same card-ink surface + cream text; token remaps keep the
-      embedded freshness chip + info (?) trigger legible on the dark surface.
-      The Paper Portfolio positions panel stays putty — only this tile flips. ── */
-.home-v12 .paper-panel.pp-rebal {
-  background: var(--card-ink);
-  color: var(--cream-text);
-  border-radius: var(--card-r);
-  box-shadow: var(--sh);
-  /* cream-scale remaps for embedded shared components on the ink surface */
-  --mt-ink-0: var(--cream-text);
-  --mt-ink-1: color-mix(in srgb, var(--cream-text) 78%, transparent);
-  --mt-ink-2: color-mix(in srgb, var(--cream-text) 55%, transparent);
-  --mt-ink-3: color-mix(in srgb, var(--cream-text) 45%, transparent);
-  --mt-surface: transparent;
-  --mt-surface-2: rgba(247,243,232,.06);
-  --mt-surface-3: rgba(247,243,232,.08);
-  --mt-line-0: rgba(247,243,232,.12);
-  --mt-line-1: rgba(247,243,232,.12);
-  /* theme.css family read by the InfoTip (?) trigger rendered in-scope */
-  --text: var(--cream-text);
-  --text-muted: color-mix(in srgb, var(--cream-text) 60%, transparent);
-  --border: rgba(247,243,232,.28);
-  --border-faint: rgba(247,243,232,.14);
-}
-[data-mt-theme='dark'] .home-v12 .paper-panel.pp-rebal,
-[data-mt-theme='navy'] .home-v12 .paper-panel.pp-rebal { outline: 1px solid rgba(245,239,227,.08); }
-.home-v12 .paper-panel.pp-rebal .paper-panel-head { border-bottom-color: rgba(247,243,232,.12); }
-.home-v12 .paper-panel.pp-rebal .paper-panel-title { color: var(--cream-text); }
-.home-v12 .paper-panel.pp-rebal .paper-rebal-date { color: var(--cream-text); }
-.home-v12 .paper-panel.pp-rebal .paper-rebal-meta,
-.home-v12 .paper-panel.pp-rebal .paper-rebal-source { color: color-mix(in srgb, var(--cream-text) 58%, transparent); }
-.home-v12 .paper-panel.pp-rebal .paper-rebal-clickable:hover { background: rgba(247,243,232,.06); }
-.home-v12 .paper-panel.pp-rebal .paper-rebal-clickable::after { color: var(--gold-bar); }
-
-
-/* ── Performance card controls (fixed 2026-07-29) ──────────────────────────
+/* ── Book-vs-S&P chart panel controls (theme-aware restatement) ───────────
    The timeframe segmented control, the series toggles and the hover tooltip
-   were styled in the page's inline CSS against --surface-0 / --surface-1,
-   tokens that were never defined. Every theme therefore got the hard-coded
-   cream fallbacks: in dark and navy that painted cream chips under cream text
-   (contrast 1.04:1 — invisible). Restated here, scoped so these win over the
-   inline block, following the .lab-seg convention already used site-wide. */
+   are styled in the page's inline CSS against --surface-0 / --surface-1;
+   those tokens are mapped in the bridge above, and these scoped rules win
+   over the inline block so dark / navy render correctly (the .lab-seg
+   convention used site-wide). */
 .home-v12.paper-v12 .pp-pc-wins { background: var(--bg2); border: 1px solid var(--hair); }
 .home-v12.paper-v12 .pp-pc-win { color: var(--ink-soft); background: transparent; }
 .home-v12.paper-v12 .pp-pc-win:hover { color: var(--ink); }

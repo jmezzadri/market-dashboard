@@ -379,17 +379,6 @@
   .sc-desk .sc-deskcard { margin: 12px 8px 24px !important; border-radius: 24px !important; padding: 16px 12px 22px !important; }
 }
 
-/* ── home-v12 two-sleeve build (2026-07-14) — the Momentum panel's two-column
-      ranked list collapses to one column (each half scrolls inside the card),
-      and the Portfolio per-sleeve cards stack. !important matches the v12
-      block convention above (LESSONS 8.7 mirror). ── */
-@media (max-width: 900px) {
-}
-@media (max-width: 1100px) {
-  .home-v12 .pp-twocol { grid-template-columns: 1fr !important; }
-  .home-v12 .pp-twocol > * { min-width: 0 !important; }
-}
-
 /* ── home-v12 Portfolio Lab (2026-07-27, LESSONS 8.7 / 8.10) — the controls
       row, the stats-vs-benchmark grid and the risk/correlation two-column
       block collapse to one column; the holdings table keeps scrolling
