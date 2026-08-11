@@ -594,17 +594,44 @@ function KillSwitchLine({ row, loading }) {
   );
 }
 
+/* The 50-day cell. Shows the average and, when the current price has slipped
+   under it, says so in the warning colour — the entry gate no longer holds for
+   that name. It is a FLAG, not an instruction: nothing in the engine sells on
+   this, so the cell must not imply that it does. */
+function ma50Cell(r, avg) {
+  if (avg == null || !Number.isFinite(Number(avg))) {
+    return <td className="r"><span className="pp-tip" data-tip="Fewer than 50 daily closes on file for this name, so there is no 50-day average to show yet.">—</span></td>;
+  }
+  const px = Number(r.current_price);
+  const below = Number.isFinite(px) && px < Number(avg);
+  const gapPct = Number.isFinite(px) && Number(avg) > 0 ? (px / Number(avg) - 1) : null;
+  const tip = below
+    ? `Trading ${gapPct != null ? `${(Math.abs(gapPct) * 100).toFixed(1)}% ` : ''}BELOW its 50-day average. The gate that qualified this entry no longer holds — the book still exits on its schedule, or on a 15% close below the entry price.`
+    : `Trading ${gapPct != null ? `${(gapPct * 100).toFixed(1)}% ` : ''}above its 50-day average — the entry gate still holds.`;
+  return (
+    <td className="r" style={below ? { color: WARN_COLOR } : undefined}>
+      <span className="pp-tip" data-tip={tip}>{fmtPrice(avg)}{below ? ' ↓' : ''}</span>
+    </td>
+  );
+}
+
 /* ── PositionsPanel — the book's open positions ─────────────────────────────
-   Columns: ticker, shares, entry price, price, value, day P&L, total P&L,
-   entered date, exit due in N days, and WHY the book holds it (the qualifying
-   insider purchase, from ce_events). Shares / entry price / value added
-   2026-08-11 (Joe): the table showed what a position is DOING but never what
-   the book actually owns, and quantity + avg_cost were already in every
-   paper_positions row. Numbers in the rows; explanations live in the header
-   tooltips and the one meta line. Row count is whatever the cash has
+   Columns: ticker, shares, entry price, price, 50-day average, value, day P&L,
+   total P&L, entered date, exit due in N days, and WHY the book holds it (the
+   qualifying insider purchase, from ce_events). Shares / entry price / value
+   added 2026-08-11 (Joe): the table showed what a position is DOING but never
+   what the book actually owns, and quantity + avg_cost were already in every
+   paper_positions row. 50-day average added the same day, also Joe: it is the
+   ENTRY gate, so the page has to say whether a name is still above it — the
+   column REPORTS, it does not trade (no exit rule keys off it; that change
+   needs a backtest first, Policy A). Footer carries cash and realized profit,
+   because a positions table that shows only equity hides half the book.
+   Numbers in the rows; explanations live in the header tooltips and the one
+   meta line. Row count is whatever the cash has
    funded — about 10 names, 13 at the hard ceiling; there is no denominator to
    render against (2026-08-11: the old "N of 8" is gone with the 8-slot rule). */
-function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, live }) {
+function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, live,
+  sma50 = {}, cash = null, realized = null, realizedAsOf = null }) {
   const rows = useMemo(() => {
     const withDue = positions.map((p) => {
       const ev = openEvents[p.ticker] || null;
@@ -661,6 +688,7 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
                 <th className="r"><span className="pp-tip" data-tip="Whole shares the book holds. Sizing buys whole shares only, so the dollar amount lands just under the target.">Shares</span></th>
                 <th className="r"><span className="pp-tip" data-tip="What the book paid per share — the average fill price at the morning open after the qualifying event.">Entry price</span></th>
                 <th className="r"><span className="pp-tip" data-tip="The position's price on the displayed snapshot — the latest mark during market hours, the official close after 4 PM ET.">Price</span></th>
+                <th className="r"><span className="pp-tip" data-tip="The average of the last 50 daily closes. Trading above it is the entry gate — a name that has since slipped below it is flagged, but the book does not sell on that alone.">50-day avg</span></th>
                 <th className="r"><span className="pp-tip" data-tip="What the position is worth right now: shares times price.">Value</span></th>
                 <th className="r"><span className="pp-tip" data-tip="Change in this position's value today, in dollars (profit and loss). A name entered today measures from its entry price.">Day P&amp;L</span></th>
                 <th className="r"><span className="pp-tip" data-tip="Profit and loss since entry, in dollars: the position's value now minus what it cost.">Total P&amp;L</span></th>
@@ -683,6 +711,7 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
                     <td className="r">{fmtShares(r.quantity)}</td>
                     <td className="r">{fmtPrice(entryPrice(r))}</td>
                     <td className="r">{fmtPrice(r.current_price)}</td>
+                    {ma50Cell(r, sma50[r.ticker])}
                     <td className="r">{r.market_value != null ? fmtMoneyExact(Number(r.market_value)) : '—'}</td>
                     <td className={`r ${dirClass(r.unrealized_intraday_pl)}`}>{r.unrealized_intraday_pl != null ? fmtMoneyExact(r.unrealized_intraday_pl) : '—'}</td>
                     <td className={`r ${dirClass(r.unrealized_pnl)}`}>{r.unrealized_pnl != null ? fmtMoneyExact(r.unrealized_pnl) : '—'}</td>
@@ -699,6 +728,37 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
                 );
               })}
             </tbody>
+            {/* Cash and realized profit. Positions are only half the book —
+                these two lines are what makes the table tie to the account.
+                Cash can be NEGATIVE: whole-share sizing at the open can spend
+                fractionally more than the sleeve holds, which the broker
+                carries as margin until the next exit funds it. */}
+            <tfoot>
+              <tr className="pp-foot">
+                <td colSpan={5}>
+                  <span className="pp-tip" data-tip="Uninvested cash in the book. Negative means the open fills spent slightly more than the sleeve held — the broker carries the difference until a position exits.">Cash</span>
+                </td>
+                <td className={`r ${cash != null && Number(cash) < 0 ? 'down' : ''}`}>
+                  {cash != null ? fmtMoneyExact(Number(cash)) : '—'}
+                </td>
+                <td colSpan={5} />
+              </tr>
+              <tr className="pp-foot">
+                <td colSpan={5}>
+                  <span className="pp-tip" data-tip={`Profit and loss on positions the book has already CLOSED, since it started. Open positions are in the Total P&L column above.${realizedAsOf ? ` Measured at the ${fmtDate(realizedAsOf)} close.` : ''}`}>
+                    Realized P&amp;L{realizedAsOf ? ` · through ${fmtDate(realizedAsOf)}` : ''}
+                  </span>
+                </td>
+                <td />
+                <td />
+                {/* Zero is not a gain: an untraded book shows $0 in plain ink,
+                    never in the green of a profit. */}
+                <td className={`r ${realized ? dirClass(realized) : 'muted'}`}>
+                  {realized != null ? fmtMoneyExact(Number(realized)) : '—'}
+                </td>
+                <td colSpan={3} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
@@ -1050,6 +1110,55 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const posUpdatedAt = liveMode ? (liveNav.updated_at || liveNav.as_of_date)
     : displayPositions.reduce((mx, p) => (p.last_updated && (!mx || p.last_updated > mx)) ? p.last_updated : mx, null);
 
+  // ── 50-day average per held name ──────────────────────────────────────────
+  // The entry gate is "trading above its 50-day average", so the book's own
+  // page has to show whether each name is STILL above it. There is no stored
+  // 50-day column for these tickers (trading_opps_signals only covers the
+  // scanner universe), so it is computed here from the last 50 closes in
+  // prices_eod — one small query per held name, which is a handful of rows.
+  // A name with fewer than 50 closes renders an em-dash rather than a short
+  // average dressed up as a 50-day one (LESSONS 4.4).
+  const heldTickers = useMemo(
+    () => Array.from(new Set(displayPositions.map((p) => p.ticker).filter(Boolean))).sort(),
+    [displayPositions],
+  );
+  const heldKey = heldTickers.join(',');
+  const [sma50, setSma50] = useState({});
+  useEffect(() => {
+    if (!heldTickers.length) { setSma50({}); return undefined; }
+    let cancelled = false;
+    (async () => {
+      const out = {};
+      await Promise.all(heldTickers.map(async (t) => {
+        try {
+          const { data, error } = await supabase
+            .from('prices_eod')
+            .select('trade_date,close')
+            .eq('ticker', t)
+            .order('trade_date', { ascending: false })
+            .limit(50);
+          if (error) return;
+          const closes = (data || []).map((r) => Number(r.close)).filter(Number.isFinite);
+          if (closes.length < 50) return;
+          out[t] = closes.reduce((s, v) => s + v, 0) / closes.length;
+        } catch (_) { /* the row simply shows an em-dash */ }
+      }));
+      if (!cancelled) setSma50(out);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heldKey]);
+
+  // Cash and realized profit for the table's footer. Cash is live during the
+  // session and the official close figure after it; realized profit only ever
+  // comes from the close record — the intraday table has no realized column,
+  // and a realized number is a closed-trade fact, not an intraday mark.
+  const bookCash = liveMode
+    ? (liveNav?.sleeve_b_cash ?? liveNav?.cash ?? null)
+    : (lastClose?.sleeve_b_cash ?? null);
+  const bookRealized = lastClose?.sleeve_b_realized_pnl ?? null;
+  const realizedAsOf = lastClose?.snapshot_date || null;
+
   // For the card/chart, append the live point as today's bar so all the
   // shared math works unchanged. History is never mutated.
   const navForCard = useMemo(() => {
@@ -1126,6 +1235,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             asOf={displayPosAsOf}
             updatedAt={posUpdatedAt}
             live={liveMode}
+            sma50={sma50}
+            cash={bookCash}
+            realized={bookRealized}
+            realizedAsOf={realizedAsOf}
           />
         </Reveal>
 

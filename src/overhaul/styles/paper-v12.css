@@ -112,6 +112,17 @@
 .home-v12 .paper-table tbody tr { transition: background .16s ease, transform .16s ease; }
 .home-v12 .paper-table tbody tr:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(4px); }
 
+/* Positions footer — cash and realized profit (added 2026-08-11). Reads as a
+   summary, not as another holding: a rule above it, muted label, no hover
+   lift. The numbers stay tabular so they line up with the column above. */
+.home-v12 .paper-table tfoot tr.pp-foot td { border-top: 1px solid var(--hair); padding-top: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
+.home-v12 .paper-table tfoot tr.pp-foot:first-child td { border-top: 2px solid var(--hair); }
+.home-v12 .paper-table tfoot tr.pp-foot td.r { color: var(--ink); font-weight: 650; }
+.home-v12 .paper-table tfoot tr.pp-foot td.r.up { color: var(--up); }
+.home-v12 .paper-table tfoot tr.pp-foot td.r.dn,
+.home-v12 .paper-table tfoot tr.pp-foot td.r.down { color: var(--down); }
+.home-v12 .paper-table tfoot tr.pp-foot:hover { background: transparent; transform: none; }
+
 /* kill-switch line — putty strip, hairline-free like the panels */
 .home-v12 .pp-ks { background: var(--putty); border: 0; border-radius: 20px; transition: background .5s; font-family: var(--sans); }
 

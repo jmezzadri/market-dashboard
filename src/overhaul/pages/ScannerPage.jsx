@@ -1,4 +1,15 @@
-/* Trading Scanner — the CONVICTION EVENTS DESK, full width (Joe 2026-08-11).
+/* RETIRED 2026-08-11 (Joe) — THIS PAGE IS NO LONGER ROUTED.
+
+   /scanner now redirects to the homepage (see OverhaulApp.jsx). The desk and
+   the Paper page's event ledger were reading the same ce_events rows through
+   the same hook; the book's own page won. Nothing imports this file or
+   ConvictionEventsPanel.jsx any more, so neither is bundled. Both are left on
+   disk rather than deleted only because this session ships through an API that
+   can write files but not remove them — delete them in any local commit.
+
+   ─── original header follows ───
+
+   Trading Scanner — the CONVICTION EVENTS DESK, full width (Joe 2026-08-11).
 
    Until today this page was a three-tile cockpit: Conviction Events, Power
    Trend Momentum and RSI Divergence sat as visual equals, while only the

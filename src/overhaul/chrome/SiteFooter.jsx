@@ -31,7 +31,6 @@ export default function SiteFooter() {
           <h4>Platform</h4>
           <ul>
             <li><Link to="/macro">Macro Overview</Link></li>
-            <li><Link to="/scanner">Scanner</Link></li>
             <li><Link to="/paper">Paper Portfolio</Link></li>
             <li><Link to="/portfolio-lab">Portfolio Lab</Link></li>
           </ul>
