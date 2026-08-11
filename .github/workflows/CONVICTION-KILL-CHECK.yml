@@ -64,7 +64,7 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "false"   # FROZEN 2026-08-10 (Joe: full strategy reset) — flip to "true" only at the Conviction Events cutover, AFTER migration 094 + scripts/ce_reset_epoch.py --execute
+          PAPER_LIVE_TRADING_ENABLED:   "true"   # LIVE — Conviction Events cutover 2026-08-11 (Joe go)
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python -m paper_portfolio.runner --phase close --dry-run
@@ -79,7 +79,7 @@ jobs:
           ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
           ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
           ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "false"   # FROZEN — same flip as above; a fresh trip exits nonzero so WORKFLOW_FAILURE_ALERT emails
+          PAPER_LIVE_TRADING_ENABLED:   "true"   # LIVE — Conviction Events cutover 2026-08-11 (Joe go)
           SMTP_USER:                    ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD:                ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO:                     ${{ secrets.EMAIL_TO }}
