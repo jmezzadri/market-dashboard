@@ -188,8 +188,8 @@ function TodaysEvents({ rows, loading, latest, onOpenTicker, onMethodology }) {
           <>
             {!isToday && (
               <div className="ce-note">
-                No insider purchase cleared $250,000 today. These are the events of the most recent
-                day the engine recorded, {fmtDay(latest)}.
+                Showing {fmtDay(latest)} — the most recent day of filings the engine has scored.
+                Filings are read before each morning&rsquo;s open, so today&rsquo;s land tomorrow.
               </div>
             )}
             <div className="sc-inset">
