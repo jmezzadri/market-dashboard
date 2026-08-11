@@ -44,6 +44,29 @@ NYSE_HOLIDAYS = {
 BUILD_FROM_HOUR_ET = 5    # never build "today's" brief before 05:00 ET
 EMAIL_UNTIL_HOUR_ET = 10  # never email a "morning" brief after 10:00 ET
 
+# --- WHO generates the brief (2026-08-11) ------------------------------------
+# Since 2026-08-06 the model runs inside the weekday "MacroTilt Morning Brief"
+# scheduled Cowork session (Joe's subscription), which commits the brief to main
+# ~06:10 ET. THIS pipeline is the emailer, not the generator (see
+# scripts/brief_agent_playbook.md). But main() still fell through to the metered
+# Anthropic API whenever it fired BEFORE that commit landed -- which it does 2-3
+# times every morning via its workflow_run piggybacks -- and that call dies
+# instantly (no credits / no key), exits 1, and mails Joe a "Workflow FAILED:
+# DAILY-BRIEF-WRITER" alert. Joe got two of those every weekday, minutes before
+# the brief itself arrived and proved nothing was actually wrong.
+#
+# "The agent's brief hasn't landed yet" is a NORMAL early-morning state, not a
+# failure. Skip green before the deadline; fail loudly after it, so a brief that
+# genuinely never arrives still screams (BRIEF-FRESHNESS-SELFHEAL, which checks
+# the LIVE site from 07:00 ET, is the second pair of eyes on the same deadline).
+BRIEF_EXPECTED_BY_HOUR_ET = 7   # the session's brief must be committed by 07:00 ET
+
+def _metered_generation_enabled():
+    """The in-workflow Anthropic API generator is OFF by default (Joe directive
+    2026-08-06: no metered API spend on top of the subscription). Set
+    BRIEF_ALLOW_METERED_API=1 to re-arm it -- e.g. a deliberate backfill."""
+    return os.environ.get("BRIEF_ALLOW_METERED_API", "").lower() in ("1", "true", "yes")
+
 def is_trading_day(d):
     return d.weekday() < 5 and d.isoformat() not in NYSE_HOLIDAYS
 
@@ -481,6 +504,28 @@ def main():
                 return _status("already_current")
         except Exception:
             pass
+    # Generation belongs to the morning scheduled session, not to this workflow.
+    # Placed AFTER the idempotency block but BEFORE any feed/model work so it also
+    # covers the self-heal's BRIEF_FORCE_REBUILD=1 path (which skips that block).
+    if not _metered_generation_enabled():
+        try:
+            committed = json.load(open(out, encoding="utf-8"))
+        except Exception:
+            committed = {}
+        if committed.get("date") == today:
+            # Force-rebuild path: the file is already today's, so there is nothing
+            # to regenerate without the metered API. Email (send-once claim applies)
+            # and finish green rather than burning a red on a healthy brief.
+            print(f"brief already current ({today}); metered generator disabled — emailing only")
+            send_email(committed, today)
+            return _status("already_current")
+        if now.hour < BRIEF_EXPECTED_BY_HOUR_ET:
+            print(f"today's brief is not committed yet ({now:%H:%M} ET); the morning "
+                  f"session owns generation until {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET — nothing to do")
+            return _status("skipped_awaiting_agent_brief")
+        print(f"FATAL: no brief for {today} committed by {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET and the "
+              f"metered generator is disabled — the morning session did not deliver", file=sys.stderr)
+        sys.exit(1)
     feeds = fetch_feeds()
     if not any(feeds.values()):
         print("FATAL: both feeds unreachable; refusing to publish", file=sys.stderr); sys.exit(1)

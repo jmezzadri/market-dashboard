@@ -1027,3 +1027,15 @@ The 2026-05-06 suppressor was written for the shape we had seen: no runner is ev
 5. **A weekly job that fails waits a week to disagree with you.** Weekly fetchers get a next-morning retry on failure/cancellation, or their miss cost is a full cadence.
 
 **Applies to:** Lead Developer, Senior Quant — every generator that calls a paid API, every weekly fetcher, and WORKFLOW_FAILURE_ALERT's watchlist.
+
+### 4.25 (2026-08-11) — When generation moves out of a pipeline, the pipeline's old generator becomes a daily false alarm; "the input hasn't arrived yet" is a schedule, not a failure
+
+**What happened:** Joe: *"Why am I getting these emails every day now?! I get two emails saying the daily brief writer failed and then I get the daily brief email."* On 2026-08-06 brief generation moved off the metered Anthropic API and into the weekday morning scheduled Cowork session, which commits the brief to `main` around 06:10 ET. DAILY-BRIEF-WRITER kept its old job description: if the committed brief is not today's, call the API. The workflow fires 2–3 times every morning off its `workflow_run` piggybacks (05:31, 06:04, …) — every one of those runs happens BEFORE the session's commit lands, falls through to the dead API call, exits 1, and mails a `Workflow FAILED` alert. Then the real brief email arrives at 06:25 and proves nothing was wrong. Two red emails a day, every trading day, for a pipeline that was working.
+
+**Rule:**
+
+1. **When you move a capability out of a pipeline, remove the capability — do not leave it armed.** A code path kept "just in case" against a dependency that is deliberately switched off is not a fallback, it is a scheduled failure. Gate it behind an explicit opt-in env flag (`BRIEF_ALLOW_METERED_API`) that defaults to off.
+2. **A consumer that runs before its producer is early, not broken.** Give it a deadline (`BRIEF_EXPECTED_BY_HOUR_ET`), exit green before it, red after it. "Not here yet" and "never came" are different events and must produce different colours.
+3. **An alert that fires on a healthy day trains Joe to ignore the channel.** Any alarm that has fired on a day nothing was wrong is a bug in the alarm — fix the alarm the same day, do not filter the mail.
+
+**Applies to:** Lead Developer, Data Steward — every workflow that consumes an artifact another process produces on a schedule.
