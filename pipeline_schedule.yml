@@ -81,6 +81,23 @@ bespoke:
         fire is a no-op; the 14:45 UTC hourly backup covers 09:45 ET EST).
       review_at: 2026-08-21
 
+  - CONVICTION-OPEN-DAILY.yml + CONVICTION-KILL-CHECK.yml:
+      schedule: "OPEN 11:45 + 12:45 UTC weekdays; KILL-CHECK 21:15 + 22:15 UTC weekdays. pg_cron backups 'conviction-open-backup-1215utc' (12:15 UTC) and 'conviction-kill-backup-2145utc' (21:45 UTC) dispatch through the trigger-workflow edge function; its 90-min dedupe skips them when GitHub's own cron did run."
+      manifest_element: portfolio.ce-events-daily
+      reason: |
+        These two workflows ARE the Conviction Events book's whole trading
+        schedule: OPEN reads the prior day's Form 4 filings and queues the
+        buys before the 13:30 UTC open, KILL-CHECK runs the catastrophe
+        stops and the kill monitor after the close. A missed OPEN fire is a
+        day the book does not trade, and there is no other path that would
+        notice. LESSONS 4.13/4.17 says GitHub silently skips a brand-new
+        workflow's first scheduled fires, and on cutover day (2026-08-11) it
+        did exactly that: at 21:20 UTC, past a 21:15 UTC schedule,
+        CONVICTION-KILL-CHECK had ZERO runs and had to be dispatched by
+        hand. Both DST siblings fire; each run is idempotent and self-skips
+        when the market is closed.
+      review_date: 2026-09-11
+
   - macrotilt-engine-daily.yml:
       schedule: "15:45 ET weekdays"
       manifest_element: indicator.macrotilt-engine

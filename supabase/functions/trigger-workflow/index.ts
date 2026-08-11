@@ -47,6 +47,16 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   // EDGAR is the ONLY insider source. pg_cron backup at 11:30 UTC dispatches
   // through here; the 90-min dedupe skips it when GitHub's own cron did run.
   "scanner-insider_edgar-daily.yml",
+  // 2026-08-11 — the Conviction Events book's ENTIRE trading schedule is these
+  // two brand-new workflows, and LESSONS 4.13/4.17 says GitHub silently skips
+  // a new workflow's first scheduled fires. It did: at 21:20 UTC on cutover day
+  // CONVICTION-KILL-CHECK had zero runs against a 21:15 UTC schedule, and had
+  // to be dispatched by hand. No backup path existed for either. pg_cron
+  // backups ('conviction-open-backup-1215utc', 'conviction-kill-backup-2145utc')
+  // dispatch through here; the 90-min dedupe skips them when GitHub's own cron
+  // did run. A missed OPEN fire is a day the book does not trade.
+  "CONVICTION-OPEN-DAILY.yml",
+  "CONVICTION-KILL-CHECK.yml",
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last

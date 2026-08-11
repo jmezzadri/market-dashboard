@@ -1057,3 +1057,16 @@ The 2026-05-06 suppressor was written for the shape we had seen: no runner is ev
 5. **Read the log of the first live run of anything.** The accounting step's `LIVE TRADING ENABLED` warning was the only evidence of (b), and it existed for exactly one run before anyone looked.
 
 **Applies to:** Lead Developer, Data Steward — every claim about `data_manifest.json`, and every workflow step that sets `PAPER_LIVE_TRADING_ENABLED`.
+
+### 4.27 (2026-08-11) — Redeploying an edge function resets its platform auth gate; a function that does its own auth must be redeployed with `verify_jwt: false`, every time
+
+**What happened:** to give the Conviction book a backup dispatch path, I added two workflows to `trigger-workflow`'s allowlist and redeployed it. The deploy succeeded and returned `"verify_jwt": true` — the tool's default. That function authenticates its callers itself, with a `TRIAGE_WEBHOOK_TOKEN` bearer check, because its callers are pg_cron jobs sending an opaque token rather than a JWT. With the platform gate on, the Supabase gateway rejected the very next call with `401 UNAUTHORIZED_INVALID_JWT_FORMAT` before a line of the function ran. For roughly two minutes, every pg_cron backup that routes through it was disarmed at once — paper intraday, indicator refresh, universe snapshots, MASSIVE-DAILY, LSE-ARCHIVE-IV, the EDGAR insider ingest, and the two Conviction jobs I was in the middle of adding. Caught because I tested the path instead of trusting the deploy: `net._http_response` showed 401, and the three calls immediately before mine (20:35, 20:45, 20:50 UTC) showed 200, which dated the regression to my own deploy. Redeployed with `verify_jwt: false`; both paths verified 200 again.
+
+**Rule:**
+
+1. **`verify_jwt` is not remembered — it is re-declared on every deploy.** Any function whose callers are pg_cron, a webhook, or anything else without a Supabase JWT must be redeployed with `verify_jwt: false` explicitly. The safe default is wrong for this class of function, and it fails at the gateway where the function's own logs never see it.
+2. **Say so in the function's header.** `trigger-workflow` now carries a DEPLOY WITH verify_jwt=false note at the top, because the next person to touch it will hit the same default.
+3. **After deploying anything a cron calls, call it the way the cron calls it.** A 200 from the deploy API says the bundle uploaded, nothing about whether the caller can still reach it. One `net.http_post` and one read of `net._http_response` is the whole test.
+4. **When you find a break, look at the rows just before yours.** The three 200s at 20:35/20:45/20:50 turned "something is wrong" into "I broke this ninety seconds ago" without guesswork.
+
+**Applies to:** Lead Developer — every `deploy_edge_function` call on `trigger-workflow`, `gh-push`, `submit-bug-report`, or any other function with its own auth.
