@@ -7,10 +7,14 @@
 //   Conviction Events — trades large real insider purchases (aggregated
 //   open-market buys of $250,000 or more per name per day, automatic 10b5-1
 //   plan purchases excluded), confirmed by the stock trading above its 50-day
-//   average, entered at the next morning's open, up to 8 equal positions
-//   (one-eighth of equity each), each exited at the open of the 21st trading
-//   day. Pre-registered kill switch: trailing the S&P 500 by 10+ points after
-//   8 weeks, or drawdown over 15%, freezes new entries automatically.
+//   average, entered at the next morning's open at 10% of the book's equity
+//   per new position. No fixed position count — the cash self-limits the book
+//   near 10 names (8 typical, 13 at the busiest), with 13 as a hard safety
+//   ceiling. Each position exits at the open of the 21st trading day, or
+//   sooner if it closes 15% or more below its entry price. Pre-registered
+//   kill switch: trailing the S&P 500 by 10+ points after 8 weeks, or
+//   drawdown reaching 15%, raises an ALERT to the owner — it is a MONITOR and
+//   never stops new buying (engine change 2026-08-11).
 //
 // Data (code against the cutover contract exactly):
 //   * paper_nav_daily / paper_intraday_nav — book value path; the book sits in
@@ -488,7 +492,7 @@ function BookCard({ navHistory, spySeries = [], live = false, asOfIso = null, da
           <RiskStat label="Ann. vol" value={fmtPctPlain1(risk.annVol)} tip="Annualized volatility: how much the book's daily returns swing, scaled to a yearly rate. Measured since the book's start." />
           <RiskStat label="Sharpe" value={fmtRatio2(risk.sharpe)} tip="Annualized return divided by annualized volatility — return earned per unit of risk taken. Risk-free rate assumed 0." />
           <RiskStat label="Sortino" value={fmtRatio2(risk.sortino)} tip="Like Sharpe, but only losing days count as risk." />
-          <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in book value since the start. The kill switch freezes new entries past 15%." />
+          <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in book value since the start. This is the reading the kill switch watches." />
           <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip="Sensitivity to the S&P 500's daily moves; 1.00 means the book moves in line with it." />
           <RiskStat label="Info ratio" value={fmtRatio2(risk.ir)} tip="Annualized excess return over the S&P 500 divided by how much the book's path deviates from it — how consistently the book beats the index." />
         </div>
@@ -525,8 +529,12 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
    fabricated "quiet". Numeric fields on the row (book_return / spy_return /
    max_drawdown) are deliberately NOT rendered until the engine pins their
    units — see NOTES.md; a number shown in the wrong unit is worse than none
-   (LESSONS 4.4). */
-const KS_RULE = 'If the book trails the S&P 500 by 10 or more points after 8 weeks, or drawdown exceeds 15%, new entries freeze automatically.';
+   (LESSONS 4.4).
+
+   2026-08-11 engine change: the switch is a MONITOR. A trip alerts the owner
+   and LATCHES until a human clears it; it does not stop new buying and never
+   has any effect on an open position. No copy here may say otherwise. */
+const KS_RULE = 'If the book trails the S&P 500 by 10 or more points after 8 weeks, or drawdown reaches 15%, the book raises an alert to its owner. It is a warning, not a stop — trading carries on.';
 function KillSwitchLine({ row, loading }) {
   if (loading) return null;
   if (!row) {
@@ -542,8 +550,8 @@ function KillSwitchLine({ row, loading }) {
       <div className="pp-ks tripped" role="status" title={KS_RULE}>
         <span className="ksdot" />
         <span>
-          <b>Kill switch tripped{row.tripped_at ? ` ${fmtDate(row.tripped_at)}` : ''} — new entries are frozen.</b>
-          {ceReasonText(row.reason) ? ` ${ceReasonText(row.reason)}.` : ''} Open positions still exit on their scheduled day.
+          <b>Kill switch tripped{row.tripped_at ? ` ${fmtDate(row.tripped_at)}` : ''} — the owner has been alerted.</b>
+          {ceReasonText(row.reason) ? ` ${ceReasonText(row.reason)}.` : ''} Trading carries on: names keep entering and leaving on their normal rules.
         </span>
         {row.checked_at && <span className="ksmeta">checked {fmtStampET(row.checked_at)}</span>}
       </div>
@@ -564,8 +572,10 @@ function KillSwitchLine({ row, loading }) {
    Columns per the strategy spec: ticker, price, day P&L, total P&L, entered
    date, exit due in N days, and WHY the book holds it (the qualifying insider
    purchase, from ce_events). Numbers in the rows; explanations live in the
-   header tooltips and the one meta line. ≤8 rows by construction. */
-function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, live, killSwitchTripped }) {
+   header tooltips and the one meta line. Row count is whatever the cash has
+   funded — about 10 names, 13 at the hard ceiling; there is no denominator to
+   render against (2026-08-11: the old "N of 8" is gone with the 8-slot rule). */
+function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, live }) {
   const rows = useMemo(() => {
     const withDue = positions.map((p) => {
       const ev = openEvents[p.ticker] || null;
@@ -584,7 +594,7 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
   const dueCell = (r) => {
     if (r.dueDays == null) return <td className="r">—</td>;
     const label = r.dueDays > 0 ? `in ${r.dueDays}d` : r.dueDays === 0 ? 'today' : 'past due';
-    const tip = `Scheduled exit at the open of ${fmtDate(r.due)} — the open of the 21st trading day after entry.`;
+    const tip = `Scheduled exit at the open of ${fmtDate(r.due)} — the open of the 21st trading day after entry. A close 15% or more below the entry price pulls this forward to the next morning's open.`;
     return (
       <td className={`r${r.dueDays < 0 ? ' due-past' : ''}`}>
         <span className="ce-tip" data-tip={tip}>{label}</span>
@@ -597,10 +607,10 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
       <div className="paper-panel-head">
         <div>
           <h2 className="paper-panel-title">
-            Positions <InfoTip term="Positions" def="Every name the book currently holds. Each was bought at the morning open after a qualifying insider purchase, sized at one-eighth of the book's equity, and exits at the open of the 21st trading day after entry." size={12} />
+            Positions <InfoTip term="Positions" def="Every name the book currently holds. Each was bought at the morning open after a qualifying insider purchase, sized at 10% of the book's equity, and exits at the open of the 21st trading day after entry — or sooner if it closes 15% or more below the price it was bought at. There is no fixed number of positions: the book funds new names until the cash runs out, about 10 of them, and never more than 13." size={12} />
           </h2>
           <div className="paper-panel-sub">
-            {rows.length} of 8 positions · one-eighth of equity each · each exits at the open of its 21st trading day
+            {rows.length} {rows.length === 1 ? 'position' : 'positions'} · 10% of equity each · each exits at the open of its 21st trading day, or sooner if it closes 15% or more below its entry price
           </div>
         </div>
         <div className="paper-panel-meta">
@@ -611,9 +621,7 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
       {rows.length === 0 ? (
         <div className="paper-empty">
           No open positions — awaiting the first qualifying events.
-          <small>{killSwitchTripped
-            ? 'The kill switch has frozen new entries; positions will appear once it clears.'
-            : 'A qualifying insider purchase is bought at the next morning’s open and appears here.'}</small>
+          <small>A qualifying insider purchase is bought at the next morning’s open and appears here.</small>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -625,7 +633,7 @@ function PositionsPanel({ positions, openEvents, onOpenTicker, asOf, updatedAt, 
                 <th className="r"><span className="pp-tip" data-tip="Change in this position's value today, in dollars (profit and loss). A name entered today measures from its entry price.">Day P&amp;L</span></th>
                 <th className="r"><span className="pp-tip" data-tip="Profit and loss since entry, in dollars: the position's value now minus what it cost.">Total P&amp;L</span></th>
                 <th className="r"><span className="pp-tip" data-tip="The day the book bought it — the morning open after its qualifying event.">Entered</span></th>
-                <th className="r"><span className="pp-tip" data-tip="Days until the scheduled exit. Every position leaves at the open of the 21st trading day after entry.">Exit due</span></th>
+                <th className="r"><span className="pp-tip" data-tip="Days until the scheduled exit. Every position leaves at the open of the 21st trading day after entry — or sooner, at the next morning's open, if it closes 15% or more below the price it was bought at.">Exit due</span></th>
                 <th>Why it&rsquo;s here</th>
               </tr>
             </thead>
@@ -670,9 +678,8 @@ function EventLedgerPanel({ events, loading, onOpenTicker }) {
     const meta = ceActionMeta(r.action);
     const reason = r.action === 'skipped_gate' ? ceReasonText(r.gate_fail_reason) : null;
     const tip = reason
-      || (r.action === 'skipped_full' ? 'The book already held 8 positions when this event qualified.' : null)
-      || (r.action === 'skipped_dup' ? 'The book already held this name.' : null)
-      || (r.action === 'blocked_kill_switch' ? 'The kill switch had frozen new entries when this event qualified.' : null);
+      || (r.action === 'skipped_full' ? 'The book did not have the cash for a full position when this event qualified (or was already at its 13-position ceiling).' : null)
+      || (r.action === 'skipped_dup' ? 'The book already held this name.' : null);
     const el = <span className={`ce-chip ${meta.tone}`}>{meta.label}</span>;
     return tip ? <span className="ce-tip" data-tip={tip}>{el}</span> : el;
   };
@@ -681,7 +688,7 @@ function EventLedgerPanel({ events, loading, onOpenTicker }) {
       <div className="paper-panel-head">
         <div>
           <h2 className="paper-panel-title">
-            Event ledger <InfoTip term="Event ledger" def="Every large insider purchase the engine evaluated — aggregated open-market buys of $250,000 or more in one name in one day, automatic (10b5-1) plan purchases excluded — and what it did with it: entered, skipped, or blocked. Hover a chip for the reason." size={12} />
+            Event ledger <InfoTip term="Event ledger" def="Every large insider purchase the engine evaluated — aggregated open-market buys of $250,000 or more in one name in one day, automatic (10b5-1) plan purchases excluded — and what it did with it: entered, or skipped with the reason. Hover a chip for the reason." size={12} />
           </h2>
           <div className="paper-panel-sub">Newest first · hover an action chip for the reason</div>
         </div>
@@ -695,7 +702,7 @@ function EventLedgerPanel({ events, loading, onOpenTicker }) {
       ) : events.length === 0 ? (
         <div className="paper-empty">
           Awaiting first events.
-          <small>Large insider purchases appear here as the engine evaluates them — entered, skipped, or blocked, with the reason.</small>
+          <small>Large insider purchases appear here as the engine evaluates them — entered, or skipped with the reason.</small>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -1047,8 +1054,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <ul className="impl">
             <li><b>The signal</b>: large real insider purchases — aggregated open-market buys of <b>$250,000 or more</b> per name per day, automatic (10b5-1) plan purchases excluded.</li>
             <li><b>The confirmation</b>: the stock must be trading <b>above its 50-day average price</b>.</li>
-            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, up to <b>8 equal positions</b> (one-eighth of equity each); each exits at the <b>open of the 21st trading day</b>.</li>
-            <li><b>The kill switch</b>: if the book trails the S&amp;P 500 by <b>10 or more points after 8 weeks</b>, or drawdown exceeds <b>15%</b>, new entries freeze automatically.</li>
+            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>10% of the book&rsquo;s equity</b> — no fixed count, the book funds names until the cash runs out (about <b>10 names</b>, never more than <b>13</b>); each exits at the <b>open of the 21st trading day</b>.</li>
+            <li><b>The one risk exit</b>: a position that <b>closes 15% or more below the price it was bought at</b> is sold at the <b>next morning&rsquo;s open</b> instead of waiting for its 21st day.</li>
+            <li><b>The kill switch</b>: if the book trails the S&amp;P 500 by <b>10 or more points after 8 weeks</b>, or drawdown reaches <b>15%</b>, it <b>raises an alert</b> — a warning, not a stop. Trading carries on.</li>
           </ul>
           <div className="pp-methlink">
             <Link to="/methodology#portfolio">Full methodology, backtest included →</Link>
@@ -1067,7 +1075,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       </section>
 
       <section className="wrap pp-main">
-        {/* Kill-switch state first — it governs whether new entries can happen. */}
+        {/* Kill-switch state — a monitor: it warns the owner, it never stops trading. */}
         <KillSwitchLine row={ks.row} loading={ks.loading} />
 
         {/* The book vs the S&P 500 since the start (hidden until 2 points exist). */}
@@ -1083,7 +1091,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             asOf={displayPosAsOf}
             updatedAt={posUpdatedAt}
             live={liveMode}
-            killSwitchTripped={!!ks.row?.tripped}
           />
         </Reveal>
 

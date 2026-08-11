@@ -10,8 +10,10 @@
 //   ce_events (anon-readable): filing_date, ticker, total_usd, insider_names,
 //     n_insiders, is_edgar_sourced, passed_gates, gate_fail_reason,
 //     above_sma50, action in ('entered','skipped_full','skipped_gate',
-//     'skipped_dup','blocked_kill_switch'), entered_at, entry_qty,
+//     'skipped_dup'), entered_at, entry_qty,
 //     entry_price, exit_due_date, exited_at, exit_price, trade_return.
+//     ('blocked_kill_switch' still passes the table's check constraint but the
+//     engine stopped writing it on 2026-08-11 — the kill switch is a monitor.)
 //   ce_kill_switch (single row): tripped, tripped_at, reason, book_return,
 //     spy_return, max_drawdown, checked_at.
 //
@@ -25,14 +27,20 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Action → plain-English chip. tone drives the chip color class only:
-// 'up' = the engine traded, 'mut' = a quiet skip, 'down' = a hard stop.
+// 'up' = the engine traded, 'mut' = a quiet skip.
 // DB enum values never render raw (plain-English rule).
+//
+// 'skipped_full' no longer means "the book held its 8 names" — as of the
+// 2026-08-11 engine change there is no fixed position count; it means the cash
+// could not fund a full 10%-of-equity position, or the 13-position safety
+// ceiling was already reached. 'blocked_kill_switch' is gone with the entry
+// freeze the same change deleted — the kill switch alerts, it never blocks a
+// trade, so the engine can no longer write that action.
 export const CE_ACTIONS = {
   entered: { label: 'Entered', tone: 'up' },
-  skipped_full: { label: 'Skipped — book full', tone: 'mut' },
+  skipped_full: { label: 'Skipped — not enough cash', tone: 'mut' },
   skipped_gate: { label: 'Failed gates', tone: 'mut' },
   skipped_dup: { label: 'Skipped — already held', tone: 'mut' },
-  blocked_kill_switch: { label: 'Blocked — kill switch', tone: 'down' },
 };
 export const ceActionMeta = (action) =>
   CE_ACTIONS[action] || { label: String(action || '—').replace(/_/g, ' '), tone: 'mut' };

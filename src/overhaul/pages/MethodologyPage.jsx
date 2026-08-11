@@ -4,10 +4,13 @@
    portfolio-strategy content — §02 Scanner and §03 Paper — is rewritten
    around the ONE replacement book, Conviction Events (large real insider
    purchases ≥ $250,000 per name per day, automatic 10b5-1 plan purchases
-   excluded, confirmed above the 50-day average, next-open entry, up to 8
-   equal positions at one-eighth of equity, exit at the open of the 21st
-   trading day, pre-registered kill switch: 10+ points behind the S&P 500
-   after 8 weeks or drawdown over 15% freezes new entries). Backtest figures
+   excluded, confirmed above the 50-day average, next-open entry, every new
+   position 10% of equity with no fixed name count — the cash self-limits the
+   book near 10 names, hard ceiling 13 — exit at the open of the 21st trading
+   day or sooner on a close 15% or more below the entry price, pre-registered
+   kill switch: 10+ points behind the S&P 500 after 8 weeks or drawdown
+   reaching 15% raises an alert to the owner, trading continues — a MONITOR,
+   it never stops new buying; engine change 2026-08-11). Backtest figures
    (June 2025 – August 2026 event study, ~14 months, zero costs: +112% vs
    S&P +24%, Sharpe 2.3, 61% winners, ~18-day average hold, +53% with the
    five best trades removed) are quoted VERBATIM from the strategy spec —
@@ -322,10 +325,11 @@ export default function MethodologyPage() {
               One confirmation gate follows: the stock must already be trading <b>above its 50-day
               average price</b>, so the book never buys insider conviction into a name still in a
               downtrend. Every evaluated event is written to a decision ledger with the action
-              taken — <b>entered</b>, <b>skipped</b> (the book was full, the name was already held,
-              or a gate failed, with the reason), or <b>blocked</b> by the kill switch. That ledger
+              taken — <b>entered</b>, or <b>skipped</b> (the cash could not fund a full position,
+              the name was already held, or a gate failed, with the reason). That ledger
               is what this panel and the Paper page&rsquo;s event ledger render. The full entry,
-              sizing and exit rules, the kill switch, and the backtest live in section 03.
+              sizing and exit rules, the one risk exit, the kill switch, and the backtest live in
+              section 03.
             </p>
 
             {/* ── Power Trend ──────────────────────────────────────────── */}
@@ -447,21 +451,34 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Entry, sizing and exit.</b> A qualifying name is bought at the <b>next
-              morning&rsquo;s open</b>. The book holds <b>up to 8 positions, each one-eighth of its
-              equity</b> — equal sizing. A name already held is not bought
-              again, and when all 8 slots are filled new qualifying events are skipped and logged.
+              morning&rsquo;s open</b>, sized at <b>10% of the book&rsquo;s equity</b> at that
+              moment. There is <b>no fixed number of positions</b>: the book keeps funding new
+              names until the cash runs out, which naturally settles it near <b>10 names</b> — on
+              past evidence 8 on a typical day and 13 at the busiest. A name already held is not
+              bought again, and an event the cash cannot fund is skipped and logged. <b>13 open
+              positions is a hard ceiling</b> the book never passes, there as a safety limit.
               Each position <b>exits at the open of the 21st trading day after entry</b> — a fixed
               calendar exit with no discretion. Long-only, no leverage. Profit and loss is measured
               against cost, on the account&rsquo;s official snapshots — the latest mark during
               market hours, the closing record after 4 PM ET.
             </p>
             <p className="me-body-p">
+              <b>The one risk exit.</b> A position that <b>closes 15% or more below the price it
+              was bought at</b> is sold at the <b>next morning&rsquo;s open</b>, instead of waiting
+              for its 21st-day exit. It is the only rule that ends a position early; everything
+              else leaves on schedule. The level is deliberately wide: in the study described
+              below, tighter stops at 5%, 8%, 10% and 12% each cut the average result, because
+              insiders buy into weakness — about half the names a tighter stop would have sold
+              traded back above it before the normal exit came due.
+            </p>
+            <p className="me-body-p">
               <b>The kill switch, set in advance.</b> If the book <b>trails the S&amp;P 500 by 10 or
-              more points after 8 weeks</b>, or its <b>drawdown exceeds 15%</b>, new entries freeze
-              automatically; open positions still exit on their scheduled day. The thresholds were
-              fixed before the book launched, so the decision to stop is the rule&rsquo;s — not a
-              judgment call made after a bad stretch. The current state — quiet or tripped — shows
-              on the Paper page.
+              more points after 8 weeks</b>, or its <b>drawdown reaches 15%</b>, the book{' '}
+              <b>raises an alert to its owner</b>. It is a warning, not a stop: <b>trading
+              continues</b>, new names keep entering, and open positions keep leaving on their own
+              rules. The thresholds were fixed before the book launched, so the warning is the
+              rule&rsquo;s — not a judgment call made after a bad stretch. The current state —
+              quiet or tripped — shows on the Paper page.
             </p>
             <p className="me-body-p">
               <b>The backtest, stated honestly.</b> In a <b>June 2025 – August 2026 event study —
@@ -480,9 +497,10 @@ export default function MethodologyPage() {
             <div className="me-formula">
               signal  = aggregated open-market insider buys ≥ $250,000 per name per day · automatic (10b5-1) plan purchases excluded<br />
               confirm = stock trading above its 50-day average price<br />
-              enter   = next morning&rsquo;s open · up to 8 positions · size = one-eighth of equity each<br />
+              enter   = next morning&rsquo;s open · size = 10% of equity each · no fixed count, ~10 names as the cash allows, hard ceiling 13<br />
               exit    = at the open of the 21st trading day after entry<br />
-              freeze  = trailing the S&amp;P 500 by 10+ points after 8 weeks, or drawdown over 15% → new entries stop automatically
+              stop    = a close 15% or more below the entry price → sold at the next morning&rsquo;s open<br />
+              alert   = trailing the S&amp;P 500 by 10+ points after 8 weeks, or drawdown reaching 15% → the owner is warned, trading continues
             </div>
           </div>
         </article>
