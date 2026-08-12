@@ -1,211 +1,26 @@
-name: SCAN_330PM_WEEKDAYS
+name: SCAN_345PM_WEEKDAYS (DISABLED)
 
-# Runs the trading scanner once per US trading day. Three weekday cron
-# fire windows (15:30 / 17:30 / 21:30 ET) so a dropped or late GitHub
-# schedule still gets caught the same evening. Idempotency check below
-# means any fire after the first that succeeds is a no-op.
+# ============================================================================
+# DISABLED 2026-08-12 on Joe's instruction ("kill everything") ahead of the
+# Alpaca paper account reset to $1,000,000 and the equity scanner rebuild.
 #
-# (May 4-6 2026 incident: the previous strict 15:30-16:24 ET DST gate
-# silently dropped both Mon's and Tue's scheduled runs because GitHub
-# fired the cron 3-4 hours late under load. Workflow reported "success"
-# with every meaningful step "skipped." latest_scan_data.json went stale
-# for 2 trading days. New gate is idempotency-by-data, not time-window.)
+# Nothing in this file trades. The schedule has been removed so GitHub's cron
+# can no longer fire it. The matching pg_cron backup trigger in Supabase has
+# also been set active = false.
 #
-# Steps:
-#   1. pip install scanner deps (trading-scanner/requirements.txt)
-#   2. Run `python main.py intraday` from trading-scanner/
-#   3. Copy trading-scanner/reports/latest_scan_data.json → public/
-#      so Vercel auto-redeploys the dashboard with fresh scanner output
-#   4. Commit both paths + push
-#
-# Required GitHub secrets (Settings → Secrets and variables → Actions):
-#   UNUSUAL_WHALES_API_KEY
-#   SUPABASE_URL                    (already present for other workflows)
-#   SUPABASE_SERVICE_ROLE_KEY       (already present)
-# Optional (scanner can email directly if you ever re-enable that path):
-#   ALERT_EMAIL_FROM, ALERT_EMAIL_TO, GMAIL_APP_PASSWORD
+# The original workflow is preserved in git history. To restore:
+#   git log --oneline -- .github/workflows/SCAN_345PM_WEEKDAYS.yml
+#   git show <sha>^:.github/workflows/SCAN_345PM_WEEKDAYS.yml > .github/workflows/SCAN_345PM_WEEKDAYS.yml
+# ============================================================================
 
 on:
-  schedule:
-    # Three weekday fire windows. Idempotency check below means subsequent
-    # fires after a successful commit are no-ops. Cron is UTC.
-    # EDT half (Mar-Nov, UTC-4):
-    - cron: '30 19 * * 1-5'   # primary  3:30 PM EDT
-    - cron: '30 21 * * 1-5'   # backup A 5:30 PM EDT
-    - cron: '30 1 * * 2-6'    # backup B 9:30 PM EDT (next-day 01:30 UTC)
-    # EST half (Nov-Mar, UTC-5):
-    - cron: '30 20 * * 1-5'   # primary  3:30 PM EST
-    - cron: '30 22 * * 1-5'   # backup A 5:30 PM EST
-    - cron: '30 2 * * 2-6'    # backup B 9:30 PM EST (next-day 02:30 UTC)
   workflow_dispatch:
 
-concurrency:
-  group: scan-330pm-weekdays
-  cancel-in-progress: false
-
 jobs:
-  scan:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository (for idempotency check)
-        # Need the repo first so the gate can read public/latest_scan_data.json
-        # commit history. The full checkout (with required Python) happens
-        # only after the gate decides to proceed.
-        if: github.event_name == 'schedule'
-        uses: actions/checkout@v4.2.2
-        with:
-          token: ${{ secrets.MACROTILT_BOT_PAT }}
-          fetch-depth: 1
-          path: repo-for-gate
-
-      - name: Idempotency gate — skip if today's ET-scan already committed
-        # Replaces the strict 15:30-16:24 ET window. New rule:
-        #   1. Pre-15:00 ET → skip (markets are still open or the scanner
-        #      depends on near-EOD UW data; running before 15:00 ET would
-        #      pick up mid-session data and label it as the day's scan).
-        #   2. Today's ET-scan already committed → skip (no-op).
-        #   3. Otherwise → run.
-        # workflow_dispatch always proceeds (manual dispatch bypasses).
-        if: github.event_name == 'schedule'
-        working-directory: repo-for-gate
+      - name: Halted
         run: |
-          NY_HM=$(TZ=America/New_York date +%H:%M)
-          NY_H=${NY_HM%:*}; NY_H=${NY_H#0}
-          TODAY_ET=$(TZ=America/New_York date +%Y-%m-%d)
-          if [ -z "$NY_H" ]; then NY_H=0; fi
-          if [ "$NY_H" -lt 15 ]; then
-            echo "::notice::NYC time $NY_HM is before 15:00 ET — markets still open. Skipping."
-            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          # Idempotency-by-DATA. Earlier version asked "git log" what the
-          # last commit date for the file was, but the shallow clone above
-          # (fetch-depth: 1) made git log return HEAD's date instead of the
-          # actual file's last-commit date — so the gate said "already ran
-          # today" on every single run and the scanner silently skipped for
-          # 11 straight days (2026-05-08 → 2026-05-18). Bug #1187.
-          # New rule: read the scan_time stamped INSIDE the file and
-          # compare its date portion to today. The file always carries a
-          # scan_time; if today's date matches, skip.
-          FILE_DATE_ET=""
-          if [ -f public/latest_scan_data.json ]; then
-            FILE_DATE_ET=$(python3 -c "import json,sys; d=json.load(open('public/latest_scan_data.json')); print(d.get('scan_time','')[:10])" 2>/dev/null || echo "")
-          fi
-          echo "NY time: $NY_HM · today (ET): $TODAY_ET · file scan_time date: ${FILE_DATE_ET:-none}"
-          if [ "$FILE_DATE_ET" = "$TODAY_ET" ]; then
-            echo "::notice::Today's scan already published (file scan_time = $FILE_DATE_ET) — idempotent skip."
-            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
-          else
-            echo "✓ File scan_time is $FILE_DATE_ET, today is $TODAY_ET — proceeding."
-          fi
-
-      - name: Checkout repository
-        if: env.SKIP_RUN != 'true'
-        uses: actions/checkout@v4.2.2
-        with:
-          token: ${{ secrets.MACROTILT_BOT_PAT }}
-          fetch-depth: 0
-
-      - name: Set up Python
-        if: env.SKIP_RUN != 'true'
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: trading-scanner/requirements.txt
-
-      - name: Install scanner dependencies
-        if: env.SKIP_RUN != 'true'
-        working-directory: trading-scanner
-        run: pip install -r requirements.txt
-
-      - name: Run intraday scan
-        if: env.SKIP_RUN != 'true'
-        working-directory: trading-scanner
-        env:
-          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
-          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
-          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ZEROHEDGE_COOKIE: ${{ secrets.ZEROHEDGE_COOKIE }}
-          SCORE_BUY_ALERT: "60"
-          SCORE_WATCH_ALERT: "40"
-          ALERT_ON_WATCH: "true"
-          ALERT_ON_BUY: "true"
-          SUPPRESS_EMAIL: "1"
-        run: python main.py intraday
-
-      - name: Upload scanner reports as artifact
-        if: always() && env.SKIP_RUN != 'true'
-        uses: actions/upload-artifact@v4.4.3
-        with:
-          name: scan-330pm-${{ github.run_id }}
-          path: trading-scanner/reports/
-          retention-days: 30
-
-      - name: Publish scan data to public/ and commit
-        if: env.SKIP_RUN != 'true'
-        run: |
-          mkdir -p public
-          if [ -f trading-scanner/reports/latest_scan_data.json ]; then
-            cp trading-scanner/reports/latest_scan_data.json public/latest_scan_data.json
-          else
-            echo "⚠️  No latest_scan_data.json produced — skipping publish."
-            exit 0
-          fi
-
-          git config user.name  "Trading Scanner Bot"
-          git config user.email "bot@github-actions"
-
-          git add public/latest_scan_data.json \
-                  trading-scanner/portfolio/.last_scan_scores.json \
-                  trading-scanner/reports/latest_report.html \
-                  trading-scanner/reports/latest_scan_data.json 2>/dev/null || true
-
-          if git diff --cached --quiet; then
-            echo "No changes to scanner output — skipping commit."
-            exit 0
-          fi
-
-          git commit -m "Scan data update [skip ci]"
-          # Retry-on-collision. Other workflows / PR merges can push to main
-          # while the scanner is running; first push then collides on
-          # non-fast-forward. Rebase onto remote main and retry up to 4
-          # times (each retry waits a few seconds for the upstream to
-          # settle). Bug #1187 step — was: single push, fail silently,
-          # wait for next scheduled run. New: actually land the commit.
-          for attempt in 1 2 3 4 5; do
-            if git push; then
-              echo "✓ Push succeeded on attempt $attempt."
-              break
-            fi
-            if [ "$attempt" = "5" ]; then
-              echo "::error::Push failed 5 times — giving up. Next scheduled run will retry."
-              exit 1
-            fi
-            echo "Push collided (attempt $attempt); rebasing on remote main and retrying in 5s..."
-            sleep 5
-            git fetch origin main
-            git rebase origin/main || {
-              echo "::error::Rebase failed — bailing out."
-              exit 1
-            }
-          done
-
-      - name: Compute sector ranks → sector_rank_history
-        # Phase 3 PR #7. Reads the just-published public/latest_scan_data.json,
-        # aggregates per-ticker composites by GICS sector, ranks 1..N, upserts
-        # to public.sector_rank_history. The generate-commentary edge fn
-        # consumes this table to write the daily Sector Outlook tile blurb.
-        if: env.SKIP_RUN != 'true'
-        env:
-          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          python3 scripts/compute_sector_ranks.py
+          echo "::warning::SCAN_345PM_WEEKDAYS is DISABLED. Automated trading is halted."
+          echo "Re-enable only after the rebuilt scanner is backtested and signed off."

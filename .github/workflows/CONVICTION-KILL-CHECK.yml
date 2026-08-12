@@ -1,106 +1,26 @@
-name: CONVICTION-KILL-CHECK
+name: CONVICTION-KILL-CHECK (DISABLED)
 
-# Conviction Events — post-close bookkeeping + the per-position stop screen.
+# ============================================================================
+# DISABLED 2026-08-12 on Joe's instruction ("kill everything") ahead of the
+# Alpaca paper account reset to $1,000,000 and the equity scanner rebuild.
 #
-# Steps:
-#   1. Close snapshot (paper_portfolio.runner --phase close — the UNTOUCHED
-#      mirror accounting from commit 87906a84): fills mirror, positions +
-#      NAV at official session closes. This workflow took over the close
-#      bookkeeping when PAPER-PORTFOLIO-CLOSE-DAILY was deleted with the
-#      retired two-sleeve engine.
-#   2. Post-close phase (paper_portfolio.conviction --phase kill-check):
-#      the CATASTROPHE STOP, which is the book's ONLY risk exit. Every held
-#      position is screened against today's official close. A close 15% or
-#      more below the entry price moves that event's exit_due_date to the next
-#      trading session, so tomorrow's open phase sells it market-on-open down
-#      the SAME path as a scheduled 21st-day exit. A position already due at
-#      that open is left alone (never a double exit). A failed screen fails
-#      this job — unscreened positions must never be silent.
+# Nothing in this file trades. The schedule has been removed so GitHub's cron
+# can no longer fire it. The matching pg_cron backup trigger in Supabase has
+# also been set active = false.
 #
-#      The BOOK-LEVEL alarm this phase used to run was removed 2026-08-12
-#      (Joe): first the "trails the S&P 500 by 10+ points after 8 weeks" arm,
-#      then the drawdown arm. Neither changed what the engine did and neither
-#      was backtested; an alert nobody would act on is noise. ce_kill_switch
-#      is no longer read or written. The phase and this workflow keep their
-#      historical names.
-#
-# Schedule (cron is UTC; both DST siblings fire — the close snapshot is an
-# idempotent upsert and self-skips when there is no settled session bar):
-#   * 21:15 UTC = 5:15 PM EDT (4:15 PM EST) — post-close per the spec.
-#   * 22:15 UTC = 5:15 PM EST sibling (harmless re-run of the same closes).
+# The original workflow is preserved in git history. To restore:
+#   git log --oneline -- .github/workflows/CONVICTION-KILL-CHECK.yml
+#   git show <sha>^:.github/workflows/CONVICTION-KILL-CHECK.yml > .github/workflows/CONVICTION-KILL-CHECK.yml
+# ============================================================================
 
 on:
-  schedule:
-    - cron: '15 21 * * 1-5'
-    - cron: '15 22 * * 1-5'
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run (compute, no DB writes)'
-        required: false
-        default: 'false'
-
-concurrency:
-  group: conviction-kill-check
-  cancel-in-progress: false
 
 jobs:
-  kill-check:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-
     steps:
-      - name: Check out market-dashboard
-        uses: actions/checkout@v4.2.2
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install requests pandas pyarrow numpy scipy
-
-      - name: Close snapshot (official-close positions + NAV — untouched accounting)
-        env:
-          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
-          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
-          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
-          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          # FALSE, deliberately. run_close_phase() is pure accounting —
-          # mirror_fills / mirror_positions / write_nav_daily / health stamp;
-          # it never submits an order. On 2026-08-11 a retired-strategy path
-          # queued ~$1M of orders (FSBC 10,720sh + CMCO 25,544sh, cancelled)
-          # precisely because this flag was left true on a step that did not
-          # need it. Least privilege: only the step that may actually sell
-          # (the catastrophe-stop step below) gets the live flag.
-          PAPER_LIVE_TRADING_ENABLED:   "false"
+      - name: Halted
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python -m paper_portfolio.runner --phase close --dry-run
-          else
-            python -m paper_portfolio.runner --phase close
-          fi
-
-      - name: Catastrophe stops at today's close + kill-switch monitor
-        env:
-          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
-          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
-          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
-          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "true"   # LIVE — Conviction Events cutover 2026-08-11 (Joe go)
-          SMTP_USER:                    ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD:                ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_TO:                     ${{ secrets.EMAIL_TO }}
-          EMAIL_FROM:                   ${{ secrets.EMAIL_FROM }}
-        run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python -m paper_portfolio.conviction --phase kill-check --dry-run
-          else
-            python -m paper_portfolio.conviction --phase kill-check
-          fi
+          echo "::warning::CONVICTION-KILL-CHECK is DISABLED. Automated trading is halted."
+          echo "Re-enable only after the rebuilt scanner is backtested and signed off."

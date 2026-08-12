@@ -1,149 +1,26 @@
-name: CONVICTION-OPEN-DAILY
+name: CONVICTION-OPEN-DAILY (DISABLED)
 
-# Conviction Events — pre-open run (the ONE book that replaced the two
-# retired sleeves; engine: paper_portfolio/conviction.py).
+# ============================================================================
+# DISABLED 2026-08-12 on Joe's instruction ("kill everything") ahead of the
+# Alpaca paper account reset to $1,000,000 and the equity scanner rebuild.
 #
-# Steps:
-#   0. EDGAR freshness: if scanner-insider_edgar-daily has NOT stamped green
-#      today (its 06:00 ET cron was dropped/late), run the Form 4 ingest
-#      inline (idempotent — natural-key ON CONFLICT ignore) and stamp health,
-#      so this morning's events are built from a complete filing set.
-#   1. Engine open phase:
-#        a. reconcile fills into ce_events (entry/exit prices);
-#        b. place EXITS DUE TODAY FIRST — both 21st-trading-day exits and any
-#           -15% catastrophe stop the previous evening pulled forward;
-#        c. build events (>= $250K deduped insider buys per ticker+filing
-#           date, 10b5-1 excluded), apply gates (CS/ADRC, >= $5, 21-day avg
-#           dollar volume >= $2M, close > 50-day SMA — windows end at the
-#           previous close), then place entries (FIXED FRACTION: 10% of
-#           current equity per position, whole shares, same-morning ranking
-#           by event dollar size; entries stop when the cash cannot fund the
-#           next full 10% position, with a hard 13-position safety ceiling);
-#        d. record expected entry/exit counts in paper_signal_capture
-#           (scripts/ce_capture.py) so the post-open watchdog grades
-#           expected-vs-actual (LESSONS 8.20).
-#      ce_kill_switch is a MONITOR ONLY (2026-08-11): the engine reads it for
-#      the morning summary and NEVER refuses a trade on it. Loss control is
-#      per-position, via the catastrophe stop set in CONVICTION-KILL-CHECK.
+# Nothing in this file trades. The schedule has been removed so GitHub's cron
+# can no longer fire it. The matching pg_cron backup trigger in Supabase has
+# also been set active = false.
 #
-# Schedule (cron is UTC): ~12:45Z weekdays = 08:45 ET (EDT) / 07:45 ET (EST)
-# — after the 06:00 ET EDGAR ingest and the overnight price batch, before
-# Alpaca's 09:28 ET opg cutoff. An 11:45Z sibling fires first as cron-
-# lateness insurance (GitHub morning crons routinely run 60-90 min late);
-# the run is idempotent (ce_events unique key + client_order_id + open-order
-# guards), so the second fire is a no-op.
-#
-# Weekday-cron caveat (LESSONS 4.16): the trading-day gate lives IN the
-# engine (broker calendar) — weekday market holidays no-op quietly.
+# The original workflow is preserved in git history. To restore:
+#   git log --oneline -- .github/workflows/CONVICTION-OPEN-DAILY.yml
+#   git show <sha>^:.github/workflows/CONVICTION-OPEN-DAILY.yml > .github/workflows/CONVICTION-OPEN-DAILY.yml
+# ============================================================================
 
 on:
-  schedule:
-    - cron: '45 11 * * 1-5'
-    - cron: '45 12 * * 1-5'
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run (compute, no DB writes, no Alpaca submission)'
-        required: false
-        default: 'false'
-
-concurrency:
-  group: conviction-open
-  cancel-in-progress: false
 
 jobs:
-  open:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: read
-
     steps:
-      - name: Check out market-dashboard
-        uses: actions/checkout@v4.2.2
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install requests
-
-      - name: Has scanner-insider_edgar-daily run today?
-        id: edgar
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Halted
         run: |
-          RAN=$(python3 - <<'PY'
-          import json, os, requests
-          try:
-              r = requests.post(
-                  "https://api.supabase.com/v1/projects/yqaqqzseepebrocgibcw/database/query",
-                  headers={"Authorization": f"Bearer {os.environ['SUPABASE_ACCESS_TOKEN']}",
-                           "Content-Type": "application/json"},
-                  json={"query":
-                        "select ((last_good_at at time zone 'America/New_York')::date = "
-                        "(now() at time zone 'America/New_York')::date "
-                        "and status = 'green') as ran_today "
-                        "from public.pipeline_health "
-                        "where indicator_id = 'insider_history_edgar';"},
-                  timeout=60)
-              rows = r.json() if r.ok else []
-              print("true" if rows and rows[0].get("ran_today") else "false")
-          except Exception:
-              # Unreadable health = assume NOT run — refreshing is idempotent,
-              # trading on a possibly-incomplete filing set is not.
-              print("false")
-          PY
-          )
-          echo "ran_today=$RAN" >> "$GITHUB_OUTPUT"
-          echo "scanner-insider_edgar-daily ran today: $RAN"
-
-      - name: Refresh EDGAR Form 4 ingest (catch-up, idempotent)
-        if: steps.edgar.outputs.ran_today != 'true'
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          # 3-day window: the 06:00 ET run covers 5 days daily; this catch-up
-          # only needs to close the gap since the last successful run.
-          START=$(date -u -d '3 days ago' +%Y-%m-%d)
-          python trading-scanner/scanner/edgar_insider/ingest_form4.py --start "$START"
-
-      - name: Stamp EDGAR pipeline health green (after catch-up)
-        if: steps.edgar.outputs.ran_today != 'true'
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          AS_OF=$(python3 -c "
-          import os, json, urllib.request
-          req = urllib.request.Request(
-              os.environ['SUPABASE_URL'] + '/rest/v1/insider_history_edgar?select=transaction_date&order=transaction_date.desc&limit=1',
-              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
-                       'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
-          rows = json.load(urllib.request.urlopen(req))
-          print(rows[0]['transaction_date'] if rows else '-')
-          ")
-          python3 scripts/upsert_pipeline_health.py insider_history_edgar "$AS_OF" green
-
-      - name: Run Conviction Events open phase (exits first, then entries)
-        env:
-          SUPABASE_ACCESS_TOKEN:        ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
-          ALPACA_PAPER_KEY_ID:          ${{ secrets.ALPACA_PAPER_KEY_ID }}
-          ALPACA_PAPER_SECRET:          ${{ secrets.ALPACA_PAPER_SECRET }}
-          ALPACA_PAPER_BASE_URL:        ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          PAPER_LIVE_TRADING_ENABLED:   "true"   # LIVE — Conviction Events cutover 2026-08-11 (Joe go)
-          SMTP_USER:                    ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD:                ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_TO:                     ${{ secrets.EMAIL_TO }}
-          EMAIL_FROM:                   ${{ secrets.EMAIL_FROM }}
-        run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python -m paper_portfolio.conviction --phase open --dry-run
-          else
-            python -m paper_portfolio.conviction --phase open
-          fi
+          echo "::warning::CONVICTION-OPEN-DAILY is DISABLED. Automated trading is halted."
+          echo "Re-enable only after the rebuilt scanner is backtested and signed off."
