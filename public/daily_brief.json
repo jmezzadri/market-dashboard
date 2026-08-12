@@ -1,118 +1,123 @@
 {
-  "date": "2026-08-11",
-  "recap_session": "Mon Aug 10",
+  "date": "2026-08-12",
+  "recap_session": "Tue Aug 11",
   "eyebrow": "Morning Brief",
-  "headline": "Brent trades near $89.80 overnight after Washington rebuffed Iran's reopening conditions, September pricing tilts back toward a hike at 44%, and the 10-year yield sits at 4.72% with tomorrow's consumer-price report left to decide which trade wins.",
-  "stance": "Monday ran Friday's jobs trade in reverse, and oil did the pushing: Brent settled at <b>$87.85</b> — up from $82.27 at Friday's close — and traded near <b>$89.80</b> overnight (~5am ET) after President Trump dismissed Iran's conditions for reopening the Strait of Hormuz, which now run to sanctions relief, unfrozen assets, a US force withdrawal and war reparations. Rates followed: the 10-year Treasury yield closed at <b>4.72%</b> (4.65% Friday), the 2-year at 4.25% (4.19%), and by this morning prediction-market pricing put <b>56% on a September hold and 44% on a quarter-point hike</b> — from roughly 65% and 33% Sunday afternoon. The first Fed voice after the payrolls shock leaned the same way: Cleveland's Beth Hammack, who dissented in July in favor of a hike, said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy.\" Equities barely reacted — the S&P 500 slipped 0.1% to 7,753.11, just below Friday's record close — leaving tomorrow's 8:30am consumer-price report (forecasts near +0.1–0.2% headline, +0.2% core) to settle whether July's jobs contraction or $89 oil is the story that sticks.",
+  "headline": "July's inflation report lands at 8:30 this morning with the September call a coin flip — a quarter-point hike near 50% — after stocks slipped Tuesday, Brent settled at $88.95, and a second Fed official in two days named inflation the economy's main problem.",
+  "stance": "The report everyone has been waiting on arrives at <b>8:30am ET</b>, and the market went into it almost perfectly undecided. Interest-rate futures pricing puts a quarter-point September hike at <b>roughly 50%</b> this morning, down from just over 52% a day earlier — a coin flip, and a long way from the confident hold the market priced after Friday's jobs contraction. Forecasters look for consumer prices to have risen <b>0.1% in July and 3.4% over the past year</b>, down from 3.5% in June, with the core measure that strips out food and energy up 0.2% on the month and 2.5% on the year. Stocks marked time waiting: the S&P 500 fell 0.32% Tuesday to <b>7,728.20</b>, the Dow 0.34% to 53,791.85 and the Nasdaq 100 0.33% to 26,445.45. Treasuries firmed a touch — the 10-year yield closed at <b>4.70%</b> from 4.72% Monday, the 2-year at 4.22% from 4.25% — while Brent settled at <b>$88.95</b> from $87.85 and traded near $89.61 overnight after fresh attacks on shipping dented hopes the Strait of Hormuz reopens soon. The tension in today's print is simple: the labour market says the Fed is already tight enough, and oil near $90 says the inflation job is not finished.",
   "news": [
     {
-      "head": "Oil unwound the rate-relief trade",
-      "body": "Brent settled Monday at $87.85, up from $82.27 at Friday's close, and traded near $89.80 overnight (~5am ET), up a further 2.4%; US crude settled at $82.30 and traded near $84.28. The push came after President Trump dismissed Iran's conditions for reopening Hormuz — sanctions relief, unfrozen assets, a US force withdrawal, war reparations — while traffic through the strait ran at 8–15 vessels a day in early August against roughly 130 before the war."
+      "head": "The inflation report is today, not tomorrow",
+      "body": "July consumer prices are released at 8:30am ET. Forecasters look for a 0.1% rise on the month and 3.4% over the past year, down from June's 3.5%; the core measure that excludes food and energy is seen up 0.2% on the month and 2.5% on the year. June's 3.5% was itself the mildest reading since March and came in well under the 3.8% economists expected, so the bar for another downside surprise is higher than it was a month ago."
     },
     {
-      "head": "September tilted back toward a hike",
-      "body": "Prediction-market pricing this morning puts 56% on the Fed holding at the September 16 meeting and 44% on a quarter-point hike — from roughly 65% and 33% Sunday afternoon. No new US data landed in between: the repricing was energy. The payrolls-built hold case lasted one session against rising crude."
+      "head": "September is now a coin flip",
+      "body": "Interest-rate futures pricing puts a quarter-point September hike at roughly 50% this morning, down from just over 52% a day earlier. There is one more inflation report between now and the September 15-16 meeting, so today's number sets the lean rather than settling it."
     },
     {
-      "head": "First Fed voice after the jobs shock was hawkish",
-      "body": "Cleveland Fed President Beth Hammack — who dissented at July's meeting in favor of a hike — said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy,\" argued the current 3.50–3.75% setting is not restrictive enough, and said businesses are not signaling restraint on investment plans."
+      "head": "A second Fed official in two days pointed at inflation",
+      "body": "Chicago Fed President Austan Goolsbee said Tuesday that \"the biggest problem facing our economy right now is not the collapse of industry and the collapse of jobs; it's that the prices have been rising too fast, we got an inflation problem and people hate inflation.\" He described the job market as \"stable, without being good.\" That follows Cleveland Fed President Beth Hammack on Monday. Both of the officials who have spoken since the July payrolls contraction have led with prices, not jobs."
     },
     {
-      "head": "Metals pressed higher; the yen broke to a new extreme",
-      "body": "Gold closed Monday at $4,448.60, up from Friday's $4,401.30 — a second straight session at the top of its three-year range (87th percentile) — and silver rose to $65.88 from $63.80. The yen weakened to ¥159.22 per dollar at Monday's close from ¥157.75 Friday, a fresh three-year-range extreme, and traded near ¥159.35 overnight despite last week's warning from Japan's finance minister that authorities \"would not hesitate\" to step in."
+      "head": "CoreWeave beat, then raised its spending plan sharply",
+      "body": "The AI-infrastructure company reported second-quarter revenue of $2.58 billion against about $2.56 billion expected, and an adjusted loss of $1.03 a share against a $1.20 loss expected. Its booked order backlog stands at $104 billion. But it lifted this year's capital-spending plan to $35-39 billion from $31-34 billion, and its net loss widened to $626 million from $290 million a year earlier. Third-quarter revenue guidance of $3.4-3.6 billion brackets the roughly $3.43 billion analysts expected. The shares rose in after-hours trading on the report and were up about 2.4% pre-market (~5am ET)."
     },
     {
-      "head": "Stocks marked time just under records",
-      "body": "The S&P 500 eased 0.1% Monday to 7,753.11 — just below Friday's record close — with the Dow down 0.1% at 53,975.98 and the Nasdaq down 0.3% at 26,605.36. The VIX rose to 15.46 from Friday's 14.9, still low. Overnight (~5am ET), S&P 500 and Dow futures sat about 0.1% lower; Asia was mixed, with Seoul up 0.7% and Hong Kong down 1.1%."
+      "head": "Attacks on shipping pushed oil back toward $90",
+      "body": "Brent settled Tuesday at $88.95, up from $87.85 Monday, and traded at $89.61 overnight. Yemen's government accused Iran-aligned Houthis of killing six people in missile attacks on a commercial vessel in the Bab al-Mandeb strait on Tuesday, and US Central Command disabled a cargo vessel trying to breach the blockade of Iranian ports. Qatar's foreign ministry said talks between Oman and Iran were \"at an advanced stage,\" while Iran maintains the strait stays closed until sanctions are lifted and war reparations paid. Ten vessels crossed the Strait of Hormuz on Monday, against roughly 130 a day before the war."
     },
     {
-      "head": "Monday's insider filings: smaller, single-buyer purchases",
-      "body": "The newest filings, dated Monday, show about $1.6 million bought at TISI by a single insider, $900,000 across two filings at CLVT, and $618,000 at COE — a quieter tape than the multi-buyer clusters at BRVE and ATTO in Friday's filings."
+      "head": "Tuesday's insider filings brought back a multi-buyer cluster",
+      "body": "Filings dated Tuesday show about $8.8 million bought at BRVE across 13 separate filings by ten different insiders — the widest group purchase in the current run of filings — plus $4.3 million at LITB from a single buyer. The largest single-name figure in the current filings is still Monday's roughly $10.1 million at LOCL, but that was one insider acting alone."
     }
   ],
   "implications": [
-    "The September call is now an oil call: hike odds rose 11 points in a day with no new inflation data — pure energy pass-through fear. Tomorrow's report is forecast near +0.1–0.2% headline and +0.2% core; a print in that range keeps the hold case alive, while visible energy effects with Brent near $90 would likely complete the swing back toward a hike.",
-    "The bond market is treating this as an inflation problem, not a growth problem: the 10-year yield rose 7 basis points Monday while the 10-year breakeven inflation rate climbed to 2.29% from 2.25% and the 10-year real yield to 2.43% from 2.40%. A growth scare would have pushed those the other way.",
-    "Gold's rally now carries positioning risk: the latest weekly futures data shows speculators extended long — the 87th percentile of the past three years, up 32 percentile points in a week — just as the price reached a fresh range extreme. Extended longs are potential sellers on a cool inflation print or a real Hormuz reopening.",
-    "Equities still hold their contrarian cushion — bullish bets on Nasdaq 100 futures remain near three-year lows in the same weekly data, unchanged from yesterday's report — but with the VIX at 15.46, protection is thin for a two-sided event like tomorrow's inflation print with oil near $90."
+    "Today's print decides the lean, not the decision. With hike odds at roughly 50% and one more inflation report due before the September meeting, a 0.1% monthly reading in line with forecasts leaves the argument exactly where it is; the number that moves it is one showing energy costs feeding through to the rest of the basket while Brent sits near $90.",
+    "The bond market spent Tuesday leaning the other way to the Fed speakers. The 10-year yield fell to 4.70% from 4.72% and the 10-year breakeven — the inflation rate bond prices imply over the next decade — eased to 2.27% from 2.29%, even as two officials named inflation the main problem. The inflation-adjusted 10-year yield was unchanged at 2.43%, so this was a repricing of expected inflation rather than of growth.",
+    "Hedging into the print happened in bonds, not stocks. The MOVE index, the Treasury market's equivalent of the VIX, rose to 77.9 from 75.5 — a second straight increase — while the VIX fell to 15.28 from 15.46 and its Nasdaq counterpart to 22.38 from 23.04. Equity protection is cheap going into a two-sided event, which cuts both ways: little is priced for a shock, and little has been spent guarding against one.",
+    "CoreWeave's spending raise is the part with reach beyond one stock. Lifting capital spending to $35-39 billion from $31-34 billion is a demand signal for the chip, power and construction supply chain, and a reminder that AI revenue growth is being bought with cash today. Cisco reports after today's close into the same question."
   ],
   "watch": [
     {
-      "head": "Tomorrow's consumer-price report, 8:30am ET",
-      "body": "The decider for September. Forecasts center near +0.1–0.2% headline and +0.2% core; what matters most is visible energy pass-through. A benign print keeps the hold case alive at these odds — a hot one, with Brent near $90, likely flips the lean back to a hike."
+      "head": "Consumer prices, 8:30am ET",
+      "body": "Forecasts centre on +0.1% for the month and 3.4% over the past year, with core at +0.2% and 2.5%. Read the energy and services detail rather than the headline: with Brent near $90, whether higher fuel costs are showing up in airfares, shipping and other services is what tells you if this is a passing energy bump or something the Fed has to answer."
     },
     {
-      "head": "CoreWeave after today's close",
-      "body": "The week's first big test of AI-infrastructure demand: consensus is about $2.55 billion in revenue and a loss of about $1.23 a share, with attention on how fast the $99.4 billion contract backlog converts into revenue. Cisco and Applied Materials follow later this week."
+      "head": "Cisco after today's close",
+      "body": "The networking company reports fiscal fourth-quarter results after the market closes; analysts expect about $1.17 a share. Coming the day after CoreWeave lifted its spending plan, the read of interest is what Cisco says about orders from data-centre customers — the same AI build-out, seen from the equipment side."
     },
     {
-      "head": "Proof, again, on the strait",
-      "body": "Brent has gone from $82.27 at Friday's close to near $89.80 overnight on conditions and rebuffs alone. Transits are still running 8–15 vessels a day against roughly 130 pre-war; only free tanker movement or a published, verifiable agreement settles the oil question in either direction."
+      "head": "Whether the strait actually reopens",
+      "body": "Qatar calls the Oman-Iran talks \"advanced\"; Iran says the closure holds until sanctions relief and reparations; ten vessels crossed on Monday against roughly 130 a day before the war. Transit counts recovering, or a published agreement, are what would settle this. Statements alone have moved Brent from $82 to near $90 in four sessions and can move it back just as fast."
     },
     {
-      "head": "Today's smaller data",
-      "body": "Small-business optimism at 6am ET and existing-home sales at 10am — secondary to tomorrow's inflation report, but the first read on whether July's payrolls contraction is showing up in confidence."
+      "head": "Whether the coin flip breaks",
+      "body": "Hike odds sit at roughly 50% this morning, down from just over 52% a day earlier. Watch where they sit an hour after the print — that reaction, more than the number itself, tells you which of the two competing stories the market has decided to run with into September."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The biggest change since yesterday morning: the September hold case built on Friday's payrolls contraction lost ground to oil. Prediction-market pricing this morning puts 56% on a hold and 44% on a quarter-point hike — from roughly 65% and 33% Sunday afternoon — with no new US data in between; crude did the repricing.",
-        "Brent settled Monday at $87.85 — up from $82.27 at Friday's close — and traded near $89.80 overnight (~5am ET), up a further 2.4%, after President Trump dismissed Iran's reopening conditions; US crude settled at $82.30 and traded near $84.28 overnight. Traffic through the strait ran 8–15 vessels a day in early August versus roughly 130 before the war.",
-        "Treasuries gave back the payrolls rally: the 10-year yield closed Monday at 4.72% (4.65% Friday), the 2-year at 4.25% (4.19%), with the curve near +47 basis points. The move reads as inflation rather than growth: the 10-year breakeven inflation rate rose to 2.29% from 2.25% and the 10-year real, inflation-adjusted yield to 2.43% from 2.40%.",
-        "Cleveland Fed President Beth Hammack — the July dissenter in favor of a hike — said Monday that \"one 25 basis point move probably doesn't do a whole lot for the economy\" and that the current 3.50–3.75% policy setting is not restrictive enough. She was the first official to speak after Friday's jobs report.",
-        "Gold closed at $4,448.60, up from $4,401.30 Friday — a second straight session at the top of its three-year range (87th percentile) — with silver at $65.88 from $63.80. The yen weakened to ¥159.22 at Monday's close from ¥157.75 Friday, a fresh three-year-range extreme (89th percentile), and traded near ¥159.35 overnight despite last week's intervention warnings from Tokyo."
+        "The biggest change since yesterday morning: the inflation report is no longer ahead of the market, it is here — 8:30am ET — and September has settled into a coin flip. Interest-rate futures pricing puts a quarter-point hike at roughly 50%, down from just over 52% a day earlier. Forecasts look for prices up 0.1% on the month and 3.4% over the past year, from 3.5% in June, with core at 0.2% and 2.5%.",
+        "A second official in two days led with prices. Chicago Fed President Austan Goolsbee said Tuesday that \"the biggest problem facing our economy right now is not the collapse of industry and the collapse of jobs; it's that the prices have been rising too fast,\" and called the job market \"stable, without being good\" — following Cleveland's Beth Hammack on Monday.",
+        "Treasuries firmed slightly against that: the 10-year yield closed Tuesday at 4.70% from 4.72% Monday, the 2-year at 4.22% from 4.25%, with the gap between them at +48 basis points. The 10-year breakeven — the annual inflation rate bond prices imply over the next ten years — eased to 2.27% from 2.29%, while the inflation-adjusted 10-year yield held at 2.43%.",
+        "Oil stayed the complicating factor. Brent settled at $88.95 from $87.85 Monday and traded at $89.61 overnight after Yemen's government accused Houthi forces of a deadly missile attack on a commercial vessel in the Bab al-Mandeb strait and US Central Command disabled a cargo ship running the blockade of Iranian ports. Ten vessels crossed Hormuz on Monday against roughly 130 a day before the war. US crude settled at $83.23 from $82.30.",
+        "Elsewhere in the prior close: gold eased to $4,427.80 from $4,448.60 and silver to $64.86 from $65.88, both giving back a little of Monday's push. The dollar index sat at 99.82 and the yen at ¥159.24, essentially unchanged from Monday's ¥159.22 and still at the weak end of its three-year range. July existing-home sales, released Tuesday, fell 1.7% on the month to 4.06 million, close to the 4.05 million expected."
       ],
-      "positioning": "New in the latest weekly futures data: speculators moved to extended long in gold — the 87th percentile of the past three years, up 32 percentile points in a week — just as the spot price pushed to a fresh range extreme. Extended longs are potential sellers if the inflation or Hormuz story breaks the other way.",
+      "positioning": "New in the latest weekly futures data: speculators flipped to an extended short position in 10-year Treasury futures — the 12th percentile of the past three years, down 17 percentile points in a week — a contrarian-bullish lean for bond prices going into today's print. Speculators also moved to an extended long in the dollar index, at the 90th percentile and up 13 points on the week, with hedgers at the opposite extreme.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Monday's close: S&P 500 down 0.1% at 7,753.11 — just below Friday's record close — Dow down 0.1% at 53,975.98, Nasdaq down 0.3% at 26,605.36. Overnight (~5am ET), S&P 500 and Dow futures sat about 0.1% lower; Asia was mixed, with Seoul up 0.7% and Hong Kong down 1.1%.",
-        "Protection stayed thin into tomorrow's inflation report: the VIX closed Monday at 15.46, up from 14.9 Friday but still low, and its Nasdaq-100 counterpart closed at 23.04.",
-        "Breadth softened with the tape: 65.3% of S&P 500 members closed above their 50-day trend line, from about 68% Friday; 55% of Nasdaq-100 members did, from 62%.",
-        "CoreWeave reports after today's close — consensus is about $2.55 billion in revenue and a loss of about $1.23 a share, with attention on how fast its $99.4 billion contract backlog converts into revenue — the week's first big read on AI-infrastructure demand, with Cisco and Applied Materials later in the week.",
-        "Monday's newest insider filings were smaller and mostly single-buyer: about $1.6 million at TISI, $900,000 across two filings at CLVT, and $618,000 at COE — a quieter tape than the multi-buyer clusters in Friday's filings."
+        "Tuesday's close: the S&P 500 fell 0.32% to 7,728.20, the Dow 0.34% to 53,791.85 and the Nasdaq 100 0.33% to 26,445.45 — a second straight decline, leaving the index below Friday's record close. Overnight (~5am ET), S&P 500 futures were about 0.2% higher and Dow futures roughly flat, with Nasdaq futures the firmer of the three.",
+        "CoreWeave reported after Tuesday's close: revenue of $2.58 billion against about $2.56 billion expected and an adjusted loss of $1.03 a share against a $1.20 loss expected, with a booked order backlog of $104 billion. The company raised this year's capital-spending plan to $35-39 billion from $31-34 billion and guided third-quarter revenue to $3.4-3.6 billion, bracketing the roughly $3.43 billion expected. Its net loss widened to $626 million from $290 million a year earlier. The shares rose in after-hours trading and were up about 2.4% pre-market (~5am ET).",
+        "Cisco reports after today's close, with analysts looking for about $1.17 a share — the same AI build-out question CoreWeave just answered, from the equipment supplier's side.",
+        "Protection stayed cheap into the print: the VIX closed Tuesday at 15.28, down from 15.46 Monday, and its Nasdaq-100 counterpart at 22.38 from 23.04. The skew index, which measures what investors pay for insurance against a large drop, sat at 135.6.",
+        "Breadth barely moved: 64.9% of S&P 500 members closed above their 50-day trend line, from 65.3% Monday, and 55% of Nasdaq-100 members did, unchanged. On the longer 200-day measure it is 72.5% and 73% respectively — participation is broad, it is conviction that is thin."
       ],
-      "positioning": "Unchanged background from the latest weekly futures data: bullish bets in Nasdaq 100 futures sit at the 1st percentile of the past three years — skepticism, not exuberance, underneath a tape just off its record — with hedgers at the opposite extreme.",
+      "positioning": "Standing background rather than a new development: bullish bets in Nasdaq 100 futures remain at the 1st percentile of the past three years and Russell 2000 futures at the 2nd, with hedgers at the opposite extreme in both — scepticism, not exuberance, underneath a tape near its highs.",
       "single_name": {
-        "ticker": "TSM",
-        "note": "(Taiwan Semiconductor, the world's largest contract chipmaker) — a fresh insider purchase was filed Monday, the shares trade above their 200-day trend line, and the setup's dark-pool and options signals are both live; it has been on the scan list since mid-June."
+        "ticker": "LINE",
+        "note": "(Lineage, the largest owner of temperature-controlled warehouses — the cold storage food companies rent) — an insider purchase was filed Monday, the shares trade above their 200-day trend line, and the scan's dark-pool and options signals are both live. At 7.5 days of average trading volume, it also carries the heaviest short position on the current list, which cuts both ways if the shares keep rising."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Credit ignored the oil move through the latest data (spread data runs a day behind): the high-yield-over-investment-grade spread was 270 basis points in Friday's data, from 271 Thursday, with investment-grade spreads at 78 basis points.",
-        "The hedging ahead of tomorrow's report is happening in Treasuries rather than stocks: the MOVE index — the Treasury market's version of the VIX — closed Monday at 75.5, up from 72 Friday, while the VIX rose about half a point.",
-        "Short-term funding stayed quiet: the key bank-funding spreads sat near -1 basis point and the commercial-paper funding spread at 21 basis points in Friday's data.",
-        "The system's spare-cash cushion is still gone: the overnight reverse-repo facility held $1 billion Monday, with bank reserves at $2,993.3 billion and the Treasury's cash account at $907.3 billion in Wednesday's weekly snapshot."
+        "Credit stayed unbothered by the oil move through the latest available data, which runs a day behind: the extra yield high-yield bonds pay over investment-grade was 270 basis points in Monday's data, unchanged from Friday, with investment-grade spreads at 78 basis points.",
+        "The hedging ahead of today's report went into bonds rather than stocks. The MOVE index — the Treasury market's version of the VIX — rose to 77.9 from 75.5 Monday, a second straight increase, while the VIX fell.",
+        "Short-term funding stayed quiet: the key bank-funding spreads sat at zero and the commercial-paper funding spread at 21 basis points in the latest readings, with no sign of stress in the plumbing.",
+        "The system's spare-cash cushion is still effectively gone: the Fed's overnight reverse-repo facility held $1.2 billion Tuesday, against bank reserves of $2,993.3 billion and $907.3 billion in the Treasury's cash account in last Wednesday's weekly snapshot."
       ],
-      "positioning": "Primary-dealer high-yield inventory remains mid-range — the 35th percentile of its three-year span, unchanged — no stress signal on either side of the credit book.",
+      "positioning": "Primary-dealer high-yield inventory remains mid-range — the 35th percentile of its three-year span, unchanged — with no positioning extreme flagged anywhere in the credit book this week.",
       "single_name": null
     }
   ],
   "movers": [
     {
+      "ticker": "FBIN",
+      "pct": 4.2,
+      "link": true
+    },
+    {
       "ticker": "ABTC",
-      "pct": 9.3,
-      "link": true
-    },
-    {
-      "ticker": "CMCO",
-      "pct": -4.5,
-      "link": true
-    },
-    {
-      "ticker": "TSM",
-      "pct": -0.4,
+      "pct": -2.1,
       "link": true
     },
     {
       "ticker": "FSBC",
-      "pct": -0.1,
+      "pct": 2.0,
+      "link": true
+    },
+    {
+      "ticker": "BWFG",
+      "pct": 1.7,
+      "link": true
+    },
+    {
+      "ticker": "CMCO",
+      "pct": 1.2,
       "link": true
     }
   ]
