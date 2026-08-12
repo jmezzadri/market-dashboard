@@ -586,6 +586,13 @@ const KS_MIN_DAYS = 40;          // 8 weeks of trading days — mirrors KILL_MIN
 const KS_TRAIL_PTS = 0.10;       // mirrors KILL_TRAIL_SPY_PTS
 const KS_MAX_DD = 0.15;          // mirrors KILL_MAX_DRAWDOWN
 
+// Room to an alert, in words. Negative room is not "-1.00 points of room" —
+// that reads as a rounding artefact; it means the test is already past its
+// threshold and the alert has fired.
+const roomText = (pts) => (pts >= 0
+  ? `${pts.toFixed(2)} points of room`
+  : `past the alert by ${Math.abs(pts).toFixed(2)} points`);
+
 function MonitorPanel({ row, loading, navRows = [] }) {
   if (loading) return null;
 
@@ -601,29 +608,34 @@ function MonitorPanel({ row, loading, navRows = [] }) {
   const tests = [
     {
       key: 'dd',
-      name: 'Book drawdown from its peak',
-      test: `Alert at ${(KS_MAX_DD * 100).toFixed(0)}%`,
-      reading: dd == null ? '—' : `${(dd * 100).toFixed(2)}%`,
-      headroom: dd == null ? '—' : `${((KS_MAX_DD - dd) * 100).toFixed(2)} points of room`,
+      name: 'The book falls too far from its own high',
+      note: 'Live from day one',
+      test: `The book is down ${(KS_MAX_DD * 100).toFixed(0)}% or more from its highest value so far`,
+      reading: dd == null ? '—' : `down ${(dd * 100).toFixed(2)}%`,
+      readingNote: dd === 0 ? 'the book is at its high' : null,
+      headroom: dd == null ? '—' : roomText((KS_MAX_DD - dd) * 100),
       state: dd == null ? 'none' : (dd >= KS_MAX_DD ? 'alert' : dd >= KS_MAX_DD * 0.67 ? 'watch' : 'ok'),
       tip: 'The largest fall from the book’s highest value to date, measured on closing values. Live from day one.',
     },
     {
       key: 'spy',
-      name: 'Book vs the S&P 500 since the start',
-      test: `Alert if it trails by ${(KS_TRAIL_PTS * 100).toFixed(0)} points, after ${KS_MIN_DAYS} trading days`,
+      name: 'The book falls too far behind the S&P 500',
+      note: armed
+        ? `Armed · ${days} trading days of history`
+        : `Not armed yet — needs ${KS_MIN_DAYS} trading days of history, has ${days}`,
+      test: `Since the book started, its return is ${(KS_TRAIL_PTS * 100).toFixed(0)} percentage points or more BELOW the S&P 500's over the same days`,
       reading: gap == null
         ? '—'
-        : `${gap >= 0 ? '+' : ''}${(gap * 100).toFixed(2)} points`,
-      headroom: !armed
-        ? `Not armed yet — ${days} of ${KS_MIN_DAYS} trading days`
-        : (gap == null ? '—' : `${((gap + KS_TRAIL_PTS) * 100).toFixed(2)} points of room`),
+        : `${gap >= 0 ? 'ahead by ' : 'behind by '}${Math.abs(gap * 100).toFixed(2)} pts`,
+      readingNote: (book != null && spy != null)
+        ? `book ${fmtPct(book)} · S&P 500 ${fmtPct(spy)}`
+        : null,
+      headroom: gap == null ? '—' : roomText((gap + KS_TRAIL_PTS) * 100),
       state: !armed ? 'idle' : (gap == null ? 'none' : (gap <= -KS_TRAIL_PTS ? 'alert' : gap <= -KS_TRAIL_PTS * 0.67 ? 'watch' : 'ok')),
-      tip: book != null && spy != null
-        ? `Book ${fmtPct(book)} against the S&P 500 ${fmtPct(spy)} over the same window. This arm stays asleep until the book has ${KS_MIN_DAYS} trading days of history, so a bad first fortnight cannot raise it.`
-        : 'Compares the book’s return since inception with the S&P 500 over the same window.',
+      tip: `Both returns are measured from the book's first day to the latest close — cumulative, not a rolling window, and not an annual rate. "Points" are percentage points of return: the book up 2% while the S&P 500 is up 12% is 10 points behind, and that is the alert. The test sleeps until the book has ${KS_MIN_DAYS} trading days (about 8 weeks) of history, so a bad first fortnight cannot raise it.`,
     },
   ];
+
 
   return (
     <div className="paper-panel pp-monitor">
@@ -650,18 +662,24 @@ function MonitorPanel({ row, loading, navRows = [] }) {
         <table className="paper-table pp-montable">
           <thead>
             <tr>
-              <th>Test</th>
-              <th>Trips when</th>
-              <th className="r">Reading now</th>
+              <th>What it watches</th>
+              <th>It raises an alert when</th>
+              <th className="r">Where it stands now</th>
               <th className="r">Distance to the alert</th>
             </tr>
           </thead>
           <tbody>
             {tests.map((t) => (
               <tr key={t.key}>
-                <td><span className="pp-tip" data-tip={t.tip}>{t.name}</span></td>
+                <td>
+                  <span className="pp-tip" data-tip={t.tip}>{t.name}</span>
+                  {t.note && <span className="pp-mon-note-sm">{t.note}</span>}
+                </td>
                 <td className="mut">{t.test}</td>
-                <td className={`r st-${t.state}`}>{t.reading}</td>
+                <td className={`r st-${t.state}`}>
+                  {t.reading}
+                  {t.readingNote && <span className="pp-mon-note-sm">{t.readingNote}</span>}
+                </td>
                 <td className="r mut">{t.headroom}</td>
               </tr>
             ))}
