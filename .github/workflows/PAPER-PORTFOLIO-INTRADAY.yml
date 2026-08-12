@@ -1,91 +1,26 @@
-# Re-armed 2026-07-07: GitHub silently dropped this workflow's schedule again
-# (no runs since 7/6 21:57 UTC; workflow state 'active'). A commit to this file
-# re-registers the cron (LESSONS 4.13). Backup: pg_cron 'paper-intraday-backup-hourly'
-# re-dispatches via the trigger-workflow edge function if an hour is missed.
-# Exact-time open trigger (2026-07-21, Data Steward sign-off): pg_cron
-# 'paper-intraday-open-1347utc' dispatches this workflow at 13:47 UTC weekdays
-# (09:47 ET EDT) so open-auction fills are mirrored before 10:00 ET instead of
-# waiting out GitHub's 75-95 min morning cron delay. Self-skip makes the
-# EST-winter 08:47 ET fire a no-op; the 14:45 UTC pg_cron backup covers EST.
-name: PAPER-PORTFOLIO-INTRADAY
+name: PAPER-PORTFOLIO-INTRADAY (DISABLED)
 
-# MacroTilt paper-portfolio LIVE intraday refresh (Joe directive 2026-06-23).
+# ============================================================================
+# DISABLED 2026-08-12 on Joe's instruction ("kill everything") ahead of the
+# Alpaca paper account reset to $1,000,000 and the equity scanner rebuild.
 #
-# Refreshes the live positions + live NAV view HOURLY during market hours so
-# the Paper page matches the broker intraday. This does NOT touch the official
-# close record (paper_positions / paper_nav_daily) — the 16:50 CLOSE workflow
-# remains the day's final, authoritative update. The phase self-skips when the
-# market is closed (Alpaca clock), so off-hours fires are cheap no-ops.
+# Nothing in this file trades. The schedule has been removed so GitHub's cron
+# can no longer fire it. The matching pg_cron backup trigger in Supabase has
+# also been set active = false.
 #
-# READ-only against Alpaca + WRITE to the two intraday tables. No order
-# submission, so the live-trading kill-switch is not involved.
-#
-# Pipeline name (Data Steward convention): paper-portfolio-intraday
-#
-# Schedule (cron is UTC; both DST siblings fire, run is idempotent + self-skips
-# when the market is closed). Hourly on the half-hour, 10:30 ET → 15:30 ET, so
-# the last hourly lands ~25 min before the 16:00 close and the 16:50 CLOSE run
-# writes the final official snapshot.
-#   EDT (UTC-4): 14:30..19:30 UTC   |   EST (UTC-5): 15:30..20:30 UTC
+# The original workflow is preserved in git history. To restore:
+#   git log --oneline -- .github/workflows/PAPER-PORTFOLIO-INTRADAY.yml
+#   git show <sha>^:.github/workflows/PAPER-PORTFOLIO-INTRADAY.yml > .github/workflows/PAPER-PORTFOLIO-INTRADAY.yml
+# ============================================================================
+
 on:
-  schedule:
-    # 09:50 ET first pass (added 2026-07-20, Data Steward sign-off): flips
-    # "awaiting fill" order statuses and lands the first live NAV/positions
-    # mirror shortly after the open instead of ~11:30 ET (GitHub cron delay on
-    # top of a 10:30 first slot). Self-skips when the market is closed.
-    - cron: '50 13 * * 1-5'   # 09:50 ET (EDT)
-    - cron: '50 14 * * 1-5'   # 10:50 ET (EDT) / 09:50 ET (EST)
-    - cron: '30 14 * * 1-5'   # 10:30 ET (EDT)
-    - cron: '30 15 * * 1-5'   # 11:30 ET (EDT) / 10:30 ET (EST)
-    - cron: '30 16 * * 1-5'   # 12:30 ET (EDT) / 11:30 ET (EST)
-    - cron: '30 17 * * 1-5'   # 13:30 ET (EDT) / 12:30 ET (EST)
-    - cron: '30 18 * * 1-5'   # 14:30 ET (EDT) / 13:30 ET (EST)
-    - cron: '30 19 * * 1-5'   # 15:30 ET (EDT) / 14:30 ET (EST)
-    - cron: '30 20 * * 1-5'   # 15:30 ET (EST)
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run (compute, no DB writes)'
-        required: false
-        default: 'false'
-
-concurrency:
-  group: paper-portfolio-intraday
-  cancel-in-progress: false
 
 jobs:
-  intraday:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
     steps:
-      - name: Check out market-dashboard
-        uses: actions/checkout@v4.2.2
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install requests pandas pyarrow numpy scipy
-
-      - name: Run intraday phase (live positions + live NAV)
-        # Mirror-only: READS from Alpaca, WRITES to the two intraday tables.
-        # No live-submission risk, so PAPER_LIVE_TRADING_ENABLED is irrelevant
-        # here (the runner routes --phase intraday around the kill-switch).
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
-          ALPACA_PAPER_KEY_ID:   ${{ secrets.ALPACA_PAPER_KEY_ID }}
-          ALPACA_PAPER_SECRET:   ${{ secrets.ALPACA_PAPER_SECRET }}
-          ALPACA_PAPER_BASE_URL: ${{ secrets.ALPACA_PAPER_BASE_URL }}
-          MOMENTUM_SLEEVE_ENABLED:      "true"
+      - name: Halted
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python -m paper_portfolio.runner --phase intraday --dry-run
-          else
-            python -m paper_portfolio.runner --phase intraday
-          fi
+          echo "::warning::PAPER-PORTFOLIO-INTRADAY is DISABLED. Automated trading is halted."
+          echo "Re-enable only after the rebuilt scanner is backtested and signed off."
