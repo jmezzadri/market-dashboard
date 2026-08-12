@@ -5,8 +5,9 @@
    around the ONE replacement book, Conviction Events (large real insider
    purchases ≥ $250,000 per name per day, automatic 10b5-1 plan purchases
    excluded, confirmed above the 50-day average, next-open entry, every new
-   position 10% of equity with no fixed name count — the cash self-limits the
-   book near 10 names, hard ceiling 13 — exit at the open of the 21st trading
+   position 6.67% of equity with no fixed name count — buying capacity under a
+   1.5x gross-exposure limit self-limits the book near 20 names (2026-08-12
+   change, from 10% unlevered) — exit at the open of the 21st trading
    day or sooner on a close 15% or more below the entry price, pre-registered
    kill switch: 10+ points behind the S&P 500 after 8 weeks or drawdown
    reaching 15% raises an alert to the owner, trading continues — a MONITOR,
@@ -450,14 +451,13 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Entry, sizing and exit.</b> A qualifying name is bought at the <b>next
-              morning&rsquo;s open</b>, sized at <b>10% of the book&rsquo;s equity</b> at that
+              morning&rsquo;s open</b>, sized at <b>6.67% of the book&rsquo;s equity</b> at that
               moment. There is <b>no fixed number of positions</b>: the book keeps funding new
-              names until the cash runs out, which naturally settles it near <b>10 names</b> — on
-              past evidence 8 on a typical day and 13 at the busiest. A name already held is not
-              bought again, and an event the cash cannot fund is skipped and logged. <b>13 open
-              positions is a hard ceiling</b> the book never passes, there as a safety limit.
-              Each position <b>exits at the open of the 21st trading day after entry</b> — a fixed
-              calendar exit with no discretion. Long-only, no leverage. Profit and loss is measured
+              names until its buying capacity runs out, which settles it near <b>20 names</b>.
+              A name already held is not bought again, and an event the capacity cannot fund is
+              skipped and logged. Each position <b>exits at the open of the 21st trading day
+              after entry</b> — a fixed calendar exit with no discretion. Long-only, and the
+              book may run <b>gross exposure up to 1.5&times; its equity</b>. Profit and loss is measured
               against cost, on the account&rsquo;s official snapshots — the latest mark during
               market hours, the closing record after 4 PM ET.
             </p>
@@ -496,7 +496,7 @@ export default function MethodologyPage() {
             <div className="me-formula">
               signal  = aggregated open-market insider buys ≥ $250,000 per name per day · automatic (10b5-1) plan purchases excluded<br />
               confirm = stock trading above its 50-day average price<br />
-              enter   = next morning&rsquo;s open · size = 10% of equity each · no fixed count, ~10 names as the cash allows, hard ceiling 13<br />
+              enter   = next morning&rsquo;s open · size = 6.67% of equity each · no fixed count, ~20 names as capacity allows · gross exposure ≤ 1.5× equity<br />
               exit    = at the open of the 21st trading day after entry<br />
               stop    = a close 15% or more below the entry price → sold at the next morning&rsquo;s open<br />
               alert   = trailing the S&amp;P 500 by 10+ points after 8 weeks, or drawdown reaching 15% → the owner is warned, trading continues

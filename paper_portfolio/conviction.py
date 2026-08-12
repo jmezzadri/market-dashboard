@@ -27,21 +27,26 @@ frozen 2026-08-10). Strategy is the validated spec, implemented exactly:
 
   ENTRY      at the next market open after filing (market-on-open order
              queued pre-open). Sizing is FIXED FRACTION: every new position
-             is 10% of CURRENT account equity —
-             floor((equity * 0.10) / previous close) WHOLE shares. There is
-             no fixed name cap; entries stop when the available cash (broker
-             cash plus the proceeds of the exits filling at the same opening
-             auction) cannot fund the next full 10% position, so the book
-             self-limits at ~10 names. One position per ticker; same-morning
-             events are ranked by total dollar size (largest first) and any
-             event the cash cannot fund is recorded 'skipped_full'. A HARD
-             SAFETY CEILING of 13 concurrent positions (the maximum
-             concurrency observed in the 239-event study) stops a data
-             anomaly from opening an unbounded book — events beyond it are
-             recorded 'skipped_full' too.
-             (2026-08-11, Joe: replaced the fixed 8-slot / equity-over-8
-             rule. Sizing is decided ONCE, at entry — positions opened under
-             the old rule keep the share counts they were entered with.)
+             is 6.67% of CURRENT account equity —
+             floor((equity * 0.0667) / previous close) WHOLE shares. There is
+             no fixed name cap; entries stop when the morning's BUYING
+             CAPACITY is exhausted, where capacity is the least of the
+             headroom to a 1.5x gross-exposure limit, the broker's own buying
+             power, and settled cash plus exit proceeds plus the margin that
+             limit allows. The book therefore self-limits near 20-24 names.
+             One position per ticker; same-morning events are ranked by total
+             dollar size (largest first) and any event capacity cannot fund is
+             recorded 'skipped_full'. A HARD SAFETY CEILING of
+             MAX_CONCURRENT_POSITIONS stops a data anomaly from opening an
+             unbounded book — events beyond it are recorded 'skipped_full'.
+             (2026-08-11, Joe: replaced the fixed 8-slot / equity-over-8 rule.
+             2026-08-12, Joe: 10% at 1.0x -> 6.67% at 1.5x, after the study
+             showed the same return with ~27% less drawdown because the
+             leverage buys MORE NAMES rather than bigger ones; the ranking key
+             was tested at the same time and dollar size beat every
+             alternative. Sizing is decided ONCE, at entry — positions opened
+             under an older rule keep the share counts they were entered
+             with.)
 
   EXIT       market sell at the open of the 21st trading day after entry,
              counting the entry day as day 1 — i.e. the 20th trading session
@@ -137,9 +142,12 @@ MIN_PREV_CLOSE_USD = 5.0             # gate: previous close >= $5
 MIN_AVG_DOLLAR_VOLUME_USD = 2_000_000.0   # gate: 21-day AVG close*volume >= $2M
 DOLLAR_VOLUME_WINDOW_DAYS = 21       # trading rows, window ending at prev close
 SMA_WINDOW_DAYS = 50                 # gate: prev close > 50-day SMA (no look-ahead)
-POSITION_FRACTION = 0.10             # every new position = 10% of CURRENT equity
-MAX_CONCURRENT_POSITIONS = 13        # HARD SAFETY CEILING (historical max concurrency),
-                                     # not a target: the book self-limits on cash at ~10
+POSITION_FRACTION = 0.0667           # every new position = 6.67% of CURRENT equity
+LEVERAGE_LIMIT = 1.50                # gross exposure may reach 1.5x equity (Joe, 2026-08-12)
+MAX_CONCURRENT_POSITIONS = 30        # HARD SAFETY CEILING against a feed anomaly opening an
+                                     # unbounded book. NOT a target and NEVER reader-facing
+                                     # copy: 6.67% at 1.5x peaks near 24 names in the study,
+                                     # so this sits above normal operation, not inside it.
 HOLD_FULL_TRADING_DAYS = 20          # exit at open of 21st trading day (entry day = day 1)
 CATASTROPHE_STOP_DROP = 0.15         # close <= 15% below entry -> sell at the NEXT open
 KILL_MIN_TRADING_DAYS = 40           # underperformance arm needs >= 40 trading days
@@ -343,17 +351,18 @@ def decide_actions(
     are ranked by total dollar size (largest first) and taken while the cash
     lasts.
 
-    FIXED-FRACTION SIZING (2026-08-11): each entry is 10% of CURRENT account
-    equity — floor((equity * 0.10) / prev close) WHOLE shares — and costs
-    qty * prev close, which is deducted from `cash_available` as the book
-    fills. There is no slot count: an event whose cost the remaining cash
-    cannot cover records 'skipped_full' with "insufficient cash for a 10%
-    position", which is what makes the book self-limit at ~10 names.
+    FIXED-FRACTION SIZING (2026-08-12): each entry is POSITION_FRACTION of
+    CURRENT account equity — floor((equity * fraction) / prev close) WHOLE
+    shares — and costs qty * prev close, which is deducted from
+    `cash_available` as the book fills. `cash_available` is the morning's
+    BUYING CAPACITY under the 1.5x gross-exposure limit, not settled cash.
+    There is no slot count: an event whose cost the remaining capacity cannot
+    cover records 'skipped_full', which is what makes the book self-limit.
     MAX_CONCURRENT_POSITIONS is a hard safety ceiling on top of that (a data
     anomaly must not open an unbounded book), counted from
     `open_position_count` (positions already open that are NOT exiting at
     this morning's auction); events beyond it also record 'skipped_full'.
-    An entry that sizes to 0 whole shares (price above the 10% target)
+    An entry that sizes to 0 whole shares (price above the target)
     cannot be taken and records 'skipped_gate' with the sizing reason
     appended. Entered events get entry_qty + exit_due_date (open of the 21st
     trading day, entry day = day 1). Returns the entered events in rank
@@ -367,6 +376,10 @@ def decide_actions(
         else:
             survivors.append(e)
 
+    # "cash_available" is now the book's BUYING CAPACITY for the morning: how
+    # much cost it may add before gross exposure would exceed LEVERAGE_LIMIT x
+    # equity (and never more than the broker will actually lend). It is spent
+    # down as names are funded, exactly as settled cash used to be.
     cash = float(cash_available)
     held = int(open_position_count)
     entered: list[ConvictionEvent] = []
@@ -380,14 +393,16 @@ def decide_actions(
         qty = size_entry(equity, prev_close)
         if qty < 1:
             e.action = "skipped_gate"
-            _append_reason(e, f"cannot size: floor((equity x {POSITION_FRACTION:.0%})"
+            _append_reason(e, f"cannot size: floor((equity x {POSITION_FRACTION:.2%})"
                               f"/prev close ${prev_close}) = 0 whole shares")
             continue
         cost = qty * float(prev_close)
         if cost > cash:
             e.action = "skipped_full"
-            _append_reason(e, f"insufficient cash for a 10% position "
-                              f"(needs ${cost:,.0f}, ${cash:,.0f} available)")
+            _append_reason(e, f"buying capacity exhausted for a "
+                              f"{POSITION_FRACTION:.2%} position "
+                              f"(needs ${cost:,.0f}, ${cash:,.0f} available at the "
+                              f"{LEVERAGE_LIMIT:.2f}x gross-exposure limit)")
             continue
         e.action = "entered"
         e.entry_qty = qty
@@ -473,9 +488,9 @@ def apply_gates(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def size_entry(equity: float, price: float | None) -> int:
-    """FIXED FRACTION: floor((equity * 10%) / price) whole shares — 10% of
-    CURRENT account equity per new position. 0 when unpriceable or when the
-    price exceeds the 10% target (that event cannot be taken)."""
+    """FIXED FRACTION: floor((equity * POSITION_FRACTION) / price) whole
+    shares per new position. 0 when unpriceable or when the price exceeds the
+    target (that event cannot be taken)."""
     if not price or price <= 0 or equity <= 0:
         return 0
     return int(math.floor((equity * POSITION_FRACTION) / price))
@@ -1052,10 +1067,10 @@ def run_open_phase(dry_run: bool = False,
         logger.exception("fill reconciliation failed — continuing")
 
     # broker truth: held book + account equity + settled cash. Equity sizes
-    # each new position (10% of CURRENT equity); cash is what the book can
-    # actually fund this morning, and it is what limits the name count now
-    # that the fixed 8 slots are gone. Both read directly — an account object
-    # missing either field is a broken client, not a reason to trade blind.
+    # each new position (POSITION_FRACTION of CURRENT equity) and also sets
+    # the gross-exposure limit; cash feeds the capacity arithmetic below. Both
+    # read directly — an account object missing either field is a broken
+    # client, not a reason to trade blind.
     positions = {p.ticker.upper(): p for p in alpaca.get_positions()}
     account = alpaca.get_account()
     equity = float(account.equity)
@@ -1181,12 +1196,42 @@ def run_open_phase(dry_run: bool = False,
             else:
                 logger.warning("no previous close for exiting %s — counting $0 of "
                                "proceeds toward this morning's cash", i.ticker)
-    cash_available = cash + exit_proceeds
-    logger.info("book: %d open after today's exits (ceiling %d); fundable cash "
-                "$%s = $%s settled + $%s exit proceeds; 10%% position = $%s",
+    # ── buying capacity at the 1.5x gross-exposure limit (Joe, 2026-08-12) ──
+    # Until today the book could only spend SETTLED CASH, which capped it near
+    # 100% invested and about 10 names. It may now run gross exposure up to
+    # LEVERAGE_LIMIT x equity. Capacity is the LEAST of three numbers, because
+    # each is a real constraint and the smallest one binds:
+    #   1. headroom to the exposure limit: 1.5 x equity - what is still held
+    #      after today's exits (held at market, the broker's own marks);
+    #   2. the broker's own buying power — Alpaca will reject anything beyond
+    #      it, and an order the broker rejects is worse than one never sent;
+    #   3. settled cash + today's exit proceeds, plus the margin the exposure
+    #      limit allows — the arithmetic floor of what can actually be paid.
+    # Study behind the change: 6.67% per name at 1.5x returned what 10% at 1.0x
+    # did with ~27% less drawdown, because the leverage buys MORE NAMES rather
+    # than bigger ones (see the 2026-08-12 ranking-and-leverage study).
+    exiting = {i.ticker.upper() for i in exit_intents}
+    held_value_after_exits = sum(
+        float(p.market_value) for t, p in positions.items() if t not in exiting)
+    exposure_headroom = max(0.0, equity * LEVERAGE_LIMIT - held_value_after_exits)
+    # A MISSING buying_power field means "this client does not report it" and
+    # is ignored; a REPORTED zero means the broker will lend nothing and must
+    # bind. Collapsing the two would let a frozen account keep buying.
+    raw_power = getattr(account, "buying_power", None)
+    broker_power = None if raw_power is None else float(raw_power)
+    settled_plus_margin = cash + exit_proceeds + max(0.0, equity * (LEVERAGE_LIMIT - 1.0))
+    limits = [exposure_headroom, settled_plus_margin]
+    if broker_power is not None:
+        limits.append(broker_power)
+    cash_available = max(0.0, min(limits))
+    logger.info("book: %d open after today's exits (ceiling %d); capacity $%s = "
+                "min(exposure headroom $%s, broker buying power $%s, settled+margin $%s); "
+                "held after exits $%s; %s position = $%s",
                 open_after_exits, MAX_CONCURRENT_POSITIONS, f"{cash_available:,.0f}",
-                f"{cash:,.0f}", f"{exit_proceeds:,.0f}",
-                f"{equity * POSITION_FRACTION:,.0f}")
+                f"{exposure_headroom:,.0f}",
+                "n/a" if broker_power is None else f"{broker_power:,.0f}",
+                f"{settled_plus_margin:,.0f}", f"{held_value_after_exits:,.0f}",
+                f"{POSITION_FRACTION:.2%}", f"{equity * POSITION_FRACTION:,.0f}")
 
     if exit_due_session(sessions, session) is None:
         # calendar window too short (long shutdown?) — extend rather than
