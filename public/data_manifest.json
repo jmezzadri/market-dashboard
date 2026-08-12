@@ -2425,7 +2425,7 @@
       "category": "portfolio",
       "name": "ce_events",
       "display_name": "Conviction Events ledger",
-      "description": "Conviction Events decision ledger — every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, or skipped (not enough cash for a full position / already held / failed gates). Companion single-row table ce_kill_switch (tripped / reason / checked_at) rides this element — a monitor that raises an alert to the owner; it never blocks a trade.",
+      "description": "Conviction Events decision ledger — every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, or skipped (buying capacity exhausted / already held / failed gates). The book has no book-level alarm: the companion ce_kill_switch table was retired on 2026-08-12 when both of its arms (trailing the S&P 500, and drawdown from the book's peak) were removed — risk is controlled per position, by the 15% stop, whose scheduled exit shows in this ledger.",
       "sourcing_mode": "computed in-house from raw",
       "source_vendor": "SEC EDGAR (free)",
       "source_endpoint": "Computed from insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation) — each input is its own registered element",
@@ -2443,7 +2443,7 @@
       "consumer_surfaces": [
         {
           "tab": "paper",
-          "tile": "Event ledger + positions why-held cells + kill-switch line"
+          "tile": "Event ledger + positions why-held cells"
         },
         {
           "tab": "scanner",

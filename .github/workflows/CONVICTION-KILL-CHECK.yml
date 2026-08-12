@@ -1,6 +1,6 @@
 name: CONVICTION-KILL-CHECK
 
-# Conviction Events — post-close bookkeeping + pre-registered kill switch.
+# Conviction Events — post-close bookkeeping + the per-position stop screen.
 #
 # Steps:
 #   1. Close snapshot (paper_portfolio.runner --phase close — the UNTOUCHED
@@ -8,23 +8,21 @@ name: CONVICTION-KILL-CHECK
 #      NAV at official session closes. This workflow took over the close
 #      bookkeeping when PAPER-PORTFOLIO-CLOSE-DAILY was deleted with the
 #      retired two-sleeve engine.
-#   2. Post-close phase (paper_portfolio.conviction --phase kill-check), two
-#      independent jobs in one step:
-#      a. CATASTROPHE STOP (the only risk exit): every held position is
-#         screened against today's official close. A close 15% or more below
-#         the entry price moves that event's exit_due_date to the next
-#         trading session, so tomorrow's open phase sells it market-on-open
-#         down the SAME path as a scheduled 21st-day exit. A position already
-#         due at that open is left alone (never a double exit). A failed
-#         screen fails this job — unscreened positions must never be silent.
-#      b. KILL-SWITCH MONITOR: from paper_nav_daily since the NEW inception,
-#         compute the book's return vs SPY and the max drawdown from the
-#         book's peak. Trip when (>= 40 trading days AND book trails SPY by
-#         >= 10 pts) OR (drawdown >= 15%). A trip is recorded in
-#         ce_kill_switch and THIS JOB FAILS with a ::error:: annotation so
-#         WORKFLOW_FAILURE_ALERT emails. It is a MONITOR: trading continues
-#         unaffected — entries are NEVER refused (2026-08-11, Joe). The
-#         tripped state latches until a human resets the row.
+#   2. Post-close phase (paper_portfolio.conviction --phase kill-check):
+#      the CATASTROPHE STOP, which is the book's ONLY risk exit. Every held
+#      position is screened against today's official close. A close 15% or
+#      more below the entry price moves that event's exit_due_date to the next
+#      trading session, so tomorrow's open phase sells it market-on-open down
+#      the SAME path as a scheduled 21st-day exit. A position already due at
+#      that open is left alone (never a double exit). A failed screen fails
+#      this job — unscreened positions must never be silent.
+#
+#      The BOOK-LEVEL alarm this phase used to run was removed 2026-08-12
+#      (Joe): first the "trails the S&P 500 by 10+ points after 8 weeks" arm,
+#      then the drawdown arm. Neither changed what the engine did and neither
+#      was backtested; an alert nobody would act on is noise. ce_kill_switch
+#      is no longer read or written. The phase and this workflow keep their
+#      historical names.
 #
 # Schedule (cron is UTC; both DST siblings fire — the close snapshot is an
 # idempotent upsert and self-skips when there is no settled session bar):
