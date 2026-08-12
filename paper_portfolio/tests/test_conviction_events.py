@@ -271,23 +271,23 @@ def test_gate_insufficient_history_fails_sma():
 # (hand-computed; LESSONS 3.4)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_sizing_is_ten_percent_of_current_equity_floored():
-    # equity $1,000,000 -> position target $100,000; price $30
-    # -> 100000/30 = 3333.33 -> floor = 3333 shares ($99,990 cost)
-    assert size_entry(1_000_000, 30.0) == 3333
-    # exact division: $100,000 / $125 = 800 shares, no remainder
-    assert size_entry(1_000_000, 125.0) == 800
-    # drifted equity: $973,456 x 10% = $97,345.60 -> / $87.65 = 1110.61 -> 1110
-    assert size_entry(973_456, 87.65) == 1110
-    # equity moves -> the dollar target moves with it (10% of CURRENT equity):
-    # $1,200,000 x 10% = $120,000 -> / $30 = 4000 shares
-    assert size_entry(1_200_000, 30.0) == 4000
+def test_sizing_is_the_fixed_fraction_of_current_equity_floored():
+    # 2026-08-12: the fraction moved 10% -> 6.67% (with 1.5x gross exposure).
+    # equity $1,000,000 -> position target $66,700; price $30
+    # -> 66700/30 = 2223.33 -> floor = 2223 shares
+    assert size_entry(1_000_000, 30.0) == 2223
+    assert size_entry(1_000_000, 125.0) == 533
+    # drifted equity: $973,456 x 6.67% = $64,929.51 -> / $87.65 -> 740
+    assert size_entry(973_456, 87.65) == 740
+    # equity moves -> the dollar target moves with it:
+    # $1,200,000 x 6.67% = $80,040 -> / $30 = 2668 shares
+    assert size_entry(1_200_000, 30.0) == 2668
 
 
 def test_sizing_unfundable_or_unpriceable_returns_zero():
-    # price above the whole 10% target -> 0 shares (cannot enter at all)
-    assert size_entry(1_000_000, 100_001.0) == 0
-    assert size_entry(1_000_000, 100_000.0) == 1        # exactly the target: 1 share
+    # price above the whole position target -> 0 shares (cannot enter at all)
+    assert size_entry(1_000_000, 66_701.0) == 0
+    assert size_entry(1_000_000, 66_700.0) == 1         # exactly the target: 1 share
     assert size_entry(1_000_000, None) == 0
     assert size_entry(1_000_000, 0) == 0
     assert size_entry(0, 30.0) == 0
@@ -353,11 +353,13 @@ def test_next_session_after_weekend_and_holiday():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Book filling on CASH + same-morning ranking (production decision path)
+# Book filling on BUYING CAPACITY + same-morning ranking (production path)
 #
-# Every entry is 10% of equity. At $1,000,000 equity the target is $100,000:
-#   $10 -> 10,000 sh = $100,000     $20 -> 5,000 sh = $100,000
-#   $30 ->  3,333 sh =  $99,990     $40 -> 2,500 sh = $100,000
+# Every entry is 6.67% of equity. At $1,000,000 equity the target is $66,700:
+#   $10 -> 6,670 sh = $66,700       $20 -> 3,335 sh = $66,700
+#   $30 -> 2,223 sh = $66,690       $40 -> 1,667 sh = $66,680
+# Capacity is the least of: headroom to 1.5x gross exposure, broker buying
+# power, and settled cash + exit proceeds + the margin the limit allows.
 # ─────────────────────────────────────────────────────────────────────────────
 
 SESSIONS = _weekday_sessions(date(2026, 8, 1), date(2026, 12, 1))
@@ -379,79 +381,81 @@ def test_rank_same_morning_by_total_dollar_size():
     assert [e.ticker for e in rank_same_morning(evs)] == ["BIG", "MID", "SMALL"]
 
 
-def test_entries_fill_by_rank_until_the_cash_runs_out():
-    # $250,000 of cash: BBB costs $100,000 (5,000 x $20) -> $150,000 left;
-    # CCC costs $99,990 (3,333 x $30) -> $50,010 left; AAA needs $100,000 and
+def test_entries_fill_by_rank_until_the_capacity_runs_out():
+    # $140,000 of capacity: BBB costs $66,700 (3,335 x $20) -> $73,300 left;
+    # CCC costs $66,690 (2,223 x $30) -> $6,610 left; AAA needs $66,700 and
     # cannot be funded -> skipped_full.
     evs = [_gated_event("AAA", 300_000), _gated_event("BBB", 800_000),
            _gated_event("CCC", 500_000)]
     prev = {"AAA": 10.0, "BBB": 20.0, "CCC": 30.0}
-    entered = decide_actions(evs, cash_available=250_000,
+    entered = decide_actions(evs, cash_available=140_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes=prev, sessions=SESSIONS, session=TODAY)
     assert [e.ticker for e in entered] == ["BBB", "CCC"]     # biggest $ first
     by = {e.ticker: e for e in evs}
     assert by["BBB"].action == "entered"
-    assert by["BBB"].entry_qty == 5000                        # floor(100K/20)
+    assert by["BBB"].entry_qty == 3335                        # floor(66.7K/20)
     assert by["BBB"].exit_due_date == exit_due_session(SESSIONS, TODAY).isoformat()
-    assert by["CCC"].entry_qty == 3333                        # floor(100K/30)
+    assert by["CCC"].entry_qty == 2223                        # floor(66.7K/30)
     assert by["AAA"].action == "skipped_full"
-    assert "insufficient cash for a 10% position" in by["AAA"].gate_fail_reason
+    assert "buying capacity exhausted" in by["AAA"].gate_fail_reason
 
 
-def test_ten_percent_sizing_self_limits_the_book_at_about_ten_names():
-    # A full $1,000,000 of cash and eleven equally-priced candidates: ten
-    # $100,000 positions exhaust the cash exactly, the eleventh is unfundable.
-    evs = [_gated_event(f"T{i:02d}", 900_000 - i) for i in range(11)]
+def test_sizing_self_limits_the_book_on_capacity():
+    # $1,500,000 of capacity (a $1m book at the 1.5x gross-exposure limit) and
+    # 24 equally-priced candidates: 22 x $66,700 = $1,467,400 fits, the 23rd
+    # would need $66,700 against $32,600 left, so it is skipped.
+    evs = [_gated_event(f"T{i:02d}", 900_000 - i) for i in range(24)]
     prev = {e.ticker: 10.0 for e in evs}
-    entered = decide_actions(evs, cash_available=1_000_000,
+    entered = decide_actions(evs, cash_available=1_500_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes=prev, sessions=SESSIONS, session=TODAY)
-    assert len(entered) == 10
-    assert all(e.entry_qty == 10_000 for e in entered)        # floor(100K/10)
+    assert len(entered) == 22
+    assert all(e.entry_qty == 6_670 for e in entered)         # floor(66.7K/10)
     leftover = [e for e in evs if e.action == "skipped_full"]
-    assert len(leftover) == 1
-    assert "insufficient cash for a 10% position" in leftover[0].gate_fail_reason
+    assert len(leftover) == 2
+    assert "buying capacity exhausted" in leftover[0].gate_fail_reason
 
 
-def test_no_cash_skips_everything_as_full_with_the_cash_reason():
+def test_no_capacity_skips_everything_as_full_with_the_capacity_reason():
     evs = [_gated_event("AAA", 300_000)]
     entered = decide_actions(evs, cash_available=0.0,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes={"AAA": 10.0}, sessions=SESSIONS, session=TODAY)
     assert entered == []
     assert evs[0].action == "skipped_full"
-    assert "insufficient cash for a 10% position" in evs[0].gate_fail_reason
+    assert "buying capacity exhausted" in evs[0].gate_fail_reason
 
 
-def test_cash_exactly_funds_the_position():
-    # Boundary: cost == cash is fundable; one cent less is not.
+def test_capacity_exactly_funds_the_position():
+    # Boundary: cost == capacity is fundable; one cent less is not.
+    # 6.67% of $1,000,000 = $66,700 -> 6,670 shares at $10 = $66,700 exactly.
     evs = [_gated_event("AAA", 300_000)]
-    entered = decide_actions(evs, cash_available=100_000.0,
+    entered = decide_actions(evs, cash_available=66_700.0,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes={"AAA": 10.0}, sessions=SESSIONS, session=TODAY)
     assert [e.ticker for e in entered] == ["AAA"]
     evs2 = [_gated_event("AAA", 300_000)]
-    assert decide_actions(evs2, cash_available=99_999.99,
+    assert decide_actions(evs2, cash_available=66_699.99,
                           blocked_tickers=set(), equity=1_000_000,
                           prev_closes={"AAA": 10.0}, sessions=SESSIONS,
                           session=TODAY) == []
 
 
-def test_hard_ceiling_of_13_concurrent_positions_blocks_further_entries():
-    # A data anomaly floods the morning with fundable events while 12 names
-    # are already open: exactly ONE more may open (13th), the rest are full.
+def test_hard_ceiling_blocks_further_entries():
+    # A data anomaly floods the morning with fundable events while the book is
+    # one name below the ceiling: exactly ONE more may open, the rest are full.
     evs = [_gated_event(f"N{i:02d}", 900_000 - i) for i in range(4)]
     prev = {e.ticker: 10.0 for e in evs}
     entered = decide_actions(evs, cash_available=10_000_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes=prev, sessions=SESSIONS, session=TODAY,
-                             open_position_count=12)
-    assert MAX_CONCURRENT_POSITIONS == 13
-    assert [e.ticker for e in entered] == ["N00"]             # the 13th slot
+                             open_position_count=MAX_CONCURRENT_POSITIONS - 1)
+    assert MAX_CONCURRENT_POSITIONS == 30
+    assert [e.ticker for e in entered] == ["N00"]             # the last slot
     ceiling_skips = [e for e in evs if e.action == "skipped_full"]
     assert [e.ticker for e in ceiling_skips] == ["N01", "N02", "N03"]
-    assert "ceiling reached (13 open)" in ceiling_skips[0].gate_fail_reason
+    assert f"ceiling reached ({MAX_CONCURRENT_POSITIONS} open)" in ceiling_skips[0].gate_fail_reason
 
 
 def test_ceiling_binds_even_with_unlimited_cash():
@@ -459,7 +463,8 @@ def test_ceiling_binds_even_with_unlimited_cash():
     entered = decide_actions(evs, cash_available=10_000_000,
                              blocked_tickers=set(), equity=1_000_000,
                              prev_closes={"AAA": 10.0}, sessions=SESSIONS,
-                             session=TODAY, open_position_count=13)
+                             session=TODAY,
+                             open_position_count=MAX_CONCURRENT_POSITIONS)
     assert entered == []
     assert evs[0].action == "skipped_full"
     assert "ceiling" in evs[0].gate_fail_reason
@@ -486,7 +491,7 @@ def test_gate_failed_events_record_skipped_gate():
 
 
 def test_unsizeable_entry_records_reason_and_leaves_the_cash_for_the_next():
-    # BRK.A-style price above the whole 10% target: floor -> 0 shares; the
+    # BRK.A-style price above the whole position target: floor -> 0 shares; the
     # next-ranked event still gets the capital.
     evs = [_gated_event("PRICY", 900_000), _gated_event("OK", 300_000)]
     entered = decide_actions(evs, cash_available=100_000,
@@ -820,13 +825,16 @@ def test_fresh_trip_latches_and_repeat_check_does_not_retrip(monkeypatch):
 class _FakeBroker:
     """Alpaca stand-in for the open phase: calendar, positions, account."""
 
-    def __init__(self, sessions, positions, equity, cash=None):
+    def __init__(self, sessions, positions, equity, cash=None, buying_power=None):
         self._sessions = sessions
         self._positions = positions
         self._equity = equity
-        # Default: enough settled cash for two 10% positions, so a fixture
+        # Default: enough settled cash for two full positions, so a fixture
         # that does not care about funding still enters.
         self._cash = equity * 0.2 if cash is None else cash
+        # Default: the broker lends up to the 1.5x limit, so the exposure
+        # headroom is what binds unless a test says otherwise.
+        self._buying_power = equity * 1.5 if buying_power is None else buying_power
 
     def _get(self, path):
         # /v2/calendar?start=...&end=... — used by the calendar loader AND
@@ -841,16 +849,24 @@ class _FakeBroker:
         return self._positions
 
     def get_account(self):
-        class _A:  # equity sizes the position, cash funds it
+        class _A:  # equity sizes the position AND sets the exposure limit
             equity = self._equity
             cash = self._cash
+            # Alpaca reports buying power on a margin account; the capacity
+            # arithmetic takes the SMALLEST of the three limits, so a stub that
+            # left this at 0 would silently disable the broker constraint.
+            buying_power = self._buying_power
         return _A
 
 
 class _BrokerPos:
-    def __init__(self, ticker, qty):
+    def __init__(self, ticker, qty, market_value=None):
         self.ticker = ticker
         self.qty = qty
+        # The capacity arithmetic values the held book at the broker's marks;
+        # a position without one would understate exposure. $10/share unless a
+        # test pins it.
+        self.market_value = qty * 10.0 if market_value is None else market_value
 
 
 def _open_phase_router(state):
@@ -927,7 +943,8 @@ def test_open_phase_dry_run_exits_first_then_gated_entry(monkeypatch, capsys):
     assert res["kill_switch_tripped"] is False
 
 
-def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0):
+def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0,
+                                 buying_power=None):
     """One qualifying event, an empty book, and a TRIPPED kill switch."""
     today = date(2026, 8, 10)
     sessions = _weekday_sessions(date(2026, 7, 27), date(2026, 11, 30))
@@ -950,7 +967,8 @@ def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0):
     }
     monkeypatch.setattr(conv, "_supabase_query", _open_phase_router(state))
     monkeypatch.setattr(conv, "_supabase_exec", lambda sql: None)
-    broker = _FakeBroker(sessions, [], equity=1_000_000.0, cash=cash)
+    broker = _FakeBroker(sessions, [], equity=1_000_000.0, cash=cash,
+                         buying_power=buying_power)
     monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
     return today
 
@@ -984,16 +1002,30 @@ def test_open_phase_trades_even_when_the_kill_switch_row_is_unreadable(monkeypat
     assert res["kill_switch_tripped"] is None           # unknown, not assumed
 
 
-def test_open_phase_skips_an_entry_it_cannot_fund(monkeypatch):
-    """10% of $1,000,000 equity is $100,000; at NEWCO's $12 previous close
-    that is floor(100000/12) = 8,333 shares costing $99,996 — with only
-    $20,000 of cash the entry is unfundable and no order is queued."""
+def test_open_phase_funds_on_margin_when_settled_cash_is_thin(monkeypatch):
+    """2026-08-12: settled cash alone no longer decides. 6.67% of $1,000,000
+    equity is $66,700; at NEWCO's $12 previous close that is 5,558 shares
+    costing $66,696. With only $20,000 of settled cash the book still enters,
+    because the 1.5x gross-exposure limit allows $500,000 of margin on an
+    empty book — capacity is min(headroom $1.5m, buying power $1.5m,
+    settled+margin $520,000) = $520,000."""
     import paper_portfolio.conviction as conv
     today = _tripped_kill_switch_fixture(monkeypatch, conv, cash=20_000.0)
     res = conv.run_open_phase(dry_run=True, session_date=today)
     assert res["events"] == 1
+    assert res["entries"] == 1
+    assert res["cash_available"] == pytest.approx(520_000.0)
+
+
+def test_open_phase_still_skips_when_capacity_is_genuinely_gone(monkeypatch):
+    """The gate did not disappear, it moved: a broker that will lend nothing
+    and no settled cash leaves no capacity, and the entry is skipped."""
+    import paper_portfolio.conviction as conv
+    today = _tripped_kill_switch_fixture(monkeypatch, conv, cash=0.0,
+                                         buying_power=0.0)
+    res = conv.run_open_phase(dry_run=True, session_date=today)
+    assert res["events"] == 1
     assert res["entries"] == 0
-    assert res["cash_available"] == pytest.approx(20_000.0)
 
 
 def test_open_phase_no_ops_on_a_non_trading_day(monkeypatch):

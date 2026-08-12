@@ -7,7 +7,7 @@
 //   Conviction Events — trades large real insider purchases (aggregated
 //   open-market buys of $250,000 or more per name per day, automatic 10b5-1
 //   plan purchases excluded), confirmed by the stock trading above its 50-day
-//   average, entered at the next morning's open at 10% of the book's equity
+//   average, entered at the next morning's open at 6.67% of the book's equity
 //   per new position. No fixed position count — the cash self-limits the book
 //   near 10 names (8 typical, 13 at the busiest), with 13 as a hard safety
 //   ceiling. Each position exits at the open of the 21st trading day, or
@@ -918,7 +918,7 @@ function PositionsPanel({
       <div className="paper-panel-head">
         <div>
           <h2 className="paper-panel-title">
-            Positions <InfoTip term="Positions" def="Every name the book currently holds. Each was bought at the morning open after a qualifying insider purchase, sized at 10% of the book's equity, and exits at the open of the 21st trading day after entry — or sooner if it closes 15% or more below the price it was bought at." size={12} />
+            Positions <InfoTip term="Positions" def="Every name the book currently holds. Each was bought at the morning open after a qualifying insider purchase, sized at 6.67% of the book's equity, and exits at the open of the 21st trading day after entry — or sooner if it closes 15% or more below the price it was bought at." size={12} />
           </h2>
           <div className="paper-panel-sub">
             {rows.length} {rows.length === 1 ? 'position' : 'positions'} · sort by any column, drag a header to reorder, drag its edge to resize
@@ -1425,7 +1425,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <ul className="impl">
             <li><b>The signal</b>: large real insider purchases — aggregated open-market buys of <b>$250,000 or more</b> per name per day, automatic (10b5-1) plan purchases excluded.</li>
             <li><b>The confirmation</b>: the stock must be trading <b>above its 50-day average price</b>.</li>
-            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>10% of the book&rsquo;s equity</b> — no fixed count, the book funds names until the cash runs out (about <b>10 names</b>); each exits at the <b>open of the 21st trading day</b>.</li>
+            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>6.67% of the book&rsquo;s equity</b> — no fixed count, the book funds names until its buying capacity runs out (about <b>20 names</b>), and may run <b>gross exposure up to 1.5&times; equity</b>; each exits at the <b>open of the 21st trading day</b>.</li>
             <li><b>The one risk exit</b>: a position that <b>closes 15% or more below the price it was bought at</b> is sold at the <b>next morning&rsquo;s open</b> instead of waiting for its 21st day.</li>
             <li><b>The kill switch</b>: if the book trails the S&amp;P 500 by <b>10 or more points after 8 weeks</b>, or drawdown reaches <b>15%</b>, it <b>raises an alert</b> — a warning, not a stop. Trading carries on.</li>
           </ul>
