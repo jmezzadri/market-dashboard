@@ -15,8 +15,8 @@
   "yield_regime": {
     "state": "Neutral",
     "delta_y_3m_bp": 27.0,
-    "delta_y_3m_bp_live": 30.0,
-    "live_as_of": "2026-08-10",
+    "delta_y_3m_bp_live": 24.0,
+    "live_as_of": "2026-08-11",
     "delta_y_3m_percentile_5y": 0.64,
     "inflationary_threshold_bp": 34.0,
     "deflationary_threshold_bp": -9.0,
