@@ -112,6 +112,31 @@
 .home-v12 .paper-table tbody tr { transition: background .16s ease, transform .16s ease; }
 .home-v12 .paper-table tbody tr:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(4px); }
 
+/* Risk monitor panel (2026-08-11) — replaces the one-line kill-switch chip.
+   Two rows, each a test with its live reading. State colour lives on the
+   reading only; the row itself stays neutral so a calm book reads calm. */
+.home-v12 .pp-monitor .pp-montable { width: 100%; }
+.home-v12 .pp-monitor .pp-montable td.mut,
+.home-v12 .pp-monitor .pp-montable th { color: var(--mut); }
+.home-v12 .pp-monitor .pp-montable td { padding-top: 11px; padding-bottom: 11px; }
+.home-v12 .pp-montable td.st-ok    { color: var(--up); font-weight: 650; }
+.home-v12 .pp-montable td.st-watch { color: var(--warn); font-weight: 650; }
+.home-v12 .pp-montable td.st-alert { color: var(--down); font-weight: 700; }
+.home-v12 .pp-montable td.st-idle,
+.home-v12 .pp-montable td.st-none  { color: var(--mut); }
+.home-v12 .pp-mon-state { font-weight: 650; letter-spacing: .01em; }
+.home-v12 .pp-mon-state.ok { color: var(--up); }
+.home-v12 .pp-mon-state.alert { color: var(--down); }
+.home-v12 .pp-mon-note { padding: 0 30px 22px; font-size: 13.5px; color: var(--ink); }
+
+/* The positions grid is the shared DataTable; the panel owns its padding. */
+.home-v12 .pp-tablewrap { padding: 6px 30px 22px; }
+.home-v12 .pp-tablewrap .dt-table { font-family: var(--sans); }
+@media (max-width: 900px) {
+  .home-v12 .pp-tablewrap { padding: 6px 18px 18px; }
+  .home-v12 .pp-mon-note { padding: 0 18px 18px; }
+}
+
 /* Positions footer — cash and realized profit (added 2026-08-11). Reads as a
    summary, not as another holding: a rule above it, muted label, no hover
    lift. The numbers stay tabular so they line up with the column above. */
@@ -124,20 +149,7 @@
 .home-v12 .paper-table tfoot tr.pp-foot:hover { background: transparent; transform: none; }
 
 /* kill-switch line — putty strip, hairline-free like the panels */
-.home-v12 .pp-ks { background: var(--putty); border: 0; border-radius: 20px; transition: background .5s; font-family: var(--sans); position: relative; }
-
-/* Its hover explainer, INSTANT (LESSONS 6.13 — the native title attribute has
-   a ~1s browser delay that cannot be removed, and is a hard-banned defect).
-   Same shape as .ce-tip on the Scanner desk: :hover::after, no transition. */
-.home-v12 .pp-ks[data-tip]:hover::after {
-  content: attr(data-tip);
-  position: absolute; bottom: calc(100% + 8px); left: 20px;
-  max-width: 420px; white-space: normal;
-  background: rgba(33,44,51,.97); color: rgba(247,243,232,.97);
-  font-family: var(--sans); font-size: 11.5px; line-height: 1.45; font-weight: 500;
-  padding: 9px 11px; border-radius: 10px; z-index: 60;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25); pointer-events: none;
-}
+.home-v12 .pp-ks { background: var(--putty); border: 0; border-radius: 20px; transition: background .5s; font-family: var(--sans); }
 
 /* book card headline rows */
 .home-v12 .pp-book-nav { font-family: var(--sans); font-size: clamp(34px, 3vw, 46px); line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums; margin: 14px 0 12px; }
