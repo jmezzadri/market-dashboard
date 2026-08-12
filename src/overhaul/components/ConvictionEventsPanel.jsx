@@ -76,7 +76,7 @@ function reasonFor(r) {
   if (written) return written;
   if (r.action === 'skipped_dup') return 'The book already held this name.';
   if (r.action === 'skipped_full') {
-    return 'The book could not fund a full position when this event qualified, or was already at its 13-position ceiling.';
+    return 'The book could not fund a full position when this event qualified.';
   }
   return null;
 }

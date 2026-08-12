@@ -957,7 +957,7 @@ function EventLedgerPanel({ events, loading, onOpenTicker }) {
     const meta = ceActionMeta(r.action);
     const reason = r.action === 'skipped_gate' ? ceReasonText(r.gate_fail_reason) : null;
     const tip = reason
-      || (r.action === 'skipped_full' ? 'The book did not have the cash for a full position when this event qualified (or was already at its 13-position ceiling).' : null)
+      || (r.action === 'skipped_full' ? 'The book did not have the cash for a full position when this event qualified.' : null)
       || (r.action === 'skipped_dup' ? 'The book already held this name.' : null);
     const el = <span className={`ce-chip ${meta.tone}`}>{meta.label}</span>;
     return tip ? <span className="ce-tip" data-tip={tip}>{el}</span> : el;
@@ -1425,7 +1425,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <ul className="impl">
             <li><b>The signal</b>: large real insider purchases — aggregated open-market buys of <b>$250,000 or more</b> per name per day, automatic (10b5-1) plan purchases excluded.</li>
             <li><b>The confirmation</b>: the stock must be trading <b>above its 50-day average price</b>.</li>
-            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>10% of the book&rsquo;s equity</b> — no fixed count, the book funds names until the cash runs out (about <b>10 names</b>, never more than <b>13</b>); each exits at the <b>open of the 21st trading day</b>.</li>
+            <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>10% of the book&rsquo;s equity</b> — no fixed count, the book funds names until the cash runs out (about <b>10 names</b>); each exits at the <b>open of the 21st trading day</b>.</li>
             <li><b>The one risk exit</b>: a position that <b>closes 15% or more below the price it was bought at</b> is sold at the <b>next morning&rsquo;s open</b> instead of waiting for its 21st day.</li>
             <li><b>The kill switch</b>: if the book trails the S&amp;P 500 by <b>10 or more points after 8 weeks</b>, or drawdown reaches <b>15%</b>, it <b>raises an alert</b> — a warning, not a stop. Trading carries on.</li>
           </ul>
