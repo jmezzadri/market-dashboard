@@ -9,8 +9,8 @@
    1.5x gross-exposure limit self-limits the book near 20 names (2026-08-12
    change, from 10% unlevered) — exit at the open of the 21st trading
    day or sooner on a close 15% or more below the entry price, pre-registered
-   kill switch: 10+ points behind the S&P 500 after 8 weeks or drawdown
-   reaching 15% raises an alert to the owner, trading continues — a MONITOR,
+   drawdown alarm: the book falling 15% or more from its own high raises an
+   alert to the owner, trading continues — a MONITOR,
    it never stops new buying; engine change 2026-08-11). Backtest figures
    (June 2025 – August 2026 event study, ~14 months, zero costs: +112% vs
    S&P +24%, Sharpe 2.3, 61% winners, ~18-day average hold, +53% with the
@@ -471,13 +471,17 @@ export default function MethodologyPage() {
               traded back above it before the normal exit came due.
             </p>
             <p className="me-body-p">
-              <b>The kill switch, set in advance.</b> If the book <b>trails the S&amp;P 500 by 10 or
-              more points after 8 weeks</b>, or its <b>drawdown reaches 15%</b>, the book{' '}
-              <b>raises an alert to its owner</b>. It is a warning, not a stop: <b>trading
-              continues</b>, new names keep entering, and open positions keep leaving on their own
-              rules. The thresholds were fixed before the book launched, so the warning is the
-              rule&rsquo;s — not a judgment call made after a bad stretch. The current state —
-              quiet or tripped — shows on the Paper page.
+              <b>The drawdown alarm, set in advance.</b> If the book as a whole falls{' '}
+              <b>15% or more from its own highest value</b>, it <b>raises an alert to its
+              owner</b>. It is a warning, not a stop: <b>trading continues</b>, new names keep
+              entering, and open positions keep leaving on their own rules. The threshold was
+              fixed before the book launched, so the warning is the rule&rsquo;s — not a judgment
+              call made after a bad stretch. The current state shows on the Paper page.
+              A second arm — an alert when the book trailed the S&amp;P 500 by 10 or more points
+              after 8 weeks — was <b>removed on 12 August 2026</b>: a long-only book being out of
+              favour against the index is not a risk event, and an alarm no one would act on is
+              noise. Risk is controlled where it belongs — per position, by the 15% stop, and
+              across the book, by this drawdown alarm.
             </p>
             <p className="me-body-p">
               <b>The backtest, stated honestly.</b> In a <b>June 2025 – August 2026 event study —
@@ -499,7 +503,7 @@ export default function MethodologyPage() {
               enter   = next morning&rsquo;s open · size = 6.67% of equity each · no fixed count, ~20 names as capacity allows · gross exposure ≤ 1.5× equity<br />
               exit    = at the open of the 21st trading day after entry<br />
               stop    = a close 15% or more below the entry price → sold at the next morning&rsquo;s open<br />
-              alert   = trailing the S&amp;P 500 by 10+ points after 8 weeks, or drawdown reaching 15% → the owner is warned, trading continues
+              alert   = the book down 15% or more from its own highest value → the owner is warned, trading continues
             </div>
           </div>
         </article>
