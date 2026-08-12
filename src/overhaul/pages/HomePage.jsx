@@ -1,9 +1,9 @@
 /* HomePage — the Daily-Brief home on the cream design system.
    2026-07-21 rework (Joe): the stacked full-width sections are replaced by
-   a six-tile grid so every key read is visible without scrolling several
-   pages — 1 Morning Brief, 2 The Engine, 3 Macro indicators, 4 Positioning,
-   5 Trading Scanner (Insider Conviction + Power Trend Momentum), 6 Upcoming
-   data. Biggest Movers is retired. Hero, tape, scroll-reveal and hover
+   a tile grid so every key read is visible without scrolling several pages —
+   1 Morning Brief, 2 The Engine, 3 Macro indicators, 4 Positioning, 5 Upcoming
+   data. Biggest Movers is retired; the Trading Scanner tile went 2026-08-12
+   with the /scanner page (both were surfaces on retired scanners). Hero, tape, scroll-reveal and hover
    animations are kept.
 
    Second pass (Joe, same day): deliberate tile color SYSTEM, not inherited
@@ -31,8 +31,6 @@ import useEngineRegime from '../lib/useEngineRegime';
 import useMarketLevels from '../lib/useMarketLevels';
 import usePositioning from '../lib/usePositioning';
 import useDailyBrief from '../lib/useDailyBrief';
-import useTradingOppsTop from '../../hooks/useTradingOppsTop';
-import usePowerTrendTop from '../lib/usePowerTrendTop';
 import { getWeekGrid } from '../lib/econCalendar';
 import useNotableIndicators from '../lib/useNotableIndicators';
 import '../styles/cream-system.css';
@@ -132,8 +130,6 @@ export default function HomePage() {
   const regime = useEngineRegime();
   const { rows: posRows } = usePositioning();
   const { brief } = useDailyBrief();
-  const { rows: scanRows, bandCounts } = useTradingOppsTop(20);
-  const { rows: momoRows } = usePowerTrendTop(3);
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const weeks = useMemo(() => getWeekGrid(todayISO, 6), [todayISO]);
@@ -147,12 +143,6 @@ export default function HomePage() {
     const ds = RIBBON.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
     return ds.length ? ds[ds.length - 1] : null;
   }, [level]);
-
-  // Top scanner names (cleared the gate), top 3 by score.
-  const topScan = useMemo(
-    () => (scanRows || []).filter((r) => (r.band ?? 0) >= 4).slice(0, 3),
-    [scanRows],
-  );
 
   // Upcoming releases — ONE row per date (all that date's releases combined),
   // next 5 dates. Skip dates whose only event is the weekly jobless claims so
@@ -369,56 +359,11 @@ export default function HomePage() {
             <p className="tilenote">Every market whose speculative futures positioning sits at a 3-year extreme, per the latest weekly CFTC data.</p>
           </Reveal>
 
-          {/* 5 · trading scanner — both scanners, full width */}
-          <Reveal className="tile putty-card sp12">
-            <div className="tilehead">
-              <div className="eyebrow2"><span className="dot" />Trading scanner · top conviction</div>
-              {/* "Full scanner →" removed 2026-08-11: /scanner is retired. This
-                  tile still renders the insider-conviction and power-trend
-                  lists, which are their own feeds and keep running. */}
-            </div>
-            <div className="scan-cols">
-              <div>
-                <h3 className="subhead">Insider Conviction</h3>
-                {topScan.length > 0 && (
-                  <div className="srow schead srow--ins">
-                    <span className="tk" />
-                    <span className="stv">Last week</span>
-                    <span className="stv">Score</span>
-                  </div>
-                )}
-                {topScan.map((r) => (
-                  <a key={r.ticker} className="srow srow--ins" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
-                    <span className="tk">{r.ticker}</span>
-                    <span className="stv">{r.score_1w != null ? fmt(r.score_1w, 1) : 'new'}</span>
-                    <span className="stv stv--now">{fmt(r.score, 1)}</span>
-                  </a>
-                ))}
-                {topScan.length === 0 && <div className="secnote">No names clear the gate today.</div>}
-              </div>
-              <div>
-<h3 className="subhead">Power Trend Momentum</h3>
-                {momoRows.length > 0 && (
-                  <div className="srow schead srow--mo">
-                    <span className="tk" />
-                    <span className="stv">{momoRows[0]?.rebalance_date ? `Since ${new Date(momoRows[0].rebalance_date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Since picked'}</span>
-                    <span className="stv">Breakout vol</span>
-                    <span className="stv">3 month</span>
-                  </div>
-                )}
-                {momoRows.map((r) => (
-                  <a key={r.ticker} className="srow srow--mo" href={`/ticker/${r.ticker}`} onClick={go(`/ticker/${r.ticker}`)}>
-                    <span className="tk">{r.ticker}</span>
-                    <span className={`stv ${Number.isFinite(Number(r.ret_since)) ? (Number(r.ret_since) >= 0 ? 'up' : 'dn') : ''}`}>{fmtRoc(r.ret_since)}</span>
-                    <span className="stv">{Number.isFinite(Number(r.breakout_volx)) ? `${Number(r.breakout_volx).toFixed(2)}×` : '—'}</span>
-                    <span className="stv stv--now">{fmtRoc(r.roc_3m)}</span>
-                  </a>
-                ))}
-                {momoRows.length === 0 && <div className="secnote">No momentum signal this month — the list is in cash.</div>}
-              </div>
-            </div>
-            {bandCounts && <p className="tilenote">{bandCounts.total} insider longs cleared · {bandCounts.score5} top conviction, with last week’s score alongside. Momentum shows each name’s move since it was picked at the monthly refresh, breakout-day volume vs its 20-day average, and the 3-month run that qualified it.</p>}
-          </Reveal>
+          {/* Tile 5 was the Trading Scanner cross-section (insider-conviction
+              top names + the Power Trend list). Removed 2026-08-12 (Joe) with
+              the /scanner page it linked to: both feeds are retired site
+              surfaces, and a homepage tile pointing at nothing is worse than
+              one tile fewer. The producing pipelines are untouched. */}
 
         </div>
       </section>
