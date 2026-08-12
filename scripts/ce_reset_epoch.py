@@ -10,8 +10,9 @@ What a live run does, in order:
        paper_fills, paper_orders, paper_positions, paper_nav_daily,
        paper_signal_capture, paper_intraday_positions, paper_intraday_nav
      plus ce_events (a fresh epoch has no open Conviction positions — stale
-     'entered' rows would occupy phantom slots) and resets ce_kill_switch to
-     untripped (the switch measures FROM the new inception by definition).
+     'entered' rows would occupy phantom slots). There is no kill-switch row
+     to reset: the book-level alarm and its ce_kill_switch table were retired
+     2026-08-12 (risk is the per-position 15% stop).
   2. SEEDS one inception paper_nav_daily row, dated the last completed
      trading session, at the account's CURRENT equity (Alpaca), with zero
      positions and the current SPY anchors (close / prev / inception / TTM
@@ -135,15 +136,8 @@ def main(argv: list[str] | None = None) -> int:
             _supabase_exec(f"delete from public.{t};")
             logger.info("wiped public.%s (%s rows)", t, n if n is not None else "?")
 
-    # kill switch back to untripped — the new epoch restarts the clock
-    ks_sql = ("update public.ce_kill_switch set tripped = false, tripped_at = null, "
-              "reason = null, book_return = null, spy_return = null, "
-              "max_drawdown = null, checked_at = now() where id = 1;")
-    if dry_run:
-        logger.info("[dry-run] would reset ce_kill_switch: %s", ks_sql)
-    else:
-        _supabase_exec(ks_sql)
-        logger.info("ce_kill_switch reset to untripped")
+    # No kill-switch row to reset — the book-level alarm and its table were
+    # retired 2026-08-12. Resetting a dropped table would fail this script.
 
     # ── 2) seed the inception NAV row ──────────────────────────────────────
     def num(v):
@@ -188,10 +182,10 @@ def main(argv: list[str] | None = None) -> int:
     # ── 3) paper_accounts allocations (2026-06-23 reset model) ─────────────
     notes = (
         f"Conviction Events epoch — reset {inception_date}: one book in the "
-        "Sleeve B slot (insider-buy events >= $250K, positions sized at 10% of "
-        "current equity with a hard 13-position ceiling, 20-trading-day holds, "
-        "a -15% catastrophe stop selling at the next open, and a kill switch "
-        "in ce_kill_switch that MONITORS only — it never blocks a trade). "
+        "Sleeve B slot (insider-buy events >= $250K, positions sized at 6.67% "
+        "of current equity under a 1.5x gross-exposure limit, 20-trading-day "
+        "holds, and a -15% per-position catastrophe stop selling at the next "
+        "open — the only risk exit; there is no book-level alarm). "
         "Sleeves A and M retired; sleeve_m_allocation 0, no sleeve-M trades ever."
     ).replace("'", "''")
     acct_sql = (
