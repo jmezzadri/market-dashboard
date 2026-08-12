@@ -603,35 +603,33 @@ def _nav_rows(navs, spys):
             for i, (n, s) in enumerate(zip(navs, spys))]
 
 
-def test_kill_arm1_underperformance_requires_40_day_guard():
-    # 39 trading days (40 rows incl. inception): book -12% vs SPY 0% ->
-    # trails by 12 pts >= 10 but the guard holds it.
-    navs = [1_000_000.0] + [880_000.0] * 39
-    spys = [600.0] * 40
+def test_relative_underperformance_never_trips_2026_08_12():
+    """REGRESSION (Joe, 2026-08-12): the "trails the S&P 500 by 10+ points
+    after 8 weeks" arm is GONE. A book 12 points behind the index over a full
+    year of sessions is out of favour, not in danger — the drawdown alarm and
+    the per-position stop own risk. The returns are still computed and stored;
+    nothing reads them as a threshold."""
+    navs = [1_000_000.0] + [880_000.0] * 250
+    spys = [600.0] * 251
     d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.trading_days == 39
-    assert d.book_return == pytest.approx(-0.12)
-    assert d.spy_return == pytest.approx(0.0)
-    assert d.should_trip is False                  # guard: < 40 trading days
-    # One more session (40 trading days): now it trips.
-    d = evaluate_kill_switch(_nav_rows(navs + [880_000.0], spys + [600.0]))
-    assert d.trading_days == 40
-    assert d.should_trip is True
-    assert "trails SPY" in d.reason
+    assert d.trading_days == 250
+    assert d.book_return == pytest.approx(-0.12)     # still recorded
+    assert d.spy_return == pytest.approx(0.0)        # still recorded
+    assert d.should_trip is False                    # but never a trip
+    assert d.reason is None
 
 
-def test_kill_arm1_boundary_exactly_10_points():
-    # Book -4%, SPY +6% -> gap exactly 10 pts at 40 trading days: trips (>=).
-    navs = [1_000_000.0] + [1_000_000.0] * 39 + [960_000.0]
-    spys = [600.0] + [600.0] * 39 + [636.0]
+def test_relative_gap_alone_cannot_trip_at_any_size():
+    # Book -40% behind a +40% index: a 80-point gap, still no relative trip.
+    # (The drawdown arm DOES fire here, on its own terms, which is the point:
+    # the alarm that matters is absolute loss, not the comparison.)
+    navs = [1_000_000.0] + [1_000_000.0] * 39 + [600_000.0]
+    spys = [600.0] + [600.0] * 39 + [840.0]
     d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.trading_days == 40
-    assert (d.spy_return - d.book_return) == pytest.approx(0.10)
+    assert (d.spy_return - d.book_return) == pytest.approx(0.80)
     assert d.should_trip is True
-    # 9.99 pts must NOT trip.
-    spys2 = [600.0] + [600.0] * 39 + [635.94]      # SPY +5.99%
-    d2 = evaluate_kill_switch(_nav_rows(navs, spys2))
-    assert d2.should_trip is False
+    assert "drawdown" in d.reason                    # NOT "trails SPY"
+    assert "trails" not in d.reason
 
 
 def test_kill_arm2_drawdown_trips_without_the_40_day_guard():

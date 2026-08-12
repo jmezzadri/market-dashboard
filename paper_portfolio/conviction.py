@@ -74,16 +74,17 @@ frozen 2026-08-10). Strategy is the validated spec, implemented exactly:
              improved portfolio drawdown/Sharpe at the margin (best Sharpe
              cell in the study).
 
-  KILL       pre-registered, in-engine — a MONITOR ONLY; it never stops
-  SWITCH     trading. After each close the kill-check phase computes the
-             book's return since the new inception vs SPY since inception,
-             and the max drawdown from the book's peak, from
-             public.paper_nav_daily. If (>= 40 trading days since inception
-             AND the book trails SPY by >= 10 percentage points) OR
-             (drawdown >= 15%): the trip is recorded in
-             public.ce_kill_switch and a fresh trip emits a ::error::
-             annotation and fails the job so WORKFLOW_FAILURE_ALERT emails
-             Joe. ENTRIES ARE NEVER REFUSED — trading continues unaffected
+  DRAWDOWN   pre-registered, in-engine — a MONITOR ONLY; it never stops
+  ALARM      trading. After each close the kill-check phase computes the max
+             drawdown from the book's peak from public.paper_nav_daily. If
+             drawdown >= 15% the trip is recorded in public.ce_kill_switch,
+             and a fresh trip emits a ::error:: annotation and fails the job
+             so WORKFLOW_FAILURE_ALERT emails Joe. The book's return since
+             inception and SPY's over the same window are still computed and
+             stored on the row for the record, but NOTHING trips on them
+             (2026-08-12, Joe: the relative-underperformance arm is removed —
+             being out of favour is not a risk event).
+             ENTRIES ARE NEVER REFUSED — trading continues unaffected
              (2026-08-11, Joe: "no point freezing new buys just because
              existing names are losing"; loss control is per-position, via
              the catastrophe stop above). Tripped state LATCHES until a
@@ -150,8 +151,12 @@ MAX_CONCURRENT_POSITIONS = 30        # HARD SAFETY CEILING against a feed anomal
                                      # so this sits above normal operation, not inside it.
 HOLD_FULL_TRADING_DAYS = 20          # exit at open of 21st trading day (entry day = day 1)
 CATASTROPHE_STOP_DROP = 0.15         # close <= 15% below entry -> sell at the NEXT open
-KILL_MIN_TRADING_DAYS = 40           # underperformance arm needs >= 40 trading days
-KILL_TRAIL_SPY_PTS = 0.10            # book trails SPY by >= 10 percentage points
+# 2026-08-12 (Joe): the "trails the S&P 500 by 10+ points after 8 weeks" arm is
+# REMOVED. Relative underperformance is not a risk event for a long-only book
+# that already has a per-position stop and a drawdown alarm — it fires when the
+# strategy is merely out of favour, which is not something anyone would act on.
+# Book and S&P returns are still RECORDED on the row for the record; nothing
+# trips on them.
 KILL_MAX_DRAWDOWN = 0.15             # drawdown from the book's peak >= 15%
 INCLUDED_ASSET_TYPES = ("CS", "ADRC")  # universe_master.type (same as scanner universe)
 
@@ -636,19 +641,18 @@ class KillDecision:
 
 def evaluate_kill_switch(
     nav_rows: list[dict],
-    min_trading_days: int = KILL_MIN_TRADING_DAYS,
-    trail_pts: float = KILL_TRAIL_SPY_PTS,
     dd_limit: float = KILL_MAX_DRAWDOWN,
 ) -> KillDecision:
-    """Evaluate both arms over paper_nav_daily rows since the new inception.
+    """Evaluate the drawdown alarm over paper_nav_daily rows since inception.
 
     `nav_rows` ascending by snapshot_date, each {snapshot_date, total_nav,
     spy_close}. Row 0 is the seeded inception anchor (day 0), so trading days
     since inception = len(rows) - 1 (one close row per completed session).
 
-    Arm 1 (guarded): >= `min_trading_days` trading days since inception AND
-      book return trails SPY return by >= `trail_pts` (percentage points).
-    Arm 2 (unguarded): max drawdown from the book's peak >= `dd_limit`.
+    ONE arm: max drawdown from the book's peak >= `dd_limit`. The relative
+    arm (trailing the S&P 500 after 8 weeks) was removed 2026-08-12 — see the
+    constants block. Book and S&P returns are still computed and stored for
+    the record, but no threshold reads them.
     """
     rows = [r for r in nav_rows if r.get("total_nav") is not None]
     if len(rows) < 1:
@@ -673,13 +677,6 @@ def evaluate_kill_switch(
             max_dd = max(max_dd, (peak - nav) / peak)
 
     reasons: list[str] = []
-    if (days >= min_trading_days and book_return is not None
-            and spy_return is not None
-            and (spy_return - book_return) >= trail_pts):
-        reasons.append(
-            f"book {book_return:+.2%} trails SPY {spy_return:+.2%} by "
-            f"{(spy_return - book_return):.2%} (>= {trail_pts:.0%}) over "
-            f"{days} trading days (>= {min_trading_days})")
     if max_dd >= dd_limit:
         reasons.append(
             f"drawdown from peak {max_dd:.2%} >= {dd_limit:.0%}")
