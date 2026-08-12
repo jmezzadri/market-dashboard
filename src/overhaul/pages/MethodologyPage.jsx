@@ -9,8 +9,8 @@
    1.5x gross-exposure limit self-limits the book near 20 names (2026-08-12
    change, from 10% unlevered) — exit at the open of the 21st trading
    day or sooner on a close 15% or more below the entry price, pre-registered
-   drawdown alarm: the book falling 15% or more from its own high raises an
-   alert to the owner, trading continues — a MONITOR,
+   no book-level alarm (both versions removed 2026-08-12 — risk is the
+   per-position stop),
    it never stops new buying; engine change 2026-08-11). Backtest figures
    (June 2025 – August 2026 event study, ~14 months, zero costs: +112% vs
    S&P +24%, Sharpe 2.3, 61% winners, ~18-day average hold, +53% with the
@@ -331,7 +331,7 @@ export default function MethodologyPage() {
               taken — <b>entered</b>, or <b>skipped</b> (the cash could not fund a full position,
               the name was already held, or a gate failed, with the reason). That ledger
               is what the Scanner page and the Paper page&rsquo;s event ledger render. The full entry,
-              sizing and exit rules, the one risk exit, the kill switch, and the backtest live in
+              sizing and exit rules, the one risk exit, and the backtest live in
               section 03.
             </p>
 
@@ -471,17 +471,15 @@ export default function MethodologyPage() {
               traded back above it before the normal exit came due.
             </p>
             <p className="me-body-p">
-              <b>The drawdown alarm, set in advance.</b> If the book as a whole falls{' '}
-              <b>15% or more from its own highest value</b>, it <b>raises an alert to its
-              owner</b>. It is a warning, not a stop: <b>trading continues</b>, new names keep
-              entering, and open positions keep leaving on their own rules. The threshold was
-              fixed before the book launched, so the warning is the rule&rsquo;s — not a judgment
-              call made after a bad stretch. The current state shows on the Paper page.
-              A second arm — an alert when the book trailed the S&amp;P 500 by 10 or more points
-              after 8 weeks — was <b>removed on 12 August 2026</b>: a long-only book being out of
-              favour against the index is not a risk event, and an alarm no one would act on is
-              noise. Risk is controlled where it belongs — per position, by the 15% stop, and
-              across the book, by this drawdown alarm.
+              <b>No book-level alarm, on purpose.</b> Two versions of one were built and both
+              were removed on <b>12 August 2026</b>: an alert when the book trailed the S&amp;P 500
+              by 10 or more points after 8 weeks, and an alert when the book fell 15% from its own
+              high. Neither changed what the engine did, and neither was ever backtested. A
+              warning nobody would act on is noise, and noise teaches you to ignore the signals
+              that matter. Risk in this book is controlled where a loss actually happens:{' '}
+              <b>per position, by the 15% stop above</b>, which was tested and which earns its
+              place. The book&rsquo;s drawdown is still measured and shown on the Paper page as
+              information — nothing acts on it.
             </p>
             <p className="me-body-p">
               <b>The backtest, stated honestly.</b> In a <b>June 2025 – August 2026 event study —
@@ -503,7 +501,7 @@ export default function MethodologyPage() {
               enter   = next morning&rsquo;s open · size = 6.67% of equity each · no fixed count, ~20 names as capacity allows · gross exposure ≤ 1.5× equity<br />
               exit    = at the open of the 21st trading day after entry<br />
               stop    = a close 15% or more below the entry price → sold at the next morning&rsquo;s open<br />
-              alert   = the book down 15% or more from its own highest value → the owner is warned, trading continues
+              risk    = the ONLY risk exit is the per-position stop above — there is no book-level alarm
             </div>
           </div>
         </article>

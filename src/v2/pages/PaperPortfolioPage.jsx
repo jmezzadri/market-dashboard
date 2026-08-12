@@ -12,7 +12,6 @@
 //   near 10 names (8 typical, 13 at the busiest), with 13 as a hard safety
 //   ceiling. Each position exits at the open of the 21st trading day, or
 //   sooner if it closes 15% or more below its entry price. Pre-registered
-//   drawdown alarm:
 //   drawdown reaching 15%, raises an ALERT to the owner — it is a MONITOR and
 //   never stops new buying (engine change 2026-08-11).
 //
@@ -46,7 +45,6 @@ import { InfoTip } from '../../InfoTip';
 import {
   useCeEvents,
   useCeOpenEntries,
-  useCeKillSwitch,
   ceActionMeta,
   ceReasonText,
   ceInsiderNames,
@@ -361,18 +359,11 @@ const PAGE_CSS = `
 .paper-ticker-link:hover { text-decoration: underline; }
 
 /* Kill-switch status line — slim strip under the hero. */
-.pp-ks {
   display: flex; align-items: baseline; gap: 10px;
   background: var(--bg-1); border: 1px solid var(--line-1); border-radius: 14px;
   padding: 14px 20px; margin-top: 24px;
   font-size: 13px; color: var(--ink-1); line-height: 1.55;
 }
-.pp-ks .ksdot { width: 8px; height: 8px; border-radius: 50%; flex: none; align-self: center; background: var(--ink-3); }
-.pp-ks.quiet .ksdot { background: ${UP_COLOR}; }
-.pp-ks.tripped .ksdot { background: ${DOWN_COLOR}; }
-.pp-ks b { color: var(--ink-0); font-weight: 600; }
-.pp-ks.tripped b { color: ${DOWN_COLOR}; }
-.pp-ks .ksmeta { color: var(--ink-3); font-size: 12px; white-space: nowrap; margin-left: auto; align-self: center; font-feature-settings: "tnum"; }
 
 /* ── Performance block on the hero card ── */
 .pp-perf { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line-0); padding-top: 12px; }
@@ -436,8 +427,6 @@ const PAGE_CSS = `
   .pp-rt { min-width: 400px; }
   .pp-risk { grid-template-columns: repeat(3, 1fr); }
   .pp-tip:hover::after { width: 170px; }
-  .pp-ks { flex-wrap: wrap; }
-  .pp-ks .ksmeta { margin-left: 0; }
 }
 `;
 
@@ -532,7 +521,7 @@ function BookCard({ navHistory, spySeries = [], live = false, asOfIso = null, da
           <RiskStat label="Ann. vol" value={fmtPctPlain1(risk.annVol)} tip="Annualized volatility: how much the book's daily returns swing, scaled to a yearly rate. Measured since the book's start." />
           <RiskStat label="Sharpe" value={fmtRatio2(risk.sharpe)} tip="Annualized return divided by annualized volatility — return earned per unit of risk taken. Risk-free rate assumed 0." />
           <RiskStat label="Sortino" value={fmtRatio2(risk.sortino)} tip="Like Sharpe, but only losing days count as risk." />
-          <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in book value since the start. This is the reading the drawdown alarm watches — it alerts at 15%." />
+          <RiskStat label="Max drawdown" value={fmtPctPlain1(risk.maxDD)} tip="Largest peak-to-trough decline in book value since the start. Reported, not acted on: the only risk exit is per position, when a name closes 15% below its entry." />
           <RiskStat label="Beta" value={fmtRatio2(risk.beta)} tip="Sensitivity to the S&P 500's daily moves; 1.00 means the book moves in line with it." />
           <RiskStat label="Info ratio" value={fmtRatio2(risk.ir)} tip="Annualized excess return over the S&P 500 divided by how much the book's path deviates from it — how consistently the book beats the index." />
         </div>
@@ -563,115 +552,14 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
 }
 
-/* ── MonitorPanel — the book-level drawdown alarm ──────────────────────────
-   Replaces the old one-line "Kill switch quiet" chip (Joe, 2026-08-11: a green
-   chip that says nothing is not a risk display). The test states its threshold
-   and the number it is measured against right now, so the reader can see how
-   far from tripping the book is rather than trusting a colour.
-
-   ONE test since 2026-08-12: book drawdown from its own peak reaching 15%.
-   The relative arm ("trails the S&P 500 by 10+ points after 8 weeks") was
-   REMOVED at Joe's instruction — a long-only book being out of favour against
-   the index is not a risk event, and an alarm nobody would act on is noise.
-   The book-vs-S&P comparison still lives where it belongs: the performance
-   card and the chart.
-
-   This is also NOT the per-position stop. That rule sells one name when it
-   closes 15% below its entry; this alarm watches the whole book and only
-   raises an alert, latching until a human clears it. It never stops trading.
-
-   The reading comes from the ce_kill_switch row the engine writes — the same
-   number the engine tests against, never a second computation that could
-   disagree with it (LESSONS 2026-06-12b). */
-const KS_MAX_DD = 0.15;          // mirrors KILL_MAX_DRAWDOWN
-
-// Room to an alert, in words. Negative room is not "-1.00 points of room" —
-// that reads as a rounding artefact; it means the test is already past its
-// threshold and the alert has fired.
-const roomText = (pts) => (pts >= 0
-  ? `${pts.toFixed(2)} points of room`
-  : `past the alert by ${Math.abs(pts).toFixed(2)} points`);
-
-function MonitorPanel({ row, loading, navRows = [] }) {
-  if (loading) return null;
-
-  const dd = row?.max_drawdown != null ? Number(row.max_drawdown) : null;
-
-  const tests = [
-    {
-      key: 'dd',
-      name: 'The book falls too far from its own high',
-      note: 'Live from day one',
-      test: `The book is down ${(KS_MAX_DD * 100).toFixed(0)}% or more from its highest value so far`,
-      reading: dd == null ? '—' : `down ${(dd * 100).toFixed(2)}%`,
-      readingNote: dd === 0 ? 'the book is at its high' : null,
-      headroom: dd == null ? '—' : roomText((KS_MAX_DD - dd) * 100),
-      state: dd == null ? 'none' : (dd >= KS_MAX_DD ? 'alert' : dd >= KS_MAX_DD * 0.67 ? 'watch' : 'ok'),
-      tip: 'The largest fall from the book’s highest value to date, measured on closing values. Live from day one. This is the whole book — the 15% stop that sells a single name is a different rule.',
-    },
-  ];
-
-
-
-  return (
-    <div className="paper-panel pp-monitor">
-      <div className="paper-panel-head">
-        <div>
-          <h2 className="paper-panel-title">
-            Risk monitor <InfoTip term="Risk monitor" def="One book-level test: how far the whole book has fallen from its own highest value. It raises an ALERT to the owner and latches until a human clears it — it never stops the book trading and never touches an open position. The 15% stop that sells a single name is a separate rule, shown per position in the table below." size={12} />
-          </h2>
-          <div className="paper-panel-sub">
-            Watches the whole book · alerts the owner · never stops trading · separate from the 15% stop on each position
-          </div>
-        </div>
-        <div className="paper-panel-meta">
-          <span className={`pp-mon-state ${row?.tripped ? 'alert' : 'ok'}`}>
-            {row?.tripped ? 'Alert raised' : 'No alert'}
-          </span>
-          {row?.checked_at && <span>&middot; checked {fmtStampET(row.checked_at)}</span>}
-        </div>
-      </div>
-
-      {!row ? (
-        <div className="paper-empty">No reading yet — the alarm writes its first reading after the book&rsquo;s first close.</div>
-      ) : (
-        <table className="paper-table pp-montable">
-          <thead>
-            <tr>
-              <th>What it watches</th>
-              <th>It raises an alert when</th>
-              <th className="r">Where it stands now</th>
-              <th className="r">Distance to the alert</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tests.map((t) => (
-              <tr key={t.key}>
-                <td>
-                  <span className="pp-tip" data-tip={t.tip}>{t.name}</span>
-                  {t.note && <span className="pp-mon-note-sm">{t.note}</span>}
-                </td>
-                <td className="mut">{t.test}</td>
-                <td className={`r st-${t.state}`}>
-                  {t.reading}
-                  {t.readingNote && <span className="pp-mon-note-sm">{t.readingNote}</span>}
-                </td>
-                <td className="r mut">{t.headroom}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {row?.tripped && (
-        <div className="pp-mon-note">
-          Alert raised{row.tripped_at ? ` ${fmtDate(row.tripped_at)}` : ''}
-          {ceReasonText(row.reason) ? ` — ${ceReasonText(row.reason)}.` : '.'} Names keep entering and leaving on their normal rules.
-        </div>
-      )}
-    </div>
-  );
-}
+/* There is no book-level risk panel, by design (Joe, 2026-08-12). Two versions
+   of one shipped and both were removed within a day: an alert for trailing the
+   S&P 500, then a drawdown alarm. Neither changed what the engine did — they
+   raised a warning nobody would act on, and they cost the page a whole panel.
+   The only risk exit in this book is per position: a close 15% or more below
+   the entry price sells that name at the next open. It is stated in the hero
+   rules and its clock is in the positions table. If a book-level measure is
+   ever wanted again, it should arrive as a rule that TRADES, not as a chip. */
 
 /* The 50-day cell. Shows the average and, when the current price has slipped
    under it, says so in the warning colour — the entry gate no longer holds for
@@ -1181,7 +1069,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // so the two surfaces can never disagree on an event.
   const ledger = useCeEvents(40);
   const open = useCeOpenEntries();
-  const ks = useCeKillSwitch();
 
   useEffect(() => {
     let cancelled = false;
@@ -1421,7 +1308,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             <li><b>The confirmation</b>: the stock must be trading <b>above its 50-day average price</b>.</li>
             <li><b>Entry &amp; exit</b>: bought at the <b>next morning&rsquo;s open</b>, each new position <b>6.67% of the book&rsquo;s equity</b> — no fixed count, the book funds names until its buying capacity runs out (about <b>20 names</b>), and may run <b>gross exposure up to 1.5&times; equity</b>; each exits at the <b>open of the 21st trading day</b>.</li>
             <li><b>The one risk exit</b>: a position that <b>closes 15% or more below the price it was bought at</b> is sold at the <b>next morning&rsquo;s open</b> instead of waiting for its 21st day.</li>
-            <li><b>The drawdown alarm</b>: if the book as a whole falls <b>15% or more from its highest value</b>, it <b>raises an alert</b> — a warning, not a stop. Trading carries on.</li>
           </ul>
           <div className="pp-methlink">
             <Link to="/methodology#portfolio">Full methodology, backtest included →</Link>
@@ -1440,12 +1326,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       </section>
 
       <section className="wrap pp-main">
-        {/* Risk monitor — both book-level tests with their live readings. A
-            monitor: it warns the owner, it never stops trading. */}
-        <Reveal>
-          <MonitorPanel row={ks.row} loading={ks.loading} navRows={navHistory} />
-        </Reveal>
-
         {/* The book vs the S&P 500 since the start (hidden until 2 points exist). */}
         <Reveal>
           <PerfChartPanel rows={navForCard} spySeries={spySeries} bookBase={bookBase} live={liveMode} />

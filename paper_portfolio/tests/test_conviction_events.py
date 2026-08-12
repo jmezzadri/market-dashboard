@@ -19,7 +19,7 @@ Every case is hand-computed against the locked spec:
   * catastrophe stop (2026-08-11): a close 15% or more below entry pulls the
     exit forward to the NEXT open via the scheduled-exit path; -14.9% does
     not trigger; a position already due is never double-exited;
-  * kill switch: both arms + the 40-trading-day guard on the SPY arm — and
+  * the catastrophe stop is the ONLY risk exit — no book-level alarm, and
     it is a MONITOR: it must never block an entry, in the engine OR the
     submitter (explicit regression tests);
   * sizing: floor((equity * 10%)/price) whole shares;
@@ -38,7 +38,6 @@ from paper_portfolio.conviction import (
     MAX_CONCURRENT_POSITIONS,
     ConvictionEvent,
     InsiderRow,
-    KillDecision,
     PriceBar,
     aggregate_events,
     apply_gates,
@@ -46,7 +45,6 @@ from paper_portfolio.conviction import (
     decide_actions,
     dedup_exact,
     evaluate_catastrophe_stops,
-    evaluate_kill_switch,
     exit_due_session,
     next_session_after,
     rank_same_morning,
@@ -603,78 +601,20 @@ def _nav_rows(navs, spys):
             for i, (n, s) in enumerate(zip(navs, spys))]
 
 
-def test_relative_underperformance_never_trips_2026_08_12():
-    """REGRESSION (Joe, 2026-08-12): the "trails the S&P 500 by 10+ points
-    after 8 weeks" arm is GONE. A book 12 points behind the index over a full
-    year of sessions is out of favour, not in danger — the drawdown alarm and
-    the per-position stop own risk. The returns are still computed and stored;
-    nothing reads them as a threshold."""
-    navs = [1_000_000.0] + [880_000.0] * 250
-    spys = [600.0] * 251
-    d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.trading_days == 250
-    assert d.book_return == pytest.approx(-0.12)     # still recorded
-    assert d.spy_return == pytest.approx(0.0)        # still recorded
-    assert d.should_trip is False                    # but never a trip
-    assert d.reason is None
-
-
-def test_relative_gap_alone_cannot_trip_at_any_size():
-    # Book -40% behind a +40% index: a 80-point gap, still no relative trip.
-    # (The drawdown arm DOES fire here, on its own terms, which is the point:
-    # the alarm that matters is absolute loss, not the comparison.)
-    navs = [1_000_000.0] + [1_000_000.0] * 39 + [600_000.0]
-    spys = [600.0] + [600.0] * 39 + [840.0]
-    d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert (d.spy_return - d.book_return) == pytest.approx(0.80)
-    assert d.should_trip is True
-    assert "drawdown" in d.reason                    # NOT "trails SPY"
-    assert "trails" not in d.reason
-
-
-def test_kill_arm2_drawdown_trips_without_the_40_day_guard():
-    # Day 3 of the book: peak 1.05M -> 0.89M = 15.24% drawdown >= 15%.
-    navs = [1_000_000.0, 1_050_000.0, 890_000.0]
-    spys = [600.0, 601.0, 602.0]
-    d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.trading_days == 2                     # well under 40
-    assert d.max_drawdown == pytest.approx((1_050_000 - 890_000) / 1_050_000)
-    assert d.should_trip is True
-    assert "drawdown" in d.reason
-
-
-def test_kill_drawdown_is_measured_from_the_peak_not_inception():
-    # Book UP overall (+2%) but peaked +25% then fell: dd from peak = 18.4%.
-    navs = [1_000_000.0, 1_250_000.0, 1_020_000.0]
-    spys = [600.0, 600.0, 600.0]
-    d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.book_return == pytest.approx(0.02)
-    assert d.max_drawdown == pytest.approx(0.184)
-    assert d.should_trip is True
-
-
-def test_kill_no_trip_when_healthy():
-    navs = [1_000_000.0] + [1_010_000.0] * 45
-    spys = [600.0] + [603.0] * 45
-    d = evaluate_kill_switch(_nav_rows(navs, spys))
-    assert d.should_trip is False and d.reason is None
-
-
-def test_kill_inception_only_row_is_quiet():
-    d = evaluate_kill_switch(_nav_rows([1_000_000.0], [600.0]))
-    assert d.trading_days == 0 and d.should_trip is False
-    d = evaluate_kill_switch([])
-    assert d.should_trip is False
-
-
-def test_kill_missing_spy_disables_only_the_spy_arm():
-    navs = [1_000_000.0] + [850_000.0] * 45        # -15% book, dd exactly 15%
-    rows = [{"snapshot_date": f"d{i}", "total_nav": n, "spy_close": None}
-            for i, n in enumerate(navs)]
-    d = evaluate_kill_switch(rows)
-    assert d.spy_return is None
-    assert d.should_trip is True                   # drawdown arm still armed
-    assert "drawdown" in d.reason and "trails" not in d.reason
+def test_no_book_level_alarm_remains_2026_08_12():
+    """REGRESSION (Joe, 2026-08-12): the book-level alarm is GONE — first the
+    relative-to-SPY arm, then the drawdown arm. Neither ever changed what the
+    engine did, and an alert nobody acts on is noise. Risk in this book is a
+    POSITION-level rule (the catastrophe stop). If a book-level measure comes
+    back it must be a rule that TRADES, not a chip on a page."""
+    import paper_portfolio.conviction as conv
+    for gone in ("evaluate_kill_switch", "upsert_kill_switch", "load_kill_switch",
+                 "KillDecision", "KILL_MAX_DRAWDOWN", "KILL_TRAIL_SPY_PTS",
+                 "KILL_MIN_TRADING_DAYS", "_kill_switch_monitor_state"):
+        assert not hasattr(conv, gone), f"{gone} is back — the alarm was removed"
+    # the post-close phase still exists and still runs the stop screen
+    assert hasattr(conv, "run_catastrophe_stop_check")
+    assert hasattr(conv, "run_kill_check")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -788,32 +728,6 @@ def test_cli_kill_check_honors_trading_disabled(monkeypatch):
 # Kill-check upsert semantics (latch + fresh-trip exit code)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_fresh_trip_latches_and_repeat_check_does_not_retrip(monkeypatch):
-    import paper_portfolio.conviction as conv
-    state = {"tripped": False, "reason": None}
-    executed = []
-
-    def fake_query(sql):
-        if "from public.ce_kill_switch" in sql:
-            return [dict(state)]
-        return []
-
-    def fake_exec(sql):
-        executed.append(sql)
-        if "tripped = true" in sql:
-            state["tripped"] = True
-            state["reason"] = "tripped-by-test"
-    monkeypatch.setattr(conv, "_supabase_query", fake_query)
-    monkeypatch.setattr(conv, "_supabase_exec", fake_exec)
-
-    trip = KillDecision(True, "book trails SPY", -0.12, 0.0, 0.02, 41)
-    assert conv.upsert_kill_switch(trip) is True           # fresh trip
-    assert state["tripped"] is True
-    # Second evaluation while already tripped: metrics update, NOT a fresh trip.
-    assert conv.upsert_kill_switch(trip) is False
-    # The latch never wrote tripped=false.
-    assert not any("tripped = false" in q for q in executed)
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Orchestration smoke — open phase (dry run) and kill-check phase end-to-end
@@ -882,8 +796,6 @@ def _open_phase_router(state):
             return state["universe"]
         if "from public.prices_eod" in sql:
             return state["price_rows"]
-        if "from public.ce_kill_switch" in sql:
-            return [state["kill_row"]]
         if "from public.ce_events" in sql and "where filing_date in" in sql:
             return []                                   # nothing recorded yet
         return []
@@ -938,7 +850,6 @@ def test_open_phase_dry_run_exits_first_then_gated_entry(monkeypatch, capsys):
     assert res["exit_orders"] == 1
     assert res["events"] == 1
     assert res["entries"] == 1                          # NEWCO passed all gates
-    assert res["kill_switch_tripped"] is False
 
 
 def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0,
@@ -969,35 +880,6 @@ def _tripped_kill_switch_fixture(monkeypatch, conv, cash=200_000.0,
                          buying_power=buying_power)
     monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
     return today
-
-
-def test_open_phase_still_enters_while_the_kill_switch_is_tripped(monkeypatch):
-    """REGRESSION (2026-08-11, Joe): the kill switch is a MONITOR. A tripped
-    switch is recorded and reported, and the morning's entry goes in anyway.
-    Prior behaviour — refusing every entry — is deleted."""
-    import paper_portfolio.conviction as conv
-    today = _tripped_kill_switch_fixture(monkeypatch, conv)
-    res = conv.run_open_phase(dry_run=True, session_date=today)
-    assert res["entries"] == 1                          # NOT blocked
-    assert res["kill_switch_tripped"] is True           # still monitored
-
-
-def test_open_phase_trades_even_when_the_kill_switch_row_is_unreadable(monkeypatch):
-    """A monitor that cannot be read must not stop the book. (The old
-    fail-safe refused entries when ce_kill_switch was unreadable — that was
-    correct while it gated trading and is wrong now.)"""
-    import paper_portfolio.conviction as conv
-    today = _tripped_kill_switch_fixture(monkeypatch, conv)
-    inner = conv._supabase_query
-
-    def q(sql):
-        if "from public.ce_kill_switch" in sql and "select tripped" in sql:
-            raise RuntimeError("ce_kill_switch unreachable")
-        return inner(sql)
-    monkeypatch.setattr(conv, "_supabase_query", q)
-    res = conv.run_open_phase(dry_run=True, session_date=today)
-    assert res["entries"] == 1
-    assert res["kill_switch_tripped"] is None           # unknown, not assumed
 
 
 def test_open_phase_funds_on_margin_when_settled_cash_is_thin(monkeypatch):
@@ -1039,69 +921,6 @@ def test_open_phase_no_ops_on_a_non_trading_day(monkeypatch):
     assert res == {"skipped": "market-closed", "date": holiday.isoformat()}
 
 
-def test_kill_check_phase_fresh_trip_fails_the_job(monkeypatch, capsys):
-    import paper_portfolio.conviction as conv
-    navs = [1_000_000.0, 1_050_000.0, 880_000.0]        # dd 16.2% -> trip
-    state = {"tripped": False, "reason": None}
-    executed = []
-
-    def q(sql):
-        if "from public.paper_nav_daily" in sql:
-            return [{"snapshot_date": f"2026-08-1{i}", "total_nav": n,
-                     "spy_close": 600.0} for i, n in enumerate(navs)]
-        if "from public.ce_kill_switch" in sql:
-            return [dict(state, book_return=None, spy_return=None,
-                         max_drawdown=None, tripped_at=None, checked_at=None)]
-        if "and (entry_price is null or exited_at is null)" in sql:
-            return []
-        return []
-
-    def x(sql):
-        executed.append(sql)
-        if "tripped = true" in sql:
-            state["tripped"] = True
-            state["reason"] = "tripped"
-    monkeypatch.setattr(conv, "_supabase_query", q)
-    monkeypatch.setattr(conv, "_supabase_exec", x)
-    monkeypatch.setattr(conv, "file_alert", lambda **kw: None)
-
-    rc = conv.run_kill_check(dry_run=False)
-    assert rc == 1                                      # job FAILS -> alert email
-    out = capsys.readouterr().out
-    assert "::error::" in out and "KILL SWITCH TRIPPED" in out
-    assert any("tripped = true" in s for s in executed)
-
-    # Next evening, still tripped: loud line but exit 0 (one email per trip).
-    rc2 = conv.run_kill_check(dry_run=False)
-    assert rc2 == 0
-    out2 = capsys.readouterr().out
-    assert "remains TRIPPED" in out2
-
-
-def test_kill_check_phase_healthy_book_stays_quiet(monkeypatch, capsys):
-    import paper_portfolio.conviction as conv
-    executed = []
-
-    def q(sql):
-        if "from public.paper_nav_daily" in sql:
-            return [{"snapshot_date": "2026-08-11", "total_nav": 1_000_000.0,
-                     "spy_close": 600.0},
-                    {"snapshot_date": "2026-08-12", "total_nav": 1_004_000.0,
-                     "spy_close": 601.0}]
-        if "from public.ce_kill_switch" in sql:
-            return [{"tripped": False, "reason": None}]
-        if "and (entry_price is null or exited_at is null)" in sql:
-            return []
-        return []
-    monkeypatch.setattr(conv, "_supabase_query", q)
-    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
-    rc = conv.run_kill_check(dry_run=False)
-    assert rc == 0
-    assert "::error::" not in capsys.readouterr().out
-    # metrics still recorded every close (checked_at heartbeat)
-    assert any("checked_at = now()" in s for s in executed)
-
-
 def test_open_phase_without_migration_skips_in_dry_run_and_raises_live(monkeypatch):
     import paper_portfolio.conviction as conv
     today = date(2026, 8, 10)
@@ -1110,8 +929,8 @@ def test_open_phase_without_migration_skips_in_dry_run_and_raises_live(monkeypat
     monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
 
     def q(sql):
-        if "from public.ce_kill_switch" in sql:
-            raise RuntimeError('relation "public.ce_kill_switch" does not exist')
+        if "from public.ce_events" in sql:
+            raise RuntimeError('relation "public.ce_events" does not exist')
         return []
     monkeypatch.setattr(conv, "_supabase_query", q)
     monkeypatch.setattr(conv, "_supabase_exec", lambda sql: None)
@@ -1128,8 +947,8 @@ def test_kill_check_without_migration_skips_in_dry_run_and_raises_live(monkeypat
     import paper_portfolio.conviction as conv
 
     def q(sql):
-        if "from public.ce_kill_switch" in sql:
-            raise RuntimeError('relation "public.ce_kill_switch" does not exist')
+        if "from public.ce_events" in sql:
+            raise RuntimeError('relation "public.ce_events" does not exist')
         return []
     monkeypatch.setattr(conv, "_supabase_query", q)
     monkeypatch.setattr(conv, "_supabase_exec", lambda sql: None)
@@ -1296,64 +1115,6 @@ def test_open_phase_sells_a_stopped_name_at_the_open_and_labels_it(monkeypatch):
     assert "-20.0%" in reasons["STOPPED"]
     assert "21st trading day" in reasons["TIMED"]     # unchanged path
     assert "catastrophe stop" not in reasons["TIMED"]
-
-
-def test_kill_check_runs_the_stop_screen_then_stamps_the_monitor(monkeypatch, capsys):
-    """The post-close phase does both jobs: it schedules tomorrow's stop exit
-    AND records the kill-switch metrics."""
-    import paper_portfolio.conviction as conv
-    executed: list[str] = []
-    rows = [_open_row(21, "DEEP", 50.0, due="2026-09-15")]
-
-    def q(sql):
-        if "where action = 'entered' and exited_at is null" in sql:
-            return rows
-        if "from public.paper_nav_daily" in sql:
-            return [{"snapshot_date": "2026-08-10", "total_nav": 1_000_000.0,
-                     "spy_close": 600.0},
-                    {"snapshot_date": "2026-08-11", "total_nav": 1_004_000.0,
-                     "spy_close": 601.0}]
-        if "from public.ce_kill_switch" in sql:
-            return [{"tripped": False, "reason": None}]
-        return []
-    monkeypatch.setattr(conv, "_supabase_query", q)
-    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
-    monkeypatch.setattr(conv, "official_closes",
-                        lambda alpaca, tickers, session_date: {"DEEP": (40.0, None)})
-    broker = _FakeBroker(STOP_SESSIONS, [], equity=1_000_000.0)
-    monkeypatch.setattr(conv, "AlpacaPaperClient", lambda: broker)
-    monkeypatch.setattr(conv, "_et_today", lambda: date(2026, 8, 11))
-
-    rc = conv.run_kill_check(dry_run=False)
-    assert rc == 0                                    # healthy book, stop is not a failure
-    assert any("exit_due_date = '2026-08-12'" in s for s in executed)
-    assert any("checked_at = now()" in s for s in executed)
-    assert "CATASTROPHE STOP" in capsys.readouterr().out
-
-
-def test_kill_check_fails_the_job_when_the_stop_screen_breaks(monkeypatch, capsys):
-    """Unscreened positions must never be silent (LESSONS 4.5): the monitor
-    still stamps, and the job goes red."""
-    import paper_portfolio.conviction as conv
-    executed: list[str] = []
-
-    def q(sql):
-        if "from public.paper_nav_daily" in sql:
-            return [{"snapshot_date": "2026-08-11", "total_nav": 1_000_000.0,
-                     "spy_close": 600.0}]
-        if "from public.ce_kill_switch" in sql:
-            return [{"tripped": False, "reason": None}]
-        if "where action = 'entered' and exited_at is null" in sql:
-            raise RuntimeError("ce_events unreachable")
-        return []
-    monkeypatch.setattr(conv, "_supabase_query", q)
-    monkeypatch.setattr(conv, "_supabase_exec", lambda sql: executed.append(sql))
-
-    rc = conv.run_kill_check(dry_run=False)
-    assert rc == 1
-    out = capsys.readouterr().out
-    assert "::error::" in out and "catastrophe-stop screen FAILED" in out
-    assert any("checked_at = now()" in s for s in executed)   # monitor still stamped
 
 
 def test_open_phase_never_reenters_a_ticker_exiting_the_same_morning(monkeypatch):

@@ -74,21 +74,12 @@ frozen 2026-08-10). Strategy is the validated spec, implemented exactly:
              improved portfolio drawdown/Sharpe at the margin (best Sharpe
              cell in the study).
 
-  DRAWDOWN   pre-registered, in-engine — a MONITOR ONLY; it never stops
-  ALARM      trading. After each close the kill-check phase computes the max
-             drawdown from the book's peak from public.paper_nav_daily. If
-             drawdown >= 15% the trip is recorded in public.ce_kill_switch,
-             and a fresh trip emits a ::error:: annotation and fails the job
-             so WORKFLOW_FAILURE_ALERT emails Joe. The book's return since
-             inception and SPY's over the same window are still computed and
-             stored on the row for the record, but NOTHING trips on them
-             (2026-08-12, Joe: the relative-underperformance arm is removed —
-             being out of favour is not a risk event).
-             ENTRIES ARE NEVER REFUSED — trading continues unaffected
-             (2026-08-11, Joe: "no point freezing new buys just because
-             existing names are losing"; loss control is per-position, via
-             the catastrophe stop above). Tripped state LATCHES until a
-             human resets the row.
+  BOOK-LEVEL there is none, by design (2026-08-12, Joe). A drawdown alarm and,
+  ALARM      before it, a trails-the-S&P arm both raised alerts that changed
+             nothing and that nobody would act on. Risk in this book is a
+             POSITION-level rule: the catastrophe stop above. If a book-level
+             measure is ever wanted again, it should come back as a rule that
+             TRADES, not as a chip on a page.
 
 BOOKKEEPING — the book lives in the existing paper_* tables in the SLEEVE B
 slot (sleeve 'B', signal_source 'conviction_events'); sleeve_m allocation is
@@ -157,7 +148,6 @@ CATASTROPHE_STOP_DROP = 0.15         # close <= 15% below entry -> sell at the N
 # strategy is merely out of favour, which is not something anyone would act on.
 # Book and S&P returns are still RECORDED on the row for the record; nothing
 # trips on them.
-KILL_MAX_DRAWDOWN = 0.15             # drawdown from the book's peak >= 15%
 INCLUDED_ASSET_TYPES = ("CS", "ADRC")  # universe_master.type (same as scanner universe)
 
 SLEEVE = "B"                         # the Conviction book lives in the Sleeve B slot
@@ -629,66 +619,6 @@ def evaluate_catastrophe_stops(
 # Kill switch — pure evaluation over the NAV history
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass(frozen=True)
-class KillDecision:
-    should_trip: bool
-    reason: str | None
-    book_return: float | None
-    spy_return: float | None
-    max_drawdown: float | None
-    trading_days: int
-
-
-def evaluate_kill_switch(
-    nav_rows: list[dict],
-    dd_limit: float = KILL_MAX_DRAWDOWN,
-) -> KillDecision:
-    """Evaluate the drawdown alarm over paper_nav_daily rows since inception.
-
-    `nav_rows` ascending by snapshot_date, each {snapshot_date, total_nav,
-    spy_close}. Row 0 is the seeded inception anchor (day 0), so trading days
-    since inception = len(rows) - 1 (one close row per completed session).
-
-    ONE arm: max drawdown from the book's peak >= `dd_limit`. The relative
-    arm (trailing the S&P 500 after 8 weeks) was removed 2026-08-12 — see the
-    constants block. Book and S&P returns are still computed and stored for
-    the record, but no threshold reads them.
-    """
-    rows = [r for r in nav_rows if r.get("total_nav") is not None]
-    if len(rows) < 1:
-        return KillDecision(False, None, None, None, None, 0)
-    days = len(rows) - 1
-    first_nav = float(rows[0]["total_nav"])
-    last_nav = float(rows[-1]["total_nav"])
-    book_return = (last_nav / first_nav - 1.0) if first_nav > 0 else None
-
-    spy_first = rows[0].get("spy_close")
-    spy_last = rows[-1].get("spy_close")
-    spy_return = None
-    if spy_first and spy_last and float(spy_first) > 0:
-        spy_return = float(spy_last) / float(spy_first) - 1.0
-
-    peak = float("-inf")
-    max_dd = 0.0
-    for r in rows:
-        nav = float(r["total_nav"])
-        peak = max(peak, nav)
-        if peak > 0:
-            max_dd = max(max_dd, (peak - nav) / peak)
-
-    reasons: list[str] = []
-    if max_dd >= dd_limit:
-        reasons.append(
-            f"drawdown from peak {max_dd:.2%} >= {dd_limit:.0%}")
-
-    return KillDecision(
-        should_trip=bool(reasons),
-        reason="; ".join(reasons) if reasons else None,
-        book_return=book_return, spy_return=spy_return,
-        max_drawdown=max_dd, trading_days=days,
-    )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # DB readers/writers (thin; monkeypatched in tests via _supabase_query/_exec)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -805,39 +735,11 @@ def _ce_schema_present() -> bool:
     absent, so an out-of-order merge cannot fail the scheduled jobs daily; a
     LIVE run without the schema is a misconfigured cutover and fails loud."""
     try:
-        _supabase_query("select 1 from public.ce_kill_switch limit 1;")
+        _supabase_query("select 1 from public.ce_events limit 1;")
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.warning("ce_kill_switch probe failed (%s) — migration 094 not applied?", exc)
+        logger.warning("ce_events probe failed (%s) — migration 094 not applied?", exc)
         return False
-
-
-def load_kill_switch() -> dict:
-    """The single ce_kill_switch row. Raises when unreadable — the kill-check
-    phase MUST read the prior state before it writes (the latch depends on
-    it). The open phase reads through _kill_switch_monitor_state() instead:
-    since 2026-08-11 the switch gates nothing, so an unreadable row must
-    never block trading."""
-    rows = _supabase_query(
-        "select tripped, tripped_at::text as tripped_at, reason, book_return, "
-        "spy_return, max_drawdown, checked_at::text as checked_at "
-        "from public.ce_kill_switch where id = 1;")
-    if not rows:
-        raise RuntimeError("ce_kill_switch has no state row — apply migration 094.")
-    return rows[0]
-
-
-def _kill_switch_monitor_state() -> dict | None:
-    """MONITOR read for the open phase. The kill switch no longer gates
-    anything (2026-08-11), so an unreadable row logs and returns None rather
-    than blocking the morning's trading. Never use this in the kill-check
-    phase — the latch needs the real prior state."""
-    try:
-        return load_kill_switch()
-    except Exception as exc:  # noqa: BLE001 — monitor read, must not block trading
-        logger.warning("ce_kill_switch unreadable (%s) — monitor state unknown; "
-                       "trading is unaffected either way", exc)
-        return None
 
 
 def write_stop_exit_scheduled(event_id: int, exit_due_date: str, reason: str) -> None:
@@ -883,40 +785,6 @@ def write_exit_marked(event_id: int, exited_at_iso: str,
         f"trade_return = {_num_sql(trade_return)} "
         f"where id = {int(event_id)} and exited_at is null;")
 
-
-def upsert_kill_switch(decision: KillDecision, dry_run: bool = False) -> bool:
-    """Write the state row. Returns True when this call FRESHLY tripped the
-    switch. Latching: once tripped, tripped/tripped_at/reason never revert
-    here — only a human resets the row."""
-    prior = load_kill_switch()
-    already = bool(prior.get("tripped"))
-    fresh_trip = decision.should_trip and not already
-    if dry_run:
-        logger.info("[dry-run] kill-switch: tripped(prior)=%s should_trip=%s reason=%s",
-                    already, decision.should_trip, decision.reason)
-        return False
-    if fresh_trip:
-        _supabase_exec(
-            "update public.ce_kill_switch set "
-            "tripped = true, tripped_at = now(), "
-            f"reason = {_sql_escape(decision.reason)}, "
-            f"book_return = {_num_sql(decision.book_return)}, "
-            f"spy_return = {_num_sql(decision.spy_return)}, "
-            f"max_drawdown = {_num_sql(decision.max_drawdown)}, "
-            "checked_at = now() where id = 1;")
-    else:
-        _supabase_exec(
-            "update public.ce_kill_switch set "
-            f"book_return = {_num_sql(decision.book_return)}, "
-            f"spy_return = {_num_sql(decision.spy_return)}, "
-            f"max_drawdown = {_num_sql(decision.max_drawdown)}, "
-            "checked_at = now() where id = 1;")
-    return fresh_trip
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Fill reconciliation — backfill entry/exit prices from the fills ledger
-# ─────────────────────────────────────────────────────────────────────────────
 
 def reconcile_fills(dry_run: bool = False) -> int:
     """Backfill ce_events entry_price / exited_at / exit_price / trade_return
@@ -1053,7 +921,7 @@ def run_open_phase(dry_run: bool = False,
                            "(the frozen pre-cutover state)")
             return {"skipped": "migration-094-not-applied"}
         msg = ("CONVICTION engine cannot run live — migration 094 "
-               "(ce_events/ce_kill_switch) is not applied; cutover is misordered")
+               "(ce_events) is not applied; cutover is misordered")
         print(f"::error::{msg}", flush=True)
         raise RuntimeError(msg)
 
@@ -1147,17 +1015,10 @@ def run_open_phase(dry_run: bool = False,
     for e in events:
         apply_gates(e, session_iso, universe.get(e.ticker), histories.get(e.ticker, []))
 
-    # ── 4) KILL-SWITCH MONITOR + fundable cash + one-per-ticker + ranking ──
-    # The kill switch is a MONITOR ONLY (2026-08-11, Joe): it is read here for
-    # the morning summary and never gates a single order. Loss control is
-    # per-position, via the catastrophe stop in the post-close phase.
-    kill = _kill_switch_monitor_state()
-    tripped = bool(kill.get("tripped")) if kill is not None else None
-    if tripped:
-        logger.warning("KILL-SWITCH MONITOR is TRIPPED (%s) — recorded for review; "
-                       "trading continues unaffected",
-                       kill.get("reason") or "see ce_kill_switch")
-
+    # ── 4) buying capacity + one-per-ticker + ranking ──────────────────────
+    # There is no book-level gate to read here. The book-level alarm was
+    # removed 2026-08-12 (Joe); loss control is per-position, via the
+    # catastrophe stop in the post-close phase.
     held_or_open = ({t for t in positions}
                     | {(e["ticker"] or "").upper() for e in open_events})
     due_exit_tickers = {(e["ticker"] or "").upper() for e in exits_due}
@@ -1278,7 +1139,6 @@ def run_open_phase(dry_run: bool = False,
             "skipped_gate": [e.ticker for e in events if e.action == "skipped_gate"],
             "skipped_full": [e.ticker for e in events if e.action == "skipped_full"],
             "skipped_dup": [e.ticker for e in events if e.action == "skipped_dup"],
-            "kill_switch_tripped": tripped,   # MONITOR only — never blocks a trade
             "open_positions_after_exits": open_after_exits,
             "position_ceiling": MAX_CONCURRENT_POSITIONS,
             "cash_available": cash_available,
@@ -1307,10 +1167,6 @@ def run_open_phase(dry_run: bool = False,
                 lines += [f"  {e.ticker} ({e.filing_date}) — {e.action}"
                           + (f": {e.gate_fail_reason}" if e.gate_fail_reason else "")
                           for e in skipped]
-            if tripped:
-                lines += ["", "Kill-switch monitor: TRIPPED "
-                          f"({kill.get('reason') or 'see the kill-switch row'}). "
-                          "This is a monitor only — trading continues as normal."]
             lines += ["", "Orders execute at the 9:30am ET opening auction."]
             n_orders = len(exit_intents) + len(entry_intents)
             subject = (f"[MacroTilt paper] Conviction Events — {n_orders} order(s) "
@@ -1324,7 +1180,6 @@ def run_open_phase(dry_run: bool = False,
         "session": session_iso,
         "exits_due": len(exits_due), "exit_orders": len(exit_intents),
         "events": len(events), "entries": len(entry_intents),
-        "kill_switch_tripped": tripped,   # MONITOR only — never blocks a trade
         "cash_available": cash_available,
         "open_positions_after_exits": open_after_exits,
         "exit_result": exit_result, "entry_result": entry_result,
@@ -1425,21 +1280,25 @@ def run_catastrophe_stop_check(alpaca: AlpacaPaperClient | None = None,
 
 
 def run_kill_check(dry_run: bool = False) -> int:
-    """Post-close phase: catastrophe stops FIRST (they place tomorrow's
-    exits), then the kill-switch MONITOR.
+    """Post-close phase: the catastrophe-stop screen.
 
-    The kill switch recomputes its metrics from paper_nav_daily since the new
-    inception, upserts ce_kill_switch, and FAILS the job (nonzero exit) on a
-    fresh trip so WORKFLOW_FAILURE_ALERT emails Joe. It does NOT stop trading
-    — entries and exits run untouched while tripped (2026-08-11, Joe). An
-    already-tripped switch stays loud in the log (::error:: line) but exits 0
-    — the failure email fires once per trip, not daily (LESSONS 4.12).
+    Every held position is measured against tonight's official close. A close
+    15% or more below the entry price moves that event's exit_due_date to the
+    next session, so tomorrow's open sells it market-on-open down the SAME
+    path as a scheduled 21st-day exit. A failing screen fails the job — held
+    positions going unscreened is exactly the silent-staleness failure mode.
 
-    A failing stop screen also fails the job (held positions went unscreened,
-    which is exactly the silent-staleness failure mode), but it never stops
-    the monitor from stamping its metrics for the evening."""
+    The BOOK-LEVEL alarm that used to run here (drawdown from the book's peak,
+    and before that a relative-to-SPY arm) was removed 2026-08-12 at Joe's
+    instruction. Neither ever changed what the engine did — they raised an
+    alert nobody would act on, while the exit that actually controls risk is
+    per position, right here. Risk is a position-level rule in this book; if a
+    book-level measure is ever wanted again it should come back as a rule that
+    TRADES, not as a chip on a page. The phase name and the workflow keep
+    their historical names.
+    """
     logger.info("=" * 60)
-    logger.info("CONVICTION EVENTS — POST-CLOSE phase (stops, then kill monitor)")
+    logger.info("CONVICTION EVENTS — POST-CLOSE phase (catastrophe stops)")
     logger.info("=" * 60)
     if not _ce_schema_present():
         if dry_run:
@@ -1447,7 +1306,7 @@ def run_kill_check(dry_run: bool = False) -> int:
                            "(the frozen pre-cutover state)")
             return 0
         msg = ("CONVICTION kill-check cannot run live — migration 094 "
-               "(ce_events/ce_kill_switch) is not applied; cutover is misordered")
+               "(ce_events) is not applied; cutover is misordered")
         print(f"::error::{msg}", flush=True)
         raise RuntimeError(msg)
     try:
@@ -1455,57 +1314,18 @@ def run_kill_check(dry_run: bool = False) -> int:
     except Exception:  # noqa: BLE001
         logger.exception("fill reconciliation failed — continuing to the stop screen")
 
-    # ── catastrophe stops (the only risk exit) ─────────────────────────────
-    stop_failed = False
     try:
         run_catastrophe_stop_check(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001 — must not cost the evening's monitor
-        stop_failed = True
+    except Exception as exc:  # noqa: BLE001
         msg = (f"CONVICTION catastrophe-stop screen FAILED ({exc}) — held "
                "positions were NOT checked against the -15% stop tonight.")
         print(f"::error::{msg}", flush=True)
         logger.exception(msg)
-
-    nav_rows = _supabase_query(
-        "select snapshot_date::text as snapshot_date, total_nav, spy_close "
-        "from public.paper_nav_daily order by snapshot_date;")
-    decision = evaluate_kill_switch(nav_rows)
-    logger.info(
-        "kill metrics: %d trading day(s) since inception, book %s vs SPY %s, "
-        "max drawdown %s",
-        decision.trading_days,
-        f"{decision.book_return:+.2%}" if decision.book_return is not None else "n/a",
-        f"{decision.spy_return:+.2%}" if decision.spy_return is not None else "n/a",
-        f"{decision.max_drawdown:.2%}" if decision.max_drawdown is not None else "n/a")
-
-    fresh_trip = upsert_kill_switch(decision, dry_run=dry_run)
-    if dry_run:
-        logger.info("[dry-run] kill-check complete — state not written "
-                    "(should_trip=%s%s)", decision.should_trip,
-                    f": {decision.reason}" if decision.reason else "")
-        return 1 if stop_failed else 0
-    state = load_kill_switch()
-    if fresh_trip:
-        msg = (f"CONVICTION KILL SWITCH TRIPPED — {decision.reason}. This is a "
-               "MONITOR: trading continues unaffected (entries and exits both "
-               "run). The state latches until a human resets the row.")
-        print(f"::error::{msg}", flush=True)
-        logger.error(msg)
-        file_alert(title="Conviction Events kill switch TRIPPED",
-                   description=msg, priority="P1")
         return 1
-    if bool(state.get("tripped")):
-        print("::error::CONVICTION kill switch remains TRIPPED "
-              f"({state.get('reason') or 'see ce_kill_switch'}) — monitor only; "
-              "trading continues", flush=True)
-    else:
-        logger.info("kill-switch monitor clear")
-    return 1 if stop_failed else 0
+    logger.info("post-close complete — every held position screened against "
+                "the -15% stop")
+    return 0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CLI
-# ─────────────────────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="MacroTilt Conviction Events engine.")
