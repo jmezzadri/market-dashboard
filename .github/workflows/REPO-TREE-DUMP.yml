@@ -1,0 +1,23 @@
+name: REPO-TREE-DUMP
+on:
+  workflow_dispatch:
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dump tree
+        run: |
+          mkdir -p public
+          { echo "# repo tree (generated for agent read-back)"; \
+            git ls-files | head -4000; } > public/_repo_tree.txt
+          wc -l public/_repo_tree.txt
+      - name: Commit
+        run: |
+          git config user.name "MacroTilt Agent"
+          git config user.email "agent@macrotilt.com"
+          git add public/_repo_tree.txt
+          git commit -m "chore: dump repo tree for agent read-back" || exit 0
+          git push
