@@ -1129,3 +1129,26 @@ The retry then exposed a second defect. `agent-write` created its branch with *d
 **Also shipped in the same change, and worth its own line:** `ops-code-commit` could write and replace files but never **delete** one, so a cloud session could retire a module and was then forced to leave the corpse in the tree. Dead source invites a future session to "fix" it. File entries now accept `{path, delete: true}` (`sha: null` against the base tree), governed by the same path allowlist — it widens what may be done to a path, never which paths. Redeployed with `verify_jwt: false` per 4.27.
 
 **Applies to:** Lead Developer, Data Steward — every dated surface on the site, and every "we'll curate it by hand for now" shortcut.
+
+### 4.29 (2026-08-13) — A stringified null took down Joe's whole brief email, and a claim taken before the action made it permanent
+
+**What happened:** on 2026-08-13 Joe received no morning brief email at all. The homepage brief was correct and current, DAILY-BRIEF-WRITER ran nine times, every run and every step was **green**, and `brief_email_log` held a row saying the email had been claimed. Nothing in the inbox, sent, spam or trash.
+
+Three defects stacked, each individually small:
+
+1. **A stringified null in an optional field.** The schema says `"single_name": null` when a section has no name to feature. The composing session wrote the literal string `"None"` in two of three sections. `if sec.get("single_name"):` — a non-empty string is truthy — waved it straight through, and both email renderers immediately called `sn.get("ticker")` on a `str`. `AttributeError: 'str' object has no attribute 'get'`, raised before a single byte reached SMTP.
+2. **The failure was swallowed by design.** The send sits in `try/except Exception` and is deliberately best-effort so an email problem can never fail the commit (correct). But the handler printed one non-fatal WARN and returned — so the step stayed green and the only symptom was an email that did not arrive.
+3. **The send-once claim was taken BEFORE the send and never released.** `claim_email_send()` inserts the `brief_email_log` row, then the SMTP block runs. When the render blew up, the claim survived — and every one of the morning's remaining runs read it as "already sent" and skipped. One transient-looking error became a whole day with no brief, and a manual re-dispatch reproduced the silence exactly.
+
+Diagnosis was blocked too: a cloud session can read a run's per-step *conclusions* but not its *logs*, and every conclusion was green. The error text only became visible after shipping a table for it (`brief_email_failures`, migration 096) and re-running — three dispatches, three identical rows, root cause in one line.
+
+**Rule:**
+
+1. **A claim must never outlive the action it was claiming.** If the action fails, release the claim in the same handler. Claim-before-act is right for a mutex (LESSONS 4.22d), but only if the failure path gives it back. Otherwise the deduplication mechanism becomes a suppression mechanism.
+2. **One optional field may never take down the whole artifact.** Renderers guard the *shape* they consume (`isinstance(sn, dict) and sn.get("ticker")`), not merely truthiness — and a surprising shape degrades to an omitted line, never an exception. Same doctrine as the SOFT-keys defaulting already in `validate()`.
+3. **Normalise at the boundary AND defend at the consumer.** `validate()` now coerces any non-dict `single_name` to `None` and logs what it dropped, so the committed artifact carries one shape. The renderers still guard, because they read the COMMITTED file, which can predate any normalisation. Neither alone was enough here.
+4. **Truthiness is not type-checking on model-authored JSON.** `"None"`, `"null"`, `"N/A"`, `""` and `{}` all arrive eventually. Anywhere a schema says "X or null", check the type of X.
+5. **Best-effort must still be observable.** A side effect allowed to fail silently needs a durable record of the failure — a row, not a log line a cloud session cannot read. If the only evidence of a break lives in a GitHub Actions log, the break is invisible to whoever has to fix it.
+6. **"Green step" and "the thing happened" are different claims.** Nine green runs and a claim row all said the email was sent. Verify an email fix by finding the message (LESSONS 4.6.6), which is what finally exposed this.
+
+**Applies to:** Lead Developer — every send-once claim, every renderer over model-authored JSON, and every side effect wrapped in a non-fatal `except`.
