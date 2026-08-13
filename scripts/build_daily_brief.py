@@ -392,6 +392,21 @@ def validate(brief, today):
     for k in ("news", "implications", "watch", "movers"):
         if not isinstance(brief.get(k), list):
             brief[k] = []
+    # single_name is OPTIONAL and the schema says null when absent -- but the composing
+    # session wrote the *string* "None" on 2026-08-13, and a non-empty string is truthy,
+    # so `if sec.get("single_name")` waved it through and both email renderers then
+    # called .get() on a str. That one stringified null cost Joe his entire brief email
+    # for the day. Normalise here so the committed artifact only ever holds a real
+    # {ticker, note} dict or null -- the site reads this file too. LESSONS 4.29.
+    for sec in brief["sections"]:
+        if not isinstance(sec, dict):
+            continue
+        sn = sec.get("single_name")
+        if not isinstance(sn, dict) or not str(sn.get("ticker") or "").strip():
+            if sn not in (None, "", [], {}):
+                print(f"WARN: dropping malformed single_name in "
+                      f"'{sec.get('title','?')}': {sn!r}", file=sys.stderr)
+            sec["single_name"] = None
     return brief
 
 # ---- email rendering (replicates the existing branded template) ----
@@ -434,8 +449,13 @@ def render_email_html(b):
             out.append(_bullet(bl))
         if sec.get("positioning"):
             out.append(_bullet(f'<strong style="color:{INK}">Positioning:</strong> {sec["positioning"]}'))
-        if sec.get("single_name"):
-            sn = sec["single_name"]
+        # Defensive: validate() normalises single_name, but the email is rendered from
+        # the COMMITTED file, which can predate that normalisation. A stringified null
+        # ("None") is truthy, and calling .get() on it cost Joe his entire brief email
+        # on 2026-08-13. One optional field must never take down the whole email.
+        # LESSONS 4.29.
+        sn = sec.get("single_name")
+        if isinstance(sn, dict) and str(sn.get("ticker") or "").strip():
             out.append(_bullet(f'<strong style="color:{INK}">Single name:</strong> {sn.get("ticker","")} {sn.get("note","")}'))
         out.append(_spacer())
     def block(num, title, items, kind):
@@ -465,8 +485,9 @@ def render_email_text(b):
         for bl in _bl:
             L.append(f"- {bl}")
         if sec.get("positioning"): L.append(f"- Positioning: {sec['positioning']}")
-        if sec.get("single_name"):
-            sn = sec["single_name"]; L.append(f"- Single name: {sn.get('ticker','')} {sn.get('note','')}")
+        sn = sec.get("single_name")   # same guard as the HTML renderer above
+        if isinstance(sn, dict) and str(sn.get("ticker") or "").strip():
+            L.append(f"- Single name: {sn.get('ticker','')} {sn.get('note','')}")
         L.append("")
     L.append("4. Key News & Events")
     for it in b.get("news", []): L.append(f"- {it.get('head','')}: {it.get('body','')}")
