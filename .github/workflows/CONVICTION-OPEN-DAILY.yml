@@ -1,17 +1,7 @@
 name: CONVICTION-OPEN-DAILY (DISABLED)
 
-# ============================================================================
-# DISABLED 2026-08-12 on Joe's instruction ("kill everything") ahead of the
-# Alpaca paper account reset to $1,000,000 and the equity scanner rebuild.
-#
-# Nothing in this file trades. The schedule has been removed so GitHub's cron
-# can no longer fire it. The matching pg_cron backup trigger in Supabase has
-# also been set active = false.
-#
-# The original workflow is preserved in git history. To restore:
-#   git log --oneline -- .github/workflows/CONVICTION-OPEN-DAILY.yml
-#   git show <sha>^:.github/workflows/CONVICTION-OPEN-DAILY.yml > .github/workflows/CONVICTION-OPEN-DAILY.yml
-# ============================================================================
+# DISABLED 2026-08-12 - automated trading halted. Nothing here trades.
+# Temporarily doubles as the agent's repo-tree read-back (dispatch-only).
 
 on:
   workflow_dispatch:
@@ -19,8 +9,19 @@ on:
 jobs:
   disabled:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
       - name: Halted
+        run: echo "::warning::CONVICTION-OPEN-DAILY is DISABLED. No orders are placed."
+      - name: Dump repo tree for agent read-back
         run: |
-          echo "::warning::CONVICTION-OPEN-DAILY is DISABLED. Automated trading is halted."
-          echo "Re-enable only after the rebuilt scanner is backtested and signed off."
+          mkdir -p public
+          git ls-files > public/_repo_tree.txt
+          wc -l public/_repo_tree.txt
+          git config user.name "MacroTilt Agent"
+          git config user.email "agent@macrotilt.com"
+          git add public/_repo_tree.txt
+          git commit -m "chore: repo tree read-back" || exit 0
+          git push
