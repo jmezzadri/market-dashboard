@@ -59,10 +59,64 @@ a forced note is worse than a late one.
 **3. Compose ONE JSON object** with these keys:
 
 `date`, `kind` (one of macro / cross-asset / single-name / rates / credit / fx /
-commodity / equity), `title`, `dek`, `instrument`, `horizon`, `thesis[]`
+commodity / equity), `title`, `dek`, `position_type`, `plain_english`,
+`the_trade{buy, sell?, short?, sizing?}`, `instrument`, `horizon`, `thesis[]`
 (three or more), `evidence[]` (each `{claim, value, source, as_of}`),
-`levels{trigger, invalidation, target}`, `sections[]` (each `{title, prose}` or
-`{title, bullets[]}`), `other_side`, `risks[]`, `so_what`.
+`charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
+`{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`.
+
+### Say what the trade IS before you say anything else
+
+Joe on the first published note: *"Are we saying to buy treasuries and short
+stocks? Im confused what the trade is..."* That note led with "Long the 10-year
+Treasury, funded by trimming US large-cap equity beta" — which a professional
+reads as an allocation shift and everyone else reads as a short. **A note whose
+central claim has to be decoded has failed, however good its evidence is.**
+
+- `position_type` — one of `allocation shift`, `outright long`, `outright short`,
+  `long/short spread`, `hedge`, `watch only`. It renders as a badge, so the
+  reader knows whether anything is being sold short before meeting a number.
+  `outright short` and `long/short spread` REQUIRE `the_trade.short`.
+- `plain_english` — one sentence, 40–260 characters, for a reader who is not a
+  trader. The contract rejects it if it contains any of: beta, duration,
+  convexity, carry, basis point(s), bp/bps, curve, spread, percentile,
+  steepener, flattener, notional, overweight, underweight, risk premium, term
+  premium, vol. Put the technical version in `instrument` and the thesis —
+  those are allowed to be technical, and should be.
+- `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
+  `short` (only for an actual short) and `sizing`.
+
+### Charts
+
+Joe: *"I'd like to include charts embedded in the tile and note. Several charts
+to show visuals of what you're writing about."*
+
+Charts are **declarative**, and this is the important part: a chart names a
+series that already exists in `indicator_history.json` and the site draws it.
+Nothing is plotted from numbers typed into the note, so a chart can never
+disagree with the sentence beside it — and a note cannot illustrate a series we
+do not carry. The contract checks every named series against the real file and
+rejects one that is missing or too short.
+
+```json
+{
+  "series": "erp",
+  "title": "What stocks pay you over bonds",
+  "subtitle": "S&P 500 cyclically-adjusted earnings yield minus the 10-year Treasury yield, monthly since 2006",
+  "unit": "%", "decimals": 2, "window": "full", "zero_rule": true,
+  "caption": "Below the zero line, a Treasury pays more than the S&P's long-run earnings yield…",
+  "source": "MacroTilt indicator history (Shiller CAPE + FRED DGS10)"
+}
+```
+
+- 2 to 5 charts, each a DIFFERENT series. The first is the tile's chart.
+- `window`: `1y` / `3y` / `5y` / `10y` / `20y` / `full`.
+- `title` is what the reader learns, not the series name — "What a bond pays
+  after inflation" beats "real_rates".
+- The `caption` is the point of the chart: say what crossing the line means. A
+  chart without one is decoration.
+- Every chart is a SINGLE series. If two measures matter, that is two charts —
+  never two lines on one plot and never a second y-axis.
 
 ### HARD CONTRACT (the script enforces every one of these)
 
@@ -89,6 +143,8 @@ commodity / equity), `title`, `dek`, `instrument`, `horizon`, `thesis[]`
 10. **Plain English** for a smart non-trader; translate jargon every time. Never
     print an internal field name, a feed name, or narration of your own
     research state.
+11. **Every chart's series must exist in `indicator_history.json`** and the note
+    may not plot the same series twice.
 
 **4. Validate through the versioned contract.**
 
@@ -108,6 +164,8 @@ the novelty check real; validating against an empty file checks nothing.
 branch `idea/<date>`, `merge: true`.
 
 **6. Verify.** Load `https://macrotilt.com/` and read the Trade Idea tile.
-Confirm the title, the three fact columns and "the other side" render, and that
-"Read the full note" opens the note. Markup containing the string is not
-verification — look at the page.
+Confirm the plain-English line, the position badge, the fact columns and the
+tile chart render, and that "Read the full note" opens the note with every chart
+drawn. **Look at the charts** — the validator checks the data, not the layout,
+and a label that collides with another label is invisible to every assertion.
+Markup containing the string is not verification.

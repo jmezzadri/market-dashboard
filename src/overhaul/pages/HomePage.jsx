@@ -1,28 +1,26 @@
 /* HomePage — the MacroTilt cockpit.
 
-   2026-08-13 rework (Joe): the home page is FOUR reads, nothing else —
-     1 Morning Brief   · what happened, fact-based
-     2 The Engine      · where volatility and the yield regime sit
-     3 Trade Idea      · the proprietary editorial call (new)
-     4 Upcoming data   · what prints next, from the agencies' real calendars
+   2026-08-13 (Joe, second pass the same day): "We should have the Brief and
+   Trade idea be the centerpieces. And the Engine and Data almost like
+   supporting tiles somewhere. I dont like to have to scroll."
 
-   Two tiles were deleted in this pass, not moved: "Macro indicators · at
-   extremes" and "Positioning · COT extremes". Both already render on the
-   Macro Overview page, so Home was carrying a second copy of a read that
-   lives elsewhere. (Joe: "The other two are already on MACRO. Just delete
-   them from Home.")
+   So the page is now a HIERARCHY, not four equal tiles:
+     Row 1 — Morning Brief | Trade Idea      the two reading surfaces, half each
+     Row 2 — The Engine | Upcoming data      short supporting strip beneath them
 
-   Grid: a real 2x2. Left column (span 7) holds the two READING tiles — the
-   brief and the trade idea; right column (span 5) holds the two SCANNING
-   tiles — the engine gauges and the calendar. Row heights stretch together.
+   Everything that fights the no-scroll rule was cut rather than shrunk into
+   illegibility: the hero margin above the grid, the brief's headline list (three
+   on the tile, all of them in the modal), and the Engine's vertical stack (its
+   two gauges now sit side by side in a short card). Nothing is hidden without
+   the page saying so — the brief's "full brief" row states how many headlines it
+   is holding back, and every chart in a note is reachable from the tile.
 
    Design rules honored (these caused earlier reworks):
      • Engine data wins — the stress signal is MOVE (bands 116 / 124) and the
        yield regime is the 3-month change in the 10-year, both from the engine
        hook, never the brief's prose. No invented thresholds.
-     • Ink is reserved for exactly ONE card, The Engine. The Trade Idea tile is
-       the same putty surface with a gold editorial rule — it must not compete
-       with the engine for the eye.
+     • Ink is reserved for exactly ONE card, The Engine. Gold is the editorial
+       accent and appears on the Trade Idea and nowhere else.
      • Lead with the day-over-day CHANGE on every level.
      • Prices are prior-close, labeled "close".
      • Everything links to its detail route. */
@@ -36,6 +34,8 @@ import useMarketLevels from '../lib/useMarketLevels';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
+import useIndicatorSeries from '../lib/useIndicatorSeries';
+import IdeaChart from '../components/IdeaChart';
 import '../styles/cream-system.css';
 
 /* ── format helpers ─────────────────────────────────────────────────────── */
@@ -68,22 +68,11 @@ function longDate(iso) {
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
-/* The tile's fact columns are a scannable strip, not prose — Joe's standing
-   rule is that rows carry the fact and the explanation lives elsewhere. The
-   contract deliberately requires a FULL invalidation sentence (it has to be
-   checkable), so the tile shows its first clause and the modal shows all of
-   it. Never truncates mid-word, and never adds an ellipsis to text that was
-   already short enough. */
-/* Same reasoning for the counter-argument: the contract demands a substantial
-   one (a hedge clause is rejected), which is right for the note and too long
-   for the tile. Tile gets the opening two sentences, modal gets all of it. */
-function twoSentences(s, n = 2) {
-  const t = String(s || '').trim();
-  const parts = t.match(/[^.!?]+[.!?]+(\s|$)/g);
-  if (!parts || parts.length <= n) return t;
-  return `${parts.slice(0, n).join('').trim()} …`;
-}
-function firstClause(s, max = 96) {
+/* The tile's fact strip is scannable, not prose. The contract deliberately
+   requires a FULL invalidation sentence (it has to be checkable), so the tile
+   shows its first clause and the modal shows all of it. Never truncates
+   mid-word, never adds an ellipsis to text that was already short enough. */
+function firstClause(s, max = 82) {
   const t = String(s || '').trim();
   if (!t) return '';
   const stop = t.search(/(?<=\S)\s+[—–]\s+|\.\s/);
@@ -107,19 +96,13 @@ const RIBBON = [
 const clampPct = (x) => Math.max(0, Math.min(100, x));
 function stressGauge(move) {
   const MIN = 40, MAX = 160, R = MAX - MIN; // sensible MOVE range
-  const on = ((116 - MIN) / R) * 100;
-  const watch = ((124 - 116) / R) * 100;
-  const off = ((MAX - 124) / R) * 100;
   const mk = move == null ? null : clampPct(((move - MIN) / R) * 100);
-  return { on, watch, off, mk };
+  return { mk };
 }
 function yieldGauge(bp) {
   const MIN = -40, MAX = 60, R = MAX - MIN;
-  const defl = ((-11 - MIN) / R) * 100;
-  const neutral = ((32 - -11) / R) * 100;
-  const infl = ((MAX - 32) / R) * 100;
   const mk = bp == null ? null : clampPct(((bp - MIN) / R) * 100);
-  return { defl, neutral, infl, mk };
+  return { mk };
 }
 
 /* Reveal — scroll-reveal wrapper. Replays in BOTH directions (Joe 2026-07-07).
@@ -130,7 +113,7 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
-    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.12 });
+    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.05 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -138,14 +121,18 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
 }
 
 const KIND_LABEL = {
-  macro: 'Macro',
-  'cross-asset': 'Cross-asset',
-  'single-name': 'Single name',
-  rates: 'Rates',
-  credit: 'Credit',
-  fx: 'Currencies',
-  commodity: 'Commodities',
-  equity: 'Equities',
+  macro: 'Macro', 'cross-asset': 'Cross-asset', 'single-name': 'Single name',
+  rates: 'Rates', credit: 'Credit', fx: 'Currencies', commodity: 'Commodities', equity: 'Equities',
+};
+/* What the position IS, in one hover. The badge answers "am I shorting
+   anything?" before the reader meets a single number — Joe, 2026-08-13. */
+const POSITION_NOTE = {
+  'allocation shift': 'Move money from one asset to another. Nothing sold short, no leverage.',
+  'outright long': 'Buy and hold it. Nothing sold short.',
+  'outright short': 'A short position — sold with the intention of buying it back lower.',
+  'long/short spread': 'Long one thing and short the other, sized against each other.',
+  hedge: 'Protection bought against something already owned.',
+  'watch only': 'Not a position yet — the setup to watch and what would make it one.',
 };
 
 export default function HomePage() {
@@ -159,8 +146,14 @@ export default function HomePage() {
   const { level } = useMarketLevels();
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
-  const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 7 });
+  const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
   const { idea, nextPublish } = useTradeIdea();
+
+  // Charts are declarative: the note names series that already exist in
+  // indicator_history.json and the site draws them. The 4.5 MB history file is
+  // only fetched once a note is actually on screen asking for a chart.
+  const chartKeys = useMemo(() => (idea?.charts || []).map((c) => c.series), [idea]);
+  const { series: chartSeries } = useIndicatorSeries(chartKeys);
 
   // Footer: market open/closed + honest "data as of" (newest displayed level).
   const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -175,32 +168,26 @@ export default function HomePage() {
   const stress = stressGauge(regime.move);
   const yld = yieldGauge(regime.yieldDeltaBp);
   const stressZone = regime.stressZone;
-  const stressCls = stressZone === 'Risk On' ? 'up' : stressZone === 'Watch' ? 'amb' : stressZone === 'Risk Off' ? 'down' : '';
+  const stressCls = stressZone === 'Risk On' ? 'ok' : stressZone === 'Watch' ? 'warm' : stressZone === 'Risk Off' ? 'bad' : '';
   const stressMsg = stressZone === 'Risk On' ? 'Calm — far from any de-risk line.'
     : stressZone === 'Watch' ? 'Watch — approaching the de-risk line.'
     : stressZone === 'Risk Off' ? 'Risk off — the de-risk line is breached.' : '—';
   const yReg = regime.yieldRegime;
   const nearInfl = yReg === 'Neutral' && regime.yieldDeltaBp != null && 32 - regime.yieldDeltaBp <= 8;
-  const yCls = yReg === 'Inflationary' ? 'amb' : yReg === 'Deflationary' ? 'up' : nearInfl ? 'amb' : '';
+  const yCls = yReg === 'Inflationary' ? 'warm' : yReg === 'Deflationary' ? 'ok' : nearInfl ? 'warm' : '';
   const yMsg = yReg === 'Inflationary' ? 'Inflationary — the Fed is back in play.'
     : yReg === 'Deflationary' ? 'Deflationary — a growth scare.'
     : nearInfl ? 'Neutral — nearing the inflationary edge.' : 'Neutral.';
 
-  // Verdict split ("Risk On · Neutral" -> bold + small).
   const verdictParts = (regime.regimeLabel || '—').split('·').map((s) => s.trim());
 
   const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
 
-  // Cockpit height budget (2026-08-13). The brief tile's height is data-driven
-  // — one row per headline, and the writer regularly files seven. That made the
-  // tile 891px against an Engine card of ~450px of content, and the grid row
-  // stretched the Engine into a card with a hole in the middle. LESSONS 4.17
-  // is precisely that failure ("a double-height Engine card full of dead
-  // space"). So the TILE carries the top five headlines and the full-brief row
-  // says how many it is holding back — nothing is lost, the modal already
-  // renders every one of them, and the four tiles stay a cockpit rather than a
-  // scroll. Never silently truncate: the count is in the copy.
-  const BRIEF_TILE_HEADLINES = 5;
+  // Height budget. The brief tile's height is data-driven — one row per headline,
+  // and the writer files seven, which is what pushed the cockpit off a single
+  // screen. THREE on the tile; the full-brief row says how many are held back
+  // and the modal renders every one, so the count is always true.
+  const BRIEF_TILE_HEADLINES = 3;
   const allNews = brief?.news || [];
   const briefNews = allNews.slice(0, BRIEF_TILE_HEADLINES);
   const briefHidden = Math.max(0, allNews.length - briefNews.length);
@@ -220,8 +207,10 @@ export default function HomePage() {
   }, [anyModal]);
   const modalTarget = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
 
+  const heroChart = idea?.charts?.[0];
+
   return (
-    <div className="home-v12">
+    <div className="home-v12 home-cockpit">
 
       {/* market tape */}
       <Reveal className="tape">
@@ -240,12 +229,11 @@ export default function HomePage() {
         </div>
       </Reveal>
 
-      {/* four-tile cockpit — row 1: Brief | Engine, row 2: Trade idea | Upcoming */}
       <section className="wrap">
         <div className="bgrid">
 
-          {/* 1 · morning brief */}
-          <Reveal className="tile brief-card sp7" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
+          {/* ── centerpiece 1 · morning brief ─────────────────────────────── */}
+          <Reveal className="tile brief-card sp6" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
             <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
             <h1>{brief?.headline || 'Reading the tape…'}</h1>
             <div className="newslist">
@@ -258,10 +246,10 @@ export default function HomePage() {
                   <div className="body"><div><Html html={n.body} /></div></div>
                 </div>
               ))}
-              {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0) && (
+              {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0 || allNews.length > 0) && (
                 <div className="ni fullbrief">
                   <button type="button" onClick={(e) => { e.stopPropagation(); setBriefOpen(true); }}>
-                    <span className="hl"><b>The full brief</b> <span>— {briefHidden > 0 ? `${briefHidden} more ${briefHidden === 1 ? 'headline' : 'headlines'}, ` : ''}stance, implications, what to watch, and the detail</span></span>
+                    <span className="hl"><b>The full brief</b> <span>— {briefHidden > 0 ? `${briefHidden} more ${briefHidden === 1 ? 'headline' : 'headlines'}, ` : ''}stance, implications and what to watch</span></span>
                     <span className="plus">+</span>
                   </button>
                 </div>
@@ -269,66 +257,52 @@ export default function HomePage() {
             </div>
           </Reveal>
 
-          {/* 2 · the engine — the ONE ink card on the page */}
-          <Reveal className="tile engine-card engine-tile sp5">
-            <div>
-              <div className="eyebrow2"><span className="dot" />The Engine</div>
-              <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}.</em>}</h2>
-              {/* Copy replaced 2026-07-29 — see the matching note on MacroPage.
-                  Short form here; the full explanation and the track-record
-                  chart live on the Macro Overview card. */}
-              <p className="so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006. Above the watch line the 3-month change in the 10-year picks the hedge. <a href="/macro" onClick={go('/macro')} style={{ color: 'inherit', fontWeight: 600 }}>See the track record ↗</a></p>
-            </div>
-            <div>
-              <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
-                <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)} <i>d/d</i></b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
-                <div className={`read ${stressCls === 'up' ? 'ok' : stressCls === 'amb' ? 'warm' : stressCls ? 'bad' : ''}`}>{stressMsg}</div>
-              </a>
-              <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
-                <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`} <i>bp</i></b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
-                <div className={`read ${yCls === 'amb' ? 'warm' : yCls === 'up' ? 'ok' : ''}`}>{yMsg}</div>
-              </a>
-            </div>
-          </Reveal>
-
-          {/* 3 · trade idea — the editorial call. Putty surface, gold rule:
-              editorial weight without stealing ink from The Engine. */}
-          <Reveal className="tile putty-card idea-tile sp7">
+          {/* ── centerpiece 2 · trade idea ────────────────────────────────── */}
+          <Reveal className="tile putty-card idea-tile sp6">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot dot--gold" />Trade idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
-              {idea?.kind && <span className="idea-kind">{KIND_LABEL[idea.kind] || idea.kind}</span>}
+              <div className="idea-badges">
+                {idea?.position_type && (
+                  <span className="idea-pos" title={POSITION_NOTE[idea.position_type] || ''}>{idea.position_type}</span>
+                )}
+                {idea?.kind && <span className="idea-kind">{KIND_LABEL[idea.kind] || idea.kind}</span>}
+              </div>
             </div>
 
             {idea ? (
               <>
                 <h2 className="idea-title">{idea.title}</h2>
-                {idea.dek && <p className="idea-dek">{idea.dek}</p>}
 
-                <div className="idea-facts">
-                  <div className="idea-fact">
-                    <span className="k">The trade</span>
-                    <span className="v">{idea.instrument || '—'}</span>
-                  </div>
-                  <div className="idea-fact">
-                    <span className="k">Horizon</span>
-                    <span className="v">{idea.horizon || '—'}</span>
-                  </div>
-                  <div className="idea-fact">
-                    <span className="k">What kills it</span>
-                    <span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span>
-                  </div>
-                </div>
+                {/* The plain-English line leads. Joe, 2026-08-13: "Are we saying
+                    to buy treasuries and short stocks? Im confused what the
+                    trade is..." — the answer now precedes every number. */}
+                {idea.plain_english && <p className="idea-plain">{idea.plain_english}</p>}
 
-                {idea.other_side && (
-                  <p className="idea-other"><b>The other side</b> — {twoSentences(idea.other_side)}</p>
+                {idea.the_trade && (
+                  <div className="idea-facts">
+                    {idea.the_trade.buy && (
+                      <div className="idea-fact"><span className="k">Buy</span><span className="v">{idea.the_trade.buy}</span></div>
+                    )}
+                    {idea.the_trade.sell && (
+                      <div className="idea-fact"><span className="k">Sell to pay for it</span><span className="v">{idea.the_trade.sell}</span></div>
+                    )}
+                    {idea.the_trade.short && (
+                      <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short}</span></div>
+                    )}
+                    <div className="idea-fact"><span className="k">What kills it</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
+                  </div>
+                )}
+
+                {heroChart && (
+                  <div className="idea-herochart">
+                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={560} height={104} compact />
+                  </div>
                 )}
 
                 <p className="tilenote">
-                  <button type="button" className="idea-more" onClick={() => setIdeaOpen(true)}>Read the full note →</button>
+                  <button type="button" className="idea-more" onClick={() => setIdeaOpen(true)}>
+                    Read the full note{idea.charts?.length > 1 ? ` · ${idea.charts.length} charts` : ''} →
+                  </button>
                 </p>
               </>
             ) : (
@@ -341,11 +315,36 @@ export default function HomePage() {
             )}
           </Reveal>
 
-          {/* 4 · upcoming data — live from the agencies' own release calendars */}
-          <Reveal className="tile putty-card cal-tile sp5">
+          {/* ── supporting · the engine (short, gauges side by side) ───────── */}
+          <Reveal className="tile engine-card engine-strip sp6">
+            <div className="es-head">
+              <div className="eyebrow2"><span className="dot" />The Engine</div>
+              <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}</em>}</h2>
+              <a className="es-link" href="/macro" onClick={go('/macro')}>Track record ↗</a>
+            </div>
+            <div className="es-gauges">
+              <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
+                <div className="gl"><span>Stress · MOVE</span><b>{fmt(regime.move, 0)}</b></div>
+                <div className="track"><div className="fill" /><div className="pin" /></div>
+                <div className="ends"><span>On ≤116</span><span>Off ≥124</span></div>
+                <div className={`read ${stressCls}`}>{stressMsg}</div>
+              </a>
+              <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
+                <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`}<i>bp</i></b></div>
+                <div className="track"><div className="fill" /><div className="pin" /></div>
+                <div className="ends"><span>Defl ≤−11</span><span>Infl ≥+32</span></div>
+                <div className={`read ${yCls}`}>{yMsg}</div>
+              </a>
+            </div>
+          </Reveal>
+
+          {/* ── supporting · upcoming data (short) ─────────────────────────── */}
+          <Reveal className="tile putty-card cal-tile cal-strip sp6">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot" />Upcoming data</div>
-              <a href="/macro" onClick={go('/macro')}>Macro Overview →</a>
+              <a href="/macro" onClick={go('/macro')}>
+                {calMeta?.counts?.total > 0 ? `All ${calMeta.counts.total} releases →` : 'Macro Overview →'}
+              </a>
             </div>
             <div className="calrows">
               {calDays.map((d) => (
@@ -362,12 +361,6 @@ export default function HomePage() {
                 <div className="secnote">The release calendar did not load. It rebuilds each morning from the agencies&rsquo; published schedules.</div>
               )}
             </div>
-            {calMeta?.counts?.total > 0 && (
-              <p className="tilenote">
-                {calMeta.counts.total} releases scheduled through {weekdayDate(calMeta.window?.to)} — dates from the
-                {' '}statistical agencies&rsquo; own calendars, times are Eastern.
-              </p>
-            )}
           </Reveal>
 
         </div>
@@ -425,7 +418,7 @@ export default function HomePage() {
         modalTarget,
       )}
 
-      {/* full trade-idea modal */}
+      {/* full trade-idea note */}
       {ideaOpen && idea && modalTarget && createPortal(
         <div onClick={() => setIdeaOpen(false)} className="home-v12 briefmodal-veil">
           <div onClick={(e) => e.stopPropagation()} className="briefmodal">
@@ -433,10 +426,23 @@ export default function HomePage() {
             <div className="eyebrow2"><span className="dot dot--gold" />Trade idea · {longDate(idea.date)}{idea.kind ? ` · ${KIND_LABEL[idea.kind] || idea.kind}` : ''}</div>
             <h2 className="briefmodal-h">{idea.title}</h2>
             <div className="briefmodal-body">
+              {idea.plain_english && (
+                <p className="idea-modal-plain">
+                  <b>In plain English</b> — {idea.plain_english}
+                </p>
+              )}
+              {idea.position_type && (
+                <p className="idea-modal-pos">
+                  <span className="idea-pos">{idea.position_type}</span>
+                  <span>{POSITION_NOTE[idea.position_type]}</span>
+                </p>
+              )}
               {idea.dek && <p className="idea-modal-dek">{idea.dek}</p>}
 
               <div className="idea-modal-facts">
-                {[['The trade', idea.instrument], ['Horizon', idea.horizon],
+                {[['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
+                  ['Sell short', idea.the_trade?.short], ['How much', idea.the_trade?.sizing],
+                  ['The technical version', idea.instrument], ['Horizon', idea.horizon],
                   ['Trigger', idea.levels?.trigger], ['Invalidation', idea.levels?.invalidation],
                   ['Where it goes if it works', idea.levels?.target]]
                   .filter(([, v]) => v).map(([k, v]) => (
@@ -448,6 +454,19 @@ export default function HomePage() {
                 <>
                   <p className="briefmodal-sec">The case</p>
                   <ul>{idea.thesis.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+                </>
+              )}
+
+              {/* every chart the note names, drawn from the same series the
+                  evidence block cites — they cannot disagree */}
+              {idea.charts?.length > 0 && (
+                <>
+                  <p className="briefmodal-sec">The picture</p>
+                  <div className="idea-charts">
+                    {idea.charts.map((c) => (
+                      <IdeaChart key={c.series} spec={c} series={chartSeries?.[c.series]} width={640} height={230} />
+                    ))}
+                  </div>
                 </>
               )}
 

@@ -180,19 +180,21 @@
 .home-v12 .srow .what{font-size:15px;color:var(--ink-soft);flex:1}
 .home-v12 .secnote{margin-top:18px;font-size:13.5px;color:var(--mut)}
 
-/* ── four-tile cockpit (2026-08-13) ────────────────────────────────────
-   One deliberate surface system: every tile is the neutral putty card;
-   ink is reserved for exactly one card (The Engine); gold is the editorial
-   accent and appears on the Trade Idea tile and nowhere else.
-     Row 1: Morning Brief (sp7) | The Engine (sp5)
-     Row 2: Trade Idea  (sp7)   | Upcoming data (sp5)
-   Left column = the two READING tiles, right column = the two SCANNING
-   tiles; rows stretch to equal height. Supersedes the 2026-07-21 six-tile
-   grid (indicators + positioning deleted — they live on Macro). */
+/* ── cockpit, second pass (2026-08-13) ─────────────────────────────────
+   Joe: "We should have the Brief and Trade idea be the centerpieces. And the
+   Engine and Data almost like supporting tiles somewhere. I dont like to have
+   to scroll."  So the grid is a HIERARCHY, not four equal tiles:
+     Row 1: Morning Brief (sp6) | Trade Idea (sp6)   ← the centerpieces
+     Row 2: The Engine  (sp6)   | Upcoming data (sp6) ← short supporting strip
+   The supporting row is capped at a fixed height so it can never grow into a
+   third screen; the centerpieces take the space that buys.
+   One surface system throughout: putty tiles, ink reserved for exactly one
+   card (The Engine), gold as the editorial accent on the Trade Idea alone. */
 .home-v12 .bgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:26px;align-items:stretch}
 .home-v12 .bgrid .tile{min-width:0;border-radius:var(--card-r)}
 .home-v12 .sp7{grid-column:span 7}
 .home-v12 .sp5{grid-column:span 5}
+.home-v12 .sp6{grid-column:span 6}
 .home-v12 .sp12{grid-column:span 12}
 .home-v12 .tile.brief-card{padding:44px 48px}
 .home-v12 .tile.brief-card h1{font-size:clamp(26px,2.2vw,34px)}
@@ -236,6 +238,66 @@
    so nothing else could reach them, and a stylesheet that keeps rules for
    markup that no longer exists is the same debt as code kept "just in case". */
 
+/* ── no-scroll budget (Joe, 2026-08-13) ────────────────────────────────
+   The page has to land on one screen, so the space is budgeted rather than
+   left to content. The 104px section margin above the grid was pure air and
+   is the first thing cut; the supporting row is capped; the centerpieces get
+   what is left. Nothing is hidden without the page saying so. */
+/* The fold budget, measured rather than guessed (1512x820 — a MacBook Air's
+   real usable viewport, which is the machine that has to not scroll):
+     site header  ~110   fixed app chrome, not ours to cut
+     market tape    96   was 170 — 42px serif figures on a strip that is
+                         reference data, not the headline. Now 26px.
+     margin         22   was the page's 104px hero gap
+     centerpieces  430   Morning Brief | Trade Idea
+     gap            16
+     supporting    186   The Engine | Upcoming data
+   The two centerpieces are always whole on the fold; the supporting row's top
+   edge sits at it, which is the honest outcome — on a larger display the whole
+   cockpit lands, and nothing has been shrunk past legibility to fake it. */
+.home-cockpit .tape .t{padding:14px 10px 13px}
+.home-cockpit .tape .tv{font-size:26px;line-height:1.1;margin-top:2px}
+.home-cockpit .tape .tk{font-size:10px}
+.home-cockpit .tape .td{font-size:11.5px}
+.home-cockpit section.wrap{margin-top:22px}
+.home-cockpit .bgrid{gap:16px}
+.home-cockpit .tile.brief-card{padding:24px 30px}
+.home-cockpit .putty-card{padding:22px 26px}
+.home-cockpit .tile.brief-card h1{font-size:clamp(19px,1.4vw,24px);line-height:1.26}
+.home-cockpit .newslist{margin-top:14px}
+.home-cockpit .ni > button{padding:10px 8px;font-size:14.5px}
+.home-cockpit .brief-card .eyebrow2{margin-bottom:12px}
+.home-cockpit footer{margin-top:34px;padding:20px 0 26px}
+
+/* ── supporting row — short by construction ────────────────────────────
+   Both cards are capped at the same height so the row can never become a
+   second screen, and the cap is generous enough that nothing inside is
+   clipped: the Engine holds two gauges side by side, the calendar five rows. */
+.home-cockpit .engine-strip,.home-cockpit .cal-strip{min-height:0}
+.home-cockpit .engine-strip{background:var(--card-ink);color:var(--cream-text);box-shadow:var(--sh);
+  display:grid;grid-template-rows:auto 1fr;gap:10px;padding:18px 24px}
+[data-mt-theme='dark'] .home-cockpit .engine-strip,[data-mt-theme='navy'] .home-cockpit .engine-strip{outline:1px solid rgba(245,239,227,.08)}
+.home-cockpit .engine-strip:hover{transform:translateY(-3px)}
+.home-cockpit .es-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.home-cockpit .es-head .eyebrow2{color:#9BA6AC;flex:none}
+.home-cockpit .es-head .eyebrow2 .dot{background:var(--gold-bar)}
+.home-cockpit .es-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(20px,1.5vw,26px);margin:0;flex:1;min-width:0}
+.home-cockpit .es-head h2 em{font-style:italic;color:var(--gold-bar)}
+.home-cockpit .es-link{font-size:12.5px;font-weight:600;color:#C3BFAF;text-decoration:none;border-bottom:1px solid rgba(247,243,232,.25);white-space:nowrap}
+.home-cockpit .es-link:hover{color:var(--cream-text)}
+.home-cockpit .es-gauges{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+.home-cockpit .es-gauges .gauge{padding:6px 8px;border-top:0}
+.home-cockpit .es-gauges .gauge + .gauge{border-top:0;border-left:1px solid rgba(247,243,232,.12);padding-left:24px}
+.home-cockpit .es-gauges .gl b{font-size:20px}
+.home-cockpit .es-gauges .gl b i{font-style:normal;font-size:11px;color:#9BA6AC;margin-left:3px}
+.home-cockpit .es-gauges .track{margin:9px 0 5px}
+.home-cockpit .es-gauges .gauge .read{margin-top:6px;font-size:12px}
+.home-cockpit .cal-strip .calrows{justify-content:flex-start;gap:0}
+.home-cockpit .cal-strip .srow{min-height:0;height:34px}
+.home-cockpit .cal-strip .calrow .what{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-cockpit .cal-strip .calrow .when{min-width:76px;font-size:11px}
+.home-cockpit .cal-strip .cal-time{font-size:11.5px}
+
 /* upcoming data tile — one row per day, time on the right rail */
 .home-v12 .cal-tile{display:flex;flex-direction:column}
 .home-v12 .calrows{flex:1;display:flex;flex-direction:column;justify-content:space-around}
@@ -252,12 +314,19 @@
 .home-v12 .eyebrow2 .dot--gold{background:var(--gold-deep)}
 .home-v12 .idea-tile{display:flex;flex-direction:column;border-top:3px solid var(--gold-bar)}
 .home-v12 .idea-kind{font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--gold-deep);border:1px solid color-mix(in srgb,var(--gold-deep) 45%,transparent);background:color-mix(in srgb,var(--gold-deep) 8%,transparent);border-radius:999px;padding:5px 12px;white-space:nowrap}
-.home-v12 .idea-title{font-family:var(--serif);font-weight:400;font-size:clamp(24px,2.1vw,32px);line-height:1.2;margin:6px 0 0}
+.home-v12 .idea-title{font-family:var(--serif);font-weight:400;font-size:clamp(21px,1.7vw,28px);line-height:1.2;margin:4px 0 0}
 .home-v12 .idea-dek{font-size:15.5px;color:var(--ink-soft);line-height:1.65;margin:12px 0 0;max-width:64ch}
-.home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 22px;margin-top:22px;padding-top:18px;border-top:1px solid var(--hair)}
+/* The plain-English line. It leads because the first published note did not
+   have one and Joe could not tell whether it was asking him to short stocks. */
+.home-v12 .idea-plain{margin:8px 0 0;font-size:14.5px;line-height:1.5;color:var(--ink)}
+.home-v12 .idea-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.home-v12 .idea-pos{font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink);border:1px solid var(--hair);background:var(--bg2);border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:help}
+.home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
+.home-v12 .idea-facts:has(.idea-fact:nth-child(4)){grid-template-columns:repeat(4,1fr)}
+.home-v12 .idea-herochart{margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
 .home-v12 .idea-fact{display:flex;flex-direction:column;gap:5px;min-width:0}
 .home-v12 .idea-fact .k{font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--mut)}
-.home-v12 .idea-fact .v{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4}
+.home-v12 .idea-fact .v{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.4}
 .home-v12 .idea-other{margin:18px 0 0;font-size:14px;color:var(--ink-soft);line-height:1.6}
 .home-v12 .idea-other b{color:var(--ink)}
 .home-v12 .idea-tile .tilenote{margin-top:auto;padding-top:16px}
@@ -266,7 +335,10 @@
 .home-v12 .idea-empty{flex:1;display:flex;align-items:center}
 
 /* trade idea — inside the full-note modal */
-.home-v12 .idea-modal-dek{font-size:17px;color:var(--ink);line-height:1.6}
+.home-v12 .idea-modal-plain{font-size:17px;color:var(--ink);line-height:1.6;margin-top:4px}
+.home-v12 .idea-modal-pos{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;color:var(--mut)}
+.home-v12 .idea-modal-dek{font-size:15.5px;color:var(--ink-soft);line-height:1.65}
+.home-v12 .idea-charts{display:flex;flex-direction:column;gap:26px;margin-top:14px}
 .home-v12 .idea-modal-facts{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 26px;margin:22px 0 6px;padding:18px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
 .home-v12 .idea-evidence .idea-src{color:var(--mut);font-size:13px}
 .home-v12 .idea-sowhat{margin-top:24px;padding:16px 18px;background:var(--putty);border-radius:14px;border-left:3px solid var(--gold-bar)}
@@ -337,3 +409,55 @@
 .home-v12 .ce-tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);width:230px;white-space:normal;background:rgba(33,44,51,.97);color:rgba(247,243,232,.97);font-family:var(--sans);font-size:11px;line-height:1.45;font-weight:500;letter-spacing:0;text-transform:none;padding:8px 10px;border-radius:10px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.25);pointer-events:none}
 .home-v12 td:last-child .ce-tip:hover::after{left:auto;right:0;transform:none}
 .home-v12 td:first-child .ce-tip:hover::after{left:0;transform:none}
+
+/* ── IdeaChart (2026-08-13) ────────────────────────────────────────────────
+   Single-series emphasis lines drawn from the site's own indicator history.
+   Colour decision, made after the form and validated rather than eyeballed:
+   the LINE is ink, because on a putty tile that is the most legible mark
+   available (~12:1); the accent is spent on the one thing the reader is meant
+   to take away — the current reading, its dot and its label. The brand gold on
+   putty measures 2.69:1, below the 3:1 floor, which is why gold carries the
+   endpoint (a labelled mark, relief satisfied) and never the whole series.
+   Two-series charts were rejected outright: gold against muted ink fails the
+   normal-vision separation check in dark mode (ΔE 6.5 against a floor of 15),
+   so two measures become two charts. No dual axis, ever. */
+.home-v12 .ideachart{margin:0;display:block}
+.home-v12 .ic-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px}
+.home-v12 .ic-heads{display:flex;flex-direction:column;gap:2px;min-width:0}
+.home-v12 .ic-title{font-size:12px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink)}
+.home-v12 .ic-sub{font-size:12.5px;color:var(--mut);line-height:1.45}
+.home-v12 .ic-plot{position:relative}
+.home-v12 .ic-plot svg{display:block;width:100%;height:auto;overflow:visible}
+.home-v12 .ic-grid{stroke:var(--hair);stroke-width:1}
+.home-v12 .ic-zero{stroke:var(--mut);stroke-width:1;opacity:.75}
+.home-v12 .ic-zerolab,.home-v12 .ic-ytick,.home-v12 .ic-xtick{fill:var(--mut);font-family:var(--sans);font-size:10.5px;font-variant-numeric:tabular-nums}
+.home-v12 .ic-band{fill:var(--gold-bar);opacity:.10}
+.home-v12 .ic-area{fill:var(--ink);opacity:.07}
+.home-v12 .ic-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.home-v12 .ic-dot{fill:var(--gold-deep);stroke:var(--putty);stroke-width:2}
+.home-v12 .ic-endlab{fill:var(--ink);font-family:var(--sans);font-size:12.5px;font-weight:700}
+.home-v12 .ic-cross{stroke:var(--mut);stroke-width:1;opacity:.5}
+.home-v12 .ic-hoverdot{fill:var(--ink);stroke:var(--putty);stroke-width:2}
+/* the readout is the tooltip; it never gates a value — the endpoint is
+   direct-laballed and every chart carries a table view */
+.home-v12 .ic-readout{flex:none;display:flex;align-items:baseline;gap:8px;pointer-events:none;white-space:nowrap;
+  background:var(--bg2);border:1px solid var(--hair);border-radius:10px;padding:3px 9px}
+.home-v12 .ic-readout b{font-size:13.5px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.home-v12 .ic-readout span{font-size:11px;color:var(--mut)}
+.home-v12 .ic-caption{margin:9px 0 0;font-size:13px;line-height:1.55;color:var(--ink-soft)}
+.home-v12 .ic-meta{margin:7px 0 0;display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.home-v12 .ic-tablebtn{background:none;border:none;padding:0;font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-soft);border-bottom:1px solid var(--hair);cursor:pointer}
+.home-v12 .ic-tablebtn:hover{color:var(--ink)}
+.home-v12 .ic-src{font-size:11px;color:var(--mut)}
+.home-v12 .ic-table{margin-top:10px;border-top:1px solid var(--hair);padding-top:10px}
+.home-v12 .ic-table table{width:100%;border-collapse:collapse;font-size:12.5px}
+.home-v12 .ic-table th{text-align:left;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);font-weight:700;padding:0 0 6px}
+.home-v12 .ic-table td{padding:3px 0;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.home-v12 .ic-table td:last-child{text-align:right;color:var(--ink)}
+.home-v12 .ideachart--empty{padding:10px 0}
+/* the tile's hero chart is a compact version of the same figure */
+.home-v12 .idea-herochart .ic-caption{font-size:12.5px}
+.home-v12 .idea-herochart .ic-meta{margin-top:5px}
+/* tile chart: caption clamped so a long one cannot push the fold */
+.home-v12 .idea-herochart .ic-caption{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.home-v12 .idea-herochart .ic-meta{margin-top:4px;justify-content:flex-end}
