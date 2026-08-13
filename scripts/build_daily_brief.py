@@ -57,9 +57,19 @@ EMAIL_UNTIL_HOUR_ET = 10  # never email a "morning" brief after 10:00 ET
 #
 # "The agent's brief hasn't landed yet" is a NORMAL early-morning state, not a
 # failure. Skip green before the deadline; fail loudly after it, so a brief that
-# genuinely never arrives still screams (BRIEF-FRESHNESS-SELFHEAL, which checks
-# the LIVE site from 07:00 ET, is the second pair of eyes on the same deadline).
-BRIEF_EXPECTED_BY_HOUR_ET = 7   # the session's brief must be committed by 07:00 ET
+# genuinely never arrives still screams (BRIEF-FRESHNESS-SELFHEAL reads the same
+# constant, so the two eyes always grade against ONE deadline).
+#
+# 2026-08-13 — this was 7 and it manufactured a red every single weekday.
+# The generator is the morning scheduled session, and its commit time is a
+# SPREAD, not a point: 06:12 ET on 8/11, 07:20 ET on 8/12. A 07:00 deadline sat
+# INSIDE that spread, so the ~07:03 self-heal run found no brief, hit the FATAL
+# below, and mailed Joe "Workflow FAILED" minutes before the brief landed fine.
+# A deadline must sit AFTER the observed arrival spread of the producer it
+# grades, never on top of it. 09:00 ET keeps a full hour of margin before
+# EMAIL_UNTIL_HOUR_ET (10) — a brief that misses 09:00 is genuinely late and
+# still worth one loud email. LESSONS 4.28.
+BRIEF_EXPECTED_BY_HOUR_ET = int(os.environ.get("BRIEF_EXPECTED_BY_HOUR_ET", "9"))
 
 def _metered_generation_enabled():
     """The in-workflow Anthropic API generator is OFF by default (Joe directive
@@ -561,6 +571,10 @@ def main():
     print(f"wrote public/daily_brief.json — {today}: {brief['headline']}")
     _status("generated")
     send_email(brief, today)
+    # Return the outcome so callers can tell "I regenerated the brief" from
+    # "I decided there was nothing to do". brief_selfheal.py only claims it
+    # healed the homepage when this says "generated" (LESSONS 4.28).
+    return "generated"
 
 def prepare_file(path):
     """Normalize + validate an externally-generated brief, in place.
