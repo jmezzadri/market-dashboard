@@ -12,8 +12,13 @@ name: WORKFLOW_FAILURE_ALERT
 #   1. workflow_run trigger listens for completion events on every scheduled
 #      workflow we care about (listed under `workflows:` below).
 #   2. The `if:` filter only proceeds when conclusion == 'failure'.
-#   3. A small inline Python step posts a Resend email with the workflow name,
-#      run URL, head sha, and head commit message.
+#   3. A small inline Python step posts a Gmail SMTP email with the workflow
+#      name, run URL, head sha, and head commit message.
+#   4. 2026-08-13 — that email now goes through a send-once claim keyed on
+#      (workflow name, ET date) in public.workflow_alert_log. Several watched
+#      workflows fire many times a morning by design; when their condition is
+#      broken they fail many times, and Joe was getting an email for each.
+#      One workflow, one email, one day. Fail-open if the ledger is down.
 #
 # To add a new workflow to the watchlist: append its `name:` value to the
 # workflows: list. The trigger is matched on workflow NAME, not file name.
@@ -162,6 +167,9 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          # Send-once ledger (LESSONS 4.12 / 4.28) — see claim_todays_alert below.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           IS_TEST: ${{ github.event_name == 'workflow_dispatch' }}
           WF_NAME: ${{ github.event.workflow_run.name }}
           WF_RUN_URL: ${{ github.event.workflow_run.html_url }}
@@ -171,7 +179,59 @@ jobs:
           WF_CREATED: ${{ github.event.workflow_run.created_at }}
         run: |
           python3 - <<'PY'
-          import os
+          import os, json, datetime, urllib.request, urllib.error
+          from zoneinfo import ZoneInfo
+
+
+          def claim_todays_alert(workflow, run_id):
+              """One alert email per workflow per ET day (LESSONS 4.12, applied to
+              the alerter itself on 2026-08-13).
+
+              The failure that prompted this: BRIEF-FRESHNESS-SELFHEAL runs every
+              30 minutes from 06:00-11:30 ET as deliberate redundancy against
+              GitHub's best-effort scheduler. When the condition it watches is
+              genuinely broken, EVERY one of those runs fails — and each one sent
+              its own "Workflow FAILED" email. Redundant timers exist for
+              reliability; they must never multiply notifications. Joe got a week
+              of that and, fairly, stopped reading them.
+
+              Atomic by primary key (workflow_name, ET date), not by
+              read-then-write: two runs can overlap, and check-then-act is not a
+              mutex (LESSONS 4.22d). The first INSERT wins; the rest get 409.
+
+              FAIL-OPEN by design. If the ledger is unreachable we send anyway —
+              a duplicate email is an annoyance, a swallowed alert is how bug
+              #1077 hid for three days.
+              """
+              base = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+              key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+              if not (base and key):
+                  print("claim: ledger not configured — sending unclaimed (fail-open)")
+                  return True
+              day = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+              payload = {"workflow_name": workflow, "alert_date": day,
+                         "run_id": int(run_id) if str(run_id).isdigit() else None}
+              req = urllib.request.Request(
+                  base + "/rest/v1/workflow_alert_log",
+                  data=json.dumps(payload).encode(), method="POST",
+                  headers={"apikey": key, "Authorization": "Bearer " + key,
+                           "Content-Type": "application/json", "Prefer": "return=minimal"})
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as r:
+                      print(f"claim: won {workflow} for {day} (HTTP {r.status}) — sending")
+                      return True
+              except urllib.error.HTTPError as e:
+                  if e.code == 409:
+                      print(f"claim: {workflow} already alerted on {day} — "
+                            f"suppressing duplicate (run {run_id}). Fix the workflow, "
+                            f"not the alert.")
+                      return False
+                  print(f"claim: HTTP {e.code} — sending unclaimed (fail-open)")
+                  return True
+              except Exception as e:
+                  print(f"claim: {e} — sending unclaimed (fail-open)")
+                  return True
+
 
           name      = os.environ["WF_NAME"]
           run_url   = os.environ["WF_RUN_URL"]
@@ -180,8 +240,12 @@ jobs:
           head_msg  = os.environ.get("WF_HEAD_MSG", "")[:200]
           created   = os.environ.get("WF_CREATED", "")
           if os.environ.get("IS_TEST") == "true":
+              # A manual dispatch is a channel test — it must ALWAYS deliver, so it
+              # never touches the ledger (and never burns a real workflow's claim).
               name, run_url, run_id = "TEST — alert channel verification", "https://github.com/jmezzadri/market-dashboard/actions", "manual"
               head_sha, head_msg, created = "-", "Manual dispatch to prove the failure-alert channel delivers.", "-"
+          elif not claim_todays_alert(name, run_id):
+              raise SystemExit(0)
 
           subject = f"[MacroTilt] Workflow FAILED: {name}"
           html = f"""
@@ -196,7 +260,7 @@ jobs:
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Head SHA</td><td><code>{head_sha}</code></td></tr>
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Head commit</td><td style='font-size:12px;color:#444'>{head_msg}</td></tr>
             </table>
-            <p style='font-size:12px;color:#888'>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
+            <p style='font-size:12px;color:#888'>One email per workflow per day — if this workflow fails again today you will not be emailed again.<br>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
           </div>
           """
 

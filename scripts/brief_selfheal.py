@@ -70,16 +70,32 @@ def main():
     if not bdb.is_trading_day(now.date()):
         print(f"{today} is not a trading day — the brief is not expected to be today's")
         return
-    if now.hour < 7:
-        print(f"{now:%H:%M} ET is before the writer's window closes — not yet stale")
+    # ONE deadline, imported not duplicated (2026-08-13). This used to be a
+    # hardcoded 7 while the writer's own constant was also 7, and both were
+    # earlier than the generator's real arrival time — so this guard woke up
+    # inside the delivery gap every weekday and turned a brief that was merely
+    # 20 minutes away into a failed workflow run. LESSONS 4.28.
+    deadline = bdb.BRIEF_EXPECTED_BY_HOUR_ET
+    if now.hour < deadline:
+        print(f"{now:%H:%M} ET is before the {deadline:02d}:00 ET brief deadline — not yet stale")
         return
     prev = live_date()
     if prev == today:
         print(f"brief current ({today}) — no action needed")
         return
-    print(f"brief STALE (live={prev}, today={today}) — regenerating via the writer")
-    bdb.main()        # writes public/daily_brief.json (+ sends the normal brief email)
-    alert(today, prev)
+    print(f"brief STALE (live={prev}, today={today}) — handing to the writer")
+    status = bdb.main()   # may write public/daily_brief.json, or sys.exit(1) if it cannot
+    # Only claim a self-heal when one actually happened. The old code alerted
+    # unconditionally, so once metered generation was switched off (2026-08-06)
+    # this could email Joe "the homepage was stale — auto-fixed" on a run that
+    # regenerated precisely nothing. An alert that misreports what it did is
+    # worse than no alert (LESSONS 0.1: fake green is forbidden — and so is a
+    # fake fix).
+    if status == "generated":
+        alert(today, prev)
+    else:
+        print(f"writer returned '{status}' — nothing was regenerated, so no "
+              f"'auto-fixed' email. The homepage is still showing {prev}.")
 
 
 if __name__ == "__main__":

@@ -1070,3 +1070,25 @@ The 2026-05-06 suppressor was written for the shape we had seen: no runner is ev
 4. **When you find a break, look at the rows just before yours.** The three 200s at 20:35/20:45/20:50 turned "something is wrong" into "I broke this ninety seconds ago" without guesswork.
 
 **Applies to:** Lead Developer — every `deploy_edge_function` call on `trigger-workflow`, `gh-push`, `submit-bug-report`, or any other function with its own auth.
+
+### 4.28 (2026-08-13) — A deadline set inside the producer's arrival spread manufactures a daily failure; and an alerter without a send-once claim turns one broken thing into an inbox full
+
+**What happened:** Joe, on the fifth time of asking: *"Are you not capable of fixing this? … I have been getting them for a week now! Several emails daily. FIX IT PLEASE"* — daily `[MacroTilt] Workflow FAILED: BRIEF-FRESHNESS-SELFHEAL` emails, every weekday, at ~07:04 ET.
+
+Two independent defects, both introduced by the fix for 4.25 and neither caught because that fix was verified against DAILY-BRIEF-WRITER only:
+
+1. **The deadline was set on top of the producer's arrival spread, not after it.** 4.25 added `BRIEF_EXPECTED_BY_HOUR_ET = 7`: before 07:00 ET "the brief isn't committed yet" exits green, at/after 07:00 it exits 1. But the producer is the morning scheduled session, and its commit time is a *distribution*, not a point — 06:12 ET on 8/11, **07:20 ET on 8/12**. BRIEF-FRESHNESS-SELFHEAL's 11:03Z cron lands at 07:03 ET, i.e. reliably inside the gap. Every weekday it found no brief, hit the FATAL, and emailed Joe a failure for a brief that arrived healthy seventeen minutes later. Confirmed from run history, not inferred: 8/13 run 31693873038 and 8/12 run 31590138378 both failed at 07:03-07:04 ET on the step `Check live brief is current; regenerate + alert if stale`, and on 8/12 every run after the 11:20Z brief commit passed.
+2. **The alerter had no send-once claim.** 4.12 mandated one email per type per ET day for *notification* emails, and the rule was never applied to WORKFLOW_FAILURE_ALERT itself. The self-heal fires every 30 minutes from 06:00-11:30 ET as deliberate scheduler redundancy; on a morning where the brief genuinely never lands, that is up to nine identical "Workflow FAILED" emails for one broken thing.
+
+A third, latent: with metered generation off (8/06), `brief_selfheal.py` can no longer regenerate anything — but it still called `alert()` unconditionally after `bdb.main()`, so on any run that reached it, it would have emailed Joe *"the homepage was stale — auto-fixed"* having fixed nothing.
+
+**Rule:**
+
+1. **A deadline grades a producer, so measure that producer's arrival spread before choosing it.** Pull the last N commit timestamps and put the deadline after the observed maximum with margin — never on the mean, and never on the time the producer is *supposed* to run. A threshold inside the spread is not a monitor, it is a scheduled false alarm. (Now 09:00 ET, env-overridable, one hour of margin before `EMAIL_UNTIL_HOUR_ET`.)
+2. **One deadline constant, imported, never duplicated.** `brief_selfheal.py` had its own hardcoded `7` alongside the writer's. Two eyes on one deadline means two readers of one constant.
+3. **Every alerter gets a send-once claim, keyed atomically.** 4.12 applies to alert emails, not just notification emails — an alerter is the *most* likely thing to be attached to a job that fires on a redundant timer. `public.workflow_alert_log`, PK `(workflow_name, ET date)`, 409 = already sent. Fail-open: a duplicate is an annoyance, a swallowed alert is how #1077 hid for three days.
+4. **An alert may only describe what it actually did.** "Auto-fixed" is a claim about an action; assert it from the callee's return value, never from control flow reaching the next line. `bdb.main()` now returns its status and the self-heal alerts only on `"generated"`.
+5. **When a fix targets a shared module, verify every caller of that module, not the one that prompted it.** 4.25 changed `build_daily_brief.main()` and was verified by dispatching DAILY-BRIEF-WRITER. BRIEF-FRESHNESS-SELFHEAL imports the same function, on a different schedule, and inherited the bug for two days. The blast radius of a shared-module change is its import graph.
+6. **Joe asking the same question five times is the finding.** Four prior passes each fixed the workflow that was named in the email subject. Nobody asked "why is this arriving *every day at the same minute*" — a fixed-time recurrence is a schedule interacting with a threshold, essentially never a flaky job.
+
+**Applies to:** Lead Developer — every freshness deadline, every alerting workflow, and every change to a script that more than one workflow imports.
