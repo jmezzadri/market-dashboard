@@ -64,7 +64,36 @@ VALID_KINDS = {
 }
 
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
-            "thesis", "evidence", "levels", "other_side", "risks", "so_what"]
+            "position_type", "plain_english", "the_trade",
+            "thesis", "evidence", "levels", "other_side", "risks", "so_what",
+            "charts"]
+
+# 2026-08-13, Joe on the first published note: "Are we saying to buy treasuries
+# and short stocks? I'm confused what the trade is." He was right — the note led
+# with "Long the 10-year Treasury, funded by trimming US large-cap equity beta",
+# which a professional reads as an allocation shift and everyone else reads as a
+# short. A note whose central claim has to be decoded has failed no matter how
+# good its evidence is. So the position TYPE is now a required enum rendered as a
+# badge, and a plain-English sentence is a required field with its own jargon
+# ban — the reader learns whether anything is being sold short before they read
+# a single number.
+POSITION_TYPES = {
+    "allocation shift":  "Move money from one asset to another. Nothing sold short, no leverage.",
+    "outright long":     "Buy and hold it. Nothing sold short.",
+    "outright short":    "A short position — sold with the intention of buying it back lower.",
+    "long/short spread": "Long one thing and short the other, sized against each other.",
+    "hedge":             "Protection bought against something already owned.",
+    "watch only":        "Not a position yet — the setup to watch and what would make it one.",
+}
+
+# Words that mean nothing to a reader who is not a trader. Banned in
+# `plain_english` ONLY — the thesis, the levels and the evidence are allowed to
+# be technical, and should be.
+JARGON = [
+    "beta", "duration", "convexity", "carry", "basis point", "bp", "bps",
+    "curve", "spread", "percentile", "steepener", "flattener", "notional",
+    "overweight", "underweight", "risk premium", "term premium", "vol",
+]
 
 # Path words: a claim about how something MOVED needs two dated observations
 # behind it. Checked against the evidence block, never taken on trust.
@@ -92,6 +121,26 @@ ADVICE_CLAIM = re.compile(
     r"risk[- ]free|can'?t lose|sure thing)\b", re.I)
 
 
+def _history():
+    """The series catalogue a chart must exist in. Local copy first (the repo
+    ships one), then --history, then the live file. Returns None only if every
+    route failed, which downgrades the chart check to a warning rather than
+    silently passing a chart of nothing."""
+    for path in (os.environ.get("INDICATOR_HISTORY_PATH"), "public/indicator_history.json"):
+        if path and os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:  # noqa: BLE001
+                pass
+    try:
+        import urllib.request
+        with urllib.request.urlopen("https://macrotilt.com/indicator_history.json", timeout=60) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
 class ContractError(Exception):
     pass
 
@@ -100,7 +149,13 @@ class ContractError(Exception):
 def _text_of(idea: dict) -> str:
     """Every reader-facing string in one blob, for the copy scans."""
     parts = [idea.get("title", ""), idea.get("dek", ""), idea.get("instrument", ""),
-             idea.get("other_side", ""), idea.get("so_what", "")]
+             idea.get("other_side", ""), idea.get("so_what", ""), idea.get("plain_english", "")]
+    tt = idea.get("the_trade") or {}
+    if isinstance(tt, dict):
+        parts += [str(v) for v in tt.values()]
+    for c in idea.get("charts") or []:
+        if isinstance(c, dict):
+            parts += [str(c.get("title", "")), str(c.get("subtitle", "")), str(c.get("caption", ""))]
     parts += list(idea.get("thesis") or [])
     parts += list(idea.get("risks") or [])
     for e in idea.get("evidence") or []:
@@ -205,6 +260,57 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     other = str(idea["other_side"]).strip()
     if len(other) < 60:
         raise ContractError("other_side must be a real counter-argument, not a hedge clause (min 60 chars)")
+
+    # 3b — the reader must know what the position IS before any number
+    if idea["position_type"] not in POSITION_TYPES:
+        raise ContractError(f"position_type must be one of {sorted(POSITION_TYPES)}, got {idea['position_type']!r}")
+    pe = str(idea["plain_english"]).strip()
+    if not (40 <= len(pe) <= 260):
+        raise ContractError(f"plain_english must be one clear sentence of 40-260 chars, got {len(pe)}")
+    hits = [w for w in JARGON if re.search(rf"\b{re.escape(w)}\b", pe, re.I)]
+    if hits:
+        raise ContractError(
+            f"plain_english contains jargon {hits} — this line is for a reader who is not a trader. "
+            "Put the technical version in `instrument` and the thesis.")
+    tt = idea["the_trade"]
+    if not isinstance(tt, dict) or not str(tt.get("buy", "")).strip():
+        raise ContractError("the_trade must be an object naming at least what is bought (`buy`)")
+    if idea["position_type"] in ("outright short", "long/short spread") and not str(tt.get("short", "")).strip():
+        raise ContractError(f"position_type {idea['position_type']!r} requires the_trade.short — say what is sold short")
+    if idea["position_type"] not in ("outright short", "long/short spread") and str(tt.get("short", "")).strip():
+        raise ContractError("the_trade.short is set but position_type says nothing is sold short — pick one")
+
+    # 3c — charts. Joe, 2026-08-13: "I'd like to include charts embedded in the
+    # tile and note. Several charts to show visuals of what you're writing
+    # about." Charts are DECLARATIVE: a note names a series that already exists
+    # in indicator_history.json and the site draws it. Nothing is plotted from
+    # numbers typed into the note, so a chart can never disagree with the
+    # sentence beside it — and a note cannot illustrate a series we do not have.
+    charts = idea["charts"]
+    if not isinstance(charts, list) or not (2 <= len(charts) <= 5):
+        raise ContractError(f"charts must be a list of 2 to 5 entries, got {len(charts) if isinstance(charts, list) else type(charts).__name__}")
+    hist = _history()
+    for i, c in enumerate(charts):
+        if not isinstance(c, dict):
+            raise ContractError(f"charts[{i}] must be an object")
+        for k in ("series", "title", "caption", "source"):
+            if not str(c.get(k, "")).strip():
+                raise ContractError(f"charts[{i}] is missing {k}")
+        if c.get("window") and c["window"] not in ("1y", "3y", "5y", "10y", "20y", "full"):
+            raise ContractError(f"charts[{i}].window must be one of 1y/3y/5y/10y/20y/full, got {c['window']!r}")
+        if hist is not None:
+            ser = hist.get(c["series"])
+            if ser is None:
+                raise ContractError(
+                    f"charts[{i}] names series {c['series']!r}, which is not in indicator_history.json — "
+                    "a chart of a series we do not carry cannot be drawn")
+            pts = [p for p in (ser.get("points") or []) if p and p[1] is not None]
+            if len(pts) < 24:
+                raise ContractError(f"charts[{i}] series {c['series']!r} has only {len(pts)} observations — too few to plot")
+        else:
+            warnings.append(f"charts[{i}] series {c['series']!r} NOT verified — no indicator_history.json available")
+    if len({c.get("series") for c in charts}) < len(charts):
+        raise ContractError("two charts plot the same series — each chart must show something the others do not")
 
     # 4 — no direction word without two dated observations
     blob = _text_of(idea)

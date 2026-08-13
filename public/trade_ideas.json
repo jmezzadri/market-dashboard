@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-13T11:58:03Z",
+  "generated_at": "2026-08-13T12:31:18Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-16",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -8,11 +8,11 @@
       "date": "2026-08-13",
       "kind": "cross-asset",
       "title": "The bond is the trade, not the hedge",
-      "dek": "A 10-year Treasury pays a real 2.42%, near a twenty-year high, while the S&P 500's cyclically-adjusted earnings yield sits 2.14 points below the nominal 10-year — the widest that gap has been in our data since 2006. And speculators moved short the long end this week.",
+      "dek": "A 10-year Treasury pays a real 2.42%, near a twenty-year high, while the S&P 500's cyclically-adjusted earnings yield sits 2.14 points below the nominal 10-year — the widest that gap has been in our data since 2006. Speculators moved short the long end this week.",
       "instrument": "Long the 10-year Treasury, funded by trimming US large-cap equity beta",
       "horizon": "Four months, into the December FOMC",
       "thesis": [
-        "<b>Compensation has crossed over.</b> The cyclically-adjusted (Shiller CAPE) earnings yield on the S&P 500 is 2.36% against a 10-year Treasury at 4.68% — an equity risk premium of &minus;2.14%. That is the lowest reading in our monthly series, which starts in January 2006 and spans 247 observations with a range of &minus;2.14% to +4.69%. The measure has declined in five of the last six monthly prints, from &minus;1.55% at the end of March to &minus;2.14% at the end of July.",
+        "<b>You are paid less to own the stock market than to lend to the government.</b> The cyclically-adjusted (Shiller CAPE) earnings yield on the S&P 500 is 2.36% against a 10-year Treasury at 4.68% — a gap of &minus;2.14 points. That is the lowest reading in our monthly series, which starts in January 2006 and spans 247 observations with a range of &minus;2.14% to +4.69%. It has declined in five of the last six monthly prints, from &minus;1.55% at the end of March to &minus;2.14% at the end of July.",
         "<b>The alternative is not a low-yielding one.</b> The 10-year real yield is 2.42%, the 96th percentile of daily readings since 2006 against a three-year median of 1.97%. The nominal 10-year at 4.68% is the 94th percentile and sits 30 basis points inside the top of its three-year range of 3.63% to 4.98%. A buyer today is paid more real income to take duration than at almost any point in two decades.",
         "<b>Positioning has just moved against the bond.</b> Speculative net positioning in the 10-year Treasury sits at the 12th percentile of three years — an extended short, and new this week in the CFTC report dated 4 August. The front end is the mirror image: 2-year speculative positioning is at the 100th percentile, an extended long. The consensus in futures is a steeper curve and growth that holds. This idea is on the other side of that.",
         "<b>Being early is cheap here.</b> The MOVE index of implied Treasury volatility is 72.1 — the 16th percentile of three years and the 38th since 2002. The rates market is not braced for a repricing in either direction, so the cost of holding the view through a wrong-footed month is at the low end of its own range."
@@ -105,7 +105,7 @@
           "title": "Dates that decide it",
           "bullets": [
             "<b>26 August, 8:30 AM</b> — personal income and the PCE price index, the inflation measure the Fed actually targets.",
-            "<b>4 September, 8:30 AM</b> — the jobs report. The labour leg of the case is the one with the least evidence behind it in this note.",
+            "<b>4 September, 8:30 AM</b> — the jobs report. The labor leg of the case is the one with the least evidence behind it in this note.",
             "<b>11 September, 8:30 AM</b> — consumer prices. A hot print is the fastest route to the 4.98% invalidation.",
             "<b>16 September, 2:00 PM</b> — the FOMC decision, and a meeting that publishes rate and economic projections. A hawkish dot plot does the same job as a hot CPI."
           ]
@@ -119,9 +119,60 @@
         "<b>The two September prints can end it inside a month.</b> A hot CPI on 11 September or a hawkish set of projections on 16 September puts the 10-year at the top of its three-year range and triggers the invalidation."
       ],
       "so_what": "The gap between what a Treasury pays and what the S&P's long-run earnings yield pays is the widest in our data since 2006, and it opened while implied volatility in rates sat in the bottom fifth of its three-year range. That times nothing on its own. It does change what a dollar of risk in this book is being paid to do.",
+      "position_type": "allocation shift",
+      "plain_english": "Sell a slice of your US large-company stocks and put the money into 10-year US government bonds. Nothing is sold short and nothing is borrowed.",
+      "the_trade": {
+        "buy": "10-year US Treasury bonds",
+        "sell": "A slice of S&P 500 exposure, to pay for it",
+        "sizing": "A tilt, not a switch. The argument is about which side of the book is being paid, not about abandoning equities."
+      },
+      "charts": [
+        {
+          "series": "erp",
+          "title": "What stocks pay you over bonds",
+          "subtitle": "S&P 500 cyclically-adjusted earnings yield minus the 10-year Treasury yield, monthly since 2006",
+          "unit": "%",
+          "decimals": 2,
+          "window": "full",
+          "zero_rule": true,
+          "caption": "Below the zero line, a Treasury pays more than the S&P's long-run earnings yield. It has been below zero in every month since May 2023, and the reading at the end of July is the lowest in the series.",
+          "source": "MacroTilt indicator history (Shiller CAPE + FRED DGS10)"
+        },
+        {
+          "series": "cape",
+          "title": "What stocks cost",
+          "subtitle": "Shiller cyclically-adjusted price/earnings ratio for the S&P 500",
+          "unit": "",
+          "decimals": 1,
+          "window": "full",
+          "caption": "The price paid per dollar of ten-year average earnings. The current reading is the highest in this series.",
+          "source": "MacroTilt indicator history (Shiller)"
+        },
+        {
+          "series": "real_rates",
+          "title": "What a bond pays after inflation",
+          "subtitle": "10-year Treasury yield less market-implied inflation, daily since 2006",
+          "unit": "%",
+          "decimals": 2,
+          "window": "full",
+          "zero_rule": true,
+          "caption": "This is the leg of the argument that does not depend on a forecast: the income is contractual. It sat near or below zero for most of the 2010s and is now close to the top of its twenty-year range.",
+          "source": "MacroTilt indicator history (FRED)"
+        },
+        {
+          "series": "move",
+          "title": "How much the bond market expects to move",
+          "subtitle": "MOVE index of implied Treasury volatility, last ten years",
+          "unit": "",
+          "decimals": 0,
+          "window": "10y",
+          "caption": "Low readings mean the market is not braced for a large move in either direction, which is what makes being early on this cheap rather than expensive. It is also the Engine's own stress signal.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
       "id": "2026-08-13-the-bond-is-the-trade-not-the-hedge",
       "status": "live",
-      "published_at": "2026-08-13T11:58:03Z"
+      "published_at": "2026-08-13T12:31:18Z"
     }
   ]
 }
