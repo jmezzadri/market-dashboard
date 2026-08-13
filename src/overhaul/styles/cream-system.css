@@ -180,19 +180,20 @@
 .home-v12 .srow .what{font-size:15px;color:var(--ink-soft);flex:1}
 .home-v12 .secnote{margin-top:18px;font-size:13.5px;color:var(--mut)}
 
-/* ── six-tile grid (2026-07-21, second pass) ───────────────────────────
-   One deliberate surface system: every data tile is the neutral putty
-   card; ink is reserved for exactly one card (The Engine); gold appears
-   only as micro-accents. Row 1: Brief (sp7) | right column (sp5) with
-   Engine + Upcoming at similar heights. Row 2: Indicators | Positioning.
-   Row 3: Scanner full width. */
+/* ── four-tile cockpit (2026-08-13) ────────────────────────────────────
+   One deliberate surface system: every tile is the neutral putty card;
+   ink is reserved for exactly one card (The Engine); gold is the editorial
+   accent and appears on the Trade Idea tile and nowhere else.
+     Row 1: Morning Brief (sp7) | The Engine (sp5)
+     Row 2: Trade Idea  (sp7)   | Upcoming data (sp5)
+   Left column = the two READING tiles, right column = the two SCANNING
+   tiles; rows stretch to equal height. Supersedes the 2026-07-21 six-tile
+   grid (indicators + positioning deleted — they live on Macro). */
 .home-v12 .bgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:26px;align-items:stretch}
 .home-v12 .bgrid .tile{min-width:0;border-radius:var(--card-r)}
 .home-v12 .sp7{grid-column:span 7}
 .home-v12 .sp5{grid-column:span 5}
 .home-v12 .sp12{grid-column:span 12}
-.home-v12 .bcol{grid-column:span 5;display:flex;flex-direction:column;gap:26px;min-width:0}
-.home-v12 .bcol .tile{flex:1 1 auto;min-height:0}
 .home-v12 .tile.brief-card{padding:44px 48px}
 .home-v12 .tile.brief-card h1{font-size:clamp(26px,2.2vw,34px)}
 .home-v12 .tile.brief-card .newslist{margin-top:28px}
@@ -202,45 +203,74 @@
 .home-v12 .tilehead a{font-size:13.5px;font-weight:600;color:var(--ink-soft);text-decoration:none;border-bottom:1px solid var(--hair);padding-bottom:2px;white-space:nowrap}
 .home-v12 .tilenote{margin-top:14px;font-size:13px;color:var(--mut)}
 .home-v12 .tilenote a{color:var(--ink-soft);font-weight:600}
-/* engine tile — the ONE ink card; compact, no dead space */
-.home-v12 .engine-tile{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:16px;padding:36px 40px}
-.home-v12 .engine-tile>div:last-child{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center}
+/* engine tile — the ONE ink card. It shares a grid row with the Morning
+   Brief, whose height is data-driven (one row per headline), so this card is
+   frequently the shorter of the two and gets stretched. LESSONS 4.17 was
+   exactly that failure: "a double-height Engine card full of dead space".
+   The fix is distribution, not centring — copy pinned to the top, the two
+   gauges spread across whatever height the row hands us, so the card fills
+   deliberately instead of leaving a void in its middle. */
+.home-v12 .engine-tile{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:24px;padding:36px 40px}
+/* The two gauges SHARE whatever height the row hands us, one half each, with
+   their own content centred inside. Distributing the surplus INSIDE the gauge
+   blocks reads as generous spacing; leaving it between them reads as a hole. */
+.home-v12 .engine-tile>div:last-child{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:12px}
+.home-v12 .engine-tile .gauge{flex:1 1 0;min-height:0;display:flex;flex-direction:column;justify-content:center}
+/* LESSONS 4.20 — a measure cap inside an already width-constrained card just
+   strands whitespace. The tile is ~600px; let the copy use it. */
+.home-v12 .engine-tile .so{max-width:none}
 .home-v12 .engine-tile h2{font-size:clamp(26px,2vw,34px)}
 .home-v12 .engine-tile .eyebrow2{margin-bottom:10px}
 .home-v12 .engine-tile .so{margin-top:8px;font-size:14px}
-.home-v12 .engine-tile .gauge{padding:14px 10px}
-.home-v12 .engine-tile .gauge .gl b{font-size:24px}
-.home-v12 .engine-tile .track{margin:10px 0 6px}
-.home-v12 .engine-tile .gauge .read{margin-top:7px;font-size:12.5px}
-/* indicators tile — single column of hairline rows */
-.home-v12 .ind--tile{grid-template-columns:1fr;column-gap:0}
-.home-v12 .ind--tile .ir{height:64px}
-.home-v12 .ind--tile .ir:hover{background:var(--bg2)}
-/* positioning tile — same putty surface; Oversold / Overbought pills */
-.home-v12 .posrows .srow{height:56px}
-.home-v12 .pos-tag{flex:none;font-size:10px;letter-spacing:.09em;font-weight:700;text-transform:uppercase;border-radius:999px;padding:5px 12px;border:1px solid;white-space:nowrap}
-.home-v12 .pos-tag.os{color:var(--up);border-color:color-mix(in srgb,var(--up) 45%,transparent);background:color-mix(in srgb,var(--up) 8%,transparent)}
-.home-v12 .pos-tag.ob{color:var(--gold-deep);border-color:color-mix(in srgb,var(--gold-deep) 55%,transparent);background:color-mix(in srgb,var(--gold-deep) 9%,transparent)}
-/* scanner tile — two lists side by side, full width */
-.home-v12 .scan-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 64px}
-.home-v12 .subhead{font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--mut);text-transform:uppercase;margin:0 0 4px;padding:0 6px}
-.home-v12 .scan-cols .srow:hover,.home-v12 .calrows .srow:hover,.home-v12 .posrows .srow:hover{background:var(--bg2)}
-.home-v12 .sc--pct{font-size:20px;font-weight:600;font-family:var(--sans);font-variant-numeric:tabular-nums}
-/* scanner tile stat columns (2026-07-21 v2, Joe: spread across the row,
-   one font). Header + rows share one grid so columns line up; every
-   value is the same sans tabular figure. */
-.home-v12 .srow--ins{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:0 18px;align-items:center}
-.home-v12 .srow--mo{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:0 18px;align-items:center}
-.home-v12 .srow .stv{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-soft);text-align:right;white-space:nowrap}
-.home-v12 .srow .stv--now{color:var(--ink)}
-.home-v12 .srow .stv.up{color:var(--up)}
-.home-v12 .srow .stv.dn{color:var(--down)}
-.home-v12 .schead{height:30px;border-bottom:1px solid var(--hair)}
-.home-v12 .schead:hover{background:none;transform:none;cursor:default}
-.home-v12 .schead .stv{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600}
+/* The 2026-07-21 compaction of these gauges (24px figures, 14px padding,
+   tight track margins) existed because the Engine shared a stacked column
+   with Upcoming data and had to fit half of it. In the four-tile cockpit it
+   owns a full grid row, so it is back to the base gauge scale: a card this
+   size carrying 24px numbers is what made it read as empty. */
+.home-v12 .engine-tile .gauge{padding:20px 10px}
+.home-v12 .engine-tile .track{margin:16px 0 10px}
+/* 2026-08-13 — the four-tile cockpit. The rules for the indicators tile
+   (.ind--tile), the positioning tile (.posrows / .pos-tag) and the retired
+   scanner tile (.scan-cols / .srow--ins / .srow--mo / .schead / .sc--pct /
+   .subhead) were deleted with the tiles themselves: all were .home-v12-scoped,
+   so nothing else could reach them, and a stylesheet that keeps rules for
+   markup that no longer exists is the same debt as code kept "just in case". */
+
+/* upcoming data tile — one row per day, time on the right rail */
 .home-v12 .cal-tile{display:flex;flex-direction:column}
 .home-v12 .calrows{flex:1;display:flex;flex-direction:column;justify-content:space-around}
-.home-v12 .calrows .srow{height:auto;min-height:48px}
+.home-v12 .calrows .srow{height:auto;min-height:46px;gap:12px}
+.home-v12 .calrows .srow:hover{background:var(--bg2)}
+.home-v12 .calrow .when{flex:none;min-width:82px}
+.home-v12 .calrow .what{font-size:14.5px;line-height:1.35}
+.home-v12 .cal-time{flex:none;font-size:12px;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.home-v12 .calrow--today .when{color:var(--gold-deep)}
+.home-v12 .calrow--today .what{color:var(--ink);font-weight:600}
+
+/* trade idea tile — editorial weight on the shared putty surface. Gold is the
+   editorial accent here; ink stays reserved for The Engine. */
+.home-v12 .eyebrow2 .dot--gold{background:var(--gold-deep)}
+.home-v12 .idea-tile{display:flex;flex-direction:column;border-top:3px solid var(--gold-bar)}
+.home-v12 .idea-kind{font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--gold-deep);border:1px solid color-mix(in srgb,var(--gold-deep) 45%,transparent);background:color-mix(in srgb,var(--gold-deep) 8%,transparent);border-radius:999px;padding:5px 12px;white-space:nowrap}
+.home-v12 .idea-title{font-family:var(--serif);font-weight:400;font-size:clamp(24px,2.1vw,32px);line-height:1.2;margin:6px 0 0}
+.home-v12 .idea-dek{font-size:15.5px;color:var(--ink-soft);line-height:1.65;margin:12px 0 0;max-width:64ch}
+.home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 22px;margin-top:22px;padding-top:18px;border-top:1px solid var(--hair)}
+.home-v12 .idea-fact{display:flex;flex-direction:column;gap:5px;min-width:0}
+.home-v12 .idea-fact .k{font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--mut)}
+.home-v12 .idea-fact .v{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4}
+.home-v12 .idea-other{margin:18px 0 0;font-size:14px;color:var(--ink-soft);line-height:1.6}
+.home-v12 .idea-other b{color:var(--ink)}
+.home-v12 .idea-tile .tilenote{margin-top:auto;padding-top:16px}
+.home-v12 .idea-more{background:none;border:none;padding:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);border-bottom:1px solid var(--hair);cursor:pointer}
+.home-v12 .idea-more:hover{color:var(--ink)}
+.home-v12 .idea-empty{flex:1;display:flex;align-items:center}
+
+/* trade idea — inside the full-note modal */
+.home-v12 .idea-modal-dek{font-size:17px;color:var(--ink);line-height:1.6}
+.home-v12 .idea-modal-facts{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 26px;margin:22px 0 6px;padding:18px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.home-v12 .idea-evidence .idea-src{color:var(--mut);font-size:13px}
+.home-v12 .idea-sowhat{margin-top:24px;padding:16px 18px;background:var(--putty);border-radius:14px;border-left:3px solid var(--gold-bar)}
+.home-v12 .idea-disclaimer{margin-top:26px;font-size:12px;color:var(--mut);line-height:1.55}
 
 /* footer */
 .home-v12 footer{margin-top:var(--sect);border-top:1px solid var(--hair);padding:36px 0 44px;text-align:center}
@@ -251,16 +281,13 @@
   .home-v12 .tape .row{grid-template-columns:repeat(4,1fr)}
   .home-v12 .t:nth-child(n+5){border-top:1px solid var(--hair)}
   .home-v12 .engine-card{grid-template-columns:1fr;gap:28px}
-  .home-v12 .sp7,.home-v12 .sp5,.home-v12 .bcol{grid-column:span 12}
-  /* stacked column: give tiles their natural height (flex-basis 0 would
-     collapse them once the column no longer stretches to a row height) */
-  .home-v12 .bcol .tile{flex:0 0 auto}
+  .home-v12 .sp7,.home-v12 .sp5{grid-column:span 12}
 }
 @media (max-width: 900px){
   .home-v12 .ind{grid-template-columns:1fr;column-gap:0}
   .home-v12 .wrap{padding:0 22px}
   .home-v12 .brief-card,.home-v12 .engine-card,.home-v12 .putty-card{padding:34px 26px;border-radius:32px}
-  .home-v12 .scan-cols{grid-template-columns:1fr;gap:18px}
+  .home-v12 .idea-facts{grid-template-columns:1fr;gap:14px 0}
 }
 @media (max-width: 640px){
   .home-v12 .tape .row{grid-template-columns:repeat(2,1fr)}

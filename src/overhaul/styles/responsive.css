@@ -300,24 +300,25 @@
 }
 
 
-/* ── home-v12 (cream rebrand 2026-07-07; six-tile grid 2026-07-21) —
+/* ── home-v12 (cream rebrand 2026-07-07; four-tile cockpit 2026-08-13) —
       every multi-column grid collapses. Tiles go full-width ≤1100px, the
-      scanner tile's two lists stack ≤900px, and rows inside tiles are
-      flex with ellipsis so they hold at 390px. ── */
+      trade-idea fact strip stacks ≤900px, and rows inside tiles are flex
+      with ellipsis so they hold at 390px. The .bcol / .scan-cols / .posrows
+      rules went with the tiles they served. ── */
 @media (max-width: 1100px) {
-  .home-v12 .sp7, .home-v12 .sp5, .home-v12 .bcol { grid-column: span 12 !important; }
-  .home-v12 .bcol .tile { flex: 0 0 auto !important; }
+  .home-v12 .sp7, .home-v12 .sp5 { grid-column: span 12 !important; }
 }
 @media (max-width: 900px) {
   .home-v12 .ind { grid-template-columns: 1fr !important; }
   .home-v12 .engine-card { grid-template-columns: 1fr !important; }
-  .home-v12 .scan-cols { grid-template-columns: 1fr !important; }
+  .home-v12 .idea-facts { grid-template-columns: 1fr !important; gap: 14px 0 !important; }
+  .home-v12 .idea-modal-facts { grid-template-columns: 1fr !important; }
   .home-v12 .bgrid { gap: 18px !important; }
 }
 @media (max-width: 640px) {
   .home-v12 .tape .row { grid-template-columns: repeat(2, 1fr) !important; }
-  .home-v12 .srow .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .home-v12 .posrows .srow .tk { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-v12 .calrow .what { white-space: normal; }
+  .home-v12 .calrow .when { min-width: 70px; }
 }
 
 /* ── home-v12 Macro Overview (cream rebrand Phase B) — category tiles:

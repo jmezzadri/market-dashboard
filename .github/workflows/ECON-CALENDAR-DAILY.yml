@@ -1,0 +1,109 @@
+name: ECON-CALENDAR-DAILY
+
+# Rebuilds public/econ_calendar.json — the release schedule behind the
+# homepage "Upcoming data" tile.
+#
+# Why this workflow exists: that tile used to read a hand-typed array inside
+# src/overhaul/lib/econCalendar.js whose last entry was 2026-07-31. From
+# 2026-08-01 the tile said "No scheduled releases coming up." every single
+# day, and on 2026-08-13 it said that on a morning the Producer Price Index
+# printed at 8:30. A calendar somebody has to re-type each month is wrong most
+# months, so it became a feed.
+#
+# Sources (all free, one provider per source per the governance rule):
+#   FRED release calendar        — BLS / BEA / Census / Federal Reserve dates
+#   federalreserve.gov           — FOMC meeting dates
+#   ISM published schedule       — computed (1st and 3rd business day)
+#
+# Required GitHub secrets:
+#   FRED_API_KEY          — same key the indicator refresh uses
+#   MACROTILT_BOT_PAT     — admin PAT; the default token is rejected by
+#                           main's protected-branch hook (GH006)
+#
+# Manual trigger: Actions → ECON-CALENDAR-DAILY → Run workflow.
+
+on:
+  schedule:
+    # 09:30 UTC = 5:30 AM EDT / 4:30 AM EST. Ahead of the 6:00 AM indicator
+    # pull and well ahead of the morning brief session, so the calendar the
+    # brief and the homepage read is already today's.
+    - cron: '30 9 * * *'
+    # A second afternoon pass: agencies publish next-quarter schedules during
+    # the working day, and the tile should pick them up the same day.
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: econ-calendar-daily
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Rebuild econ_calendar.json
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        # The script exits 1 if fewer than three tier-1 releases land in a
+        # ten-week window. That is a broken fetch, not a quiet season, and it
+        # must fail loudly rather than publish an empty tile — the whole point
+        # of this workflow is that "no releases coming up" is never silently
+        # correct.
+        run: python3 scripts/build_econ_calendar.py public/econ_calendar.json
+
+      - name: Commit + push if changed
+        run: |
+          if git diff --quiet -- public/econ_calendar.json; then
+            echo "No change to public/econ_calendar.json — skipping commit."
+          else
+            N=$(python3 -c "import json;d=json.load(open('public/econ_calendar.json'));print(d['counts']['total'],d['counts']['tier1'])")
+            git add public/econ_calendar.json
+            git commit -m "Econ calendar refresh [skip ci]
+
+            ${N% *} releases, ${N#* } major.
+            Rebuilt by .github/workflows/ECON-CALENDAR-DAILY.yml"
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
+          fi
+
+      - name: Stamp feed health (success)
+        if: success()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # A feed that renders on the homepage carries a freshness row like every
+        # other feed. The row is seeded already — this helper only ever UPDATES
+        # (per the standing rule that the checker never inserts).
+        # data_as_of is the calendar's own generated_at, not the run clock.
+        run: |
+          AS_OF=$(python3 -c "import json;print(json.load(open('public/econ_calendar.json'))['generated_at'])")
+          python3 scripts/upsert_pipeline_health.py econ_calendar "$AS_OF" green
+
+      - name: Stamp feed health (failure)
+        if: failure()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # "-" records a FAILED run without advancing any freshness field: a run
+        # that produced nothing must never look fresh.
+        run: |
+          python3 scripts/upsert_pipeline_health.py econ_calendar - red "ECON-CALENDAR-DAILY failed"

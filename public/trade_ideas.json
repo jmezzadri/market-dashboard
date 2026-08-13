@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-08-13T11:58:03Z",
+  "cadence": "Sunday and Wednesday evenings, US Eastern",
+  "next_publish": "2026-08-16",
+  "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
+  "ideas": [
+    {
+      "date": "2026-08-13",
+      "kind": "cross-asset",
+      "title": "The bond is the trade, not the hedge",
+      "dek": "A 10-year Treasury pays a real 2.42%, near a twenty-year high, while the S&P 500's cyclically-adjusted earnings yield sits 2.14 points below the nominal 10-year — the widest that gap has been in our data since 2006. And speculators moved short the long end this week.",
+      "instrument": "Long the 10-year Treasury, funded by trimming US large-cap equity beta",
+      "horizon": "Four months, into the December FOMC",
+      "thesis": [
+        "<b>Compensation has crossed over.</b> The cyclically-adjusted (Shiller CAPE) earnings yield on the S&P 500 is 2.36% against a 10-year Treasury at 4.68% — an equity risk premium of &minus;2.14%. That is the lowest reading in our monthly series, which starts in January 2006 and spans 247 observations with a range of &minus;2.14% to +4.69%. The measure has declined in five of the last six monthly prints, from &minus;1.55% at the end of March to &minus;2.14% at the end of July.",
+        "<b>The alternative is not a low-yielding one.</b> The 10-year real yield is 2.42%, the 96th percentile of daily readings since 2006 against a three-year median of 1.97%. The nominal 10-year at 4.68% is the 94th percentile and sits 30 basis points inside the top of its three-year range of 3.63% to 4.98%. A buyer today is paid more real income to take duration than at almost any point in two decades.",
+        "<b>Positioning has just moved against the bond.</b> Speculative net positioning in the 10-year Treasury sits at the 12th percentile of three years — an extended short, and new this week in the CFTC report dated 4 August. The front end is the mirror image: 2-year speculative positioning is at the 100th percentile, an extended long. The consensus in futures is a steeper curve and growth that holds. This idea is on the other side of that.",
+        "<b>Being early is cheap here.</b> The MOVE index of implied Treasury volatility is 72.1 — the 16th percentile of three years and the 38th since 2002. The rates market is not braced for a repricing in either direction, so the cost of holding the view through a wrong-footed month is at the low end of its own range."
+      ],
+      "evidence": [
+        {
+          "value": "−2.14%",
+          "claim": "Equity risk premium — the S&P 500's cyclically-adjusted earnings yield minus the 10-year Treasury yield. The lowest reading in the series, which runs from January 2006 and has a full range of −2.14% to +4.69%.",
+          "source": "MacroTilt indicator history (Shiller CAPE + FRED DGS10)",
+          "as_of": "2026-07-31"
+        },
+        {
+          "value": "42.34",
+          "claim": "Shiller CAPE for the S&P 500 — the highest reading in the same series, the 99.6th percentile since 2006.",
+          "source": "MacroTilt indicator history (Shiller)",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "4.68%",
+          "claim": "10-year Treasury yield — the 94th percentile of daily readings since 2006; three-year range 3.63% to 4.98%, three-year median 4.29%.",
+          "source": "MacroTilt indicator history (FRED)",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "2.42%",
+          "claim": "10-year real (inflation-protected) yield — the 96th percentile since 2006 against a three-year median of 1.97%.",
+          "source": "MacroTilt indicator history (FRED)",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "+48 bp",
+          "claim": "2-year to 10-year Treasury spread, against a three-year median of +30 bp.",
+          "source": "MacroTilt indicator history (FRED)",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "72.1",
+          "claim": "MOVE index of implied Treasury volatility — the 16th percentile of three years and the 38th since 2002.",
+          "source": "MacroTilt indicator history",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "12th percentile",
+          "claim": "Speculative net positioning in the 10-year Treasury, measured against three years of weekly reports — an extended short, and new this week.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "100th percentile",
+          "claim": "Speculative net positioning in the 2-year Treasury — an extended long, the mirror image of the 10-year.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "82.6 bp",
+          "claim": "10-year term premium — the 90th percentile since 2006. This one argues against the idea: the market already demands a lot to hold duration, and nothing says it stops here.",
+          "source": "MacroTilt indicator history (New York Fed ACM)",
+          "as_of": "2026-08-07"
+        },
+        {
+          "value": "272 bp",
+          "claim": "High-yield credit spread over Treasuries — the 10th percentile since 2011. Credit sees no problem at all, which is the strongest data argument against the equity leg.",
+          "source": "MacroTilt indicator history (ICE BofA via FRED)",
+          "as_of": "2026-08-11"
+        },
+        {
+          "value": "1st percentile",
+          "claim": "Speculative net positioning in the Nasdaq 100 — an extended short against three years of weekly reports, which is contrarian-bullish for equities.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "55.6 / 54.1",
+          "claim": "ISM Manufacturing and ISM Services — both comfortably above the 50 line that separates expansion from contraction.",
+          "source": "MacroTilt indicator history (ISM)",
+          "as_of": "2026-07-01"
+        }
+      ],
+      "levels": {
+        "trigger": "A weekly close in the 10-year below 4.55%. The confirm-on-the-way-in discipline is the same one the site's own regime gate uses, so a single day's headline does not set the position.",
+        "invalidation": "A weekly close in the 10-year above 4.98% — the top of the three-year range. That says the term-premium repricing has further to run and the entry was simply early.",
+        "target": "The 10-year's three-year median of 4.29% — about 39 basis points of rally, roughly 3% of price on an eight-year duration, before carry."
+      },
+      "sections": [
+        {
+          "title": "The mechanics",
+          "prose": "This is a compensation trade, not a recession call. Nothing in the data here says growth is rolling over: ISM Manufacturing is 55.6, ISM Services 54.1, high-yield spreads are at the 10th percentile since 2011 and the Chicago Fed's financial conditions index is &minus;0.579, meaning conditions are easier than average. The argument is narrower than a growth argument and therefore easier to falsify: at a real 2.42% the 10-year pays close to the most it has paid in twenty years, while the long-run earnings yield on the S&P pays less than the nominal 10-year by the widest margin in our data. A dollar moved from equity beta into duration gives up a claim on earnings priced at 42 times their ten-year average and buys a contractual real 2.42%."
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "<b>26 August, 8:30 AM</b> — personal income and the PCE price index, the inflation measure the Fed actually targets.",
+            "<b>4 September, 8:30 AM</b> — the jobs report. The labour leg of the case is the one with the least evidence behind it in this note.",
+            "<b>11 September, 8:30 AM</b> — consumer prices. A hot print is the fastest route to the 4.98% invalidation.",
+            "<b>16 September, 2:00 PM</b> — the FOMC decision, and a meeting that publishes rate and economic projections. A hawkish dot plot does the same job as a hot CPI."
+          ]
+        }
+      ],
+      "other_side": "Three things argue the other way and two of them are strong. First, the equity risk premium here is measured on the cyclically-adjusted CAPE earnings yield, which is structurally more bearish than a forward-earnings version — on forward estimates the gap is far narrower, and we do not carry that series, so this leg is weaker than the headline number makes it look. Second, the term premium at 82.6 basis points is already the 90th percentile since 2006: the market demands a lot to hold duration and there is no rule that says it stops, and every duration buyer of the last three years has been early. Third, speculative positioning in the Nasdaq 100 sits at the 1st percentile of three years, an extended short, and with financial conditions easier than average and high-yield spreads at the 10th percentile since 2011, that is the configuration that squeezes equities higher rather than lower.",
+      "risks": [
+        "<b>The funding leg is the fragile one.</b> Trimming equity beta into speculative positioning that already sits at a three-year low has hurt better investors than us. The bond leg can be right and the pair still lose.",
+        "<b>A negative equity risk premium is not a timing signal.</b> This measure has been below zero in every monthly print since May 2023 — thirty-nine consecutive readings — and the S&P has not waited for it.",
+        "<b>Duration is not a credit hedge.</b> If yields fall because growth genuinely deteriorates, high-yield at 272 basis points is the exposure that hurts, and nothing in this idea covers it.",
+        "<b>The two September prints can end it inside a month.</b> A hot CPI on 11 September or a hawkish set of projections on 16 September puts the 10-year at the top of its three-year range and triggers the invalidation."
+      ],
+      "so_what": "The gap between what a Treasury pays and what the S&P's long-run earnings yield pays is the widest in our data since 2006, and it opened while implied volatility in rates sat in the bottom fifth of its three-year range. That times nothing on its own. It does change what a dollar of risk in this book is being paid to do.",
+      "id": "2026-08-13-the-bond-is-the-trade-not-the-hedge",
+      "status": "live",
+      "published_at": "2026-08-13T11:58:03Z"
+    }
+  ]
+}
