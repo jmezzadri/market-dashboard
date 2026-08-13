@@ -4082,6 +4082,80 @@
       "sla_basis": "49h daily budget, calendar-aware (weekend hours don’t count).",
       "display_name": "Implied vol — nightly backup",
       "cadence_display": "Nightly · 10:30 PM"
+    },
+    {
+      "id": "site-econ_calendar-daily",
+      "name": "econ_calendar",
+      "category": "indicator",
+      "description": "Scheduled US economic data releases — the feed behind the homepage \"Upcoming data\" tile. Dates come from the statistical agencies' own published calendars (FRED's release calendar for BLS/BEA/Census/Federal Reserve series, the Board's FOMC calendar for meeting dates) and ISM's 1st-and-3rd-business-day rule is computed. Release TIMES are each agency's standing policy, not wire data. No reference period is published: the calendar gives the date a report lands, not the month it covers, and that lag is not uniform. Replaces the hand-typed array in src/overhaul/lib/econCalendar.js, which went stale on 2026-07-31.",
+      "sourcing_mode": "computed in-house",
+      "source_vendor": "FRED (release calendar) + Federal Reserve Board (FOMC) + ISM schedule",
+      "source_endpoint": "api.stlouisfed.org/fred/release/dates + federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "05:30",
+      "refresh_trigger": "GH workflow ECON-CALENDAR-DAILY (cron 30 9 * * * and 30 20 * * *)",
+      "release_calendar": "us-business-day",
+      "freshness_sla_hours": 30,
+      "data_max_age_hours": 48,
+      "data_calendar": "us-business-day",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "Forward schedule; data_as_of is the build time, not a market date.",
+      "output_destination": "public/econ_calendar.json",
+      "consumer_surfaces": [
+        {
+          "tab": "home",
+          "tile": "Upcoming data"
+        }
+      ],
+      "dependencies": [],
+      "failure_mode": "Builder exits 1 if fewer than three major releases land in the ten-week window — a broken fetch must fail loudly rather than publish an empty tile. Tile then holds the last good file and says the calendar did not load.",
+      "owner": "Lead Developer",
+      "producer_script": "scripts/build_econ_calendar.py",
+      "current_status": "live",
+      "sla_basis": "Twice-daily job; SLA = job cadence + grace. Graded off last successful build.",
+      "display_name": "Economic release calendar",
+      "cadence_display": "Twice daily · 5:30 AM & 4:30 PM"
+    },
+    {
+      "id": "site-trade_ideas-biweekly",
+      "name": "trade_ideas",
+      "category": "indicator",
+      "description": "The published Trade Idea notes behind the homepage editorial tile. Composed by the scheduled Cowork session on Sunday and Wednesday evenings per scripts/trade_idea_playbook.md, validated against the contract in scripts/build_trade_idea.py (every figure carries its own source and as-of date; the note must name what would prove it wrong and must carry a real counter-argument), then committed by ops-code-commit. Editorial research, not a signal: nothing here feeds the paper engine and no track record is claimed.",
+      "sourcing_mode": "computed in-house",
+      "source_vendor": "MacroTilt editorial (scheduled session)",
+      "source_endpoint": "scripts/build_trade_idea.py --prepare-file",
+      "license_tier": "n/a (in-house)",
+      "monthly_cost_usd": 0,
+      "cadence": "twice weekly",
+      "scheduled_fetch_time_et": "19:00",
+      "refresh_trigger": "Scheduled Cowork session (Sun + Wed evenings ET)",
+      "release_calendar": "none",
+      "freshness_sla_hours": 120,
+      "data_max_age_hours": 168,
+      "data_calendar": "calendar-day",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "A note is a position, not a headline — it stays live on the tile until the next one publishes.",
+      "output_destination": "public/trade_ideas.json",
+      "consumer_surfaces": [
+        {
+          "tab": "home",
+          "tile": "Trade idea"
+        }
+      ],
+      "dependencies": [
+        "site-indicator_history-aggregate",
+        "indicator-cftc-cot-weekly",
+        "site-econ_calendar-daily"
+      ],
+      "failure_mode": "A note that fails the contract is never published — the tile keeps the prior note with its own date on it. An absent note is correct; a wrong one is a failure.",
+      "owner": "Senior Quant (evidence), Lead Developer (pipe)",
+      "producer_script": "scripts/build_trade_idea.py",
+      "current_status": "live",
+      "sla_basis": "Twice-weekly publication; SLA = cadence + one day of grace.",
+      "display_name": "Trade Idea notes",
+      "cadence_display": "Twice weekly · Sunday & Wednesday evenings"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
