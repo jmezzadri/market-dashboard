@@ -1092,3 +1092,22 @@ A third, latent: with metered generation off (8/06), `brief_selfheal.py` can no 
 6. **Joe asking the same question five times is the finding.** Four prior passes each fixed the workflow that was named in the email subject. Nobody asked "why is this arriving *every day at the same minute*" — a fixed-time recurrence is a schedule interacting with a threshold, essentially never a flaky job.
 
 **Applies to:** Lead Developer — every freshness deadline, every alerting workflow, and every change to a script that more than one workflow imports.
+
+### 4.29 (2026-08-13) — A publisher whose base branch moves under it needs a retry, not a report; and delete-then-recreate of a branch closes the PR you are about to merge
+
+**What happened:** the 06:00 ET morning brief session composed Thursday's brief, passed `--prepare-file`, and POSTed it to `agent-write` with `merge: true`. GitHub rejected the squash-merge with `405 {"message":"Base branch was modified. Review and try the merge again."}`. `agent-write` had no retry: one 405 and the whole call returned `ok:false`, with the brief unpublished. The cause is not exotic and is not rare — `main` moves several times every weekday morning under the repo's own automation (`Indicator history auto-refresh`, `Index breadth (% > 50d/200d EMA) refresh`, both `[skip ci]`), and the publish window sits inside that spread. Two of those commits landed between the PR's merge-base and the merge call.
+
+The retry then exposed a second defect. `agent-write` created its branch with *delete-then-create* ("idempotent" per its own comment), and deleting a ref closes any open PR on it. Re-POSTing the same body deleted `brief/2026-08-13`, closed PR #1449, recreated the branch, and then failed at PR creation with `422 "A pull request already exists"` — GitHub had not yet processed the close. The brief only published because the session hand-rolled a third submission on a fresh branch name (`brief/2026-08-13-b`, PR #1450, merged `7e87fa6`). A session that had trusted the first `ok:false` would have gone dark on a publish that was one retry from succeeding.
+
+**Rule:**
+
+1. **A write path that races a moving base branch retries the merge; it does not report a race as a failure.** `agent-write` now loops up to 4 attempts, re-resolving `main`'s head on EVERY attempt (the point is that it moved), with short linear backoff. Retry only on failures a retry can clear — `Base branch was modified`, `not mergeable` / `mergeable state` (GitHub still computing), and 409. A genuine conflict or a permissions error must surface immediately, not spin.
+2. **Never delete a ref to make branch creation idempotent.** Deleting closes open PRs on that ref and turns the retry into a different error. Create the ref, and on 422 (already exists) `PATCH` it to the new sha with `force: true`. The branch fast-forwards, the PR survives and re-points.
+3. **Find-or-create, never create-and-hope, for any PR the caller may submit twice.** List `state=open&head=owner:branch` first, and treat a 422 on create as "list again" rather than as fatal.
+4. **Grade a publisher against the arrival spread of the thing it writes into, not just its own runtime.** This is 4.28's lesson pointed the other way: 4.28 was about a *reader's* deadline landing inside the producer's spread; this is a *writer's* merge landing inside its own repo's automation spread. Both are a schedule interacting with another schedule, and neither is a flaky job.
+5. **`ok:false` from a write helper is a claim about one attempt until the helper says otherwise.** The response now carries `attempts`, so a caller can tell "raced once, succeeded" from "never worked" without reading logs.
+6. **Redeployed with `verify_jwt: false`** — 4.27 applies to `agent-write` too; it does its own `TRIAGE_WEBHOOK_TOKEN` bearer check and its caller sends an opaque token. The header of the function now says so.
+
+**Open item, not fixed here:** `agent-write`'s source lives only in the deployed function — it is not in this repo, because the path allowlist (`src/`, `LESSONS.md`, `public/daily_brief.json`) deliberately cannot write `supabase/functions/`. That means the file just changed has no version-controlled copy and no review trail beyond this entry. Widening the allowlist is a permissions decision for Joe, not a cleanup to slip into a fix.
+
+**Applies to:** Lead Developer — `agent-write`, `gh-push`, and every helper that commits-and-merges on a branch that automation also writes to.
