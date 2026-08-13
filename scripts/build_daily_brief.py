@@ -132,6 +132,43 @@ def claim_email_send(today):
         print(f"WARN: send-lock unreachable ({e}); sending anyway", file=sys.stderr)
         return True
 
+def _supabase_rest(method, path, body=None):
+    """Small PostgREST helper for the two claim-lifecycle calls below."""
+    url = os.environ.get("SUPABASE_URL", BASE).rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not key:
+        return None
+    req = urllib.request.Request(
+        f"{url}/rest/v1/{path}",
+        data=json.dumps(body).encode() if body is not None else None,
+        method=method,
+        headers={"apikey": key, "Authorization": f"Bearer {key}",
+                 "Content-Type": "application/json", "Prefer": "return=minimal"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return r.status
+
+def _record_email_failure(today, detail):
+    """Write WHY the send failed. Without this the failure is invisible: the send is
+    best-effort so the workflow step stays green, and the only symptom is an email that
+    never arrives (2026-08-13)."""
+    try:
+        _supabase_rest("POST", "brief_email_failures", {
+            "brief_date": today, "error": detail[:2000],
+            "run_id": os.environ.get("GITHUB_RUN_ID", "local")})
+    except Exception as e:
+        print(f"WARN: could not record the email failure ({e})", file=sys.stderr)
+
+def _release_email_claim(today):
+    """Give the day's send-once claim back after a failed send, so the next of the
+    morning's many runs can try again. Keeping it would turn one transient SMTP error
+    into a whole day with no brief email."""
+    try:
+        _supabase_rest("DELETE", f"brief_email_log?brief_date=eq.{today}")
+        print(f"released the send-once claim for {today} — a later run will retry")
+    except Exception as e:
+        print(f"WARN: could not release the send claim ({e}); "
+              f"today's brief email will not retry", file=sys.stderr)
+
 # --- Banned-copy guard (Joe, 2026-06-26): never publish "washed out" / "crowded".
 # Low COT percentile -> "extended short"; high -> "extended long". Deterministic
 # backstop to the prompt rule, so a model slip can never reach the site or email.
@@ -478,7 +515,17 @@ def send_email(b, today):
         print(f"email sent ({mode}) to {to}")
         return True
     except Exception as e:
-        print(f"WARN: email send failed (non-fatal): {e}", file=sys.stderr); return False
+        # 2026-08-13: the claim is taken BEFORE the send and the send is deliberately
+        # best-effort (it must never fail the commit) -- so a failed send left a claim
+        # row that permanently suppressed every retry for the rest of the morning. Joe
+        # got NO brief email at all, the step was green, and nothing recorded why.
+        # A claim must never outlive the action it was claiming: record the reason,
+        # then RELEASE it so the morning's remaining runs retry. LESSONS 4.29.
+        detail = f"{type(e).__name__}: {e}"
+        print(f"WARN: email send failed (non-fatal): {detail}", file=sys.stderr)
+        _record_email_failure(today, detail)
+        _release_email_claim(today)
+        return False
 
 def main():
     now = datetime.datetime.now(ET)
