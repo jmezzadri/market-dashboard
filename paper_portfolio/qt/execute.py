@@ -187,9 +187,13 @@ def main() -> int:
 
     res = submit(p, rd, live)
     try:
+        h = dict(D._sb_headers()) | {"Prefer": "resolution=merge-duplicates,return=minimal"}
+        # Upsert on client_order_id: a dry run writes the same deterministic id
+        # the live run will use, so without this every rehearsal would block the
+        # real submit's log row on a unique violation.
+        requests.post(f"{D.SB_URL}/rest/v1/qt_orders?on_conflict=client_order_id",
+                      headers=h, json=res.to_dict("records"), timeout=120)
         h = dict(D._sb_headers()) | {"Prefer": "return=minimal"}
-        requests.post(f"{D.SB_URL}/rest/v1/qt_orders", headers=h,
-                      json=res.to_dict("records"), timeout=120)
         requests.post(f"{D.SB_URL}/rest/v1/qt_run_log", headers=h, json=[{
             "run_kind": "execute", "rebalance_date": rd,
             "status": "ok" if live else "dry_run",
