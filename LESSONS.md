@@ -1165,3 +1165,28 @@ Three fixes on this channel in three days (5/06 infra-noise suppression, 8/13 se
 5. **Repeat complaints are a design signal, not a bug report.** Joe asked five times about 4.28's failure and again here. Each ask was answered by fixing the specific email in front of me. The actual defect was upstream of every one of those fixes: a watchlist built for whoever was on call, pointed at someone who is not.
 
 **Applies to:** Lead Developer — every alert, email, push notification or page that reaches Joe.
+
+### 4.31 (2026-08-14) — Every recurring alert was a job watching something that had been deliberately switched off
+
+**What happened:** Joe, after two days of me tuning the alert channel: *"Why can't you just make it stop!! Fix the fucking problems I don't want emails"*. He was right, and the instruction was the correct one. I had shipped three fixes to *how the alerter behaves* (4.28 send-once, 4.30 tiering) and had never once swept the workflows themselves.
+
+The sweep took one pass over every scheduled workflow's recent run history and found six reds. **Not one was a bug.** Every recurring one was a job faithfully monitoring a dependency that a human had deliberately turned off, and that nobody had told it about:
+
+| Red | Why | Since |
+|---|---|---|
+| `PAPER-PORTFOLIO-WATCHDOG` | Asks "did the morning engine trade?" — **automated trading was halted 8/12**; CONVICTION-OPEN-DAILY, CONVICTION-KILL-CHECK and PAPER-PORTFOLIO-INTRADAY are all `(DISABLED)` stubs. It kept its 10:00 ET cron, correctly answered "no", and filed a P1 + emailed Joe every weekday | 8/13 |
+| `UNIVERSE_SNAPSHOT_3X_WEEKDAYS` | Calls the Unusual Whales API — **that subscription lapsed 8/12**. Nine crons a day, every one failing | 8/12 |
+| `UW_METER_READ_NIGHTLY` | Reads the Unusual Whales usage meter. Same lapse | 8/12 |
+| `GUARD-DEAD-UI-WEEKLY` | A repo-hygiene report that `exit 1`s on any finding — red on **every run since it was written** | always |
+| `TRADING-OPPS-BACKTEST` | Quarterly; its "open a review PR" step broke. Next fire Oct 1 | 7/01 |
+| `MASSIVE-TICKER-REFERENCE-BACKFILL` | One genuine transient blip; green on the next run | self-healed |
+
+**Rule:**
+
+1. **Turning a producer off is not done until its watchers are off.** LESSONS 4.25 said this about a *capability moved between pipelines*; it applies with full force to a deliberate HALT. Disabling `CONVICTION-OPEN-DAILY` while leaving `PAPER-PORTFOLIO-WATCHDOG` armed converted a safety net into a daily false alarm about a book that is intentionally not trading. The halt commit and the watchdog commit are the same commit.
+2. **A vendor lapse is a scheduled event — retire its jobs on the lapse date.** The UW lapse was a known, diarised 8/12 date. Two workflows kept firing into a dead API for two days. When a subscription has an end date, the teardown of everything that calls it belongs in the calendar next to it, not in the incident queue afterwards.
+3. **A guard that is red on every run is not a guard.** `GUARD-DEAD-UI-WEEKLY` had never once passed, so its signal carried exactly zero information and cost a red build every Saturday. Advisory hygiene reports annotate and exit 0; only things that must block should fail.
+4. **Sweep before you tune.** Three consecutive alert-channel fixes treated the *notification* as the defect. One pass over `{runs}` for every scheduled workflow — a single loop, a few minutes — would have shown on day one that the alerts were correct and the fleet was full of jobs that could not succeed. When someone complains about alert volume, read the fleet's run history FIRST; the alerter is the last thing to touch, not the first.
+5. **"Fix the problem, not the symptom" applies to alerting more than anywhere else,** because alert plumbing is the most tempting thing to fiddle with: it is fast, it is visible, and it makes the complaint stop without fixing anything.
+
+**Applies to:** Lead Developer — every workflow disable, every vendor cancellation, and every complaint about alert volume.

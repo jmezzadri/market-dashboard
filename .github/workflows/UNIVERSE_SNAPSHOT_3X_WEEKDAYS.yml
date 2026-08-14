@@ -1,4 +1,13 @@
-name: UNIVERSE_SNAPSHOT_3X_WEEKDAYS
+name: UNIVERSE_SNAPSHOT_3X_WEEKDAYS (DISABLED)
+
+# DISABLED 2026-08-14. The Unusual Whales subscription LAPSED on 2026-08-12.
+# It calls the Unusual Whales API for the daily universe snapshot.
+# With no subscription this workflow cannot ever succeed — it had been failing on
+# every scheduled run since the lapse and emailing Joe about it. A job whose
+# vendor is gone is retired, not retried.
+#
+# The UW->EDGAR cutover is the replacement path. Do not re-arm this cron unless
+# the subscription is reinstated.
 
 # Fires 3x/weekday at 10:00, 13:00, and 15:45 America/New_York. Pulls the
 # full US equity universe (>= $1B mcap; Common Stock + ADR + ETF) from
@@ -20,19 +29,20 @@ name: UNIVERSE_SNAPSHOT_3X_WEEKDAYS
 # local time. The other DST cron for that slot handles the real fire.
 
 on:
-  schedule:
-    # Three primary slots + a +60-min backup for each so a dropped or
-    # late GitHub fire is recovered the same hour. Idempotency check
-    # below means a backup fire after a successful primary is a no-op.
-    - cron: '0 14 * * 1-5'    # 10:00 EDT
-    - cron: '0 15 * * 1-5'    # 10:00 EST + 11:00 EDT backup
-    - cron: '0 16 * * 1-5'    # 11:00 EST backup
-    - cron: '0 17 * * 1-5'    # 13:00 EDT
-    - cron: '0 18 * * 1-5'    # 13:00 EST + 14:00 EDT backup
-    - cron: '0 19 * * 1-5'    # 14:00 EST backup
-    - cron: '45 19 * * 1-5'   # 15:45 EDT
-    - cron: '45 20 * * 1-5'   # 15:45 EST + 16:45 EDT backup
-    - cron: '45 21 * * 1-5'   # 16:45 EST backup
+  # schedule: DISARMED 2026-08-14 — Unusual Whales subscription lapsed 2026-08-12.
+  # Nine crons a day, all failing since the lapse. Original schedule kept for reference:
+  # # Three primary slots + a +60-min backup for each so a dropped or
+  # # late GitHub fire is recovered the same hour. Idempotency check
+  # # below means a backup fire after a successful primary is a no-op.
+  # - cron: '0 14 * * 1-5'    # 10:00 EDT
+  # - cron: '0 15 * * 1-5'    # 10:00 EST + 11:00 EDT backup
+  # - cron: '0 16 * * 1-5'    # 11:00 EST backup
+  # - cron: '0 17 * * 1-5'    # 13:00 EDT
+  # - cron: '0 18 * * 1-5'    # 13:00 EST + 14:00 EDT backup
+  # - cron: '0 19 * * 1-5'    # 14:00 EST backup
+  # - cron: '45 19 * * 1-5'   # 15:45 EDT
+  # - cron: '45 20 * * 1-5'   # 15:45 EST + 16:45 EDT backup
+  # - cron: '45 21 * * 1-5'   # 16:45 EST backup
   workflow_dispatch:
 
 concurrency:

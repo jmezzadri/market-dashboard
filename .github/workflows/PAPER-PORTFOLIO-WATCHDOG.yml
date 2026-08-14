@@ -1,4 +1,13 @@
-name: PAPER-PORTFOLIO-WATCHDOG
+name: PAPER-PORTFOLIO-WATCHDOG (DISABLED)
+
+# DISABLED 2026-08-14. Automated trading was halted on 2026-08-12 —
+# CONVICTION-OPEN-DAILY, CONVICTION-KILL-CHECK and PAPER-PORTFOLIO-INTRADAY are
+# all disabled stubs. This watchdog kept its 10:00 ET cron and kept asking "did
+# the morning engine run?", correctly answered "no", and filed a P1 + emailed Joe
+# EVERY WEEKDAY for a book that is deliberately not trading.
+#
+# Retiring a producer means retiring its watchdog in the same change (LESSONS
+# 4.25). Re-arm the cron below in the SAME commit that re-arms trading.
 
 # Post-open fill verification (2026-06-01). Confirms the daily rebalance
 # actually completed end-to-end; files a P1 alert if 0 orders were created,
@@ -6,9 +15,9 @@ name: PAPER-PORTFOLIO-WATCHDOG
 # turns a silent failure into a visible one. See scripts/paper_fill_watchdog.py.
 
 on:
-  schedule:
-    - cron: '0 14 * * 1-5'   # 10:00 ET (EDT), ~30 min after the open
-    - cron: '0 15 * * 1-5'   # 10:00 ET (EST) coverage
+  # schedule: disarmed 2026-08-14 with the trading halt — restore with trading:
+  #   - cron: '0 14 * * 1-5'   # 10:00 ET (EDT), ~30 min after the open
+  #   - cron: '0 15 * * 1-5'   # 10:00 ET (EST) coverage
   workflow_dispatch:
 
 concurrency:
