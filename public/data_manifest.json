@@ -2386,6 +2386,230 @@
       "cadence_display": "Every morning · 6:00 & 10:15 AM"
     },
     {
+      "id": "portfolio.paper-nav-daily",
+      "category": "portfolio",
+      "name": "paper-nav-daily",
+      "description": "Paper portfolio daily NAV and per-sleeve values, valued at official session closes.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca account equity + positions → paper_nav_daily",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "17:15 (close mirror via CONVICTION-KILL-CHECK; certified 09:45 next session from prices_eod)",
+      "refresh_trigger": "CONVICTION-KILL-CHECK",
+      "freshness_sla_hours": 49,
+      "data_max_age_hours": 54,
+      "data_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.paper_nav_daily",
+      "producer_script": "paper_portfolio/mirror.py (write_nav_daily)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Performance card"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Holds prior NAV row if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+      "display_name": "Paper portfolio value (daily)",
+      "cadence_display": "Daily · 5:15 PM close (certified 9:45 AM next day)"
+    },
+    {
+      "id": "portfolio.ce-events-daily",
+      "category": "portfolio",
+      "name": "ce_events",
+      "display_name": "Conviction Events ledger",
+      "description": "Conviction Events decision ledger — every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, or skipped (buying capacity exhausted / already held / failed gates). The book has no book-level alarm: the companion ce_kill_switch table was retired on 2026-08-12 when both of its arms (trailing the S&P 500, and drawdown from the book's peak) were removed — risk is controlled per position, by the 15% stop, whose scheduled exit shows in this ledger.",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "SEC EDGAR (free)",
+      "source_endpoint": "Computed from insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation) — each input is its own registered element",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "cadence_display": "Every morning · before the open",
+      "refresh_trigger": "CONVICTION-OPEN-DAILY (GitHub Actions)",
+      "freshness_sla_hours": 49,
+      "data_max_age_hours": 73,
+      "data_calendar": "nyse-trading-day",
+      "release_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.ce_events (anon-readable)",
+      "producer_script": "Conviction Events engine (separate build; not in this repo yet)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Event ledger + positions why-held cells"
+        },
+        {
+          "tab": "scanner",
+          "tile": "Conviction Events panel"
+        },
+        {
+          "tab": "readme",
+          "tile": "Methodology — Scanner & Paper sections"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Every consumer renders its awaiting-first-events empty state when the table is unreadable or empty; no synthesized values, no error panels.",
+      "owner": "Lead Developer (engine) + Data Steward (freshness)",
+      "dependencies": [
+        "insider_history_edgar",
+        "market-prices_eod-daily"
+      ],
+      "sla_basis": "Deliberately 0 until the engine's first real run — an SLA armed before a producer exists manufactures a false red; a registered element with no target grades grey (reference), matching the no-health-row doctrine (LESSONS 2026-07-21). At cutover, in the SAME change as the pipeline_health seed row: set freshness_sla_hours 49 / data_max_age_hours 73 and dependencies [\"insider_history_edgar\", \"market-prices_eod-daily\"]. See NOTES.md.",
+      "schedule_et": "07:45 ET weekdays, before the open",
+      "scheduled_fetch_time_et": "07:45"
+    },
+    {
+      "id": "portfolio.paper-positions-snapshot",
+      "category": "portfolio",
+      "name": "paper-positions-snapshot",
+      "description": "Paper portfolio per-name holdings snapshot (both sleeves), marked at official session closes from Alpaca daily bars; certified next morning against prices_eod.",
+      "sourcing_mode": "STP",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca /v2/positions → paper_positions",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "17:15 (close mirror via CONVICTION-KILL-CHECK; certified 09:45 next session from prices_eod)",
+      "refresh_trigger": "CONVICTION-KILL-CHECK",
+      "freshness_sla_hours": 49,
+      "data_max_age_hours": 54,
+      "data_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.paper_positions",
+      "producer_script": "paper_portfolio/mirror.py (mirror_positions)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Sleeve A / Sleeve B holdings tables"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Retains the prior snapshot if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "date-keyed",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+      "display_name": "Paper portfolio positions (daily snapshot)",
+      "cadence_display": "Daily · 5:15 PM close (certified 9:45 AM next day)"
+    },
+    {
+      "id": "portfolio.paper-orders-intent",
+      "category": "portfolio",
+      "name": "paper-orders-intent",
+      "description": "Paper rebalance order intents queued for the next open (engine read + Equity Scanner diff).",
+      "sourcing_mode": "computed",
+      "source_vendor": "MacroTilt engine",
+      "source_endpoint": "Engine read + Equity Scanner diff → paper_orders",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "04:00 (pre-open window to 09:25)",
+      "refresh_trigger": "PAPER-PORTFOLIO-EOD-DAILY",
+      "freshness_sla_hours": 49,
+      "data_max_age_hours": 54,
+      "data_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.paper_orders",
+      "producer_script": "paper_portfolio/translator.py + submitter.py",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Recent rebalances"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Skips submission and files a P1 alert if signals are stale (freshness gate).",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [
+        "portfolio.paper-positions-snapshot"
+      ],
+      "as_of_cutoff_et": "16:00",
+      "as_of_cutoff_note": "as-of latest session close",
+      "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+      "display_name": "Paper portfolio orders",
+      "cadence_display": "Pre-open · queued from 4 AM, executes at 9:30 open"
+    },
+    {
+      "id": "portfolio.paper-positions-intraday",
+      "category": "portfolio",
+      "name": "paper-positions-intraday",
+      "market_hours_only": true,
+      "description": "Paper portfolio LIVE intraday holdings from Alpaca live marks, refreshed hourly during market hours. Separate from the close-anchored positions snapshot; the 16:50 close is the day’s final update.",
+      "sourcing_mode": "STP",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca /v2/positions → paper_positions",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "intraday (hourly, market hours)",
+      "scheduled_fetch_time_et": "hourly 09:50–15:30 ET (final update = 16:50 close)",
+      "refresh_trigger": "PAPER-PORTFOLIO-INTRADAY",
+      "freshness_sla_hours": 3,
+      "data_max_age_hours": 3,
+      "data_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.paper_intraday_positions",
+      "producer_script": "paper_portfolio/intraday.py (mirror_positions_intraday)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Holdings table (live)"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Retains the prior snapshot if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "live broker marks; only shown while market is open",
+      "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight.",
+      "display_name": "Paper portfolio positions (intraday)",
+      "cadence_display": "Hourly · 9:50 AM – 4:50 PM"
+    },
+    {
+      "id": "portfolio.paper-nav-intraday",
+      "category": "portfolio",
+      "name": "paper-nav-intraday",
+      "market_hours_only": true,
+      "description": "Paper portfolio LIVE intraday NAV/P&L from Alpaca account equity, refreshed hourly during market hours. Separate from the close-anchored daily NAV history, which it never touches; the 16:50 close is the day’s final update.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Alpaca (paper)",
+      "source_endpoint": "Alpaca account equity + positions → paper_nav_daily",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "intraday (hourly, market hours)",
+      "scheduled_fetch_time_et": "hourly 09:50–15:30 ET (final update = 16:50 close)",
+      "refresh_trigger": "PAPER-PORTFOLIO-INTRADAY",
+      "freshness_sla_hours": 3,
+      "data_max_age_hours": 3,
+      "data_calendar": "nyse-trading-day",
+      "output_destination": "Supabase public.paper_intraday_nav",
+      "producer_script": "paper_portfolio/intraday.py (write_nav_intraday)",
+      "consumer_surfaces": [
+        {
+          "tab": "paper",
+          "tile": "Performance card (live)"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Holds prior NAV row if the Alpaca read fails.",
+      "owner": "Lead Developer",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "live broker marks; only shown while market is open",
+      "sla_basis": "Hourly during market hours; rendered only while live (the close snapshot owns off-hours), so a tight 3h SLA never false-reds overnight.",
+      "display_name": "Paper portfolio value (intraday)",
+      "cadence_display": "Hourly · 9:50 AM – 4:50 PM"
+    },
+    {
       "id": "indicator-cftc-cot-weekly",
       "category": "indicator",
       "name": "cftc-cot",
@@ -3932,6 +4156,41 @@
       "sla_basis": "Twice-weekly publication; SLA = cadence + one day of grace.",
       "display_name": "Trade Idea notes",
       "cadence_display": "Twice weekly · Sunday & Wednesday evenings"
+    },
+    {
+      "id": "indicator-positioning_tff-weekly",
+      "name": "positioning_tff",
+      "category": "indicator",
+      "description": "Futures positioning split by WHO holds it — leveraged funds (hedge funds and CTAs), asset managers (pensions, insurers, mutual funds) and dealers — across 25 equity index, rates, FX, volatility and crypto contracts, weekly back to June 2010. The CFTC's Traders in Financial Futures report. This is the public instrument that answers the question Goldman's Prime Services positioning work answers for its own clients; that work is client-distributed under contract and is not, and will not be, a MacroTilt source. Supersedes nothing: the legacy commercial/non-commercial COT feed stays, but its single blended 'speculator' bucket mixes hedge funds in with real money and cannot show a standoff between them.",
+      "sourcing_mode": "computed in-house",
+      "source_vendor": "CFTC (publicreporting.cftc.gov)",
+      "source_endpoint": "resource/gpe5-46if.json — Traders in Financial Futures",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "08:00",
+      "refresh_trigger": "GH workflow POSITIONING-TFF-WEEKLY (Sat + Mon 12:00 UTC)",
+      "release_calendar": "cftc-cot-friday",
+      "freshness_sla_hours": 200,
+      "data_max_age_hours": 264,
+      "data_calendar": "weekly",
+      "as_of_cutoff_et": null,
+      "as_of_cutoff_note": "The report covers the prior TUESDAY and publishes Friday 3:30 PM ET; data_as_of is the report date, never the run date.",
+      "output_destination": "public/positioning_tff.json",
+      "consumer_surfaces": [
+        {
+          "tab": "home",
+          "tile": "Trade idea (evidence source)"
+        }
+      ],
+      "dependencies": [],
+      "failure_mode": "Builder exits 1 if fewer than 8 markets build; the last good file keeps rendering.",
+      "owner": "Senior Quant (signal), Lead Developer (pipe)",
+      "producer_script": "scripts/build_positioning_tff.py",
+      "current_status": "live",
+      "sla_basis": "Weekly report; SLA = cadence + grace. Graded off the CFTC report date.",
+      "display_name": "Positioning by trader type",
+      "cadence_display": "Weekly · Saturday morning, for Tuesday's report"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
@@ -4010,17 +4269,5 @@
       "consumer": "Loose YAML files in /Users/joemezzadri/Documents/market-dashboard/ workspace folder, NOT under .github/workflows/",
       "verdict": "Phase 2 decision — commit them, kill them, or move into formal workflows"
     }
-  ],
-  "_paused_pending_paper_rebuild": {
-    "note": "Removed 2026-08-14. The Conviction Events book was retired on 2026-08-12 and the paper portfolio is being rebuilt (see the /paper page, which says so in plain English). These six elements were left in the manifest, so the freshness watchdog kept grading feeds whose producer is deliberately switched off -- that is what put a permanent '4 feeds stale' banner on EVERY page of the site, and it is the same unfinished-retirement bug that had the paper watchdog emailing Joe daily. Retiring a producer means retiring its manifest entries and its health rows in the SAME change (LESSONS 4.31/8.x). The exact removed entries are preserved verbatim in project memory (project_fleet_sweep_retired_jobs_2026-08-14.md) -- restore them in the commit that ships the new book, updating refresh_trigger/producer_script to the new engine.",
-    "removed_ids": [
-      "portfolio.ce-events-daily",
-      "portfolio.paper-nav-daily",
-      "portfolio.paper-nav-intraday",
-      "portfolio.paper-orders-intent",
-      "portfolio.paper-positions-intraday",
-      "portfolio.paper-positions-snapshot"
-    ],
-    "removed_on": "2026-08-14"
-  }
+  ]
 }
