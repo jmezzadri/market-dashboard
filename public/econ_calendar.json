@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-13T21:11:32Z",
+  "generated_at": "2026-08-14T10:31:46Z",
   "window": {
-    "from": "2026-08-06",
-    "to": "2026-10-22"
+    "from": "2026-08-07",
+    "to": "2026-10-23"
   },
   "counts": {
-    "total": 97,
+    "total": 94,
     "tier1": 23
   },
   "sources": [
@@ -20,50 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-06",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-06",
-      "time_et": "8:30 AM",
-      "name": "Productivity & unit labor costs",
-      "short": "Prod",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Output per hour and what each unit of output costs in labor.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-06",
-      "time_et": "10:00 AM",
-      "name": "Wholesale inventories",
-      "short": "Wholesale",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-06",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-07",
       "time_et": "8:30 AM",
@@ -1084,6 +1040,17 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-23",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan)",
+      "short": "UMich",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment and household inflation expectations.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
