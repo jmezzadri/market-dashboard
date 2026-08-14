@@ -19,6 +19,12 @@ name: WORKFLOW_FAILURE_ALERT
 #      workflows fire many times a morning by design; when their condition is
 #      broken they fail many times, and Joe was getting an email for each.
 #      One workflow, one email, one day. Fail-open if the ledger is down.
+#   5. 2026-08-14 — the watchlist is TIERED. Being on the trigger list above only
+#      means the failure is RECORDED (public.workflow_failure_log). Only the
+#      workflows in the VISIBLE set in the send step email Joe on a first
+#      failure; background data jobs email him only once they have failed across
+#      2+ separate days. A backfill that blips and self-heals four hours later is
+#      not news for a non-engineer at 5:35am. LESSONS 4.30.
 #
 # To add a new workflow to the watchlist: append its `name:` value to the
 # workflows: list. The trigger is matched on workflow NAME, not file name.
@@ -179,8 +185,93 @@ jobs:
           WF_CREATED: ${{ github.event.workflow_run.created_at }}
         run: |
           python3 - <<'PY'
-          import os, json, datetime, urllib.request, urllib.error
+          import os, json, datetime, urllib.request, urllib.error, urllib.parse
           from zoneinfo import ZoneInfo
+
+          ET = ZoneInfo("America/New_York")
+
+          # --- WHO the email is FOR (2026-08-14) --------------------------------
+          # Joe: "for the fucking love of God make these emails stop". The trigger was
+          # MASSIVE-TICKER-REFERENCE-BACKFILL — a job that runs every ~4 hours, had been
+          # green on every run for days, blipped ONCE at 09:34Z, and emailed him at
+          # 5:35am. He is a management consultant, not an on-call engineer. "A background
+          # data backfill failed once and retries in four hours" is not something he can
+          # act on, and it is not worth his attention at any hour.
+          #
+          # So the watchlist is now TIERED by whether Joe can SEE the damage:
+          #   VISIBLE  — his brief, the live site, the paper book (his money). One email
+          #              on the first failure of the day, as before.
+          #   BACKGROUND — data plumbing. Never emailed for a blip. Recorded every time,
+          #              and escalated to ONE email only once it is genuinely STUCK:
+          #              failures on 2+ SEPARATE days. A job that fails and self-heals on
+          #              its next run was never news.
+          # Adding a workflow to the `workflows:` trigger list above does NOT make it
+          # email Joe — it has to earn a place in VISIBLE below.
+          VISIBLE = {
+              "DAILY-BRIEF-WRITER",          # his morning email + the homepage brief
+              "BRIEF-FRESHNESS-SELFHEAL",    # the homepage brief going stale
+              "DAILY-HOME-SMOKE",            # the site itself being up
+              "CONVICTION-OPEN-DAILY",       # orders at the open
+              "CONVICTION-KILL-CHECK",       # deliberately fails on a kill-switch trip
+              "PAPER-PORTFOLIO-EOD-DAILY",   # the paper book's own accounting
+              "PAPER-PORTFOLIO-INTRADAY",
+              "macrotilt-engine-daily",
+          }
+          STUCK_LOOKBACK_DAYS = 3   # window for the "2+ separate days" escalation test
+
+
+          def _rest(method, path, body=None):
+              base = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+              key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+              if not (base and key):
+                  raise RuntimeError("ledger not configured")
+              req = urllib.request.Request(
+                  base + "/rest/v1/" + path,
+                  data=json.dumps(body).encode() if body is not None else None,
+                  method=method,
+                  headers={"apikey": key, "Authorization": "Bearer " + key,
+                           "Content-Type": "application/json",
+                           "Prefer": "return=minimal" if body is not None else "count=none"})
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  return r.status, r.read().decode()
+
+
+          def record_failure(workflow, run_id, tier, emailed):
+              """Every failure lands here whether or not Joe is told. This is the record
+              I read; his inbox is not a log file."""
+              try:
+                  _rest("POST", "workflow_failure_log", {
+                      "workflow_name": workflow,
+                      "run_id": int(run_id) if str(run_id).isdigit() else None,
+                      "fail_date": datetime.datetime.now(ET).strftime("%Y-%m-%d"),
+                      "tier": tier, "emailed": emailed})
+              except Exception as e:
+                  print(f"record: could not log this failure ({e})")
+
+
+          def is_stuck(workflow):
+              """True when a BACKGROUND job also failed on an EARLIER day inside the
+              lookback -- today plus that day means 2+ separate days, i.e. it did not
+              self-heal and is genuinely stuck. Counting prior days only (not today) lets
+              this run before today's row is written, so one INSERT stays accurate.
+
+              Fails CLOSED: if the ledger is unreachable we stay quiet rather than mail
+              Joe about plumbing. The run is still red in the Actions tab, which is where
+              this class of problem belongs."""
+              try:
+                  today = datetime.datetime.now(ET).date()
+                  since = (today - datetime.timedelta(days=STUCK_LOOKBACK_DAYS)).isoformat()
+                  q = (f"workflow_failure_log?select=fail_date"
+                       f"&workflow_name=eq.{urllib.parse.quote(workflow)}"
+                       f"&fail_date=gte.{since}&fail_date=lt.{today.isoformat()}")
+                  _s, body = _rest("GET", q)
+                  days = sorted({row["fail_date"] for row in json.loads(body)})
+                  print(f"stuck-check: {workflow} also failed on {len(days)} earlier "
+                        f"day(s) since {since} -> {days}")
+                  return len(days) >= 1
+              except Exception as e:
+                  print(f"stuck-check: {e} — staying quiet (background tier)")
+                  return False
 
 
           def claim_todays_alert(workflow, run_id):
@@ -239,20 +330,30 @@ jobs:
           head_sha  = os.environ["WF_HEAD_SHA"][:8]
           head_msg  = os.environ.get("WF_HEAD_MSG", "")[:200]
           created   = os.environ.get("WF_CREATED", "")
+          stuck = False
           if os.environ.get("IS_TEST") == "true":
               # A manual dispatch is a channel test — it must ALWAYS deliver, so it
               # never touches the ledger (and never burns a real workflow's claim).
               name, run_url, run_id = "TEST — alert channel verification", "https://github.com/jmezzadri/market-dashboard/actions", "manual"
               head_sha, head_msg, created = "-", "Manual dispatch to prove the failure-alert channel delivers.", "-"
-          elif not claim_todays_alert(name, run_id):
-              raise SystemExit(0)
+          else:
+              tier = "visible" if name in VISIBLE else "background"
+              stuck = (tier == "background") and is_stuck(name)
+              will_email = (tier == "visible") or stuck
+              if will_email:
+                  will_email = claim_todays_alert(name, run_id)
+              record_failure(name, run_id, tier, will_email)
+              if not will_email:
+                  print(f"{name}: tier={tier}, stuck={stuck} — recorded, NOT emailed. "
+                        f"Background plumbing that self-heals is not news for Joe.")
+                  raise SystemExit(0)
 
-          subject = f"[MacroTilt] Workflow FAILED: {name}"
+          subject = (f"[MacroTilt] Still failing: {name}" if stuck
+                     else f"[MacroTilt] Workflow FAILED: {name}")
           html = f"""
           <div style='font-family:-apple-system,Segoe UI,sans-serif;color:#111;line-height:1.45'>
-            <h2 style='margin:0 0 8px;color:#9b2226'>Workflow failed: {name}</h2>
-            <p>A scheduled GitHub Actions workflow finished with conclusion <b>failure</b>.
-            Open the run log to see which step blew up.</p>
+            <h2 style='margin:0 0 8px;color:#9b2226'>{'Still failing' if stuck else 'Workflow failed'}: {name}</h2>
+            <p>{'This background job has now failed on more than one day &mdash; it is not self-healing and needs a look.' if stuck else 'A scheduled GitHub Actions workflow finished with conclusion <b>failure</b>. Open the run log to see which step blew up.'}</p>
             <table style='border-collapse:collapse;font-size:13px;margin:14px 0'>
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Workflow</td><td>{name}</td></tr>
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Run</td><td><a href='{run_url}'>{run_id}</a></td></tr>
@@ -260,7 +361,7 @@ jobs:
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Head SHA</td><td><code>{head_sha}</code></td></tr>
               <tr><td style='padding:4px 12px 4px 0;color:#666'>Head commit</td><td style='font-size:12px;color:#444'>{head_msg}</td></tr>
             </table>
-            <p style='font-size:12px;color:#888'>One email per workflow per day — if this workflow fails again today you will not be emailed again.<br>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
+            <p style='font-size:12px;color:#888'>You are emailed about this workflow because it affects something you can see. Background data jobs are recorded silently and only surface here once they stay broken across more than one day. One email per workflow per day.<br>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
           </div>
           """
 
