@@ -1147,3 +1147,21 @@ The accuracy contract had no opinion about this, because every rule in it was ab
 7. **Render it and look at it.** The colour validator checks colour; it says nothing about layout. The CAPE chart ends at its own maximum, which put the endpoint label directly beneath the floating hover readout — a value covered by another value, invisible to every DOM assertion and obvious in the PNG. The readout moved into the chart header, where nothing can cover it. Picking a better corner would only have moved the collision to a different series.
 
 **Applies to:** every generated reader-facing surface, and every chart on the site. The accuracy contract answers "is this true?"; these rules answer "can it be read?" — and a surface has to pass both.
+
+### 4.30 (2026-08-14) — Alert the person who can act; a job that self-heals on its next run was never news
+
+**What happened:** Joe, at 7:14am, on a 5:35am email: *"Please for the fucking love of God make these emails stop!!!!!!!!!!!! Holy shit this isn't hard!!!!"*
+
+The alert was working exactly as designed. `MASSIVE-TICKER-REFERENCE-BACKFILL` — a data job that runs every ~4 hours — failed once at 09:34Z after being green on **every** run for days, and the previous day's send-once fix (4.28) correctly delivered exactly one email. One email, one real failure, and it was still completely wrong, because the recipient is a management consultant who cannot act on "a ticker-reference backfill blipped and retries at 13:56Z". The prior day had produced the mirror-image mistake on the same channel: an alert that was *frequent* and *wrong*. This one was *rare* and *correct* and still had no business in his inbox.
+
+Three fixes on this channel in three days (5/06 infra-noise suppression, 8/13 send-once, 8/14 tiering) all tuned *how often* it fires. None had asked **who the alert is for and what they can do about it**. That question was the whole bug.
+
+**Rule:**
+
+1. **Route by consequence, not by source.** An alert reaches a human only if that human can see the damage or act on it. Here: his brief, the live site, the paper book (his money) email on the first failure. Everything else — backfills, snapshots, reference-data refreshes — is recorded to `workflow_failure_log` for the agent and never mailed on a blip. Adding a workflow to the trigger list now only means the failure is *logged*; emailing Joe requires earning a place in the `VISIBLE` set.
+2. **A transient failure is not an incident; a stuck one is.** For background jobs the alert-worthy event is *"still broken tomorrow"*, not *"broken once"*. Escalation = failures on 2+ separate days (measured from prior days only, so one INSERT stays accurate). A job that fixes itself on the next scheduled run generated no news to send.
+3. **Suppression fails CLOSED for background, OPEN for user-visible.** 4.28's fail-open rule was right for alerts Joe needs and wrong as a blanket policy: an unreachable ledger must not become a licence to mail him about plumbing. Fail-open where a missed alert costs him something; fail-closed where a spurious one costs him trust. The run is still red in the Actions tab either way.
+4. **"The alert fired correctly" and "the alert should have fired" are different questions.** Every previous pass on this channel verified the first and never asked the second. When someone complains about notification volume, re-derive the audience before tuning the threshold.
+5. **Repeat complaints are a design signal, not a bug report.** Joe asked five times about 4.28's failure and again here. Each ask was answered by fixing the specific email in front of me. The actual defect was upstream of every one of those fixes: a watchlist built for whoever was on call, pointed at someone who is not.
+
+**Applies to:** Lead Developer — every alert, email, push notification or page that reaches Joe.
