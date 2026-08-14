@@ -1,0 +1,34 @@
+name: QT-FUNDAMENTALS-REFRESH
+
+# Refills qt_fundamentals from SEC XBRL. Free, no key, ~1.4 GB download.
+# Monthly, three days ahead of QT-REBALANCE so the scorer always reads a fresh
+# table. Every fact carries its SEC acceptance date and the scorer filters on
+# it, so a late run degrades to slightly stale data — never to wrong data.
+
+on:
+  schedule:
+    - cron: '0 6 26 * *'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Earliest filing date to keep (default 2023-01-01)"
+        required: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy requests
+
+      - name: Pull SEC company facts into qt_fundamentals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          SINCE="${{ github.event.inputs.since }}"
+          python -m paper_portfolio.qt.sec_refresh --since "${SINCE:-2023-01-01}"
