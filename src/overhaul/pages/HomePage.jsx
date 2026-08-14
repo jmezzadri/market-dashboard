@@ -183,11 +183,13 @@ export default function HomePage() {
 
   const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
 
-  // Height budget. The brief tile's height is data-driven — one row per headline,
-  // and the writer files seven, which is what pushed the cockpit off a single
-  // screen. THREE on the tile; the full-brief row says how many are held back
-  // and the modal renders every one, so the count is always true.
-  const BRIEF_TILE_HEADLINES = 3;
+  // Joe, 2026-08-13 (third pass): "On the Brief - WE can add more headlines.
+  // There is so much dead space in that tile." Right — the brief shares a
+  // stretched grid row with the Trade Idea, which is the taller card, so cutting
+  // the brief to three headlines did not shorten the row at all. It only left a
+  // hole. The tile now carries six; the full-brief row still names anything held
+  // back and the modal renders every one, so the count stays true.
+  const BRIEF_TILE_HEADLINES = 8;   // the writer files 6-7; the cap only guards a runaway day
   const allNews = brief?.news || [];
   const briefNews = allNews.slice(0, BRIEF_TILE_HEADLINES);
   const briefHidden = Math.max(0, allNews.length - briefNews.length);
@@ -236,6 +238,10 @@ export default function HomePage() {
           <Reveal className="tile brief-card sp6" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
             <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
             <h1>{brief?.headline || 'Reading the tape…'}</h1>
+            {/* The brief's own stance line. It was modal-only while the tile sat
+                200px short of its neighbour — the tile was hiding real content
+                and showing whitespace instead. */}
+            {brief?.stance && <Html tag="p" className="brief-stance" html={brief.stance} />}
             <div className="newslist">
               {briefNews.map((n, i) => (
                 <div className="ni" key={i}>
@@ -273,10 +279,13 @@ export default function HomePage() {
               <>
                 <h2 className="idea-title">{idea.title}</h2>
 
-                {/* The plain-English line leads. Joe, 2026-08-13: "Are we saying
-                    to buy treasuries and short stocks? Im confused what the
-                    trade is..." — the answer now precedes every number. */}
-                {idea.plain_english && <p className="idea-plain">{idea.plain_english}</p>}
+                {/* The CALL leads — a claim with a horizon, not an instruction.
+                    The first version of this line was an order ("Sell a slice of
+                    your US large-company stocks and put the money into…") and
+                    Joe's verdict was that it read as a terrible headline. A
+                    research note states what is likely to happen and over what
+                    period; the instruction lives in the fact strip below. */}
+                {idea.call && <p className="idea-call">{idea.call}</p>}
 
                 {idea.the_trade && (
                   <div className="idea-facts">
@@ -289,6 +298,7 @@ export default function HomePage() {
                     {idea.the_trade.short && (
                       <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short}</span></div>
                     )}
+                    <div className="idea-fact"><span className="k">Horizon</span><span className="v">{idea.horizon || "—"}</span></div>
                     <div className="idea-fact"><span className="k">What kills it</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
                   </div>
                 )}
@@ -316,30 +326,37 @@ export default function HomePage() {
           </Reveal>
 
           {/* ── supporting · the engine (short, gauges side by side) ───────── */}
-          <Reveal className="tile engine-card engine-strip sp6">
-            <div className="es-head">
+          <Reveal className="tile engine-card engine-strip sp7">
+            {/* Three columns across the wide card — verdict, then one gauge each
+                — rather than a header stacked on two gauges crammed side by side
+                in half the page width. Joe: "look at the engine tile... Youve
+                got shit jammed up - it looks terrible." The card was the wrong
+                shape for its contents; widening it to span 7 and letting the
+                verdict take a column of its own is the fix, not smaller type. */}
+            <div className="es-verdict">
               <div className="eyebrow2"><span className="dot" />The Engine</div>
-              <h2>{verdictParts[0]}{verdictParts[1] && <em> · {verdictParts[1].toLowerCase()}</em>}</h2>
-              <a className="es-link" href="/macro" onClick={go('/macro')}>Track record ↗</a>
+              <h2>{verdictParts[0]}{verdictParts[1] && <em><br />{verdictParts[1].toLowerCase()}</em>}</h2>
+              <p className="es-so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006.</p>
+              <a className="es-link" href="/macro" onClick={go('/macro')}>See the track record ↗</a>
             </div>
             <div className="es-gauges">
               <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
-                <div className="gl"><span>Stress · MOVE</span><b>{fmt(regime.move, 0)}</b></div>
+                <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)}</b></div>
                 <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>On ≤116</span><span>Off ≥124</span></div>
+                <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
                 <div className={`read ${stressCls}`}>{stressMsg}</div>
               </a>
               <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
                 <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`}<i>bp</i></b></div>
                 <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Defl ≤−11</span><span>Infl ≥+32</span></div>
+                <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
                 <div className={`read ${yCls}`}>{yMsg}</div>
               </a>
             </div>
           </Reveal>
 
           {/* ── supporting · upcoming data (short) ─────────────────────────── */}
-          <Reveal className="tile putty-card cal-tile cal-strip sp6">
+          <Reveal className="tile putty-card cal-tile cal-strip sp5">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot" />Upcoming data</div>
               <a href="/macro" onClick={go('/macro')}>
@@ -426,11 +443,7 @@ export default function HomePage() {
             <div className="eyebrow2"><span className="dot dot--gold" />Trade idea · {longDate(idea.date)}{idea.kind ? ` · ${KIND_LABEL[idea.kind] || idea.kind}` : ''}</div>
             <h2 className="briefmodal-h">{idea.title}</h2>
             <div className="briefmodal-body">
-              {idea.plain_english && (
-                <p className="idea-modal-plain">
-                  <b>In plain English</b> — {idea.plain_english}
-                </p>
-              )}
+              {idea.call && <p className="idea-modal-call">{idea.call}</p>}
               {idea.position_type && (
                 <p className="idea-modal-pos">
                   <span className="idea-pos">{idea.position_type}</span>

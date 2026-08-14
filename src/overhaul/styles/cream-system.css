@@ -274,28 +274,50 @@
    second screen, and the cap is generous enough that nothing inside is
    clipped: the Engine holds two gauges side by side, the calendar five rows. */
 .home-cockpit .engine-strip,.home-cockpit .cal-strip{min-height:0}
+/* THE ENGINE — three columns across a wide card (2026-08-13, third pass).
+   It was a header stacked on two gauges crammed into half the page width, at
+   20px figures, and Joe's verdict was blunt and correct: "Youve got shit jammed
+   up - it looks terrible." A card is cramped when its SHAPE is wrong for its
+   contents, and shrinking the type only makes that worse. The card now spans 7
+   of 12 columns (the calendar, whose rows are short strings, takes 5) and reads
+   left to right: the verdict in its own column, then one gauge each, every
+   column vertically centred with room to breathe. */
 .home-cockpit .engine-strip{background:var(--card-ink);color:var(--cream-text);box-shadow:var(--sh);
-  display:grid;grid-template-rows:auto 1fr;gap:10px;padding:18px 24px}
+  display:grid;grid-template-columns:minmax(180px,.95fr) 1.2fr 1.2fr;gap:0 32px;align-items:center;
+  padding:26px 34px}
 [data-mt-theme='dark'] .home-cockpit .engine-strip,[data-mt-theme='navy'] .home-cockpit .engine-strip{outline:1px solid rgba(245,239,227,.08)}
 .home-cockpit .engine-strip:hover{transform:translateY(-3px)}
-.home-cockpit .es-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.home-cockpit .es-head .eyebrow2{color:#9BA6AC;flex:none}
-.home-cockpit .es-head .eyebrow2 .dot{background:var(--gold-bar)}
-.home-cockpit .es-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(20px,1.5vw,26px);margin:0;flex:1;min-width:0}
-.home-cockpit .es-head h2 em{font-style:italic;color:var(--gold-bar)}
-.home-cockpit .es-link{font-size:12.5px;font-weight:600;color:#C3BFAF;text-decoration:none;border-bottom:1px solid rgba(247,243,232,.25);white-space:nowrap}
+.home-cockpit .es-verdict{display:flex;flex-direction:column;gap:9px;min-width:0}
+.home-cockpit .es-verdict .eyebrow2{color:#9BA6AC}
+.home-cockpit .es-verdict .eyebrow2 .dot{background:var(--gold-bar)}
+.home-cockpit .es-verdict h2{font-family:var(--serif);font-weight:400;font-size:clamp(24px,2vw,34px);line-height:1.08;margin:0}
+.home-cockpit .es-verdict h2 em{font-style:italic;color:var(--gold-bar)}
+.home-cockpit .es-so{font-size:12.5px;line-height:1.5;color:#9BA6AC;margin:0}
+.home-cockpit .es-link{font-size:12.5px;font-weight:600;color:#C3BFAF;text-decoration:none;
+  border-bottom:1px solid rgba(247,243,232,.25);white-space:nowrap;align-self:flex-start}
 .home-cockpit .es-link:hover{color:var(--cream-text)}
-.home-cockpit .es-gauges{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
-.home-cockpit .es-gauges .gauge{padding:6px 8px;border-top:0}
-.home-cockpit .es-gauges .gauge + .gauge{border-top:0;border-left:1px solid rgba(247,243,232,.12);padding-left:24px}
-.home-cockpit .es-gauges .gl b{font-size:20px}
-.home-cockpit .es-gauges .gl b i{font-style:normal;font-size:11px;color:#9BA6AC;margin-left:3px}
-.home-cockpit .es-gauges .track{margin:9px 0 5px}
-.home-cockpit .es-gauges .gauge .read{margin-top:6px;font-size:12px}
+.home-cockpit .es-gauges{display:contents}
+.home-cockpit .es-gauges .gauge{padding:4px 0;border-top:0;min-width:0}
+.home-cockpit .es-gauges .gauge + .gauge{border-top:0;border-left:1px solid rgba(247,243,232,.12);padding-left:30px}
+/* Gauge anatomy inside the strip: label on its own line, figure beneath it.
+   The shared baseline layout (label left, figure right) only works while both
+   labels are short — "Yield regime · 3M Δ 10Y" wrapped onto a second line and
+   collided with its own +43, which is most of what "jammed up" meant here. On
+   its own line each label fits at any width and the two columns line up exactly. */
+.home-cockpit .es-gauges .gl{display:block}
+.home-cockpit .es-gauges .gl span{display:block;font-size:10.5px;letter-spacing:.1em;line-height:1.3;
+  color:#9BA6AC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-cockpit .es-gauges .gl b{display:block;font-size:34px;line-height:1.1;margin-top:6px}
+.home-cockpit .es-gauges .gl b i{font-style:normal;font-size:11px;color:#9BA6AC;margin-left:5px}
+/* both reads reserve two lines so a one-line and a two-line read cannot make
+   the columns different heights */
+.home-cockpit .es-gauges .gauge .read{min-height:2.6em}
+.home-cockpit .es-gauges .track{margin:14px 0 7px}
+.home-cockpit .es-gauges .gauge .read{margin-top:9px;font-size:12.5px}
 .home-cockpit .cal-strip .calrows{justify-content:flex-start;gap:0}
-.home-cockpit .cal-strip .srow{min-height:0;height:34px}
+.home-cockpit .cal-strip .srow{min-height:0;height:40px}
 .home-cockpit .cal-strip .calrow .what{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.home-cockpit .cal-strip .calrow .when{min-width:76px;font-size:11px}
+.home-cockpit .cal-strip .calrow .when{min-width:72px;font-size:11px}
 .home-cockpit .cal-strip .cal-time{font-size:11.5px}
 
 /* upcoming data tile — one row per day, time on the right rail */
@@ -318,11 +340,13 @@
 .home-v12 .idea-dek{font-size:15.5px;color:var(--ink-soft);line-height:1.65;margin:12px 0 0;max-width:64ch}
 /* The plain-English line. It leads because the first published note did not
    have one and Joe could not tell whether it was asking him to short stocks. */
-.home-v12 .idea-plain{margin:8px 0 0;font-size:14.5px;line-height:1.5;color:var(--ink)}
+.home-v12 .idea-call{margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--ink);max-width:62ch}
+.home-v12 .idea-modal-call{font-size:18px;line-height:1.55;color:var(--ink);margin-top:6px;font-family:var(--serif);font-weight:400}
 .home-v12 .idea-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .home-v12 .idea-pos{font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink);border:1px solid var(--hair);background:var(--bg2);border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:help}
 .home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
-.home-v12 .idea-facts:has(.idea-fact:nth-child(4)){grid-template-columns:repeat(4,1fr)}
+.home-v12 .idea-facts:has(.idea-fact:nth-child(4)){grid-template-columns:repeat(2,1fr);gap:14px 20px}
+.home-v12 .idea-facts:has(.idea-fact:nth-child(5)){grid-template-columns:repeat(3,1fr)}
 .home-v12 .idea-herochart{margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
 .home-v12 .idea-fact{display:flex;flex-direction:column;gap:5px;min-width:0}
 .home-v12 .idea-fact .k{font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--mut)}
@@ -335,7 +359,6 @@
 .home-v12 .idea-empty{flex:1;display:flex;align-items:center}
 
 /* trade idea — inside the full-note modal */
-.home-v12 .idea-modal-plain{font-size:17px;color:var(--ink);line-height:1.6;margin-top:4px}
 .home-v12 .idea-modal-pos{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;color:var(--mut)}
 .home-v12 .idea-modal-dek{font-size:15.5px;color:var(--ink-soft);line-height:1.65}
 .home-v12 .idea-charts{display:flex;flex-direction:column;gap:26px;margin-top:14px}
@@ -461,3 +484,10 @@
 /* tile chart: caption clamped so a long one cannot push the fold */
 .home-v12 .idea-herochart .ic-caption{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .home-v12 .idea-herochart .ic-meta{margin-top:4px;justify-content:flex-end}
+/* The stance runs to ~1,200 characters — the brief's full argument. On the tile
+   it is the opening of that argument, clamped to three lines; the modal carries
+   all of it. Clamped rather than truncated in JS so the cut lands on a rendered
+   line, never mid-sentence at an arbitrary character count. */
+.home-cockpit .brief-stance{margin:14px 0 0;font-size:14.5px;line-height:1.6;color:var(--ink-soft);max-width:66ch;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.home-cockpit .brief-stance b{color:var(--ink)}

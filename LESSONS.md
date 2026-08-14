@@ -1148,45 +1148,20 @@ The accuracy contract had no opinion about this, because every rule in it was ab
 
 **Applies to:** every generated reader-facing surface, and every chart on the site. The accuracy contract answers "is this true?"; these rules answer "can it be read?" — and a surface has to pass both.
 
-### 4.30 (2026-08-14) — Alert the person who can act; a job that self-heals on its next run was never news
+### 4.32 (2026-08-13) — Fixing "unclear" by writing an instruction produces a cold call; a research claim needs a horizon, and a tile is cramped when its shape is wrong, not when its type is too big
 
-**What happened:** Joe, at 7:14am, on a 5:35am email: *"Please for the fucking love of God make these emails stop!!!!!!!!!!!! Holy shit this isn't hard!!!!"*
+**What happened:** three corrections in one day on the same surface, and the middle one is the instructive failure. The Trade Idea's lead line went: *"Long the 10-year Treasury, funded by trimming US large-cap equity beta"* → Joe could not tell whether he was being asked to short the market → replaced with *"Sell a slice of your US large-company stocks and put the money into 10-year US government bonds. Nothing is sold short and nothing is borrowed."* → Joe: *"Can we not be so blunt... Saying SELL STOCKS AND BUY TREASURIES is a terrible headline. We need to set stage."* And, in the same breath, *"We also need to be much more technical in this... Are we talking about a 6 month trade, a 5 year trade."*
 
-The alert was working exactly as designed. `MASSIVE-TICKER-REFERENCE-BACKFILL` — a data job that runs every ~4 hours — failed once at 09:34Z after being green on **every** run for days, and the previous day's send-once fix (4.28) correctly delivered exactly one email. One email, one real failure, and it was still completely wrong, because the recipient is a management consultant who cannot act on "a ticker-reference backfill blipped and retries at 13:56Z". The prior day had produced the mirror-image mistake on the same channel: an alert that was *frequent* and *wrong*. This one was *rare* and *correct* and still had no business in his inbox.
-
-Three fixes on this channel in three days (5/06 infra-noise suppression, 8/13 send-once, 8/14 tiering) all tuned *how often* it fires. None had asked **who the alert is for and what they can do about it**. That question was the whole bug.
+The first version was opaque. The second was legible and **wrong in register**: solving opacity by issuing an instruction turns research into a broker's cold call. Both failures share a root — the lead line had no defined JOB. It is not a summary and it is not an instruction. It is the **claim**: what is likely to happen, to what, over what period.
 
 **Rule:**
 
-1. **Route by consequence, not by source.** An alert reaches a human only if that human can see the damage or act on it. Here: his brief, the live site, the paper book (his money) email on the first failure. Everything else — backfills, snapshots, reference-data refreshes — is recorded to `workflow_failure_log` for the agent and never mailed on a blip. Adding a workflow to the trigger list now only means the failure is *logged*; emailing Joe requires earning a place in the `VISIBLE` set.
-2. **A transient failure is not an incident; a stuck one is.** For background jobs the alert-worthy event is *"still broken tomorrow"*, not *"broken once"*. Escalation = failures on 2+ separate days (measured from prior days only, so one INSERT stays accurate). A job that fixes itself on the next scheduled run generated no news to send.
-3. **Suppression fails CLOSED for background, OPEN for user-visible.** 4.28's fail-open rule was right for alerts Joe needs and wrong as a blanket policy: an unreachable ledger must not become a licence to mail him about plumbing. Fail-open where a missed alert costs him something; fail-closed where a spurious one costs him trust. The run is still red in the Actions tab either way.
-4. **"The alert fired correctly" and "the alert should have fired" are different questions.** Every previous pass on this channel verified the first and never asked the second. When someone complains about notification volume, re-derive the audience before tuning the threshold.
-5. **Repeat complaints are a design signal, not a bug report.** Joe asked five times about 4.28's failure and again here. Each ask was answered by fixing the specific email in front of me. The actual defect was upstream of every one of those fixes: a watchlist built for whoever was on call, pointed at someone who is not.
+1. **The lead is a claim, and the contract enforces the grammar.** `call` may not open with an imperative (buy, sell, short, move, trim, rotate…). The instruction still exists — it lives in `the_trade`, printed under Buy / Sell to pay for it — but it is not the headline.
+2. **A claim without a horizon is not a claim.** `call` must carry a horizon cue: "over the next 12 months", "over a five-to-ten-year horizon", "through 2027". A six-month view and a five-year view are different products and the reader is entitled to know which one they were handed. `horizon` must state an explicit period too; "medium term" is rejected.
+3. **An instrument tenor is not a horizon** — and this is where the first version of the check failed silently. *"the 10-year Treasury"* contains a textbook period expression and says nothing about holding period, so a horizon-less call sailed through. The prose check now requires a horizon CUE before the period; the labelled `horizon` field, being unambiguous, still accepts a bare one. When a pattern can match two different meanings of the same string, the disambiguator is the surrounding grammar, not a longer pattern.
+4. **"Be more plain" and "be more technical" are not opposites, and the banned-word list has to know the difference.** The ban narrowed to genuinely opaque desk shorthand — beta, convexity, carry, notional, steepener, DV01, gamma, vega — and released the vocabulary the argument actually needs: yield, total return, valuation, percentile, spread, term premium, cyclically-adjusted. Banning the second group was what forced the prose into baby talk.
+5. **Match the stated horizon to the signal's own horizon.** A cyclically-adjusted earnings yield carries information about five- and ten-year returns and close to none about the next twelve months. A note built on it that implies a quarterly trade is not just unclear, it is wrong. The note now says which it is, in a section of its own, and sizes accordingly.
+6. **A tile is cramped when its SHAPE is wrong for its contents.** The Engine — *"Youve got shit jammed up - it looks terrible"* — was a header stacked on two gauges squeezed into half the page width at 20px figures, with "Yield regime · 3M Δ 10Y" wrapping onto a second line into its own value. The fix was to widen the card to 7 of 12 columns (the calendar, whose rows are short strings, takes 5), give the verdict a column of its own, and put each gauge's label on its own line above a 34px figure. Type got BIGGER. Shrinking type to fit is the move that made it look jammed in the first place.
+7. **Dead space in a stretched grid row belongs to the SHORT tile, and the answer is content, not a shorter tile.** The brief had 208px of empty putty because its neighbour was taller; cutting its headlines had not shortened the row at all, only widened the hole. It now carries every headline the writer filed plus the brief's own stance paragraph — content that had been modal-only while the tile sat a third empty. Measure slack per tile (`tile.bottom − max(child.bottom)`) rather than judging it by eye.
 
-**Applies to:** Lead Developer — every alert, email, push notification or page that reaches Joe.
-
-### 4.31 (2026-08-14) — Every recurring alert was a job watching something that had been deliberately switched off
-
-**What happened:** Joe, after two days of me tuning the alert channel: *"Why can't you just make it stop!! Fix the fucking problems I don't want emails"*. He was right, and the instruction was the correct one. I had shipped three fixes to *how the alerter behaves* (4.28 send-once, 4.30 tiering) and had never once swept the workflows themselves.
-
-The sweep took one pass over every scheduled workflow's recent run history and found six reds. **Not one was a bug.** Every recurring one was a job faithfully monitoring a dependency that a human had deliberately turned off, and that nobody had told it about:
-
-| Red | Why | Since |
-|---|---|---|
-| `PAPER-PORTFOLIO-WATCHDOG` | Asks "did the morning engine trade?" — **automated trading was halted 8/12**; CONVICTION-OPEN-DAILY, CONVICTION-KILL-CHECK and PAPER-PORTFOLIO-INTRADAY are all `(DISABLED)` stubs. It kept its 10:00 ET cron, correctly answered "no", and filed a P1 + emailed Joe every weekday | 8/13 |
-| `UNIVERSE_SNAPSHOT_3X_WEEKDAYS` | Calls the Unusual Whales API — **that subscription lapsed 8/12**. Nine crons a day, every one failing | 8/12 |
-| `UW_METER_READ_NIGHTLY` | Reads the Unusual Whales usage meter. Same lapse | 8/12 |
-| `GUARD-DEAD-UI-WEEKLY` | A repo-hygiene report that `exit 1`s on any finding — red on **every run since it was written** | always |
-| `TRADING-OPPS-BACKTEST` | Quarterly; its "open a review PR" step broke. Next fire Oct 1 | 7/01 |
-| `MASSIVE-TICKER-REFERENCE-BACKFILL` | One genuine transient blip; green on the next run | self-healed |
-
-**Rule:**
-
-1. **Turning a producer off is not done until its watchers are off.** LESSONS 4.25 said this about a *capability moved between pipelines*; it applies with full force to a deliberate HALT. Disabling `CONVICTION-OPEN-DAILY` while leaving `PAPER-PORTFOLIO-WATCHDOG` armed converted a safety net into a daily false alarm about a book that is intentionally not trading. The halt commit and the watchdog commit are the same commit.
-2. **A vendor lapse is a scheduled event — retire its jobs on the lapse date.** The UW lapse was a known, diarised 8/12 date. Two workflows kept firing into a dead API for two days. When a subscription has an end date, the teardown of everything that calls it belongs in the calendar next to it, not in the incident queue afterwards.
-3. **A guard that is red on every run is not a guard.** `GUARD-DEAD-UI-WEEKLY` had never once passed, so its signal carried exactly zero information and cost a red build every Saturday. Advisory hygiene reports annotate and exit 0; only things that must block should fail.
-4. **Sweep before you tune.** Three consecutive alert-channel fixes treated the *notification* as the defect. One pass over `{runs}` for every scheduled workflow — a single loop, a few minutes — would have shown on day one that the alerts were correct and the fleet was full of jobs that could not succeed. When someone complains about alert volume, read the fleet's run history FIRST; the alerter is the last thing to touch, not the first.
-5. **"Fix the problem, not the symptom" applies to alerting more than anywhere else,** because alert plumbing is the most tempting thing to fiddle with: it is fast, it is visible, and it makes the complaint stop without fixing anything.
-
-**Applies to:** Lead Developer — every workflow disable, every vendor cancellation, and every complaint about alert volume.
+**Applies to:** every generated editorial surface, and every tile in a stretched grid row.
