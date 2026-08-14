@@ -64,9 +64,44 @@ VALID_KINDS = {
 }
 
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
-            "position_type", "call", "the_trade",
+            "position_type", "call", "the_trade", "edge", "variant",
             "thesis", "evidence", "levels", "other_side", "risks", "so_what",
             "charts"]
+
+# 2026-08-14 (Joe): "Making a call 10 years out is not helpful. I want more
+# trades ideas... next several quarters. This bond idea is not profound at all.
+# You could look at Buffet Indicator or CAPE alone and say 'stocks are expensive
+# over long term historical context.' What about positioning, technical analysis
+# across assets. You keep coming back to such basic crap anyone can see - not
+# something someone with decades of trading and risk managing experience can see."
+#
+# Three rules come out of that, and together they are the difference between
+# research and a truism with a chart on it.
+#
+# (a) A TRADE idea is a next-several-quarters proposition. A ten-year valuation
+#     view is an asset-allocation opinion; it is not this product.
+# (b) Long-horizon valuation ratios — CAPE, the Buffett indicator, the equity
+#     risk premium — cannot be the DRIVER. They are visible to anyone with a
+#     browser, they say the same thing for years at a time, and they are silent
+#     about the next two quarters. They are allowed as context.
+# (c) The driver must be an EDGE that was measured: positioning, cross-asset
+#     divergence, technicals, volatility structure, flows, relative value,
+#     calendar mechanics or credit — and it must come with a backtest that
+#     includes the UNCONDITIONAL BASELINE. A hit rate with nothing to compare it
+#     to is a statistic, not an edge. This rule has already earned its keep: the
+#     first idea written under it (equity index positioning at a 3-year extreme
+#     → squeeze) was killed by its own backtest, which came in at or below the
+#     unconditional baseline at every horizon.
+EDGE_SOURCES = {
+    "positioning", "cross-asset divergence", "technicals", "volatility structure",
+    "flows", "relative value", "calendar mechanics", "credit", "market structure",
+}
+# Ratios that are famous, slow, and say the same thing for years.
+TRUISM_SIGNALS = [
+    "cape", "shiller", "buffett indicator", "market cap to gdp",
+    "equity risk premium", "cyclically-adjusted price", "price to book",
+]
+MAX_HORIZON_MONTHS = 18
 
 # 2026-08-13, Joe on the first published note: "Are we saying to buy treasuries
 # and short stocks? I'm confused what the trade is." He was right — the note led
@@ -164,6 +199,22 @@ PERFORMANCE_CLAIM = re.compile(
 ADVICE_CLAIM = re.compile(
     r"\b(you should (buy|sell|short|own)|we recommend you|guaranteed|"
     r"risk[- ]free|can'?t lose|sure thing)\b", re.I)
+
+
+def _max_months(text: str):
+    """Largest horizon in a phrase, in months. 'five-to-ten-year' -> 120."""
+    words = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+             "eight": 8, "nine": 9, "ten": 10, "twelve": 12, "eighteen": 18}
+    best = 0
+    for m in re.finditer(r"([\w.-]+)[\s-]+(month|quarter|year)s?", str(text), re.I):
+        raw, unit = m.group(1), m.group(2).lower()
+        nums = [int(x) for x in re.findall(r"\d+", raw)]
+        nums += [words[w] for w in re.findall(r"[a-z]+", raw.lower()) if w in words]
+        if not nums:
+            continue
+        mult = {"month": 1, "quarter": 3, "year": 12}[unit]
+        best = max(best, max(nums) * mult)
+    return best or None
 
 
 def _history():
@@ -331,6 +382,46 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     if not HORIZON_PERIOD_RE.search(hz):
         raise ContractError(
             f"horizon must state an explicit period, got {hz!r} — 'medium term' is not a horizon.")
+    months = _max_months(hz) or _max_months(pe)
+    if months and months > MAX_HORIZON_MONTHS:
+        raise ContractError(
+            f"horizon reaches {months} months — a trade idea is a next-several-quarters proposition "
+            f"(max {MAX_HORIZON_MONTHS}). A multi-year valuation view is an allocation opinion, not this product.")
+
+    # 3d — the edge, and the baseline it was measured against
+    edge = idea["edge"]
+    if not isinstance(edge, dict):
+        raise ContractError("edge must be an object")
+    if edge.get("source") not in EDGE_SOURCES:
+        raise ContractError(f"edge.source must be one of {sorted(EDGE_SOURCES)}, got {edge.get('source')!r}")
+    bt = edge.get("backtest")
+    if not isinstance(bt, dict):
+        raise ContractError("edge.backtest is required — an idea with no measured base rate is an opinion")
+    for k in ("window", "n", "result", "baseline"):
+        if not str(bt.get(k, "")).strip():
+            raise ContractError(
+                f"edge.backtest is missing {k}. Every field is load-bearing: `baseline` is the UNCONDITIONAL "
+                "outcome over the same horizon, and without it a hit rate means nothing.")
+    try:
+        if int(bt["n"]) < 3:
+            raise ContractError(f"edge.backtest.n is {bt['n']} — too few observations to claim an edge")
+    except (TypeError, ValueError):
+        raise ContractError(f"edge.backtest.n must be a number, got {bt['n']!r}")
+
+    # the truism check — a famous ratio may support a note, never drive it
+    driver_text = " ".join([pe, str(idea["title"]), str(edge.get("summary", "")), str(idea.get("dek", ""))]).lower()
+    hits = [t for t in TRUISM_SIGNALS if t in driver_text]
+    if hits and edge["source"] not in ("relative value", "cross-asset divergence"):
+        raise ContractError(
+            f"the call/title leans on {hits} — a long-horizon valuation ratio is visible to anyone and says the "
+            "same thing for years. It may appear as context in the thesis; it may not be the driver.")
+
+    # 3e — variant perception: why is this not obvious?
+    var = str(idea["variant"]).strip()
+    if len(var) < 80:
+        raise ContractError(
+            "variant must say what consensus believes and where this differs (min 80 chars). "
+            "If the answer is 'nothing', the idea is not worth publishing.")
     tt = idea["the_trade"]
     if not isinstance(tt, dict) or not str(tt.get("buy", "")).strip():
         raise ContractError("the_trade must be an object naming at least what is bought (`buy`)")

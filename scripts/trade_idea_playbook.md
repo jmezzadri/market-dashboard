@@ -60,7 +60,8 @@ a forced note is worse than a late one.
 
 `date`, `kind` (one of macro / cross-asset / single-name / rates / credit / fx /
 commodity / equity), `title`, `dek`, `position_type`, `call`,
-`the_trade{buy, sell?, short?, sizing?}`, `instrument`, `horizon`, `thesis[]`
+`the_trade{buy, sell?, short?, sizing?}`, `edge{source, summary, backtest{window,n,result,baseline}}`,
+`variant`, `instrument`, `horizon`, `thesis[]`
 (three or more), `evidence[]` (each `{claim, value, source, as_of}`),
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
 `{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`.
@@ -117,6 +118,54 @@ earnings yield carries information about five- and ten-year returns and close to
 none about the next twelve months, so a note built on it is a five-year note
 with a tactical entry — and it should say so, in a section of its own, rather
 than leaving the reader to work out which product they are being handed.
+
+### The bar an idea has to clear
+
+Joe, 2026-08-14: *"Making a call 10 years out is not helpful. I want more trades
+ideas... next several quarters. This bond idea is not profound at all. You could
+look at Buffet Indicator or CAPE alone and say 'stocks are expensive over long
+term historical context.' What about positioning, technical analysis across
+assets. You keep coming back to such basic crap anyone can see - not something
+someone with decades of trading and risk managing experience can see."*
+
+Three rules follow, and the contract enforces all three.
+
+**1. Next several quarters. Maximum 18 months.** A ten-year valuation view is an
+asset-allocation opinion, not a trade. `horizon` is rejected above 18 months.
+
+**2. A famous ratio may not be the driver.** CAPE, the Buffett indicator, market
+cap to GDP, the equity risk premium, price to book — visible to anyone with a
+browser, unchanged for years at a time, silent about the next two quarters. They
+are welcome as CONTEXT in the thesis. They are rejected in the title, the call or
+the edge summary.
+
+**3. The driver is a measured edge.** `edge.source` must be one of: positioning,
+cross-asset divergence, technicals, volatility structure, flows, relative value,
+calendar mechanics, credit, market structure. And `edge.backtest` requires four
+fields:
+
+| field | what it is |
+|---|---|
+| `window` | the sample and its dates |
+| `n` | observations (minimum 3) |
+| `result` | what followed the signal |
+| `baseline` | **the unconditional outcome over the same horizon** |
+
+`baseline` is the one that does the work. A 77% hit rate means nothing until you
+know the unconditional rate is 52%. **This rule has already killed an idea.** The
+first note written under it was going to be an equity-index squeeze — Nasdaq
+speculative positioning at the 1st percentile of three years, Russell at the 2nd,
+commercials at the 100th on both. Exciting, and its own backtest destroyed it:
+forward Nasdaq returns after those extremes were −0.60% / +2.35% / +3.73% at one,
+three and six months against unconditional readings of +2.30% / +6.15% / +11.53%.
+Buying the extreme was WORSE than buying at random at every horizon. The note that
+shipped instead was the one where the base rate held up.
+
+**Run the backtest before writing a word of prose.** If the conditional result
+does not separate from the baseline, there is no note — go and find another one.
+
+**4. `variant` — why is this not obvious?** State what consensus believes and
+where this differs. If the honest answer is "nothing", do not publish.
 
 ### Charts
 

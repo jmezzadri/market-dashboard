@@ -491,3 +491,13 @@
 .home-cockpit .brief-stance{margin:14px 0 0;font-size:14.5px;line-height:1.6;color:var(--ink-soft);max-width:66ch;
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .home-cockpit .brief-stance b{color:var(--ink)}
+/* the edge source, on the tile — what KIND of signal drives the note */
+.home-v12 .idea-edge{font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--up);
+  border:1px solid color-mix(in srgb,var(--up) 45%,transparent);background:color-mix(in srgb,var(--up) 8%,transparent);
+  border-radius:999px;padding:5px 11px;white-space:nowrap}
+/* the backtest block: a stacked fact list, because `baseline` is a sentence and
+   a two-column grid would truncate the number the whole block exists to show */
+.home-v12 .idea-backtest{display:flex;flex-direction:column;gap:12px;margin:14px 0 4px;padding:16px 18px;
+  background:var(--putty);border-radius:14px;border-left:3px solid var(--gold-bar)}
+.home-v12 .idea-backtest .idea-fact .v{font-weight:500;color:var(--ink-soft);font-size:14px}
+.home-v12 .idea-backtest .idea-fact .k{color:var(--ink)}

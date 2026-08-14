@@ -268,6 +268,7 @@ export default function HomePage() {
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot dot--gold" />Trade idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
               <div className="idea-badges">
+                {idea?.edge?.source && <span className="idea-edge">{idea.edge.source}</span>}
                 {idea?.position_type && (
                   <span className="idea-pos" title={POSITION_NOTE[idea.position_type] || ''}>{idea.position_type}</span>
                 )}
@@ -462,6 +463,34 @@ export default function HomePage() {
                     <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
                   ))}
               </div>
+
+              {/* The two blocks that separate research from an observation: what
+                  consensus believes, and the base rate the edge was measured
+                  against. Joe, 2026-08-14: "You keep coming back to such basic
+                  crap anyone can see." A hit rate with no unconditional baseline
+                  beside it is a statistic, so the baseline renders too. */}
+              {idea.variant && (
+                <>
+                  <p className="briefmodal-sec">Why this is not obvious</p>
+                  <p><Html html={idea.variant} /></p>
+                </>
+              )}
+
+              {idea.edge && (
+                <>
+                  <p className="briefmodal-sec">The edge, and how it was measured</p>
+                  {idea.edge.summary && <p><Html html={idea.edge.summary} /></p>}
+                  <div className="idea-backtest">
+                    {[['Signal', idea.edge.source], ['Sample', idea.edge.backtest?.window],
+                      ['Observations', idea.edge.backtest?.n],
+                      ['What followed', idea.edge.backtest?.result],
+                      ['Versus doing nothing', idea.edge.backtest?.baseline]]
+                      .filter(([, v]) => v || v === 0).map(([k, v]) => (
+                        <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+                      ))}
+                  </div>
+                </>
+              )}
 
               {idea.thesis?.length > 0 && (
                 <>
