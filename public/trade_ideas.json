@@ -1,182 +1,181 @@
 {
-  "generated_at": "2026-08-14T14:22:44Z",
+  "generated_at": "2026-08-14T18:17:21Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-16",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
     {
-      "date": "2026-08-13",
-      "kind": "cross-asset",
-      "title": "The bond is the trade, not the hedge",
-      "dek": "A cyclically-adjusted earnings yield is a long-horizon instrument, and on that horizon it is now saying something it has never said in this series: a Treasury is the better-paid asset. The 10-year yields a real 2.42%, near a twenty-year high. What the shorter-term data adds is a window to act in, not a reason to.",
-      "instrument": "Long the 10-year Treasury, funded by trimming US large-cap equity beta",
-      "horizon": "5–10 years for the case · 1–2 quarters for the entry",
+      "date": "2026-08-14",
+      "kind": "fx",
+      "title": "The most one-sided trade in the market is not on any chart",
+      "position_type": "long/short spread",
+      "call": "Over the next one to two quarters the euro is likely to out-return the dollar. Speculators hold the largest dollar long in three years while the dollar's PRICE sits mid-range — the consensus is in the position, not the chart, which is why nothing about the tape looks stretched.",
+      "horizon": "One to two quarters",
+      "dek": "A dollar long at the 90th percentile of three years with commercial hedgers at the 8th, on a currency trading at the 37th percentile of its own range. Every completed instance of this setup in the sample was followed by a lower dollar three months later — and the sample is small enough that the number of instances matters more than the average.",
+      "the_trade": {
+        "buy": "The euro against the dollar (EUR/USD, spot 1.153)",
+        "short": "The dollar — the euro leg is the expression; a short dollar index position is the same trade",
+        "sizing": "Sized to a three-month horizon, not six. The edge measured here decays: the same setup shows a median dollar move of −1.25% at three months and +0.81% at six, so this is not a position to leave on and forget."
+      },
+      "edge": {
+        "source": "positioning",
+        "summary": "Speculative dollar-index positioning at or above the 85th percentile of its three-year distribution, with commercial hedgers at the opposite extreme, and the same trade visible on the crosses — euro shorts at the 10th percentile, sterling at the 8th.",
+        "backtest": {
+          "window": "CFTC Commitments of Traders, weekly, 3 August 2023 to 4 August 2026 (156 weeks)",
+          "n": 26,
+          "result": "Euro, after speculative positioning at or below the 15th percentile: median +3.18% at three months with 77% of instances positive, and +8.50% at six months with 92% positive (n=26 weeks). Dollar index, after speculative positioning at or above the 85th percentile: median −1.60% at one month with 95% of weeks lower, and −1.25% at three months with 73% lower (n=22 weeks). Those 22 dollar weeks collapse to FOUR independent episodes; three have completed, and all three fell between 4.2% and 6.2% over the following three months.",
+          "baseline": "Unconditional over the same 156 weeks: the euro's median three-month return is +0.18% with 52% positive and its six-month is +0.62% with 56% positive; the dollar index's median one-month return is −0.11% with 52% of weeks lower and its three-month is +0.06% with 49% lower. The conditional readings are a genuine departure from a coin flip at one and three months. At SIX months the dollar edge disappears entirely (+0.81% median), which is what sets the horizon on this trade."
+        }
+      },
+      "variant": "Consensus is not positioned for a weaker dollar and does not think it is taking a consensus position, because the dollar index at 100 is unremarkable — the 37th percentile of its own three-year range, nowhere near an extreme on any chart. The one-sidedness is visible only in the positioning data, at the 90th percentile with commercial hedgers at the 8th. The market is reading price and concluding the trade is not consensus. This note reads the position.",
       "thesis": [
-        "<b>You are paid less to own the stock market than to lend to the government.</b> The cyclically-adjusted (Shiller CAPE) earnings yield on the S&P 500 is 2.36% against a 10-year Treasury at 4.68% — a gap of &minus;2.14 points. That is the lowest reading in our monthly series, which starts in January 2006 and spans 247 observations with a range of &minus;2.14% to +4.69%. It has declined in five of the last six monthly prints, from &minus;1.55% at the end of March to &minus;2.14% at the end of July.",
-        "<b>The alternative is not a low-yielding one.</b> The 10-year real yield is 2.42%, the 96th percentile of daily readings since 2006 against a three-year median of 1.97%. The nominal 10-year at 4.68% is the 94th percentile and sits 30 basis points inside the top of its three-year range of 3.63% to 4.98%. A buyer today is paid more real income to take duration than at almost any point in two decades.",
-        "<b>Positioning has just moved against the bond.</b> Speculative net positioning in the 10-year Treasury sits at the 12th percentile of three years — an extended short, and new this week in the CFTC report dated 4 August. The front end is the mirror image: 2-year speculative positioning is at the 100th percentile, an extended long. The consensus in futures is a steeper curve and growth that holds. This idea is on the other side of that.",
-        "<b>Being early is cheap here.</b> The MOVE index of implied Treasury volatility is 72.1 — the 16th percentile of three years and the 38th since 2002. The rates market is not braced for a repricing in either direction, so the cost of holding the view through a wrong-footed month is at the low end of its own range."
+        "<b>The position is at an extreme; the price is not.</b> Speculative net length in the dollar index sits at the 90th percentile of the last three years at 43.1% of open interest, and it moved 13 percentile points in the reporting week — new, not a standing condition. The dollar index itself closed at 100.01, the 37th percentile of its three-year range of 96.2 to 110.0. A one-sided position that has not yet been rewarded is a different animal from a one-sided position sitting on a large profit: there is no gain to defend, so the exit is cheaper and faster.",
+        "<b>Commercial hedgers are at the opposite extreme on all three legs.</b> Dollar index commercials sit at the 8th percentile, euro commercials at the 90th, sterling commercials on the same side. The positioning feed flags all three as divergences. One market at an extreme is a market view; the same trade expressed three ways with the hedging community taking the other side of each is a consensus.",
+        "<b>The base rates favour the fade at this horizon, and stop favouring it after.</b> Euro shorts at or below the 15th percentile have been followed by a median +3.18% three-month euro return against an unconditional +0.18%, and 77% of instances were positive against a 52% coin flip. The dollar side agrees at one and three months and then decays to nothing by six. The trade has a shelf life and the sizing says so.",
+        "<b>The same speculators are also at the 87th percentile long gold — and that cannot be right.</b> Both positions have been at or above the 85th percentile in only five of 156 weeks. The daily changes of gold and the dollar index have been NEGATIVELY correlated in 100% of 4,926 rolling one-year windows since 2007, currently −0.33 against a median of −0.39. Speculators are long both sides of a pair that has never once moved together for a year. One of those two books is wrong, and the dollar is the one with the weaker base rate behind it."
       ],
       "evidence": [
         {
-          "value": "−2.14%",
-          "claim": "Equity risk premium — the S&P 500's cyclically-adjusted earnings yield minus the 10-year Treasury yield. The lowest reading in the series, which runs from January 2006 and has a full range of −2.14% to +4.69%.",
-          "source": "MacroTilt indicator history (Shiller CAPE + FRED DGS10)",
-          "as_of": "2026-07-31"
+          "value": "90th percentile",
+          "claim": "Speculative net dollar-index positioning, ranked against three years of weekly reports — 43.1% of open interest, up 13 percentile points on the week.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
         },
         {
-          "value": "42.34",
-          "claim": "Shiller CAPE for the S&P 500 — the highest reading in the same series, the 99.6th percentile since 2006.",
-          "source": "MacroTilt indicator history (Shiller)",
+          "value": "8th percentile",
+          "claim": "Commercial hedger positioning in the dollar index — the opposite extreme, which is what makes this a divergence rather than a one-sided market.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "10th / 90th",
+          "claim": "Euro speculative and commercial positioning percentiles — the mirror image of the dollar, flagged as a divergence for five straight weeks.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "8th percentile",
+          "claim": "Sterling speculative positioning — an extended short running twelve weeks, the third leg of the same dollar trade.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "37th percentile",
+          "claim": "The dollar index at 100.01 ranked against its own three-year range of 96.2 to 110.0. The price is unremarkable; only the positioning is stretched.",
+          "source": "MacroTilt indicator history (ICE dollar index)",
           "as_of": "2026-08-12"
         },
         {
-          "value": "4.68%",
-          "claim": "10-year Treasury yield — the 94th percentile of daily readings since 2006; three-year range 3.63% to 4.98%, three-year median 4.29%.",
-          "source": "MacroTilt indicator history (FRED)",
-          "as_of": "2026-08-12"
+          "value": "+3.18% vs +0.18%",
+          "claim": "Median three-month euro return after speculative positioning at or below the 15th percentile (n=26 weeks, 77% positive), against the unconditional median over the same 156 weeks (52% positive).",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
         },
         {
-          "value": "2.42%",
-          "claim": "10-year real (inflation-protected) yield — the 96th percentile since 2006 against a three-year median of 1.97%.",
-          "source": "MacroTilt indicator history (FRED)",
-          "as_of": "2026-08-12"
+          "value": "3 of 3",
+          "claim": "Completed independent episodes of dollar positioning at or above the 85th percentile that were followed by a lower dollar three months later — falls of 4.2%, 4.4% and 6.2%. The fourth episode is the current one.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
         },
         {
-          "value": "+48 bp",
-          "claim": "2-year to 10-year Treasury spread, against a three-year median of +30 bp.",
-          "source": "MacroTilt indicator history (FRED)",
-          "as_of": "2026-08-12"
+          "value": "+0.81%",
+          "claim": "Median SIX-month dollar return after the same signal — the edge is gone by then. This is the number that sets the horizon, and it argues against holding the trade longer.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
         },
         {
-          "value": "72.1",
-          "claim": "MOVE index of implied Treasury volatility — the 16th percentile of three years and the 38th since 2002.",
+          "value": "87th percentile",
+          "claim": "Speculative gold positioning, up 32 percentile points on the week — the largest single-week positioning move in the report.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "5 of 156 weeks",
+          "claim": "Weeks in which speculative positioning in BOTH gold and the dollar index sat at or above the 85th percentile. The prior four were two clusters, in June and September 2024.",
+          "source": "MacroTilt backtest — CFTC COT",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "0 of 4,926",
+          "claim": "Rolling one-year windows since 2007 in which the daily changes of gold and the dollar index were positively correlated. The current reading is −0.33 against a full-history median of −0.39.",
           "source": "MacroTilt indicator history",
           "as_of": "2026-08-12"
         },
         {
-          "value": "12th percentile",
-          "claim": "Speculative net positioning in the 10-year Treasury, measured against three years of weekly reports — an extended short, and new this week.",
-          "source": "CFTC Commitments of Traders via MacroTilt",
+          "value": "1st / 2nd percentile",
+          "claim": "Nasdaq 100 and Russell 2000 speculative positioning — both extended shorts. Tested as a squeeze trade and REJECTED: forward returns after those extremes came in at or below the unconditional baseline at every horizon. Noted here because it is the argument this note does not make.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
           "as_of": "2026-08-04"
-        },
-        {
-          "value": "100th percentile",
-          "claim": "Speculative net positioning in the 2-year Treasury — an extended long, the mirror image of the 10-year.",
-          "source": "CFTC Commitments of Traders via MacroTilt",
-          "as_of": "2026-08-04"
-        },
-        {
-          "value": "82.6 bp",
-          "claim": "10-year term premium — the 90th percentile since 2006. This one argues against the idea: the market already demands a lot to hold duration, and nothing says it stops here.",
-          "source": "MacroTilt indicator history (New York Fed ACM)",
-          "as_of": "2026-08-07"
-        },
-        {
-          "value": "272 bp",
-          "claim": "High-yield credit spread over Treasuries — the 10th percentile since 2011. Credit sees no problem at all, which is the strongest data argument against the equity leg.",
-          "source": "MacroTilt indicator history (ICE BofA via FRED)",
-          "as_of": "2026-08-11"
-        },
-        {
-          "value": "1st percentile",
-          "claim": "Speculative net positioning in the Nasdaq 100 — an extended short against three years of weekly reports, which is contrarian-bullish for equities.",
-          "source": "CFTC Commitments of Traders via MacroTilt",
-          "as_of": "2026-08-04"
-        },
-        {
-          "value": "55.6 / 54.1",
-          "claim": "ISM Manufacturing and ISM Services — both comfortably above the 50 line that separates expansion from contraction.",
-          "source": "MacroTilt indicator history (ISM)",
-          "as_of": "2026-07-01"
         }
       ],
       "levels": {
-        "trigger": "A weekly close in the 10-year below 4.55%. The confirm-on-the-way-in discipline is the same one the site's own regime gate uses, so a single day's headline does not set the position.",
-        "invalidation": "A weekly close in the 10-year above 4.98% — the top of the three-year range. That says the term-premium repricing has further to run and the entry was simply early.",
-        "target": "The 10-year's three-year median of 4.29% — about 39 basis points of rally, roughly 3% of price on an eight-year duration, before carry."
-      },
-      "sections": [
-        {
-          "title": "Why this is a five-year argument and not a six-month one",
-          "prose": "The measure at the centre of this note is the S&P 500's cyclically-adjusted earnings yield less the 10-year Treasury yield — the CAPE earnings yield, which averages ten years of inflation-adjusted earnings rather than the last twelve months. That construction is what gives it its horizon. Since Campbell and Shiller's work in the late 1980s the cyclically-adjusted multiple has been understood as a long-horizon instrument: it carries real information about returns five and ten years out, and close to none about the next twelve months. A reader is entitled to know which of those this is. <b>It is the long one.</b> The gap at &minus;2.14 points is not a signal that equities fall this quarter; it is a statement that at today's prices the compensation for owning them over the next several years is the thinnest in this record. That is why the size here is a tilt of a few points and not a switch, and it is why the invalidation is written on the bond and not on the stock market."
-        },
-        {
-          "title": "What the shorter-term data adds — and does not",
-          "prose": "Nothing in the near-term data says growth is deteriorating, and the note does not claim it does. ISM Manufacturing is 55.6, ISM Services 54.1, high-yield spreads sit at the 10th percentile since 2011 and the Chicago Fed's financial conditions index is &minus;0.579, meaning conditions are easier than average. What the shorter-term data supplies is a window: speculative positioning in the 10-year moved to the 12th percentile of three years this week, an extended short, while implied Treasury volatility at 72.1 sits in the bottom sixth of its three-year range. Positioning that has just leaned one way and a volatility market that is not braced for a move are the conditions under which a long-horizon buyer gets a better level. They are not the reason to hold the view."
-        },
-        {
-          "title": "Dates that decide the entry",
-          "bullets": [
-            "<b>26 August, 8:30 AM</b> — personal income and the PCE price index, the inflation measure the Fed actually targets.",
-            "<b>4 September, 8:30 AM</b> — the jobs report. The labor leg of the case is the one with the least evidence behind it in this note.",
-            "<b>11 September, 8:30 AM</b> — consumer prices. A hot print is the fastest route to the 4.98% invalidation.",
-            "<b>16 September, 2:00 PM</b> — the FOMC decision, and a meeting that publishes rate and economic projections. A hawkish dot plot does the same job as a hot CPI."
-          ]
-        }
-      ],
-      "other_side": "Three things argue the other way and two of them are strong. First, the equity risk premium here is measured on the cyclically-adjusted CAPE earnings yield, which is structurally more bearish than a forward-earnings version — on forward estimates the gap is far narrower, and we do not carry that series, so this leg is weaker than the headline number makes it look. Second, the term premium at 82.6 basis points is already the 90th percentile since 2006: the market demands a lot to hold duration and there is no rule that says it stops, and every duration buyer of the last three years has been early. Third, speculative positioning in the Nasdaq 100 sits at the 1st percentile of three years, an extended short, and with financial conditions easier than average and high-yield spreads at the 10th percentile since 2011, that is the configuration that squeezes equities higher rather than lower.",
-      "risks": [
-        "<b>The funding leg is the fragile one.</b> Trimming equity beta into speculative positioning that already sits at a three-year low has hurt better investors than us. The bond leg can be right and the pair still lose.",
-        "<b>A negative equity risk premium is not a timing signal.</b> This measure has been below zero in every monthly print since May 2023 — thirty-nine consecutive readings — and the S&P has not waited for it.",
-        "<b>Duration is not a credit hedge.</b> If yields fall because growth genuinely deteriorates, high-yield at 272 basis points is the exposure that hurts, and nothing in this idea covers it.",
-        "<b>The two September prints can end it inside a month.</b> A hot CPI on 11 September or a hawkish set of projections on 16 September puts the 10-year at the top of its three-year range and triggers the invalidation."
-      ],
-      "so_what": "On the horizon this measure actually speaks to, the compensation for owning the US stock market over a Treasury is the thinnest in our record. That times nothing by itself — it is a statement about the price being paid, and the price being paid is what a long-horizon allocation is made of.",
-      "position_type": "allocation shift",
-      "the_trade": {
-        "buy": "10-year US Treasuries — the cash bond or an intermediate Treasury fund",
-        "sell": "US large-cap equity exposure, to fund it",
-        "sizing": "A tilt of a few points of the equity allocation, not a switch. The valuation signal is a long-horizon one and gets sized accordingly; the shorter-term data sets the entry level, not the size."
+        "trigger": "A weekly close in EUR/USD above 1.16, or a weekly close in the dollar index below 99.5. Confirm on the way in — the same rule the site's regime gate uses.",
+        "invalidation": "A weekly close in the dollar index above 103, which is roughly the 60th percentile of its three-year range. That says the position is being rewarded rather than unwound, and a one-sided position that starts paying can stay one-sided for a long time.",
+        "target": "EUR/USD 1.19 — approximately the +3.18% median three-month move the base rate implies from 1.153, reached in 77% of comparable instances."
       },
       "charts": [
         {
-          "series": "erp",
-          "title": "What stocks pay you over bonds",
-          "subtitle": "S&P 500 cyclically-adjusted earnings yield minus the 10-year Treasury yield, monthly since 2006",
-          "unit": "%",
-          "decimals": 2,
-          "window": "full",
-          "zero_rule": true,
-          "caption": "Below the zero line, a Treasury pays more than the S&P's long-run earnings yield. It has been below zero in every month since May 2023, and the reading at the end of July is the lowest in the series.",
-          "source": "MacroTilt indicator history (Shiller CAPE + FRED DGS10)"
-        },
-        {
-          "series": "cape",
-          "title": "What stocks cost",
-          "subtitle": "Shiller cyclically-adjusted price/earnings ratio for the S&P 500",
+          "series": "usd",
+          "title": "The dollar's price is mid-range",
+          "subtitle": "ICE dollar index, last three years — the positioning is at the 90th percentile, the price at the 37th",
           "unit": "",
-          "decimals": 1,
-          "window": "full",
-          "caption": "The price paid per dollar of ten-year average earnings. The current reading is the highest in this series.",
-          "source": "MacroTilt indicator history (Shiller)"
-        },
-        {
-          "series": "real_rates",
-          "title": "What a bond pays after inflation",
-          "subtitle": "10-year Treasury yield less market-implied inflation, daily since 2006",
-          "unit": "%",
           "decimals": 2,
-          "window": "full",
-          "zero_rule": true,
-          "caption": "This is the leg of the argument that does not depend on a forecast: the income is contractual. It sat near or below zero for most of the 2010s and is now close to the top of its twenty-year range.",
-          "source": "MacroTilt indicator history (FRED)"
+          "window": "3y",
+          "caption": "This is the chart the market is looking at, and there is nothing stretched about it. That is the point: the crowding does not appear here.",
+          "source": "MacroTilt indicator history"
         },
         {
-          "series": "move",
-          "title": "How much the bond market expects to move",
-          "subtitle": "MOVE index of implied Treasury volatility, last ten years",
+          "series": "fx_eur",
+          "title": "The other side of the same trade",
+          "subtitle": "Euro against the dollar, last three years",
           "unit": "",
+          "decimals": 3,
+          "window": "3y",
+          "caption": "Speculators are short the euro at the 10th percentile of three years while commercial hedgers sit at the 90th. After that reading the euro's median three-month return has been +3.18% against an unconditional +0.18%.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_gold",
+          "title": "And they are long gold at the same time",
+          "subtitle": "Gold, last three years",
+          "unit": "$/oz",
           "decimals": 0,
-          "window": "10y",
-          "caption": "Low readings mean the market is not braced for a large move in either direction, which is what makes being early on this cheap rather than expensive. It is also the Engine's own stress signal.",
+          "window": "3y",
+          "caption": "Speculative gold positioning is at the 87th percentile, up 32 points on the week. Gold and the dollar have not had a positive one-year correlation in any of 4,926 windows since 2007 — both books cannot be right.",
           "source": "MacroTilt indicator history"
         }
       ],
-      "call": "Over a five-to-ten-year horizon the 10-year Treasury is priced to out-return US large-cap equities: the S&P 500's cyclically-adjusted earnings yield now sits 2.14 points below the nominal 10-year, the widest that gap has been in our data since 2006. The nearer-term setup in rates is what decides the entry, not the case.",
-      "id": "2026-08-13-the-bond-is-the-trade-not-the-hedge",
+      "sections": [
+        {
+          "title": "What the backtest actually says, including where it is thin",
+          "prose": "Three years of weekly reports is 156 observations, and the dollar signal fires in 22 of them — but those 22 weeks are only FOUR independent episodes, because positioning stays extreme for weeks at a time. Three of the four have completed and all three saw the dollar 4.2% to 6.2% lower three months on. That is a striking run and it is also n=3, which is not a number to size aggressively against. The euro side is better populated at 26 weeks and cleaner against its baseline (+3.18% versus +0.18% at three months; 77% positive versus 52%), which is why the euro is the expression rather than a naked dollar short. Both readings use overlapping weekly windows, which flatters significance; the honest summary is a real effect at one to three months, a small number of genuine episodes behind it, and nothing at all by six months."
+        },
+        {
+          "title": "The idea this note is not making",
+          "prose": "Speculators are also at the 1st percentile in the Nasdaq 100 and the 2nd in the Russell 2000 — extended shorts in both, with commercials at the 100th percentile on each. That is a more exciting story and it did not survive its own test: after Nasdaq positioning at or below the 10th percentile, the index's median forward return was −0.60% at one month, +2.35% at three and +3.73% at six, against unconditional readings of +2.30%, +6.15% and +11.53%. Buying the extreme was WORSE than buying at random at every horizon. Positioning at an extreme is not a signal by itself; it is a signal in the markets where the base rate says it is one."
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "<b>Every Friday, 3:30 PM</b> — the next Commitments of Traders report. The first thing to watch is whether the dollar percentile falls; the trade works by the position unwinding, so evidence of the unwind is the thesis playing out.",
+            "<b>26 August, 8:30 AM</b> — personal income and the PCE price index.",
+            "<b>4 September, 8:30 AM</b> — the jobs report.",
+            "<b>16 September, 2:00 PM</b> — the FOMC decision, with projections. A hawkish dot plot is the single most likely route to the dollar-index-above-103 invalidation."
+          ]
+        }
+      ],
+      "other_side": "The strongest argument against is the sample. Twenty-two weeks sounds like evidence; four independent episodes, three of them completed, does not. A run of three is exactly the kind of pattern that appears in any three-year window by chance, and the six-month result — a median +0.81% dollar return, no edge at all — is a reminder that whatever is here is short-lived. Second, positioning is a coincident measure and it is reported with a lag: this data is dated 4 August and the unwind may already have begun without the print to show it. Third, a one-sided dollar long can keep being right. If the September projections push the rate differential further in the dollar's favour, commercial hedgers will be on the wrong side and stay there — hedgers are not a smart-money signal, they are the other side of a trade, and treating their extreme as a forecast is the standard way this analysis fails.",
+      "risks": [
+        "<b>n=3 completed episodes.</b> Everything above rests on a run short enough to be luck. Size it as a position with a good base rate, not a high-conviction one.",
+        "<b>The signal is reported with a lag.</b> The 4 August data is eight sessions old by publication; a fast unwind would already be in the price and the entry gone.",
+        "<b>A hawkish September changes the sign.</b> If the FOMC projections widen the rate gap, the one-sided dollar long becomes the correct dollar long and the invalidation triggers.",
+        "<b>The euro is not cheap on price</b> — it sits around the 67th percentile of its own three-year range. This trade is paid by the positioning unwinding, not by the euro being undervalued."
+      ],
+      "so_what": "The most one-sided position in the market right now is not in equities and is not visible on a price chart — it is a dollar long at the 90th percentile with hedgers on the other side of three separate legs. It has a short shelf life and a thin sample behind it, and it is a far better use of risk over the next two quarters than another observation that stocks are expensive.",
+      "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
+      "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
       "status": "live",
-      "published_at": "2026-08-14T14:22:44Z"
+      "published_at": "2026-08-14T18:17:21Z"
     }
   ]
 }

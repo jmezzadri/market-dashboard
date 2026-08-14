@@ -1165,3 +1165,21 @@ The first version was opaque. The second was legible and **wrong in register**: 
 7. **Dead space in a stretched grid row belongs to the SHORT tile, and the answer is content, not a shorter tile.** The brief had 208px of empty putty because its neighbour was taller; cutting its headlines had not shortened the row at all, only widened the hole. It now carries every headline the writer filed plus the brief's own stance paragraph — content that had been modal-only while the tile sat a third empty. Measure slack per tile (`tile.bottom − max(child.bottom)`) rather than judging it by eye.
 
 **Applies to:** every generated editorial surface, and every tile in a stretched grid row.
+
+### 4.33 (2026-08-14) — A famous ratio is not an insight; and an idea without an unconditional baseline is an opinion with a hit rate attached
+
+**What happened:** Joe on the first two published Trade Ideas — *"Making a call 10 years out is not helpful. I want more trades ideas... next several quarters. This bond idea is not profound at all. You could look at Buffet Indicator or CAPE alone and say 'stocks are expensive over long term historical context.' What about positioning, technical analysis across assets. You keep coming back to such basic crap anyone can see - not something someone with decades of trading and risk managing experience can see."*
+
+He is right, and the diagnosis is precise. The note was correct, well sourced, carefully hedged and **worthless**, because its driver — the cyclically-adjusted equity risk premium — is famous, slow, and visible to anyone with a browser. Sourcing discipline had been mistaken for research. Everything the contract enforced up to that point was about whether a claim was TRUE and whether it was LEGIBLE. Nothing asked whether it was WORTH PUBLISHING.
+
+**Rule:**
+
+1. **A trade idea is a next-several-quarters proposition. Eighteen months is the cap.** A multi-year valuation view is an asset-allocation opinion and belongs somewhere else.
+2. **A famous ratio may support a note and may never drive it.** CAPE, the Buffett indicator, market cap to GDP, the equity risk premium, price to book — rejected in the title, the call and the edge summary; welcome as context in the thesis.
+3. **The driver must be a measured edge**, declared as one of: positioning, cross-asset divergence, technicals, volatility structure, flows, relative value, calendar mechanics, credit, market structure.
+4. **`edge.backtest` requires an UNCONDITIONAL BASELINE, and that field is the whole rule.** A 77% hit rate is meaningless until the unconditional rate is on the page beside it at 52%. Every backtest of a conditional signal must state what doing nothing produced over the same horizon, in the same sample.
+5. **Run the backtest BEFORE writing prose, and be willing to lose the idea.** This earned its keep immediately. The intended note was an equity-index squeeze — Nasdaq speculative positioning at the 1st percentile of three years, Russell at the 2nd, commercials at the 100th on both. A genuinely non-obvious, exciting setup. Its own base rates killed it: forward Nasdaq returns after those extremes were −0.60% / +2.35% / +3.73% at one, three and six months against unconditional readings of +2.30% / +6.15% / +11.53%. Buying the extreme was worse than buying at random at every horizon. **Positioning at an extreme is not a signal by itself; it is a signal in the markets where the base rate says it is one** — and that turned out to be the currencies, not the equity indices.
+6. **Report the number of INDEPENDENT episodes, not the number of weeks.** Twenty-two weekly observations of dollar positioning at the 85th percentile collapse to four episodes, of which three had completed. "n=22" would have been true and misleading; "three completed episodes, all three down 4–6%" is the honest claim, and it is small enough to change the sizing.
+7. **`variant` is required: what does consensus believe, and where does this differ?** If the honest answer is "nothing", there is no note. This is the field that would have blocked the CAPE piece on its own.
+
+**Applies to:** every Trade Idea, and any surface that publishes a view rather than a fact.
