@@ -98,7 +98,12 @@ def plan(book: pd.DataFrame, tif: str = "opg") -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if df.empty:
         return df
-    df["price"] = [float(px.get(s, 0) or 0) for s in df.symbol]
+    ref = want.get("ref_price")
+    df["price"] = [
+        float(px.get(s, 0) or 0)
+        or (float(ref.get(s, 0) or 0) if ref is not None else 0.0)
+        for s in df.symbol
+    ]
     df["notional"] = (df.qty * df.price).round(2)
     df["time_in_force"] = tif
     order = {"sell": 0, "buy": 1}
@@ -159,6 +164,16 @@ def main() -> int:
     print(f"book {rd}: {len(book)} names | {len(p)} orders | gross ${gross:,.0f} "
           f"({gross / equity:.0%} of equity)")
     print(p[["side", "symbol", "qty", "price", "notional", "why"]].to_string(index=False))
+
+    # A missing price makes `gross` read as $0, which would sail past the
+    # turnover guard below. Fail loudly instead — an unpriced order is an order
+    # whose size nobody checked.
+    unpriced = p[p.price <= 0]
+    if len(unpriced):
+        print(f"REFUSING: no price for {len(unpriced)} symbols "
+              f"({', '.join(unpriced.symbol.head(10))}) — cannot size or guard the plan.",
+              file=sys.stderr)
+        return 2
 
     if len(p) > MAX_ORDERS or gross > equity * MAX_GROSS_TURNOVER:
         print(f"REFUSING: {len(p)} orders / ${gross:,.0f} gross exceeds the guard rails "

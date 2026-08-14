@@ -60,7 +60,21 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
     uni = D.universe()
     print(f"universe: {len(uni):,} operating companies", flush=True)
 
-    bars = D.prices(uni.query_symbol.tolist(), bar_start, bar_end)
+    # The full bar pull takes ~20 minutes. Caching it lets a failed downstream
+    # step be re-run in seconds instead of re-downloading 2.3M rows.
+    cache = os.environ.get("QT_BAR_CACHE")
+    if cache and os.path.exists(cache):
+        bars = pd.read_parquet(cache)
+        print(f"bars: loaded from cache {cache}", flush=True)
+    else:
+        bars = D.prices(uni.query_symbol.tolist(), bar_start, bar_end)
+        if cache:
+            bars.to_parquet(cache, index=False)
+    # A cache built from a research pull can contain names that are no longer
+    # tradable. Scoring one and then trying to buy it fails at the broker, so
+    # intersect with today's universe regardless of where the bars came from.
+    bars = bars[bars.symbol.isin(set(uni.query_symbol))]
+    bars = bars[bars.d >= pd.Timestamp(bar_start)]
     print(f"bars: {len(bars):,} rows / {bars.symbol.nunique():,} symbols", flush=True)
     px = bars.pivot_table(index="d", columns="symbol", values="c", aggfunc="last")
     vl = bars.pivot_table(index="d", columns="symbol", values="v", aggfunc="last")
