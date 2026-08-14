@@ -64,7 +64,7 @@ VALID_KINDS = {
 }
 
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
-            "position_type", "plain_english", "the_trade",
+            "position_type", "call", "the_trade",
             "thesis", "evidence", "levels", "other_side", "risks", "so_what",
             "charts"]
 
@@ -86,14 +86,59 @@ POSITION_TYPES = {
     "watch only":        "Not a position yet — the setup to watch and what would make it one.",
 }
 
-# Words that mean nothing to a reader who is not a trader. Banned in
-# `plain_english` ONLY — the thesis, the levels and the evidence are allowed to
-# be technical, and should be.
+# 2026-08-13 (Joe, third pass): "Can we not be so blunt... It should be more
+# editorial - something like UST are likely to yield more than large caps over x
+# time period... We also need to be much more technical in this... Are we talking
+# about a 6 month trade, a 5 year trade. Saying SELL STOCKS AND BUY TREASURIES is
+# a terrible headline. We need to set stage."
+#
+# The previous field, `plain_english`, over-corrected. Solving "the reader cannot
+# tell if we are shorting" by writing an imperative instruction produced a
+# headline that reads like a broker's cold call. The fix is not less technical
+# language — Joe asked for MORE — it is a CLAIM instead of an ORDER:
+#
+#   ORDER  Sell a slice of your US large-company stocks and buy 10-year bonds.
+#   CLAIM  Over a five-to-ten-year horizon the 10-year Treasury is priced to
+#          out-return the S&P 500 by the widest margin in our data since 2006.
+#
+# So `call` is a claim, and three things are enforced: it may not OPEN with an
+# imperative, it MUST carry an explicit horizon (a six-month view and a five-year
+# view are different products and the reader is entitled to know which), and it
+# still may not lean on genuinely opaque desk shorthand. Note what is NOT banned
+# any more — yield, total return, valuation, percentile, spread, term premium.
+# Those are the technical vocabulary of the argument and Joe wants them.
 JARGON = [
-    "beta", "duration", "convexity", "carry", "basis point", "bp", "bps",
-    "curve", "spread", "percentile", "steepener", "flattener", "notional",
-    "overweight", "underweight", "risk premium", "term premium", "vol",
+    "beta", "convexity", "carry", "notional", "steepener", "flattener",
+    "dv01", "gamma", "vega", "basis risk", "roll-down", "rolldown",
 ]
+
+# An order, not a claim. Checked against the FIRST word of `call`.
+IMPERATIVE_OPENERS = {
+    "buy", "sell", "short", "own", "add", "cut", "trim", "move", "rotate",
+    "switch", "hold", "avoid", "get", "put", "take", "go",
+}
+
+# A horizon has to be a period a reader can hold in their head. "Medium term"
+# is not one.
+_PERIOD = (r"(?:\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*(?:month|quarter|year)s?"
+           r"|(?:one|two|three|four|five|six|seven|eight|nine|ten|twelve|eighteen)"
+           r"(?:[- ]to[- ](?:one|two|three|four|five|six|seven|eight|nine|ten|twelve|eighteen))?"
+           r"[- ](?:month|quarter|year)s?)")
+
+# The `horizon` FIELD is labelled, so a bare period is unambiguous there.
+HORIZON_PERIOD_RE = re.compile(rf"\b{_PERIOD}\b|\bthrough\s+\w*\s*\d{{4}}\b|\binto\s+\w+\s+\d{{4}}\b", re.I)
+
+# Inside `call` it is NOT unambiguous: "the 10-year Treasury" contains a perfect
+# period expression and says nothing about how long the view is held. A first
+# version of this check passed a call with no horizon at all for exactly that
+# reason. So in prose the period must follow a horizon CUE, or be the thing a
+# horizon is "of" — an instrument tenor never satisfies it.
+HORIZON_PHRASE_RE = re.compile(
+    rf"(?:\b(?:over|within|across|for|through|into|out\s+to|by)\s+(?:the\s+)?(?:next\s+)?(?:a\s+)?{_PERIOD}\b"
+    rf"|\b{_PERIOD}\s+(?:horizon|view|window|out)\b"
+    rf"|\bhorizon\s+of\s+{_PERIOD}\b"
+    rf"|\bnext\s+{_PERIOD}\b"
+    rf"|\bthrough\s+\w*\s*\d{{4}}\b|\binto\s+\w+\s+\d{{4}}\b)", re.I)
 
 # Path words: a claim about how something MOVED needs two dated observations
 # behind it. Checked against the evidence block, never taken on trust.
@@ -149,7 +194,7 @@ class ContractError(Exception):
 def _text_of(idea: dict) -> str:
     """Every reader-facing string in one blob, for the copy scans."""
     parts = [idea.get("title", ""), idea.get("dek", ""), idea.get("instrument", ""),
-             idea.get("other_side", ""), idea.get("so_what", ""), idea.get("plain_english", "")]
+             idea.get("other_side", ""), idea.get("so_what", ""), idea.get("call", "")]
     tt = idea.get("the_trade") or {}
     if isinstance(tt, dict):
         parts += [str(v) for v in tt.values()]
@@ -264,14 +309,28 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     # 3b — the reader must know what the position IS before any number
     if idea["position_type"] not in POSITION_TYPES:
         raise ContractError(f"position_type must be one of {sorted(POSITION_TYPES)}, got {idea['position_type']!r}")
-    pe = str(idea["plain_english"]).strip()
-    if not (40 <= len(pe) <= 260):
-        raise ContractError(f"plain_english must be one clear sentence of 40-260 chars, got {len(pe)}")
+    pe = str(idea["call"]).strip()
+    if not (60 <= len(pe) <= 340):
+        raise ContractError(f"call must be a claim of 60-340 chars, got {len(pe)}")
+    first = re.sub(r"[^a-z]", "", pe.split()[0].lower()) if pe.split() else ""
+    if first in IMPERATIVE_OPENERS:
+        raise ContractError(
+            f"call opens with the imperative {first!r} — that is an order, not a claim. "
+            "State what is likely to happen and over what period; the instruction belongs in `the_trade`.")
+    if not HORIZON_PHRASE_RE.search(pe):
+        raise ContractError(
+            "call must name its horizon — a six-month view and a five-year view are different products. "
+            "e.g. 'over the next 12 months', 'over a five-to-ten-year horizon', 'through 2027'. "
+            "(An instrument tenor such as 'the 10-year Treasury' is not a horizon.)")
     hits = [w for w in JARGON if re.search(rf"\b{re.escape(w)}\b", pe, re.I)]
     if hits:
         raise ContractError(
-            f"plain_english contains jargon {hits} — this line is for a reader who is not a trader. "
-            "Put the technical version in `instrument` and the thesis.")
+            f"call leans on desk shorthand {hits} — say it in words the argument can carry. "
+            "Technical vocabulary is welcome; opaque shorthand is not.")
+    hz = str(idea["horizon"]).strip()
+    if not HORIZON_PERIOD_RE.search(hz):
+        raise ContractError(
+            f"horizon must state an explicit period, got {hz!r} — 'medium term' is not a horizon.")
     tt = idea["the_trade"]
     if not isinstance(tt, dict) or not str(tt.get("buy", "")).strip():
         raise ContractError("the_trade must be an object naming at least what is bought (`buy`)")

@@ -59,32 +59,64 @@ a forced note is worse than a late one.
 **3. Compose ONE JSON object** with these keys:
 
 `date`, `kind` (one of macro / cross-asset / single-name / rates / credit / fx /
-commodity / equity), `title`, `dek`, `position_type`, `plain_english`,
+commodity / equity), `title`, `dek`, `position_type`, `call`,
 `the_trade{buy, sell?, short?, sizing?}`, `instrument`, `horizon`, `thesis[]`
 (three or more), `evidence[]` (each `{claim, value, source, as_of}`),
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
 `{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`.
 
-### Say what the trade IS before you say anything else
+### The call — a claim with a horizon, never an order
 
-Joe on the first published note: *"Are we saying to buy treasuries and short
-stocks? Im confused what the trade is..."* That note led with "Long the 10-year
-Treasury, funded by trimming US large-cap equity beta" — which a professional
-reads as an allocation shift and everyone else reads as a short. **A note whose
-central claim has to be decoded has failed, however good its evidence is.**
+This field has now failed in both directions on the same day, which is worth
+understanding before writing one.
 
+The FIRST note led with `instrument`: *"Long the 10-year Treasury, funded by
+trimming US large-cap equity beta."* Correct desk English; Joe read it as
+*short the stock market*, which is the opposite of what it meant.
+
+The fix over-corrected into an instruction — *"Sell a slice of your US
+large-company stocks and put the money into 10-year US government bonds"* — and
+Joe's verdict was: *"Can we not be so blunt... Saying SELL STOCKS AND BUY
+TREASURIES is a terrible headline. We need to set stage."* He also asked for
+**more** technical content, not less, and for the horizon to be explicit:
+*"Are we talking about a 6 month trade, a 5 year trade."*
+
+So `call` is a **claim**, not an order:
+
+> ORDER — Sell a slice of your US large-company stocks and buy 10-year bonds.
+> CLAIM — Over a five-to-ten-year horizon the 10-year Treasury is priced to
+> out-return US large-cap equities: the S&P 500's cyclically-adjusted earnings
+> yield now sits 2.14 points below the nominal 10-year, the widest that gap has
+> been in our data since 2006.
+
+Enforced by the contract:
+
+- **60–340 characters**, and it may not OPEN with an imperative (buy, sell,
+  short, own, add, cut, trim, move, rotate, switch, hold, avoid…). The
+  instruction belongs in `the_trade`, where the tile prints it under Buy / Sell.
+- **It must name its horizon**, and a horizon CUE is required — "over the next
+  12 months", "over a five-to-ten-year horizon", "through 2027". An instrument
+  tenor does not count: *"the 10-year Treasury"* contains a perfect period
+  expression and says nothing about how long the view is held.
+- **Desk shorthand is still rejected** — beta, convexity, carry, notional,
+  steepener, flattener, DV01, gamma, vega, basis risk, roll-down. Note what is
+  NOT on that list any more: yield, total return, valuation, percentile, spread,
+  term premium, cyclically-adjusted. Those are the vocabulary of the argument
+  and Joe wants them used.
+- `horizon` must state an explicit period too — "5–10 years for the case · 1–2
+  quarters for the entry". "Medium term" is rejected.
 - `position_type` — one of `allocation shift`, `outright long`, `outright short`,
-  `long/short spread`, `hedge`, `watch only`. It renders as a badge, so the
-  reader knows whether anything is being sold short before meeting a number.
+  `long/short spread`, `hedge`, `watch only`. Renders as a badge, so the reader
+  knows whether anything is being sold short before meeting a number.
   `outright short` and `long/short spread` REQUIRE `the_trade.short`.
-- `plain_english` — one sentence, 40–260 characters, for a reader who is not a
-  trader. The contract rejects it if it contains any of: beta, duration,
-  convexity, carry, basis point(s), bp/bps, curve, spread, percentile,
-  steepener, flattener, notional, overweight, underweight, risk premium, term
-  premium, vol. Put the technical version in `instrument` and the thesis —
-  those are allowed to be technical, and should be.
 - `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
   `short` (only for an actual short) and `sizing`.
+
+**Set the stage.** Match the horizon to the SIGNAL. A cyclically-adjusted
+earnings yield carries information about five- and ten-year returns and close to
+none about the next twelve months, so a note built on it is a five-year note
+with a tactical entry — and it should say so, in a section of its own, rather
+than leaving the reader to work out which product they are being handed.
 
 ### Charts
 
