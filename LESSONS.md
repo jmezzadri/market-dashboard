@@ -1183,3 +1183,21 @@ He is right, and the diagnosis is precise. The note was correct, well sourced, c
 7. **`variant` is required: what does consensus believe, and where does this differ?** If the honest answer is "nothing", there is no note. This is the field that would have blocked the CAPE piece on its own.
 
 **Applies to:** every Trade Idea, and any surface that publishes a view rather than a fact.
+
+### 4.34 (2026-08-14) — Better data does not create an edge; the fast-money-vs-real-money split answered the question honestly, and the answer was no
+
+**What happened:** Joe: *"I really think positioning is a huge market tell... Weekly COT positioning on S&P Futures, NASDAQ, etc. Coupled with Goldman Sachs Prime Brokerage positioning data."* Goldman's Prime Services positioning work is distributed to their prime brokerage clients under contract — no API, not licensable, and nothing should be dressed up as a substitute for it. The public instrument that answers the same question is the CFTC's **Traders in Financial Futures** report, and it turned out to be a genuine upgrade on what the site already had: the legacy Commitments of Traders "non-commercial" bucket mixes hedge funds in with pensions, insurers and index managers, so a large real-money long and a large fast-money short cancel into a number that looks like nothing.
+
+The E-mini S&P for the week of 2026-08-04 is the proof. Legacy report: one blended speculative figure of −1.3% of open interest at the 80th percentile — unremarkable. TFF split: **hedge funds net short 15.6% of open interest, asset managers net long 43.9%**, and on opposite sides for a month. On the Nasdaq the split is starker still — hedge funds at −30.1% of OI, the 0.1st percentile of sixteen years.
+
+Then the signal was tested, and **it does not work.** Over 843 weekly reports back to June 2010, against the unconditional base rate in the same sample: hedge funds at a positioning extreme, the fast-money-versus-real-money standoff, and the one-week rate of change all produced forward S&P and Nasdaq returns inside the noise at one, three and six months. Every formulation. Sixteen years.
+
+**Rule:**
+
+1. **Build the better instrument anyway, then let it answer.** The feed shipped because it is materially more truthful about who owns what — and its first honest output was "this does not predict what you hoped". Both halves are the job. A data source is not validated by producing a tradeable signal.
+2. **A null result on a signal everyone quotes is worth more than a marginal idea.** "Hedge funds are at a record short, therefore squeeze" is published constantly. It is not supported. That finding stops real risk being spent, and it is now written into the playbook as a do-not-republish table with the numbers attached, so no future session rediscovers it and ships it.
+3. **If a result appears only in a short window, the window IS the finding.** The standoff looked excellent over five years — +3.47% at one month with 89% positive against +1.84% / 63% unconditional — and evaporated over sixteen. The five-year sample happened to cover a period of near-continuous equity strength. Always run the longest sample the data allows, and if the short and long samples disagree, believe the long one.
+4. **Test each market separately; "positioning works" is not a fact about markets.** The same discipline that found nothing in equity indices found a real effect in the currencies. Generalising either way would have been wrong.
+5. **Never substitute for a proprietary source without saying so.** The manifest entry states plainly that Goldman's work is not and will not be a source here, and what TFF is instead. A silent proxy invites a future reader to believe the site carries something it does not.
+
+**Applies to:** every new data source, and every signal that arrives with a reputation attached.

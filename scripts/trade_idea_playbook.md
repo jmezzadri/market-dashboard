@@ -40,6 +40,16 @@ it is supposed to sit there until the next one.
   more than any adjective: it is what makes the note proprietary rather than
   commentary. Compute the current reading's rank over 1y / 3y / 10y / full
   history and quote the window you used.
+- `https://macrotilt.com/positioning_tff.json` — **positioning split by WHO holds it**:
+  leveraged funds (hedge funds), asset managers (real money) and dealers, across
+  25 equity index / rates / FX / vol / crypto contracts, weekly back to June
+  2010. Percentiles are computed over the FULL 843-week history, not a
+  convenient window. `opposed_markets[]` lists the markets where fast money and
+  real money sit at opposite extremes. This is the public instrument that
+  answers what Goldman's Prime Services positioning work answers for its
+  clients — that work is client-distributed under contract and will never be a
+  source here.
+  **Read the null results below before building an idea on it.**
 - `https://macrotilt.com/econ_calendar.json` — the dated releases the idea
   will live or die on. The "Dates that decide it" section comes from here.
 - `https://macrotilt.com/trade_ideas.json` — what has already been published.
@@ -160,6 +170,36 @@ forward Nasdaq returns after those extremes were −0.60% / +2.35% / +3.73% at o
 three and six months against unconditional readings of +2.30% / +6.15% / +11.53%.
 Buying the extreme was WORSE than buying at random at every horizon. The note that
 shipped instead was the one where the base rate held up.
+
+### Signals already tested and found EMPTY — do not republish these
+
+Measured 2026-08-14 on the full CFTC record, 843 weekly reports from June 2010.
+Each was run against the unconditional base rate over the same sample. **None of
+them clear. Do not spend a note on them without new evidence.**
+
+| signal | 1m | 3m | 6m | unconditional |
+|---|---|---|---|---|
+| Nasdaq — hedge funds bottom 15th pctile | +2.45% | +4.89% | +9.58% | +1.89% / +4.83% / +9.37% |
+| Nasdaq — the standoff (HF bottom 15th AND asset managers top 60th) | +2.29% | +4.22% | +7.15% | same |
+| S&P — hedge funds bottom 15th pctile | +1.35% | +3.70% | +6.74% | +1.53% / +4.06% / +7.03% |
+| Nasdaq — one-week hedge-fund change in the bottom decile | +1.68% | +5.48% | — | +1.90% / +4.84% |
+| S&P — one-week hedge-fund change in the bottom decile | +1.72% | +3.33% | — | +1.53% / +4.06% |
+
+**Equity-index futures positioning does not forecast equity returns** — not the
+level, not hedge funds alone, not the fast-money-versus-real-money standoff, and
+not the rate of change. Sixteen years, every formulation tried, all inside the
+noise. Most positioning commentary claims otherwise; the data does not support
+it, and a note that says "hedge funds are at a record short, therefore squeeze"
+is the exact "basic crap anyone can see" this playbook exists to prevent.
+
+A trap worth naming: the standoff DID look strong on a five-year window
+(+3.47% at one month, 89% positive, against +1.84% / 63%). It evaporated on the
+full sample. **If a result only appears in a short window, the window is the
+finding.**
+
+Where positioning HAS cleared is the currencies — see the 2026-08-14 note. Test
+each market on its own; "positioning works" is not a fact about markets, it is a
+fact about particular markets.
 
 **Run the backtest before writing a word of prose.** If the conditional result
 does not separate from the baseline, there is no note — go and find another one.

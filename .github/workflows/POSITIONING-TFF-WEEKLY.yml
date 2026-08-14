@@ -1,0 +1,88 @@
+name: POSITIONING-TFF-WEEKLY
+
+# Rebuilds public/positioning_tff.json — futures positioning split by WHO holds
+# it: leveraged funds (hedge funds), asset managers (real money) and dealers.
+#
+# Why this feed exists: the legacy Commitments of Traders report has ONE
+# "non-commercial" bucket that mixes hedge funds in with pensions and insurers.
+# On the E-mini S&P for 2026-08-04 that blended figure was -1.3% of open
+# interest and looked like nothing; underneath it, hedge funds were net short
+# 15.6% of OI and asset managers net long 43.9%. A blended number cannot see a
+# standoff, and a standoff is the only thing in this data worth looking at.
+#
+# The CFTC publishes the Traders in Financial Futures report Fridays at 3:30 PM
+# ET for the prior Tuesday. This runs Saturday morning, after the dust settles,
+# and again Monday in case Friday's publication slipped a holiday.
+#
+# Required secrets: MACROTILT_BOT_PAT (admin; the default token is rejected by
+# main's protected-branch hook), SUPABASE_* for the freshness stamp.
+# No API key: publicreporting.cftc.gov is open.
+
+on:
+  schedule:
+    - cron: '0 12 * * 6'   # Saturday 08:00 ET
+    - cron: '0 12 * * 1'   # Monday 08:00 ET — holiday-slip catch-up
+  workflow_dispatch:
+
+concurrency:
+  group: positioning-tff-weekly
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      # Exits 1 if fewer than 8 markets build — a near-empty positioning file is
+      # a broken fetch, not a quiet week, and must fail loudly.
+      - name: Rebuild positioning_tff.json
+        run: python3 scripts/build_positioning_tff.py public/positioning_tff.json
+
+      - name: Commit + push if changed
+        run: |
+          if git diff --quiet -- public/positioning_tff.json; then
+            echo "No change — the CFTC has not published a new report."
+          else
+            N=$(python3 -c "import json;d=json.load(open('public/positioning_tff.json'));print(d['as_of'],d['counts']['markets'],d['counts']['opposed'])")
+            set -- $N
+            git add public/positioning_tff.json
+            git commit -m "Positioning (TFF) refresh — report of $1 [skip ci]
+
+            $2 markets, $3 with fast and real money opposed.
+            Rebuilt by .github/workflows/POSITIONING-TFF-WEEKLY.yml"
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
+          fi
+
+      - name: Stamp feed health (success)
+        if: success()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # data_as_of is the CFTC REPORT date, not the run clock — the report is
+        # for the prior Tuesday and the chip must say so.
+        run: |
+          AS_OF=$(python3 -c "import json;print(json.load(open('public/positioning_tff.json'))['as_of'])")
+          python3 scripts/upsert_pipeline_health.py positioning_tff "$AS_OF" green
+
+      - name: Stamp feed health (failure)
+        if: failure()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py positioning_tff - red "POSITIONING-TFF-WEEKLY failed"
