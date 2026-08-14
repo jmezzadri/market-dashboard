@@ -128,15 +128,27 @@ def prices(symbols: list[str], start: str, end: str, batch: int = 150,
 
 
 def latest_trades(symbols: list[str], batch: int = 200) -> pd.Series:
-    """Most recent trade price per symbol — used to size orders, not to score."""
+    """Most recent trade price per symbol — used to size orders, not to score.
+
+    The free plan cannot query RECENT sip ("subscription does not permit
+    querying recent SIP data"), which returned an empty dict and silently sized
+    every order off the stale reference price. `delayed_sip` is 15 minutes
+    behind but covers the whole market; `iex` is live but one venue only.
+    """
     H, out = _alpaca_headers(), {}
-    for i in range(0, len(symbols), batch):
-        chunk = symbols[i:i + batch]
-        r = requests.get(f"{ALPACA_DATA}/v2/stocks/trades/latest", headers=H,
-                         params={"symbols": ",".join(chunk), "feed": "sip"}, timeout=60)
-        if r.status_code == 200:
-            for sym, t in (r.json().get("trades") or {}).items():
-                out[sym] = float(t["p"])
+    for feed in ("delayed_sip", "iex"):
+        missing = [s for s in symbols if s not in out]
+        if not missing:
+            break
+        for i in range(0, len(missing), batch):
+            chunk = missing[i:i + batch]
+            r = requests.get(f"{ALPACA_DATA}/v2/stocks/trades/latest", headers=H,
+                             params={"symbols": ",".join(chunk), "feed": feed}, timeout=60)
+            if r.status_code == 200:
+                for sym, t in (r.json().get("trades") or {}).items():
+                    p = float(t.get("p") or 0)
+                    if p > 0:
+                        out[sym] = p
     return pd.Series(out, dtype=float)
 
 
@@ -150,20 +162,35 @@ SEC_TAGS = [
 ]
 
 
-def _sb_select(table: str, params: dict, page: int = 50000) -> pd.DataFrame:
-    """PostgREST read with range paging (the API caps a single response)."""
+def _sb_select(table: str, params: dict, page: int = 1000) -> pd.DataFrame:
+    """PostgREST read, fully paged.
+
+    PostgREST caps a single response at 1,000 rows regardless of what Range asks
+    for. The first version of this function stopped as soon as it got a short
+    page, which silently truncated every read to the first 1,000 rows — the
+    production scorer saw 366 companies instead of 4,669 and built an empty
+    book. Page until a request comes back empty, never on a short page.
+    """
     rows, off = [], 0
     while True:
-        h = dict(_sb_headers())
-        h["Range-Unit"] = "items"
-        h["Range"] = f"{off}-{off + page - 1}"
-        r = requests.get(f"{SB_URL}/rest/v1/{table}", headers=h, params=params, timeout=180)
+        p = dict(params)
+        p["limit"], p["offset"] = page, off
+        r = requests.get(f"{SB_URL}/rest/v1/{table}", headers=_sb_headers(),
+                         params=p, timeout=180)
         r.raise_for_status()
         batch = r.json()
-        rows.extend(batch)
-        if len(batch) < page:
+        if not batch:
             break
-        off += page
+        rows.extend(batch)
+        off += len(batch)
+        if len(batch) < page and off > 0:
+            # Short page from a server-side cap is normal; only an EMPTY page
+            # means the end. Probe once more.
+            probe = dict(params)
+            probe["limit"], probe["offset"] = 1, off
+            if not requests.get(f"{SB_URL}/rest/v1/{table}", headers=_sb_headers(),
+                                params=probe, timeout=60).json():
+                break
     return pd.DataFrame(rows)
 
 
@@ -172,54 +199,23 @@ def fundamentals(as_of: str) -> pd.DataFrame:
 
     Columns: gp_a (gross profit / assets), ocf_a (operating cash flow / assets),
     iss (negative share-count growth, so buybacks score positive).
+
+    Computed by the qt_quality(date) Postgres function rather than here: the
+    source table is ~400k rows, and the flow-vs-stock distinction (annual
+    figures only for gross profit / revenue / cash flow) is easy to lose in a
+    client-side rewrite. See the migration for the reasoning.
     """
-    raw = _sb_select("qt_fundamentals", {
-        "select": "symbol,tag,period_end,val",
-        "filed": f"lte.{as_of}",
-        "order": "period_end.asc",
-    })
-    if raw.empty:
+    # qt_quality_json, not qt_quality: PostgREST truncates ANY response at 1,000
+    # rows, set-returning functions included. Returning one jsonb value avoids it.
+    r = requests.post(f"{SB_URL}/rest/v1/rpc/qt_quality_json", headers=_sb_headers(),
+                      json={"as_of": as_of}, timeout=180)
+    r.raise_for_status()
+    q = pd.DataFrame(r.json())
+    if q.empty:
         return pd.DataFrame(columns=["gp_a", "ocf_a", "iss"])
-    raw["val"] = pd.to_numeric(raw.val, errors="coerce")
-    raw = raw.dropna(subset=["val"])
-
-    g = raw.sort_values("period_end").groupby(["symbol", "tag"])["val"]
-    last = g.last().unstack()
-    # Five periods back ≈ the same fiscal quarter a year earlier, which is the
-    # right comparison for share count (avoids seasonal issuance noise).
-    prev = g.apply(lambda s: s.iloc[-5] if len(s) >= 5 else np.nan).unstack()
-
-    def col(frame: pd.DataFrame, name: str):
-        return frame[name] if name in frame.columns else None
-
-    def first_of(frame, *names):
-        out = None
-        for n in names:
-            c = col(frame, n)
-            out = c if out is None else out.combine_first(c) if c is not None else out
-        return out
-
-    rev = first_of(last, "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax")
-    cost = first_of(last, "CostOfRevenue", "CostOfGoodsAndServicesSold")
-    gp = col(last, "GrossProfit")
-    if rev is not None and cost is not None:
-        derived = rev - cost
-        gp = derived if gp is None else gp.combine_first(derived)
-
-    assets = col(last, "Assets")
-    ocf = col(last, "NetCashProvidedByUsedInOperatingActivities")
-    sh = first_of(last, "WeightedAverageNumberOfDilutedSharesOutstanding",
-                  "CommonStockSharesOutstanding")
-    shp = first_of(prev, "WeightedAverageNumberOfDilutedSharesOutstanding",
-                   "CommonStockSharesOutstanding")
-
-    q = pd.DataFrame(index=last.index)
-    if gp is not None and assets is not None:
-        q["gp_a"] = gp / assets.replace(0, np.nan)
-    if ocf is not None and assets is not None:
-        q["ocf_a"] = ocf / assets.replace(0, np.nan)
-    if sh is not None and shp is not None:
-        q["iss"] = -(sh / shp.replace(0, np.nan) - 1)
+    q = q.set_index("symbol")
+    for c in ("gp_a", "ocf_a", "iss"):
+        q[c] = pd.to_numeric(q[c], errors="coerce")
     return q.replace([np.inf, -np.inf], np.nan)
 
 
