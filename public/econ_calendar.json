@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-14T20:54:41Z",
+  "generated_at": "2026-08-15T09:48:14Z",
   "window": {
-    "from": "2026-08-07",
-    "to": "2026-10-23"
+    "from": "2026-08-08",
+    "to": "2026-10-24"
   },
   "counts": {
-    "total": 94,
-    "tier1": 23
+    "total": 92,
+    "tier1": 22
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,28 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-07",
-      "time_et": "8:30 AM",
-      "name": "Jobs report",
-      "short": "Jobs",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-07",
-      "time_et": "3:00 PM",
-      "name": "Consumer credit",
-      "short": "Credit",
-      "tier": 3,
-      "category": "Consumer",
-      "blurb": "Revolving and non-revolving household borrowing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-12",
       "time_et": "8:30 AM",
