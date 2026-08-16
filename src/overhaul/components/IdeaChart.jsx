@@ -34,7 +34,11 @@ function fmtDate(iso, long = false) {
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', long
     ? { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
-    : { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    /* Four-digit year on the axis. A two-digit year renders "Aug 16", which on
+       a ten-year chart reads as the sixteenth of August rather than 2016 — the
+       tick then lies about the span of the picture. Verified on the 2026-08-16
+       note, where all four charts carried "Aug 16 / Aug 21 / Aug 26". */
+    : { month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
 /* Window is applied to the SERIES' own last observation, not to today — a
