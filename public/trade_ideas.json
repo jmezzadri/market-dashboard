@@ -1,9 +1,210 @@
 {
-  "generated_at": "2026-08-14T18:17:21Z",
+  "generated_at": "2026-08-16T23:28:45Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
-  "next_publish": "2026-08-16",
+  "next_publish": "2026-08-19",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-08-16",
+      "kind": "rates",
+      "title": "Two prices for the same insurance, and only one of them is cheap",
+      "dek": "The inflation compensation inside a 10-year Treasury is 2.27% — the 31st percentile of three years. Gold, which insures against the same thing, sits at the 85th percentile of three years and the 98th of its history since 2000. In the eighteen episodes since 2006 when those two hedges have been priced this far apart, the bond market's number was the higher one six months later in three cases out of four. Unconditionally it is a coin flip.",
+      "position_type": "allocation shift",
+      "call": "Over the next two to three quarters the inflation compensation inside a 10-year Treasury — 2.27%, the 31st percentile of three years — is likelier to widen than to narrow. Gold prices the same risk at the 85th percentile of three years, and when the two have disagreed this far, the bond market's number is the one that has moved.",
+      "the_trade": {
+        "buy": "10-year Treasury Inflation-Protected Securities (TIPS). The principal is adjusted upward with the consumer price index, so the holder is repaid in money that keeps its purchasing power.",
+        "sell": "Ordinary 10-year Treasury notes of the same maturity, dollar for dollar. Same issuer, same maturity date, same credit — the only thing that changes is whether the payout is fixed or indexed to inflation.",
+        "sizing": "Matched maturity and matched money. Nothing is sold short and no borrowing is involved: this is a swap of one Treasury for another. The position pays off if inflation over the life of the bond runs above 2.27% a year, or if the market simply revises its guess upward; the profit and loss is the difference between two Treasuries, not a view on whether yields rise or fall."
+      },
+      "edge": {
+        "source": "cross-asset divergence",
+        "summary": "Two markets that price protection against the same risk are far apart. The 10-year inflation breakeven sits in the bottom third of its trailing three-year range while gold sits in the top fifteen percent of its own, and industrial commodity prices are at the top of their range with copper in the 99th percentile of three years. The gap between the two hedges — not the low breakeven on its own — is what the measurement is built on.",
+        "backtest": {
+          "window": "Daily, 29 December 2006 to 14 August 2026 — 4,900 observations, being every day on which a trailing three-year percentile exists for both gold and the 10-year inflation breakeven. Condition: gold in the top 15% of its own trailing three years AND the breakeven in the bottom 35% of its own. That fires on 1,079 days, which collapse to 18 distinct episodes.",
+          "n": 18,
+          "result": "At six months the breakeven was wider a median of 9.5 basis points counting one observation per episode, with 75% of the 16 completed episodes positive; across 18 non-overlapping six-month windows the median was +12 basis points with 72% positive. At three months the two counting methods disagree — +15 basis points across 31 non-overlapping windows (71% positive) but only +3.5 basis points on the stricter one-per-episode count (56%) — which is why the horizon on this note is set at six months rather than three.",
+          "baseline": "Unconditional over the same sample: the six-month change in the breakeven has a median of +1.5 basis points with 52% of 40 non-overlapping windows positive, and the three-month change a median of −1 basis point with 48% of 81 windows positive. The control that matters more: on the days when the breakeven is equally low but gold is NOT in the top 15% of its range, the six-month median is +3.0 basis points with 57% positive — roughly a third of the conditional result. The low breakeven alone is worth something; the disagreement between the two hedges is worth most of it."
+        }
+      },
+      "variant": "Consensus holds these as two separate conversations. The breakeven is read as the bond market's inflation forecast — a serious, liquid, professional number. Gold is read as a story about central bank buying, government debt and geopolitics, and therefore as saying nothing about the consumer price index at all. Both instruments are nevertheless bought by people who want to be protected from the same outcome, and they are currently priced as if that outcome has very different odds. The variant view is not that gold is right and the bond market is wrong; it is that a 54-percentile gap between two prices for one risk has historically closed from the cheaper side, and the cheaper side is the one you can buy from the US Treasury.",
+      "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
+      "horizon": "Two to three quarters. The measured edge holds under both counting methods at six months and only one of them at three, so this is a six-month proposition with an entry window, not a multi-year holding.",
+      "thesis": [
+        "The 10-year Treasury yields 4.68%, the 96th percentile of three years — but almost none of that is about inflation. The real yield is 2.41%, the 97th percentile of three years and the 99th of ten. The inflation compensation left over is 2.27%, the 31st percentile of three years. The bond market is charging a great deal to lend money and almost nothing to insure the lender against prices.",
+        "Every other market that prices the same risk disagrees. Gold at $4,363.60 is in the 85th percentile of its trailing three years and the 98th of its history back to August 2000. Copper at $6.5925 a pound is in the 99th percentile of three years and sits 1.7% under the highest price in that series, set on 5 August 2026. Wheat is in the 96th percentile of three years. None of that is the behaviour of a world in which inflation compensation belongs in the bottom third of its range.",
+        "The measurement supports the divergence rather than the level. Conditioning only on a low breakeven gives a six-month median of +8 basis points; adding the requirement that gold be expensive at the same time raises it to +12, and the mirror case — low breakeven, gold not expensive — gives +3. The gap between two hedges carries the information, which is why this is not simply a bet that a cheap thing gets less cheap.",
+        "The position is deliberately neutral on the direction of interest rates. In the historical episodes the widening came mostly from the nominal yield moving up — a median +18 basis points at three months against +6 for the real yield — so a reader who owns this expressed as TIPS against nominal Treasuries collects the gap whether yields rise or fall. That matters right now, because there is no confident view available on the level of rates into a September FOMC meeting that follows a jobs report showing payrolls at −23,000.",
+        "The most extended position in our own positioning data sits on the other side of the leg being sold. Asset managers — pension funds, insurers, real-money accounts — hold a net long in 10-year Treasury futures equal to 46.8% of open interest, the 97.5th percentile of the 236 weekly reports since February 2022. Real money is maximally long the nominal bond. Nobody is that long the indexed one."
+      ],
+      "evidence": [
+        {
+          "claim": "The inflation compensation priced into a 10-year Treasury (its breakeven inflation rate)",
+          "value": "2.27% — the 31st percentile of the past three years (750 daily observations) and the 28th of five years; the three-year range is 2.02% to 2.50%",
+          "source": "MacroTilt indicator history (FRED 10-year breakeven, T10YIE)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "The real (inflation-adjusted) 10-year Treasury yield",
+          "value": "2.41% — the 97th percentile of three years and the 99th of ten years",
+          "source": "MacroTilt indicator history (FRED 10-year TIPS yield, DFII10)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "The nominal 10-year Treasury yield",
+          "value": "4.68% — the 96th percentile of three years",
+          "source": "MacroTilt indicator history (FRED DGS10)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Gold, the other instrument bought as protection against inflation",
+          "value": "$4,363.60 an ounce — the 85th percentile of its trailing three years and the 98th of the full series back to 30 August 2000. It is also 18.0% below the highest price in that series, $5,318.40 on 29 January 2026, so this is an expensive market rather than a peaking one",
+          "source": "MacroTilt indicator history (LBMA/Stooq gold spot)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Copper, the industrial commodity least sentimental about inflation stories",
+          "value": "$6.5925 a pound — the 99th percentile of three years, 1.7% below the highest price in the series since 30 August 2000, which was $6.7030 on 5 August 2026",
+          "source": "MacroTilt indicator history (Stooq copper front month)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Wheat, a second check on the commodity read",
+          "value": "652.75 cents a bushel — the 96th percentile of three years",
+          "source": "MacroTilt indicator history (Stooq wheat front month)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Conditional outcome — breakeven change six months after the two hedges diverge (gold top 15% of trailing three years, breakeven bottom 35% of its own)",
+          "value": "Median +9.5 basis points counting one observation per episode, 75% of 16 completed episodes positive; +12 basis points across 18 non-overlapping six-month windows, 72% positive",
+          "source": "MacroTilt indicator history, measured over 4,900 daily observations from 29 December 2006",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Unconditional baseline — the same six-month change with no condition attached",
+          "value": "Median +1.5 basis points, 52% of 40 non-overlapping windows positive. At three months the unconditional median is −1 basis point with 48% positive",
+          "source": "MacroTilt indicator history, same 4,900-observation sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Control that argues against a simpler explanation — breakeven equally low but gold NOT expensive",
+          "value": "Six-month median +3.0 basis points, 57% positive across 14 non-overlapping windows. Roughly a third of the conditional result, so the low breakeven on its own is not the driver",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Where the historical widening came from, at three months",
+          "value": "Nominal 10-year yield median +18 basis points, real 10-year yield median +6 — the gap opened mostly through the nominal leg, so the spread is not a disguised bet on lower yields",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "AGAINST the idea — the worst single episode in the sample",
+          "value": "The episode entered on 29 July 2008 saw the 10-year breakeven 150 basis points lower three months later. Inflation protection is exactly what gets marked down in a growth accident, and one observation of that size is the fat tail this trade carries",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "AGAINST the idea — the labour market is not confirming an inflation impulse",
+          "value": "US non-farm payrolls of −23,000 in the July 2026 report, with the unemployment rate at 4.1%",
+          "source": "MacroTilt indicator history (BLS payrolls, unemployment rate)",
+          "as_of": "2026-07-01"
+        },
+        {
+          "claim": "Positioning on the leg being sold to fund the trade",
+          "value": "Asset managers net long 10-year Treasury futures equal to 46.8% of open interest — the 97.5th percentile of 236 weekly reports since 8 February 2022. Hedge funds sit on the other side at the 19.5th percentile",
+          "source": "MacroTilt positioning (CFTC Traders in Financial Futures)",
+          "as_of": "2026-08-11"
+        }
+      ],
+      "charts": [
+        {
+          "series": "breakeven_10y",
+          "title": "What the bond market is paying for inflation protection",
+          "subtitle": "The 10-year breakeven inflation rate — the annual inflation the market must average for a nominal Treasury to match an inflation-indexed one, daily",
+          "unit": "%",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At 2.27% the market is priced for consumer price inflation to average 2.27% a year for a decade — the 31st percentile of the past three years, and a lower number than the market demanded on two thirds of the days since 2023.",
+          "source": "MacroTilt indicator history (FRED T10YIE)"
+        },
+        {
+          "series": "cmdty_gold",
+          "title": "What the other inflation hedge costs",
+          "subtitle": "Gold spot, dollars per ounce, daily",
+          "unit": "$/oz",
+          "decimals": 0,
+          "window": "10y",
+          "caption": "The 85th percentile of the past three years and the 98th of the series since August 2000, and 18% under its own January 2026 peak. Buyers here are paying up for protection against the same thing the breakeven says is not worth insuring.",
+          "source": "MacroTilt indicator history (gold spot)"
+        },
+        {
+          "series": "real_rates",
+          "title": "The part of the 10-year yield that has nothing to do with inflation",
+          "subtitle": "The 10-year inflation-protected Treasury yield — what a lender earns after inflation, daily",
+          "unit": "%",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At 2.41% this is the 99th percentile of ten years. Nearly the whole of the 4.68% nominal yield is compensation for lending, not for inflation — which is the arithmetic that leaves the breakeven so low.",
+          "source": "MacroTilt indicator history (FRED DFII10)"
+        },
+        {
+          "series": "cmdty_copper",
+          "title": "The commodity with no inflation narrative attached to it",
+          "subtitle": "Copper front-month futures, dollars per pound, daily",
+          "unit": "$/lb",
+          "decimals": 3,
+          "window": "10y",
+          "caption": "The 99th percentile of three years and 1.7% under the highest price in the series since August 2000. Copper is bought by manufacturers, not by people with a view on the Federal Reserve, which makes it the least sentimental check on the bond market's inflation number.",
+          "source": "MacroTilt indicator history (copper front month)"
+        }
+      ],
+      "levels": {
+        "trigger": "A 10-year breakeven at or below 2.30%. It is 2.27% as of 14 August, so the entry is live; scale in ahead of the 11 September consumer price report rather than after it.",
+        "invalidation": "A weekly close in the 10-year breakeven below 2.10% — the bottom decile of the past three years — or a payrolls print below −100,000 on 4 September or 2 October. Either says the market is pricing a demand shock rather than an inflation one, and this position loses on both legs in that world.",
+        "target": "A 10-year breakeven of 2.39%, which is the +12 basis point six-month median the base rate implies from 2.27% and sits inside the 2.02%–2.50% range of the past three years. There is no case here for a return to the 3.02% of April 2022."
+      },
+      "sections": [
+        {
+          "title": "What you are actually buying",
+          "prose": "A nominal Treasury pays a fixed number of dollars. A Treasury Inflation-Protected Security pays a smaller fixed rate on a principal that grows with the consumer price index. The difference between the two yields — 2.27% today at ten years — is the annual inflation rate at which the two end up in the same place. Buy the indexed bond and sell the ordinary one and you own nothing except that number: same issuer, same maturity, no credit risk taken, no money borrowed. If inflation over the coming years averages more than 2.27%, or if the market's estimate of it moves up before then, the indexed bond wins. If prices run cooler than that, the ordinary one does."
+        },
+        {
+          "title": "Setting the stage — which product this is",
+          "prose": "Match the horizon to the signal. This one is a measurement about a gap between two prices, and gaps between prices close over months, not over years. The evidence is clean at six months under both ways of counting it and ambiguous at three. So the honest description is a two-to-three-quarter position with a defined level that proves it wrong, entered while the breakeven sits below 2.30%. It is not an inflation forecast, it is not a call on the level of yields, and it is not a view a reader should still be holding in 2028."
+        },
+        {
+          "title": "Why the counting method matters",
+          "bullets": [
+            "The condition fires on 1,079 separate days since 2006. Treated as 1,079 independent observations it would look overwhelming, and it would be wrong — those days sit inside 18 episodes, and days within an episode tell you the same thing repeatedly.",
+            "Two stricter counts are reported instead. Non-overlapping windows: take one observation, skip forward the full horizon, take the next. One-per-episode: take only the day the condition first fires.",
+            "At six months both agree — +12 basis points and 72% positive on non-overlapping windows, +9.5 and 75% on episode entries, against an unconditional +1.5 and 52%.",
+            "At three months they disagree, +15 basis points against +3.5. Where two defensible counts of the same data disagree, the weaker one is the finding. The horizon is set at six months for that reason."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "26 August 2026 — personal income and the PCE price index, the inflation measure the Federal Reserve actually targets.",
+            "4 September 2026 — the August jobs report. The July report showed payrolls at −23,000; a second negative print is the fastest route to the invalidation level on this trade.",
+            "10 and 11 September 2026 — producer prices, then the consumer price index. The single largest scheduled mover of a breakeven inflation rate.",
+            "16 September 2026 — the Federal Reserve decision and the updated projections. A committee that signals tolerance for inflation above target while cutting is the outcome this position is positioned for.",
+            "14 October 2026 — the next consumer price index, roughly the mid-point of the horizon."
+          ]
+        }
+      ],
+      "other_side": "The strongest argument against is that a breakeven is not a pure inflation forecast and never has been. Part of the 2.27% is compensation for the fact that inflation-protected Treasuries trade in a thinner market than ordinary ones — buyers demand a discount for that, and it is not an error waiting to be corrected. It can also sit there for a very long time: between 2014 and 2016 the breakeven stayed in the bottom third of its range for more than two years while nothing closed the gap. Second, the gold leg of the argument is a correlation and not a mechanism. Gold is 18% below its January 2026 peak, and a market that has already given back that much may be telling you the inflation hedge is being sold rather than that it is dear. Third, and most seriously, the sample carries one catastrophic observation: the episode entered on 29 July 2008 was 150 basis points lower three months later. Inflation protection is exactly the asset that is marked down when growth breaks, and with payrolls at −23,000 in July this is not a theoretical risk. The trade is a modest median gain against a small chance of a very large loss, and it should be sized as that and nothing else.",
+      "risks": [
+        "A growth accident. If the September or October jobs report confirms contraction, breakevens fall with the demand outlook and both legs move against the position at once. This is the loss that is large rather than the loss that is likely.",
+        "The liquidity discount inside TIPS widens instead of narrowing. In a stressed market, indexed Treasuries are sold before ordinary ones — the mechanism that produced the 2008 observation in the sample.",
+        "Time. The 2014-2016 precedent had the breakeven in the bottom third of its range for over two years. A six-month horizon can expire while the argument is still intact, which is a real cost even though it is not a large one.",
+        "The gold signal is a statistical relationship measured over 18 episodes, not a causal link. Eighteen is enough to be worth acting on and not enough to be sure of, and a reader should hold it that way.",
+        "The measured gain is small in absolute terms. A twelve basis point median widening on a ten-year spread is a modest result on the money committed. This is a high-probability, low-magnitude position, and treating it as anything larger is the mistake available here."
+      ],
+      "so_what": "The bond market is charging the 97th percentile of three years to lend money and the 31st percentile to insure the lender against inflation, at the same moment copper sits in the 99th percentile of three years and gold in the 85th. Two markets are pricing the same risk 54 percentiles apart. The way to own that disagreement is a swap of one Treasury for another — no leverage, no short, no view on the direction of rates — and the honest expectation is a small gain with good odds over six months, not a windfall.",
+      "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
+      "status": "live",
+      "published_at": "2026-08-16T23:28:45Z"
+    },
     {
       "date": "2026-08-14",
       "kind": "fx",
