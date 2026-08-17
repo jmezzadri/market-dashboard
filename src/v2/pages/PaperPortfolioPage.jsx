@@ -98,9 +98,15 @@ function Panel({ title, right, children, style }) {
   );
 }
 
-/* ── handwritten SVG line chart ───────────────────────────────────────── */
-function LineChart({ series, height = 240, log = false, yFmt }) {
-  const W = 1000, H = height, padL = 8, padR = 66, padT = 10, padB = 22;
+/* ── interactive SVG line chart ───────────────────────────────────────────
+   Hover layer per the house dataviz rules: a vertical crosshair snaps to the
+   nearest date, ONE tooltip lists every series at that X (values lead, names
+   follow, keyed by a short stroke of the series color), keyboard focus +
+   arrow keys reach the same readout. Gridlines are solid hairlines. */
+function LineChart({ series, dates, height = 240, log = false, yFmt }) {
+  const [hov, setHov] = useState(null);            // index into dates, or null
+  const wrapRef = React.useRef(null);
+  const W = 1000, H = height, padL = 8, padR = 70, padT = 10, padB = 26;
   const all = series.flatMap((s) => s.values).filter((v) => v > 0);
   if (!all.length) return null;
   const t = (v) => (log ? Math.log(v) : v);
@@ -110,32 +116,120 @@ function LineChart({ series, height = 240, log = false, yFmt }) {
   const y = (v) => padT + (1 - (t(v) - lo) / Math.max(hi - lo, 1e-9)) * (H - padT - padB);
   const path = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
   const gridVals = [0.25, 0.5, 0.75].map((f) => (log ? Math.exp(lo + f * (hi - lo)) : lo + f * (hi - lo)));
-  const fmt = yFmt || ((v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`));
-  // Skip a gridline's y-axis label when a series end-label would sit on top of
-  // it (the line itself still draws) — otherwise $4.9M prints over the S&P's
-  // end value at the right edge.
+  const fmt = yFmt || ((v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString()}k`));
   const endYs = series.map((s) => y(s.values[s.values.length - 1]));
+  const dateLbl = (i) => (dates && dates[i]
+    ? new Date(`${String(dates[i]).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', ...(n < 60 ? { day: 'numeric' } : {}) })
+    : '');
+  const xTicks = n > 1 ? [0, Math.floor(n / 2), n - 1] : [0];
+
+  const idxFromEvent = (e) => {
+    const el = wrapRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    return Math.max(0, Math.min(n - 1, Math.round(((px - padL) / (W - padL - padR)) * (n - 1))));
+  };
+  const onKey = (e) => {
+    if (e.key === 'ArrowLeft') { setHov((h) => Math.max(0, (h ?? n - 1) - 1)); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setHov((h) => Math.min(n - 1, (h ?? 0) + 1)); e.preventDefault(); }
+    if (e.key === 'Escape') setHov(null);
+  };
+  const tipLeftPct = hov != null ? (x(hov) / W) * 100 : 0;
+  const flip = tipLeftPct > 62;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="performance chart">
-      {gridVals.map((gv, i) => (
-        <g key={i}>
-          <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke="rgba(128,128,128,0.18)" strokeDasharray="3 5" />
-          {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
-            <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill="rgba(128,128,128,0.8)">{fmt(gv)}</text>
-          ) : null}
-        </g>
-      ))}
-      {series.map((s) => (
-        <path key={s.name} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={s.width || 2.2} strokeLinejoin="round" strokeLinecap="round" opacity={s.opacity || 1} />
-      ))}
-      {series.map((s) => (
-        <text key={`${s.name}-end`} x={W - padR + 6} y={y(s.values[s.values.length - 1]) + 4} fontSize="12.5" fontWeight="600" fill={s.color}>
-          {fmt(s.values[s.values.length - 1])}
-        </text>
-      ))}
-    </svg>
+    <div
+      ref={wrapRef}
+      style={{ position: 'relative' }}
+      tabIndex={0}
+      role="application"
+      aria-label="Performance chart — arrow keys move the readout"
+      onKeyDown={onKey}
+      onPointerMove={(e) => setHov(idxFromEvent(e))}
+      onPointerLeave={() => setHov(null)}
+      onBlur={() => setHov(null)}
+    >
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="performance chart">
+        {gridVals.map((gv, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke="rgba(128,128,128,0.16)" />
+            {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
+              <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill="rgba(128,128,128,0.8)">{fmt(gv)}</text>
+            ) : null}
+          </g>
+        ))}
+        {xTicks.map((i) => (
+          <text key={i} x={x(i)} y={H - 6} fontSize="11.5" fill="rgba(128,128,128,0.75)"
+            textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}>{dateLbl(i)}</text>
+        ))}
+        {series.map((s) => (
+          <path key={s.name} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={s.width || 2.2} strokeLinejoin="round" strokeLinecap="round" opacity={s.opacity || 1} />
+        ))}
+        {series.map((s) => (
+          <text key={`${s.name}-end`} x={W - padR + 6} y={y(s.values[s.values.length - 1]) + 4} fontSize="12.5" fontWeight="600" fill={s.color}>
+            {fmt(s.values[s.values.length - 1])}
+          </text>
+        ))}
+        {hov != null && (
+          <g>
+            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="rgba(128,128,128,0.55)" strokeWidth="1" />
+            {series.map((s) => (
+              <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4"
+                fill={s.color} stroke="var(--mt-surface, #faf6ef)" strokeWidth="2" />
+            ))}
+          </g>
+        )}
+      </svg>
+      {hov != null && (
+        <div style={{
+          position: 'absolute', top: 6,
+          left: flip ? undefined : `calc(${tipLeftPct}% + 12px)`,
+          right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined,
+          background: 'var(--mt-surface, #faf6ef)', border: BORDER, borderRadius: 8,
+          padding: '8px 11px', pointerEvents: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+          fontSize: 12.5, whiteSpace: 'nowrap', zIndex: 5,
+        }}>
+          <div style={{ opacity: 0.55, marginBottom: 4 }}>{dateLbl(hov)}</div>
+          {series.map((s) => (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '1px 0' }}>
+              <span style={{ width: 12, height: 2.5, background: s.color, borderRadius: 2, flex: 'none' }} />
+              <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(s.values[hov])}</span>
+              <span style={{ opacity: 0.55 }}>{s.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
+/* ── jargon tooltip ───────────────────────────────────────────────────────
+   Every finance term on this page explains itself: dotted underline, hover or
+   keyboard focus opens a plain-English note. The same text also lives in the
+   "what these columns mean" legend under the holdings table, so nothing is
+   gated behind a hover. */
+function Term({ children, tip, style }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      tabIndex={0}
+      style={{ position: 'relative', borderBottom: '1px dotted rgba(128,128,128,0.7)', cursor: 'help', outline: 'none', ...style }}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+    >
+      {children}
+      {open && (
+        <span style={{
+          position: 'absolute', bottom: '135%', left: 0, zIndex: 20,
+          background: 'var(--mt-surface, #faf6ef)', border: BORDER, borderRadius: 8,
+          padding: '9px 12px', width: 250, whiteSpace: 'normal', boxShadow: '0 3px 12px rgba(0,0,0,0.10)',
+          fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0, textTransform: 'none', opacity: 0.95,
+        }}>{tip}</span>
+      )}
+    </span>
+  );
+}
+
 function Legend({ items }) {
   return (
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 10 }}>
@@ -195,12 +289,56 @@ function liveStats(nav) {
 const th = { textAlign: 'right', padding: '8px 10px', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', opacity: 0.5, whiteSpace: 'nowrap' };
 const td = { textAlign: 'right', padding: '9px 10px', fontSize: 13.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
 
+/* Plain-English explanations for every term on the page. These feed BOTH the
+   hover tooltips and the always-visible column legend — nothing is gated
+   behind a hover (Joe 2026-08-17: no unexplained jargon on this page). */
+const TIPS = {
+  rank: 'Position in the strategy’s ranking at the last monthly scoring. 1 = highest-scoring name in the book.',
+  weight: 'This position’s share of the whole portfolio today. Every name targets 2.5% — one fortieth.',
+  value: 'What the position is worth at the latest closing mark.',
+  cost: 'Average price actually paid at the broker, from the official fill records.',
+  last: 'Latest closing price from the broker’s end-of-day snapshot.',
+  pnl: 'Profit or loss since purchase — dollars, and percent of what was paid.',
+  trend1y: 'How much the stock rose over the past 12 months, skipping the most recent month (the standard momentum measure — recent-month moves tend to reverse). The strategy buys established winners.',
+  profitability: 'Gross profit divided by total assets, from the company’s latest SEC filing — how much profit the business earns on everything it owns. Above ~0.35 is strong; 1.0+ is exceptional.',
+  buybacks: 'How much the share count shrank over the past year. Positive = the company bought back its own stock (good for holders); negative = it issued more shares and diluted them.',
+  insider: 'Score for recent open-market stock purchases by the company’s own executives and board members — weighted by how large the buy was relative to shares they already owned, because a doubled stake is conviction and a 2% top-up is noise. A dot means no qualifying buying.',
+  sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good. The single most-used performance measure.',
+  sortino: 'Like the Sharpe ratio, but only counts DOWNSIDE swings as risk — upside volatility isn’t penalized.',
+  vol: 'How much returns swing, annualized. The S&P 500 runs ~15–16% in a normal year.',
+  maxdd: 'The worst peak-to-trough decline — the most an investor who bought the top would have been down.',
+  beta: 'How much the book moves when the market moves. 1.0 = moves with the market; 0.5 = half as much.',
+  te: 'How differently the book behaves from the S&P 500, annualized. Higher = more independent of the index.',
+  ir: 'Excess return over the S&P 500 per unit of that difference — the benchmark-relative version of Sharpe.',
+  ddpeak: 'How far the account sits below its own all-time high right now. 0% = at the high.',
+  medvol: 'The middle holding’s price volatility at selection — how jumpy the typical stock in this book is. The strategy caps this at 70% per name.',
+  worst: 'The single worst calendar year in the period.',
+};
+
+/* Holdings column set — order is draggable, every column sorts. */
+const HCOLS = [
+  { key: 'rank', label: '#', tip: TIPS.rank, align: 'left' },
+  { key: 'company', label: 'Company', tip: null, align: 'left' },
+  { key: 'weight', label: 'Weight', tip: TIPS.weight },
+  { key: 'value', label: 'Value', tip: TIPS.value },
+  { key: 'cost', label: 'Avg cost', tip: TIPS.cost },
+  { key: 'last', label: 'Last', tip: TIPS.last },
+  { key: 'pnl', label: 'P&L', tip: TIPS.pnl },
+  { key: 'trend1y', label: '1-yr trend', tip: TIPS.trend1y },
+  { key: 'profitability', label: 'Profitability', tip: TIPS.profitability },
+  { key: 'buybacks', label: 'Buybacks', tip: TIPS.buybacks },
+  { key: 'insider', label: 'Insider buying', tip: TIPS.insider },
+];
+
 /* ══════════════════════════════════════════════════════════════════════ */
 export default function PaperPortfolioPage({ onOpenTicker }) {
   const [book, setBook] = useState(null);
   const [orders, setOrders] = useState({});
   const [nav, setNav] = useState(null);
   const [err, setErr] = useState(null);
+  const [sortKey, setSortKey] = useState('rank');
+  const [sortDir, setSortDir] = useState(1);          // 1 asc · -1 desc
+  const [colOrder, setColOrder] = useState(HCOLS.map((c) => c.key));
 
   useEffect(() => {
     let dead = false;
@@ -254,6 +392,32 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   const filled = Object.values(orders).filter((o) => o.status === 'filled').length;
   const working = Object.values(orders).filter((o) => !['filled', 'canceled', 'rejected', 'expired'].includes(o.status)).length;
+
+  const sortedBook = useMemo(() => {
+    if (!book) return [];
+    const val = (r) => {
+      const m = marks[r.symbol]; const o = orders[r.symbol];
+      switch (sortKey) {
+        case 'rank': return Number(r.rank);
+        case 'company': return r.symbol;
+        case 'weight': return m ? Number(m.mv) / equity : 0.025;
+        case 'value': return m ? Number(m.mv) : Number(r.target_dollars);
+        case 'cost': return o?.status === 'filled' ? Number(o.filled_avg_price) : -Infinity;
+        case 'last': return m ? Number(m.price) : -Infinity;
+        case 'pnl': return m ? Number(m.upl) : -Infinity;
+        case 'trend1y': return Number(r.mom12 ?? -Infinity);
+        case 'profitability': return Number(r.gp_a ?? -Infinity);
+        case 'buybacks': return Number(r.iss ?? -Infinity);
+        case 'insider': return Number(r.insider ?? 0);
+        default: return Number(r.rank);
+      }
+    };
+    return [...book].sort((a, b) => {
+      const va = val(a), vb = val(b);
+      const c = typeof va === 'string' ? va.localeCompare(vb) : (va === vb ? 0 : va < vb ? -1 : 1);
+      return c * sortDir;
+    });
+  }, [book, marks, orders, equity, sortKey, sortDir]);
 
   // Live curve, indexed to 100 at inception, only when there are ≥2 closes.
   const liveCurve = useMemo(() => {
@@ -313,6 +477,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     { name: 'Quality Trend', color: ACCENT, values: liveCurve.strategy },
                     ...(liveCurve.spx ? [{ name: 'S&P 500', color: MUTED, values: liveCurve.spx, width: 1.8, opacity: 0.85 }] : []),
                   ]}
+                  dates={nav.map((r) => r.d)}
                   yFmt={(v) => v.toFixed(1)}
                 />
                 <Legend items={[['Quality Trend (indexed to 100)', ACCENT], ['S&P 500', MUTED]]} />
@@ -325,30 +490,30 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </div>
             )}
             <div style={{ ...grid(120, 16), borderTop: HAIRLINE, paddingTop: 16, marginTop: 16 }}>
-              <Stat label="Volatility (ann.)" value={ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}
-                sub={ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'daily closes'} />
-              <Stat label="Sharpe" value={ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}
+              <Stat label={<Term tip={TIPS.vol}>Volatility</Term>} value={ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}
+                sub={ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized, daily closes'} />
+              <Stat label={<Term tip={TIPS.sharpe}>Sharpe</Term>} value={ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}
                 sub={ls?.sharpe == null ? needs(ls?.n ?? 0, 60) : 'vs ~4% cash'} />
-              <Stat label="Beta vs S&P" value={ls?.beta != null ? ls.beta.toFixed(2) : '—'}
+              <Stat label={<Term tip={TIPS.beta}>Beta vs S&P</Term>} value={ls?.beta != null ? ls.beta.toFixed(2) : '—'}
                 sub={ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily closes'} />
-              <Stat label="Tracking error" value={ls?.te != null ? fmtPctPlain(ls.te) : '—'}
+              <Stat label={<Term tip={TIPS.te}>Tracking error</Term>} value={ls?.te != null ? fmtPctPlain(ls.te) : '—'}
                 sub={ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'} />
-              <Stat label="Max drawdown" value={ls ? fmtPctPlain(ls.maxdd) : '—'}
+              <Stat label={<Term tip={TIPS.maxdd}>Max drawdown</Term>} value={ls ? fmtPctPlain(ls.maxdd) : '—'}
                 sub="live, close-to-close" color={ls && ls.maxdd < -0.005 ? DOWN : undefined} />
             </div>
           </Panel>
 
           <Panel title="Risk" right={latestNav ? `as of ${fmtDate(latestNav.d)}` : 'pre-first-close'}>
             {[
-              ['Invested', latestNav ? fmtPctPlain(invested, 1) : '—', 'target 100%, no leverage'],
-              ['Cash', fmtUsd(cash), latestNav ? fmtPctPlain(cash / equity, 1) + ' of equity' : 'pre-open'],
-              ['Drawdown from peak', ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'live equity vs its high'],
-              ['Largest position', largest ? `${largest.s} · ${fmtPctPlain(largest.w, 2)}` : book?.length ? '2.50% target' : '—', 'equal-weight book'],
-              ['Top 5 concentration', weights.length ? fmtPctPlain(top5, 1) : book?.length ? '12.5% target' : '—', 'sum of largest five'],
-              ['Median holding vol', medVol != null ? fmtPctPlain(medVol, 0) : '—', 'annualized, at selection'],
-            ].map(([k, v, sub]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0', borderBottom: HAIRLINE, gap: 10 }}>
-                <div style={{ fontSize: 13, opacity: 0.65 }}>{k}<div style={{ fontSize: 11, opacity: 0.65 }}>{sub}</div></div>
+              ['inv', 'Invested', null, latestNav ? fmtPctPlain(invested, 1) : '—', 'target 100%, no leverage'],
+              ['cash', 'Cash', null, fmtUsd(cash), latestNav ? fmtPctPlain(cash / equity, 1) + ' of equity' : 'pre-open'],
+              ['dd', 'Drawdown from peak', TIPS.ddpeak, ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'live equity vs its high'],
+              ['big', 'Largest position', null, largest ? `${largest.s} · ${fmtPctPlain(largest.w, 2)}` : book?.length ? '2.50% target' : '—', 'equal-weight book'],
+              ['top5', 'Top 5 concentration', null, weights.length ? fmtPctPlain(top5, 1) : book?.length ? '12.5% target' : '—', 'sum of largest five'],
+              ['mvol', 'Typical holding volatility', TIPS.medvol, medVol != null ? fmtPctPlain(medVol, 0) : '—', 'median, at selection'],
+            ].map(([id, k, tip, v, sub]) => (
+              <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0', borderBottom: HAIRLINE, gap: 10 }}>
+                <div style={{ fontSize: 13, opacity: 0.65 }}>{tip ? <Term tip={tip}>{k}</Term> : k}<div style={{ fontSize: 11, opacity: 0.65 }}>{sub}</div></div>
                 <div style={{ fontSize: 15.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
               </div>
             ))}
@@ -367,11 +532,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr style={{ borderBottom: BORDER }}>
                   <th style={{ ...th, textAlign: 'left' }}></th>
                   <th style={th}>Return</th>
-                  <th style={th}>Volatility</th>
-                  <th style={th}>Sharpe</th>
-                  <th style={th}>Sortino</th>
-                  <th style={th}>Max drawdown</th>
-                  <th style={th}>Worst year</th>
+                  <th style={th}><Term tip={TIPS.vol}>Volatility</Term></th>
+                  <th style={th}><Term tip={TIPS.sharpe}>Sharpe</Term></th>
+                  <th style={th}><Term tip={TIPS.sortino}>Sortino</Term></th>
+                  <th style={th}><Term tip={TIPS.maxdd}>Max drawdown</Term></th>
+                  <th style={th}><Term tip={TIPS.worst}>Worst year</Term></th>
                 </tr>
               </thead>
               <tbody>
@@ -411,8 +576,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </table>
           </div>
           <div style={{ fontSize: 11.5, opacity: 0.5, marginTop: 10 }}>
-            Information ratio (backtest): {BT_STATS.ir}. Live Sharpe is shown only after 60 trading days; a
+            <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe is shown only after 60 trading days; a
             ratio annualized from a few days is noise. Backtest figures are the validated run, verbatim.
+            Hover any dotted term on this page for a plain-English definition.
           </div>
         </Panel>
 
@@ -424,6 +590,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               { name: 'Quality Trend', color: ACCENT, values: BT.strategy },
               { name: 'S&P 500', color: MUTED, values: BT.spx, width: 1.8, opacity: 0.85 },
             ]}
+            dates={BT.dates}
           />
           <Legend items={[[`Quality Trend → ${fmtUsd(BT.strategy[BT.strategy.length - 1])}`, ACCENT], [`S&P 500 → ${fmtUsd(BT.spx[BT.spx.length - 1])}`, MUTED]]} />
           <div style={{ overflow: 'auto', marginTop: 18 }}>
@@ -476,62 +643,105 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         ) : !book ? (
           <div style={{ border: BORDER, borderRadius: 12, padding: 24, fontSize: 14, opacity: 0.6 }}>Loading…</div>
         ) : (
-          <div style={{ border: BORDER, borderRadius: 12, overflow: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 940 }}>
-              <thead>
-                <tr style={{ borderBottom: BORDER }}>
-                  <th style={{ ...th, textAlign: 'left' }}>#</th>
-                  <th style={{ ...th, textAlign: 'left' }}>Company</th>
-                  <th style={th}>Weight</th>
-                  <th style={th}>Value</th>
-                  <th style={th}>Avg cost</th>
-                  <th style={th}>Last</th>
-                  <th style={th}>P&L</th>
-                  <th style={th}>12-mo mom</th>
-                  <th style={th}>GP / assets</th>
-                  <th style={th}>Buyback</th>
-                  <th style={th}>Insider</th>
-                </tr>
-              </thead>
-              <tbody>
-                {book.map((r) => {
-                  const o = orders[r.symbol];
-                  const m = marks[r.symbol];
-                  const w = m ? Number(m.mv) / equity : null;
-                  return (
-                    <tr key={r.symbol} style={{ borderBottom: HAIRLINE }}>
-                      <td style={{ ...td, textAlign: 'left', opacity: 0.5 }}>{r.rank}</td>
-                      <td style={{ ...td, textAlign: 'left' }}>
-                        <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
-                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
-                          title={`Open ${r.symbol}`}>
-                          <span style={{ fontWeight: 600 }}>{r.symbol}</span>
-                          <span style={{ opacity: 0.55, marginLeft: 8, fontSize: 12.5 }}>
-                            {(r.company || '').replace(/\s*(Common Stock|Ordinary Share|Class A Common Stock).*$/i, '')}
-                          </span>
-                        </button>
-                      </td>
-                      <td style={td}>{w != null ? fmtPctPlain(w, 2) : '2.50%'}</td>
-                      <td style={td}>{m ? fmtUsd(m.mv) : fmtUsd(r.target_dollars)}</td>
-                      <td style={{ ...td, opacity: o?.status === 'filled' ? 1 : 0.55 }}>
-                        {o?.status === 'filled' ? fmtUsd(o.filled_avg_price, 2) : (o ? o.status.replace(/_/g, ' ') : '—')}
-                      </td>
-                      <td style={td}>{m ? fmtUsd(m.price, 2) : '—'}</td>
-                      <td style={{ ...td, color: m ? pnlColor(m.upl) : 'inherit', opacity: m ? 1 : 0.45 }}>
-                        {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
-                      </td>
-                      <td style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>
-                      <td style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>
-                      <td style={td}>{r.iss == null ? '—' : fmtPct(Number(r.iss), 1)}</td>
-                      <td style={{ ...td, opacity: Number(r.insider) > 0 ? 1 : 0.35 }}>
-                        {Number(r.insider) > 0 ? Number(r.insider).toFixed(2) : '·'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div style={{ border: BORDER, borderRadius: 12, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
+                <thead>
+                  <tr style={{ borderBottom: BORDER }}>
+                    {colOrder.map((key) => {
+                      const c = HCOLS.find((x) => x.key === key);
+                      const active = sortKey === key;
+                      return (
+                        <th
+                          key={key}
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.setData('text/col', key); e.dataTransfer.effectAllowed = 'move'; }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const from = e.dataTransfer.getData('text/col');
+                            if (!from || from === key) return;
+                            setColOrder((ord) => {
+                              const next = ord.filter((k) => k !== from);
+                              next.splice(next.indexOf(key), 0, from);
+                              return next;
+                            });
+                          }}
+                          onClick={() => {
+                            if (active) setSortDir((d) => -d);
+                            else { setSortKey(key); setSortDir(key === 'rank' || key === 'company' ? 1 : -1); }
+                          }}
+                          style={{ ...th, textAlign: c.align || 'right', cursor: 'pointer', userSelect: 'none', opacity: active ? 0.85 : 0.5 }}
+                          title="Click to sort · drag to rearrange"
+                          aria-sort={active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}
+                        >
+                          {c.tip ? <Term tip={c.tip}>{c.label}</Term> : c.label}
+                          <span style={{ marginLeft: 4, fontSize: 9 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedBook.map((r) => {
+                    const o = orders[r.symbol];
+                    const m = marks[r.symbol];
+                    const w = m ? Number(m.mv) / equity : null;
+                    const cells = {
+                      rank: <td key="rank" style={{ ...td, textAlign: 'left', opacity: 0.5 }}>{r.rank}</td>,
+                      company: (
+                        <td key="company" style={{ ...td, textAlign: 'left' }}>
+                          <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
+                            title={`Open ${r.symbol}`}>
+                            <span style={{ fontWeight: 600 }}>{r.symbol}</span>
+                            <span style={{ opacity: 0.55, marginLeft: 8, fontSize: 12.5 }}>
+                              {(r.company || '').replace(/\s*(Common Stock|Ordinary Share|Class A Common Stock).*$/i, '')}
+                            </span>
+                          </button>
+                        </td>
+                      ),
+                      weight: <td key="weight" style={td}>{w != null ? fmtPctPlain(w, 2) : '2.50%'}</td>,
+                      value: <td key="value" style={td}>{m ? fmtUsd(m.mv) : fmtUsd(r.target_dollars)}</td>,
+                      cost: (
+                        <td key="cost" style={{ ...td, opacity: o?.status === 'filled' ? 1 : 0.55 }}>
+                          {o?.status === 'filled' ? fmtUsd(o.filled_avg_price, 2) : (o ? o.status.replace(/_/g, ' ') : '—')}
+                        </td>
+                      ),
+                      last: <td key="last" style={td}>{m ? fmtUsd(m.price, 2) : '—'}</td>,
+                      pnl: (
+                        <td key="pnl" style={{ ...td, color: m ? pnlColor(m.upl) : 'inherit', opacity: m ? 1 : 0.45 }}>
+                          {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
+                        </td>
+                      ),
+                      trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
+                      profitability: <td key="profitability" style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>,
+                      buybacks: <td key="buybacks" style={td}>{r.iss == null ? '—' : fmtPct(Number(r.iss), 1)}</td>,
+                      insider: (
+                        <td key="insider" style={{ ...td, opacity: Number(r.insider) > 0 ? 1 : 0.35 }}>
+                          {Number(r.insider) > 0 ? Number(r.insider).toFixed(2) : '·'}
+                        </td>
+                      ),
+                    };
+                    return <tr key={r.symbol} style={{ borderBottom: HAIRLINE }}>{colOrder.map((k) => cells[k])}</tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <details style={{ marginTop: 10, fontSize: 12.5, opacity: 0.75 }}>
+              <summary style={{ cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.7 }}>
+                What these columns mean
+              </summary>
+              <div style={{ padding: '10px 2px 0', lineHeight: 1.65, maxWidth: 880 }}>
+                {HCOLS.filter((c) => c.tip).map((c) => (
+                  <p key={c.key} style={{ margin: '0 0 7px' }}><b>{c.label}.</b> {c.tip}</p>
+                ))}
+                <p style={{ margin: 0, opacity: 0.8 }}>
+                  Click any column header to sort; click again to flip. Drag a header to rearrange the columns.
+                </p>
+              </div>
+            </details>
+          </>
         )}
 
         <div style={{ borderLeft: '2px solid rgba(128,128,128,0.3)', paddingLeft: 22, margin: '40px 0 0', maxWidth: 860 }}>
