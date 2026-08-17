@@ -715,9 +715,32 @@ def fetch_all():
     if _v3_fred is not None:
         vix3m = _v3_fred
         if _v3_yh is not None:
+            # HEAD: Yahoo recovers 2006-07 -> 2007-12, before FRED's series starts.
             head = _v3_yh[_v3_yh.index < _v3_fred.index.min()]
-            if len(head):
-                vix3m = pd.concat([head, _v3_fred]).sort_index()
+            # TAIL: FRED publishes VXVCLS T+1, so on any trading afternoon the
+            # spine is a day behind the VIX and `vix_ts` — the ratio the equity
+            # note is marked against — silently went stale by a session.
+            # Discovered 2026-08-17 when the post-close refresh brought every
+            # other series to 8/17 and left vix_ts on 8/14. Yahoo carries the
+            # same-day value, so it fills only the dates FRED has not published.
+            # Its known mid-2026 hole is in the PAST, which FRED covers, so this
+            # splice takes Yahoo exactly where it is reliable and nowhere else.
+            import datetime as _dtm
+            from zoneinfo import ZoneInfo as _zi
+            _et = _dtm.datetime.now(_zi("America/New_York"))
+            tail = _v3_yh[_v3_yh.index > _v3_fred.index.max()]
+            # A CBOE volatility index settles at 16:15 ET. Before then, today's
+            # Yahoo bar is a live quote, not a close, and writing it as a close
+            # would put an intraday print into the permanent record — the
+            # morning and mid-session refresh legs would do exactly that.
+            if len(tail) and (_et.hour, _et.minute) < (16, 20):
+                tail = tail[tail.index.strftime("%Y-%m-%d") < _et.strftime("%Y-%m-%d")]
+            parts = [x for x in (head, _v3_fred, tail) if x is not None and len(x)]
+            if len(parts) > 1:
+                vix3m = pd.concat(parts).sort_index()
+                vix3m = vix3m[~vix3m.index.duplicated(keep="last")]
+            if len(tail):
+                print(f"  VIX3M: +{len(tail)} same-day bar(s) from Yahoo ahead of FRED's {_v3_fred.index.max().date()}")
     elif _v3_yh is not None:
         print("  WARNING VIX3M: FRED VXVCLS unavailable — falling back to Yahoo, "
               "which has known daily gaps")
