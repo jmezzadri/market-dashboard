@@ -142,3 +142,45 @@
   padding: 18px 0 0;
   margin-top: 32px;
 }
+
+/* The call, resurfaced. Joe 2026-08-17: "I can't see what your call was ...
+   You need a way to resurface the analysis and the call." The claim is set in
+   the serif at reading size, ABOVE anything this page computed — a mark is an
+   outcome, the call is the thing being marked. */
+.mt-overhaul .sc-call {
+  font-family: var(--mt-serif);
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--mt-ink);
+  margin: 6px 0 14px;
+  max-width: 68ch;
+}
+.mt-overhaul .sc-trade {
+  display: grid;
+  grid-template-columns: 152px minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--mt-rule);
+  border-radius: 8px;
+  background: var(--mt-surface);
+}
+.mt-overhaul .sc-tradefact { display: contents; }
+.mt-overhaul .sc-tradefact .k {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--mt-ink-3); padding-top: 2px;
+}
+.mt-overhaul .sc-tradefact .v { font-size: 13.5px; line-height: 1.55; color: var(--mt-ink-2); }
+
+.mt-overhaul .sc-readnote { margin: 14px 0 0; }
+.mt-overhaul .sc-notebtn {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+  font-size: 13.5px; font-weight: 600; color: var(--mt-ink);
+  border-bottom: 1px solid var(--mt-accent);
+}
+.mt-overhaul .sc-notebtn:hover { color: var(--mt-accent); }
+
+@media (max-width: 820px) {
+  .mt-overhaul .sc-trade { grid-template-columns: 1fr; gap: 2px 0; }
+  .mt-overhaul .sc-tradefact .k { padding-top: 8px; }
+}
