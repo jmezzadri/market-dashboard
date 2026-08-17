@@ -422,7 +422,7 @@ export default function MethodologyPage() {
               days off an earnings collapse qualified. We measured it: across ten years of insider
               filings, <b>all open-market buys as a group trail the market by about 2 points over
               the following six months</b>. Raw insider buying is not a signal. What survives, as
-              one input among seven below, is a much narrower filter.
+              a bonus on top of the seven scored inputs below, is a much narrower filter.
             </p>
             <p className="me-body-p">
               <b>The score.</b> Every eligible company is ranked on seven inputs, combined with
