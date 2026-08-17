@@ -1,24 +1,22 @@
-/* PaperPortfolioPage — Quality Trend trading terminal.
+/* PaperPortfolioPage — Quality Trend cockpit, in the site's own skin.
 
-   v3 design (2026-08-17, Joe: "contrasting tiles, more interactive, the page
-   is so bland — go back to the drawing board"): the page is now a DARK
-   terminal panel sitting on the site's cream chrome — deliberate contrast,
-   the way a PM's screen looks different from a marketing page. Every key
-   number lives in its own elevated tile with a colored signal edge; P&L
-   tiles tint green/red; the exposure tile carries a meter; a movers strip
-   shows the day's best and worst names; charts have crosshair readouts and
-   range pills; holdings search, sort, and drag-reorder.
+   v4 (2026-08-17, Joe): v3 hardcoded a dark terminal panel that ignored the
+   site's theme system entirely — wrong in light mode, clashing in dark.
+   This version is built ON the home-v12 cream system (cream-system.css):
+   every surface and color is a v12 token (--putty, --ink, --gold-deep,
+   --up/--down, --hair, --card-r, --sh), so the light/dark/navy toggle
+   restyles this page exactly as it restyles Home and Macro.
 
-   LIVE data: the page re-polls qt_orders + qt_nav_daily every 60 seconds
-   (keeping the previous frame while it fetches), so fills appear as they
-   sync without a reload. Marks are labeled with the actual snapshot time —
-   never claimed as a "close" they aren't.
+   The page follows Home's surface HIERARCHY: putty cards throughout, ink
+   reserved for exactly ONE card — the command band at the top, same as the
+   Engine card on Home. That ink card IS the contrast tile; it doesn't need
+   a foreign color scheme to stand out.
 
-   Colors are validated (dataviz six-checks, dark surface): strategy gold
-   #c98500 + benchmark blue #3987e5 pass CVD separation, chroma, lightness
-   and contrast; status green #0ca30c / red #d03b3b / amber #fab219 are the
-   reserved status steps and never used for series. Identity is never
-   color-alone: both series carry end-labels, a legend, and the tooltip.
+   Everything interactive from v3 is kept: 60s live polling with real mark
+   timestamps, crosshair+tooltip charts with keyboard access, range pills,
+   movers chips, sortable + drag-reorderable holdings with search, meters,
+   plain-English Term tooltips. Series identity is never color-alone (end
+   labels + legend + tooltip on every chart).
 
    Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily.
    Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
@@ -37,22 +35,23 @@ const BT = {"dates":["2017-02-28","2017-03-31","2017-04-28","2017-05-31","2017-0
 const BT_STATS = { cagr: '21.2%', vol: '19.1%', sharpe: '0.97', sortino: '1.57', maxdd: '−19.3%', ir: '0.58', worst: '−6.7%' };
 const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18', maxdd: '−23.9%', worst: '−18.2%' };
 
-/* ── terminal palette (validated, see header comment) ─────────────────── */
-const PANEL  = '#14151a';
-const CARD   = '#1c1e26';
-const CARD2  = '#22242e';
-const EDGE   = 'rgba(255,255,255,0.10)';
-const HAIR   = 'rgba(255,255,255,0.07)';
-const INK    = '#f2f3f5';
-const INK2   = '#9aa1ad';
-const INK3   = '#6f7683';
-const GOLD   = '#c98500';   // strategy series
-const BLUE   = '#3987e5';   // benchmark series
-const GOOD   = '#0ca30c';
-const GOODBR = '#4ade80';   // bright text-green for numbers on dark
-const BAD    = '#d03b3b';
-const BADBR  = '#f87171';
-const WARN   = '#fab219';
+/* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
+const CARD   = 'var(--putty)';
+const CARD2  = 'var(--bg2)';
+const EDGE   = 'var(--hair)';
+const HAIR   = 'var(--hair)';
+const INK    = 'var(--ink)';
+const INK2   = 'var(--ink-soft)';
+const INK3   = 'var(--mut)';
+const GOLD   = 'var(--gold-deep)';   // strategy series — gold in both themes
+const BLUE   = 'var(--ink-soft)';    // benchmark series — slate/warm-gray
+const GOOD   = 'var(--up)';
+const GOODBR = 'var(--up)';
+const BAD    = 'var(--down)';
+const BADBR  = 'var(--down)';
+const WARN   = 'var(--gold-deep)';
+const INKCARD = 'var(--card-ink)';   // the ONE ink card (command band)
+const CREAM  = 'var(--cream-text)';
 
 const fmtUsd = (v, dp = 0) =>
   v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp })}`;
@@ -108,22 +107,19 @@ const HCOLS = [
 
 /* ── injected CSS: hover states + animations (inline styles can't) ────── */
 const CSS = `
-.qtt { color-scheme: dark; }
-.qtt * { box-sizing: border-box; }
-.qtt-tile { transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
-.qtt-tile:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
-.qtt-card { transition: border-color .15s ease; }
-.qtt-card:hover { border-color: rgba(255,255,255,0.18); }
-@keyframes qttpulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-.qtt-live { animation: qttpulse 2s ease-in-out infinite; }
-.qtt-row { transition: background .12s ease; }
-.qtt-row:hover { background: rgba(255,255,255,0.035); }
-.qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid ${EDGE}; background: transparent; color: ${INK2}; border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; }
-.qtt-pill:hover { color: ${INK}; }
-.qtt-pill.on { background: rgba(201,133,0,0.16); border-color: rgba(201,133,0,0.55); color: #e8b44c; }
-.qtt-search { background: ${CARD2}; border: 1px solid ${EDGE}; border-radius: 8px; color: ${INK}; padding: 6px 12px; font-size: 13px; width: 190px; outline: none; }
-.qtt-search:focus { border-color: rgba(201,133,0,0.55); }
-.qtt-search::placeholder { color: ${INK3}; }
+.paper-v12 .qtt * { box-sizing: border-box; }
+.paper-v12 .qtt-card { transition: transform .35s, background .5s; }
+.paper-v12 .qtt-card:hover { transform: translateY(-2px); }
+.paper-v12 .qtt-tile { transition: transform .25s ease, background .5s; }
+.paper-v12 .qtt-tile:hover { transform: translateY(-2px); }
+.paper-v12 .qtt-row { transition: background .12s ease; }
+.paper-v12 .qtt-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.paper-v12 .qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; font-family: var(--sans); }
+.paper-v12 .qtt-pill:hover { color: var(--ink); }
+.paper-v12 .qtt-pill.on { background: color-mix(in srgb, var(--gold-deep) 16%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
+.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size: 13px; width: 190px; outline: none; font-family: var(--sans); }
+.paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
+.paper-v12 .qtt-search::placeholder { color: var(--mut); }
 `;
 
 /* ── small primitives ─────────────────────────────────────────────────── */
@@ -139,34 +135,23 @@ function Term({ children, tip, placement = 'top', alignRight = false, labelOpaci
       {open && (
         <span style={{
           position: 'absolute', ...pos, ...side, zIndex: 40, background: CARD2,
-          border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 8, padding: '9px 12px',
-          width: 250, whiteSpace: 'normal', boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          border: `1px solid ${EDGE}`, borderRadius: 10, padding: '9px 12px',
+          width: 250, whiteSpace: 'normal', boxShadow: 'var(--sh)',
           fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0,
-          textTransform: 'none', color: '#dfe2e7',
+          textTransform: 'none', color: INK,
         }}>{tip}</span>
       )}
     </span>
   );
 }
 
-function Tile({ edge, children, style }) {
-  return (
-    <div className="qtt-tile" style={{
-      background: CARD, border: `1px solid ${EDGE}`, borderRadius: 12,
-      borderTop: `3px solid ${edge || EDGE}`, padding: '16px 18px 14px', ...style,
-    }}>{children}</div>
-  );
-}
-function TileLabel({ children }) {
-  return <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK3, marginBottom: 8 }}>{children}</div>;
-}
 function Card({ title, right, children, style, className }) {
   return (
-    <div className={`qtt-card ${className || ''}`} style={{ background: CARD, border: `1px solid ${EDGE}`, borderRadius: 14, padding: '18px 20px', ...style }}>
+    <div className={`qtt-card ${className || ''}`} style={{ background: CARD, borderRadius: 28, padding: '26px 30px', ...style }}>
       {(title || right) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK2 }}>{title}</div>
-          {right ? <div style={{ fontSize: 12, color: INK3 }}>{right}</div> : null}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: INK3 }}>{title}</div>
+          {right ? <div style={{ fontSize: 12.5, color: INK3 }}>{right}</div> : null}
         </div>
       )}
       {children}
@@ -175,7 +160,7 @@ function Card({ title, right, children, style, className }) {
 }
 function Meter({ frac, color = BLUE }) {
   return (
-    <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 9 }}>
+    <div style={{ height: 5, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 12%, transparent)', overflow: 'hidden', marginTop: 9 }}>
       <div style={{ width: `${Math.max(0, Math.min(100, frac * 100))}%`, height: '100%', background: color, borderRadius: 999 }} />
     </div>
   );
@@ -242,7 +227,7 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
         ))}
         {hov != null && (
           <g>
-            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="rgba(255,255,255,0.35)" strokeWidth="1" />
+            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="var(--mut)" strokeWidth="1" opacity="0.7" />
             {series.map((s) => (
               <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4" fill={s.color} stroke={CARD} strokeWidth="2" />
             ))}
@@ -254,8 +239,8 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
           position: 'absolute', top: 6,
           left: flip ? undefined : `calc(${tipLeftPct}% + 12px)`,
           right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined,
-          background: CARD2, border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 8,
-          padding: '8px 11px', pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          background: CARD2, border: `1px solid ${EDGE}`, borderRadius: 10,
+          padding: '8px 11px', pointerEvents: 'none', boxShadow: 'var(--sh)',
           fontSize: 12.5, whiteSpace: 'nowrap', zIndex: 5, color: INK,
         }}>
           <div style={{ color: INK3, marginBottom: 4 }}>{dateLbl(hov)}</div>
@@ -470,110 +455,97 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     return <span style={{ color: INK3 }}>—</span>;
   };
 
-  return (
-    <div className="cream-page paper-qt">
-      <style>{CSS}</style>
-      <div className="qtt" style={{
-        maxWidth: 1180, margin: '26px auto 80px', padding: '26px 26px 30px',
-        background: PANEL, borderRadius: 18, color: INK,
-        boxShadow: '0 18px 60px rgba(0,0,0,0.35)',
-        fontFamily: 'inherit',
-      }}>
+  // Inside the ink command card: cream-family text tones matched to Home's
+  // Engine card (its eyebrow color is the same literal #9BA6AC in v12 CSS).
+  const inkSub = '#9BA6AC';
+  const inkHair = '1px solid rgba(247,243,232,0.16)';
+  const inkUpDown = (v) => (v == null ? CREAM : v >= 0 ? 'var(--gold-bar)' : BAD);
 
-        {/* ── terminal header ─────────────────────────────────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+  return (
+    <div className="home-v12 paper-v12">
+      <style>{CSS}</style>
+      <div className="wrap qtt" style={{ padding: '44px 40px 96px' }}>
+
+        {/* ── page header (v12 vocabulary) ───────────────────────────── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 14, marginBottom: 26 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span className="qtt-live" style={{ width: 8, height: 8, borderRadius: 99, background: GOOD, display: 'inline-block' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: INK2 }}>
-                Live paper book · updates every 60s{markedAt ? ` · ${markedAt}` : ''}
-              </span>
+            <div className="eyebrow2" style={{ marginBottom: 10 }}>
+              <span className="dot" />
+              Paper Portfolio · live · updates every 60s{markedAt ? ` · ${markedAt}` : ''}
             </div>
-            <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 34px)', lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: INK }}>
-              Quality Trend
+            <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
+              Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
             </h1>
           </div>
-          <div style={{ textAlign: 'right', fontSize: 12, color: INK2, lineHeight: 1.7 }}>
-            <span style={{ background: CARD2, border: `1px solid ${EDGE}`, borderRadius: 8, padding: '4px 10px', fontSize: 11.5 }}>
-              ALPACA PAPER · $1M INCEPTION AUG 17 2026
-            </span>
+          <div style={{ textAlign: 'right', fontSize: 13, color: INK2, lineHeight: 1.7 }}>
+            40 US companies · equal weight · monthly rebalance · no leverage
             <br />
-            40 US companies · equal weight · monthly rebalance · no leverage ·{' '}
-            <Link to="/methodology#portfolio" style={{ color: '#e8b44c', textDecoration: 'underline', textUnderlineOffset: 3 }}>methodology</Link>
+            $1,000,000 paper account, inception Aug 17, 2026 ·{' '}
+            <Link to="/methodology#portfolio" style={{ color: INK2, fontWeight: 600, borderBottom: `1px solid ${EDGE}`, textDecoration: 'none', paddingBottom: 2 }}>Methodology</Link>
             <br />
             <span style={{ color: INK3 }}>Paper money — not investment advice.</span>
           </div>
         </div>
 
-        {/* ── KPI tiles ───────────────────────────────────────────────── */}
-        <div style={{ ...grid(185), marginBottom: 14 }}>
-          <Tile edge={GOLD}>
-            <TileLabel>Portfolio value</TileLabel>
-            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtUsd(equity)}</div>
-            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>{markedAt || 'opening equity'}</div>
-          </Tile>
-          <Tile edge={ls?.day == null ? EDGE : ls.day >= 0 ? GOOD : BAD}
-            style={ls?.day != null ? { background: ls.day >= 0 ? 'rgba(12,163,12,0.07)' : 'rgba(208,59,59,0.07)' } : undefined}>
-            <TileLabel>{nav && nav.length >= 2 ? 'Day P&L' : 'P&L since open'}</TileLabel>
-            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: upDown(ls?.day) }}>
-              {ls ? fmtSignedUsd(ls.day) : '—'}
-            </div>
-            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>{ls ? fmtPct(ls.dayPct, 2) : 'first mark lands after fills sync'}</div>
-          </Tile>
-          <Tile edge={ls?.since == null ? EDGE : ls.since >= 0 ? GOOD : BAD}>
-            <TileLabel>Since inception</TileLabel>
-            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: upDown(ls?.since) }}>
-              {ls ? fmtPct(ls.since, 2) : '—'}
-            </div>
-            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>
-              {ls?.spxSince != null ? <>S&P {fmtPct(ls.spxSince, 2)} · spread <span style={{ color: upDown(ls.since - ls.spxSince) }}>{fmtPct(ls.since - ls.spxSince, 2)}</span></> : 'vs $1,000,000 start'}
-            </div>
-          </Tile>
-          <Tile edge={BLUE}>
-            <TileLabel>Invested</TileLabel>
-            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{latestNav ? fmtPctPlain(invested, 1) : '—'}</div>
-            <Meter frac={invested} color={BLUE} />
-            <div style={{ fontSize: 12, color: INK3, marginTop: 6 }}>cash {fmtUsd(cash)}</div>
-          </Tile>
-          <Tile edge={working > 0 ? WARN : filled > 0 ? GOOD : EDGE}>
-            <TileLabel>Positions</TileLabel>
-            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-              {latestNav ? latestNav.n_positions : (book ? book.length : '—')}
-            </div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>
-              {working > 0
-                ? <span style={{ color: WARN }}>◷ {working} working · {filled} filled</span>
-                : filled > 0
-                  ? <span style={{ color: GOODBR }}>✓ all fills confirmed</span>
-                  : <span style={{ color: INK3 }}>$25,000 target each</span>}
-            </div>
-          </Tile>
+        {/* ── command band — the page's ONE ink card (like Home's Engine
+              card): every headline number in a single dark surface ────── */}
+        <div className="qtt-card" style={{
+          background: INKCARD, color: CREAM, borderRadius: 'var(--card-r)',
+          boxShadow: 'var(--sh)', padding: '34px 44px', marginBottom: 'var(--mt-gap-card, 22px)',
+        }}>
+          <div style={{ ...grid(180, 30) }}>
+            {[
+              ['Portfolio value', fmtUsd(equity), markedAt || 'opening equity', CREAM],
+              [nav && nav.length >= 2 ? 'Day P&L' : 'P&L since open',
+               ls ? fmtSignedUsd(ls.day) : '—',
+               ls ? fmtPct(ls.dayPct, 2) : 'first mark lands after fills sync',
+               inkUpDown(ls?.day)],
+              ['Since inception', ls ? fmtPct(ls.since, 2) : '—',
+               ls?.spxSince != null ? `S&P ${fmtPct(ls.spxSince, 2)} · spread ${fmtPct(ls.since - ls.spxSince, 2)}` : 'vs $1,000,000 start',
+               inkUpDown(ls?.since)],
+              ['Invested', latestNav ? fmtPctPlain(invested, 1) : '—', `cash ${fmtUsd(cash)}`, CREAM, invested],
+              ['Positions', String(latestNav ? latestNav.n_positions : (book ? book.length : '—')),
+               working > 0 ? `◷ ${working} working · ${filled} filled` : filled > 0 ? '✓ all fills confirmed' : '$25,000 target each',
+               CREAM],
+            ].map(([label, value, sub, color, meterFrac], i) => (
+              <div key={label} style={{ borderLeft: i ? inkHair : 'none', paddingLeft: i ? 26 : 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: inkSub, marginBottom: 9 }}>{label}</div>
+                <div className="num" style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color }}>{value}</div>
+                {meterFrac != null && (
+                  <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', marginTop: 9, maxWidth: 150 }}>
+                    <div style={{ width: `${Math.min(meterFrac * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
+                  </div>
+                )}
+                <div style={{ fontSize: 12.5, color: inkSub, marginTop: 7 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── movers strip ────────────────────────────────────────────── */}
         {movers && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK3, marginRight: 2 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', margin: '18px 0 22px' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: INK3, marginRight: 2 }}>
               {nav && nav.length >= 2 ? 'Today' : 'Since entry'}
             </span>
             {[...movers.best, ...movers.worst].map((p) => (
               <button key={p.s} type="button" onClick={() => onOpenTicker && onOpenTicker(p.s)}
                 className="qtt-tile"
                 style={{
-                  background: p.pct >= 0 ? 'rgba(12,163,12,0.10)' : 'rgba(208,59,59,0.10)',
-                  border: `1px solid ${p.pct >= 0 ? 'rgba(12,163,12,0.35)' : 'rgba(208,59,59,0.35)'}`,
-                  borderRadius: 9, padding: '6px 12px', cursor: 'pointer', color: INK, font: 'inherit',
+                  background: `color-mix(in srgb, ${p.pct >= 0 ? 'var(--up)' : 'var(--down)'} 11%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${p.pct >= 0 ? 'var(--up)' : 'var(--down)'} 35%, transparent)`,
+                  borderRadius: 999, padding: '7px 15px', cursor: 'pointer', color: INK, font: 'inherit',
                   display: 'flex', gap: 8, alignItems: 'baseline',
                 }}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>{p.s}</span>
-                <span style={{ fontSize: 12.5, fontVariantNumeric: 'tabular-nums', color: upDown(p.pct) }}>{fmtPct(p.pct, 1)}</span>
+                <span style={{ fontWeight: 700, fontSize: 13.5 }}>{p.s}</span>
+                <span className="num" style={{ fontSize: 13, color: upDown(p.pct) }}>{fmtPct(p.pct, 1)}</span>
               </button>
             ))}
           </div>
         )}
 
         {/* ── performance + risk ──────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
           <Card title="Performance — live" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
@@ -637,7 +609,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </div>
 
         {/* ── benchmark comp ──────────────────────────────────────────── */}
-        <Card title="Versus benchmark" right="live and backtest are separate records — never blended" style={{ marginBottom: 14 }}>
+        <Card title="Versus benchmark" right="live and backtest are separate records — never blended" style={{ marginBottom: 22 }}>
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
@@ -705,7 +677,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               ))}
             </span>
           }
-          style={{ marginBottom: 14 }}
+          style={{ marginBottom: 22 }}
         >
           <LineChart
             log
@@ -805,7 +777,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                             {c.tip
                               ? <Term tip={c.tip} placement="bottom" alignRight={!c.align} labelOpacity={active ? 0.95 : 0.6}>{c.label}</Term>
                               : <span style={{ opacity: active ? 0.95 : 0.6 }}>{c.label}</span>}
-                            <span style={{ marginLeft: 4, fontSize: 9, color: active ? '#e8b44c' : INK3 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
+                            <span style={{ marginLeft: 4, fontSize: 9, color: active ? GOLD : INK3 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
                           </th>
                         );
                       })}
@@ -832,7 +804,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                         weight: (
                           <td key="weight" style={td}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                              <span style={{ width: 34, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', display: 'inline-block' }}>
+                              <span style={{ width: 34, height: 4, borderRadius: 99, background: 'color-mix(in srgb, var(--ink) 12%, transparent)', overflow: 'hidden', display: 'inline-block' }}>
                                 <span style={{ display: 'block', width: `${Math.min(((w ?? 0.025) / 0.05) * 100, 100)}%`, height: '100%', background: GOLD }} />
                               </span>
                               {w != null ? fmtPctPlain(w, 2) : '2.50%'}
@@ -855,7 +827,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                           </td>
                         ),
                         insider: (
-                          <td key="insider" style={{ ...td, color: Number(r.insider) > 0 ? '#e8b44c' : INK3 }}>
+                          <td key="insider" style={{ ...td, color: Number(r.insider) > 0 ? GOLD : INK3 }}>
                             {Number(r.insider) > 0 ? Number(r.insider).toFixed(2) : '·'}
                           </td>
                         ),
