@@ -66,6 +66,32 @@ jobs:
           if [ -n "${{ github.event.inputs.as_of }}" ]; then ARGS="--as-of ${{ github.event.inputs.as_of }}"; fi
           python -m paper_portfolio.qt.rebalance $ARGS
 
+      # Honest-stamp (LESSONS, 2026-06-03/06-11): stamp our own pipeline_health
+      # row after rows are verifiably in the table; data_as_of read back from
+      # qt_target_book itself, never the runner clock.
+      - name: Stamp pipeline health green
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python3 -c "
+          import os, json, urllib.request
+          req = urllib.request.Request(
+              os.environ['SUPABASE_URL'] + '/rest/v1/qt_target_book?select=rebalance_date&order=rebalance_date.desc&limit=1',
+              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
+                       'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+          rows = json.load(urllib.request.urlopen(req))
+          print(rows[0]['rebalance_date'] if rows else '-')
+          ")
+          python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" green
+      - name: Stamp pipeline health red on failure
+        if: failure() && steps.gate.outputs.run == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py qt-target-book - red "QT-REBALANCE failed — see workflow run logs"
+
       - name: Report
         if: steps.gate.outputs.run != 'true'
         run: echo "Not the first trading day of the month — nothing scored."

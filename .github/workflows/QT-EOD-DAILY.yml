@@ -29,3 +29,28 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python -m paper_portfolio.qt.eod
+
+      # Honest-stamp (LESSONS, 2026-06-03/06-11): a producer that writes a fresh
+      # row must stamp its OWN pipeline_health row or the freshness chip lies.
+      # data_as_of is read back from qt_nav_daily itself, never the runner clock.
+      - name: Stamp pipeline health green
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python3 -c "
+          import os, json, urllib.request
+          req = urllib.request.Request(
+              os.environ['SUPABASE_URL'] + '/rest/v1/qt_nav_daily?select=d&order=d.desc&limit=1',
+              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
+                       'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+          rows = json.load(urllib.request.urlopen(req))
+          print(rows[0]['d'] if rows else '-')
+          ")
+          python3 scripts/upsert_pipeline_health.py qt-nav-daily "$AS_OF" green
+      - name: Stamp pipeline health red on failure
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py qt-nav-daily - red "QT-EOD-DAILY failed — see workflow run logs"
