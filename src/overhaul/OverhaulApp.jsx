@@ -162,9 +162,9 @@ function SignInRoute() {
 // shared LoginScreen in place (no redirect), so after signing in the user lands
 // right back on the page they asked for.
 //
-// Who is behind it, as of 2026-08-17 (Joe): /admin/bugs and /scorecard, and
-// nothing else. /paper was the original tenant (2026-08-06, pending a
-// performance review) and is now public again at Joe's direction.
+// Who is behind it, as of 2026-08-17 (Joe): /admin/bugs, and nothing else.
+// /paper was the original tenant (2026-08-06, pending a performance review)
+// and is public again; /scorecard was gated for one commit and is public too.
 function RequireAuth({ children }) {
   const { session, loading } = useSession();
   if (loading) return null;
@@ -208,13 +208,15 @@ function Shell() {
                 2026-08-06 gate, which held the paper book back while its
                 performance was under review. */}
             <Route path="/paper" element={<PaperRoute />} />
-            {/* /scorecard is the one addition to that rule, at Joe's explicit
-                choice the same day: the Trade Idea marks stay signed-in-only
-                until there are ~10 CLOSED calls, because three calls is not a
-                track record and a public one invites being judged on noise.
-                scripts/score_trade_ideas.py withholds aggregate statistics
-                below that threshold for the same reason. */}
-            <Route path="/scorecard" element={<RequireAuth><ScorecardPage /></RequireAuth>} />
+            {/* /scorecard is PUBLIC (Joe, 2026-08-17: "Public now is fine").
+                It was briefly gated on the theory that three calls is not a
+                track record. Publishing it instead puts the weight on the
+                marker rather than on the door: score_trade_ideas.py still
+                withholds a hit rate below 10 closed calls and says why, every
+                call is listed win or lose, and the stop is honoured. Those
+                rules matter MORE on a public page, not less — they are what
+                stop a short sample reading as a record. */}
+            <Route path="/scorecard" element={<ScorecardPage />} />
             <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />

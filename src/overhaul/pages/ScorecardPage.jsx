@@ -3,10 +3,12 @@
    Joe, 2026-08-17: "Can we somehow track our trade ideas and how they
    performed? I'd like to start collecting historical data on our calls."
 
-   Signed-in only until there are ~10 CLOSED calls (Joe's choice the same day).
-   Three calls is not a track record and a public one invites being judged on
-   noise — so the page exists, collects from day one, and stays private until
-   the sample can carry a number.
+   PUBLIC (Joe, 2026-08-17: "Public now is fine"). It was gated for exactly one
+   commit on the theory that three calls is not a track record. Publishing it
+   puts the weight on the marker instead of the door — the hit rate is withheld
+   below 10 closed calls and the page says why, every call is listed win or
+   lose, and a stopped-out call is marked at the stop. On a public page those
+   rules are the product, not a caveat.
 
    This component RENDERS public/trade_idea_scores.json and computes nothing.
    Every figure on the page is produced by scripts/score_trade_ideas.py from
