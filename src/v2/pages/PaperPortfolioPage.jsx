@@ -135,6 +135,8 @@ const CSS = `
 .paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size: 13px; width: 190px; outline: none; font-family: var(--sans); }
 .paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
 .paper-v12 .qtt-search::placeholder { color: var(--mut); }
+.paper-v12 .qtt-secgrid { columns: 250px; column-gap: 18px; }
+.paper-v12 .qtt-sectile { break-inside: avoid; -webkit-column-break-inside: avoid; background: var(--bg2); border-radius: 14px; padding: 13px 15px; margin: 0 0 16px; }
 `;
 
 /* ── small primitives ─────────────────────────────────────────────────── */
@@ -596,8 +598,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </div>
         </div>
 
-        {/* ── attribution + exposure breakdowns (tear-sheet core) ────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 22, marginBottom: 22, alignItems: 'start' }}>
+        {/* ── attribution + size — two short, height-matched cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 22, marginBottom: 22, alignItems: 'start' }}>
           <Card title={attribution ? (attribution.isDay ? 'Contributors & detractors — today' : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
             right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>}>
             {attribution ? (
@@ -619,78 +621,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </div>
             ) : <div style={{ fontSize: 13, color: INK3, padding: 8 }}>Populates from the first broker marks.</div>}
           </Card>
-
-          <Card
-            title="Sector & industry exposure"
-            right={
-              bookMeta ? (
-                <button type="button"
-                  onClick={() => setOpenSectors(openSectors && openSectors.size ? new Set() : new Set(bookMeta.secList.map((s) => s.name)))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: GOLD, fontSize: 12 }}>
-                  {openSectors && openSectors.size ? 'Collapse all' : 'Expand all'}
-                </button>
-              ) : `${book?.length || 0} names`
-            }>
-            {bookMeta ? bookMeta.secList.map((sec, si) => {
-              // default (openSectors === null): only the top sector is open.
-              const isOpen = openSectors ? openSectors.has(sec.name) : si === 0;
-              const toggle = () => {
-                const base = openSectors ?? new Set([bookMeta.secList[0].name]);
-                const next = new Set(base);
-                next.has(sec.name) ? next.delete(sec.name) : next.add(sec.name);
-                setOpenSectors(next);
-              };
-              return (
-                <div key={sec.name} style={{ padding: '4px 0', borderBottom: `1px solid ${HAIR}` }}>
-                  <button type="button" onClick={toggle} className="qtt-row"
-                    style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: '5px 2px', textAlign: 'left' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ color: INK, fontWeight: 600 }}>
-                        <span style={{ display: 'inline-block', width: 12, color: INK3, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
-                        {sec.name}
-                      </span>
-                      <span className="num" style={{ fontWeight: 700 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n} {sec.n === 1 ? 'name' : 'names'} · {sec.industries.length} ind.</span></span>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
-                    </div>
-                  </button>
-                  {isOpen && (
-                    <div style={{ padding: '4px 0 8px 14px' }}>
-                      {sec.industries.map((ind) => (
-                        <div key={ind.name} style={{ padding: '5px 0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, marginBottom: 3, gap: 10 }}>
-                            <span style={{ color: INK2 }}>{ind.name}</span>
-                            <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)} <span style={{ color: INK3 }}>· {ind.n}</span></span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, height: 4, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.min((ind.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: BLUE, borderRadius: 999 }} />
-                            </div>
-                            <span style={{ fontSize: 11, color: INK3, whiteSpace: 'nowrap' }}>
-                              {ind.syms.map((sym, i) => (
-                                <React.Fragment key={sym}>
-                                  <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)}
-                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
-                                  {i < ind.syms.length - 1 ? ' ' : ''}
-                                </React.Fragment>
-                              ))}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
-            <div style={{ fontSize: 11.5, color: INK3, marginTop: 10, lineHeight: 1.55 }}>
-              {bookMeta ? `${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of the 74 GICS industries. ` : ''}
-              Tilts are an OUTPUT of the stock-level score, not a target — the book owns wherever
-              momentum and profitability currently live. Click a sector to drill into its industries.
-            </div>
-          </Card>
-
           <Card title="Market cap & liquidity" right={<Term tip={TIPS.mcap} labelOpacity={0.9}>buckets</Term>}>
             {bookMeta ? (
               <>
@@ -717,6 +647,49 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             ) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
           </Card>
         </div>
+
+        {/* ── sector & industry allocation — full-width masonry so every
+            holding's industry shows at once and tiles pack with no dead space ── */}
+        <Card title="Sector & industry allocation"
+          right={bookMeta ? `${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of 74 GICS industries` : ''}
+          style={{ marginBottom: 22 }}>
+          {bookMeta ? (
+            <div className="qtt-secgrid">
+              {bookMeta.secList.map((sec) => (
+                <div className="qtt-sectile" key={sec.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>{sec.name}</span>
+                    <span className="num" style={{ fontSize: 13, fontWeight: 700 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n}</span></span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 12%, transparent)', overflow: 'hidden', marginBottom: 8 }}>
+                    <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
+                  </div>
+                  {sec.industries.map((ind) => (
+                    <div key={ind.name} style={{ padding: '5px 0', borderTop: `1px solid ${HAIR}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, gap: 8 }}>
+                        <span style={{ color: INK2 }}>{ind.name}</span>
+                        <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)} <span style={{ color: INK3 }}>· {ind.n}</span></span>
+                      </div>
+                      <div style={{ fontSize: 11, color: INK3, marginTop: 2 }}>
+                        {ind.syms.map((sym, i) => (
+                          <React.Fragment key={sym}>
+                            <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
+                            {i < ind.syms.length - 1 ? ' · ' : ''}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
+          <div style={{ fontSize: 11.5, color: INK3, marginTop: 12, lineHeight: 1.55 }}>
+            Every holding shown at its GICS industry — click any ticker to open it. Tilts are an
+            OUTPUT of the stock-level score, not a target: the book owns wherever momentum and
+            profitability currently live.
+          </div>
+        </Card>
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
