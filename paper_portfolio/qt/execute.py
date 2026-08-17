@@ -115,7 +115,11 @@ def submit(df: pd.DataFrame, rebalance_date: str, live: bool) -> pd.DataFrame:
     H = D._alpaca_headers() | {"Content-Type": "application/json"}
     out = []
     for _, r in df.iterrows():
-        coid = f"qt-{rebalance_date}-{r.symbol}-{r.side}"[:48]
+        # tif is part of the id: Alpaca client_order_ids are unique FOREVER,
+        # including expired orders. The 2026-08-17 OPG batch expired (the paper
+        # engine missed the opening print on 38 of 40 names) and a resubmit
+        # with the same ids would be 422-rejected order by order.
+        coid = f"qt-{rebalance_date}-{r.symbol}-{r.side}-{r.time_in_force}"[:48]
         body = {"symbol": r.symbol, "qty": str(int(r.qty)), "side": r.side,
                 "type": "market", "time_in_force": r.time_in_force,
                 "client_order_id": coid}
@@ -141,8 +145,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rebalance-date", default=None)
     ap.add_argument("--csv", default=None, help="book csv instead of qt_target_book")
-    ap.add_argument("--tif", default="opg", choices=["opg", "day"],
-                    help="opg = market-on-open next session; day = immediate market order")
+    ap.add_argument("--tif", default="day", choices=["opg", "day"],
+                    help="day = market order now (default; paper OPG proved unreliable "
+                         "2026-08-17 — 38/40 opening orders expired unfilled); opg = market-on-open")
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--confirm", default="")
     a = ap.parse_args()

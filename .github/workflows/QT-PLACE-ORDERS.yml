@@ -18,9 +18,9 @@ on:
         description: "Book date in qt_target_book (default: latest)"
         required: false
       tif:
-        description: "opg = market-on-open next session | day = market order now"
+        description: "day = market order now (paper OPG unreliable, 2026-08-17) | opg = market-on-open"
         required: false
-        default: "opg"
+        default: "day"
 
 jobs:
   execute:
