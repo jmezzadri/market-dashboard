@@ -38,6 +38,12 @@ const BT = {"dates":["2017-02-28","2017-03-31","2017-04-28","2017-05-31","2017-0
 const BT_STATS = { cagr: '21.2%', vol: '19.1%', sharpe: '0.97', sortino: '1.57', maxdd: '−19.3%', ir: '0.58', worst: '−6.7%' };
 const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18', maxdd: '−23.9%', worst: '−18.2%' };
 
+// Book inception = Mon Aug 17 2026. Benchmark baseline is SPY's LAST CLOSE
+// before launch (Fri Aug 15 = 776.34). The since-inception S&P return is
+// always measured against THIS fixed price, never nav[0].spy_close — with one
+// nav row that self-reference makes S&P read 0.00%, which is what Joe caught.
+const SPY_INCEPTION = 776.34;
+
 /* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
 const CARD   = 'var(--putty)';
 const CARD2  = 'var(--bg2)';
@@ -302,7 +308,7 @@ function liveStats(nav) {
     n,
     since: last / 1_000_000 - 1,
     sinceUsd: last - 1_000_000,
-    spxSince: spx[0] != null && spx[spx.length - 1] != null ? spx[spx.length - 1] / spx[0] - 1 : null,
+    spxSince: (() => { const nz = spx.filter((v) => v != null); return nz.length ? nz[nz.length - 1] / SPY_INCEPTION - 1 : null; })(),
     day: dayFromMarks ?? (last - prev),
     dayPct: (dayFromMarks ?? (last - prev)) / (prev || 1_000_000),
     bestDay: n >= 2 ? Math.max(...ret) : null,
@@ -450,11 +456,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   const liveCurve = useMemo(() => {
     if (!nav || nav.length < 2) return null;
-    const base = Number(nav[0].equity);
-    const sBase = nav[0].spy_close != null ? Number(nav[0].spy_close) : null;
+    // Both series indexed to 100 at INCEPTION — strategy off $1.0M, S&P off its
+    // pre-launch close — so the chart and the header agree on the same origin.
     return {
-      strategy: nav.map((r) => (Number(r.equity) / base) * 100),
-      spx: sBase ? nav.map((r) => (r.spy_close != null ? (Number(r.spy_close) / sBase) * 100 : null)).map((v, i, a) => v ?? a[i - 1] ?? 100) : null,
+      strategy: nav.map((r) => (Number(r.equity) / 1_000_000) * 100),
+      spx: nav.some((r) => r.spy_close != null)
+        ? nav.map((r) => (r.spy_close != null ? (Number(r.spy_close) / SPY_INCEPTION) * 100 : null)).map((v, i, a) => v ?? a[i - 1] ?? 100)
+        : null,
     };
   }, [nav]);
 
@@ -546,29 +554,34 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           background: INKCARD, color: CREAM, borderRadius: 'var(--card-r)',
           boxShadow: 'var(--sh)', padding: '34px 44px', marginBottom: 'var(--mt-gap-card, 22px)',
         }}>
-          <div style={{ ...grid(180, 30) }}>
+          <div style={{ ...grid(158, 22) }}>
             {[
-              ['Portfolio value', fmtUsd(equity),
-               `${markedAt || 'opening equity'} · syncs every 10 min`, CREAM, null],
-              ['Day P&L', ls ? `${fmtSignedUsd(ls.day)} · ${fmtPct(ls.dayPct, 2)}` : '—',
-               'today, from broker marks', inkUpDown(ls?.day), null],
-              ['Since inception', ls ? `${fmtPct(ls.since, 2)} · ${fmtSignedUsd(ls.sinceUsd)}` : '—',
-               ls?.spxSince != null ? `S&P ${fmtPct(ls.spxSince, 2)} · spread ${fmtPct(ls.since - ls.spxSince, 2)}` : 'vs $1,000,000 start',
-               inkUpDown(ls?.since), null],
-              ['Exposure', latestNav ? `${fmtPctPlain(invested, 1)} gross · net long` : '—',
-               `cash ${fmtUsd(cash)} · no leverage`, CREAM, invested],
-              ['Liquidity', bookMeta?.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—',
-               'slowest position at 20% of volume', CREAM, null],
-            ].map(([label, value, sub, color, meterFrac], i) => (
-              <div key={label} style={{ borderLeft: i ? inkHair : 'none', paddingLeft: i ? 26 : 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: inkSub, marginBottom: 9 }}>{label}</div>
-                <div className="num" style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.01em', color }}>{value}</div>
-                {meterFrac != null && (
-                  <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', marginTop: 9, maxWidth: 150 }}>
-                    <div style={{ width: `${Math.min(meterFrac * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
+              // hero = ONE number per tile (no crammed "$ · %"); the secondary
+              // value + its context live on the sub-line. Day P&L is a dollar
+              // figure, returns are percentages — labeled so the unit is never
+              // ambiguous and the two tiles never look "reversed".
+              { k: 'Portfolio value', hero: fmtUsd(equity), sub: `${markedAt || 'at inception'} · 10-min sync`, color: CREAM },
+              { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
+                sub: ls ? `${fmtPct(ls.dayPct, 2)} · today` : 'today, from broker marks', color: inkUpDown(ls?.day) },
+              { k: 'Since inception', hero: ls ? fmtPct(ls.since, 2) : '—',
+                sub: ls ? `${fmtSignedUsd(ls.sinceUsd)} · since Aug 17` : 'vs $1,000,000 start', color: inkUpDown(ls?.since) },
+              { k: 'vs S&P 500', hero: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : '—',
+                sub: (ls && ls.spxSince != null) ? `book ${fmtPct(ls.since, 2)} · S&P ${fmtPct(ls.spxSince, 2)}` : 'benchmark spread',
+                color: inkUpDown(ls ? (ls.since - ls.spxSince) : null) },
+              { k: 'Exposure', hero: latestNav ? fmtPctPlain(invested, 1) : '—',
+                sub: `gross · net long · cash ${fmtUsd(cash)}`, color: CREAM, meter: invested },
+              { k: 'Liquidity', hero: bookMeta?.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—',
+                sub: 'slowest exit at 20% of volume', color: CREAM },
+            ].map((t) => (
+              <div key={t.k}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
+                <div className="num" style={{ fontSize: 23, fontWeight: 600, letterSpacing: '-0.01em', color: t.color }}>{t.hero}</div>
+                {t.meter != null && (
+                  <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', margin: '8px 0 2px', maxWidth: 140 }}>
+                    <div style={{ width: `${Math.min(t.meter * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
                   </div>
                 )}
-                <div style={{ fontSize: 12.5, color: inkSub, marginTop: 7 }}>{sub}</div>
+                <div style={{ fontSize: 12, color: inkSub, marginTop: 6 }}>{t.sub}</div>
               </div>
             ))}
           </div>
