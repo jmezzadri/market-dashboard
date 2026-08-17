@@ -65,6 +65,7 @@ import PortfolioLabPage from './pages/PortfolioLabPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
+import ScorecardPage from './pages/ScorecardPage';
 import { AboutPage, TermsPage, PrivacyPage, DisclaimerPage } from './pages/StaticPages';
 // Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
 // dropped /paper also swapped this route to a placeholder, breaking the
@@ -157,11 +158,13 @@ function SignInRoute() {
   );
 }
 
-// RequireAuth — login gate for routes that must not be public. First use:
-// /paper (Joe directive 2026-08-06) — the paper book is under a performance
-// review and stays behind sign-in until the quant team clears it. Renders the
-// shared LoginScreen in place (no redirect), so after signing in the user
-// lands right back on the page they asked for.
+// RequireAuth — login gate for routes that must not be public. Renders the
+// shared LoginScreen in place (no redirect), so after signing in the user lands
+// right back on the page they asked for.
+//
+// Who is behind it, as of 2026-08-17 (Joe): /admin/bugs and /scorecard, and
+// nothing else. /paper was the original tenant (2026-08-06, pending a
+// performance review) and is now public again at Joe's direction.
 function RequireAuth({ children }) {
   const { session, loading } = useSession();
   if (loading) return null;
@@ -199,13 +202,25 @@ function Shell() {
                 bookmarks and search results still land somewhere real. */}
             <Route path="/scanner" element={<Navigate to="/" replace />} />
             <Route path="/signin" element={<SignInRoute />} />
-            <Route path="/paper" element={<RequireAuth><PaperRoute /></RequireAuth>} />
+            {/* /paper is PUBLIC again (Joe, 2026-08-17: "put the Paper Tab not
+                behind the log in. I want it public. The only thing that should
+                be behind log in is the Bugs page"). This reverses the
+                2026-08-06 gate, which held the paper book back while its
+                performance was under review. */}
+            <Route path="/paper" element={<PaperRoute />} />
+            {/* /scorecard is the one addition to that rule, at Joe's explicit
+                choice the same day: the Trade Idea marks stay signed-in-only
+                until there are ~10 CLOSED calls, because three calls is not a
+                track record and a public one invites being judged on noise.
+                scripts/score_trade_ideas.py withholds aggregate statistics
+                below that threshold for the same reason. */}
+            <Route path="/scorecard" element={<RequireAuth><ScorecardPage /></RequireAuth>} />
             <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
             <Route path="/admin/data" element={<DataFlowPage />} />
-            <Route path="/admin/bugs" element={<AdminBugs />} />
+            <Route path="/admin/bugs" element={<RequireAuth><AdminBugs /></RequireAuth>} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
