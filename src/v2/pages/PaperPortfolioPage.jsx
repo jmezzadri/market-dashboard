@@ -208,8 +208,14 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
    keyboard focus opens a plain-English note. The same text also lives in the
    "what these columns mean" legend under the holdings table, so nothing is
    gated behind a hover. */
-function Term({ children, tip, style }) {
+function Term({ children, tip, style, placement = 'top', alignRight = false }) {
+  // placement 'bottom' is REQUIRED inside any overflow:auto container (the
+  // tables): a tooltip opening upward from the header row lands outside the
+  // scroll container and gets clipped invisibly. Found by hovering the
+  // deployed page, not by reading the code.
   const [open, setOpen] = useState(false);
+  const pos = placement === 'bottom' ? { top: '145%' } : { bottom: '135%' };
+  const side = alignRight ? { right: 0 } : { left: 0 };
   return (
     <span
       tabIndex={0}
@@ -220,7 +226,7 @@ function Term({ children, tip, style }) {
       {children}
       {open && (
         <span style={{
-          position: 'absolute', bottom: '135%', left: 0, zIndex: 20,
+          position: 'absolute', ...pos, ...side, zIndex: 30,
           background: 'var(--mt-surface, #faf6ef)', border: BORDER, borderRadius: 8,
           padding: '9px 12px', width: 250, whiteSpace: 'normal', boxShadow: '0 3px 12px rgba(0,0,0,0.10)',
           fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0, textTransform: 'none', opacity: 0.95,
@@ -532,11 +538,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr style={{ borderBottom: BORDER }}>
                   <th style={{ ...th, textAlign: 'left' }}></th>
                   <th style={th}>Return</th>
-                  <th style={th}><Term tip={TIPS.vol}>Volatility</Term></th>
-                  <th style={th}><Term tip={TIPS.sharpe}>Sharpe</Term></th>
-                  <th style={th}><Term tip={TIPS.sortino}>Sortino</Term></th>
-                  <th style={th}><Term tip={TIPS.maxdd}>Max drawdown</Term></th>
-                  <th style={th}><Term tip={TIPS.worst}>Worst year</Term></th>
+                  <th style={th}><Term tip={TIPS.vol} placement="bottom" alignRight>Volatility</Term></th>
+                  <th style={th}><Term tip={TIPS.sharpe} placement="bottom" alignRight>Sharpe</Term></th>
+                  <th style={th}><Term tip={TIPS.sortino} placement="bottom" alignRight>Sortino</Term></th>
+                  <th style={th}><Term tip={TIPS.maxdd} placement="bottom" alignRight>Max drawdown</Term></th>
+                  <th style={th}><Term tip={TIPS.worst} placement="bottom" alignRight>Worst year</Term></th>
                 </tr>
               </thead>
               <tbody>
@@ -675,7 +681,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                           title="Click to sort · drag to rearrange"
                           aria-sort={active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}
                         >
-                          {c.tip ? <Term tip={c.tip}>{c.label}</Term> : c.label}
+                          {c.tip ? <Term tip={c.tip} placement="bottom" alignRight={!c.align}>{c.label}</Term> : c.label}
                           <span style={{ marginLeft: 4, fontSize: 9 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
                         </th>
                       );
