@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-17T14:06:15Z",
+  "generated_at": "2026-08-17T15:01:00Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
-  "next_publish": "2026-08-23",
+  "next_publish": "2026-08-19",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
     {
-      "date": "2026-08-19",
+      "date": "2026-08-17",
       "kind": "equity",
       "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
       "dek": "The S&P's 30-day implied volatility is trading at 0.77 times its three-month — the flattest near-date reading in five years of daily data. In the 37 independent episodes since 2011 that reached this percentile, the index returned +4.36% over the following six months against a +6.63% unconditional baseline, and +10.20% over twelve against +13.48%. The drawdown odds barely moved. What changed was the pay, not the risk — and the sleeve that gained relative ground in those windows was banks, which today sit mid-range while the Nasdaq's lead over the S&P sits at the 94th percentile.",
@@ -155,10 +155,10 @@
           "window": "5y"
         }
       ],
-      "id": "2026-08-19-the-volatility-curve-is-at-its-steepest-in-five-",
+      "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
       "status": "live",
       "sections": [],
-      "published_at": "2026-08-17T14:06:15Z"
+      "published_at": "2026-08-17T15:01:00Z"
     },
     {
       "date": "2026-08-16",
