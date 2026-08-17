@@ -24,7 +24,13 @@ portfolio is a separate, backtested system; nothing here touches it.
 
 ## Steps
 
-**0. Gate.** Sunday or Wednesday only. If a note dated within the last two days
+**0. Gate.** Sunday or Wednesday only — unless Joe asks for a note now, which
+overrides the cadence (2026-08-17: the volatility-curve note was composed for
+Wednesday the 19th, Joe said publish it today, and it was re-dated and
+re-published on the Monday). When that happens, delete the future-dated copy
+from `public/trade_ideas.json` before re-preparing, or the file carries the same
+note twice under two ids. The tile itself will not show a future-dated note —
+`useTradeIdea` gates on the publication date in US Eastern. If a note dated within the last two days
 is already published, stop — the tile carries a position, not a headline, and
 it is supposed to sit there until the next one.
 
