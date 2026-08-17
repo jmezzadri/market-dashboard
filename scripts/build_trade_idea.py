@@ -66,7 +66,22 @@ VALID_KINDS = {
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
             "position_type", "call", "the_trade", "edge", "variant",
             "thesis", "evidence", "levels", "other_side", "risks", "so_what",
-            "charts"]
+            "charts", "scorecard"]
+
+# 2026-08-17 (Joe): "Can we somehow track our trade ideas and how they
+# performed? I'd like to start collecting historical data on our calls."
+#
+# A note cannot be marked from its prose. "US bank equities — the KBW-style bank
+# complex, held outright" is a good sentence and a useless instruction to a
+# scorer. So every note now states its position a second time, in machine-
+# readable form, and it does so BEFORE publication — which is the only moment at
+# which it can be written honestly. A scorecard block added after the fact, once
+# the outcome is visible, is not a record of a call; it is a record of a
+# preference. scripts/score_trade_ideas.py consumes this and nothing else.
+SCORE_MEASURES = {"pct_change", "level_change"}
+SCORE_SIDES = {"long", "short"}
+SCORE_OPS = {">=", "<=", ">", "<"}
+SCORE_BASES = {"close", "weekly_close"}
 
 # 2026-08-14 (Joe): "Making a call 10 years out is not helpful. I want more
 # trades ideas... next several quarters. This bond idea is not profound at all.
@@ -461,6 +476,62 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             warnings.append(f"charts[{i}] series {c['series']!r} NOT verified — no indicator_history.json available")
     if len({c.get("series") for c in charts}) < len(charts):
         raise ContractError("two charts plot the same series — each chart must show something the others do not")
+
+    # 3f — the scorecard: the same position, in a form that can be marked.
+    sc = idea["scorecard"]
+    if not isinstance(sc, dict):
+        raise ContractError("scorecard must be an object")
+    legs = sc.get("legs")
+    if not isinstance(legs, list) or not legs:
+        raise ContractError("scorecard.legs must be a non-empty list — name the series the mark is taken from")
+    for i, leg in enumerate(legs):
+        if not isinstance(leg, dict):
+            raise ContractError(f"scorecard.legs[{i}] must be an object")
+        if leg.get("side") not in SCORE_SIDES:
+            raise ContractError(f"scorecard.legs[{i}].side must be long or short, got {leg.get('side')!r}")
+        if leg.get("measure", "pct_change") not in SCORE_MEASURES:
+            raise ContractError(
+                f"scorecard.legs[{i}].measure must be one of {sorted(SCORE_MEASURES)} — a yield or spread moves "
+                "in levels, a price moves in percent, and marking one as the other is silently wrong")
+        if hist is not None:
+            ser = hist.get(leg.get("series"))
+            if ser is None:
+                raise ContractError(
+                    f"scorecard.legs[{i}] names series {leg.get('series')!r}, which is not in "
+                    "indicator_history.json — a position we do not carry data for cannot be marked")
+    try:
+        months = int(sc.get("horizon_months"))
+    except (TypeError, ValueError):
+        raise ContractError("scorecard.horizon_months must be a whole number of months")
+    if not (1 <= months <= MAX_HORIZON_MONTHS):
+        raise ContractError(f"scorecard.horizon_months is {months} — must be 1 to {MAX_HORIZON_MONTHS}")
+    # The prose `horizon` and the scored horizon must not disagree. They are the
+    # same promise written twice, and if they drift the note says one thing and
+    # is graded on another.
+    stated = _max_months(hz)
+    if stated and months > stated:
+        raise ContractError(
+            f"scorecard.horizon_months ({months}) is longer than the horizon the note states ({stated}) — "
+            "a call cannot be graded over a period it did not claim")
+    inv = sc.get("invalidation")
+    if inv is not None:
+        if not isinstance(inv, dict):
+            raise ContractError("scorecard.invalidation must be an object or omitted")
+        if inv.get("op") not in SCORE_OPS:
+            raise ContractError(f"scorecard.invalidation.op must be one of {sorted(SCORE_OPS)}")
+        if inv.get("basis", "close") not in SCORE_BASES:
+            raise ContractError(f"scorecard.invalidation.basis must be one of {sorted(SCORE_BASES)}")
+        try:
+            float(inv.get("level"))
+        except (TypeError, ValueError):
+            raise ContractError("scorecard.invalidation.level must be a number — a stop you cannot check is not a stop")
+        if hist is not None and inv.get("series") not in hist:
+            raise ContractError(
+                f"scorecard.invalidation names series {inv.get('series')!r}, which is not in indicator_history.json")
+    elif _is_concrete(idea["levels"].get("invalidation", "")):
+        warnings.append(
+            "levels.invalidation states a condition in prose but scorecard.invalidation is absent — the stop "
+            "will not be enforced when the note is marked")
 
     # 4 — no direction word without two dated observations
     blob = _text_of(idea)

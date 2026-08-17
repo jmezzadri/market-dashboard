@@ -158,7 +158,26 @@
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
       "status": "live",
       "sections": [],
-      "published_at": "2026-08-17T15:01:00Z"
+      "published_at": "2026-08-17T15:01:00Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "bkx_spx",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "US banks ÷ S&P 500"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "vix_ts",
+          "op": ">=",
+          "level": 1.0,
+          "basis": "close"
+        },
+        "note": "The leg is already a ratio of banks to the index, so it measures the relative call directly and carries no separate benchmark.",
+        "backfilled": true
+      }
     },
     {
       "date": "2026-08-16",
@@ -359,7 +378,26 @@
       "so_what": "The bond market is charging the 97th percentile of three years to lend money and the 31st percentile to insure the lender against inflation, at the same moment copper sits in the 99th percentile of three years and gold in the 85th. Two markets are pricing the same risk 54 percentiles apart. The way to own that disagreement is a swap of one Treasury for another — no leverage, no short, no view on the direction of rates — and the honest expectation is a small gain with good odds over six months, not a windfall.",
       "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
       "status": "live",
-      "published_at": "2026-08-16T23:28:45Z"
+      "published_at": "2026-08-16T23:28:45Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "breakeven_10y",
+            "side": "long",
+            "measure": "level_change",
+            "label": "10y inflation breakeven"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "breakeven_10y",
+          "op": "<=",
+          "level": 2.1,
+          "basis": "weekly_close"
+        },
+        "note": "The payrolls half of the stated invalidation (a print below -100,000 on 4 Sep or 2 Oct) is not machine-checkable from indicator_history and is NOT enforced here — only the 2.10% weekly close is. Recorded so the gap is visible rather than assumed away.",
+        "backfilled": true
+      }
     },
     {
       "date": "2026-08-14",
@@ -532,7 +570,26 @@
       "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
       "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
       "status": "live",
-      "published_at": "2026-08-14T18:17:21Z"
+      "published_at": "2026-08-14T18:17:21Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "fx_eur",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "EUR/USD"
+          }
+        ],
+        "horizon_months": 3,
+        "invalidation": {
+          "series": "usd",
+          "op": ">=",
+          "level": 103,
+          "basis": "weekly_close"
+        },
+        "note": "Sized to three months per the note's own sizing paragraph, not the six-month end of the stated one-to-two-quarter range: the note says the edge decays and this is 'not a position to leave on and forget'.",
+        "backfilled": true
+      }
     }
   ]
 }

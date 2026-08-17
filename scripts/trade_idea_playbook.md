@@ -404,6 +404,40 @@ Must print `prepared OK`. If it errors, fix the JSON and rerun — never submit 
 note that failed the prepare step. Pulling the live file first is what makes
 the novelty check real; validating against an empty file checks nothing.
 
+**4b. The scorecard block — REQUIRED, and written BEFORE you know the answer.**
+Joe, 2026-08-17: *"Can we somehow track our trade ideas and how they performed?
+I'd like to start collecting historical data on our calls."* A note cannot be
+marked from its prose, so every note states its position a second time in
+machine-readable form:
+
+```json
+"scorecard": {
+  "legs": [{"series": "bkx_spx", "side": "long", "measure": "pct_change",
+            "label": "US banks / S&P 500"}],
+  "horizon_months": 6,
+  "invalidation": {"series": "vix_ts", "op": ">=", "level": 1.00, "basis": "close"},
+  "benchmark": {"series": "spx_index"}
+}
+```
+
+- `measure` is `pct_change` for a price or a ratio, `level_change` for a yield
+  or a spread. Marking one as the other is silently wrong: a breakeven going
+  2.30 to 2.45 is +0.15pp, not +6.5%.
+- `horizon_months` may not exceed the horizon the prose claims. The gate checks
+  this — a call cannot be graded over a period it did not claim.
+- If the leg is already a RATIO of the two things being compared, do not add a
+  `benchmark`; that subtracts the index twice.
+- `invalidation` is the same stop the prose states, as a number. `basis` is
+  `close` or `weekly_close` — "a weekly close below 2.10" must not trigger on a
+  Tuesday print. If part of the stated stop is not machine-checkable (a payrolls
+  print, say), say so in `scorecard.note` so the gap is visible rather than
+  assumed away.
+
+**This block is written at publication and never edited afterwards.** A
+scorecard added once the outcome is visible is not a record of a call, it is a
+record of a preference. `scripts/score_trade_ideas.py` marks from this and
+nothing else; `/scorecard` renders the result and computes nothing.
+
 **5. Submit** the prepared `public/trade_ideas.json` to `ops-code-commit`
 (bearer token is in the scheduled task's instructions — it is NOT in this repo),
 branch `idea/<date>`, `merge: true`.

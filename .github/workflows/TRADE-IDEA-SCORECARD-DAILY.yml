@@ -1,0 +1,89 @@
+name: TRADE-IDEA-SCORECARD-DAILY
+
+# Marks every published Trade Idea against the position it stated, and commits
+# public/trade_idea_scores.json. Joe, 2026-08-17: "Can we somehow track our
+# trade ideas and how they performed? I'd like to start collecting historical
+# data on our calls."
+#
+# Timing: 23:00 UTC (7pm EDT / 6pm EST), AFTER the 22:00 UTC leg of
+# INDICATOR-REFRESH_7AM_WEEKDAYS. That ordering is the whole point — the marker
+# is a pure function of public/indicator_history.json, so running it before the
+# refresh would mark today's calls against yesterday's tape and then commit that
+# as the record. Every session earlier in the day is already captured by the
+# previous run; there is nothing to gain from running more often and a real risk
+# of writing a mark the data does not yet support.
+#
+# Weekdays only: no closes print at the weekend, so a Saturday run would rewrite
+# the file with an identical mark and a new timestamp, which is churn that makes
+# the git history of the record harder to audit, not easier.
+
+on:
+  schedule:
+    - cron: '0 23 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: trade-idea-scorecard
+  cancel-in-progress: false
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          # Bot PAT (admin) bypasses main's branch protection, same as the
+          # indicator refresh — the default GITHUB_TOKEN is rejected (GH006).
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      # The scorer imports nothing outside the standard library, on purpose:
+      # the record of what we called must not be able to break because a
+      # third-party wheel moved. No pip install step here is deliberate.
+      - name: Self-test the scorer
+        run: python scripts/test_score_trade_ideas.py
+
+      # Fail loudly on a note that cannot be marked. `pending_entry` (a note
+      # whose entry close has not printed yet) is NOT a failure and does not
+      # trip this; a missing series or an absent scorecard block is, because it
+      # means a published call is quietly outside the record.
+      - name: Mark every published note
+        run: python scripts/score_trade_ideas.py --check
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Commit the scores if changed
+        run: |
+          if git diff --quiet -- public/trade_idea_scores.json; then
+            echo "No change to public/trade_idea_scores.json — skipping commit."
+          else
+            git add public/trade_idea_scores.json
+            git commit -m "Trade Idea scorecard refresh [skip ci]
+
+            Marked by .github/workflows/TRADE-IDEA-SCORECARD-DAILY.yml from
+            public/indicator_history.json. Entries, stops and horizons come
+            from each note's own scorecard block, written before publication."
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
+          fi
+
+      - name: Upload the scores as an artifact
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: trade-idea-scores-${{ github.run_id }}
+          path: public/trade_idea_scores.json
+          retention-days: 30
+          if-no-files-found: ignore
