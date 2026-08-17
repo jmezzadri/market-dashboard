@@ -102,7 +102,7 @@ const TIPS = {
   contrib: 'How much this position moved the WHOLE portfolio, in basis points of equity (1bp = 0.01%). A 2.5% position up 4% contributes ~10bp.',
   dtl: 'Days to exit the position trading 20% of the stock’s average daily dollar volume — the standard liquidity yardstick. Under 0.1 = can be sold in minutes.',
   mcap: 'Total market value of the company’s shares. Mega ≥ $200B · Large $10–200B · Mid $2–10B · Small < $2B.',
-  sector: 'Economic sector, mapped from the company’s SEC industry classification.',
+  sector: 'GICS sector (top line) and GICS industry — the 74-industry level below sector — for each holding.',
 };
 
 const HCOLS = [
@@ -113,7 +113,7 @@ const HCOLS = [
   { key: 'cost', label: 'Avg cost', tip: TIPS.cost },
   { key: 'last', label: 'Last', tip: TIPS.last },
   { key: 'pnl', label: 'P&L', tip: TIPS.pnl },
-  { key: 'sector', label: 'Sector', tip: TIPS.sector, align: 'left' },
+  { key: 'sector', label: 'Sector / industry', tip: TIPS.sector, align: 'left' },
   { key: 'trend1y', label: '1-yr trend', tip: TIPS.trend1y },
   { key: 'profitability', label: 'Profitability', tip: TIPS.profitability },
   { key: 'buybacks', label: 'Buybacks', tip: TIPS.buybacks },
@@ -351,6 +351,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [colOrder, setColOrder] = useState(HCOLS.map((c) => c.key));
   const [query, setQuery] = useState('');
   const [btRange, setBtRange] = useState('All');
+  const [openSectors, setOpenSectors] = useState(null); // null = default (top sector open)
 
   const load = useCallback(async () => {
     try {
@@ -431,11 +432,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const sectors = {};
     book.forEach((r) => {
       const k = r.sector || 'Unclassified';
-      sectors[k] = sectors[k] || { weight: 0, n: 0 };
-      sectors[k].weight += w(r.symbol); sectors[k].n += 1;
+      const ind = r.industry || 'Other';
+      const sk = sectors[k] || (sectors[k] = { weight: 0, n: 0, inds: {} });
+      sk.weight += w(r.symbol); sk.n += 1;
+      const ik = sk.inds[ind] || (sk.inds[ind] = { weight: 0, n: 0, syms: [] });
+      ik.weight += w(r.symbol); ik.n += 1; ik.syms.push(r.symbol);
     });
-    const secList = Object.entries(sectors).map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.weight - a.weight);
+    const secList = Object.entries(sectors).map(([name, v]) => ({
+      name, weight: v.weight, n: v.n,
+      industries: Object.entries(v.inds)
+        .map(([iname, iv]) => ({ name: iname, weight: iv.weight, n: iv.n, syms: iv.syms }))
+        .sort((a, b) => b.weight - a.weight),
+    })).sort((a, b) => b.weight - a.weight);
+    const nIndustries = new Set(book.map((r) => r.industry).filter(Boolean)).size;
     const BUCKETS = [['Mega (≥$200B)', 200e9, Infinity], ['Large ($10–200B)', 10e9, 200e9],
                      ['Mid ($2–10B)', 2e9, 10e9], ['Small (<$2B)', 0, 2e9]];
     const caps = BUCKETS.map(([name, lo, hi]) => {
@@ -451,7 +460,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     }).filter((v) => v != null);
     const worstDtl = dtl.length ? Math.max(...dtl) : null;
     const wavgAddv = book.reduce((t, r) => t + (Number(r.addv) || 0) * w(r.symbol), 0);
-    return { secList, caps, medMcap, worstDtl, wavgAddv, covered: mcaps.length };
+    return { secList, caps, medMcap, worstDtl, wavgAddv, covered: mcaps.length, nIndustries };
   }, [book, marks, equity]);
 
   const liveCurve = useMemo(() => {
@@ -588,7 +597,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </div>
 
         {/* ── attribution + exposure breakdowns (tear-sheet core) ────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 22, marginBottom: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 22, marginBottom: 22, alignItems: 'start' }}>
           <Card title={attribution ? (attribution.isDay ? 'Contributors & detractors — today' : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
             right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>}>
             {attribution ? (
@@ -611,21 +620,74 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             ) : <div style={{ fontSize: 13, color: INK3, padding: 8 }}>Populates from the first broker marks.</div>}
           </Card>
 
-          <Card title="Sector exposure" right={`${book?.length || 0} names · equal-weight book`}>
-            {bookMeta ? bookMeta.secList.map((sec) => (
-              <div key={sec.name} style={{ padding: '6px 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: INK2 }}>{sec.name}</span>
-                  <span className="num" style={{ fontWeight: 600 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n}</span></span>
+          <Card
+            title="Sector & industry exposure"
+            right={
+              bookMeta ? (
+                <button type="button"
+                  onClick={() => setOpenSectors(openSectors && openSectors.size ? new Set() : new Set(bookMeta.secList.map((s) => s.name)))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: GOLD, fontSize: 12 }}>
+                  {openSectors && openSectors.size ? 'Collapse all' : 'Expand all'}
+                </button>
+              ) : `${book?.length || 0} names`
+            }>
+            {bookMeta ? bookMeta.secList.map((sec, si) => {
+              // default (openSectors === null): only the top sector is open.
+              const isOpen = openSectors ? openSectors.has(sec.name) : si === 0;
+              const toggle = () => {
+                const base = openSectors ?? new Set([bookMeta.secList[0].name]);
+                const next = new Set(base);
+                next.has(sec.name) ? next.delete(sec.name) : next.add(sec.name);
+                setOpenSectors(next);
+              };
+              return (
+                <div key={sec.name} style={{ padding: '4px 0', borderBottom: `1px solid ${HAIR}` }}>
+                  <button type="button" onClick={toggle} className="qtt-row"
+                    style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: '5px 2px', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 13, marginBottom: 4 }}>
+                      <span style={{ color: INK, fontWeight: 600 }}>
+                        <span style={{ display: 'inline-block', width: 12, color: INK3, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+                        {sec.name}
+                      </span>
+                      <span className="num" style={{ fontWeight: 700 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n} {sec.n === 1 ? 'name' : 'names'} · {sec.industries.length} ind.</span></span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div style={{ padding: '4px 0 8px 14px' }}>
+                      {sec.industries.map((ind) => (
+                        <div key={ind.name} style={{ padding: '5px 0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, marginBottom: 3, gap: 10 }}>
+                            <span style={{ color: INK2 }}>{ind.name}</span>
+                            <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)} <span style={{ color: INK3 }}>· {ind.n}</span></span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1, height: 4, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min((ind.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: BLUE, borderRadius: 999 }} />
+                            </div>
+                            <span style={{ fontSize: 11, color: INK3, whiteSpace: 'nowrap' }}>
+                              {ind.syms.map((sym, i) => (
+                                <React.Fragment key={sym}>
+                                  <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)}
+                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
+                                  {i < ind.syms.length - 1 ? ' ' : ''}
+                                </React.Fragment>
+                              ))}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
-                </div>
-              </div>
-            )) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
+              );
+            }) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
             <div style={{ fontSize: 11.5, color: INK3, marginTop: 10, lineHeight: 1.55 }}>
-              Sector tilts are an OUTPUT of the stock-level score, not a target — the book owns
-              wherever momentum and profitability currently live.
+              {bookMeta ? `${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of the 74 GICS industries. ` : ''}
+              Tilts are an OUTPUT of the stock-level score, not a target — the book owns wherever
+              momentum and profitability currently live. Click a sector to drill into its industries.
             </div>
           </Card>
 
@@ -985,7 +1047,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                             {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
                           </td>
                         ),
-                        sector: <td key="sector" style={{ ...td, textAlign: 'left', color: INK2, fontSize: 12.5 }}>{r.sector || '—'}</td>,
+                        sector: (
+                          <td key="sector" style={{ ...td, textAlign: 'left', fontSize: 12.5, lineHeight: 1.35 }}>
+                            <div style={{ color: INK2 }}>{r.sector || '—'}</div>
+                            {r.industry ? <div style={{ color: INK3, fontSize: 11 }}>{r.industry}</div> : null}
+                          </td>
+                        ),
                         trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
                         profitability: <td key="profitability" style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>,
                         buybacks: (
