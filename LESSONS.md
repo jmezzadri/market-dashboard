@@ -1201,3 +1201,29 @@ Then the signal was tested, and **it does not work.** Over 843 weekly reports ba
 5. **Never substitute for a proprietary source without saying so.** The manifest entry states plainly that Goldman's work is not and will not be a source here, and what TFF is instead. A silent proxy invites a future reader to believe the site carries something it does not.
 
 **Applies to:** every new data source, and every signal that arrives with a reputation attached.
+
+### 4.35 (2026-08-14) — "Positioning works" is a fact about particular markets, not about markets; and the honest output of a sweep is often "no trade today"
+
+**What happened:** Joe: *"Neither - I want more equity focused analysis. You keep doing rates. What about commodities? And please dont force it. We need to be real x-asset analysts."*
+
+So the same test was run identically across every asset class the site carries — rank the fast-money net position as a share of open interest against its full history, take the extremes, compare forward returns to the unconditional return in the same sample. The result is a map, and the map is the deliverable:
+
+| asset class | 3-month, conditional vs unconditional | verdict |
+|---|---|---|
+| Currencies — euro, specs ≤15th | +3.18% vs +0.18% | works |
+| Wheat — managed money ≥85th | −5.98% vs +0.14% (14 episodes, 12y) | works, fade the long |
+| Corn / soybeans — managed money ≤15th | +4.11% / +2.38% vs +0.73% / +0.90% | works, buy the short |
+| Silver — managed money ≥85th | −1.69% vs +1.75% (27 episodes) | works |
+| **Gold — managed money ≥85th** | **+2.96% vs +2.68%; +9.68% vs +5.30% at 6m** | **does NOT fade — trends** |
+| Equity index — every formulation, 16 years | inside the noise | dead |
+| Equity breadth — 50d below 200d | +3.83% vs +3.92% | dead |
+
+**Rule:**
+
+1. **Never carry a signal's verdict across an asset class.** The same test that is dead in equity index futures produces a three-to-four-times base-rate effect in grains. The plausible mechanism — commodity hedgers have real physical exposure and therefore real information, while index futures are mostly financial — is a *reason*, not evidence. Re-run it in each market.
+2. **Direction is not symmetric and not universal.** An extreme managed-money long is a reliable fade in wheat, corn, soybeans and silver, and the OPPOSITE in gold, where extreme longs have been followed by more upside at every horizon. A house rule of "extreme means fade" would be systematically wrong in one of the most-traded commodities on the site.
+3. **Count episodes, not weeks, and set a floor.** Copper and WTI both look tradeable and are not: their samples begin in 2022 and 2019 and contain three independent episodes each. Below roughly ten episodes there is nothing to lean on, however good the median looks.
+4. **"No trade today" is a complete answer and must be given.** On the 2026-08-04 report nothing sat at an extreme in a market where the signal is both live and well-populated — gold 82nd percentile, copper 96th (too thin), wheat 58th, corn 51st, soybeans 48th, silver 30th. The temptation is to reach for the nearest reading and dress it up. Joe pre-empted it — *"please dont force it"* — and the map is worth more than a forced note anyway, because it makes every future note faster and better founded.
+5. **When a whole level of analysis comes back dead, say where the edge actually is instead.** Index-level equity signals are empty here, twice over. The equity work that HAS been validated in this system is at the single-name level — insider conviction, Power Trend, RSI divergences, short interest — and that is where an equity note should start, rather than from an index chart.
+
+**Applies to:** every signal, every asset class, and every sweep that comes back empty.
