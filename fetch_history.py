@@ -81,6 +81,10 @@ STATS_WINDOW_YEARS = 15
 #   inversion (low percentile of the trailing 3y range) drive amber/red.
 DIRECTION = {
     "vix":"hw","vxn":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"lw",
+    # vix_ts is LOW-warns: a low ratio is steep contango — the calm reading
+    # that historically halves forward equity return. A high ratio (>1) is
+    # backwardation, which has been the better entry, not the worse one.
+    "vix3m":"hw","vix_ts":"lw","gvz":"hw","ovx":"hw",
     "move":"hw","anfci":"hw","stlfsi":"hw","real_rates":"hw",
     "sloos_ci":"hw","cape":"hw","ism":"lw","copper_gold":"lw",
     "bkx_spx":"lw","credit_3y":"hw","term_premium":"hw",
@@ -106,6 +110,10 @@ fred = Fred(api_key=FRED_API_KEY)
 DAILY_FRESHNESS_SLA = {
     "vix":           1,  # Yahoo ^VIX
     "vxn":           1,  # Yahoo ^VXN (CBOE Nasdaq-100 Volatility Index)
+    "vix3m":         2,  # FRED VXVCLS (T+1 publication; Yahoo head spliced pre-2008)
+    "vix_ts":        2,  # ^VIX / VXVCLS — inherits VIX3M's T+1 SLA
+    "gvz":           1,  # Yahoo ^GVZ (gold implied vol)
+    "ovx":           1,  # Yahoo ^OVX (crude oil implied vol)
     "move":          1,  # Yahoo ^MOVE
     "skew":          1,  # Yahoo ^SKEW
     "usd":           1,  # Yahoo DX-Y.NYB
@@ -679,6 +687,66 @@ def fetch_all():
     s = safe_yf("^VXN")  # CBOE Nasdaq-100 Volatility Index (the Nasdaq's VIX)
     if s is not None:
         result["vxn"] = {"freq": "D", "unit": "index",
+                         "points": series_to_points(s, round_dp=2)}
+
+    # ── Volatility TERM STRUCTURE (added 2026-08-17) ───────────────────────
+    # The VIX alone says how much movement is priced. It does not say whether
+    # the near date is priced cheaper or dearer than the far date, which is
+    # the part a vol desk actually trades. VIX3M is the same variance-swap
+    # replication run on ~93-day SPX options; VIX/VIX3M is the slope.
+    #   ratio < 1  = contango  — near-dated calm, the normal state (~85% of days)
+    #   ratio > 1  = backwardation — near-dated fear, the stress state
+    # Backtested 2026-08-17 over 2007-12 -> 2026-08 (33 independent episodes,
+    # 42-day separation, causal 5-year rolling percentile): at the 5th
+    # percentile or steeper, forward S&P returns run roughly HALF the
+    # unconditional rate at every horizon out to a year, while drawdown odds
+    # are unchanged. Stable in every sub-period and at every threshold from
+    # the 2nd to the 20th percentile. See scripts/trade_idea_playbook.md.
+    # Source note (2026-08-17): FRED VXVCLS is the SPINE, not Yahoo. Yahoo's
+    # ^VIX3M daily feed was found to have a month-long hole (2026-07-17 jumps
+    # straight to the live quote) while FRED published every session. Both are
+    # the identical CBOE index — 4,683 overlapping days, mean absolute
+    # difference 0.0005 — so Yahoo is safe to splice in front of FRED's
+    # 2007-12-04 start to recover the 2006-07 → 2007-12 head, and nowhere else.
+    print("VIX3M (3-month SPX implied vol) ...")
+    _v3_fred = safe_fred("VXVCLS")
+    _v3_yh = safe_yf("^VIX3M")
+    vix3m = None
+    if _v3_fred is not None:
+        vix3m = _v3_fred
+        if _v3_yh is not None:
+            head = _v3_yh[_v3_yh.index < _v3_fred.index.min()]
+            if len(head):
+                vix3m = pd.concat([head, _v3_fred]).sort_index()
+    elif _v3_yh is not None:
+        print("  WARNING VIX3M: FRED VXVCLS unavailable — falling back to Yahoo, "
+              "which has known daily gaps")
+        vix3m = _v3_yh
+    if vix3m is not None:
+        result["vix3m"] = {"freq": "D", "unit": "index",
+                           "points": series_to_points(vix3m, round_dp=2)}
+
+    print("VIX term structure (VIX / VIX3M) ...")
+    _vix_raw = safe_yf("^VIX")
+    if vix3m is not None and _vix_raw is not None:
+        df = pd.concat([_vix_raw.rename("near"), vix3m.rename("far")], axis=1).dropna()
+        df = df[df["far"] > 0]
+        result["vix_ts"] = {"freq": "D", "unit": "ratio",
+                            "points": series_to_points((df["near"] / df["far"]), round_dp=4)}
+
+    # Cross-asset vol. Equity vol is only informative next to the vol of
+    # everything else — a VIX at the 16th percentile means one thing when
+    # gold and oil vol are also cheap and quite another when they are bid.
+    print("GVZ (gold implied vol) ...")
+    s = safe_yf("^GVZ")
+    if s is not None:
+        result["gvz"] = {"freq": "D", "unit": "index",
+                         "points": series_to_points(s, round_dp=2)}
+
+    print("OVX (crude oil implied vol) ...")
+    s = safe_yf("^OVX")
+    if s is not None:
+        result["ovx"] = {"freq": "D", "unit": "index",
                          "points": series_to_points(s, round_dp=2)}
 
     print("HY OAS (hy_ig proxy) ...")

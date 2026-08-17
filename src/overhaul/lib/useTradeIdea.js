@@ -29,7 +29,18 @@ export default function useTradeIdea() {
 
   const ideas = useMemo(() => {
     const list = Array.isArray(data?.ideas) ? [...data.ideas] : [];
-    return list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    // A note may be composed and committed days before its publication date —
+    // the pipeline supports preparing ahead, and on 2026-08-17 a note dated
+    // Wednesday the 19th went live on the tile the moment it was committed,
+    // because this hook took ideas[0] unconditionally. The cadence is a
+    // product decision (Sunday and Wednesday evenings, US Eastern); a note
+    // dated in the future is not published yet, so it is not shown yet.
+    const todayET = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    return list
+      .filter((x) => typeof x?.date === 'string' && x.date <= todayET)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }, [data]);
 
   return {

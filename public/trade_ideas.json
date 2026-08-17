@@ -1,9 +1,165 @@
 {
-  "generated_at": "2026-08-16T23:28:45Z",
+  "generated_at": "2026-08-17T14:06:15Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
-  "next_publish": "2026-08-19",
+  "next_publish": "2026-08-23",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-08-19",
+      "kind": "equity",
+      "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
+      "dek": "The S&P's 30-day implied volatility is trading at 0.77 times its three-month — the flattest near-date reading in five years of daily data. In the 37 independent episodes since 2011 that reached this percentile, the index returned +4.36% over the following six months against a +6.63% unconditional baseline, and +10.20% over twelve against +13.48%. The drawdown odds barely moved. What changed was the pay, not the risk — and the sleeve that gained relative ground in those windows was banks, which today sit mid-range while the Nasdaq's lead over the S&P sits at the 94th percentile.",
+      "instrument": "US bank equities against the S&P 500",
+      "horizon": "six months",
+      "position_type": "allocation shift",
+      "call": "US bank shares are positioned to out-return the S&P 500 over the next six months, and the index itself to pay materially less than its normal return for the same downside risk, because the 30-day-to-three-month volatility curve is at its steepest contango in five years.",
+      "the_trade": {
+        "buy": "US bank equities — the KBW-style bank complex, held outright.",
+        "funded_by": "Trimming the most concentrated part of existing US index exposure: the Nasdaq-100-weighted leadership, whose relative-strength ratio against the S&P sits at the 94th percentile of five years and whose own implied volatility is 45% above the S&P's, the 96th percentile of that relationship.",
+        "expression": "An allocation shift inside equity exposure. Nothing is sold short, nothing is borrowed, and total equity weight does not change. The claim is about which equities pay, not about whether to own them.",
+        "size": "A tilt, not a reversal — the base rate is a 60% hit rate on the relative leg, which supports moving a slice, not the book.",
+        "hedge_note": "If protection is wanted alongside this, it is unusually cheap here in absolute terms: three-month S&P implied volatility sits at 18.46, the 28th percentile of five years. The steep curve is precisely what makes the far date inexpensive."
+      },
+      "edge": {
+        "source": "volatility structure",
+        "summary": "The slope of the S&P volatility curve — 30-day implied divided by three-month implied — has been a usable conditioning variable for the next two to four quarters of equity return, in a direction most readers guess wrong. Steep contango is read as complacency and therefore as danger; the measured outcome is not danger but dilution. Returns compress toward half the unconditional rate while the frequency and depth of drawdowns stay where they were. The relative result is the more actionable half: banks, a sleeve nobody associates with the options market, gained ground against the index in these windows at a 60% rate against a 44% baseline.",
+        "backtest": {
+          "window": "2011-12 to 2026-08 (daily, 5,049 sessions of VIX/VIX3M from 2006-07; ranked on a causal trailing five-year percentile so no observation uses data it could not have had)",
+          "n": 37,
+          "result": "Entering at a curve reading in the bottom 5th percentile: S&P +0.40% at one month, +2.19% at three, +4.36% at six, +10.20% at twelve. Six-month hit rate 74%. Banks against the S&P: +1.72% at six months (median +3.69%), hit rate 60%. Nasdaq's excess over the S&P falls to +0.96 percentage points at six months. Probability of a 10% drawdown inside six months: 22%.",
+          "baseline": "Unconditional over the identical span, sampled every fifth session: S&P +1.11% / +3.34% / +6.63% / +13.48% at one, three, six and twelve months, six-month hit rate 82%. Banks against the S&P: -1.11% at six months (median -1.42%), hit rate 44%. Nasdaq's excess over the S&P +2.03 percentage points. Probability of a 10% drawdown inside six months: 19%.",
+          "robustness": "The direction holds in all three sub-periods (2011-2015 -2.03pp, 2016-2020 -1.28pp, 2021-2026 -4.33pp) and at every threshold tested from the 2nd to the 20th percentile (-1.28pp to -2.40pp). Episodes are separated by at least 42 trading days, so overlapping weeks are not counted as independent observations."
+        }
+      },
+      "variant": "Consensus reads a 14 handle on the VIX and a curve this steep as complacency, and complacency as a setup for a fall — the standard risk-manager reflex is to cut equity exposure and buy protection into it. The measured record disagrees with the second half of that. Drawdown frequency after these readings is statistically indistinguishable from any other day; what actually degrades is the return you are paid for carrying unchanged risk. That is a different problem with a different answer: not less equity, but different equity. Almost nobody runs the sector question off the volatility surface, because the two live on different desks.",
+      "thesis": [
+        "The signal is a slope, not a level. A VIX of 14.25 on its own is unremarkable — the 15th percentile of five years, and low volatility has been the market's resting state for most of the last decade. What is rare is 14.25 sitting against a three-month reading of 18.46. That ratio, 0.77, is the 0.6th percentile of the last five years: the options market has priced the coming month as calmer relative to the coming quarter than on all but a handful of days since 2021. The market is not saying nothing will go wrong. It is saying nothing will go wrong soon.",
+        "What follows is dilution, not danger, and the distinction is the whole note. Across 37 independent episodes since December 2011, the six-month return after a reading this steep was +4.36% against +6.63% unconditionally, and the twelve-month was +10.20% against +13.48% — roughly a third of the return removed. Meanwhile the probability of at least a 10% peak-to-trough drawdown inside six months was 22% conditionally against 19% unconditionally, and at three months the conditional figure was actually the lower of the two, 8% against 11%. You are not being handed more risk. You are being handed less compensation for the risk you already have, which is a portfolio-construction problem rather than a hedging one.",
+        "Banks are the sleeve the record points to, and they are not extended. In those same 37 windows the bank complex gained on the S&P at a 60% rate with a median relative gain of 3.69%, against a 44% rate and a median loss of 1.42% for a randomly chosen entry — a spread that widens rather than decays as the horizon extends, reaching +4.56 percentage points at twelve months. The setup matters as much as the statistic: the bank-to-index ratio today sits at the 44.6th percentile of five years, squarely mid-range, so this is a rotation into something ordinary rather than a chase of something already run.",
+        "The funding leg is where the concentration sits, and the options market is quietly agreeing. Nasdaq-100 implied volatility is 20.72 against the S&P's 14.25, a ratio of 1.45 that ranks in the 96th percentile of five years — the options market is charging near-record relative premium to insure the index whose relative-strength ratio against the S&P is simultaneously at its 94th percentile. In the backtested episodes, the Nasdaq's structural excess return over the S&P more than halved, from +2.03 percentage points to +0.96 at six months. The premium for concentration has historically been at its thinnest exactly when it was priced at its dearest.",
+        "The cross-asset reading is the tell that this is about equities specifically and not a general calm. Gold implied volatility sits at 1.68 times the VIX, the 97th percentile of the relationship since 2008; crude oil implied volatility at 3.48 times, the 94th percentile since 2007. Rate volatility is at the 14th percentile of five years. So the hedging bid has not disappeared from the system — it has migrated into metal and energy and out of the equity index. When one asset's insurance is being marked down while every other asset's is being marked up, the interesting question is what the equity market thinks it knows."
+      ],
+      "evidence": [
+        {
+          "claim": "S&P 30-day implied volatility (VIX)",
+          "value": "14.25 — 15th percentile of the trailing five years",
+          "source": "CBOE via FRED VIXCLS / Yahoo ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "S&P three-month implied volatility (VIX3M)",
+          "value": "18.46 — 28th percentile of the trailing five years",
+          "source": "CBOE via FRED VXVCLS, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Volatility curve slope, VIX ÷ VIX3M",
+          "value": "0.7719 — 0.6th percentile of the trailing five years, third consecutive session below the 5th",
+          "source": "MacroTilt, computed from CBOE VIX and VIX3M closes",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Curve first entered the bottom 5th percentile in this stretch",
+          "value": "2026-08-12, at a ratio of 0.7852",
+          "source": "MacroTilt, computed from CBOE VIX and VIX3M closes",
+          "as_of": "2026-08-12"
+        },
+        {
+          "claim": "Bank complex against the S&P 500",
+          "value": "0.0923 — 44.6th percentile of the trailing five years, mid-range",
+          "source": "MacroTilt, KBE ÷ SPY daily closes via Yahoo Finance",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Nasdaq-100 implied volatility against the S&P's (VXN ÷ VIX)",
+          "value": "1.4540 — 95.8th percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^VXN and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Nasdaq-100 relative strength against the S&P 500",
+          "value": "94th percentile of the trailing five years",
+          "source": "MacroTilt, NDX ÷ SPX daily closes",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Gold implied volatility against the S&P's (GVZ ÷ VIX)",
+          "value": "1.6786 — 97.4th percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^GVZ and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Crude oil implied volatility against the S&P's (OVX ÷ VIX)",
+          "value": "3.4751 — 94.3rd percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^OVX and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Treasury implied volatility (MOVE)",
+          "value": "69.6 — 13.9th percentile of the trailing five years",
+          "source": "ICE BofA MOVE via Yahoo ^MOVE, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "S&P 500 members above their 200-day average",
+          "value": "72.2% — 76.5th percentile of the trailing five years; participation is not the problem here",
+          "source": "MacroTilt breadth series",
+          "as_of": "2026-08-14"
+        }
+      ],
+      "levels": {
+        "trigger": "Already live. The curve closed at 0.7719 on 14 August, its third consecutive session inside the bottom 5th percentile of five years, which is the entry condition the 37 backtested episodes were defined on.",
+        "invalidation": "The VIX ÷ VIX3M ratio closing above 1.00 — outright backwardation. That is not a worse version of this setup, it is the opposite one: in the same dataset, readings in the top 5th percentile preceded six-month S&P returns of +8.97% against a +6.63% baseline. If the curve inverts, this note's premise has been replaced rather than damaged, and the allocation shift should be unwound. Separately, if the bank-to-S&P ratio runs through the 75th percentile of five years before the six months are out, the relative leg has done its work early.",
+        "target": "The relative leg: banks gaining roughly 3 to 4 percentage points on the S&P over six months, the conditional median of the backtested episodes. The absolute expectation for the index over the same window is a positive but below-par +4.4%, and the note is not built on the index falling."
+      },
+      "other_side": "The honest counter is that 74% of these episodes still made money over six months, and the twelve-month hit rate was 85% — statistically identical to the 86% unconditional. Acting on a return-degradation signal as though it were a direction signal is the most likely way to lose money on this note, because the modal outcome remains a rising market. There is also a live mechanism argument for staying put: steep contango is itself the product of persistent volatility-selling flows, and those flows are supportive of equity prices for as long as they persist, which can be quarters. And the bank leg is the weaker of the two claims — a 60% hit rate against a 44% baseline over 37 observations is a real edge but a thin one, and the effect is concentrated at the tightest thresholds where the sample is smallest.",
+      "risks": [
+        "Sample size. Thirty-seven independent episodes over roughly fifteen years is enough to reject coincidence but not enough to be precise about magnitude. The 2021-2026 sub-period, where the effect is largest at -4.33 percentage points, contains only eight of them.",
+        "The relative leg is thinner than the absolute one. Banks beat the index in 60% of episodes; that is 22 of 37, and a handful of different outcomes would move it materially. The median relative gain of +3.69% is more reliable than the mean of +1.72%, which tells you the distribution has a left tail.",
+        "Bank-specific risk is not volatility-structure risk. A credit event, a regional funding scare, or a sharp curve flattening would overwhelm this signal entirely. The high-yield-to-investment-grade spread at 271 basis points is near the tight end of its post-2011 range, which is a comfort today and a vulnerability if it moves.",
+        "The signal conditions returns; it does not time them. The one-month conditional return of +0.40% against +1.11% is a small difference on a noisy series, and nothing in this work identifies when inside the six months the underperformance arrives.",
+        "Regime dependence. Every episode in this sample sits inside a long equity bull market with two short interruptions. A dataset that began in 1998 rather than 2011 might read differently, and VIX3M does not exist before 2006 to check."
+      ],
+      "so_what": "This is a note about what you are being paid, not about what is about to happen. The equity market is offering roughly two-thirds of its usual six-month return for an unchanged amount of downside — and it is offering the thinnest version of that inside the most concentrated part of the index, at the moment the options market is charging the most to insure it. The response is a tilt within equities toward a sleeve that is neither expensive nor extended, not a reduction in equities. If the volatility curve inverts, the setup reverses and so should the tilt.",
+      "charts": [
+        {
+          "series": "vix_ts",
+          "title": "The slope, not the level",
+          "subtitle": "S&P 30-day implied volatility ÷ three-month implied volatility",
+          "caption": "Below 1.00 the market prices the coming month as calmer than the coming quarter — the normal state. At 0.77 it is the 0.6th percentile of five years. Readings above 1.00 are near-dated fear, and historically the better entry.",
+          "source": "CBOE VIX and VIX3M daily closes",
+          "window": "5y"
+        },
+        {
+          "series": "bkx_spx",
+          "title": "Banks are mid-range, not extended",
+          "subtitle": "US bank complex ÷ S&P 500, ratio",
+          "caption": "At the 44.6th percentile of five years. In the 37 episodes when the volatility curve was this steep, this ratio rose over the following six months 60% of the time, against 44% for a randomly chosen entry.",
+          "source": "KBE ÷ SPY daily closes, Yahoo Finance",
+          "window": "5y"
+        },
+        {
+          "series": "vxn",
+          "title": "What it costs to insure the concentration",
+          "subtitle": "Nasdaq-100 implied volatility, index",
+          "caption": "At 20.72 against the S&P's 14.25 — a 45% premium, the 96th percentile of that relationship over five years. The options market is charging most to insure the sleeve whose relative strength is already at its 94th percentile.",
+          "source": "CBOE ^VXN daily close",
+          "window": "5y"
+        },
+        {
+          "series": "gvz",
+          "title": "The hedging bid did not vanish — it moved",
+          "subtitle": "Gold implied volatility, index",
+          "caption": "At 23.92, or 1.68 times the VIX — the 97th percentile of that ratio since 2008. Alongside crude oil volatility at 3.48 times the VIX, this says demand for protection migrated out of the equity index rather than out of the market.",
+          "source": "CBOE ^GVZ daily close",
+          "window": "5y"
+        }
+      ],
+      "id": "2026-08-19-the-volatility-curve-is-at-its-steepest-in-five-",
+      "status": "live",
+      "sections": [],
+      "published_at": "2026-08-17T14:06:15Z"
+    },
     {
       "date": "2026-08-16",
       "kind": "rates",
