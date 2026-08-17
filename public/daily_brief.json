@@ -1,129 +1,134 @@
 {
-  "date": "2026-08-14",
-  "recap_session": "Thu Aug 13",
+  "date": "2026-08-17",
+  "recap_session": "Fri Aug 14",
   "eyebrow": "Morning Brief",
-  "headline": "Wholesale prices were flat in July and their annual rate fell to 4.7% from 5.5%, the odds of a September rate rise dropped to about a third, and the S&P 500 closed at a record — with retail sales due at 8:30 this morning.",
-  "stance": "The second inflation report of the week was as harmless as the first. Producer prices — what companies charge each other, one step before the shelf — were <b>unchanged in July</b>, and the annual rate fell to <b>4.7% from 5.5% in June</b>, helped by energy prices falling 3.1% on the month and gasoline 5.7%. Rate futures took another step: the chance the Fed leaves its target range at 3.50%-3.75% in September rose to roughly <b>66%</b>, from 62% a day earlier, putting a quarter-point rise at about 34%. Stocks used it — the S&P 500 rose <b>0.65% to 7,798.99</b>, a record close, the Nasdaq 100 0.81% to 26,803.03 and the Dow 0.13% to 53,839.99. Bonds did the more interesting thing: the 10-year Treasury yield fell to <b>4.63% from 4.68%</b> and the 2-year to 4.15% from 4.20%, while the annual inflation rate bond prices imply eased to 2.24% from 2.26% — a repricing of policy, again, rather than of inflation. One caveat sits inside the report: the measure that strips out food, energy and trade margins rose 0.4% on the month, the firm part of an otherwise soft print. The last data of the week — <b>July retail sales at 8:30am ET</b> and consumer sentiment at 10:00 — is the read on whether the household side is holding up.",
+  "headline": "July retail sales fell 0.6% and consumer sentiment dropped to 51.0, cutting the odds of a September rate rise to roughly 29% — and yet the 10-year Treasury yield rose, because oil kept climbing on the Hormuz standoff.",
+  "stance": "Friday delivered the awkward combination. Retail sales <b>fell 0.6% in July</b>, the biggest monthly drop in more than a year, against expectations for a small gain, and the University of Michigan's first August reading of consumer sentiment came in at <b>51.0 against 55.2 in July</b> — an eight-percent fall and well below the 55.0 economists looked for. Rate futures did the obvious thing: the implied chance the Fed raises its target range from 3.50%-3.75% in September fell to about <b>29% from about 34% Thursday night</b>. Bonds did the opposite of the obvious thing. The 10-year Treasury yield <b>rose to 4.68% from 4.63%</b> and the 2-year to 4.17% from 4.15%, and the annual inflation rate bond prices imply over the next decade rose to <b>2.27% from 2.24%</b>. The reason sits in the oil market, not the data: Brent traded near $88.45 Friday evening against a $86.96 settlement Thursday, and above $88 again Monday morning, with talks to reopen the Strait of Hormuz still deadlocked. Weak demand and firmer inflation expectations arriving in the same session is the uncomfortable version of a slowdown — and it lands the week the big retailers report and the Fed publishes the minutes of its July meeting. Stocks gave back a little: the S&P 500 <b>fell 0.17% to 7,785.76</b>, though it still finished a third straight higher week.",
   "news": [
     {
-      "head": "Wholesale prices were flat in July",
-      "body": "The government's producer-price report, released Thursday at 8:30am ET, showed prices charged by US producers unchanged on the month, with the annual rate falling to 4.7% from 5.5% in June. Goods prices fell 0.7% while services rose 0.2%; energy fell 3.1% and gasoline 5.7%. Goods excluding food and energy rose 0.1%. The firmer part: the measure that excludes food, energy and trade margins rose 0.4% on the month and 4.7% over the year."
+      "head": "Retail sales fell 0.6% in July",
+      "body": "The Census Bureau's advance estimate, released Friday at 8:30am ET, showed retail and food-service sales down 0.6% on the month, give or take 0.4%, against expectations for a gain of about 0.1%. Excluding cars, sales fell 0.3%; excluding cars and gasoline, 0.2% — a decline small enough that the government notes the range around it includes zero. Sales were still 5.0% higher than in July 2025, and June's 0.2% rise was left unrevised. The month-on-month drop was the largest in more than a year."
     },
     {
-      "head": "September moved again, in the same direction",
-      "body": "After the report, rate-futures pricing put the chance the Fed holds its target range at 3.50%-3.75% in September at roughly 66%, up from 62% a day earlier, and the implied odds of a quarter-point rise at about 34%, down from 38%. Two benign inflation reports in two days have taken the September question from a coin flip at the start of the week to a clear lean toward no change. The minutes of the July meeting are published on August 19."
+      "head": "Consumer sentiment fell to 51.0 and inflation expectations went the wrong way",
+      "body": "The University of Michigan's preliminary August survey put its headline index at 51.0, down from 55.2 in July and below the 55.0 expected. The current-conditions component fell to 51.8 from 54.8 and the expectations component to 50.6 from 55.4, with expected business conditions down 11% for the short run and 17% for the long run. The part that matters for policy: households now expect 4.3% inflation over the coming year, up from 4.2%, with the five-to-ten-year figure unchanged at 3.3%. Only 8% of those surveyed expect their income to grow faster than prices."
     },
     {
-      "head": "Jobless claims rose but the trend did not",
-      "body": "Initial claims for unemployment benefits were 209,000 in the week ended August 8, up 9,000 from the prior week's revised 200,000. The four-week average, which smooths the weekly noise, was unchanged at 199,000. Continuing claims — people still drawing benefits — fell 22,000 to 1,777,000 in the week ended August 1, with the insured unemployment rate at 1.2%."
+      "head": "September moved further toward no change",
+      "body": "After both reports, rate futures put the implied probability that the Fed raises its target range at the September 15-16 meeting at roughly 29%, down from about 34% Thursday night. The direction of travel has been one-way for two weeks, and it started with the 23,000 contraction in July payrolls rather than with any price data. The minutes of the July meeting are published on Wednesday, August 19, and the Kansas City Fed's Jackson Hole symposium runs August 27-29."
     },
     {
-      "head": "A record close, and two of the week's best results were sold",
-      "body": "The S&P 500 finished at a record on Thursday. Underneath it, Cisco fell 8.4% the day after reporting revenue up 18% and $9.3 billion of AI orders for the fiscal year — a beat that ran into what was already expected of it. Applied Materials then reported after the close and was down about 5% before Friday's open on its own record quarter."
+      "head": "The 10-year yield rose anyway",
+      "body": "Despite softer demand data and lower odds of a rate rise, the 10-year Treasury yield closed Friday at 4.68% against 4.63% Thursday and the 2-year at 4.17% against 4.15%, widening the gap between them to 51 basis points from 48. The 10-year breakeven — the annual inflation rate bond prices imply over the next decade — rose to 2.27% from 2.24%, and the inflation-adjusted 10-year yield to 2.41% from 2.39%. Expected swings in Treasury prices edged up to 69.6 from 69.2."
     },
     {
-      "head": "Applied Materials had its best quarter and its shares fell anyway",
-      "body": "The chip-equipment maker reported fiscal third-quarter revenue of $9.115 billion, up 25% on a year earlier, with adjusted earnings of $3.50 a share, up 41%, and $3.17 on the stricter accounting measure. Semiconductor systems contributed $7.040 billion and services $1.781 billion. It guided the current quarter to $10.25 billion of revenue, give or take $500 million, and $4.02 a share, give or take 20 cents. Revenue from memory chips used in AI servers rose 52% on a year earlier. The shares were down about 5% in trading before Friday's open."
+      "head": "Oil held its gains with the Strait of Hormuz still shut to normal traffic",
+      "body": "Brent crude traded near $88.45 a barrel Friday evening and US crude near $82.78, against Thursday settlements of $86.96 and $81.21, with the rise attributed to tensions over the Strait of Hormuz. Brent was above $88 again Monday morning. Negotiations between Washington and Tehran to reopen the waterway remain deadlocked, and Middle Eastern producers are still moving crude through it despite the risk. Gold settled at $4,373.50 an ounce Friday and silver at $64.53."
     },
     {
-      "head": "Both oil forecasters cut their demand numbers on the same day",
-      "body": "The International Energy Agency now expects global oil demand to fall by 1.6 million barrels a day in 2026, a downgrade of about 510,000 barrels a day from its July forecast. OPEC still expects growth, but cut it to roughly 600,000 barrels a day from 780,000. Brent settled at $86.96 on Thursday from $88.37 Wednesday and US crude at $81.21 from $82.58. US crude stockpiles rose 17.4 million barrels in the prior week."
+      "head": "Broadcom fell 6% on a question about how the AI build-out is being paid for",
+      "body": "Bank of America's Tom Curcuruto published work arguing that Broadcom's off-balance-sheet chip-financing vehicle could carry up to $370 billion of senior debt by mid-2029 at 20-gigawatt scale, including roughly $150 billion of new issuance in 2027. The vehicle — launched in June with a $35 billion financing led by Apollo Global Management and Blackstone — raises money separately from Broadcom, buys custom AI accelerators and leases them to customers, with Broadcom guaranteeing the lease payments for five years. Broadcom closed Friday down 6% at $390.69. AMD rose 4% to $502.95 after Baird set a $1,250 price target."
     },
     {
-      "head": "Overnight: Korea led, Hong Kong lagged, US futures little changed",
-      "body": "In trading through early Friday, the Kospi in Seoul rose 2.4%, Japan's Nikkei 225 0.6% and Germany's DAX 0.5%, while Hong Kong's Hang Seng fell 1.1%, Australia's benchmark 0.8% and the FTSE 100 in London 0.3%. S&P 500 futures were up 0.1% and Dow futures down 0.1% around 5:30am ET. Brent was about 1% higher overnight near $87.96 and the yen firmer at ¥159.16 to the dollar."
+      "head": "Reddit is joining the S&P 500, replacing AvalonBay",
+      "body": "S&P Dow Jones Indices said Reddit will replace AvalonBay Communities in the S&P 500. The shares rose more than 12% in Friday's pre-market trading to $177.97, having fallen more than 31% this year through Thursday's close and more than 42% from their September 2025 peak. Index funds that track the S&P 500 have to buy a stock when it joins, which is why the announcement itself moves the price before anything about the business changes."
+    },
+    {
+      "head": "Overnight: Tokyo flat, with the Bank of Japan reported to be moving sooner",
+      "body": "Reuters reported that the Bank of Japan is considering raising rates as soon as September, at a faster pace of tightening than markets had priced. The Nikkei 225 opened Monday at 68,713.8, level with its prior close. Rate futures already put the chance of a Bank of Japan increase at its September 18 meeting at 81% as of Friday, up from 63% on Wednesday, and the chance of a European Central Bank rise in September at 92% — both far above what is priced for the Fed. US futures were close to unchanged around 5:45am ET, with S&P 500 futures up 0.1% and Dow futures down 0.2%."
     }
   ],
   "implications": [
-    "Two soft inflation prints in one week have changed the lean, not the decision. A September hold at roughly 66% means the market now treats no change as the base case rather than a coin flip — but the thing that started this move was last week's 23,000 contraction in July payrolls, not the price data. The inflation reports removed an obstacle; they did not supply the reason.",
-    "The bond market repriced policy, not inflation. The 10-year yield fell 5 basis points to 4.63% and the 2-year 5 basis points to 4.15%, leaving the gap between them unchanged at 48 basis points. The annual inflation rate bond prices imply over the next decade eased only to 2.24% from 2.26%, so the inflation-adjusted 10-year yield — down to 2.39% from 2.42% — did nearly all the work. Expected swings in Treasury prices fell for a second straight session, to 69.2 from 72.1.",
-    "Good results being sold is the more useful signal this week. Cisco fell 8.4% on a beat-and-raise and Applied Materials was down about 5% before Friday's open on record revenue growing 25%. When two AI-adjacent companies deliver and both trade lower, the constraint is what was already in the price, not what the businesses did — into a market whose cyclically adjusted price-to-earnings ratio sits at 42.65, up from 42.3 a day earlier.",
-    "The cash cushion in the banking system is draining, quietly. The Treasury's own cash account rose to $964.0 billion in Wednesday's weekly snapshot from $907.3 billion a week earlier, and bank reserves fell to $2,944.1 billion from $2,993.3 billion — the Treasury rebuilding its balance pulls cash out of the banks. The Fed's overnight parking facility, which used to absorb the swings, held $0.5 billion Thursday against $0.7 billion Wednesday. Short-term funding spreads show no strain at all yet, which is why this is a watch item rather than a worry."
+    "The growth data and the bond market pointed in opposite directions on Friday, and both were right. Weak retail sales and a sentiment index at 51.0 cut the odds of a September rate rise to about 29%, which normally pulls yields down. Instead the 10-year rose 5 basis points to 4.68% and the inflation rate bonds imply over the next decade rose to 2.27% from 2.24%. The bridge between the two is oil: Brent near $88.45 Friday evening against $86.96 Thursday. A supply shock raises prices and lowers demand at the same time, so it pushes the Fed's two jobs apart rather than together — which is exactly why the central bank has been reluctant to commit either way.",
+    "The retail sales number is softer than a 0.6% fall makes it sound, and that matters this week. Strip out cars and the decline is 0.3%; strip out cars and petrol too and it is 0.2%, a figure the government itself flags as statistically indistinguishable from zero. Sales were still 5.0% above a year earlier. What fell hardest is the part most sensitive to the pump price, in a month when gasoline prices dropped 5.7% at the wholesale level. Home Depot reports Tuesday, Target and Lowe's Wednesday and Walmart Thursday — four companies that see the actual receipts, in the same week.",
+    "Households expecting 4.3% inflation is the harder half of Friday. Sentiment at 51.0 can be discounted as mood; a year-ahead inflation expectation that rises while two official price reports come in soft cannot, because expectations are the channel through which today's oil price becomes next year's wage demand. Only 8% of those surveyed expect their income to grow faster than prices. The Fed can look through a weak sentiment index. It cannot comfortably look through both a rising expectation and a rising breakeven in the same week.",
+    "Speculators moved to the bullish side of the S&P 500 in the week the index stopped rising. The latest weekly futures data, for positions held through August 11 and published Friday afternoon, shows speculators' net position in S&P 500 futures at the 91st percentile of the past three years — an 11-percentile jump in a single week — with the commercial hedgers who take the other side at the opposite extreme. The index then closed lower on Friday. Read straight, one-sided bullish positioning is a contrarian-bearish lean: it says the buying that would normally cushion a fall has already happened.",
+    "How the AI build-out is financed is becoming a credit question rather than an equity one. Broadcom fell 6% not on anything about its chips but on an estimate of how much debt sits in the vehicle that leases them out — $370 billion of senior obligations by 2029 in Bank of America's projection, against a five-year Broadcom guarantee on the lease payments. Corporate credit spreads did not move at all on it: the extra yield high-yield bonds pay over investment-grade was 271 basis points in Thursday's reading, unchanged. When the equity market prices a financing structure and the bond market does not, one of them is early."
   ],
   "watch": [
     {
-      "head": "July retail sales, 8:30am ET",
-      "body": "Estimates for the headline month-on-month figure run from flat to +0.3%. The measure excluding cars is seen at +0.2% after a 0.2% fall in June, and the control group that feeds directly into GDP at +0.4%. With gasoline prices down in July, the ex-gasoline detail matters more than the top line."
+      "head": "New York Fed factory survey, 8:30am ET today",
+      "body": "The first regional manufacturing read of the month, and the earliest hard-ish signal on whether August activity is following July's consumer weakness. The national manufacturing gauge was 55.6 in July, comfortably in expansion, so a regional survey that turns down would be the first crack rather than a confirmation. Cross-border purchases of US securities — who is funding the deficit — follow at 4:00pm."
     },
     {
-      "head": "Consumer sentiment, 10:00am ET",
-      "body": "The preliminary August reading of the University of Michigan survey is expected at 54.4 against 55.2 in July. The part worth reading is the inflation expectations inside it: 4.2% for the year ahead and 3.3% for the next five years in the prior survey. Two soft producer and consumer price reports mean little if households still expect 4%."
+      "head": "Home Depot Tuesday, Target and Lowe's Wednesday, Walmart Thursday",
+      "body": "Four of the biggest US retailers report inside four days, immediately after a month in which official retail sales fell 0.6% and consumer sentiment fell to 51.0. They report what customers actually spent, not what a survey estimated. The two home-improvement names carry the extra job of saying what a 4.68% 10-year yield is doing to the housing chain, and housing starts and permits land Tuesday at 8:30am ET alongside industrial production at 9:15."
     },
     {
-      "head": "Whether the market keeps selling good news",
-      "body": "Applied Materials was down about 5% before Friday's open after record results, a day after Cisco fell 8.4% on a beat. How that opens today is the cleanest read available on whether the AI trade is discounting execution rather than rewarding it — and the chip-equipment names are the machinery layer beneath everything Cisco described on Wednesday."
+      "head": "Minutes of the July Fed meeting, Wednesday",
+      "body": "The record of the meeting that set the current 3.50%-3.75% target range, published into a market that has moved from a coin flip to roughly a 29% chance of a September increase. The value is in the dispersion: how many participants wanted to move in July, and what the argument against was. That was written before the payrolls contraction, both soft price reports and Friday's retail sales — so it dates the committee's thinking rather than predicting it."
     },
     {
-      "head": "Weekly futures positioning, this afternoon",
-      "body": "The regulator's weekly report on what speculators are actually holding lands this afternoon. Last week's showed three new extremes in one go: speculators flipping to almost no bullish bets in 10-year Treasuries and in Nasdaq 100 futures, and to heavily positioned long in the dollar. Whether those held through a week of falling yields and a record equity close is the question this afternoon answers."
+      "head": "Whether oil keeps pulling inflation expectations up",
+      "body": "The single mechanism connecting most of the above. Brent above $88 with the Strait of Hormuz still closed to normal traffic is what took the 10-year breakeven to 2.27% from 2.24% on a day when growth data disappointed. If the price holds here, the September argument stops being about employment and becomes about whether an energy shock is leaking into expectations already sitting at 4.3% for the year ahead."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The biggest change since yesterday morning: the producer-price report came and went as harmlessly as the consumer one. Prices charged by US producers were unchanged on the month and the annual rate fell to 4.7% from 5.5% in June. Goods fell 0.7% and services rose 0.2%; energy fell 3.1% and gasoline 5.7%. The one firm spot is the measure that strips out food, energy and trade margins, up 0.4% on the month and 4.7% over the year — the soft headline is an energy story, not a broad one.",
-        "Rate futures moved with it: a September hold now prices at roughly 66%, from 62% a day earlier, and a quarter-point rise at about 34%, from 38%. The July meeting minutes are published on August 19, and there is one more consumer-price report before the September 15-16 decision.",
-        "The labour check came in the same hour. Initial claims for unemployment benefits were 209,000 in the week ended August 8, up 9,000 on a revised 200,000, while the four-week average held at 199,000. Continuing claims fell 22,000 to 1,777,000 in the week ended August 1, with 1.2% of the insured workforce drawing benefits. A single weekly rise on an unchanged average is noise, not a turn.",
-        "Treasuries rallied on it: the 10-year yield closed Thursday at 4.63% from 4.68% Wednesday and the 2-year at 4.15% from 4.20%, leaving the gap between them unchanged at +48 basis points. The 10-year breakeven — the annual inflation rate bond prices imply over the next decade — eased to 2.24% from 2.26% and the inflation-adjusted 10-year yield to 2.39% from 2.42%. Expected swings in Treasury prices fell for a second straight session, to 69.2 from 72.1.",
-        "Elsewhere in the prior close: gold fell to $4,407.10 from $4,469 and silver to $64.59 from $65.53, while Brent settled at $86.96 from $88.37 and US crude at $81.21 from $82.58 after both major oil forecasters cut their demand numbers. The dollar index was 99.95 from 99.99, the yen ¥159.46 from ¥159.39, the euro $1.1533. Corn fell back to 472.25 cents a bushel from 481, easing to the 87th percentile of its three-year range.",
-        "Overnight into Friday: the Kospi rose 2.4%, the Nikkei 225 0.6% and the DAX 0.5%, while the Hang Seng fell 1.1% and the FTSE 100 0.3%. S&P 500 futures were up 0.1% around 5:30am ET. July retail sales arrive at 8:30am ET and consumer sentiment at 10:00."
+        "The biggest change since Friday morning: the consumer cracked, and bonds sold off anyway. Retail sales fell 0.6% in July against expectations of a small gain — the largest monthly drop in over a year — while ex-cars was -0.3% and ex-cars-and-petrol -0.2%. Sales were still up 5.0% on a year earlier and June's +0.2% was unrevised. The soft headline is concentrated in the categories that move with the pump price.",
+        "The University of Michigan's preliminary August sentiment index was 51.0 from 55.2, against 55.0 expected — current conditions 51.8 from 54.8 and expectations 50.6 from 55.4. Year-ahead inflation expectations rose to 4.3% from 4.2%; the five-to-ten-year figure held at 3.3%. Just 8% of respondents expect their income to outpace prices.",
+        "Rate futures cut the odds of a September increase in the 3.50%-3.75% target range to about 29%, from about 34% Thursday night. The July meeting minutes are published Wednesday and the Jackson Hole symposium runs August 27-29 — after which one more consumer price report arrives before the September 15-16 decision.",
+        "Treasuries went the other way: the 10-year yield closed Friday at 4.68% from 4.63% Thursday and the 2-year at 4.17% from 4.15%, widening the gap between them to +51 basis points from +48. The 10-year breakeven rose to 2.27% from 2.24% and the inflation-adjusted 10-year yield to 2.41% from 2.39%. Expected swings in Treasury prices edged up to 69.6 from 69.2. Higher inflation compensation, not higher growth expectations, did the work.",
+        "The energy leg: Brent traded near $88.45 a barrel Friday evening and US crude near $82.78, from Thursday settlements of $86.96 and $81.21, with the Strait of Hormuz still deadlocked in talks; Brent held above $88 into Monday. Gold settled at $4,373.50 an ounce and silver at $64.53. The dollar index closed at 99.64 from 99.95.",
+        "Overnight: Reuters reported the Bank of Japan is weighing a rate rise as soon as September and a faster tightening pace than priced; the Nikkei 225 opened Monday at 68,713.8, flat. Markets already put a Bank of Japan increase on September 18 at 81% as of Friday, from 63% Wednesday, and a European Central Bank rise in September at 92%. The New York Fed's factory survey is at 8:30am ET."
       ],
-      "positioning": "New in the latest weekly futures data: speculators moved to an extended short position in 10-year Treasury futures — the 12th percentile of the past three years, down 17 percentile points in a single week. Read straight, that is a contrarian-bullish lean for bonds: the crowd is set up for yields to rise, and the yield instead fell 5 basis points on Thursday to 4.63%. When positioning is that one-sided, a move against it tends to feed on itself.",
+      "positioning": "New in the weekly futures data published Friday afternoon, for positions held through August 11: speculators moved to an extended long position in 5-year Treasury futures — the 93rd percentile of the past three years, up 11 percentile points in a week. Read straight, that is a contrarian-bearish lean for the belly of the curve: the crowd is already set up for yields to fall, so there is less buying left in reserve if the data keeps softening. The 5-year is also the maturity most sensitive to the September question, which makes the timing of the shift more interesting than its size.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Thursday's close: the S&P 500 rose 0.65% to 7,798.99, a record close, the Nasdaq 100 0.81% to 26,803.03 and the Dow 0.13% to 53,839.99. That is a second straight session of gains, and this time the index-level move was broader than the leadership underneath it.",
-        "Cisco fell 8.4% on Thursday, the day after reporting revenue up 18% on a year earlier and $9.3 billion of AI orders for the fiscal year. Nothing in the results deteriorated between Wednesday night and Thursday's close — what changed is that the bar had already been raised into the print.",
-        "Applied Materials reported after Thursday's close: fiscal third-quarter revenue of $9.115 billion, up 25%, adjusted earnings of $3.50 a share, up 41%, and $3.17 on the stricter accounting measure. Semiconductor systems contributed $7.040 billion and services $1.781 billion, with revenue from the memory chips used in AI servers up 52% on a year earlier. It guided the current quarter to $10.25 billion give or take $500 million, and $4.02 a share give or take 20 cents. The shares were down about 5% before Friday's open, having more than doubled so far in 2026.",
-        "Protection got slightly more expensive even as the index set a record: the VIX closed at 14.63 from 14.55 Wednesday and its Nasdaq-100 counterpart at 21.23 from 20.97. The skew index, which measures what investors pay for insurance against a large drop specifically, fell to 134.4 from 136.5 — ordinary hedges bid, tail hedges offered, the mirror image of Wednesday.",
-        "Breadth kept improving on the fast measure: 71.1% of S&P 500 members closed above their 50-day trend line, from 66.5% Wednesday, and 68% of Nasdaq-100 members, from 63%. On the slower 200-day measure it was 72.8% and 72% — the second of those unchanged. Participation is broadening over days, and only slowly over months.",
-        "Valuation kept pace with the price: the cyclically adjusted price-to-earnings ratio, which averages a decade of inflation-adjusted profits, sits at 42.65 from 42.3 a day earlier."
+        "Friday's close: the S&P 500 fell 0.17% to 7,785.76, the Nasdaq 100 0.28% to 26,729.16 and the Dow 0.20% to 53,732.41, one session after the S&P set a record. Even so, it was the index's third straight higher week.",
+        "Broadcom closed down 6% at $390.69 after Bank of America published an estimate that the off-balance-sheet vehicle financing its AI accelerators could carry $370 billion of senior debt by mid-2029, with about $150 billion of that issued in 2027 alone. The vehicle was launched in June with a $35 billion financing led by Apollo Global Management and Blackstone; Broadcom guarantees the lease payments for five years. Nothing about the chips changed — the market repriced the balance sheet standing behind them.",
+        "AMD rose 4% to $502.95 the same day, after Baird set a $1,250 price target on the argument that it takes 15% of the data-centre AI accelerator market by 2030. The two moves together describe a market that is now separating AI winners by how they are funded rather than by what they sell.",
+        "Reddit rose more than 12% in Friday's pre-market to $177.97 after S&P Dow Jones Indices said it will replace AvalonBay Communities in the S&P 500 — a stock that is still down more than 31% this year through Thursday's close and more than 42% from its September 2025 high. Index funds must buy it, which is the entire move.",
+        "Protection got cheaper into the record and then bid on Monday: the VIX closed Friday at 14.25 from 14.63 Thursday and its Nasdaq-100 counterpart at 20.72 from 21.23, while the skew index — what investors pay specifically for insurance against a large drop — rose to 138.4 from 134.4. In pre-market trading Monday the VIX was 14.97, up 5.05%. Ordinary hedges were being sold on Friday while tail hedges were bought; Monday morning both are being bid.",
+        "Breadth split by horizon: 72.1% of S&P 500 members closed above their 50-day trend line, up from 71.1% Thursday, but 72.2% above the 200-day, down from 72.8%. On the Nasdaq 100 it was 67% from 68% and 71% from 72%. A down day that improved the fast measure and dented the slow one is a rotation, not a retreat."
       ],
-      "positioning": "The standing setup here has not changed, but the tape has moved against it. Speculators' bullish bets in Nasdaq 100 futures sit at the 1st percentile of the past three years, with hedgers at the opposite extreme — an extended short built the week before the index rose in each of the last two sessions and the S&P set a record. Two higher closes against that position is the part that is new; the position itself was in place beforehand and is not a warning that the market will fall.",
+      "positioning": "The change worth noting is on the S&P 500 itself. Speculators' net position moved to the 91st percentile of the past three years, an 11-percentile jump in one week, with the commercial hedgers who take the other side at the opposite extreme — a divergence, and new this week. That is a contrarian-bearish lean: the money that would normally step in on a dip has already committed. The standing background is the mirror image one index over — speculators' bullish bets in Nasdaq 100 futures remain at the 1st percentile, an extended short now in place two weeks, which cuts the other way.",
       "single_name": {
-        "ticker": "PTLO",
-        "note": "(Portillo's, the fast-casual restaurant chain) — new to the screen in Thursday's scan, its first session on the list. An insider purchase was filed on Wednesday, the shares trade above their 200-day trend line, and both the scan's dark-pool and options signals are live. Nothing else on the current list is this fresh — every other name has been there at least two sessions."
+        "ticker": "PFE",
+        "note": "(Pfizer, the pharmaceuticals group) — new to the screen in Friday's scan, its first session on the list. An insider purchase was filed on August 12, the shares trade above their 200-day trend line, and both the scan's dark-pool and options signals are live. It takes just over four days of average volume to close out the shares currently sold short, and they cost about 0.3% a year to borrow — no crowd on the bearish side to squeeze, so any move here would have to come from the buying itself."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Credit did nothing again, which given the week's news is itself the point: the extra yield high-yield bonds pay over investment-grade was 271 basis points in Wednesday's reading from 272 on Tuesday, with investment-grade spreads unchanged at 79. Two inflation reports, an oil-demand downgrade and a record equity close moved this not at all.",
-        "The cash cushion drained. The Treasury's own account at the Fed rose to $964.0 billion in Wednesday's weekly snapshot from $907.3 billion a week earlier, and bank reserves fell to $2,944.1 billion from $2,993.3 billion — when the Treasury rebuilds its balance, the cash comes out of the banking system. The Fed's overnight parking facility, which used to absorb exactly this, held $0.5 billion Thursday against $0.7 billion Wednesday. It has no absorbing left to do.",
-        "Despite that, the plumbing is quiet: the key bank-funding spreads sat at minus 1 basis point and the commercial-paper funding spread at 21 basis points in the latest readings. A $49 billion drop in reserves with no move in funding costs says the system still has more cash than it needs.",
-        "Broad financial conditions remain easier than average on both national measures — one at -0.58 and the other at -0.77 in the readings for the week to August 7, where negative means looser than normal. The Fed's balance sheet is 1.75% larger than a year ago, the yield on newly syndicated loans is 7.08%, and stocks and credit continue to move together more than usual, with the correlation between them at 0.68."
+        "Credit ignored all of it. The extra yield high-yield bonds pay over investment-grade was 271 basis points in Thursday's reading, unchanged from Wednesday, with investment-grade spreads at 79. A 6% fall in one of the largest technology companies on a debt-structure question, a retail sales miss and Brent above $88 moved the corporate bond market not at all.",
+        "Short-term funding got easier, not harder. The spread on commercial paper — the short-term IOUs large companies issue to cover payroll and inventory — narrowed to 16 basis points from 21, and the two key bank-funding spreads sat at minus 1 basis point. The Fed's overnight parking facility held $0.2 billion Friday against $0.5 billion Thursday; there is essentially nothing left in it to absorb a shock.",
+        "The reserve drain flagged last week has not reversed. The Treasury's own account at the Fed stood at $964.0 billion in Wednesday's weekly snapshot against $907.3 billion a week earlier, and bank reserves at $2,944.1 billion from $2,993.3 billion. That is the same picture as Friday's brief because the next snapshot does not arrive until Thursday afternoon — worth restating only because funding costs falling while reserves drain is the benign version, and it is the one showing up so far.",
+        "Broad conditions stay looser than average: the two national financial-conditions gauges were -0.58 and -0.77 in the readings for the week to August 7, where negative means easier than normal. The Fed's balance sheet is 1.75% larger than a year ago, the yield on newly syndicated loans eased to 7.02%, and stocks and credit continue to move together more than usual, with the correlation between them at 0.69."
       ],
-      "positioning": "No positioning extreme is flagged anywhere in the credit book for a third week — the only one of the five markets tracked with nothing stretched in it, while rates, equities, currencies and commodities each carry at least one three-year extreme. The thing to track in credit right now is not positioning but the reserve drain above: spreads are the last place strain shows up, and the funding market is the first.",
+      "positioning": "For a fourth straight week, no positioning extreme is flagged anywhere in the credit book — the only one of the five markets tracked with nothing stretched in it, while rates, equities, currencies and commodities each carry at least one three-year extreme. Given the week ahead, that is the useful control: if the retailers disappoint and spreads still do not move, the equity market's worry about the consumer is not shared by the people who lend to it.",
       "single_name": null
     }
   ],
   "movers": [
     {
       "ticker": "STRZ",
-      "pct": 12.0,
+      "pct": -7.1,
       "link": true
     },
     {
-      "ticker": "HOG",
-      "pct": 7.2,
-      "link": true
-    },
-    {
-      "ticker": "ABTC",
-      "pct": 5.6,
-      "link": true
-    },
-    {
-      "ticker": "PTLO",
-      "pct": 5.6,
-      "link": true
-    },
-    {
-      "ticker": "VIA",
+      "ticker": "ELAN",
       "pct": 5.2,
+      "link": true
+    },
+    {
+      "ticker": "MTDR",
+      "pct": 4.0,
+      "link": true
+    },
+    {
+      "ticker": "ABCL",
+      "pct": 3.7,
+      "link": true
+    },
+    {
+      "ticker": "CODI",
+      "pct": 3.5,
       "link": true
     }
   ]
