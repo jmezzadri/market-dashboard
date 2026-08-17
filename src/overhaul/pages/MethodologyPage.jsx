@@ -1,30 +1,31 @@
 /* Methodology — the site's reading page (cream v12 system).
 
-   Conviction Events rewrite (2026-08, strategy reset): the paper book's
-   portfolio-strategy content — §02 Scanner and §03 Paper — is rewritten
-   around the ONE replacement book, Conviction Events (large real insider
-   purchases ≥ $250,000 per name per day, automatic 10b5-1 plan purchases
-   excluded, confirmed above the 50-day average, next-open entry, every new
-   position 6.67% of equity with no fixed name count — buying capacity under a
-   1.5x gross-exposure limit self-limits the book near 20 names (2026-08-12
-   change, from 10% unlevered) — exit at the open of the 21st trading
-   day or sooner on a close 15% or more below the entry price, pre-registered
-   no book-level alarm (both versions removed 2026-08-12 — risk is the
-   per-position stop),
-   it never stops new buying; engine change 2026-08-11). Backtest figures
-   (June 2025 – August 2026 event study, ~14 months, zero costs: +112% vs
-   S&P +24%, Sharpe 2.3, 61% winners, ~18-day average hold, +53% with the
-   five best trades removed) are quoted VERBATIM from the strategy spec —
+   Quality Trend rewrite (2026-08-17): Conviction Events was retired on
+   2026-08-13 — it selected positions on a single input (dollar value of
+   insider buying) with no test of who was buying or how meaningful the
+   purchase was to them, and its own last day showed why that fails. §03
+   Paper is rewritten around the replacement, Quality Trend v3: 40 names
+   scored on momentum + trend consistency + drawdown resilience (price),
+   gross profitability + cash generation + buybacks (point-in-time SEC
+   fundamentals), and a meaningful-insider-buy bonus; equal weight, monthly
+   rebalance, hold-until-top-25% trade band, no leverage. Backtest figures
+   (Feb 2017 – Aug 2026, survivorship-free universe incl. 2,011 delisted
+   companies: 21.2%/yr vs S&P 15.3%, Sharpe 0.97 vs 0.82, maxDD −19.3% vs
+   −23.9%, 7 of 10 years, both halves win independently, survives 40bp
+   costs) are quoted VERBATIM from paper_portfolio/QUALITY_TREND_V3.md —
    never re-derived here, never rounded differently (LESSONS 8.3). The
-   earlier two-sleeve content is deleted, not archived (LESSONS 0.10).
-   §02 keeps Power Trend (relabeled an idea feed — not auto-traded) and RSI
-   Divergences; the retired insider-score methodology went with its panel.
+   Conviction Events content is deleted, not archived (LESSONS 0.10).
 
-   Untouched by that rewrite: §01 Macro + the Engine, §04 Portfolio Lab,
-   §05 Data (freshness contract + manifest-derived vendor table). Section
-   numbers stay 01–05; the TOC stays one entry per nav page, named exactly
-   as the nav names it (LESSONS 8.15); #conviction-events / #power-trend /
-   #divergences are in-page anchors only.
+   §02 relabels from "Scanner" to "Idea feeds" — the Scanner PAGE left the
+   nav on 2026-08-11, but Power Trend and RSI Divergences still render on
+   Home and Ticker pages, so their rules still need a home here. The id
+   stays "scanner" so old #scanner deep links keep landing (as do
+   #power-trend / #divergences). #conviction-events is gone with its book.
+
+   Untouched: §01 Macro + the Engine, §04 Portfolio Lab, §05 Data
+   (freshness contract + manifest-derived vendor table; the stale
+   dead-pipeline rows in the jobs table were replaced with the three QT
+   jobs). Section numbers stay 01–05.
 
    Cream rebrand Phase B (2026-07-07): page moved to the shared home-v12
    cream system (cream-system.css) with page styles in methodology-v12.css.
@@ -45,7 +46,7 @@ import '../styles/methodology-v12.css';
    #engine / #freshness / #sources stay as in-page anchors for deep links. */
 const SECTIONS = [
   ['macro',     'Macro'],
-  ['scanner',   'Scanner'],
+  ['scanner',   'Idea feeds'],
   ['portfolio', 'Paper'],
   ['lab',       'Portfolio Lab'],
   ['data',      'Data'],
@@ -294,45 +295,19 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 02 — Scanner */}
+        {/* 02 — Idea feeds (id stays "scanner" for old deep links) */}
         <article id="scanner" className="me-section">
           <div className="me-num">02</div>
           <div>
-            <div className="mt-eyebrow">Scanner</div>
-            <h2 className="me-h2">One book feed, two idea screens</h2>
+            <div className="mt-eyebrow">Idea feeds</div>
+            <h2 className="me-h2">Two idea screens · neither is traded</h2>
             <p className="me-body-p">
-              The Scanner page is the <b>Conviction Events</b> desk: the decision feed the Paper book
-              (section 03) actually trades — every large insider purchase the strategy evaluated,
-              with the action it took. Two other screens run on their own schedules and are not
-              published on that page. <b>Power Trend Momentum</b> is an{' '}
-              <b>idea feed — not auto-traded</b>, published monthly and shown on the home page and on
-              a ticker&rsquo;s own page. <b>RSI Divergences</b> is a daily screen — also not a trade
-              signal — shown on a ticker&rsquo;s own page. Everything below is the rule each one
-              actually runs, including the exact thresholds.
-            </p>
-
-            {/* ── Conviction Events ────────────────────────────────────── */}
-            <h3 className="me-h3" id="conviction-events" style={{ scrollMarginTop: 120 }}>
-              Conviction Events — the feed the Paper book trades
-            </h3>
-            <p className="me-body-p">
-              A name qualifies on a day when its insiders genuinely bought it in size:{' '}
-              <b>open-market purchases totaling $250,000 or more in that name on that day</b>,
-              aggregated across its insiders. <b>Automatic (10b5-1) plan purchases are
-              excluded</b> — those were scheduled months in advance under a written plan, so they
-              say nothing about what the insider thinks today. The purchase record is the
-              insider-filing record published by the SEC, which every officer, director and large
-              holder is required to file.
-            </p>
-            <p className="me-body-p">
-              One confirmation gate follows: the stock must already be trading <b>above its 50-day
-              average price</b>, so the book never buys insider conviction into a name still in a
-              downtrend. Every evaluated event is written to a decision ledger with the action
-              taken — <b>entered</b>, or <b>skipped</b> (the cash could not fund a full position,
-              the name was already held, or a gate failed, with the reason). That ledger
-              is what the Scanner page and the Paper page&rsquo;s event ledger render. The full entry,
-              sizing and exit rules, the one risk exit, and the backtest live in
-              section 03.
+              Two screens run on their own schedules and surface ideas — <b>neither feeds the
+              Paper book</b> (section 03), which trades its own strategy. <b>Power Trend
+              Momentum</b> is a monthly momentum list shown on the home page and on a
+              ticker&rsquo;s own page. <b>RSI Divergences</b> is a daily screen shown on a
+              ticker&rsquo;s own page. Everything below is the rule each one actually runs,
+              including the exact thresholds.
             </p>
 
             {/* ── Power Trend ──────────────────────────────────────────── */}
@@ -423,85 +398,110 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 03 — Paper */}
+        {/* 03 — Paper · Quality Trend (2026-08-17 rewrite; Conviction Events
+            retired 2026-08-13, its content deleted per LESSONS 0.10) */}
         <article id="portfolio" className="me-section">
           <div className="me-num">03</div>
           <div>
             <div className="mt-eyebrow">Paper</div>
-            <h2 className="me-h2">One paper book · Conviction Events</h2>
+            <h2 className="me-h2">One paper book · Quality Trend</h2>
             <p className="me-body-p">
-              MacroTilt runs a live <b>paper account</b> with no manual input and no broker
-              import. It trades a single rules-based book, <b>Conviction Events</b>: large real
-              insider purchases, confirmed by trend, held for a fixed window. Every rule below is
-              the deployed rule; every decision the book makes is written to the event ledger shown
-              on the Paper and Scanner pages.
+              MacroTilt runs a live <b>$1,000,000 paper account</b> with no manual input and no
+              broker import, live since <b>August 17, 2026</b>. It trades a single rules-based
+              book, <b>Quality Trend</b>: own the <b>40 US companies</b> with the strongest
+              combination of steady price trend and real profitability, equal-weighted, rebalanced
+              monthly, with no leverage. Every rule below is the deployed rule — the scoring code
+              and this page describe the same system.
             </p>
             <p className="me-body-p">
-              <b>The signal.</b> A name qualifies on a day when its insiders&rsquo; real buying is
-              large: <b>aggregated open-market purchases of $250,000 or more in that name on that
-              day</b>, added up across its insiders. <b>Automatic (10b5-1) plan purchases are
-              excluded</b> — a purchase scheduled months in advance under a written plan carries no
-              view on the business today. Only actual open-market buys count; grants, option
-              exercises and other paper transfers never qualify.
+              <b>Why the previous book was retired.</b> Conviction Events (retired 13 August 2026)
+              bought whenever insiders purchased more than a set dollar amount of a stock. That
+              single test asked nothing about <i>who</i> was buying, how meaningful the purchase
+              was <i>to them</i>, or what condition the business was in — so a large holder
+              rebalancing counted the same as a chief executive buying with conviction, and names
+              days off an earnings collapse qualified. We measured it: across ten years of insider
+              filings, <b>all open-market buys as a group trail the market by about 2 points over
+              the following six months</b>. Raw insider buying is not a signal. What survives, as
+              one input among seven below, is a much narrower filter.
             </p>
             <p className="me-body-p">
-              <b>The confirmation.</b> The stock must already be trading <b>above its 50-day average
-              price</b> on the signal day. The gate keeps the book out of names still in a
-              downtrend: insider conviction alone, against the trend, does not qualify.
+              <b>The score.</b> Every eligible company is ranked on seven inputs, combined with
+              fixed weights. Price (55%): <b>12-month momentum</b> (45 points, skipping the most
+              recent month) and <b>6-month momentum</b> (30 points, same skip) — is it winning, and
+              is it still winning; <b>trend consistency</b> (15 points) — the share of the last six
+              months spent above its own average, separating steady advances from jumpy ones; and{' '}
+              <b>drawdown resilience</b> (10 points) — its worst peak-to-trough loss over the past
+              year. Fundamentals (45 points): <b>gross profit ÷ total assets</b> (15) — is the
+              business actually profitable; <b>operating cash flow ÷ total assets</b> (10) — does
+              the profit turn into cash; and <b>share-count reduction</b> (20) — buybacks score
+              positive, dilution scores negative. Weights sum to more than 100 because each input
+              is a relative rank, not a dollar figure.
             </p>
             <p className="me-body-p">
-              <b>Entry, sizing and exit.</b> A qualifying name is bought at the <b>next
-              morning&rsquo;s open</b>, sized at <b>6.67% of the book&rsquo;s equity</b> at that
-              moment. There is <b>no fixed number of positions</b>: the book keeps funding new
-              names until its buying capacity runs out, which settles it near <b>20 names</b>.
-              A name already held is not bought again, and an event the capacity cannot fund is
-              skipped and logged. Each position <b>exits at the open of the 21st trading day
-              after entry</b> — a fixed calendar exit with no discretion. Long-only, and the
-              book may run <b>gross exposure up to 1.5&times; its equity</b>. Profit and loss is measured
-              against cost, on the account&rsquo;s official snapshots — the latest mark during
-              market hours, the closing record after 4 PM ET.
+              <b>The insider bonus — a filter, not a firehose.</b> On top of the score, a bonus of
+              up to 20 points for <b>meaningful insider buying</b> over the trailing 180 days:{' '}
+              <b>officers and directors only</b> (a pure 10%-owner never counts, however large the
+              purchase), <b>open-market purchases only</b> (no 10b5-1 plans, grants or exercises),
+              ranked by the <b>size of the purchase relative to the shares the insider already
+              held</b> — a doubled stake is conviction; a 2% top-up is rebalancing. Purchases over
+              $250,000 get <i>half</i> weight, because in our testing the very large dollar buys
+              were the <i>worst</i> performers. The bonus is never a penalty: no insider activity
+              simply means no bonus.
             </p>
             <p className="me-body-p">
-              <b>The one risk exit.</b> A position that <b>closes 15% or more below the price it
-              was bought at</b> is sold at the <b>next morning&rsquo;s open</b>, instead of waiting
-              for its 21st-day exit. It is the only rule that ends a position early; everything
-              else leaves on schedule. The level is deliberately wide: in the study described
-              below, tighter stops at 5%, 8%, 10% and 12% each cut the average result, because
-              insiders buy into weakness — about half the names a tighter stop would have sold
-              traded back above it before the normal exit came due.
+              <b>Eligibility.</b> Before scoring, a company must trade <b>$100 million a day</b> on
+              average, at a price of <b>$5 or more</b>, with annualized volatility <b>under 70%</b>,
+              on at least 95% of trading days — and it must be an operating company with filed SEC
+              financials: ETFs, trusts and funds never qualify, and a company with no filings is
+              dropped rather than scored on price alone. Fundamentals are used{' '}
+              <b>point-in-time</b>: a company&rsquo;s numbers enter the score only on the date they
+              were actually <i>filed</i> with the SEC, never the period they refer to — the score
+              never knows a quarter before the market did.
             </p>
             <p className="me-body-p">
-              <b>No book-level alarm, on purpose.</b> Two versions of one were built and both
-              were removed on <b>12 August 2026</b>: an alert when the book trailed the S&amp;P 500
-              by 10 or more points after 8 weeks, and an alert when the book fell 15% from its own
-              high. Neither changed what the engine did, and neither was ever backtested. A
-              warning nobody would act on is noise, and noise teaches you to ignore the signals
-              that matter. Risk in this book is controlled where a loss actually happens:{' '}
-              <b>per position, by the 15% stop above</b>, which was tested and which earns its
-              place. The book&rsquo;s drawdown is still measured and shown on the Paper page as
-              information — nothing acts on it.
+              <b>Portfolio rules.</b> Buy the top 40 by score, <b>$25,000 per name</b> at inception
+              (2.5% each), rebalanced on the <b>first trading day of each month</b> with orders
+              submitted market-on-open. A held name is kept until it falls out of the <b>top 25% of
+              the ranking</b> — not the moment it slips below rank 40 — which roughly halves
+              turnover versus rebalancing to a fixed list. Long-only, <b>no leverage, no strategic
+              cash</b>, no market-timing overlay: a trend filter that cuts exposure in downturns
+              was tested and rejected, because it cost 4–5 points a year in this decade&rsquo;s
+              fast recoveries.
             </p>
             <p className="me-body-p">
-              <b>The backtest, stated honestly.</b> In a <b>June 2025 – August 2026 event study —
-              roughly 14 months, simulated with zero trading costs</b> — the rule returned{' '}
-              <b>+112%</b> against <b>+24%</b> for the S&amp;P 500, with a Sharpe ratio of 2.3,{' '}
-              <b>61% of trades profitable</b>, and an average hold of about 18 days. With the{' '}
-              <b>five best trades removed it still returned +53%</b>. Two caveats stand: 14 months is a short window covering a single market
-              stretch, and a zero-cost simulation flatters the result — live results should be
-              expected to run below it.
+              <b>The backtest, stated honestly.</b> Validated <b>February 2017 – August 2026</b> on
+              a <b>survivorship-free universe</b>: 14,632 US companies including <b>2,011 that no
+              longer exist</b> — the bankrupt and the acquired stay in the sample, at their real
+              exit prices. The strategy returned <b>21.2% a year against 15.3%</b> for the
+              S&amp;P 500, Sharpe <b>0.97 vs 0.82</b>, Sortino 1.57 vs 1.18, worst drawdown{' '}
+              <b>−19.3% vs −23.9%</b>, beating the index in <b>7 of 10 calendar years</b> with a
+              worst year of <b>−6.7%</b> against the index&rsquo;s −18.2%. The sample splits into
+              two independent halves and the strategy wins both — including 2017–2021, the
+              index&rsquo;s best stretch. It survives punitive 40bp round-trip costs. No
+              three-year window lost money.
             </p>
             <p className="me-body-p">
-              <b>Data sources.</b> The signal reads the insider purchase filings published by the
-              SEC — the public record every officer, director and large holder is required to
-              file. The confirmation gate and all pricing use our own stored daily price history.
+              <b>The caveats, also honestly.</b> Ten years of data covers the 2018 selloff, the
+              2020 crash and the 2022 bear market — but not 2008. Three of the ten backtest years
+              trailed the index (2019, 2021, 2025); more will come. The strategy runs a little
+              more volatile than the index at full investment. And every backtest, however
+              carefully built, flatters: <b>expect the live book to run below these numbers</b>.
+              That is why it trades paper money, in public, with every rule pre-registered on this
+              page.
+            </p>
+            <p className="me-body-p">
+              <b>Data sources.</b> Prices are Alpaca&rsquo;s full-market daily history, which
+              includes delisted companies. Fundamentals are SEC XBRL company filings, keyed to
+              their filing dates. Insider purchases are the SEC&rsquo;s insider-filing record.
+              All three are public data. Fills and account marks on the Paper page are the paper
+              broker&rsquo;s official records, snapshotted after each close.
             </p>
             <div className="me-formula">
-              signal  = aggregated open-market insider buys ≥ $250,000 per name per day · automatic (10b5-1) plan purchases excluded<br />
-              confirm = stock trading above its 50-day average price<br />
-              enter   = next morning&rsquo;s open · size = 6.67% of equity each · no fixed count, ~20 names as capacity allows · gross exposure ≤ 1.5× equity<br />
-              exit    = at the open of the 21st trading day after entry<br />
-              stop    = a close 15% or more below the entry price → sold at the next morning&rsquo;s open<br />
-              risk    = the ONLY risk exit is the per-position stop above — there is no book-level alarm
+              eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
+              score    = 0.45·mom12 + 0.30·mom6 + 0.15·trend + 0.10·drawdown + 0.15·gross_profit/assets + 0.10·cash_flow/assets + 0.20·buyback (all cross-sectional ranks)<br />
+              insider  = + up to 0.20 bonus · officers/directors only · open-market only, no 10b5-1 · ranked by purchase ÷ existing stake · buys &gt; $250k half-weighted · never a penalty<br />
+              book     = top 40 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
+              risk     = no leverage · ~2.5% per name · diversification and the monthly exit band — no stops, no book-level alarm
             </div>
           </div>
         </article>
@@ -627,9 +627,14 @@ export default function MethodologyPage() {
                   <td>Scans the universe on last night's close, writes the signal table.</td>
                 </tr>
                 <tr>
-                  <td>9:00 AM</td>
-                  <td>Paper Portfolio queue</td>
-                  <td>Queues rebalance trades for the 9:30 open.</td>
+                  <td>9:00 AM · 1st trading day</td>
+                  <td>Quality Trend scoring</td>
+                  <td>Monthly: scores the full universe and writes the 40-name target book. Scoring cannot place orders — order placement is a separate, manually confirmed step.</td>
+                </tr>
+                <tr>
+                  <td>5:10 PM · daily</td>
+                  <td>Quality Trend snapshot</td>
+                  <td>Records the paper account's closing equity and positions, and syncs order fills. Read-only at the broker.</td>
                 </tr>
                 <tr>
                   <td>6:00 AM · 1st of month</td>
