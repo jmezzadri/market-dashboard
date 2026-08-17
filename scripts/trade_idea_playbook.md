@@ -171,6 +171,55 @@ three and six months against unconditional readings of +2.30% / +6.15% / +11.53%
 Buying the extreme was WORSE than buying at random at every horizon. The note that
 shipped instead was the one where the base rate held up.
 
+### Where positioning actually works — the cross-asset map
+
+Tested 2026-08-14, one method applied identically to every asset class: rank the
+speculative/fast-money net position as a share of open interest against its FULL
+history, take the extremes, and compare forward returns to the UNCONDITIONAL
+return over the same sample. Medians below, conditional versus unconditional.
+
+| asset class | signal | 3-month result | verdict |
+|---|---|---|---|
+| **Currencies** | euro, specs ≤15th pctile | **+3.18% vs +0.18%** (77% vs 52% positive) | **works** |
+| **Currencies** | dollar, specs ≥85th pctile | −1.25% vs +0.06% (73% vs 49% lower) | **works**, 1–3m only |
+| **Agriculture** | wheat, managed money ≥85th | **−5.98% vs +0.14%** (14 episodes, 12y) | **works — fade the long** |
+| **Agriculture** | corn, managed money ≥85th | −1.08% vs +0.73%, −6.49% vs −0.83% at 6m | works, slower |
+| **Agriculture** | soybeans, managed money ≥85th | −1.54% vs +0.90% (21 episodes) | works |
+| **Agriculture** | corn/wheat/beans, managed money ≤15th | +4.11 / +4.04 / +2.38% vs +0.73 / +0.14 / +0.90% | **works — buy the short** |
+| Precious | silver, managed money ≥85th | −1.69% vs +1.75% (27 episodes) | works |
+| Precious | **gold, managed money ≥85th** | **+2.96% vs +2.68%** — and +9.68% vs +5.30% at 6m | **does NOT fade — gold TRENDS** |
+| **Equity index** | S&P / Nasdaq, every formulation | inside the noise, 16 years | **dead** |
+| **Equity breadth** | 50-day breadth below 200-day | +3.83% vs +3.92% | **dead** |
+| Energy | WTI, managed money ≤15th | −8.98% vs −0.34%, but 3 episodes from 2019 | **too thin — do not use** |
+| Copper | managed money ≥85th | +4.85% vs +2.40%, 3 episodes from 2022 | **too thin — do not use** |
+
+Three things to take from this table, none of which are obvious:
+
+1. **"Positioning works" is not a fact about markets. It is a fact about
+   particular markets.** The same test that finds nothing in equity index futures
+   finds a 3-to-4x base-rate effect in grains. Never carry a conclusion across
+   an asset class without re-running it there.
+2. **The direction is not symmetric and it is not the same everywhere.** Managed
+   money at a max long is a reliable FADE in wheat, corn, soybeans and silver —
+   and the opposite in gold, where an extreme long has been followed by MORE
+   upside at every horizon. A note that treats "extreme = fade" as a law will be
+   wrong in gold specifically.
+3. **Episode count, not week count.** Copper and WTI look tradeable and are not:
+   their samples start in 2022 and 2019 and contain 3 episodes each. Below about
+   ten independent episodes there is nothing to lean on.
+
+**As of the 2026-08-04 report there is NO commodity trade here.** Gold is at the
+82nd percentile, copper 96th, wheat 58th, corn 51st, soybeans 48th, silver 30th —
+nothing sits at an extreme in a market where the signal is both live and
+well-populated. That is a complete answer, and the right one. Do not reach for
+the nearest thing and call it a setup.
+
+**Where equity edge actually lives in this system:** not in index-level
+aggregates — both the positioning and the breadth tests above are dead — but in
+the single-stock work that was backtested when it was built: the insider
+conviction scan, the Power Trend list, RSI divergences and FINRA short interest.
+An equity note should start there, at the name level, not from an index chart.
+
 ### Signals already tested and found EMPTY — do not republish these
 
 Measured 2026-08-14 on the full CFTC record, 843 weekly reports from June 2010.
