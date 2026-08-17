@@ -39,6 +39,18 @@ on:
     # = 10:15 ET (EDT); 15:15 UTC sibling covers EST. Idempotent merge.
     - cron: '15 14 * * 1-5'
     - cron: '15 15 * * 1-5' 
+    # 20:45 UTC = 4:45 PM EDT / 3:45 PM EST — 45 minutes after the US equity
+    # close. Added 2026-08-17 (Joe, looking at the scorecard at 5:15 PM ET):
+    # "It says no close on or after 8/17... Its 515pm on 8/17...." He was
+    # right. The equity close prints at 4:00 PM ET and the earliest pull was
+    # 22:00 UTC (6:00 PM ET), so for two hours every trading afternoon the
+    # site knew less than the tape did and the scorecard read as though the
+    # session had not happened. Equities settle at 4:00 PM, so a 4:45 pull is
+    # a completed session for the equity and index series the scorecard marks
+    # against. Futures and FX settle at 17:05 ET and are unaffected: the
+    # in-progress guard drops an open-session bar, and the later legs below
+    # pick them up.
+    - cron: '45 20 * * 1-5'
     # 22:00 UTC = 6:00 PM EDT (UTC-4) / 5:00 PM EST (UTC-5).
     # Catches FRED daily series that publish in the late afternoon
     # (e.g. DFII10 around 20:00 UTC). See bug #1130.

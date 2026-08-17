@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-17T15:45:16Z",
+  "generated_at": "2026-08-17T21:22:59Z",
   "as_of": "2026-08-17",
   "method": "Entry is the first close on or after the note's publication date — never the level quoted in the prose. Every published note is scored, including any that cannot be scored, which are listed with the reason. The invalidation level written in the note is honoured: if it prints, the call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py and nothing here is entered by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -12,15 +12,15 @@
     "pending_reasons": [
       {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
-        "reason": "no close yet on or after 2026-08-17 for 'bkx_spx' (series runs to 2026-08-14) — entry is taken at the next close"
+        "reason": "No entry price yet: bkx_spx is loaded through 2026-08-14 and this note published 2026-08-17. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
       },
       {
         "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
-        "reason": "no close yet on or after 2026-08-16 for 'breakeven_10y' (series runs to 2026-08-14) — entry is taken at the next close"
+        "reason": "No entry price yet: breakeven_10y is loaded through 2026-08-14 and this note published 2026-08-16. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
       },
       {
         "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
-        "reason": "no close yet on or after 2026-08-14 for 'fx_eur' (series runs to 2026-08-13) — entry is taken at the next close"
+        "reason": "No entry price yet: fx_eur is loaded through 2026-08-13 and this note published 2026-08-14. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
       }
     ],
     "unscoreable_reasons": [],
@@ -37,7 +37,7 @@
       "instrument": "US bank equities against the S&P 500",
       "position_type": "allocation shift",
       "status": "pending_entry",
-      "reason": "no close yet on or after 2026-08-17 for 'bkx_spx' (series runs to 2026-08-14) — entry is taken at the next close",
+      "reason": "No entry price yet: bkx_spx is loaded through 2026-08-14 and this note published 2026-08-17. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
       "waiting_on": {
         "series": "bkx_spx",
         "series_last": "2026-08-14",
@@ -52,7 +52,7 @@
       "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
       "position_type": "allocation shift",
       "status": "pending_entry",
-      "reason": "no close yet on or after 2026-08-16 for 'breakeven_10y' (series runs to 2026-08-14) — entry is taken at the next close",
+      "reason": "No entry price yet: breakeven_10y is loaded through 2026-08-14 and this note published 2026-08-16. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
       "waiting_on": {
         "series": "breakeven_10y",
         "series_last": "2026-08-14",
@@ -67,7 +67,7 @@
       "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
       "position_type": "long/short spread",
       "status": "pending_entry",
-      "reason": "no close yet on or after 2026-08-14 for 'fx_eur' (series runs to 2026-08-13) — entry is taken at the next close",
+      "reason": "No entry price yet: fx_eur is loaded through 2026-08-13 and this note published 2026-08-14. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
       "waiting_on": {
         "series": "fx_eur",
         "series_last": "2026-08-13",
