@@ -1,6 +1,6 @@
 /* PaperPortfolioPage — Quality Trend cockpit, in the site's own skin.
 
-   v4 (2026-08-17, Joe): v3 hardcoded a dark terminal panel that ignored the
+   v5 (2026-08-17, Joe: 'research a real hedge fund tear sheet'). v4 note: v3 hardcoded a dark terminal panel that ignored the
    site's theme system entirely — wrong in light mode, clashing in dark.
    This version is built ON the home-v12 cream system (cream-system.css):
    every surface and color is a v12 token (--putty, --ink, --gold-deep,
@@ -92,6 +92,11 @@ const TIPS = {
   ddpeak: 'How far the account sits below its own all-time high right now. 0% = at the high.',
   medvol: 'The middle holding’s price volatility at selection. The strategy caps this at 70% per name.',
   worst: 'The single worst calendar year in the period.',
+  gross: 'Total market exposure as a share of equity. This book is long-only with no leverage, so gross and net are the same number.',
+  contrib: 'How much this position moved the WHOLE portfolio, in basis points of equity (1bp = 0.01%). A 2.5% position up 4% contributes ~10bp.',
+  dtl: 'Days to exit the position trading 20% of the stock’s average daily dollar volume — the standard liquidity yardstick. Under 0.1 = can be sold in minutes.',
+  mcap: 'Total market value of the company’s shares. Mega ≥ $200B · Large $10–200B · Mid $2–10B · Small < $2B.',
+  sector: 'Economic sector, mapped from the company’s SEC industry classification.',
 };
 
 const HCOLS = [
@@ -102,6 +107,7 @@ const HCOLS = [
   { key: 'cost', label: 'Avg cost', tip: TIPS.cost },
   { key: 'last', label: 'Last', tip: TIPS.last },
   { key: 'pnl', label: 'P&L', tip: TIPS.pnl },
+  { key: 'sector', label: 'Sector', tip: TIPS.sector, align: 'left' },
   { key: 'trend1y', label: '1-yr trend', tip: TIPS.trend1y },
   { key: 'profitability', label: 'Profitability', tip: TIPS.profitability },
   { key: 'buybacks', label: 'Buybacks', tip: TIPS.buybacks },
@@ -288,12 +294,20 @@ function liveStats(nav) {
   const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(a.length - 1, 1)); };
   const last = eq[eq.length - 1];
   const prev = eq.length >= 2 ? eq[eq.length - 2] : 1_000_000;   // day 1: vs inception
+  // True intraday day-P&L when the broker marks carry it (upl_day per position)
+  const lastPos = nav[nav.length - 1]?.positions || [];
+  const dayFromMarks = lastPos.length && lastPos.some((p) => p.upl_day != null)
+    ? lastPos.reduce((t, p) => t + Number(p.upl_day || 0), 0) : null;
   const out = {
     n,
     since: last / 1_000_000 - 1,
+    sinceUsd: last - 1_000_000,
     spxSince: spx[0] != null && spx[spx.length - 1] != null ? spx[spx.length - 1] / spx[0] - 1 : null,
-    day: last - prev,
-    dayPct: last / prev - 1,
+    day: dayFromMarks ?? (last - prev),
+    dayPct: (dayFromMarks ?? (last - prev)) / (prev || 1_000_000),
+    bestDay: n >= 2 ? Math.max(...ret) : null,
+    worstDay: n >= 2 ? Math.min(...ret) : null,
+    pctUp: n >= 2 ? ret.filter((r) => r > 0).length / n : null,
     ddFromPeak: last / peak - 1,
     maxdd: mdd,
     vol: null, beta: null, te: null, sharpe: null,
@@ -391,13 +405,48 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const filled = Object.values(orders).filter((o) => o.status === 'filled').length;
   const working = Object.values(orders).filter((o) => !['filled', 'canceled', 'rejected', 'expired'].includes(o.status)).length;
 
-  const movers = useMemo(() => {
-    const ps = (latestNav?.positions || [])
-      .map((p) => ({ s: p.symbol, pct: Number(p.uplpc), upl: Number(p.upl) }))
-      .filter((p) => Number.isFinite(p.pct))
-      .sort((a, b) => b.pct - a.pct);
-    return ps.length >= 6 ? { best: ps.slice(0, 3), worst: ps.slice(-3).reverse() } : null;
-  }, [latestNav]);
+  // Contributors/detractors in bp of NAV — day figures when the broker marks
+  // carry them, else since-entry (labeled either way).
+  const attribution = useMemo(() => {
+    const ps = (latestNav?.positions || []).map((p) => {
+      const day = p.upl_day != null ? Number(p.upl_day) : null;
+      const usd = day ?? Number(p.upl || 0);
+      return { s: p.symbol, usd, bp: (usd / equity) * 10000, isDay: day != null };
+    }).filter((p) => Number.isFinite(p.bp));
+    if (ps.length < 8) return null;
+    const sorted = [...ps].sort((a, b) => b.bp - a.bp);
+    return { top: sorted.slice(0, 5), bottom: sorted.slice(-5).reverse(), isDay: ps[0].isDay };
+  }, [latestNav, equity]);
+
+  // Sector / market-cap / liquidity rollups from the book + live weights.
+  const bookMeta = useMemo(() => {
+    if (!book || !book.length) return null;
+    const w = (sym) => (marks[sym] ? Number(marks[sym].mv) / equity : 1 / book.length);
+    const sectors = {};
+    book.forEach((r) => {
+      const k = r.sector || 'Unclassified';
+      sectors[k] = sectors[k] || { weight: 0, n: 0 };
+      sectors[k].weight += w(r.symbol); sectors[k].n += 1;
+    });
+    const secList = Object.entries(sectors).map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.weight - a.weight);
+    const BUCKETS = [['Mega (≥$200B)', 200e9, Infinity], ['Large ($10–200B)', 10e9, 200e9],
+                     ['Mid ($2–10B)', 2e9, 10e9], ['Small (<$2B)', 0, 2e9]];
+    const caps = BUCKETS.map(([name, lo, hi]) => {
+      const rows = book.filter((r) => r.market_cap != null && Number(r.market_cap) >= lo && Number(r.market_cap) < hi);
+      return { name, n: rows.length, weight: rows.reduce((t, r) => t + w(r.symbol), 0) };
+    }).filter((b) => b.n > 0);
+    const mcaps = book.map((r) => Number(r.market_cap)).filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+    const medMcap = mcaps.length ? mcaps[Math.floor(mcaps.length / 2)] : null;
+    const dtl = book.map((r) => {
+      const mv = marks[r.symbol] ? Number(marks[r.symbol].mv) : Number(r.target_dollars);
+      const a = Number(r.addv);
+      return Number.isFinite(a) && a > 0 ? mv / (0.2 * a) : null;
+    }).filter((v) => v != null);
+    const worstDtl = dtl.length ? Math.max(...dtl) : null;
+    const wavgAddv = book.reduce((t, r) => t + (Number(r.addv) || 0) * w(r.symbol), 0);
+    return { secList, caps, medMcap, worstDtl, wavgAddv, covered: mcaps.length };
+  }, [book, marks, equity]);
 
   const liveCurve = useMemo(() => {
     if (!nav || nav.length < 2) return null;
@@ -431,6 +480,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         case 'cost': return m?.avg_entry ? Number(m.avg_entry) : (o?.status === 'filled' ? Number(o.filled_avg_price) : -Infinity);
         case 'last': return m ? Number(m.price) : -Infinity;
         case 'pnl': return m ? Number(m.upl) : -Infinity;
+        case 'sector': return r.sector || 'zz';
         case 'trend1y': return Number(r.mom12 ?? -Infinity);
         case 'profitability': return Number(r.gp_a ?? -Infinity);
         case 'buybacks': return Number(r.iss ?? -Infinity);
@@ -474,7 +524,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div>
             <div className="eyebrow2" style={{ marginBottom: 10 }}>
               <span className="dot" />
-              Paper Portfolio · live · updates every 60s{markedAt ? ` · ${markedAt}` : ''}
+              Paper Portfolio · live · marks sync every 10 min in market hours{markedAt ? ` · ${markedAt}` : ''}
             </div>
             <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
@@ -498,22 +548,21 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         }}>
           <div style={{ ...grid(180, 30) }}>
             {[
-              ['Portfolio value', fmtUsd(equity), markedAt || 'opening equity', CREAM],
-              [nav && nav.length >= 2 ? 'Day P&L' : 'P&L since open',
-               ls ? fmtSignedUsd(ls.day) : '—',
-               ls ? fmtPct(ls.dayPct, 2) : 'first mark lands after fills sync',
-               inkUpDown(ls?.day)],
-              ['Since inception', ls ? fmtPct(ls.since, 2) : '—',
+              ['Portfolio value', fmtUsd(equity),
+               `${markedAt || 'opening equity'} · syncs every 10 min`, CREAM, null],
+              ['Day P&L', ls ? `${fmtSignedUsd(ls.day)} · ${fmtPct(ls.dayPct, 2)}` : '—',
+               'today, from broker marks', inkUpDown(ls?.day), null],
+              ['Since inception', ls ? `${fmtPct(ls.since, 2)} · ${fmtSignedUsd(ls.sinceUsd)}` : '—',
                ls?.spxSince != null ? `S&P ${fmtPct(ls.spxSince, 2)} · spread ${fmtPct(ls.since - ls.spxSince, 2)}` : 'vs $1,000,000 start',
-               inkUpDown(ls?.since)],
-              ['Invested', latestNav ? fmtPctPlain(invested, 1) : '—', `cash ${fmtUsd(cash)}`, CREAM, invested],
-              ['Positions', String(latestNav ? latestNav.n_positions : (book ? book.length : '—')),
-               working > 0 ? `◷ ${working} working · ${filled} filled` : filled > 0 ? '✓ all fills confirmed' : '$25,000 target each',
-               CREAM],
+               inkUpDown(ls?.since), null],
+              ['Exposure', latestNav ? `${fmtPctPlain(invested, 1)} gross · net long` : '—',
+               `cash ${fmtUsd(cash)} · no leverage`, CREAM, invested],
+              ['Liquidity', bookMeta?.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—',
+               'slowest position at 20% of volume', CREAM, null],
             ].map(([label, value, sub, color, meterFrac], i) => (
               <div key={label} style={{ borderLeft: i ? inkHair : 'none', paddingLeft: i ? 26 : 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: inkSub, marginBottom: 9 }}>{label}</div>
-                <div className="num" style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color }}>{value}</div>
+                <div className="num" style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.01em', color }}>{value}</div>
                 {meterFrac != null && (
                   <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', marginTop: 9, maxWidth: 150 }}>
                     <div style={{ width: `${Math.min(meterFrac * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
@@ -525,27 +574,74 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </div>
         </div>
 
-        {/* ── movers strip ────────────────────────────────────────────── */}
-        {movers && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', margin: '18px 0 22px' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: INK3, marginRight: 2 }}>
-              {nav && nav.length >= 2 ? 'Today' : 'Since entry'}
-            </span>
-            {[...movers.best, ...movers.worst].map((p) => (
-              <button key={p.s} type="button" onClick={() => onOpenTicker && onOpenTicker(p.s)}
-                className="qtt-tile"
-                style={{
-                  background: `color-mix(in srgb, ${p.pct >= 0 ? 'var(--up)' : 'var(--down)'} 11%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${p.pct >= 0 ? 'var(--up)' : 'var(--down)'} 35%, transparent)`,
-                  borderRadius: 999, padding: '7px 15px', cursor: 'pointer', color: INK, font: 'inherit',
-                  display: 'flex', gap: 8, alignItems: 'baseline',
-                }}>
-                <span style={{ fontWeight: 700, fontSize: 13.5 }}>{p.s}</span>
-                <span className="num" style={{ fontSize: 13, color: upDown(p.pct) }}>{fmtPct(p.pct, 1)}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* ── attribution + exposure breakdowns (tear-sheet core) ────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 22, marginBottom: 22 }}>
+          <Card title={attribution ? (attribution.isDay ? 'Contributors & detractors — today' : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
+            right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>}>
+            {attribution ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+                {[['Top', attribution.top], ['Bottom', attribution.bottom]].map(([lbl, rows]) => (
+                  <div key={lbl}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: INK3, marginBottom: 8 }}>{lbl} 5</div>
+                    {rows.map((p) => (
+                      <button key={p.s} type="button" onClick={() => onOpenTicker && onOpenTicker(p.s)} className="qtt-row"
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '7px 4px', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13.5 }}>{p.s}</span>
+                        <span className="num" style={{ fontSize: 13, color: upDown(p.bp) }}>
+                          {p.bp > 0 ? '+' : ''}{p.bp.toFixed(1)}bp · {fmtSignedUsd(p.usd)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 13, color: INK3, padding: 8 }}>Populates from the first broker marks.</div>}
+          </Card>
+
+          <Card title="Sector exposure" right={`${book?.length || 0} names · equal-weight book`}>
+            {bookMeta ? bookMeta.secList.map((sec) => (
+              <div key={sec.name} style={{ padding: '6px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ color: INK2 }}>{sec.name}</span>
+                  <span className="num" style={{ fontWeight: 600 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n}</span></span>
+                </div>
+                <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
+                </div>
+              </div>
+            )) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
+            <div style={{ fontSize: 11.5, color: INK3, marginTop: 10, lineHeight: 1.55 }}>
+              Sector tilts are an OUTPUT of the stock-level score, not a target — the book owns
+              wherever momentum and profitability currently live.
+            </div>
+          </Card>
+
+          <Card title="Market cap & liquidity" right={<Term tip={TIPS.mcap} labelOpacity={0.9}>buckets</Term>}>
+            {bookMeta ? (
+              <>
+                {bookMeta.caps.map((b) => (
+                  <div key={b.name} style={{ padding: '6px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                      <span style={{ color: INK2 }}>{b.name}</span>
+                      <span className="num" style={{ fontWeight: 600 }}>{fmtPctPlain(b.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {b.n}</span></span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(b.weight * 100, 100)}%`, height: '100%', background: BLUE, borderRadius: 999 }} />
+                    </div>
+                  </div>
+                ))}
+                <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: 12, paddingTop: 10, fontSize: 12.5, color: INK2, lineHeight: 1.8 }}>
+                  Median market cap <b className="num" style={{ color: INK }}>{bookMeta.medMcap ? `$${(bookMeta.medMcap / 1e9).toFixed(0)}B` : '—'}</b>
+                  <br />
+                  Weighted avg daily volume <b className="num" style={{ color: INK }}>{bookMeta.wavgAddv ? `$${(bookMeta.wavgAddv / 1e6).toFixed(0)}M` : '—'}</b>
+                  <br />
+                  <Term tip={TIPS.dtl} labelOpacity={0.9}>Slowest exit</Term>{' '}
+                  <b className="num" style={{ color: INK }}>{bookMeta.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—'}</b>
+                </div>
+              </>
+            ) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
+          </Card>
+        </div>
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
@@ -576,6 +672,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 [<Term key="b" tip={TIPS.beta} labelOpacity={0.8}>Beta vs S&P</Term>, ls?.beta != null ? ls.beta.toFixed(2) : '—', ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily marks'],
                 [<Term key="t" tip={TIPS.te} labelOpacity={0.8}>Tracking error</Term>, ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'],
                 [<Term key="d" tip={TIPS.maxdd} labelOpacity={0.8}>Max drawdown</Term>, ls ? fmtPctPlain(ls.maxdd) : '—', 'live, mark-to-mark'],
+                ['Best day', ls?.bestDay != null ? fmtPct(ls.bestDay, 2) : '—', ls?.bestDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
+                ['Worst day', ls?.worstDay != null ? fmtPct(ls.worstDay, 2) : '—', ls?.worstDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
+                ['% up days', ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—', ls?.pctUp == null ? needs(ls?.n ?? 0, 2) : 'of trading days'],
               ].map(([label, value, sub], i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.11em', textTransform: 'uppercase', color: INK3, marginBottom: 6 }}>{label}</div>
@@ -667,6 +766,57 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             60 trading days — a ratio annualized from a few days is noise. Hover any dotted term for a
             plain-English definition.
           </div>
+        </Card>
+
+        {/* ── monthly returns (tear-sheet grid; fills as months accrue) ── */}
+        <Card title="Monthly returns — live book" right="net paper returns · grows one cell per month" style={{ marginBottom: 22 }}>
+          {(() => {
+            const months = {};
+            (nav || []).forEach((r, i) => {
+              if (i === 0) return;
+              const prev = Number(nav[i - 1].equity), cur = Number(r.equity);
+              const key = String(r.d).slice(0, 7);
+              months[key] = (1 + (months[key] ?? 0)) * (cur / prev) - 1;
+            });
+            if (nav && nav.length >= 1) {
+              const first = nav[0];
+              const key = String(first.d).slice(0, 7);
+              const dayOne = Number(first.equity) / 1_000_000 - 1;
+              months[key] = (1 + dayOne) * (1 + (months[key] ?? 0)) - 1;
+            }
+            const years = [...new Set(Object.keys(months).map((k) => k.slice(0, 4)))].sort();
+            const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            if (!years.length) return <div style={{ fontSize: 13, color: INK3 }}>The first month prints after the first close.</div>;
+            return (
+              <div style={{ overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${EDGE}` }}>
+                      <th style={{ ...th, textAlign: 'left', color: INK3 }}>Year</th>
+                      {MN.map((m) => <th key={m} style={{ ...th, color: INK3 }}>{m}</th>)}
+                      <th style={{ ...th, color: INK3 }}>YTD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {years.map((y) => {
+                      let ytd = 1;
+                      return (
+                        <tr key={y} className="qtt-row">
+                          <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>{y}</td>
+                          {MN.map((m, i) => {
+                            const v = months[`${y}-${String(i + 1).padStart(2, '0')}`];
+                            if (v != null) ytd *= 1 + v;
+                            return <td key={m} style={{ ...td, color: v == null ? INK3 : upDown(v) }}>{v == null ? '·' : fmtPct(v, 1)}</td>;
+                          })}
+                          <td style={{ ...td, fontWeight: 700, color: upDown(ytd - 1) }}>{fmtPct(ytd - 1, 1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </Card>
 
         {/* ── backtest reference ──────────────────────────────────────── */}
@@ -822,6 +972,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                             {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
                           </td>
                         ),
+                        sector: <td key="sector" style={{ ...td, textAlign: 'left', color: INK2, fontSize: 12.5 }}>{r.sector || '—'}</td>,
                         trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
                         profitability: <td key="profitability" style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>,
                         buybacks: (
