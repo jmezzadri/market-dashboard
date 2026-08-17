@@ -73,7 +73,8 @@
   "v_2026_06_22": "Freshness false-red fix (Joe 2026-06-22): scan-fed feeds zerohedge_public/zerohedge_premium/index_membership were graded on wall-clock so the Juneteenth (Jun 19) holiday + weekend counted against them; switched to nyse-trading-day to match their sibling scan feeds (wide_universe/options_chain). user_scan_data SLA 25h->49h (daily standard; 25h was too tight to survive a holiday+weekend). No data change - the daily scan correctly did not run Fri/Sat/Sun; Jun 18 is the last completed session.",
   "v_2026_06_22b": "Retired sector_perf (Asset Tilt · Sector Performance): orphaned feed — no frontend consumer reads sector_perf.json (the performance/volatility columns it fed were removed in the sector-table redesign). Producer workflow, script, served file, reconciler + watchdog entries all removed. (Joe 2026-06-22)",
   "v_2026_08_17": "Quality Trend launch: retired the five Conviction-Events-era paper elements (paper-nav-daily, paper-positions-snapshot, paper-orders-intent, paper-positions-intraday, paper-nav-intraday) — their producers (PAPER-PORTFOLIO-EOD-DAILY, PAPER-PORTFOLIO-INTRADAY, CONVICTION-KILL-CHECK) were disabled with the old Alpaca account's deletion on 2026-08-13 and their pipeline_health rows are deleted, closing the standing 'Paper Portfolio · Order intents' red chip. Registered the two replacement feeds: qt-target-book (monthly scoring, QT-REBALANCE) and qt-nav-daily (close snapshot + fill sync, QT-EOD-DAILY). Producers stamp their own pipeline_health rows per the 2026-06-03 rule.",
-  "v_2026_08_17b": "Redeploy trigger — the 11:48Z deploy of this file did not reach production; no content change."
+  "v_2026_08_17b": "Redeploy trigger — the 11:48Z deploy of this file did not reach production; no content change.",
+  "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again — it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows."
  },
  "elements": [
   {
@@ -2444,51 +2445,6 @@
    ],
    "current_status": "live",
    "failure_mode": "Page shows the previous close's equity and marks; fills stay at their last synced state. No trading impact — the job cannot submit orders."
-  },
-  {
-   "id": "portfolio.ce-events-daily",
-   "category": "portfolio",
-   "name": "ce_events",
-   "display_name": "Conviction Events ledger",
-   "description": "Conviction Events decision ledger — every aggregated open-market insider purchase of $250,000 or more per name per day (automatic 10b5-1 plan purchases excluded), the 50-day-average confirmation, and the action taken: entered, or skipped (buying capacity exhausted / already held / failed gates). The book has no book-level alarm: the companion ce_kill_switch table was retired on 2026-08-12 when both of its arms (trailing the S&P 500, and drawdown from the book's peak) were removed — risk is controlled per position, by the 15% stop, whose scheduled exit shows in this ledger.",
-   "sourcing_mode": "computed in-house from raw",
-   "source_vendor": "SEC EDGAR (free)",
-   "source_endpoint": "Computed from insider_history_edgar (SEC EDGAR Form 4 shadow) + prices_eod (50-day average confirmation) — each input is its own registered element",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "cadence_display": "Every morning · before the open",
-   "refresh_trigger": "CONVICTION-OPEN-DAILY (GitHub Actions)",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 73,
-   "data_calendar": "nyse-trading-day",
-   "release_calendar": "nyse-trading-day",
-   "output_destination": "Supabase public.ce_events (anon-readable)",
-   "producer_script": "Conviction Events engine (separate build; not in this repo yet)",
-   "consumer_surfaces": [
-    {
-     "tab": "paper",
-     "tile": "Event ledger + positions why-held cells"
-    },
-    {
-     "tab": "scanner",
-     "tile": "Conviction Events panel"
-    },
-    {
-     "tab": "readme",
-     "tile": "Methodology — Scanner & Paper sections"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Every consumer renders its awaiting-first-events empty state when the table is unreadable or empty; no synthesized values, no error panels.",
-   "owner": "Lead Developer (engine) + Data Steward (freshness)",
-   "dependencies": [
-    "insider_history_edgar",
-    "market-prices_eod-daily"
-   ],
-   "sla_basis": "Deliberately 0 until the engine's first real run — an SLA armed before a producer exists manufactures a false red; a registered element with no target grades grey (reference), matching the no-health-row doctrine (LESSONS 2026-07-21). At cutover, in the SAME change as the pipeline_health seed row: set freshness_sla_hours 49 / data_max_age_hours 73 and dependencies [\"insider_history_edgar\", \"market-prices_eod-daily\"]. See NOTES.md.",
-   "schedule_et": "07:45 ET weekdays, before the open",
-   "scheduled_fetch_time_et": "07:45"
   },
   {
    "id": "indicator-cftc-cot-weekly",
