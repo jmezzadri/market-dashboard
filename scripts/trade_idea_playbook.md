@@ -234,6 +234,28 @@ them clear. Do not spend a note on them without new evidence.**
 | Nasdaq — one-week hedge-fund change in the bottom decile | +1.68% | +5.48% | — | +1.90% / +4.84% |
 | S&P — one-week hedge-fund change in the bottom decile | +1.72% | +3.33% | — | +1.53% / +4.06% |
 
+Measured 2026-08-17, same method, on the volatility and credit surface. Also empty:
+
+| signal | 6m conditional | 6m unconditional | verdict |
+|---|---|---|---|
+| S&P breadth — 50-day above 200-day | +3.83% | +3.92% | dead |
+| VXN/VIX ≥ 90th pctile → Nasdaq over S&P | +1.98pp | +1.97pp | dead in both directions at 6m |
+| SKEW ≥ 90th pctile ("crash hedges dear") → S&P | +5.39% | +6.21% | inside the noise, 58 episodes |
+| Equity–credit correlation ≤ 10th pctile → S&P | +6.82% | +6.50% | dead |
+| Banks ÷ S&P ≤ 10th pctile alone → S&P | +8.91% | +6.14% | real but always-on; no entry discipline |
+
+**A data trap that cost an hour and would have printed a false headline.** The
+`hy_ig_etf` series is the **LQD ÷ HYG price ratio**, and on 2026-08-14 it sat at
+the 0.1st percentile of five years — which reads instantly as maximum credit
+stress and is the opposite of the truth. Two artifacts: the label direction
+(a LOW ratio means high yield is *out*performing, i.e. risk-on), and the fact
+that a *price* ratio of two funds with different distribution yields drifts
+mechanically regardless of spreads. The spread-based reading — HY OAS at 271bp,
+the 10th percentile of its 2011-2026 range — said credit was near its tightest,
+not its widest. **Never take a directional reading off an ETF price ratio when a
+spread series exists; check `indicatorRegistry.js` for what the series actually
+divides by before writing a sentence about it.**
+
 **Equity-index futures positioning does not forecast equity returns** — not the
 level, not hedge funds alone, not the fast-money-versus-real-money standoff, and
 not the rate of change. Sixteen years, every formulation tried, all inside the
@@ -249,6 +271,53 @@ finding.**
 Where positioning HAS cleared is the currencies — see the 2026-08-14 note. Test
 each market on its own; "positioning works" is not a fact about markets, it is a
 fact about particular markets.
+
+### Where the EQUITY edge lives — the volatility surface, not the index chart
+
+Measured 2026-08-17. The index-level equity signals are empty twice over:
+positioning (above) and breadth (S&P members above the 50-day against the
+200-day: +3.83% versus a +3.92% baseline). Both dead. What is NOT dead is the
+**shape of the volatility curve**, and it is the one equity signal in this
+system that most readers will guess backwards.
+
+`vix_ts` = 30-day implied volatility ÷ three-month implied volatility (VIX ÷
+VIX3M), carried daily from 2006-07. Below 1.00 is contango, the normal state.
+Ranked on a **causal trailing five-year percentile**, episodes separated by 42
+trading days, 2011-12 → 2026-08:
+
+| entry: curve ≤ 5th pctile | 1m | 3m | 6m | 12m |
+|---|---|---|---|---|
+| S&P conditional (n=37) | +0.40% | +2.19% | +4.36% | +10.20% |
+| S&P unconditional | +1.11% | +3.34% | +6.63% | +13.48% |
+| hit rate | 61 / 67% | 63 / 76% | 74 / 82% | 85 / 86% |
+| **banks ÷ S&P** | — | +1.28% | **+1.72%** | +1.62% |
+| banks ÷ S&P unconditional | — | −0.60% | **−1.11%** | −2.94% |
+| Nasdaq excess over S&P | — | +0.03pp | +0.96pp | — |
+| Nasdaq excess, unconditional | — | +1.00pp | +2.03pp | — |
+
+Three things make this usable where the positioning work was not:
+
+1. **It is stable.** Every sub-period is negative (2011-15 −2.03pp, 2016-20
+   −1.28pp, 2021-26 −4.33pp) and every threshold from the 2nd to the 20th
+   percentile is negative (−1.28pp to −2.40pp). Contrast the "standoff" trap
+   above, which lived in one window only.
+2. **It is symmetric.** The top 5th percentile — backwardation — preceded a
+   +8.97% six-month S&P return against the same +6.63% baseline. A signal that
+   works in both directions is much harder to have fitted by accident.
+3. **It says something non-obvious.** The reflex reading of steep contango is
+   *complacency, therefore danger*. The measured outcome is **dilution, not
+   danger**: P(≥10% drawdown within six months) is 22% conditional against 19%
+   unconditional, and at three months the conditional figure is the LOWER one
+   (8% against 11%). Return compresses; risk does not rise. That is a
+   portfolio-construction finding, not a hedging one — which is why the
+   tradeable expression is a rotation (banks, mid-range at the 44.6th
+   percentile) rather than a reduction.
+
+Cross-asset volatility ratios are now carried too (`gvz`, `ovx`): gold and crude
+implied volatility against the VIX. Their use is context, not signal — they say
+whether cheap equity volatility is part of a general calm or specific to
+equities. On 2026-08-14 it was specific (GVZ/VIX 97th percentile, OVX/VIX 94th,
+MOVE at the 14th).
 
 **Run the backtest before writing a word of prose.** If the conditional result
 does not separate from the baseline, there is no note — go and find another one.

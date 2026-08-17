@@ -483,7 +483,7 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             continue
         if abs((idea_date - prev_date).days) > NOVELTY_WINDOW_DAYS:
             continue
-        if prev.get("id") == idea.get("id"):
+        if prev.get("id") == derive_id(idea):
             continue
         a = re.sub(r"[^a-z0-9]", "", str(prev.get("instrument", "")).lower())
         b = re.sub(r"[^a-z0-9]", "", str(idea.get("instrument", "")).lower())
@@ -503,11 +503,23 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     return warnings
 
 
+def derive_id(idea: dict) -> str:
+    """The note's stable id. Split out of normalise() on 2026-08-17: the
+    novelty gate skips a previously-published note with the SAME id (that is a
+    correction, not a repeat), but ids were only assigned in normalise(), which
+    runs AFTER validate(). So re-publishing a note to fix a figure failed the
+    instrument-novelty check against its own earlier copy. Correcting a
+    published number has to be a one-command operation or it does not happen."""
+    if idea.get("id"):
+        return str(idea["id"])
+    slug = re.sub(r"[^a-z0-9]+", "-", str(idea.get("title", "")).lower()).strip("-")[:48]
+    return f"{idea.get('date')}-{slug}"
+
+
 def normalise(idea: dict) -> dict:
     """Fill the derived fields the site reads, leaving authored prose alone."""
     out = dict(idea)
-    slug = re.sub(r"[^a-z0-9]+", "-", str(out["title"]).lower()).strip("-")[:48]
-    out["id"] = out.get("id") or f"{out['date']}-{slug}"
+    out["id"] = derive_id(out)
     out.setdefault("status", "live")
     out.setdefault("sections", [])
     out["published_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
