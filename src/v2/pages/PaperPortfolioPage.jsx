@@ -18,6 +18,9 @@
    plain-English Term tooltips. Series identity is never color-alone (end
    labels + legend + tooltip on every chart).
 
+   Deploy stamp 2026-08-17T14:4x: Vercel promoted a stale queued build over
+   the v4 commit; this line exists to force a fresh production build.
+
    Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily.
    Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
 
