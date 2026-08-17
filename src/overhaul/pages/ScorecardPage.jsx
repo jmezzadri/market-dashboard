@@ -25,6 +25,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+// The SAME note reader the Home tile uses. Joe, 2026-08-17: "I can't see what
+// your call was on 8/14 ... You need a way to resurface the analysis and the
+// call." A mark without the call beside it is a number about nothing, and a
+// paraphrase written for this page would be a second version of the note that
+// could drift from the published one. So the scorecard shows the call inline
+// and opens the identical note.
+import TradeIdeaNoteModal from '../components/TradeIdeaNote';
+import useIndicatorSeries from '../lib/useIndicatorSeries';
+
 // The CREAM design system supplies the palette tokens; scorecard-v12 binds them
 // into the .sc-wrap scope. Both are required — scorecard-v12 alone leaves every
 // token undefined and the page renders on fallbacks.
@@ -52,7 +61,7 @@ function toneOf(v) {
   return 'flat';
 }
 
-function Row({ r }) {
+function Row({ r, idea, onOpenNote }) {
   const [open, setOpen] = useState(false);
   const closed = String(r.status || '').startsWith('closed');
   const showMark = r.status === 'open' || closed;
@@ -72,6 +81,24 @@ function Row({ r }) {
 
       {open && (
         <div className="sc-detail">
+          {/* The CALL first — before any number this page computed. The title
+              is a hook; this is what was actually claimed, in the words it was
+              published in. */}
+          {idea?.call && <p className="sc-call">{idea.call}</p>}
+
+          {idea && (
+            <div className="sc-trade">
+              {[['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
+                ['Sell short', idea.the_trade?.short], ['Funded by', idea.the_trade?.funded_by],
+                ['Why it was not obvious', idea.variant],
+                ['The edge', idea.edge?.summary],
+                ['Measured against', idea.edge?.backtest?.baseline]]
+                .filter(([, v]) => v).map(([k, v]) => (
+                  <div className="sc-tradefact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+                ))}
+            </div>
+          )}
+
           {(r.status === 'pending_entry' || r.status === 'unscoreable') && (
             <p className="sc-reason">{r.reason}</p>
           )}
@@ -129,6 +156,19 @@ function Row({ r }) {
               )}
             </>
           )}
+
+          {idea ? (
+            <p className="sc-readnote">
+              <button type="button" className="sc-notebtn" onClick={() => onOpenNote(idea)}>
+                Read the full note{idea.charts?.length ? ` · ${idea.charts.length} charts` : ''} &rarr;
+              </button>
+            </p>
+          ) : (
+            <p className="sc-reason">
+              The published note for this call is no longer in trade_ideas.json, so the analysis behind it
+              cannot be shown. The mark stands; the reasoning is missing.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -137,7 +177,15 @@ function Row({ r }) {
 
 export default function ScorecardPage() {
   const [data, setData] = useState(null);
+  const [notes, setNotes] = useState(null);
+  const [openNote, setOpenNote] = useState(null);
   const [err, setErr] = useState(null);
+  // The hook only loads the keys it is asked for, so gather every series any
+  // note charts. Passing nothing returns {} and every chart in the reopened
+  // note would render empty — which is the failure mode this whole change
+  // exists to prevent.
+  const [chartKeys, setChartKeys] = useState([]);
+  const { series: chartSeries } = useIndicatorSeries(chartKeys);
 
   useEffect(() => {
     let dead = false;
@@ -145,11 +193,29 @@ export default function ScorecardPage() {
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d) => { if (!dead) setData(d); })
       .catch((e) => { if (!dead) setErr(String(e.message || e)); });
+    // The notes themselves. Kept as a SEPARATE fetch rather than folded into
+    // the scores file on purpose: score_trade_ideas.py stays a pure marker that
+    // knows nothing about prose, and trade_ideas.json stays the single source
+    // of the published text. The join happens here, at read time, by id.
+    fetch('/trade_ideas.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (dead) return;
+        const list = Array.isArray(d?.ideas) ? d.ideas : [];
+        setNotes(list);
+        setChartKeys([...new Set(list.flatMap((n) => (n.charts || []).map((c) => c.series)).filter(Boolean))]);
+      })
+      .catch(() => { if (!dead) setNotes([]); });
     return () => { dead = true; };
   }, []);
 
   const s = data?.summary;
   const rows = useMemo(() => (Array.isArray(data?.scores) ? data.scores : []), [data]);
+  const noteById = useMemo(() => {
+    const m = new Map();
+    (notes || []).forEach((n) => { if (n?.id) m.set(n.id, n); });
+    return m;
+  }, [notes]);
 
   return (
     /* `home-v12` is required, not decorative: cream-system.css declares the
@@ -198,9 +264,15 @@ export default function ScorecardPage() {
       )}
 
       <section className="sc-list">
-        {rows.map((r) => <Row key={r.id || r.date} r={r} />)}
+        {rows.map((r) => (
+          <Row key={r.id || r.date} r={r} idea={noteById.get(r.id)} onOpenNote={setOpenNote} />
+        ))}
         {data && !rows.length && <p className="sc-dim">No notes published yet.</p>}
       </section>
+
+      {openNote && (
+        <TradeIdeaNoteModal idea={openNote} chartSeries={chartSeries} onClose={() => setOpenNote(null)} />
+      )}
 
       {data && (
         <footer className="sc-method">
