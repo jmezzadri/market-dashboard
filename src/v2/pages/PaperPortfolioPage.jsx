@@ -111,12 +111,18 @@ function LineChart({ series, height = 240, log = false, yFmt }) {
   const path = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
   const gridVals = [0.25, 0.5, 0.75].map((f) => (log ? Math.exp(lo + f * (hi - lo)) : lo + f * (hi - lo)));
   const fmt = yFmt || ((v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1000)}k`));
+  // Skip a gridline's y-axis label when a series end-label would sit on top of
+  // it (the line itself still draws) — otherwise $4.9M prints over the S&P's
+  // end value at the right edge.
+  const endYs = series.map((s) => y(s.values[s.values.length - 1]));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="performance chart">
       {gridVals.map((gv, i) => (
         <g key={i}>
           <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke="rgba(128,128,128,0.18)" strokeDasharray="3 5" />
-          <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill="rgba(128,128,128,0.8)">{fmt(gv)}</text>
+          {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
+            <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill="rgba(128,128,128,0.8)">{fmt(gv)}</text>
+          ) : null}
         </g>
       ))}
       {series.map((s) => (
