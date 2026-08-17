@@ -1,44 +1,34 @@
-/* PaperPortfolioPage — the Quality Trend book as a portfolio manager's cockpit.
+/* PaperPortfolioPage — Quality Trend trading terminal.
 
-   2026-08-17 (Joe): "make it look and feel like a real portfolio manager's
-   cockpit — total portfolio, performance, risk, comps to benchmarks."
+   v3 design (2026-08-17, Joe: "contrasting tiles, more interactive, the page
+   is so bland — go back to the drawing board"): the page is now a DARK
+   terminal panel sitting on the site's cream chrome — deliberate contrast,
+   the way a PM's screen looks different from a marketing page. Every key
+   number lives in its own elevated tile with a colored signal edge; P&L
+   tiles tint green/red; the exposure tile carries a meter; a movers strip
+   shows the day's best and worst names; charts have crosshair readouts and
+   range pills; holdings search, sort, and drag-reorder.
 
-   Layout, top to bottom:
-     1. Command band — portfolio value, day P&L, since-inception vs S&P,
-        exposure, positions.
-     2. Performance — live equity curve vs S&P (indexed), with live stats
-        that unlock honestly as history accrues (a Sharpe needs ~60 trading
-        days; showing one after five is noise dressed as precision).
-     3. Risk — exposure, cash, concentration, drawdown from peak, median
-        holding volatility.
-     4. Benchmark comp — live column and backtest column, side by side,
-        each labeled for what it is. Live and backtest numbers are NEVER
-        blended into one figure.
-     5. Backtest reference — growth of $1M (log scale) + year-by-year vs
-        the S&P. The BT constant below is the monthly equity curve of the
-        validated run itself (survivorship-free, 2,011 delisted companies);
-        its stats match paper_portfolio/QUALITY_TREND_V3.md to the digit
-        (LESSONS 8.3: figures ship verbatim, never re-derived at render).
-     6. Holdings — every name with weight, fill, mark, P&L, and the inputs
-        that put it in the book.
+   LIVE data: the page re-polls qt_orders + qt_nav_daily every 60 seconds
+   (keeping the previous frame while it fetches), so fills appear as they
+   sync without a reload. Marks are labeled with the actual snapshot time —
+   never claimed as a "close" they aren't.
 
-   Data (all read-only, RLS-protected public tables):
-     qt_target_book — the 40 names of the current rebalance (QT-REBALANCE)
-     qt_orders      — order intents + fill state (QT-PLACE-ORDERS / QT-EOD-DAILY)
-     qt_nav_daily   — one close snapshot per trading day incl. positions
-                      jsonb + spy_close (QT-EOD-DAILY)
+   Colors are validated (dataviz six-checks, dark surface): strategy gold
+   #c98500 + benchmark blue #3987e5 pass CVD separation, chroma, lightness
+   and contrast; status green #0ca30c / red #d03b3b / amber #fab219 are the
+   reserved status steps and never used for series. Identity is never
+   color-alone: both series carry end-labels, a legend, and the tooltip.
 
-   Design: self-contained inline styles on the cream ground; neutral rgba
-   grays so light/dark/navy themes all read; charts are handwritten SVG —
-   no chart lib, nothing new to bundle. */
+   Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily.
+   Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 /* Monthly equity curve of the VALIDATED backtest run (Feb 2017 – Aug 2026),
-   growth of $1,000,000. Generated 2026-08-17 from the locked V3 series;
-   CAGR 21.2% vs 15.3%, Sharpe 0.97 vs 0.82, maxDD −19.3% vs −23.9%. */
+   growth of $1,000,000. CAGR 21.2% vs 15.3%, Sharpe 0.97 vs 0.82. */
 const BT = {"dates":["2017-02-28","2017-03-31","2017-04-28","2017-05-31","2017-06-30","2017-07-31","2017-08-31","2017-09-29","2017-10-31","2017-11-30","2017-12-29","2018-01-31","2018-02-28","2018-03-29","2018-04-30","2018-05-31","2018-06-29","2018-07-31","2018-08-31","2018-09-28","2018-10-31","2018-11-30","2018-12-31","2019-01-31","2019-02-28","2019-03-29","2019-04-30","2019-05-31","2019-06-28","2019-07-31","2019-08-30","2019-09-30","2019-10-31","2019-11-29","2019-12-31","2020-01-31","2020-02-28","2020-03-31","2020-04-30","2020-05-29","2020-06-30","2020-07-31","2020-08-31","2020-09-30","2020-10-30","2020-11-30","2020-12-31","2021-01-29","2021-02-26","2021-03-31","2021-04-30","2021-05-28","2021-06-30","2021-07-30","2021-08-31","2021-09-30","2021-10-29","2021-11-30","2021-12-31","2022-01-31","2022-02-28","2022-03-31","2022-04-29","2022-05-31","2022-06-30","2022-07-29","2022-08-31","2022-09-30","2022-10-31","2022-11-30","2022-12-30","2023-01-31","2023-02-28","2023-03-31","2023-04-28","2023-05-31","2023-06-30","2023-07-31","2023-08-31","2023-09-29","2023-10-31","2023-11-30","2023-12-29","2024-01-31","2024-02-29","2024-03-28","2024-04-30","2024-05-31","2024-06-28","2024-07-31","2024-08-30","2024-09-30","2024-10-31","2024-11-29","2024-12-31","2025-01-31","2025-02-28","2025-03-31","2025-04-30","2025-05-30","2025-06-30","2025-07-31","2025-08-29","2025-09-30","2025-10-31","2025-11-28","2025-12-31","2026-01-30","2026-02-27","2026-03-31","2026-04-30","2026-05-29","2026-06-30","2026-07-31","2026-08-11"],
 "strategy":[1047946,1058227,1068817,1093401,1103635,1123706,1128257,1163338,1199620,1244937,1274535,1354769,1298973,1300723,1291317,1329842,1341976,1352391,1416992,1417318,1289902,1298108,1275438,1361427,1416742,1418202,1481942,1394186,1489759,1518507,1481818,1470529,1502141,1552170,1609670,1618294,1500984,1355677,1543931,1610441,1614739,1697374,1801709,1731618,1721270,1971968,2009068,2006269,2043059,2130276,2258599,2262609,2275137,2280019,2352481,2276415,2419475,2402180,2577995,2437347,2408111,2521315,2400162,2404882,2205161,2378138,2313928,2224302,2338522,2426733,2404847,2545785,2481712,2417020,2411559,2394297,2537891,2612778,2551311,2503818,2434777,2597260,2790924,2848275,2966328,3070764,3110807,3200586,3210232,3277889,3336392,3357575,3459736,3708506,3711512,3703630,3660797,3448310,3336794,3510022,3629421,3760979,3844166,3844696,3922764,4097867,4098688,4271617,4416322,4820595,5104506,5586060,6039621,6117068,6331646],
 "spx":[1039300,1040556,1050923,1065729,1072430,1094487,1097756,1119936,1146336,1181330,1194642,1262172,1216629,1183872,1189631,1218327,1225220,1270888,1310997,1318444,1228776,1251534,1136978,1228287,1267844,1290936,1343699,1258094,1345756,1365468,1343353,1367880,1397407,1447990,1489728,1489572,1367016,1197166,1350303,1414595,1440815,1525838,1636022,1573988,1533158,1700975,1763333,1745231,1793870,1872099,1972166,1985117,2028923,2077107,2141577,2041717,2185295,2168073,2264977,2146189,2085664,2163430,1974821,1978859,1815326,1982314,1902148,1730212,1870376,1972564,1856706,1973408,1922764,1993901,2025222,2034201,2168066,2237989,2201512,2098300,2054001,2241558,2343320,2382953,2508926,2589711,2481077,2603638,2689991,2721687,2779668,2837726,2839168,3006218,2916904,2996690,2837661,2828379,2811175,2988518,3141918,3210531,3277500,3222235,3311169,3332163,3402804,3499466,3419522,3554988,3401962,3612321,3833676,3757891,3915646],
@@ -47,12 +37,22 @@ const BT = {"dates":["2017-02-28","2017-03-31","2017-04-28","2017-05-31","2017-0
 const BT_STATS = { cagr: '21.2%', vol: '19.1%', sharpe: '0.97', sortino: '1.57', maxdd: '−19.3%', ir: '0.58', worst: '−6.7%' };
 const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18', maxdd: '−23.9%', worst: '−18.2%' };
 
-const BORDER = '1px solid rgba(128,128,128,0.25)';
-const HAIRLINE = '1px solid rgba(128,128,128,0.16)';
-const UP = 'var(--up, #1a7f4e)';
-const DOWN = 'var(--down, #b3403a)';
-const ACCENT = 'var(--mt-accent, #b08d4c)';
-const MUTED = 'rgba(128,128,128,0.85)';
+/* ── terminal palette (validated, see header comment) ─────────────────── */
+const PANEL  = '#14151a';
+const CARD   = '#1c1e26';
+const CARD2  = '#22242e';
+const EDGE   = 'rgba(255,255,255,0.10)';
+const HAIR   = 'rgba(255,255,255,0.07)';
+const INK    = '#f2f3f5';
+const INK2   = '#9aa1ad';
+const INK3   = '#6f7683';
+const GOLD   = '#c98500';   // strategy series
+const BLUE   = '#3987e5';   // benchmark series
+const GOOD   = '#0ca30c';
+const GOODBR = '#4ade80';   // bright text-green for numbers on dark
+const BAD    = '#d03b3b';
+const BADBR  = '#f87171';
+const WARN   = '#fab219';
 
 const fmtUsd = (v, dp = 0) =>
   v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp })}`;
@@ -62,54 +62,130 @@ const fmtPct = (v, dp = 1) =>
   (v == null || !Number.isFinite(Number(v))) ? '—' : `${v > 0 ? '+' : ''}${(Number(v) * 100).toFixed(dp)}%`;
 const fmtPctPlain = (v, dp = 1) =>
   (v == null || !Number.isFinite(Number(v))) ? '—' : `${(Number(v) * 100).toFixed(dp)}%`;
-const fmtDate = (d) => {
-  if (!d) return '—';
-  return new Date(`${String(d).slice(0, 10)}T12:00:00`)
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-const pnlColor = (v) => (v == null ? 'inherit' : v >= 0 ? UP : DOWN);
+const fmtDate = (d) => d ? new Date(`${String(d).slice(0, 10)}T12:00:00`)
+  .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtTimeET = (iso) => iso ? new Date(iso).toLocaleTimeString('en-US',
+  { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) + ' ET' : '';
+const upDown = (v) => (v == null ? INK : v >= 0 ? GOODBR : BADBR);
 
-/* ── tiny stat primitives ─────────────────────────────────────────────── */
-function Label({ children, style }) {
-  // No opacity on the container: an ancestor's opacity multiplies into any
-  // Term tooltip rendered inside. Plain-string labels dim via an inner span;
-  // node children (Terms) dim their own text through labelOpacity.
+/* ── plain-English explanations (tooltips + the visible legend) ───────── */
+const TIPS = {
+  rank: 'Position in the strategy’s ranking at the last monthly scoring. 1 = highest-scoring name in the book.',
+  weight: 'This position’s share of the whole portfolio today. Every name targets 2.5% — one fortieth.',
+  value: 'What the position is worth at the latest mark.',
+  cost: 'Average price actually paid at the broker, from the official fill records.',
+  last: 'Latest price from the broker’s most recent snapshot.',
+  pnl: 'Profit or loss since purchase — dollars, and percent of what was paid.',
+  trend1y: 'How much the stock rose over the past 12 months, skipping the most recent month (recent-month moves tend to reverse). The strategy buys established winners.',
+  profitability: 'Gross profit divided by total assets, from the company’s latest SEC filing — how much profit the business earns on everything it owns. Above ~0.35 is strong; 1.0+ is exceptional.',
+  buybacks: 'How much the share count shrank over the past year. Positive = the company bought back its own stock; negative = it diluted holders.',
+  insider: 'Score for recent open-market purchases by the company’s own executives and board members, weighted by size relative to what they already owned — a doubled stake is conviction, a 2% top-up is noise. A dot means none.',
+  sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good.',
+  sortino: 'Like Sharpe, but only counts DOWNSIDE swings as risk — upside volatility isn’t penalized.',
+  vol: 'How much returns swing, annualized. The S&P 500 runs ~15–16% in a normal year.',
+  maxdd: 'The worst peak-to-trough decline — the most an investor who bought the top would have been down.',
+  beta: 'How much the book moves when the market moves. 1.0 = with the market; 0.5 = half as much.',
+  te: 'How differently the book behaves from the S&P 500, annualized. Higher = more independent of the index.',
+  ir: 'Excess return over the S&P 500 per unit of that difference — the benchmark-relative Sharpe.',
+  ddpeak: 'How far the account sits below its own all-time high right now. 0% = at the high.',
+  medvol: 'The middle holding’s price volatility at selection. The strategy caps this at 70% per name.',
+  worst: 'The single worst calendar year in the period.',
+};
+
+const HCOLS = [
+  { key: 'rank', label: '#', tip: TIPS.rank, align: 'left' },
+  { key: 'company', label: 'Company', tip: null, align: 'left' },
+  { key: 'weight', label: 'Weight', tip: TIPS.weight },
+  { key: 'value', label: 'Value', tip: TIPS.value },
+  { key: 'cost', label: 'Avg cost', tip: TIPS.cost },
+  { key: 'last', label: 'Last', tip: TIPS.last },
+  { key: 'pnl', label: 'P&L', tip: TIPS.pnl },
+  { key: 'trend1y', label: '1-yr trend', tip: TIPS.trend1y },
+  { key: 'profitability', label: 'Profitability', tip: TIPS.profitability },
+  { key: 'buybacks', label: 'Buybacks', tip: TIPS.buybacks },
+  { key: 'insider', label: 'Insider buying', tip: TIPS.insider },
+];
+
+/* ── injected CSS: hover states + animations (inline styles can't) ────── */
+const CSS = `
+.qtt { color-scheme: dark; }
+.qtt * { box-sizing: border-box; }
+.qtt-tile { transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.qtt-tile:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
+.qtt-card { transition: border-color .15s ease; }
+.qtt-card:hover { border-color: rgba(255,255,255,0.18); }
+@keyframes qttpulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.qtt-live { animation: qttpulse 2s ease-in-out infinite; }
+.qtt-row { transition: background .12s ease; }
+.qtt-row:hover { background: rgba(255,255,255,0.035); }
+.qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid ${EDGE}; background: transparent; color: ${INK2}; border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; }
+.qtt-pill:hover { color: ${INK}; }
+.qtt-pill.on { background: rgba(201,133,0,0.16); border-color: rgba(201,133,0,0.55); color: #e8b44c; }
+.qtt-search { background: ${CARD2}; border: 1px solid ${EDGE}; border-radius: 8px; color: ${INK}; padding: 6px 12px; font-size: 13px; width: 190px; outline: none; }
+.qtt-search:focus { border-color: rgba(201,133,0,0.55); }
+.qtt-search::placeholder { color: ${INK3}; }
+`;
+
+/* ── small primitives ─────────────────────────────────────────────────── */
+function Term({ children, tip, placement = 'top', alignRight = false, labelOpacity = 1 }) {
+  const [open, setOpen] = useState(false);
+  const pos = placement === 'bottom' ? { top: '145%' } : { bottom: '135%' };
+  const side = alignRight ? { right: 0 } : { left: 0 };
   return (
-    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', marginBottom: 7, ...style }}>
-      {typeof children === 'string' ? <span style={{ opacity: 0.5 }}>{children}</span> : children}
-    </div>
+    <span tabIndex={0} style={{ position: 'relative', cursor: 'help', outline: 'none' }}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>
+      <span style={{ borderBottom: `1px dotted ${INK3}`, opacity: labelOpacity }}>{children}</span>
+      {open && (
+        <span style={{
+          position: 'absolute', ...pos, ...side, zIndex: 40, background: CARD2,
+          border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 8, padding: '9px 12px',
+          width: 250, whiteSpace: 'normal', boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0,
+          textTransform: 'none', color: '#dfe2e7',
+        }}>{tip}</span>
+      )}
+    </span>
   );
 }
-function Stat({ label, value, sub, color, big }) {
+
+function Tile({ edge, children, style }) {
   return (
-    <div>
-      <Label>{label}</Label>
-      <div style={{ fontSize: big ? 27 : 21, fontWeight: 600, letterSpacing: '-0.01em', color: color || 'inherit', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-      {sub ? <div style={{ fontSize: 12.5, opacity: 0.55, marginTop: 3 }}>{sub}</div> : null}
-    </div>
+    <div className="qtt-tile" style={{
+      background: CARD, border: `1px solid ${EDGE}`, borderRadius: 12,
+      borderTop: `3px solid ${edge || EDGE}`, padding: '16px 18px 14px', ...style,
+    }}>{children}</div>
   );
 }
-function Panel({ title, right, children, style }) {
+function TileLabel({ children }) {
+  return <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK3, marginBottom: 8 }}>{children}</div>;
+}
+function Card({ title, right, children, style, className }) {
   return (
-    <div style={{ border: BORDER, borderRadius: 12, padding: '20px 22px', ...style }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <Label style={{ marginBottom: 0 }}>{title}</Label>
-        {right ? <div style={{ fontSize: 12, opacity: 0.5 }}>{right}</div> : null}
-      </div>
+    <div className={`qtt-card ${className || ''}`} style={{ background: CARD, border: `1px solid ${EDGE}`, borderRadius: 14, padding: '18px 20px', ...style }}>
+      {(title || right) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK2 }}>{title}</div>
+          {right ? <div style={{ fontSize: 12, color: INK3 }}>{right}</div> : null}
+        </div>
+      )}
       {children}
     </div>
   );
 }
+function Meter({ frac, color = BLUE }) {
+  return (
+    <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 9 }}>
+      <div style={{ width: `${Math.max(0, Math.min(100, frac * 100))}%`, height: '100%', background: color, borderRadius: 999 }} />
+    </div>
+  );
+}
 
-/* ── interactive SVG line chart ───────────────────────────────────────────
-   Hover layer per the house dataviz rules: a vertical crosshair snaps to the
-   nearest date, ONE tooltip lists every series at that X (values lead, names
-   follow, keyed by a short stroke of the series color), keyboard focus +
-   arrow keys reach the same readout. Gridlines are solid hairlines. */
-function LineChart({ series, dates, height = 240, log = false, yFmt }) {
-  const [hov, setHov] = useState(null);            // index into dates, or null
-  const wrapRef = React.useRef(null);
-  const W = 1000, H = height, padL = 8, padR = 70, padT = 10, padB = 26;
+/* ── interactive chart (crosshair + tooltip + keyboard) ───────────────── */
+function LineChart({ series, dates, height = 250, log = false, yFmt }) {
+  const [hov, setHov] = useState(null);
+  const wrapRef = useRef(null);
+  const W = 1000, H = height, padL = 8, padR = 74, padT = 12, padB = 26;
   const all = series.flatMap((s) => s.values).filter((v) => v > 0);
   if (!all.length) return null;
   const t = (v) => (log ? Math.log(v) : v);
@@ -125,10 +201,8 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
     ? new Date(`${String(dates[i]).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', ...(n < 60 ? { day: 'numeric' } : {}) })
     : '');
   const xTicks = n > 1 ? [0, Math.floor(n / 2), n - 1] : [0];
-
   const idxFromEvent = (e) => {
-    const el = wrapRef.current;
-    if (!el) return null;
+    const el = wrapRef.current; if (!el) return null;
     const r = el.getBoundingClientRect();
     const px = ((e.clientX - r.left) / r.width) * W;
     return Math.max(0, Math.min(n - 1, Math.round(((px - padL) / (W - padL - padR)) * (n - 1))));
@@ -140,30 +214,22 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
   };
   const tipLeftPct = hov != null ? (x(hov) / W) * 100 : 0;
   const flip = tipLeftPct > 62;
-
   return (
-    <div
-      ref={wrapRef}
-      style={{ position: 'relative' }}
-      tabIndex={0}
-      role="application"
+    <div ref={wrapRef} style={{ position: 'relative' }} tabIndex={0} role="application"
       aria-label="Performance chart — arrow keys move the readout"
-      onKeyDown={onKey}
-      onPointerMove={(e) => setHov(idxFromEvent(e))}
-      onPointerLeave={() => setHov(null)}
-      onBlur={() => setHov(null)}
-    >
+      onKeyDown={onKey} onPointerMove={(e) => setHov(idxFromEvent(e))}
+      onPointerLeave={() => setHov(null)} onBlur={() => setHov(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="performance chart">
         {gridVals.map((gv, i) => (
           <g key={i}>
-            <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke="rgba(128,128,128,0.16)" />
+            <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke={HAIR} />
             {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
-              <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill="rgba(128,128,128,0.8)">{fmt(gv)}</text>
+              <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill={INK3}>{fmt(gv)}</text>
             ) : null}
           </g>
         ))}
         {xTicks.map((i) => (
-          <text key={i} x={x(i)} y={H - 6} fontSize="11.5" fill="rgba(128,128,128,0.75)"
+          <text key={i} x={x(i)} y={H - 6} fontSize="11.5" fill={INK3}
             textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}>{dateLbl(i)}</text>
         ))}
         {series.map((s) => (
@@ -176,10 +242,9 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
         ))}
         {hov != null && (
           <g>
-            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="rgba(128,128,128,0.55)" strokeWidth="1" />
+            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="rgba(255,255,255,0.35)" strokeWidth="1" />
             {series.map((s) => (
-              <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4"
-                fill={s.color} stroke="var(--mt-surface, #faf6ef)" strokeWidth="2" />
+              <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4" fill={s.color} stroke={CARD} strokeWidth="2" />
             ))}
           </g>
         )}
@@ -189,16 +254,16 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
           position: 'absolute', top: 6,
           left: flip ? undefined : `calc(${tipLeftPct}% + 12px)`,
           right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined,
-          background: 'var(--mt-surface, #faf6ef)', border: BORDER, borderRadius: 8,
-          padding: '8px 11px', pointerEvents: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-          fontSize: 12.5, whiteSpace: 'nowrap', zIndex: 5,
+          background: CARD2, border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 8,
+          padding: '8px 11px', pointerEvents: 'none', boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          fontSize: 12.5, whiteSpace: 'nowrap', zIndex: 5, color: INK,
         }}>
-          <div style={{ opacity: 0.55, marginBottom: 4 }}>{dateLbl(hov)}</div>
+          <div style={{ color: INK3, marginBottom: 4 }}>{dateLbl(hov)}</div>
           {series.map((s) => (
             <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '1px 0' }}>
               <span style={{ width: 12, height: 2.5, background: s.color, borderRadius: 2, flex: 'none' }} />
               <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(s.values[hov])}</span>
-              <span style={{ opacity: 0.55 }}>{s.name}</span>
+              <span style={{ color: INK3 }}>{s.name}</span>
             </div>
           ))}
         </div>
@@ -206,48 +271,11 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
     </div>
   );
 }
-/* ── jargon tooltip ───────────────────────────────────────────────────────
-   Every finance term on this page explains itself: dotted underline, hover or
-   keyboard focus opens a plain-English note. The same text also lives in the
-   "what these columns mean" legend under the holdings table, so nothing is
-   gated behind a hover. */
-function Term({ children, tip, style, placement = 'top', alignRight = false, labelOpacity = 1 }) {
-  // placement 'bottom' is REQUIRED inside any overflow:auto container (the
-  // tables): a tooltip opening upward from the header row lands outside the
-  // scroll container and gets clipped invisibly. Found by hovering the
-  // deployed page, not by reading the code.
-  // labelOpacity dims ONLY the underlined text. CSS opacity on an ancestor
-  // multiplies into every descendant, so a th at opacity .5 renders the
-  // tooltip half-transparent with table rows bleeding through — headers must
-  // keep opacity 1 and dim through this prop instead.
-  const [open, setOpen] = useState(false);
-  const pos = placement === 'bottom' ? { top: '145%' } : { bottom: '135%' };
-  const side = alignRight ? { right: 0 } : { left: 0 };
-  return (
-    <span
-      tabIndex={0}
-      style={{ position: 'relative', cursor: 'help', outline: 'none', ...style }}
-      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-    >
-      <span style={{ borderBottom: '1px dotted rgba(128,128,128,0.7)', opacity: labelOpacity }}>{children}</span>
-      {open && (
-        <span style={{
-          position: 'absolute', ...pos, ...side, zIndex: 30,
-          background: 'var(--mt-surface, #faf6ef)', border: BORDER, borderRadius: 8,
-          padding: '9px 12px', width: 250, whiteSpace: 'normal', boxShadow: '0 3px 12px rgba(0,0,0,0.10)',
-          fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0, textTransform: 'none', opacity: 0.95,
-        }}>{tip}</span>
-      )}
-    </span>
-  );
-}
-
-function Legend({ items }) {
+function ChartLegend({ items }) {
   return (
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 10 }}>
       {items.map(([name, color]) => (
-        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, opacity: 0.75 }}>
+        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: INK2 }}>
           <span style={{ width: 16, height: 3, background: color, borderRadius: 2, display: 'inline-block' }} />{name}
         </div>
       ))}
@@ -255,7 +283,7 @@ function Legend({ items }) {
   );
 }
 
-/* ── live-statistics helpers (all from qt_nav_daily) ──────────────────── */
+/* ── live stats from qt_nav_daily ─────────────────────────────────────── */
 function liveStats(nav) {
   if (!nav || nav.length < 1) return null;
   const eq = nav.map((r) => Number(r.equity));
@@ -266,17 +294,19 @@ function liveStats(nav) {
     sret.push(spx[i] != null && spx[i - 1] != null ? spx[i] / spx[i - 1] - 1 : null);
   }
   const n = ret.length;
-  let peak = -Infinity, mdd = 0;
+  let peak = 1_000_000, mdd = 0;
   eq.forEach((v) => { peak = Math.max(peak, v); mdd = Math.min(mdd, v / peak - 1); });
   const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
   const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(a.length - 1, 1)); };
+  const last = eq[eq.length - 1];
+  const prev = eq.length >= 2 ? eq[eq.length - 2] : 1_000_000;   // day 1: vs inception
   const out = {
     n,
-    since: eq[eq.length - 1] / 1_000_000 - 1,
+    since: last / 1_000_000 - 1,
     spxSince: spx[0] != null && spx[spx.length - 1] != null ? spx[spx.length - 1] / spx[0] - 1 : null,
-    day: n >= 1 ? eq[eq.length - 1] - eq[eq.length - 2] : null,
-    dayPct: n >= 1 ? ret[n - 1] : null,
-    ddFromPeak: eq[eq.length - 1] / peak - 1,
+    day: last - prev,
+    dayPct: last / prev - 1,
+    ddFromPeak: last / peak - 1,
     maxdd: mdd,
     vol: null, beta: null, te: null, sharpe: null,
   };
@@ -293,55 +323,14 @@ function liveStats(nav) {
     }
   }
   if (n >= 60) {
-    const rf = 0.04 / 252;                       // T-bill approx; footnoted
+    const rf = 0.04 / 252;
     out.sharpe = (mean(ret) - rf) / sd(ret) * Math.sqrt(252);
   }
   return out;
 }
 
-const th = { textAlign: 'right', padding: '8px 10px', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', opacity: 0.5, whiteSpace: 'nowrap' };
-const td = { textAlign: 'right', padding: '9px 10px', fontSize: 13.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
-
-/* Plain-English explanations for every term on the page. These feed BOTH the
-   hover tooltips and the always-visible column legend — nothing is gated
-   behind a hover (Joe 2026-08-17: no unexplained jargon on this page). */
-const TIPS = {
-  rank: 'Position in the strategy’s ranking at the last monthly scoring. 1 = highest-scoring name in the book.',
-  weight: 'This position’s share of the whole portfolio today. Every name targets 2.5% — one fortieth.',
-  value: 'What the position is worth at the latest closing mark.',
-  cost: 'Average price actually paid at the broker, from the official fill records.',
-  last: 'Latest closing price from the broker’s end-of-day snapshot.',
-  pnl: 'Profit or loss since purchase — dollars, and percent of what was paid.',
-  trend1y: 'How much the stock rose over the past 12 months, skipping the most recent month (the standard momentum measure — recent-month moves tend to reverse). The strategy buys established winners.',
-  profitability: 'Gross profit divided by total assets, from the company’s latest SEC filing — how much profit the business earns on everything it owns. Above ~0.35 is strong; 1.0+ is exceptional.',
-  buybacks: 'How much the share count shrank over the past year. Positive = the company bought back its own stock (good for holders); negative = it issued more shares and diluted them.',
-  insider: 'Score for recent open-market stock purchases by the company’s own executives and board members — weighted by how large the buy was relative to shares they already owned, because a doubled stake is conviction and a 2% top-up is noise. A dot means no qualifying buying.',
-  sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good. The single most-used performance measure.',
-  sortino: 'Like the Sharpe ratio, but only counts DOWNSIDE swings as risk — upside volatility isn’t penalized.',
-  vol: 'How much returns swing, annualized. The S&P 500 runs ~15–16% in a normal year.',
-  maxdd: 'The worst peak-to-trough decline — the most an investor who bought the top would have been down.',
-  beta: 'How much the book moves when the market moves. 1.0 = moves with the market; 0.5 = half as much.',
-  te: 'How differently the book behaves from the S&P 500, annualized. Higher = more independent of the index.',
-  ir: 'Excess return over the S&P 500 per unit of that difference — the benchmark-relative version of Sharpe.',
-  ddpeak: 'How far the account sits below its own all-time high right now. 0% = at the high.',
-  medvol: 'The middle holding’s price volatility at selection — how jumpy the typical stock in this book is. The strategy caps this at 70% per name.',
-  worst: 'The single worst calendar year in the period.',
-};
-
-/* Holdings column set — order is draggable, every column sorts. */
-const HCOLS = [
-  { key: 'rank', label: '#', tip: TIPS.rank, align: 'left' },
-  { key: 'company', label: 'Company', tip: null, align: 'left' },
-  { key: 'weight', label: 'Weight', tip: TIPS.weight },
-  { key: 'value', label: 'Value', tip: TIPS.value },
-  { key: 'cost', label: 'Avg cost', tip: TIPS.cost },
-  { key: 'last', label: 'Last', tip: TIPS.last },
-  { key: 'pnl', label: 'P&L', tip: TIPS.pnl },
-  { key: 'trend1y', label: '1-yr trend', tip: TIPS.trend1y },
-  { key: 'profitability', label: 'Profitability', tip: TIPS.profitability },
-  { key: 'buybacks', label: 'Buybacks', tip: TIPS.buybacks },
-  { key: 'insider', label: 'Insider buying', tip: TIPS.insider },
-];
+const th = { textAlign: 'right', padding: '9px 10px', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' };
+const td = { textAlign: 'right', padding: '10px 10px', fontSize: 13.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
 
 /* ══════════════════════════════════════════════════════════════════════ */
 export default function PaperPortfolioPage({ onOpenTicker }) {
@@ -350,35 +339,44 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [nav, setNav] = useState(null);
   const [err, setErr] = useState(null);
   const [sortKey, setSortKey] = useState('rank');
-  const [sortDir, setSortDir] = useState(1);          // 1 asc · -1 desc
+  const [sortDir, setSortDir] = useState(1);
   const [colOrder, setColOrder] = useState(HCOLS.map((c) => c.key));
+  const [query, setQuery] = useState('');
+  const [btRange, setBtRange] = useState('All');
 
-  useEffect(() => {
-    let dead = false;
-    (async () => {
-      try {
-        const { data: latest, error: e1 } = await supabase
-          .from('qt_target_book').select('rebalance_date')
-          .order('rebalance_date', { ascending: false }).limit(1);
-        if (e1) throw e1;
-        const rd = latest?.[0]?.rebalance_date;
-        const [bk, od, nv] = await Promise.all([
-          rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
-          rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price')
-            .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
-          supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions').order('d'),
-        ]);
-        if (bk.error) throw bk.error;
-        if (dead) return;
-        setBook(bk.data || []);
-        const om = {};
-        (od.data || []).forEach((o) => { om[o.symbol] = o; });
-        setOrders(om);
-        setNav(nv.data || []);
-      } catch (ex) { if (!dead) setErr(String(ex?.message || ex)); }
-    })();
-    return () => { dead = true; };
+  const load = useCallback(async () => {
+    try {
+      const { data: latest, error: e1 } = await supabase
+        .from('qt_target_book').select('rebalance_date')
+        .order('rebalance_date', { ascending: false }).limit(1);
+      if (e1) throw e1;
+      const rd = latest?.[0]?.rebalance_date;
+      const [bk, od, nv] = await Promise.all([
+        rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
+        rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
+          .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
+        supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at').order('d'),
+      ]);
+      if (bk.error) throw bk.error;
+      setBook(bk.data || []);
+      // Several order rows can exist per symbol (an expired opening order plus
+      // the day order that actually filled) — a FILLED row always wins.
+      const om = {};
+      (od.data || []).forEach((o) => {
+        if (!om[o.symbol] || (o.status === 'filled' && om[o.symbol].status !== 'filled')) om[o.symbol] = o;
+      });
+      setOrders(om);
+      setNav(nv.data || []);
+      setErr(null);
+    } catch (ex) { setErr((prev) => prev ?? String(ex?.message || ex)); }
   }, []);
+
+  // Live polling: refetch every 60s, keeping the previous frame while loading.
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   const latestNav = nav && nav.length ? nav[nav.length - 1] : null;
   const ls = useMemo(() => liveStats(nav), [nav]);
@@ -391,13 +389,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const longMv = latestNav ? Number(latestNav.long_mv) : 0;
   const invested = equity > 0 ? longMv / equity : 0;
   const rebalDate = book && book.length ? book[0].rebalance_date : null;
+  const markedAt = latestNav?.created_at ? `marked ${fmtTimeET(latestNav.created_at)}` : null;
 
   const weights = (latestNav?.positions || [])
-    .map((p) => ({ s: p.symbol, w: Number(p.mv) / equity }))
-    .sort((a, b) => b.w - a.w);
+    .map((p) => ({ s: p.symbol, w: Number(p.mv) / equity })).sort((a, b) => b.w - a.w);
   const top5 = weights.slice(0, 5).reduce((s, x) => s + x.w, 0);
   const largest = weights[0] || null;
-
   const medVol = useMemo(() => {
     const vs = (book || []).map((r) => Number(r.vol)).filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
     return vs.length ? vs[Math.floor(vs.length / 2)] : null;
@@ -406,33 +403,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const filled = Object.values(orders).filter((o) => o.status === 'filled').length;
   const working = Object.values(orders).filter((o) => !['filled', 'canceled', 'rejected', 'expired'].includes(o.status)).length;
 
-  const sortedBook = useMemo(() => {
-    if (!book) return [];
-    const val = (r) => {
-      const m = marks[r.symbol]; const o = orders[r.symbol];
-      switch (sortKey) {
-        case 'rank': return Number(r.rank);
-        case 'company': return r.symbol;
-        case 'weight': return m ? Number(m.mv) / equity : 0.025;
-        case 'value': return m ? Number(m.mv) : Number(r.target_dollars);
-        case 'cost': return o?.status === 'filled' ? Number(o.filled_avg_price) : -Infinity;
-        case 'last': return m ? Number(m.price) : -Infinity;
-        case 'pnl': return m ? Number(m.upl) : -Infinity;
-        case 'trend1y': return Number(r.mom12 ?? -Infinity);
-        case 'profitability': return Number(r.gp_a ?? -Infinity);
-        case 'buybacks': return Number(r.iss ?? -Infinity);
-        case 'insider': return Number(r.insider ?? 0);
-        default: return Number(r.rank);
-      }
-    };
-    return [...book].sort((a, b) => {
-      const va = val(a), vb = val(b);
-      const c = typeof va === 'string' ? va.localeCompare(vb) : (va === vb ? 0 : va < vb ? -1 : 1);
-      return c * sortDir;
-    });
-  }, [book, marks, orders, equity, sortKey, sortDir]);
+  const movers = useMemo(() => {
+    const ps = (latestNav?.positions || [])
+      .map((p) => ({ s: p.symbol, pct: Number(p.uplpc), upl: Number(p.upl) }))
+      .filter((p) => Number.isFinite(p.pct))
+      .sort((a, b) => b.pct - a.pct);
+    return ps.length >= 6 ? { best: ps.slice(0, 3), worst: ps.slice(-3).reverse() } : null;
+  }, [latestNav]);
 
-  // Live curve, indexed to 100 at inception, only when there are ≥2 closes.
   const liveCurve = useMemo(() => {
     if (!nav || nav.length < 2) return null;
     const base = Number(nav[0].equity);
@@ -443,190 +421,325 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     };
   }, [nav]);
 
+  const btSlice = useMemo(() => {
+    const yrs = { '1Y': 12, '3Y': 36, '5Y': 60 }[btRange];
+    if (!yrs) return BT;
+    const k = Math.max(BT.dates.length - yrs, 0);
+    const rebase = (arr) => { const b = arr[k]; return arr.slice(k).map((v) => (v / b) * 1_000_000); };
+    return { dates: BT.dates.slice(k), strategy: rebase(BT.strategy), spx: rebase(BT.spx) };
+  }, [btRange]);
+
+  const sortedBook = useMemo(() => {
+    if (!book) return [];
+    const q = query.trim().toUpperCase();
+    let rows = q ? book.filter((r) => r.symbol.toUpperCase().includes(q) || String(r.company || '').toUpperCase().includes(q)) : book;
+    const val = (r) => {
+      const m = marks[r.symbol]; const o = orders[r.symbol];
+      switch (sortKey) {
+        case 'rank': return Number(r.rank);
+        case 'company': return r.symbol;
+        case 'weight': return m ? Number(m.mv) / equity : 0.025;
+        case 'value': return m ? Number(m.mv) : Number(r.target_dollars);
+        case 'cost': return m?.avg_entry ? Number(m.avg_entry) : (o?.status === 'filled' ? Number(o.filled_avg_price) : -Infinity);
+        case 'last': return m ? Number(m.price) : -Infinity;
+        case 'pnl': return m ? Number(m.upl) : -Infinity;
+        case 'trend1y': return Number(r.mom12 ?? -Infinity);
+        case 'profitability': return Number(r.gp_a ?? -Infinity);
+        case 'buybacks': return Number(r.iss ?? -Infinity);
+        case 'insider': return Number(r.insider ?? 0);
+        default: return Number(r.rank);
+      }
+    };
+    return [...rows].sort((a, b) => {
+      const va = val(a), vb = val(b);
+      const c = typeof va === 'string' ? va.localeCompare(vb) : (va === vb ? 0 : va < vb ? -1 : 1);
+      return c * sortDir;
+    });
+  }, [book, marks, orders, equity, sortKey, sortDir, query]);
+
   const needs = (have, want) => `needs ${Math.max(want - have, 0)} more trading days`;
-  const grid = (min, gap = 20) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap });
+  const grid = (min, gap = 14) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap });
+
+  const fillCell = (r) => {
+    const o = orders[r.symbol]; const m = marks[r.symbol];
+    const px = m?.avg_entry ? Number(m.avg_entry) : (o?.status === 'filled' ? Number(o.filled_avg_price) : null);
+    if (px) return <span style={{ color: INK }}>{fmtUsd(px, 2)}</span>;
+    if (o && !['filled', 'expired'].includes(o.status)) {
+      return <span style={{ color: WARN, fontSize: 12 }}>◷ {o.status.replace(/_/g, ' ')}</span>;
+    }
+    return <span style={{ color: INK3 }}>—</span>;
+  };
 
   return (
     <div className="cream-page paper-qt">
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '58px 24px 120px' }}>
+      <style>{CSS}</style>
+      <div className="qtt" style={{
+        maxWidth: 1180, margin: '26px auto 80px', padding: '26px 26px 30px',
+        background: PANEL, borderRadius: 18, color: INK,
+        boxShadow: '0 18px 60px rgba(0,0,0,0.35)',
+        fontFamily: 'inherit',
+      }}>
 
-        {/* ── header ──────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
+        {/* ── terminal header ─────────────────────────────────────────── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div>
-            <Label>Paper Portfolio · live since Aug 17, 2026</Label>
-            <h1 style={{ fontSize: 'clamp(30px, 4vw, 40px)', lineHeight: 1.1, fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span className="qtt-live" style={{ width: 8, height: 8, borderRadius: 99, background: GOOD, display: 'inline-block' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: INK2 }}>
+                Live paper book · updates every 60s{markedAt ? ` · ${markedAt}` : ''}
+              </span>
+            </div>
+            <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 34px)', lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: INK }}>
               Quality Trend
             </h1>
           </div>
-          <div style={{ fontSize: 12.5, opacity: 0.6, textAlign: 'right' }}>
-            40 US companies · equal weight · monthly rebalance · no leverage<br />
-            <Link to="/methodology#portfolio" style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>full methodology</Link>
-            {' '}· paper money, not investment advice
+          <div style={{ textAlign: 'right', fontSize: 12, color: INK2, lineHeight: 1.7 }}>
+            <span style={{ background: CARD2, border: `1px solid ${EDGE}`, borderRadius: 8, padding: '4px 10px', fontSize: 11.5 }}>
+              ALPACA PAPER · $1M INCEPTION AUG 17 2026
+            </span>
+            <br />
+            40 US companies · equal weight · monthly rebalance · no leverage ·{' '}
+            <Link to="/methodology#portfolio" style={{ color: '#e8b44c', textDecoration: 'underline', textUnderlineOffset: 3 }}>methodology</Link>
+            <br />
+            <span style={{ color: INK3 }}>Paper money — not investment advice.</span>
           </div>
         </div>
 
-        {/* ── 1 · command band ────────────────────────────────────────── */}
-        <div style={{ ...grid(170, 24), borderTop: BORDER, borderBottom: BORDER, padding: '22px 0', margin: '18px 0 26px' }}>
-          <Stat big label="Portfolio value" value={fmtUsd(equity)}
-            sub={latestNav ? `close of ${fmtDate(latestNav.d)}` : 'opening equity'} />
-          <Stat big label="Day P&L" value={ls?.day != null ? fmtSignedUsd(ls.day) : '—'}
-            sub={ls?.dayPct != null ? fmtPct(ls.dayPct, 2) : 'first close lands tonight'} color={pnlColor(ls?.day)} />
-          <Stat big label="Since inception" value={ls ? fmtPct(ls.since, 2) : '—'}
-            sub={ls?.spxSince != null ? `S&P 500 ${fmtPct(ls.spxSince, 2)} · spread ${fmtPct(ls.since - ls.spxSince, 2)}` : 'vs $1,000,000 start'}
-            color={pnlColor(ls?.since)} />
-          <Stat big label="Exposure" value={latestNav ? fmtPctPlain(invested, 1) : '—'}
-            sub={latestNav ? `cash ${fmtUsd(cash)}` : working > 0 ? `${working} orders queued for the open` : 'cash $1,000,000'} />
-          <Stat big label="Positions" value={latestNav ? latestNav.n_positions : (book ? book.length : '—')}
-            sub={working > 0 ? `${filled} filled · ${working} working` : '$25,000 target each'} />
+        {/* ── KPI tiles ───────────────────────────────────────────────── */}
+        <div style={{ ...grid(185), marginBottom: 14 }}>
+          <Tile edge={GOLD}>
+            <TileLabel>Portfolio value</TileLabel>
+            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtUsd(equity)}</div>
+            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>{markedAt || 'opening equity'}</div>
+          </Tile>
+          <Tile edge={ls?.day == null ? EDGE : ls.day >= 0 ? GOOD : BAD}
+            style={ls?.day != null ? { background: ls.day >= 0 ? 'rgba(12,163,12,0.07)' : 'rgba(208,59,59,0.07)' } : undefined}>
+            <TileLabel>{nav && nav.length >= 2 ? 'Day P&L' : 'P&L since open'}</TileLabel>
+            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: upDown(ls?.day) }}>
+              {ls ? fmtSignedUsd(ls.day) : '—'}
+            </div>
+            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>{ls ? fmtPct(ls.dayPct, 2) : 'first mark lands after fills sync'}</div>
+          </Tile>
+          <Tile edge={ls?.since == null ? EDGE : ls.since >= 0 ? GOOD : BAD}>
+            <TileLabel>Since inception</TileLabel>
+            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: upDown(ls?.since) }}>
+              {ls ? fmtPct(ls.since, 2) : '—'}
+            </div>
+            <div style={{ fontSize: 12, color: INK3, marginTop: 4 }}>
+              {ls?.spxSince != null ? <>S&P {fmtPct(ls.spxSince, 2)} · spread <span style={{ color: upDown(ls.since - ls.spxSince) }}>{fmtPct(ls.since - ls.spxSince, 2)}</span></> : 'vs $1,000,000 start'}
+            </div>
+          </Tile>
+          <Tile edge={BLUE}>
+            <TileLabel>Invested</TileLabel>
+            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{latestNav ? fmtPctPlain(invested, 1) : '—'}</div>
+            <Meter frac={invested} color={BLUE} />
+            <div style={{ fontSize: 12, color: INK3, marginTop: 6 }}>cash {fmtUsd(cash)}</div>
+          </Tile>
+          <Tile edge={working > 0 ? WARN : filled > 0 ? GOOD : EDGE}>
+            <TileLabel>Positions</TileLabel>
+            <div style={{ fontSize: 27, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+              {latestNav ? latestNav.n_positions : (book ? book.length : '—')}
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4 }}>
+              {working > 0
+                ? <span style={{ color: WARN }}>◷ {working} working · {filled} filled</span>
+                : filled > 0
+                  ? <span style={{ color: GOODBR }}>✓ all fills confirmed</span>
+                  : <span style={{ color: INK3 }}>$25,000 target each</span>}
+            </div>
+          </Tile>
         </div>
 
-        {/* ── 2+3 · performance + risk ────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(240px, 1fr)', gap: 20, marginBottom: 20 }}>
-          <Panel title="Performance — live" right={ls ? `${ls.n + 1} closes · marked at each session close` : 'no closes yet'}>
+        {/* ── movers strip ────────────────────────────────────────────── */}
+        {movers && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: INK3, marginRight: 2 }}>
+              {nav && nav.length >= 2 ? 'Today' : 'Since entry'}
+            </span>
+            {[...movers.best, ...movers.worst].map((p) => (
+              <button key={p.s} type="button" onClick={() => onOpenTicker && onOpenTicker(p.s)}
+                className="qtt-tile"
+                style={{
+                  background: p.pct >= 0 ? 'rgba(12,163,12,0.10)' : 'rgba(208,59,59,0.10)',
+                  border: `1px solid ${p.pct >= 0 ? 'rgba(12,163,12,0.35)' : 'rgba(208,59,59,0.35)'}`,
+                  borderRadius: 9, padding: '6px 12px', cursor: 'pointer', color: INK, font: 'inherit',
+                  display: 'flex', gap: 8, alignItems: 'baseline',
+                }}>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{p.s}</span>
+                <span style={{ fontSize: 12.5, fontVariantNumeric: 'tabular-nums', color: upDown(p.pct) }}>{fmtPct(p.pct, 1)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── performance + risk ──────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 14, marginBottom: 14 }}>
+          <Card title="Performance — live" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
                 <LineChart
                   series={[
-                    { name: 'Quality Trend', color: ACCENT, values: liveCurve.strategy },
-                    ...(liveCurve.spx ? [{ name: 'S&P 500', color: MUTED, values: liveCurve.spx, width: 1.8, opacity: 0.85 }] : []),
+                    { name: 'Quality Trend', color: GOLD, values: liveCurve.strategy },
+                    ...(liveCurve.spx ? [{ name: 'S&P 500', color: BLUE, values: liveCurve.spx, width: 1.8, opacity: 0.9 }] : []),
                   ]}
                   dates={nav.map((r) => r.d)}
                   yFmt={(v) => v.toFixed(1)}
                 />
-                <Legend items={[['Quality Trend (indexed to 100)', ACCENT], ['S&P 500', MUTED]]} />
+                <ChartLegend items={[['Quality Trend (indexed to 100)', GOLD], ['S&P 500', BLUE]]} />
               </>
             ) : (
-              <div style={{ padding: '26px 4px', fontSize: 14, lineHeight: 1.65, opacity: 0.65 }}>
-                The live curve draws itself from daily closing marks and begins once two closes are on
-                the book — the first lands tonight after 4 PM ET. Until then the backtest reference
-                below is the only performance record, and it is labeled as exactly that.
+              <div style={{ padding: '22px 4px', fontSize: 13.5, lineHeight: 1.65, color: INK2 }}>
+                The live line starts drawing at the second daily mark — tomorrow. Today&rsquo;s book,
+                fills and P&amp;L are already live below; the backtest reference chart carries the
+                long history until the real one exists.
               </div>
             )}
-            <div style={{ ...grid(120, 16), borderTop: HAIRLINE, paddingTop: 16, marginTop: 16 }}>
-              <Stat label={<Term tip={TIPS.vol} labelOpacity={0.5}>Volatility</Term>} value={ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}
-                sub={ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized, daily closes'} />
-              <Stat label={<Term tip={TIPS.sharpe} labelOpacity={0.5}>Sharpe</Term>} value={ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}
-                sub={ls?.sharpe == null ? needs(ls?.n ?? 0, 60) : 'vs ~4% cash'} />
-              <Stat label={<Term tip={TIPS.beta} labelOpacity={0.5}>Beta vs S&P</Term>} value={ls?.beta != null ? ls.beta.toFixed(2) : '—'}
-                sub={ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily closes'} />
-              <Stat label={<Term tip={TIPS.te} labelOpacity={0.5}>Tracking error</Term>} value={ls?.te != null ? fmtPctPlain(ls.te) : '—'}
-                sub={ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'} />
-              <Stat label={<Term tip={TIPS.maxdd} labelOpacity={0.5}>Max drawdown</Term>} value={ls ? fmtPctPlain(ls.maxdd) : '—'}
-                sub="live, close-to-close" color={ls && ls.maxdd < -0.005 ? DOWN : undefined} />
+            <div style={{ ...grid(118, 14), borderTop: `1px solid ${HAIR}`, paddingTop: 14, marginTop: 14 }}>
+              {[
+                [<Term key="v" tip={TIPS.vol} labelOpacity={0.8}>Volatility</Term>, ls?.vol != null ? fmtPctPlain(ls.vol) : '—', ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized'],
+                [<Term key="s" tip={TIPS.sharpe} labelOpacity={0.8}>Sharpe</Term>, ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—', ls?.sharpe == null ? needs(ls?.n ?? 0, 60) : 'vs ~4% cash'],
+                [<Term key="b" tip={TIPS.beta} labelOpacity={0.8}>Beta vs S&P</Term>, ls?.beta != null ? ls.beta.toFixed(2) : '—', ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily marks'],
+                [<Term key="t" tip={TIPS.te} labelOpacity={0.8}>Tracking error</Term>, ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'],
+                [<Term key="d" tip={TIPS.maxdd} labelOpacity={0.8}>Max drawdown</Term>, ls ? fmtPctPlain(ls.maxdd) : '—', 'live, mark-to-mark'],
+              ].map(([label, value, sub], i) => (
+                <div key={i}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.11em', textTransform: 'uppercase', color: INK3, marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                  <div style={{ fontSize: 11.5, color: INK3, marginTop: 2 }}>{sub}</div>
+                </div>
+              ))}
             </div>
-          </Panel>
+          </Card>
 
-          <Panel title="Risk" right={latestNav ? `as of ${fmtDate(latestNav.d)}` : 'pre-first-close'}>
+          <Card title="Risk" right={markedAt || 'pre-first-mark'}>
             {[
-              ['inv', 'Invested', null, latestNav ? fmtPctPlain(invested, 1) : '—', 'target 100%, no leverage'],
-              ['cash', 'Cash', null, fmtUsd(cash), latestNav ? fmtPctPlain(cash / equity, 1) + ' of equity' : 'pre-open'],
-              ['dd', 'Drawdown from peak', TIPS.ddpeak, ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'live equity vs its high'],
-              ['big', 'Largest position', null, largest ? `${largest.s} · ${fmtPctPlain(largest.w, 2)}` : book?.length ? '2.50% target' : '—', 'equal-weight book'],
-              ['top5', 'Top 5 concentration', null, weights.length ? fmtPctPlain(top5, 1) : book?.length ? '12.5% target' : '—', 'sum of largest five'],
-              ['mvol', 'Typical holding volatility', TIPS.medvol, medVol != null ? fmtPctPlain(medVol, 0) : '—', 'median, at selection'],
-            ].map(([id, k, tip, v, sub]) => (
-              <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0', borderBottom: HAIRLINE, gap: 10 }}>
-                <div style={{ fontSize: 13 }}>{tip ? <Term tip={tip} labelOpacity={0.65}>{k}</Term> : <span style={{ opacity: 0.65 }}>{k}</span>}<div style={{ fontSize: 11, opacity: 0.45 }}>{sub}</div></div>
-                <div style={{ fontSize: 15.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
+              ['Invested', null, latestNav ? fmtPctPlain(invested, 1) : '—', 'target 100%, no leverage', invested, BLUE],
+              ['Cash', null, fmtUsd(cash), latestNav ? fmtPctPlain(cash / equity, 1) + ' of equity' : 'pre-open', null, null],
+              ['Drawdown from peak', TIPS.ddpeak, ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'equity vs its own high', null, null],
+              ['Largest position', null, largest ? `${largest.s} · ${fmtPctPlain(largest.w, 2)}` : '2.50% target', 'equal-weight book', largest ? largest.w / 0.05 : null, GOLD],
+              ['Top 5 concentration', null, weights.length ? fmtPctPlain(top5, 1) : '12.5% target', 'sum of largest five', weights.length ? top5 / 0.25 : null, GOLD],
+              ['Typical holding volatility', TIPS.medvol, medVol != null ? fmtPctPlain(medVol, 0) : '—', 'median, capped at 70%', medVol != null ? medVol / 0.7 : null, BLUE],
+            ].map(([k, tip, v, sub, frac, mcolor]) => (
+              <div key={k} style={{ padding: '9px 0', borderBottom: `1px solid ${HAIR}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                  <div style={{ fontSize: 13, color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{k}</Term> : k}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
+                </div>
+                <div style={{ fontSize: 11, color: INK3, marginTop: 1 }}>{sub}</div>
+                {frac != null && <Meter frac={frac} color={mcolor} />}
               </div>
             ))}
-            <div style={{ fontSize: 11.5, opacity: 0.5, paddingTop: 10, lineHeight: 1.55 }}>
-              Risk in this book is structural — diversification, the volatility gate at selection, and
-              the monthly exit band. No stops, no book-level alarm, by design.
+            <div style={{ fontSize: 11.5, color: INK3, paddingTop: 10, lineHeight: 1.55 }}>
+              Risk is structural — diversification, the volatility gate at selection, the monthly
+              exit band. No stops, no book-level alarm, by design.
             </div>
-          </Panel>
+          </Card>
         </div>
 
-        {/* ── 4 · benchmark comp ──────────────────────────────────────── */}
-        <Panel title="Versus benchmark" right="live and backtest are separate records — never blended" style={{ marginBottom: 20 }}>
+        {/* ── benchmark comp ──────────────────────────────────────────── */}
+        <Card title="Versus benchmark" right="live and backtest are separate records — never blended" style={{ marginBottom: 14 }}>
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
-                <tr style={{ borderBottom: BORDER }}>
+                <tr style={{ borderBottom: `1px solid ${EDGE}` }}>
                   <th style={{ ...th, textAlign: 'left' }}></th>
-                  <th style={th}>Return</th>
-                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.vol} placement="bottom" alignRight labelOpacity={0.5}>Volatility</Term></th>
-                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.sharpe} placement="bottom" alignRight labelOpacity={0.5}>Sharpe</Term></th>
-                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.sortino} placement="bottom" alignRight labelOpacity={0.5}>Sortino</Term></th>
-                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.maxdd} placement="bottom" alignRight labelOpacity={0.5}>Max drawdown</Term></th>
-                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.worst} placement="bottom" alignRight labelOpacity={0.5}>Worst year</Term></th>
+                  <th style={{ ...th, color: INK3 }}>Return</th>
+                  <th style={th}><Term tip={TIPS.vol} placement="bottom" alignRight labelOpacity={0.7}>Volatility</Term></th>
+                  <th style={th}><Term tip={TIPS.sharpe} placement="bottom" alignRight labelOpacity={0.7}>Sharpe</Term></th>
+                  <th style={th}><Term tip={TIPS.sortino} placement="bottom" alignRight labelOpacity={0.7}>Sortino</Term></th>
+                  <th style={th}><Term tip={TIPS.maxdd} placement="bottom" alignRight labelOpacity={0.7}>Max drawdown</Term></th>
+                  <th style={th}><Term tip={TIPS.worst} placement="bottom" alignRight labelOpacity={0.7}>Worst year</Term></th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: HAIRLINE }}>
-                  <td style={{ ...td, textAlign: 'left', fontWeight: 600 }}>Quality Trend — live <span style={{ opacity: 0.5, fontWeight: 400 }}>since Aug 17, 2026</span></td>
-                  <td style={{ ...td, color: pnlColor(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
+                <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
+                  <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
+                    <span style={{ width: 10, height: 3, background: GOLD, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
+                    Quality Trend — live <span style={{ color: INK3, fontWeight: 400 }}>since Aug 17, 2026</span>
+                  </td>
+                  <td style={{ ...td, color: upDown(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
                   <td style={td}>{ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}</td>
                   <td style={td}>{ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}</td>
                   <td style={td}>—</td>
                   <td style={td}>{ls ? fmtPctPlain(ls.maxdd) : '—'}</td>
                   <td style={td}>—</td>
                 </tr>
-                <tr style={{ borderBottom: HAIRLINE, opacity: 0.75 }}>
-                  <td style={{ ...td, textAlign: 'left' }}>S&P 500 — live <span style={{ opacity: 0.6 }}>same window</span></td>
+                <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}`, color: INK2 }}>
+                  <td style={{ ...td, textAlign: 'left' }}>
+                    <span style={{ width: 10, height: 3, background: BLUE, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
+                    S&P 500 — live <span style={{ color: INK3 }}>same window</span>
+                  </td>
                   <td style={td}>{ls?.spxSince != null ? fmtPct(ls.spxSince, 2) : '—'}</td>
                   <td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td>
                 </tr>
-                <tr style={{ borderBottom: HAIRLINE }}>
-                  <td style={{ ...td, textAlign: 'left', fontWeight: 600 }}>Quality Trend — backtest <span style={{ opacity: 0.5, fontWeight: 400 }}>Feb 2017 – Aug 2026, ann.</span></td>
-                  <td style={td}>{BT_STATS.cagr}</td>
-                  <td style={td}>{BT_STATS.vol}</td>
-                  <td style={td}>{BT_STATS.sharpe}</td>
-                  <td style={td}>{BT_STATS.sortino}</td>
-                  <td style={td}>{BT_STATS.maxdd}</td>
-                  <td style={td}>{BT_STATS.worst}</td>
+                <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
+                  <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
+                    Quality Trend — backtest <span style={{ color: INK3, fontWeight: 400 }}>Feb 2017 – Aug 2026, ann.</span>
+                  </td>
+                  <td style={td}>{BT_STATS.cagr}</td><td style={td}>{BT_STATS.vol}</td><td style={td}>{BT_STATS.sharpe}</td>
+                  <td style={td}>{BT_STATS.sortino}</td><td style={td}>{BT_STATS.maxdd}</td><td style={td}>{BT_STATS.worst}</td>
                 </tr>
-                <tr style={{ opacity: 0.75 }}>
+                <tr className="qtt-row" style={{ color: INK2 }}>
                   <td style={{ ...td, textAlign: 'left' }}>S&P 500 — same backtest window</td>
-                  <td style={td}>{BT_SPX.cagr}</td>
-                  <td style={td}>{BT_SPX.vol}</td>
-                  <td style={td}>{BT_SPX.sharpe}</td>
-                  <td style={td}>{BT_SPX.sortino}</td>
-                  <td style={td}>{BT_SPX.maxdd}</td>
-                  <td style={td}>{BT_SPX.worst}</td>
+                  <td style={td}>{BT_SPX.cagr}</td><td style={td}>{BT_SPX.vol}</td><td style={td}>{BT_SPX.sharpe}</td>
+                  <td style={td}>{BT_SPX.sortino}</td><td style={td}>{BT_SPX.maxdd}</td><td style={td}>{BT_SPX.worst}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11.5, color: 'rgba(128,128,128,0.95)', marginTop: 10 }}>
-            <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe is shown only after 60 trading days; a
-            ratio annualized from a few days is noise. Backtest figures are the validated run, verbatim.
-            Hover any dotted term on this page for a plain-English definition.
+          <div style={{ fontSize: 11.5, color: INK3, marginTop: 10 }}>
+            <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe appears after
+            60 trading days — a ratio annualized from a few days is noise. Hover any dotted term for a
+            plain-English definition.
           </div>
-        </Panel>
+        </Card>
 
-        {/* ── 5 · backtest reference ──────────────────────────────────── */}
-        <Panel title="Backtest reference — growth of $1,000,000" right="Feb 2017 – Aug 2026 · survivorship-free (2,011 delisted companies) · log scale" style={{ marginBottom: 20 }}>
+        {/* ── backtest reference ──────────────────────────────────────── */}
+        <Card
+          title="Backtest reference — growth of $1,000,000"
+          right={
+            <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ marginRight: 6 }}>survivorship-free · log scale</span>
+              {['1Y', '3Y', '5Y', 'All'].map((r) => (
+                <button key={r} type="button" className={`qtt-pill${btRange === r ? ' on' : ''}`} onClick={() => setBtRange(r)}>{r}</button>
+              ))}
+            </span>
+          }
+          style={{ marginBottom: 14 }}
+        >
           <LineChart
             log
             series={[
-              { name: 'Quality Trend', color: ACCENT, values: BT.strategy },
-              { name: 'S&P 500', color: MUTED, values: BT.spx, width: 1.8, opacity: 0.85 },
+              { name: 'Quality Trend', color: GOLD, values: btSlice.strategy },
+              { name: 'S&P 500', color: BLUE, values: btSlice.spx, width: 1.8, opacity: 0.9 },
             ]}
-            dates={BT.dates}
+            dates={btSlice.dates}
           />
-          <Legend items={[[`Quality Trend → ${fmtUsd(BT.strategy[BT.strategy.length - 1])}`, ACCENT], [`S&P 500 → ${fmtUsd(BT.spx[BT.spx.length - 1])}`, MUTED]]} />
-          <div style={{ overflow: 'auto', marginTop: 18 }}>
+          <ChartLegend items={[
+            [`Quality Trend → ${fmtUsd(btSlice.strategy[btSlice.strategy.length - 1])}`, GOLD],
+            [`S&P 500 → ${fmtUsd(btSlice.spx[btSlice.spx.length - 1])}`, BLUE],
+          ]} />
+          <div style={{ overflow: 'auto', marginTop: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
-                <tr style={{ borderBottom: BORDER }}>
-                  <th style={{ ...th, textAlign: 'left' }}>Year</th>
-                  {Object.keys(BT.years).map((y) => <th key={y} style={th}>{y === '2026' ? '2026*' : y}</th>)}
+                <tr style={{ borderBottom: `1px solid ${EDGE}` }}>
+                  <th style={{ ...th, textAlign: 'left', color: INK3 }}>Year</th>
+                  {Object.keys(BT.years).map((y) => <th key={y} style={{ ...th, color: INK3 }}>{y === '2026' ? '2026*' : y}</th>)}
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: HAIRLINE }}>
-                  <td style={{ ...td, textAlign: 'left', fontWeight: 600 }}>Quality Trend</td>
+                <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
+                  <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>Quality Trend</td>
                   {Object.values(BT.years).map((r, i) => (
-                    <td key={i} style={{ ...td, color: r.strategy >= 0 ? 'inherit' : DOWN, fontWeight: r.strategy >= r.spx ? 600 : 400 }}>
+                    <td key={i} style={{ ...td, color: r.strategy >= 0 ? INK : BADBR, fontWeight: r.strategy >= r.spx ? 700 : 400 }}>
                       {r.strategy > 0 ? '+' : ''}{r.strategy.toFixed(1)}%
                     </td>
                   ))}
                 </tr>
-                <tr>
-                  <td style={{ ...td, textAlign: 'left', opacity: 0.7 }}>S&P 500</td>
+                <tr className="qtt-row">
+                  <td style={{ ...td, textAlign: 'left', color: INK2 }}>S&P 500</td>
                   {Object.values(BT.years).map((r, i) => (
-                    <td key={i} style={{ ...td, opacity: 0.7, color: r.spx >= 0 ? 'inherit' : DOWN }}>
+                    <td key={i} style={{ ...td, color: r.spx >= 0 ? INK2 : BADBR }}>
                       {r.spx > 0 ? '+' : ''}{r.spx.toFixed(1)}%
                     </td>
                   ))}
@@ -634,140 +747,151 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11.5, opacity: 0.5, marginTop: 10, lineHeight: 1.6 }}>
-            *2026 through Aug 11, the backtest's last mark. Bold = beat the index that year (7 of 10). A
-            backtest is not a live record: it includes the companies that died, uses financials only from
-            their SEC filing dates, and survives 40bp costs — and the live book should still be expected
-            to run below it. Three backtest years trailed the index (2019, 2021, 2025); more will come.
+          <div style={{ fontSize: 11.5, color: INK3, marginTop: 10, lineHeight: 1.6 }}>
+            *2026 through Aug 11, the backtest's last mark. Bold = beat the index that year (7 of 10).
+            A backtest is not a live record: it includes 2,011 companies that no longer exist, uses
+            financials only from their SEC filing dates, and survives 40bp costs — and the live book
+            should still be expected to run below it. Three backtest years trailed the index; more will come.
           </div>
-        </Panel>
+        </Card>
 
-        {/* ── 6 · holdings ────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <h2 style={{ fontSize: 21, fontWeight: 600, margin: 0 }}>Holdings</h2>
-          <div style={{ fontSize: 12.5, opacity: 0.55 }}>
-            scored {fmtDate(rebalDate)} · next rebalance: first trading day of the month · sell when a name leaves the top 25% of the ranking
-          </div>
-        </div>
-        {err ? (
-          <div style={{ border: BORDER, borderRadius: 12, padding: 24, fontSize: 14, opacity: 0.7 }}>
-            The book could not be loaded ({err}). Refresh to retry.
-          </div>
-        ) : !book ? (
-          <div style={{ border: BORDER, borderRadius: 12, padding: 24, fontSize: 14, opacity: 0.6 }}>Loading…</div>
-        ) : (
-          <>
-            <div style={{ border: BORDER, borderRadius: 12, overflow: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
-                <thead>
-                  <tr style={{ borderBottom: BORDER }}>
-                    {colOrder.map((key) => {
-                      const c = HCOLS.find((x) => x.key === key);
-                      const active = sortKey === key;
-                      return (
-                        <th
-                          key={key}
-                          draggable
-                          onDragStart={(e) => { e.dataTransfer.setData('text/col', key); e.dataTransfer.effectAllowed = 'move'; }}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const from = e.dataTransfer.getData('text/col');
-                            if (!from || from === key) return;
-                            setColOrder((ord) => {
-                              const next = ord.filter((k) => k !== from);
-                              next.splice(next.indexOf(key), 0, from);
-                              return next;
-                            });
-                          }}
-                          onClick={() => {
-                            if (active) setSortDir((d) => -d);
-                            else { setSortKey(key); setSortDir(key === 'rank' || key === 'company' ? 1 : -1); }
-                          }}
-                          style={{ ...th, textAlign: c.align || 'right', cursor: 'pointer', userSelect: 'none', opacity: 1 }}
-                          title="Click to sort · drag to rearrange"
-                          aria-sort={active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}
-                        >
-                          {c.tip
-                            ? <Term tip={c.tip} placement="bottom" alignRight={!c.align} labelOpacity={active ? 0.85 : 0.5}>{c.label}</Term>
-                            : <span style={{ opacity: active ? 0.85 : 0.5 }}>{c.label}</span>}
-                          <span style={{ marginLeft: 4, fontSize: 9, opacity: active ? 0.85 : 0.5 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedBook.map((r) => {
-                    const o = orders[r.symbol];
-                    const m = marks[r.symbol];
-                    const w = m ? Number(m.mv) / equity : null;
-                    const cells = {
-                      rank: <td key="rank" style={{ ...td, textAlign: 'left', opacity: 0.5 }}>{r.rank}</td>,
-                      company: (
-                        <td key="company" style={{ ...td, textAlign: 'left' }}>
-                          <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
-                            title={`Open ${r.symbol}`}>
-                            <span style={{ fontWeight: 600 }}>{r.symbol}</span>
-                            <span style={{ opacity: 0.55, marginLeft: 8, fontSize: 12.5 }}>
-                              {(r.company || '').replace(/\s*(Common Stock|Ordinary Share|Class A Common Stock).*$/i, '')}
+        {/* ── holdings ────────────────────────────────────────────────── */}
+        <Card
+          title="Holdings"
+          right={
+            <span style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span>scored {fmtDate(rebalDate)} · next rebalance: first trading day</span>
+              <input
+                className="qtt-search" type="search" placeholder="Filter ticker or name…"
+                value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter holdings"
+              />
+            </span>
+          }
+        >
+          {err ? (
+            <div style={{ padding: 20, fontSize: 14, color: INK2 }}>The book could not be loaded ({err}). Refresh to retry.</div>
+          ) : !book ? (
+            <div style={{ padding: 20, fontSize: 14, color: INK3 }}>Loading…</div>
+          ) : (
+            <>
+              <div style={{ overflow: 'auto', margin: '0 -6px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${EDGE}` }}>
+                      {colOrder.map((key) => {
+                        const c = HCOLS.find((x) => x.key === key);
+                        const active = sortKey === key;
+                        return (
+                          <th key={key} draggable
+                            onDragStart={(e) => { e.dataTransfer.setData('text/col', key); e.dataTransfer.effectAllowed = 'move'; }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const from = e.dataTransfer.getData('text/col');
+                              if (!from || from === key) return;
+                              setColOrder((ord) => {
+                                const next = ord.filter((k) => k !== from);
+                                next.splice(next.indexOf(key), 0, from);
+                                return next;
+                              });
+                            }}
+                            onClick={() => {
+                              if (active) setSortDir((d) => -d);
+                              else { setSortKey(key); setSortDir(key === 'rank' || key === 'company' ? 1 : -1); }
+                            }}
+                            style={{ ...th, textAlign: c.align || 'right', cursor: 'pointer', userSelect: 'none' }}
+                            title="Click to sort · drag to rearrange"
+                            aria-sort={active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}>
+                            {c.tip
+                              ? <Term tip={c.tip} placement="bottom" alignRight={!c.align} labelOpacity={active ? 0.95 : 0.6}>{c.label}</Term>
+                              : <span style={{ opacity: active ? 0.95 : 0.6 }}>{c.label}</span>}
+                            <span style={{ marginLeft: 4, fontSize: 9, color: active ? '#e8b44c' : INK3 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedBook.map((r) => {
+                      const m = marks[r.symbol];
+                      const w = m ? Number(m.mv) / equity : null;
+                      const cells = {
+                        rank: <td key="rank" style={{ ...td, textAlign: 'left', color: INK3 }}>{r.rank}</td>,
+                        company: (
+                          <td key="company" style={{ ...td, textAlign: 'left' }}>
+                            <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
+                              title={`Open ${r.symbol}`}>
+                              <span style={{ fontWeight: 700 }}>{r.symbol}</span>
+                              <span style={{ color: INK3, marginLeft: 8, fontSize: 12.5 }}>
+                                {(r.company || '').replace(/\s*(Common Stock|Ordinary Share|Class A Common Stock).*$/i, '')}
+                              </span>
+                            </button>
+                          </td>
+                        ),
+                        weight: (
+                          <td key="weight" style={td}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                              <span style={{ width: 34, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', display: 'inline-block' }}>
+                                <span style={{ display: 'block', width: `${Math.min(((w ?? 0.025) / 0.05) * 100, 100)}%`, height: '100%', background: GOLD }} />
+                              </span>
+                              {w != null ? fmtPctPlain(w, 2) : '2.50%'}
                             </span>
-                          </button>
-                        </td>
-                      ),
-                      weight: <td key="weight" style={td}>{w != null ? fmtPctPlain(w, 2) : '2.50%'}</td>,
-                      value: <td key="value" style={td}>{m ? fmtUsd(m.mv) : fmtUsd(r.target_dollars)}</td>,
-                      cost: (
-                        <td key="cost" style={{ ...td, opacity: o?.status === 'filled' ? 1 : 0.55 }}>
-                          {o?.status === 'filled' ? fmtUsd(o.filled_avg_price, 2) : (o ? o.status.replace(/_/g, ' ') : '—')}
-                        </td>
-                      ),
-                      last: <td key="last" style={td}>{m ? fmtUsd(m.price, 2) : '—'}</td>,
-                      pnl: (
-                        <td key="pnl" style={{ ...td, color: m ? pnlColor(m.upl) : 'inherit', opacity: m ? 1 : 0.45 }}>
-                          {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
-                        </td>
-                      ),
-                      trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
-                      profitability: <td key="profitability" style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>,
-                      buybacks: <td key="buybacks" style={td}>{r.iss == null ? '—' : fmtPct(Number(r.iss), 1)}</td>,
-                      insider: (
-                        <td key="insider" style={{ ...td, opacity: Number(r.insider) > 0 ? 1 : 0.35 }}>
-                          {Number(r.insider) > 0 ? Number(r.insider).toFixed(2) : '·'}
-                        </td>
-                      ),
-                    };
-                    return <tr key={r.symbol} style={{ borderBottom: HAIRLINE }}>{colOrder.map((k) => cells[k])}</tr>;
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <details style={{ marginTop: 10, fontSize: 12.5, opacity: 0.75 }}>
-              <summary style={{ cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.7 }}>
-                What these columns mean
-              </summary>
-              <div style={{ padding: '10px 2px 0', lineHeight: 1.65, maxWidth: 880 }}>
-                {HCOLS.filter((c) => c.tip).map((c) => (
-                  <p key={c.key} style={{ margin: '0 0 7px' }}><b>{c.label}.</b> {c.tip}</p>
-                ))}
-                <p style={{ margin: 0, opacity: 0.8 }}>
-                  Click any column header to sort; click again to flip. Drag a header to rearrange the columns.
-                </p>
+                          </td>
+                        ),
+                        value: <td key="value" style={td}>{m ? fmtUsd(m.mv) : fmtUsd(r.target_dollars)}</td>,
+                        cost: <td key="cost" style={td}>{fillCell(r)}</td>,
+                        last: <td key="last" style={td}>{m ? fmtUsd(m.price, 2) : <span style={{ color: INK3 }}>—</span>}</td>,
+                        pnl: (
+                          <td key="pnl" style={{ ...td, color: m ? upDown(m.upl) : INK3 }}>
+                            {m ? `${fmtSignedUsd(m.upl)} (${fmtPct(m.uplpc, 1)})` : '—'}
+                          </td>
+                        ),
+                        trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
+                        profitability: <td key="profitability" style={td}>{r.gp_a == null ? '—' : Number(r.gp_a).toFixed(2)}</td>,
+                        buybacks: (
+                          <td key="buybacks" style={{ ...td, color: r.iss == null ? INK3 : Number(r.iss) >= 0 ? INK : BADBR }}>
+                            {r.iss == null ? '—' : fmtPct(Number(r.iss), 1)}
+                          </td>
+                        ),
+                        insider: (
+                          <td key="insider" style={{ ...td, color: Number(r.insider) > 0 ? '#e8b44c' : INK3 }}>
+                            {Number(r.insider) > 0 ? Number(r.insider).toFixed(2) : '·'}
+                          </td>
+                        ),
+                      };
+                      return <tr key={r.symbol} className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>{colOrder.map((k) => cells[k])}</tr>;
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </details>
-          </>
-        )}
+              {query && sortedBook.length === 0 && (
+                <div style={{ padding: 16, fontSize: 13, color: INK3 }}>No holdings match “{query}”.</div>
+              )}
+              <details style={{ marginTop: 12, fontSize: 12.5, color: INK2 }}>
+                <summary style={{ cursor: 'pointer', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK3 }}>
+                  What these columns mean
+                </summary>
+                <div style={{ padding: '10px 2px 0', lineHeight: 1.65, maxWidth: 880 }}>
+                  {HCOLS.filter((c) => c.tip).map((c) => (
+                    <p key={c.key} style={{ margin: '0 0 7px' }}><b style={{ color: INK }}>{c.label}.</b> {c.tip}</p>
+                  ))}
+                  <p style={{ margin: 0, color: INK3 }}>
+                    Click any column header to sort; click again to flip. Drag a header to rearrange.
+                    Type in the filter box to find a name. Click a ticker to open its page.
+                  </p>
+                </div>
+              </details>
+            </>
+          )}
+        </Card>
 
-        <div style={{ borderLeft: '2px solid rgba(128,128,128,0.3)', paddingLeft: 22, margin: '40px 0 0', maxWidth: 860 }}>
-          <p style={{ fontSize: 14, lineHeight: 1.7, opacity: 0.7, margin: 0 }}>
-            Every company is scored on 12- and 6-month momentum (skipping the most recent month), trend
-            consistency, drawdown resilience, gross profitability, cash generation and buybacks from
-            point-in-time SEC filings, plus a bonus for <i>meaningful</i> insider buying — officers and
-            directors making open-market purchases large relative to what they already own. Marks and
-            P&amp;L are the paper broker&rsquo;s official records, snapshotted after each close; this
-            page never estimates intraday. Signal columns are as-of the scoring date.
-          </p>
+        <div style={{ fontSize: 12, color: INK3, marginTop: 16, lineHeight: 1.65, maxWidth: 900 }}>
+          Scored on 12- and 6-month momentum (skipping the most recent month), trend consistency,
+          drawdown resilience, gross profitability, cash generation and buybacks from point-in-time
+          SEC filings, plus a bonus for meaningful insider buying. Marks and P&amp;L are the paper
+          broker&rsquo;s official records at the last sync — this page never estimates prices itself.
+          Signal columns are as-of the scoring date.
         </div>
       </div>
     </div>
