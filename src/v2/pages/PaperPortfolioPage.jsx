@@ -71,9 +71,12 @@ const pnlColor = (v) => (v == null ? 'inherit' : v >= 0 ? UP : DOWN);
 
 /* ── tiny stat primitives ─────────────────────────────────────────────── */
 function Label({ children, style }) {
+  // No opacity on the container: an ancestor's opacity multiplies into any
+  // Term tooltip rendered inside. Plain-string labels dim via an inner span;
+  // node children (Terms) dim their own text through labelOpacity.
   return (
-    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', opacity: 0.5, marginBottom: 7, ...style }}>
-      {children}
+    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', marginBottom: 7, ...style }}>
+      {typeof children === 'string' ? <span style={{ opacity: 0.5 }}>{children}</span> : children}
     </div>
   );
 }
@@ -208,22 +211,26 @@ function LineChart({ series, dates, height = 240, log = false, yFmt }) {
    keyboard focus opens a plain-English note. The same text also lives in the
    "what these columns mean" legend under the holdings table, so nothing is
    gated behind a hover. */
-function Term({ children, tip, style, placement = 'top', alignRight = false }) {
+function Term({ children, tip, style, placement = 'top', alignRight = false, labelOpacity = 1 }) {
   // placement 'bottom' is REQUIRED inside any overflow:auto container (the
   // tables): a tooltip opening upward from the header row lands outside the
   // scroll container and gets clipped invisibly. Found by hovering the
   // deployed page, not by reading the code.
+  // labelOpacity dims ONLY the underlined text. CSS opacity on an ancestor
+  // multiplies into every descendant, so a th at opacity .5 renders the
+  // tooltip half-transparent with table rows bleeding through — headers must
+  // keep opacity 1 and dim through this prop instead.
   const [open, setOpen] = useState(false);
   const pos = placement === 'bottom' ? { top: '145%' } : { bottom: '135%' };
   const side = alignRight ? { right: 0 } : { left: 0 };
   return (
     <span
       tabIndex={0}
-      style={{ position: 'relative', borderBottom: '1px dotted rgba(128,128,128,0.7)', cursor: 'help', outline: 'none', ...style }}
+      style={{ position: 'relative', cursor: 'help', outline: 'none', ...style }}
       onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
     >
-      {children}
+      <span style={{ borderBottom: '1px dotted rgba(128,128,128,0.7)', opacity: labelOpacity }}>{children}</span>
       {open && (
         <span style={{
           position: 'absolute', ...pos, ...side, zIndex: 30,
@@ -496,15 +503,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </div>
             )}
             <div style={{ ...grid(120, 16), borderTop: HAIRLINE, paddingTop: 16, marginTop: 16 }}>
-              <Stat label={<Term tip={TIPS.vol}>Volatility</Term>} value={ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}
+              <Stat label={<Term tip={TIPS.vol} labelOpacity={0.5}>Volatility</Term>} value={ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}
                 sub={ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized, daily closes'} />
-              <Stat label={<Term tip={TIPS.sharpe}>Sharpe</Term>} value={ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}
+              <Stat label={<Term tip={TIPS.sharpe} labelOpacity={0.5}>Sharpe</Term>} value={ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}
                 sub={ls?.sharpe == null ? needs(ls?.n ?? 0, 60) : 'vs ~4% cash'} />
-              <Stat label={<Term tip={TIPS.beta}>Beta vs S&P</Term>} value={ls?.beta != null ? ls.beta.toFixed(2) : '—'}
+              <Stat label={<Term tip={TIPS.beta} labelOpacity={0.5}>Beta vs S&P</Term>} value={ls?.beta != null ? ls.beta.toFixed(2) : '—'}
                 sub={ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily closes'} />
-              <Stat label={<Term tip={TIPS.te}>Tracking error</Term>} value={ls?.te != null ? fmtPctPlain(ls.te) : '—'}
+              <Stat label={<Term tip={TIPS.te} labelOpacity={0.5}>Tracking error</Term>} value={ls?.te != null ? fmtPctPlain(ls.te) : '—'}
                 sub={ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'} />
-              <Stat label={<Term tip={TIPS.maxdd}>Max drawdown</Term>} value={ls ? fmtPctPlain(ls.maxdd) : '—'}
+              <Stat label={<Term tip={TIPS.maxdd} labelOpacity={0.5}>Max drawdown</Term>} value={ls ? fmtPctPlain(ls.maxdd) : '—'}
                 sub="live, close-to-close" color={ls && ls.maxdd < -0.005 ? DOWN : undefined} />
             </div>
           </Panel>
@@ -519,7 +526,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               ['mvol', 'Typical holding volatility', TIPS.medvol, medVol != null ? fmtPctPlain(medVol, 0) : '—', 'median, at selection'],
             ].map(([id, k, tip, v, sub]) => (
               <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0', borderBottom: HAIRLINE, gap: 10 }}>
-                <div style={{ fontSize: 13, opacity: 0.65 }}>{tip ? <Term tip={tip}>{k}</Term> : k}<div style={{ fontSize: 11, opacity: 0.65 }}>{sub}</div></div>
+                <div style={{ fontSize: 13 }}>{tip ? <Term tip={tip} labelOpacity={0.65}>{k}</Term> : <span style={{ opacity: 0.65 }}>{k}</span>}<div style={{ fontSize: 11, opacity: 0.45 }}>{sub}</div></div>
                 <div style={{ fontSize: 15.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
               </div>
             ))}
@@ -538,11 +545,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr style={{ borderBottom: BORDER }}>
                   <th style={{ ...th, textAlign: 'left' }}></th>
                   <th style={th}>Return</th>
-                  <th style={th}><Term tip={TIPS.vol} placement="bottom" alignRight>Volatility</Term></th>
-                  <th style={th}><Term tip={TIPS.sharpe} placement="bottom" alignRight>Sharpe</Term></th>
-                  <th style={th}><Term tip={TIPS.sortino} placement="bottom" alignRight>Sortino</Term></th>
-                  <th style={th}><Term tip={TIPS.maxdd} placement="bottom" alignRight>Max drawdown</Term></th>
-                  <th style={th}><Term tip={TIPS.worst} placement="bottom" alignRight>Worst year</Term></th>
+                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.vol} placement="bottom" alignRight labelOpacity={0.5}>Volatility</Term></th>
+                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.sharpe} placement="bottom" alignRight labelOpacity={0.5}>Sharpe</Term></th>
+                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.sortino} placement="bottom" alignRight labelOpacity={0.5}>Sortino</Term></th>
+                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.maxdd} placement="bottom" alignRight labelOpacity={0.5}>Max drawdown</Term></th>
+                  <th style={{ ...th, opacity: 1 }}><Term tip={TIPS.worst} placement="bottom" alignRight labelOpacity={0.5}>Worst year</Term></th>
                 </tr>
               </thead>
               <tbody>
@@ -581,7 +588,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11.5, opacity: 0.5, marginTop: 10 }}>
+          <div style={{ fontSize: 11.5, color: 'rgba(128,128,128,0.95)', marginTop: 10 }}>
             <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe is shown only after 60 trading days; a
             ratio annualized from a few days is noise. Backtest figures are the validated run, verbatim.
             Hover any dotted term on this page for a plain-English definition.
@@ -677,12 +684,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                             if (active) setSortDir((d) => -d);
                             else { setSortKey(key); setSortDir(key === 'rank' || key === 'company' ? 1 : -1); }
                           }}
-                          style={{ ...th, textAlign: c.align || 'right', cursor: 'pointer', userSelect: 'none', opacity: active ? 0.85 : 0.5 }}
+                          style={{ ...th, textAlign: c.align || 'right', cursor: 'pointer', userSelect: 'none', opacity: 1 }}
                           title="Click to sort · drag to rearrange"
                           aria-sort={active ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}
                         >
-                          {c.tip ? <Term tip={c.tip} placement="bottom" alignRight={!c.align}>{c.label}</Term> : c.label}
-                          <span style={{ marginLeft: 4, fontSize: 9 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
+                          {c.tip
+                            ? <Term tip={c.tip} placement="bottom" alignRight={!c.align} labelOpacity={active ? 0.85 : 0.5}>{c.label}</Term>
+                            : <span style={{ opacity: active ? 0.85 : 0.5 }}>{c.label}</span>}
+                          <span style={{ marginLeft: 4, fontSize: 9, opacity: active ? 0.85 : 0.5 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
                         </th>
                       );
                     })}
