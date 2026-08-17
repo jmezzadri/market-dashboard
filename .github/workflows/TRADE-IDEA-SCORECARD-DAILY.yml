@@ -5,13 +5,22 @@ name: TRADE-IDEA-SCORECARD-DAILY
 # trade ideas and how they performed? I'd like to start collecting historical
 # data on our calls."
 #
-# Timing: 23:00 UTC (7pm EDT / 6pm EST), AFTER the 22:00 UTC leg of
+# Timing: twice each trading afternoon, and ALWAYS after a leg of
 # INDICATOR-REFRESH_7AM_WEEKDAYS. That ordering is the whole point — the marker
 # is a pure function of public/indicator_history.json, so running it before the
 # refresh would mark today's calls against yesterday's tape and then commit that
-# as the record. Every session earlier in the day is already captured by the
-# previous run; there is nothing to gain from running more often and a real risk
-# of writing a mark the data does not yet support.
+# as the record.
+#
+#   21:15 UTC (5:15 PM ET) — 30 min after the new 20:45 post-close refresh.
+#                            Marks land the same afternoon.
+#   23:00 UTC (7:00 PM ET) — 1h after the 22:00 refresh, which carries the late
+#                            FRED publishers and the 17:05 ET futures/FX
+#                            settlements. This is the authoritative mark and
+#                            supersedes the afternoon one where a series moved.
+#
+# The second run is not redundant: an FX or futures leg genuinely has no
+# settled close at 5:15 PM, so an afternoon-only schedule would leave those
+# calls a day stale every day.
 #
 # Weekdays only: no closes print at the weekend, so a Saturday run would rewrite
 # the file with an identical mark and a new timestamp, which is churn that makes
@@ -19,6 +28,17 @@ name: TRADE-IDEA-SCORECARD-DAILY
 
 on:
   schedule:
+    # 21:15 UTC = 5:15 PM EDT — 30 minutes after the new post-close leg of
+    # INDICATOR-REFRESH, so a call published today is marked the same
+    # afternoon rather than after dinner. 2026-08-17 (Joe): "It says no close
+    # on or after 8/17... Its 515pm on 8/17...."
+    - cron: '15 21 * * 1-5'
+    # 23:00 UTC = 7:00 PM EDT — the original slot, kept as the authoritative
+    # end-of-day mark. It runs AFTER the 22:00 UTC refresh, which is the one
+    # that carries the late FRED publishers and the 17:05 ET futures/FX
+    # settlements, so the evening mark supersedes the afternoon one on any
+    # series that moved. Cheap to run twice; the file only commits if it
+    # changed.
     - cron: '0 23 * * 1-5'
   workflow_dispatch:
 

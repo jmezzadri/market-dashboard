@@ -173,9 +173,18 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
             # day it shipped. `unscoreable` means something is wrong; this means
             # nothing has happened yet.
             last = hist[key][-1][0] if hist[key] else "never"
+            # Say WHY and WHEN. Joe, at 5:15 PM on the day a note published:
+            # "It says no close on or after 8/17... Its 515pm on 8/17...." The
+            # old wording was true and useless — it read as a bug when the
+            # honest fact is that the session HAS closed and the data pipeline
+            # simply has not pulled it yet. A staleness message that does not
+            # name the schedule makes the reader debug the site.
             return {**base, "status": "pending_entry",
-                    "reason": (f"no close yet on or after {date} for {key!r} (series runs to {last}) — "
-                               "entry is taken at the next close"),
+                    "reason": (f"No entry price yet: {key} is loaded through {last} and this note "
+                               f"published {date}. Market data refreshes at 4:45 PM and 6:00 PM ET on "
+                               "trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so "
+                               "a note published today is first marked the same afternoon. Entry will be "
+                               "taken at the first close on or after the publication date — never earlier."),
                     "waiting_on": {"series": key, "series_last": last, "publish_date": date}}
         legs_out.append({"series": key, "side": side, "measure": measure, "weight": weight,
                          "entry_date": ed, "entry_value": ev,
