@@ -478,11 +478,12 @@ export default function LoginScreen() {
         {/* Kept in step with RequireAuth in OverhaulApp.jsx — this sentence has
             been wrong twice already because the gate moved and the copy did
             not. If you change what is behind sign-in, change this line in the
-            same commit. As of 2026-08-17 (Joe): Bugs and the Trade Idea
-            scorecard, and nothing else. */}
+            same commit. As of 2026-08-17 (Joe): the Bugs board, and nothing
+            else. */}
         <p className="lg-note">
-          Only the Bugs board and the Trade Idea scorecard require sign-in. The morning brief,
-          trade ideas, macro dashboard, paper portfolio, portfolio lab and methodology are public.
+          Only the Bugs board requires sign-in. The morning brief, trade ideas and their
+          scorecard, the macro dashboard, paper portfolio, portfolio lab and methodology
+          are all public.
         </p>
       </div>
     </main>

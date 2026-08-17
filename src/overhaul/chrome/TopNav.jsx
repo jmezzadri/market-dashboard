@@ -16,6 +16,7 @@ const ITEMS = [
   { to: '/portfolio-lab', label: 'Portfolio Lab' },
   { to: '/methodology', label: 'Methodology' },
   { to: '/admin/data', label: 'Data' },
+  { to: '/scorecard', label: 'Scorecard' },
 ];
 
 export default function TopNav() {
@@ -23,13 +24,11 @@ export default function TopNav() {
   const signedIn = !!user;
   const email = user?.email || '';
 
-  // 2026-08-17 (Joe): Paper is public again — it shows for everyone, so no
-  // filter on it. What IS signed-in-only now is Bugs and the Trade Idea
-  // Scorecard; both are appended below only when there is a session, so a
-  // signed-out visitor is never shown a link that will bounce them to a login
-  // card. The routes themselves are wrapped in RequireAuth, so a deep link
-  // still lands on the sign-in screen rather than leaking.
-  const items = signedIn ? [...ITEMS, { to: '/scorecard', label: 'Scorecard' }] : ITEMS;
+  // 2026-08-17 (Joe): Paper and the Trade Idea Scorecard are both public, so
+  // both are in ITEMS unconditionally. Bugs is the only signed-in-only link and
+  // is appended below only when there is a session — a signed-out visitor is
+  // never shown a link that would bounce them to a login card. Its route is
+  // wrapped in RequireAuth, so a deep link still lands on sign-in.
 
   async function handleSignOut() {
     try { await supabase.auth.signOut(); } catch (e) { /* best effort */ }
@@ -43,7 +42,7 @@ export default function TopNav() {
       </NavLink>
 
       <nav className="mt-topnav-links" aria-label="Primary">
-        {items.map((item) => (
+        {ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
