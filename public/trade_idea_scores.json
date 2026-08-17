@@ -1,28 +1,15 @@
 {
-  "generated_at": "2026-08-17T21:22:59Z",
+  "generated_at": "2026-08-17T21:31:08Z",
   "as_of": "2026-08-17",
   "method": "Entry is the first close on or after the note's publication date — never the level quoted in the prose. Every published note is scored, including any that cannot be scored, which are listed with the reason. The invalidation level written in the note is honoured: if it prints, the call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py and nothing here is entered by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
     "published": 3,
-    "open": 0,
-    "pending_entry": 3,
+    "open": 3,
+    "pending_entry": 0,
     "closed": 0,
     "unscoreable": 0,
-    "pending_reasons": [
-      {
-        "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
-        "reason": "No entry price yet: bkx_spx is loaded through 2026-08-14 and this note published 2026-08-17. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
-      },
-      {
-        "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
-        "reason": "No entry price yet: breakeven_10y is loaded through 2026-08-14 and this note published 2026-08-16. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
-      },
-      {
-        "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
-        "reason": "No entry price yet: fx_eur is loaded through 2026-08-13 and this note published 2026-08-14. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier."
-      }
-    ],
+    "pending_reasons": [],
     "unscoreable_reasons": [],
     "min_closed_for_stats": 10,
     "stats_withheld": true,
@@ -36,13 +23,39 @@
       "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
       "instrument": "US bank equities against the S&P 500",
       "position_type": "allocation shift",
-      "status": "pending_entry",
-      "reason": "No entry price yet: bkx_spx is loaded through 2026-08-14 and this note published 2026-08-17. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
-      "waiting_on": {
-        "series": "bkx_spx",
-        "series_last": "2026-08-14",
-        "publish_date": "2026-08-17"
-      }
+      "status": "open",
+      "entry_date": "2026-08-17",
+      "target_date": "2027-02-17",
+      "horizon_months": 6,
+      "unit": "%",
+      "legs": [
+        {
+          "series": "bkx_spx",
+          "side": "long",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-08-17",
+          "entry_value": 0.092,
+          "label": "US banks ÷ S&P 500"
+        }
+      ],
+      "benchmark": null,
+      "mark": 0.0,
+      "mark_date": "2026-08-17",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-08-17"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-08-17"
+      },
+      "invalidation": {
+        "rule": "vix_ts >= 1.0 (close)",
+        "date": null
+      },
+      "result": null
     },
     {
       "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
@@ -51,13 +64,39 @@
       "title": "Two prices for the same insurance, and only one of them is cheap",
       "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
       "position_type": "allocation shift",
-      "status": "pending_entry",
-      "reason": "No entry price yet: breakeven_10y is loaded through 2026-08-14 and this note published 2026-08-16. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
-      "waiting_on": {
-        "series": "breakeven_10y",
-        "series_last": "2026-08-14",
-        "publish_date": "2026-08-16"
-      }
+      "status": "open",
+      "entry_date": "2026-08-17",
+      "target_date": "2027-02-17",
+      "horizon_months": 6,
+      "unit": "pp",
+      "legs": [
+        {
+          "series": "breakeven_10y",
+          "side": "long",
+          "measure": "level_change",
+          "weight": 1.0,
+          "entry_date": "2026-08-17",
+          "entry_value": 2.28,
+          "label": "10y inflation breakeven"
+        }
+      ],
+      "benchmark": null,
+      "mark": 0.0,
+      "mark_date": "2026-08-17",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-08-17"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-08-17"
+      },
+      "invalidation": {
+        "rule": "breakeven_10y <= 2.1 (weekly close)",
+        "date": null
+      },
+      "result": null
     },
     {
       "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
@@ -66,13 +105,39 @@
       "title": "The most one-sided trade in the market is not on any chart",
       "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
       "position_type": "long/short spread",
-      "status": "pending_entry",
-      "reason": "No entry price yet: fx_eur is loaded through 2026-08-13 and this note published 2026-08-14. Market data refreshes at 4:45 PM and 6:00 PM ET on trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so a note published today is first marked the same afternoon. Entry will be taken at the first close on or after the publication date — never earlier.",
-      "waiting_on": {
-        "series": "fx_eur",
-        "series_last": "2026-08-13",
-        "publish_date": "2026-08-14"
-      }
+      "status": "open",
+      "entry_date": "2026-08-16",
+      "target_date": "2026-11-16",
+      "horizon_months": 3,
+      "unit": "%",
+      "legs": [
+        {
+          "series": "fx_eur",
+          "side": "long",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-08-16",
+          "entry_value": 1.1574,
+          "label": "EUR/USD"
+        }
+      ],
+      "benchmark": null,
+      "mark": 0.0,
+      "mark_date": "2026-08-16",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-08-16"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-08-16"
+      },
+      "invalidation": {
+        "rule": "usd >= 103 (weekly close)",
+        "date": null
+      },
+      "result": null
     }
   ]
 }
