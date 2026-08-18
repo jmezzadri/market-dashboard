@@ -14,7 +14,9 @@ on:
       - "public/*.json"
       - "src/App.jsx"
       - "src/pages/**"
-      - ".github/workflows/PR-CONTRACT-CHECK.yml"
+      # 2026-08-18: widened from just this file to all of .github/workflows/**,
+      # so that ADDING a scheduled workflow runs the watchlist guard below.
+      - ".github/workflows/**"
 
 jobs:
   contract-check:
@@ -31,3 +33,13 @@ jobs:
 
       - name: Run contract checker (local mode)
         run: python scripts/check_producer_contracts.py
+
+      # 2026-08-18: WORKFLOW_FAILURE_ALERT matches on a workflow's `name:`, so a
+      # misspelled entry is a silent no-op and an ABSENT one means that
+      # workflow's failures are never even recorded. Four dead entries and 25
+      # unwatched scheduled workflows were live when this guard was written —
+      # none of it visible without looking. Now it is a test.
+      - name: Alert watchlist matches the real workflows
+        run: |
+          python -m pip install --quiet pyyaml
+          python scripts/test_workflow_alert_watchlist.py

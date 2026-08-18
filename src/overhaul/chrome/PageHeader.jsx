@@ -145,7 +145,14 @@ function AllFeedsPill() {
   );
 }
 
-function nyseMarketState(now = new Date()) {
+// Exported 2026-08-18: the homepage footer carried its OWN market clock and the
+// two had drifted. Before 9:30 ET the header read "Market pre-open" while the
+// footer a few screens below read "market closed" — one page, one instant, two
+// answers. Worse, that copy had no holiday table, so on Juneteenth or
+// Thanksgiving it would have read "market open" outright. One clock, one
+// reader: LESSONS 4.28 rule 2, pointed at a market state rather than a
+// freshness deadline.
+export function nyseMarketState(now = new Date()) {
   // NYSE 9:30 ET → 16:00 ET on trading days. Trading day = weekday AND not an
   // NYSE holiday (the same holiday table the freshness clock uses, so a federal
   // holiday like Juneteenth reads "Market closed", not "Market open").

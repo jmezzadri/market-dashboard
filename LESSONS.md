@@ -1281,7 +1281,7 @@ The corrected rule is: entry is the last close that had **settled when the note 
 
 **Applies to:** the scorecard, and every backtest or attribution that has to decide when a position started.
 
-### 4.32 (2026-08-18) — Two brief emails a day for twelve days, and I cleared the duplicate generator on a one-day sample
+### 4.39 (2026-08-18) — Two brief emails a day for twelve days, and I cleared the duplicate generator on a one-day sample
 
 **What happened:** Joe: *"I got two daily brief emails today. Why?"* He had been getting two every weekday since ~2026-08-06. On 8/18 they arrived 09:50:41Z and 10:45:33Z; on 8/17, 09:52:32Z and 10:47:33Z. Identical subject (`Market Brief — YYYY-MM-DD`), different bodies, ~55 minutes apart.
 
@@ -1300,7 +1300,7 @@ Two generators, exactly the thing LESSONS 4.14 forbids:
 
 **Applies to:** Lead Developer — every duplicate-notification investigation, and any claim that a component is inert.
 
-### 4.33 (2026-08-18) — A bare `git push` in a repo that commits hourly is a scheduled failure
+### 4.40 (2026-08-18) — A bare `git push` in a repo that commits hourly is a scheduled failure
 
 **What happened:** `macrotilt-engine-daily` failed 2026-08-17 (run 32063212545) at `Commit snapshot + history if changed`, and emailed Joe. Compute, contract check and history check were all green — the only thing that broke was `git push`, because another workflow landed a commit between our checkout and our push. This repo commits several times an hour from data pipelines, so the race is not an edge case, it is the expected condition.
 
@@ -1309,3 +1309,27 @@ Four workflows still had an unguarded bare `git push`: `macrotilt-engine-daily`,
 **Rule:** every workflow that pushes retries: rebase onto whatever landed, push, and repeat up to 5 times before calling it a real failure. `pull --rebase` alone is better than nothing but still races between the rebase and the push — the loop is the fix. When a defensive pattern already exists in the repo, applying it to ONE new site is half a fix; grep for every other site in the same change.
 
 **Applies to:** Lead Developer — every workflow step that writes to the repo.
+
+### 4.41 (2026-08-18) — A watchlist matched on names nobody ever checked is a list, not coverage; and a failed step leaves evidence you can read without the log
+
+**What happened:** the weekday sweep opened on MONITOR-RECONCILE red four runs in a row — 8/17 18:26Z, 8/18 00:44Z, 06:28Z, 12:27Z, nineteen hours — with **no `workflow_failure_log` row, no escalation and no email**. Nobody suppressed it. It was never being watched: MONITOR-RECONCILE is not on the `workflow_run` trigger in WORKFLOW_FAILURE_ALERT, and neither were 24 of the other 41 scheduled workflows. That trigger is not just the email path, it is the RECORDING path — a workflow absent from it fails into silence, which is the exact shape of #1077 (the freshness watchdog went down on a Friday night and we found out on Tuesday), still open across more than half the schedule fourteen weeks after the alerter was built to close it.
+
+Worse than absent: four entries on the list named workflows that **do not exist**. `EARNINGS_HISTORY_WEEKLY` was the FILE name; the workflow's `name:` is `EARNINGS-HISTORY-WEEKLY`, and GitHub matches the trigger on `name:`. That entry was added on 2026-04-30 to "close the gap that left these silent on failure" and has matched nothing since the day it was written. `SPY_SECTOR_WEIGHTS_DAILY`, `REFRESH-CONGRESS-ROSTER` and `SCAN_330PM_WEEKDAYS` name nothing at all. A watchlist entry that resolves to no workflow is indistinguishable, on the page, from one that works — it reads as coverage while providing none, and no amount of re-reading the file reveals which is which.
+
+What it was red ABOUT is the second half. On 8/17, PRs #1485/#1486 shipped four new volatility series — `vix3m`, `vix_ts`, `gvz`, `ovx` — with a producer in `fetch_history.py`, entries in `indicatorRegistry.js`, history in `indicator_history.json` and a chart on the published Trade Idea. No `data_manifest.json` entries. LESSONS 4.30 rule 1 already required them on the day the feed ships; the reconciler's orphan check caught the omission within hours and did exactly its job. **The guard worked and its alarm was wired to nothing.**
+
+Two more, found in the same pass:
+
+- **TRADING-OPPS-BACKTEST** has failed every run it ever reached (2026-05-21 x2, 2026-07-01) at "Open a review PR". No logs were available to this session — and none were needed. `refs/heads/quant/trading-opps-recalibration-2026-07-01` is still on the remote at `ec275d2`, which proves the backtest ran, the commit was made and the **push succeeded**; only `gh pr create` failed. That narrows it to one thing: `GH_TOKEN: ${{ github.token }}`, and GITHUB_TOKEN cannot open a PR unless "Allow GitHub Actions to create and approve pull requests" is on, which is off by default. The step now uses `MACROTILT_BOT_PAT` — the credential the checkout in the same job already uses.
+- **The homepage carried two market clocks.** The header renders `nyseMarketState()` (four states, NYSE holiday table); the footer had its own private copy (weekday plus 9:30-16:00, two states, no holidays). Rendered at 09:24 ET the page said "Market pre-open" at the top and "market closed" at the bottom, and on Thanksgiving the footer would have read "market open" outright. Verified by rendering the built site against a frozen clock at five instants, before and after.
+
+**Rule:**
+
+1. **A list of names is not coverage until something resolves the names.** `scripts/test_workflow_alert_watchlist.py` now asserts, in PR-CONTRACT-CHECK, that every watchlist entry resolves to a real workflow `name:` and that every scheduled workflow is either watched or in an explicit `UNWATCHED_BY_DESIGN` set with the reason it is switched off. It fails with 29 findings against the 8/18 state. Any configuration keyed on a string that lives somewhere else — a workflow name, a secret name, a column, a series key — is a silent no-op waiting to happen, and only a test that dereferences the string can tell coverage from theatre.
+2. **On this trigger means RECORDED; VISIBLE means emailed. Never conflate them.** Adding the 24 missing workflows costs Joe nothing in his inbox — the tiering added on 2026-08-14 already routes background jobs to "recorded, escalate only after failures on 2+ separate days". "It would be noisy" is an argument for the right tier, never for no coverage at all.
+3. **A guard is half a guard until its own failure is loud.** Ask of every new watchdog: what watches THIS? MONITOR-RECONCILE is the thing that keeps every freshness chip on the site honest; had it stayed down, the whole site could have gone stale-but-green with the header still reading "All feeds current".
+4. **Before theorising about a failing step, look for what the step left behind.** A pushed branch, a written file, a table row, an uploaded artifact — each is a checkpoint that partitions the step into "before" and "after". Checking `git ls-remote` for the branch converted "the PR step is broken somehow" into "the push worked, `gh pr create` did not" in one command, with no log access at all. Read the artifact first; reach for the log second.
+5. **A dated exemption outlives its date unless something deletes it.** `UNLISTED_UNTIL_UW_LAPSE` promised to empty at the 2026-08-12 Unusual Whales lapse and was still carrying the two dead UW rows six days later. The UW rows are now in `RETIRED_FEEDS` (retire a watcher of a vendor we no longer buy — never "fix" it), and the remainder is renamed `UNREGISTERED_LIVE_FEEDS`, which describes what it holds rather than a promise about when it will be empty.
+6. **One clock, one reader — and that is not only about deadlines.** 4.28 rule 2 said a deadline constant is imported, never duplicated. The same applies to any rule two surfaces state in words: a market state, a threshold, a label. The second copy does not announce itself when it drifts; it just contradicts the first one somewhere the author is not looking.
+
+**Applies to:** Lead Developer — every alert watchlist and cross-file name reference, every new feed's manifest entry, and every rule rendered in more than one place.

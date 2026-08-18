@@ -37,6 +37,7 @@ import useTradeIdea from '../lib/useTradeIdea';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal, { KIND_LABEL, POSITION_NOTE } from '../components/TradeIdeaNote';
+import { nyseMarketState } from '../chrome/PageHeader';
 import '../styles/cream-system.css';
 
 /* ── format helpers ─────────────────────────────────────────────────────── */
@@ -144,11 +145,14 @@ export default function HomePage() {
   const chartKeys = useMemo(() => (idea?.charts || []).map((c) => c.series), [idea]);
   const { series: chartSeries } = useIndicatorSeries(chartKeys);
 
-  // Footer: market open/closed + honest "data as of" (newest displayed level).
-  const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const dow = nowET.getDay();
-  const mins = nowET.getHours() * 60 + nowET.getMinutes();
-  const marketOpen = dow >= 1 && dow <= 5 && mins >= 570 && mins < 960;
+  // Footer: market state + honest "data as of" (newest displayed level).
+  // 2026-08-18: this was a SECOND, private market clock — weekday plus
+  // 9:30-16:00, no holiday table, two states where the header has four. It
+  // disagreed with the header every weekday morning ("Market pre-open" up top,
+  // "market closed" down here at the same instant) and on an NYSE holiday it
+  // would have read "market open" outright. It now calls the same function the
+  // header renders, lowercased to match this strip's voice.
+  const marketLabel = nyseMarketState().label.toLowerCase();
   const newestAsOf = useMemo(() => {
     const ds = RIBBON.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
     return ds.length ? ds[ds.length - 1] : null;
@@ -375,7 +379,7 @@ export default function HomePage() {
 
       <footer>
         <div className="micro">
-          MacroTilt · data through {newestAsOf || '—'} · {marketOpen ? 'market open' : 'market closed'} ·{' '}
+          MacroTilt · data through {newestAsOf || '—'} · {marketLabel} ·{' '}
           <button type="button" onClick={flip} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', letterSpacing: 'inherit', cursor: 'pointer', textTransform: 'inherit' }}>
             switch to {isDark ? 'light' : 'dark'} theme
           </button>
