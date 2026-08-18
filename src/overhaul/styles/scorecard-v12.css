@@ -208,3 +208,30 @@
   .mt-overhaul .sc-legs { font-size: 12.5px; }
   .mt-overhaul .sc-legs td.num { padding-left: 10px; }
 }
+
+/* ── the scorecard IS a table now (2026-08-18) ──────────────────────────
+   One row per call, every column on the row, nothing behind an expander.
+   The previous layout put the note's headline in the row and the numbers
+   in a drawer, so comparing two calls meant opening both. */
+.mt-overhaul .sc-tablewrap { overflow-x: auto; }
+.mt-overhaul .sc-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.mt-overhaul .sc-table th {
+  text-align: left; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--mt-ink-3); font-weight: 600; padding: 0 14px 8px 0; white-space: nowrap;
+  border-bottom: 1px solid var(--mt-ink-1);
+}
+.mt-overhaul .sc-table td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
+.mt-overhaul .sc-table th.num, .mt-overhaul .sc-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mt-overhaul .sc-table th:last-child, .mt-overhaul .sc-table td:last-child { padding-right: 0; text-align: right; }
+.mt-overhaul .sc-trow:hover { background: color-mix(in oklab, var(--mt-ink-1) 3%, transparent); }
+/* The trade is the thing a reader scans for — give it the weight the
+   headline used to have. */
+.mt-overhaul .sc-tradecell { font-weight: 600; }
+.mt-overhaul .sc-table .sc-notecell { white-space: nowrap; }
+.mt-overhaul .sc-table .sc-notebtn { border: 0; background: none; padding: 0; font: inherit; cursor: pointer;
+  color: var(--mt-accent); text-decoration: underline; text-underline-offset: 3px; }
+.mt-overhaul .sc-table .sc-notebtn:hover { color: var(--mt-ink-1); }
+@media (max-width: 900px) {
+  .mt-overhaul .sc-table { font-size: 12.5px; }
+  .mt-overhaul .sc-table th, .mt-overhaul .sc-table td { padding-right: 10px; }
+}

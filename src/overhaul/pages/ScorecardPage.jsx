@@ -61,86 +61,42 @@ function toneOf(v) {
   return 'flat';
 }
 
+const KIND_LABEL = { equity: 'Equity', rates: 'Rates', fx: 'FX', commodity: 'Commodity', credit: 'Credit' };
+
+/* One call, one row. Joe, 2026-08-18:
+     "Date Entered - Asset Class - Trade - Status - Target Close Date -
+      Total Return - Return vs. Benchmark - Link to full Note. Simple table."
+
+   Two things this fixes. The row used to carry the note's HEADLINE — "The
+   volatility curve is at its steepest in five years" — which is written to make
+   somebody read the note, not to say what the position is. It now carries the
+   position: Long KBW / Short NASDAQ. And the numbers used to be hidden behind
+   an expander, so comparing two calls meant opening both. Everything is on the
+   row.
+
+   Return vs. benchmark is an em-dash for currency calls, which have no
+   benchmark by design — a pair is already one thing against another. */
 function Row({ r, idea, onOpenNote }) {
-  const [open, setOpen] = useState(false);
   const closed = String(r.status || '').startsWith('closed');
   const showMark = r.status === 'open' || closed;
-
+  const vs = r.benchmark ? r.benchmark.difference : null;
   return (
-    <div className={`sc-row sc-row--${r.status}`}>
-      <button type="button" className="sc-rowhead" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <span className="sc-date">{r.date}</span>
-        <span className="sc-kind">{r.kind}</span>
-        <span className="sc-title">{r.title}</span>
-        <span className={`sc-status sc-status--${r.status}`}>{STATUS_LABEL[r.status] || r.status}</span>
-        <span className={`sc-mark sc-mark--${toneOf(showMark ? r.mark : null)}`}>
-          {showMark ? fmt(r.mark, r.unit) : '—'}
-        </span>
-        <span className="sc-toggle" aria-hidden="true">{open ? '−' : '+'}</span>
-      </button>
-
-      {open && (
-        <div className="sc-detail">
-          {/* Joe, 2026-08-18: "thats all we should show on the page for every
-              call... Then a link to Read full note. I hate the way you have
-              this laid out right now."
-
-              So: the five rows and the link. Nothing else. What used to sit
-              here — the call paragraph, a Buy / Sell / Why-it-was-not-obvious /
-              The-edge / Measured-against block, a seven-item facts grid
-              (position, type, entry levels, horizon, best point, worst point,
-              sessions held) and an invalidation line — was most of a research
-              note reprinted above the one table anyone opened the row to see.
-              All of it still exists, one click away, in the note itself, which
-              is where a reader who wants it will look. */}
-          {(r.status === 'pending_entry' || r.status === 'unscoreable') && (
-            <p className="sc-reason">{r.reason}</p>
-          )}
-
-          {showMark && r.legs?.length > 0 && (
-            <table className="sc-legs">
-              <tbody>
-                {r.legs.map((l) => (
-                  <tr key={l.series}>
-                    <td><b>{l.side === 'short' ? 'Sell' : 'Buy'}</b> {l.label}</td>
-                    <td className={`num sc-${toneOf(l.return_pct)}`}>{fmt(l.return_pct, '%')}</td>
-                  </tr>
-                ))}
-                <tr className="sc-legs-net">
-                  <td>Position return{r.legs.length > 1 ? ' (buy − sell)' : ''}</td>
-                  <td className={`num sc-${toneOf(r.position_pct ?? r.mark)}`}>{fmt(r.position_pct ?? r.mark, '%')}</td>
-                </tr>
-                {r.benchmark && (
-                  <>
-                    <tr className="sc-legs-bm">
-                      <td>If you&rsquo;d held {r.benchmark.label} instead</td>
-                      <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
-                    </tr>
-                    <tr className="sc-legs-net">
-                      <td>Difference</td>
-                      <td className={`num sc-${toneOf(r.benchmark.difference)}`}>{fmt(r.benchmark.difference, '%')}</td>
-                    </tr>
-                  </>
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {idea ? (
-            <p className="sc-readnote">
-              <button type="button" className="sc-notebtn" onClick={() => onOpenNote(idea)}>
-                Read the full note{idea.charts?.length ? ` · ${idea.charts.length} charts` : ''} &rarr;
-              </button>
-            </p>
-          ) : (
-            <p className="sc-reason">
-              The published note for this call is no longer in trade_ideas.json, so the analysis behind it
-              cannot be shown. The mark stands; the reasoning is missing.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
+    <tr className={`sc-trow sc-trow--${r.status}`}>
+      <td className="num">{r.entry_date || '—'}</td>
+      <td>{KIND_LABEL[r.kind] || r.kind}</td>
+      <td className="sc-tradecell">{r.trade_label || r.instrument || '—'}</td>
+      <td><span className={`sc-status sc-status--${r.status}`}>{STATUS_LABEL[r.status] || r.status}</span></td>
+      <td className="num">{r.target_date || '—'}</td>
+      <td className={`num sc-${toneOf(showMark ? r.mark : null)}`}>{showMark ? fmt(r.mark, '%') : '—'}</td>
+      <td className={`num sc-${toneOf(showMark ? vs : null)}`}>
+        {showMark && vs != null ? fmt(vs, '%') : '—'}
+      </td>
+      <td className="sc-notecell">
+        {idea
+          ? <button type="button" className="sc-notebtn" onClick={() => onOpenNote(idea)}>Note &rarr;</button>
+          : <span className="sc-dim">—</span>}
+      </td>
+    </tr>
   );
 }
 
@@ -235,9 +191,29 @@ export default function ScorecardPage() {
       )}
 
       <section className="sc-list">
-        {rows.map((r) => (
-          <Row key={r.id || r.date} r={r} idea={noteById.get(r.id)} onOpenNote={setOpenNote} />
-        ))}
+        {rows.length > 0 && (
+          <div className="sc-tablewrap">
+            <table className="sc-table">
+              <thead>
+                <tr>
+                  <th>Date entered</th>
+                  <th>Asset class</th>
+                  <th>Trade</th>
+                  <th>Status</th>
+                  <th>Target close</th>
+                  <th className="num">Total return</th>
+                  <th className="num">vs. benchmark</th>
+                  <th aria-label="Full note" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <Row key={r.id || r.date} r={r} idea={noteById.get(r.id)} onOpenNote={setOpenNote} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {data && !rows.length && <p className="sc-dim">No notes published yet.</p>}
       </section>
 
