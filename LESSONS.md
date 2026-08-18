@@ -1333,3 +1333,24 @@ Two more, found in the same pass:
 6. **One clock, one reader — and that is not only about deadlines.** 4.28 rule 2 said a deadline constant is imported, never duplicated. The same applies to any rule two surfaces state in words: a market state, a threshold, a label. The second copy does not announce itself when it drifts; it just contradicts the first one somewhere the author is not looking.
 
 **Applies to:** Lead Developer — every alert watchlist and cross-file name reference, every new feed's manifest entry, and every rule rendered in more than one place.
+
+### 4.42 (2026-08-18) — A deadline on a feed that only refreshes when somebody looks is measuring quiet, not health
+
+**What happened:** mid-sweep, the site header read **"1 feed stale · Live intraday price (1-minute bars)"** at 14:41 UTC — and read "All feeds current" sixteen minutes earlier and eleven minutes later. Nothing was broken at any point in that window.
+
+`lse_intraday` is stamped by the `lse-live` edge function in `mode: "quotes"`, which runs **on view**: it fires when somebody loads a page that asks for quotes. So `last_good_at` recorded *when a human last looked*, not when a producer last ran — and it was graded against a **3-hour pull SLA**, with `market_hours_only` narrowing the gradeable window to 11:30-16:00 ET. Three quiet hours inside a trading session is not an outage; on a site with one reader it is a Tuesday. The stamps prove it: a pull at 10:42Z, nothing until 13:41Z, red in between.
+
+The part that made it nearly invisible: **the observation clears the condition.** Joe's own page load triggers the quotes call that stamps the feed green, so a refresh always "fixes" it. He sees a stale banner on a first load, reloads, and it is gone — which reads as a flaky monitor rather than a reproducible defect. Only an automated observer catches it in the red state, and only if it looks at the pill before the stamp lands. Reproduced deterministically by serving the page a `pipeline_health` row aged four hours: red on the first load, green on the second.
+
+The fix is a real producer, not a looser number. `lse-live`'s weekday `scan_iv` batch (pg_cron, 21:50 UTC) now makes a one-symbol quotes pull, so `lse_intraday` gets a daily heartbeat. **It routes through `modeQuotes()` rather than calling `stamp()` directly** — that function stamps green only when it actually refreshed from the vendor and red with the vendor's error when it could not, so the daily stamp is a record of something that happened. Stamping it off the IV scan would have claimed a quotes pull the batch never made (4.28 rule 4). The heartbeat is caught, never thrown: a quotes outage is real breakage, it has already stamped itself red, and it must not also discard a completed IV scan.
+
+Note where the pattern came from. Four lines above the change, the same function already did this for `lse_atm_iv` — *"an honest daily heartbeat ... so a quiet week without a Lab visit never false-reds its chip"*. The second on-demand feed served by the same function never got it. That is 4.33 again: the defensive pattern existed, in the same file, and had been applied to one site.
+
+**Rule:**
+
+1. **Before setting a freshness deadline, ask what actually refreshes the thing.** If the answer is "a visitor", there is no producer and a pull clock is measuring attention. Give it a scheduled heartbeat and grade THAT, or do not grade it on a pull clock at all.
+2. **Derive the number from the heartbeat, then check both ends.** 21:50 UTC is 17:50 ET, so on a day with no visitors the pull is ~17.7h old when grading resumes at 11:30 ET and ~22.2h at the 16:00 ET close. 30h clears that worst gradeable moment with margin for a late heartbeat and for DST, and one MISSED heartbeat still crosses 41h by the next 11:30 ET. A deadline is only justified when you have shown it passes the quiet case AND fails the broken case — I verified seven scenarios against a frozen clock, and an earlier draft at 49h passed the first four and silently swallowed a five-day outage.
+3. **A symptom that its own observation clears is a reproduction problem, not a small problem.** Freeze the clock, or inject the aged row, and make it fail on demand. "I could not reproduce it" and "it heals when I look" are the same sentence.
+4. **Diff the deployed function against the repo before redeploying it.** `lse-live` v10 in production carried a v8 header comment this repo did not, so the version-controlled copy was not quite the source of record and a redeploy would have dropped it. It was only a comment this time. It was `agent-write`'s entire source in 4.29.
+
+**Applies to:** Lead Developer, Data Steward — every on-demand / on-view feed, and every `market_hours_only` chip.

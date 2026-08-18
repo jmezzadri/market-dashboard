@@ -27,6 +27,15 @@
 //   "YYYY-MM-DD HH:MM:SS" (space, no T/Z, UTC) — normalize; always order=desc;
 //   options chain includes long-expired contracts and per-row underlying_price
 //   stamped at ITS OWN last update — anchor ATM to the freshest contract.
+// - v8 (2026-07-28, Joe-approved): archive EOD IV rows (source='archive',
+//   nightly LSE-ARCHIVE-IV job, migration 088) for names the live chain
+//   doesn't cover. Live rows always win; archive rows are preserved when the
+//   live chain is empty and served with their data date.
+//   (Comment restored to the repo 2026-08-18: the deployed v10 carried it and
+//   this file did not, so the version-controlled copy was not quite the source
+//   of record. LESSONS 4.29's open item, in miniature — diff the deployed
+//   function against the repo BEFORE redeploying, or a redeploy silently
+//   reverts whatever only production knew.)
 
 const VAULT = "https://api.londonstrategicedge.com/vault";
 const UA = "macrotilt-live";
@@ -468,6 +477,35 @@ async function modeScanIv() {
   // chip (Joe 0.9: red is reserved for actual breakage). Lab views still
   // stamp it on their own real pulls.
   await stamp("lse_atm_iv", true, nowIso);
+
+  // 2026-08-18 — the same heartbeat for lse_intraday, which is the OTHER
+  // on-demand feed this function serves and was the one site left without one.
+  // It is stamped only when somebody loads a page that asks for quotes, so
+  // `last_good_at` recorded when a HUMAN last looked, not when a producer last
+  // ran — and it was graded against a 3-hour SLA. Any quiet stretch of three
+  // hours therefore put "1 feed stale · Live intraday price (1-minute bars)" in
+  // the site header, which Joe's own page load then cleared before he could
+  // refresh. Reproduced deterministically by serving the page a pipeline_health
+  // row aged four hours: the pill reads red on the first load, green on the
+  // second. Nothing was ever broken; the deadline was measuring quiet.
+  //
+  // The honest fix is a real pull, not a stamp: modeQuotes() only stamps when
+  // it actually refreshed from the vendor (`refreshed > 0`), and stamps RED
+  // with the vendor error when it could not — so routing one symbol through it
+  // here makes the daily stamp a record of something that happened. Stamping
+  // lse_intraday off the IV scan instead would be claiming a quotes pull this
+  // batch never made (LESSONS 4.28 rule 4). One symbol, once a weekday, inside
+  // a batch that is already talking to this vendor.
+  //
+  // Caught, never thrown: a quotes outage is real breakage and modeQuotes has
+  // already stamped it red by the time we get here. It must not also discard a
+  // completed IV scan. LESSONS 4.33 — the pattern for lse_atm_iv existed four
+  // lines up and had simply never been applied to the second site.
+  try {
+    await modeQuotes(["SPY"]);
+  } catch (e) {
+    errors.push(`intraday heartbeat: ${String(e).slice(0, 160)}`);
+  }
   return { scanDate, universe: tickers.length, covered: covered.length, errors: errors.slice(0, 5) };
 }
 
