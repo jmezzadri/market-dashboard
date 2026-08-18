@@ -81,123 +81,49 @@ function Row({ r, idea, onOpenNote }) {
 
       {open && (
         <div className="sc-detail">
-          {/* The CALL first — before any number this page computed. The title
-              is a hook; this is what was actually claimed, in the words it was
-              published in. */}
-          {idea?.call && <p className="sc-call">{idea.call}</p>}
+          {/* Joe, 2026-08-18: "thats all we should show on the page for every
+              call... Then a link to Read full note. I hate the way you have
+              this laid out right now."
 
-          {idea && (
-            <div className="sc-trade">
-              {[['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
-                ['Sell short', idea.the_trade?.short], ['Funded by', idea.the_trade?.funded_by],
-                ['Why it was not obvious', idea.variant],
-                ['The edge', idea.edge?.summary],
-                ['Measured against', idea.edge?.backtest?.baseline]]
-                .filter(([, v]) => v).map(([k, v]) => (
-                  <div className="sc-tradefact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
-                ))}
-            </div>
-          )}
-
+              So: the five rows and the link. Nothing else. What used to sit
+              here — the call paragraph, a Buy / Sell / Why-it-was-not-obvious /
+              The-edge / Measured-against block, a seven-item facts grid
+              (position, type, entry levels, horizon, best point, worst point,
+              sessions held) and an invalidation line — was most of a research
+              note reprinted above the one table anyone opened the row to see.
+              All of it still exists, one click away, in the note itself, which
+              is where a reader who wants it will look. */}
           {(r.status === 'pending_entry' || r.status === 'unscoreable') && (
             <p className="sc-reason">{r.reason}</p>
           )}
 
-          {showMark && (
-            <>
-              {/* Joe, 2026-08-18: "What does 'its own return' mean and
-                  'contribution' mean?" — fair. The table now has one column and
-                  five rows, and every number is the thing it says it is:
-
-                      Buy  KBW      -0.85%   what we said to buy did this
-                      Sell Nasdaq   -0.32%   what we said to sell did this
-                      Position      -0.53%   the first minus the second
-                      S&P 500       -0.52%   the passive alternative
-                      vs benchmark  -0.01%   the third minus the fourth
-
-                  The subtraction is visible and checkable. Position size is a
-                  separate line below, never folded into these. */}
-              {r.legs?.length > 0 && (
-                <table className="sc-legs">
-                  <tbody>
-                    {r.legs.map((l) => (
-                      <tr key={l.series}>
-                        <td>
-                          <b>{l.side === 'short' ? 'Sell' : 'Buy'}</b> {l.label}
-                        </td>
-                        <td className={`num sc-${toneOf(l.return_pct)}`}>{fmt(l.return_pct, '%')}</td>
-                      </tr>
-                    ))}
-                    <tr className="sc-legs-net">
-                      <td>Position return{r.legs.length > 1 ? ' (buy − sell)' : ''}</td>
-                      <td className={`num sc-${toneOf(r.position_pct ?? r.mark)}`}>{fmt(r.position_pct ?? r.mark, '%')}</td>
+          {showMark && r.legs?.length > 0 && (
+            <table className="sc-legs">
+              <tbody>
+                {r.legs.map((l) => (
+                  <tr key={l.series}>
+                    <td><b>{l.side === 'short' ? 'Sell' : 'Buy'}</b> {l.label}</td>
+                    <td className={`num sc-${toneOf(l.return_pct)}`}>{fmt(l.return_pct, '%')}</td>
+                  </tr>
+                ))}
+                <tr className="sc-legs-net">
+                  <td>Position return{r.legs.length > 1 ? ' (buy − sell)' : ''}</td>
+                  <td className={`num sc-${toneOf(r.position_pct ?? r.mark)}`}>{fmt(r.position_pct ?? r.mark, '%')}</td>
+                </tr>
+                {r.benchmark && (
+                  <>
+                    <tr className="sc-legs-bm">
+                      <td>If you&rsquo;d held {r.benchmark.label} instead</td>
+                      <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
                     </tr>
-                    {r.benchmark && (
-                      <>
-                        <tr className="sc-legs-bm">
-                          <td>If you'd held {r.benchmark.label} instead</td>
-                          <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
-                        </tr>
-                        <tr className="sc-legs-net">
-                          <td>Difference</td>
-                          <td className={`num sc-${toneOf(r.benchmark.difference)}`}>
-                            {fmt(r.benchmark.difference, '%')}
-                          </td>
-                        </tr>
-                      </>
-                    )}
-                  </tbody>
-                </table>
-              )}
-              {/* One explanation, not two — the currency calls were printing
-                  "a pair is already one thing against another" immediately
-                  above "buying EUR/USD already sells dollars", which is the
-                  same sentence twice. */}
-              {(r.benchmark_absent_reason || r.single_leg_note) && (
-                <p className="sc-legnote">{r.benchmark_absent_reason || r.single_leg_note}</p>
-              )}
-
-              <dl className="sc-facts">
-                <div><dt>Position</dt><dd>{r.instrument}</dd></div>
-                <div><dt>Type</dt><dd>{r.position_type}</dd></div>
-                <div>
-                  <dt>Entry</dt>
-                  <dd>
-                    {r.legs?.map((l) => (
-                      <span key={l.series} className="sc-leg">
-                        {l.side === 'short' ? 'Short ' : 'Long '}{l.label} at{' '}
-                        {Number(l.entry_value).toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                      </span>
-                    ))}
-                    <span className="sc-dim"> · close of {r.entry_date}</span>
-                  </dd>
-                </div>
-                <div><dt>Horizon</dt><dd>{r.horizon_months} months, to {r.target_date}</dd></div>
-                <div>
-                  <dt>Best point</dt>
-                  <dd className={`sc-${toneOf(r.max_favourable?.value)}`}>
-                    {fmt(r.max_favourable?.value, r.unit)} <span className="sc-dim">on {r.max_favourable?.date}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Worst point</dt>
-                  <dd className={`sc-${toneOf(r.max_adverse?.value)}`}>
-                    {fmt(r.max_adverse?.value, r.unit)} <span className="sc-dim">on {r.max_adverse?.date}</span>
-                  </dd>
-                </div>
-                <div><dt>Sessions held</dt><dd>{r.sessions_held}</dd></div>
-              </dl>
-
-              {r.invalidation && (
-                <p className={`sc-inval ${r.invalidation.date ? 'sc-inval--hit' : ''}`}>
-                  <strong>{r.invalidation.date ? 'Invalidation hit' : 'Invalidation'}:</strong>{' '}
-                  {r.invalidation.rule}
-                  {r.invalidation.date
-                    ? ` — printed ${r.invalidation.date} at ${r.invalidation.value}. The call was closed there.`
-                    : ' — not hit.'}
-                </p>
-              )}
-            </>
+                    <tr className="sc-legs-net">
+                      <td>Difference</td>
+                      <td className={`num sc-${toneOf(r.benchmark.difference)}`}>{fmt(r.benchmark.difference, '%')}</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
           )}
 
           {idea ? (
