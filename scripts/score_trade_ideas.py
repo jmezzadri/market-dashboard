@@ -86,8 +86,158 @@ OUT_PATH = "public/trade_idea_scores.json"
 # actively misleading.
 MIN_CLOSED_FOR_STATS = 10
 
-MEASURES = {"pct_change", "level_change"}
+# 2026-08-18 (Joe): every call is marked as a PRICE RETURN in per cent, on both
+# legs, netted, and sized to a common risk budget. Before this, each call was a
+# single leg on a pre-computed ratio or spread, so a bank/index pair printed
+# "-0.33%", a breakeven printed "+0.01pp", and the two sat in one column as
+# though they were comparable bets. They were not comparable in unit, in
+# decomposition, or in size.
+#
+#   pct_change   — a price/level series -> % price return.
+#   bond_return  — a YIELD series (per cent) -> the % price return of a par bond
+#                  of `maturity_years` at that yield: -ModDur x (y_now - y_entry).
+#                  This is what turns "the breakeven widened 1bp" into a number
+#                  that can sit next to an equity return.
+#   level_change — retained for INVALIDATION only. It is no longer a legal leg
+#                  measure: a raw spread move is not a return and cannot be
+#                  netted, sized or benchmarked. A note that still uses it is
+#                  reported unscoreable WITH the reason rather than quietly
+#                  printed in pp.
+MEASURES = {"pct_change", "bond_return"}
+LEGACY_MEASURES = {"level_change"}
 SIDES = {"long": 1.0, "short": -1.0}
+
+# Every call is sized so that its unlevered spread would have run at this
+# annualised volatility over the year before entry. Without this a duration-
+# matched TIPS/UST pair (~1.5% vol) and a bank/Nasdaq pair (~12% vol) print
+# side by side as if they were the same bet, and the record is dominated by
+# whichever asset class happens to be noisiest.
+TARGET_VOL_PCT = 10.0
+VOL_LOOKBACK_DAYS = 365
+VOL_MIN_OBS = 120
+SIZE_MIN, SIZE_MAX = 0.25, 5.0
+
+# Passive alternative per asset class, per Joe 2026-08-18. Shown as CONTEXT
+# next to the call, not as a risk-adjusted alpha: a long/short spread is close
+# to market-neutral, so "beat the S&P" is a different claim from "made money".
+BENCHMARKS = {
+    "equity": {"series": "spx_index", "measure": "pct_change",
+               "label": "S&P 500 (price return)"},
+    "rates":  {"series": "ust_10y", "measure": "bond_return", "maturity_years": 10,
+               "label": "10-year Treasury (price return)"},
+    "fx":     {"series": "usd", "measure": "pct_change",
+               "label": "US dollar index"},
+}
+
+# Series the scorer builds from stored ones. These are NOT written to
+# indicator_history.json and never render on the site, so they need no manifest
+# element or health row — they exist only so a leg can name the thing the note
+# actually named. bkx_spx is the bank complex DIVIDED BY the S&P, so
+# multiplying it back by the S&P recovers the bank index level itself.
+DERIVED = {
+    "kbw_index": {"op": "mul", "of": ("bkx_spx", "spx_index"),
+                  "label": "KBW-style US bank complex"},
+}
+
+
+def build_derived(hist: dict) -> dict:
+    """Add DERIVED series to hist, on the dates where every input traded."""
+    for name, spec in DERIVED.items():
+        a_key, b_key = spec["of"]
+        if a_key not in hist or b_key not in hist:
+            continue
+        bmap = dict(hist[b_key])
+        pts = [(d, v * bmap[d]) for d, v in hist[a_key]
+               if d in bmap and isinstance(v, (int, float)) and isinstance(bmap[d], (int, float))]
+        if pts:
+            hist[name] = pts
+    return hist
+
+
+def modified_duration(yield_pct: float, maturity_years: float) -> float:
+    """Modified duration of a PAR bond at this yield, semiannual coupons.
+
+    Closed form: (1/y) * (1 - (1 + y/2)^(-2T)). At 4.72% and 10 years this is
+    7.899; at a 2.44% real yield it is 8.826 — which is exactly why a TIPS/UST
+    pair is not duration-neutral at equal notional and why the two legs are
+    priced with their OWN yields rather than one shared constant. Cross-checked
+    against Macaulay-then-divide-by-(1+y/2): 8.0851 -> 7.8987, 8.9337 -> 8.8260.
+
+    Convexity is ignored. Over the moves these notes are graded on (tens of
+    basis points) the second-order term is under a basis point of return; it is
+    stated here rather than silently assumed.
+    """
+    y = float(yield_pct) / 100.0
+    if y <= 0 or maturity_years <= 0:
+        return float(maturity_years)          # degenerate: duration -> maturity
+    return (1.0 / y) * (1.0 - (1.0 + y / 2.0) ** (-2.0 * maturity_years))
+
+
+def leg_return_pct(leg: dict, value_now: float) -> float:
+    """The % PRICE return of one leg from its entry to `value_now`."""
+    ev = leg["entry_value"]
+    if leg["measure"] == "bond_return":
+        d = modified_duration(ev, leg.get("maturity_years", 10))
+        return -d * (float(value_now) - ev)        # yields are already in pp
+    return 100.0 * (float(value_now) / ev - 1.0)
+
+
+def _daily_returns(series: list, measure: str, maturity_years: float) -> list:
+    """[(date, one-session % return)] for a series, on the leg's own measure."""
+    out = []
+    for i in range(1, len(series)):
+        (d0, v0), (d1, v1) = series[i - 1], series[i]
+        if not (isinstance(v0, (int, float)) and isinstance(v1, (int, float))):
+            continue
+        if measure == "bond_return":
+            out.append((d1, -modified_duration(v0, maturity_years) * (v1 - v0)))
+        elif v0:
+            out.append((d1, 100.0 * (v1 / v0 - 1.0)))
+    return out
+
+
+def spread_size(legs: list, hist: dict, entry_date: str) -> dict:
+    """Risk-parity multiple, computed ONCE at entry and then frozen.
+
+    Frozen is the whole point: recomputing it later would silently restate
+    every past mark every time the file is rebuilt, and a track record that
+    changes retroactively is not a track record.
+    """
+    start = (dt.date.fromisoformat(entry_date) - dt.timedelta(days=VOL_LOOKBACK_DAYS)).isoformat()
+    per_leg = {}
+    for leg in legs:
+        w = window(hist[leg["series"]], start, entry_date)
+        per_leg[id(leg)] = dict(_daily_returns(w, leg["measure"], leg.get("maturity_years", 10)))
+    dates = None
+    for m in per_leg.values():
+        dates = set(m) if dates is None else (dates & set(m))
+    rets = []
+    for d in sorted(dates or []):
+        rets.append(sum(SIDES[l["side"]] * l["weight"] * per_leg[id(l)][d] for l in legs))
+    if len(rets) < VOL_MIN_OBS:
+        return {"method": "none", "multiple": 1.0, "spread_vol_pct": None,
+                "target_vol_pct": TARGET_VOL_PCT, "observations": len(rets),
+                "reason": f"only {len(rets)} common sessions in the year before entry "
+                          f"(need {VOL_MIN_OBS}) — sized at 1x rather than off a vol we cannot measure"}
+    mean = sum(rets) / len(rets)
+    var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
+    ann = (var ** 0.5) * (252 ** 0.5)
+    if ann <= 0:
+        return {"method": "none", "multiple": 1.0, "spread_vol_pct": 0.0,
+                "target_vol_pct": TARGET_VOL_PCT, "observations": len(rets),
+                "reason": "the spread did not move in the year before entry"}
+    raw = TARGET_VOL_PCT / ann
+    mult = max(SIZE_MIN, min(SIZE_MAX, raw))
+    out = {"method": "risk_parity", "multiple": round(mult, 3),
+           "spread_vol_pct": round(ann, 3), "target_vol_pct": TARGET_VOL_PCT,
+           "observations": len(rets),
+           "basis": f"trailing {VOL_LOOKBACK_DAYS}d daily vol of the unlevered spread "
+                    f"to {entry_date}, annualised x sqrt(252), frozen at entry"}
+    if abs(raw - mult) > 1e-9:
+        out["clamped_from"] = round(raw, 3)
+        out["clamp_reason"] = (f"uncapped size {raw:.2f}x fell outside the {SIZE_MIN}-{SIZE_MAX}x band; "
+                               f"a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position")
+    return out
 OPS = {">=": lambda a, b: a >= b, "<=": lambda a, b: a <= b,
        ">": lambda a, b: a > b, "<": lambda a, b: a < b}
 BASES = {"close", "weekly_close"}
@@ -116,7 +266,11 @@ def load_history(path: str = HISTORY_PATH) -> dict:
         if series:
             series.sort(key=lambda x: x[0])
             out[key] = series
-    return out
+    # Derived series are attached HERE, not at the call site: the test suite
+    # called load_history() directly, missed build_derived(), and reported a
+    # live note as unscoreable for a series the production path had. One
+    # loader, one shape.
+    return build_derived(out)
 
 
 # A close dated D is not knowable until D's session settles. 21:00 UTC is
@@ -214,6 +368,12 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                     "reason": f"legs[{i}] names series {key!r}, which is not in indicator_history.json"}
         if side not in SIDES:
             return {**base, "status": "unscoreable", "reason": f"legs[{i}].side must be long or short, got {side!r}"}
+        if measure in LEGACY_MEASURES:
+            return {**base, "status": "unscoreable",
+                    "reason": f"legs[{i}].measure is {measure!r}. A raw level change is not a return: it "
+                              f"cannot be netted against another leg, sized to a risk budget or compared "
+                              f"to a benchmark. Restate the leg as pct_change, or as bond_return on the "
+                              f"underlying yield series with a maturity_years."}
         if measure not in MEASURES:
             return {**base, "status": "unscoreable", "reason": f"legs[{i}].measure must be one of {sorted(MEASURES)}"}
         ed, ev = last_close_before(hist[key], pub_ts)
@@ -237,9 +397,17 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                                f"({pub_ts}Z); the series only begins at {first}. Nothing can be marked "
                                "from a price that did not exist yet."),
                     "waiting_on": {"series": key, "series_first": first, "published_at": pub_ts}}
-        legs_out.append({"series": key, "side": side, "measure": measure, "weight": weight,
-                         "entry_date": ed, "entry_value": ev,
-                         "label": leg.get("label") or key})
+        rec = {"series": key, "side": side, "measure": measure, "weight": weight,
+               "entry_date": ed, "entry_value": ev,
+               "label": leg.get("label") or key}
+        if measure == "bond_return":
+            try:
+                rec["maturity_years"] = float(leg.get("maturity_years"))
+            except (TypeError, ValueError):
+                return {**base, "status": "unscoreable",
+                        "reason": f"legs[{i}].measure is bond_return but maturity_years is missing or not a "
+                                  f"number — duration cannot be inferred from a yield alone"}
+        legs_out.append(rec)
         entry_dates.append(ed)
 
     # Rule 1 — one entry date for the whole position: the latest first-available
@@ -256,22 +424,29 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
 
     target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
 
-    # The mark on a given date, as a weighted sum of side x leg move. Legs are
-    # only marked on dates where EVERY leg traded, so a stale leg cannot
-    # manufacture a move.
+    # Risk-parity size, from the year BEFORE entry, frozen here for good.
+    sizing = spread_size(legs_out, hist, entry_date)
+    mult = float(sizing.get("multiple", 1.0))
+
+    # The mark on a given date: each leg's own % price return, signed by its
+    # side, weighted, summed, then scaled by the position size. Legs are only
+    # marked on dates where EVERY leg traded, so a stale leg cannot manufacture
+    # a move. Per-leg returns are carried through so the page can show what the
+    # thing we said to BUY did, what the thing we said to SELL did, and the net
+    # — rather than one opaque number off a pre-computed ratio (Joe 2026-08-18).
     common = None
     for leg in legs_out:
         ds = {d for d, _ in window(hist[leg["series"]], entry_date, None)}
         common = ds if common is None else (common & ds)
-    marks = []
+    vmaps = {id(leg): dict(hist[leg["series"]]) for leg in legs_out}
+    marks, leg_paths = [], {id(leg): {} for leg in legs_out}
     for d in sorted(common or []):
         total = 0.0
         for leg in legs_out:
-            v = dict(hist[leg["series"]])[d]
-            move = (100.0 * (v / leg["entry_value"] - 1.0)) if leg["measure"] == "pct_change" \
-                else (v - leg["entry_value"])
-            total += SIDES[leg["side"]] * leg["weight"] * move
-        marks.append((d, round(total, 4)))
+            r = leg_return_pct(leg, vmaps[id(leg)][d])
+            leg_paths[id(leg)][d] = r
+            total += SIDES[leg["side"]] * leg["weight"] * r
+        marks.append((d, round(total * mult, 4)))
     if not marks:
         return {**base, "status": "unscoreable", "reason": "no session where every leg has an observation"}
 
@@ -309,7 +484,24 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
     mfe = max(scored, key=lambda x: x[1])
     mae = min(scored, key=lambda x: x[1])
 
-    unit = "pp" if any(l["measure"] == "level_change" for l in legs_out) else "%"
+    # Every call is now a per-cent price return, on every leg, in every asset
+    # class. One unit, so the column can be read down (Joe 2026-08-18).
+    unit = "%"
+
+    # Per-leg attribution at the mark date: the asset's own return, and what it
+    # contributed to the position after side, weight and size.
+    legs_report = []
+    for leg in legs_out:
+        r = leg_paths[id(leg)].get(last_date)
+        legs_report.append({
+            **{k: v for k, v in leg.items()},
+            "return_pct": None if r is None else round(r, 4),
+            "contribution_pct": None if r is None else
+                round(SIDES[leg["side"]] * leg["weight"] * r * mult, 4),
+        })
+    buy = [l for l in legs_report if l["side"] == "long"]
+    sell = [l for l in legs_report if l["side"] == "short"]
+
     out = {
         **base,
         "status": status,
@@ -317,7 +509,14 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         "target_date": target_date,
         "horizon_months": horizon_months,
         "unit": unit,
-        "legs": legs_out,
+        "legs": legs_report,
+        "buy_pct": round(sum(l["return_pct"] for l in buy) / len(buy), 4) if buy and all(l["return_pct"] is not None for l in buy) else None,
+        "sell_pct": round(sum(l["return_pct"] for l in sell) / len(sell), 4) if sell and all(l["return_pct"] is not None for l in sell) else None,
+        "net_unlevered_pct": round(last_mark / mult, 4) if mult else None,
+        "sizing": sizing,
+        "single_leg_note": (
+            "One leg: the funding side is inside the instrument itself, so adding a second short "
+            "leg would double the same exposure." if len(legs_out) == 1 else None),
         "benchmark": None,
         "mark": last_mark,
         "mark_date": last_date,
@@ -331,16 +530,37 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         "result": last_mark if status != "open" else None,
     }
 
-    # Optional benchmark — the excess return the note actually claimed, where a
-    # note claims one. A leg that is already a ratio does not get a benchmark.
+    # Benchmark — the passive alternative in this call's own asset class, over
+    # exactly the same window and on the same price-return convention. A note
+    # may name its own; otherwise the class default applies, so no call goes
+    # ungraded because nobody remembered to fill the field in.
+    #
+    # It is CONTEXT, not alpha. Every one of these calls is a spread that is
+    # close to market-neutral by construction, so "did it beat the S&P" is a
+    # different question from "did it make money", and the page says so.
     bm = sc.get("benchmark")
+    if not (isinstance(bm, dict) and bm.get("series")):
+        bm = BENCHMARKS.get(str(idea.get("kind") or "").lower())
     if isinstance(bm, dict) and bm.get("series") in hist:
-        bd, bv = first_on_or_after(hist[bm["series"]], entry_date)
-        _, bnow = first_on_or_after(hist[bm["series"]], last_date)
+        bseries = hist[bm["series"]]
+        _, bv = first_on_or_after(bseries, entry_date)
+        _, bnow = first_on_or_after(bseries, last_date)
         if bv and bnow:
-            b_move = 100.0 * (bnow / bv - 1.0)
-            out["benchmark"] = {"series": bm["series"], "entry_value": bv,
-                                "move": round(b_move, 4), "excess": round(last_mark - b_move, 4)}
+            if bm.get("measure") == "bond_return":
+                b_move = -modified_duration(bv, bm.get("maturity_years", 10)) * (bnow - bv)
+            else:
+                b_move = 100.0 * (bnow / bv - 1.0)
+            out["benchmark"] = {
+                "series": bm["series"],
+                "label": bm.get("label") or bm["series"],
+                "measure": bm.get("measure", "pct_change"),
+                "entry_value": bv,
+                "move": round(b_move, 4),
+                "difference": round(last_mark - b_move, 4),
+                "note": "The passive alternative in this asset class over the same window, on the same "
+                        "price-return basis. This call is a spread and carries little market direction, "
+                        "so the difference is context — not a risk-adjusted excess return.",
+            }
     return out
 
 
@@ -390,7 +610,7 @@ def main(argv=None) -> int:
     with open(args.ideas, encoding="utf-8") as f:
         doc = json.load(f)
     ideas = [i for i in (doc.get("ideas") or []) if isinstance(i, dict)]
-    hist = load_history(args.history)
+    hist = load_history(args.history)      # already derived
     today = dt.date.today().isoformat()
 
     rows = [score_one(i, hist, today) for i in ideas]
@@ -406,7 +626,19 @@ def main(argv=None) -> int:
             "listed with the reason. The invalidation level written in the note is honoured: if it prints, the "
             "call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, "
             "not just the destination. Marks are computed from public/indicator_history.json by "
-            "scripts/score_trade_ideas.py and nothing here is entered by hand."),
+            "scripts/score_trade_ideas.py and nothing here is entered by hand. "
+            "Every call is marked the same way: both sides of the trade are marked separately as a per-cent "
+            "PRICE return, the short leg is subtracted from the long leg to give a net, and the net is scaled "
+            "to a common risk budget so a rates spread and an equity pair are the same size of bet. Bond legs "
+            "convert a yield move into a return using the modified duration of a par bond at that yield "
+            "(a 10-year at 4.7% has a duration of 7.9, so one basis point is about 0.08%); the two sides of a "
+            "TIPS-versus-Treasury pair are priced with their own yields, not one shared constant. Price return "
+            "throughout means no dividends on equities and no carry or roll on bonds — the same convention on "
+            "both sides of every trade, understating a total-return figure by the yield being given up. "
+            "Position size is the multiple that would have run the unlevered spread at 10% annualised "
+            "volatility over the year before entry, computed once at entry and frozen: a size that was "
+            "recomputed on every rebuild would restate history. Each call also shows the passive alternative "
+            "in its own asset class over the same window."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "
                        "is not a recommendation to buy or sell any security. These marks are the movement of the "
                        "named reference series; they are not the returns of any account and include no costs, "

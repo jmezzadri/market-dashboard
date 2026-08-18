@@ -78,7 +78,14 @@ REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
 # which it can be written honestly. A scorecard block added after the fact, once
 # the outcome is visible, is not a record of a call; it is a record of a
 # preference. scripts/score_trade_ideas.py consumes this and nothing else.
-SCORE_MEASURES = {"pct_change", "level_change"}
+# 2026-08-18: level_change is retired as a LEG measure. A raw spread move is
+# not a return — it cannot be netted against the other side of the trade, sized
+# to a risk budget, or compared to a benchmark, and printing it in pp next to
+# equity returns in per cent invites exactly the comparison it cannot support.
+# A yield leg is now stated as bond_return with a maturity, which converts the
+# yield move into a price return through the duration of a par bond.
+SCORE_MEASURES = {"pct_change", "bond_return"}
+RETIRED_MEASURES = {"level_change"}
 SCORE_SIDES = {"long", "short"}
 SCORE_OPS = {">=", "<=", ">", "<"}
 SCORE_BASES = {"close", "weekly_close"}
@@ -241,15 +248,38 @@ def _history():
         if path and os.path.exists(path):
             try:
                 with open(path, encoding="utf-8") as f:
-                    return json.load(f)
+                    return _with_derived(json.load(f))
             except Exception:  # noqa: BLE001
                 pass
     try:
         import urllib.request
         with urllib.request.urlopen("https://macrotilt.com/indicator_history.json", timeout=60) as r:
-            return json.loads(r.read().decode("utf-8"))
+            return _with_derived(json.loads(r.read().decode("utf-8")))
     except Exception:  # noqa: BLE001
         return None
+
+
+def _with_derived(raw):
+    """The contract must see the SAME series catalogue the marker does.
+
+    The marker builds a few series from stored ones (the bank complex level is
+    bkx_spx x spx_index) so a leg can name the thing the note actually named.
+    Without this, the contract rejects a leg the marker scores perfectly well —
+    two definitions of "series we carry", which is one too many. The names are
+    imported from the marker rather than restated here, so they cannot drift.
+    """
+    if not isinstance(raw, dict):
+        return raw
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from score_trade_ideas import DERIVED
+    except Exception:  # noqa: BLE001
+        return raw
+    for name, spec in DERIVED.items():
+        if all(k in raw for k in spec["of"]):
+            raw.setdefault(name, {"points": [], "derived_from": list(spec["of"]),
+                                  "note": "built by the marker; not a stored feed"})
+    return raw
 
 
 class ContractError(Exception):
@@ -484,15 +514,45 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     legs = sc.get("legs")
     if not isinstance(legs, list) or not legs:
         raise ContractError("scorecard.legs must be a non-empty list — name the series the mark is taken from")
+    # A note that says "buy X, funded by selling Y" must be scored on X AND Y.
+    # The 2026-08-17 bank note was scored on a single banks-over-S&P ratio while
+    # its funding paragraph named the Nasdaq: we graded a different trade than
+    # we recommended, and nothing in the contract caught it (Joe 2026-08-18).
+    trade = idea.get("the_trade") or {}
+    funds = any(str(trade.get(k) or "").strip() for k in ("sell", "short", "funded_by"))
+    if funds and not any(l.get("side") == "short" for l in legs if isinstance(l, dict)):
+        # One legitimate exception: the funding side is already inside the
+        # instrument (buying EUR/USD sells dollars; adding a short DXY leg would
+        # double the same exposure). That has to be CLAIMED in a field, not
+        # inferred from prose — a rule you can satisfy by wording is not a rule.
+        why = str(sc.get("funding_inside_instrument") or "").strip()
+        if not why:
+            raise ContractError(
+                "the_trade names a sell / short / funded_by side, so scorecard.legs must carry a short leg for "
+                "it — score the trade you recommended, not a proxy for it. If the funding side is already "
+                "inside the instrument, set scorecard.funding_inside_instrument to a one-sentence explanation.")
     for i, leg in enumerate(legs):
         if not isinstance(leg, dict):
             raise ContractError(f"scorecard.legs[{i}] must be an object")
         if leg.get("side") not in SCORE_SIDES:
             raise ContractError(f"scorecard.legs[{i}].side must be long or short, got {leg.get('side')!r}")
-        if leg.get("measure", "pct_change") not in SCORE_MEASURES:
+        meas = leg.get("measure", "pct_change")
+        if meas in RETIRED_MEASURES:
+            raise ContractError(
+                f"scorecard.legs[{i}].measure is {meas!r}, which is retired. A raw level move is not a return: "
+                "it cannot be netted against the other leg, sized, or benchmarked. State a price series as "
+                "pct_change, or a yield series as bond_return with a maturity_years.")
+        if meas not in SCORE_MEASURES:
             raise ContractError(
                 f"scorecard.legs[{i}].measure must be one of {sorted(SCORE_MEASURES)} — a yield or spread moves "
                 "in levels, a price moves in percent, and marking one as the other is silently wrong")
+        if meas == "bond_return":
+            try:
+                float(leg.get("maturity_years"))
+            except (TypeError, ValueError):
+                raise ContractError(
+                    f"scorecard.legs[{i}].measure is bond_return but maturity_years is missing or not a number — "
+                    "duration cannot be inferred from a yield alone")
         if hist is not None:
             ser = hist.get(leg.get("series"))
             if ser is None:

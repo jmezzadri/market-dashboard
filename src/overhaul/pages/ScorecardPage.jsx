@@ -105,6 +105,55 @@ function Row({ r, idea, onOpenNote }) {
 
           {showMark && (
             <>
+              {/* What the thing we said to BUY did, what the thing we said to
+                  SELL did, and the net — Joe 2026-08-18: "We should show the
+                  return of what we're saying to buy and what we're saying to
+                  sell and the net return." Before this the page printed one
+                  number off a pre-computed ratio and there was no way to see
+                  which side was working. */}
+              {r.legs?.length > 0 && (
+                <table className="sc-legs">
+                  <thead>
+                    <tr><th>Leg</th><th className="num">Its own return</th><th className="num">Contribution</th></tr>
+                  </thead>
+                  <tbody>
+                    {r.legs.map((l) => (
+                      <tr key={l.series}>
+                        <td>
+                          <b>{l.side === 'short' ? 'Sell' : 'Buy'}</b> {l.label}
+                          {l.measure === 'bond_return' && (
+                            <span className="sc-dim"> · {l.maturity_years}y duration-priced</span>
+                          )}
+                        </td>
+                        <td className={`num sc-${toneOf(l.return_pct)}`}>{fmt(l.return_pct, '%')}</td>
+                        <td className={`num sc-${toneOf(l.contribution_pct)}`}>{fmt(l.contribution_pct, '%')}</td>
+                      </tr>
+                    ))}
+                    <tr className="sc-legs-net">
+                      <td>
+                        Net at {r.sizing?.multiple != null ? `${Number(r.sizing.multiple).toFixed(2)}×` : '1×'}
+                        {r.net_unlevered_pct != null && (
+                          <span className="sc-dim"> · {fmt(r.net_unlevered_pct, '%')} unlevered</span>
+                        )}
+                      </td>
+                      <td />
+                      <td className={`num sc-${toneOf(r.mark)}`}>{fmt(r.mark, r.unit)}</td>
+                    </tr>
+                    {r.benchmark && (
+                      <tr className="sc-legs-bm">
+                        <td>{r.benchmark.label} <span className="sc-dim">· same window, passive</span></td>
+                        <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
+                        <td className={`num sc-${toneOf(r.benchmark.difference)}`}>
+                          {fmt(r.benchmark.difference, '%')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+              {r.single_leg_note && <p className="sc-legnote">{r.single_leg_note}</p>}
+              {r.benchmark?.note && <p className="sc-legnote">{r.benchmark.note}</p>}
+
               <dl className="sc-facts">
                 <div><dt>Position</dt><dd>{r.instrument}</dd></div>
                 <div><dt>Type</dt><dd>{r.position_type}</dd></div>
@@ -120,6 +169,20 @@ function Row({ r, idea, onOpenNote }) {
                     <span className="sc-dim"> · close of {r.entry_date}</span>
                   </dd>
                 </div>
+                <div>
+                  <dt>Size</dt>
+                  <dd>
+                    {r.sizing?.multiple != null ? `${Number(r.sizing.multiple).toFixed(2)}×` : '—'}
+                    {r.sizing?.spread_vol_pct != null && (
+                      <span className="sc-dim">
+                        {' '}· spread ran at {Number(r.sizing.spread_vol_pct).toFixed(1)}% vol,
+                        sized to {Number(r.sizing.target_vol_pct).toFixed(0)}%
+                      </span>
+                    )}
+                    {r.sizing?.reason && <span className="sc-dim"> · {r.sizing.reason}</span>}
+                    {r.sizing?.clamp_reason && <span className="sc-dim"> · {r.sizing.clamp_reason}</span>}
+                  </dd>
+                </div>
                 <div><dt>Horizon</dt><dd>{r.horizon_months} months, to {r.target_date}</dd></div>
                 <div>
                   <dt>Best point</dt>
@@ -133,15 +196,6 @@ function Row({ r, idea, onOpenNote }) {
                     {fmt(r.max_adverse?.value, r.unit)} <span className="sc-dim">on {r.max_adverse?.date}</span>
                   </dd>
                 </div>
-                {r.benchmark && (
-                  <div>
-                    <dt>Vs benchmark</dt>
-                    <dd className={`sc-${toneOf(r.benchmark.excess)}`}>
-                      {fmt(r.benchmark.excess, r.unit)}
-                      <span className="sc-dim"> ({r.benchmark.series} {fmt(r.benchmark.move, '%')})</span>
-                    </dd>
-                  </div>
-                )}
                 <div><dt>Sessions held</dt><dd>{r.sessions_held}</dd></div>
               </dl>
 

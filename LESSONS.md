@@ -1403,3 +1403,29 @@ Two things fell out of it. The tape tiles became `<button>`/`<div>` instead of `
 5. **A modifier class that only *overrides* must be authored after what it overrides.** `.t--static:hover` and `.t:hover` have identical specificity, so source order decides — and the first version put the modifier above the rule it was meant to beat. It compiled, it shipped, and the "non-interactive" tiles still lifted and turned gold under the cursor. Caught by hovering the real page, not by reading the diff: **a CSS override is not verified until you have seen the state it suppresses.**
 
 **Applies to:** UX Designer + Lead Developer — every drill, tooltip-expand, and detail overlay on every page.
+
+---
+
+### 4.45 (2026-08-18) — A relative-value call scored on a pre-computed ratio is not a scored call; and a number without a size is not a result
+
+**What happened:** Joe read the Scorecard: *"Buy KBW vs. NASDAQ 100 recommendation is showing −0.33%, but then Buy 10y TIPs vs. 10y UST is showing +0.01pp, then we have EUR vs. USD +0.34%."* Four defects, all in one column of three numbers.
+
+1. **We graded a trade we did not recommend.** The bank note says buy the KBW complex, *funded by trimming the Nasdaq-100-weighted leadership*. Its scorecard scored one leg on `bkx_spx` — banks divided by the **S&P 500**. Same species as the KLIC bug a few hours earlier: the label and the number described different things, and nothing in the contract compared the two.
+2. **The unit was not one unit.** The equity call was a % change in a ratio, the rates call a **pp** change in a breakeven — a spread that had widened one basis point — and the FX call a % change in spot. `+0.01pp` and `−0.33%` were printed in the same column, adjacent, as if a reader could compare them.
+3. **No sizing existed.** Every leg was `weight: 1.0`. A 1bp breakeven move and a 33bp equity-ratio move were the same size of bet on the page. Measured properly the two spreads run at 2.3% and 23.0% annualised volatility — a factor of ten.
+4. **No benchmark existed.** `benchmark: null` on all three, on an engine that had supported the field since the day it was written. Nothing populated it, so nothing surfaced it, so nobody noticed.
+
+Underneath all four: **each call was scored as ONE leg on a series that had already done the netting**. A ratio is a conclusion. Once you score it, the long side and the short side are gone, and with them any ability to say which half of the trade was working, to size the position, or to compare it to anything.
+
+**Fix.** Both sides are now marked separately as a per-cent price return and netted. Yield legs convert through the modified duration of a par bond at their own yield (7.899 at 4.72%, 8.826 at 2.44% — the two sides of a TIPS/UST pair are *not* duration-matched at equal notional, which is exactly why one shared constant would have been wrong). The net is scaled to the multiple that would have run the unlevered spread at 10% annualised vol over the year before entry, **computed once at entry and frozen** — a size recomputed on every rebuild silently restates every past mark. Each call carries the passive alternative in its own asset class, labelled as context rather than alpha, because a market-neutral spread beating the S&P is a different claim from making money.
+
+**Rule:**
+
+1. **Score the trade you recommended, not a proxy for it.** If the note names a sell, a short or a funding leg, the scorecard carries a short leg for it. The contract now refuses the note otherwise. The one legitimate exception — the funding side already inside the instrument, as the dollar is inside EUR/USD — must be *claimed in a field*, never inferred from prose. A rule you can satisfy by wording is not a rule.
+2. **A raw level change is not a return.** It cannot be netted, sized or benchmarked. `level_change` is retired as a leg measure and now fails loudly with the fix in the message, rather than quietly printing pp beside per cent.
+3. **Never publish two numbers in one column that are not the same kind of number.** The unit is the smallest part of that; the size is the larger part. Two returns in the same unit at wildly different volatilities are still not comparable.
+4. **Any number that defines history is computed once and frozen.** Position size is derived from data available at entry and stored. If it were recomputed each run, every past mark would move whenever the vol window rolled, and a record that changes retroactively is not a record.
+5. **One definition of "the series we carry".** The contract rejected a leg the marker scored perfectly well, because the marker derived a series the contract had never heard of. The derivation is now defined once in the marker and imported by the contract, and the loader applies it — so no caller can forget it. A second copy of a catalogue is a second source of truth.
+6. **A supported field that nothing populates is not a feature.** The benchmark slot existed for a day and stayed null on every row. If a field is optional and nobody fills it, either default it or delete it — an unfilled field looks identical to an absent one, and it hides the same gap for longer.
+
+**Applies to:** Senior Quant (owns the return, duration and sizing conventions) + Lead Developer — every published call, every scorecard, every performance surface.
