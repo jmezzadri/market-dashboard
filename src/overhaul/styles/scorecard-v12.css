@@ -85,7 +85,10 @@
 .mt-overhaul .sc-mark--flat, .mt-overhaul .sc-flat { color: var(--mt-ink-3); }
 .mt-overhaul .sc-toggle { text-align: right; color: var(--mt-ink-3); font-size: 15px; line-height: 1; }
 
-.mt-overhaul .sc-detail { padding: 2px 6px 22px; max-width: 88ch; }
+/* The expanded card is now the five-row table and one link (2026-08-18).
+   Narrower than the old 88ch: two short columns of numbers stretched to
+   the full text measure read as a table with a hole in the middle. */
+.mt-overhaul .sc-detail { padding: 4px 6px 20px; max-width: 62ch; }
 .mt-overhaul .sc-reason { font-size: 13px; color: var(--mt-ink-2); margin: 0 0 10px; line-height: 1.6; }
 .mt-overhaul .sc-facts {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -172,7 +175,7 @@
 }
 .mt-overhaul .sc-tradefact .v { font-size: 13.5px; line-height: 1.55; color: var(--mt-ink-2); }
 
-.mt-overhaul .sc-readnote { margin: 14px 0 0; }
+.mt-overhaul .sc-readnote { margin: 16px 0 0; }
 .mt-overhaul .sc-notebtn {
   background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
   font-size: 13.5px; font-weight: 600; color: var(--mt-ink);
@@ -188,11 +191,11 @@
 /* Leg decomposition table (2026-08-18) — buy leg, sell leg, net, benchmark.
    Joe: a relative-value call has to show both sides and the net, or the reader
    cannot tell which half of the trade is working. */
-.mt-overhaul .sc-legs { width: 100%; border-collapse: collapse; margin: 14px 0 4px; font-size: 13.5px; }
+.mt-overhaul .sc-legs { width: 100%; border-collapse: collapse; margin: 4px 0 2px; font-size: 14px; }
 .mt-overhaul .sc-legs th { text-align: left; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--mt-ink-3); font-weight: 600; padding: 0 0 6px; border-bottom: 1px solid var(--mt-hair); }
 .mt-overhaul .sc-legs th.num, .mt-overhaul .sc-legs td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.mt-overhaul .sc-legs td { padding: 7px 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
+.mt-overhaul .sc-legs td { padding: 9px 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
 .mt-overhaul .sc-legs th.num { padding-right: 0; }
 .mt-overhaul .sc-legs td.num { white-space: nowrap; padding-left: 18px; }
 .mt-overhaul .sc-legs-net td { font-weight: 700; border-bottom: 1px solid var(--mt-ink-1); }
