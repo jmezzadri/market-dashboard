@@ -135,11 +135,11 @@ function Row({ r, idea, onOpenNote }) {
                     {r.benchmark && (
                       <>
                         <tr className="sc-legs-bm">
-                          <td>Benchmark · {r.benchmark.label}</td>
+                          <td>If you'd held {r.benchmark.label} instead</td>
                           <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
                         </tr>
                         <tr className="sc-legs-net">
-                          <td>vs benchmark</td>
+                          <td>Difference</td>
                           <td className={`num sc-${toneOf(r.benchmark.difference)}`}>
                             {fmt(r.benchmark.difference, '%')}
                           </td>
@@ -148,6 +148,9 @@ function Row({ r, idea, onOpenNote }) {
                     )}
                   </tbody>
                 </table>
+              )}
+              {r.benchmark_absent_reason && (
+                <p className="sc-legnote">{r.benchmark_absent_reason}</p>
               )}
               {r.single_leg_note && <p className="sc-legnote">{r.single_leg_note}</p>}
 

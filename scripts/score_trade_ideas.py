@@ -125,8 +125,16 @@ BENCHMARKS = {
                "label": "S&P 500"},
     "rates":  {"series": "ust_10y", "measure": "bond_return", "maturity_years": 10,
                "label": "10-year Treasuries"},
-    "fx":     {"series": "usd", "measure": "pct_change",
-               "label": "US dollar index"},
+    # No FX entry, deliberately — see NO_BENCHMARK below.
+}
+
+# Asset classes where the honest answer is "there isn't one", with the reason.
+# A benchmark you have to squint at is worse than none: it puts a number on the
+# page that looks like a grade and isn't one.
+NO_BENCHMARK = {
+    "fx": ("A currency pair is already one thing against another: EUR/USD is long the euro and short the "
+           "dollar in a single instrument. Setting it against a dollar index would measure the same dollar "
+           "move a second time — the position return above is the whole result."),
 }
 
 # Series the scorer builds from stored ones. These are NOT written to
@@ -551,9 +559,12 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
     # It is CONTEXT, not alpha. Every one of these calls is a spread that is
     # close to market-neutral by construction, so "did it beat the S&P" is a
     # different question from "did it make money", and the page says so.
+    kind = str(idea.get("kind") or "").lower()
     bm = sc.get("benchmark")
     if not (isinstance(bm, dict) and bm.get("series")):
-        bm = BENCHMARKS.get(str(idea.get("kind") or "").lower())
+        bm = BENCHMARKS.get(kind)
+        if bm is None and kind in NO_BENCHMARK:
+            out["benchmark_absent_reason"] = NO_BENCHMARK[kind]
     if isinstance(bm, dict) and bm.get("series") in hist:
         bseries = hist[bm["series"]]
         _, bv = first_on_or_after(bseries, entry_date)
@@ -570,9 +581,7 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                 "entry_value": bv,
                 "move": round(b_move, 4),
                 "difference": round(last_mark - b_move, 4),
-                "note": "The passive alternative in this asset class over the same window, on the same "
-                        "price-return basis. This call is a spread and carries little market direction, "
-                        "so the difference is context — not a risk-adjusted excess return.",
+                "note": "What the obvious alternative did over exactly the same days.",
             }
     return out
 
@@ -636,8 +645,8 @@ def main(argv=None) -> int:
             "price a reader was actually looking at. We then show what the thing we said to buy has done, "
             "what the thing we said to sell has done, and the difference between them, which is the return on "
             "the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 "
-            "for equity calls, the 10-year Treasury for rates calls, the dollar index for currency calls. The "
-            "last line is the gap between the two. Returns are price only — no dividends on shares, no "
+            "for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so "
+            "setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no "
             "interest on bonds — on both sides of every trade. If a note named a level at which it would be "
             "wrong and that level printed, the call is closed there. Every note is listed, including the ones "
             "that did not work, and no win rate is shown until there are enough closed calls for one to mean "
