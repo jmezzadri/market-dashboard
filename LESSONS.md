@@ -1381,3 +1381,24 @@ Three smaller fabrications were sitting in the same file, all of the same specie
 6. **The cross-surface check is the test that matters.** Every one of these surfaces passed its own unit of sanity. The defect only exists in the comparison — and Joe is the one who ran it. When two pages can quote the same instrument, they resolve it through the same function, or one of them will eventually be wrong in public.
 
 **Applies to:** Lead Developer + UX Designer + Data Steward — every surface that renders a price, a level, or a move.
+
+---
+
+### 4.44 (2026-08-18) — A drill-down is not a destination; opening a detail view is no reason to move the user to another page
+
+**What happened:** Joe: *"If I click the headers on the home page it pops a modal, but also brings me to Macro Tab. I dont want that. I just want to stay on home page."* Every drill entry point on Home — the nine market-tape tiles and both engine gauges — was an `<a href="/macro?ind=…">`. Macro reads `?ind=` on mount and opens that indicator's detail. So one click did two things: navigated to a different page, and popped a modal over it. The modal was the part he asked for. The navigation was an implementation detail of *where the modal happened to live*, leaking into the product as a page change.
+
+It shipped that way because the drill component (`IndicatorDetail`) and its shell (`DetailModal`) both lived inside `MacroPage.jsx`. Deep-linking through the URL was the cheapest way to reach them from anywhere else — and the cost of that shortcut was invisible until somebody clicked it and lost their place.
+
+**Fix:** `DetailModal` moved to `components/`, and a self-contained `IndicatorDrillModal` now resolves an indicator id into a full drill anywhere it is mounted. Home holds one piece of state — which id, or null — and opens the same detail in place. Both pages import one modal shell, so escape handling, scroll locking and the close affordance cannot drift.
+
+Two things fell out of it. The tape tiles became `<button>`/`<div>` instead of `<a>`, and the three equity-index tiles — which are levels, not registry indicators — are now plainly non-interactive rather than links to somewhere unrelated. And mounting `useIndicators` on Home alongside `useMarketLevels` would have downloaded the same 4.9 MB history file twice, since both used `fetch(..., {cache:'no-cache'})`; `jsonOnce` now de-duplicates our own requests without weakening freshness on the wire.
+
+**Rule:**
+
+1. **A modal opens where the user is.** If a click's purpose is "show me more about this", the URL should not change. Reaching for a route to open an overlay means the overlay is in the wrong file — move the component, don't move the user.
+2. **A shared UI shell lives in `components/`, not inside the first page that needed it.** A drill panel trapped in a page turns every other surface's link into a navigation.
+3. **Don't render an affordance you cannot honour.** A tile with nothing behind it gets `cursor:default` and no hover lift, not a link to the nearest vaguely-related page. An index level is not an indicator and does not get a fake drill.
+4. **Two hooks wanting one file is one request.** Before adding a second consumer of a large JSON artifact, check what the first one does — `no-cache` on both is a double download, and the browser cannot save you from it.
+
+**Applies to:** UX Designer + Lead Developer — every drill, tooltip-expand, and detail overlay on every page.

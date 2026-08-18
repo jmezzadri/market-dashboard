@@ -19,6 +19,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { IND } from '../../data/indicatorRegistry';
+import jsonOnce from './jsonOnce';
 
 const FAMILY_LABEL = {
   equity: 'Equities',
@@ -109,12 +110,12 @@ export default function useIndicators() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/indicator_history.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
+    // jsonOnce, not fetch: Home mounts this alongside useMarketLevels and both
+    // want the same ~4.9 MB history file (2026-08-18).
+    jsonOnce('/indicator_history.json')
       .then((d) => { if (!cancelled) setHist(d); })
       .catch((e) => { if (!cancelled) setErr(e?.message || 'history load failed'); });
-    fetch('/data_manifest.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
+    jsonOnce('/data_manifest.json')
       .then((d) => { if (!cancelled) setManifest(d); })
       .catch(() => {});
     return () => { cancelled = true; };

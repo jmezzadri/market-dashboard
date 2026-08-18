@@ -7,14 +7,16 @@
    leads with the CHANGE, per the brief design rules. */
 
 import { useEffect, useState } from 'react';
+import jsonOnce from './jsonOnce';
 
 export default function useMarketLevels() {
   const [hist, setHist] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/indicator_history.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
+    // Shared with useIndicators — the home page mounts both and the file is
+    // ~4.9 MB, so this must not be two requests (jsonOnce, 2026-08-18).
+    jsonOnce('/indicator_history.json')
       .then((d) => { if (!cancelled) setHist(d); })
       .catch(() => {});
     return () => { cancelled = true; };
