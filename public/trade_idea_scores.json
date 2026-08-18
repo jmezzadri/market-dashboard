@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-18T21:38:30Z",
+  "generated_at": "2026-08-18T23:15:03Z",
   "as_of": "2026-08-18",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -38,7 +38,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -0.8461
+          "return_pct": -1.5284
         },
         {
           "series": "ndx_index",
@@ -49,14 +49,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -0.3152
+          "return_pct": -1.6441
         }
       ],
-      "buy_pct": -0.8461,
-      "sell_pct": -0.3152,
+      "buy_pct": -1.5284,
+      "sell_pct": -1.6441,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -0.5309,
-      "risk_sized_pct": -0.2304,
+      "position_pct": 0.1156,
+      "risk_sized_pct": 0.0502,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -71,16 +71,16 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.5227,
-        "difference": -0.0082,
+        "move": -1.2073,
+        "difference": 1.3229,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -0.5309,
-      "mark_date": "2026-08-17",
-      "sessions_held": 2,
+      "mark": 0.1156,
+      "mark_date": "2026-08-18",
+      "sessions_held": 3,
       "max_favourable": {
-        "value": 0.0,
-        "date": "2026-08-14"
+        "value": 0.1156,
+        "date": "2026-08-18"
       },
       "max_adverse": {
         "value": -0.5309,
