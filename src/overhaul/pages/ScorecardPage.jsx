@@ -149,10 +149,13 @@ function Row({ r, idea, onOpenNote }) {
                   </tbody>
                 </table>
               )}
-              {r.benchmark_absent_reason && (
-                <p className="sc-legnote">{r.benchmark_absent_reason}</p>
+              {/* One explanation, not two — the currency calls were printing
+                  "a pair is already one thing against another" immediately
+                  above "buying EUR/USD already sells dollars", which is the
+                  same sentence twice. */}
+              {(r.benchmark_absent_reason || r.single_leg_note) && (
+                <p className="sc-legnote">{r.benchmark_absent_reason || r.single_leg_note}</p>
               )}
-              {r.single_leg_note && <p className="sc-legnote">{r.single_leg_note}</p>}
 
               <dl className="sc-facts">
                 <div><dt>Position</dt><dd>{r.instrument}</dd></div>
@@ -288,11 +291,13 @@ export default function ScorecardPage() {
             )}
           </div>
 
-          {s.stats_withheld ? (
-            <p className="sc-withheld">
-              <strong>No hit rate yet.</strong> {s.stats_withheld_reason}
-            </p>
-          ) : (
+          {/* The "no hit rate yet" banner is gone (Joe, 2026-08-18: "just remove
+              that"). The DISCIPLINE is unchanged and still lives in the marker:
+              below MIN_CLOSED_FOR_STATS closed calls it refuses to compute a
+              hit rate, so there is nothing here to show — the page simply
+              doesn't explain its own absence at the top of the screen. The
+              reason still ships in the JSON for anyone reading the data. */}
+          {!s.stats_withheld && (
             <div className="sc-tiles">
               <div className="sc-tile"><span className="sc-tile-n">{s.hit_rate}%</span><span className="sc-tile-l">Hit rate</span></div>
               <div className="sc-tile"><span className="sc-tile-n">{fmt(s.mean_result, '%')}</span><span className="sc-tile-l">Mean result</span></div>
