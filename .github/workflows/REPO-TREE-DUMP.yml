@@ -20,4 +20,18 @@ jobs:
           git config user.email "agent@macrotilt.com"
           git add public/_repo_tree.txt
           git commit -m "chore: dump repo tree for agent read-back" || exit 0
-          git push
+          # 2026-08-18: a bare `git push` loses the data-commit race. This repo commits
+          # several times an hour, so another workflow WILL land between our checkout
+          # and our push -- macrotilt-engine-daily died exactly that way on 8/17 (run
+          # 32063212545, step "Commit ... if changed") and emailed Joe about it. Rebase
+          # onto whatever landed and retry; only a persistent failure is a real error.
+          pushed=0
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push; then pushed=1; break; fi
+            echo "push race on attempt $attempt — retrying in 5s"
+            sleep 5
+          done
+          if [ "$pushed" -ne 1 ]; then
+            echo "::error::could not push after 5 attempts — this is a real failure, not a race"
+            exit 1
+          fi

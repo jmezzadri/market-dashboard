@@ -1280,3 +1280,32 @@ The corrected rule is: entry is the last close that had **settled when the note 
 4. **When a metric reads as a flat zero across every row, suspect the metric.** Three independent calls in three different asset classes returning exactly 0.00% is not a market observation, it is a signature. Treat an implausibly clean result as a defect until proven otherwise.
 
 **Applies to:** the scorecard, and every backtest or attribution that has to decide when a position started.
+
+### 4.32 (2026-08-18) — Two brief emails a day for twelve days, and I cleared the duplicate generator on a one-day sample
+
+**What happened:** Joe: *"I got two daily brief emails today. Why?"* He had been getting two every weekday since ~2026-08-06. On 8/18 they arrived 09:50:41Z and 10:45:33Z; on 8/17, 09:52:32Z and 10:47:33Z. Identical subject (`Market Brief — YYYY-MM-DD`), different bodies, ~55 minutes apart.
+
+Two generators, exactly the thing LESSONS 4.14 forbids:
+- **10:45Z** — `build_daily_brief.py` via DAILY-BRIEF-WRITER. Branded HTML, `&#8227;` bullets, and a matching `brief_email_log` row every day (8/18 → run 32128325043 at 10:45:32.94Z, to the second). This is the hardened, version-controlled generator. **Keeper.**
+- **09:50Z** — the legacy `Daily Market Brief` scheduled task (cron `45 9 * * 1-5`). Plain-text, `- ` bullets, **no `brief_email_log` row**. Its prompt is not in version control and it is the generator that shipped fabricated claims in LESSONS 4.21. **Must die.**
+
+**The part that is mine:** on 8/13 I investigated this exact task, found only ONE brief email in the inbox that day, and told Joe it was "verified harmless — it delivers no email". It was not harmless. 8/13 was the single day in the window when the *workflow's* send crashed on the stringified-null bug (4.29), so the one email I saw was the legacy one — and I read that as evidence the legacy task sends nothing. I sampled one day, and the day I picked was the one day the control was broken.
+
+**Rule:**
+
+1. **Never clear a suspected duplicate sender from a single day's inbox.** Attribute across a window (here 3+ days), and attribute each message to a sender by evidence — a ledger row, a distinctive body marker, an arrival time matching a known cron — not by counting how many arrived. `brief_email_log.sent_by` identified the keeper to the second; the absence of a row identified the other.
+2. **A day when the thing you are comparing against is broken is not a sample.** Before concluding "X sends nothing", confirm the *other* sender behaved normally that day. I had the evidence in hand — I fixed the workflow's crashed send myself an hour later — and did not connect it.
+3. **Not deletable is not the same as not harmful.** The legacy task is `created_via: http_api`, so `delete_trigger` and `update_trigger` both refuse and its own session has no trigger tools. That made it inconvenient to kill, which is exactly why "it's harmless" was an attractive conclusion. Inconvenience must not colour the finding.
+4. **State where the user has to go.** A routine invisible in the surface the user is looking at (it is absent from the desktop Cowork task list) needs a named alternative location, not "check your tasks".
+
+**Applies to:** Lead Developer — every duplicate-notification investigation, and any claim that a component is inert.
+
+### 4.33 (2026-08-18) — A bare `git push` in a repo that commits hourly is a scheduled failure
+
+**What happened:** `macrotilt-engine-daily` failed 2026-08-17 (run 32063212545) at `Commit snapshot + history if changed`, and emailed Joe. Compute, contract check and history check were all green — the only thing that broke was `git push`, because another workflow landed a commit between our checkout and our push. This repo commits several times an hour from data pipelines, so the race is not an edge case, it is the expected condition.
+
+Four workflows still had an unguarded bare `git push`: `macrotilt-engine-daily`, `BRIEF-FRESHNESS-SELFHEAL`, `CONVICTION-OPEN-DAILY`, `REPO-TREE-DUMP`. Others already carried `git pull --rebase origin main` before pushing — the pattern existed and had simply never been applied everywhere.
+
+**Rule:** every workflow that pushes retries: rebase onto whatever landed, push, and repeat up to 5 times before calling it a real failure. `pull --rebase` alone is better than nothing but still races between the rebase and the push — the loop is the fix. When a defensive pattern already exists in the repo, applying it to ONE new site is half a fix; grep for every other site in the same change.
+
+**Applies to:** Lead Developer — every workflow step that writes to the repo.
