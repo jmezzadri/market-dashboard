@@ -93,7 +93,8 @@
 
 /* ── tape ── */
 .home-v12 .tape{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);background:var(--bg2);transition:background .5s}
-.home-v12 .tape .row{display:grid;grid-template-columns:repeat(7,1fr)}
+/* 9 tiles since 2026-08-18 (NASDAQ + Dow joined the three-index block). */
+.home-v12 .tape .row{display:grid;grid-template-columns:repeat(9,1fr)}
 .home-v12 .t{padding:30px 10px 28px;text-align:center;border-left:1px solid var(--hair);text-decoration:none;color:inherit;display:block;cursor:pointer;transition:transform .25s}
 .home-v12 .t:first-child{border-left:0}
 .home-v12 .t:hover{transform:translateY(-3px)}
@@ -103,6 +104,11 @@
 .home-v12 .t .tv{font-family:var(--serif);font-size:42px;line-height:1.15;margin-top:4px;transition:color .25s}
 .home-v12 .t .td{font-size:13px;font-weight:600;margin-top:2px}
 .home-v12 .t .td small{color:var(--mut);font-weight:500;margin-left:4px;letter-spacing:.04em}
+/* The tape's own up/down colours. `.down` had no rule scoped to the home
+   page, so a falling tile rendered in body ink (2026-08-18). */
+.home-v12 .t .td.up{color:var(--up)}
+.home-v12 .t .td.down{color:var(--down)}
+.home-v12 .t .td.fl{color:var(--mut)}
 .home-v12 .up{color:var(--up)} .home-v12 .dn{color:var(--down)} .home-v12 .fl{color:var(--mut)}
 
 /* ── sections ── */
@@ -255,7 +261,8 @@
    The two centerpieces are always whole on the fold; the supporting row's top
    edge sits at it, which is the honest outcome — on a larger display the whole
    cockpit lands, and nothing has been shrunk past legibility to fake it. */
-.home-cockpit .tape .t{padding:14px 10px 13px}
+.home-cockpit .tape .t{padding:14px 8px 13px}
+.home-cockpit .tape .tk{white-space:nowrap}
 .home-cockpit .tape .tv{font-size:26px;line-height:1.1;margin-top:2px}
 .home-cockpit .tape .tk{font-size:10px}
 .home-cockpit .tape .td{font-size:11.5px}
@@ -373,8 +380,8 @@
 
 /* ── responsive (see also responsive.css additions) ── */
 @media (max-width: 1100px){
-  .home-v12 .tape .row{grid-template-columns:repeat(4,1fr)}
-  .home-v12 .t:nth-child(n+5){border-top:1px solid var(--hair)}
+  .home-v12 .tape .row{grid-template-columns:repeat(5,1fr)}
+  .home-v12 .t:nth-child(n+6){border-top:1px solid var(--hair)}
   .home-v12 .engine-card{grid-template-columns:1fr;gap:28px}
   .home-v12 .sp7,.home-v12 .sp5{grid-column:span 12}
 }
@@ -385,8 +392,8 @@
   .home-v12 .idea-facts{grid-template-columns:1fr;gap:14px 0}
 }
 @media (max-width: 640px){
-  .home-v12 .tape .row{grid-template-columns:repeat(2,1fr)}
-  .home-v12 .t:nth-child(n+3){border-top:1px solid var(--hair)}
+  .home-v12 .tape .row{grid-template-columns:repeat(3,1fr)}
+  .home-v12 .t:nth-child(n+4){border-top:1px solid var(--hair)}
   .home-v12 .t .tv{font-size:32px}
   .home-v12 .hero{padding:56px 0 48px}
   .home-v12 .ir{height:auto;min-height:64px;flex-wrap:wrap;padding:10px 6px}

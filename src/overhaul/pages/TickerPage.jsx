@@ -378,11 +378,20 @@ export default function TickerPage() {
      substituted number, which we never show (LESSONS 4.4) — a covered symbol
      with no stored close yet (fresh listing, thin name) gets an em-dash. */
   const hasPrice = eod?.last_close != null || snap?.close != null || scanRow?.price != null;
+  /* Day move. Two rules, both learned the hard way:
+     (a) never guess a unit. The old code multiplied a snapshot change by 100
+         when |x| < 1, which turns a real +0.4% into +40%. universe_snapshots
+         stores close and prev_close, so the percentage is computed, not
+         inferred — and `perc_change` is NULL on every row anyway.
+     (b) never fall back to 0. A missing change is an em-dash; a green
+         "+0.00%" is a substituted number (LESSONS 4.4). */
+  const snapPct = (snap?.close != null && snap?.prev_close > 0)
+    ? ((Number(snap.close) / Number(snap.prev_close)) - 1) * 100
+    : null;
   const chgPct  = eod?.day_pct != null
     ? Number(eod.day_pct)
-    : (snap?.perc_change != null
-        ? Number(snap.perc_change) * (Math.abs(snap.perc_change) < 1 ? 100 : 1)
-        : (scanRow?.chg ?? 0));
+    : (snapPct != null ? snapPct : (scanRow?.chg != null ? Number(scanRow.chg) : null));
+  const hasChg  = Number.isFinite(chgPct);
   const prevClose = eod?.prev_close ?? snap?.prev_close ?? null;
   const priceAsOf = eod?.trade_date || null;
   // A prices_eod row dated later than the latest COMPLETED NYSE session is an
@@ -411,9 +420,17 @@ export default function TickerPage() {
   const lseLive = useLseLive([sym], { enabled: !!sym });
   const liveQ = lseLive.bySymbol?.[sym] || null;
   const livePrice = liveQ && liveQ.covered && liveQ.price != null ? liveQ.price : null;
-  // Move vs the last COMPLETED close: when the EOD row is itself an intraday
-  // print, the completed close is prev_close; otherwise it is last_close.
-  const liveBase = isIntraday ? prevClose : (price || null);
+  /* Move vs the last COMPLETED close. Preference order matters:
+     1. the base the QUOTE PROVIDER shipped with the price (Yahoo's
+        chartPreviousClose). Price and base then come from one observation of
+        one instrument at one moment — they cannot disagree.
+     2. prev_close, when our stored row is itself an intraday print.
+     3. the stored last close.
+     (2) and (3) are a table lookup that can be a session behind the quote;
+     (1) cannot. KLIC on 2026-08-18 is the case in point. */
+  const liveBase = (liveQ?.prevClose != null && liveQ.prevClose > 0)
+    ? liveQ.prevClose
+    : (isIntraday ? prevClose : (price || null));
   const livePct = livePrice != null && liveBase > 0 ? ((livePrice / liveBase) - 1) * 100 : null;
   /* Live-first hero (Joe 2026-07-28): while the market is OPEN and the live
      feed covers this name, the live price is the headline number — nobody
@@ -652,7 +669,7 @@ export default function TickerPage() {
             ) : (
               <>
             <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : '—'}</div>
-            {hasPrice && (
+            {hasPrice && hasChg && (
             <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
               {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(
                 /* actual price move = price − prior close. The old code used
@@ -666,6 +683,16 @@ export default function TickerPage() {
                   : (price * chgPct) / (100 + chgPct)
               ).toFixed(2)}{' '}
               ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
+              {/* The session this move belongs to, on the move itself. Joe,
+                  2026-08-18: KLIC read "+2.70%" in green at 11 AM while the
+                  stock was down 11% — the date was on a separate meta line
+                  below and nobody reads a date to decide whether a green
+                  number is today. A move that is not today says so, here. */}
+              <span className="tk-chgsession">
+                {isIntraday
+                  ? ' today'
+                  : (priceAsOf ? ` · ${fmtDateShort(priceAsOf)} session` : '')}
+              </span>
             </div>
             )}
             <div className="tk-pricemeta num">
@@ -682,12 +709,12 @@ export default function TickerPage() {
                     <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
                     {livePct != null && (
                       <span className={livePct >= 0 ? 'up' : 'down'}>
-                        {' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}% vs last close
+                        {' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}% vs prev close ${fmt(liveBase, 2)}
                       </span>
                     )}
                   </>
                 ) : (
-                  <><span className="tk-livelabel">Live</span> — <span className="tk-livedim">not covered by the live price feed</span></>
+                  <><span className="tk-livelabel">Live</span> — <span className="tk-livedim">no live quote for this symbol{lseLive.marketOpen === true ? '; the move above is a prior session' : ''}</span></>
                 )}
               </div>
             )}
@@ -763,7 +790,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                ${fmt(price, 2)} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
+                {hasPrice ? `$${fmt(price, 2)}` : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
               </div>
             </div>
             <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -993,11 +1020,16 @@ export default function TickerPage() {
                 <ScoreDial score={r.score} max={5} size={36} />
               </div>
               <div className="tk-relsub">{r.sector || '—'}</div>
+              {/* A null change is an em-dash, not a green +0.00% (LESSONS 4.4).
+                  These come off the nightly scan snapshot, so the card says so
+                  rather than implying a live quote. */}
               <div className="tk-relstats num">
-                <span>${fmt(r.price, 2)}</span>
-                <span className={(r.chg ?? 0) >= 0 ? 'up' : 'down'}>
-                  {(r.chg ?? 0) >= 0 ? '+' : ''}{(r.chg ?? 0).toFixed(2)}%
-                </span>
+                <span>{r.price != null ? `$${fmt(r.price, 2)}` : '—'}</span>
+                {Number.isFinite(r.chg) ? (
+                  <span className={r.chg >= 0 ? 'up' : 'down'}>
+                    {r.chg >= 0 ? '+' : ''}{Number(r.chg).toFixed(2)}%
+                  </span>
+                ) : <span className="tk-livedim">—</span>}
               </div>
             </button>
           ))}

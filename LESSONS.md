@@ -1354,3 +1354,30 @@ Note where the pattern came from. Four lines above the change, the same function
 4. **Diff the deployed function against the repo before redeploying it.** `lse-live` v10 in production carried a v8 header comment this repo did not, so the version-controlled copy was not quite the source of record and a redeploy would have dropped it. It was only a comment this time. It was `agent-write`'s entire source in 4.29.
 
 **Applies to:** Lead Developer, Data Steward — every on-demand / on-view feed, and every `market_hours_only` chip.
+
+---
+
+### 4.43 (2026-08-18) — A live feed with silent holes is worse than no live feed; and a stale % is a lie the moment it renders without its session
+
+**What happened:** Joe opened `/ticker/KLIC` at 11 AM ET. The page showed **$101.77, ▲ +2.70%** in green. KLIC was actually trading at **$90.06, −11.5%**, and his own portfolio page — one click away — showed it as the day's worst position at −27.4bp / −$2,692. Two surfaces of the same site, the same stock, the same minute, opposite signs.
+
+**Root cause, in two parts, and the second one is the real one.**
+
+*(a) The coverage hole.* `lse_live_quotes` held KLIC as `covered:false`, negative-cached that morning for 24 hours. The LSE feed carries ~4,000 US names; a miss wrote a tombstone and the site stopped asking. Thirteen other real symbols sat in the same state — including **TSM**. And the write path was worse than a coverage miss: `fetchOne` returned `covered:false` on an *empty bar array* as well as on a 404, so one bad minute on a liquid ticker poisoned it for a day. Nothing anywhere reconciled that list against reality.
+
+*(b) The presentation.* This is the part that made a data gap into a wrong number. With no live quote, the hero fell back to `prices_eod` — correctly, that was the Aug 17 close and the Aug 14→17 move. It then rendered that move as a **green +2.70% with an up arrow**, in the same 15px slot, the same colour, the same position as a live move, with the date on a *separate* meta line underneath. Nobody reads a date to decide whether a green number is today. The fallback was not wrong about the past; it was silent about which day it was describing, and silence in that slot reads as "now".
+
+Three smaller fabrications were sitting in the same file, all of the same species: the chart header printed `$0.00` for a symbol with no stored close (the hero guarded this; the header didn't), a related-name card with a null change rendered a green `+0.00%`, and `chgPct` multiplied a snapshot change by 100 whenever `|x| < 1` — a heuristic that turns a real +0.4% into +40%, on a column that is NULL on every row anyway.
+
+**The fix is one resolver, not one patch.** `lse-live` mode `quotes` now tries LSE first and falls back to Yahoo's chart meta, which returns the live print **and** `chartPreviousClose` in the same response. `covered:false` now means *neither* provider knows the symbol — i.e. it is not a real ticker (APPL, MFST, NVDIA, ZZZZQ re-negative-cached within a second; every real name came back). A name that has ever been covered is never downgraded by a single bad response. The prior close now travels **with** the price, so the base and the number it is compared against come from one observation of one instrument at one moment and cannot disagree — a table lookup can be a session behind, and for KLIC it was. Every price surface was then put on that one resolver: the ticker hero, the home tape (S&P, NASDAQ, Dow), and the Portfolio Lab, which had been showing yesterday's close in a column called "Last" with no change column at all.
+
+**Rule:**
+
+1. **A percentage renders with the session it belongs to, in the same element.** Not on a meta line, not in a tooltip, not implied by a date twelve pixels below. "▲ +2.70% · Aug 17 session" is honest; "▲ +2.70%" with the date elsewhere is not. This binds on every surface that quotes a move.
+2. **A fallback must degrade in a way the reader can see.** Falling back to older data is fine. Falling back *silently into the slot where fresh data lives* is a fabrication, whatever the number's provenance. Ask of every fallback: if this fires, does the page look different?
+3. **"Not covered" is a claim about the world, not about one vendor.** One provider's gap is a sourcing problem to solve, not a fact to render. Where a second provider is free and available, exhaust it before telling the user we don't know. Negative-cache only what *nothing* can answer.
+4. **A negative cache needs a higher bar than a positive one.** A 404 is evidence; an empty array is not. Never let a transient response write a tombstone with a 24-hour TTL, and never downgrade a symbol that has previously answered.
+5. **Coverage lists get audited, not assumed.** `select * where covered=false` was a five-second query that would have surfaced TSM sitting dark for three weeks. Any table that decides what the site refuses to show needs a scheduled read-back.
+6. **The cross-surface check is the test that matters.** Every one of these surfaces passed its own unit of sanity. The defect only exists in the comparison — and Joe is the one who ran it. When two pages can quote the same instrument, they resolve it through the same function, or one of them will eventually be wrong in public.
+
+**Applies to:** Lead Developer + UX Designer + Data Steward — every surface that renders a price, a level, or a move.

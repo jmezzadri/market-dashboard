@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
 import useMarketLevels from '../lib/useMarketLevels';
+import useLseLive from '../../hooks/useLseLive';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
@@ -84,8 +85,25 @@ function firstClause(s, max = 82) {
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
 
+/* Market tape.
+   `pct: true`  — an equity index, quoted the way equity indexes are quoted:
+                  percent, not points (Joe 2026-08-18).
+   `live`       — the quote symbol pulled through the shared live-quote path
+                  (LSE primary, Yahoo fallback). Present only on the three
+                  equity indexes: during the session they show the live level
+                  and the live move; outside it, the last close. The remaining
+                  tiles are macro series that only ever print daily, so they
+                  stay on indicator_history and stay labelled "close".
+   Dow arrives entirely through the live path — we carry no DJIA history file,
+   and standing up a nightly feed for one tile is not worth a new producer,
+   a manifest element and a health row. It is quoted, not analysed.
+   S&P and NASDAQ route to their own macro indicator, NOT to /ticker/SPY:
+   the tape shows the INDEX and the ticker page shows the ETF — different
+   instrument, different feed, different change unit, one click apart. */
 const RIBBON = [
-  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', route: '/ticker/SPY' },
+  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', route: '/macro?ind=spx_index', live: '^GSPC', pct: true },
+  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', route: '/macro?ind=ndx_index', live: '^IXIC', pct: true },
+  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', route: '/macro', live: '^DJI', pct: true },
   { key: 'move', label: 'MOVE', dec: 0, suffix: '', route: '/macro?ind=move' },
   { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', route: '/macro?ind=ust_10y' },
   { key: 'vix', label: 'VIX', dec: 1, suffix: '', route: '/macro?ind=vix' },
@@ -93,6 +111,30 @@ const RIBBON = [
   { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', route: '/macro?ind=hy_ig' },
   { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', route: '/macro?ind=cmdty_copper' },
 ];
+const RIBBON_LIVE_SYMS = RIBBON.filter((r) => r.live).map((r) => r.live);
+
+/* One tape tile's numbers, resolved once so the value, the change and the
+   as-of label can never come from different observations. */
+function tapeTile(r, lv, liveQ) {
+  const live = r.live && liveQ && liveQ.covered && liveQ.price != null ? liveQ : null;
+  if (live) {
+    const base = live.prevClose != null && live.prevClose > 0 ? live.prevClose : null;
+    return {
+      value: live.price,
+      pct: base != null ? ((live.price / base) - 1) * 100 : null,
+      dd: base != null ? live.price - base : null,
+      stamp: 'live',
+    };
+  }
+  if (!lv) return null;
+  const prev = lv.dd != null ? lv.value - lv.dd : null;
+  return {
+    value: lv.value,
+    pct: prev > 0 && lv.dd != null ? (lv.dd / prev) * 100 : null,
+    dd: lv.dd,
+    stamp: 'close',
+  };
+}
 
 /* ── engine gauge math (linear scales; bands = engine thresholds) ───────── */
 const clampPct = (x) => Math.max(0, Math.min(100, x));
@@ -134,6 +176,10 @@ export default function HomePage() {
   const flip = () => setTweak('theme', isDark ? 'light' : 'navy');
 
   const { level } = useMarketLevels();
+  /* The equity indexes ride the same live-quote path as every other price on
+     the site — one resolver, so the tape and a ticker page can never tell the
+     user two different stories about the same session. */
+  const ribbonLive = useLseLive(RIBBON_LIVE_SYMS);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
   const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
@@ -211,13 +257,18 @@ export default function HomePage() {
       <Reveal className="tape">
         <div className="wrap row">
           {RIBBON.map((r) => {
-            const lv = level(r.key);
-            const d = ddParts(lv?.dd, r.dec);
+            const t = tapeTile(r, level(r.key), ribbonLive.bySymbol?.[r.live]);
+            // Equity indexes quote in percent; macro series quote in their own
+            // native unit, where a point change is the meaningful number.
+            const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
             return (
               <a key={r.key} className="t" href={r.route} onClick={go(r.route)}>
                 <span className="tk">{r.label}</span>
-                <span className="tv">{lv ? fmt(lv.value, r.dec) + r.suffix : '—'}</span>
-                <span className={`td ${d.cls || 'fl'}`}>{d.txt ? `${d.arrow} ${d.txt.replace(/^[+−-]/, '')}` : '—'} <small>close</small></span>
+                <span className="tv">{t ? fmt(t.value, r.dec) + r.suffix : '—'}</span>
+                <span className={`td ${d.cls || 'fl'}`}>
+                  {d.txt ? `${d.arrow} ${d.txt.replace(/^[+−-]/, '')}${r.pct ? '%' : ''}` : '—'}{' '}
+                  <small>{t?.stamp || 'close'}</small>
+                </span>
               </a>
             );
           })}
