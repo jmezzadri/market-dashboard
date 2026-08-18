@@ -19,6 +19,22 @@
 //   same as one. TTLs: quotes 45s open / 30min closed; IV term 30min open / 6h
 //   closed. Uncovered symbols negative-cache for 24h (em-dash on the site —
 //   never a fabricated value, LESSONS 4.4).
+// - Two providers, one contract (2026-08-18, Joe: "consistent and accurate
+//   pricing EVERYWHERE"). LSE is primary (paid 1m bars). Yahoo's chart meta is
+//   the FALLBACK for anything LSE does not carry — it returns the current
+//   print AND chartPreviousClose, so the day move is computed against the
+//   right base rather than a possibly-stale prices_eod row. `covered:false`
+//   now means BOTH providers said no, i.e. the symbol is not real (APPL,
+//   MFST, NVDIA, ZZZZQ). Rationale: KLIC sat negative-cached as "uncovered"
+//   while it was down 11%, and the ticker page fell back to the prior
+//   session's +2.70% and painted it green as today's move. A live feed with
+//   silent holes is worse than no live feed.
+// - A name that has EVER been covered is never downgraded to covered:false by
+//   a single bad response — one empty minute must not poison a real ticker
+//   for the 24h negative-cache window.
+// - Index symbols (^GSPC, ^IXIC, ^DJI — the home tape) skip LSE entirely and
+//   go straight to the fallback: they are not in an equity candles universe,
+//   and probing one every 45 s buys a guaranteed HTTP 400.
 // - Free-tier budget (verified 2026-07-27 via /vault/usage): 200 calls/min,
 //   concurrency 2, 50 GB/month. Vendor fan-out here uses concurrency 2.
 // - pipeline_health stamped green ONLY AFTER the cache write lands
@@ -39,6 +55,9 @@
 
 const VAULT = "https://api.londonstrategicedge.com/vault";
 const UA = "macrotilt-live";
+
+const YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart";
+const YAHOO_UA = "Mozilla/5.0 (compatible; MacroTiltBot/1.0)";
 
 const QUOTE_TTL_OPEN_S = 45;
 const QUOTE_TTL_CLOSED_S = 30 * 60;
@@ -154,43 +173,112 @@ async function modeQuotes(symbols: string[]) {
     if (!row) return true;
     const age = (nowMs - (Date.parse(String(row.fetched_at)) || 0)) / 1000;
     if (row.covered === false) return age > UNCOVERED_TTL_S;
+    // Fallback-sourced rows refresh a little slower: Yahoo is unmetered and
+    // unkeyed, so we spend its calls sparingly. 60 s is still inside a
+    // reader's attention span for a quote.
+    if (row.source === "yahoo") return age > Math.max(ttlS, 60);
     return age > ttlS;
   });
 
   let vendorErr: string | null = null;
   let refreshed = 0;
+  let refreshedLse = 0;
   if (stale.length) {
     const key = await lseKey();
     const nowIso = new Date().toISOString();
+    // Fallback provider. Free, no key, one call per symbol. Returns the live
+    // print AND the previous close, which is the whole point: the base the %
+    // move is measured against arrives with the price instead of being looked
+    // up in a table that may be a session behind.
+    const yahooQuote = async (sym: string): Promise<Json | null> => {
+      const url = `${YAHOO_CHART}/${encodeURIComponent(sym)}?range=1d&interval=1d`;
+      const r = await fetch(url, { headers: { "User-Agent": YAHOO_UA, Accept: "application/json" } });
+      if (!r.ok) return null;                 // 404 / 4xx -> symbol not found
+      const j = await r.json();
+      const m = j?.chart?.result?.[0]?.meta;
+      const px = Number(m?.regularMarketPrice);
+      if (!m || !Number.isFinite(px)) return null;
+      const t = Number(m.regularMarketTime);
+      const pc = Number(m.chartPreviousClose ?? m.previousClose);
+      return {
+        symbol: sym,
+        price: px,
+        bar_ts: Number.isFinite(t) ? new Date(t * 1000).toISOString() : null,
+        prev_close: Number.isFinite(pc) ? pc : null,
+        covered: true,
+        source: "yahoo",
+        fetched_at: nowIso,
+        updated_at: nowIso,
+      };
+    };
+
+    // LSE answers "not mine" with several status codes, none of which is an
+    // outage: 404 "has no candle data" and 400 "bad symbol" (what an index
+    // symbol like ^GSPC gets). Neither may red-stamp the feed — a false red on
+    // a healthy feed is the failure mode LESSONS 4.28 was written about.
+    const isCoverageMiss = (msg: string) => msg.includes("HTTP 404") || msg.includes("HTTP 400");
+
     const fetchOne = async (sym: string): Promise<Json | null> => {
+      // Index symbols are never in an equity candles universe. Don't spend a
+      // vendor call (and a guaranteed 400) to learn that every 45 seconds.
+      if (sym.startsWith("^")) {
+        const y = await yahooQuote(sym).catch(() => null);
+        if (y) return y;
+        const priorIdx = bySym.get(sym);
+        if (priorIdx && priorIdx.covered === true) return null;
+        return {
+          symbol: sym, price: null, bar_ts: null, prev_close: null,
+          covered: false, source: null, fetched_at: nowIso, updated_at: nowIso,
+        };
+      }
+      // 1) primary — LSE 1-minute bar.
       try {
         const bars = await lse("/candles", { symbol: sym, timeframe: "1m", order: "desc", limit: "1" }, key);
         const b = Array.isArray(bars) ? bars[0] : null;
-        if (!b) {
-          return { symbol: sym, price: null, bar_ts: null, covered: false, fetched_at: nowIso, updated_at: nowIso };
+        if (b) {
+          const ts = tsParse(b.ts ?? b.timestamp);
+          const price = Number(b.close ?? b.open);
+          if (Number.isFinite(price)) {
+            return {
+              symbol: sym,
+              price,
+              bar_ts: Number.isFinite(ts) ? new Date(ts).toISOString() : null,
+              prev_close: null,     // LSE candles carry no prior close; the client
+              covered: true,        // anchors on prices_eod for these names.
+              source: "lse",
+              fetched_at: nowIso,
+              updated_at: nowIso,
+            };
+          }
         }
-        const ts = tsParse(b.ts ?? b.timestamp);
-        const price = Number(b.close ?? b.open);
-        return {
-          symbol: sym,
-          price: Number.isFinite(price) ? price : null,
-          bar_ts: Number.isFinite(ts) ? new Date(ts).toISOString() : null,
-          covered: true,
-          fetched_at: nowIso,
-          updated_at: nowIso,
-        };
+        // Empty bar set: not proof of anything. Fall through to the fallback.
       } catch (e) {
         const msg = String(e);
-        // 404 "'X' has no candle data" = the symbol simply isn't in LSE's
-        // universe — that's coverage, not an outage. Negative-cache it so the
-        // site shows an em-dash and we don't re-probe for 24h.
-        if (msg.includes("HTTP 404")) {
-          return { symbol: sym, price: null, bar_ts: null, covered: false, fetched_at: nowIso, updated_at: nowIso };
-        }
-        vendorErr = msg.slice(0, 300);
-        return null;
+        // A coverage miss is not an outage. Anything else IS a real vendor
+        // error and is reported — but either way the fallback still gets its
+        // turn, because the user's question is "what is this stock doing", not
+        // "what does LSE think".
+        if (!isCoverageMiss(msg)) vendorErr = msg.slice(0, 300);
       }
+
+      // 2) fallback — Yahoo chart meta.
+      try {
+        const y = await yahooQuote(sym);
+        if (y) return y;
+      } catch (e) {
+        if (!vendorErr) vendorErr = String(e).slice(0, 300);
+        return null;               // transient: keep whatever row we already had
+      }
+
+      // 3) neither provider has it.
+      const prior = bySym.get(sym);
+      if (prior && prior.covered === true) return null;   // never un-cover a real name
+      return {
+        symbol: sym, price: null, bar_ts: null, prev_close: null,
+        covered: false, source: null, fetched_at: nowIso, updated_at: nowIso,
+      };
     };
+
     let updates = await pool(stale, 2, fetchOne);
     // One retry round for transient vendor errors — live UAT (2026-07-27)
     // caught a batch where half the book errored on the first pass and every
@@ -211,13 +299,19 @@ async function modeQuotes(symbols: string[]) {
       });
       if (!r.ok) throw new Error(`quote cache write HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
       refreshed = rows.length;
+      // Only an actual LSE pull may stamp the LSE feed green. A round served
+      // entirely by the fallback provider says nothing about LSE's health and
+      // must not claim a vendor call that never happened (LESSONS 4.28 r4).
+      refreshedLse = rows.filter((r) => r.source === "lse").length;
       for (const row of rows) bySym.set(String(row.symbol), row);
     }
   }
 
-  // Stamp only when we actually pulled from the vendor this call.
-  if (refreshed > 0) {
-    const newest = [...bySym.values()].reduce((m, r) => {
+  // Stamp only when we actually pulled from the LSE vendor this call.
+  if (refreshedLse > 0) {
+    // data_as_of for the LSE element is the newest LSE bar — a fallback row's
+    // timestamp would claim a vendor observation LSE never made.
+    const newest = [...bySym.values()].filter((r) => r.source === "lse").reduce((m, r) => {
       const t = Date.parse(String(r.bar_ts ?? "")) || 0;
       return t > m ? t : m;
     }, 0);
@@ -231,8 +325,16 @@ async function modeQuotes(symbols: string[]) {
     quotes: syms.map((s) => {
       const r = bySym.get(s);
       return r
-        ? { symbol: s, price: r.price == null ? null : Number(r.price), barTs: r.bar_ts ?? null, covered: r.covered !== false, fetchedAt: r.fetched_at }
-        : { symbol: s, price: null, barTs: null, covered: false, fetchedAt: null };
+        ? {
+            symbol: s,
+            price: r.price == null ? null : Number(r.price),
+            barTs: r.bar_ts ?? null,
+            prevClose: r.prev_close == null ? null : Number(r.prev_close),
+            covered: r.covered !== false,
+            source: (r.source as string) ?? null,
+            fetchedAt: r.fetched_at,
+          }
+        : { symbol: s, price: null, barTs: null, prevClose: null, covered: false, source: null, fetchedAt: null };
     }),
     vendorError: vendorErr,
   };

@@ -5,6 +5,13 @@
    Every engine (paper trading, scanner, allocator) stays on the official
    end-of-day price table — LESSONS 8.6 binds; nothing here feeds a trade.
 
+   Two providers behind one hook (2026-08-18): the edge function tries LSE
+   first and falls back to Yahoo's chart meta for anything LSE doesn't carry,
+   so `covered:false` now means the symbol isn't real rather than "our paid
+   feed happens to have a hole here". Covered names also return `prevClose`
+   when the provider supplies it — use it as the base for the day move in
+   preference to a stored close, which can be a session behind.
+
    How it stays cheap: the edge function keeps a shared server-side cache
    (45 s TTL in market hours) so every viewer reads the same vendor pull.
    This hook polls the function every 30 s while the tab is visible and the
@@ -65,8 +72,10 @@ export default function useLseLive(tickers, { enabled = true } = {}) {
         for (const q of data.quotes || []) {
           bySymbol[q.symbol] = {
             price: q.price != null && Number.isFinite(Number(q.price)) ? Number(q.price) : null,
+            prevClose: q.prevClose != null && Number.isFinite(Number(q.prevClose)) ? Number(q.prevClose) : null,
             barTs: q.barTs || null,
             covered: q.covered !== false,
+            source: q.source || null,
           };
           if (q.barTs && (!newest || q.barTs > newest)) newest = q.barTs;
         }

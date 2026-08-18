@@ -622,6 +622,9 @@
 .mt-overhaul .tk-price { font-family: var(--mt-font-display); font-size: 40px; font-weight: 400; letter-spacing: -0.02em; line-height: 1; }
 .mt-overhaul .tk-priceΔ { font-size: 15px; font-weight: 600; }
 .mt-overhaul .tk-pricemeta { font-size: 11px; color: var(--mt-ink-2); margin-top: 4px; }
+/* The session a day move belongs to, set inside the move itself so a
+   green number can never be mistaken for today's (Joe 2026-08-18). */
+.mt-overhaul .tk-chgsession { font-weight: 500; color: var(--mt-ink-2); }
 
 .mt-overhaul .tk-scoreblock {
   background: var(--mt-surface); border: 1px solid var(--mt-line-0);

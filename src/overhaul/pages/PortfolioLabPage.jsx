@@ -27,6 +27,7 @@ import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
 import useLabPrices, { useRiskFree, riskFreeForHorizon } from '../lib/useLabPrices';
 import useLseIv from '../lib/useLseIv';
+import useLseLive from '../../hooks/useLseLive';
 import FreshnessChip from '../components/FreshnessChip';
 import {
   HORIZONS, alignSeries, dailyReturns, annualVol, betaVs, covMatrix, corrMatrix,
@@ -372,6 +373,33 @@ export default function PortfolioLabPage() {
     [held.join(','), benchSel.join(','), sectorEtfs.join(',')], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const { series, lastPrice, asOf, loading: pricesLoading, failed } = useLabPrices(wanted);
+  /* Live quotes for the held names, off the SAME resolver the ticker page and
+     the home tape use (2026-08-18). Before this, the Lab's "Last" column was
+     the previous session's close while the ticker page one click away was
+     live — the same stock, two prices, and no way for a reader to tell which
+     one was talking about today. The history series stays on adjusted closes;
+     only the quoted price and the day move come from the live feed. */
+  const labLive = useLseLive(held);
+  /* Traded price + today's move per holding. Base preference is the quote
+     provider's own prior close, then the previous raw close in the series —
+     never a mixture of an adjusted and an unadjusted basis. */
+  const quotes = useMemo(() => {
+    const out = {};
+    for (const t of held) {
+      const q = labLive.bySymbol?.[t];
+      const rows = series[t] || [];
+      const lastRaw = rows.length ? (rows[rows.length - 1].raw ?? rows[rows.length - 1].c) : null;
+      const prevRaw = rows.length > 1 ? (rows[rows.length - 2].raw ?? rows[rows.length - 2].c) : null;
+      const live = q && q.covered && q.price != null ? q.price : null;
+      const base = (q?.prevClose != null && q.prevClose > 0)
+        ? q.prevClose
+        : (live != null ? lastRaw : prevRaw);
+      const price = live != null ? live : (lastPrice[t] ?? lastRaw);
+      const pctChg = (price != null && base > 0) ? ((price / base) - 1) * 100 : null;
+      out[t] = { price, pctChg, live: live != null };
+    }
+    return out;
+  }, [held.join(','), labLive.bySymbol, series, lastPrice]); // eslint-disable-line react-hooks/exhaustive-deps
   const rfCurve = useRiskFree();
   const rfH = riskFreeForHorizon(rfCurve, horizon);   // for Sharpe/CAPM (annual rate)
   /* ATM implied-vol term structures — fetched only for rows on the
@@ -783,8 +811,9 @@ export default function PortfolioLabPage() {
           <h1 className="serif">Expected return &amp; portfolio construction</h1>
           <p className="lab-sub">
             Add stocks, choose how each one&rsquo;s expected return is estimated, then optimize the mix
-            and compare it against benchmarks. Prices through {asOf || '—'} · adjusted daily closes,
-            fetched live · Risk-free {pct(rfH, 2)} ({horizon === '3y' ? '2y–10y Treasury blend' : '2-year Treasury'}
+            and compare it against benchmarks. Return, beta and volatility use split- and
+            dividend-adjusted daily closes through {asOf || '—'}; Last and Today are the traded
+            price, live while the market is open · Risk-free {pct(rfH, 2)} ({horizon === '3y' ? '2y–10y Treasury blend' : '2-year Treasury'}
             {rfCurve.asOf ? `, ${rfCurve.asOf}` : ''}).
             {ivolTickers.length > 0 && (
               <span className="lab-ivchip">
@@ -867,6 +896,7 @@ export default function PortfolioLabPage() {
                     <tr>
                       <th>Ticker</th>
                       <th className="num">Last</th>
+                      <th className="num">Today</th>
                       {/* Beta and volatility are per-holding facts, each from
                           that name's own history vs SPY (up to 5y) — not the
                           book-wide window (LESSONS 8.21). */}
@@ -896,7 +926,14 @@ export default function PortfolioLabPage() {
                             <td className="tick">
                               <button type="button" className="lab-ticklink" onClick={() => navigate(`/ticker/${h.ticker}`)}>{h.ticker}</button>
                             </td>
-                            <td className="num">{money(lastPrice[h.ticker])}</td>
+                            <td className="num">{money(quotes[h.ticker]?.price)}</td>
+                            <td className="num">
+                              {Number.isFinite(quotes[h.ticker]?.pctChg) ? (
+                                <span className={quotes[h.ticker].pctChg >= 0 ? 'up' : 'down'}>
+                                  {quotes[h.ticker].pctChg >= 0 ? '+' : ''}{quotes[h.ticker].pctChg.toFixed(2)}%
+                                </span>
+                              ) : '—'}
+                            </td>
                             <td className="num">{ps?.beta == null ? '—' : ps.beta.toFixed(2)}</td>
                             {/* The volatility the optimizer actually uses for
                                 this row: options-implied for Implied vol rows
@@ -967,7 +1004,7 @@ export default function PortfolioLabPage() {
                           </tr>
                           {scenOpen && h.scenarios && (
                             <tr className="lab-scenrow">
-                              <td colSpan={9}>
+                              <td colSpan={10}>
                                 <div className="lab-scen">
                                   {['bull', 'base', 'bear'].map((k) => (
                                     <div key={k} className="lab-scencase">
