@@ -38,7 +38,12 @@ def days(start, values):
 
 
 def idea(**kw):
-    base = {"id": "x", "date": "2026-01-05", "kind": "equity", "title": "t",
+    # Default published_at is AFTER the publication day's close (22:00 UTC),
+    # so entry is that day's own close and the direction / invalidation /
+    # horizon suites below can assume entry == first bar. TestEntry passes its
+    # own stamps to exercise the mid-session and Sunday cases explicitly.
+    base = {"id": "x", "date": "2026-01-05", "published_at": "2026-01-05T22:00:00Z",
+            "kind": "equity", "title": "t",
             "instrument": "i", "position_type": "outright long",
             "scorecard": {"legs": [{"series": "px", "side": "long", "measure": "pct_change"}],
                           "horizon_months": 3}}
@@ -48,25 +53,64 @@ def idea(**kw):
 
 
 class TestEntry(unittest.TestCase):
-    def test_entry_is_first_close_on_or_after_publication(self):
-        """Rule 1 — a Sunday note enters on the Monday close, never Friday's."""
+    """Rule 1 — entry is the last close that had SETTLED when the note went out.
+
+    The regression these guard against is the one Joe caught on 2026-08-18: the
+    original rule ("first close on or after the publish date") silently threw
+    away the first full session of every note published outside market hours,
+    so three live calls showed no performance four days in."""
+
+    def test_note_published_midsession_enters_at_the_previous_close(self):
+        """The equity note went out 11:01 AM ET Monday. Monday's close did not
+        exist yet, so the reader was looking at Friday's — and Monday's move is
+        part of the call, not excluded from it."""
         h = hist(px=[("2026-01-02", 100.0), ("2026-01-05", 110.0), ("2026-01-06", 121.0)])
-        r = S.score_one(idea(date="2026-01-03"), h, "2026-01-06")   # Saturday note
+        r = S.score_one(idea(date="2026-01-05", published_at="2026-01-05T15:00:00Z"), h, "2026-01-06")
+        self.assertEqual(r["entry_date"], "2026-01-02")
+        self.assertEqual(r["legs"][0]["entry_value"], 100.0)
+        self.assertAlmostEqual(r["mark"], 21.0, places=6)   # 100 -> 121, Monday INCLUDED
+
+    def test_sunday_note_enters_at_fridays_close(self):
+        """The rates note went out 7:28 PM ET Sunday. Friday's close is the
+        last price that existed; Monday's whole session belongs to the call."""
+        h = hist(px=[("2026-01-02", 100.0), ("2026-01-05", 110.0)])
+        r = S.score_one(idea(date="2026-01-04", published_at="2026-01-04T23:28:45Z"), h, "2026-01-05")
+        self.assertEqual(r["entry_date"], "2026-01-02")
+        self.assertAlmostEqual(r["mark"], 10.0, places=6)
+
+    def test_note_published_after_the_close_enters_at_that_close(self):
+        """Published 10 PM UTC — the day's close has settled, so it is the entry."""
+        h = hist(px=[("2026-01-02", 100.0), ("2026-01-05", 110.0), ("2026-01-06", 121.0)])
+        r = S.score_one(idea(date="2026-01-05", published_at="2026-01-05T22:00:00Z"), h, "2026-01-06")
         self.assertEqual(r["entry_date"], "2026-01-05")
-        self.assertEqual(r["legs"][0]["entry_value"], 110.0)
-        self.assertAlmostEqual(r["mark"], 10.0, places=6)           # 110 -> 121
+        self.assertAlmostEqual(r["mark"], 10.0, places=6)
 
-    def test_never_enters_before_publication(self):
-        h = hist(px=days("2026-01-05", [100, 200, 300]))
-        r = S.score_one(idea(date="2026-01-06"), h, "2026-01-07")
-        self.assertEqual(r["legs"][0]["entry_value"], 200.0)
+    def test_close_minutes_old_is_refused_conservatively(self):
+        """4:30 PM ET (20:30 UTC) is before the 21:00 cutoff: futures and FX
+        have not settled, so the note takes the previous close rather than
+        claiming a settle it could not have seen."""
+        h = hist(px=[("2026-01-02", 100.0), ("2026-01-05", 110.0)])
+        r = S.score_one(idea(date="2026-01-05", published_at="2026-01-05T20:30:00Z"), h, "2026-01-06")
+        self.assertEqual(r["entry_date"], "2026-01-02")
 
-    def test_pending_when_no_close_yet(self):
-        """Not a defect — the position exists, the tape has not printed."""
-        h = hist(px=[("2026-01-02", 100.0)])
-        r = S.score_one(idea(date="2026-01-05"), h, "2026-01-05")
+    def test_entry_can_never_be_a_price_published_after_the_note(self):
+        """The anti-cherry-pick property: no matter how good a later print
+        looks, the lookup walks BACKWARDS from the publication stamp."""
+        h = hist(px=days("2026-01-05", [100, 500, 900]))
+        r = S.score_one(idea(date="2026-01-06", published_at="2026-01-06T15:00:00Z"), h, "2026-01-08")
+        self.assertEqual(r["legs"][0]["entry_value"], 100.0)
+
+    def test_missing_published_at_falls_back_to_the_prior_close(self):
+        h = hist(px=[("2026-01-02", 100.0), ("2026-01-05", 110.0)])
+        i = idea(date="2026-01-05"); del i["published_at"]
+        r = S.score_one(i, h, "2026-01-06")
+        self.assertEqual(r["entry_date"], "2026-01-02")
+
+    def test_pending_when_no_close_predates_publication(self):
+        h = hist(px=[("2026-02-01", 100.0)])
+        r = S.score_one(idea(date="2026-01-05"), h, "2026-02-02")
         self.assertEqual(r["status"], "pending_entry")
-        self.assertIn("2026-01-02", r["reason"])
+        self.assertIn("no settled close", r["reason"])
 
     def test_missing_series_is_unscoreable_not_silent(self):
         r = S.score_one(idea(), hist(other=[("2026-01-05", 1.0)]), "2026-01-06")

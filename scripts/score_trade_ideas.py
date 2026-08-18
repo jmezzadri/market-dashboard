@@ -14,10 +14,32 @@ session could nudge.
 
 Five rules are enforced here rather than remembered:
 
-  1. ENTRY IS THE FIRST CLOSE ON OR AFTER THE PUBLISH DATE. Not the level quoted
-     in the prose, not an intraday print, not the best fill available that week.
-     Sunday notes therefore enter on the Monday close, and the entry date is
-     written into the output so the mark can be audited against the tape.
+  1. ENTRY IS THE LAST CLOSE THAT EXISTED WHEN THE NOTE PUBLISHED. Not a level
+     chosen afterwards, not an intraday print, not the best fill that week —
+     the most recent settled close as of the note's own `published_at` stamp.
+
+     The first version of this rule said "the first close ON OR AFTER the
+     publish date", and it was wrong in a way that took a day to see. Every
+     note so far published while its market was shut or mid-session: the FX
+     note at 2:17 PM ET Friday, the rates note at 7:28 PM ET Sunday, the equity
+     note at 11:01 AM ET Monday. Under the old rule each entered at the NEXT
+     close, which silently threw away the first full session of the call.
+     Joe, 2026-08-18: "It's 8/18, we've made calls 8/14, 8/16, and 8/17 - all
+     made before Monday's market open and we have no performance tracked. This
+     doesn't make sense."
+
+     The corrected rule is also the one that agrees with the notes themselves.
+     The FX note printed "EUR/USD, spot 1.153" and the last close before it
+     published was 1.1535; the rates note printed a 2.27% breakeven and the
+     last close was 2.27. A reader acts on the level the note showed them, so
+     that is the level the note is graded from.
+
+     This is still not the level TYPED in the prose — it is looked up from
+     indicator_history by timestamp, so it cannot be chosen, only computed. A
+     close dated D is treated as available from 21:00 UTC on D (5 PM ET, after
+     the 17:05 futures and FX settlement), which is deliberately conservative:
+     a note published at 4:30 PM ET enters at the PREVIOUS day's close rather
+     than claiming a settle that was minutes old.
 
   2. EVERY NOTE IS SCORED, INCLUDING THE ONES THAT DID NOT WORK. A note whose
      series is missing is reported as `unscoreable` WITH THE REASON and counted
@@ -51,6 +73,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import sys
 
 IDEAS_PATH = "public/trade_ideas.json"
@@ -96,9 +119,38 @@ def load_history(path: str = HISTORY_PATH) -> dict:
     return out
 
 
+# A close dated D is not knowable until D's session settles. 21:00 UTC is
+# 5:00 PM ET (EDT) — after the 16:15 ET index-vol settle and the 17:05 ET
+# futures/FX settle. Under EST it is 4:00 PM ET, which is still at or after the
+# equity close, and the half-hour of EST slack only ever makes entry EARLIER
+# (i.e. the previous close), never later. Erring conservative is the point.
+CLOSE_AVAILABLE_UTC_HOUR = 21
+
+
+def _published_ts(idea: dict) -> str:
+    """The moment the note went out, as a sortable UTC string. `published_at`
+    is stamped by build_trade_idea.normalise() at publish time and is never
+    edited afterwards, which is what makes the entry lookup non-negotiable."""
+    pa = str(idea.get("published_at") or "").strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z?$", pa):
+        return pa[:19]
+    # No stamp (hand-authored or pre-2026-08 note): assume the very start of
+    # the publication day, so the note enters at the prior session's close.
+    return f"{str(idea.get('date', ''))[:10]}T00:00:00"
+
+
+def last_close_before(series: list[tuple[str, float]], published_ts: str):
+    """Rule 1. The most recent close that had SETTLED when the note published.
+    Walks backwards, so it can never pick up a price the author had not seen."""
+    for d, v in reversed(series):
+        if f"{d}T{CLOSE_AVAILABLE_UTC_HOUR:02d}:00:00" <= published_ts:
+            return d, v
+    return None, None
+
+
 def first_on_or_after(series: list[tuple[str, float]], iso: str):
-    """Rule 1. The first observation on or after the publish date — never
-    before it, so a note can never be entered at a price that predates it."""
+    """The first observation on or after a date. Still used for marking a
+    benchmark on a given day; NOT used to choose an entry."""
     for d, v in series:
         if d >= iso:
             return d, v
@@ -132,6 +184,7 @@ def add_months(d: dt.date, months: int) -> dt.date:
 
 def score_one(idea: dict, hist: dict, today: str) -> dict:
     date = str(idea.get("date", ""))
+    pub_ts = _published_ts(idea)
     base = {
         "id": idea.get("id"),
         "date": date,
@@ -163,7 +216,7 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
             return {**base, "status": "unscoreable", "reason": f"legs[{i}].side must be long or short, got {side!r}"}
         if measure not in MEASURES:
             return {**base, "status": "unscoreable", "reason": f"legs[{i}].measure must be one of {sorted(MEASURES)}"}
-        ed, ev = first_on_or_after(hist[key], date)
+        ed, ev = last_close_before(hist[key], pub_ts)
         if ed is None:
             # NOT a defect. A note published on Sunday, or before tonight's
             # close has printed, simply has no entry price yet — the position
@@ -172,7 +225,7 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
             # reported as `unscoreable` and the pipeline looked broken on the
             # day it shipped. `unscoreable` means something is wrong; this means
             # nothing has happened yet.
-            last = hist[key][-1][0] if hist[key] else "never"
+            first = hist[key][0][0] if hist[key] else "never"
             # Say WHY and WHEN. Joe, at 5:15 PM on the day a note published:
             # "It says no close on or after 8/17... Its 515pm on 8/17...." The
             # old wording was true and useless — it read as a bug when the
@@ -180,12 +233,10 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
             # simply has not pulled it yet. A staleness message that does not
             # name the schedule makes the reader debug the site.
             return {**base, "status": "pending_entry",
-                    "reason": (f"No entry price yet: {key} is loaded through {last} and this note "
-                               f"published {date}. Market data refreshes at 4:45 PM and 6:00 PM ET on "
-                               "trading days and the marks are recomputed at 5:15 PM and 7:00 PM ET, so "
-                               "a note published today is first marked the same afternoon. Entry will be "
-                               "taken at the first close on or after the publication date — never earlier."),
-                    "waiting_on": {"series": key, "series_last": last, "publish_date": date}}
+                    "reason": (f"No entry price: {key} has no settled close before this note published "
+                               f"({pub_ts}Z); the series only begins at {first}. Nothing can be marked "
+                               "from a price that did not exist yet."),
+                    "waiting_on": {"series": key, "series_first": first, "published_at": pub_ts}}
         legs_out.append({"series": key, "side": side, "measure": measure, "weight": weight,
                          "entry_date": ed, "entry_value": ev,
                          "label": leg.get("label") or key})
@@ -193,10 +244,15 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
 
     # Rule 1 — one entry date for the whole position: the latest first-available
     # across legs, so no leg is marked from before the position existed.
+    # One entry date for the whole position: the latest first-available across
+    # legs, so no leg is marked from before the position existed. Each leg is
+    # then re-resolved to the last close at or before that date.
     entry_date = max(entry_dates)
     for leg in legs_out:
-        d, v = first_on_or_after(hist[leg["series"]], entry_date)
-        leg["entry_date"], leg["entry_value"] = d, v
+        for d, v in reversed(hist[leg["series"]]):
+            if d <= entry_date:
+                leg["entry_date"], leg["entry_value"] = d, v
+                break
 
     target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
 
@@ -343,12 +399,14 @@ def main(argv=None) -> int:
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "as_of": today,
         "method": (
-            "Entry is the first close on or after the note's publication date — never the level quoted in the "
-            "prose. Every published note is scored, including any that cannot be scored, which are listed with "
-            "the reason. The invalidation level written in the note is honoured: if it prints, the call closes "
-            "there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the "
-            "destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py "
-            "and nothing here is entered by hand."),
+            "Entry is the last close that had settled when the note published — the price a reader was looking "
+            "at, found by timestamp rather than read from the prose, so it can be computed but not chosen. A "
+            "note that goes out mid-session or over a weekend therefore carries that session from the start "
+            "rather than losing it. Every published note is scored, including any that cannot be, which are "
+            "listed with the reason. The invalidation level written in the note is honoured: if it prints, the "
+            "call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, "
+            "not just the destination. Marks are computed from public/indicator_history.json by "
+            "scripts/score_trade_ideas.py and nothing here is entered by hand."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "
                        "is not a recommendation to buy or sell any security. These marks are the movement of the "
                        "named reference series; they are not the returns of any account and include no costs, "

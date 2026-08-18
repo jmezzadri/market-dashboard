@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-17T23:15:25Z",
-  "as_of": "2026-08-17",
-  "method": "Entry is the first close on or after the note's publication date — never the level quoted in the prose. Every published note is scored, including any that cannot be scored, which are listed with the reason. The invalidation level written in the note is honoured: if it prints, the call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py and nothing here is entered by hand.",
+  "generated_at": "2026-08-18T10:48:51Z",
+  "as_of": "2026-08-18",
+  "method": "Entry is the last close that had settled when the note published — the price a reader was looking at, found by timestamp rather than read from the prose, so it can be computed but not chosen. A note that goes out mid-session or over a weekend therefore carries that session from the start rather than losing it. Every published note is scored, including any that cannot be, which are listed with the reason. The invalidation level written in the note is honoured: if it prints, the call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py and nothing here is entered by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
     "published": 3,
@@ -24,8 +24,8 @@
       "instrument": "US bank equities against the S&P 500",
       "position_type": "allocation shift",
       "status": "open",
-      "entry_date": "2026-08-17",
-      "target_date": "2027-02-17",
+      "entry_date": "2026-08-14",
+      "target_date": "2027-02-14",
       "horizon_months": 6,
       "unit": "%",
       "legs": [
@@ -34,21 +34,21 @@
           "side": "long",
           "measure": "pct_change",
           "weight": 1.0,
-          "entry_date": "2026-08-17",
-          "entry_value": 0.092,
+          "entry_date": "2026-08-14",
+          "entry_value": 0.0923,
           "label": "US banks ÷ S&P 500"
         }
       ],
       "benchmark": null,
-      "mark": 0.0,
+      "mark": -0.325,
       "mark_date": "2026-08-17",
-      "sessions_held": 1,
+      "sessions_held": 2,
       "max_favourable": {
         "value": 0.0,
-        "date": "2026-08-17"
+        "date": "2026-08-14"
       },
       "max_adverse": {
-        "value": 0.0,
+        "value": -0.325,
         "date": "2026-08-17"
       },
       "invalidation": {
@@ -65,8 +65,8 @@
       "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
       "position_type": "allocation shift",
       "status": "open",
-      "entry_date": "2026-08-17",
-      "target_date": "2027-02-17",
+      "entry_date": "2026-08-14",
+      "target_date": "2027-02-14",
       "horizon_months": 6,
       "unit": "pp",
       "legs": [
@@ -75,22 +75,22 @@
           "side": "long",
           "measure": "level_change",
           "weight": 1.0,
-          "entry_date": "2026-08-17",
-          "entry_value": 2.28,
+          "entry_date": "2026-08-14",
+          "entry_value": 2.27,
           "label": "10y inflation breakeven"
         }
       ],
       "benchmark": null,
-      "mark": 0.0,
+      "mark": 0.01,
       "mark_date": "2026-08-17",
-      "sessions_held": 1,
+      "sessions_held": 2,
       "max_favourable": {
-        "value": 0.0,
+        "value": 0.01,
         "date": "2026-08-17"
       },
       "max_adverse": {
         "value": 0.0,
-        "date": "2026-08-17"
+        "date": "2026-08-14"
       },
       "invalidation": {
         "rule": "breakeven_10y <= 2.1 (weekly close)",
@@ -106,8 +106,8 @@
       "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
       "position_type": "long/short spread",
       "status": "open",
-      "entry_date": "2026-08-16",
-      "target_date": "2026-11-16",
+      "entry_date": "2026-08-13",
+      "target_date": "2026-11-13",
       "horizon_months": 3,
       "unit": "%",
       "legs": [
@@ -116,22 +116,22 @@
           "side": "long",
           "measure": "pct_change",
           "weight": 1.0,
-          "entry_date": "2026-08-16",
-          "entry_value": 1.1574,
+          "entry_date": "2026-08-13",
+          "entry_value": 1.1535,
           "label": "EUR/USD"
         }
       ],
       "benchmark": null,
-      "mark": 0.0,
+      "mark": 0.3381,
       "mark_date": "2026-08-16",
-      "sessions_held": 1,
+      "sessions_held": 2,
       "max_favourable": {
-        "value": 0.0,
+        "value": 0.3381,
         "date": "2026-08-16"
       },
       "max_adverse": {
         "value": 0.0,
-        "date": "2026-08-16"
+        "date": "2026-08-13"
       },
       "invalidation": {
         "rule": "usd >= 103 (weekly close)",
