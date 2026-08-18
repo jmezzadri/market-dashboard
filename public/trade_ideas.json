@@ -162,10 +162,16 @@
       "scorecard": {
         "legs": [
           {
-            "series": "bkx_spx",
+            "series": "kbw_index",
             "side": "long",
             "measure": "pct_change",
-            "label": "US banks ÷ S&P 500"
+            "label": "KBW-style US bank complex"
+          },
+          {
+            "series": "ndx_index",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "Nasdaq Composite"
           }
         ],
         "horizon_months": 6,
@@ -175,8 +181,9 @@
           "level": 1.0,
           "basis": "close"
         },
-        "note": "The leg is already a ratio of banks to the index, so it measures the relative call directly and carries no separate benchmark.",
-        "backfilled": true
+        "note": "Re-cut 2026-08-18 under the two-leg contract. The previous block scored a single leg on bkx_spx — banks divided by the S&P 500 — while the note funds the position by trimming Nasdaq-100 leadership. That graded a different trade than the one recommended. The short leg is now the Nasdaq, matching the funding paragraph. CAVEAT ON THE PROXY: our ndx_index series is the Nasdaq COMPOSITE, not the Nasdaq-100 the note named — a close but not exact stand-in, recorded here rather than glossed. The long leg is the bank complex level itself (bkx_spx × spx_index), so the two sides can be shown separately. Entry levels are unchanged.",
+        "backfilled": true,
+        "recut_at": "2026-08-18"
       }
     },
     {
@@ -382,10 +389,18 @@
       "scorecard": {
         "legs": [
           {
-            "series": "breakeven_10y",
+            "series": "real_rates",
             "side": "long",
-            "measure": "level_change",
-            "label": "10y inflation breakeven"
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year TIPS (real yield)"
+          },
+          {
+            "series": "ust_10y",
+            "side": "short",
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year nominal Treasury"
           }
         ],
         "horizon_months": 6,
@@ -395,8 +410,9 @@
           "level": 2.1,
           "basis": "weekly_close"
         },
-        "note": "The payrolls half of the stated invalidation (a print below -100,000 on 4 Sep or 2 Oct) is not machine-checkable from indicator_history and is NOT enforced here — only the 2.10% weekly close is. Recorded so the gap is visible rather than assumed away.",
-        "backfilled": true
+        "note": "Re-cut 2026-08-18. The previous block scored the 10-year breakeven as a level change and reported it in pp, so a 1bp widening printed as “+0.01pp” next to equity returns in per cent — not comparable in unit or in size. The trade is now its two actual sides: long 10y TIPS, short duration-matched 10y nominals, each converted from its own yield to a price return via the modified duration of a par bond at that yield. The net is arithmetically the breakeven move times duration, but it can now be netted, sized and benchmarked. Price return only: the carry on this pair is the realised-versus-breakeven inflation accrual, which we do not observe daily and therefore do not claim.",
+        "backfilled": true,
+        "recut_at": "2026-08-18"
       }
     },
     {
@@ -587,8 +603,10 @@
           "level": 103,
           "basis": "weekly_close"
         },
-        "note": "Sized to three months per the note's own sizing paragraph, not the six-month end of the stated one-to-two-quarter range: the note says the edge decays and this is 'not a position to leave on and forget'.",
-        "backfilled": true
+        "note": "Reviewed 2026-08-18 and deliberately left as ONE leg. The note frames it as “long EUR against a short dollar-index position”, but the dollar is the quote currency of EUR/USD — buying the pair already sells dollars. Adding a short DXY leg would double-count the same exposure, since the euro is roughly 57% of that index. The short-dollar side is inside the instrument. Benchmarked against the dollar index, which is what the consensus position was.",
+        "backfilled": true,
+        "recut_at": "2026-08-18",
+        "funding_inside_instrument": "The dollar is the quote currency of EUR/USD, so buying the pair already sells dollars. A separate short dollar-index leg would double the same exposure — the euro is roughly 57% of that index."
       }
     }
   ]

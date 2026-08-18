@@ -130,13 +130,66 @@ class TestDirection(unittest.TestCase):
         r = S.score_one(idea(scorecard={"legs": [{"series": "px", "side": "short"}]}), h, "2026-01-06")
         self.assertAlmostEqual(r["mark"], 10.0, places=6)
 
-    def test_level_change_measure_reports_points_not_percent(self):
-        """A breakeven going 2.30 -> 2.45 is +0.15pp, not +6.5%."""
+    def test_level_change_is_no_longer_a_legal_leg_measure(self):
+        """Retired 2026-08-18. A raw spread move is not a return: it cannot be
+        netted against another leg, sized to a risk budget, or compared to a
+        benchmark. The old behaviour printed '+0.01pp' beside equity returns in
+        per cent and invited exactly the comparison it could not support, so it
+        now fails loudly with the fix in the message."""
         h = hist(be=days("2026-01-05", [2.30, 2.45]))
         r = S.score_one(idea(scorecard={"legs": [{"series": "be", "side": "long",
                                                   "measure": "level_change"}]}), h, "2026-01-06")
-        self.assertAlmostEqual(r["mark"], 0.15, places=6)
-        self.assertEqual(r["unit"], "pp")
+        self.assertEqual(r["status"], "unscoreable")
+        self.assertIn("not a return", r["reason"])
+        self.assertIn("bond_return", r["reason"])
+
+    def test_a_yield_leg_becomes_a_price_return_via_duration(self):
+        """A 10y at 4.72% has a modified duration of 7.899, so +10bp is -0.79%.
+
+        Both figures are cross-checked against the textbook route (Macaulay
+        duration of a par bond, then divided by 1 + y/2): 8.0851 -> 7.8987 and
+        8.9337 -> 8.8260. The closed form in the scorer agrees to four decimals.
+        An earlier version of this test asserted 7.856 from mental arithmetic
+        and the CODE was right — which is the whole reason the expected values
+        here are derived rather than remembered."""
+        self.assertAlmostEqual(S.modified_duration(4.72, 10), 7.8987, places=3)
+        self.assertAlmostEqual(S.modified_duration(2.44, 10), 8.8260, places=3)
+        h = hist(y=days("2026-01-05", [4.72, 4.82]))
+        r = S.score_one(idea(scorecard={"legs": [{"series": "y", "side": "long",
+                                                  "measure": "bond_return",
+                                                  "maturity_years": 10}]}), h, "2026-01-06")
+        self.assertEqual(r["unit"], "%")
+        self.assertAlmostEqual(r["legs"][0]["return_pct"], -0.7899, places=3)
+
+    def test_bond_leg_without_a_maturity_is_unscoreable(self):
+        """Duration cannot be inferred from a yield alone — refuse, don't guess."""
+        h = hist(y=days("2026-01-05", [4.72, 4.82]))
+        r = S.score_one(idea(scorecard={"legs": [{"series": "y", "side": "long",
+                                                  "measure": "bond_return"}]}), h, "2026-01-06")
+        self.assertEqual(r["status"], "unscoreable")
+        self.assertIn("maturity_years", r["reason"])
+
+    def test_both_sides_are_reported_and_netted(self):
+        """Joe 2026-08-18: show what we said to buy, what we said to sell, and
+        the net — not one opaque number off a pre-computed ratio."""
+        h = hist(a=days("2026-01-05", [100, 102]), b=days("2026-01-05", [100, 101]))
+        r = S.score_one(idea(scorecard={"legs": [
+            {"series": "a", "side": "long", "measure": "pct_change"},
+            {"series": "b", "side": "short", "measure": "pct_change"}]}), h, "2026-01-06")
+        self.assertAlmostEqual(r["buy_pct"], 2.0, places=6)
+        self.assertAlmostEqual(r["sell_pct"], 1.0, places=6)
+        self.assertAlmostEqual(r["net_unlevered_pct"], 1.0, places=6)
+
+    def test_size_falls_back_to_1x_when_vol_cannot_be_measured(self):
+        """Two observations is not a volatility. Say so, size at 1x, and record
+        the reason — never invent a multiple off three days of data."""
+        h = hist(a=days("2026-01-05", [100, 102]))
+        r = S.score_one(idea(scorecard={"legs": [{"series": "a", "side": "long",
+                                                  "measure": "pct_change"}]}), h, "2026-01-06")
+        self.assertEqual(r["sizing"]["multiple"], 1.0)
+        self.assertEqual(r["sizing"]["method"], "none")
+        self.assertIn("reason", r["sizing"])
+        self.assertAlmostEqual(r["mark"], r["net_unlevered_pct"], places=6)
 
     def test_two_legs_are_weighted_and_netted(self):
         h = hist(a=days("2026-01-05", [100, 110]), b=days("2026-01-05", [100, 105]))
@@ -208,10 +261,10 @@ class TestHorizonAndPath(unittest.TestCase):
         self.assertAlmostEqual(r["max_adverse"]["value"], -20.0, places=6)
         self.assertAlmostEqual(r["mark"], 0.0, places=6)
 
-    def test_benchmark_excess_is_the_difference(self):
+    def test_benchmark_difference_is_the_gap_to_the_passive_alternative(self):
         h = hist(px=days("2026-01-05", [100, 110]), bm=days("2026-01-05", [100, 104]))
         r = S.score_one(idea(scorecard={"benchmark": {"series": "bm"}}), h, "2026-01-06")
-        self.assertAlmostEqual(r["benchmark"]["excess"], 6.0, places=6)
+        self.assertAlmostEqual(r["benchmark"]["difference"], 6.0, places=6)
 
 
 class TestSummaryDiscipline(unittest.TestCase):
