@@ -198,6 +198,9 @@
 .mt-overhaul .sc-legs-net td { font-weight: 700; border-bottom: 1px solid var(--mt-ink-1); }
 .mt-overhaul .sc-legs-bm td { color: var(--mt-ink-2); border-bottom: 0; }
 .mt-overhaul .sc-legnote { font-size: 11.5px; line-height: 1.5; color: var(--mt-ink-3); margin: 6px 0 0; max-width: 70ch; }
+/* The last note before the facts list needs air, or the caveat reads as a
+   label of the row beneath it (live UAT, 2026-08-18). */
+.mt-overhaul .sc-legnote:last-of-type { margin-bottom: 18px; }
 @media (max-width: 640px) {
   .mt-overhaul .sc-legs { font-size: 12.5px; }
   .mt-overhaul .sc-legs td.num { padding-left: 10px; }
