@@ -101,13 +101,16 @@
    the anchor they replaced. */
 .home-v12 .t{padding:30px 10px 28px;text-align:center;border-left:1px solid var(--hair);text-decoration:none;color:inherit;display:block;cursor:pointer;transition:transform .25s;width:100%;background:none;border-top:0;border-right:0;border-bottom:0;font:inherit;-webkit-appearance:none;appearance:none}
 .home-v12 .t--drill:focus-visible{outline:2px solid var(--gold-deep);outline-offset:-2px}
-/* A quote with nothing behind it must not offer a click it cannot honour. */
-.home-v12 .t--static{cursor:default}
-.home-v12 .t--static:hover{transform:none}
-.home-v12 .t--static:hover .tv{color:inherit}
 .home-v12 .t:first-child{border-left:0}
 .home-v12 .t:hover{transform:translateY(-3px)}
 .home-v12 .t:hover .tv{color:var(--gold-deep)}
+/* A quote with nothing behind it must not offer a click it cannot honour.
+   These MUST sit after the .t:hover rules above — same specificity, so source
+   order decides, and an earlier placement silently lost (caught in live UAT:
+   the S&P tile still lifted and went gold on hover). */
+.home-v12 .t--static{cursor:default}
+.home-v12 .t--static:hover{transform:none}
+.home-v12 .t--static:hover .tv{color:inherit}
 .home-v12 .t .tk,.home-v12 .t .tv,.home-v12 .t .td{display:block}
 .home-v12 .t .tk{font-size:11.5px;letter-spacing:.14em;font-weight:600;color:var(--mut);text-transform:uppercase}
 .home-v12 .t .tv{font-family:var(--serif);font-size:42px;line-height:1.15;margin-top:4px;transition:color .25s}
