@@ -33,6 +33,7 @@ import useEngineRegime from '../lib/useEngineRegime';
 import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
+import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
@@ -95,9 +96,12 @@ function firstClause(s, max = 82) {
                   and the live move; outside it, the last close. The remaining
                   tiles are macro series that only ever print daily, so they
                   stay on indicator_history and stay labelled "close".
-   Dow arrives entirely through the live path — we carry no DJIA history file,
-   and standing up a nightly feed for one tile is not worth a new producer,
-   a manifest element and a health row. It is quoted, not analysed.
+   All three indexes already have stored daily history in indicator_history
+   (spx_index / ndx_index / dji_index, ~5,200 sessions each — they back the
+   "Add index to chart" overlays), so the live quote is the headline and the
+   stored close is the fallback. An earlier version of this comment claimed we
+   carried no Dow history; that was wrong and is corrected here rather than
+   left to be re-read as fact.
    `ind`         — the registry indicator this tile drills into. Clicking opens
                   that indicator's full detail RIGHT HERE (Joe 2026-08-18:
                   "I just want to stay on home page"). Previously every tile
@@ -105,17 +109,17 @@ function firstClause(s, max = 82) {
                   to Macro and popped a modal over it — the modal was the part
                   he wanted. Reading a level on the home page is not a reason
                   to leave the home page.
-   The three equity indexes carry no `ind` because they are NOT registry
-   indicators — they are levels, and a percentile of the S&P's own level is
-   a meaningless statistic (it sits near the top of its own range by
-   construction). They render as plain, non-interactive tiles rather than as
-   links that go somewhere unrelated: the ticker page would show SPY/QQQ/DIA,
-   a different instrument on a different feed. Inside the drill chart they
-   already appear where they belong — as the "Add index to chart" overlays. */
+   `idx`         — the three equity indexes drill too, but into their OWN panel
+                  (IndexDrillModal), not IndicatorDetail. They are levels, not
+                  registry indicators: a percentile of the S&P's own level is
+                  not a statistic, just a restatement of the fact that indexes
+                  trend. Their panel shows what a level supports — trailing
+                  returns, drawdown from the window high, the chart — with no
+                  percentile bar and no amber/red bands. */
 const RIBBON = [
-  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', live: '^GSPC', pct: true },
-  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', live: '^IXIC', pct: true },
-  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', live: '^DJI', pct: true },
+  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', live: '^GSPC', pct: true, idx: 'spx_index' },
+  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', live: '^IXIC', pct: true, idx: 'ndx_index' },
+  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', live: '^DJI', pct: true, idx: 'dji_index' },
   { key: 'move', label: 'MOVE', dec: 0, suffix: '', ind: 'move' },
   { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', ind: 'ust_10y' },
   { key: 'vix', label: 'VIX', dec: 1, suffix: '', ind: 'vix' },
@@ -187,7 +191,7 @@ export default function HomePage() {
   const isDark = tweaks.theme !== 'light';
   const flip = () => setTweak('theme', isDark ? 'light' : 'navy');
 
-  const { level } = useMarketLevels();
+  const { level, hist: levelHist } = useMarketLevels();
   /* The equity indexes ride the same live-quote path as every other price on
      the site — one resolver, so the tape and a ticker page can never tell the
      user two different stories about the same session. */
@@ -195,6 +199,8 @@ export default function HomePage() {
   // Which indicator's drill is open, or null. One piece of state; the modal
   // resolves everything else itself.
   const [drillInd, setDrillInd] = useState(null);
+  // Index levels get their own panel — see IndexDrillModal for why.
+  const [drillIdx, setDrillIdx] = useState(null);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
   const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
@@ -290,12 +296,15 @@ export default function HomePage() {
             // in place. A tile without one is a quote, not a link — it must
             // not look clickable (LESSONS: an affordance that does nothing is
             // a bug report waiting to happen).
-            return r.ind ? (
+            const openDrill = r.ind
+              ? () => setDrillInd(r.ind)
+              : (r.idx && INDEX_DRILLS[r.idx] ? () => setDrillIdx(r.idx) : null);
+            return openDrill ? (
               <button
                 key={r.key}
                 type="button"
                 className="t t--drill"
-                onClick={() => setDrillInd(r.ind)}
+                onClick={openDrill}
                 title={`${r.label} — open detail`}
               >
                 {inner}
@@ -515,6 +524,7 @@ export default function HomePage() {
       {/* full trade-idea note */}
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
+      <IndexDrillModal indexKey={drillIdx} hist={levelHist} onClose={() => setDrillIdx(null)} />
 
       {ideaOpen && idea && (
         <TradeIdeaNoteModal idea={idea} chartSeries={chartSeries} onClose={() => setIdeaOpen(false)} />
