@@ -165,13 +165,15 @@
             "series": "kbw_index",
             "side": "long",
             "measure": "pct_change",
-            "label": "KBW bank index"
+            "label": "KBW bank index",
+            "short_label": "KBW"
           },
           {
             "series": "ndx_index",
             "side": "short",
             "measure": "pct_change",
-            "label": "Nasdaq Composite"
+            "label": "Nasdaq Composite",
+            "short_label": "NASDAQ"
           }
         ],
         "horizon_months": 6,
@@ -393,14 +395,16 @@
             "side": "long",
             "measure": "bond_return",
             "maturity_years": 10,
-            "label": "10-year TIPS"
+            "label": "10-year TIPS",
+            "short_label": "10y TIPS"
           },
           {
             "series": "ust_10y",
             "side": "short",
             "measure": "bond_return",
             "maturity_years": 10,
-            "label": "10-year Treasuries"
+            "label": "10-year Treasuries",
+            "short_label": "10y UST"
           }
         ],
         "horizon_months": 6,
@@ -593,7 +597,8 @@
             "series": "fx_eur",
             "side": "long",
             "measure": "pct_change",
-            "label": "EUR/USD"
+            "label": "EUR/USD",
+            "short_label": "EUR/USD"
           }
         ],
         "horizon_months": 3,

@@ -407,7 +407,10 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                     "waiting_on": {"series": key, "series_first": first, "published_at": pub_ts}}
         rec = {"series": key, "side": side, "measure": measure, "weight": weight,
                "entry_date": ed, "entry_value": ev,
-               "label": leg.get("label") or key}
+               "label": leg.get("label") or key,
+               # Short form for the scorecard table, authored in the note so the
+               # page never has to shorten a name itself.
+               "short_label": leg.get("short_label") or leg.get("label") or key}
         if measure == "bond_return":
             try:
                 rec["maturity_years"] = float(leg.get("maturity_years"))
@@ -532,6 +535,12 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         "sell_pct": round(sum(l["return_pct"] for l in sell) / len(sell), 4) if sell and all(l["return_pct"] is not None for l in sell) else None,
         # The same number as `mark`, named for what it is so the page can say
         # "position return" out loud: buy minus sell.
+        # The trade in one line — "Long KBW / Short NASDAQ" (Joe 2026-08-18).
+        # The scorecard row used to carry the note's HEADLINE, which is written
+        # to make somebody read the note, not to say what the position is.
+        "trade_label": " / ".join(
+            [f"Long {l['short_label']}" for l in legs_out if l["side"] == "long"]
+            + [f"Short {l['short_label']}" for l in legs_out if l["side"] == "short"]),
         "position_pct": last_mark,
         "risk_sized_pct": round(last_mark * mult, 4),
         "sizing": sizing,
