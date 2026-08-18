@@ -54,16 +54,32 @@ RETIRED_FEEDS = {
     "macro_commentary",
     "narrative_macro",
     "narrative_sector",
-}
-
-# UW-lapse keepers (until 2026-08-12): live health rows whose manifest entries
-# were deliberately removed in the UW teardown (#1411) so no UW vendor shows on
-# rendered pages. They self-stamp via their producers; the watchdog skips them
-# (no manifest entry = ungradable, 2026-07-29 fix). The orphan check must not
-# fail red on them. AT LAPSE: move each to RETIRED_FEEDS.
-UNLISTED_UNTIL_UW_LAPSE = {
+    # Unusual Whales subscription LAPSED 2026-08-12. Both producers are disabled
+    # (UNIVERSE_SNAPSHOT_3X_WEEKDAYS, UW_METER_READ_NIGHTLY) and both rows went
+    # red on 8/13 — the last day either could stamp. A monitor watching a vendor
+    # we no longer buy is a watcher of nothing: retire it, never "fix" it. The
+    # rows are deleted here so Admin·Data stops reporting a feed the site does
+    # not have (2026-08-18 sweep).
     "uw-universe-snapshots",
     "uw-ticker-events",
+}
+
+# Live feeds with no manifest entry yet, which the orphan check must not fail
+# red on. Both are LIVE and non-UW — earnings_history is yfinance via
+# EARNINGS-HISTORY-WEEKLY, scanner-v5-daily is trading_opps_signals via
+# V5_SCAN_DAILY — and both self-stamp on every run. Their manifest entries were
+# collateral damage in the UW teardown (#1411), which stripped everything the UW
+# vendor touched off the rendered pages. Registering them is a Data Steward job:
+# each needs a MEASURED pull/data SLA (LESSONS 4.28 — a deadline set inside the
+# producer's arrival spread manufactures a daily failure), not a number guessed
+# inside a health sweep. Until then they grade off FALLBACK_PULL_SLA, which is
+# the behaviour they have had since July.
+#
+# Renamed from UNLISTED_UNTIL_UW_LAPSE on 2026-08-18. That name promised the set
+# would empty at the 8/12 lapse, and a promise that has quietly expired is how a
+# zombie hides. The two UW rows it named are in RETIRED_FEEDS above now; what is
+# left has nothing to do with the lapse.
+UNREGISTERED_LIVE_FEEDS = {
     "earnings_history",
     "scanner-v5-daily",
 }
@@ -405,10 +421,10 @@ def main():
             if commit and delete_row(iid):
                 print(f"  retired orphan row deleted: {iid}")
         orphans = [o for o in orphans if o not in RETIRED_FEEDS]
-        skipped_keepers = [o for o in orphans if o in UNLISTED_UNTIL_UW_LAPSE]
+        skipped_keepers = [o for o in orphans if o in UNREGISTERED_LIVE_FEEDS]
         if skipped_keepers:
-            print(f"  unlisted UW-lapse keepers (rows live, deliberately not in manifest until 2026-08-12): {sorted(skipped_keepers)}")
-        orphans = [o for o in orphans if o not in UNLISTED_UNTIL_UW_LAPSE]
+            print(f"  live-but-unregistered feeds (rows live, manifest entry still owed): {sorted(skipped_keepers)}")
+        orphans = [o for o in orphans if o not in UNREGISTERED_LIVE_FEEDS]
         if orphans:
             print(f"\nORPHAN TRACKING ROWS (no registry entry — half-retired or unregistered): {sorted(orphans)}")
             print("Fix: delete the row (retired) or register the element (live). Exiting red.")

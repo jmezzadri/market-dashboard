@@ -595,6 +595,177 @@
    "cadence_display": "Every morning · 6:00 & 10:15 AM"
   },
   {
+   "id": "indicator-vix3m-daily",
+   "category": "indicator",
+   "name": "vix3m",
+   "description": "CBOE 3-Month Volatility Index (VIX3M) — expected S&P 500 volatility over ~93 days; the far end of the volatility curve.",
+   "sourcing_mode": "STP",
+   "source_vendor": "FRED (spine) + Yahoo Finance (head/tail splice)",
+   "source_endpoint": "FRED VXVCLS; yfinance ^VIX3M for the pre-2007-12 head and the same-day tail",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 78,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[vix3m]",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Indicator card"
+    },
+    {
+     "tab": "indicators",
+     "tile": "Indicator grid row"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology — indicator table"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
+   "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:15",
+   "as_of_cutoff_note": "CBOE volatility-index settlement",
+   "sla_basis": "Daily job (every business day); pull SLA = job cadence + 1-day grace. Data window is 78h, not the VIX's 54h: FRED publishes VXVCLS T+1, so on a FRED-only day (Yahoo tail splice unavailable, or before the 16:20 ET settlement guard) this series legitimately sits one business day behind the VIX. LESSONS 4.28 — a deadline goes after the producer's observed arrival spread, not on top of it.",
+   "cadence_display": "Every morning · 6:00 & 10:15 AM"
+  },
+  {
+   "id": "indicator-vix_ts-daily",
+   "category": "indicator",
+   "name": "vix_ts",
+   "description": "VIX term structure — the 30-day VIX divided by the 3-month VIX3M. Below 1 is contango (the normal state); above 1 is backwardation.",
+   "sourcing_mode": "derived",
+   "source_vendor": "Derived (Yahoo Finance + FRED)",
+   "source_endpoint": "yfinance ^VIX ÷ vix3m (FRED VXVCLS spine)",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 78,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[vix_ts]",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Indicator card"
+    },
+    {
+     "tab": "indicators",
+     "tile": "Indicator grid row"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology — indicator table"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
+   "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [
+    "indicator-vix-daily",
+    "indicator-vix3m-daily"
+   ],
+   "as_of_cutoff_et": "16:15",
+   "as_of_cutoff_note": "CBOE volatility-index settlement",
+   "sla_basis": "Daily job (every business day); pull SLA = job cadence + 1-day grace. Inherits VIX3M's 78h data window — the ratio can only be as current as its slower leg.",
+   "cadence_display": "Every morning · 6:00 & 10:15 AM"
+  },
+  {
+   "id": "indicator-gvz-daily",
+   "category": "indicator",
+   "name": "gvz",
+   "description": "CBOE Gold ETF Volatility Index (GVZ) — 30-day expected volatility of gold, from GLD option prices.",
+   "sourcing_mode": "STP",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "yfinance ^GVZ",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[gvz]",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Indicator card"
+    },
+    {
+     "tab": "indicators",
+     "tile": "Indicator grid row"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology — indicator table"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
+   "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:15",
+   "as_of_cutoff_note": "CBOE cash close",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Every morning · 6:00 & 10:15 AM"
+  },
+  {
+   "id": "indicator-ovx-daily",
+   "category": "indicator",
+   "name": "ovx",
+   "description": "CBOE Crude Oil ETF Volatility Index (OVX) — 30-day expected volatility of crude oil, from USO option prices.",
+   "sourcing_mode": "STP",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "yfinance ^OVX",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "07:00",
+   "refresh_trigger": "GH workflow INDICATOR-REFRESH_7AM_WEEKDAYS (cron 0 11 * * 1-5 UTC)",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[ovx]",
+   "producer_script": "fetch_history.py",
+   "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Indicator card"
+    },
+    {
+     "tab": "indicators",
+     "tile": "Indicator grid row"
+    },
+    {
+     "tab": "readme",
+     "tile": "Methodology — indicator table"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Per-indicator try/except; missing → indicator omitted from JSON; tile shows '—'; no auto-bug.",
+   "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "as_of_cutoff_et": "16:15",
+   "as_of_cutoff_note": "CBOE cash close",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Every morning · 6:00 & 10:15 AM"
+  },
+  {
    "id": "indicator-anfci-weekly",
    "category": "indicator",
    "name": "anfci",
