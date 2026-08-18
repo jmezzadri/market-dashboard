@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-18T19:31:57Z",
+  "generated_at": "2026-08-18T20:42:03Z",
   "as_of": "2026-08-18",
-  "method": "Entry is the last close that had settled when the note published — the price a reader was looking at, found by timestamp rather than read from the prose, so it can be computed but not chosen. A note that goes out mid-session or over a weekend therefore carries that session from the start rather than losing it. Every published note is scored, including any that cannot be, which are listed with the reason. The invalidation level written in the note is honoured: if it prints, the call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, not just the destination. Marks are computed from public/indicator_history.json by scripts/score_trade_ideas.py and nothing here is entered by hand. Every call is marked the same way: both sides of the trade are marked separately as a per-cent PRICE return, the short leg is subtracted from the long leg to give a net, and the net is scaled to a common risk budget so a rates spread and an equity pair are the same size of bet. Bond legs convert a yield move into a return using the modified duration of a par bond at that yield (a 10-year at 4.7% has a duration of 7.9, so one basis point is about 0.08%); the two sides of a TIPS-versus-Treasury pair are priced with their own yields, not one shared constant. Price return throughout means no dividends on equities and no carry or roll on bonds — the same convention on both sides of every trade, understating a total-return figure by the yield being given up. Position size is the multiple that would have run the unlevered spread at 10% annualised volatility over the year before entry, computed once at entry and frozen: a size that was recomputed on every rebuild would restate history. Each call also shows the passive alternative in its own asset class over the same window.",
+  "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 for equity calls, the 10-year Treasury for rates calls, the dollar index for currency calls. The last line is the gap between the two. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
     "published": 3,
@@ -36,9 +36,8 @@
           "weight": 1.0,
           "entry_date": "2026-08-14",
           "entry_value": 718.625648,
-          "label": "KBW-style US bank complex",
-          "return_pct": -0.8461,
-          "contribution_pct": -0.3672
+          "label": "KBW bank index",
+          "return_pct": -0.8461
         },
         {
           "series": "ndx_index",
@@ -48,13 +47,13 @@
           "entry_date": "2026-08-14",
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
-          "return_pct": -0.3152,
-          "contribution_pct": 0.1368
+          "return_pct": -0.3152
         }
       ],
       "buy_pct": -0.8461,
       "sell_pct": -0.3152,
-      "net_unlevered_pct": -0.5309,
+      "position_pct": -0.5309,
+      "risk_sized_pct": -0.2304,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -66,14 +65,14 @@
       "single_leg_note": null,
       "benchmark": {
         "series": "spx_index",
-        "label": "S&P 500 (price return)",
+        "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
         "move": -0.5227,
-        "difference": 0.2923,
+        "difference": -0.0082,
         "note": "The passive alternative in this asset class over the same window, on the same price-return basis. This call is a spread and carries little market direction, so the difference is context — not a risk-adjusted excess return."
       },
-      "mark": -0.2304,
+      "mark": -0.5309,
       "mark_date": "2026-08-17",
       "sessions_held": 2,
       "max_favourable": {
@@ -81,7 +80,7 @@
         "date": "2026-08-14"
       },
       "max_adverse": {
-        "value": -0.2304,
+        "value": -0.5309,
         "date": "2026-08-17"
       },
       "invalidation": {
@@ -110,10 +109,9 @@
           "weight": 1.0,
           "entry_date": "2026-08-14",
           "entry_value": 2.41,
-          "label": "10-year TIPS (real yield)",
+          "label": "10-year TIPS",
           "maturity_years": 10.0,
-          "return_pct": -0.2652,
-          "contribution_pct": -1.1371
+          "return_pct": -0.2652
         },
         {
           "series": "ust_10y",
@@ -122,15 +120,15 @@
           "weight": 1.0,
           "entry_date": "2026-08-14",
           "entry_value": 4.68,
-          "label": "10-year nominal Treasury",
+          "label": "10-year Treasuries",
           "maturity_years": 10.0,
-          "return_pct": -0.3165,
-          "contribution_pct": 1.3574
+          "return_pct": -0.3165
         }
       ],
       "buy_pct": -0.2652,
       "sell_pct": -0.3165,
-      "net_unlevered_pct": 0.0514,
+      "position_pct": 0.0514,
+      "risk_sized_pct": 0.2204,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -142,18 +140,18 @@
       "single_leg_note": null,
       "benchmark": {
         "series": "ust_10y",
-        "label": "10-year Treasury (price return)",
+        "label": "10-year Treasuries",
         "measure": "bond_return",
         "entry_value": 4.68,
         "move": -0.3165,
-        "difference": 0.5368,
+        "difference": 0.3679,
         "note": "The passive alternative in this asset class over the same window, on the same price-return basis. This call is a spread and carries little market direction, so the difference is context — not a risk-adjusted excess return."
       },
-      "mark": 0.2203,
+      "mark": 0.0514,
       "mark_date": "2026-08-17",
       "sessions_held": 2,
       "max_favourable": {
-        "value": 0.2203,
+        "value": 0.0514,
         "date": "2026-08-17"
       },
       "max_adverse": {
@@ -187,13 +185,13 @@
           "entry_date": "2026-08-13",
           "entry_value": 1.1535,
           "label": "EUR/USD",
-          "return_pct": 0.3381,
-          "contribution_pct": 0.5971
+          "return_pct": 0.3381
         }
       ],
       "buy_pct": 0.3381,
       "sell_pct": null,
-      "net_unlevered_pct": 0.3381,
+      "position_pct": 0.3381,
+      "risk_sized_pct": 0.5971,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.766,
@@ -202,21 +200,21 @@
         "observations": 267,
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
-      "single_leg_note": "One leg: the funding side is inside the instrument itself, so adding a second short leg would double the same exposure.",
+      "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
       "benchmark": {
         "series": "usd",
         "label": "US dollar index",
         "measure": "pct_change",
         "entry_value": 99.96,
         "move": -0.3201,
-        "difference": 0.9172,
+        "difference": 0.6582,
         "note": "The passive alternative in this asset class over the same window, on the same price-return basis. This call is a spread and carries little market direction, so the difference is context — not a risk-adjusted excess return."
       },
-      "mark": 0.5971,
+      "mark": 0.3381,
       "mark_date": "2026-08-16",
       "sessions_held": 2,
       "max_favourable": {
-        "value": 0.5971,
+        "value": 0.3381,
         "date": "2026-08-16"
       },
       "max_adverse": {

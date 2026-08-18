@@ -178,7 +178,21 @@ class TestDirection(unittest.TestCase):
             {"series": "b", "side": "short", "measure": "pct_change"}]}), h, "2026-01-06")
         self.assertAlmostEqual(r["buy_pct"], 2.0, places=6)
         self.assertAlmostEqual(r["sell_pct"], 1.0, places=6)
-        self.assertAlmostEqual(r["net_unlevered_pct"], 1.0, places=6)
+        # The headline IS buy minus sell. Nothing is folded into it — the whole
+        # point is that a reader can do this subtraction themselves.
+        self.assertAlmostEqual(r["position_pct"], 1.0, places=6)
+        self.assertAlmostEqual(r["mark"], 1.0, places=6)
+
+    def test_the_size_never_touches_the_headline(self):
+        """The risk multiple is carried, and kept out of `mark`. If it ever
+        leaks back into the headline the buy-minus-sell subtraction on the page
+        stops working, which is the bug this rule exists to prevent."""
+        h = hist(a=days("2026-01-05", [100, 102]))
+        r = S.score_one(idea(scorecard={"legs": [{"series": "a", "side": "long",
+                                                  "measure": "pct_change"}]}), h, "2026-01-06")
+        m = r["sizing"]["multiple"]
+        self.assertAlmostEqual(r["mark"], r["position_pct"], places=6)
+        self.assertAlmostEqual(r["risk_sized_pct"], r["position_pct"] * m, places=6)
 
     def test_size_falls_back_to_1x_when_vol_cannot_be_measured(self):
         """Two observations is not a volatility. Say so, size at 1x, and record
@@ -189,7 +203,7 @@ class TestDirection(unittest.TestCase):
         self.assertEqual(r["sizing"]["multiple"], 1.0)
         self.assertEqual(r["sizing"]["method"], "none")
         self.assertIn("reason", r["sizing"])
-        self.assertAlmostEqual(r["mark"], r["net_unlevered_pct"], places=6)
+        self.assertAlmostEqual(r["risk_sized_pct"], r["mark"], places=6)
 
     def test_two_legs_are_weighted_and_netted(self):
         h = hist(a=days("2026-01-05", [100, 110]), b=days("2026-01-05", [100, 105]))

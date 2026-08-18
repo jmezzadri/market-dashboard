@@ -122,9 +122,9 @@ SIZE_MIN, SIZE_MAX = 0.25, 5.0
 # to market-neutral, so "beat the S&P" is a different claim from "made money".
 BENCHMARKS = {
     "equity": {"series": "spx_index", "measure": "pct_change",
-               "label": "S&P 500 (price return)"},
+               "label": "S&P 500"},
     "rates":  {"series": "ust_10y", "measure": "bond_return", "maturity_years": 10,
-               "label": "10-year Treasury (price return)"},
+               "label": "10-year Treasuries"},
     "fx":     {"series": "usd", "measure": "pct_change",
                "label": "US dollar index"},
 }
@@ -425,6 +425,17 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
     target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
 
     # Risk-parity size, from the year BEFORE entry, frozen here for good.
+    #
+    # 2026-08-18, second pass (Joe: "This is SO FUCKING WILDLY CONFUSING"):
+    # the size no longer scales the headline. The number on the row is the
+    # POSITION RETURN — what you bought, minus what you sold — because that is
+    # the number a reader can check with their own arithmetic:
+    #     buy -0.85%  -  sell -0.32%  =  position -0.53%
+    # If the headline is silently multiplied by 0.43, that subtraction stops
+    # working and every figure on the page becomes something you have to take
+    # on trust. The risk-sized figure is still computed and still carried, on
+    # its own labelled line, and it is what the eventual track record will be
+    # weighted by — but it is a second number, not the first one.
     sizing = spread_size(legs_out, hist, entry_date)
     mult = float(sizing.get("multiple", 1.0))
 
@@ -446,7 +457,7 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
             r = leg_return_pct(leg, vmaps[id(leg)][d])
             leg_paths[id(leg)][d] = r
             total += SIDES[leg["side"]] * leg["weight"] * r
-        marks.append((d, round(total * mult, 4)))
+        marks.append((d, round(total, 4)))       # position return, unsized
     if not marks:
         return {**base, "status": "unscoreable", "reason": "no session where every leg has an observation"}
 
@@ -488,17 +499,16 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
     # class. One unit, so the column can be read down (Joe 2026-08-18).
     unit = "%"
 
-    # Per-leg attribution at the mark date: the asset's own return, and what it
-    # contributed to the position after side, weight and size.
+    # Per-leg report: the asset's OWN return since entry. Nothing else.
+    # There used to be a second "contribution" column carrying side x weight x
+    # size, which meant the short leg's number flipped sign and the whole row
+    # was scaled — two transformations, unexplained, next to the raw figure.
+    # It is gone. Sign and size are handled by the one subtraction below.
     legs_report = []
     for leg in legs_out:
         r = leg_paths[id(leg)].get(last_date)
-        legs_report.append({
-            **{k: v for k, v in leg.items()},
-            "return_pct": None if r is None else round(r, 4),
-            "contribution_pct": None if r is None else
-                round(SIDES[leg["side"]] * leg["weight"] * r * mult, 4),
-        })
+        legs_report.append({**{k: v for k, v in leg.items()},
+                            "return_pct": None if r is None else round(r, 4)})
     buy = [l for l in legs_report if l["side"] == "long"]
     sell = [l for l in legs_report if l["side"] == "short"]
 
@@ -512,11 +522,14 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         "legs": legs_report,
         "buy_pct": round(sum(l["return_pct"] for l in buy) / len(buy), 4) if buy and all(l["return_pct"] is not None for l in buy) else None,
         "sell_pct": round(sum(l["return_pct"] for l in sell) / len(sell), 4) if sell and all(l["return_pct"] is not None for l in sell) else None,
-        "net_unlevered_pct": round(last_mark / mult, 4) if mult else None,
+        # The same number as `mark`, named for what it is so the page can say
+        # "position return" out loud: buy minus sell.
+        "position_pct": last_mark,
+        "risk_sized_pct": round(last_mark * mult, 4),
         "sizing": sizing,
         "single_leg_note": (
-            "One leg: the funding side is inside the instrument itself, so adding a second short "
-            "leg would double the same exposure." if len(legs_out) == 1 else None),
+            "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short."
+            if len(legs_out) == 1 else None),
         "benchmark": None,
         "mark": last_mark,
         "mark_date": last_date,
@@ -619,26 +632,16 @@ def main(argv=None) -> int:
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "as_of": today,
         "method": (
-            "Entry is the last close that had settled when the note published — the price a reader was looking "
-            "at, found by timestamp rather than read from the prose, so it can be computed but not chosen. A "
-            "note that goes out mid-session or over a weekend therefore carries that session from the start "
-            "rather than losing it. Every published note is scored, including any that cannot be, which are "
-            "listed with the reason. The invalidation level written in the note is honoured: if it prints, the "
-            "call closes there. Maximum favourable and adverse excursion are recorded so the path is visible, "
-            "not just the destination. Marks are computed from public/indicator_history.json by "
-            "scripts/score_trade_ideas.py and nothing here is entered by hand. "
-            "Every call is marked the same way: both sides of the trade are marked separately as a per-cent "
-            "PRICE return, the short leg is subtracted from the long leg to give a net, and the net is scaled "
-            "to a common risk budget so a rates spread and an equity pair are the same size of bet. Bond legs "
-            "convert a yield move into a return using the modified duration of a par bond at that yield "
-            "(a 10-year at 4.7% has a duration of 7.9, so one basis point is about 0.08%); the two sides of a "
-            "TIPS-versus-Treasury pair are priced with their own yields, not one shared constant. Price return "
-            "throughout means no dividends on equities and no carry or roll on bonds — the same convention on "
-            "both sides of every trade, understating a total-return figure by the yield being given up. "
-            "Position size is the multiple that would have run the unlevered spread at 10% annualised "
-            "volatility over the year before entry, computed once at entry and frozen: a size that was "
-            "recomputed on every rebuild would restate history. Each call also shows the passive alternative "
-            "in its own asset class over the same window."),
+            "Each call is marked from the last closing price that existed when the note was published — the "
+            "price a reader was actually looking at. We then show what the thing we said to buy has done, "
+            "what the thing we said to sell has done, and the difference between them, which is the return on "
+            "the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 "
+            "for equity calls, the 10-year Treasury for rates calls, the dollar index for currency calls. The "
+            "last line is the gap between the two. Returns are price only — no dividends on shares, no "
+            "interest on bonds — on both sides of every trade. If a note named a level at which it would be "
+            "wrong and that level printed, the call is closed there. Every note is listed, including the ones "
+            "that did not work, and no win rate is shown until there are enough closed calls for one to mean "
+            "anything. Nothing on this page is typed in by hand."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "
                        "is not a recommendation to buy or sell any security. These marks are the movement of the "
                        "named reference series; they are not the returns of any account and include no costs, "

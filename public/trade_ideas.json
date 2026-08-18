@@ -165,7 +165,7 @@
             "series": "kbw_index",
             "side": "long",
             "measure": "pct_change",
-            "label": "KBW-style US bank complex"
+            "label": "KBW bank index"
           },
           {
             "series": "ndx_index",
@@ -393,14 +393,14 @@
             "side": "long",
             "measure": "bond_return",
             "maturity_years": 10,
-            "label": "10-year TIPS (real yield)"
+            "label": "10-year TIPS"
           },
           {
             "series": "ust_10y",
             "side": "short",
             "measure": "bond_return",
             "maturity_years": 10,
-            "label": "10-year nominal Treasury"
+            "label": "10-year Treasuries"
           }
         ],
         "horizon_months": 6,

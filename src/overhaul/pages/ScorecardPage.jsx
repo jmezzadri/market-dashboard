@@ -105,54 +105,51 @@ function Row({ r, idea, onOpenNote }) {
 
           {showMark && (
             <>
-              {/* What the thing we said to BUY did, what the thing we said to
-                  SELL did, and the net — Joe 2026-08-18: "We should show the
-                  return of what we're saying to buy and what we're saying to
-                  sell and the net return." Before this the page printed one
-                  number off a pre-computed ratio and there was no way to see
-                  which side was working. */}
+              {/* Joe, 2026-08-18: "What does 'its own return' mean and
+                  'contribution' mean?" — fair. The table now has one column and
+                  five rows, and every number is the thing it says it is:
+
+                      Buy  KBW      -0.85%   what we said to buy did this
+                      Sell Nasdaq   -0.32%   what we said to sell did this
+                      Position      -0.53%   the first minus the second
+                      S&P 500       -0.52%   the passive alternative
+                      vs benchmark  -0.01%   the third minus the fourth
+
+                  The subtraction is visible and checkable. Position size is a
+                  separate line below, never folded into these. */}
               {r.legs?.length > 0 && (
                 <table className="sc-legs">
-                  <thead>
-                    <tr><th>Leg</th><th className="num">Its own return</th><th className="num">Contribution</th></tr>
-                  </thead>
                   <tbody>
                     {r.legs.map((l) => (
                       <tr key={l.series}>
                         <td>
                           <b>{l.side === 'short' ? 'Sell' : 'Buy'}</b> {l.label}
-                          {l.measure === 'bond_return' && (
-                            <span className="sc-dim"> · {l.maturity_years}y duration-priced</span>
-                          )}
                         </td>
                         <td className={`num sc-${toneOf(l.return_pct)}`}>{fmt(l.return_pct, '%')}</td>
-                        <td className={`num sc-${toneOf(l.contribution_pct)}`}>{fmt(l.contribution_pct, '%')}</td>
                       </tr>
                     ))}
                     <tr className="sc-legs-net">
-                      <td>
-                        Net at {r.sizing?.multiple != null ? `${Number(r.sizing.multiple).toFixed(2)}×` : '1×'}
-                        {r.net_unlevered_pct != null && (
-                          <span className="sc-dim"> · {fmt(r.net_unlevered_pct, '%')} unlevered</span>
-                        )}
-                      </td>
-                      <td />
-                      <td className={`num sc-${toneOf(r.mark)}`}>{fmt(r.mark, r.unit)}</td>
+                      <td>Position return{r.legs.length > 1 ? ' (buy − sell)' : ''}</td>
+                      <td className={`num sc-${toneOf(r.position_pct ?? r.mark)}`}>{fmt(r.position_pct ?? r.mark, '%')}</td>
                     </tr>
                     {r.benchmark && (
-                      <tr className="sc-legs-bm">
-                        <td>{r.benchmark.label} <span className="sc-dim">· same window, passive</span></td>
-                        <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
-                        <td className={`num sc-${toneOf(r.benchmark.difference)}`}>
-                          {fmt(r.benchmark.difference, '%')}
-                        </td>
-                      </tr>
+                      <>
+                        <tr className="sc-legs-bm">
+                          <td>Benchmark · {r.benchmark.label}</td>
+                          <td className={`num sc-${toneOf(r.benchmark.move)}`}>{fmt(r.benchmark.move, '%')}</td>
+                        </tr>
+                        <tr className="sc-legs-net">
+                          <td>vs benchmark</td>
+                          <td className={`num sc-${toneOf(r.benchmark.difference)}`}>
+                            {fmt(r.benchmark.difference, '%')}
+                          </td>
+                        </tr>
+                      </>
                     )}
                   </tbody>
                 </table>
               )}
               {r.single_leg_note && <p className="sc-legnote">{r.single_leg_note}</p>}
-              {r.benchmark?.note && <p className="sc-legnote">{r.benchmark.note}</p>}
 
               <dl className="sc-facts">
                 <div><dt>Position</dt><dd>{r.instrument}</dd></div>
@@ -167,20 +164,6 @@ function Row({ r, idea, onOpenNote }) {
                       </span>
                     ))}
                     <span className="sc-dim"> · close of {r.entry_date}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Size</dt>
-                  <dd>
-                    {r.sizing?.multiple != null ? `${Number(r.sizing.multiple).toFixed(2)}×` : '—'}
-                    {r.sizing?.spread_vol_pct != null && (
-                      <span className="sc-dim">
-                        {' '}· spread ran at {Number(r.sizing.spread_vol_pct).toFixed(1)}% vol,
-                        sized to {Number(r.sizing.target_vol_pct).toFixed(0)}%
-                      </span>
-                    )}
-                    {r.sizing?.reason && <span className="sc-dim"> · {r.sizing.reason}</span>}
-                    {r.sizing?.clamp_reason && <span className="sc-dim"> · {r.sizing.clamp_reason}</span>}
                   </dd>
                 </div>
                 <div><dt>Horizon</dt><dd>{r.horizon_months} months, to {r.target_date}</dd></div>
