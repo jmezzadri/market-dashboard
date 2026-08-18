@@ -32,6 +32,7 @@ import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
 import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
+import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
@@ -97,19 +98,30 @@ function firstClause(s, max = 82) {
    Dow arrives entirely through the live path — we carry no DJIA history file,
    and standing up a nightly feed for one tile is not worth a new producer,
    a manifest element and a health row. It is quoted, not analysed.
-   S&P and NASDAQ route to their own macro indicator, NOT to /ticker/SPY:
-   the tape shows the INDEX and the ticker page shows the ETF — different
-   instrument, different feed, different change unit, one click apart. */
+   `ind`         — the registry indicator this tile drills into. Clicking opens
+                  that indicator's full detail RIGHT HERE (Joe 2026-08-18:
+                  "I just want to stay on home page"). Previously every tile
+                  was an <a href="/macro?ind=…">, so one click both navigated
+                  to Macro and popped a modal over it — the modal was the part
+                  he wanted. Reading a level on the home page is not a reason
+                  to leave the home page.
+   The three equity indexes carry no `ind` because they are NOT registry
+   indicators — they are levels, and a percentile of the S&P's own level is
+   a meaningless statistic (it sits near the top of its own range by
+   construction). They render as plain, non-interactive tiles rather than as
+   links that go somewhere unrelated: the ticker page would show SPY/QQQ/DIA,
+   a different instrument on a different feed. Inside the drill chart they
+   already appear where they belong — as the "Add index to chart" overlays. */
 const RIBBON = [
-  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', route: '/macro?ind=spx_index', live: '^GSPC', pct: true },
-  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', route: '/macro?ind=ndx_index', live: '^IXIC', pct: true },
-  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', route: '/macro', live: '^DJI', pct: true },
-  { key: 'move', label: 'MOVE', dec: 0, suffix: '', route: '/macro?ind=move' },
-  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', route: '/macro?ind=ust_10y' },
-  { key: 'vix', label: 'VIX', dec: 1, suffix: '', route: '/macro?ind=vix' },
-  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', route: '/macro?ind=fx_jpy' },
-  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', route: '/macro?ind=hy_ig' },
-  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', route: '/macro?ind=cmdty_copper' },
+  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', live: '^GSPC', pct: true },
+  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', live: '^IXIC', pct: true },
+  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', live: '^DJI', pct: true },
+  { key: 'move', label: 'MOVE', dec: 0, suffix: '', ind: 'move' },
+  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', ind: 'ust_10y' },
+  { key: 'vix', label: 'VIX', dec: 1, suffix: '', ind: 'vix' },
+  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', ind: 'fx_jpy' },
+  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', ind: 'hy_ig' },
+  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', ind: 'cmdty_copper' },
 ];
 const RIBBON_LIVE_SYMS = RIBBON.filter((r) => r.live).map((r) => r.live);
 
@@ -180,6 +192,9 @@ export default function HomePage() {
      the site — one resolver, so the tape and a ticker page can never tell the
      user two different stories about the same session. */
   const ribbonLive = useLseLive(RIBBON_LIVE_SYMS);
+  // Which indicator's drill is open, or null. One piece of state; the modal
+  // resolves everything else itself.
+  const [drillInd, setDrillInd] = useState(null);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
   const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
@@ -261,15 +276,32 @@ export default function HomePage() {
             // Equity indexes quote in percent; macro series quote in their own
             // native unit, where a point change is the meaningful number.
             const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
-            return (
-              <a key={r.key} className="t" href={r.route} onClick={go(r.route)}>
+            const inner = (
+              <>
                 <span className="tk">{r.label}</span>
                 <span className="tv">{t ? fmt(t.value, r.dec) + r.suffix : '—'}</span>
                 <span className={`td ${d.cls || 'fl'}`}>
                   {d.txt ? `${d.arrow} ${d.txt.replace(/^[+−-]/, '')}${r.pct ? '%' : ''}` : '—'}{' '}
                   <small>{t?.stamp || 'close'}</small>
                 </span>
-              </a>
+              </>
+            );
+            // A tile with an indicator behind it opens that indicator's detail
+            // in place. A tile without one is a quote, not a link — it must
+            // not look clickable (LESSONS: an affordance that does nothing is
+            // a bug report waiting to happen).
+            return r.ind ? (
+              <button
+                key={r.key}
+                type="button"
+                className="t t--drill"
+                onClick={() => setDrillInd(r.ind)}
+                title={`${r.label} — open detail`}
+              >
+                {inner}
+              </button>
+            ) : (
+              <div key={r.key} className="t t--static">{inner}</div>
             );
           })}
         </div>
@@ -385,18 +417,18 @@ export default function HomePage() {
               <a className="es-link" href="/macro" onClick={go('/macro')}>See the track record ↗</a>
             </div>
             <div className="es-gauges">
-              <a className="gauge" href="/macro?ind=move" onClick={go('/macro?ind=move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
+              <button type="button" className="gauge" onClick={() => setDrillInd('move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
                 <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)}</b></div>
                 <div className="track"><div className="fill" /><div className="pin" /></div>
                 <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
                 <div className={`read ${stressCls}`}>{stressMsg}</div>
-              </a>
-              <a className="gauge" href="/macro?ind=ust_10y" onClick={go('/macro?ind=ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
+              </button>
+              <button type="button" className="gauge" onClick={() => setDrillInd('ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
                 <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`}<i>bp</i></b></div>
                 <div className="track"><div className="fill" /><div className="pin" /></div>
                 <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
                 <div className={`read ${yCls}`}>{yMsg}</div>
-              </a>
+              </button>
             </div>
           </Reveal>
 
@@ -481,6 +513,9 @@ export default function HomePage() {
       )}
 
       {/* full trade-idea note */}
+      {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
+      <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
+
       {ideaOpen && idea && (
         <TradeIdeaNoteModal idea={idea} chartSeries={chartSeries} onClose={() => setIdeaOpen(false)} />
       )}
