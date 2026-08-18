@@ -36,5 +36,7 @@ export default function useMarketLevels() {
     return { value, asOf: last?.[0] || h?.as_of || null, dd, unit: h?.unit || '' };
   };
 
-  return { level, loaded: !!hist };
+  // `hist` is exposed so the index drill can chart the same series the tape
+  // reads, from the same (jsonOnce-shared) fetch.
+  return { level, hist, loaded: !!hist };
 }
