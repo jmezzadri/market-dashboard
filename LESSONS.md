@@ -1400,5 +1400,6 @@ Two things fell out of it. The tape tiles became `<button>`/`<div>` instead of `
 2. **A shared UI shell lives in `components/`, not inside the first page that needed it.** A drill panel trapped in a page turns every other surface's link into a navigation.
 3. **Don't render an affordance you cannot honour.** A tile with nothing behind it gets `cursor:default` and no hover lift, not a link to the nearest vaguely-related page. An index level is not an indicator and does not get a fake drill.
 4. **Two hooks wanting one file is one request.** Before adding a second consumer of a large JSON artifact, check what the first one does — `no-cache` on both is a double download, and the browser cannot save you from it.
+5. **A modifier class that only *overrides* must be authored after what it overrides.** `.t--static:hover` and `.t:hover` have identical specificity, so source order decides — and the first version put the modifier above the rule it was meant to beat. It compiled, it shipped, and the "non-interactive" tiles still lifted and turned gold under the cursor. Caught by hovering the real page, not by reading the diff: **a CSS override is not verified until you have seen the state it suppresses.**
 
 **Applies to:** UX Designer + Lead Developer — every drill, tooltip-expand, and detail overlay on every page.
