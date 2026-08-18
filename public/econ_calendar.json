@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-17T20:51:32Z",
+  "generated_at": "2026-08-18T09:56:46Z",
   "window": {
-    "from": "2026-08-10",
-    "to": "2026-10-26"
+    "from": "2026-08-11",
+    "to": "2026-10-27"
   },
   "counts": {
-    "total": 93,
+    "total": 96,
     "tier1": 22
   },
   "sources": [
@@ -1040,6 +1040,39 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "An 85-indicator composite of national economic activity.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-27",
+      "time_et": "8:30 AM",
+      "name": "Durable goods orders",
+      "short": "Durables",
+      "tier": 2,
+      "category": "Growth",
+      "blurb": "Advance report on orders for long-lived manufactured goods \u2014 a proxy for capex intent.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-27",
+      "time_et": "8:30 AM",
+      "name": "Building permits (final)",
+      "short": "Permits",
+      "tier": 3,
+      "category": "Housing",
+      "blurb": "Final building-permit counts for the prior month.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-27",
+      "time_et": "10:00 AM",
+      "name": "New home sales",
+      "short": "New homes",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
