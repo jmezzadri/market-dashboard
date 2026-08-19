@@ -1463,3 +1463,34 @@ The brief that morning ran **~4,500 words**. Four separate places already told t
 5. **A freshness gate that reads only the newest point cannot see a hole behind it.** Anything that diffs two prints must check the two prints are actually adjacent before it subtracts them.
 
 **Applies to:** every editorial surface — the daily brief, the trade-idea note, the X caption, and anything else with Joe's attention on the other end.
+
+---
+
+### 4.47 (2026-08-19) — A series can be perfectly fresh and still be missing a month; and replacing a series is only safe if the new one is a superset
+
+**What happened:** while wiring one-session deltas into the new brief snapshot, the change for MOVE came out as **+4.10** on a day it had actually moved **−0.60**. The delta was computed from the last two points in `indicator_history.json`, and those two points were **2026-07-17** and **2026-08-18** — 21 trading sessions apart.
+
+**The cause is precise and nasty.** Yahoo stopped publishing `^MOVE` daily **bars** after 2026-07-17, but kept serving a single live quote row. `yfinance` therefore returned 5,854 historical bars ending 07-17 **plus one row dated today**. So:
+
+- `len(s) > 100` passed — there were 5,855 points.
+- The daily freshness SLA passed — the **last** point was today's.
+- The monotonic as-of guard passed — the last date was **later** than what we held, which is exactly what the guard was built to require.
+- The file was written, replacing a complete series with a holed one. Every run. For a month. `move` sat at **exactly 5,855 points** in every single commit from 2026-07-18 to 2026-08-19 — the count never moved, because each run threw away yesterday's recovered point and added today's.
+
+Every check we owned was green, and every percentile, change and correlation computed on MOVE's recent window was wrong.
+
+**Three fixes, in order of how much they generalise:**
+
+1. **Union, do not replace.** Overwriting a held series with a fetched one is only ever correct if the fetched one is a superset, and there is no way to know that it is. The refresh now merges by date — fresh wins a collision so genuine revisions still land, prior fills a hole, and **a series can only grow**. Skipped when the entry's `source` changes, because a methodology migration (real_rates: FRED DFII10 → Treasury.gov, 2026-05-27) *should* replace rather than splice.
+2. **A second eye that looks behind the last point.** `_interior_gaps()` scans the trailing 45 days of every daily-SLA indicator and sets `pipeline_health` **red** with a reason when sessions are missing in the middle, so the 30-minute watchdog alarms on this class of failure instead of being structurally blind to it. Verified: flags `move` today and nothing else across all 30 daily-SLA indicators; flags nothing after the repair.
+3. **The lost month was recoverable from our own history.** Every daily run committed a snapshot whose *final* point was that day's live MOVE value. Walking the git log of `public/indicator_history.json` recovered all 23 sessions — 2026-07-20 through 08-18, complete, no gaps — now pinned in `MOVE_RECOVERED_2026` and unioned in, where Yahoo wins any date it actually carries so the constant becomes a no-op the day Yahoo backfills.
+
+**Rule:**
+
+1. **Freshness is not completeness.** Any check that reads only the newest observation cannot see a hole behind it. If you promise a series is daily, audit the *spacing* of its points, not just the date of the last one.
+2. **Never replace a held series with a fetched one.** Merge by key. A pipeline that can only add data cannot silently delete a month of it.
+3. **A guard is only as good as the failure it imagined.** The monotonic as-of guard was written for a vendor returning an *older* series, so it demanded the last date advance — which is precisely the property the broken feed had. When a guard passes on the incident it was meant to catch, the guard's *predicate* is wrong, not its threshold.
+4. **A constant that never changes is a signal.** 5,855 points, every commit, for a month. Nothing watched cardinality. Anything that should grow and doesn't is worth an alarm.
+5. **Look for the data before you decide it is gone.** Our own commit history was a complete daily archive of the exact values the vendor had stopped serving. Version control is a time series.
+
+**Applies to:** Lead Developer (owns the pipeline and its guards) + Senior Quant (owns every statistic computed on these series).

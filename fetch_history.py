@@ -1702,16 +1702,6 @@ def main():
                 if carried:
                     print(f"  Carried forward {len(carried)} indicator(s) from prior "
                           f"file (fresh fetch failed): {', '.join(carried)}")
-                # ── Never regress a series backward (monotonic as-of guard) ──
-                # A vendor (Yahoo ^MOVE) intermittently returns a TRUNCATED
-                # series ending on an OLDER date than what we already hold. That
-                # is not a "missing" indicator (the carry-forward above won't
-                # catch it) — it is present-but-stale, and writing it overwrites
-                # good data with old data. MOVE flip-flopped Jun 18 -> Jun 12 in
-                # one day this way. Keep the fresher on-disk series whenever the
-                # fresh fetch ends EARLIER than what we already have. (Future
-                # points were already dropped, so the last point is the true
-                # latest.)
                 # ── Point-level union: never lose a date we already hold ──
                 # Replacing a held series with a fresh one is only ever safe if
                 # the fresh one is a SUPERSET, and we cannot tell that it is.
@@ -1751,6 +1741,19 @@ def main():
                     print(f"  Point-union kept {len(recovered)} series from losing "
                           f"held dates: {', '.join(recovered)}")
 
+                # ── Never regress a series backward (monotonic as-of guard) ──
+                # A vendor (Yahoo ^MOVE) intermittently returns a TRUNCATED
+                # series ending on an OLDER date than what we already hold. That
+                # is not a "missing" indicator (the carry-forward above won't
+                # catch it) — it is present-but-stale, and writing it overwrites
+                # good data with old data. MOVE flip-flopped Jun 18 -> Jun 12 in
+                # one day this way. Keep the fresher on-disk series whenever the
+                # fresh fetch ends EARLIER than what we already have. (Future
+                # points were already dropped, so the last point is the true
+                # latest.) NOTE 2026-08-19: after the point-union above this can
+                # only fire for a series the union SKIPPED (source migration) or
+                # one the union did not touch. It stays as the backstop for
+                # exactly those.
                 def _last_dt(e):
                     p = e.get("points") if isinstance(e, dict) else None
                     return p[-1][0] if p else None
