@@ -1429,3 +1429,37 @@ Underneath all four: **each call was scored as ONE leg on a series that had alre
 6. **A supported field that nothing populates is not a feature.** The benchmark slot existed for a day and stayed null on every row. If a field is optional and nobody fills it, either default it or delete it — an unfilled field looks identical to an absent one, and it hides the same gap for longer.
 
 **Applies to:** Senior Quant (owns the return, duration and sizing conventions) + Lead Developer — every published call, every scorecard, every performance surface.
+
+---
+
+### 4.46 (2026-08-19) — Style guidance in a prompt does not hold a length; and prose is the worst container ever invented for a number
+
+**What happened:** Joe on the 8/19 brief email: *"Its way too much writing."* He quoted us back:
+
+> "The most important change since yesterday morning is that the long end stopped rising. The 30-year Treasury yield closed Tuesday at 5.28% against 5.31% Monday, the 20-year at 5.28% from 5.30%, the 10-year at 4.71% from 4.72%, and the 2-year was unchanged at 4.19%. The gap between the 10-year and the 2-year narrowed to 52 basis points from 53. The bond market's gauge of expected price swings eased to 75 from 75.6."
+
+and wrote what he wanted instead: six lines — `30y down 3bps to 5.28%`, `2y UNCH`, `MOVE down 1.6bps to 75` — plus *"if there is a so what, we can say what the so what is."* Then: *"You write so much in so much jargon — 'the bond market's gauge of expected price swings' — just say MOVE. I am very busy and dont have time to read thousands of words to get the picture."*
+
+The brief that morning ran **~4,500 words**. Four separate places already told the writer to be short: the prompt said "concise" and "keep it tight", the legacy routine said "under 500 words", the playbook said "Keep it tight". Every one was ignored the moment the writer had something to say.
+
+**Three separate root causes, and only one of them is length:**
+
+1. **A limit that is not enforced in code is a suggestion.** Four prompts asked for brevity and none of them could refuse a brief. Length now lives in `enforce_caps()` inside `validate()`, so both generator paths — the metered fallback and the morning session's `--prepare-file` — hit the same wall: per-field character caps, per-list item caps, and a 700-word ceiling on the whole thing. It prints **every** overage at once with the exact number of characters to cut, so one rewrite fixes the brief.
+
+2. **We were writing the data instead of drawing it.** Sixty-two words of prose carried six numbers that the feed already holds exactly. `build_metrics()` now assembles the snapshot table — 28 rows across Rates / Equities & vol / Credit & liquidity / Commodities & FX — from `indicator_history.json` at prepare time, and the writer is forbidden from restating a row. **Numbers go in tables. Prose is for the so-what, and only when there is one.**
+
+3. **Plain English had become a tax.** The rule "translate jargon every time" was written for a general reader this brief does not have. It produced "the bond market's gauge of expected price swings" for MOVE and "the gap between the 10-year and the 2-year" for 2s10s, and it cost Joe a clause on every line. **That rule is reversed as of today:** write MOVE, 2s10s, HY OAS, DXY, dealer takedown, days to cover, COT 91st %ile — the market's own name, no appositive, no gloss.
+
+**A fourth thing fell out of building it.** The same story was told four times in one email — stance, an Equity Markets bullet, a news item, an implication. That is how you get to 4,500 words without anyone deciding to. `check_duplication()` now rejects an eight-word run that appears in two different blocks. Six blocks are six angles on the day, not six chances to repeat one sentence.
+
+**And one real data bug surfaced while wiring the deltas.** `indicator_history.json` had `move` jumping straight from 2026-07-17 to 2026-08-18 — a 32-day interior hole. A naive last-two-points diff would have printed `MOVE +4.10` for a session that actually moved −0.6. **The daily freshness gate cannot see an interior hole: it only reads the newest point.** So `build_metrics()` gates every delta on adjacency (≤5 calendar days for a daily series, ≤10 for weekly, none for monthly) and prints the level alone when the gap is wrong. A missing change is correct; an invented one is the exact failure this rewrite exists to kill.
+
+**Rule:**
+
+1. **Enforce it in code or do not claim it.** Any property of an artifact the reader would notice being violated — length, freshness, uniqueness, unit — belongs in the validator, not in the prompt. If the only thing standing between you and a 4,500-word email is a sentence asking nicely, you have a 4,500-word email.
+2. **Numbers go in tables, built from the feed. Prose earns its place by saying what the numbers mean.** Never write a level the reader can already see; never write a change the pipeline can compute.
+3. **Write in the reader's own vocabulary, not one level below it.** Translation is a service to a reader who needs it and a cost to one who does not. Know which you have. (This brief's readers are Joe and active managers.)
+4. **Say it once.** Restating a point in a second block is not emphasis; it is the reader paying twice for the same sentence.
+5. **A freshness gate that reads only the newest point cannot see a hole behind it.** Anything that diffs two prints must check the two prints are actually adjacent before it subtracts them.
+
+**Applies to:** every editorial surface — the daily brief, the trade-idea note, the X caption, and anything else with Joe's attention on the other end.
