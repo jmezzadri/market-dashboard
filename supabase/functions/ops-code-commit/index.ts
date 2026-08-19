@@ -48,6 +48,10 @@ const FORBIDDEN_BRANCHES = ["main", "master"];
 const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
   "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
+  // 2026-08-19: repairing the MOVE hole meant waiting ~3h for the next
+  // scheduled indicator pull to see whether the fix worked. A data fix you
+  // cannot trigger is a data fix you cannot verify in the session that made it.
+  "INDICATOR-REFRESH_7AM_WEEKDAYS.yml",
 ]);
 
 function json(b: unknown, s = 200) {
