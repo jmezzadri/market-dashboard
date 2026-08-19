@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-18T20:46:31Z",
+  "generated_at": "2026-08-19T09:57:06Z",
   "window": {
-    "from": "2026-08-11",
-    "to": "2026-10-27"
+    "from": "2026-08-12",
+    "to": "2026-10-28"
   },
   "counts": {
-    "total": 96,
-    "tier1": 22
+    "total": 98,
+    "tier1": 23
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -1074,6 +1074,28 @@
       "category": "Housing",
       "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-28",
+      "time_et": "8:30 AM",
+      "name": "Advance goods trade & inventories",
+      "short": "Adv Econ",
+      "tier": 3,
+      "category": "Trade",
+      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-28",
+      "time_et": "2:00 PM",
+      "name": "Fed decision (FOMC)",
+      "short": "FOMC",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Federal Reserve rate decision and statement, followed by a 2:30 PM press conference.",
+      "source": "Federal Reserve FOMC calendar",
       "time_source": "published release policy"
     }
   ]
