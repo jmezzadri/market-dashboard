@@ -46,6 +46,63 @@ TARGETS = [
 ]
 
 
+STATS_YEARS = 3
+
+def _stats_window(points, years=STATS_YEARS):
+    """The population a "trailing 3-year percentile" is supposed to rank against.
+
+    Two faults this replaces, both found 2026-08-19:
+
+    1. The window was the last 756 OBSERVATIONS, not the last 3 years. For a
+       daily series those are the same thing. For uranium -- 462 monthly points
+       with 46 daily ones behind them -- 756 observations is the ENTIRE series,
+       so a card labelled "trailing 3-year percentile" was ranking today against
+       thirty-eight years. It read 97.2 and coloured the pill red.
+    2. Cadence. Uranium's raw 3-year window is ~36 monthly points plus ~45 daily
+       ones, so the most recent two months supply over half the sample and any
+       recent drift mechanically ranks high (92.5). A percentile only means
+       something over a population sampled EVENLY IN TIME, so a sparse window is
+       normalised to one observation per calendar month (83.3).
+
+    Dense daily series are untouched by both changes: gold, silver, copper, oil
+    and natgas each return the identical number to the old code. LESSONS 4.49.
+    """
+    import datetime as _sd
+    pts = [(d, v) for d, v in (points or []) if v is not None]
+    if not pts:
+        return []
+    cut = (_sd.date.fromisoformat(pts[-1][0])
+           - _sd.timedelta(days=365 * years)).isoformat()
+    latest = pts[-1][0]
+    # Bounded at BOTH ends. The upper bound matters: the month-end map is read
+    # back in sorted-key order, so a single future-dated point would silently
+    # become "today's value" and be ranked against everything else.
+    w = [(d, v) for d, v in pts if cut <= d <= latest]
+    if len(w) >= 250:                 # genuinely daily across the window
+        return [v for _, v in w]
+    monthly = {}
+    for d, v in w:                    # last observation in each calendar month;
+        monthly[d[:7]] = v            # the newest month keeps today's reading
+    return [monthly[k] for k in sorted(monthly)]
+
+
+def pctrank_points(points, years=STATS_YEARS):
+    w = _stats_window(points, years)
+    if not w:
+        return None
+    a = np.asarray(w, float)
+    return round(float((a <= a[-1]).mean() * 100.0), 1)
+
+
+def zscore_points(points, years=STATS_YEARS):
+    w = _stats_window(points, years)
+    if not w:
+        return None
+    a = np.asarray(w, float)
+    mu, sd = a.mean(), a.std(ddof=0)
+    return round(float((a[-1] - mu) / sd), 2) if sd else 0.0
+
+
 def pctrank_latest(vals, window):
     a = np.asarray([v for v in vals if v is not None], float)
     w = a[-window:] if len(a) >= window else a
@@ -249,8 +306,8 @@ def run():
             vals = [p[1] for p in allpts]
             freq = "D"
             thin = len(vals) < 60          # not enough history to rank yet
-            pct = None if thin else pctrank_latest(vals, WINDOW_DAYS)
-            z = None if thin else zscore_latest(vals, WINDOW_DAYS)
+            pct = None if thin else pctrank_points(allpts)
+            z = None if thin else zscore_points(allpts)
             state = "calm" if thin else state_for(pct)
             updates[key] = {
                 "freq": freq, "unit": unit, "as_of": allpts[-1][0],
@@ -299,13 +356,17 @@ def run():
         upts = [[d, um[d]] for d in sorted(um)]   # dedupe + ascending; no truncation
         uvals = [pt[1] for pt in upts]
         uthin = len(uvals) < 60
-        upct = None if uthin else pctrank_latest(uvals, WINDOW_DAYS)
-        uz = None if uthin else zscore_latest(uvals, WINDOW_DAYS)
+        upct = None if uthin else pctrank_points(upts)
+        uz = None if uthin else zscore_points(upts)
         updates["cmdty_uranium"] = {
             "freq": "D", "unit": "$/lb", "as_of": today, "points": upts,
             "stats": {"direction": "bw", "pctile_3yr": upct, "z_3yr": uz,
                       "state": "calm" if uthin else state_for(upct), "bucket": "Commodities",
-                      "label": "Uranium", "source": "Numerco (spot U3O8)", "ranked": not uthin},
+                      "label": "Uranium",
+                      "source": "Numerco daily spot U3O8 (Yellow Cake plc) over "
+                                "Cameco monthly industry-average spot (UxC + TradeTech)",
+                      "stats_basis": f"{STATS_YEARS}y window, month-end sampled",
+                      "ranked": not uthin},
         }
         print(f"  Commodities Uranium          spot=US${spot}/lb  ({'history building' if uthin else f'{upct:.1f}%ile'})")
     except Exception as e:
@@ -329,6 +390,23 @@ def selftest():
     z = zscore_latest(vals, WINDOW_DAYS)
     ok &= z > 1.5
     print(f"  {'OK' if z>1.5 else 'FAIL'} zscore(max) = {z:+.2f}")
+    # _stats_window: a dense daily window passes through; a sparse mixed one is
+    # normalised to one point per month and is bounded by the 3-year cut.
+    import datetime as _td
+    base = _td.date(2026, 8, 19)
+    dense = [[(base - _td.timedelta(days=i)).isoformat(), float(i)] for i in range(1500)][::-1]
+    w1 = _stats_window(dense)
+    ok &= 250 <= len(w1) <= 1100
+    print(f"  {'OK' if 250 <= len(w1) <= 1100 else 'FAIL'} dense kept daily and cut at 3y, n={len(w1)} (of 1500)")
+    sparse = ([[f"2015-{m:02d}-01", 10.0] for m in range(1, 13)]
+              + [[f"{y}-{m:02d}-01", 20.0] for y in (2024, 2025) for m in range(1, 13)]
+              + [[f"2026-{m:02d}-01", 20.0] for m in range(1, 8)]
+              + [[f"2026-08-{d:02d}", 30.0] for d in range(1, 20)])
+    w2 = _stats_window(sparse)
+    ok &= len(w2) <= 40 and w2[-1] == 30.0
+    print(f"  {'OK' if len(w2) <= 40 and w2[-1] == 30.0 else 'FAIL'} sparse window month-end sampled, n={len(w2)}, last={w2[-1]}")
+    ok &= all(v != 10.0 for v in w2)
+    print(f"  {'OK' if all(v != 10.0 for v in w2) else 'FAIL'} 2015 points excluded by the 3y cut")
     ok &= state_for(95) == "extreme" and state_for(50) == "calm" and state_for(8) == "extreme"
     print(f"  states: 95->{state_for(95)} 50->{state_for(50)} 8->{state_for(8)}")
     # merge guard

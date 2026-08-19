@@ -1531,3 +1531,27 @@ Two further faults hid inside the same feed and neither had an owner:
 5. **When copy and data disagree, the data is the suspect.** The card's own description had the 2007 peak at $136 and the 2016 trough near $19 — both correct on the Cameco spine and neither matching the numbers we were plotting. The prose had been right about this feed for months.
 
 **Applies to:** Senior Quant (owns what a series means and every statistic on it) + Data Steward (owns its sourcing).
+
+---
+
+### 4.49 (2026-08-19) — A window measured in observations is not a window measured in time
+
+**What happened:** having rebuilt uranium's history on the Cameco spine (LESSONS 4.48), I predicted the card would move from the 99th percentile to about the 91st. The refresh ran, the history landed correctly — 508 points, every spot check right, no gaps — and the pill printed **97.2, still red**. The prediction was not wrong about the data. It was wrong about what the code computes.
+
+`pctrank_latest(vals, WINDOW_DAYS)` takes `vals[-756:]`. **756 observations, not 756 days.** For gold, silver, copper, oil, natgas — thousands of daily points — those are the same thing, which is why nobody ever noticed. Uranium has 508 points in total, so the slice took **everything**, and a card labelled "trailing 3-year percentile" was ranking today's $88.13 against **thirty-eight years** including the 2007 spike to $136. The right answer over three actual years was 92.5.
+
+Then the second fault, sitting underneath the first. Uranium's raw 3-year window is ~36 monthly points followed by ~45 daily ones, so **the most recent two months supply more than half the sample**. Any recent drift ranks high automatically — a percentile computed over a population that is not sampled evenly in time is not measuring what the word means. Normalised to one observation per calendar month the answer is **83.3 — elevated, not extreme.**
+
+Both faults were invisible while the series was uniform. The 4.48 rebuild did not create them; it changed the number enough that a prediction and a print disagreed, which is the only reason either was found.
+
+**Fix.** `_stats_window()` cuts on a **date** and, when the window holds fewer than 250 observations, samples one point per calendar month. It is bounded at both ends: the upper bound matters because the month map is read back in sorted-key order, so one future-dated point would silently become "today's value". Verified across the whole commodities bucket: uranium 97.2 → 83.3 (extreme → elevated); gold, silver, copper, natgas and wheat return **identical** numbers, oil, corn and soybeans move under half a percentile point from the window edge, and no other state changes.
+
+**Rule:**
+
+1. **State the window in the unit the label uses.** If the card says "3-year", the code slices on dates. `[-756:]` is a coincidence that holds only while the cadence is constant, and it fails silently the first time it is not.
+2. **A percentile is a claim about a population. Look at the population.** Before trusting one, ask what is in the window, how many, and at what spacing. Half a sample drawn from the last two months is not a three-year distribution.
+3. **A shared helper is only shared where the inputs are alike.** The same two lines were correct for eight daily commodities and wrong for the ninth. "It works for everything else" is evidence about everything else.
+4. **When a prediction and a print disagree, do not reconcile them by adjusting the prediction.** The gap between 91 and 97.2 was two real bugs. The temptation to write "close enough, the rebuild worked" would have shipped both.
+5. **Bound a window at both ends.** Any code that reconstructs "the current value" from a sorted map must be certain nothing sorts above it.
+
+**Applies to:** Senior Quant — every percentile, z-score, rank and state on the site.
