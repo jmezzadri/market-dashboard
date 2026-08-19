@@ -168,35 +168,60 @@ def _merge_points(stored_pts, fresh_pts):
     return [[d, m[d]] for d in sorted(m)]
 
 
-def fetch_uranium_history_indexmundi():
-    """One-time deep seed: ~25y MONTHLY U3O8 spot ($/lb) from IndexMundi (free).
-    Returns [[YYYY-MM-01, price], ...] ascending, or raises. Tolerant HTML parse
-    (no extra deps): pull rows of 'Month YYYY' + a price from the data table."""
-    import requests, re, datetime as _dt
-    r = requests.get("https://www.indexmundi.com/commodities/?commodity=uranium&months=360",
-                     headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"}, timeout=30)
+# The daily Numerco accumulation began on this date. Everything BEFORE it is
+# monthly backbone; everything from it on is our own daily readings.
+URANIUM_DAILY_FROM = "2026-06-16"
+
+def fetch_uranium_history_cameco():
+    """Monthly industry-average spot U3O8 ($/lb), Jan-1988 -> latest, from Cameco.
+
+    Cameco publishes each month-end average of the UxC and TradeTech spot
+    prices. That is the SAME benchmark our daily Numerco reading measures:
+    Cameco's Jun-2026 average is $85.00 and our first daily point (2026-06-16)
+    is $85.75.
+
+    It replaces IndexMundi, which was serving the Nuexco "restricted" price -- a
+    DIFFERENT and much lower benchmark. Ours read $40.06 for Jan-2023 against
+    Cameco's $50.63, $80.36 for Jan-2024 against $100.25, and $52.41 for
+    Mar-2026 against $84.25. Splicing it behind the Numerco daily feed
+    manufactured a ~20% step at the seam and made the card's trailing 3-year
+    percentile a comparison between two different price definitions -- which is
+    why $88.13 was reading 99th percentile. IndexMundi had also published
+    nothing since Mar-2026. LESSONS 4.48.
+
+    Returns [[YYYY-MM-01, price], ...] ascending, or raises.
+    """
+    import requests, re
+    r = requests.get("https://www.cameco.com/invest/markets/uranium-price",
+                     headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"},
+                     timeout=30)
     r.raise_for_status()
     html = r.text
-    MON = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,"jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
+    # The full-history table is the first one carrying YYYY/MM/DD rows; the two
+    # summary grids further down are year-by-month pivots of the same numbers.
+    start = html.find("<table")
     out = {}
-    # Rows like: <td>Jan 2010</td><td>41.50</td>  (month name may be full or abbrev)
-    for mname, yr, price in re.findall(
-            r">\s*([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*<[^>]*>\s*</td>\s*<td[^>]*>\s*([0-9]+(?:\.[0-9]+)?)",
-            html):
-        mi = MON.get(mname[:3].lower())
-        if not mi:
-            continue
-        d = f"{int(yr):04d}-{mi:02d}-01"
-        out[d] = round(float(price), 2)
-    if len(out) < 24:
-        # Fallback: simpler pair scan across the whole page
-        for mname, yr, price in re.findall(
-                r"([A-Za-z]{3,9})\s+((?:19|20)\d{2})[^0-9]{1,40}?([0-9]{1,3}\.[0-9]{1,2})", html):
-            mi = MON.get(mname[:3].lower())
-            if mi and 1.0 <= float(price) <= 400.0:
-                out.setdefault(f"{int(yr):04d}-{mi:02d}-01", round(float(price), 2))
-    if len(out) < 24:
-        raise RuntimeError(f"IndexMundi parse yielded only {len(out)} months")
+    while start != -1 and not out:
+        tbl = html[start:html.find("</table>", start)]
+        for row in re.findall(r"<tr[^>]*>(.*?)</tr>", tbl, re.S):
+            cells = [re.sub(r"\s+", " ", re.sub("<[^>]+>", "", c)).strip()
+                     for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)]
+            cells = [c for c in cells if c]
+            if len(cells) >= 2 and re.match(r"^\d{4}/\d{2}/\d{2}$", cells[0]):
+                try:
+                    v = float(cells[1].replace(",", ""))
+                except ValueError:
+                    continue
+                y, mo, _ = cells[0].split("/")
+                out[f"{y}-{mo}-01"] = round(v, 2)
+        start = html.find("<table", start + 1)
+    # Sanity gate: a layout change must fail LOUD and leave the held history
+    # alone, never quietly hand back three rows that then overwrite 38 years.
+    if len(out) < 400:
+        raise RuntimeError(f"only {len(out)} monthly rows parsed (expected 400+)")
+    bad = [d for d, v in out.items() if not (5.0 <= v <= 500.0)]
+    if bad:
+        raise RuntimeError(f"{len(bad)} implausible price(s), e.g. {bad[:3]}")
     return [[d, out[d]] for d in sorted(out)]
 
 
@@ -250,17 +275,25 @@ def run():
         today = _du.date.today().isoformat()
         existing = (hist0.get("cmdty_uranium") or {})
         upts = [list(pt) for pt in (existing.get("points") or []) if pt[0] != today]
-        # One-time deep seed (set MKT_SEED_URANIUM): merge ~25y monthly U3O8 behind
-        # the daily live value; the live point stays the latest reading.
-        if os.environ.get("MKT_SEED_URANIUM"):
-            try:
-                monthly = fetch_uranium_history_indexmundi()
-                have = {p[0] for p in upts}
-                add = [m for m in monthly if m[0] not in have]
-                upts += add
-                print(f"  Uranium seed: +{len(add)} monthly points from IndexMundi ({monthly[0][0]}->{monthly[-1][0]})")
-            except Exception as se:
-                print(f"  WARNING Uranium IndexMundi seed: {se} — keeping existing history")
+        # Monthly backbone, rebuilt on EVERY run rather than seeded once.
+        # A one-time seed cannot correct itself and cannot extend: this one was
+        # seeded in June 2026 from a source that had the wrong benchmark AND had
+        # stopped publishing, and both faults sat there for two months because
+        # nothing ever looked again. One HTTP call a day fixes that permanently.
+        # Pre-seam points are REPLACED, not merged — Cameco is the authority for
+        # every date before our own daily readings begin. LESSONS 4.48.
+        daily = [p for p in upts if p[0] >= URANIUM_DAILY_FROM]
+        try:
+            monthly = fetch_uranium_history_cameco()
+            backbone = [m for m in monthly if m[0] < URANIUM_DAILY_FROM]
+            if len(backbone) < 400:
+                raise RuntimeError(f"backbone only {len(backbone)} points before the seam")
+            upts = backbone + daily
+            print(f"  Uranium backbone: {len(backbone)} monthly points from Cameco "
+                  f"({backbone[0][0]}->{backbone[-1][0]}) + {len(daily)} daily since "
+                  f"{URANIUM_DAILY_FROM}")
+        except Exception as se:
+            print(f"  WARNING Uranium Cameco backbone: {se} — keeping existing history")
         upts.append([today, round(spot, 2)])
         um = {p[0]: p[1] for p in upts}
         upts = [[d, um[d]] for d in sorted(um)]   # dedupe + ascending; no truncation

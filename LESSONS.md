@@ -1494,3 +1494,40 @@ Every check we owned was green, and every percentile, change and correlation com
 5. **Look for the data before you decide it is gone.** Our own commit history was a complete daily archive of the exact values the vendor had stopped serving. Version control is a time series.
 
 **Applies to:** Lead Developer (owns the pipeline and its guards) + Senior Quant (owns every statistic computed on these series).
+
+---
+
+### 4.48 (2026-08-19) — A gap in a series is a symptom; check whether the two sides of it are even the same number
+
+**What happened:** chasing a 107-day hole in `cmdty_uranium` (2026-03-01 → 06-16), the hole turned out to be the least of it. The two sides of the gap were **different price benchmarks**.
+
+- Before the gap: ~30 years of monthly points scraped from IndexMundi, which serves the **Nuexco "restricted" price**.
+- After the gap: our own daily readings of **Numerco spot U3O8**, accumulating since 2026-06-16.
+
+They are not the same series and they are nowhere near each other:
+
+| Month | Stored (IndexMundi / Nuexco) | Cameco (UxC + TradeTech) |
+|---|---|---|
+| Jan 2023 | $40.06 | $50.63 |
+| Jan 2024 | $80.36 | $100.25 |
+| Jun 2025 | $59.58 | $78.50 |
+| Feb 2026 | $71.30 | $86.95 |
+| Mar 2026 | **$52.41** | $84.25 |
+
+The card's pill is a **trailing 3-year percentile**, and that window held 31 IndexMundi monthlies plus 45 Numerco dailies — so it was ranking today's price against a three-year range built mostly out of a *different, systematically lower* benchmark. $88.13 read as the **99th percentile** of its own history. Rebuilt on one consistent definition it is the **91st**. The card had been quietly overstating how stretched uranium was for two months, and the "recovery" the chart showed across the seam was the source change, not the market.
+
+Two further faults hid inside the same feed and neither had an owner:
+- **The seed had no maintenance path.** It was a one-time `MKT_SEED_URANIUM` merge run in June 2026. A one-time seed cannot correct itself and cannot extend. IndexMundi published nothing after Mar-2026 and nobody looked again, which is the whole of the 107-day gap.
+- **Mar-2026 was additionally mis-parsed** — $52.41 against IndexMundi's own published $68.79. A bad scrape sitting inside a wrong series.
+
+**Fix.** The monthly backbone is now Cameco's month-end average of the UxC and TradeTech spot prices (Jan-1988 →, 463 rows), **re-read on every run** rather than seeded once, and every date before 2026-06-16 is REPLACED from it. The join validates: Cameco's Jun-2026 average is $85.00 and our first daily reading is $85.75. 404 → 507 points, no gap over 35 days anywhere. The parser refuses a page returning under 400 rows or a price outside $5–$500 and keeps the held history instead.
+
+**Rule:**
+
+1. **A splice is a claim that two sources measure the same thing. Prove it at the seam.** Any series stitched from two providers must show the overlap — or at minimum the adjacent values — and the check belongs in the code, not in someone's memory of having eyeballed it once. Ours differed by 20% and nothing objected.
+2. **Percentiles, z-scores and ranges inherit every definition change in their window.** A statistic computed across a source switch is not a statistic. Before trusting a percentile, ask what the window is actually made of.
+3. **Never leave a "one-time seed" as the permanent shape of a series.** If it is worth fetching once it is worth fetching every run: the cost is one HTTP call and the benefit is that it self-corrects and self-extends. Every one-time seed is a fact frozen on the day someone happened to run it.
+4. **Prefer the source whose definition you can name.** "Uranium price" is not a specification. Cameco publishes exactly what it averages and over what period; the IndexMundi row said "u3o8 restricted price, Nuexco exchange spot" and nobody read it.
+5. **When copy and data disagree, the data is the suspect.** The card's own description had the 2007 peak at $136 and the 2016 trough near $19 — both correct on the Cameco spine and neither matching the numbers we were plotting. The prose had been right about this feed for months.
+
+**Applies to:** Senior Quant (owns what a series means and every statistic on it) + Data Steward (owns its sourcing).
