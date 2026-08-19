@@ -307,7 +307,7 @@
    "description": "ICE BofA MOVE swaption-vol index — implied volatility of US Treasury options.",
    "sourcing_mode": "STP+anchor",
    "source_vendor": "Yahoo Finance",
-   "source_endpoint": "yfinance ^MOVE; fallback _move_fallback_monthly",
+   "source_endpoint": "yfinance ^MOVE (Yahoo daily bars END 2026-07-17; it now serves only a live quote row) + MOVE_RECOVERED_2026 window recovered from MacroTilt's own committed daily snapshots; fallback _move_fallback_monthly",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
@@ -333,7 +333,7 @@
     }
    ],
    "current_status": "live",
-   "failure_mode": "Curated anchor (stale) used when Yahoo blocks.",
+   "failure_mode": "Curated anchor (stale) used when Yahoo blocks. Since 2026-08-19 the refresh also UNIONS points with the prior file rather than replacing them, so a vendor that serves one live row a day accumulates history instead of erasing it; interior gaps set this row red. LESSONS 4.47.",
    "owner": "Senior Quant",
    "release_calendar": "nyse-trading-day",
    "dependencies": [],
