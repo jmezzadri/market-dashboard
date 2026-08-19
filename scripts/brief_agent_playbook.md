@@ -34,9 +34,70 @@ carries the last trading day's brief. Do not force anything.
 (`date`, `recap_session`, `eyebrow`, `headline`, `stance`, `news[]` as
 `{head, body}`, `implications[]`, `watch[]` as `{head, body}`, `sections[]` —
 exactly three, titled "Macro & Rates", "Equity Markets", "Credit & Liquidity",
-each `{title, bullets[], positioning, single_name}` — and `movers` (leave `[]`;
-the prepare step attaches real movers from the scan table). `date` and
-`recap_session` are overwritten by the prepare step — don't sweat them.
+each `{title, bullets[], positioning, single_name}` — and `movers` (leave `[]`).
+`date`, `recap_session`, `movers`, `metrics` and `ideas` are all written by the
+prepare step — don't sweat them, and do NOT emit `metrics` or `ideas` yourself.
+
+---
+
+### THE ONE RULE (Joe, 2026-08-19)
+
+**The levels and the changes are already done.** The prepare step attaches a
+market-snapshot table built from the feed — 2y, 10y, 2s10s, 10y real, 10y
+breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term structure, SKEW,
+CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA, WTI, Brent, gold,
+copper, DXY, USD/JPY, EUR/USD — with each level, its one-session change and its
+as-of date. **Never restate a row of that table in prose.** Your whole job is
+the sentence *after* the numbers. If a move has no so-what, the table already
+said it and you say nothing.
+
+> **WRONG** (62 words, every number already in the table):
+> "The most important change since yesterday morning is that the long end
+> stopped rising. The 30-year Treasury yield closed Tuesday at 5.28% against
+> 5.31% Monday, the 20-year at 5.28% from 5.30%, the 10-year at 4.71% from
+> 4.72%, and the 2-year was unchanged at 4.19%. The gap between the 10-year and
+> the 2-year narrowed to 52 basis points from 53. The bond market's gauge of
+> expected price swings eased to 75 from 75.6."
+>
+> **RIGHT** (a number *not* in the table, then the so-what, 34 words):
+> "30y 5.28%, -3bp; 20y 5.28%, -2bp — first down day in a week, and it gets
+> tested at 1pm: $16bn 20y auction into the same level. Dealer takedown, not
+> the yield, is the tell (30y took 11.5% last week)."
+
+### WRITE FOR THE DESK (this REVERSES the old plain-English rule)
+
+The readers are Joe and active managers. They know the terms. Use the market's
+own name and stop: **MOVE**, not "the bond market's gauge of expected price
+swings". **2s10s 52bp**, not "the gap between the 10-year and the 2-year".
+**HY OAS**, **dealer takedown**, **days to cover**, **COT 91st %ile**. No
+appositive translations, no glosses, no "which is the price of insurance
+against...". Every explanatory clause you delete is one Joe does not have to
+read. (The pre-2026-08-19 rule said the opposite — it is dead.)
+
+### DATA LINES, THEN THE SO-WHAT
+
+For any figure NOT in the snapshot (30y, 20y, futures, a single stock, an
+overnight level, a release): write the data line, not a sentence —
+`Brent $91.54, +0.6% (~6am ET)` — then one sentence of what it means, only if
+there is one. An observation is not a brief.
+
+### HARD CAPS — the prepare step REFUSES a brief that breaks any of them
+
+| field | limit |
+|---|---|
+| headline | 140 chars |
+| stance | 320 chars (2 sentences) |
+| section bullets | max 3, each 175 chars |
+| positioning | 200 chars · single-name note 180 chars |
+| news | max 4 · head 60 · body 155 |
+| implications | max 2, each 190 chars |
+| watch | max 4 · head 55 · body 155 |
+| **whole brief** | **700 words** (aim for 550) |
+
+**Say it once.** The prepare step also rejects the same eight-word run appearing
+in two different blocks. The 8/19 brief told the $3tn AI story four times —
+stance, an Equity Markets bullet, a news item and an implication. Six blocks are
+six angles on the day, not six chances to repeat one sentence.
 
 **HARD ACCURACY CONTRACT (overrides everything else):**
 1. **Sourced numbers only.** Every figure comes from the feeds above or a page fetched THIS RUN with a visible timestamp. Never from memory or an undated snippet. An omitted figure is correct; a wrong one is a failure.
@@ -44,10 +105,9 @@ the prepare step attaches real movers from the scan table). `date` and
 3. **Never call a level a high/record** unless a fetched source says so and no later sourced level exceeds it.
 4. **Earnings are events with dates.** Confirm the report date this run. If the report is today or later, the ONLY phrasing is "reports after today's close". Never state results that have not been published.
 5. **Single-stock extended-hours moves:** percent, from a story published in the last 6 hours, or not at all. Never a dollar level inferred from close + move.
-6. **Self-check before returning:** name to yourself which fetch produced every number and direction word; delete anything that fails; check the brief does not contradict itself.
+6. **Self-check before returning:** name to yourself which fetch produced every number and direction word; delete anything that fails; check the brief does not contradict itself; then check every cap above.
 - **Pre-market labeling:** every equity/yield/FX/commodity figure is labeled "Wednesday's close" / "overnight (~6am ET)" / "pre-market" — never a bare "up X% today" before the open.
 - **Reader-facing labels only:** never print an internal field name, the word DATA, a vendor/publication/feed name, or narration of your own research state.
-- **Plain English** for a smart non-trader; translate jargon every time.
 - **Banned words:** "washed out", "crowded" (write "extended short" / "extended long"). The prepare step also scrubs these deterministically.
 - **Novelty:** open "Macro & Rates" with the single most important thing that CHANGED since the prior brief. Single names only from `featurable[]`, never from `already_covered[]` or yesterday's brief; if nothing qualifies, run without one — absence is correct.
 
@@ -61,7 +121,15 @@ python3 /tmp/md/scripts/build_daily_brief.py --prepare-file /tmp/brief.json
 
 Must print `prepared OK`. If it errors, fix the JSON and rerun — never submit
 a brief that failed the prepare step. The prepare step forces the correct
-`date`/`recap_session`, scrubs banned copy, and attaches real movers.
+`date`/`recap_session`, scrubs banned copy, attaches real movers, builds the
+market-snapshot table from `indicator_history.json`, and attaches the live marks
+on MacroTilt's own open calls from `trade_idea_scores.json`.
+
+If it fails on length or duplication it prints **every** overage at once — fix
+them all in one rewrite. Cut whole items before shaving words: three sharp
+bullets beat five hedged ones. If three rewrites still fail, drop the weakest
+news item and the weakest bullet in each section and rerun; a shorter brief is
+always acceptable, a late one is not.
 
 **4. Submit.** POST the prepared file to the `agent-write` edge function
 (bearer token is provided in the scheduled task's instructions — it is NOT in
