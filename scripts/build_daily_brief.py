@@ -587,6 +587,8 @@ def _fmt_row(label, fmt, cur, prev):
     direction = "flat" if (d is None or chg == "unch") else ("up" if d > 0 else "down")
     return {"label": label, "level": level, "chg": chg, "dir": direction}
 
+_HOLES = []
+
 def build_metrics(hist, recap_date=None):
     """Levels + one-print changes, straight from indicator_history.json.
 
@@ -595,6 +597,7 @@ def build_metrics(hist, recap_date=None):
     A key with no data is DROPPED — an absent row is correct, a stale one lies.
     """
     groups = []
+    del _HOLES[:]
     for gname, spec in METRIC_GROUPS:
         rows = []
         for key, label, fmt in spec:
@@ -623,6 +626,14 @@ def build_metrics(hist, recap_date=None):
                     gap = 999
                 if 0 < gap <= max_gap:
                     prev = float(pts[-2][1])
+                elif freq == "D":
+                    # Surface it. A daily series whose last two prints are not
+                    # adjacent has an interior hole, and the freshness chip
+                    # CANNOT see it -- the chip only reads the newest point, so
+                    # `move` sat with a 32-day gap (2026-07-17 -> 08-18) behind
+                    # a green chip. The brief refuses to print a fabricated
+                    # change; this line is how anyone finds out why. LESSONS 4.46.
+                    _HOLES.append(f"{key} ({pts[-2][0]} -> {cur_d}, {gap}d)")
             unit = str((hist.get(key) or {}).get("unit") or "").lower()
             if fmt == "yld" and unit in ("bps", "bp"):
                 fmt = "bp"      # never render a basis-point series as a percent
@@ -637,6 +648,10 @@ def build_metrics(hist, recap_date=None):
             rows.append(row)
         if rows:
             groups.append({"group": gname, "rows": rows})
+    if _HOLES:
+        print("WARN: daily series with a hole behind the newest print — change "
+              "suppressed, and the freshness chip cannot see this: "
+              + ", ".join(_HOLES), file=sys.stderr)
     return groups
 
 # ---- MacroTilt calls: open marks + track record ------------------------------
