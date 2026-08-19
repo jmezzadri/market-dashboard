@@ -17780,8 +17780,8 @@
     },
     {
       "date": "2026-07-24",
-      "move": 70.9,
-      "move_pctile_5y": 0.1571,
+      "move": 76.8,
+      "move_pctile_5y": 0.2146,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 38.0,
@@ -17795,8 +17795,8 @@
     },
     {
       "date": "2026-07-31",
-      "move": 70.9,
-      "move_pctile_5y": 0.1571,
+      "move": 83.0,
+      "move_pctile_5y": 0.2759,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 36.0,
@@ -17810,8 +17810,8 @@
     },
     {
       "date": "2026-08-07",
-      "move": 70.9,
-      "move_pctile_5y": 0.1571,
+      "move": 72.0,
+      "move_pctile_5y": 0.1533,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 27.0,
@@ -17825,8 +17825,8 @@
     },
     {
       "date": "2026-08-14",
-      "move": 70.9,
-      "move_pctile_5y": 0.1571,
+      "move": 69.6,
+      "move_pctile_5y": 0.1303,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 9.0,
