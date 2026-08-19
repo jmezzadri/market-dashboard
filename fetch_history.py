@@ -96,6 +96,28 @@ DIRECTION = {
     "ust_10y":"hw","ust_2y":"hw","unrate":"hw","payrolls":"lw",  # 2026-06-05 data adds
 }
 
+
+# ── MOVE: Yahoo's daily history died on 2026-07-17 ───────────────────────────
+# Yahoo stopped publishing ^MOVE daily BARS after 2026-07-17 but kept serving a
+# single live quote row. yfinance therefore returned 5,854 historical bars
+# ending 07-17 plus one row dated today -- a series whose LAST date advanced
+# every single day, so every freshness check and the monotonic-as-of guard below
+# passed, while 23 sessions in the middle were dropped and re-dropped on every
+# run. indicator_history.json sat at exactly 5,855 move points for a month.
+# Every one of those 23 closes was, however, captured as the final point of a
+# committed daily snapshot, so the window is recoverable from our own git
+# history -- recovered 2026-08-19 and pinned here. LESSONS 4.47.
+MOVE_RECOVERED_2026 = {
+    "2026-07-20": 72.7, "2026-07-21": 74.7, "2026-07-22": 76.3,
+    "2026-07-23": 80.1, "2026-07-24": 76.8, "2026-07-27": 77.2,
+    "2026-07-28": 76.1, "2026-07-29": 74.2, "2026-07-30": 77.1,
+    "2026-07-31": 83.0, "2026-08-03": 80.5, "2026-08-04": 77.6,
+    "2026-08-05": 73.6, "2026-08-06": 76.1, "2026-08-07": 72.0,
+    "2026-08-10": 75.5, "2026-08-11": 77.9, "2026-08-12": 72.1,
+    "2026-08-13": 69.2, "2026-08-14": 69.6, "2026-08-17": 75.6,
+    "2026-08-18": 75.0,
+}
+
 fred = Fred(api_key=FRED_API_KEY)
 
 
@@ -208,6 +230,46 @@ def _check_daily_freshness_or_raise(data):
         raise StalenessError(msg)
 
 
+
+# ── Continuity: a hole BEHIND the newest print ───────────────────────────────
+# DAILY_FRESHNESS_SLA above reads the LAST point only. A series can therefore be
+# perfectly "fresh" and still be missing a month, which is exactly what MOVE did
+# from 2026-07-18 to 08-17 with a green chip on top of it. Every percentile,
+# change and correlation computed off that window was wrong and nothing in the
+# system could say so. This is the second eye. LESSONS 4.47.
+GAP_SCAN_DAYS = 45          # recent window only — old vendor history is not ours to police
+GAP_MAX_TRADING_DAYS = 3    # a daily series may skip a holiday weekend, not a week
+
+def _trading_days_between(a_iso, b_iso):
+    """Sessions strictly between two dates (0 for consecutive trading days)."""
+    from datetime import date, timedelta
+    a, b = date.fromisoformat(a_iso), date.fromisoformat(b_iso)
+    n, d = 0, a + timedelta(days=1)
+    while d < b:
+        if d.weekday() < 5 and d.isoformat() not in NYSE_HOLIDAYS_2026:
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+def _interior_gaps(data, scan_days=GAP_SCAN_DAYS):
+    """{indicator_id: human reason} for daily series with a recent interior hole."""
+    from datetime import date, timedelta
+    cutoff = (date.today() - timedelta(days=scan_days)).isoformat()
+    out = {}
+    for ind_id in DAILY_FRESHNESS_SLA:
+        entry = data.get(ind_id) or {}
+        pts = [p for p in (entry.get("points") or [])
+               if p and len(p) == 2 and p[1] is not None and str(p[0]) >= cutoff]
+        worst = None
+        for i in range(1, len(pts)):
+            missing = _trading_days_between(str(pts[i - 1][0]), str(pts[i][0]))
+            if missing > GAP_MAX_TRADING_DAYS and (worst is None or missing > worst[0]):
+                worst = (missing, pts[i - 1][0], pts[i][0])
+        if worst:
+            out[ind_id] = (f"{worst[0]} session(s) missing between {worst[1]} and "
+                           f"{worst[2]} — value is current but the history has a hole")
+    return out
+
 def compute_stats(points, direction="hw", winsorize=True, window_years=STATS_WINDOW_YEARS):
     """Compute {mean, sd, window, winsorize, n} for a points list.
 
@@ -314,12 +376,13 @@ def _drop_future_points(result):
 # After every successful run we patch pipeline_health.data_as_of for every
 # indicator in the just-written file. Single source of truth: the JSON we
 # just wrote. No-ops silently if Supabase env vars aren't set.
-def _sync_pipeline_health_from_result(result):
+def _sync_pipeline_health_from_result(result, gaps=None):
     import os as _os, urllib.request as _ur, json as _json, urllib.error as _ue
     url = _os.environ.get("SUPABASE_URL")
     key = _os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
         return
+    gaps = gaps or {}
     upserted = 0
     skipped = 0
     # UPSERT (POST with Prefer: resolution=merge-duplicates on the
@@ -348,9 +411,11 @@ def _sync_pipeline_health_from_result(result):
             "expected_cadence_minutes":  1440,
             "data_as_of":                data_as_of,
             "last_good_at":              _now_iso,
-            "status":                    "green",
-            "last_error":                None,
-            "coverage_pct":              100.0,
+            # A current value on a holed series is not health. Red it, so the
+            # 30-minute watchdog alerts and the chip stops lying. (2026-08-19)
+            "status":                    "red" if ind_id in gaps else "green",
+            "last_error":                gaps.get(ind_id),
+            "coverage_pct":              90.0 if ind_id in gaps else 100.0,
         }
         body = _json.dumps(row).encode("utf-8")
         req = _ur.Request(
@@ -818,8 +883,20 @@ def fetch_all():
     print("MOVE Index ...")
     s = safe_yf("^MOVE", start="2002-11-12")  # spliced pre-2006 window per FINAL_LOCKED_ENGINE_2026-05-13
     if s is not None and len(s) > 100:
+        # Union the recovered 2026-07-20 → 08-18 window in. Yahoo wins any date
+        # it actually carries, so this heals the hole without ever overriding a
+        # real bar, and it becomes a no-op the day Yahoo backfills its own
+        # history. See MOVE_RECOVERED_2026.
+        pts = dict(MOVE_RECOVERED_2026)
+        pts.update({d: v for d, v in series_to_points(s, round_dp=1)})
+        healed = sorted(set(MOVE_RECOVERED_2026) - {d for d, _ in series_to_points(s, round_dp=1)})
+        if healed:
+            print(f"  MOVE: filled {len(healed)} session(s) Yahoo no longer serves "
+                  f"({healed[0]} → {healed[-1]})")
         result["move"] = {"freq": "D", "unit": "index",
-                          "points": series_to_points(s, round_dp=1)}
+                          "points": [[d, pts[d]] for d in sorted(pts)],
+                          "source": "Yahoo ^MOVE; 2026-07-20→08-18 recovered from "
+                                    "MacroTilt daily snapshots (Yahoo history ends 2026-07-17)"}
     else:
         # fallback: try FRED proxy (no perfect public series — skip gracefully)
         print("  MOVE: no Yahoo, skipping (fallback to overrides)")
@@ -1635,6 +1712,45 @@ def main():
                 # fresh fetch ends EARLIER than what we already have. (Future
                 # points were already dropped, so the last point is the true
                 # latest.)
+                # ── Point-level union: never lose a date we already hold ──
+                # Replacing a held series with a fresh one is only ever safe if
+                # the fresh one is a SUPERSET, and we cannot tell that it is.
+                # Yahoo's ^MOVE proved it: 5,854 bars ending 2026-07-17 plus one
+                # live row dated today, so the last date advanced every day and
+                # the monotonic guard below waved it straight through while 23
+                # sessions vanished from the middle -- every run, for a month.
+                # Merge by date instead: fresh wins a collision (a genuine
+                # revision still lands), prior fills a hole. A series can now
+                # only grow. LESSONS 4.47.
+                recovered = []
+                for ind_id, fresh in list(data.items()):
+                    if ind_id.startswith("__") or not isinstance(fresh, dict):
+                        continue
+                    pf = prior.get(ind_id)
+                    if not isinstance(pf, dict) or not pf.get("points"):
+                        continue
+                    # Do NOT union across a source migration. When real_rates
+                    # moved FRED DFII10 -> Treasury.gov (2026-05-27) the two
+                    # series are the same idea computed differently; splicing
+                    # the old points under the new ones would silently mix two
+                    # methodologies in one line. A changed `source` is the
+                    # signal that the old points are no longer ours to keep.
+                    if (pf.get("source") or "") != (fresh.get("source") or ""):
+                        print(f"  Point-union SKIPPED for {ind_id}: source changed "
+                              f"({pf.get('source') or 'none'!r} -> {fresh.get('source') or 'none'!r})")
+                        continue
+                    fpts = fresh.get("points") or []
+                    if not fpts:
+                        continue
+                    merged = {str(d): v for d, v in pf["points"] if v is not None}
+                    merged.update({str(d): v for d, v in fpts if v is not None})
+                    if len(merged) > len(fpts):
+                        recovered.append(f"{ind_id} (+{len(merged) - len(fpts)})")
+                        fresh["points"] = [[d, merged[d]] for d in sorted(merged)]
+                if recovered:
+                    print(f"  Point-union kept {len(recovered)} series from losing "
+                          f"held dates: {', '.join(recovered)}")
+
                 def _last_dt(e):
                     p = e.get("points") if isinstance(e, dict) else None
                     return p[-1][0] if p else None
@@ -1678,7 +1794,13 @@ def main():
         # pipeline_health and renders Red on perfectly current cards. See
         # 2026-05-27 evening incident: all daily-indicator chips on
         # /indicators showed Stale while values were correct.
-        _sync_pipeline_health_from_result(data)
+        _gaps = _interior_gaps(data)
+        _sync_pipeline_health_from_result(data, gaps=_gaps)
+        if _gaps:
+            print("\nCONTINUITY NOTICE — these daily series have a HOLE behind a "
+                  "current-looking last point (chip set RED, watchdog will alert):")
+            for _k, _why in sorted(_gaps.items()):
+                print(f"  {_k}: {_why}")
         # Loud per-element staleness report — NON-fatal (does not block the
         # publish above). The red chip + watchdog are the system of record.
         try:
