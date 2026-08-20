@@ -14,6 +14,7 @@
 //   { dispatch: "WORKFLOW.yml", inputs?: {} } workflow_dispatch, allowlisted workflows only
 //   { runs: "WORKFLOW.yml", limit?: n }       recent runs w/ conclusion  (read-only)
 //   { run_jobs: <run_id> }                    per-step outcome for one run (read-only)
+//   { run_log: <run_id>, tail?: n, all?: b }  the failing job's LOG TEXT     (read-only)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -45,13 +46,23 @@ async function allowedPrefixes(): Promise<string[]> {
   }
 }
 const FORBIDDEN_BRANCHES = ["main", "master"];
+// 2026-08-19: repairing the MOVE hole meant waiting ~3h for the next
+// scheduled indicator pull to see whether the fix worked. A data fix you
+// cannot trigger is a data fix you cannot verify in the session that made it.
+// TRADE-IDEA-SCORECARD-DAILY was added the same way on 2026-08-17 (Joe: the
+// scorecard read "no close on or after 8/17" while the refresh had not run).
+// Both are read-then-write-a-data-file jobs that commit only if the file
+// changed; neither touches source, deploys, or money.
+//
+// 2026-08-19 (health sweep): this Set had DRIFTED — the deployed function
+// carried TRADE-IDEA-SCORECARD-DAILY but the committed copy did not, because
+// 8/17 was hand-deployed and never committed. The next deploy from this repo
+// would have silently removed it. Deployed source and committed source are one
+// artifact: any hand-deploy is a bug until it is committed.
 const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
   "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
-  // 2026-08-19: repairing the MOVE hole meant waiting ~3h for the next
-  // scheduled indicator pull to see whether the fix worked. A data fix you
-  // cannot trigger is a data fix you cannot verify in the session that made it.
-  "INDICATOR-REFRESH_7AM_WEEKDAYS.yml",
+  "INDICATOR-REFRESH_7AM_WEEKDAYS.yml", "TRADE-IDEA-SCORECARD-DAILY.yml",
 ]);
 
 function json(b: unknown, s = 200) {
@@ -120,6 +131,43 @@ Deno.serve(async (req: Request) => {
       })) });
     }
 
+    // ---- read-only: the failing job's log TEXT ------------------------------
+    // 2026-08-19 (health sweep): `run_jobs` says WHICH step failed and stops
+    // there, so every sweep that hit a red had to guess at WHY from the step
+    // name. LESSONS 4.28 ("confirmed from run history, not inferred") is not
+    // reachable without the log, and a guess that happens to be plausible is
+    // exactly how a false fix ships. Defaults to failed jobs only, tail only —
+    // a full Actions log is megabytes and the answer is always at the end.
+    if (b?.run_log) {
+      const tail = Math.min(Math.max(Number(b.tail) || 6000, 500), 60000);
+      const d = await gh("GET", `/repos/${GH_REPO}/actions/runs/${b.run_log}/jobs?per_page=100`);
+      const jobs = (d.jobs || []).filter((j: any) => b.all === true || j.conclusion !== "success");
+      const out = [];
+      for (const j of jobs) {
+        let txt = "";
+        try {
+          // redirect: "manual" on purpose — the log lives in blob storage and
+          // forwarding the GitHub Authorization header to it returns 403.
+          const r0 = await fetch(`${GH_API}/repos/${GH_REPO}/actions/jobs/${j.id}/logs`, { headers: H, redirect: "manual" });
+          if (r0.status >= 300 && r0.status < 400) {
+            const loc = r0.headers.get("location");
+            const r1 = await fetch(loc!);
+            txt = r1.ok ? await r1.text() : `<log fetch ${r1.status}>`;
+          } else {
+            txt = r0.ok ? await r0.text() : `<log ${r0.status}: expired or unavailable>`;
+          }
+        } catch (e) {
+          txt = `<log error: ${String((e as Error).message || e).slice(0, 200)}>`;
+        }
+        out.push({
+          job: j.name, conclusion: j.conclusion, bytes: txt.length,
+          failed_steps: (j.steps || []).filter((s: any) => s.conclusion !== "success" && s.conclusion !== "skipped").map((s: any) => s.name),
+          log_tail: txt.slice(-tail),
+        });
+      }
+      return json({ ok: true, run_id: b.run_log, jobs: out });
+    }
+
     // ---- dispatch ---------------------------------------------------------
     if (b?.dispatch) {
       if (!DISPATCHABLE.has(b.dispatch)) return json({ error: `workflow not dispatchable: ${b.dispatch}` }, 403);
@@ -157,8 +205,19 @@ Deno.serve(async (req: Request) => {
 
     const mainRef = await gh("GET", `/repos/${GH_REPO}/git/refs/heads/main`);
     const mainSha = mainRef.object.sha;
-    try { await fetch(`${GH_API}/repos/${GH_REPO}/git/refs/heads/${b.branch}`, { method: "DELETE", headers: H }); } catch (_) { /* fine */ }
-    await gh("POST", `/repos/${GH_REPO}/git/refs`, { ref: `refs/heads/${b.branch}`, sha: mainSha });
+    // LESSONS 4.29 rule 2, applied here 2026-08-19: NEVER delete a ref to make
+    // creation idempotent. Deleting a ref CLOSES any open PR on it, so a second
+    // submission of the same branch silently kills the PR it is trying to update
+    // and then fails on "a pull request already exists". `agent-write` was fixed
+    // for this on 8/13; this function had the identical delete-then-create and
+    // was missed — 4.28 rule 5 (verify every caller of a shared rule) in the
+    // flesh. Create the ref; on 422 (already exists) force-PATCH it instead.
+    try {
+      await gh("POST", `/repos/${GH_REPO}/git/refs`, { ref: `refs/heads/${b.branch}`, sha: mainSha });
+    } catch (e) {
+      if (!String((e as Error).message || e).includes("422")) throw e;
+      await gh("PATCH", `/repos/${GH_REPO}/git/refs/heads/${b.branch}`, { sha: mainSha, force: true });
+    }
 
     const baseCommit = await gh("GET", `/repos/${GH_REPO}/git/commits/${mainSha}`);
     const treeItems = [];
