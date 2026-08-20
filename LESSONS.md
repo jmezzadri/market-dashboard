@@ -1586,3 +1586,29 @@ Two more defects surfaced in the same file:
 - **Delete-then-create of a branch ref removed.** 4.29 rule 2 was written on 08-13 for `agent-write`; `ops-code-commit` had the identical delete-then-create and was missed. Deleting a ref closes any open PR on it. Now: create, and on 422 force-PATCH.
 
 **Applies to:** every guard, gate, smoke test and alarm — and to every change that moves a formula, a schema or a contract. The blast radius of such a change includes everything that *checks* it, not just everything that *reads* it.
+
+### 4.51 (2026-08-20) — Three failures in the same sixty-second slot are a schedule, not a flake — recorded here as an open item rather than guessed at
+
+**What happened:** the weekday sweep classified `DIVERGENCE_SCAN_DAILY`'s 8/17 failure as transient — green before, green after, textbook (a). It came back on 8/19. Pulling thirty runs instead of six turned a shrug into a signature:
+
+| slot (UTC) | runs | failures |
+|---|---|---|
+| 21:21-21:22 | 4 | **3** (8/14, 8/17, 8/19) |
+| every other slot | 26 | 0 |
+
+Twenty-seven successes spread across 00:58, 03:44, 12:50, 13:27, 13:53, 14:17, 20:58, 22:28 — and every single failure inside one sixty-second band. The failing step is the same each time (`Run the divergence scan`, read from `run_jobs`, not assumed).
+
+The scan is chained on `MASSIVE-DAILY` completing, and MASSIVE-DAILY fires at 20:30, 21:00, 22:00, 00:00, 03:00, 12:00 and 13:00 UTC. The 20:30 fire's chain lands ~21:01 and passes; the 22:00 fire's lands ~22:28 and passes; **only the 21:00 fire's chain, landing ~21:21, fails** — and it lands roughly twenty minutes after the previous chain started, against a job with `timeout-minutes: 20` and `concurrency: {group: divergence-scan-daily, cancel-in-progress: false}`. That is a strong structural suspect and it is *not* a confirmed cause.
+
+**Why this entry stops there.** Cloud sessions cannot read Actions logs — `ops-code-commit` exposes runs and jobs, not log text. I know the step; I do not know the error. The impact is nil: the scan is idempotent (delete+rewrite within a `scan_date`), a successful run lands about an hour later every time, and `rsi_divergences` is green. Shipping a concurrency or scheduling change on a plausible story, to a workflow whose failure I cannot reproduce, is how a one-line defect becomes a two-week hunt.
+
+**Rule:**
+
+1. **"Green before and after" earns a wider window, not a dismissal.** The transient/real classification is only as good as the sample it is drawn from. Six runs said flake; thirty said schedule. When a failure recurs at all, re-pull the history long enough to see whether the failures share a clock face before classifying it again.
+2. **A fixed-time recurrence is 4.28 rule 6, and it applies to chained triggers too.** 4.28 was about a cron landing inside a producer's arrival spread. This is a `workflow_run` chain landing inside its own previous run's execution window. Same shape: two schedules interacting, never a flaky job.
+3. **An honest open item beats a confident fix.** Record the signature, the step, the structural suspect, and exactly what evidence is missing — then leave it. The next session starts from a characterised defect instead of an anecdote.
+4. **The failure is now RECORDED, which is the point.** `DIVERGENCE_SCAN_DAILY` was one of the 25 scheduled workflows absent from the WORKFLOW_FAILURE_ALERT trigger before 4.41; its 8/19 failure is the first one ever to reach `workflow_failure_log`. If it fires on a third separate day inside the four-day window, the background tier escalates it on its own. Coverage is what turned this from invisible into an open item.
+
+**Next step for whoever picks this up:** dispatch `DIVERGENCE_SCAN_DAILY` manually while a chained run is mid-flight and see whether the second one fails, or add a step that echoes the scan's own error to `workflow_failure_log` so the next occurrence carries its message. Either gives the missing evidence without waiting for a log.
+
+**Applies to:** Lead Developer — every `workflow_run`-chained job, and every transient classification made from a short window.
