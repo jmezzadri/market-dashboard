@@ -313,18 +313,36 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "v10_allocation" ||
       row.indicator_id === "indicator_history" ||
       row.indicator_id === "cftc-cot" ||
-      row.indicator_id === "credit_positioning"
+      row.indicator_id === "credit_positioning" ||
+      row.indicator_id === "trade_ideas"
     ) {
       // 2026-05-19 (#1148 fix) — these rows used to fall into the generic
       // indicator_history lookup and always RED because they are not
       // indicators in that bundle; they are snapshot JSON files served
       // alongside it. Read the file's own freshness stamp instead.
+      //
+      // 2026-08-20 (weekday health sweep — LESSONS 4.52): trade_ideas is the
+      // FOURTH instance of this exact shape, and it was registered on 8/13
+      // without ever being added here. The failure mode is quiet by design:
+      // this watchdog has no mapping for it, so it hit the terminal else, got
+      // `lastError = "indicator not present in indicator_history.json"`, and
+      // took the anti-clobber `continue` further down — which deliberately
+      // leaves the row alone on the theory that "another producer owns it".
+      // No producer does. The editorial session commits public/trade_ideas.json
+      // through ops-code-commit and never touches pipeline_health, so the row
+      // sat frozen at its 8/13 seed while notes published on 8/14, 8/16 and
+      // 8/17 — and macrotilt.com's header read "1 feed stale" for seven days
+      // about a feed that was fine. Anti-clobber protects a row that someone
+      // else stamps; a row nobody stamps just rots. The file carries its own
+      // `generated_at`, so grade it the same way as its four siblings and it
+      // self-heals every run.
       const FILE_MAP: Record<string, { path: string; field: string }> = {
         cycle_board:        { path: "/cycle_board_snapshot.json", field: "as_of" },
         v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
         "cftc-cot":         { path: "/cot_positioning.json",      field: "as_of" },
         "credit_positioning":{ path: "/cot_positioning.json",     field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
+        trade_ideas:        { path: "/trade_ideas.json",          field: "generated_at" },
       };
       const cfg = FILE_MAP[row.indicator_id];
       try {

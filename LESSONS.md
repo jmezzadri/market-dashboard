@@ -1612,3 +1612,38 @@ The scan is chained on `MASSIVE-DAILY` completing, and MASSIVE-DAILY fires at 20
 **Next step for whoever picks this up:** dispatch `DIVERGENCE_SCAN_DAILY` manually while a chained run is mid-flight and see whether the second one fails, or add a step that echoes the scan's own error to `workflow_failure_log` so the next occurrence carries its message. Either gives the missing evidence without waiting for a log.
 
 **Applies to:** Lead Developer — every `workflow_run`-chained job, and every transient classification made from a short window.
+
+### 4.52 (2026-08-20) — The evidence 4.51 said was missing was one tool call away; and anti-clobber protects a row someone else stamps, not a row nobody stamps
+
+**What happened:** the weekday sweep found two reds worth fixing, and both were failures of *looking* rather than failures of reasoning.
+
+**1. `DIVERGENCE_SCAN_DAILY` — 4.51's structural suspect was wrong, and I could have known that yesterday.** 4.51 (written 8/20, one day ago) characterised the 21:21-21:22 UTC failure signature correctly, named the failing step correctly, then stopped with *"Cloud sessions cannot read Actions logs — `ops-code-commit` exposes runs and jobs, not log text"* and recorded a `concurrency` / `timeout-minutes` collision as an unconfirmed suspect. That sentence was false when it was written. **4.50 — the entry directly above it, shipped the day before — added the `run_log` verb to `ops-code-commit` for exactly this purpose**, and its own text says so: *"read-only observability is not a nice-to-have; it is the precondition for every rule in this file about not theorising."* One `{"run_log": 32303498153}` call returns it:
+
+```
+rpc divergence_universe attempt 1 failed (HTTP 500: {"code":"57014", ...
+                        "canceling statement due to statement timeout"}); retrying
+rpc divergence_universe attempt 2 failed (HTTP 504: upstream request timeout); retrying
+RuntimeError: rpc divergence_universe HTTP 504: upstream request timeout
+```
+
+Not GitHub concurrency at all. **The database was busy.** The 21:00 `MASSIVE-DAILY` fire's chain lands at ~21:21 while that ingest is still writing `prices_eod` — the table `divergence_universe` scans — so the RPC blows Postgres's statement timeout. The two schedules do interact, exactly as 4.51 said; the contended resource is the database, not the runner.
+
+The defect the log exposes is the retry. `rpc()` backed off `4 * attempt` — 4s, then 8s — against contention that lasts minutes. The three attempts spanned 21:25:44 → 21:30:07, all of it inside one window. **Three attempts four seconds apart are not three chances; they are one chance taken three times.** Fixed: busy-class errors (57014, 504/503/502, read timeouts) now back off 45s / 150s / 300s, bounded by a per-process `BUSY_RETRY_BUDGET_S` of 900s so the job can never spin past its own timeout and sit on the concurrency group; non-busy errors keep the old short backoff so a genuine 4xx still surfaces fast (4.29 rule 1). `timeout-minutes` 20 → 30 to fit.
+
+**2. `trade_ideas` had been red for seven days, and the homepage said so.** `macrotilt.com`'s header rendered **"1 feed stale"** — verified in a browser, not from markup — while the Trade Idea tile beside it rendered the 8/17 note perfectly. The feed was healthy; the row was frozen at the seed value written when it was registered on 8/13, through notes published 8/14, 8/16 and 8/17.
+
+The cause is a **gap between two correct rules**. `pipeline-health-check` has no source mapping for `trade_ideas`, so it fell to the terminal `else`, failed to find itself in `indicator_history.json`, and hit the anti-clobber `continue` (LESSONS 4.2): *"if this watchdog has NO source mapping for the row, it must NOT overwrite the row red — another producer owns these."* But **no producer owns this one.** The editorial session commits `public/trade_ideas.json` through `ops-code-commit` and never touches `pipeline_health`. So anti-clobber faithfully preserved a stamp that nothing would ever refresh. The row was never even graded: zero rows in `pipeline_fetch_log`, ever — which is what made it invisible to every "why is this red" check that reads the log.
+
+`trade_ideas` is the **fourth** row of the same shape (`cycle_board`, `v10_allocation`, `indicator_history`, `cftc-cot` were #1148 in May; six scan facets were the same story on 06-23). Fixed the same way: added to `FILE_MAP`, graded off the file's own `generated_at`. It self-heals every run.
+
+**Rule:**
+
+1. **Before writing "the evidence is unavailable", check whether you shipped the tool that provides it.** A capability added in one entry has to be *used* by the next one. The cost of not checking was a wrong root cause published as a suspect, and a real defect left live for a day.
+2. **Anti-clobber needs a named owner, or it is just rot.** "Some other producer stamps this" is a claim, and it is checkable: no `pipeline_fetch_log` rows plus a `last_good_at` equal to the row's creation time means *nobody* stamps it. Registering a `pipeline_health` row without wiring a writer for it creates a permanent false red — and 4.30 rule 1 already required the writer. **A health row with no writer is worse than no health row: it is an alarm that can only ever be wrong.**
+3. **A retry has to outlast the thing that broke it.** Size backoff against the *measured* duration of the failure condition, never against a round number. This is 4.28 rule 1 ("measure the producer's arrival spread before choosing a deadline") pointed at a retry instead of a deadline — same error, third file.
+4. **Bound patience explicitly.** A generous retry inside a job that holds a `concurrency` group must carry a total budget, or fixing a timeout creates the queue collision the previous entry wrongly blamed.
+5. **Look at the header, not the row.** The `trade_ideas` red was seven days old and every sweep before this one read `pipeline_health` and stopped. Loading the page is what turned "one row is red" into "the site is telling every visitor it is stale."
+
+**Open, not fixed here:** the divergence scan is chained to *every* `MASSIVE-DAILY` completion (seven fires a day) though it only needs the T+1 panel-complete ingest, and the 21:00 chain is the only one that collides. De-chaining the redundant fires is the structural fix; the retry is the correct fix for the failure that was actually observed. Not bundled, because which MASSIVE fire produces the panel-complete data has not been measured, and 4.50 rule 4 says do not write a schedule from a belief.
+
+**Applies to:** Lead Developer — every retry loop, every `pipeline_health` row at the moment it is registered, and every sweep that grades the database instead of the page.
