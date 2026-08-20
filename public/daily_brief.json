@@ -1,139 +1,346 @@
 {
-  "date": "2026-08-19",
-  "recap_session": "Tue Aug 18",
+  "date": "2026-08-20",
+  "recap_session": "Wed Aug 19",
   "eyebrow": "Morning Brief",
-  "headline": "An analysis of the nine biggest artificial-intelligence spenders' own filings put about $3 trillion of their commitments off the balance sheet — five times what they have actually spent — and the memory-chip trade broke, taking the Nasdaq 100 down 1.33% on Tuesday, while the long end of the bond market finally stopped rising.",
-  "stance": "Two things changed on Tuesday, and they point in opposite directions. The first: an analysis published Monday added up what the nine largest artificial-intelligence spenders have promised to pay but do not carry as debt, and reached <b>about $3 trillion</b> — roughly <b>$1.2 trillion of leases that have not yet started and $1.9 trillion of purchase commitments</b>, against <b>$600 billion</b> of capital spending they have actually reported over the past twelve months. Alphabet's purchase and contractual obligations alone stood at <b>$811 billion at June 30, against $332 billion three months earlier</b>. The market's response was not to sell the companies that made the promises — it was to sell the companies that would be paid: <b>SanDisk fell 9.1%, Micron 7.3% and Western Digital 5.3%</b> on Tuesday, after year-to-date gains of <b>653%, 255% and 211%</b>. The Nasdaq 100 closed down <b>1.33% at 26,289.71</b>, the S&P 500 down <b>0.69% at 7,691.76</b> in a third straight decline, and the Dow down <b>0.22% at 53,343.40</b>. The second change was in the market that has driven the last week: the long end stopped going up. The 30-year Treasury yield closed Tuesday at <b>5.28% against 5.31% on Monday</b>, the 20-year at <b>5.28% from 5.30%</b>, the 10-year at <b>4.71% from 4.72%</b> and the 2-year unchanged at <b>4.19%</b>. That pause is about to be tested directly: the Treasury sells <b>$16 billion of 20-year bonds at 1:00pm ET today</b>, and the minutes of the Fed's July meeting follow at 2:00pm.",
+  "headline": "Treasury doubled its long-end buybacks and the 30y fell 10bp — then the $16bn 20y still left dealers with 12.5%.",
+  "stance": "Bessent doubled the size cap on long-end liquidity buybacks to at least $4bn, and the long end got its first real relief in a week. The 20y then cleared at 5.204% with 12.5% left on dealer books, more than last week's 30y took: the bid was rescued, not repaired.",
   "news": [
     {
-      "head": "About $3 trillion of artificial-intelligence commitments sits off the balance sheet",
-      "body": "An analysis published Monday went through the filings of the nine largest spenders on artificial intelligence — Alphabet, Amazon, Meta Platforms, Microsoft, Oracle, Nvidia, Broadcom, SpaceX and AMD — and added up what they have contractually promised to pay without recording it as debt. The total came to about $3 trillion: roughly $1.2 trillion of leases signed but not yet begun, and roughly $1.9 trillion of purchase commitments. For comparison, those same companies have reported about $600 billion of capital spending over the past twelve months, so the promises are about five times the spending already on the books. Three examples carry most of it: Alphabet's purchase and other contractual obligations were $811 billion at June 30 against $332 billion three months earlier, Meta disclosed $347 billion of leases that have not yet started, and Nvidia $182 billion of forward purchase commitments. Morgan Stanley analysts warned that commitments structured this way make it harder for investors to see how much borrowing these companies have actually taken on."
+      "head": "Treasury doubles long-end buybacks",
+      "body": "Caps in the 10y–20y and 20y–30y buckets rise from $2bn to at least $4bn per operation, running Sept 9 through Nov 4. Nothing is bought before then."
     },
     {
-      "head": "The memory-chip trade broke on Tuesday",
-      "body": "The companies that would be paid out of those commitments were sold hardest. SanDisk fell 9.1%, Micron Technology 7.3% and Western Digital 5.3% on Tuesday. What makes the size of those moves less surprising is where the shares had come from: SanDisk was up 653% so far this year going in, Micron 255% and Western Digital 211%. There was no bad news at any of the three companies. This was a repricing of the promise to buy from them, not of their own results — which is a different and more durable kind of problem than a weak quarter."
+      "head": "$16bn 20y auction: dealers left with 12.5%",
+      "body": "High yield 5.204%, bid-to-cover 2.53, indirects 62.9%. Dealers took 12.5% against 11.5% on last week's 30y — the announcement moved price, not demand."
     },
     {
-      "head": "Tuesday's close: a third straight decline, and the insurance got dearer again",
-      "body": "The S&P 500 fell 0.69% to 7,691.76, the Nasdaq 100 1.33% to 26,289.71 and the Dow 0.22% to 53,343.40 — the third consecutive decline for the S&P 500 after it set a record last Thursday. The VIX, which is the price of protection against S&P 500 swings over the coming month, closed at 15.84 from 15.19 on Monday; its Nasdaq-100 equivalent at 22.56 from 21.51; and the skew index, which measures what investors pay specifically for cover against a large fall, at 143.6 from 142.9. Three-month protection remained dearer than one-month, at 19.27, so this is still a market buying cover for the next few weeks rather than repricing the year."
-    },
-    {
-      "head": "The long end stopped rising",
-      "body": "After a week in which the thirty-year borrowing cost of the US government did nothing but climb, Tuesday's closes went the other way. The 30-year Treasury yield finished at 5.28% against 5.31% Monday, the 20-year at 5.28% from 5.30%, the 10-year at 4.71% from 4.72%, and the 2-year was unchanged at 4.19% — narrowing the gap between the 10-year and the 2-year to 52 basis points from 53. The bond market's own gauge of expected price swings eased to 75 from 75.6. One session is not a turn, and the reason for caution is on today's calendar rather than in Tuesday's numbers."
-    },
-    {
-      "head": "Home Depot beat on sales and called the housing market frozen",
-      "body": "Home Depot reported second-quarter net sales of $47.9 billion, up 5.7% on a year earlier and above the roughly $47.3 billion expected, with sales at stores open at least a year up 1.7% overall and 1.3% in the US against expectations of about 1.0%. Diluted earnings were $4.79 a share, $4.92 on the company's adjusted measure, on net earnings of $4.8 billion, and the company left its full-year guidance unchanged at total sales growth of 2.5% to 4.5% and adjusted earnings per share growth of flat to 4.0%. The commentary was the part that mattered: finance chief Richard McPhail described housing conditions as 'frozen' with 30-year fixed mortgage rates around 6.7%, and said that when rates step down 'we began to see a little bit of life come into housing, but there's just no sign of an inflection point.' The shares were up about 2% shortly after Tuesday's open and closed little changed."
-    },
-    {
-      "head": "Klarna fell 22% after cutting its full-year outlook on Germany",
-      "body": "The buy-now-pay-later lender cut its 2026 forecast for the value of goods bought through it to $149-151 billion from $155 billion, and its revenue forecast to $4.08-4.16 billion from $4.34 billion, sending the shares down 22% on Tuesday. The quarter itself was better than expected — revenue of $1.04 billion, up 27% on a year earlier against $996 million expected, and a one-cent profit per share where a six-cent loss had been forecast, with customers more than thirty days late on payments down over 20 basis points on the quarter. The cut was about one country: Germany is its largest market by volume, and finance chief Niclas Neglén said the guidance 'simply assumes Germany stays softer rather than recovering.'"
-    },
-    {
-      "head": "Traffic through the Strait of Hormuz reached zero",
-      "body": "No commodity-carrying vessels crossed the Strait of Hormuz on Sunday and five did so on Saturday, against more than 130 a day before the conflict began. The UAE reported that three tankers operated by its state oil company were attacked while passing through. On the diplomatic side, President Trump confirmed the US has been holding back-channel discussions with Iran's Islamic Revolutionary Guard Corps, while special envoy Jared Kushner said Tehran was refusing the concessions needed for an agreement — 'Iran is not showing any interest in doing something that makes sense for us' — and described the conversations as 'probably more robust than it's maybe ever been. We're not there yet.'"
-    },
-    {
-      "head": "Overnight: oil higher again, the dollar lower, yields lower",
-      "body": "Brent crude was $91.54 a barrel at about 6am ET this morning, up 0.57% on the session. The 10-year Treasury yield was 4.69% at about the same time, about two and a half basis points below Tuesday's 4.71% close. The dollar index was around 99.46, down 0.20% and below Tuesday's close of 99.65. Gold was $4,362 an ounce, up 0.63%."
+      "head": "July minutes: the hike case ran wider than three votes",
+      "body": "Behind the 9-3 hold, many participants said tightening would be needed if inflation did not fall. Written before the July payroll contraction."
     }
   ],
   "implications": [
-    "The artificial-intelligence spending story has moved from how much to how it is financed, and that is a bigger change than the index moves suggest. For two years the debate was whether the returns would justify the capital expenditure. The number published Monday changes the question: about $3 trillion of the commitment is contractual but not recorded as borrowing, against $600 billion of spending that has actually gone through the accounts. A company that has promised to pay is in the same economic position as a company that has borrowed to pay, but the promise does not appear in the debt figure investors screen on. That is not an accusation of wrongdoing — the disclosures are in the filings, which is how the total was assembled — but it does mean the leverage in this build-out has been understated by conventional measures, and Tuesday was the first session in which the market appeared to price it.",
-    "Note where the selling landed. The nine companies making the promises were not the casualties on Tuesday; the memory-chip makers who would be paid were, falling 5% to 9% with no news of their own. Read straight, that says the market believes the commitments — it believes they were made — but has begun to doubt they will all be honoured on the original scale and schedule. A promise you doubt is worth less to the recipient before it is worth less to the promiser. Borrowing to fund artificial-intelligence projects was already one of the four reasons being cited for long-dated government yields reaching a nineteen-year high last week. That thread and this one are the same thread.",
-    "The long end paused for one session, and today it gets a real test rather than a quiet one. Three basis points off the 30-year and two off the 20-year is not a reversal, and there is no positioning extreme anywhere in long-dated Treasuries to unwind and produce one mechanically. The $16 billion 20-year sale at 1:00pm ET is the honest read: the same maturity closed at 5.28% on Tuesday, and a sale clearing there or higher would be the most expensive 20-year auction since the maturity was reintroduced in 2020. Watch the share left with the primary dealers — the banks obliged to bid — the same way last week's 30-year sale left them with 11.5%. That figure, not the yield, tells you whether there are buyers.",
-    "Home Depot said the quiet part precisely: the housing market is frozen at a 6.7% mortgage rate, and there is no inflection point. That is the clearest available translation of what a long end at these levels does to the real economy, because a thirty-year mortgage is priced off the long end and not off the Fed's overnight rate. Its comparable sales still grew 1.7%, which is the tell — households are doing small projects, not moving house. So the consumer is not collapsing; the consumer is stuck. A September rate cut would not fix that on its own, because the rate that matters here is the one the Fed does not set.",
-    "Corporate credit finally moved, and it moved the wrong way for the calm reading. The extra yield high-yield bonds pay over investment-grade widened to 270 basis points in Monday's reading from 267 on Friday, with investment-grade at 81 from 80. In absolute terms that is nothing. What makes it worth flagging is that it happened alongside the first genuine positioning extreme to appear in the credit book in weeks — dealers' net high-yield inventory dropped to the 5th percentile of three years, a fall of 29 percentile points in a single week. Dealers cutting inventory to a three-year low is not a forecast, but it is the people closest to that market choosing to hold less of it."
+    "Treasury is managing the long end directly rather than waiting for demand. Read it as support for duration and as a tell about how much strain officials were seeing.",
+    "The Iran escalation is inflationary before it is geopolitical. Crude bid with Hormuz shut feeds the exact path that left many on the committee open to a hike."
   ],
   "watch": [
     {
-      "head": "The $16 billion 20-year bond auction at 1:00pm ET",
-      "body": "The single most informative event of the day. The 20-year closed Tuesday at 5.28%, and a sale clearing near there would be the highest yield on this maturity since the Treasury reintroduced it in 2020. Two details matter more than the headline yield: the bid-to-cover ratio, which is how many dollars of bids arrived for each dollar on offer, and the share left with primary dealers, the banks required to bid whatever else happens. Last week's 30-year sale left dealers with 11.5%, above their twelve-month average, which is the signature of a sale that had to be dragged over the line. If today's does the same, the pause in long yields is a pause and nothing more."
+      "head": "Walmart before the bell",
+      "body": "Target comps ran +3.8% and Lowe's +0.2% — essentials against discretionary. Walmart decides which of those is the economy and which is company-specific."
     },
     {
-      "head": "Minutes of the Fed's July meeting at 2:00pm ET",
-      "body": "The record of the meeting that held the target range at 3.50%-3.75% with three regional Fed presidents — Logan, Hammack and Kashkari — dissenting in favour of a 25 basis point increase. The useful content is how far that hawkish view extended beyond the three who voted for it, and specifically whether other participants shared their argument that supply shocks and artificial-intelligence investment could keep inflation elevated. Two warnings on reading it: the minutes were written before the July payrolls contraction and before last week's retail sales figures, and Chair Warsh speaks at Jackson Hole on August 27-29, which will matter more for September."
+      "head": "Jobless claims and Philly Fed, 8:30am ET",
+      "body": "The first labour read since July payrolls contracted. The minutes predate that print, so claims carry more than usual into Jackson Hole next week."
     },
     {
-      "head": "Target and Lowe's report before today's opening bell",
-      "body": "Neither has reported at the time of writing. Lowe's is the direct read-across from Home Depot, which yesterday described housing as frozen while still growing comparable sales 1.7% — if Lowe's says something materially different about the same customer in the same quarter, one of the two is company-specific rather than economy-wide. Target is the broader discretionary read, and it comes ahead of Walmart tomorrow. Together with Home Depot these are four separate reports on the household that the official retail sales figure said cut spending 0.6% in July."
+      "head": "Whether the buyback bid survives without a headline",
+      "body": "Wednesday's move came off an announcement. The operations do not begin until Sept 9, so the next three weeks are sentiment rather than actual flow."
     },
     {
-      "head": "Weekly oil inventories at 10:30am ET, with the strait still shut",
-      "body": "Brent rose for a third consecutive session on Tuesday and was $91.54 a barrel at about 6am ET this morning, up 0.57%. The physical fact underneath it hardened over the weekend: zero vessels crossed the Strait of Hormuz on Sunday against more than 130 a day before the conflict. Today's inventory figures are the first regular measurement of whether that has begun to show up in American stockpiles rather than only in the price. A drawdown larger than expected would be the first hard evidence that a shipping problem has become a supply problem."
-    },
-    {
-      "head": "Weekly mortgage applications at 7:00am ET",
-      "body": "Ordinarily a minor release, and today a direct check on what Home Depot said. The 30-year mortgage rate in this series stood at 6.77% last week, which is the level its finance chief called frozen. Purchase applications tell you whether households are responding to that rate or waiting it out — and this is the one weekly measurement of the long end reaching an actual household, rather than a Treasury yield on a screen."
+      "head": "Crude into a sanctions escalation",
+      "body": "Brent near $92 and WTI $84.51 this morning, up more than 5% across four sessions. Hormuz is the physical constraint; enforcement risk now sits on top."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The most important change since yesterday morning is that the long end stopped rising. The 30-year Treasury yield closed Tuesday at 5.28% against 5.31% Monday, the 20-year at 5.28% from 5.30%, the 10-year at 4.71% from 4.72%, and the 2-year was unchanged at 4.19%. The gap between the 10-year and the 2-year narrowed to 52 basis points from 53. The bond market's gauge of expected price swings eased to 75 from 75.6.",
-        "That pause is tested today rather than next week. The Treasury sells $16 billion of 20-year bonds at 1:00pm ET, into a maturity that closed at 5.28%. Clearing near that level would make it the most expensive 20-year sale since the Treasury brought the maturity back in 2020. The figure that carries the information is the share left with the primary dealers, the banks obliged to bid whatever else happens — last week's 30-year sale left them with 11.5%, above the twelve-month average.",
-        "The minutes of the Fed's July meeting follow at 2:00pm ET. That meeting held the target range at 3.50%-3.75%, with three regional Fed presidents — Logan, Hammack and Kashkari — voting instead for a 25 basis point increase. The question the minutes can answer is how many others sympathised without voting; the question they cannot answer is what the committee thinks now, since they were written before the July payrolls contraction and before last week's retail sales figures.",
-        "Overnight into this morning, the direction stayed the same. At about 6am ET the 10-year Treasury yield was 4.69%, roughly two and a half basis points below Tuesday's close; the dollar index was around 99.46, down 0.20% and below Tuesday's close of 99.65; and gold was $4,362 an ounce, up 0.63%.",
-        "Oil kept going the other way. Brent crude was $91.54 a barrel at about 6am ET, up 0.57% on the session, against $90.87 in Monday's cash reading. The reason is physical rather than speculative: no commodity-carrying vessels crossed the Strait of Hormuz on Sunday and five did on Saturday, against more than 130 a day before the conflict, and the UAE reported three of its state oil company's tankers attacked in transit.",
-        "Diplomacy has not produced anything yet. President Trump confirmed back-channel discussions with Iran's Islamic Revolutionary Guard Corps, and special envoy Jared Kushner said Tehran was refusing the concessions required, calling the contacts 'probably more robust than it's maybe ever been' while adding 'we're not there yet.'"
+        "30y 5.187%, -10bp; 10y 4.65%, -6bp — the whole move came off the buyback headline, before a single bond has actually been repurchased.",
+        "The $16bn 20y cleared at 5.204%, bid-to-cover 2.53, dealers left with 12.5% against 11.5% on last week's 30y. Price improved; the buyer base did not.",
+        "Gold $4,492/oz, -0.6% (~6am ET), holding most of a 4%-plus Wednesday jump. Lower real yields did that, not fear — and spec length is already 91st %ile."
       ],
-      "positioning": "The new development in the weekly futures data is in oil rather than in bonds. Brent crude has entered the top band of its own three-year range for the first time in this move — the 88th percentile, its first session at that level, having climbed five percentile points in five trading days. It sits alongside a speculative long position in the dollar index at the 91st percentile of three years. Those two facing each other is the awkward part: a currency positioned for strength against an oil price positioned to keep rising, when a higher oil price in dollars is one of the few things that reliably erodes what the currency buys. In the rates book the only new extreme this week is the 5-year Treasury, where speculators' net long moved up eleven percentile points to the 93rd. Nothing is flagged as stretched anywhere in long-dated Treasuries, which is why Tuesday's three basis points cannot be explained as a squeeze — and why today's auction, not positioning, decides what happens next.",
+      "positioning": "New this week: spec net long 5y Treasuries jumped 11 points to the 93rd %ile, with the 2y standing at the 98th. The front end is positioned long into minutes that show a live hike constituency.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Tuesday's close: the S&P 500 fell 0.69% to 7,691.76, its third consecutive decline after setting a record last Thursday; the Nasdaq 100 fell 1.33% to 26,289.71 and the Dow 0.22% to 53,343.40.",
-        "The damage was concentrated and it had a cause. An analysis published Monday put about $3 trillion of contractual artificial-intelligence commitments off the balance sheets of the nine largest spenders — around $1.2 trillion of leases not yet started and $1.9 trillion of purchase commitments, against $600 billion of capital spending actually reported over twelve months. The companies sold were the intended recipients of that money: SanDisk fell 9.1%, Micron Technology 7.3% and Western Digital 5.3%, after year-to-date gains of 653%, 255% and 211% respectively, and with no company-specific news at any of the three.",
-        "Protection got dearer for a second session. The VIX, the price of insurance against S&P 500 swings over the coming month, closed at 15.84 from 15.19 on Monday; the Nasdaq-100 equivalent at 22.56 from 21.51; and the skew index, which prices cover specifically against a large fall, at 143.6 from 142.9. Three-month insurance was still the dearer of the two at 19.27.",
-        "Home Depot reported second-quarter net sales of $47.9 billion, up 5.7% and above the roughly $47.3 billion expected, with sales at stores open at least a year up 1.7% against about 1.0% expected, diluted earnings of $4.79 a share and $4.92 adjusted, and full-year guidance left unchanged. Its finance chief called housing conditions 'frozen' at a 30-year mortgage rate around 6.7% with 'no sign of an inflection point.' The shares were up about 2% shortly after the open and closed little changed.",
-        "Klarna fell 22% after cutting its 2026 revenue forecast to $4.08-4.16 billion from $4.34 billion and its forecast for the value of goods bought through it to $149-151 billion from $155 billion, blaming a slowdown in Germany, its largest market. The quarter itself beat: revenue of $1.04 billion against $996 million expected, and a small profit where a loss was forecast.",
-        "The valuation backdrop was marginally cheaper and still historically expensive: the cyclically adjusted price-to-earnings ratio for the S&P 500 stood at 42.06 on Tuesday's close against 42.35 on Monday's."
+        "Target comps +3.8% with full-year sales growth guided up to about 5%; Lowe's comps +0.2% and guidance cut to the low end. Essentials working, home improvement not.",
+        "Futures firm this morning — S&P +0.16%, Nasdaq 100 +0.42% at 1:45am ET — into Walmart, Alibaba, Deere and Ross Stores all reporting today."
       ],
-      "positioning": "The change in the weekly futures data is in the S&P 500 itself. Speculators' net position has jumped to the 91st percentile of the past three years, a rise of eleven percentile points in a single week and new at that level — an extended long — with the commercial hedgers who take the other side sitting at the opposite extreme. That matters more than the number alone because of what sits next to it: the same data has speculators at the 1st percentile in Nasdaq 100 futures, which is standing background rather than news. Speculative money is therefore positioned long the broad index and short the technology index at the same moment the market has begun repricing how the technology build-out is financed. One of those two positions is going to be wrong quickly.",
+      "positioning": "The new equity extreme is in vol, not the index: spec net short VIX futures fell 12 points to the 10th %ile this week, hedgers at the opposite end. That short went on before the escalation.",
       "single_name": {
-        "ticker": "MLAB",
-        "note": "(Mesa Laboratories, which makes measurement and quality-control instruments for laboratories and industrial customers) — new to the screen today and tied for its highest score. Two of the screen's insider rules fired, the shares trade above their 200-day trend line, and both the dark-pool and options signals are live. The company's chief executive, Siddhartha Kadia, bought 7,093 shares at $112.80 in a purchase filed on August 13, a little over $800,000 of his own money. It would take about two and a half days of average volume to close out the shares currently sold short, at a borrowing cost of roughly 0.4% a year — so there is almost no bearish position here to squeeze, and any move would have to come from the buying itself."
+        "ticker": "GABC",
+        "note": "German American Bancorp — new to the screen today, insider buy filed Aug 18, trading above its 200-day. 6.4 days to cover at a 0.41% borrow: no short base to squeeze."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Corporate credit finally moved, and it widened. The extra yield high-yield bonds pay over investment-grade rose to 270 basis points in Monday's reading from 267 on Friday, with investment-grade spreads at 81 from 80. These are small moves off very tight levels, but they are the first in this stretch to go in the direction the equity market and the long bond have been pointing.",
-        "Short-term funding stayed comfortable. The spread on commercial paper — the short-term IOUs large companies issue to cover payroll and inventory — was 19 basis points in its most recent reading, and the two main bank-funding spreads both sat at 3 basis points on Monday. The Fed's overnight parking facility held $0.2 billion on Tuesday against $0.3 billion Monday, which is effectively empty; there is no cushion left in it to absorb a shock.",
-        "The reserve picture does not update until Thursday. The Treasury's own account at the Fed stood at $964.0 billion in the most recent weekly snapshot, bank reserves at $2,944.1 billion, and the Fed's balance sheet was 1.75% larger than a year earlier. The syndicated loan rate stood at 7.05% on Monday.",
-        "Broad financial conditions remain easier than average — the two national gauges were -0.58 and -0.77 in the readings for the week to August 7, where negative means easier than normal. Stocks and corporate credit continue to move together more than usual, with the correlation between them at 0.68 on Tuesday. Easy conditions alongside a 5.28% thirty-year yield is not a contradiction; it is what it looks like when the strain sits in government borrowing rather than in private borrowing."
+        "The backstop covers government paper only. Corporate spreads widened in the same week the people who make the market cut what they are willing to hold.",
+        "Note whose balance sheet this is: Treasury refinancing its own debt, not the Fed adding reserves. Bank reserves $2,944bn and a balance sheet +1.75% y/y are untouched by it."
       ],
-      "positioning": "For the first time in weeks the credit book carries a genuine extreme, and it is a new one. Primary dealers' net position in high-yield bonds has fallen to the 5th percentile of its three-year range — a drop of 29 percentile points in a single week, the largest weekly move anywhere in the data. Dealers are not investors placing a directional bet; they hold inventory to make markets, so a three-year low in that inventory is best read as an unwillingness to warehouse risk rather than a view that spreads will widen. Investment-grade inventory sits at the 14th percentile as standing background. The combination is worth holding onto: spreads widened three basis points in the same week the people who make the market in these bonds cut what they are prepared to hold. Thin inventory is not a problem while nobody wants to sell. It is exactly the problem when they do.",
+      "positioning": "The new credit extreme: dealer net high-yield inventory fell 29 points to the 5th %ile of three years, IG at the 14th as background. Thin inventory is cheap until somebody needs to sell into it.",
       "single_name": null
     }
   ],
   "movers": [
     {
-      "ticker": "CODI",
-      "pct": -4.8,
-      "link": true
-    },
-    {
-      "ticker": "KURA",
-      "pct": 3.9,
-      "link": true
-    },
-    {
-      "ticker": "VIA",
-      "pct": -2.9,
+      "ticker": "CDNL",
+      "pct": 15.1,
       "link": true
     },
     {
       "ticker": "ABTC",
-      "pct": -2.5,
+      "pct": 13.8,
       "link": true
     },
     {
-      "ticker": "MTDR",
-      "pct": 2.3,
+      "ticker": "KURA",
+      "pct": 9.3,
+      "link": true
+    },
+    {
+      "ticker": "ABCL",
+      "pct": 8.0,
+      "link": true
+    },
+    {
+      "ticker": "CMCO",
+      "pct": -6.7,
       "link": true
     }
-  ]
+  ],
+  "metrics": [
+    {
+      "group": "Rates",
+      "rows": [
+        {
+          "label": "2y",
+          "level": "4.19%",
+          "chg": "unch",
+          "dir": "flat",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "10y",
+          "level": "4.71%",
+          "chg": "-1bp",
+          "dir": "down",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "2s10s",
+          "level": "52bp",
+          "chg": "-1bp",
+          "dir": "down",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "10y real",
+          "level": "2.35%",
+          "chg": "-6bp",
+          "dir": "down"
+        },
+        {
+          "label": "10y B/E",
+          "level": "2.30%",
+          "chg": "+2bp",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "Term prem",
+          "level": "84bp",
+          "chg": "+2bp",
+          "dir": "up",
+          "as_of": "Aug 14"
+        },
+        {
+          "label": "MOVE",
+          "level": "71.30",
+          "chg": "-3.70",
+          "dir": "down"
+        }
+      ]
+    },
+    {
+      "group": "Equities & vol",
+      "rows": [
+        {
+          "label": "S&P 500",
+          "level": "7,707.98",
+          "chg": "+0.21%",
+          "dir": "up"
+        },
+        {
+          "label": "Nasdaq",
+          "level": "26,331.09",
+          "chg": "+0.16%",
+          "dir": "up"
+        },
+        {
+          "label": "Dow",
+          "level": "53,463.05",
+          "chg": "+0.22%",
+          "dir": "up"
+        },
+        {
+          "label": "VIX",
+          "level": "14.89",
+          "chg": "-0.95",
+          "dir": "down"
+        },
+        {
+          "label": "VIX 1m/3m",
+          "level": "0.802",
+          "chg": "-0.020",
+          "dir": "down"
+        },
+        {
+          "label": "SKEW",
+          "level": "142.90",
+          "chg": "-0.70",
+          "dir": "down"
+        },
+        {
+          "label": "CAPE",
+          "level": "42.15",
+          "chg": null,
+          "dir": "flat"
+        }
+      ]
+    },
+    {
+      "group": "Credit & liquidity",
+      "rows": [
+        {
+          "label": "IG OAS",
+          "level": "82bp",
+          "chg": "+1bp",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "HY-IG",
+          "level": "275bp",
+          "chg": "+5bp",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "HYG/LQD",
+          "level": "1.337",
+          "chg": "+0.006",
+          "dir": "up"
+        },
+        {
+          "label": "SOFR-OIS",
+          "level": "2bp",
+          "chg": "-1bp",
+          "dir": "down",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "CP spread",
+          "level": "19bp",
+          "chg": "-2bp",
+          "dir": "down",
+          "as_of": "Aug 14"
+        },
+        {
+          "label": "RRP",
+          "level": "$0.3bn",
+          "chg": "unch",
+          "dir": "flat"
+        },
+        {
+          "label": "TGA",
+          "level": "$964bn",
+          "chg": "+57bn",
+          "dir": "up",
+          "as_of": "Aug 12"
+        }
+      ]
+    },
+    {
+      "group": "Commodities & FX",
+      "rows": [
+        {
+          "label": "WTI",
+          "level": "$84.94",
+          "chg": "+0.52%",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "Brent",
+          "level": "$91.02",
+          "chg": "+0.17%",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "Gold",
+          "level": "$4,366.00",
+          "chg": "-1.17%",
+          "dir": "down",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "Copper",
+          "level": "$6.48",
+          "chg": "-1.84%",
+          "dir": "down",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "DXY",
+          "level": "98.77",
+          "chg": "-0.88%",
+          "dir": "down"
+        },
+        {
+          "label": "USD/JPY",
+          "level": "159.55",
+          "chg": "+0.13%",
+          "dir": "up",
+          "as_of": "Aug 18"
+        },
+        {
+          "label": "EUR/USD",
+          "level": "1.1579",
+          "chg": "-0.03%",
+          "dir": "down",
+          "as_of": "Aug 18"
+        }
+      ]
+    }
+  ],
+  "ideas": {
+    "open": [
+      {
+        "trade": "Long KBW / Short NASDAQ",
+        "date": "2026-08-17",
+        "kind": "equity",
+        "held": 4,
+        "pnl": "-2.08%",
+        "vs": "-1.08pp",
+        "bench": "S&P 500",
+        "horizon": 6
+      },
+      {
+        "trade": "Long 10y TIPS / Short 10y UST",
+        "date": "2026-08-16",
+        "kind": "rates",
+        "held": 3,
+        "pnl": "+0.24%",
+        "vs": "+0.47pp",
+        "bench": "10-year Treasuries",
+        "horizon": 6
+      },
+      {
+        "trade": "Long EUR/USD",
+        "date": "2026-08-14",
+        "kind": "fx",
+        "held": 4,
+        "pnl": "+0.38%",
+        "vs": null,
+        "bench": null,
+        "horizon": 3
+      }
+    ],
+    "closed": [],
+    "as_of": "2026-08-19",
+    "line": "3 open · 0 closed — no hit rate until 10 (too few to mean anything)"
+  }
 }
