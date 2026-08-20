@@ -1,1 +1,1 @@
-{"disabled":true,"note":"approval pipeline retired 2026-08-19 - Joe posts manually; X-CHART-EMAIL falls back to the plain manual-post email whenever post_date != today","post_date":"1970-01-01"}
+{"post_date":"2026-08-20","approve_url":"https://macrotilt.com/api/xapprove?id=e6f3ba1e-e28c-4d11-b4bc-75f3fd931732&t=773e5fd0966094fe77b13ac0244afb61&a=approve","changes_url":"https://macrotilt.com/api/xapprove?id=e6f3ba1e-e28c-4d11-b4bc-75f3fd931732&t=773e5fd0966094fe77b13ac0244afb61&a=changes"}
