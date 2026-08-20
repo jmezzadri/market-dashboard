@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-20T21:43:32Z",
+  "generated_at": "2026-08-20T23:19:00Z",
   "as_of": "2026-08-20",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -38,7 +38,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -3.5732
+          "return_pct": -4.3028
         },
         {
           "series": "ndx_index",
@@ -49,14 +49,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -1.4893
+          "return_pct": -2.4767
         }
       ],
-      "buy_pct": -3.5732,
-      "sell_pct": -1.4893,
+      "buy_pct": -4.3028,
+      "sell_pct": -2.4767,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -2.084,
-      "risk_sized_pct": -0.9045,
+      "position_pct": -1.8262,
+      "risk_sized_pct": -0.7926,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -71,13 +71,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.999,
-        "difference": -1.085,
+        "move": -1.8572,
+        "difference": 0.031,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -2.084,
-      "mark_date": "2026-08-19",
-      "sessions_held": 4,
+      "mark": -1.8262,
+      "mark_date": "2026-08-20",
+      "sessions_held": 5,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
@@ -127,14 +127,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": 0.2374
+          "return_pct": -0.0791
         }
       ],
       "buy_pct": 0.5304,
-      "sell_pct": 0.2374,
+      "sell_pct": -0.0791,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.2929,
-      "risk_sized_pct": 1.256,
+      "position_pct": 0.6095,
+      "risk_sized_pct": 2.6135,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -149,16 +149,16 @@
         "label": "10-year Treasuries",
         "measure": "bond_return",
         "entry_value": 4.68,
-        "move": 0.2374,
-        "difference": 0.0555,
+        "move": -0.0791,
+        "difference": 0.6886,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.2929,
-      "mark_date": "2026-08-19",
-      "sessions_held": 4,
+      "mark": 0.6095,
+      "mark_date": "2026-08-20",
+      "sessions_held": 5,
       "max_favourable": {
-        "value": 0.2929,
-        "date": "2026-08-19"
+        "value": 0.6095,
+        "date": "2026-08-20"
       },
       "max_adverse": {
         "value": 0.0,
