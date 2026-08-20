@@ -1555,3 +1555,34 @@ Both faults were invisible while the series was uniform. The 4.48 rebuild did no
 5. **Bound a window at both ends.** Any code that reconstructs "the current value" from a sorted map must be certain nothing sorts above it.
 
 **Applies to:** Senior Quant — every percentile, z-score, rank and state on the site.
+
+### 4.50 (2026-08-19) — A guard that outlives the formula it guards is a scheduled false alarm; and a gate scheduled against a producer's *believed* run time grades yesterday
+
+**What happened:** the weekday health sweep found SCAN-INVARIANTS-DAILY red for 2026-08-18 on one row:
+
+```
+KURA: components don't sum to score: sum=6.00 (capped 6.00) vs score=3.00
+      [insider_pts=4.0, sma200_pts=1, rsi_pts=-2, dark_pool_pts=0, options_pts=3]
+```
+
+**The data was correct and the gate was wrong.** `check_scan_invariants.py` was written 2026-06-01 against the five-component score of that day. On 2026-07-07 the Conviction-Insider rebuild SHELVED dark-pool and options from the score as unvalidated — `run_screener.py` says so in a comment, `src/overhaul/lib/scoreWeights.js` (the single source of truth the drill-down renders from) says so in its header, and the score ceiling dropped from 10 to 5. The gate was never told. It kept passing for six weeks purely because `options_pts` and `dark_pool_pts` are 0 on a typical day; KURA was the first row where an *informational* column was non-zero, and a healthy pipeline went red. 4 + 1 − 2 = 3 = the score. Nothing was broken.
+
+Two more defects surfaced in the same file:
+
+1. **The gate's cron was set from a belief, not a measurement.** It ran at `30 20 * * 1-5` with the comment "~1h after the 15:30 ET scan publishes". The scan does not publish at 15:30 ET and never has — SCREENER_TRADING_OPPS_DAILY runs at 08:30 ET after Massive's T+1 EOD ingest, so the row for scan_date D is written on the morning of D+1. Measured `scan_run_ts` over two weeks: 08:45, 08:53, 08:53, 09:12, 09:13, 09:16, 09:18 ET. At 20:30 UTC the gate was grading a scan that had already been live on the site for ~32 hours — structurally unable to catch a bad scan on the day it shipped.
+2. **The invariant was single-valued for a versioned quantity.** Every row already carries `scoring_version`. The gate hardcoded one formula anyway, so the only possible outcomes were "right by luck" and "red on correct data".
+
+**Rule:**
+
+1. **A guard is a CONSUMER of the contract it guards. When the contract moves, the guard moves in the same PR or it becomes a scheduled false alarm.** This is 4.25 rule 1 ("do not leave a capability armed after you remove it") pointed at a *guard* rather than a producer, and 4.28 rule 5 (verify every consumer of a shared contract) applied to a file nobody thought of as a consumer. The 07-07 rebuild touched the scorer and the renderer and stopped there.
+2. **If the producer stamps a version, the checker reads that version — it never hardcodes the formula.** `SCORING_MODELS` now maps `scoring_version` → (summed fields, cap). Both eras validate cleanly against real history: 2026-05-19..07-06 on five components, 07-07 onward on three.
+3. **An UNKNOWN version is a hard, named failure — that is the whole point.** The gate now fails with "the scorer changed and this gate did not — add it to SCORING_MODELS", so the next rebuild cannot ship against a stale guard in silence. A guard that silently accepts what it does not understand is worse than no guard.
+4. **Set a gate's schedule from the producer's MEASURED arrival spread, every time.** Pull the last N producer timestamps and put the gate after the observed maximum with margin. This is 4.28 rule 1, and it has now been violated twice in six days in two different files, so it is worth restating as a habit rather than an incident: *never write a cron comment asserting when a producer runs without querying when it actually ran.* Now `0 15 * * 1-5` — 11:00 ET (EDT) / 10:00 ET (EST), past the observed maximum in both.
+
+**Also fixed in the same sweep, in `supabase/functions/ops-code-commit`:**
+
+- **`run_log` added.** The function could report WHICH step failed and nothing more, so every sweep that hit a red had to reason from a step name. 4.28's "confirmed from run history, not inferred" is not reachable without the log text, and a guess that happens to be plausible is exactly how a false fix ships. The KURA diagnosis above took one call to the new verb and would otherwise have been guesswork. **Read-only observability is not a nice-to-have; it is the precondition for every rule in this file about not theorising.**
+- **Deployed source had DRIFTED from committed source.** The live function carried `TRADE-IDEA-SCORECARD-DAILY.yml` in `DISPATCHABLE`; the committed copy did not, because 08-17 was hand-deployed and never committed. The next deploy from the repo would have silently removed it. **Deployed and committed source are one artifact — a hand-deploy is an open bug until it is committed.**
+- **Delete-then-create of a branch ref removed.** 4.29 rule 2 was written on 08-13 for `agent-write`; `ops-code-commit` had the identical delete-then-create and was missed. Deleting a ref closes any open PR on it. Now: create, and on 422 force-PATCH.
+
+**Applies to:** every guard, gate, smoke test and alarm — and to every change that moves a formula, a schema or a contract. The blast radius of such a change includes everything that *checks* it, not just everything that *reads* it.

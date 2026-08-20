@@ -10,11 +10,24 @@ name: SCAN-INVARIANTS-DAILY
 # Reads the public scan table with the publishable (anon) key, so no secrets
 # are required. On failure the run goes red and WORKFLOW_FAILURE_ALERT surfaces
 # it in triage.
+#
+# 2026-08-19 (health sweep): the old cron was "30 20 * * 1-5" with the comment
+# "~1h after the 15:30 ET scan publishes". The scan does not publish at 15:30
+# ET and never has — SCREENER_TRADING_OPPS_DAILY runs at 08:30 ET, AFTER
+# Massive's T+1 EOD ingest, so the row for scan_date D is written on the
+# MORNING OF D+1. Measured arrival of scan_run_ts over the last two weeks:
+# 08:45, 08:53, 08:53, 09:12, 09:13, 09:16, 09:18 ET — max 09:18.
+# At 20:30 UTC the gate therefore graded a scan that had already been live on
+# the site for ~32 hours — it could never catch a bad scan on the day it
+# shipped. LESSONS 4.28 rule 1: a gate's schedule is set from the producer's
+# MEASURED arrival spread, not from the time someone believed the producer
+# ran. 15:00 UTC is 11:00 ET (EDT) / 10:00 ET (EST) — past the observed
+# maximum in both, so the gate now validates that morning's write about two
+# hours after it lands, while it is the freshest thing the site is serving.
 
 on:
   schedule:
-    # 20:30 UTC = 16:30 ET (DST) — ~1h after the 15:30 ET scan publishes.
-    - cron: "30 20 * * 1-5"
+    - cron: "0 15 * * 1-5"
   # Also re-check whenever the scoring engine changes on main.
   push:
     branches: [main]
