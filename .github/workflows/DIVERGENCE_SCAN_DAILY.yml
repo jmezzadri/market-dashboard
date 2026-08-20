@@ -46,7 +46,13 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 2026-08-20 (LESSONS 4.52): 20 -> 30. compute_divergences.py now waits out
+    # the database contention that killed the 21:21 UTC chained fire on 8/14,
+    # 8/17 and 8/19 (MASSIVE-DAILY's 21:00 ingest still writing prices_eod when
+    # divergence_universe tries to scan it). That patience is capped at 900s by
+    # BUSY_RETRY_BUDGET_S, so the worst case is a normal run plus 15 minutes;
+    # 30 covers it with margin and still bounds a genuinely hung job.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
