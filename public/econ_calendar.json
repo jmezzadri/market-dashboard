@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-20T20:53:54Z",
+  "generated_at": "2026-08-21T09:59:29Z",
   "window": {
-    "from": "2026-08-13",
-    "to": "2026-10-29"
+    "from": "2026-08-14",
+    "to": "2026-10-30"
   },
   "counts": {
-    "total": 101,
+    "total": 99,
     "tier1": 24
   },
   "sources": [
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-13",
-      "time_et": "8:30 AM",
-      "name": "Producer prices (PPI)",
-      "short": "PPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-13",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-13",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-14",
       "time_et": "8:30 AM",
@@ -1128,6 +1095,17 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-30",
+      "time_et": "8:30 AM",
+      "name": "Employment cost index",
+      "short": "ECI",
+      "tier": 1,
+      "category": "Labor",
+      "blurb": "Wages and benefits per hour worked \u2014 the cleanest read on labor-cost inflation.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
