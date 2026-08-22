@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-21T20:47:06Z",
+  "generated_at": "2026-08-22T09:49:56Z",
   "window": {
-    "from": "2026-08-14",
-    "to": "2026-10-30"
+    "from": "2026-08-15",
+    "to": "2026-10-31"
   },
   "counts": {
-    "total": 99,
-    "tier1": 24
+    "total": 97,
+    "tier1": 23
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,28 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-14",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-14",
-      "time_et": "10:00 AM",
-      "name": "Business inventories",
-      "short": "Invent.",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Manufacturing and trade inventories and sales.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-17",
       "time_et": "8:30 AM",
