@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T23:26:55Z",
+  "generated_at": "2026-08-23T23:37:55Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -114,9 +114,7 @@
         {
           "series": "gvz",
           "title": "What a year of insurance on gold costs",
-          "subtitle": "CBOE Gold ETF Volatility Index, daily since 2008",
-          "unit": "index",
-          "decimals": 1,
+          "subtitle": "CBOE Gold ETF Volatility Index, daily, last ten years",
           "window": "10y",
           "caption": "The higher this line, the more the options market is charging to carry gold risk. At 27.29 it sits in the top tenth of everything recorded since June 2008.",
           "source": "MacroTilt indicator history (CBOE GVZ)"
@@ -124,9 +122,7 @@
         {
           "series": "vix",
           "title": "What the same insurance costs on the S&P 500",
-          "subtitle": "CBOE Volatility Index, daily since 2006",
-          "unit": "index",
-          "decimals": 1,
+          "subtitle": "CBOE Volatility Index, daily, last ten years",
           "window": "10y",
           "caption": "Read this against the chart above: equity insurance is near the cheap end of five years while gold insurance is near the dear end. That gap is the whole idea.",
           "source": "MacroTilt indicator history (CBOE VIX)"
@@ -134,9 +130,7 @@
         {
           "series": "move",
           "title": "And what it costs on Treasuries",
-          "subtitle": "ICE BofA MOVE index of Treasury implied volatility, daily",
-          "unit": "index",
-          "decimals": 1,
+          "subtitle": "ICE BofA MOVE index of Treasury implied volatility, daily, last ten years",
           "window": "10y",
           "caption": "The bond market's own measure of expected turbulence is at the 15th percentile of five years. Nothing here says a general shock is being priced — the caution is specific to gold.",
           "source": "MacroTilt indicator history (ICE BofA MOVE)"
@@ -144,7 +138,7 @@
         {
           "series": "cmdty_gold",
           "title": "The gold price itself",
-          "subtitle": "Front-month gold, dollars per ounce, daily",
+          "subtitle": "Front-month gold, dollars per ounce, daily, last five years",
           "unit": "$/oz",
           "decimals": 0,
           "window": "5y",
@@ -164,7 +158,7 @@
         },
         {
           "title": "Why this is a tilt and not a bet",
-          "prose": "The measured effect is a median, not a rule: three of the fourteen episodes went the other way, and one of them went the other way by ten points. The horizon is six months because that is where the separation from the base rate was both largest and stable across sub-periods — at one month it is smaller, at three months it is inside the noise, and at twelve months it stopped holding in the most recent period. A tilt sized to a few percent of a portfolio expresses that honestly. A large position would be claiming a precision the sample does not support."
+          "prose": "The measured effect is a median, not a rule: three of the fourteen episodes went the other way, and one of them went the other way by more than seventeen points. The horizon is six months because that is where the separation from the base rate was both largest and stable across sub-periods — at one month it is smaller, at three months it does not appear at all, and at twelve months it stopped holding in the most recent period. A tilt sized to a few percent of a portfolio expresses that honestly. A large position would be claiming a precision the sample does not support."
         },
         {
           "title": "What would make this the wrong trade",
@@ -218,7 +212,7 @@
       },
       "id": "2026-08-23-the-most-expensive-insurance-in-the-market-is-on",
       "status": "live",
-      "published_at": "2026-08-23T23:26:55Z"
+      "published_at": "2026-08-23T23:37:55Z"
     },
     {
       "date": "2026-08-17",
