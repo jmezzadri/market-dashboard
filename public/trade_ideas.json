@@ -1,9 +1,225 @@
 {
-  "generated_at": "2026-08-17T15:01:00Z",
+  "generated_at": "2026-08-23T23:26:55Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
-  "next_publish": "2026-08-19",
+  "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-08-23",
+      "kind": "cross-asset",
+      "title": "The most expensive insurance in the market is on gold, not on stocks",
+      "dek": "Options on gold now cost 1.80 times what options on the S&P 500 cost — the 99th percentile of everything we hold since 2008. When that gap has opened before, the metal has lagged the index over the following six months.",
+      "position_type": "allocation shift",
+      "call": "Over the next six months gold is priced to lag US large-cap equities. Options on gold cost 1.80 times what options on the S&P 500 cost, the 99th percentile of daily readings since 2008, and past readings that stretched were followed by the metal trailing the index by a median 6.8 points.",
+      "the_trade": {
+        "buy": "US large-cap equity exposure — a plain S&P 500 index fund",
+        "sell": "a slice of an existing gold holding, of the same dollar size, so the portfolio's total invested amount does not change",
+        "sizing": "Small. This is a tilt inside a portfolio, not a new position: on the measured history the median six-month gap was about 6.8 points, so a 5% shift out of gold moves a whole portfolio by roughly a third of a point."
+      },
+      "instrument": "Gold against US large-cap equity — a six-month tilt out of bullion and into the S&P 500",
+      "horizon": "6 months for the call, 2 to 6 weeks for the entry",
+      "edge": {
+        "source": "volatility structure",
+        "summary": "The price of insurance on gold, measured against the price of insurance on the S&P 500, sits in the top 1% of its own eighteen-year record. Measured episodes at that level have been followed by gold underperforming the index, and the underperformance comes from gold rather than from unusual equity strength.",
+        "backtest": {
+          "window": "Daily, 2013-05-21 to 2026-08-14. Entry when the ratio of gold implied volatility to S&P 500 implied volatility closes at or above the 90th percentile of its own history to that date — a trailing calculation, so no reading uses information that did not exist yet. Episodes separated by at least 42 trading days.",
+          "n": 14,
+          "result": "Gold trailed the S&P 500 by a median 6.76 percentage points over the following six months, and trailed it in 11 of the 14 completed episodes (79%).",
+          "baseline": "Over the same sample, gold trailed the S&P 500 by a median 2.37 points over any six-month window, and trailed it 57% of the time (3,206 overlapping windows)."
+        }
+      },
+      "variant": "The consensus reading of expensive gold options is that something dangerous is coming and gold is the place to be — insurance gets dear when a market is about to matter. The measured history says the opposite: dear gold insurance has marked the late part of a gold move, not the early part, and the six months that followed belonged to equities. The second half of the consensus is right, though, and it is the reason this is a tilt rather than a large position: equity insurance at the 23rd percentile of five years is not a market braced for anything.",
+      "thesis": [
+        "Two options markets are telling different stories about the same six months. Gold's is charging 27.29 for a year of implied volatility — the 91st percentile of its record since June 2008 — while the S&P 500's is charging 15.13, the 23rd percentile of the last five years. The ratio between them, 1.80, is at the 99th percentile of 4,584 daily readings.",
+        "This is specific to gold rather than a general warning. Treasury implied volatility sits at the 15th percentile of five years. If the options market were pricing a broad shock, bonds would not be the calmest thing on the board.",
+        "The measured outcome runs against the reflex. In the 14 completed episodes since 2013 where this gap opened to the 90th percentile, gold trailed the S&P 500 by a median 6.76 points over the next six months, against an unconditional median of 2.37 points. The direction held in 11 of 14.",
+        "The underperformance comes from the gold leg. Conditional six-month gold returns ran at a median of −1.58% against a +4.11% unconditional median, while the S&P's conditional return of +7.30% was in line with its own +6.90% baseline. The signal is about gold stalling, not about equities running.",
+        "It survives being cut in half. In 2013–2017 the conditional six-month gap was −12.19 points against a −5.89 baseline for that period; in 2023–2026 it was −1.99 against +3.84. Two different decades, two different gold regimes, and the same separation of roughly six points from each period's own base rate."
+      ],
+      "evidence": [
+        {
+          "claim": "Gold implied volatility against S&P 500 implied volatility",
+          "value": "1.80x — CBOE GVZ 27.29 divided by VIX 15.13",
+          "source": "MacroTilt indicator history (CBOE GVZ, CBOE VIX)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Where that ratio sits in its own record",
+          "value": "99.1st percentile of 4,584 daily readings from 2008-06-03",
+          "source": "MacroTilt indicator history",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Gold implied volatility on its own",
+          "value": "27.29, the 91st percentile of the same 2008-2026 record",
+          "source": "MacroTilt indicator history (CBOE GVZ)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "S&P 500 implied volatility on its own",
+          "value": "15.13, the 23rd percentile of the last five years",
+          "source": "MacroTilt indicator history (CBOE VIX)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Treasury implied volatility, for contrast",
+          "value": "MOVE 73.4, the 15th percentile of the last five years",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "What followed the 14 completed episodes at this level",
+          "value": "gold trailed the S&P 500 by a median 6.76 points over six months, in 11 of 14 cases",
+          "source": "MacroTilt backtest on indicator history, entries 2013-05-21 to 2026-08-14",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "The unconditional baseline over the same sample",
+          "value": "gold trailed the S&P 500 by a median 2.37 points over any six months, 57% of the time, across 3,206 overlapping windows",
+          "source": "MacroTilt backtest on indicator history",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Which leg the underperformance came from",
+          "value": "conditional six-month gold return −1.58% against a +4.11% unconditional median; conditional S&P return +7.30% against a +6.90% baseline",
+          "source": "MacroTilt backtest on indicator history",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "The same test on two separate periods",
+          "value": "2013-2017: −12.19 points against a −5.89 baseline. 2023-2026: −1.99 points against a +3.84 baseline",
+          "source": "MacroTilt backtest on indicator history",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Gold spot",
+          "value": "$4,516.30 an ounce, the 88th percentile of the last three years",
+          "source": "MacroTilt indicator history (front-month gold)",
+          "as_of": "2026-08-20"
+        },
+        {
+          "claim": "AGAINST THIS IDEA — speculative gold positioning",
+          "value": "managed money net long 34.87% of open interest, the 84th percentile of the 1,054 weekly reports since June 2006",
+          "source": "CFTC disaggregated Commitments of Traders",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "AGAINST THIS IDEA — our own gold positioning test",
+          "value": "managed money above the 85th percentile has been followed by a +9.52% six-month gold return against a +4.82% unconditional median, over 19 episodes since 2006",
+          "source": "MacroTilt backtest on CFTC disaggregated Commitments of Traders",
+          "as_of": "2026-08-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "gvz",
+          "title": "What a year of insurance on gold costs",
+          "subtitle": "CBOE Gold ETF Volatility Index, daily since 2008",
+          "unit": "index",
+          "decimals": 1,
+          "window": "10y",
+          "caption": "The higher this line, the more the options market is charging to carry gold risk. At 27.29 it sits in the top tenth of everything recorded since June 2008.",
+          "source": "MacroTilt indicator history (CBOE GVZ)"
+        },
+        {
+          "series": "vix",
+          "title": "What the same insurance costs on the S&P 500",
+          "subtitle": "CBOE Volatility Index, daily since 2006",
+          "unit": "index",
+          "decimals": 1,
+          "window": "10y",
+          "caption": "Read this against the chart above: equity insurance is near the cheap end of five years while gold insurance is near the dear end. That gap is the whole idea.",
+          "source": "MacroTilt indicator history (CBOE VIX)"
+        },
+        {
+          "series": "move",
+          "title": "And what it costs on Treasuries",
+          "subtitle": "ICE BofA MOVE index of Treasury implied volatility, daily",
+          "unit": "index",
+          "decimals": 1,
+          "window": "10y",
+          "caption": "The bond market's own measure of expected turbulence is at the 15th percentile of five years. Nothing here says a general shock is being priced — the caution is specific to gold.",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)"
+        },
+        {
+          "series": "cmdty_gold",
+          "title": "The gold price itself",
+          "subtitle": "Front-month gold, dollars per ounce, daily",
+          "unit": "$/oz",
+          "decimals": 0,
+          "window": "5y",
+          "caption": "$4,516.30 an ounce sits in the top eighth of the last three years. The idea is not that this line falls apart; it is that it stops out-running the stock market for two quarters.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "The ratio of gold implied volatility to S&P 500 implied volatility closed at 1.80 on 2026-08-21, above the 90th-percentile entry the test uses and at the 99th percentile of the full record since 2008.",
+        "invalidation": "A weekly close in gold implied volatility (GVZ) at or below 20.0 — its 70th percentile since 2008. At that point the condition that generated the edge has gone, and the tilt comes off at whatever it is then worth rather than being left to run.",
+        "target": "Gold trailing the S&P 500 by the historical median of roughly 6.8 points, measured to 2027-02-23. There is no price target on gold itself; the claim is relative."
+      },
+      "sections": [
+        {
+          "title": "Setting the stage",
+          "prose": "An option is a price for uncertainty. When the options market charges more for one asset than another, it is saying it expects more movement there — and, historically, it says so most loudly near the end of a move rather than the beginning. Right now it is charging 1.80 times as much for gold as for the S&P 500, and that ratio is in the top 1% of its eighteen-year record. This note is about what has usually happened next, which is not what the reflex reading suggests."
+        },
+        {
+          "title": "Why this is a tilt and not a bet",
+          "prose": "The measured effect is a median, not a rule: three of the fourteen episodes went the other way, and one of them went the other way by ten points. The horizon is six months because that is where the separation from the base rate was both largest and stable across sub-periods — at one month it is smaller, at three months it is inside the noise, and at twelve months it stopped holding in the most recent period. A tilt sized to a few percent of a portfolio expresses that honestly. A large position would be claiming a precision the sample does not support."
+        },
+        {
+          "title": "What would make this the wrong trade",
+          "bullets": [
+            "Gold implied volatility normalising while gold keeps rising — the setup dissolves and the tilt should come off, which is what the invalidation level is for.",
+            "A genuine macro shock. Equity insurance at the 23rd percentile of five years means the equity leg is not braced for one, and the same episode that vindicates dear gold options would hurt the S&P side of this tilt.",
+            "Speculative positioning in gold, which is the one MacroTilt signal pointing the other way — see the two evidence rows marked against this idea."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "2026-08-26 — Personal income and PCE prices, plus GDP. The inflation print gold trades off.",
+            "2026-09-04 — Jobs report.",
+            "2026-09-11 — Consumer prices (CPI).",
+            "2026-09-16 — Fed decision (FOMC). A cut delivered into a calm equity market is the most likely single event to reset gold implied volatility lower, which is also the invalidation."
+          ]
+        }
+      ],
+      "other_side": "The strongest argument against this is MacroTilt's own positioning work, and it is not close to trivial. Speculative gold positioning has been the one commodity market where an extended long has been followed by more upside rather than less: managed money above the 85th percentile of the record since 2006 was followed by a +9.52% six-month gold return against a +4.82% unconditional median, across 19 episodes. Managed money now sits at the 84th percentile — just under that trigger, which is why this note exists at all rather than being cancelled by it. If that positioning ticks up a percentile or two, two MacroTilt signals are pointing in opposite directions on the same asset, and the honest response is a smaller tilt rather than a louder one. Separately, the equity leg is doing real work here and it is the leg with no cushion: the S&P's own insurance is cheap, so an outside shock hurts this tilt on both ends at once.",
+      "risks": [
+        "The sample is 14 completed episodes over thirteen years. That clears the bar for a measured edge and it is nowhere near enough to be confident about any single instance.",
+        "The episodes cluster: eight of them fall in 2013-2016, when gold was in a long decline, and six in 2023-2026. The sub-period test is what makes this usable, but the middle of the sample, 2018-2022, contains no episodes at all and therefore no evidence either way.",
+        "The signal is a ratio, and a ratio can be moved by either side of it. A rise in equity implied volatility would end the setup without gold having done anything, and the invalidation level is written on gold's own volatility for exactly that reason.",
+        "Gold is held by many portfolios as insurance rather than as a return-seeking asset. Trimming it to buy equities raises the portfolio's exposure to a single macro outcome, which is a different risk from the one this note measures."
+      ],
+      "so_what": "For a portfolio holding both, the next two quarters are the wrong ones to be overweight gold against US large-cap equity. Trim a few percent of the gold sleeve into an S&P 500 index fund, and take it off if gold's implied volatility falls back to 20.",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "cmdty_gold",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "Gold"
+          },
+          {
+            "series": "spx_index",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "S&P 500"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "gvz",
+          "op": "<=",
+          "level": 20.0,
+          "basis": "weekly_close"
+        },
+        "note": "The stop is written on gold implied volatility rather than on a gold price, because the position is an expression of the volatility signal and it should die when the signal does. There is no second, price-based stop: adding one would grade a different trade from the one the note argued."
+      },
+      "id": "2026-08-23-the-most-expensive-insurance-in-the-market-is-on",
+      "status": "live",
+      "published_at": "2026-08-23T23:26:55Z"
+    },
     {
       "date": "2026-08-17",
       "kind": "equity",
