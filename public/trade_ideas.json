@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T23:37:55Z",
+  "generated_at": "2026-08-23T23:45:49Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -9,14 +9,14 @@
       "kind": "cross-asset",
       "title": "The most expensive insurance in the market is on gold, not on stocks",
       "dek": "Options on gold now cost 1.80 times what options on the S&P 500 cost — the 99th percentile of everything we hold since 2008. When that gap has opened before, the metal has lagged the index over the following six months.",
-      "position_type": "allocation shift",
+      "position_type": "long/short spread",
       "call": "Over the next six months gold is priced to lag US large-cap equities. Options on gold cost 1.80 times what options on the S&P 500 cost, the 99th percentile of daily readings since 2008, and past readings that stretched were followed by the metal trailing the index by a median 6.8 points.",
       "the_trade": {
         "buy": "US large-cap equity exposure — a plain S&P 500 index fund",
-        "sell": "a slice of an existing gold holding, of the same dollar size, so the portfolio's total invested amount does not change",
-        "sizing": "Small. This is a tilt inside a portfolio, not a new position: on the measured history the median six-month gap was about 6.8 points, so a 5% shift out of gold moves a whole portfolio by roughly a third of a point."
+        "short": "gold — bullion, a gold ETF or the futures contract, held against the equity leg",
+        "sizing": "Equal dollar amounts on each side, and small. The measured six-month gap is a median 6.76 points, so a paired position worth 5% of a portfolio moves the whole portfolio by roughly a third of a point. Anyone who already owns gold can hold the same view without shorting anything — move that much of the existing metal into the equity leg instead. Anyone who owns no gold is not missing a step: the position is the pair, and it stands on its own."
       },
-      "instrument": "Gold against US large-cap equity — a six-month tilt out of bullion and into the S&P 500",
+      "instrument": "Gold against US large-cap equity — long the S&P 500 against a short in gold, six months",
       "horizon": "6 months for the call, 2 to 6 weeks for the entry",
       "edge": {
         "source": "volatility structure",
@@ -148,7 +148,7 @@
       ],
       "levels": {
         "trigger": "The ratio of gold implied volatility to S&P 500 implied volatility closed at 1.80 on 2026-08-21, above the 90th-percentile entry the test uses and at the 99th percentile of the full record since 2008.",
-        "invalidation": "A weekly close in gold implied volatility (GVZ) at or below 20.0 — its 70th percentile since 2008. At that point the condition that generated the edge has gone, and the tilt comes off at whatever it is then worth rather than being left to run.",
+        "invalidation": "A weekly close in gold implied volatility (GVZ) at or below 20.0 — its 70th percentile since 2008. At that point the condition that generated the edge has gone, and the position comes off at whatever it is then worth rather than being left to run.",
         "target": "Gold trailing the S&P 500 by the historical median of roughly 6.8 points, measured to 2027-02-23. There is no price target on gold itself; the claim is relative."
       },
       "sections": [
@@ -157,14 +157,14 @@
           "prose": "An option is a price for uncertainty. When the options market charges more for one asset than another, it is saying it expects more movement there — and, historically, it says so most loudly near the end of a move rather than the beginning. Right now it is charging 1.80 times as much for gold as for the S&P 500, and that ratio is in the top 1% of its eighteen-year record. This note is about what has usually happened next, which is not what the reflex reading suggests."
         },
         {
-          "title": "Why this is a tilt and not a bet",
-          "prose": "The measured effect is a median, not a rule: three of the fourteen episodes went the other way, and one of them went the other way by more than seventeen points. The horizon is six months because that is where the separation from the base rate was both largest and stable across sub-periods — at one month it is smaller, at three months it does not appear at all, and at twelve months it stopped holding in the most recent period. A tilt sized to a few percent of a portfolio expresses that honestly. A large position would be claiming a precision the sample does not support."
+          "title": "Why this is small",
+          "prose": "The measured effect is a median, not a rule: three of the fourteen episodes went the other way, and one of them went the other way by more than seventeen points. The horizon is six months because that is where the separation from the base rate was both largest and stable across sub-periods — at one month it is smaller, at three months it does not appear at all, and at twelve months it stopped holding in the most recent period. A position of a few percent expresses that honestly. A large one would be claiming a precision the sample does not support."
         },
         {
           "title": "What would make this the wrong trade",
           "bullets": [
-            "Gold implied volatility normalising while gold keeps rising — the setup dissolves and the tilt should come off, which is what the invalidation level is for.",
-            "A genuine macro shock. Equity insurance at the 23rd percentile of five years means the equity leg is not braced for one, and the same episode that vindicates dear gold options would hurt the S&P side of this tilt.",
+            "Gold implied volatility normalising while gold keeps rising — the setup dissolves and the position comes off, which is what the invalidation level is for.",
+            "A genuine macro shock. Equity insurance at the 23rd percentile of five years means the long leg is not braced for one, and the same episode that vindicates dear gold options would hurt the equity side of this pair.",
             "Speculative positioning in gold, which is the one MacroTilt signal pointing the other way — see the two evidence rows marked against this idea."
           ]
         },
@@ -183,9 +183,9 @@
         "The sample is 14 completed episodes over thirteen years. That clears the bar for a measured edge and it is nowhere near enough to be confident about any single instance.",
         "The episodes cluster: eight of them fall in 2013-2016, when gold was in a long decline, and six in 2023-2026. The sub-period test is what makes this usable, but the middle of the sample, 2018-2022, contains no episodes at all and therefore no evidence either way.",
         "The signal is a ratio, and a ratio can be moved by either side of it. A rise in equity implied volatility would end the setup without gold having done anything, and the invalidation level is written on gold's own volatility for exactly that reason.",
-        "Gold is held by many portfolios as insurance rather than as a return-seeking asset. Trimming it to buy equities raises the portfolio's exposure to a single macro outcome, which is a different risk from the one this note measures."
+        "A short in gold is not a free trade: the metal is a hedge against outcomes this pair has no protection from, and shorting it concentrates the position in a single macro path. That is a different risk from the one the note measures, and it is the reason for the size."
       ],
-      "so_what": "For a portfolio holding both, the next two quarters are the wrong ones to be overweight gold against US large-cap equity. Trim a few percent of the gold sleeve into an S&P 500 index fund, and take it off if gold's implied volatility falls back to 20.",
+      "so_what": "Over the next two quarters the measured edge runs against gold and for US large-cap equity. Stated on its own that is a small long in an S&P 500 index fund set against a short in gold; for anyone already holding the metal it is the same view with the equity leg funded out of it. Either way it comes off if gold implied volatility falls back to 20.",
       "scorecard": {
         "legs": [
           {
@@ -212,7 +212,7 @@
       },
       "id": "2026-08-23-the-most-expensive-insurance-in-the-market-is-on",
       "status": "live",
-      "published_at": "2026-08-23T23:37:55Z"
+      "published_at": "2026-08-23T23:45:49Z"
     },
     {
       "date": "2026-08-17",
