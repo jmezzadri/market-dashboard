@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-23T20:46:25Z",
+  "generated_at": "2026-08-24T10:09:24Z",
   "window": {
-    "from": "2026-08-16",
-    "to": "2026-11-01"
+    "from": "2026-08-17",
+    "to": "2026-11-02"
   },
   "counts": {
-    "total": 97,
-    "tier1": 23
+    "total": 99,
+    "tier1": 24
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -1084,6 +1084,28 @@
       "tier": 1,
       "category": "Labor",
       "blurb": "Wages and benefits per hour worked \u2014 the cleanest read on labor-cost inflation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-02",
+      "time_et": "10:00 AM",
+      "name": "ISM Manufacturing",
+      "short": "ISM Mfg",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
+      "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-02",
+      "time_et": "10:00 AM",
+      "name": "Construction spending",
+      "short": "Constr",
+      "tier": 3,
+      "category": "Housing",
+      "blurb": "Value of construction put in place, residential and non-residential.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
