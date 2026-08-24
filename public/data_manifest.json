@@ -3284,7 +3284,7 @@
     }
    ],
    "current_status": "live_pending_first_workflow_run",
-   "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value. Column empty Feb-2002 \u2192 Feb-2006 (bond discontinued); that gap is the instrument's history, not a pipeline fault.",
+   "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value. Series begins 2006-02-09 \u2014 the history window starts 2006-01-01 and Treasury had the bond discontinued until February 2006, so this is the first available print, not a gap. No interior gaps.",
    "owner": "Data Steward",
    "release_calendar": "us-business-day",
    "dependencies": [],
@@ -3324,7 +3324,7 @@
     }
    ],
    "current_status": "live_pending_first_workflow_run",
-   "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value. Column empty 1987 \u2192 1993 (tenor discontinued), reintroduced May-2020; that gap is the instrument's history, not a pipeline fault.",
+   "failure_mode": "Skipped if Treasury.gov returns no fresh observation; tile shows last good value. Series begins 2006-01-03 with the history window; the tenor's own 1987-1993 discontinuation predates that window entirely. No interior gaps.",
    "owner": "Data Steward",
    "release_calendar": "us-business-day",
    "dependencies": [],
