@@ -94,7 +94,7 @@ function niceTicks(min, max, n = 4) {
    stays, because a number on this site never appears unattributed. The full
    apparatus (subtitle, table view, every chart in the note) is one click away
    in the note itself. */
-export default function IdeaChart({ spec, series, width = 620, height = 220, compact = false }) {
+export default function IdeaChart({ spec, series, asOf = null, width = 620, height = 220, compact = false }) {
   const [hover, setHover] = useState(null);
   const [tableOpen, setTableOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -161,6 +161,14 @@ export default function IdeaChart({ spec, series, width = 620, height = 220, com
   };
 
   const shown = hover || last;
+
+  /* Stamp the caption only when the series has moved past the note's date —
+     comparing ISO day strings, which sort correctly and dodge every timezone
+     question. `last[0]` is the series' own last observation, so a monthly
+     series stamped at month-end does not falsely trigger it. */
+  const asOfStamp = (asOf && last?.[0] && String(asOf).slice(0, 10) < String(last[0]).slice(0, 10))
+    ? fmtDate(String(asOf).slice(0, 10), true).replace(/,? \d{4}$/, '')
+    : null;
 
   return (
     <figure className="ideachart">
@@ -240,7 +248,21 @@ export default function IdeaChart({ spec, series, width = 620, height = 220, com
 
       </div>
 
-      {spec.caption && <p className="ic-caption">{spec.caption}</p>}
+      {/* The caption is FROZEN PROSE and the plot beside it is LIVE. On the
+          2026-08-17 note the caption read "At 0.77 it is the 0.6th percentile"
+          while the readout four lines above it had advanced to 0.84 — the note's
+          own kill line being 1.00, that is the number that decides whether the
+          trade is still alive. 4.31 rule 4 banned typed-in values inside the
+          chart's DATA; the caption then became the second source of truth it
+          was written to prevent. A caption written on a date is true AS AT that
+          date, so it is stamped with it — and only once the series has actually
+          moved past it, so a note published today reads exactly as before. */}
+      {spec.caption && (
+        <p className="ic-caption">
+          {asOfStamp && <span className="ic-asof">As at {asOfStamp}: </span>}
+          {spec.caption}
+        </p>
+      )}
 
       <p className="ic-meta">
         {!compact && (

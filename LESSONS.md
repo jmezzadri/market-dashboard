@@ -1648,54 +1648,31 @@ The cause is a **gap between two correct rules**. `pipeline-health-check` has no
 
 **Applies to:** Lead Developer — every retry loop, every `pipeline_health` row at the moment it is registered, and every sweep that grades the database instead of the page.
 
----
+### 4.53 (2026-08-24) — A page that knows the date in its header and says "today" in its tiles is two clocks; and 4.31 closed the chart's door while the caption stayed open
 
-### 4.50 (2026-08-21) — The number the reader complains about first is the one that should have had a feed
+**What happened:** the weekday sweep found every workflow green, `pipeline_health` with zero non-green rows, `workflow_failure_log` empty over four days, and exactly one branded brief matching its ledger row to the second. The database said the site was perfect. Loading the site said otherwise — twice, and neither defect could have been found any other way.
 
-**What happened:** Joe's complaint that started this whole thread opened on the long end — *"30y down 3bps to 5.28%, 20y down 2bps to 5.28%"*. Building the snapshot table, both of those turned out to be the only figures in the brief with **no pipeline behind them**. Every morning the writer sourced the 30y and the 20y by hand from a dated web page under the accuracy contract, while the 2y and 10y sitting next to them came off a feed — from the *same Treasury.gov CSV*, one column over.
+**1. `/paper` told the reader Friday's move was today's.** At 09:16 ET on Monday the header read *"Monday, August 24, 2026 · Market pre-open"* and the tile beside it read **"DAY P&L +$7,420 / +0.77% · today"**. That +0.77% is Friday's session, 65 hours old. The mark's own timestamp was no help: `markedAt` was built as `marked ${fmtTimeET(created_at)}` — a bare time, *"marked 3:50 PM ET"*, which cannot say WHICH 3:50 PM. The word "today" was a hardcoded string literal in the sub-line, and the contributors card carried the same one.
 
-That is the worst possible split. Rule 1 of the accuracy contract ("sourced numbers only, or omit") was carrying the two tenors that had driven the tape for a month, on a manual path, at 6am, every day. The cost of adding them was two calls to a function the file already had.
+This is not an edge case, it is the majority state. The label is only true while a mark from the current ET session is the latest one — so it is wrong from the 16:00 ET close until the next session's first mark, ~17.7 hours every weekday, plus ~65 hours over every weekend. The page spends more of its life lying than telling the truth, and it was shipped that way on 8/17.
 
-Both are now feeds: `ust_30y` and `ust_20y` from `safe_treasury("nominal", …)`, registered in `data_manifest.json` and `indicatorRegistry.js`, and in the brief's Rates block. Verified against the live CSV through the real `safe_treasury` path — 30y 5.27%, 20y 5.25% at 2026-08-21, with correct one-session deltas.
+Fixed: `etDay()` compares the mark's ET calendar day against today's; when they differ the mark carries its day (*"marked Fri, Aug 21, 3:50 PM ET"*) and the day figures name their session (*"+0.77% · Fri, Aug 21 session"*). On a live intraday day every string renders exactly as it did before. `· 10-min sync` was also dropped from a previous session's mark — it describes what happens DURING a session, and nothing syncs every ten minutes at 9am Monday.
 
-**Two things worth writing down from doing it:**
+**2. A Trade Idea's chart disagreed with its own caption, on the homepage.** `IdeaChart`'s header comment states its purpose outright: *"the chart and the evidence block are the same data, so a chart can never disagree with the sentence beside it."* On the 8/17 note it did. The readout showed **0.84 · Aug 20 · latest** and the plotted endpoint was labelled 0.84; the caption four lines below read **"At 0.77 it is the 0.6th percentile of five years."** The note's own invalidation is the ratio closing above 1.00, so the drifted number was precisely the one that decides whether the trade is still alive.
 
-- **Know where a series starts and why, before you call anything a gap.** Treasury had the 30y discontinued February 2002 → February 2006 and the 20y 1987 → 1993, so I documented both as historical holes the gap detector would have to tolerate. Then the first real run showed `START = "2006-01-01"`: `ust_30y` simply opens at 2006-02-09, its first available print, and **neither series has an interior gap at all**. The caution was sound and the fact was wrong — corrected in the manifest, the registry copy and the code comment. A note that describes a hole that does not exist trains the next reader to ignore hole warnings.
-- **`pipeline_health` rows and `data_manifest.json` are one change, not two.** `reconcile_pipeline_health.py` fails loudly on any health row whose `indicator_id` is absent from the manifest. Adding a series to the producer without the manifest row would have created an orphan and reddened a nightly job that emails Joe. Checked before shipping rather than after.
+**4.31 rule 4 banned typed-in values from the chart's `data` and the caption became the second source of truth instead.** `charts[].caption` is free prose, written on the note's date, rendered forever beside a series that keeps moving. Every caption on that note carried a fixed reading — 0.77, 20.72, 23.92, 44.6th percentile — and each one starts drifting the day after publication.
 
-**Rule:**
-
-1. **If a number is important enough to appear every day, it is important enough to have a feed.** A recurring manual step inside an automated artifact is a defect with a person standing in for it, and it will be found the day that person is busy.
-2. **When you add a series, ask what already enumerates series.** Manifest, registry, health reconciler, freshness SLA, contract checks. A new key that half the system knows about is worse than no key.
-3. **Write a manifest file back with the same escaping it had.** `json.dumps(..., ensure_ascii=False)` on a file stored with `\uXXXX` escapes rewrites every non-ASCII line in the repo and buries a two-line change in a 700-line diff. Detect and match.
-4. **A hole that belongs to the instrument is not a data-quality alarm.** Record why it is there, in the manifest, next to the series.
-
-**Applies to:** Data Steward (owns registration) + Lead Developer (owns the producer) + Senior Quant (owns what the series means).
-
----
-
-### 4.51 (2026-08-24) — A timeout tuned to a fast day is a silent outage on a slow one, and carry-forward is what hides it
-
-**What happened:** shipping the new `ust_30y` / `ust_20y` feeds (4.50), I dispatched the refresh to verify. The run went **green, every step successful** — and neither series was in the file.
-
-The two new tenors were not the problem. **Every Treasury.gov series in the pipeline had stopped updating.** `ust_2y`, `ust_10y`, `yield_curve`, `real_rates` and `breakeven_10y` were all stuck at 2026-08-20 while the Yahoo-sourced series beside them carried 08-21.
-
-Cause, measured rather than guessed: Treasury.gov was answering those year CSVs in **~17–18 seconds**, and `_fetch_treasury_year` used `timeout=12`. Every year timed out, so every tenor failed, so every nominal and TIPS series failed — for **three consecutive runs**, since Friday evening.
-
-**Why nobody knew.** Carry-forward. When a fetch produces nothing, the prior file's series is kept so one bad source cannot blank the board — correct behaviour, and the reason nothing looked broken. But `_sync_pipeline_health_from_result` then wrote those carried-forward rows as **green with `last_good_at` = now**, because the one-clock chip grades off the last *pull*, and a carry-forward looks exactly like a pull. Five daily rate series sat green for three days on stale data.
-
-It only surfaced because the two **new** series had nothing to carry forward. A brand-new feed is the one thing carry-forward cannot disguise — which is a lucky accident, not a detection strategy.
-
-**Fix.**
-- `TREASURY_TIMEOUT_S = 45` (from 12), retries 3 → 4 with a 2s/4s/6s backoff, and the parallel warm dropped from 8 workers to 4 — on a slow origin, eight concurrent requests are part of the problem. Verified against the live origin through the real fetcher: 17.9s and 16.6s, both failing before and passing now.
-- Carrying a series forward is recorded in `_CARRIED_FORWARD`, and any **daily-SLA** series in that set is written **red** with the reason "producer returned nothing this run; showing the value held from `<date>`", plus a loud PRODUCER NOTICE in the run log. Surviving a bad source and being healthy are different states and must not share a colour.
+Fixed at the renderer, not by rewriting anyone's prose: `IdeaChart` takes the note's date and stamps the caption *"As at Aug 17: "* — but only once the series' own last observation is later than the note's date. A note published against current data renders exactly as before; verified both ways, on the 8/23 note (series last 8/21, no stamp, no visual change) and the 8/17 note (series last 8/20, stamp present).
 
 **Rule:**
 
-1. **A network timeout is a threshold on someone else's bad day, and you will not be told when they have one.** Set it for the slow case and let the retry budget, not the timeout, bound the wall clock. If a timeout is tight enough that a 50% slowdown breaks it, it is a scheduled outage.
-2. **Never let a fallback renew the freshness clock.** Any mechanism that keeps yesterday's data to survive a failure must mark itself, or it converts an outage into an indefinite silent one. Fallbacks that fail *quietly* are worse than no fallback: they remove the symptom and keep the disease.
-3. **Green means "I fetched this", not "I have this".** The two look identical downstream unless the producer says which one happened.
-4. **Verify a new feed by looking for the DATA, never by reading the run's conclusion.** This workflow reported success on a run that fetched nothing at all.
-5. **When a new series is missing, check whether the old ones are actually fresh.** The instinct is to debug the new code. The new code was fine; it was the only thing honest enough to show the failure.
+1. **A surface that renders a date-relative word — "today", "now", "latest", "current" — must derive it from the same clock its own header uses.** 4.41 rule 6 said a rule stated in two places drifts; this is the same failure where the second copy is not a rule but a hardcoded English word. Grep for the literal, not for the logic.
+2. **A timestamp rendered without its date can only be read correctly by someone who already knows the answer.** "3:50 PM ET" is a time of day, not an instant. If the thing being stamped can be older than one session, the day is part of the stamp.
+3. **A label is wrong for the WINDOW it is wrong in, not for the moment you happened to look.** Checking `/paper` at 11am on a Tuesday shows the right answer and hides a defect that is live 17.7 hours a day. Ask when a label is true, not whether it is true right now — the same question 4.42 asks of a freshness deadline.
+4. **When a rule bans values from one field, check every other field on the same object that can carry one.** 4.31 rule 4 fixed `data`; `caption`, `title` and `subtitle` are all free text on the same spec and all outlive the reading they describe. A ban that names a field is a ban on a field, never on the mistake.
+5. **Frozen prose beside a live figure needs an as-of, and the honest one is the date it was written.** Stamping is better than rewriting: the note stays the historical document it is, and the reader is told which day its numbers belong to. Sourced-or-omitted (4.21a) applied to time rather than to provenance.
+6. **The database being entirely green is not evidence the site is right.** Zero non-green `pipeline_health` rows, an empty failure log and a matching email ledger were all true while the homepage contradicted itself and `/paper` misdated a number. 4.52 rule 5 said look at the header; this says keep reading past it. Every defect found this run was found by reading rendered text, and none of them had a row anywhere.
 
-**Applies to:** Lead Developer (owns producers and their guards) + Data Steward (owns freshness semantics).
+**Also confirmed this run, no action needed:** `QT-REBALANCE` and `QT-FUNDAMENTALS-REFRESH` show zero runs — both shipped 8/14 and neither is due until 9/1 and 8/26 respectively, so "never run" is a calendar fact, not a broken schedule. Checked with `git log --diff-filter=A` rather than assumed. `DIVERGENCE_SCAN_DAILY` cleared its 21:21-21:22 UTC slot on 8/20 and again on 8/21 — 4.52's busy-class backoff held on its first two exposures to the contended window. `TRADING-OPPS-BACKTEST` already carries 4.41's `MACROTILT_BOT_PAT` fix in the repo; it is quarterly and next fires 10/1, so the fix is in place and untested until then.
+
+**Applies to:** Lead Developer — every rendered date-relative word, every bare-time stamp, and every free-text field on a spec whose data is drawn live.

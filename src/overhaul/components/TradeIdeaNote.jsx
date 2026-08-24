@@ -120,7 +120,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
           <p className="briefmodal-sec">The picture</p>
           <div className="idea-charts">
             {idea.charts.map((c) => (
-              <IdeaChart key={c.series} spec={c} series={chartSeries?.[c.series]} width={640} height={230} />
+              <IdeaChart key={c.series} spec={c} series={chartSeries?.[c.series]} asOf={idea.date} width={640} height={230} />
             ))}
           </div>
         </>
