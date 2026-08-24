@@ -1647,3 +1647,27 @@ The cause is a **gap between two correct rules**. `pipeline-health-check` has no
 **Open, not fixed here:** the divergence scan is chained to *every* `MASSIVE-DAILY` completion (seven fires a day) though it only needs the T+1 panel-complete ingest, and the 21:00 chain is the only one that collides. De-chaining the redundant fires is the structural fix; the retry is the correct fix for the failure that was actually observed. Not bundled, because which MASSIVE fire produces the panel-complete data has not been measured, and 4.50 rule 4 says do not write a schedule from a belief.
 
 **Applies to:** Lead Developer — every retry loop, every `pipeline_health` row at the moment it is registered, and every sweep that grades the database instead of the page.
+
+---
+
+### 4.50 (2026-08-21) — The number the reader complains about first is the one that should have had a feed
+
+**What happened:** Joe's complaint that started this whole thread opened on the long end — *"30y down 3bps to 5.28%, 20y down 2bps to 5.28%"*. Building the snapshot table, both of those turned out to be the only figures in the brief with **no pipeline behind them**. Every morning the writer sourced the 30y and the 20y by hand from a dated web page under the accuracy contract, while the 2y and 10y sitting next to them came off a feed — from the *same Treasury.gov CSV*, one column over.
+
+That is the worst possible split. Rule 1 of the accuracy contract ("sourced numbers only, or omit") was carrying the two tenors that had driven the tape for a month, on a manual path, at 6am, every day. The cost of adding them was two calls to a function the file already had.
+
+Both are now feeds: `ust_30y` and `ust_20y` from `safe_treasury("nominal", …)`, registered in `data_manifest.json` and `indicatorRegistry.js`, and in the brief's Rates block. Verified against the live CSV through the real `safe_treasury` path — 30y 5.27%, 20y 5.25% at 2026-08-21, with correct one-session deltas.
+
+**Two things worth writing down from doing it:**
+
+- **The 30y column is empty February 2002 → February 2006** (Treasury discontinued the bond) and **the 20y is empty 1987 → 1993**. `safe_treasury` drops the blanks and prints which year lacked the column, so the series carry real historical holes. That is the *instrument's* history, not a pipeline fault — and the interior-gap check from 4.47 only scans the trailing 45 days, so it correctly stays quiet about them. A gap detector that cannot distinguish "the vendor broke" from "the security did not exist" would have to be muted, and a muted detector is no detector.
+- **`pipeline_health` rows and `data_manifest.json` are one change, not two.** `reconcile_pipeline_health.py` fails loudly on any health row whose `indicator_id` is absent from the manifest. Adding a series to the producer without the manifest row would have created an orphan and reddened a nightly job that emails Joe. Checked before shipping rather than after.
+
+**Rule:**
+
+1. **If a number is important enough to appear every day, it is important enough to have a feed.** A recurring manual step inside an automated artifact is a defect with a person standing in for it, and it will be found the day that person is busy.
+2. **When you add a series, ask what already enumerates series.** Manifest, registry, health reconciler, freshness SLA, contract checks. A new key that half the system knows about is worse than no key.
+3. **Write a manifest file back with the same escaping it had.** `json.dumps(..., ensure_ascii=False)` on a file stored with `\uXXXX` escapes rewrites every non-ASCII line in the repo and buries a two-line change in a 700-line diff. Detect and match.
+4. **A hole that belongs to the instrument is not a data-quality alarm.** Record why it is there, in the manifest, next to the series.
+
+**Applies to:** Data Steward (owns registration) + Lead Developer (owns the producer) + Senior Quant (owns what the series means).
