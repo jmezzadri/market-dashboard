@@ -126,8 +126,49 @@ Enforced by the contract:
   `long/short spread`, `hedge`, `watch only`. Renders as a badge, so the reader
   knows whether anything is being sold short before meeting a number.
   `outright short` and `long/short spread` REQUIRE `the_trade.short`.
+  `watch only` REQUIRES `the_trade.what_would_make_it_a_position` and FORBIDS
+  `the_trade.buy` — see "A relative edge you cannot short" below.
 - `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
   `short` (only for an actual short) and `sizing`.
+
+### A relative edge you cannot short (2026-08-23)
+
+Joe, on the gold note: *"you just assume people have gold. 'Sell a slice of
+existing gold position' what if someone doesn't own gold"* — and then, on the
+rewrite that turned the funding leg into an actual short: *"I dont agree to
+short gold. Thats insane."* Both are right, and together they close a door that
+is worth understanding rather than working around.
+
+A RELATIVE edge — A lags B — has exactly three expressions and no fourth:
+
+1. short A against long B;
+2. switch out of A, which requires the reader to already own A;
+3. nothing.
+
+The first note wrote (2) and phrased it as an instruction, which silently
+assumed a holding the reader may not have. The fix reached for (1). With both
+ruled out, the honest answer is (3), and the honest LABEL is `watch only`.
+
+Three rules follow.
+
+**Never manufacture a leg to satisfy a field.** `the_trade.buy` used to be
+required on every note, so a note with nothing to buy invented something — that
+is literally how "sell a slice of your existing gold holding" got written. The
+contract now exempts `watch only` from `buy` and requires
+`what_would_make_it_a_position` instead.
+
+**Never borrow a relative edge's credibility for one leg of it.** The gold note
+measured gold trailing the S&P by a median 6.76pp over six months. It would have
+been easy to publish "long the S&P 500" and keep all the same evidence. The
+S&P's own conditional return in those episodes was +7.30% against a +6.90%
+unconditional baseline — no edge at all. One leg of a spread is not a position
+the spread's backtest supports, and publishing it as one is a lie told with true
+numbers.
+
+**Never write an instruction that presumes a holding.** "Trim", "sell a slice
+of", "rotate out of", "move part of your X" all assume the reader owns X. State
+the position; if owning it already is a cheaper way in, that belongs in `sizing`
+as a variation, never as the premise.
 
 **Set the stage.** Match the horizon to the SIGNAL. A cyclically-adjusted
 earnings yield carries information about five- and ten-year returns and close to

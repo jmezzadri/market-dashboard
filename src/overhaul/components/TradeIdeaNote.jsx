@@ -68,7 +68,9 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
 
       <div className="idea-modal-facts">
         {[['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
-          ['Sell short', idea.the_trade?.short], ['How much', idea.the_trade?.sizing],
+          ['Sell short', idea.the_trade?.short],
+          ['What would make it a position', idea.the_trade?.what_would_make_it_a_position],
+          ['How much', idea.the_trade?.sizing],
           ['The technical version', idea.instrument], ['Horizon', idea.horizon],
           ['Trigger', idea.levels?.trigger], ['Invalidation', idea.levels?.invalidation],
           ['Where it goes if it works', idea.levels?.target]]
@@ -120,7 +122,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
           <p className="briefmodal-sec">The picture</p>
           <div className="idea-charts">
             {idea.charts.map((c) => (
-              <IdeaChart key={c.series} spec={c} series={chartSeries?.[c.series]} asOf={idea.date} width={640} height={230} />
+              <IdeaChart key={c.series} spec={c} series={chartSeries?.[c.series]} width={640} height={230} />
             ))}
           </div>
         </>
