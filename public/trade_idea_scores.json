@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-21T23:16:19Z",
-  "as_of": "2026-08-21",
+  "generated_at": "2026-08-24T21:43:48Z",
+  "as_of": "2026-08-24",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
-    "published": 3,
-    "open": 3,
+    "published": 4,
+    "open": 4,
     "pending_entry": 0,
     "closed": 0,
     "unscoreable": 0,
@@ -16,6 +16,74 @@
     "stats_withheld_reason": "0 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
   },
   "scores": [
+    {
+      "id": "2026-08-23-the-most-expensive-insurance-in-the-market-is-on",
+      "date": "2026-08-23",
+      "kind": "cross-asset",
+      "title": "The most expensive insurance in the market is on gold, not on stocks",
+      "instrument": "Gold against US large-cap equity — a measured setup, not a position taken",
+      "position_type": "watch only",
+      "status": "open",
+      "entry_date": "2026-08-21",
+      "target_date": "2027-02-21",
+      "horizon_months": 6,
+      "unit": "%",
+      "legs": [
+        {
+          "series": "cmdty_gold",
+          "side": "short",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-08-21",
+          "entry_value": 4624.1001,
+          "label": "Gold",
+          "short_label": "Gold",
+          "return_pct": 0.0
+        },
+        {
+          "series": "spx_index",
+          "side": "long",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-08-21",
+          "entry_value": 7674.37,
+          "label": "S&P 500",
+          "short_label": "S&P 500",
+          "return_pct": 0.0
+        }
+      ],
+      "buy_pct": 0.0,
+      "sell_pct": 0.0,
+      "trade_label": "Long S&P 500 / Short Gold",
+      "position_pct": 0.0,
+      "risk_sized_pct": 0.0,
+      "sizing": {
+        "method": "risk_parity",
+        "multiple": 0.355,
+        "spread_vol_pct": 28.13,
+        "target_vol_pct": 10.0,
+        "observations": 251,
+        "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-21, annualised x sqrt(252), frozen at entry"
+      },
+      "single_leg_note": null,
+      "benchmark": null,
+      "mark": 0.0,
+      "mark_date": "2026-08-21",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-08-21"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-08-21"
+      },
+      "invalidation": {
+        "rule": "gvz <= 20.0 (weekly close)",
+        "date": null
+      },
+      "result": null
+    },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
       "date": "2026-08-17",
@@ -115,7 +183,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": 0.5304
+          "return_pct": 0.0884
         },
         {
           "series": "ust_10y",
@@ -127,14 +195,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -0.0791
+          "return_pct": -0.4748
         }
       ],
-      "buy_pct": 0.5304,
-      "sell_pct": -0.0791,
+      "buy_pct": 0.0884,
+      "sell_pct": -0.4748,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.6095,
-      "risk_sized_pct": 2.6135,
+      "position_pct": 0.5632,
+      "risk_sized_pct": 2.415,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -149,13 +217,13 @@
         "label": "10-year Treasuries",
         "measure": "bond_return",
         "entry_value": 4.68,
-        "move": -0.0791,
-        "difference": 0.6886,
+        "move": -0.4748,
+        "difference": 1.038,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.6095,
-      "mark_date": "2026-08-20",
-      "sessions_held": 5,
+      "mark": 0.5632,
+      "mark_date": "2026-08-21",
+      "sessions_held": 6,
       "max_favourable": {
         "value": 0.6095,
         "date": "2026-08-20"
@@ -192,14 +260,14 @@
           "entry_value": 1.1535,
           "label": "EUR/USD",
           "short_label": "EUR/USD",
-          "return_pct": 1.3264
+          "return_pct": 1.1097
         }
       ],
-      "buy_pct": 1.3264,
+      "buy_pct": 1.1097,
       "sell_pct": null,
       "trade_label": "Long EUR/USD",
-      "position_pct": 1.3264,
-      "risk_sized_pct": 2.3424,
+      "position_pct": 1.1097,
+      "risk_sized_pct": 1.9597,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.766,
@@ -210,9 +278,9 @@
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
       "benchmark": null,
-      "mark": 1.3264,
-      "mark_date": "2026-08-20",
-      "sessions_held": 6,
+      "mark": 1.1097,
+      "mark_date": "2026-08-24",
+      "sessions_held": 8,
       "max_favourable": {
         "value": 1.3264,
         "date": "2026-08-20"
