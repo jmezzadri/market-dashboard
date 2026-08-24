@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-24T21:43:48Z",
+  "generated_at": "2026-08-24T23:16:19Z",
   "as_of": "2026-08-24",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -38,7 +38,7 @@
           "entry_value": 4624.1001,
           "label": "Gold",
           "short_label": "Gold",
-          "return_pct": 0.0
+          "return_pct": 1.8144
         },
         {
           "series": "spx_index",
@@ -49,14 +49,14 @@
           "entry_value": 7674.37,
           "label": "S&P 500",
           "short_label": "S&P 500",
-          "return_pct": 0.0
+          "return_pct": -0.2803
         }
       ],
-      "buy_pct": 0.0,
-      "sell_pct": 0.0,
+      "buy_pct": -0.2803,
+      "sell_pct": 1.8144,
       "trade_label": "Long S&P 500 / Short Gold",
-      "position_pct": 0.0,
-      "risk_sized_pct": 0.0,
+      "position_pct": -2.0947,
+      "risk_sized_pct": -0.7436,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.355,
@@ -67,16 +67,16 @@
       },
       "single_leg_note": null,
       "benchmark": null,
-      "mark": 0.0,
-      "mark_date": "2026-08-21",
-      "sessions_held": 1,
+      "mark": -2.0947,
+      "mark_date": "2026-08-24",
+      "sessions_held": 2,
       "max_favourable": {
         "value": 0.0,
         "date": "2026-08-21"
       },
       "max_adverse": {
-        "value": 0.0,
-        "date": "2026-08-21"
+        "value": -2.0947,
+        "date": "2026-08-24"
       },
       "invalidation": {
         "rule": "gvz <= 20.0 (weekly close)",
@@ -106,7 +106,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -4.1005
+          "return_pct": -4.0498
         },
         {
           "series": "ndx_index",
@@ -117,14 +117,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -2.0528
+          "return_pct": -2.8021
         }
       ],
-      "buy_pct": -4.1005,
-      "sell_pct": -2.0528,
+      "buy_pct": -4.0498,
+      "sell_pct": -2.8021,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -2.0477,
-      "risk_sized_pct": -0.8887,
+      "position_pct": -1.2477,
+      "risk_sized_pct": -0.5415,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -139,13 +139,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -1.4307,
-        "difference": -0.617,
+        "move": -1.707,
+        "difference": 0.4593,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -2.0477,
-      "mark_date": "2026-08-21",
-      "sessions_held": 6,
+      "mark": -1.2477,
+      "mark_date": "2026-08-24",
+      "sessions_held": 7,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
@@ -183,7 +183,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": 0.0884
+          "return_pct": 0.2652
         },
         {
           "series": "ust_10y",
@@ -195,14 +195,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -0.4748
+          "return_pct": -0.1583
         }
       ],
-      "buy_pct": 0.0884,
-      "sell_pct": -0.4748,
+      "buy_pct": 0.2652,
+      "sell_pct": -0.1583,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.5632,
-      "risk_sized_pct": 2.415,
+      "position_pct": 0.4235,
+      "risk_sized_pct": 1.816,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -217,13 +217,13 @@
         "label": "10-year Treasuries",
         "measure": "bond_return",
         "entry_value": 4.68,
-        "move": -0.4748,
-        "difference": 1.038,
+        "move": -0.1583,
+        "difference": 0.5818,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.5632,
-      "mark_date": "2026-08-21",
-      "sessions_held": 6,
+      "mark": 0.4235,
+      "mark_date": "2026-08-24",
+      "sessions_held": 7,
       "max_favourable": {
         "value": 0.6095,
         "date": "2026-08-20"
