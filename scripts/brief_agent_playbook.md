@@ -43,11 +43,13 @@ prepare step — don't sweat them, and do NOT emit `metrics` or `ideas` yourself
 ### THE ONE RULE (Joe, 2026-08-19)
 
 **The levels and the changes are already done.** The prepare step attaches a
-market-snapshot table built from the feed — 2y, 10y, 2s10s, 10y real, 10y
-breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term structure, SKEW,
-CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA, WTI, Brent, gold,
-copper, DXY, USD/JPY, EUR/USD — with each level, its one-session change and its
-as-of date. **Never restate a row of that table in prose.** Your whole job is
+market-snapshot table built from the feed — 2y, 10y, **20y, 30y**, 2s10s, 10y
+real, 10y breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term
+structure, SKEW, CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA,
+WTI, Brent, gold, copper, DXY, USD/JPY, EUR/USD — with each level, its
+one-session change and its as-of date. (The 30y and 20y got a feed on
+2026-08-21; before that you had to source them by hand every morning. Stop
+doing that — they are in the table.) **Never restate a row of that table in prose.** Your whole job is
 the sentence *after* the numbers. If a move has no so-what, the table already
 said it and you say nothing.
 
@@ -59,10 +61,10 @@ said it and you say nothing.
 > the 2-year narrowed to 52 basis points from 53. The bond market's gauge of
 > expected price swings eased to 75 from 75.6."
 >
-> **RIGHT** (a number *not* in the table, then the so-what, 34 words):
-> "30y 5.28%, -3bp; 20y 5.28%, -2bp — first down day in a week, and it gets
-> tested at 1pm: $16bn 20y auction into the same level. Dealer takedown, not
-> the yield, is the tell (30y took 11.5% last week)."
+> **RIGHT** (the table carries the levels, so you carry the meaning, 26 words):
+> "First down day in a week at the long end, and it gets tested at 1pm: $16bn
+> 20y auction into that same level. Dealer takedown, not the yield, is the tell
+> — the 30y left 11.5% last week."
 
 ### WRITE FOR THE DESK (this REVERSES the old plain-English rule)
 
@@ -76,8 +78,8 @@ read. (The pre-2026-08-19 rule said the opposite — it is dead.)
 
 ### DATA LINES, THEN THE SO-WHAT
 
-For any figure NOT in the snapshot (30y, 20y, futures, a single stock, an
-overnight level, a release): write the data line, not a sentence —
+For any figure NOT in the snapshot (futures, a single stock, an overnight
+level, a release): write the data line, not a sentence —
 `Brent $91.54, +0.6% (~6am ET)` — then one sentence of what it means, only if
 there is one. An observation is not a brief.
 

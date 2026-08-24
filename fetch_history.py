@@ -94,6 +94,7 @@ DIRECTION = {
     "m2_yoy":"hw","fed_bs":"lw","rrp":"hw","bank_reserves":"lw","tga":"hw",
     "breakeven_10y":"hw","cfnai":"lw","cfnai_3ma":"lw","hy_ig_etf":"hw",
     "ust_10y":"hw","ust_2y":"hw","unrate":"hw","payrolls":"lw",  # 2026-06-05 data adds
+    "ust_30y":"hw","ust_20y":"hw",                            # 2026-08-21 long end
 }
 
 
@@ -146,6 +147,8 @@ DAILY_FRESHNESS_SLA = {
     "yield_curve":   1,  # Treasury.gov (was FRED T10Y2Y)
     "ust_10y":       1,  # Treasury.gov nominal 10Y (same-day)
     "ust_2y":        1,  # Treasury.gov nominal 2Y (same-day)
+    "ust_30y":       1,  # Treasury.gov nominal 30Y (same-day)
+    "ust_20y":       1,  # Treasury.gov nominal 20Y (same-day)
     "real_rates":    1,  # Treasury.gov (was FRED DFII10)
     "breakeven_10y": 1,  # Treasury.gov computed (was FRED T10YIE)
     "hy_ig":         2,  # FRED BAMLH0A0HYM2 (T+1 publication)
@@ -1078,6 +1081,33 @@ def fetch_all():
         result["ust_2y"] = {"freq": "D", "unit": "%",
                             "points": series_to_points(s, round_dp=2),
                             "source": "Treasury.gov daily yield curve (2Y nominal)"}
+
+    # ── The long end (2026-08-21) ────────────────────────────────────────────
+    # Joe's original complaint about the brief opened on the 30y and the 20y,
+    # and NEITHER had a feed. Every morning the writer had to source them by
+    # hand from a dated web page under the accuracy contract -- the one class of
+    # number in the whole brief with no pipeline behind it, on the two tenors
+    # that have driven the tape all month. They come off the SAME Treasury.gov
+    # CSV the 2Y and 10Y already read, so this is one more column each.
+    #
+    # Note on depth: the 30Y column is EMPTY from Feb-2002 to Feb-2006 (Treasury
+    # discontinued the bond) and the 20Y is empty 1987-1993. safe_treasury drops
+    # the blanks, so both series carry a real historical hole. That is the
+    # instrument's history, not a pipeline fault -- and the interior-gap check
+    # only scans the trailing 45 days, so it will not false-alarm on it.
+    print("30-Year Treasury Yield (ust_30y) — Treasury.gov nominal 30Y (same-day) ...")
+    s = safe_treasury("nominal", "30 Yr")
+    if s is not None:
+        result["ust_30y"] = {"freq": "D", "unit": "%",
+                             "points": series_to_points(s, round_dp=2),
+                             "source": "Treasury.gov daily yield curve (30Y nominal)"}
+
+    print("20-Year Treasury Yield (ust_20y) — Treasury.gov nominal 20Y (same-day) ...")
+    s = safe_treasury("nominal", "20 Yr")
+    if s is not None:
+        result["ust_20y"] = {"freq": "D", "unit": "%",
+                             "points": series_to_points(s, round_dp=2),
+                             "source": "Treasury.gov daily yield curve (20Y nominal)"}
 
     print("Unemployment Rate (unrate) — FRED UNRATE ...")
     s = safe_fred("UNRATE")
