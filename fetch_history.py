@@ -1110,11 +1110,11 @@ def fetch_all():
     # that have driven the tape all month. They come off the SAME Treasury.gov
     # CSV the 2Y and 10Y already read, so this is one more column each.
     #
-    # Note on depth: the 30Y column is EMPTY from Feb-2002 to Feb-2006 (Treasury
-    # discontinued the bond) and the 20Y is empty 1987-1993. safe_treasury drops
-    # the blanks, so both series carry a real historical hole. That is the
-    # instrument's history, not a pipeline fault -- and the interior-gap check
-    # only scans the trailing 45 days, so it will not false-alarm on it.
+    # Note on depth: START is 2006-01-01, and Treasury had the 30Y discontinued
+    # until Feb-2006, so ust_30y opens at 2006-02-09 -- its first available
+    # print, not a gap. The 20Y's own 1987-1993 discontinuation is outside the
+    # window entirely. Verified after the first real run: NO interior gaps in
+    # either series.
     print("30-Year Treasury Yield (ust_30y) — Treasury.gov nominal 30Y (same-day) ...")
     s = safe_treasury("nominal", "30 Yr")
     if s is not None:

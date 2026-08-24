@@ -1660,7 +1660,7 @@ Both are now feeds: `ust_30y` and `ust_20y` from `safe_treasury("nominal", …)`
 
 **Two things worth writing down from doing it:**
 
-- **The 30y column is empty February 2002 → February 2006** (Treasury discontinued the bond) and **the 20y is empty 1987 → 1993**. `safe_treasury` drops the blanks and prints which year lacked the column, so the series carry real historical holes. That is the *instrument's* history, not a pipeline fault — and the interior-gap check from 4.47 only scans the trailing 45 days, so it correctly stays quiet about them. A gap detector that cannot distinguish "the vendor broke" from "the security did not exist" would have to be muted, and a muted detector is no detector.
+- **Know where a series starts and why, before you call anything a gap.** Treasury had the 30y discontinued February 2002 → February 2006 and the 20y 1987 → 1993, so I documented both as historical holes the gap detector would have to tolerate. Then the first real run showed `START = "2006-01-01"`: `ust_30y` simply opens at 2006-02-09, its first available print, and **neither series has an interior gap at all**. The caution was sound and the fact was wrong — corrected in the manifest, the registry copy and the code comment. A note that describes a hole that does not exist trains the next reader to ignore hole warnings.
 - **`pipeline_health` rows and `data_manifest.json` are one change, not two.** `reconcile_pipeline_health.py` fails loudly on any health row whose `indicator_id` is absent from the manifest. Adding a series to the producer without the manifest row would have created an orphan and reddened a nightly job that emails Joe. Checked before shipping rather than after.
 
 **Rule:**
