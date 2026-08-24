@@ -1671,3 +1671,31 @@ Both are now feeds: `ust_30y` and `ust_20y` from `safe_treasury("nominal", …)`
 4. **A hole that belongs to the instrument is not a data-quality alarm.** Record why it is there, in the manifest, next to the series.
 
 **Applies to:** Data Steward (owns registration) + Lead Developer (owns the producer) + Senior Quant (owns what the series means).
+
+---
+
+### 4.51 (2026-08-24) — A timeout tuned to a fast day is a silent outage on a slow one, and carry-forward is what hides it
+
+**What happened:** shipping the new `ust_30y` / `ust_20y` feeds (4.50), I dispatched the refresh to verify. The run went **green, every step successful** — and neither series was in the file.
+
+The two new tenors were not the problem. **Every Treasury.gov series in the pipeline had stopped updating.** `ust_2y`, `ust_10y`, `yield_curve`, `real_rates` and `breakeven_10y` were all stuck at 2026-08-20 while the Yahoo-sourced series beside them carried 08-21.
+
+Cause, measured rather than guessed: Treasury.gov was answering those year CSVs in **~17–18 seconds**, and `_fetch_treasury_year` used `timeout=12`. Every year timed out, so every tenor failed, so every nominal and TIPS series failed — for **three consecutive runs**, since Friday evening.
+
+**Why nobody knew.** Carry-forward. When a fetch produces nothing, the prior file's series is kept so one bad source cannot blank the board — correct behaviour, and the reason nothing looked broken. But `_sync_pipeline_health_from_result` then wrote those carried-forward rows as **green with `last_good_at` = now**, because the one-clock chip grades off the last *pull*, and a carry-forward looks exactly like a pull. Five daily rate series sat green for three days on stale data.
+
+It only surfaced because the two **new** series had nothing to carry forward. A brand-new feed is the one thing carry-forward cannot disguise — which is a lucky accident, not a detection strategy.
+
+**Fix.**
+- `TREASURY_TIMEOUT_S = 45` (from 12), retries 3 → 4 with a 2s/4s/6s backoff, and the parallel warm dropped from 8 workers to 4 — on a slow origin, eight concurrent requests are part of the problem. Verified against the live origin through the real fetcher: 17.9s and 16.6s, both failing before and passing now.
+- Carrying a series forward is recorded in `_CARRIED_FORWARD`, and any **daily-SLA** series in that set is written **red** with the reason "producer returned nothing this run; showing the value held from `<date>`", plus a loud PRODUCER NOTICE in the run log. Surviving a bad source and being healthy are different states and must not share a colour.
+
+**Rule:**
+
+1. **A network timeout is a threshold on someone else's bad day, and you will not be told when they have one.** Set it for the slow case and let the retry budget, not the timeout, bound the wall clock. If a timeout is tight enough that a 50% slowdown breaks it, it is a scheduled outage.
+2. **Never let a fallback renew the freshness clock.** Any mechanism that keeps yesterday's data to survive a failure must mark itself, or it converts an outage into an indefinite silent one. Fallbacks that fail *quietly* are worse than no fallback: they remove the symptom and keep the disease.
+3. **Green means "I fetched this", not "I have this".** The two look identical downstream unless the producer says which one happened.
+4. **Verify a new feed by looking for the DATA, never by reading the run's conclusion.** This workflow reported success on a run that fetched nothing at all.
+5. **When a new series is missing, check whether the old ones are actually fresh.** The instinct is to debug the new code. The new code was fine; it was the only thing honest enough to show the failure.
+
+**Applies to:** Lead Developer (owns producers and their guards) + Data Steward (owns freshness semantics).
