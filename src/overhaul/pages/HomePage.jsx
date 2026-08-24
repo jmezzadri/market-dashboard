@@ -384,6 +384,9 @@ export default function HomePage() {
                     {idea.the_trade.short && (
                       <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short}</span></div>
                     )}
+                    {idea.the_trade.what_would_make_it_a_position && (
+                      <div className="idea-fact"><span className="k">What would make it a position</span><span className="v">{idea.the_trade.what_would_make_it_a_position}</span></div>
+                    )}
                     <div className="idea-fact"><span className="k">Horizon</span><span className="v">{idea.horizon || "—"}</span></div>
                     <div className="idea-fact"><span className="k">What kills it</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
                   </div>
@@ -391,7 +394,7 @@ export default function HomePage() {
 
                 {heroChart && (
                   <div className="idea-herochart">
-                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} asOf={idea?.date} width={560} height={104} compact />
+                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={560} height={104} compact />
                   </div>
                 )}
 

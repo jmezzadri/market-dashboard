@@ -468,7 +468,24 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             "variant must say what consensus believes and where this differs (min 80 chars). "
             "If the answer is 'nothing', the idea is not worth publishing.")
     tt = idea["the_trade"]
-    if not isinstance(tt, dict) or not str(tt.get("buy", "")).strip():
+    if not isinstance(tt, dict):
+        raise ContractError("the_trade must be an object")
+    # 2026-08-23 (Joe: "I dont agree to short gold. Thats insane."). A note whose
+    # edge is RELATIVE has no long-only, ownership-free expression: the only ways
+    # to hold "A lags B" are to short A, or to already own A and switch. If both
+    # are off the table the honest label is `watch only` — and such a note has
+    # nothing to buy. Requiring `buy` anyway forced the note to invent a purchase,
+    # which is how "sell a slice of your existing gold" got written in the first
+    # place. So `buy` is required for every position type EXCEPT `watch only`,
+    # which must instead say what would MAKE it a position.
+    if idea["position_type"] == "watch only":
+        if not str(tt.get("what_would_make_it_a_position", "")).strip():
+            raise ContractError(
+                "position_type 'watch only' requires the_trade.what_would_make_it_a_position — "
+                "a setup with no stated trigger is an observation, not a note")
+        if str(tt.get("buy", "")).strip():
+            raise ContractError("position_type is 'watch only' but the_trade.buy names a purchase — pick one")
+    elif not str(tt.get("buy", "")).strip():
         raise ContractError("the_trade must be an object naming at least what is bought (`buy`)")
     if idea["position_type"] in ("outright short", "long/short spread") and not str(tt.get("short", "")).strip():
         raise ContractError(f"position_type {idea['position_type']!r} requires the_trade.short — say what is sold short")
