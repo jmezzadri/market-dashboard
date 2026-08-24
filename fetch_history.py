@@ -406,6 +406,11 @@ def _sync_pipeline_health_from_result(result, gaps=None):
         _now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
         _now_iso = _now.isoformat()
         data_as_of = f"{min(str(iso_date)[:10], _now_iso[:10])}T00:00:00+00:00"
+        _why = gaps.get(ind_id)
+        if not _why and ind_id in _CARRIED_FORWARD and ind_id in DAILY_FRESHNESS_SLA:
+            _why = (f"producer returned nothing this run; showing the value held from "
+                    f"{str(iso_date)[:10]}. The source failed, the data did not move.")
+        _bad = bool(_why)
         row = {
             "indicator_id":              ind_id,
             "label":                     entry.get("label") or ind_id,
@@ -416,9 +421,12 @@ def _sync_pipeline_health_from_result(result, gaps=None):
             "last_good_at":              _now_iso,
             # A current value on a holed series is not health. Red it, so the
             # 30-minute watchdog alerts and the chip stops lying. (2026-08-19)
-            "status":                    "red" if ind_id in gaps else "green",
-            "last_error":                gaps.get(ind_id),
-            "coverage_pct":              90.0 if ind_id in gaps else 100.0,
+            # Same for a series we did not actually fetch: carrying yesterday's
+            # copy forward is the correct way to SURVIVE a bad source, and the
+            # wrong thing to call green. (2026-08-24)
+            "status":                    "red" if _bad else "green",
+            "last_error":                _why,
+            "coverage_pct":              90.0 if _bad else 100.0,
         }
         body = _json.dumps(row).encode("utf-8")
         req = _ur.Request(
@@ -603,8 +611,11 @@ def safe_fred(series_id, start=START, transform=None, retries=3):
 # three or four times because yield_curve, real_rates, and breakeven_10y all
 # read overlapping tenors from the same kind.
 _TREASURY_YEAR_CACHE = {}
+_CARRIED_FORWARD = set()   # ids kept from the prior file because the fetch produced nothing
 
-def _fetch_treasury_year(series_kind, year, retries=3):
+TREASURY_TIMEOUT_S = int(os.environ.get("TREASURY_TIMEOUT_S", "45"))
+
+def _fetch_treasury_year(series_kind, year, retries=4):
     """Pull one (kind, year) Treasury.gov CSV and return it as a DataFrame.
     Cached per-process so multiple tenor reads share one HTTP call."""
     import time, urllib.request, io
@@ -632,7 +643,14 @@ def _fetch_treasury_year(series_kind, year, retries=3):
             req = urllib.request.Request(url, headers={
                 "User-Agent": "macrotilt-data-steward/1.0 (+https://macrotilt.com)"
             })
-            with urllib.request.urlopen(req, timeout=12) as r:
+            # 2026-08-24: was 12s. Treasury.gov was answering these CSVs in
+            # ~17-18s that weekend, so EVERY year timed out, so every nominal
+            # and TIPS series failed, three runs in a row. Carry-forward hid it:
+            # the five existing Treasury series kept their old points and stayed
+            # green, and only the two brand-new tenors (ust_30y/ust_20y, which
+            # had nothing to carry) were visibly missing. A timeout tuned to a
+            # fast day is a silent outage on a slow one. LESSONS 4.51.
+            with urllib.request.urlopen(req, timeout=TREASURY_TIMEOUT_S) as r:
                 body = r.read().decode("utf-8", errors="replace")
             if "Date," in body[:200]:
                 break
@@ -640,7 +658,7 @@ def _fetch_treasury_year(series_kind, year, retries=3):
         except Exception as e:
             last_err = str(e)
         if attempt < retries - 1:
-            time.sleep(1.0 * (attempt + 1))
+            time.sleep(2.0 * (attempt + 1))   # 2s, 4s, 6s — a slow origin needs room
     if body is None or "Date," not in body[:200]:
         print(f"  Treasury.gov {series_kind} {year} FAILED: {last_err}")
         _TREASURY_YEAR_CACHE[cache_key] = None
@@ -657,11 +675,13 @@ def _fetch_treasury_year(series_kind, year, retries=3):
     return df
 
 
-def _warm_treasury_cache(series_kind, start_year, end_year, max_workers=8):
+def _warm_treasury_cache(series_kind, start_year, end_year, max_workers=4):
     """Pre-fetch every (kind, year) CSV in parallel and populate the cache.
     Without this, fetch_history.py spent ~10 minutes hitting Treasury.gov
-    year-by-year (21 years × ~25s worst case = 525s). With 8-way parallelism
-    the wall-clock collapses to ~5-15 seconds total."""
+    year-by-year (21 years × ~25s worst case = 525s). Parallelism collapses the
+    wall clock. Dropped 8 -> 4 workers on 2026-08-24: when the origin is slow,
+    eight concurrent requests are part of the problem, and the timeout is now
+    generous enough that four is still fast on a normal day."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     pending_years = [
         y for y in range(start_year, end_year + 1)
@@ -1732,6 +1752,13 @@ def main():
                 if carried:
                     print(f"  Carried forward {len(carried)} indicator(s) from prior "
                           f"file (fresh fetch failed): {', '.join(carried)}")
+                    # A carried-forward series was NOT pulled — it was kept. The
+                    # one-clock chip grades off last_good_at, so carrying forward
+                    # silently renewed the clock and every Treasury series read
+                    # green for three days while the fetch was dead. Record it so
+                    # the health sync can tell "we fetched this" from "we still
+                    # have yesterday's copy of this". LESSONS 4.51.
+                    _CARRIED_FORWARD.update(carried)
                 # ── Point-level union: never lose a date we already hold ──
                 # Replacing a held series with a fresh one is only ever safe if
                 # the fresh one is a SUPERSET, and we cannot tell that it is.
@@ -1829,6 +1856,13 @@ def main():
         # /indicators showed Stale while values were correct.
         _gaps = _interior_gaps(data)
         _sync_pipeline_health_from_result(data, gaps=_gaps)
+        if _CARRIED_FORWARD:
+            _cf_daily = sorted(_CARRIED_FORWARD & set(DAILY_FRESHNESS_SLA))
+            if _cf_daily:
+                print("\nPRODUCER NOTICE — these DAILY series were not fetched this run; "
+                      "the prior file's values were kept and their chips are set RED:")
+                for _k in _cf_daily:
+                    print(f"  {_k}")
         if _gaps:
             print("\nCONTINUITY NOTICE — these daily series have a HOLE behind a "
                   "current-looking last point (chip set RED, watchdog will alert):")
