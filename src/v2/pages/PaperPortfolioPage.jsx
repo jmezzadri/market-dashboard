@@ -74,6 +74,16 @@ const fmtDate = (d) => d ? new Date(`${String(d).slice(0, 10)}T12:00:00`)
   .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 const fmtTimeET = (iso) => iso ? new Date(iso).toLocaleTimeString('en-US',
   { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) + ' ET' : '';
+/* The ET CALENDAR DAY of an instant. The page's own header already knows which
+   session it is ("Friday, August 21 · Market pre-open"); before this existed the
+   stat tiles did not, so between the 4pm close and the next session's first mark
+   — ~17.7h every weekday and the whole weekend — the tile rendered the PREVIOUS
+   session's move under the word "today". LESSONS 4.43 (a stale % is a lie the
+   moment it renders without its session) and 4.41 rule 6 (one clock, one
+   reader). en-CA gives YYYY-MM-DD, which is directly comparable. */
+const etDay = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const fmtDayET = (iso) => iso ? new Date(iso).toLocaleDateString('en-US',
+  { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' }) : '';
 const upDown = (v) => (v == null ? INK : v >= 0 ? GOODBR : BADBR);
 
 /* ── plain-English explanations (tooltips + the visible legend) ───────── */
@@ -400,7 +410,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const longMv = latestNav ? Number(latestNav.long_mv) : 0;
   const invested = equity > 0 ? longMv / equity : 0;
   const rebalDate = book && book.length ? book[0].rebalance_date : null;
-  const markedAt = latestNav?.created_at ? `marked ${fmtTimeET(latestNav.created_at)}` : null;
+  // A bare time ("marked 3:50 PM ET") cannot say WHICH 3:50 PM. Stamp the day
+  // whenever the latest mark is not from today's ET session; on a live intraday
+  // day this renders exactly as it always did.
+  const markIsToday = latestNav?.created_at ? etDay(latestNav.created_at) === etDay(Date.now()) : false;
+  const markDayET = latestNav?.created_at ? fmtDayET(latestNav.created_at) : null;
+  const markedAt = latestNav?.created_at
+    ? `marked ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`
+    : null;
+  // What the day-change figures are ABOUT. Never the bare word "today" unless
+  // the mark really is today's.
+  const daySession = markIsToday ? 'today' : (markDayET ? `${markDayET} session` : 'last session');
 
   const weights = (latestNav?.positions || [])
     .map((p) => ({ s: p.symbol, w: Number(p.mv) / equity })).sort((a, b) => b.w - a.w);
@@ -571,9 +591,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               // value + its context live on the sub-line. Day P&L is a dollar
               // figure, returns are percentages — labeled so the unit is never
               // ambiguous and the two tiles never look "reversed".
-              { k: 'Portfolio value', hero: fmtUsd(equity), sub: `${markedAt || 'at inception'} · 10-min sync`, color: CREAM },
+              // "· 10-min sync" describes what happens DURING a session. Once the
+              // mark is a previous session's it is not only long, it is untrue —
+              // nothing is syncing every ten minutes at 9am Monday.
+              { k: 'Portfolio value', hero: fmtUsd(equity),
+                sub: markedAt ? `${markedAt}${markIsToday ? ' · 10-min sync' : ''}` : 'at inception · 10-min sync', color: CREAM },
               { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
-                sub: ls ? `${fmtPct(ls.dayPct, 2)} · today` : 'today, from broker marks', color: inkUpDown(ls?.day) },
+                sub: ls ? `${fmtPct(ls.dayPct, 2)} · ${daySession}` : 'from broker marks', color: inkUpDown(ls?.day) },
               { k: 'Since inception', hero: ls ? fmtPct(ls.since, 2) : '—',
                 sub: ls ? `${fmtSignedUsd(ls.sinceUsd)} · since Aug 17` : 'vs $1,000,000 start', color: inkUpDown(ls?.since) },
               { k: 'vs S&P 500', hero: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : '—',
@@ -600,7 +624,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── attribution + size — two short, height-matched cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 22, marginBottom: 22, alignItems: 'start' }}>
-          <Card title={attribution ? (attribution.isDay ? 'Contributors & detractors — today' : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
+          <Card title={attribution ? (attribution.isDay ? `Contributors & detractors — ${daySession}` : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
             right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>}>
             {attribution ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>

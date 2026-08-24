@@ -391,7 +391,7 @@ export default function HomePage() {
 
                 {heroChart && (
                   <div className="idea-herochart">
-                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={560} height={104} compact />
+                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} asOf={idea?.date} width={560} height={104} compact />
                   </div>
                 )}
 
