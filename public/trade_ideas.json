@@ -1,9 +1,214 @@
 {
-  "generated_at": "2026-08-25T15:29:06Z",
+  "generated_at": "2026-08-25T15:47:38Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-08-24",
+      "kind": "rates",
+      "title": "The people who actually own the bond market are not selling. They are buying more.",
+      "dek": "Pensions, insurers and funds now hold a net position worth 46% of the entire 10-year Treasury futures market — the 99th percentile of sixteen years of records, with the four largest readings ever all set since mid-July. Betting against this crowd has been the losing side of the trade.",
+      "position_type": "outright long",
+      "call": "Over the next six to twelve months the 10-year Treasury yield is more likely to fall than rise. The market's largest holders are near a record share of it, past extremes this deep were followed by lower yields in most cases, and a 10-year note pays 4.69% while you wait.",
+      "the_trade": {
+        "buy": "10-year US Treasury notes — the bonds themselves, or a plain 10-year Treasury fund",
+        "sizing": "A core holding, not a trading position. The measured edge is roughly two tenths of a point of yield over six months — about 1.5% of price on a 10-year note — on top of the 4.69% the note pays for holding it. The case is collect-the-yield-with-a-tailwind, not a bet on a crash."
+      },
+      "instrument": "10-year US Treasury notes, held outright, six to twelve months",
+      "horizon": "6 to 12 months",
+      "edge": {
+        "source": "positioning",
+        "summary": "Weekly CFTC data splits futures ownership by who holds it. Asset managers — pensions, insurers, mutual funds — now hold a net long worth 46% of all 10-year futures outstanding, the 99th percentile of sixteen years. The reflex reading of a record position is that it must unwind. Measured, the opposite held: after extremes this deep, yields fell over the following six to twelve months.",
+        "backtest": {
+          "window": "Weekly CFTC Traders in Financial Futures reports, January 2010 to August 2026 — 868 reports, the 10-year contract's pre- and post-2022 listings joined. Entry when asset managers' net position, as a share of open interest, ranks at or above the 95th percentile of its own history to that date (a trailing calculation, so no reading uses information that did not yet exist). Episodes at least nine weeks apart.",
+          "n": 22,
+          "result": "Across the 19 episodes with six months of history, the 10-year yield fell a median 0.18 points and rose in only 37% of cases. Across the 16 with twelve months, it fell a median 0.11 points and rose in only 25% of cases.",
+          "baseline": "Over the same sixteen years, the yield's median six-month change was +0.03 points, rising 51% of the time; the median twelve-month change was +0.19 points, rising 57% of the time."
+        }
+      },
+      "variant": "Consensus is on the record and it is the other side of this trade: Bloomberg's Markets Pulse survey published August 19 carried the headline that the US 10-year yield will top 5% this year, and the argument everywhere is supply — deficits force yields up regardless of buyers. The positioning data says the reversal traders fear would have to be sold by pensions and insurers, who buy bonds to meet obligations decades out and have historically kept accumulating through their own extremes, while the investors actually positioned for higher yields — hedge funds, net short 40% of the market — are the ones who have to buy if they are wrong.",
+      "thesis": [
+        "Start with who owns it. Asset managers hold a net long worth 46.2% of all open 10-year Treasury futures, the 99.1st percentile of 868 weekly reports back to January 2010 — and the four largest readings in the entire series were all set between July 14 and August 4 of this year. This is not a stale extreme; it is still being built.",
+        "What followed past extremes runs against the reflex. In the 19 completed episodes since 2010 where this share crossed the 95th percentile of its own history, the 10-year yield fell a median 0.18 points over the next six months and rose in only 37% of them — against a coin-flip baseline. At twelve months the yield rose in only a quarter of the episodes.",
+        "The holder matters. Pensions and insurers buy bonds to meet obligations decades away; they are structurally slow to reverse. The same fade-the-extreme instinct that is correct for fast money has been wrong for this cohort — their extremes have marked the middle of moves in yield, not the end.",
+        "You are paid more to hold the long bond than at any point in a decade. The term premium — the extra yield for holding a 10-year note instead of rolling short-term bills — is 84 basis points, the 99.7th percentile of the last ten years, and the after-inflation yield of 2.35% is at the 98th percentile of the same window. The valuation argument and the positioning argument point the same way.",
+        "The fast money is on the other side, in size. Hedge funds are net short 39.8% of open interest — the 5th percentile of the sixteen-year record. A standoff this wide between record real-money length and deep fast-money shorts has an asymmetry: if yields fall, the shorts must buy into a market whose biggest owners are not selling."
+      ],
+      "evidence": [
+        {
+          "claim": "Asset managers' net long in 10-year Treasury futures, share of open interest",
+          "value": "46.2% — the 99.1st percentile of 868 weekly reports since 2010-01-05",
+          "source": "CFTC Traders in Financial Futures (pre- and post-2022 contract listings joined)",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "The four largest readings in the sixteen-year series",
+          "value": "49.3%, 49.2%, 48.1%, 47.5% — set on Jul 14, Jul 21, Jul 28 and Aug 4, 2026",
+          "source": "CFTC Traders in Financial Futures",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "What followed the 19 completed episodes at the 95th percentile or above",
+          "value": "10-year yield six months later: down a median 0.18 points, rising in 37% of episodes; twelve months later: down a median 0.11 points, rising in 25%",
+          "source": "MacroTilt backtest on CFTC TFF and the 10-year constant-maturity yield",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "The unconditional baseline over the same sample",
+          "value": "median six-month change +0.03 points (rising 51% of the time); twelve-month +0.19 points (rising 57%)",
+          "source": "MacroTilt backtest on the 10-year constant-maturity yield, 2010-2026",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Hedge funds' net position in the same contract",
+          "value": "net short 39.8% of open interest — the 5th percentile of the sixteen-year record",
+          "source": "CFTC Traders in Financial Futures",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "10-year Treasury yield",
+          "value": "4.69%",
+          "source": "MacroTilt indicator history (FRED DGS10)",
+          "as_of": "2026-08-20"
+        },
+        {
+          "claim": "Term premium on the 10-year",
+          "value": "83.9 basis points — the 99.7th percentile of the last ten years",
+          "source": "MacroTilt indicator history (NY Fed ACM term premium)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "After-inflation 10-year yield",
+          "value": "2.35% — the 98.3rd percentile of the last ten years",
+          "source": "MacroTilt indicator history (10-year TIPS yield)",
+          "as_of": "2026-08-20"
+        },
+        {
+          "claim": "Bond-market implied volatility, for context",
+          "value": "MOVE at 73.4 — the 15th percentile of the last five years; the options market prices no turbulence in Treasuries",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Where consensus sits",
+          "value": "Bloomberg Markets Pulse survey headline: the US 10-year yield will top 5% this year",
+          "source": "Bloomberg, published 2026-08-19",
+          "as_of": "2026-08-19"
+        },
+        {
+          "claim": "July payrolls",
+          "value": "-23,000 — one of several negative months in the past year; a weakening labour market argues for lower yields",
+          "source": "MacroTilt indicator history (BLS via FRED)",
+          "as_of": "2026-07-01"
+        },
+        {
+          "claim": "AGAINST THIS IDEA — the three most recent completed episodes all failed",
+          "value": "entries in Sep 2025, Nov 2025 and Feb 2026 saw the yield RISE 0.22, 0.45 and 0.52 points over six months — the longest failing streak in the sample, and the in-flight April 2026 episode is also under water",
+          "source": "MacroTilt backtest on CFTC TFF and the 10-year constant-maturity yield",
+          "as_of": "2026-08-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "ust_10y",
+          "title": "The yield this note is buying",
+          "subtitle": "10-year US Treasury yield, daily, last five years",
+          "window": "5y",
+          "caption": "At 4.69% the 10-year sits in the top few percent of its one-year range. This note argues the next move from here is more likely down than up — and that you collect 4.69% a year while finding out.",
+          "source": "MacroTilt indicator history (FRED DGS10)"
+        },
+        {
+          "series": "term_premium",
+          "title": "What you are paid extra to hold a long bond",
+          "subtitle": "NY Fed estimate of the 10-year term premium, daily, full history",
+          "window": "full",
+          "caption": "The extra yield for holding a 10-year note rather than rolling short-term bills is at its richest in a decade. High readings mean the market is already paying you handsomely for the risk everyone is worried about.",
+          "source": "MacroTilt indicator history (NY Fed ACM term premium)"
+        },
+        {
+          "series": "real_rates",
+          "title": "The yield after inflation",
+          "subtitle": "10-year TIPS yield, daily, last ten years",
+          "window": "10y",
+          "caption": "A 10-year inflation-protected Treasury pays 2.35% above inflation, near the top of its ten-year range. Bonds have not offered this much real income since before the financial crisis era of zero rates.",
+          "source": "MacroTilt indicator history (10-year TIPS yield)"
+        },
+        {
+          "series": "move",
+          "title": "How nervous the bond market is",
+          "subtitle": "ICE BofA MOVE index of Treasury implied volatility, daily, last five years",
+          "window": "5y",
+          "caption": "Treasury options price very little turbulence — the 15th percentile of five years. Whatever the headlines say about a bond-market revolt, the market that insures against one is not charging for it.",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)"
+        }
+      ],
+      "levels": {
+        "trigger": "Asset managers' share of the 10-year futures market crossed the 95th-percentile entry level in mid-2025 and stands at the 99.1st percentile as of the August 18 report, with the 10-year at 4.69% and the term premium at a ten-year high.",
+        "invalidation": "A weekly close in the 10-year yield at or above 5.00% — a level it has not closed at since 2007 in our data (the October 2023 peak was 4.98%). Through there, the market is repricing government debt itself, and the positioning case is overruled.",
+        "target": "10-year yield at or below 4.50% within six months — the median historical move from these extremes — with the note's running yield collected along the way."
+      },
+      "sections": [
+        {
+          "title": "Setting the stage",
+          "prose": "Every week the CFTC publishes who holds Treasury futures, split into types: asset managers (pensions, insurers, mutual funds — the slow, deep-pocketed money), leveraged funds (hedge funds — the fast money), and dealers. Most positioning commentary lumps these together. Separated, they tell a story the combined number hides: the slow money's net position has grown to 46% of the whole 10-year market, the largest concentration in sixteen years of records, while the fast money is short 40% — near its own record the other way. This note is about which of those two crowds history says to stand with."
+        },
+        {
+          "title": "Why not just fade the record long?",
+          "prose": "Because it has been tried, in this exact market, and it lost. The instinct that a full position must unwind works for fast money, whose positions are bets. It has failed against asset managers, whose positions are obligations: a pension buying 10-year notes to fund benefits in 2045 does not sell because its futures share hit a percentile. In the nineteen completed episodes since 2010 where their share crossed the 95th percentile of its own history, yields fell over the following six months in nearly two thirds of them — and over twelve months, in three quarters. The record long has been the signal, not the warning."
+        },
+        {
+          "title": "What the other side says",
+          "prose": "The case for 5% yields — Bloomberg's survey headline of August 19 — rests on supply: deficits mean more bonds than buyers, whoever the buyers are. It is a serious argument and 2026 has been its year; the failing recent episodes in our own backtest are what that argument looks like in the data. Two things answer it here. The term premium at a ten-year high means the market has already repriced a great deal of that supply risk into today's yield — that is precisely what a term premium is. And the Treasury's own buyback operations, the first of which lands September 9, put a price-insensitive buyer on the other side of the supply story for the first time in this cycle."
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "2026-09-04 — Jobs report. Another negative payroll month makes the case; a strong one hurts it.",
+            "2026-09-09 — The Treasury's first bond buyback operation of the programme announced this month.",
+            "2026-09-11 — Consumer prices (CPI). The number most able to reprice the whole curve.",
+            "2026-09-16 — Fed decision. A cut with soft labour data behind it is the cleanest path to lower long yields.",
+            "2026-10-28 — Fed decision, second chance at the same."
+          ]
+        }
+      ],
+      "other_side": "The honest case against is that 2026 has been the year this signal broke. The three most recent completed episodes — September 2025, November 2025, February 2026 — all failed, with the yield rising up to half a point over the following six months, the longest failing streak in the sample, and the April entry is under water too. If deficits and Treasury supply now set the price of the long bond, then record real-money ownership just means the owners are wrong at growing scale, and the term premium at a ten-year high is not compensation on offer but a warning of more to come. Two structural caveats belong here as well: the contract changed listing in 2022 and asset managers' share has climbed structurally since the Fed stepped back from the market, so part of today's percentile reflects a regime change rather than conviction; and the signal only separates from the baseline at the 95th percentile and above — at the 85th to 93rd it shows nothing — so the edge lives in a thin tail of 22 episodes.",
+      "risks": [
+        "A hot CPI print on September 11 or a Fed that does not cut on September 16 repricing the front end and dragging the 10-year with it.",
+        "Supply: quarterly refunding announcements keep growing, and a deficit-driven selloff ignores positioning entirely — that is exactly what the three recent failed episodes looked like.",
+        "The edge is a thin tail: 22 episodes in sixteen years, and only the deepest extremes carry it. Below the 95th percentile the signal shows nothing at all.",
+        "The 2022 contract relisting and the Fed's exit from the market shifted the level of asset managers' share structurally upward; the percentile overstates how unusual today is by some unknowable amount."
+      ],
+      "so_what": "A 10-year Treasury bought today pays 4.69% a year while the market's deepest-pocketed owners keep adding to a record position — and past extremes like this one were followed by lower yields, not the unwind the street is calling for. Buy the note or a plain 10-year Treasury fund, and get out if the yield closes a week at 5% or higher.",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ust_10y",
+            "side": "long",
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year Treasury"
+          }
+        ],
+        "horizon_months": 12,
+        "invalidation": {
+          "series": "ust_10y",
+          "op": ">=",
+          "level": 5.0,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "ust_2y",
+          "measure": "bond_return",
+          "maturity_years": 2,
+          "label": "2-year Treasuries (staying in short bonds instead)"
+        },
+        "note": "Scored as the price return of a 10-year par bond from the yield series, against the alternative the term-premium argument competes with: staying in short-dated Treasuries."
+      },
+      "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
+      "status": "live",
+      "published_at": "2026-08-25T15:47:38Z"
+    },
     {
       "date": "2026-08-17",
       "kind": "equity",

@@ -180,6 +180,30 @@ of", "rotate out of", "move part of your X" all assume the reader owns X. State
 the position; if owning it already is a cheaper way in, that belongs in `sizing`
 as a variation, never as the premise.
 
+### The search is a SWEEP, not a defence of the first signal found (2026-08-24)
+
+The gold-volatility session found one real signal, lost its only publishable
+expression, and then spent three rewrites defending the corpse instead of going
+back to the board. Joe: *"You are supposed to be the world's best cross asset
+market analysis. You cant come up with a fucking trade idea? You are so narrow
+minded hung up this gold thing."* The fix that session: sweep every family —
+positioning across all 25 TFF markets, the volatility surface, credit, the
+indicator percentile scan — kill candidates on their own backtests (oil vol
+died on its 2014-15 sub-period, natgas on its full-history percentile), and
+publish the one that survived. That is the standing method:
+
+1. **Rank the whole board first.** Compute percentiles for every indicator and
+   every positioning market before writing a word. Candidates come from the
+   extremes list, not from whatever was interesting last session.
+2. **A candidate that dies stays dead.** No re-expressing, no relabelling — the
+   next candidate is one line down the list.
+3. **Long-only expressible, always.** If the surviving edge cannot be held by
+   buying something, it is context for the next note, not the note.
+4. **Read the street before writing the variant.** Web-search current sell-side
+   and financial-press positioning on the candidate (dated pages only). The
+   `variant` field should quote a real, dated piece of consensus — arguing with
+   a strawman is how a note ends up obvious.
+
 **Set the stage.** Match the horizon to the SIGNAL. A cyclically-adjusted
 earnings yield carries information about five- and ten-year returns and close to
 none about the next twelve months, so a note built on it is a five-year note

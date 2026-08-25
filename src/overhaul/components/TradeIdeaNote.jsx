@@ -24,9 +24,23 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
 
+/* 2026-08-24 (Joe, on the tile): "NO IDEA WHAT THESE FUCKING PILLS AT THE TOP
+   MEAN." Every label a reader sees must be a phrase a non-trader parses on
+   sight. The category names what MARKET the idea lives in; the position label
+   answers "am I being asked to short anything?" in plain words. The edge-source
+   pill (e.g. "volatility structure") is methodology, not orientation — it is
+   gone from the tile and lives inside the note under "The edge". */
 export const KIND_LABEL = {
-  macro: 'Macro', 'cross-asset': 'Cross-asset', 'single-name': 'Single name',
-  rates: 'Rates', credit: 'Credit', fx: 'Currencies', commodity: 'Commodities', equity: 'Equities',
+  macro: 'Big picture', 'cross-asset': 'Across markets', 'single-name': 'One stock',
+  rates: 'Bonds', credit: 'Credit', fx: 'Currencies', commodity: 'Commodities', equity: 'Stocks',
+};
+
+export const POSITION_LABEL = {
+  'allocation shift': 'A switch, nothing shorted',
+  'outright long': 'Buy and hold',
+  'outright short': 'A short',
+  'long/short spread': 'Long one, short the other',
+  hedge: 'Protection',
 };
 
 /* What the position IS, in one hover. The badge answers "am I shorting
@@ -60,7 +74,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
       {idea.call && <p className="idea-modal-call">{idea.call}</p>}
       {idea.position_type && (
         <p className="idea-modal-pos">
-          <span className="idea-pos">{idea.position_type}</span>
+          <span className="idea-pos">{POSITION_LABEL[idea.position_type] || idea.position_type}</span>
           <span>{POSITION_NOTE[idea.position_type]}</span>
         </p>
       )}
@@ -72,7 +86,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
           ['What would make it a position', idea.the_trade?.what_would_make_it_a_position],
           ['How much', idea.the_trade?.sizing],
           ['The technical version', idea.instrument], ['Horizon', idea.horizon],
-          ['Trigger', idea.levels?.trigger], ['Invalidation', idea.levels?.invalidation],
+          ['Why now', idea.levels?.trigger], ['What proves it wrong', idea.levels?.invalidation],
           ['Where it goes if it works', idea.levels?.target]]
           .filter(([, v]) => v).map(([k, v]) => (
             <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
