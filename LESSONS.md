@@ -194,6 +194,25 @@ the two notes net to "own TIPS"); the crime is silence, not the combination.
 **Applies to:** every Trade Idea composition, and any future surface where more
 than one dated call is visible at once.
 
+### 0.4e (2026-08-25) — The product is a BOOK, not a stream of headlines
+
+**What happened:** four calls sat live on the Trade Idea and Scorecard pages
+with nothing anywhere saying what they add up to, whether to hold all four,
+or what a new call means for the old ones. Joe: *"Are you dense? You are
+supposed to be a world class cross asset analyst - giving ideas on where to
+allocate capital... Every new call needs to take into account previous calls.
+We need to be giving ideas on how to structure portfolios, rebalance, etc."*
+
+**Rule:** every note from 2026-08-26 carries a contract-enforced `book` block —
+the combined stance of all live calls with this one in it, and explicit
+rebalancing instructions for a reader holding the earlier ones. The newest
+stance renders on the Scorecard above the table ("The book right now"). The
+idea sweep starts from the live book's exposures, and portfolio construction
+(does the book NEED this call) outranks signal strength in the selection.
+
+**Applies to:** every Trade Idea, and any future surface that publishes more
+than one live call.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."

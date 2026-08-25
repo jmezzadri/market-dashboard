@@ -192,6 +192,23 @@ export default function ScorecardPage() {
         </>
       )}
 
+      {/* The book, stated as one position — Joe, 2026-08-25: "We need to be
+          giving ideas on how to structure portfolios, rebalance, etc." The
+          paragraph is authored in the newest note (book.stance) so the table
+          below always has a reading of what its rows add up to. */}
+      {(() => {
+        const withBook = (notes || []).filter((n) => n?.book?.stance)
+          .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        const bk = withBook[0];
+        if (!bk) return null;
+        return (
+          <section className="sc-book" style={{ margin: '18px 0 6px' }}>
+            <p className="sc-tile-l" style={{ marginBottom: 6 }}>The book right now · as of {bk.date}</p>
+            <p style={{ maxWidth: '72ch', lineHeight: 1.55 }}>{bk.book.stance}</p>
+          </section>
+        );
+      })()}
+
       <section className="sc-list">
         {rows.length > 0 && (
           <div className="sc-tablewrap">

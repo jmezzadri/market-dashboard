@@ -175,6 +175,18 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
               <p><Html html={r.prose} /></p>
             </React.Fragment>
           ))}
+          {idea.book?.stance && (
+            <>
+              <p className="briefmodal-sec">The book, with this call in it</p>
+              <p><Html html={idea.book.stance} /></p>
+            </>
+          )}
+          {idea.book?.rebalance && (
+            <>
+              <p className="briefmodal-sec">If you hold the earlier calls</p>
+              <p><Html html={idea.book.rebalance} /></p>
+            </>
+          )}
         </>
       )}
 
