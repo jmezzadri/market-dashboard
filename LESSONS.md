@@ -98,6 +98,33 @@ Two self-tests before sending: read the draft aloud as if to a friend who has ne
 
 **Applies to:** Every chat reply, status table, popup, and instruction Joe sees. All specialists. Hard rule.
 
+### 0.4b (2026-08-24) — Never answer Joe in field names. He reads English or nothing.
+
+**What happened:** across four turns of fixing the gold note, every reply to Joe
+was written in the note's internal field names — `the_trade.buy`,
+`position_type`, `scorecard.legs`, `levels.invalidation`, `watch only` — laid
+out in tables of before/after JSON values. Joe: *"You're writing in code agian.
+I have no idea what this is for or what you're talking about."* He was right,
+and Hard Rule 0.4 (Plain English in every word Joe reads) plus playbook rule 10
+(never print an internal field name) both already forbade it. The failure was
+worse for being confident: the answers were accurate, well-organised, and
+unreadable to the person they were for.
+
+**Why it happened:** the fix WAS a series of field edits, so the field names
+were the vocabulary in my head. That is exactly the moment the rule binds. The
+reader does not care which key changed; he cares what the note now says to
+someone reading it.
+
+**Rule:** when reporting a change to Joe, describe what a reader of the site
+would now see, in the words that reader would use. Forbidden in any message to
+Joe: a JSON key, a field path, a file path, an enum value, a function name, a
+branch name, a PR number as the headline. If a distinction genuinely needs a
+name, quote the words that appear ON THE PAGE ("the badge now says Watch only"),
+never the field behind them. A before/after table is still good — with sentences
+in it, not keys.
+
+**Applies to:** every message to Joe, in every project.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."
@@ -1647,71 +1674,3 @@ The cause is a **gap between two correct rules**. `pipeline-health-check` has no
 **Open, not fixed here:** the divergence scan is chained to *every* `MASSIVE-DAILY` completion (seven fires a day) though it only needs the T+1 panel-complete ingest, and the 21:00 chain is the only one that collides. De-chaining the redundant fires is the structural fix; the retry is the correct fix for the failure that was actually observed. Not bundled, because which MASSIVE fire produces the panel-complete data has not been measured, and 4.50 rule 4 says do not write a schedule from a belief.
 
 **Applies to:** Lead Developer — every retry loop, every `pipeline_health` row at the moment it is registered, and every sweep that grades the database instead of the page.
-
-### 4.53 (2026-08-24) — A page that knows the date in its header and says "today" in its tiles is two clocks; and 4.31 closed the chart's door while the caption stayed open
-
-**What happened:** the weekday sweep found every workflow green, `pipeline_health` with zero non-green rows, `workflow_failure_log` empty over four days, and exactly one branded brief matching its ledger row to the second. The database said the site was perfect. Loading the site said otherwise — twice, and neither defect could have been found any other way.
-
-**1. `/paper` told the reader Friday's move was today's.** At 09:16 ET on Monday the header read *"Monday, August 24, 2026 · Market pre-open"* and the tile beside it read **"DAY P&L +$7,420 / +0.77% · today"**. That +0.77% is Friday's session, 65 hours old. The mark's own timestamp was no help: `markedAt` was built as `marked ${fmtTimeET(created_at)}` — a bare time, *"marked 3:50 PM ET"*, which cannot say WHICH 3:50 PM. The word "today" was a hardcoded string literal in the sub-line, and the contributors card carried the same one.
-
-This is not an edge case, it is the majority state. The label is only true while a mark from the current ET session is the latest one — so it is wrong from the 16:00 ET close until the next session's first mark, ~17.7 hours every weekday, plus ~65 hours over every weekend. The page spends more of its life lying than telling the truth, and it was shipped that way on 8/17.
-
-Fixed: `etDay()` compares the mark's ET calendar day against today's; when they differ the mark carries its day (*"marked Fri, Aug 21, 3:50 PM ET"*) and the day figures name their session (*"+0.77% · Fri, Aug 21 session"*). On a live intraday day every string renders exactly as it did before. `· 10-min sync` was also dropped from a previous session's mark — it describes what happens DURING a session, and nothing syncs every ten minutes at 9am Monday.
-
-**2. A Trade Idea's chart disagreed with its own caption, on the homepage.** `IdeaChart`'s header comment states its purpose outright: *"the chart and the evidence block are the same data, so a chart can never disagree with the sentence beside it."* On the 8/17 note it did. The readout showed **0.84 · Aug 20 · latest** and the plotted endpoint was labelled 0.84; the caption four lines below read **"At 0.77 it is the 0.6th percentile of five years."** The note's own invalidation is the ratio closing above 1.00, so the drifted number was precisely the one that decides whether the trade is still alive.
-
-**4.31 rule 4 banned typed-in values from the chart's `data` and the caption became the second source of truth instead.** `charts[].caption` is free prose, written on the note's date, rendered forever beside a series that keeps moving. Every caption on that note carried a fixed reading — 0.77, 20.72, 23.92, 44.6th percentile — and each one starts drifting the day after publication.
-
-Fixed at the renderer, not by rewriting anyone's prose: `IdeaChart` takes the note's date and stamps the caption *"As at Aug 17: "* — but only once the series' own last observation is later than the note's date. A note published against current data renders exactly as before; verified both ways, on the 8/23 note (series last 8/21, no stamp, no visual change) and the 8/17 note (series last 8/20, stamp present).
-
-**Rule:**
-
-1. **A surface that renders a date-relative word — "today", "now", "latest", "current" — must derive it from the same clock its own header uses.** 4.41 rule 6 said a rule stated in two places drifts; this is the same failure where the second copy is not a rule but a hardcoded English word. Grep for the literal, not for the logic.
-2. **A timestamp rendered without its date can only be read correctly by someone who already knows the answer.** "3:50 PM ET" is a time of day, not an instant. If the thing being stamped can be older than one session, the day is part of the stamp.
-3. **A label is wrong for the WINDOW it is wrong in, not for the moment you happened to look.** Checking `/paper` at 11am on a Tuesday shows the right answer and hides a defect that is live 17.7 hours a day. Ask when a label is true, not whether it is true right now — the same question 4.42 asks of a freshness deadline.
-4. **When a rule bans values from one field, check every other field on the same object that can carry one.** 4.31 rule 4 fixed `data`; `caption`, `title` and `subtitle` are all free text on the same spec and all outlive the reading they describe. A ban that names a field is a ban on a field, never on the mistake.
-5. **Frozen prose beside a live figure needs an as-of, and the honest one is the date it was written.** Stamping is better than rewriting: the note stays the historical document it is, and the reader is told which day its numbers belong to. Sourced-or-omitted (4.21a) applied to time rather than to provenance.
-6. **The database being entirely green is not evidence the site is right.** Zero non-green `pipeline_health` rows, an empty failure log and a matching email ledger were all true while the homepage contradicted itself and `/paper` misdated a number. 4.52 rule 5 said look at the header; this says keep reading past it. Every defect found this run was found by reading rendered text, and none of them had a row anywhere.
-
-**Also confirmed this run, no action needed:** `QT-REBALANCE` and `QT-FUNDAMENTALS-REFRESH` show zero runs — both shipped 8/14 and neither is due until 9/1 and 8/26 respectively, so "never run" is a calendar fact, not a broken schedule. Checked with `git log --diff-filter=A` rather than assumed. `DIVERGENCE_SCAN_DAILY` cleared its 21:21-21:22 UTC slot on 8/20 and again on 8/21 — 4.52's busy-class backoff held on its first two exposures to the contended window. `TRADING-OPPS-BACKTEST` already carries 4.41's `MACROTILT_BOT_PAT` fix in the repo; it is quarterly and next fires 10/1, so the fix is in place and untested until then.
-
-**Applies to:** Lead Developer — every rendered date-relative word, every bare-time stamp, and every free-text field on a spec whose data is drawn live.
-
-### 4.54 (2026-08-25) — A site can pass every desktop check and still be unusable; measure the phone, and fix the chrome before the cosmetics
-
-**What happened:** Joe: *"The entire website looks absolutely atrocious on my mobile phone (iPhone). Nothing is optimized whatsoever. The site is not usable whatsoever if not on computer. We need to fix this end to end, every page."*
-
-An audit at a 393px iPhone viewport found the same four structural failures on every page, not nine separate page problems: the seven inline nav links measured **634px wide and were clipped**, so Methodology, Data, Scorecard and the auth control could not be reached at all; the Home cockpit stayed two-column, giving each tile ~180px and headlines that wrapped to two words a line; **125 elements on /macro rendered below 11.5px**, some at 9.5px; and tables ran 875px wide. Fixed with one shared `mobile-v12.css` layer plus a nav drawer, verified back to zero overflow on all nine routes with desktop byte-identical.
-
-**Rule:**
-
-1. **"Unusable" usually means the chrome, not the content.** The headline complaint sounds aesthetic, but the disqualifying defect was that **you could not navigate**. Fix reachability first — nav, auth, primary actions — then layout, then type. A beautiful page you cannot leave is worth less than a plain one you can.
-2. **Measure at a real device viewport before writing a line of CSS.** `scripts/audit_mobile.mjs` reports, per route: horizontal overflow with the offending selectors, count and minimum of sub-11.5px text, and sub-40px tap targets. Guessing would have produced a pile of per-page patches; the measurements showed four repeated causes and therefore one shared layer.
-3. **Teach the audit what is legitimate or it will cry wolf.** The first run flagged every wide table as overflow. Elements inside a horizontally scrollable ancestor extending past the viewport is CORRECT — that is what a scrolling table is. Once the check walked up for a scrollable ancestor, the false positives vanished and the real ones stood out.
-4. **A measurement passing is not the page looking right.** Three defects survived every numeric check and were only caught by opening the screenshots: overlapping tape numbers (I had gridded the wrong DOM level — `.tape` instead of `.tape .row`, leaving 51px cells holding 32px digits), ~120px of dead cream above the first card, and centred hero prose breaking into a ragged right-aligned stack. **Look at the render. Always.**
-5. **A generic fix reaches about 80%; name the rest.** `max(11px, 1em)` on label-ish selectors caught most tiny type but missed `.mac-pct`, `.lean`, `.tk`, `.when` — 125 elements — because those class names contain no word a generic selector could match. Those are now listed explicitly, with a comment pointing at the audit script so the list can be regenerated rather than guessed at after a redesign.
-6. **Two rules did more work than the rest combined.** `min-width: 0` on grid and flex children (they default to `min-width:auto`, which lets one long headline set the width of the whole document) and `16px` on text inputs (iOS Safari zooms the viewport on focus for anything smaller and never zooms back). Neither is discoverable from a screenshot.
-7. **Put the whole layer behind media queries and prove desktop is untouched.** Every rule lives inside `@media (max-width: …)`, and the ship check asserts the desktop nav still has seven inline links, no hamburger, and a multi-column cockpit. A mobile fix that quietly regresses the primary surface is not a fix.
-
-**Applies to:** every page added from here, and any redesign — rerun `node scripts/audit_mobile.mjs` before calling one done.
-
-
-### 4.55 (2026-08-25) — Retiring a producer leaves its rescuers behind, and a rescuer aimed at a dead vendor is a daily red run nobody gets an email about
-
-**What happened:** the weekday health sweep found every scheduled workflow green on its latest run and every `pipeline_health` row green, and `UNIVERSE_SNAPSHOT_3X_WEEKDAYS` failing six times on 2026-08-24 — all six on `workflow_dispatch`, none on a schedule, eleven days after that workflow was deliberately disabled.
-
-The 2026-08-14 retirement did the obvious half well: the workflow's own `schedule:` block was removed, its name was struck from `WORKFLOW_FAILURE_ALERT`'s watchlist (which is why nothing emailed Joe), and a header comment explained the Unusual Whales lapse. What it missed was everything that dispatches that workflow from OUTSIDE the file:
-
-1. **Six pg_cron backup jobs** (`universe-snapshot-backup-1405utc` … `-2050utc`) still POSTing `{"workflow":"UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml"}` at the `trigger-workflow` function every weekday. The equivalent backups for the conviction and paper-intraday workflows HAD been deactivated when automated trading was halted, so the pattern was known — this producer was simply skipped.
-2. **`PIPELINE-FRESHNESS-WATCHDOG`**, which reads `max(snapshot_ts)` from `universe_snapshots` every ten minutes from 10 AM to 7 PM ET and dispatches the workflow whenever the table is more than 90 minutes stale. The table's last row predates the vendor lapse, so the condition is now permanently true. The watchdog was doing exactly what it was built to do, against a table that can never go fresh again.
-
-**Rule:**
-
-1. **A producer's retirement is not done until everything that can START it is retired in the same change.** The file's own `schedule:` is the least of it. Walk outward: pg_cron backups, freshness watchdogs, `workflow_run` chains, self-heal jobs, anything holding a `workflow_dispatch`. `git grep` the workflow's file name AND query `cron.job` for it — the second one is not in the repo and no grep will ever find it. This is 0.10 ("retired means deleted, everywhere") applied to the schedulers rather than to the data.
-2. **A freshness watcher is a rescuer, and a rescuer whose patient is dead never stops trying.** Any watchlist entry that dispatches on staleness must be removed the day its producer is switched off, because "stale" stops meaning "something went wrong" and starts meaning "this is over". Manufacturing red runs is the mild version; the version that costs money is a rescuer aimed at a metered vendor.
-3. **Removing a workflow from the alerter is the step that HIDES the leftovers, so do it last.** Striking the name from `WORKFLOW_FAILURE_ALERT` on 8/14 was correct and it is precisely why six red runs a weekday went unnoticed for eleven days. When you silence a job, you take on the duty of proving it has stopped running — check its run history once after the silence, not just its schedule block.
-4. **All-green is a claim about what is being watched.** Every latest-run conclusion was green, `pipeline_health` had zero non-green rows and `workflow_failure_log` was empty for four days, while a workflow failed six times a day. The sweep found it only by reading run history for workflows that no longer appear in any watchlist. Companion to 4.53 rule 6: green dashboards describe the watched set, and the interesting failures move out of it.
-
-**Also this run, no action needed:** the single reds on `CFTC-COT-WEEKLY` (a cancelled 8/01 run), `NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY` (a 7/25 startup failure), `SCAN-INVARIANTS-DAILY` (8/18) and `macrotilt-engine-daily` (8/17) are all transient — green on both sides. `GUARD-DEAD-UI-WEEKLY` failed four consecutive weeks through 8/08 and has been green since 8/15. `TRADING-OPPS-BACKTEST` still shows three reds, all before 4.41's `MACROTILT_BOT_PAT` fix landed on 8/18; it is quarterly and next fires 10/1. The legacy `Daily Market Brief` routine remains paused and exactly one brief email arrived, at 06:48 ET, matching its ledger row to the second.
-
-**Applies to:** Lead Developer, Data Steward — every workflow retirement, and every entry in a freshness watchdog's watchlist.
