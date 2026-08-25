@@ -160,6 +160,14 @@ exist — sunk cost dressed as diligence.
 
 **Applies to:** the Trade Idea surface, and any future surface with a name on it.
 
+**Addendum (2026-08-25, Joe: "we have a scorecard page with a short gold position. I thought we took that one down"):**
+a published note lives on TWO surfaces — the tile (trade_ideas.json) and the
+scorecard (trade_idea_scores.json). Retracting a note means regenerating the
+scorecard with score_trade_ideas.py IN THE SAME COMMIT; the daily workflow
+would have healed it eventually, but a retracted call visibly graded on the
+public scorecard for a day is a day of the site marking a position it claims
+it never took.
+
 ### 0.4d (2026-08-24) — The live notes are ONE book; a new note checks exposure against every note still inside its horizon, not just instrument names
 
 **What happened:** the August 16 Trade Idea sells ordinary 10-year Treasuries,
