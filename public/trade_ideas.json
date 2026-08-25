@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-25T16:27:45Z",
+  "generated_at": "2026-08-25T18:46:11Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -211,9 +211,13 @@
           "prose": "The August 16 note sells ordinary 10-year Treasuries, dollar for dollar, to buy their inflation-protected twins — and this note buys the ordinary ones back. That is not the contradiction it looks like, because the two notes answer different questions. The August 16 trade is a swap: it wins if inflation compensation is repriced upward, and it does not care whether yields rise or fall. This note is about the level: it wins if yields fall. A reader who takes both ends up simply owning 10-year TIPS — the sold Treasuries in the first trade and the bought Treasuries in this one cancel out. Read together, the house view is one sentence: own the 10-year Treasury market, and prefer the inflation-protected version of it while inflation insurance is priced this cheaply. A reader taking only one idea should take this one; it is the simpler position."
         }
       ],
+      "book": {
+        "stance": "Taken together, the four live calls are one portfolio: own bonds — the 10-year outright, and prefer the inflation-protected version where you hold Treasuries already — stay invested in stocks but tilt them toward banks and away from the expensive end of the market, and lean toward a softer dollar through the euro. Nothing in the book is a bet on a crash. It is positioned for one thing above all: interest rates coming down faster than the stock market does, with the bond side carrying the most conviction and the currency call the least remaining runway.",
+        "rebalance": "A reader holding the earlier three calls adds this Treasury purchase; nothing is sold to make room for it and nothing else changes. The banks-versus-Nasdaq and TIPS positions keep their original stops. The euro call is the oldest of the four — its stop and target are unchanged, but it is the first candidate to come off when its window closes in November."
+      },
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
       "status": "live",
-      "published_at": "2026-08-25T16:27:45Z"
+      "published_at": "2026-08-25T18:46:11Z"
     },
     {
       "date": "2026-08-17",

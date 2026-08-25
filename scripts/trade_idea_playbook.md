@@ -180,6 +180,33 @@ of", "rotate out of", "move part of your X" all assume the reader owns X. State
 the position; if owning it already is a cheaper way in, that belongs in `sizing`
 as a variation, never as the premise.
 
+### A call is a portfolio action; the reader holds the BOOK (2026-08-25)
+
+Joe: *"We have 4 calls on the page... Every new call needs to take into account
+previous calls. We need to be giving ideas on how to structure portfolios,
+rebalance, etc."* The reader this product serves is not choosing a headline —
+they are running money, and to them four disconnected notes are four questions,
+not four answers.
+
+So, from 2026-08-26, every note carries a `book` block, contract-enforced:
+
+- **`book.stance`** — what the WHOLE live book is positioned for once this call
+  is in it, written as one portfolio: what is owned, what is tilted, what the
+  book as a whole is betting on and not betting on, and which call carries the
+  most and least conviction. The newest note's stance renders on the Scorecard
+  as "The book right now", so the table of calls always states what its rows
+  add up to.
+- **`book.rebalance`** — what a reader holding the earlier calls actually DOES:
+  add, trim, replace, or leave alone — named per call, including which existing
+  position is the first to come off and when.
+
+Composition order follows from it: the sweep starts by re-reading the live
+book's exposures, and the first question a candidate must answer is not "is
+the edge real" but "does the book need this" — a fifth bond-adjacent call may
+be a worse note than a weaker signal that diversifies the book. Exposure
+conflict already has its own gate (the reconciliation rule); this one is about
+construction, not contradiction.
+
 ### The search is a SWEEP, not a defence of the first signal found (2026-08-24)
 
 The gold-volatility session found one real signal, lost its only publishable

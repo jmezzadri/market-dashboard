@@ -670,6 +670,28 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                     "Add a `reconciles` entry [{date, prose}] (prose >= 120 chars) telling the reader how the "
                     "two fit together — the site may not contradict itself without saying so.")
 
+    # 3h — a call is a PORTFOLIO action, not an isolated headline (2026-08-25).
+    # Joe: "We have 4 calls on the page... Every new call needs to take into
+    # account previous calls. We need to be giving ideas on how to structure
+    # portfolios, rebalance, etc." A reader who has followed the site holds the
+    # live book, and a note that ignores that book hands them a fifth position
+    # with no advice about the other four. So every note from 2026-08-26 states
+    # its portfolio view twice: `book.stance` — what the WHOLE live book is
+    # positioned for once this call is in it — and `book.rebalance` — what a
+    # reader holding the earlier calls actually does (add, trim, replace,
+    # leave alone). Date-gated so the archive does not fail retroactively.
+    if idea_date >= dt.date(2026, 8, 26):
+        bk = idea.get("book")
+        if not isinstance(bk, dict):
+            raise ContractError(
+                "book is required — a call is a portfolio action. Provide book.stance (what the whole live "
+                "book is positioned for with this call in it, min 150 chars) and book.rebalance (what a "
+                "reader holding the earlier calls does now, min 80 chars).")
+        if len(str(bk.get("stance", "")).strip()) < 150:
+            raise ContractError("book.stance must describe the combined live book in at least 150 chars")
+        if len(str(bk.get("rebalance", "")).strip()) < 80:
+            raise ContractError("book.rebalance must tell a holder of the earlier calls what to do (min 80 chars)")
+
     # 4 — no direction word without two dated observations
     blob = _text_of(idea)
     dated = len({str(e.get("as_of")) for e in idea["evidence"]})
