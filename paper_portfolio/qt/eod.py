@@ -9,6 +9,9 @@ Two jobs, both idempotent:
   2. Sync fills: any qt_orders row still short of a terminal status gets its
      current Alpaca state pulled by client_order_id and written back.
 
+After the snapshot it runs paper_portfolio.qt.reconcile, which fails this job
+if any holding changed without a trade behind it.
+
 This job NEVER submits, cancels or modifies an order. It reads the account
 and writes two tables. Keeping it write-free at the broker is what lets it
 run on a schedule without being a trading system.
@@ -110,7 +113,16 @@ def sync_fills() -> int:
 if __name__ == "__main__":
     try:
         sync_fills()
-        snapshot()
+        row = snapshot()
     except Exception as e:
         print(f"EOD FAILED: {e}", file=sys.stderr)
         raise
+
+    # Custody check (2026-08-25). Runs AFTER the snapshot is safely written, so
+    # a failure here never costs us the day's row. It is deliberately allowed to
+    # fail the job: WORKFLOW_FAILURE_ALERT lists QT-EOD-DAILY as VISIBLE, so a
+    # failing run is what actually puts the alert in Joe's inbox. Nothing else
+    # in the system compares one night's holdings to the next.
+    from .reconcile import run as reconcile_run
+
+    reconcile_run(row)

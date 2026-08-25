@@ -250,14 +250,26 @@ jobs:
           #              its next run was never news.
           # Adding a workflow to the `workflows:` trigger list above does NOT make it
           # email Joe — it has to earn a place in VISIBLE below.
+          # 2026-08-25: QT-EOD-DAILY was on the trigger list but not here, so its
+          # failures were only RECORDED, never emailed on the first failure. It is
+          # now the paper book's accounting job — and it deliberately FAILS when the
+          # nightly custody check finds a holding that changed with no trade behind
+          # it, so being VISIBLE is the whole point. (A 243-share EBAY position
+          # vanished from the account overnight on 8/25 with no sell and no cash;
+          # nothing noticed for six trading days.) The three retired entries below
+          # are kept commented, not deleted, so nobody re-adds them by accident —
+          # per this file's own rule, a watchlist entry matching nothing reads as
+          # coverage while providing none.
           VISIBLE = {
               "DAILY-BRIEF-WRITER",          # his morning email + the homepage brief
               "BRIEF-FRESHNESS-SELFHEAL",    # the homepage brief going stale
               "DAILY-HOME-SMOKE",            # the site itself being up
-              "CONVICTION-OPEN-DAILY",       # orders at the open
-              "CONVICTION-KILL-CHECK",       # deliberately fails on a kill-switch trip
-              "PAPER-PORTFOLIO-EOD-DAILY",   # the paper book's own accounting
-              "PAPER-PORTFOLIO-INTRADAY",
+              "QT-EOD-DAILY",                # the live paper book's accounting + custody check
+              "QT-REBALANCE",                # the monthly trade — silence here means no rebalance
+              # "CONVICTION-OPEN-DAILY",     retired 2026-08-13 with the Conviction Events book
+              # "CONVICTION-KILL-CHECK",     retired 2026-08-13 with the Conviction Events book
+              # "PAPER-PORTFOLIO-EOD-DAILY", retired 2026-08-13 — superseded by QT-EOD-DAILY
+              # "PAPER-PORTFOLIO-INTRADAY",  retired 2026-08-13, disabled stub
               "macrotilt-engine-daily",
           }
           STUCK_LOOKBACK_DAYS = 3   # window for the "2+ separate days" escalation test
