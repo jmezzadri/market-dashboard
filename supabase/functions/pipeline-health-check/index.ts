@@ -76,6 +76,29 @@ const CADENCE_LABEL: Record<string, string> = {
   H: "hourly", D: "daily", W: "weekly", M: "monthly", Q: "quarterly",
 };
 
+// Nominal spacing between publishes, by cadence code. Used only by the
+// ungraded-row blind-spot report below; the graded path uses the manifest SLA.
+// Joe reads these emails on a phone between meetings. He is a management
+// consultant, not an engineer: no table names, no indicator ids, no "check the
+// workflow on GitHub" (he never opens GitHub). Every alert answers three
+// questions and nothing else — what this is, what happened, what he must do.
+function ageWords(minutes: number | null): string {
+  if (minutes == null) return "a while";
+  const h = minutes / 60, d = h / 24;
+  if (h < 2) return "about an hour";
+  if (h < 36) return `${Math.round(h)} hours`;
+  if (d < 14) return `${Math.round(d)} days`;
+  return `${Math.round(d / 7)} weeks`;
+}
+const CADENCE_WORDS: Record<string, string> = {
+  H: "every hour", D: "every weekday", W: "about once a week",
+  M: "about once a month", Q: "about once a quarter",
+};
+
+const CADENCE_EXPECTED_MINUTES: Record<CadenceCode, number> = {
+  D: 1440, W: 10080, M: 43200, Q: 129600,
+};
+
 const CADENCE_TOLERANCE_MINUTES: Record<CadenceCode, number> = {
   D: 360,    //  6h  — markets closed weekends; small grace for FRED release time
   W: 2880,   // 48h  — release days vary (Thu/Wed/Mon)
@@ -216,6 +239,14 @@ async function handle(req: Request): Promise<Response> {
   const updates: Array<Partial<HealthRow> & { indicator_id: string }> = [];
   const alerts: Array<{ row: HealthRow; ageMinutes: number | null }> = [];
   const escalations: Array<{ row: HealthRow; ageMinutes: number | null; daysStuck: number }> = [];
+  // Rows this watchdog skips because they are not in the public manifest, so it
+  // has no SLA to grade them against. Anti-clobber doctrine (below) means their
+  // stored status is left untouched — which is correct, but silently leaves a
+  // dead feed frozen on whatever colour it last had. equity-short_interest-daily
+  // sat green for 12 days that way after the Unusual Whales subscription lapsed
+  // (found 2026-08-25). Collect them so the run REPORTS the blind spot instead
+  // of hiding it. Never used to write status — only to tell a human.
+  const ungraded: Array<{ row: HealthRow; staleDays: number }> = [];
   const logRows: Array<{
     indicator_id: string;
     check_at: string;
@@ -543,6 +574,16 @@ async function handle(req: Request): Promise<Response> {
     // (Migration 089 also widened the constraints to allow 'unknown' as a
     // backstop for any future config-gap row that IS manifest-listed.)
     if (isConfigGap && !mfGrade) {
+      // Anti-clobber: still skip the write (see the 7/20-7/29 outage note above).
+      // But record it, with how far past its own cadence its last stamp now is,
+      // so an unwatched feed cannot rot green forever unnoticed.
+      const lastStamp = lastGoodIso ?? row.last_good_at;
+      const expectedMin = Number(row.expected_cadence_minutes) || CADENCE_EXPECTED_MINUTES[row.cadence as CadenceCode] || 0;
+      if (lastStamp && expectedMin > 0) {
+        const ageMin2 = (Date.now() - new Date(lastStamp).getTime()) / 60000;
+        const budget = expectedMin + (CADENCE_TOLERANCE_MINUTES[row.cadence as CadenceCode] ?? 0);
+        if (ageMin2 > budget) ungraded.push({ row, staleDays: Math.round(ageMin2 / 1440) });
+      }
       continue;
     }
     const newStatus: "green" | "red" | "unknown" =
@@ -695,18 +736,22 @@ async function handle(req: Request): Promise<Response> {
     try {
       await sendEmail({
         to: ALERT_TO,
-        subject: `[MacroTilt] Data stale — ${row.label}`,
+        subject: `[MacroTilt] "${row.label}" has stopped updating`,
         html: `
           <p>Hi Joe,</p>
-          <p>The <strong>${row.label}</strong> indicator appears stale on the site.</p>
-          <ul>
-            <li><strong>Indicator</strong>: ${row.indicator_id}</li>
-            <li><strong>Source</strong>: ${row.source}</li>
-            <li><strong>Expected cadence</strong>: ${CADENCE_LABEL[row.cadence] || "unknown"}</li>
-            <li><strong>Age</strong>: ${ageMinutes == null ? "?" : ageMinutes < 1440 ? `${Math.round(ageMinutes / 60)} hours` : `${Math.round(ageMinutes / 60 / 24)} days`}</li>
-            <li><strong>Last error</strong>: ${row.last_error || "—"}</li>
-          </ul>
-          <p>Check the scheduled workflow on GitHub Actions. This alert repeats at most once per ${ALERT_DEBOUNCE_HOURS}h.</p>
+          <p><strong>${row.label}</strong> on the site last updated
+             ${ageWords(ageMinutes)} ago. It should update
+             ${CADENCE_WORDS[row.cadence] || "regularly"}.</p>
+          <p><strong>What this is:</strong> ${row.source} supplies it.</p>
+          <p><strong>Why it matters:</strong> anywhere the site shows this, it is
+             showing ${ageWords(ageMinutes)}-old numbers. Nothing is wrong with
+             the rest of the site.</p>
+          <p><strong>What you need to do:</strong> nothing today. The weekday
+             health check looks at this every morning and repairs what it can.
+             If this same email keeps arriving for several days, it needs a
+             person — reply and say so.</p>
+          <p style="color:#8a8a8a;font-size:13px">You will get this at most once a
+             day per feed.</p>
         `,
       });
       alertsSent++;
@@ -722,18 +767,22 @@ async function handle(req: Request): Promise<Response> {
     try {
       await sendEmail({
         to: ALERT_TO,
-        subject: `[MacroTilt] Stuck red ${daysStuck}d — ${row.label}`,
+        subject: `[MacroTilt] "${row.label}" still not updating after ${daysStuck} days`,
         html: `
           <p>Hi Joe,</p>
-          <p>The <strong>${row.label}</strong> chip has been red for <strong>${daysStuck} days</strong>. The original alert went out when it first turned red; this is the 7-day escalation.</p>
-          <ul>
-            <li><strong>Indicator</strong>: ${row.indicator_id}</li>
-            <li><strong>Source</strong>: ${row.source}</li>
-            <li><strong>Last good</strong>: ${row.last_good_at || "never"}</li>
-            <li><strong>Last error</strong>: ${row.last_error || "—"}</li>
-          </ul>
-          <p><strong>Likely causes</strong>: upstream vendor (FRED / BLS / etc.) is unusually slow, or our pipeline never picked up the next refresh. Check the source's public site (e.g., fred.stlouisfed.org for FRED series) to compare its latest data point with what we have.</p>
-          <p>This escalation repeats once every 7 days while the chip stays red. It resets on the next green recovery.</p>
+          <p><strong>${row.label}</strong> has now been stuck for
+             <strong>${daysStuck} days</strong>. You got the first note when it
+             stopped; this is the follow-up.</p>
+          <p><strong>What this is:</strong> ${row.source} supplies it.
+             It last had good data ${row.last_good_at ? `on ${new Date(row.last_good_at).toDateString()}` : "longer ago than we have a record of"}.</p>
+          <p><strong>What has probably happened:</strong> either the provider
+             stopped publishing, or a subscription to them lapsed, or the job
+             that collects it quietly stopped. All three look the same from here.</p>
+          <p><strong>What you need to do:</strong> if you know this feed was
+             switched off on purpose, reply and say so and it will be retired
+             rather than repaired. Otherwise nothing — it is being worked on.</p>
+          <p style="color:#8a8a8a;font-size:13px">This repeats weekly while it
+             stays stuck, and stops as soon as it recovers.</p>
         `,
       });
       escalationsSent++;
@@ -756,7 +805,18 @@ async function handle(req: Request): Promise<Response> {
   //    names added to killed_elements.json + reconciler RETIRED_FEEDS. Do NOT
   //    re-add a narrative_macro / narrative_sector / macro_commentary row or
   //    check here — that is the zombie loop killed_elements.json exists to stop.
-  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent, failedRows });
+  // Blind-spot report. These rows are NOT graded and NOT alerted on (see the
+  // anti-clobber note above) — they are surfaced here so the weekday health
+  // sweep agent sees them, rather than a human discovering months later that a
+  // feed had been frozen green the whole time. Agent-facing, deliberately not
+  // an email: Joe's inbox is not the place to put a monitoring gap.
+  const unwatchedStale = ungraded
+    .sort((a, b) => b.staleDays - a.staleDays)
+    .map((u) => ({ indicator_id: u.row.indicator_id, label: u.row.label,
+                   source: u.row.source, stored_status: u.row.status,
+                   stale_days: u.staleDays }));
+  return json({ ok: true, checked: updates.length, green, red, unknown, alertsSent,
+                failedRows, unwatchedStale });
 }
 
 serve(handle);

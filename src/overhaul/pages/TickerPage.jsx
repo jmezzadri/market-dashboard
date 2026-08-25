@@ -1088,8 +1088,17 @@ function ShortInterestTab({ pos }) {
       <div className="tk-tabhead">
         <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           Short interest
+          {/* The numbers in this tab are FINRA settlement short interest
+              (pos.finra), so the chip must grade the FINRA feed. It used to
+              point at equity-short_interest-daily — the Unusual Whales daily
+              short-volume ingest, which stopped on 2026-08-13 when that
+              subscription lapsed and which this tab never rendered. That feed
+              is absent from the public manifest, so the watchdog could not
+              grade it and left it stamped green: the dot stayed reassuring for
+              12 days over a feed that was dead, next to data from a different
+              source entirely. Found 2026-08-25. */}
           <FreshnessChip
-            elementId="equity-short_interest-daily"
+            elementId="short_interest"
             variant="dot"
             fallback={{ asOfIso: f?.as_of_date }}
           />

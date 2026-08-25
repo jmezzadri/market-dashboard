@@ -62,6 +62,18 @@ RETIRED_FEEDS = {
     # not have (2026-08-18 sweep).
     "uw-universe-snapshots",
     "uw-ticker-events",
+    # Missed in that 8/18 sweep and found 2026-08-25: the same lapsed Unusual
+    # Whales subscription also fed equity-short_interest-daily. It escaped the
+    # sweep because it never went red — it is absent from the public manifest,
+    # so pipeline-health-check cannot grade it and (correctly, per anti-clobber)
+    # skips it entirely, leaving the last stamp frozen. It read green for 12
+    # days over a table whose newest row is 2026-08-13. SHORT_INTEREST_INGEST_
+    # DAILY still runs twice a day and still reports success, because its FINRA
+    # leg works and only its UW leg is dead — so no failure alert either.
+    # Nothing anywhere would ever have said this feed was gone.
+    # The FINRA short interest the site actually displays is a separate, live
+    # row (short_interest); the ticker page chip now grades that one.
+    "equity-short_interest-daily",
 }
 
 # Live feeds with no manifest entry yet, which the orphan check must not fail
