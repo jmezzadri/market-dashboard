@@ -1,0 +1,412 @@
+/* mobile-v12.css — the phone layer for the whole site.
+
+   Joe, 2026-08-25: "The entire website looks absolutely atrocious on my mobile
+   phone (iPhone). Nothing is optimized whatsoever. The site is not usable
+   whatsoever if not on computer. We need to fix this end to end, every page."
+
+   He was right, and the audit at a 393px iPhone viewport said why. The failures
+   were structural rather than cosmetic, and the same four repeated on every
+   page, which is why this is one shared layer and not nine page patches:
+
+     1. NAVIGATION WAS IMPOSSIBLE. The seven inline nav links measured 634px
+        wide and the bar clipped them, so Methodology, Data, Scorecard and the
+        auth control could not be reached on a phone at all. Fixed in
+        TopNav.jsx with a drawer; styled here.
+     2. DESKTOP GRIDS NEVER COLLAPSED. The Home cockpit stayed two-column at
+        393px, giving each tile ~180px and headlines that wrapped to two words
+        a line. Every multi-column grid now goes single-column.
+     3. TYPE WAS BELOW THE LEGIBLE FLOOR. 125 elements on /macro rendered under
+        11.5px, some at 9.5px. A phone is held further from the eye than a
+        monitor, not closer. Floors are set below.
+     4. TABLES RAN OFF THE PAGE. /paper's table was 875px wide, /scorecard's
+        697px. They now scroll inside their own container instead of
+        determining the width of the document.
+
+   Loaded LAST in OverhaulApp.jsx so it wins the cascade over every page's own
+   v12 sheet. Everything is inside a media query — this file must have no
+   effect whatsoever on desktop.
+
+   Breakpoints: 860px is where the nav stops fitting; 780px is where two
+   columns stop being readable; 520px is small-phone territory. */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHROME — the nav drawer. Above 860px the toggle and sheet do not exist.
+   ───────────────────────────────────────────────────────────────────────── */
+.mt-overhaul .mt-navtoggle { display: none; }
+
+@media (max-width: 860px) {
+  /* The inline links and the desktop auth control step aside for the drawer. */
+  .mt-overhaul .mt-topnav-links,
+  .mt-overhaul .mt-topnav-auth { display: none !important; }
+
+  [data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
+  .mt-overhaul .mt-topnav {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 0 14px; min-height: 56px;
+  }
+  .mt-overhaul .mt-wordmark { font-size: 21px; margin: 0; }
+
+  .mt-overhaul .mt-navtoggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    /* 44px is the Apple HIG minimum and this is the one control that has to be
+       hittable before anything else on the page matters. */
+    width: 44px; height: 44px; margin-right: -8px;
+    background: none; border: 0; cursor: pointer; color: var(--ink, #212C33);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mt-overhaul .mt-navtoggle-bars { display: block; width: 22px; height: 16px; position: relative; }
+  .mt-overhaul .mt-navtoggle-bars i {
+    position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px;
+    background: currentColor; transition: transform .18s ease, opacity .18s ease;
+  }
+  .mt-overhaul .mt-navtoggle-bars i:nth-child(1) { top: 0; }
+  .mt-overhaul .mt-navtoggle-bars i:nth-child(2) { top: 7px; }
+  .mt-overhaul .mt-navtoggle-bars i:nth-child(3) { top: 14px; }
+  .mt-overhaul .mt-navtoggle-bars.is-open i:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .mt-overhaul .mt-navtoggle-bars.is-open i:nth-child(2) { opacity: 0; }
+  .mt-overhaul .mt-navtoggle-bars.is-open i:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* The bar sits ABOVE the sheet so the hamburger stays visible and animates
+     into the X that closes it. Without this the sheet paints over its own
+     close control and the only way out is the backdrop. */
+  [data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
+  .mt-overhaul .mt-topnav { position: relative; z-index: 950; background: var(--bg, #F2EEE6); }
+
+  .mt-overhaul .mt-navsheet-veil {
+    position: fixed; inset: 0; z-index: 900;
+    background: rgba(20, 24, 28, .42);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .mt-overhaul .mt-navsheet {
+    position: absolute; top: 0; right: 0; left: 0;
+    background: var(--bg2, #F9F6F0);
+    border-bottom: 1px solid var(--hair, rgba(33,44,51,.14));
+    box-shadow: 0 12px 30px rgba(20, 24, 28, .16);
+    /* Clear the nav bar, and never grow past the screen on a short phone in
+       landscape — the sheet scrolls instead. */
+    padding: 60px 0 8px;
+    max-height: 100dvh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mt-overhaul .mt-navsheet-link {
+    display: block; padding: 15px 18px; min-height: 52px;
+    font-size: 17px; line-height: 22px; text-decoration: none;
+    color: var(--ink, #212C33);
+    border-bottom: 1px solid var(--hair, rgba(33,44,51,.10));
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mt-overhaul .mt-navsheet-link.on { color: var(--gold-deep, #B7975C); font-weight: 600; }
+  .mt-overhaul .mt-navsheet-auth {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 16px 18px 12px; min-height: 52px;
+  }
+  .mt-overhaul .mt-navsheet-email {
+    font-size: 14px; color: var(--mut, #7C7668);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .mt-overhaul .mt-navsheet-signin,
+  .mt-overhaul .mt-navsheet-signout {
+    font-size: 16px; font-weight: 600; color: var(--gold-deep, #B7975C);
+    background: none; border: 0; padding: 10px 0; cursor: pointer; text-decoration: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHROME — the page header. It was three stacked rows and ate ~400px of an
+   852px viewport before a single word of content. One row, search below.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul .mt-header {
+    display: grid; grid-template-columns: 1fr auto; align-items: center;
+    gap: 8px 10px; padding: 10px 14px;
+  }
+  .mt-overhaul .mt-headmeta { font-size: 13px; min-width: 0; overflow: hidden; }
+  .mt-overhaul .mt-headmeta > * { white-space: nowrap; }
+  .mt-overhaul .mt-headstatus { display: flex; align-items: center; gap: 8px; }
+  /* The freshness pill is a desktop affordance — a tap target that navigates
+     nowhere, costing a whole row on a phone. The Data page carries the same
+     information in full. */
+  /* The freshness pill wrapped to four lines while the header was a three-row
+     stack. Once the header collapsed to one row it fits on a single line, so it
+     stays — it is useful, and hiding it was solving a symptom of the layout. */
+  .mt-overhaul .mt-header .mt-headstatus { flex: 0 0 auto; }
+  .mt-overhaul .mt-header .mt-tickersearch,
+  .mt-overhaul .mt-header .mt-search,
+  .mt-overhaul .mt-header form { grid-column: 1 / -1; min-width: 0; }
+  .mt-overhaul .mt-header .mt-tickersearch input { width: 100%; }
+  .mt-overhaul .mt-header input[type='text'],
+  .mt-overhaul .mt-header input[type='search'] {
+    width: 100%;
+    /* 16px exactly: iOS Safari zooms the viewport on focus for anything
+       smaller, and the page never zooms back out. */
+    font-size: 16px; min-height: 44px;
+  }
+  .mt-overhaul .mt-iconbtn { min-width: 40px; min-height: 40px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LAYOUT — collapse every multi-column grid. The Home cockpit is the worst
+   offender but the same rule fixes Macro, Paper, Lab and Ticker.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul .grid,
+  .mt-overhaul .row,
+  .mt-overhaul .cols,
+  .mt-overhaul [class*='-grid'],
+  .mt-overhaul [class*='grid-'],
+  .mt-overhaul .home-v12 .grid { grid-template-columns: 1fr !important; }
+
+  /* Anything that claimed a column span now spans the single column. */
+  .mt-overhaul [class*='sp1'], .mt-overhaul [class*='sp2'], .mt-overhaul [class*='sp3'],
+  .mt-overhaul [class*='sp4'], .mt-overhaul [class*='sp5'], .mt-overhaul [class*='sp6'],
+  .mt-overhaul [class*='sp7'], .mt-overhaul [class*='sp8'], .mt-overhaul [class*='sp9'],
+  .mt-overhaul [class*='sp10'], .mt-overhaul [class*='sp11'], .mt-overhaul [class*='sp12'] {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Grid and flex children default to min-width:auto, which lets a long
+     headline or a wide table set the width of the whole document. This single
+     rule is why the page stops scrolling sideways. */
+  .mt-overhaul .mt-main-wrap *,
+  .mt-overhaul .home-v12 * { min-width: 0; }
+
+  .mt-overhaul .mt-main-wrap,
+  .mt-overhaul .wrap,
+  .mt-overhaul section.wrap { padding-left: 14px; padding-right: 14px; }
+
+  /* Display headlines authored at desktop sizes. */
+  .mt-overhaul h1 { font-size: clamp(26px, 7.2vw, 34px); line-height: 1.18; }
+  .mt-overhaul h2 { font-size: clamp(21px, 5.8vw, 27px); line-height: 1.22; }
+  .mt-overhaul .hero h1 { font-size: clamp(28px, 8vw, 38px); }
+  .mt-overhaul .hero { padding: 40px 0 34px !important; }
+  .mt-overhaul section { margin-top: 34px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TYPE FLOOR. A phone is held further from the eye than a monitor, not
+   closer, so 9.5px label text is simply not readable. Eyebrow/label text
+   floors at 11px and body text at 14px.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul .eyebrow, .mt-overhaul .eyebrow2,
+  .mt-overhaul [class*='-eyebrow'], .mt-overhaul [class*='label'],
+  .mt-overhaul [class*='-lab'], .mt-overhaul th,
+  .mt-overhaul dt, .mt-overhaul figcaption, .mt-overhaul small,
+  .mt-overhaul .k, .mt-overhaul .src, .mt-overhaul [class*='-src'],
+  .mt-overhaul [class*='-dim'], .mt-overhaul [class*='caption'] {
+    font-size: max(11px, 1em) !important;
+    letter-spacing: .05em;
+  }
+  .mt-overhaul p, .mt-overhaul li, .mt-overhaul dd, .mt-overhaul td {
+    font-size: max(14px, 1em);
+    line-height: 1.6;
+  }
+  /* Eyebrows are wide-tracked caps. Do NOT nowrap-and-ellipsis them: .eyebrow2
+     is a 16px header line ("Morning Brief · Tue, Aug 25") and clipping it threw
+     away the date. Tighten the tracking and let it wrap instead. */
+  .mt-overhaul .eyebrow, .mt-overhaul .eyebrow2 {
+    letter-spacing: .06em; font-size: 12.5px !important; line-height: 1.4;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TABLES — scroll inside their own box rather than setting the page width.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul table {
+    display: block; width: 100%; max-width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+  }
+  .mt-overhaul table thead,
+  .mt-overhaul table tbody { display: table; width: max-content; min-width: 100%; }
+  .mt-overhaul table tr { display: table-row; }
+  .mt-overhaul table th, .mt-overhaul table td {
+    display: table-cell; white-space: nowrap; padding: 9px 10px;
+  }
+  /* A cell holding prose should wrap rather than force a 600px scroll. */
+  .mt-overhaul table td[data-wrap], .mt-overhaul table td.wrap {
+    white-space: normal; min-width: 180px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TAP TARGETS. The audit found 24-41 controls per page under 40px, some at
+   15px. Anything a finger has to find gets 44px.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul button,
+  .mt-overhaul [role='button'],
+  .mt-overhaul .mt-navlink,
+  .mt-overhaul .idea-more,
+  .mt-overhaul summary {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Inline links inside a sentence must NOT get 44px — that would blow prose
+     line spacing apart. Only standalone controls. */
+  .mt-overhaul p a, .mt-overhaul li a, .mt-overhaul dd a { min-height: 0; }
+
+  /* Expander "+" buttons and icon buttons are square, not tall. */
+  .mt-overhaul .mt-iconbtn,
+  .mt-overhaul [class*='-toggle'],
+  .mt-overhaul [class*='-expand'] { min-width: 40px; min-height: 40px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MODALS — full screen. A centred dialog with desktop margins leaves a
+   200px-tall reading window on a phone.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .mt-overhaul .briefmodal-veil { padding: 0 !important; align-items: stretch !important; }
+  .mt-overhaul .briefmodal {
+    width: 100% !important; max-width: 100% !important;
+    max-height: 100dvh !important; height: 100dvh !important;
+    border-radius: 0 !important; padding: 52px 16px 32px !important;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .mt-overhaul .briefmodal-x {
+    position: fixed !important; top: 8px; right: 8px;
+    width: 44px; height: 44px; font-size: 26px; z-index: 5;
+    background: var(--bg2, #F9F6F0); border-radius: 50%;
+  }
+  .mt-overhaul .briefmodal-h { font-size: clamp(22px, 6vw, 28px); line-height: 1.25; }
+  /* Charts inside a note are authored at a fixed desktop width. */
+  .mt-overhaul .briefmodal svg,
+  .mt-overhaul .idea-charts svg,
+  .mt-overhaul .idea-herochart svg { max-width: 100%; height: auto; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PAGE SPECIFICS — only where the shared rules above cannot reach.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  /* HOME — the badge row overflowed its tile; the fact strip was 3 columns. */
+  .mt-overhaul .idea-badges { flex-wrap: wrap; gap: 6px; }
+  .mt-overhaul .idea-badges > * { font-size: 10.5px; padding: 4px 8px; }
+  .mt-overhaul .idea-facts,
+  .mt-overhaul .es-verdict { grid-template-columns: 1fr !important; gap: 12px; }
+  .mt-overhaul .idea-modal-facts,
+  .mt-overhaul .idea-backtest { grid-template-columns: 1fr !important; }
+  /* The tape is .tape > .wrap > .row > .t — the CELLS live two levels down.
+     Gridding .tape itself put the wrapper in a two-column grid and squeezed
+     every cell to 51px while its number stayed 32px, so the values overlapped
+     each other. Grid the .row, which is what actually holds the cells. */
+  .mt-overhaul .tape .row {
+    display: grid !important; grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0;
+  }
+  .mt-overhaul .tape .t {
+    padding: 14px 4px 12px; border-left: none;
+    border-top: 1px solid var(--hair, rgba(33,44,51,.14));
+    min-width: 0; overflow: hidden;
+  }
+  .mt-overhaul .tape .tv {
+    font-size: clamp(17px, 5.2vw, 24px) !important; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; display: block;
+  }
+  .mt-overhaul .tape .tk { font-size: 10.5px !important; letter-spacing: .06em; }
+
+  /* SCORECARD — the ledger row is a six-column grid on desktop. */
+  .mt-overhaul .sc-trade { grid-template-columns: 1fr !important; gap: 2px 0; }
+  .mt-overhaul .sc-tradefact .k { padding-top: 10px; }
+  .mt-overhaul .sc-call { font-size: 16px; }
+  .mt-overhaul .sc-wrap { padding: 18px 14px 48px; }
+
+  /* MACRO — indicator rows are a wide multi-column table on desktop. */
+  .mt-overhaul .mac-row, .mt-overhaul .ind-row { grid-template-columns: 1fr auto !important; }
+
+  /* FOOTER — four columns of links. */
+  .mt-overhaul .mt-footer-cols,
+  .mt-overhaul footer .cols { grid-template-columns: 1fr 1fr !important; gap: 20px 16px; }
+}
+
+@media (max-width: 520px) {
+  .mt-overhaul .tape { grid-template-columns: repeat(2, 1fr); }
+  .mt-overhaul .mt-footer-cols,
+  .mt-overhaul footer .cols { grid-template-columns: 1fr !important; }
+}
+
+/* Belt and braces: nothing may cause a sideways scroll of the document. */
+@media (max-width: 860px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .mt-overhaul img, .mt-overhaul svg, .mt-overhaul canvas { max-width: 100%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ROUND TWO — what the 393px audit still flagged after the layer above.
+   Each of these is a specific rule the generic ones could not reach.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  /* The Morning Brief headline list is `white-space:nowrap` + ellipsis by
+     design: on desktop that keeps one headline to one tidy line. On a phone it
+     truncated every headline at roughly forty characters — the span laid out
+     1031px wide and the rest was simply clipped, which makes the brief
+     pointless. Wrap to three lines and clamp instead of cutting mid-word. */
+  .mt-overhaul .home-v12 .ni .hl {
+    white-space: normal;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; text-overflow: unset;
+    font-size: 14.5px; line-height: 1.45;
+  }
+  .mt-overhaul .home-v12 .ni { align-items: flex-start; }
+
+  /* Type floors the generic selectors missed. These are named because the
+     audit named them (scripts/audit_mobile.mjs); rerun it after any redesign
+     rather than assuming this list is still complete. */
+  .mt-overhaul .mac-pct,
+  .mt-overhaul .mac-catcount,
+  .mt-overhaul .mac-poshead,
+  .mt-overhaul .idea-edge,
+  .mt-overhaul .idea-pos,
+  .mt-overhaul .tk,
+  .mt-overhaul .when { font-size: 11.5px !important; }
+  .mt-overhaul .mac-lean .lean {
+    font-size: 11px !important; padding: 3px 9px; letter-spacing: .04em;
+  }
+
+  /* A table that resolves `width:100%` against an already-overflowing parent
+     ends up with a 640px content box on a 393px screen. Constrain the boxes a
+     table can sit in, so its own overflow-x actually has something to scroll
+     against. */
+  .mt-overhaul .mt-main-wrap > *,
+  .mt-overhaul .mt-main-wrap section,
+  .mt-overhaul .home-v12 > *,
+  .mt-overhaul .home-v12 section { max-width: 100%; }
+  .mt-overhaul table { max-width: 100% !important; }
+
+  /* Give a scrollable table a visible edge so it reads as scrollable rather
+     than as content that has been cut off. */
+  .mt-overhaul table {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+            mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+  }
+  .mt-overhaul table:not(:hover) { -webkit-mask-image: none; mask-image: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ROUND THREE — spacing and alignment, from looking at the rendered pages
+   rather than at the measurements. Both of these passed every numeric check.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  /* Desktop hero padding left ~120px of empty cream between the header and the
+     first card on Macro, Paper and Lab. On a 852px-tall screen that is an
+     eighth of the viewport spent on nothing before the reader sees anything. */
+  .mt-overhaul .mt-main-wrap > section:first-child,
+  .mt-overhaul .home-v12 > section:first-child,
+  .mt-overhaul section.pp-hero,
+  .mt-overhaul section.df-hero,
+  .mt-overhaul section.mac-hero { margin-top: 14px !important; padding-top: 14px !important; }
+  .mt-overhaul .mt-main-wrap { padding-top: 4px; }
+
+  /* Centred prose is a wide-canvas device. At 393px a centred paragraph breaks
+     into a ragged stack with orphans pushed to the right edge ("no leverage"
+     alone on its own line, right-aligned), which reads as broken rather than
+     as styling. */
+  .mt-overhaul .pp-hero,
+  .mt-overhaul .pp-hero p,
+  .mt-overhaul .pp-sub,
+  .mt-overhaul [class*='-hero'] p,
+  .mt-overhaul [class*='-sub'] { text-align: left !important; }
+  .mt-overhaul .hero, .mt-overhaul .hero h1, .mt-overhaul .hero p { text-align: left !important; }
+}
