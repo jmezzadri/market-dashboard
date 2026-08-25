@@ -1,72 +1,79 @@
 {
-  "date": "2026-08-24",
-  "recap_session": "Fri Aug 21",
+  "date": "2026-08-25",
+  "recap_session": "Mon Aug 24",
   "eyebrow": "Morning Brief",
-  "headline": "50% on Canada went live Saturday and duration rallied — the first time this cycle the long end read a tariff as growth, not price.",
-  "stance": "Section 338 duties of 50% on about $28bn of Canadian goods took effect 12:01am ET Saturday, overriding CUSMA origin, and Carney's answer is dated Sept 8. The bid this morning is in the 30y and in gold, with crude and Nasdaq futures lower — a growth read, and Wednesday tests it.",
+  "headline": "Treasury spent ten days trailing an economic D-Day on Iran, then spared the banks that clear four-fifths of the oil.",
+  "stance": "Roughly 60 designations landed Monday afternoon and not one major Chinese bank was among them, though China lifts more than 80% of Iran's seaborne crude. Brent sold it twice, the long end took the disinflation, and a 2y auction prices this afternoon.",
   "news": [
     {
-      "head": "50% Section 338 duties on Canada now in force",
-      "body": "Live 12:01am ET Saturday on about $28bn of goods, and CUSMA origin does not exempt. Carney matches dollar-for-dollar from Sept 8 across six categories."
+      "head": "Iran sanctions land without the Chinese banks",
+      "body": "The list runs through shipping, gold, aviation and digital assets, with brokers and shadow-fleet vessels named in the UAE, Hong Kong and Singapore."
     },
     {
-      "head": "Bessent brings Iran sanctions to a podium today",
-      "body": "Treasury holds a press conference this afternoon on what he has called the toughest sanctions in history. Brent $92.82, -1.7% (~6am ET) going in."
+      "head": "Crude sells the announcement a second time",
+      "body": "Brent $91.27, -1.0% (~2:30am ET), after Monday settled down more than 2%. Two sessions of selling read economic coercion as less supply risk than strikes."
+    },
+    {
+      "head": "Pro Farmer tour puts corn at a three-year high",
+      "body": "A seven-state survey found crops in worse shape than expected. Corn and wheat are each up about 12% this month, the day before the core PCE print."
     }
   ],
   "implications": [
-    "Core PCE lands 8:30am Wednesday and Nvidia reports after that same close. One session carries the inflation print and the AI print, four days after the tariff and two before Warsh.",
-    "Retaliation with a Sept 8 date is scheduled damage, not priced damage. Two weeks of headline risk with a known end point is a hedging problem, not a positioning one."
+    "Sanctions that spare the buyer of four-fifths of Iran's barrels are a headline, not a supply event. What is left to price is Hormuz, and that is a freight and insurance risk.",
+    "The September strip prices a 42.1% chance of a hike (~5:40am ET). Tomorrow's release is the last data that can move that before the chair speaks Friday."
   ],
   "watch": [
     {
-      "head": "Bessent's Iran press conference, this afternoon",
-      "body": "Crude gave back 1.7% into it after two weekly gains above 5%. The announcement has been trailed for days; the scope is the only part not in the price."
+      "head": "2-year note auction, this afternoon",
+      "body": "First of three coupons this week, 5y Wednesday and 7y Thursday, and the only one that prices before tomorrow's inflation number."
     },
     {
-      "head": "Core PCE, 8:30am ET Wednesday",
-      "body": "Forecast 0.3% on the core, with the Q2 GDP revision expected lower. Hot print plus soft revision is the pairing Warsh has to answer on Friday."
+      "head": "Consumer confidence and new home sales, 10am ET",
+      "body": "The only tier-2 US data today. Case-Shiller at 9am covers June, three months behind the Canada duties and no use for reading them."
     },
     {
-      "head": "Nvidia, Wednesday after the close",
-      "body": "Reports after Wednesday's close, the same session as core PCE. Nasdaq futures are taking that risk down two days early rather than on the day."
+      "head": "Core PCE, Q2 GDP and durable goods, 8:30am Wednesday",
+      "body": "Three releases in one minute, then the 5y auction that afternoon and Nvidia after the close. One session carries the whole week's risk."
     },
     {
-      "head": "Warsh's Jackson Hole keynote, 10am ET Friday",
-      "body": "First symposium as chair, Aug 27-29. He walks in with a tariff shock four days old and no track record for the market to price him off."
+      "head": "Warsh at Jackson Hole, Friday",
+      "body": "The symposium runs Aug 27-29 and the keynote is his first as chair. He speaks two days after the print with a hike still live in the strip."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "30y 5.24%, about 3bp below Friday's close (~6am ET). A 50% duty is a price-level shock and the long end bought duration anyway — that is a demand read, not a Fed read.",
-        "Section 338 overrides CUSMA origin. Every pass-through model built on treaty carve-outs is wrong by the size of the carve-out, and importers found out on a Saturday.",
-        "Gold $4,644/oz, +0.79% (~6am ET), bid alongside duration. Inflation compensation would have sold the long end this morning; a fiscal bid buys both, and it did."
+        "Two sessions running, the long end did the work and the front did none. Growth-and-supply repricing, not a Fed one, and today's auction tests the part that has not moved.",
+        "Neither the oil break nor the grain squeeze reaches tomorrow's number, which covers July. Both land in August data, and they point opposite ways.",
+        "Gold sits at a 15-week high, not a record. GVZ rose to 28.28 while OVX fell to 46.74: hedging demand moved from the barrel to the bar in one session."
       ],
-      "positioning": "New this week: spec net long Swiss franc jumped ten points to the 88th %ile, the only fresh extreme in FX. That length went on before the Canada proclamation, not after it.",
+      "positioning": "Standing background, not news: spec net long 2y Treasury has been pinned at the 100th %ile of three years for four weeks, with hedgers at the opposite extreme. It prices today.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Nasdaq 100 futures -0.72% against S&P 500 -0.22% and Dow -0.09% (~3:40am ET). The trade shock is being expressed in AI multiples, not in trade-exposed industrials.",
-        "Canada's list is steel, dairy, appliances, ag equipment, pulp and electronics. Those names have a dated Sept 8 event, which is a rare thing to be able to hedge to."
+        "Monday was a rotation, not a de-risking. Blue chips took the money that came out of chips, with Nvidia off 1.9% into its own print.",
+        "Nasdaq 100 +0.64%, S&P 500 +0.33%, Dow +0.22% (~5:40am ET). This morning buys back what yesterday sold, and a two-day round trip is positioning, not a view."
       ],
-      "positioning": "Spec net long S&P 500 futures came off five points to the 86th %ile last week, the first trim since the jump, and is still extended long into Wednesday's print.",
+      "positioning": "Spec net short Nasdaq 100 sits at the 3rd %ile of three years, unchanged for three weeks. Whatever is at risk into tomorrow night, it is not a consensus long in the futures.",
       "single_name": {
-        "ticker": "MED",
-        "note": "Medifast — new to the screen today, insider buy filed Aug 21, above its 200-day. WW sits at the same score on the same list: two weight-management insiders in two sessions."
+        "ticker": "ELAN",
+        "note": "Elanco - new to the screen today on an insider buy filed Aug 21, above its 200-day, 7.3 days to cover. Animal health is as far from the AI print as the screen gets."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Friday's credit close was struck before the duties took effect Saturday. Today is the first mark on a tariff that is already law, so read last week's spreads as pre-event.",
-        "The duty hits importer working capital before any P&L. Fifty points on goods already on the water is a funding call, and it lands inside this quarter."
+        "The spreads on the tape are Friday's marks. Nothing in credit has priced the sanctions, the oil break, or a week carrying three coupon auctions.",
+        "With the Fed's overnight facility effectively empty, a three-auction settlement week drains bank reserves directly rather than the facility that used to take it."
       ],
-      "positioning": "Spec high-yield covered eight points to the 12th %ile last week, the largest move in credit. Extended short into a week carrying a tariff, a PCE print and Warsh.",
-      "single_name": null
+      "positioning": "Primary-dealer investment-grade inventory sits mid-range at the 53rd %ile, so no dealer balance-sheet stress goes into the supply. That is the pre-condition for quiet auctions.",
+      "single_name": {
+        "ticker": "REFI",
+        "note": "Chicago Atlantic - three insider rules fired and a filing dated Aug 21, above its 200-day. A mortgage REIT lender is a levered read on the front end holding."
+      }
     }
   ],
   "movers": [
@@ -76,22 +83,22 @@
       "link": true
     },
     {
-      "ticker": "AMR",
-      "pct": 8.1,
+      "ticker": "ABTC",
+      "pct": 9.0,
       "link": true
     },
     {
-      "ticker": "ABTC",
-      "pct": -6.4,
+      "ticker": "ABCL",
+      "pct": -6.3,
+      "link": true
+    },
+    {
+      "ticker": "STRZ",
+      "pct": 5.4,
       "link": true
     },
     {
       "ticker": "WW",
-      "pct": 4.7,
-      "link": true
-    },
-    {
-      "ticker": "MLAB",
       "pct": 4.7,
       "link": true
     }
@@ -103,44 +110,44 @@
         {
           "label": "2y",
           "level": "4.24%",
-          "chg": "+5bp",
-          "dir": "up"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "10y",
-          "level": "4.74%",
-          "chg": "+5bp",
-          "dir": "up"
+          "level": "4.70%",
+          "chg": "-4bp",
+          "dir": "down"
         },
         {
           "label": "20y",
-          "level": "5.25%",
-          "chg": "+5bp",
-          "dir": "up"
+          "level": "5.21%",
+          "chg": "-4bp",
+          "dir": "down"
         },
         {
           "label": "30y",
-          "level": "5.27%",
-          "chg": "+4bp",
-          "dir": "up"
+          "level": "5.23%",
+          "chg": "-4bp",
+          "dir": "down"
         },
         {
           "label": "2s10s",
-          "level": "50bp",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "46bp",
+          "chg": "-4bp",
+          "dir": "down"
         },
         {
           "label": "10y real",
-          "level": "2.40%",
-          "chg": "+5bp",
-          "dir": "up"
+          "level": "2.38%",
+          "chg": "-2bp",
+          "dir": "down"
         },
         {
           "label": "10y B/E",
-          "level": "2.34%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "2.32%",
+          "chg": "-2bp",
+          "dir": "down"
         },
         {
           "label": "Term prem",
@@ -151,8 +158,8 @@
         },
         {
           "label": "MOVE",
-          "level": "73.40",
-          "chg": "+0.20",
+          "level": "74.00",
+          "chg": "+0.60",
           "dir": "up"
         }
       ]
@@ -162,43 +169,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,674.37",
-          "chg": "+0.43%",
-          "dir": "up"
+          "level": "7,652.86",
+          "chg": "-0.28%",
+          "dir": "down"
         },
         {
           "label": "Nasdaq",
-          "level": "26,180.46",
-          "chg": "+0.43%",
-          "dir": "up"
+          "level": "25,980.19",
+          "chg": "-0.76%",
+          "dir": "down"
         },
         {
           "label": "Dow",
-          "level": "53,277.01",
-          "chg": "+0.98%",
+          "level": "53,417.16",
+          "chg": "+0.26%",
           "dir": "up"
         },
         {
           "label": "VIX",
-          "level": "15.13",
-          "chg": "-0.88",
-          "dir": "down"
+          "level": "15.85",
+          "chg": "+0.72",
+          "dir": "up"
         },
         {
           "label": "VIX 1m/3m",
-          "level": "0.818",
-          "chg": "-0.022",
-          "dir": "down"
+          "level": "0.854",
+          "chg": "+0.036",
+          "dir": "up"
         },
         {
           "label": "SKEW",
-          "level": "143.90",
-          "chg": "+0.70",
+          "level": "145.60",
+          "chg": "+1.70",
           "dir": "up"
         },
         {
           "label": "CAPE",
-          "level": "41.96",
+          "level": "41.84",
           "chg": null,
           "dir": "flat"
         }
@@ -209,40 +216,41 @@
       "rows": [
         {
           "label": "IG OAS",
-          "level": "82bp",
-          "chg": "+1bp",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "81bp",
+          "chg": "-1bp",
+          "dir": "down",
+          "as_of": "Aug 21"
         },
         {
           "label": "HY-IG",
-          "level": "275bp",
-          "chg": "+2bp",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "270bp",
+          "chg": "-5bp",
+          "dir": "down",
+          "as_of": "Aug 21"
         },
         {
           "label": "HYG/LQD",
-          "level": "1.331",
-          "chg": "-0.003",
-          "dir": "down"
+          "level": "1.332",
+          "chg": "+0.002",
+          "dir": "up"
         },
         {
           "label": "SOFR-OIS",
-          "level": "0bp",
-          "chg": "+1bp",
+          "level": "2bp",
+          "chg": "+2bp",
           "dir": "up",
-          "as_of": "Aug 20"
+          "as_of": "Aug 21"
         },
         {
           "label": "CP spread",
           "level": "17bp",
           "chg": "-2bp",
-          "dir": "down"
+          "dir": "down",
+          "as_of": "Aug 21"
         },
         {
           "label": "RRP",
-          "level": "$0.2bn",
+          "level": "$0.4bn",
           "chg": "unch",
           "dir": "flat"
         },
@@ -260,51 +268,45 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$87.83",
-          "chg": "+2.33%",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "$84.94",
+          "chg": "-2.44%",
+          "dir": "down"
         },
         {
           "label": "Brent",
-          "level": "$93.78",
-          "chg": "+2.36%",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "$91.97",
+          "chg": "-2.56%",
+          "dir": "down"
         },
         {
           "label": "Gold",
-          "level": "$4,516.30",
-          "chg": "+0.60%",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "$4,708.00",
+          "chg": "+1.81%",
+          "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.46",
-          "chg": "-0.42%",
-          "dir": "down",
-          "as_of": "Aug 20"
+          "level": "$6.61",
+          "chg": "+0.42%",
+          "dir": "up"
         },
         {
           "label": "DXY",
-          "level": "98.83",
-          "chg": "+0.03%",
+          "level": "98.98",
+          "chg": "+0.15%",
           "dir": "up"
         },
         {
           "label": "USD/JPY",
-          "level": "158.88",
-          "chg": "+0.38%",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "159.05",
+          "chg": "+0.09%",
+          "dir": "up"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1688",
-          "chg": "+0.12%",
-          "dir": "up",
-          "as_of": "Aug 20"
+          "level": "1.1663",
+          "chg": "-0.16%",
+          "dir": "down"
         }
       ]
     }
@@ -312,12 +314,22 @@
   "ideas": {
     "open": [
       {
+        "trade": "Long S&P 500 / Short Gold",
+        "date": "2026-08-23",
+        "kind": "cross-asset",
+        "held": 2,
+        "pnl": "-2.09%",
+        "vs": null,
+        "bench": null,
+        "horizon": 6
+      },
+      {
         "trade": "Long KBW / Short NASDAQ",
         "date": "2026-08-17",
         "kind": "equity",
-        "held": 6,
-        "pnl": "-2.05%",
-        "vs": "-0.62pp",
+        "held": 7,
+        "pnl": "-1.25%",
+        "vs": "+0.46pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -325,9 +337,9 @@
         "trade": "Long 10y TIPS / Short 10y UST",
         "date": "2026-08-16",
         "kind": "rates",
-        "held": 5,
-        "pnl": "+0.61%",
-        "vs": "+0.69pp",
+        "held": 7,
+        "pnl": "+0.42%",
+        "vs": "+0.58pp",
         "bench": "10-year Treasuries",
         "horizon": 6
       },
@@ -335,15 +347,15 @@
         "trade": "Long EUR/USD",
         "date": "2026-08-14",
         "kind": "fx",
-        "held": 6,
-        "pnl": "+1.33%",
+        "held": 8,
+        "pnl": "+1.11%",
         "vs": null,
         "bench": null,
         "horizon": 3
       }
     ],
     "closed": [],
-    "as_of": "2026-08-21",
-    "line": "3 open · 0 closed — no hit rate until 10 (too few to mean anything)"
+    "as_of": "2026-08-24",
+    "line": "4 open · 0 closed — no hit rate until 10 (too few to mean anything)"
   }
 }
