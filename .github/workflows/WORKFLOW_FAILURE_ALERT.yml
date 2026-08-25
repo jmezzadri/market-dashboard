@@ -226,6 +226,10 @@ jobs:
           WF_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           WF_HEAD_MSG: ${{ github.event.workflow_run.head_commit.message }}
           WF_CREATED: ${{ github.event.workflow_run.created_at }}
+          # 2026-08-25: needed to read WHICH STEP failed and WHAT IT PRINTED, so the
+          # email can say the actual problem instead of "open the run log".
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           python3 - <<'PY'
           import os, json, datetime, urllib.request, urllib.error, urllib.parse
@@ -403,20 +407,150 @@ jobs:
                         f"Background plumbing that self-heals is not news for Joe.")
                   raise SystemExit(0)
 
-          subject = (f"[MacroTilt] Still failing: {name}" if stuck
-                     else f"[MacroTilt] Workflow FAILED: {name}")
+          # --- PLAIN ENGLISH (2026-08-25) --------------------------------------
+          # Joe: "Can you make sure these failure emails are clean what they are?
+          # What I should do, they're so annoying. I have no idea what they're for."
+          # He is right. The old email said "A scheduled GitHub Actions workflow
+          # finished with conclusion failure. Open the run log to see which step blew
+          # up." — a job name, a SHA, and a link to a log he will never open. It named
+          # the machine, not the thing, and never said whether he had to do anything.
+          #
+          # Every email now answers three questions in his language: what this is,
+          # what went wrong (the actual message the job printed), and what HE should
+          # do — which is almost always "nothing, Claude handles it", because he is a
+          # management consultant and the standing rule is that the agent does all
+          # technical work. Anything not on this list gets the honest default.
+          PLAIN = {
+              "QT-EOD-DAILY": (
+                  "The paper book's nightly check",
+                  "Every weeknight after the close this records what the paper book "
+                  "holds and checks that every share that moved had a real trade behind it.",
+                  "Nothing. Claude sees this too and will investigate. Only chase it "
+                  "if the same email arrives several nights running."),
+              "QT-REBALANCE": (
+                  "The paper book's monthly rebalance",
+                  "On the first trading day of each month this buys and sells to bring "
+                  "the book back to the 40 stocks the strategy currently ranks highest.",
+                  "Mention it to Claude today. This one moves money in the book, so a "
+                  "failure means the monthly trade may not have happened."),
+              "DAILY-BRIEF-WRITER": (
+                  "Your morning market brief",
+                  "Writes the brief that lands in your inbox and heads the MacroTilt homepage.",
+                  "Nothing. If no brief arrives by mid-morning, tell Claude."),
+              "BRIEF-FRESHNESS-SELFHEAL": (
+                  "The guard that stops the homepage brief going stale",
+                  "Watches for the homepage showing an out-of-date brief and republishes it.",
+                  "Nothing, unless the homepage is visibly showing an old date."),
+              "DAILY-HOME-SMOKE": (
+                  "The site health check",
+                  "Loads MacroTilt every day and confirms the pages actually render.",
+                  "Have a quick look at macrotilt.com. If it looks broken, tell Claude."),
+              "macrotilt-engine-daily": (
+                  "The daily engine calculation",
+                  "Recomputes the macro engine readings the site publishes each day.",
+                  "Nothing. Claude will pick it up."),
+          }
+          DEFAULT_PLAIN = (
+              None,
+              "A background data job that keeps the site's numbers up to date.",
+              "Nothing. Background jobs are only emailed once they stay broken for "
+              "more than a day, so this one has not fixed itself — Claude will look.")
+
+
+          def failure_detail(run_id):
+              """Which step failed, and what it actually printed. Best effort: this
+              email must still send if GitHub's API is slow or the log has rolled."""
+              step, lines = None, []
+              tok = os.environ.get("GH_TOKEN") or ""
+              repo = os.environ.get("GH_REPO") or "jmezzadri/market-dashboard"
+              if not tok or not str(run_id).isdigit():
+                  return step, lines
+              hdr = {"Authorization": "Bearer " + tok,
+                     "Accept": "application/vnd.github+json",
+                     "User-Agent": "macrotilt-watchdog"}
+              try:
+                  req = urllib.request.Request(
+                      f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs",
+                      headers=hdr)
+                  with urllib.request.urlopen(req, timeout=25) as r:
+                      jobs = json.load(r).get("jobs", [])
+                  bad = next((j for j in jobs if j.get("conclusion") == "failure"), None)
+                  if not bad:
+                      return step, lines
+                  step = next((st.get("name") for st in bad.get("steps", [])
+                               if st.get("conclusion") == "failure"), None)
+                  req = urllib.request.Request(
+                      f"https://api.github.com/repos/{repo}/actions/jobs/{bad['id']}/logs",
+                      headers=hdr)
+                  with urllib.request.urlopen(req, timeout=25) as r:
+                      raw = r.read().decode("utf-8", "replace")
+                  # A job hands this email the exact sentence it wants Joe to read
+                  # by printing it behind PLAIN_MARK. NOTHING ELSE from the log is
+                  # ever shown. Scraping a tail was tried and rejected: stdout and
+                  # stderr interleave on the runner, so a Python traceback lands in
+                  # the middle of the message and the "last N lines" are runner
+                  # teardown noise — 'File "<frozen runpy>", line 198', git config
+                  # chatter, Node deprecation warnings. Joe asked for these emails to
+                  # be clean; a job that has not opted in gets a named failing step
+                  # and no excerpt, which is honest rather than noisy.
+                  MARK = "::macrotilt-plain::"
+                  for ln in raw.splitlines():
+                      if MARK in ln:
+                          lines.append(ln.split(MARK, 1)[1].strip())
+              except Exception as e:
+                  print(f"failure_detail: {e} — sending without the log excerpt")
+              return step, lines
+
+
+          import html as _html
+          label, what_it_is, what_to_do = PLAIN.get(name, DEFAULT_PLAIN)
+          if label is None:
+              label = name
+          failed_step, log_lines = failure_detail(run_id)
+          if os.environ.get("IS_TEST") == "true":
+              label = "Alert channel test"
+              what_it_is = ("A deliberate test send, to prove these emails still reach you. "
+                            "Nothing is broken.")
+              what_to_do = "Nothing at all. This is the channel working."
+
+          subject = (f"[MacroTilt] Still failing: {label}" if stuck
+                     else f"[MacroTilt] {label} — something went wrong")
+          if os.environ.get("IS_TEST") == "true":
+              subject = "[MacroTilt] Alert channel test — nothing is broken"
+
+          if log_lines:
+              said = ("<p style='margin:16px 0 6px;font-weight:600'>What the check said</p>"
+                      "<pre style='background:#f6f6f4;border:1px solid #e5e5e0;border-radius:6px;"
+                      "padding:10px 12px;font-size:12px;line-height:1.5;white-space:pre-wrap;"
+                      "word-break:break-word;margin:0'>"
+                      + _html.escape("\n".join(log_lines)) + "</pre>")
+          elif failed_step:
+              said = (f"<p style='margin:16px 0 6px;font-weight:600'>What went wrong</p>"
+                      f"<p style='margin:0'>The step named &ldquo;{_html.escape(failed_step)}&rdquo; "
+                      f"failed. The detail is in the run log.</p>")
+          else:
+              said = ("<p style='margin:16px 0 6px;font-weight:600'>What went wrong</p>"
+                      "<p style='margin:0'>The job stopped before finishing. The detail is "
+                      "in the run log.</p>")
+          repeat_note = ("<p style='margin:0 0 4px;color:#9b2226;font-weight:600'>This has now "
+                         "gone wrong on more than one day &mdash; it is not fixing itself.</p>"
+                         if stuck else "")
           html = f"""
-          <div style='font-family:-apple-system,Segoe UI,sans-serif;color:#111;line-height:1.45'>
-            <h2 style='margin:0 0 8px;color:#9b2226'>{'Still failing' if stuck else 'Workflow failed'}: {name}</h2>
-            <p>{'This background job has now failed on more than one day &mdash; it is not self-healing and needs a look.' if stuck else 'A scheduled GitHub Actions workflow finished with conclusion <b>failure</b>. Open the run log to see which step blew up.'}</p>
-            <table style='border-collapse:collapse;font-size:13px;margin:14px 0'>
-              <tr><td style='padding:4px 12px 4px 0;color:#666'>Workflow</td><td>{name}</td></tr>
-              <tr><td style='padding:4px 12px 4px 0;color:#666'>Run</td><td><a href='{run_url}'>{run_id}</a></td></tr>
-              <tr><td style='padding:4px 12px 4px 0;color:#666'>Started</td><td>{created}</td></tr>
-              <tr><td style='padding:4px 12px 4px 0;color:#666'>Head SHA</td><td><code>{head_sha}</code></td></tr>
-              <tr><td style='padding:4px 12px 4px 0;color:#666'>Head commit</td><td style='font-size:12px;color:#444'>{head_msg}</td></tr>
-            </table>
-            <p style='font-size:12px;color:#888'>You are emailed about this workflow because it affects something you can see. Background data jobs are recorded silently and only surface here once they stay broken across more than one day. One email per workflow per day.<br>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
+          <div style='font-family:-apple-system,Segoe UI,sans-serif;color:#111;line-height:1.5;max-width:620px'>
+            <h2 style='margin:0 0 10px;font-size:19px'>{label}</h2>
+            {repeat_note}
+            <p style='margin:0 0 6px;font-weight:600'>What this is</p>
+            <p style='margin:0'>{what_it_is}</p>
+            {said}
+            <p style='margin:18px 0 6px;font-weight:600'>What you should do</p>
+            <p style='margin:0;padding:10px 12px;background:#eef4ff;border-left:3px solid #2d5bd7;border-radius:4px'>{what_to_do}</p>
+            <p style='margin:22px 0 0;font-size:12px;color:#999;border-top:1px solid #eee;padding-top:10px'>
+              Technical detail, if Claude asks for it &mdash;
+              job <code>{name}</code>, run <a href='{run_url}' style='color:#999'>{run_id}</a>,
+              started {created}, code version <code>{head_sha}</code>.<br>
+              You get this because it affects something you can see. Background jobs stay
+              silent unless they stay broken more than a day. One email per job per day.
+            </p>
           </div>
           """
 
