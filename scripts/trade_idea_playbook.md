@@ -224,8 +224,21 @@ publish the one that survived. That is the standing method:
    extremes list, not from whatever was interesting last session.
 2. **A candidate that dies stays dead.** No re-expressing, no relabelling — the
    next candidate is one line down the list.
-3. **Long-only expressible, always.** If the surviving edge cannot be held by
-   buying something, it is context for the next note, not the note.
+3. **Shorts live inside relative-value trades, never as long-horizon bets
+   against a trend (Joe, 2026-08-25).** The gold episode settled this policy in
+   two halves. What is OUT: an outright short of a trending asset held for
+   quarters — "short gold for 6-12 months" fails however good the signal,
+   because trending assets (gold above all — see the cross-asset map: gold
+   extremes are followed by MORE upside) can run against a short far longer
+   than the edge lasts, and the carry of being short compounds the pain. What
+   is IN: a short leg inside a specific relative-value trade — long one thing
+   against short a related thing — when the pair is the honest expression of a
+   measured edge. Every short-containing note must clear a HURDLE the contract
+   enforces: `edge.vs_market` states, with a number, the expected return over
+   the horizon and why it beats simply holding the S&P 500. The Scorecard
+   already grades every call against the S&P, so the claim is marked, not
+   just made. An edge with no long-only expression AND no defensible RV pair
+   is still context for the next note, not the note.
 4. **Read the street before writing the variant.** Web-search current sell-side
    and financial-press positioning on the candidate (dated pages only). The
    `variant` field should quote a real, dated piece of consensus — arguing with

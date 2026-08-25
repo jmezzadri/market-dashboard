@@ -213,6 +213,24 @@ idea sweep starts from the live book's exposures, and portfolio construction
 **Applies to:** every Trade Idea, and any future surface that publishes more
 than one live call.
 
+### 0.4f (2026-08-25) — Shorting policy, settled: RV shorts with a market hurdle; no long-horizon shorts of trending assets
+
+Joe: *"we can have RV trades, but short gold over a long time horizon is not
+smart... If it makes sense for a specific RV trade, Im not opposed to short.
+But it needs to be well thought out and have a target return that is expected
+to beat the overall market."*
+
+The policy in three lines: (1) a short leg inside a relative-value pair is a
+legitimate tool; (2) an outright short of a trending asset held for quarters is
+not — the trend outlasts the edge and the cost of being short compounds; (3)
+every short-containing note must state a numbered expected return versus
+holding the S&P 500 (`edge.vs_market`, contract-enforced from 2026-08-26), and
+the Scorecard's vs-S&P column grades that exact claim afterwards. This
+supersedes the strict long-only rule of 2026-08-24, which was the
+over-correction from the gold episode.
+
+**Applies to:** every Trade Idea.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."
