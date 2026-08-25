@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-25T15:47:38Z",
+  "generated_at": "2026-08-25T16:27:45Z",
   "cadence": "Sunday and Wednesday evenings, US Eastern",
   "next_publish": "2026-08-26",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -205,9 +205,15 @@
         },
         "note": "Scored as the price return of a 10-year par bond from the yield series, against the alternative the term-premium argument competes with: staying in short-dated Treasuries."
       },
+      "reconciles": [
+        {
+          "date": "2026-08-16",
+          "prose": "The August 16 note sells ordinary 10-year Treasuries, dollar for dollar, to buy their inflation-protected twins — and this note buys the ordinary ones back. That is not the contradiction it looks like, because the two notes answer different questions. The August 16 trade is a swap: it wins if inflation compensation is repriced upward, and it does not care whether yields rise or fall. This note is about the level: it wins if yields fall. A reader who takes both ends up simply owning 10-year TIPS — the sold Treasuries in the first trade and the bought Treasuries in this one cancel out. Read together, the house view is one sentence: own the 10-year Treasury market, and prefer the inflation-protected version of it while inflation insurance is priced this cheaply. A reader taking only one idea should take this one; it is the simpler position."
+        }
+      ],
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
       "status": "live",
-      "published_at": "2026-08-25T15:47:38Z"
+      "published_at": "2026-08-25T16:27:45Z"
     },
     {
       "date": "2026-08-17",

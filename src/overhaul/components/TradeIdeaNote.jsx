@@ -169,6 +169,12 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
         <>
           <p className="briefmodal-sec">The other side</p>
           <p><Html html={idea.other_side} /></p>
+          {(idea.reconciles || []).map((r) => (
+            <React.Fragment key={r.date}>
+              <p className="briefmodal-sec">How this sits with the {longDate(r.date)} note</p>
+              <p><Html html={r.prose} /></p>
+            </React.Fragment>
+          ))}
         </>
       )}
 
