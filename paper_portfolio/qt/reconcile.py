@@ -32,9 +32,17 @@ freshness chip red.
 """
 from __future__ import annotations
 
+import sys
+
 import requests
 
 from . import data as D
+
+# Lines tagged with this marker are lifted VERBATIM into the alert email Joe
+# reads (see .github/workflows/WORKFLOW_FAILURE_ALERT.yml). Everything else a
+# failing job prints — tracebacks, module paths, pip noise — is discarded.
+# Write these in plain English: he is not an engineer and will not open a log.
+PLAIN_MARK = "::macrotilt-plain::"
 
 # Equity vs positions+cash never ties to the cent (quote timing across the
 # snapshot). A dollar of drift is noise; a tenth of a percent is a hole.
@@ -158,11 +166,10 @@ def run(today_row: dict, *, raise_on_fail: bool = True) -> list[str]:
               f"{len(today_row.get('positions') or [])} holdings, "
               f"value ties, every share change matched to a trade", flush=True)
         return problems
-    header = (f"CUSTODY CHECK FAILED for the Quality Trend paper book "
-              f"({today_row['d']}). Something changed in the account that no "
+    header = (f"Something changed in the paper book on {today_row['d']} that no "
               f"trade explains:")
-    body = "\n".join(f"  - {p}" for p in problems)
-    print(header + "\n" + body, flush=True)
+    for line in [header] + [f"\u2022 {p}" for p in problems]:
+        print(f"{PLAIN_MARK}{line}", flush=True)
     if raise_on_fail:
         raise ReconcileError(header + " " + " ".join(problems))
     return problems
@@ -183,4 +190,10 @@ def _latest_row() -> dict:
 
 
 if __name__ == "__main__":
-    run(_latest_row())
+    # Exit non-zero WITHOUT a traceback: the job must fail (that is what sends the
+    # alert), but a Python stack trace interleaves with the message in the GitHub
+    # log and is noise to the person who ends up reading it.
+    try:
+        run(_latest_row())
+    except ReconcileError:
+        sys.exit(1)
