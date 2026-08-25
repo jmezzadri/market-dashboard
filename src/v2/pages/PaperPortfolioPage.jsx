@@ -376,7 +376,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
         rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
           .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
-        supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at').order('d'),
+        supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at,account_number').order('d'),
       ]);
       if (bk.error) throw bk.error;
       setBook(bk.data || []);
@@ -387,7 +387,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         if (!om[o.symbol] || (o.status === 'filled' && om[o.symbol].status !== 'filled')) om[o.symbol] = o;
       });
       setOrders(om);
-      setNav(nv.data || []);
+      // Show ONE book. qt_nav_daily keeps every epoch, but a paper account
+      // restart (new account, funded back to $1,000,000) is a new book, not a
+      // continuation: charting across the boundary would splice the retired
+      // book's closing equity onto the new book's opening $1M and draw a jump
+      // that never happened. Keep only rows from the most recent account.
+      const navRows = nv.data || [];
+      const liveAccount = navRows.length
+        ? navRows[navRows.length - 1].account_number
+        : null;
+      setNav(liveAccount
+        ? navRows.filter((r) => r.account_number === liveAccount)
+        : navRows);
       setErr(null);
     } catch (ex) { setErr((prev) => prev ?? String(ex?.message || ex)); }
   }, []);
