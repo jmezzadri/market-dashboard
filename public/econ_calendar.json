@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-24T20:56:24Z",
+  "generated_at": "2026-08-25T09:59:19Z",
   "window": {
-    "from": "2026-08-17",
-    "to": "2026-11-02"
+    "from": "2026-08-18",
+    "to": "2026-11-03"
   },
   "counts": {
     "total": 99,
-    "tier1": 24
+    "tier1": 25
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,28 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-17",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-17",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-18",
       "time_et": "8:30 AM",
@@ -1106,6 +1084,28 @@
       "tier": 3,
       "category": "Housing",
       "blurb": "Value of construction put in place, residential and non-residential.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-03",
+      "time_et": "10:00 AM",
+      "name": "Job openings (JOLTS)",
+      "short": "JOLTS",
+      "tier": 1,
+      "category": "Labor",
+      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-03",
+      "time_et": "10:00 AM",
+      "name": "Factory orders",
+      "short": "Factory",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Full manufacturers' shipments, inventories and orders.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
