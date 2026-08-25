@@ -56,14 +56,21 @@ class ReconcileError(RuntimeError):
     """A holding changed, or value went missing, with no trade behind it."""
 
 
-def _prev_snapshot(today: str) -> dict | None:
-    r = requests.get(
-        f"{D.SB_URL}/rest/v1/qt_nav_daily",
-        headers=D._sb_headers(),
-        params={"select": "d,created_at,equity,cash,positions",
-                "d": f"lt.{today}", "order": "d.desc", "limit": "1"},
-        timeout=60,
-    )
+def _prev_snapshot(today: str, account: str | None) -> dict | None:
+    """The previous snapshot OF THE SAME ACCOUNT.
+
+    Scoped to one account on purpose (2026-08-25). When the book restarts on a
+    new paper account, the previous calendar day's snapshot belongs to a
+    different book: comparing across that boundary would report all 40 holdings
+    as vanished on day one. A new account simply has nothing to compare against
+    yet, which is the honest answer.
+    """
+    params = {"select": "d,created_at,equity,cash,positions,account_number",
+              "d": f"lt.{today}", "order": "d.desc", "limit": "1"}
+    if account:
+        params["account_number"] = f"eq.{account}"
+    r = requests.get(f"{D.SB_URL}/rest/v1/qt_nav_daily",
+                     headers=D._sb_headers(), params=params, timeout=60)
     r.raise_for_status()
     rows = r.json()
     return rows[0] if rows else None
@@ -116,9 +123,11 @@ def check(today_row: dict, *, until: str | None = None) -> list[str]:
         )
 
     # ── test 2: every holding change explained by a fill ─────────────────
-    prev = _prev_snapshot(today_row["d"])
+    account = today_row.get("account_number")
+    prev = _prev_snapshot(today_row["d"], account)
     if not prev:
-        print("reconcile: no previous snapshot — holding-change check skipped",
+        print(f"reconcile: first snapshot for account {account or '(unknown)'} — "
+              f"nothing to compare holdings against yet, value check only",
               flush=True)
         return problems
 
@@ -179,7 +188,8 @@ def _latest_row() -> dict:
     r = requests.get(
         f"{D.SB_URL}/rest/v1/qt_nav_daily",
         headers=D._sb_headers(),
-        params={"select": "d,equity,cash,positions", "order": "d.desc", "limit": "1"},
+        params={"select": "d,equity,cash,positions,account_number",
+                "order": "d.desc", "limit": "1"},
         timeout=60,
     )
     r.raise_for_status()

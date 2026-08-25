@@ -46,6 +46,10 @@ def snapshot() -> dict:
 
     row = {
         "d": date.today().isoformat(),
+        # Which broker account this snapshot came from. The book is one
+        # continuous series only within a single account_number — the site
+        # charts a single epoch and reconcile never compares across a change.
+        "account_number": acct.get("account_number"),
         "equity": float(acct["equity"]),
         "cash": float(acct["cash"]),
         "long_mv": float(acct.get("long_market_value") or 0),
@@ -69,7 +73,7 @@ def snapshot() -> dict:
                       headers=h, json=[row], timeout=60)
     r.raise_for_status()
     print(f"snapshot {row['d']}: equity ${row['equity']:,.0f}, "
-          f"{row['n_positions']} positions", flush=True)
+          f"{row['n_positions']} positions, account {row['account_number']}", flush=True)
     return row
 
 
