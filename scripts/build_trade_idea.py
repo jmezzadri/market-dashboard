@@ -140,7 +140,27 @@ POSITION_TYPES = {
     "outright short":    "A short position — sold with the intention of buying it back lower.",
     "long/short spread": "Long one thing and short the other, sized against each other.",
     "hedge":             "Protection bought against something already owned.",
-    "watch only":        "Not a position yet — the setup to watch and what would make it one.",
+}
+# 2026-08-24 — `watch only` is REMOVED, and this is the reason. The 2026-08-23
+# gold note found something real that had no expression Joe would publish, so it
+# shipped as `watch only`: a tile headed TRADE IDEA, carrying a fact strip that
+# said there is no entry, no position, and here is what kills the position that
+# does not exist. Joe: "We cannot have a tile that says TRADE IDEA on the
+# fucking website and then post NO TRADE IDEA."
+#
+# He is right, and the fault was never the label — it was publishing at all. The
+# playbook has said from the start that an absent note is correct and a forced
+# one is not. `watch only` was the loophole that let a forced note through by
+# renaming it. There is no surface on this site for a finding with no trade in
+# it, so until there is one, a note that cannot name something to buy or sell
+# does not get published. The tile keeps showing the previous note, which is
+# what it is designed to do.
+RETIRED_POSITION_TYPES = {
+    "watch only": (
+        "there is no trade in it. The tile is headed TRADE IDEA; a note that names no position "
+        "does not belong under it. If the data will not support a trade, publish nothing — the "
+        "tile carries the previous note until the next real one."
+    ),
 }
 
 # 2026-08-13 (Joe, third pass): "Can we not be so blunt... It should be more
@@ -403,6 +423,9 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         raise ContractError("other_side must be a real counter-argument, not a hedge clause (min 60 chars)")
 
     # 3b — the reader must know what the position IS before any number
+    if idea["position_type"] in RETIRED_POSITION_TYPES:
+        raise ContractError(
+            f"position_type {idea['position_type']!r} is retired — {RETIRED_POSITION_TYPES[idea['position_type']]}")
     if idea["position_type"] not in POSITION_TYPES:
         raise ContractError(f"position_type must be one of {sorted(POSITION_TYPES)}, got {idea['position_type']!r}")
     pe = str(idea["call"]).strip()
@@ -478,14 +501,7 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     # which is how "sell a slice of your existing gold" got written in the first
     # place. So `buy` is required for every position type EXCEPT `watch only`,
     # which must instead say what would MAKE it a position.
-    if idea["position_type"] == "watch only":
-        if not str(tt.get("what_would_make_it_a_position", "")).strip():
-            raise ContractError(
-                "position_type 'watch only' requires the_trade.what_would_make_it_a_position — "
-                "a setup with no stated trigger is an observation, not a note")
-        if str(tt.get("buy", "")).strip():
-            raise ContractError("position_type is 'watch only' but the_trade.buy names a purchase — pick one")
-    elif not str(tt.get("buy", "")).strip():
+    if not str(tt.get("buy", "")).strip():
         raise ContractError("the_trade must be an object naming at least what is bought (`buy`)")
     if idea["position_type"] in ("outright short", "long/short spread") and not str(tt.get("short", "")).strip():
         raise ContractError(f"position_type {idea['position_type']!r} requires the_trade.short — say what is sold short")

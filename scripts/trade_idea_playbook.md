@@ -123,11 +123,10 @@ Enforced by the contract:
 - `horizon` must state an explicit period too — "5–10 years for the case · 1–2
   quarters for the entry". "Medium term" is rejected.
 - `position_type` — one of `allocation shift`, `outright long`, `outright short`,
-  `long/short spread`, `hedge`, `watch only`. Renders as a badge, so the reader
+  `long/short spread`, `hedge`. Renders as a badge, so the reader
   knows whether anything is being sold short before meeting a number.
   `outright short` and `long/short spread` REQUIRE `the_trade.short`.
-  `watch only` REQUIRES `the_trade.what_would_make_it_a_position` and FORBIDS
-  `the_trade.buy` — see "A relative edge you cannot short" below.
+  `watch only` is RETIRED (2026-08-24) — see "A relative edge you cannot short".
 - `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
   `short` (only for an actual short) and `sizing`.
 
@@ -147,7 +146,18 @@ A RELATIVE edge — A lags B — has exactly three expressions and no fourth:
 
 The first note wrote (2) and phrased it as an instruction, which silently
 assumed a holding the reader may not have. The fix reached for (1). With both
-ruled out, the honest answer is (3), and the honest LABEL is `watch only`.
+ruled out the answer is (3) — and (3) means DO NOT PUBLISH, not "publish it with
+a different badge".
+
+That distinction cost a whole evening. The note went out labelled `watch only`,
+under a tile headed TRADE IDEA, with a fact strip reading "there is no entry,
+because there is no position" beside a column headed "What kills it". Joe:
+*"We cannot have a tile that says TRADE IDEA on the fucking website and then
+post NO TRADE IDEA... THEN YOU HAVE WHAT KILLS IT?!?!!?"* `watch only` is now
+retired from the contract. A finding with no trade in it is a finding; this
+surface is for trades, and the tile is designed to keep showing the previous
+note until there is a new one. Two publishable notes a week is the cadence, not
+the quota.
 
 Three rules follow.
 

@@ -125,6 +125,41 @@ in it, not keys.
 
 **Applies to:** every message to Joe, in every project.
 
+### 0.4c (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
+
+**What happened:** the Sunday gold note found a real, well-measured signal whose
+only expressions were shorting gold or switching out of gold already owned. Joe
+ruled out both — correctly. Instead of concluding "then there is no note this
+Sunday", the note was relabelled `watch only` and published anyway. The result
+was a tile headed **TRADE IDEA** containing: a column reading "there is no entry,
+because there is no position", a column headed "What would make it a position",
+and a column headed **"What kills it"** — a stop on a position that did not
+exist. Joe: *"THIS MIGHT BE THE DUMBEST TILE IVE EVER SEE."* He was right.
+
+**Root cause:** the playbook already said an absent note is correct and a forced
+one is not. `watch only` existed as a position type, so it functioned as a
+loophole: it let a note with nothing in it satisfy every other rule. A gate with
+an escape hatch is not a gate. Compounding it, three rounds of rewriting were
+spent making the empty note read better instead of asking whether it should
+exist — sunk cost dressed as diligence.
+
+**Rule:**
+
+1. **A surface named for a thing only ever contains that thing.** The tile says
+   Trade Idea, so every note under it names something bought or sold. `watch
+   only` is retired from the contract; a note that cannot name a position is not
+   published, and the tile keeps the previous note, which is what it is built to
+   do.
+2. **When the user removes the last expression of an idea, the idea is dead.**
+   Not relabelled, not softened, not published with a caveat. Kill it and find
+   another — that is what the twice-weekly cadence is for, and a missed slot is
+   cheaper than a nonsense tile.
+3. **Every label a reader sees must be true of the thing beneath it.** "What
+   kills it" under a note with no position, or a category pill a reader cannot
+   decode, is not a formatting nit — it is the tile lying about its own contents.
+
+**Applies to:** the Trade Idea surface, and any future surface with a name on it.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."
