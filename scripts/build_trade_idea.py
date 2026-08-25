@@ -670,6 +670,26 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                     "Add a `reconciles` entry [{date, prose}] (prose >= 120 chars) telling the reader how the "
                     "two fit together — the site may not contradict itself without saying so.")
 
+    # 3i — shorts: allowed inside relative-value trades, with a hurdle
+    # (Joe, 2026-08-25): "we can have RV trades... If it makes sense for a
+    # specific RV trade, Im not opposed to short. But it needs to be well
+    # thought out and have a target return that is expected to beat the overall
+    # market." So any note containing a short leg must state, with a number,
+    # what the trade is expected to return over its horizon and why that beats
+    # holding the S&P 500 — the same yardstick every call is graded against on
+    # the Scorecard, so the claim is checkable after the fact. The judgment
+    # half of the policy (never outright-short a trending asset on a
+    # multi-quarter horizon — gold being the canonical example) lives in the
+    # playbook, where judgment belongs.
+    has_short = bool(str((idea.get("the_trade") or {}).get("short", "")).strip())         or idea["position_type"] in ("outright short", "long/short spread")
+    if has_short and idea_date >= dt.date(2026, 8, 26):
+        vm = str((idea.get("edge") or {}).get("vs_market", "")).strip()
+        if len(vm) < 80 or not re.search(r"\d", vm):
+            raise ContractError(
+                "this note contains a short leg, so edge.vs_market is required (min 80 chars, with a figure): "
+                "state the expected return over the horizon and why it beats simply holding the S&P 500 — "
+                "a short is only worth its costs if it clears the market hurdle.")
+
     # 3h — a call is a PORTFOLIO action, not an isolated headline (2026-08-25).
     # Joe: "We have 4 calls on the page... Every new call needs to take into
     # account previous calls. We need to be giving ideas on how to structure
