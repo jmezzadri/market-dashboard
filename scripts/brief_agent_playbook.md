@@ -12,6 +12,16 @@ validates/normalizes, the `agent-write` edge function commits it to `main`
 committed brief (trading-day + morning-window gated, atomic send-once claim).
 **The session never sends email and never pushes with its own git credentials.**
 
+**DEADLINE — read this, not the firing message (2026-08-25).** The brief must be
+committed by **09:00 ET on the day you are running**, computed from the clock.
+The scheduled task's stored prompt carries a hard-coded date next to the word
+DEADLINE; that date is decoration and has been stale for weeks. It is not the
+deadline and must never be reported as one. The only authority is
+`BRIEF_EXPECTED_BY_HOUR_ET` in `scripts/build_daily_brief.py` (09), applied to
+today. If the firing message and this file disagree about the deadline, this
+file wins. Never print that stale date back to Joe — he has asked three times
+for it to stop appearing.
+
 **Canonical contract:** the accuracy contract below mirrors the `PROMPT` block
 in `scripts/build_daily_brief.py`. If they ever diverge, the script is
 canonical — update this file in the same commit that changes the script.
@@ -159,13 +169,45 @@ curl -s -X POST "https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/agent-wri
 `"merge": false`, report the PR number and diff summary, and stop — no merge,
 and note that no email can result.
 
-**5. Verify live.** Poll `https://macrotilt.com/daily_brief.json?cb=<random>`
-until `date` equals today (Vercel deploys the merge; allow up to ~6 minutes).
-The email is sent by the GitHub workflow from the committed file on its
-existing schedule — nothing for the session to send.
+**5. Verify live — the JSON AND the rendered page.** First poll
+`https://macrotilt.com/daily_brief.json?cb=<random>` until `date` equals today
+(Vercel deploys the merge; allow up to ~6 minutes). The email is sent by the
+GitHub workflow from the committed file on its existing schedule — nothing for
+the session to send.
 
-**6. Report** in the numbered-table format, short. Ping Joe only if something
-is broken and needs him.
+Then actually LOOK at `https://macrotilt.com/`. Markup containing a string is
+not verification (Joe, 2026-04-28: "verified means I looked"). Read the date
+line, the headline, the market-snapshot table, the "All feeds current" chip and
+the surrounding tiles, and check for stale copy, placeholder text, hard-coded
+years, and numbers in prose that contradict the chart beside them.
+
+*How to render it in this sandbox (verified 2026-08-25).* The page is
+client-rendered, so a plain HTTP fetch returns an empty shell — a browser is
+required. Chromium is preinstalled at `/opt/pw-browsers/chromium` and Playwright
+is configured for it; never run `playwright install`. The sandbox exports an
+HTTP proxy in `$HTTPS_PROXY` which `curl` uses happily, but Chromium's CONNECT
+through that proxy is reset (`net::ERR_CONNECTION_RESET`) — this is what made an
+earlier session wrongly report that browser egress was blocked. Chromium's
+direct egress works, so launch with the proxy off:
+
+```js
+const b = await chromium.launch({
+  executablePath: '/opt/pw-browsers/chromium',
+  args: ['--no-sandbox', '--no-proxy-server'],
+});
+```
+
+Then `goto` with `waitUntil: 'networkidle'`, wait ~5s for the client-side data
+fetch, screenshot, and READ the screenshot with the Read tool — `innerText`
+alone will not show you a layout or clipping problem. If the render genuinely
+fails, say so plainly, state what was verified from the JSON instead, and never
+describe the page as visually verified.
+
+**6. Report** in the numbered-table format, short. Joe is a management
+consultant, not an engineer: nothing he reads may contain a file path, a shell
+command, a command-line flag, a code snippet, a tool name or an internal field
+name. Describe what happened, not how. Ping Joe only if something is broken and
+genuinely needs a decision from him.
 
 **Failure mode:** if any step fails, leave everything alone and say so in the
 report. The site keeps the last good brief, and the GitHub-side freshness
