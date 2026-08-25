@@ -74,8 +74,10 @@ const KIND_LABEL = { equity: 'Equity', rates: 'Rates', fx: 'FX', commodity: 'Com
    an expander, so comparing two calls meant opening both. Everything is on the
    row.
 
-   Return vs. benchmark is an em-dash for currency calls, which have no
-   benchmark by design — a pair is already one thing against another. */
+   One yardstick on every row — Joe, 2026-08-25: "yes lets put it all vs. S&P.
+   How does anyone have a clue what we're measuring against?!" The column is
+   the gap to the S&P 500 over the same days, for every call in every market.
+   The header names it so nobody has to guess. */
 function Row({ r, idea, onOpenNote }) {
   const closed = String(r.status || '').startsWith('closed');
   const showMark = r.status === 'open' || closed;
@@ -202,7 +204,7 @@ export default function ScorecardPage() {
                   <th>Status</th>
                   <th>Target close</th>
                   <th className="num">Total return</th>
-                  <th className="num">vs. benchmark</th>
+                  <th className="num">vs. S&amp;P 500</th>
                   <th aria-label="Full note" />
                 </tr>
               </thead>

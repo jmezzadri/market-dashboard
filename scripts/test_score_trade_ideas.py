@@ -275,9 +275,15 @@ class TestHorizonAndPath(unittest.TestCase):
         self.assertAlmostEqual(r["max_adverse"]["value"], -20.0, places=6)
         self.assertAlmostEqual(r["mark"], 0.0, places=6)
 
-    def test_benchmark_difference_is_the_gap_to_the_passive_alternative(self):
-        h = hist(px=days("2026-01-05", [100, 110]), bm=days("2026-01-05", [100, 104]))
+    def test_benchmark_is_always_the_sp500_one_yardstick_per_page(self):
+        """Joe 2026-08-25: every row is measured against the S&P 500 — a
+        note-level benchmark override is ignored, and the difference is the
+        gap to the S&P over the same days."""
+        h = hist(px=days("2026-01-05", [100, 110]),
+                 spx_index=days("2026-01-05", [100, 104]))
         r = S.score_one(idea(scorecard={"benchmark": {"series": "bm"}}), h, "2026-01-06")
+        self.assertEqual(r["benchmark"]["series"], "spx_index")
+        self.assertEqual(r["benchmark"]["label"], "S&P 500")
         self.assertAlmostEqual(r["benchmark"]["difference"], 6.0, places=6)
 
 
