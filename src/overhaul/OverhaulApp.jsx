@@ -51,6 +51,11 @@ import './styles/chrome-v12.css';
 // Disclaimer). 2026-07-29.
 import './styles/footer-v12.css';
 
+// Mobile layer — LAST, so it wins over every page's own v12 sheet. Joe
+// 2026-08-25: "The site is not usable whatsoever if not on computer." Every
+// rule inside is behind a media query; this file is inert on desktop.
+import './styles/mobile-v12.css';
+
 import { TweaksProvider } from './tweaks/TweaksContext';
 
 import TopNav from './chrome/TopNav';
