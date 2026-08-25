@@ -160,6 +160,32 @@ exist — sunk cost dressed as diligence.
 
 **Applies to:** the Trade Idea surface, and any future surface with a name on it.
 
+### 0.4d (2026-08-24) — The live notes are ONE book; a new note checks exposure against every note still inside its horizon, not just instrument names
+
+**What happened:** the August 16 Trade Idea sells ordinary 10-year Treasuries,
+dollar for dollar, to fund TIPS. The August 24 note buys ordinary 10-year
+Treasuries. Both live, eight days apart, and nothing caught it — Joe did: *"You
+realize we already have a call to buy tips and short treasuries?"* The novelty
+gate compares instrument STRINGS ("10-year inflation breakeven…" vs "10-year US
+Treasury notes…" — different strings, both pass), while the actual exposure
+lives in the scorecard legs, where one note is short the exact series the other
+is long.
+
+**Rule:** (a) Composing a note means reading the LIVE BOOK — every published
+note whose stated horizon has not expired — for exposure overlap, not just
+title/instrument novelty. (b) The contract now enforces it: a new note taking
+the opposite side of a series held by a live note is rejected unless it carries
+a reconciliation paragraph naming that note and telling the reader how the two
+fit together (or why this one supersedes it). The paragraph renders in the
+note, because the reader of the site sees both notes and deserves the answer in
+the same place. (c) The duty falls on the LATER note only — an earlier note
+cannot address a future one and must not fail retroactively. (d) Opposing
+exposures can be legitimate (a spread against a level view, as here — combined,
+the two notes net to "own TIPS"); the crime is silence, not the combination.
+
+**Applies to:** every Trade Idea composition, and any future surface where more
+than one dated call is visible at once.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."

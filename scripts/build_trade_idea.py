@@ -626,6 +626,50 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             "levels.invalidation states a condition in prose but scorecard.invalidation is absent — the stop "
             "will not be enforced when the note is marked")
 
+    # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
+    # have a call to buy tips and short treasuries?" The Aug 16 breakeven note
+    # sells 10-year nominals dollar-for-dollar; the Aug 24 note buys them. Both
+    # were live at once and nothing caught it, because novelty compares
+    # instrument STRINGS while exposure lives in the scorecard legs. So: if any
+    # published note whose stated horizon still covers this note's date holds
+    # the OPPOSITE side of the same series, this note must carry a
+    # `reconciles` entry for that note's date — a paragraph telling the reader
+    # how the two positions fit together (or why this one supersedes it). A
+    # house that contradicts itself silently is worse than one that is wrong.
+    for prev in published:
+        if prev.get("id") == derive_id(idea):
+            continue
+        psc = prev.get("scorecard") or {}
+        try:
+            prev_date = dt.date.fromisoformat(str(prev.get("date", "")))
+            prev_h = int(psc.get("horizon_months") or 0)
+        except (ValueError, TypeError):
+            continue
+        if prev_date >= idea_date:
+            continue  # the duty to reconcile falls on the LATER note; an
+                      # earlier note cannot address a future one (and must not
+                      # fail retroactively when one appears)
+        if prev_h <= 0 or idea_date > prev_date + dt.timedelta(days=int(prev_h * 30.44)):
+            continue  # the earlier note's own horizon has expired
+        clash = sorted({
+            str(pl.get("series"))
+            for pl in (psc.get("legs") or []) if isinstance(pl, dict)
+            for nl in legs if isinstance(nl, dict)
+            if pl.get("series") == nl.get("series")
+            and pl.get("side") in SCORE_SIDES and nl.get("side") in SCORE_SIDES
+            and pl.get("side") != nl.get("side")
+        })
+        if clash:
+            recs = idea.get("reconciles") or []
+            ok = any(isinstance(r, dict) and str(r.get("date", "")) == str(prev.get("date"))
+                     and len(str(r.get("prose", "")).strip()) >= 120 for r in recs)
+            if not ok:
+                raise ContractError(
+                    f"this note takes the opposite side of {', '.join(clash)} from the live note dated "
+                    f"{prev.get('date')} ({str(prev.get('title',''))[:60]!r}), whose horizon has not expired. "
+                    "Add a `reconciles` entry [{date, prose}] (prose >= 120 chars) telling the reader how the "
+                    "two fit together — the site may not contradict itself without saying so.")
+
     # 4 — no direction word without two dated observations
     blob = _text_of(idea)
     dated = len({str(e.get("as_of")) for e in idea["evidence"]})
