@@ -117,25 +117,17 @@ VOL_LOOKBACK_DAYS = 365
 VOL_MIN_OBS = 120
 SIZE_MIN, SIZE_MAX = 0.25, 5.0
 
-# Passive alternative per asset class, per Joe 2026-08-18. Shown as CONTEXT
-# next to the call, not as a risk-adjusted alpha: a long/short spread is close
-# to market-neutral, so "beat the S&P" is a different claim from "made money".
-BENCHMARKS = {
-    "equity": {"series": "spx_index", "measure": "pct_change",
-               "label": "S&P 500"},
-    "rates":  {"series": "ust_10y", "measure": "bond_return", "maturity_years": 10,
-               "label": "10-year Treasuries"},
-    # No FX entry, deliberately — see NO_BENCHMARK below.
-}
-
-# Asset classes where the honest answer is "there isn't one", with the reason.
-# A benchmark you have to squint at is worse than none: it puts a number on the
-# page that looks like a grade and isn't one.
-NO_BENCHMARK = {
-    "fx": ("A currency pair is already one thing against another: EUR/USD is long the euro and short the "
-           "dollar in a single instrument. Setting it against a dollar index would measure the same dollar "
-           "move a second time — the position return above is the whole result."),
-}
+# ONE benchmark, the S&P 500, on every row — Joe, 2026-08-25: "yes lets put it
+# all vs. S&P. How does anyone have a clue what we're measuring against?!"
+# The previous scheme picked a per-asset-class alternative (10-year Treasuries
+# for rates calls, nothing for FX, each with a defensible rationale) and the
+# result was a column no reader could interpret without reading the rationale.
+# A benchmark's first job is to be the SAME yardstick everywhere; the honest
+# footnote is that a market-neutral spread "trailing the S&P" is not a failure
+# — that caveat lives in the method text, once, instead of a different
+# benchmark per row. Per-note scorecard.benchmark overrides are ignored for
+# the same reason: one page, one yardstick.
+BENCHMARK = {"series": "spx_index", "measure": "pct_change", "label": "S&P 500"}
 
 # Series the scorer builds from stored ones. These are NOT written to
 # indicator_history.json and never render on the site, so they need no manifest
@@ -568,12 +560,8 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
     # It is CONTEXT, not alpha. Every one of these calls is a spread that is
     # close to market-neutral by construction, so "did it beat the S&P" is a
     # different question from "did it make money", and the page says so.
-    kind = str(idea.get("kind") or "").lower()
-    bm = sc.get("benchmark")
-    if not (isinstance(bm, dict) and bm.get("series")):
-        bm = BENCHMARKS.get(kind)
-        if bm is None and kind in NO_BENCHMARK:
-            out["benchmark_absent_reason"] = NO_BENCHMARK[kind]
+    bm = BENCHMARK  # one yardstick for every row (Joe 2026-08-25); note-level
+    # benchmark overrides and per-class alternatives are retired
     if isinstance(bm, dict) and bm.get("series") in hist:
         bseries = hist[bm["series"]]
         _, bv = first_on_or_after(bseries, entry_date)
@@ -653,9 +641,10 @@ def main(argv=None) -> int:
             "Each call is marked from the last closing price that existed when the note was published — the "
             "price a reader was actually looking at. We then show what the thing we said to buy has done, "
             "what the thing we said to sell has done, and the difference between them, which is the return on "
-            "the position. Next to it is the return on the obvious alternative over the same days: the S&P 500 "
-            "for equity calls and 10-year Treasuries for rates calls, and the last line is the gap between the two. Currency calls get no alternative: a currency pair is already one thing against another, so "
-            "setting EUR/USD against a dollar index would count the same dollar move twice. Returns are price only — no dividends on shares, no "
+            "the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did "
+            "over the same days, and the gap between the two. One caveat, stated once: some calls are spreads "
+            "built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — "
+            "the comparison answers \u201cwas this better than doing the obvious thing\u201d, not \u201cdid it work\u201d. Returns are price only — no dividends on shares, no "
             "interest on bonds — on both sides of every trade. If a note named a level at which it would be "
             "wrong and that level printed, the call is closed there. Every note is listed, including the ones "
             "that did not work, and no win rate is shown until there are enough closed calls for one to mean "
