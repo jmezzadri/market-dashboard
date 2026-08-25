@@ -22,8 +22,13 @@ to cash. Nothing in the system compared one night's holdings to the next, so a
 $26k hole sat in the book for six trading days until Joe asked why performance
 looked wrong. Roughly a third of that week's reported drawdown was this hole.
 
+    python -m paper_portfolio.qt.reconcile
+
 Read-only at the broker. Raises ReconcileError when a test fails, which fails
-QT-EOD-DAILY, which is what puts the alert in Joe's inbox.
+its QT-EOD-DAILY step, which is what puts the alert in Joe's inbox. It runs as
+its own step AFTER the pipeline-health stamp, on purpose: a vanished holding is
+a custody problem, not a stale-data problem, and it must not turn the site's
+freshness chip red.
 """
 from __future__ import annotations
 
@@ -161,3 +166,21 @@ def run(today_row: dict, *, raise_on_fail: bool = True) -> list[str]:
     if raise_on_fail:
         raise ReconcileError(header + " " + " ".join(problems))
     return problems
+
+
+def _latest_row() -> dict:
+    r = requests.get(
+        f"{D.SB_URL}/rest/v1/qt_nav_daily",
+        headers=D._sb_headers(),
+        params={"select": "d,equity,cash,positions", "order": "d.desc", "limit": "1"},
+        timeout=60,
+    )
+    r.raise_for_status()
+    rows = r.json()
+    if not rows:
+        raise ReconcileError("qt_nav_daily is empty — nothing to reconcile.")
+    return rows[0]
+
+
+if __name__ == "__main__":
+    run(_latest_row())

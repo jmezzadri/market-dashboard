@@ -2,8 +2,8 @@ name: QT-EOD-DAILY
 
 # Close-of-day snapshot for the Quality Trend paper book. READ-ONLY at the
 # broker: it records equity + positions into qt_nav_daily and syncs order fill
-# states into qt_orders. It cannot submit, cancel or modify an order — that is
-# the whole reason it is allowed to run on a schedule.
+# states into qt_orders, then runs the custody check. It cannot submit, cancel or
+# modify an order — that is the whole reason it is allowed to run on a schedule.
 #
 # 21:10 UTC = 17:10 ET in summer, 16:10 ET in winter — after the close in both.
 
@@ -54,3 +54,21 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 scripts/upsert_pipeline_health.py qt-nav-daily - red "QT-EOD-DAILY failed — see workflow run logs"
+
+      # Custody check (2026-08-25). Deliberately the LAST step, after the
+      # freshness stamp: a holding that vanished is not stale data, and it must
+      # not paint the site's freshness chip red. Failing this step fails the run,
+      # and QT-EOD-DAILY is in WORKFLOW_FAILURE_ALERT's VISIBLE set, so the
+      # failure is what emails Joe.
+      #
+      # WHY: 243 shares of EBAY ($25,993.71 at the 8/24 close, +4.5%) vanished
+      # from the account overnight on 2026-08-25 with no sell order, no fill, no
+      # corporate action and no change to cash. Nothing compared one night's
+      # holdings to the next, so it went unnoticed for six trading days.
+      - name: Custody check — every holding change must have a trade behind it
+        env:
+          ALPACA_PAPER_KEY_ID: ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET: ${{ secrets.ALPACA_PAPER_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m paper_portfolio.qt.reconcile
