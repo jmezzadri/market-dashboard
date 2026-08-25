@@ -1677,7 +1677,7 @@ Fixed at the renderer, not by rewriting anyone's prose: `IdeaChart` takes the no
 
 **Applies to:** Lead Developer — every rendered date-relative word, every bare-time stamp, and every free-text field on a spec whose data is drawn live.
 
-### 4.39 (2026-08-25) — A site can pass every desktop check and still be unusable; measure the phone, and fix the chrome before the cosmetics
+### 4.54 (2026-08-25) — A site can pass every desktop check and still be unusable; measure the phone, and fix the chrome before the cosmetics
 
 **What happened:** Joe: *"The entire website looks absolutely atrocious on my mobile phone (iPhone). Nothing is optimized whatsoever. The site is not usable whatsoever if not on computer. We need to fix this end to end, every page."*
 
@@ -1694,3 +1694,24 @@ An audit at a 393px iPhone viewport found the same four structural failures on e
 7. **Put the whole layer behind media queries and prove desktop is untouched.** Every rule lives inside `@media (max-width: …)`, and the ship check asserts the desktop nav still has seven inline links, no hamburger, and a multi-column cockpit. A mobile fix that quietly regresses the primary surface is not a fix.
 
 **Applies to:** every page added from here, and any redesign — rerun `node scripts/audit_mobile.mjs` before calling one done.
+
+
+### 4.55 (2026-08-25) — Retiring a producer leaves its rescuers behind, and a rescuer aimed at a dead vendor is a daily red run nobody gets an email about
+
+**What happened:** the weekday health sweep found every scheduled workflow green on its latest run and every `pipeline_health` row green, and `UNIVERSE_SNAPSHOT_3X_WEEKDAYS` failing six times on 2026-08-24 — all six on `workflow_dispatch`, none on a schedule, eleven days after that workflow was deliberately disabled.
+
+The 2026-08-14 retirement did the obvious half well: the workflow's own `schedule:` block was removed, its name was struck from `WORKFLOW_FAILURE_ALERT`'s watchlist (which is why nothing emailed Joe), and a header comment explained the Unusual Whales lapse. What it missed was everything that dispatches that workflow from OUTSIDE the file:
+
+1. **Six pg_cron backup jobs** (`universe-snapshot-backup-1405utc` … `-2050utc`) still POSTing `{"workflow":"UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml"}` at the `trigger-workflow` function every weekday. The equivalent backups for the conviction and paper-intraday workflows HAD been deactivated when automated trading was halted, so the pattern was known — this producer was simply skipped.
+2. **`PIPELINE-FRESHNESS-WATCHDOG`**, which reads `max(snapshot_ts)` from `universe_snapshots` every ten minutes from 10 AM to 7 PM ET and dispatches the workflow whenever the table is more than 90 minutes stale. The table's last row predates the vendor lapse, so the condition is now permanently true. The watchdog was doing exactly what it was built to do, against a table that can never go fresh again.
+
+**Rule:**
+
+1. **A producer's retirement is not done until everything that can START it is retired in the same change.** The file's own `schedule:` is the least of it. Walk outward: pg_cron backups, freshness watchdogs, `workflow_run` chains, self-heal jobs, anything holding a `workflow_dispatch`. `git grep` the workflow's file name AND query `cron.job` for it — the second one is not in the repo and no grep will ever find it. This is 0.10 ("retired means deleted, everywhere") applied to the schedulers rather than to the data.
+2. **A freshness watcher is a rescuer, and a rescuer whose patient is dead never stops trying.** Any watchlist entry that dispatches on staleness must be removed the day its producer is switched off, because "stale" stops meaning "something went wrong" and starts meaning "this is over". Manufacturing red runs is the mild version; the version that costs money is a rescuer aimed at a metered vendor.
+3. **Removing a workflow from the alerter is the step that HIDES the leftovers, so do it last.** Striking the name from `WORKFLOW_FAILURE_ALERT` on 8/14 was correct and it is precisely why six red runs a weekday went unnoticed for eleven days. When you silence a job, you take on the duty of proving it has stopped running — check its run history once after the silence, not just its schedule block.
+4. **All-green is a claim about what is being watched.** Every latest-run conclusion was green, `pipeline_health` had zero non-green rows and `workflow_failure_log` was empty for four days, while a workflow failed six times a day. The sweep found it only by reading run history for workflows that no longer appear in any watchlist. Companion to 4.53 rule 6: green dashboards describe the watched set, and the interesting failures move out of it.
+
+**Also this run, no action needed:** the single reds on `CFTC-COT-WEEKLY` (a cancelled 8/01 run), `NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY` (a 7/25 startup failure), `SCAN-INVARIANTS-DAILY` (8/18) and `macrotilt-engine-daily` (8/17) are all transient — green on both sides. `GUARD-DEAD-UI-WEEKLY` failed four consecutive weeks through 8/08 and has been green since 8/15. `TRADING-OPPS-BACKTEST` still shows three reds, all before 4.41's `MACROTILT_BOT_PAT` fix landed on 8/18; it is quarterly and next fires 10/1. The legacy `Daily Market Brief` routine remains paused and exactly one brief email arrived, at 06:48 ET, matching its ledger row to the second.
+
+**Applies to:** Lead Developer, Data Steward — every workflow retirement, and every entry in a freshness watchdog's watchlist.

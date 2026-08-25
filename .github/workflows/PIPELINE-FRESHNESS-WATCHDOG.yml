@@ -78,15 +78,16 @@ jobs:
           # stale (e.g. don't fire MASSIVE-DAILY at 9 AM ET; it expects
           # post-close data and the upstream Polygon publish hasn't
           # happened yet anyway).
+          # universe_snapshots was REMOVED from this watchlist 2026-08-25.
+          # UNIVERSE_SNAPSHOT_3X_WEEKDAYS was disabled 2026-08-14 because the
+          # Unusual Whales subscription lapsed on 2026-08-12, so the table can
+          # never go fresh again. The watchdog kept reading it, kept finding it
+          # stale, and kept dispatching a workflow that cannot succeed —
+          # manufacturing several guaranteed-red runs every weekday (6 on
+          # 2026-08-24 alone). A watcher pointed at something deliberately
+          # switched off is retired, not retried (LESSONS 0.10, 4.31).
+          # Do not re-add unless the subscription is reinstated.
           PIPELINES = [
-              {
-                  "name":     "universe_snapshots",
-                  "table":    "universe_snapshots",
-                  "ts_col":   "snapshot_ts",
-                  "sla_min":  90,
-                  "workflow": "UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml",
-                  "et_window": (10, 17),   # 10 AM-5 PM ET
-              },
               {
                   "name":     "ticker_events",
                   "table":    "ticker_events",
