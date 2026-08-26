@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-25T20:53:44Z",
+  "generated_at": "2026-08-26T10:04:40Z",
   "window": {
-    "from": "2026-08-18",
-    "to": "2026-11-03"
+    "from": "2026-08-19",
+    "to": "2026-11-04"
   },
   "counts": {
-    "total": 99,
-    "tier1": 25
+    "total": 98,
+    "tier1": 26
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-18",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-18",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-18",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-20",
       "time_et": "8:30 AM",
@@ -1107,6 +1074,28 @@
       "category": "Growth",
       "blurb": "Full manufacturers' shipments, inventories and orders.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-04",
+      "time_et": "8:30 AM",
+      "name": "Trade balance",
+      "short": "Trade",
+      "tier": 2,
+      "category": "Trade",
+      "blurb": "Goods and services imports versus exports.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-04",
+      "time_et": "10:00 AM",
+      "name": "ISM Services",
+      "short": "ISM Svc",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Services-sector survey \u2014 the larger share of the economy.",
+      "source": "ISM published schedule (computed)",
       "time_source": "published release policy"
     }
   ]
