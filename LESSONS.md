@@ -231,6 +231,23 @@ over-correction from the gold episode.
 
 **Applies to:** every Trade Idea.
 
+### 0.4g (2026-08-26) — Research daily, publish selectively; and never show the same time in two clocks
+
+Joe: *"I want to run it every day, but only publish 1 or 2 times a week, the
+best ideas... it should run in the morning... post by 7am ET."* And, on the
+scheduler UI showing "next run 7:08 PM" beside "repeats at 11:00 PM": *"What
+the fuck is going on?"* — one schedule, two timezones (11 PM UTC IS 7 PM ET),
+which is exactly the kind of thing rule 0.4 exists to prevent.
+
+**Rule:** (a) The Trade Idea session runs every morning pre-market; publication
+is capped at two notes per rolling seven days by the contract, so shipping a
+note asserts it beats the rest of the week's candidates. Deadline: live and
+verified by 7:00 AM ET. (b) The morning sweep always includes outside research
+— international sessions, major wires, policymaker statements — from dated
+pages only. (c) When telling Joe about any schedule, state times in ET only.
+
+**Applies to:** the Trade Idea task, and every scheduled surface Joe reads.
+
 ### 0.5 (2026-05-13) — NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 
 **What happened:** After the full-history backfill shipped (every series extended to its true start), the regime history modal still showed "Regime · 2006 – today" — 2006 was the cutoff of the OLD pre-backfill file. Joe verbatim: "The entire data set goes back to 1996!!! NEVER USE 2006 again. This has been logged as a rule. I cant say this again."
