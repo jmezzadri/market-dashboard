@@ -309,6 +309,25 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 
 # 1 · TALKING TO JOE
 
+### 1.0 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
+
+**What happened:** the scheduled-task tools returned "requires approval" and the
+agent told Joe to "tap Approve on the permission card" — for the FIFTH time
+across sessions, with no card ever actually appearing on his side. Joe: *"I got
+no approval prompt an this is the 5th time you've incorrectly asked me to
+approve something with no prompt."*
+
+**Rule:** a tool error saying "requires approval" is evidence the TOOL IS
+UNAVAILABLE, not evidence a prompt reached Joe. Never instruct Joe to approve,
+tap, or confirm anything unless he has said he can see it or the mechanism is
+independently confirmed. On an approval-walled tool: try the operation ONCE,
+then treat it as impossible from this session and route around it — repo-side
+change, UI clicks Joe can do in a screen he already has open, or explicitly
+report the limitation. Asking Joe to find a prompt that does not exist is the
+credential-questioning anti-pattern wearing a new hat.
+
+**Applies to:** every agent, every session, every tool.
+
 ### 1.1 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name
 
 **What happened:** The agent referred to indicators by internal keys, vendor series IDs, and factor-category jargon 3+ times in one session. Joe: "stop fucking referring to indicators by anything EXCEPT THEIR FUCKING NAME ON THE SITE."
