@@ -242,9 +242,13 @@ async function handle(req: Request): Promise<Response> {
   // Rows this watchdog skips because they are not in the public manifest, so it
   // has no SLA to grade them against. Anti-clobber doctrine (below) means their
   // stored status is left untouched — which is correct, but silently leaves a
-  // dead feed frozen on whatever colour it last had. equity-short_interest-daily
-  // sat green for 12 days that way after the Unusual Whales subscription lapsed
-  // (found 2026-08-25). Collect them so the run REPORTS the blind spot instead
+  // feed frozen on whatever colour it last had. A health row keyed
+  // equity-short_interest-daily sat unwatched that way for 12 days (2026-08-25):
+  // it was keyed to its manifest element's ID while manifestByName — and every
+  // other health row in the table — keys on the element's NAME, here
+  // short_interest_uw_finra. One mis-keyed row is invisible to this watchdog.
+  // Its green happened to be truthful (the FINRA feed behind it was healthy the
+  // whole time) but nothing was checking. Collect them so the run REPORTS the gap
   // of hiding it. Never used to write status — only to tell a human.
   const ungraded: Array<{ row: HealthRow; staleDays: number }> = [];
   const logRows: Array<{
@@ -433,7 +437,7 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "user_scan_data" ||
       row.indicator_id === "index_membership" ||
       row.indicator_id === "equity-options_flow-daily" ||
-      row.indicator_id === "equity-short_interest-daily"
+      row.indicator_id === "short_interest_uw_finra"
     ) {
       // 2026-05-19 (#1148 fix) — these rows monitor Supabase tables, not
       // public JSON files. Read max ingested_at / as_of_date from the
@@ -473,7 +477,15 @@ async function handle(req: Request): Promise<Response> {
         // tables: as_of_date is the session the data covers (-> data_as_of),
         // ingested_at is the real ingest run time (-> last_good_at).
         "equity-options_flow-daily":   { table: "options_flow_daily",   col: "as_of_date", runTsCol: "ingested_at" },
-        "equity-short_interest-daily": { table: "short_interest_daily", col: "as_of_date", runTsCol: "ingested_at" },
+        // short_interest_uw_finra is the manifest NAME for element id
+        // equity-short_interest-daily. It reads public.short_interest — the
+        // live FINRA-direct settlement rows written daily by
+        // SHORT_INTEREST_INGEST_DAILY. It must NOT read short_interest_daily:
+        // that table held the Unusual Whales daily short-VOLUME estimate, which
+        // was retired with the vendor on 2026-08-12 and last wrote 08-13. The
+        // old mapping pointed a live feed's health row at a deliberately-dead
+        // table, which is what made it look dead on inspection (2026-08-26).
+        "short_interest_uw_finra":     { table: "short_interest",       col: "as_of_date", runTsCol: "ingested_at" },
       };
       const cfg = TABLE_MAP[row.indicator_id];
       const sel = cfg.runTsCol ? `${cfg.col},${cfg.runTsCol}` : cfg.col;
