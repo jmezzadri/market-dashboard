@@ -712,6 +712,24 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         if len(str(bk.get("rebalance", "")).strip()) < 80:
             raise ContractError("book.rebalance must tell a holder of the earlier calls what to do (min 80 chars)")
 
+    # 3j — daily research, selective publication (Joe, 2026-08-26): "I want to
+    # run it every day, but only publish 1 or 2 times a week, the best ideas."
+    # The morning session runs its sweep every day; this gate is what makes
+    # "best of the week" real rather than aspirational — a THIRD note inside
+    # any rolling seven days is rejected, so publishing today means believing
+    # this idea beats whatever the rest of the week might offer. Date-gated so
+    # the existing archive (which has 8/14, 8/16, 8/17) does not fail.
+    if idea_date >= dt.date(2026, 8, 27):
+        window_start = idea_date - dt.timedelta(days=6)
+        recent = [str(prev.get("date")) for prev in published
+                  if prev.get("id") != derive_id(idea)
+                  and window_start.isoformat() <= str(prev.get("date", "")) <= idea_date.isoformat()]
+        if len(recent) >= 2:
+            raise ContractError(
+                f"two notes already published in the trailing seven days ({', '.join(sorted(recent))}) — "
+                "the cadence is at most two a week, the best of the daily sweeps. Hold this idea; if it is "
+                "still the best candidate when the window opens, publish it then.")
+
     # 4 — no direction word without two dated observations
     blob = _text_of(idea)
     dated = len({str(e.get("as_of")) for e in idea["evidence"]})
@@ -777,12 +795,10 @@ def normalise(idea: dict) -> dict:
 
 
 def next_publish_after(d: dt.date) -> str:
-    """Sunday and Wednesday, stated once here and mirrored in useTradeIdea.js."""
-    for i in range(1, 8):
-        n = d + dt.timedelta(days=i)
-        if n.weekday() in (6, 2):  # Sunday, Wednesday
-            return n.isoformat()
-    return ""
+    """The research runs every morning (Joe, 2026-08-26), so the next day a
+    note COULD appear is simply tomorrow. Whether one does is selective —
+    at most two per rolling seven days, the best of the daily sweeps."""
+    return (d + dt.timedelta(days=1)).isoformat()
 
 
 def load_published(path: str) -> dict:
@@ -836,7 +852,7 @@ def main(argv=None) -> int:
 
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "cadence": "Sunday and Wednesday evenings, US Eastern",
+        "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
         "next_publish": next_publish_after(dt.date.fromisoformat(idea["date"])),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice "
                        "and it is not a recommendation to buy or sell any security."),

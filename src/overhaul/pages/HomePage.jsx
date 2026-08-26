@@ -406,8 +406,8 @@ export default function HomePage() {
             ) : (
               <div className="idea-empty">
                 <p className="secnote">
-                  No note published yet. Trade ideas publish Sunday and Wednesday evenings
-                  {nextPublish ? ` — next on ${longDate(nextPublish)}.` : '.'}
+                  No note published yet. The research runs every morning before the US open;
+                  the best ideas publish — at most two a week.
                 </p>
               </div>
             )}

@@ -24,15 +24,24 @@ portfolio is a separate, backtested system; nothing here touches it.
 
 ## Steps
 
-**0. Gate.** Sunday or Wednesday only — unless Joe asks for a note now, which
-overrides the cadence (2026-08-17: the volatility-curve note was composed for
-Wednesday the 19th, Joe said publish it today, and it was re-dated and
-re-published on the Monday). When that happens, delete the future-dated copy
-from `public/trade_ideas.json` before re-preparing, or the file carries the same
-note twice under two ids. The tile itself will not show a future-dated note —
-`useTradeIdea` gates on the publication date in US Eastern. If a note dated within the last two days
-is already published, stop — the tile carries a position, not a headline, and
-it is supposed to sit there until the next one.
+**0. Gate.** The session runs EVERY MORNING before the US open (the scheduled
+task fires ~5:15 AM ET; anything published must be live and verified by 7:00 AM
+ET). Publication is SELECTIVE — Joe, 2026-08-26: *"I want to run it every day,
+but only publish 1 or 2 times a week, the best ideas."* The contract enforces
+it: a third note inside any rolling seven days is rejected. So publishing today
+is a claim that this idea beats whatever the rest of the week might offer — on
+a day the best candidate is marginal, hold it and say so. An absent note is
+correct; a forced one is not. The tile carries the previous note between
+publishes by design.
+
+Two consequences of the daily cadence:
+- The MORNING RESEARCH sweep (overnight international sessions, major wires,
+  policymaker statements, today's releases — dated pages only) runs every day
+  whether or not anything publishes, and what it finds feeds the next day's
+  judgment of "best of the week".
+- If a note dated within the last two days is already live and nothing has
+  materially changed, the bar for another is even higher — the tile carries a
+  position, not a headline.
 
 **1. Fetch the data.** All public, no secrets:
 
