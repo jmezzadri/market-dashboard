@@ -38,6 +38,9 @@ import { gradeTwoClock, type ReleaseCalendar } from "../_shared/freshnessClock.t
 const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.com";
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
 const ALERT_DEBOUNCE_HOURS = 24;
+// Consecutive deliberate skips before the skipping itself is worth an email.
+// 3 means a twice-weekly writer has found nothing for ~a fortnight.
+const SKIP_ESCALATE_AFTER = 3;
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -59,6 +62,9 @@ type HealthRow = {
   status: "green" | "red" | "unknown" | "amber";
   prev_status: "green" | "red" | "unknown" | "amber" | null;
   last_alerted_at: string | null;
+  last_skip_at: string | null;
+  last_skip_reason: string | null;
+  consecutive_skips: number | null;
   last_7day_alert_at?: string | null;
 };
 
@@ -237,7 +243,7 @@ async function handle(req: Request): Promise<Response> {
   // 3) Compute new status + upsert each row + append a row to pipeline_fetch_log
   //    (PR #15 — gives the pipeline panel its "last 7 attempts" history)
   const updates: Array<Partial<HealthRow> & { indicator_id: string }> = [];
-  const alerts: Array<{ row: HealthRow; ageMinutes: number | null }> = [];
+  const alerts: Array<{ row: HealthRow; ageMinutes: number | null; skips: number }> = [];
   const escalations: Array<{ row: HealthRow; ageMinutes: number | null; daysStuck: number }> = [];
   // Rows this watchdog skips because they are not in the public manifest, so it
   // has no SLA to grade them against. Anti-clobber doctrine (below) means their
@@ -607,8 +613,28 @@ async function handle(req: Request): Promise<Response> {
     const lastAlertAge = row.last_alerted_at
       ? (Date.now() - new Date(row.last_alerted_at).getTime()) / 3600_000
       : Infinity;
+    // ─── Deliberate skip vs dead producer ────────────────────────────────
+    // A writer that ran, looked, and decided nothing was worth publishing is
+    // healthy. Before this, that was indistinguishable from a dead job — both
+    // are silence — and Joe got the same "Data stale" email either way. The
+    // Trade Idea note skipped ONE Wednesday (2026-08-19) and that alone
+    // produced the 8/22 and 8/23 alerts for a pipeline with nothing wrong.
+    //
+    // Only the EMAIL is suppressed. The status, the chip and last_good_at are
+    // untouched: the content really is older and every surface must keep
+    // saying so. A skip is never allowed to fake freshness.
+    const expectedH = ((Number(row.expected_cadence_minutes) ||
+      CADENCE_EXPECTED_MINUTES[row.cadence as CadenceCode] || 1440) / 60);
+    const skipAgeH = row.last_skip_at
+      ? (Date.now() - new Date(row.last_skip_at).getTime()) / 3600_000
+      : Infinity;
+    const skips = row.consecutive_skips ?? 0;
+    // Explained only while the skip is recent enough to be THIS cycle's silence
+    // (1.5x the cadence) and the skipping has not itself become the story.
+    const silenceIsDeliberate = skipAgeH <= expectedH * 1.5 && skips < SKIP_ESCALATE_AFTER;
     const shouldAlert =
-      !skipAlerts && wasGreen && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS;
+      !skipAlerts && wasGreen && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS &&
+      !silenceIsDeliberate;
 
     // ─── 7-day stuck-red escalation (Joe directive 2026-05-03) ────────────
     // Re-evaluate "is this red?" against manifest SLA + calendar (matches the
@@ -687,7 +713,7 @@ async function handle(req: Request): Promise<Response> {
       last_7day_alert_at: next7DayAlertAt,
     });
 
-    if (shouldAlert) alerts.push({ row, ageMinutes: ageMin });
+    if (shouldAlert) alerts.push({ row, ageMinutes: ageMin, skips });
     if (shouldEscalate7Day) escalations.push({ row, ageMinutes: ageMin, daysStuck: Math.round(elapsedRedHours / 24) });
 
     // PR #15 — append a row to pipeline_fetch_log so the pipeline panel
@@ -744,17 +770,24 @@ async function handle(req: Request): Promise<Response> {
   // 5) Fire alerts after the DB write (so last_alerted_at is persisted even if
   //    Resend is down — we won't spam retries)
   let alertsSent = 0;
-  for (const { row, ageMinutes } of alerts) {
+  for (const { row, ageMinutes, skips } of alerts) {
     try {
       await sendEmail({
         to: ALERT_TO,
-        subject: `[MacroTilt] "${row.label}" has stopped updating`,
+        subject: skips >= SKIP_ESCALATE_AFTER
+          ? `[MacroTilt] "${row.label}" — nothing published ${skips} times running`
+          : `[MacroTilt] "${row.label}" has stopped updating`,
         html: `
           <p>Hi Joe,</p>
           <p><strong>${row.label}</strong> on the site last updated
              ${ageWords(ageMinutes)} ago. It should update
              ${CADENCE_WORDS[row.cadence] || "regularly"}.</p>
           <p><strong>What this is:</strong> ${row.source} supplies it.</p>
+          ${skips >= SKIP_ESCALATE_AFTER ? `
+          <p><strong>This one is different:</strong> it is not broken. It has run
+             ${skips} times in a row and each time decided there was nothing worth
+             publishing. That is allowed — but ${skips} in a row is worth knowing
+             about, which is the only reason you are seeing this.</p>` : ``}
           <p><strong>Why it matters:</strong> anywhere the site shows this, it is
              showing ${ageWords(ageMinutes)}-old numbers. Nothing is wrong with
              the rest of the site.</p>
