@@ -59,8 +59,11 @@ jobs:
               print(f"read {name} from ops_secrets ({len(rows[0]['value'])} characters)")
           PY
 
-          gh secret set ALPACA_PAPER_KEY_ID --repo "$REPO" --body-file /tmp/k1
-          gh secret set ALPACA_PAPER_SECRET --repo "$REPO" --body-file /tmp/k2
+          # `gh secret set` has no --body-file; with --body omitted it reads the
+          # value from standard input, which is what keeps it off the command
+          # line and out of the process table.
+          gh secret set ALPACA_PAPER_KEY_ID  --repo "$REPO" < /tmp/k1
+          gh secret set ALPACA_PAPER_SECRET  --repo "$REPO" < /tmp/k2
           rm -f /tmp/k1 /tmp/k2
           echo "Actions secrets ALPACA_PAPER_KEY_ID and ALPACA_PAPER_SECRET now match ops_secrets."
 
