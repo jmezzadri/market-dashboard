@@ -1,0 +1,86 @@
+name: OPS-ALPACA-KEY-SYNC
+
+# Copies the Alpaca PAPER broker keys from the service-role-only Supabase table
+# ops_secrets into this repository's Actions secrets, so the two copies cannot
+# drift. Dispatch-only, no schedule; safe to re-run at any time (it overwrites).
+#
+# WHY (2026-08-26 health sweep). The broker keys live in two places: ops_secrets,
+# which is what an agent session rotates, and Actions secrets, which is what
+# every scheduled broker job actually authenticates with. When the paper account
+# was replaced on 2026-08-25, ops_secrets was updated the next morning and
+# Actions was not — so every scheduled job was still addressing a closed
+# account, and nothing in the system compares the two copies. A credential that
+# lives in two places drifts; the fix is one command that makes the second copy
+# follow the first.
+#
+# The values never leave the two secret stores: they are read inside the runner
+# and written straight back with `gh secret set --body-file`, never echoed and
+# never written to the workspace. GitHub masks Actions secrets in logs, but the
+# ops_secrets copy is not a registered mask, so nothing here prints it.
+#
+# Deliberately NOT on WORKFLOW_FAILURE_ALERT's watchlist: this is an operator
+# utility, and a failed run is read here, not emailed to Joe.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Copy the broker keys from ops_secrets into Actions secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SB_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_TOKEN: ${{ secrets.MACROTILT_BOT_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for v in SUPABASE_URL SB_KEY GH_TOKEN; do
+            [ -n "${!v}" ] || { echo "::error::$v is empty or missing"; exit 1; }
+          done
+
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          base = os.environ["SUPABASE_URL"].rstrip("/")
+          key = os.environ["SB_KEY"]
+          wanted = {"alpaca_paper_key_id": "/tmp/k1", "alpaca_paper_secret": "/tmp/k2"}
+          for name, path in wanted.items():
+              req = urllib.request.Request(
+                  f"{base}/rest/v1/ops_secrets?select=value&name=eq.{name}",
+                  headers={"apikey": key, "Authorization": "Bearer " + key})
+              rows = json.load(urllib.request.urlopen(req, timeout=30))
+              if not rows or not rows[0].get("value"):
+                  raise SystemExit(f"::error::ops_secrets has no usable row named {name}")
+              with open(path, "w") as fh:
+                  fh.write(rows[0]["value"])
+              print(f"read {name} from ops_secrets ({len(rows[0]['value'])} characters)")
+          PY
+
+          gh secret set ALPACA_PAPER_KEY_ID --repo "$REPO" --body-file /tmp/k1
+          gh secret set ALPACA_PAPER_SECRET --repo "$REPO" --body-file /tmp/k2
+          rm -f /tmp/k1 /tmp/k2
+          echo "Actions secrets ALPACA_PAPER_KEY_ID and ALPACA_PAPER_SECRET now match ops_secrets."
+
+      - name: Confirm the keys address a live broker account
+        env:
+          ALPACA_PAPER_KEY_ID: ${{ secrets.ALPACA_PAPER_KEY_ID }}
+          ALPACA_PAPER_SECRET: ${{ secrets.ALPACA_PAPER_SECRET }}
+        run: |
+          set -euo pipefail
+          # Read-only. Prints the account NUMBER and status only — never a key.
+          # Note: this reads the secrets as they were at the START of the run,
+          # so on the very first sync it proves the OLD pair; re-dispatch once
+          # to see the new pair confirmed.
+          code=$(curl -sS -o /tmp/acct.json -w "%{http_code}" \
+            https://paper-api.alpaca.markets/v2/account \
+            -H "APCA-API-KEY-ID: $ALPACA_PAPER_KEY_ID" \
+            -H "APCA-API-SECRET-KEY: $ALPACA_PAPER_SECRET")
+          echo "broker responded $code"
+          if [ "$code" = "200" ]; then
+            python3 -c "import json;d=json.load(open('/tmp/acct.json'));print('account',d.get('account_number'),d.get('status'),'equity',d.get('equity'),'blocked',d.get('trading_blocked'))"
+          else
+            echo "::warning::the broker rejected the credentials this run started with — re-dispatch to verify the freshly synced pair"
+          fi

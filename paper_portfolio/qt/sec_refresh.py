@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import math
 import zipfile
 from datetime import date
 
@@ -48,7 +49,7 @@ def refresh(since: str = "2022-01-01", limit: int | None = None) -> int:
     buf = io.BytesIO(r.content)
     z = zipfile.ZipFile(buf)
 
-    rows, n = [], 0
+    rows, n, n_nonfinite = [], 0, 0
     for sym, cik in sym2cik.items():
         if limit and n >= limit:
             break
@@ -69,18 +70,58 @@ def refresh(since: str = "2022-01-01", limit: int | None = None) -> int:
                         continue
                     if it["filed"] < since:
                         continue
-                    rows.append((sym, tag, it["end"], it["filed"], it.get("fp"), float(it["val"])))
+                    # 2026-08-26: SEC's JSON can carry bare NaN / Infinity
+                    # literals, and Python's json parser accepts both — so
+                    # float(it["val"]) can be a non-finite float that looks
+                    # like a number all the way through pandas. One of them
+                    # reached the PostgREST POST below and killed the whole
+                    # monthly refresh with "Out of range float values are not
+                    # JSON compliant", AFTER the 1.4 GB download and the full
+                    # parse. A fact that is not a finite number is not a fact:
+                    # drop it, count it, and say how many were dropped.
+                    try:
+                        val = float(it["val"])
+                    except (TypeError, ValueError):
+                        n_nonfinite += 1
+                        continue
+                    if not math.isfinite(val):
+                        n_nonfinite += 1
+                        continue
+                    rows.append((sym, tag, it["end"], it["filed"], it.get("fp"), val))
         if n % 1000 == 0:
             print(f"  {n:,} companies · {len(rows):,} facts", flush=True)
 
     df = pd.DataFrame(rows, columns=["symbol", "tag", "period_end", "filed", "fp", "val"])
     df = df.sort_values("filed").drop_duplicates(["symbol", "tag", "period_end"], keep="last")
     print(f"parsed {len(df):,} facts across {df.symbol.nunique():,} companies", flush=True)
+    if n_nonfinite:
+        print(f"dropped {n_nonfinite:,} facts whose reported value was not a "
+              f"finite number (NaN / Infinity in the SEC file)", flush=True)
 
     h = dict(D._sb_headers())
     h["Prefer"] = "resolution=merge-duplicates,return=minimal"
     url = f"{D.SB_URL}/rest/v1/qt_fundamentals?on_conflict=symbol,tag,period_end"
     recs = df.to_dict("records")
+    # Belt and braces. The parse-time guard above is the real fix; this second
+    # pass exists because the failure mode is catastrophic and late — the POST
+    # is the last step of a job that has already spent an hour — and because
+    # pandas can introduce NaN into an object column on its own. Nothing
+    # non-finite may enter the request body under any path.
+    n_scrubbed = 0
+    clean = []
+    for r in recs:
+        v = r.get("val")
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(float(v)):
+            n_scrubbed += 1
+            continue
+        r["val"] = float(v)
+        for k, x in list(r.items()):
+            if isinstance(x, float) and not math.isfinite(x):
+                r[k] = None
+        clean.append(r)
+    if n_scrubbed:
+        print(f"scrubbed {n_scrubbed:,} rows with a non-numeric value before upsert", flush=True)
+    recs = clean
     for i in range(0, len(recs), 2000):
         resp = requests.post(url, headers=h, json=recs[i:i + 2000], timeout=300)
         resp.raise_for_status()
