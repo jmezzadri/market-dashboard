@@ -44,6 +44,20 @@ const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18',
 // nav row that self-reference makes S&P read 0.00%, which is what Joe caught.
 const SPY_INCEPTION = 776.34;
 
+/* ── Book handover (2026-08-26) ───────────────────────────────────────
+   The first Quality Trend paper account was closed on 2026-08-25 and a new
+   one, funded back to $1,000,000, starts trading on 2026-09-01. Until that
+   new book writes its first snapshot, every number on this page belongs to
+   an account that is no longer open — and the word "live" over it is false.
+
+   The notice below is keyed on the DATA, not on a date: it shows while the
+   newest snapshot still carries the retired account, and it disappears by
+   itself the moment the new book's first row lands. Nothing to remember and
+   nothing to switch off — the same reason QT-EOD-DAILY's hold is a date it
+   passes rather than a switch someone has to flip (LESSONS 4.53 rule 4). */
+const RETIRED_ACCOUNT = 'PA3G9FV5AN1G';
+const NEW_BOOK_STARTS = 'September 1, 2026';
+
 /* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
 const CARD   = 'var(--putty)';
 const CARD2  = 'var(--bg2)';
@@ -411,6 +425,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [load]);
 
   const latestNav = nav && nav.length ? nav[nav.length - 1] : null;
+  // True while the newest snapshot still belongs to the closed account, i.e.
+  // the book shown here has finished and the next one has not started.
+  const betweenBooks = latestNav?.account_number === RETIRED_ACCOUNT;
+  // "Aug 17 – Aug 25, 2026", matching the backtest row's range style. The year
+  // is printed once when both ends share it.
+  const bookRan = (nav && nav.length)
+    ? (() => {
+        const a = fmtDate(nav[0].d);            // "Aug 17, 2026"
+        const b = fmtDate(latestNav.d);
+        const yr = (x) => x.slice(-4);
+        return yr(a) === yr(b) ? `${a.slice(0, -6)} – ${b}` : `${a} – ${b}`;
+      })()
+    : null;
   const ls = useMemo(() => liveStats(nav), [nav]);
   const marks = useMemo(() => {
     const m = {}; (latestNav?.positions || []).forEach((p) => { m[p.symbol] = p; }); return m;
@@ -574,7 +601,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div>
             <div className="eyebrow2" style={{ marginBottom: 10 }}>
               <span className="dot" />
-              Paper Portfolio · live · marks sync every 10 min in market hours{markedAt ? ` · ${markedAt}` : ''}
+              {betweenBooks
+                ? `Paper Portfolio · between books${markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}`
+                : `Paper Portfolio · live · marks sync every 10 min in market hours${markedAt ? ` · ${markedAt}` : ''}`}
             </div>
             <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
@@ -583,12 +612,40 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div style={{ textAlign: 'right', fontSize: 13, color: INK2, lineHeight: 1.7 }}>
             40 US companies · equal weight · monthly rebalance · no leverage
             <br />
-            $1,000,000 paper account, inception Aug 17, 2026 ·{' '}
+            {betweenBooks
+              ? `$1,000,000 paper account, ${bookRan || 'now closed'} · `
+              : '$1,000,000 paper account, inception Aug 17, 2026 · '}
             <Link to="/methodology#portfolio" style={{ color: INK2, fontWeight: 600, borderBottom: `1px solid ${EDGE}`, textDecoration: 'none', paddingBottom: 2 }}>Methodology</Link>
             <br />
             <span style={{ color: INK3 }}>Paper money — not investment advice.</span>
           </div>
         </div>
+
+        {/* ── between-books notice ───────────────────────────────────────
+              Reader-facing, so plain English: no account numbers, no table
+              names, no status words. It leads with what is true right now
+              ("nothing here is trading"), then says what these numbers are
+              and when the next book starts. Placed ABOVE the headline
+              figures on purpose — a reader must not meet a portfolio value
+              before learning the account behind it is closed. */}
+        {betweenBooks && (
+          <div style={{
+            border: `1px solid ${EDGE}`, borderLeft: `3px solid ${GOLD}`,
+            borderRadius: 'var(--card-r)', background: CARD2,
+            padding: '18px 22px', marginBottom: 'var(--mt-gap-card, 22px)',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
+              Between books — nothing here is trading
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.65, color: INK2, maxWidth: '72ch' }}>
+              These are the closing numbers of a paper account that ran{' '}
+              {bookRan || 'until recently'} and has since been closed.
+              A new $1,000,000 Quality Trend book starts on {NEW_BOOK_STARTS}; this page
+              switches to it on its first day, and the record below belongs to the book
+              that finished — the two are never blended.
+            </div>
+          </div>
+        )}
 
         {/* ── command band — the page's ONE ink card (like Home's Engine
               card): every headline number in a single dark surface ────── */}
@@ -728,7 +785,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
-          <Card title="Performance — live" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
+          <Card title={betweenBooks ? 'Performance — closed book' : 'Performance — live'}
+                right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
                 <LineChart
@@ -812,7 +870,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
                     <span style={{ width: 10, height: 3, background: GOLD, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
-                    Quality Trend — live <span style={{ color: INK3, fontWeight: 400 }}>since Aug 17, 2026</span>
+                    Quality Trend — {betweenBooks ? 'closed book' : 'live'}{' '}
+                    <span style={{ color: INK3, fontWeight: 400 }}>
+                      {betweenBooks ? (bookRan || '') : 'since Aug 17, 2026'}
+                    </span>
                   </td>
                   <td style={{ ...td, color: upDown(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
                   <td style={td}>{ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}</td>
@@ -824,7 +885,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}`, color: INK2 }}>
                   <td style={{ ...td, textAlign: 'left' }}>
                     <span style={{ width: 10, height: 3, background: BLUE, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
-                    S&P 500 — live <span style={{ color: INK3 }}>same window</span>
+                    S&P 500 — {betweenBooks ? 'same window' : 'live'}{' '}
+                    <span style={{ color: INK3 }}>{betweenBooks ? '' : 'same window'}</span>
                   </td>
                   <td style={td}>{ls?.spxSince != null ? fmtPct(ls.spxSince, 2) : '—'}</td>
                   <td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td>
@@ -852,7 +914,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </Card>
 
         {/* ── monthly returns (tear-sheet grid; fills as months accrue) ── */}
-        <Card title="Monthly returns — live book" right="net paper returns · grows one cell per month" style={{ marginBottom: 22 }}>
+        <Card title={betweenBooks ? 'Monthly returns — closed book' : 'Monthly returns — live book'}
+              right="net paper returns · grows one cell per month" style={{ marginBottom: 22 }}>
           {(() => {
             const months = {};
             (nav || []).forEach((r, i) => {
