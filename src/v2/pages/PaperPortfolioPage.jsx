@@ -425,6 +425,16 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const m = {}; (latestNav?.positions || []).forEach((p) => { m[p.symbol] = p; }); return m;
   }, [latestNav]);
 
+  // NOTHING HELD (2026-08-26). This whole page is built from qt_target_book —
+  // the SCORED list — with live broker marks overlaid where they exist. When no
+  // marks exist it silently fell back to each row's target_dollars, so a book
+  // holding nothing rendered a full 40-name table titled "Holdings", with
+  // weights, values and a sector breakdown. Joe read that as owning 40 stocks
+  // while the account was 100% cash and had never traded. The list is a
+  // shopping list until the orders fill; say so, loudly, everywhere.
+  const nHeld = Object.keys(marks).length;
+  const nothingHeld = nHeld === 0;
+
   const equity = latestNav ? Number(latestNav.equity) : 1_000_000;
   const cash = latestNav ? Number(latestNav.cash) : 1_000_000;
   const longMv = latestNav ? Number(latestNav.long_mv) : 0;
@@ -974,10 +984,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── holdings ────────────────────────────────────────────────── */}
         <Card
-          title="Holdings"
+          title={nothingHeld ? 'Target book — nothing held yet' : 'Holdings'}
           right={
             <span style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span>scored {fmtDate(rebalDate)} · next rebalance: first trading day</span>
+              <span>
+                {nothingHeld
+                  ? `the ${book?.length ?? 0} names below are scored, not owned · scored ${fmtDate(rebalDate)}`
+                  : `scored ${fmtDate(rebalDate)} · next rebalance: first trading day`}
+              </span>
               <input
                 className="qtt-search" type="search" placeholder="Filter ticker or name…"
                 value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter holdings"
@@ -985,6 +999,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </span>
           }
         >
+          {nothingHeld && !err && book && book.length ? (
+            <div style={{
+              margin: '0 0 14px', padding: '12px 14px', borderRadius: 10,
+              background: 'rgba(184,151,92,0.10)', border: '1px solid rgba(184,151,92,0.45)',
+              fontSize: 14, lineHeight: 1.5, color: INK2,
+            }}>
+              <strong>These are not holdings.</strong> The account holds no shares and has
+              placed no orders — it is 100% cash. The list below is what the model scored,
+              i.e. what it intends to buy. Values and weights show the intended size, not
+              money at risk.
+            </div>
+          ) : null}
           {err ? (
             <div style={{ padding: 20, fontSize: 14, color: INK2 }}>The book could not be loaded ({err}). Refresh to retry.</div>
           ) : !book ? (
