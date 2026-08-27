@@ -337,7 +337,7 @@ async function handle(req: Request): Promise<Response> {
         || row.last_good_at
         || null;
       if (!asOf) lastError = "scanner-v5-daily has not run yet";
-    } else if (row.indicator_id.startsWith("paper-")) {
+    } else if (row.indicator_id.startsWith("paper-") || row.indicator_id.startsWith("qt-")) {
       // 2026-06-12 — producer-owned (THIRD instance of the clobber bug:
       // scanner-v5 2026-05-12, snapshot files #1148 2026-05-19, now the
       // paper rows after the 2026-06-11 registration sweep seeded them).
@@ -349,6 +349,19 @@ async function handle(req: Request): Promise<Response> {
         || row.last_good_at
         || null;
       if (!asOf) lastError = `${row.indicator_id} has not run yet`;
+      // 2026-08-27 (health sweep, Joe): the qt-* rows are the FIFTH instance of
+      // this exact shape and the first where the clobber ATE AN EXPLANATION.
+      // QT-EOD-DAILY's hold step stamped qt-nav-daily red at 00:43 with the
+      // plain-English reason 4.53 rule 5 requires ("between broker accounts,
+      // new book starts 2026-09-01"). qt- did not match the paper- prefix, so
+      // the row fell to the terminal else, got asOf=null, and was graded on the
+      // PULL CLOCK ALONE — 47.9h against a 49h SLA — and written back GREEN with
+      // last_error wiped, within 30 minutes, every day. The stored row then said
+      // green while data_as_of sat at 2026-08-25 and the site header correctly
+      // read "1 feed stale". Preserve a producer's deliberate red: a row this
+      // function cannot see the data for must never be upgraded on the pull
+      // clock alone.
+      if (!lastError && row.status === "red" && row.last_error) lastError = row.last_error;
     } else if (
       row.indicator_id === "cycle_board" ||
       row.indicator_id === "v10_allocation" ||

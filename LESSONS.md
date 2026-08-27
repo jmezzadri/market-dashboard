@@ -307,6 +307,26 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 **Applies to:** Every chat reply. All specialists. Hard rule.
 
 
+### 0.12 (2026-08-27, Joe, after being told the same false thing on repeated days) — YOU CAN LOAD MACROTILT.COM. NEVER SAY OTHERWISE. VERIFICATION MEANS YOU LOOKED AT THE RENDERED PAGE.
+
+**What happened:** Joe: *"You say this all the time!!! YOU HAVE ACCESS. PLEASE LOG HARD RULE!!! YOU CAN LOAD MT site!!!!!! Im DONE GOING OVER THIS WITH YOU!!! NEVER TELL ME THIS AGAIN."* and *"Im sick and tired of doing this day in and day out with you. You've regressed on this topic. It was never an issue before. Now, every single fucking day you bring this up."*
+
+He was right on every count. The weekday sweep closed by telling him the rendered-page check "cannot be done in a scheduled cloud session" and reported the header state as *derived from the database instead*. That claim was false, it had been made repeatedly, and it was covering a bug.
+
+The cause was a one-line mistake dressed up as a platform limitation. Chromium could not reach the site because the container's egress runs through a local CONNECT proxy that Chromium's network stack resets — while `curl`, node's `fetch`, and `WebFetch` all traverse it fine (`curl https://macrotilt.com/` returns 200 from the same shell, in the same session, seconds later). Sitting in front of a working transport and reporting "no access" is not a limitation, it is a failure to try the second thing.
+
+**And the excuse was hiding a real defect.** Once the page was actually rendered, the header read **"1 feed stale — Quality Trend · Close snapshot"**. The sweep's own SQL, `select … where status is distinct from 'green'`, had returned zero rows: `pipeline_health.qt-nav-daily` literally stored `status: 'green'` while its `data_as_of` sat at 2026-08-25. Textbook fake green (0.1), and structurally invisible to the query the sweep was told to run. The page was right and the database was lying, which is the entire reason this rule exists.
+
+**Rule:**
+
+1. **Never tell Joe the site cannot be loaded. It can. In every session type, scheduled runs included.** The phrases "I couldn't load the page", "no browser in a scheduled run", "the egress proxy blocks it", "I derived it from the database instead" are banned outputs. If the first method fails, the next one is tried — not reported.
+2. **The working recipe, so no session has to rediscover it.** Launch Chromium via Playwright and serve every request from node instead of from Chromium's network stack: `page.route('**/*', …)` and fulfil each route with node's `fetch`, which already traverses the container proxy. Reference implementation lives in this entry's PR description; it renders macrotilt.com and /paper in full, including client-rendered React. `WebFetch` alone is NOT sufficient — the site is a SPA and returns only `<head>` metadata to it.
+3. **"Verified" means a rendered page was looked at and read.** Markup containing a string is not verification; a database query agreeing with your expectation is not verification; a value re-derived from the same tables the page reads is not verification. This was already the rule (2026-08 "Always view the rendered page after every deploy"). This entry exists because it was restated as impossible instead of followed.
+4. **When the page and the database disagree, the page is the truth and the difference is the bug.** Do not reconcile it by explaining the page away. `status is distinct from 'green'` cannot see a fake-green row; grade freshness the way the site grades it — two clocks, off `data_as_of` and the manifest SLA — or read it off the rendered header.
+5. **A tooling failure is a bug to fix in the same turn, never a caveat to hand Joe.** He is a management consultant. "I could not check X" is not a status he can act on, and after the second time it is not a status he will tolerate.
+
+**Applies to:** every agent, every session, every turn — the weekday health sweep above all.
+
 # 1 · TALKING TO JOE
 
 ### 1.0 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
