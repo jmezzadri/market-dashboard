@@ -63,6 +63,14 @@ const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
   "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml", "TRADE-IDEA-SCORECARD-DAILY.yml",
+  // 2026-08-27 (health sweep): the 8/26 monthly run died on a non-finite SEC
+  // value AFTER the 1.4 GB download. The parse-time + pre-POST guards shipped
+  // the same day, but the workflow is MONTHLY, so the fix could not be
+  // exercised until 9/26 and qt_fundamentals would have stayed stuck at
+  // filed<=2026-08-12 through the 9/01 Quality Trend rebalance that reads it.
+  // A fix that cannot be run is a hope; make the job re-runnable from a
+  // session so a failed monthly job is repaired the day it fails.
+  "QT-FUNDAMENTALS-REFRESH.yml",
 ]);
 
 function json(b: unknown, s = 200) {
