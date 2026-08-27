@@ -1,104 +1,104 @@
 {
-  "date": "2026-08-26",
-  "recap_session": "Tue Aug 25",
+  "date": "2026-08-27",
+  "recap_session": "Wed Aug 26",
   "eyebrow": "Morning Brief",
-  "headline": "The Hormuz premium started leaving overnight on Iran-Oman corridor talks, hours before core PCE, a $70bn 5-year and Nvidia.",
-  "stance": "Brent $85.98, -2.9% (~6am ET), WTI under $80, on reports of a temporary joint maritime corridor through the strait. That gives back more than half of the premium built since August 4, and most of it in three sessions.",
+  "headline": "Nvidia gave the AI trade a 2028 number instead of a quarter, and Warsh gets the Jackson Hole podium on Friday.",
+  "stance": "NVDA +7.2% (~6:09am ET). The beat did almost nothing after the close; the first year-ahead guide the company has ever given did all of it, and it lands on the one input every AI model has to assume.",
   "news": [
     {
-      "head": "Iran and Oman talk a temporary Hormuz corridor",
-      "body": "Pakistan's military leadership is in Tehran backing the negotiation and Qatar is still mediating. Crude never actually stopped moving through the strait."
+      "head": "Nvidia guided fiscal 2028 to about 70% revenue growth",
+      "body": "Consensus sat near 44%. October quarter guided to $108bn of revenue; gross margin troughs at 71-72% in the January quarter on memory cost."
     },
     {
-      "head": "The 2-year auction stopped through",
-      "body": "$69bn cleared at 4.204% against a 4.208% when-issued. Indirects took 66.0% versus a 56.9% average; primary dealers were left with 10.9%."
+      "head": "Core PCE ran 3.3% year over year in July",
+      "body": "Core 0.2% on the month, headline 3.7%, both a tenth above consensus. Income rose 0.4% against spending up 0.2%."
     },
     {
-      "head": "Nvidia reports after today's close",
-      "body": "Street consensus is $92.18bn of revenue and $2.09 adjusted EPS. Company guidance for the quarter was $91bn and $2.04, below the street going in."
+      "head": "The 5-year went to real money, not to dealers",
+      "body": "$70bn cleared at 4.393%. Indirect bidders took 61.5% and dealers 10.0%, a lighter takedown than Tuesday brought at the front end."
+    },
+    {
+      "head": "Jackson Hole opens today",
+      "body": "Theme is financial innovation and payments. Warsh's first symposium address as chair is Friday 10am ET, 19 days before the September decision."
     }
   ],
   "implications": [
-    "A corridor removes freight and insurance cost, not barrels. Nothing about Iran's export capacity changed overnight; what changed is what it costs to move a cargo past it.",
-    "The September strip prices 38% odds of a hike this morning against 42% yesterday. Oil moved that, not labor data, and one denial out of Tehran moves it back."
+    "A 2028 commitment, not a quarter, is what the complex needed. It also moves the argument from whether the orders exist to whether memory and power get built fast enough to fill them.",
+    "Rate vol is being sold into the two events that can still reprice September. Cheap convexity and a calm week are not the same thing."
   ],
   "watch": [
     {
-      "head": "Core PCE, Q2 GDP and durable goods, 8:30am ET",
-      "body": "Consensus looks for 0.2% on core month over month, 3.3% year over year, headline 0.1%. It covers July, so the oil break is not in it."
+      "head": "Jobless claims, 8:30am ET",
+      "body": "Consensus 206k, continuing claims 1,799k. July payrolls printed negative, so this is the series September actually turns on now."
     },
     {
-      "head": "$70bn 5-year note auction, 1pm ET",
-      "body": "Second of three coupons. Dealer takedown is the tell on whether yesterday's bid was for the front end alone or for duration generally."
+      "head": "$44bn 7-year note, 1pm ET",
+      "body": "Last coupon of the week and the one that asks for real duration. Dealers were left 10.0% yesterday; well above that says the bid stopped at five years."
     },
     {
-      "head": "Nvidia's October guide, after the close",
-      "body": "The quarter being reported ended July 26. What reprices the complex is the outlook given for the current one, not the number just printed."
-    },
-    {
-      "head": "Hormuz headlines, all session",
-      "body": "This is talks, not a signed arrangement. Any denial out of Tehran puts the premium straight back into the freight rate and the barrel."
+      "head": "Whether the gap broadens or just concentrates",
+      "body": "50.5% of the Nasdaq 100 closed above its 50-day line yesterday, from 58% on Friday. A gap in the largest weight hides that, it does not fix it."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The front end did the work for the first time this week, and it out-rallied the long end. The whole move was real yields, with breakevens flat into the inflation print.",
-        "Foreign accounts paid for that, not dealers. A real bid arriving into a spec long already pinned at the top of its three-year range is not an auction concession."
+        "Two straight sessions of sold rate vol, through a core print a tenth hot and $139bn of coupons. The market prices Friday's keynote as a non-event before hearing a word of it.",
+        "September is no longer being traded off inflation. Core at 3.3% alongside negative July payrolls is the split Warsh inherits, and the front end told you which half it weights."
       ],
-      "positioning": "New this week: spec net long Swiss franc at the 88th %ile of three years, ten points higher in a week. That haven length was built before the corridor talks surfaced.",
+      "positioning": "Standing background: spec net long 2-year Treasury at the 100th %ile of three years, four weeks running. Sold vol on top of a maxed-out long is the fragile part.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "The index closed Tuesday within three points of where it closed Friday. Nobody positioned into this print; they parked.",
-        "S&P futures -0.1%, Nasdaq 100 -0.2%, Dow +0.1% (~4am ET). The spread between them is the story: index risk this session is dated tonight, not 8:30."
+        "Options priced a 5.4% move and got one, in the wrong direction first: down as much as 3% on the print, then higher once the fiscal 2028 line came out on the call.",
+        "The index has gone nowhere for a week while its average member slipped underneath it. Today's gap arrives into thinner participation than the flat tape suggested."
       ],
-      "positioning": "Spec net long S&P 500 came off five points on the week to the 86th %ile of three years, the biggest equity shift on the tape and still the wrong side of a bad number.",
+      "positioning": "Spec net short Nasdaq 100 at the 3rd %ile of three years, three weeks running - the wrong side of a 7% move in the index's largest weight.",
       "single_name": {
-        "ticker": "PRE",
-        "note": "Prenetics - new to the screen today on an Aug 24 insider filing, above its 200-day, 3.2 days to cover. Two rules fired on a first appearance, which is unusual."
+        "ticker": "TTMI",
+        "note": "TTM Technologies - new to the screen today, printed circuit boards into the AI hardware chain, insider buy filed Aug 25, above its 200-day. One day to cover, so no short fuel."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Every coupon this week settles Monday, 2s, 5s and 7s on the same date, with a $28bn floater landing Friday first. Reserves take all of it.",
-        "Funding goes into that calm. Overnight spreads and the commercial paper premium are both at the tight end of the summer, so the drain starts from a comfortable base."
+        "Investment-grade spreads have not moved in a week and high yield's premium over them is where it was a week ago, through an oil break and the biggest print of the quarter.",
+        "The first widening in overnight funding in a week showed up Tuesday, before any of this week's supply has settled. Small, but month end is the direction that matters."
       ],
-      "positioning": "Primary-dealer high-yield inventory rose eight points on the week to the 12th %ile of three years. Light, but rebuilding into a week that asks the balance sheet for a lot.",
+      "positioning": "Primary-dealer investment-grade inventory sits mid-range at the 53rd %ile of three years. The balance sheet is available if next week's calendar asks for it.",
       "single_name": {
-        "ticker": "UMH",
-        "note": "UMH Properties - insider buy filed Aug 20, above its 200-day, 7.9 days to cover. A manufactured-housing REIT is a cap-rate trade, and cap rates take the 10-year."
+        "ticker": "REFI",
+        "note": "Chicago Atlantic Real Estate Finance - three insider rules fired, six sessions on the screen, above its 200-day. A niche CRE lender is a spread read, not a rate one."
       }
     }
   ],
   "movers": [
     {
-      "ticker": "ABCL",
-      "pct": 17.8,
+      "ticker": "ABTC",
+      "pct": -11.5,
       "link": true
     },
     {
       "ticker": "PRE",
-      "pct": 8.0,
+      "pct": 10.9,
       "link": true
     },
     {
-      "ticker": "BFLY",
-      "pct": -6.3,
-      "link": true
-    },
-    {
-      "ticker": "CDNL",
-      "pct": -5.2,
+      "ticker": "TTMI",
+      "pct": 8.4,
       "link": true
     },
     {
       "ticker": "BKKT",
-      "pct": -4.8,
+      "pct": -4.6,
+      "link": true
+    },
+    {
+      "ticker": "CDNL",
+      "pct": -4.6,
       "link": true
     }
   ],
@@ -108,39 +108,39 @@
       "rows": [
         {
           "label": "2y",
-          "level": "4.17%",
-          "chg": "-7bp",
-          "dir": "down"
+          "level": "4.19%",
+          "chg": "+2bp",
+          "dir": "up"
         },
         {
           "label": "10y",
-          "level": "4.64%",
-          "chg": "-6bp",
-          "dir": "down"
+          "level": "4.66%",
+          "chg": "+2bp",
+          "dir": "up"
         },
         {
           "label": "20y",
-          "level": "5.16%",
-          "chg": "-5bp",
-          "dir": "down"
-        },
-        {
-          "label": "30y",
           "level": "5.17%",
-          "chg": "-6bp",
-          "dir": "down"
-        },
-        {
-          "label": "2s10s",
-          "level": "47bp",
           "chg": "+1bp",
           "dir": "up"
         },
         {
+          "label": "30y",
+          "level": "5.18%",
+          "chg": "+1bp",
+          "dir": "up"
+        },
+        {
+          "label": "2s10s",
+          "level": "47bp",
+          "chg": "unch",
+          "dir": "flat"
+        },
+        {
           "label": "10y real",
-          "level": "2.32%",
-          "chg": "-6bp",
-          "dir": "down"
+          "level": "2.34%",
+          "chg": "+2bp",
+          "dir": "up"
         },
         {
           "label": "10y B/E",
@@ -157,8 +157,8 @@
         },
         {
           "label": "MOVE",
-          "level": "71.90",
-          "chg": "-2.10",
+          "level": "69.40",
+          "chg": "-2.50",
           "dir": "down"
         }
       ]
@@ -168,43 +168,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,677.28",
-          "chg": "+0.32%",
-          "dir": "up"
+          "level": "7,675.70",
+          "chg": "-0.02%",
+          "dir": "down"
         },
         {
           "label": "Nasdaq",
-          "level": "26,151.30",
-          "chg": "+0.66%",
-          "dir": "up"
+          "level": "26,130.20",
+          "chg": "-0.08%",
+          "dir": "down"
         },
         {
           "label": "Dow",
-          "level": "53,577.40",
-          "chg": "+0.30%",
-          "dir": "up"
+          "level": "53,463.88",
+          "chg": "-0.21%",
+          "dir": "down"
         },
         {
           "label": "VIX",
-          "level": "15.45",
-          "chg": "-0.40",
+          "level": "15.21",
+          "chg": "-0.24",
           "dir": "down"
         },
         {
           "label": "VIX 1m/3m",
-          "level": "0.848",
-          "chg": "-0.006",
+          "level": "0.846",
+          "chg": "-0.003",
           "dir": "down"
         },
         {
           "label": "SKEW",
-          "level": "143.30",
-          "chg": "-2.30",
+          "level": "143.00",
+          "chg": "-0.30",
           "dir": "down"
         },
         {
           "label": "CAPE",
-          "level": "41.97",
+          "level": "41.98",
           "chg": null,
           "dir": "flat"
         }
@@ -218,27 +218,27 @@
           "level": "81bp",
           "chg": "unch",
           "dir": "flat",
-          "as_of": "Aug 24"
+          "as_of": "Aug 25"
         },
         {
           "label": "HY-IG",
-          "level": "269bp",
-          "chg": "-1bp",
-          "dir": "down",
-          "as_of": "Aug 24"
+          "level": "270bp",
+          "chg": "+1bp",
+          "dir": "up",
+          "as_of": "Aug 25"
         },
         {
           "label": "HYG/LQD",
-          "level": "1.337",
-          "chg": "+0.005",
-          "dir": "up"
+          "level": "1.336",
+          "chg": "-0.001",
+          "dir": "down"
         },
         {
           "label": "SOFR-OIS",
-          "level": "2bp",
-          "chg": "unch",
-          "dir": "flat",
-          "as_of": "Aug 24"
+          "level": "3bp",
+          "chg": "+1bp",
+          "dir": "up",
+          "as_of": "Aug 25"
         },
         {
           "label": "CP spread",
@@ -249,7 +249,7 @@
         },
         {
           "label": "RRP",
-          "level": "$0.4bn",
+          "level": "$0.7bn",
           "chg": "unch",
           "dir": "flat"
         },
@@ -267,51 +267,45 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$85.01",
-          "chg": "-2.35%",
-          "dir": "down",
-          "as_of": "Aug 24"
+          "level": "$81.67",
+          "chg": "-0.84%",
+          "dir": "down"
         },
         {
           "label": "Brent",
-          "level": "$92.17",
-          "chg": "-2.35%",
-          "dir": "down",
-          "as_of": "Aug 24"
+          "level": "$86.37",
+          "chg": "-2.49%",
+          "dir": "down"
         },
         {
           "label": "Gold",
-          "level": "$4,640.80",
-          "chg": "+0.36%",
-          "dir": "up",
-          "as_of": "Aug 24"
+          "level": "$4,678.80",
+          "chg": "+0.88%",
+          "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.60",
-          "chg": "+0.30%",
-          "dir": "up",
-          "as_of": "Aug 24"
+          "level": "$6.72",
+          "chg": "+0.19%",
+          "dir": "up"
         },
         {
           "label": "DXY",
-          "level": "98.90",
-          "chg": "-0.10%",
-          "dir": "down"
+          "level": "99.12",
+          "chg": "+0.20%",
+          "dir": "up"
         },
         {
           "label": "USD/JPY",
           "level": "159.14",
-          "chg": "+0.15%",
-          "dir": "up",
-          "as_of": "Aug 24"
+          "chg": "-0.05%",
+          "dir": "down"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1668",
-          "chg": "-0.12%",
-          "dir": "down",
-          "as_of": "Aug 24"
+          "level": "1.1659",
+          "chg": "-0.14%",
+          "dir": "down"
         }
       ]
     }
@@ -323,8 +317,8 @@
         "date": "2026-08-24",
         "kind": "rates",
         "held": 2,
-        "pnl": "+0.47%",
-        "vs": "+0.16pp",
+        "pnl": "-0.16%",
+        "vs": "-0.14pp",
         "bench": "S&P 500",
         "horizon": 12
       },
@@ -332,9 +326,9 @@
         "trade": "Long KBW / Short NASDAQ",
         "date": "2026-08-17",
         "kind": "equity",
-        "held": 8,
-        "pnl": "-2.33%",
-        "vs": "-0.94pp",
+        "held": 9,
+        "pnl": "-1.95%",
+        "vs": "-0.54pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -342,8 +336,8 @@
         "trade": "Long 10y TIPS / Short 10y UST",
         "date": "2026-08-16",
         "kind": "rates",
-        "held": 8,
-        "pnl": "+0.48%",
+        "held": 9,
+        "pnl": "+0.46%",
         "vs": "+1.87pp",
         "bench": "S&P 500",
         "horizon": 6
@@ -352,15 +346,15 @@
         "trade": "Long EUR/USD",
         "date": "2026-08-14",
         "kind": "fx",
-        "held": 8,
-        "pnl": "+1.15%",
-        "vs": "+3.03pp",
-        "bench": "S&P 500",
+        "held": 10,
+        "pnl": "+1.07%",
+        "vs": null,
+        "bench": null,
         "horizon": 3
       }
     ],
     "closed": [],
-    "as_of": "2026-08-25",
+    "as_of": "2026-08-27",
     "line": "4 open · 0 closed — no hit rate until 10 (too few to mean anything)"
   }
 }
