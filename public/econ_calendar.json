@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-26T23:53:11Z",
+  "generated_at": "2026-08-27T19:54:32Z",
   "window": {
-    "from": "2026-08-19",
-    "to": "2026-11-04"
+    "from": "2026-08-20",
+    "to": "2026-11-05"
   },
   "counts": {
-    "total": 98,
+    "total": 101,
     "tier1": 26
   },
   "sources": [
@@ -1096,6 +1096,39 @@
       "category": "Surveys",
       "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-05",
+      "time_et": "8:30 AM",
+      "name": "Jobless claims",
+      "short": "Claims",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-05",
+      "time_et": "8:30 AM",
+      "name": "Productivity & unit labor costs",
+      "short": "Prod",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Output per hour and what each unit of output costs in labor.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-05",
+      "time_et": "4:30 PM",
+      "name": "Fed balance sheet (H.4.1)",
+      "short": "H.4.1",
+      "tier": 3,
+      "category": "Liquidity",
+      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
       "time_source": "published release policy"
     }
   ]
