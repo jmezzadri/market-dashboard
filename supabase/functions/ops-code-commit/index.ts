@@ -71,6 +71,16 @@ const DISPATCHABLE = new Set([
   // A fix that cannot be run is a hope; make the job re-runnable from a
   // session so a failed monthly job is repaired the day it fails.
   "QT-FUNDAMENTALS-REFRESH.yml",
+  // 2026-08-27 (health sweep): QT-REBALANCE has NEVER run — zero runs against
+  // a '0 13 1-4 * *' cron, because the workflow landed mid-August, after its
+  // August window, and the live book was opened by hand via QT-PLACE-ORDERS on
+  // 8/14 and 8/17. Its FIRST scheduled fire is 2026-09-01, which is also the
+  // new Quality Trend book's launch day — and LESSONS 4.13/4.17 says GitHub
+  // silently skips a new workflow's first scheduled fires. It SCORES only
+  // (writes qt_target_book, places no orders by design), so making it
+  // dispatchable adds no execution risk and turns "GitHub skipped it" from a
+  // launch-day re-implementation of the scorer into one call.
+  "QT-REBALANCE.yml",
 ]);
 
 function json(b: unknown, s = 200) {
