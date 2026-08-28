@@ -32,7 +32,22 @@ on:
     # completion of workflows that DO fire reliably every morning. The writer is
     # idempotent (skips when the brief is already today's), so being triggered many
     # times a morning is harmless -- it generates at most once. This is the reliable path.
-    workflows: ["PAPER-PORTFOLIO-EOD-DAILY", "MASSIVE-DAILY", "MONITOR-RECONCILE"]  # MONITOR-RECONCILE added 2026-07-06 (survived the full morning cron drop)
+    # 2026-08-28 (health sweep): this list could never send the email, and on
+    # 2026-08-28 that finally showed. PAPER-PORTFOLIO-EOD-DAILY has been retired
+    # since 2026-08-14 — a dead name in a list that reads as coverage. The two
+    # live ones fire, but they COMPLETE at 08:12–08:38 UTC, i.e. 04:12–04:38 ET,
+    # and build_daily_brief.py refuses to touch "today's" brief before 05:00 ET
+    # (BUILD_FROM_HOUR_ET). So all five of today's chained runs returned
+    # `skipped_too_early`, GitHub dropped this workflow's own 10:15 UTC cron
+    # (4.13/4.17), and Joe got no brief email at all. A trigger that always
+    # lands outside the window it is meant to serve is not a backup.
+    #
+    # INDICATOR-REFRESH_7AM_WEEKDAYS starts at 11:05 UTC (07:05 ET) and is one
+    # of the most reliable jobs in the repo — it completes AFTER the morning
+    # session commits the brief (observed spread 10:12–11:20 UTC) and INSIDE
+    # send_email's 05:00–09:59 ET window. The writer is idempotent and the send
+    # carries an atomic once-per-day claim, so extra fires cost nothing.
+    workflows: ["INDICATOR-REFRESH_7AM_WEEKDAYS", "MASSIVE-DAILY", "MONITOR-RECONCILE"]
     types: [completed]
   workflow_dispatch:
     inputs:
