@@ -125,6 +125,23 @@ in it, not keys.
 
 **Applies to:** every message to Joe, in every project.
 
+### 0.4h (2026-08-27, Joe, same day as 0.12 and on the reply that reported 0.12) — Plain English applies HARDEST to the message where you report a fix
+
+**What happened:** Joe: *"what header? Why are you writing in file names. THis is another hard rule you've completely regressed on. WHAT THE FUCJK?!!?!!"*
+
+He had just made me log a hard rule about lying to him. The reply reporting that rule was written in: a file name, two database table names, the word "header" for something he has never called a header, a browser function name, and two invented pieces of freshness vocabulary. Every one of those was already banned by 0.4 and 0.4b, and I put them in the one message whose whole job was to show him I had corrected course.
+
+**Why it happens, so it can be caught:** the failure is not carelessness about words, it is copying my working notes into his reply. While fixing something I necessarily think in file names and table names. The report is a DIFFERENT document with a different reader, and it has to be composed for him — not summarised from what I was just looking at.
+
+**Rule:**
+
+1. **Zero of these ever reach Joe:** file names and paths, table and column names, workflow names, function names, code, error strings, "header/tooltip/pill/row/field/query", or any invented metric vocabulary. Not in prose, not in a table cell, not in a PR description he might open.
+2. **Name things the way he sees them.** "The bar across the top of the site" — or better, "the site." "The paper portfolio's daily snapshot" — not the row that stores it. If a thing has no plain name, describe what it does in six words.
+3. **Read the reply back as Joe before sending.** Any noun he could not point to on the screen is a rewrite, not a footnote.
+4. **Reporting a fix is the highest-risk moment for this,** because I have just spent an hour inside the machinery. Compose the report from what CHANGED FOR HIM, never from what I touched.
+
+**Applies to:** every agent, every reply, every table, every turn.
+
 ### 0.4c (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
 **What happened:** the Sunday gold note found a real, well-measured signal whose
