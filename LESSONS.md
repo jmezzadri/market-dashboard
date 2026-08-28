@@ -1912,3 +1912,20 @@ Every one of those numbers was false. Quality Trend's real record is **−6.45%*
 5. **When you write a lesson predicting a failure, close it in code the same day or file it as an open item with a date.** 4.53(b) predicted this in prose, the prose was correct, and prose does not select an account.
 
 **Applies to:** Lead Developer, Data Steward — every retirement, every page that renders one book out of several epochs, and every hardcoded inception, baseline or launch date.
+
+### 4.56 (2026-08-28) — Every trigger on the "reliable path" fired, all five were green, and not one of them could ever have sent the email
+
+**What happened:** the weekday sweep found **zero** brief emails for 2026-08-28 — no `brief_email_log` row, no `brief_email_failures` row, and `DAILY-BRIEF-WRITER` showing five consecutive **successful** runs that morning. Every surface a monitor could look at was green.
+
+The five runs fired at 04:31, 05:06, 06:04, 08:13 and 08:38 UTC and every one printed `brief status: skipped_too_early`. `build_daily_brief.py` refuses to touch "today's" brief before **05:00 ET** (`BUILD_FROM_HOUR_ET`), and 08:38 UTC is 04:38 ET. The workflow's own `10:15 UTC` cron — the one path that lands inside the window — was dropped by GitHub again (4.13 / 4.17). So the brief was written to the site on time by the morning session (10:12 UTC) and nobody was told.
+
+**The part that had been true for weeks without showing.** 4.29 added a `workflow_run` trigger list — *"GitHub's cron scheduler has repeatedly dropped THIS workflow's own schedule, so we ALSO trigger off workflows that DO fire reliably... This is the reliable path."* The list was `PAPER-PORTFOLIO-EOD-DAILY, MASSIVE-DAILY, MONITOR-RECONCILE`. The first has been **retired since 2026-08-14** and can never fire again. The other two are genuinely reliable and complete at **08:12–08:38 UTC every day** — always before 05:00 ET, always inside the skip window. The reliable path was reliably firing at a time when the thing it triggers is defined to do nothing. It had never sent an email in its life; it just never had to, because the cron usually worked.
+
+**Rule:**
+
+1. **A trigger has to land inside the window of the thing it triggers, and that is a fact you measure, not assume.** Before adding workflow B as a backup trigger for workflow A, compare B's observed *completion* times against A's own guards. Same clock, both numbers written down. "B is reliable" and "B is useful here" are different claims, and only the second one matters.
+2. **A green run that did nothing is not evidence the path works.** `skipped_too_early` five times is a healthy exit five times and an untested channel. When a job's success is compatible with total inaction, exercising it proves nothing — grade it on the OUTCOME row (4.54 rule 1), which here is `brief_email_log`, not on the run's conclusion.
+3. **A retired name in a redundancy list is worse than a short list, because it is counted.** `PAPER-PORTFOLIO-EOD-DAILY` sat there for two weeks after retirement, making a two-entry list look like three. Same shape as 4.41 (a watchlist matched on names nobody checked): a retirement deletes the name from every list that names it (0.10).
+4. **The independent-scheduler backup is the one that actually held.** `pg_cron` at 12:20/13:20 UTC (4.54) was the only mechanism left standing today; a third, earlier slot at 11:40 UTC now restores the normal arrival time. Both sit after the producer's observed commit spread (10:12–11:20 UTC) and inside the 05:00–09:59 ET send window under both offsets. Chosen from measured history, per 4.28 rule 1.
+
+**Applies to:** Lead Developer — every `workflow_run` backup trigger, every redundancy list, and every job whose "success" includes doing nothing.
