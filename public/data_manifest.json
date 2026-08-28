@@ -74,7 +74,8 @@
   "v_2026_06_22b": "Retired sector_perf (Asset Tilt \u00b7 Sector Performance): orphaned feed \u2014 no frontend consumer reads sector_perf.json (the performance/volatility columns it fed were removed in the sector-table redesign). Producer workflow, script, served file, reconciler + watchdog entries all removed. (Joe 2026-06-22)",
   "v_2026_08_17": "Quality Trend launch: retired the five Conviction-Events-era paper elements (paper-nav-daily, paper-positions-snapshot, paper-orders-intent, paper-positions-intraday, paper-nav-intraday) \u2014 their producers (PAPER-PORTFOLIO-EOD-DAILY, PAPER-PORTFOLIO-INTRADAY, CONVICTION-KILL-CHECK) were disabled with the old Alpaca account's deletion on 2026-08-13 and their pipeline_health rows are deleted, closing the standing 'Paper Portfolio \u00b7 Order intents' red chip. Registered the two replacement feeds: qt-target-book (monthly scoring, QT-REBALANCE) and qt-nav-daily (close snapshot + fill sync, QT-EOD-DAILY). Producers stamp their own pipeline_health rows per the 2026-06-03 rule.",
   "v_2026_08_17b": "Redeploy trigger \u2014 the 11:48Z deploy of this file did not reach production; no content change.",
-  "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again \u2014 it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows."
+  "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again \u2014 it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows.",
+  "v_2026_08_28": "Quality Trend retired (Joe, 2026-08-26; superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only). Deregistered both of its feeds \u2014 qt-target-book (producer QT-REBALANCE) and qt-nav-daily (producer QT-EOD-DAILY) \u2014 and deleted their pipeline_health rows, closing the standing \"1 feed stale\" site header. The producers were deleted in the same change (QT-EOD-DAILY, QT-REBALANCE, QT-FUNDAMENTALS-REFRESH, QT-PLACE-ORDERS) along with the pg_cron job qt-live-sync-10min, which was still snapshotting a funded-but-never-traded account every ten minutes. The closed book's data (qt_nav_daily, qt_target_book, qt_orders) is kept \u2014 /paper renders it as a finished record. Per LESSONS 0.10, retired means deleted, everywhere, in the same change."
  },
  "elements": [
   {
@@ -2558,64 +2559,6 @@
    "as_of_cutoff_note": "US market close",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "cadence_display": "Every morning \u00b7 6:00 & 10:15 AM"
-  },
-  {
-   "id": "portfolio.qt-target-book",
-   "category": "portfolio",
-   "name": "qt-target-book",
-   "description": "Quality Trend monthly scoring run \u2014 the 40-name target book with the inputs that selected each name (momentum, quality, buyback, insider conviction). Scoring only; order placement is a separate manually-confirmed dispatch.",
-   "sourcing_mode": "computed",
-   "source_vendor": "MacroTilt engine",
-   "source_endpoint": "Alpaca bars + SEC XBRL (qt_fundamentals) + SEC Form 4 (insider_history_edgar) \u2192 qt_target_book",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "monthly",
-   "scheduled_fetch_time_et": "09:00 ET, first trading day of the month",
-   "refresh_trigger": "QT-REBALANCE",
-   "freshness_sla_hours": 768,
-   "data_max_age_hours": 840,
-   "data_calendar": "nyse-trading-day",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "output_destination": "Supabase public.qt_target_book (+ run log in public.qt_run_log)",
-   "producer_script": "paper_portfolio/qt/rebalance.py",
-   "consumer_surfaces": [
-    {
-     "tab": "paper",
-     "tile": "The book"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Book stays on the previous month's names \u2014 stale but coherent. Order placement never fires automatically, so a missed scoring run cannot mistrade."
-  },
-  {
-   "id": "portfolio.qt-nav-daily",
-   "category": "portfolio",
-   "name": "qt-nav-daily",
-   "description": "Quality Trend paper book \u2014 one close-of-day snapshot per trading day: account equity, cash, per-name positions and marks, plus order-fill sync. Read-only at the broker.",
-   "sourcing_mode": "STP",
-   "source_vendor": "Alpaca (paper)",
-   "source_endpoint": "Alpaca /v2/account + /v2/positions \u2192 qt_nav_daily; /v2/orders \u2192 qt_orders fill sync",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "daily",
-   "scheduled_fetch_time_et": "17:10 (16:10 in winter \u2014 after the close in both)",
-   "refresh_trigger": "QT-EOD-DAILY",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 54,
-   "data_calendar": "nyse-trading-day",
-   "release_calendar": "nyse-trading-day",
-   "dependencies": [],
-   "output_destination": "Supabase public.qt_nav_daily (+ fill states in public.qt_orders)",
-   "producer_script": "paper_portfolio/qt/eod.py",
-   "consumer_surfaces": [
-    {
-     "tab": "paper",
-     "tile": "Account band + P&L column"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Page shows the previous close's equity and marks; fills stay at their last synced state. No trading impact \u2014 the job cannot submit orders."
   },
   {
    "id": "indicator-cftc-cot-weekly",

@@ -44,6 +44,26 @@ const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18',
 // nav row that self-reference makes S&P read 0.00%, which is what Joe caught.
 const SPY_INCEPTION = 776.34;
 
+/* ── Quality Trend is RETIRED (Joe, 2026-08-26) ────────────────────────
+   Superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only:
+   nothing trades on this book and nothing will. Everything on this page is
+   the CLOSED record of the one account that ever held stock — PA3G9FV5AN1G,
+   Aug 17 to Aug 25 2026, $1,000,000 -> $935,536.63.
+
+   Why this page published "live · 0.00% since inception · +0.76% vs S&P" on
+   2026-08-28: a replacement account was funded to $1,000,000 on 8/26 for a
+   relaunch that was then cancelled, and qt-live-sync kept snapshotting it
+   every ten minutes. The epoch filter below took the NEWEST account, so an
+   account that never held a share became "the book" — and the hardcoded
+   Aug-17 inception with its Aug-15 SPY baseline got printed over it,
+   publishing an outperformance that never happened. LESSONS 4.53(b) called
+   this exact failure five days before it shipped.
+
+   The fix is data-keyed, never date-keyed (4.53 rule 4): the book shown is
+   the newest epoch that actually HELD something. An account that never held
+   a position is not a book, whatever its account number is. */
+const RETIRED_ON = 'August 26, 2026';
+
 /* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
 const CARD   = 'var(--putty)';
 const CARD2  = 'var(--bg2)';
@@ -393,8 +413,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       // book's closing equity onto the new book's opening $1M and draw a jump
       // that never happened. Keep only rows from the most recent account.
       const navRows = nv.data || [];
-      const liveAccount = navRows.length
-        ? navRows[navRows.length - 1].account_number
+      // 2026-08-28: pick the newest account that ACTUALLY HELD SOMETHING, not
+      // simply the newest account. A funded-but-never-traded account produces
+      // perfectly valid $1,000,000 / 0-position rows, and taking those as "the
+      // book" is what made this page report a flat return and a positive
+      // benchmark spread for a strategy that had been retired two days earlier.
+      const heldAccounts = new Set(
+        navRows.filter((r) => Number(r.n_positions) > 0).map((r) => r.account_number),
+      );
+      const tradedRows = navRows.filter((r) => heldAccounts.has(r.account_number));
+      const srcRows = tradedRows.length ? tradedRows : navRows;
+      const liveAccount = srcRows.length
+        ? srcRows[srcRows.length - 1].account_number
         : null;
       // FAIL SAFE on an untagged newest row (2026-08-26). The old fallback
       // showed EVERY row when the newest one had no account_number, which is
@@ -406,8 +436,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       // equity of $935,537. Showing one lonely row is a cosmetic loss; showing
       // a return that never happened is not. Never fall back to unfiltered.
       setNav(liveAccount
-        ? navRows.filter((r) => r.account_number === liveAccount)
-        : navRows.slice(-1));
+        ? srcRows.filter((r) => r.account_number === liveAccount)
+        : srcRows.slice(-1));
       setErr(null);
     } catch (ex) { setErr((prev) => prev ?? String(ex?.message || ex)); }
   }, []);
@@ -434,6 +464,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // shopping list until the orders fill; say so, loudly, everywhere.
   const nHeld = Object.keys(marks).length;
   const nothingHeld = nHeld === 0;
+
+  // "Aug 17 – Aug 25, 2026" — the dates of the epoch actually being shown, read
+  // off the rows themselves. Nothing about the book's window is hardcoded any
+  // more: a hardcoded inception is what survived its own account and printed a
+  // return that never happened.
+  const bookRan = (nav && nav.length)
+    ? (() => {
+        const a = fmtDate(nav[0].d);
+        const b = fmtDate(nav[nav.length - 1].d);
+        return a === b ? a : `${a.slice(0, -6)} – ${b}`;
+      })()
+    : null;
 
   const equity = latestNav ? Number(latestNav.equity) : 1_000_000;
   const cash = latestNav ? Number(latestNav.cash) : 1_000_000;
@@ -593,7 +635,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div>
             <div className="eyebrow2" style={{ marginBottom: 10 }}>
               <span className="dot" />
-              Paper Portfolio · live · marks sync every 10 min in market hours{markedAt ? ` · ${markedAt}` : ''}
+              Paper Portfolio · closed book · retired {RETIRED_ON}{markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}
             </div>
             <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
@@ -602,10 +644,32 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div style={{ textAlign: 'right', fontSize: 13, color: INK2, lineHeight: 1.7 }}>
             40 US companies · equal weight · monthly rebalance · no leverage
             <br />
-            $1,000,000 paper account, inception Aug 17, 2026 ·{' '}
+            {`$1,000,000 paper account, ${bookRan || 'now closed'} · closed`}{' · '}
             <Link to="/methodology#portfolio" style={{ color: INK2, fontWeight: 600, borderBottom: `1px solid ${EDGE}`, textDecoration: 'none', paddingBottom: 2 }}>Methodology</Link>
             <br />
             <span style={{ color: INK3 }}>Paper money — not investment advice.</span>
+          </div>
+        </div>
+
+        {/* ── retired notice ─────────────────────────────────────────────
+              Reader-facing, so plain English: no account numbers, no table
+              names, no status words. Placed ABOVE the headline figures on
+              purpose — a reader must not meet a portfolio value before
+              learning the strategy behind it has been retired. */}
+        <div style={{
+          border: `1px solid ${EDGE}`, borderLeft: `3px solid ${GOLD}`,
+          borderRadius: 'var(--card-r)', background: CARD2,
+          padding: '18px 22px', marginBottom: 'var(--mt-gap-card, 22px)',
+        }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
+            Retired — nothing here is trading
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.65, color: INK2, maxWidth: '72ch' }}>
+            Quality Trend was retired on {RETIRED_ON}. The numbers below are the
+            closing record of the paper account that ran {bookRan || 'until it was closed'},
+            and they stop there — the book placed no trades after it closed and will not
+            place any more. A cross-asset book is being designed to replace it; when that
+            one starts, it starts at zero, with its own record. The two are never blended.
           </div>
         </div>
 
@@ -625,11 +689,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               // mark is a previous session's it is not only long, it is untrue —
               // nothing is syncing every ten minutes at 9am Monday.
               { k: 'Portfolio value', hero: fmtUsd(equity),
-                sub: markedAt ? `${markedAt}${markIsToday ? ' · 10-min sync' : ''}` : 'at inception · 10-min sync', color: CREAM },
+                sub: markedAt ? `final ${markedAt.replace(/^marked /, 'mark ')}` : 'at inception', color: CREAM },
               { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
                 sub: ls ? `${fmtPct(ls.dayPct, 2)} · ${daySession}` : 'from broker marks', color: inkUpDown(ls?.day) },
               { k: 'Since inception', hero: ls ? fmtPct(ls.since, 2) : '—',
-                sub: ls ? `${fmtSignedUsd(ls.sinceUsd)} · since Aug 17` : 'vs $1,000,000 start', color: inkUpDown(ls?.since) },
+                sub: ls ? `${fmtSignedUsd(ls.sinceUsd)} · ${bookRan || 'whole book'}` : 'vs $1,000,000 start', color: inkUpDown(ls?.since) },
               { k: 'vs S&P 500', hero: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : '—',
                 sub: (ls && ls.spxSince != null) ? `book ${fmtPct(ls.since, 2)} · S&P ${fmtPct(ls.spxSince, 2)}` : 'benchmark spread',
                 color: inkUpDown(ls ? (ls.since - ls.spxSince) : null) },
@@ -747,7 +811,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
-          <Card title="Performance — live" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
+          <Card title="Performance — closed book" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
                 <LineChart
@@ -831,7 +895,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
                     <span style={{ width: 10, height: 3, background: GOLD, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
-                    Quality Trend — live <span style={{ color: INK3, fontWeight: 400 }}>since Aug 17, 2026</span>
+                    Quality Trend — closed book <span style={{ color: INK3, fontWeight: 400 }}>{bookRan || ''}</span>
                   </td>
                   <td style={{ ...td, color: upDown(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
                   <td style={td}>{ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}</td>
@@ -843,7 +907,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}`, color: INK2 }}>
                   <td style={{ ...td, textAlign: 'left' }}>
                     <span style={{ width: 10, height: 3, background: BLUE, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
-                    S&P 500 — live <span style={{ color: INK3 }}>same window</span>
+                    S&P 500 — <span style={{ color: INK3 }}>same window</span>
                   </td>
                   <td style={td}>{ls?.spxSince != null ? fmtPct(ls.spxSince, 2) : '—'}</td>
                   <td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td>
@@ -871,7 +935,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </Card>
 
         {/* ── monthly returns (tear-sheet grid; fills as months accrue) ── */}
-        <Card title="Monthly returns — live book" right="net paper returns · grows one cell per month" style={{ marginBottom: 22 }}>
+        <Card title="Monthly returns — closed book" right="net paper returns, as far as the book ran" style={{ marginBottom: 22 }}>
           {(() => {
             const months = {};
             (nav || []).forEach((r, i) => {
@@ -984,13 +1048,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── holdings ────────────────────────────────────────────────── */}
         <Card
-          title={nothingHeld ? 'Target book — nothing held yet' : 'Holdings'}
+          title={nothingHeld ? 'Target book — nothing held' : 'Holdings at close'}
           right={
             <span style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <span>
                 {nothingHeld
                   ? `the ${book?.length ?? 0} names below are scored, not owned · scored ${fmtDate(rebalDate)}`
-                  : `scored ${fmtDate(rebalDate)} · next rebalance: first trading day`}
+                  : `final holdings · scored ${fmtDate(rebalDate)} · no further rebalance`}
               </span>
               <input
                 className="qtt-search" type="search" placeholder="Filter ticker or name…"

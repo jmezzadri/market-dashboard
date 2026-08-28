@@ -109,9 +109,6 @@ on:
       - TRADING-OPPS-BACKTEST
       - V5_SCAN_DAILY
       - V5_SCAN_SAFETY_NET
-      - QT-EOD-DAILY
-      - QT-FUNDAMENTALS-REFRESH
-      - QT-REBALANCE
       - scanner-insider_edgar-daily
       - Data reconciler — flag duplicate / orphan / mis-wired series
       - Detector — dead UI files (weekly)
@@ -268,8 +265,9 @@ jobs:
               "DAILY-BRIEF-WRITER",          # his morning email + the homepage brief
               "BRIEF-FRESHNESS-SELFHEAL",    # the homepage brief going stale
               "DAILY-HOME-SMOKE",            # the site itself being up
-              "QT-EOD-DAILY",                # the live paper book's accounting + custody check
-              "QT-REBALANCE",                # the monthly trade — silence here means no rebalance
+              # "QT-EOD-DAILY",             retired 2026-08-28 with the Quality Trend book
+              # "QT-REBALANCE",              retired 2026-08-28 with the Quality Trend book
+              # "QT-FUNDAMENTALS-REFRESH",   retired 2026-08-28 with the Quality Trend book
               # "CONVICTION-OPEN-DAILY",     retired 2026-08-13 with the Conviction Events book
               # "CONVICTION-KILL-CHECK",     retired 2026-08-13 with the Conviction Events book
               # "PAPER-PORTFOLIO-EOD-DAILY", retired 2026-08-13 — superseded by QT-EOD-DAILY
@@ -421,18 +419,9 @@ jobs:
           # management consultant and the standing rule is that the agent does all
           # technical work. Anything not on this list gets the honest default.
           PLAIN = {
-              "QT-EOD-DAILY": (
-                  "The paper book's nightly check",
-                  "Every weeknight after the close this records what the paper book "
-                  "holds and checks that every share that moved had a real trade behind it.",
-                  "Nothing. Claude sees this too and will investigate. Only chase it "
-                  "if the same email arrives several nights running."),
-              "QT-REBALANCE": (
-                  "The paper book's monthly rebalance",
-                  "On the first trading day of each month this buys and sells to bring "
-                  "the book back to the 40 stocks the strategy currently ranks highest.",
-                  "Mention it to Claude today. This one moves money in the book, so a "
-                  "failure means the monthly trade may not have happened."),
+              # The three QT-* entries were removed on 2026-08-28 with the Quality
+              # Trend book itself. Their workflows no longer exist, so no event can
+              # ever name them again.
               "DAILY-BRIEF-WRITER": (
                   "Your morning market brief",
                   "Writes the brief that lands in your inbox and heads the MacroTilt homepage.",

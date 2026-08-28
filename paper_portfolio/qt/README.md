@@ -1,4 +1,19 @@
-# Quality Trend v3 — production pipeline
+# Quality Trend v3 — production pipeline (RETIRED 2026-08-26)
+
+> **This book is retired.** Joe retired Quality Trend on 2026-08-26; it is
+> superseded by `paper_portfolio/TACTICAL_BOOK_SPEC.md`, which is a design and
+> has not been built. On 2026-08-28 its four workflows (`QT-EOD-DAILY`,
+> `QT-REBALANCE`, `QT-FUNDAMENTALS-REFRESH`, `QT-PLACE-ORDERS`), its two
+> `data_manifest.json` feed entries, its two `pipeline_health` rows and the
+> `qt-live-sync-10min` pg_cron job were all deleted. Nothing in this directory
+> is scheduled and nothing can reach the broker.
+>
+> The code and the closed book's data are kept on purpose: `/paper` renders the
+> finished Aug 17 – Aug 25 2026 record from `qt_nav_daily` / `qt_target_book`,
+> and the replacement spec argues against this design by referring to it. Do not
+> re-schedule any of it — read `TACTICAL_BOOK_SPEC.md` first. Everything below
+> describes how the book worked while it ran.
+
 
 The strategy itself is specified in `paper_portfolio/QUALITY_TREND_V3.md` and its
 weights live in `paper_portfolio/strategy_config.py`. This directory is the code
