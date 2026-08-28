@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-27T19:54:32Z",
+  "generated_at": "2026-08-28T04:24:28Z",
   "window": {
-    "from": "2026-08-20",
-    "to": "2026-11-05"
+    "from": "2026-08-21",
+    "to": "2026-11-06"
   },
   "counts": {
-    "total": 101,
-    "tier1": 26
+    "total": 100,
+    "tier1": 27
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-20",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-20",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed survey",
-      "short": "Philly",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-20",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-24",
       "time_et": "8:30 AM",
@@ -1128,6 +1095,28 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-06",
+      "time_et": "8:30 AM",
+      "name": "Jobs report",
+      "short": "Jobs",
+      "tier": 1,
+      "category": "Labor",
+      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-06",
+      "time_et": "3:00 PM",
+      "name": "Consumer credit",
+      "short": "Credit",
+      "tier": 3,
+      "category": "Consumer",
+      "blurb": "Revolving and non-revolving household borrowing.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
