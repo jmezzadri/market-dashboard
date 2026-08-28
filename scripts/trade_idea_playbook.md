@@ -36,9 +36,15 @@ publishes by design.
 
 Two consequences of the daily cadence:
 - The MORNING RESEARCH sweep (overnight international sessions, major wires,
-  policymaker statements, today's releases — dated pages only) runs every day
-  whether or not anything publishes, and what it finds feeds the next day's
-  judgment of "best of the week".
+  policymaker calendars and statements, today's releases — dated pages only)
+  is a GATE, not background reading: it runs every day, whether or not
+  anything publishes, and it completes BEFORE the publish/skip decision
+  (LESSONS 4.57). A skip recorded without it is invalid; the skip reason
+  written to `pipeline_health` must name the day's dominant scheduled event
+  (or state plainly that there is none), so the record shows the sweep ran.
+  What it finds also feeds the next day's judgment of "best of the week",
+  and any dated event it finds that `econ_calendar.json` missed is a data
+  ticket filed the same run.
 - If a note dated within the last two days is already live and nothing has
   materially changed, the bar for another is even higher — the tile carries a
   position, not a headline.

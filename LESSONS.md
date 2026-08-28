@@ -1946,3 +1946,15 @@ The five runs fired at 04:31, 05:06, 06:04, 08:13 and 08:38 UTC and every one pr
 4. **The independent-scheduler backup is the one that actually held.** `pg_cron` at 12:20/13:20 UTC (4.54) was the only mechanism left standing today; a third, earlier slot at 11:40 UTC now restores the normal arrival time. Both sit after the producer's observed commit spread (10:12–11:20 UTC) and inside the 05:00–09:59 ET send window under both offsets. Chosen from measured history, per 4.28 rule 1.
 
 **Applies to:** Lead Developer — every `workflow_run` backup trigger, every redundancy list, and every job whose "success" includes doing nothing.
+
+### 4.57 (2026-08-28) — The morning research sweep is a GATE on the publish decision, not background reading; a run that only sweeps its own feeds decides blind
+
+**What happened:** the daily Trade Idea run swept all 73 indicators and 25 positioning markets, correctly concluded nothing cleared the bar, recorded the skip — and never ran the external morning research sweep the playbook already mandated. Joe caught it with one question ("You are only looking at indicators and positioning signals?"). Run late, the sweep changed the entire complexion of the morning: Fed Chair Warsh's first Jackson Hole keynote was THAT DAY at 10:00 ET, the annual payrolls benchmark revision — expected positive for the first time in three years, and direct event risk to the live long-Treasury call — landed in the same hour, and the site's own release calendar carried neither. The skip verdict happened to survive, but by luck: the run had decided "nothing worth publishing today" without knowing what today was. A prose sentence in step 0 ("runs every day whether or not anything publishes") was a hope, not a gate — the same failure shape as 4.31 rule 2: an instruction in a prompt is a request; only a checked step is a guarantee.
+
+**Rule:**
+
+1. **The external sweep completes BEFORE the publish/skip decision, every run, no exceptions.** Overnight international sessions, major wires, policymaker calendars and statements, and today's scheduled releases — dated pages only. A publish/skip decision reached without it is invalid even when it happens to be right, because the thing being decided is "is this the best idea of the week", and the week includes today's events.
+2. **The skip reason must prove the sweep ran.** `pipeline_health.last_skip_reason` names the day's dominant scheduled event (or states plainly that there is none), so a skip that skipped the sweep is distinguishable in the record from a diligent one. A reason built only from indicator percentiles is the tell.
+3. **An event the external sweep finds that the site's own calendar missed is a data ticket filed the same run** (4.30: anything dated that renders is a feed). Today's gap: the annual payrolls benchmark revision — a market mover for a live call, absent from the release calendar feed.
+
+**Applies to:** the Trade Idea scheduled run, and every recurring publishing run that can conclude "nothing today."
