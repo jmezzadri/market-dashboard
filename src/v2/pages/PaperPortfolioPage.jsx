@@ -63,6 +63,9 @@ const SPY_INCEPTION = 776.34;
    the newest epoch that actually HELD something. An account that never held
    a position is not a book, whatever its account number is. */
 const RETIRED_ON = 'August 26, 2026';
+// Emphasis colour inside the retired notice — the live-cash sentence must not
+// read as body text; it is the first thing a confused reader needs.
+const CREAM_INK = '#14161a';
 
 /* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
 const CARD   = 'var(--putty)';
@@ -665,11 +668,20 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             Retired — nothing here is trading
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: INK2, maxWidth: '72ch' }}>
-            Quality Trend was retired on {RETIRED_ON}. The numbers below are the
-            closing record of the paper account that ran {bookRan || 'until it was closed'},
-            and they stop there — the book placed no trades after it closed and will not
-            place any more. A cross-asset book is being designed to replace it; when that
-            one starts, it starts at zero, with its own record. The two are never blended.
+            <strong style={{ color: CREAM_INK }}>The paper account today holds $1,000,000
+            in cash and owns nothing.</strong> Every number below belongs to a DIFFERENT,
+            now-deleted account — the one that ran {bookRan || 'until it was closed'}. It is
+            history, not a position, and nobody is down any money today.
+            <br /><br />
+            Quality Trend was retired on {RETIRED_ON}. Read the closing figure with one
+            caveat: the book was liquidated in error on its final day, so a large part of
+            that last move is an operating mistake rather than the strategy losing money.
+            Treating it as the strategy's track record overstates how badly the strategy
+            itself did.
+            <br /><br />
+            A cross-asset book is being designed to replace it. Nothing is trading in the
+            meantime. When the new one starts it starts at zero, with its own record, and
+            the two are never blended.
           </div>
         </div>
 
