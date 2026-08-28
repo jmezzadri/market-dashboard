@@ -1,5 +1,15 @@
 // qt-live-sync — intraday mark + fill sync for the Quality Trend paper book.
 //
+// RETIRED 2026-08-28. Quality Trend was retired by Joe on 2026-08-26 and its
+// pg_cron caller, `qt-live-sync-10min`, was unscheduled in
+// supabase/migrations/20260828_retire_quality_trend.sql. Nothing calls this any
+// more and nothing should: for two days after the retirement it kept writing
+// $1,000,000 / zero-position snapshots for a replacement account that was
+// funded and then cancelled, and /paper turned those into a published "0.00%
+// since inception, +0.76% vs the S&P" for a book whose real record was -6.45%.
+// The source is kept because the deployed function is kept (LESSONS: deployed
+// source and committed source are one artifact) — do not re-schedule it.
+//
 // Why: the /paper page promised "updates every 60s" but its DATA only moved
 // when someone manually dispatched the EOD workflow — Joe caught the page
 // claiming a 9:47 AM mark at 10:53. This function runs on pg_cron every 10

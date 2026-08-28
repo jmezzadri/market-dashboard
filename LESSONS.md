@@ -1884,3 +1884,31 @@ Read, not inferred. `DAILY-BRIEF-WRITER`'s six most recent runs were all `event:
 **And one found by looking at a workflow with NO reds at all:** `QT-REBALANCE` has never run — zero runs in its entire history against a `0 13 1-4 * *` cron — because it landed mid-August, after its August window, and the live book was opened by hand through `QT-PLACE-ORDERS` on 8/14 and 8/17. Its first scheduled fire is **2026-09-01**, which is the new book's launch day, and 4.13 / 4.17 says GitHub silently skips a new workflow's first scheduled fires. A sweep that only reads red misses this entirely: an empty run list is not a green streak, it is an untested schedule. `QT-REBALANCE.yml` is now dispatchable (it scores only — writes `qt_target_book`, places no orders by design), so a skipped fire on 9/01 is one call rather than a launch-day re-implementation of the scorer.
 
 **Applies to:** Lead Developer — every scheduled delivery, every safety net, every "the workflow is green" that has not been checked against the thing the reader actually receives, and every workflow whose run list is EMPTY.
+
+### 4.55 (2026-08-28) — A retirement that stops at the decision leaves the machine running; and a book is the account that held something, not the newest account number
+
+**What happened:** the weekday sweep loaded macrotilt.com and the header read **"1 feed stale"**, then loaded `/paper` and found it publishing, in the present tense, for a strategy Joe had retired two days earlier:
+
+> PAPER PORTFOLIO · **LIVE** · marks sync every 10 min · **Since inception 0.00% · vs S&P 500 +0.76%** · Quality Trend — **live since Aug 17, 2026**
+
+Every one of those numbers was false. Quality Trend's real record is **−6.45%** over Aug 17–25 on account `PA3G9FV5AN1G`, which Joe closed on 8/25; he retired the strategy outright on 8/26 (`paper_portfolio/TACTICAL_BOOK_SPEC.md`, whose own build order says *"Site: retire the Quality Trend framing on /paper — not optional"*). The public page was claiming a flat book and three quarters of a point of alpha that no account ever earned.
+
+**How a decision that was made, recorded and committed still shipped a live lie.** The retirement changed a spec file and nothing else. Everything the strategy owned kept running exactly as designed:
+
+1. A replacement account, `PA30FE66XZSD`, had been funded to $1,000,000 on 8/26 for a 9/01 relaunch that the retirement then cancelled. Nobody told it that.
+2. `qt-live-sync-10min` (pg_cron, every ten minutes of every session) kept snapshotting that account into `qt_nav_daily` — perfectly valid rows reading $1,000,000, zero positions.
+3. `PaperPortfolioPage.jsx` selected the book by **newest `account_number`**, so those rows became "the book" the moment they existed.
+4. Over them it printed a hardcoded `inception Aug 17, 2026` and `SPY_INCEPTION = 776.34` — an inception and a benchmark baseline belonging to the account that had been closed. $1,000,000 against a $1,000,000 start is 0.00%; the S&P since Aug 15 is −1.33%; the page subtracted one from the other and published **+0.76%**.
+5. Meanwhile the 8/26 hold had stamped `pipeline_health.qt-nav-daily` red with the reason *"between broker accounts, new book starts 2026-09-01"* — a sentence about a relaunch that was cancelled the next day. That red is the site-wide "1 feed stale".
+
+**LESSONS 4.53(b), written 2026-08-26, describes step 4 exactly** — *"the paper page would swap onto the new book five days early while still hard-coding `inception Aug 17, 2026` and `SPY_INCEPTION = 776.34`"* — and it shipped anyway, because 4.53 fixed the producer's schedule and left the page's selection rule alone. A defect predicted in prose and not closed in code is not a finding, it is a countdown.
+
+**Rule:**
+
+1. **A retirement is not done when the decision is recorded. It is done when nothing is left that can still act.** Before closing one, enumerate what the retired thing OWNS — workflows, pg_cron jobs, edge functions, `pipeline_health` rows, `data_manifest.json` entries, alert watchlists, dispatch allowlists, page copy — and delete all of it in the same change (0.10). A spec file that says "retired" while the cron still fires is documentation, not retirement. This one owned eleven things and the retiring commit touched one of them.
+2. **Identify a book by what it HELD, never by which row is newest.** A funded-but-never-traded account produces flawless rows and is not a book. The selection is now data-keyed — newest epoch containing any row with `n_positions > 0` — so an account that never held a share can never become the record, whatever its number or date. Companion to 4.53 rule 4: date-keyed gates expire on their own, but only a data-keyed one survives the plan itself being cancelled.
+3. **An inception date and a benchmark baseline belong to an epoch, so read them off it.** Hardcoding either survives the account it describes and then silently re-labels the next one. `bookRan` and every "since" figure now come from the rows being shown; the page has no book dates in it at all.
+4. **A number stated by the rendered page is a claim you are making.** "0.00% since inception" and "+0.76% vs the S&P" were arithmetic on mismatched sources — right formula, two different books — and no test, health row or SQL query could see it, because every input was individually valid. Only loading the page catches this class (0.12), which is why the sweep loads it.
+5. **When you write a lesson predicting a failure, close it in code the same day or file it as an open item with a date.** 4.53(b) predicted this in prose, the prose was correct, and prose does not select an account.
+
+**Applies to:** Lead Developer, Data Steward — every retirement, every page that renders one book out of several epochs, and every hardcoded inception, baseline or launch date.

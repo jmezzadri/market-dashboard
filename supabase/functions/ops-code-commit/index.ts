@@ -63,24 +63,10 @@ const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
   "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml", "TRADE-IDEA-SCORECARD-DAILY.yml",
-  // 2026-08-27 (health sweep): the 8/26 monthly run died on a non-finite SEC
-  // value AFTER the 1.4 GB download. The parse-time + pre-POST guards shipped
-  // the same day, but the workflow is MONTHLY, so the fix could not be
-  // exercised until 9/26 and qt_fundamentals would have stayed stuck at
-  // filed<=2026-08-12 through the 9/01 Quality Trend rebalance that reads it.
-  // A fix that cannot be run is a hope; make the job re-runnable from a
-  // session so a failed monthly job is repaired the day it fails.
-  "QT-FUNDAMENTALS-REFRESH.yml",
-  // 2026-08-27 (health sweep): QT-REBALANCE has NEVER run — zero runs against
-  // a '0 13 1-4 * *' cron, because the workflow landed mid-August, after its
-  // August window, and the live book was opened by hand via QT-PLACE-ORDERS on
-  // 8/14 and 8/17. Its FIRST scheduled fire is 2026-09-01, which is also the
-  // new Quality Trend book's launch day — and LESSONS 4.13/4.17 says GitHub
-  // silently skips a new workflow's first scheduled fires. It SCORES only
-  // (writes qt_target_book, places no orders by design), so making it
-  // dispatchable adds no execution risk and turns "GitHub skipped it" from a
-  // launch-day re-implementation of the scorer into one call.
-  "QT-REBALANCE.yml",
+  // The QT-* entries that stood here were removed on 2026-08-28: Quality Trend
+  // was retired on 2026-08-26 and QT-EOD-DAILY / QT-FUNDAMENTALS-REFRESH /
+  // QT-REBALANCE were deleted with it. A dispatchable name with no workflow
+  // behind it is a 404 that reads like a capability.
 ]);
 
 function json(b: unknown, s = 200) {
