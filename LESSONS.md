@@ -1971,3 +1971,11 @@ The five runs fired at 04:31, 05:06, 06:04, 08:13 and 08:38 UTC and every one pr
 4. This binds every surface that addresses Joe: chat replies, scheduled-run summaries, push notifications, emails.
 
 **Applies to:** All agents, all projects, every message addressed to Joe.
+
+### 4.59 (2026-08-30) — "X is at an extreme" is a reading, not analysis; every signal owes its WHY, its transmission path, and its consequence for the live book
+
+**What happened:** Joe, on the morning skip summary: "Your analysis sucks. You just look at fucking signals on MacroTilt and tell me 'grains at extremes' — a toddler could do this. You are incapable of doing any analysis into why, incapable of looking at real cross asset correlations, incapable of really understanding markets." He is right about what was delivered: percentile readings recited as if they were findings. Run the same morning with actual analysis, the grain extreme became: cause (Black Sea war premium — Russian export cuts, suspended port service — plus a US corn yield shortfall), a measured transmission (top-decile 3-month grain rallies, 19 episodes since 2006, were followed by 10y breakevens +8bp vs +2bp unconditional at 3m, 74% hit rate vs 53%, and a dollar −2.6% vs +0.1% at 6m, while nominal 10y yields stayed flat), and consequence for the live book (strengthens the breakevens and EUR/USD calls, does not threaten the duration call). That is what a note reader is paying for.
+
+**Rule:** No signal may be reported — in a note, a skip reason, or a summary to Joe — as a bare percentile or extreme. Each one carries: (1) WHY, from dated external sources, the thing is where it is; (2) the measured cross-asset transmission — run the conditional-vs-unconditional test against the assets it should move, from indicator history, that run; (3) what it means for each live call in the book. A signal whose why and transmission were not established is background, not content.
+
+**Applies to:** All agents — Trade Idea runs, skip reasons, briefs, and every market statement addressed to Joe or a reader.
