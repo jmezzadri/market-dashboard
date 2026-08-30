@@ -1,0 +1,28 @@
+name: BREADTH-EMA-TEST
+on: { workflow_dispatch: {} }
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: deploy + time the EMA breadth RPC
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,re,time,urllib.request
+          U=os.environ['SUPABASE_URL']; TOK=os.environ['SUPABASE_ACCESS_TOKEN']
+          ref=re.sub(r'^https?://','',U).split('.')[0]
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          def q(sql,t=300):
+              req=urllib.request.Request(f"https://api.supabase.com/v1/projects/{ref}/database/query",
+                data=json.dumps({"query":sql}).encode(),method="POST",
+                headers={"Authorization":"Bearer "+TOK,"Content-Type":"application/json","User-Agent":UA})
+              s=time.time()
+              try:
+                  with urllib.request.urlopen(req,timeout=t) as r: return("OK",round(time.time()-s,1),json.loads(r.read().decode()))
+              except urllib.error.HTTPError as e: return("HTTP%s"%e.code,round(time.time()-s,1),e.read().decode()[:300])
+          print("deploy:", q(open('supabase/migrations/064_breadth_ema_rpc.sql').read())[0:2])
+          print("test:", q("set statement_timeout='290s'; select count(*) n, min(trade_date) mn, max(trade_date) mx, (array_agg(pct_above_50ema order by trade_date desc))[1] last50, (array_agg(pct_above_200ema order by trade_date desc))[1] last200 from public.compute_breadth_ema()"))
+          PY
