@@ -39,8 +39,10 @@ const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
 const ALERT_DEBOUNCE_HOURS = 24;
 // Consecutive deliberate skips before the skipping itself is worth an email.
-// 3 means a twice-weekly writer has found nothing for ~a fortnight.
-const SKIP_ESCALATE_AFTER = 3;
+// The trade-idea run is DAILY with a 1-2 notes/week target, so quiet stretches
+// of 3-5 skips are normal. 7 means a full week found nothing — that is news.
+// (Was 3, set when the task ran twice a week; raised 2026-08-30.)
+const SKIP_ESCALATE_AFTER = 7;
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
