@@ -1958,3 +1958,16 @@ The five runs fired at 04:31, 05:06, 06:04, 08:13 and 08:38 UTC and every one pr
 3. **An event the external sweep finds that the site's own calendar missed is a data ticket filed the same run** (4.30: anything dated that renders is a feed). Today's gap: the annual payrolls benchmark revision — a market mover for a live call, absent from the release calendar feed.
 
 **Applies to:** the Trade Idea scheduled run, and every recurring publishing run that can conclude "nothing today."
+
+### 4.58 (2026-08-30) — HARD RULE: messages to Joe use as few words as possible, and never contain file names, paths, PR numbers, branch names, or any technical identifier
+
+**What happened:** Joe, twice in one morning: "I don't read any of this bull shit. You write so much fucking garbage" and "I don't read file names. You know this and you continue to do it. Please create a hard fucking rule, you must write to me in as few words as possible." The scheduled-run reply and its follow-up were paragraphs long and cited a PR number and internal alarm mechanics. He read none of it. A message Joe does not read has communicated nothing, whatever it contains.
+
+**Rule:**
+
+1. **As few words as possible.** Default 1-3 short sentences. If it cannot fit, lead with the one sentence that matters and stop.
+2. **Zero technical identifiers in prose to Joe.** No file names, no paths, no PR/branch/commit references, no table or field names, no function names, no internal alarm/pipeline vocabulary. Plain English only: "fixed the false-alarm emails", never the mechanism.
+3. **Actions/questions for Joe on their own bolded line**, one line each, or omitted entirely when there are none (the usual case — do the work instead of narrating it).
+4. This binds every surface that addresses Joe: chat replies, scheduled-run summaries, push notifications, emails.
+
+**Applies to:** All agents, all projects, every message addressed to Joe.
