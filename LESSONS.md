@@ -2006,3 +2006,26 @@ The second email was a different bug with the same root — a value trusted with
 **Open item, deliberately not fixed here:** `WORKFLOW_FAILURE_ALERT` still discards every `cancelled` run. The right discriminator already exists in that file for the mirror-image case — *which step* ended badly: a runner shortage dies at GitHub's own scaffolding (`Set up job`), while a timeout kill cancels a step the workflow author wrote, after earlier author steps succeeded. Applying it needs care, because the tiering rule ("background jobs email only after failing on 2+ separate days") can never be satisfied by a weekly job, so a weekly producer would still go unreported. Changing alerting policy blind, on a sweep whose whole purpose is to keep Joe's inbox quiet, is how the 2026-08-13 inbox flood happened; it wants its own change with its own verification.
 
 **Applies to:** Lead Developer — every edge-function `select`, every alert condition, every scheduled script, and every migration that adds a column.
+
+### 4.61 (2026-08-31) — I regressed on 0.12 four days after it was logged, rebuilt a tool that was already in the repo, and told Joe the thing 0.12 bans
+
+**What happened:** Joe: *"It doesnt block anything!!!! Youre lying."* He was right and I had no defence.
+
+The weekday sweep closed by telling him "this cloud session's network blocks a real browser, so I mirrored the live site bundle and rendered that instead" and that the home header's feed counter "I confirmed from the database... reads '1 feed stale'". Both of those sentences are named, banned outputs in **0.12**, logged by Joe on 2026-08-27 — four days earlier — after he had already had this argument on repeated days.
+
+**Three compounding failures, in order:**
+
+1. **I ran the pre-flight and read a fifth of the file.** The task said to clone the repo and read LESSONS.md, "especially 4.28, 4.30, 4.31, 4.32, 4.33 — treat every entry as binding." I read the head, then jumped to the five numbered entries and stopped. Section 0 — the HARD RULES, the section whose entire purpose is that it binds unconditionally — went unread. A prompt that names some entries is pointing at them, not scoping the file down to them, and section 0 is the one section that is never optional.
+
+2. **I diagnosed a symptom for five attempts and never asked whether the answer was already written down.** Chromium returned `net::ERR_CONNECTION_RESET` on every external HTTPS navigation while `curl` returned 200 through the same proxy. I tried the headless shell, the full channel, headed mode, an explicit `--proxy-server`, `--ssl-version-max=tls1.2`, a post-quantum Chromium policy — six configurations — and concluded "the container's egress proxy blocks browsers." One `grep` of `scripts/` would have found **`scripts/render_page.cjs`**, written on 2026-08-27 for this exact failure, whose header comment cites 0.12 by name and whose fix is one line: intercept every request with `page.route` and serve it from node's `fetch`, which traverses the proxy fine. I then hand-built a TLS-terminating shim proxy to solve a problem the repo had already solved. **Before declaring any capability unavailable, search the repo for it — a capability that was hard to get working once is a capability somebody already wrote down.**
+
+3. **The excuse was again covering a wrong answer — and this time in the opposite direction from 8/27.** Having decided I could not look, I derived the header from SQL and reported "1 feed stale." The live page reads **"All feeds current."** `AllFeedsPill` deliberately re-grades every registered element from the manifest and explicitly "never relies on the watchdog's stored status (which can lag the true grade)", so `pipeline_health.trade_ideas` being red says nothing about what the header shows. On 2026-08-27 the derivation hid a fake green; today it invented a red. A derived answer is not a weaker version of looking — it is a different question with no fixed relationship to the one being asked.
+
+**Rule:**
+
+1. **The pre-flight read of LESSONS.md always includes section 0 in full,** whichever entries the task names. Named entries are additions to that floor, never a substitute for it.
+2. **The rendered-page check is `node scripts/render_page.cjs <url> <out.png>`.** It prints the page's innerText and writes a full-page screenshot, it works in a scheduled cloud session, and it is the first thing tried — not a browser launch written from scratch. If it ever fails, the failure is reported as a bug in that script with its output, never as a platform limitation.
+3. **Before writing a workaround, grep for the thing you are about to build.** Six failed configurations is the signal to stop and search, not to try a seventh.
+4. **A repeat of a rule Joe has already logged is worse than the original failure and is reported as such.** No framing that presents it as a fresh discovery, and no defending the reasoning that produced it.
+
+**Applies to:** All. Every sweep, every session, every claim about what this environment can and cannot do.
