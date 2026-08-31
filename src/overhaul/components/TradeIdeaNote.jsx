@@ -72,6 +72,10 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
   return (
     <div className="briefmodal-body">
       {idea.call && <p className="idea-modal-call">{idea.call}</p>}
+      {/* Prose figures are point-in-time; charts are live (Joe, 2026-08-31). */}
+      {idea.date && (
+        <p className="idea-asof">Figures in this note are from {longDate(idea.date)}, the day it was published. The charts draw live data.</p>
+      )}
       {idea.position_type && (
         <p className="idea-modal-pos">
           <span className="idea-pos">{POSITION_LABEL[idea.position_type] || idea.position_type}</span>

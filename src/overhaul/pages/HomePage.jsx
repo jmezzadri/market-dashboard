@@ -371,6 +371,13 @@ export default function HomePage() {
                     research note states what is likely to happen and over what
                     period; the instruction lives in the fact strip below. */}
                 {idea.call && <p className="idea-call">{idea.call}</p>}
+                {/* Numbers quoted in the note's prose are point-in-time; the
+                    chart beside them is live. Without this line a reader sees
+                    "pays 4.69%" next to a chart reading 4.73% and takes the
+                    prose as a live quote (Joe, 2026-08-31). */}
+                {idea.date && (
+                  <p className="idea-asof">Figures in the note are from {weekdayDate(idea.date)}, the day it was published. The chart is live.</p>
+                )}
 
                 {idea.the_trade && (
                   <div className="idea-facts">

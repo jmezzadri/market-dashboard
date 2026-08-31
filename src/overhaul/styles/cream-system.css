@@ -363,6 +363,8 @@
    have one and Joe could not tell whether it was asking him to short stocks. */
 .home-v12 .idea-call{margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--ink);max-width:62ch}
 .home-v12 .idea-modal-call{font-size:18px;line-height:1.55;color:var(--ink);margin-top:6px;font-family:var(--serif);font-weight:400}
+/* Dates the note's prose figures so they can't be read as live quotes beside a live chart. */
+.home-v12 .idea-asof{margin:6px 0 0;font-size:12px;color:var(--mut);line-height:1.5;max-width:62ch}
 .home-v12 .idea-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .home-v12 .idea-pos{font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink);border:1px solid var(--hair);background:var(--bg2);border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:help}
 .home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
