@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-30T22:51:56Z",
+  "generated_at": "2026-08-31T17:09:37Z",
   "window": {
-    "from": "2026-08-23",
-    "to": "2026-11-08"
+    "from": "2026-08-24",
+    "to": "2026-11-09"
   },
   "counts": {
-    "total": 100,
+    "total": 101,
     "tier1": 27
   },
   "sources": [
@@ -1117,6 +1117,17 @@
       "tier": 3,
       "category": "Consumer",
       "blurb": "Revolving and non-revolving household borrowing.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-09",
+      "time_et": "10:00 AM",
+      "name": "Wholesale inventories",
+      "short": "Wholesale",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
