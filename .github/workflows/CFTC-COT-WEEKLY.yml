@@ -46,7 +46,11 @@ jobs:
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 scripts/build_cot_positioning.py
+        # -u (2026-08-31): the 8/29 timeout kill left a log with ZERO output
+        # from this step, because python block-buffers stdout when it is not a
+        # tty and the buffer dies with the process. A hang we cannot locate is
+        # a hang we cannot fix; unbuffered, the last line printed is the answer.
+        run: python3 -u scripts/build_cot_positioning.py
       - name: Commit if updated
         run: |
           if git diff --quiet -- public/cot_positioning.json public/data_manifest.json; then

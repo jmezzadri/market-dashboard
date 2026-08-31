@@ -68,6 +68,8 @@ type HealthRow = {
   last_skip_reason: string | null;
   consecutive_skips: number | null;
   last_7day_alert_at?: string | null;
+  // When the CURRENT red episode began. Cleared on every recovery to green.
+  red_since?: string | null;
 };
 
 // ─── Release-schedule tolerances ────────────────────────────────────────────
@@ -197,9 +199,17 @@ async function handle(req: Request): Promise<Response> {
   const { data: rowsData, error: selErr } = await supabase
     .from("pipeline_health")
     .select(
+      // 2026-08-31 — last_skip_at / last_skip_reason / consecutive_skips were
+      // MISSING from this list from the day they were added (2026-08-26). The
+      // HealthRow type declared them, so nothing complained; the query simply
+      // never asked for them, every row came back with them undefined,
+      // skipAgeH was Infinity on every row, and silenceIsDeliberate was
+      // therefore FALSE on every row for five days. The whole deliberate-skip
+      // feature had never once suppressed an email. A column list is code.
       "indicator_id, label, source, cadence, expected_cadence_minutes, " +
       "last_good_at, last_check_at, last_value, last_error, status, " +
-      "prev_status, last_alerted_at, last_7day_alert_at"
+      "prev_status, last_alerted_at, last_7day_alert_at, " +
+      "last_skip_at, last_skip_reason, consecutive_skips, red_since"
     );
   if (selErr) return json({ ok: false, error: `select: ${selErr.message}` }, 500);
   const rows = (rowsData || []) as HealthRow[];
@@ -647,9 +657,17 @@ async function handle(req: Request): Promise<Response> {
     // Explained only while the skip is recent enough to be THIS cycle's silence
     // (1.5x the cadence) and the skipping has not itself become the story.
     const silenceIsDeliberate = skipAgeH <= expectedH * 1.5 && skips < SKIP_ESCALATE_AFTER;
+    // The skipping has itself become the story: fires ONCE, on the run where the
+    // counter reaches the threshold. Without this the skip-aware subject line
+    // below was unreachable — by the time skips hit 7 the row is long since
+    // red, so `wasGreen` is false and no alert of any kind can be raised.
+    // Send-once by construction (LESSONS 4.28 rule 3): `=== threshold` fires on
+    // one run only — the next skip makes it 8 — and the freshness bound means a
+    // producer that dies while parked on 7 cannot re-send it every morning.
+    const skipStoryDue = skips === SKIP_ESCALATE_AFTER && skipAgeH <= 24;
     const shouldAlert =
-      !skipAlerts && wasGreen && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS &&
-      !silenceIsDeliberate;
+      !skipAlerts && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS &&
+      ((wasGreen && !silenceIsDeliberate) || skipStoryDue);
 
     // ─── 7-day stuck-red escalation (Joe directive 2026-05-03) ────────────
     // Re-evaluate "is this red?" against manifest SLA + calendar (matches the
@@ -659,9 +677,14 @@ async function handle(req: Request): Promise<Response> {
     // Stuck-red gate uses the SAME two-clock grade as the chip + stored status.
     const manifestStale = !isConfigGap && graded.status === "red";
 
-    // Rolling: when did this row first go red? Use last_alerted_at as proxy
-    // (set on every green→red transition, including the very first one).
-    const firstRedAt = row.last_alerted_at;
+    // When did THIS red episode begin? This used to proxy off last_alerted_at,
+    // which is never cleared when a row recovers — so a row that went green,
+    // published, and went red again inherited the timestamp of the PREVIOUS
+    // episode. On 2026-08-31 that produced two emails one second apart:
+    // "last updated 5 days ago" and "still not updating after 8 days", about
+    // the same row, on the very run where it first went red. red_since is a
+    // real anchor: stamped on the transition into red, nulled on recovery.
+    const firstRedAt = (nowRed && !wasGreen) ? (row.red_since ?? null) : null;
     const elapsedRedHours = firstRedAt
       ? (Date.now() - new Date(firstRedAt).getTime()) / 3600_000
       : 0;
@@ -674,6 +697,7 @@ async function handle(req: Request): Promise<Response> {
       !skipAlerts &&
       manifestStale &&                           // manifest agrees it is stale (no false alarms)
       firstRedAt != null &&                      // we have a starting point
+      !silenceIsDeliberate &&                    // the producer ran and chose not to publish
       elapsedRedHours >= STUCK_HOURS &&          // red for 7+ days
       last7Age >= STUCK_HOURS;                   // havent escalated in last 7 days
 
@@ -726,6 +750,9 @@ async function handle(req: Request): Promise<Response> {
       prev_status: row.status,
       last_alerted_at: shouldAlert ? now.toISOString() : row.last_alerted_at,
       last_7day_alert_at: next7DayAlertAt,
+      // Stamp on entry into red, keep it for the life of the episode, clear on
+      // recovery. This is the only honest answer to "how long has this been red".
+      red_since: nowRed ? (row.red_since ?? now.toISOString()) : null,
     });
 
     if (shouldAlert) alerts.push({ row, ageMinutes: ageMin, skips });

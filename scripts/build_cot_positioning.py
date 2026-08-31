@@ -37,6 +37,32 @@ MANIFEST_ELEMENT_ID = "indicator-cftc-cot-weekly"
 WINDOW = 156
 TAIL_LOW, TAIL_HIGH = 10.0, 90.0
 
+# ── Own your own deadline (2026-08-31) ────────────────────────────────────
+# CFTC-COT-WEEKLY was "cancelled" on 2026-07-04, 2026-08-01 and 2026-08-29 —
+# three weeks of positioning silently one release behind. Confirmed from the
+# 8/29 log, not inferred: the step started 15:22:48, GitHub printed "The
+# operation was canceled" at 15:37:47 (exactly timeout-minutes: 15) and then
+# "Terminate orphan process: pid (2270) (python3)". Successful runs finish in
+# ~3 minutes, so this is a hang, not a slow week.
+#
+# A job killed by timeout-minutes ends with conclusion=cancelled, and
+# WORKFLOW_FAILURE_ALERT deliberately suppresses cancelled runs as GitHub
+# runner shortages (2026-05-06 rule). So the job hung, the data went stale,
+# and NOTHING alerted — three times in two months. The producer therefore
+# owns its own deadline: it exits 1 with a message well before the runner
+# kills it, which turns an invisible cancellation into an ordinary failure
+# the existing alerting already handles.
+#
+# 10 minutes: >3x the observed spread of a healthy run, 5 minutes clear of
+# timeout-minutes. LESSONS 4.28 rule 1 — never set a deadline inside the
+# spread you are grading.
+BUDGET_SECONDS = int(os.environ.get("COT_BUDGET_SECONDS", "600"))
+# No paginated pull of one CFTC contract pattern legitimately runs past this.
+# An unbounded `while True` that keeps receiving full pages is an infinite
+# loop that prints nothing, which is exactly what a zero-output hang looks
+# like. Bounded, it becomes a loud error naming the query.
+MAX_PAGES = int(os.environ.get("COT_MAX_PAGES", "200"))
+
 # page bucket, display, CFTC name pattern
 MARKETS = [
     ("Rates", "3M SOFR", "SOFR-3M"),
@@ -73,7 +99,13 @@ MARKETS = [
 def socrata(where, select=None, order="report_date_as_yyyy_mm_dd", page=1000):
     import requests
     base, out, off = f"{API}/{LEGACY}.json", [], 0
+    pages = 0
     while True:
+        pages += 1
+        if pages > MAX_PAGES:
+            raise RuntimeError(
+                f"socrata: {MAX_PAGES} full pages and still going for where=({where}) "
+                f"— the offset is not advancing. Refusing to loop forever.")
         params = {"$where": where, "$order": order, "$limit": page, "$offset": off}
         if select:
             params["$select"] = select
@@ -403,7 +435,29 @@ def selftest():
     return ok
 
 
+def _install_budget():
+    """Fail loudly before the runner kills us silently. SIGALRM only exists on
+    POSIX; on anything else this is a no-op and the job timeout stays the only
+    backstop."""
+    try:
+        import signal
+    except ImportError:
+        return
+    if not hasattr(signal, "SIGALRM") or BUDGET_SECONDS <= 0:
+        return
+    def _blown(signum, frame):
+        sys.stdout.flush()
+        raise SystemExit(
+            f"FATAL: build_cot_positioning exceeded its {BUDGET_SECONDS}s budget "
+            f"(a healthy run takes ~3 minutes). Nothing was written; the prior "
+            f"cot_positioning.json still renders. The last line printed above is "
+            f"where it hung.")
+    signal.signal(signal.SIGALRM, _blown)
+    signal.alarm(BUDGET_SECONDS)
+
+
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         sys.exit(0 if selftest() else 1)
+    _install_budget()
     run()

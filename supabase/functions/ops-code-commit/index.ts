@@ -63,6 +63,16 @@ const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
   "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml", "TRADE-IDEA-SCORECARD-DAILY.yml",
+  // 2026-08-31 (health sweep): both added so a sweep can REPAIR what it finds
+  // instead of only reporting it. CFTC-COT-WEEKLY had been silently killed by
+  // its job timeout three Saturdays running, leaving cross-asset positioning a
+  // release behind with no way to re-run it from a cloud session until the
+  // next Saturday. TRADING-OPPS-BACKTEST fires quarterly (next: Oct 1) and its
+  // PR step has never once succeeded; a credential fix landed 2026-08-18 and
+  // was never exercised, and "it should work now" three days before a
+  // quarterly job is not a verification. Both open a PR or write data; neither
+  // trades, deploys, or spends.
+  "CFTC-COT-WEEKLY.yml", "TRADING-OPPS-BACKTEST.yml",
   // The QT-* entries that stood here were removed on 2026-08-28: Quality Trend
   // was retired on 2026-08-26 and QT-EOD-DAILY / QT-FUNDAMENTALS-REFRESH /
   // QT-REBALANCE were deleted with it. A dispatchable name with no workflow
