@@ -79,6 +79,33 @@ The sentence that triggered it:
 | "against the backdrop of", "it is worth noting", "that said" | delete |
 | any sentence over 25 words | split it or cut it |
 
+
+### Every claim carries its time
+
+Joe, on a rewrite I offered him — *"vol bid into the sep17 FOMC.... This sounds
+past tense but its only Sept 1...."* Two failures in five words.
+
+- **A move that already happened names its session.** "Rate vol repriced
+  Monday", not "vol bid".
+- **A scheduled event names its date and reads as ahead.** "FOMC, Sep 16."
+- **Never a verb that could be either.** If the reader has to work out whether
+  it already happened, rewrite it.
+
+**And never write an event date from memory.** The date in that example was
+wrong — the calendar feed says the FOMC is **Sep 16**, not Sep 17. FOMC, CPI,
+PPI, payrolls, ISM, PCE, GDP, claims, JOLTS and retail sales dates are read off
+`https://macrotilt.com/econ_calendar.json`, the same feed the homepage tile
+uses. The prepare step now checks every dated event mention against it and
+refuses a mismatch. A wrong tense is awkward; a wrong FOMC date is a reader
+missing a meeting.
+
+**The corrected example:**
+
+> - Rate vol repriced Monday. Front end unchanged.
+> - The bid is for FOMC, Sep 16.
+> - Equities flat Monday, lower pre-market.
+> - First test today: ISM, 10:00.
+
 ### The test
 
 Read it aloud as if you were saying it to a PM standing at your desk who has
