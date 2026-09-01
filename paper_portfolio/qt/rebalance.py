@@ -29,6 +29,11 @@ SB_URL = D.SB_URL
 def _post(table: str, rows: list[dict], on_conflict: str | None = None) -> None:
     if not rows:
         return
+    # DataFrame.to_dict turns None into NaN, and json.dumps happily emits the
+    # literal `NaN` — which PostgREST rejects, killing the whole write. Any
+    # missing value crosses the wire as null.
+    rows = [{k: (None if isinstance(v, float) and v != v else v) for k, v in r.items()}
+            for r in rows]
     h = dict(D._sb_headers())
     h["Prefer"] = "resolution=merge-duplicates,return=minimal"
     url = f"{SB_URL}/rest/v1/{table}"
@@ -114,6 +119,7 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
         "vol":     [round(float(feats.vol.get(s, 0)), 6) for s in names],
         "company": [str(nm.get(s, "")) [:120] for s in names],
     })
+    book = _classify(book, feats)
 
     if dry_run:
         print(book[["rank", "symbol", "score", "ref_price", "target_dollars"]].to_string(index=False))
@@ -128,6 +134,56 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
     }])
     print(f"wrote {len(book)} names to qt_target_book for {as_of}", flush=True)
     return book
+
+
+def _classify(book: pd.DataFrame, feats: pd.DataFrame) -> pd.DataFrame:
+    """Sector, industry, market cap and traded dollar volume for each name.
+
+    The paper page's allocation and liquidity cards read these straight off
+    qt_target_book. They were NULL on the 2026-09-01 relaunch because the
+    Aug 14 values had been a one-off manual fill, never code — the first
+    automated scoring run wrote a book the page rendered as "Unclassified
+    98.7%" with every size and liquidity figure blank.
+
+    addv is the engine's own number: the 63-day average dollar volume already
+    computed as the liquidity gate's input. Classification comes from qt_gics
+    (curated GICS labels, seeded 2026-09-01); market cap from
+    ticker_state_current, the site's canonical per-ticker state. A name
+    missing from qt_gics keeps NULLs and is PRINTED so the next monthly run
+    gets curated labels — a wrong sector on a public page is worse than a
+    blank one, so nothing here guesses. Lookups must never sink a scoring
+    run: on any failure the book is written without them.
+    """
+    syms = book.symbol.tolist()
+    out = book.copy()
+    out["addv"] = [
+        (lambda v: None if pd.isna(v) or v <= 0 else round(float(v), 0))(feats.addv.get(s))
+        for s in syms
+    ]
+    def _n(v):
+        return None if v is None or pd.isna(v) else v
+    try:
+        gx = D._sb_select("qt_gics", {"select": "ticker,sector,industry",
+                                      "ticker": f"in.({','.join(syms)})"})
+        ts = D._sb_select("ticker_state_current", {"select": "ticker,market_cap",
+                                                   "ticker": f"in.({','.join(syms)})"})
+    except Exception as e:
+        print(f"classification lookup failed ({e}) — book written without it", flush=True)
+        return out
+    gm = gx.set_index("ticker") if len(gx) else pd.DataFrame(columns=["sector", "industry"])
+    tm = ts.set_index("ticker") if len(ts) else pd.DataFrame(columns=["market_cap"])
+    out["sector"] = [_n(gm.sector.get(s)) if s in gm.index else None for s in syms]
+    out["industry"] = [_n(gm.industry.get(s)) if s in gm.index else None for s in syms]
+    out["market_cap"] = [
+        (lambda v: None if v is None or pd.isna(v) else round(float(v), 0))(
+            tm.market_cap.get(s) if s in tm.index else None)
+        for s in syms
+    ]
+    missing = [s for s in syms if s not in gm.index]
+    if missing:
+        print(f"qt_gics is missing {len(missing)} name(s) — add curated GICS labels "
+              f"for: {', '.join(missing)}", flush=True)
+    return out
 
 
 def _g(fund: pd.DataFrame, sym: str, col: str):
