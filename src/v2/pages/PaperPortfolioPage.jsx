@@ -322,7 +322,9 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
 }
 function ChartLegend({ items }) {
   return (
-    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 10 }}>
+    // A legend sits at its natural width under its chart — declared so the
+    // layout check does not read it as a jammed row. See scripts/check_layout.mjs.
+    <div data-layout="natural" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 10 }}>
       {items.map(([name, color]) => (
         <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: INK2 }}>
           <span style={{ width: 16, height: 3, background: color, borderRadius: 2, display: 'inline-block' }} />{name}
@@ -646,7 +648,18 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [book, marks, orders, equity, sortKey, sortDir, query]);
 
   const needs = (have, want) => `needs ${Math.max(want - have, 0)} more trading days`;
-  const grid = (min, gap = 14) => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap });
+  // 2026-09-01: `auto-fit` fits as many 1fr tracks as the width allows, so a
+  // six-item row in a 1432px frame got EIGHT equal tracks and two of them sat
+  // empty — 440px of dead space. When the item count is known, state it; pass
+  // `n` and the row spreads across exactly that many columns and no more.
+  // scripts/check_layout.mjs fails the build on an empty track.
+  const grid = (min, gap = 14, n = null) => ({
+    display: 'grid',
+    gridTemplateColumns: n
+      ? `repeat(${n}, minmax(0, 1fr))`
+      : `repeat(auto-fit, minmax(${min}px, 1fr))`,
+    gap,
+  });
 
   const fillCell = (r) => {
     const o = orders[r.symbol]; const m = marks[r.symbol];
@@ -737,7 +750,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           background: INKCARD, color: CREAM, borderRadius: 'var(--card-r)',
           boxShadow: 'var(--sh)', padding: '34px 44px', marginBottom: 'var(--mt-gap-card, 22px)',
         }}>
-          <div style={{ ...grid(158, 22) }}>
+          <div style={{ ...grid(158, 22, 6) }}>
             {[
               // hero = ONE number per tile (no crammed "$ · %"); the secondary
               // value + its context live on the sub-line. Day P&L is a dollar

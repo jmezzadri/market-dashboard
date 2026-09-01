@@ -856,7 +856,7 @@ export default function TickerPage() {
               No price history on file for {sym}.
             </div>
           )}
-          <div className="tk-overlay">
+          <div className="tk-overlay" data-layout="natural">
             <button type="button" className={`mt-btn ${show50 ? 'on' : ''}`} onClick={() => setShow50((v) => !v)}>
               {show50 ? '✓ ' : '+ '}50-day avg
             </button>
@@ -890,7 +890,7 @@ export default function TickerPage() {
               <button type="button" className="mt-btn" onClick={() => setCompareSym('')}>✕ {compareSym}</button>
             )}
           </div>
-          <div className="tk-daterange">
+          <div className="tk-daterange" data-layout="natural">
             <span className="mt-eyebrow">Custom range</span>
             <input type="date" className="mt-btn tk-dateinput" value={fromDate}
               max={toDate || undefined} onChange={(e) => setFromDate(e.target.value)} />
