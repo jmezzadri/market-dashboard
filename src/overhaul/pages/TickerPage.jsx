@@ -36,9 +36,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/cream-system.css';
+import '../styles/ticker-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/ticker-v12.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';

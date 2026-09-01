@@ -124,15 +124,19 @@
 [data-mt-theme='navy'] .v13,
 [data-mt-theme='dark'] .mt-overhaul,
 [data-mt-theme='navy'] .mt-overhaul {
-  --v13-ground: #0F1114;
-  --v13-surface: #16191D;
-  --v13-surface-2: #1B1F24;
-  --v13-surface-3: #22262B;
+  /* 2026-09-01: the first dark palette put a #16191D card on a #0F1114 ground
+     — a 3% lift, which across a full-width panel reads as no card at all. Joe,
+     on /portfolio-lab in dark: "what is this?!" Grounds go darker and surfaces
+     lift, so a card is unmistakably a card. */
+  --v13-ground: #0A0C0F;
+  --v13-surface: #171B21;
+  --v13-surface-2: #1E232A;
+  --v13-surface-3: #282E36;
   --v13-ink: #E9EAE6;
   --v13-ink-2: #9BA1A8;
   --v13-ink-3: #6E747B;
-  --v13-rule: #262A2F;
-  --v13-rule-2: #383D43;
+  --v13-rule: #2E343C;
+  --v13-rule-2: #454C56;
   --v13-accent: #7FA8DB;
   --v13-accent-soft: rgba(127, 168, 219, 0.10);
   --v13-accent-mid: rgba(127, 168, 219, 0.20);

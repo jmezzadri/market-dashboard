@@ -66,7 +66,12 @@ export default function TickerSearch() {
         aria-label="Search tickers"
         spellCheck={false}
         autoComplete="off"
-        style={{ width: '100%', padding: '7px 13px', fontSize: 13, borderRadius: 999, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface-2)', color: 'var(--mt-ink-0)', outline: 'none', fontFamily: 'var(--mt-font-ui)' }}
+        /* 2026-09-01: was an inline style object with borderRadius 999 and a
+           hardcoded 13px. Inline beats every stylesheet, so chrome-v13 could
+           not touch it and the search stayed a cream-era pill on a v13 page.
+           This is one of the 147 inline style objects the redesign is retiring:
+           a style that cannot be themed is a style that will drift. */
+        className="v13-search-input"
       />
       {open && res.length > 0 && (
         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,.22)', overflow: 'hidden', zIndex: 9999 }}>

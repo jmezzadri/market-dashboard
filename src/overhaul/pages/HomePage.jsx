@@ -42,6 +42,7 @@ import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal, { KIND_LABEL, POSITION_LABEL, POSITION_NOTE } from '../components/TradeIdeaNote';
 import { nyseMarketState } from '../chrome/PageHeader';
 import '../styles/cream-system.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
 
