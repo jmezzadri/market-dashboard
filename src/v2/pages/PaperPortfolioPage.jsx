@@ -794,39 +794,39 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         }}>
           <div style={{ ...grid(158, 22, 6) }}>
             {[
-              // The band answers exactly four questions, in order, each in
-              // dollars AND percent (Joe, 2026-09-01): what is it worth · what
-              // did it make today, and how does that compare to the S&P · what
-              // has it made since inception, and how does that compare to the
-              // S&P. Hero = the dollar figure, sub-line = the percent + the
-              // benchmark's own number. Exposure closes the band; everything
-              // else (liquidity, brake state, system plumbing) lives below the
-              // fold or nowhere — a hero tile is not a status console.
+              // The band answers exactly four questions, in order (Joe,
+              // 2026-09-01): what is it worth · what did it make today · what
+              // since inception · vs the S&P for both — dollars AND percent
+              // as EQUALS, two full-size lines per tile. The percent lived in
+              // the grey sub-line for two hours and Joe could not read it;
+              // the sub-line now carries only short context (the session, the
+              // S&P's own figure) at 13px, and nothing a reader needs is grey.
               { k: 'Portfolio value', hero: fmtUsd(equity),
                 sub: markedAt ? (bookIsLive ? markedAt : `final ${markedAt.replace(/^marked /, 'mark ')}`) : 'at inception',
                 color: CREAM },
               { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
-                sub: ls ? `${fmtPct(ls.dayPct, 2)} · ${daySession}` : 'from broker marks',
+                hero2: ls ? fmtPct(ls.dayPct, 2) : null,
+                sub: ls ? daySession : 'from broker marks',
                 color: inkUpDown(ls?.day) },
               { k: 'Day vs S&P 500', hero: (ls && ls.spxDay != null) ? fmtSignedUsd(ls.dayVsSpxUsd) : '—',
-                sub: (ls && ls.spxDay != null)
-                  ? `${fmtPct(ls.dayPct - ls.spxDay, 2)} · S&P ${fmtPct(ls.spxDay, 2)} ${daySession}`
-                  : 'benchmark spread',
+                hero2: (ls && ls.spxDay != null) ? fmtPct(ls.dayPct - ls.spxDay, 2) : null,
+                sub: (ls && ls.spxDay != null) ? `S&P ${fmtPct(ls.spxDay, 2)} ${daySession}` : 'benchmark spread',
                 color: inkUpDown(ls && ls.spxDay != null ? ls.dayPct - ls.spxDay : null) },
               // On the book's FIRST day, "today" and "since inception" are the
               // same interval, so the day and inception pairs match to the
-              // dollar. Correct, but it reads as a rendering bug (Joe,
-              // 2026-09-01, launch day) — so until a second mark exists the
-              // inception tiles say why. Data-keyed off the held window
-              // (ls.n === 0), never off a date.
+              // dollar. Correct, but it reads as a rendering bug (Joe caught
+              // it on launch day) — until a second mark exists the inception
+              // tiles say why. Data-keyed off the held window (ls.n === 0).
               { k: 'P&L since inception', hero: ls ? fmtSignedUsd(ls.sinceUsd) : '—',
+                hero2: ls ? fmtPct(ls.since, 2) : null,
                 sub: ls
-                  ? `${fmtPct(ls.since, 2)} on $1,000,000 · ${ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book')}`
+                  ? (ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book'))
                   : 'vs $1,000,000 start',
                 color: inkUpDown(ls?.since) },
               { k: 'vs S&P 500 inception', hero: (ls && ls.spxSince != null) ? fmtSignedUsd(ls.sinceVsSpxUsd) : '—',
+                hero2: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : null,
                 sub: (ls && ls.spxSince != null)
-                  ? `${fmtPct(ls.since - ls.spxSince, 2)} · S&P ${fmtPct(ls.spxSince, 2)} · ${ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book')}`
+                  ? `S&P ${fmtPct(ls.spxSince, 2)} ${ls.n === 0 ? '· day one' : (inceptionShort ? `since ${inceptionShort}` : '')}`
                   : 'benchmark spread',
                 color: inkUpDown(ls && ls.spxSince != null ? ls.since - ls.spxSince : null) },
               { k: 'Exposure', hero: latestNav ? fmtPctPlain(invested, 1) : '—',
@@ -835,12 +835,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <div key={t.k}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
                 <div className="num" style={{ fontSize: 23, fontWeight: 600, letterSpacing: '-0.01em', color: t.color }}>{t.hero}</div>
+                {t.hero2 != null && (
+                  <div className="num" style={{ fontSize: 17.5, fontWeight: 600, letterSpacing: '-0.01em', color: t.color, marginTop: 3 }}>{t.hero2}</div>
+                )}
                 {t.meter != null && (
                   <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', margin: '8px 0 2px', maxWidth: 140 }}>
                     <div style={{ width: `${Math.min(t.meter * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
                   </div>
                 )}
-                <div style={{ fontSize: 12, color: inkSub, marginTop: 6 }}>{t.sub}</div>
+                <div style={{ fontSize: 13, color: CREAM, opacity: 0.72, marginTop: 6 }}>{t.sub}</div>
               </div>
             ))}
           </div>
