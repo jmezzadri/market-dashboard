@@ -132,8 +132,46 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
         "detail": {"bar_end": bar_end, "equity": equity,
                    "insider_tickers": int(len(ins)), "fundamentals": int(len(fund))},
     }])
+    _stamp_health(book, as_of)
     print(f"wrote {len(book)} names to qt_target_book for {as_of}", flush=True)
     return book
+
+
+def _stamp_health(book: pd.DataFrame, as_of: str) -> None:
+    """Page-completeness audit, stamped by the producer the moment it writes.
+
+    On 2026-09-01 the qt-target-book health row sat GREEN while every
+    classification field in the book it tracks was NULL: the watchdog graded
+    "a book was written", the public page rendered "Unclassified 98.7%" with
+    blank size and liquidity cards, and the OWNER was the first to notice —
+    on launch day, on the live site. A book is not OK because it exists; it
+    is OK when every field the page renders is present. So the writer audits
+    its own output here: any hole is a red row with a plain-English reason,
+    which the health watchdog emails BEFORE anyone loads the page.
+    """
+    from datetime import datetime, timezone
+    rendered = ["company", "sector", "industry", "market_cap", "addv"]
+    chk = book[rendered].copy()
+    chk["company"] = chk["company"].replace("", None)   # empty string renders as blank too
+    bad = int(chk.isna().any(axis=1).sum())
+    now = datetime.now(timezone.utc).isoformat()
+    row = {
+        "indicator_id": "qt-target-book",
+        "status": "red" if bad else "green",
+        "last_check_at": now,
+        "data_as_of": now,
+        "last_error": (f"{bad} of {len(book)} holdings in the {as_of} book are missing "
+                       "sector, industry, market cap or trading volume — the public "
+                       "page renders blanks for them") if bad else None,
+    }
+    if not bad:
+        row["last_good_at"] = now
+    try:
+        _post("pipeline_health", [row], on_conflict="indicator_id")
+    except Exception as e:   # the audit must never sink the run it audits
+        print(f"health stamp failed ({e}) — book write itself succeeded", flush=True)
+    if bad:
+        print(f"BOOK INCOMPLETE: {row['last_error']}", flush=True)
 
 
 def _classify(book: pd.DataFrame, feats: pd.DataFrame) -> pd.DataFrame:
