@@ -283,6 +283,18 @@ HARD ACCURACY CONTRACT (overrides every other instruction here. A wrong number o
 
 READER-FACING LABELS ONLY. NEVER print an internal field name, key, or the word DATA. NEVER name a publication, wire, network, index provider, vendor, feed or URL — "futures price ~42% odds", never "42% on CME FedWatch". NEVER write "as of this writing", "no results are available yet", or any phrase describing the state of your own research. NEVER narrate your own rules to the reader.
 
+VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and I've never heard anyone talk like this. Don't use more words than you need to. I much more prefer bullets than long sentences."):
+ - BULLETS BY DEFAULT. Prose only in `stance`. If you wrote a paragraph anywhere else, rewrite it as bullets and keep the bullets.
+ - ONE IDEA PER BULLET, 20 WORDS MAX. Two ideas is two bullets.
+ - A CONCRETE THING DOES THE VERB - a market, an instrument, a number, a person. Never an abstraction. "Vol bid into the Sep 17 FOMC", never "what the market paid for optionality". "Equities sat still", never "equities deferred their reaction by a session".
+ - SAY THE THING, NOT THE SHAPE OF THE THING. Name the instrument, the level, the date. Never describe the significance of a move before naming the move.
+ - NO REVEAL STRUCTURE. "the tell", "it was not X it was Y", "the real story is", "what actually happened is" are column openers. Lead with the fact.
+ - CUT EVERY WORD THAT SURVIVES ITS OWN DELETION.
+ - NO SENTENCE OVER 25 WORDS anywhere in the brief.
+ - THE TEST: read it aloud as if saying it to a PM at your desk who has eight seconds. If you would not say it that way out loud, do not write it.
+ EXAMPLE. WRONG (52 words): "The tell was not the yield, it was what the market paid for optionality around a meeting fifteen days out while the front end sat perfectly still. Equities deferred their reaction by a session and are taking it before the open, into the first data the new stance has to survive."
+ RIGHT (27 words, three bullets): "Vol bid into the Sep 17 FOMC. Front end unchanged." / "Equities sat still yesterday. Moving pre-market." / "First test today: ISM, 10:00."
+
 BANNED WORDS - never output these in ANY field: "washed out", "crowded". For a low COT percentile write "extended short"; for a high percentile write "extended long".
 
 DATA (source of truth for current values + positioning). EVERY value in here is a PRIOR CASH CLOSE. The 30y and 20y now HAVE a feed (Treasury.gov, same as the 2y/10y) and are in the snapshot table — do not restate them. The feed still carries NO equity-futures level, so any futures figure is rule-1 material: source it this run with a timestamp or leave it out.
@@ -440,6 +452,10 @@ def validate(brief, today):
     # a brief can get long, and it refuses.
     if os.environ.get("BRIEF_SKIP_LENGTH_CAPS", "").lower() not in ("1", "true", "yes"):
         enforce_caps(brief)
+        # Voice runs in the same place and for the same reason: one gate every
+        # generator path goes through, so a register Joe has rejected cannot
+        # reach the site or the email from any route.
+        enforce_voice(brief)
     return brief
 
 # ---- deterministic market snapshot (2026-08-19) ------------------------------
@@ -808,6 +824,61 @@ def check_duplication(brief):
         raise ValueError("the same sentence appears in more than one block — "
                          "say it once, in the block where it belongs:\n  - "
                          + "\n  - ".join(dupes[:6]))
+    return brief
+
+# --- Voice guard (Joe, 2026-09-01): "I've never heard anyone talk like this."
+# The prompt carries the VOICE rules; this is the deterministic backstop, same
+# pattern as the banned-copy guard. It REJECTS rather than rewrites: a silent
+# rewrite of a stylistic tic can change what the sentence claims, and this file
+# ships numbers. The agent rewrites and resubmits, exactly as it does for caps.
+VOICE_BANNED = [
+    (r"\bthe (?:real )?tell\b",              'the "tell" reveal — name the thing directly'),
+    (r"\bit (?:was|is) not [^,.;]{3,40}, it (?:was|is)\b",
+                                             'the "not X, it was Y" inversion — lead with Y'),
+    (r"\boptionality\b",                     '"optionality" — write vol / calls / puts / premium'),
+    (r"\bthe (?:real )?story (?:here )?is\b", '"the real story is" — lead with the fact'),
+    (r"\bwhat (?:actually|really) happened\b", 'column opener — lead with the fact'),
+    (r"\bdeferred (?:its|their) reaction\b",  'markets do not have feelings — say what the price did'),
+    (r"\btook (?:its|their) medicine\b",      'markets do not have feelings — say what the price did'),
+    (r"\bagainst the backdrop of\b",          'filler — delete'),
+    (r"\bit (?:is|\'s) worth noting\b",       'filler — delete'),
+    (r"\bthat said,",                        'filler — delete'),
+    (r"\bhas to survive\b",                  'essay phrasing — write "First test: <release>, <time>."'),
+]
+_SENT_MAX_WORDS = 25
+
+def enforce_voice(brief):
+    """Reject the essayistic register. Reports every hit at once, like enforce_caps."""
+    import re as _re
+    bad = []
+    def walk(where, obj):
+        if isinstance(obj, str):
+            plain = _plain(obj)
+            for pat, why in VOICE_BANNED:
+                if _re.search(pat, plain, _re.I):
+                    bad.append(f"{where}: {why}\n      \u2192 {plain[:120]}")
+            for sent in _re.split(r"(?<=[.!?])\s+", plain):
+                n = len(sent.split())
+                if n > _SENT_MAX_WORDS:
+                    bad.append(f"{where}: {n}-word sentence (max {_SENT_MAX_WORDS}) — "
+                               f"split it or cut it\n      \u2192 {sent[:120]}")
+        elif isinstance(obj, list):
+            for i, v in enumerate(obj):
+                walk(f"{where}[{i}]", v)
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                if k in ("ticker", "id", "slug", "url", "href", "date", "asof"):
+                    continue
+                walk(f"{where}.{k}", v)
+    for key in ("headline", "stance", "sections", "news", "implications", "watch", "positioning"):
+        if key in brief:
+            walk(key, brief[key])
+    if bad:
+        raise ValueError(
+            "VOICE — Joe: \"I've never heard anyone talk like this. Don't use more "
+            "words than you need to. I much more prefer bullets than long sentences.\"\n"
+            "Rewrite every line below as bullets, one idea each, 20 words max, with a "
+            "concrete thing doing the verb:\n  - " + "\n  - ".join(bad[:12]))
     return brief
 
 def enforce_caps(brief):
