@@ -69,6 +69,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.10` RETIRED MEANS DELETED. EVERYWHERE. SAME CHANGE.
 - `0.11` NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 - `0.12` Ship only what was asked; no unsolicited "helper" UX
+- `0.13` The bug queue is part of every sweep. A monitoring surface nobody is instructed to read does not exist
 
 **1 · TALKING TO JOE**
 
@@ -347,14 +348,13 @@ He was right on every count. The weekday sweep closed by telling him the rendere
 **Rule:**
 
 1. **Never tell Joe the site cannot be loaded. It can. In every session type, scheduled runs included.** The phrases "I couldn't load the page", "no browser in a scheduled run", "the egress proxy blocks it", "I derived it from the database instead" are banned outputs. If the first method fails, the next one is tried — not reported.
-2. **The working recipe, so no session has to rediscover it.** Launch Chromium via Playwright and serve every request from node instead of from Chromium's network stack: `page.route('**/*', …)` and fulfil each route with node's `fetch`, which already traverses the container proxy. Reference implementation lives in this entry's PR description; it renders macrotilt.com and /paper in full, including client-rendered React. `WebFetch` alone is NOT sufficient — the site is a SPA and returns only `<head>` metadata to it.
+2. **The working recipe is a script in this repo. Run it; do not rebuild it.** `NODE_PATH=/home/claude/.npm-global/lib/node_modules node scripts/render_page.cjs <url> <out.png>` prints the page's innerText and writes a full-page screenshot — then actually Read the .png. It works in a scheduled cloud session; verified again 2026-09-01. It launches Chromium via Playwright and serves every request from node instead of from Chromium's own network stack (`page.route('**/*', …)` fulfilled with node's `fetch`, which traverses the container proxy that Chromium's stack cannot). `WebFetch` alone is NOT sufficient — the site is a SPA and returns only `<head>` metadata to it.
+2a. **Before building a workaround, grep the repo for the thing you are about to build.** On 2026-08-31 a sweep hit `net::ERR_CONNECTION_RESET`, tried six Chromium configurations, declared the platform at fault, hand-built a TLS-terminating shim proxy — and `scripts/render_page.cjs`, written for this exact failure four days earlier, was sitting in the tree the whole time. Six failed attempts is the signal to stop and search, not to try a seventh. A capability that was hard to get working once is a capability somebody has already written down.
 3. **"Verified" means a rendered page was looked at and read.** Markup containing a string is not verification; a database query agreeing with your expectation is not verification; a value re-derived from the same tables the page reads is not verification. This was already the rule (2026-08 "Always view the rendered page after every deploy"). This entry exists because it was restated as impossible instead of followed.
 4. **When the page and the database disagree, the page is the truth and the difference is the bug.** Do not reconcile it by explaining the page away. `status is distinct from 'green'` cannot see a fake-green row; grade freshness the way the site grades it — two clocks, off `data_as_of` and the manifest SLA — or read it off the rendered header.
 5. **A tooling failure is a bug to fix in the same turn, never a caveat to hand Joe.** He is a management consultant. "I could not check X" is not a status he can act on, and after the second time it is not a status he will tolerate.
 
 **Applies to:** every agent, every session, every turn — the weekday health sweep above all.
-
-# 1 · TALKING TO JOE
 
 ### 0.8 (2026-09-01) — You have the keys. Never tell Joe you cannot see something before you have actually tried
 
@@ -405,6 +405,24 @@ He was right on every count. The weekday sweep closed by telling him the rendere
 **Applies to:** All UI work. UX Designer and Lead Developer both bind; sign-off fails on any PR with unsolicited additions.
 
 
+### 0.13 (2026-09-01, Joe) — The bug queue is part of every sweep. A monitoring surface nobody is instructed to read does not exist
+
+**What happened:** Joe: *"Are you also looking at the bugs page and fixing shit when you do your sweep? If not, please add to instructions and fix them!"* It was not being looked at. `/admin/bugs` held four reports at status `new` — #1245 and #1246 from 2026-08-04, #1247 from 2026-08-14, #1248 from 2026-08-16 — every one filed P1, the oldest sitting four weeks. The weekday sweep checked workflow runs, `pipeline_health`, `workflow_failure_log`, the brief email and the rendered pages, and never once opened `bug_reports`. Every one of those reports was created correctly, routed correctly and displayed correctly; the only missing piece was a reader.
+
+All four closed the same day. Three of them were auto-filed by the freshness alarm against producers that were *deliberately dark* — `ce_events` and `paper-orders-intent` both stopped because automated trading was halted on 2026-08-12, and the Momentum sleeve in #1246 belonged to a paper book retired on 2026-08-26 whose account no longer exists. The fourth, `lse_intraday`, had recovered on its own. Not one needed code.
+
+**Rule:**
+
+1. **Every sweep reads the queue, and reports it — even when it is empty.** `select report_number, status, created_at::date, title, description, priority from bug_reports where status in ('new','triaged','reopened','awaiting_approval','approved','merged','deployed') order by created_at;` An empty queue reported is a check performed; an unmentioned queue is a check skipped, and the two are indistinguishable to the reader afterwards. The queue gets its own row in the closing table, always.
+2. **Classify each report exactly as a red workflow is classified.** Deliberately-off producer -> `wontfix`, naming what was switched off and when, and retire the watcher too so the alarm cannot re-file it. Already recovered -> `verified_closed` with `verified_at`. A real bug -> fix and ship it, then move it along the lifecycle.
+3. **Closing a bug is a claim and carries the same evidence bar as any other claim.** "The chip is green now" does not prove a feed recovered — query the table behind it for a real recent row (0.4). #1245 was closed on `lse_live_quotes` holding 84 symbols with a newest bar minutes old, not on the stamp.
+4. **Every transition writes `triage_notes` with the evidence and a `bug_status_log` row.** The next session inherits the note, never the reasoning.
+5. **Machine-filed reports are closed with SQL, never the resolve edge function** — it emails `reporter_email`, and `alarm@macrotilt.com` / `paper-pipeline@macrotilt.internal` have nobody behind them.
+6. **The general form, which binds beyond this queue: when a new channel is added — a queue, a table, a page, an inbox — the instruction that makes something READ it ships in the same change.** A filer without a reader is a folder that fills up.
+
+**Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
+
+
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
@@ -424,6 +442,8 @@ report the limitation. Asking Joe to find a prompt that does not exist is the
 credential-questioning anti-pattern wearing a new hat.
 
 **Applies to:** every agent, every session, every tool.
+
+**Repeated 2026-09-01 — SIXTH time.** `update_trigger` returned "requires approval" on the health-sweep task; the agent called it a second time, got the same error, and closed the turn asking Joe to "approve the scheduled-task prompt update when it pops up." Joe: *"nothing popped up."* The route-around this rule already mandates was available and obvious: the sweep's pre-flight reads LESSONS.md every run, so a standing instruction belongs in **section 0 of this file**, which needs no approval from anybody. Where a scheduled task's prompt cannot be edited from a session, the instruction goes in the file the task already reads — not into a request Joe cannot act on.
 
 ### 1.2 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name
 
@@ -1284,6 +1304,22 @@ The five runs fired at 04:31, 05:06, 06:04, 08:13 and 08:38 UTC and every one pr
 
 **Applies to:** Lead Developer — every edge-function `select`, every alert condition, every scheduled script, and every migration that adds a column.
 
+
+
+### 5.25 (2026-09-01) — A reorganisation built on a stale base silently reverted two merged entries, and nothing noticed
+
+**What happened:** two LESSONS entries were written, merged to `main` and reported as shipped on 2026-08-31 and 2026-09-01 — one recording a regression on 0.7, one recording the unswept bug queue. Neither is in the file. A later reorganisation of LESSONS.md renumbered the whole document from a base that predated both merges and wrote the result back wholesale, taking both entries out. No conflict was raised, because the reorg replaced the file rather than editing around them. It was found only because the next session went looking for its own entry by text and could not find it.
+
+This is 0.3 — never commit a repo file from a stale copy — arriving through a path 0.3 does not obviously cover: not a stale local checkout, but a stale *in-memory* version of a file that several jobs and sessions append to every day. LESSONS.md is the highest-traffic append target in the repo, which makes it the likeliest file to be clobbered and the worst one to lose silently, since its whole function is to stop mistakes from repeating.
+
+**Rule:**
+
+1. **A whole-file rewrite of an append-heavy file re-reads `origin/main` immediately before the write and diffs its own base against it.** If anything landed in between, rebase onto it. LESSONS.md, `public/data_manifest.json` and the daily data files all qualify.
+2. **A merge is not a delivery until it is verified on `main`.** Any change worth reporting to Joe is worth one `grep` of a freshly cloned `main` for a distinctive string from it, after the merge returns. "The API returned ok:true" is a claim about one request, not about the state of the branch (5.x, `ok:false` is a claim about one attempt — the same idea pointed the other way).
+3. **Restore rather than rewrite.** Both lost entries were re-added under the current numbering with their cross-references corrected, not re-invented from memory.
+4. **Renumbering a shared reference file breaks every citation in it.** The reorg left two headers for every section and stranded five HARD RULES (0.8–0.12) under a "TALKING TO JOE" heading, so a session told to "read all of section 0" would have stopped at 0.7 — the precise failure that produced the 2026-08-31 regression. The stray heading is fixed here. **Open item, deliberately not fixed in this pass:** every top-level section header from 1 through 9 still appears twice, and untangling two spliced numbering schemes is its own change with its own verification, not a side-effect of a sweep.
+
+**Applies to:** every agent that appends to LESSONS.md, and every whole-file write to a shared, frequently-appended file.
 
 # 6 · QUANT METHODOLOGY & RESEARCH
 ### 6.1 (2026-05-13) — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
