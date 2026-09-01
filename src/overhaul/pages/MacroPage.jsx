@@ -30,6 +30,7 @@ import { useFreshness } from '../../hooks/useFreshness';
 import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
+import PositioningDetail from '../components/PositioningDetail';
 import useIndicators from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
 import '../styles/cream-system.css';
@@ -353,21 +354,6 @@ function EngineHistoryDetail({ weeks = [], spx = [] }) {
   );
 }
 
-function BucketModal({ dom, title, inds, cotPos, onClose, onSelectInd, onSelectPos }) {
-  return (
-    <DetailModal onClose={onClose}>
-      <div style={{ padding: '24px 28px' }}>
-        <div className="mt-eyebrow">{dom}</div>
-        <div className="mt-h2" style={{ margin: '2px 0 18px' }}>{title}</div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--mt-ink-1)', marginBottom: 12 }}>Indicators</div>
-        <div className="mc-grid">
-          {inds.map((i) => (<IndicatorCard key={i.id} ind={i} onClick={() => onSelectInd(i)} />))}
-        </div>
-        <BucketPositioning data={cotPos && cotPos.domains ? cotPos.domains[dom] : null} onSelect={onSelectPos} />
-      </div>
-    </DetailModal>
-  );
-}
 
 /* Reveal — scroll-reveal wrapper, same pattern as HomePage (v12 system).
    Replays in BOTH directions; state lives in React so data-poll re-renders
@@ -435,9 +421,9 @@ export default function MacroPage() {
   useEffect(() => {
     const m = searchParams.get('pos');
     if (!m || !cotPos?.domains) return;
-    for (const d of Object.values(cotPos.domains)) {
+    for (const [domName, d] of Object.entries(cotPos.domains)) {
       const hit = (d.markets || []).find((x) => x.market === m);
-      if (hit) { setSelectedPos(hit); break; }
+      if (hit) { setSelectedPos({ ...hit, domain: domName }); break; }
     }
   }, [searchParams, cotPos]);
   const posCount = useMemo(() => {
@@ -624,7 +610,7 @@ export default function MacroPage() {
                       <div className="mac-poshead">Positioning · COT extremes</div>
                     )}
                     {markets.map((m) => { const ln=posLean(m.spec); const ps = (m.spec<=10||m.spec>=90)?'extreme':(m.spec<=25||m.spec>=75)?'elevated':'calm'; let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
-                      <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos(m)} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
+                      <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos({ ...m, domain: dom })} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
                         <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
                         <span className="mac-chg mut">{chg}</span>
@@ -658,7 +644,12 @@ export default function MacroPage() {
       )}
       {selectedPos && (
         <DetailModal onClose={() => setSelectedPos(null)}>
-          <PositioningDetail item={selectedPos} onClose={() => setSelectedPos(null)} catalog={overlayCatalog} indexSeries={indexSeries} />
+          <PositioningDetail
+            item={selectedPos}
+            domain={selectedPos.domain}
+            blurb={MARKET_BLURB[selectedPos.market]}
+            onClose={() => setSelectedPos(null)}
+          />
         </DetailModal>
       )}
     </div>
