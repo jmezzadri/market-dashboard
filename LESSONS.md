@@ -921,6 +921,8 @@ They are not the same series and they are nowhere near each other:
 
 **Rule:** Before a page ships, every field it renders traces to a writer that RUNS — a job, a function, a sync — not to a fill someone once executed. A manual backfill is allowed only to heal history, and the same change that backfills must ship the code writer (here: the rebalance writer now carries classification from `qt_gics` + `ticker_state_current` and its own 63-day dollar volume; a name missing from `qt_gics` stays NULL and is named in the run log — never guessed). Restoring or un-retiring a system re-verifies this for every surface it feeds.
 
+**Same-day addendum (Joe: "why do I have to check such simple things"):** existence-grading is how the owner ended up as the QA — `qt-target-book`'s health row sat GREEN over the all-NULL book because the watchdog graded "a book was written". The writer now audits its own output the moment it writes: any hole in a rendered field stamps the row red with a plain-English count ("N of 20 holdings missing sector…"), which the watchdog emails before anyone loads the page. The pattern binds every producer stamp: grade what the reader will SEE, not that the job ran.
+
 **Applies to:** Lead Developer — any change that adds a rendered field; any restore/un-retirement.
 
 
