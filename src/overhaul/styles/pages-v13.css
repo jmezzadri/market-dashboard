@@ -1,0 +1,392 @@
+/* ============================================================================
+   pages-v13.css — the remaining eight pages on the v13 system.
+
+   Strategy, and why it is this and not eight rewrites.
+
+   cream-system.css already declared the whole cream vocabulary as CSS
+   variables on `.home-v12`, and every `*-v12.css` page stylesheet consumes
+   those variables rather than literals: `--putty` for a tile, `--card-r` for
+   its radius, `--serif` for a headline, `--sect` for section rhythm. So the
+   palette, radii, shadows, fonts and section rhythm of ALL eight pages convert
+   by remapping ~20 variables onto v13 tokens — the same trick that converted
+   the shell in #1594. What each `*-v12.css` still owns after that is its
+   hardcoded px type, and that is what the per-page blocks below normalise.
+
+   Everything is scoped `.v13.home-v12` (0,2,0) rather than `.v13` (0,1,0),
+   because both classes sit on the same page root: at (0,1,0) the remap ties
+   with cream-system's own `.home-v12` block and the winner depends on bundle
+   order. Source order is not a design system.
+   ========================================================================= */
+
+/* ── the remap ──────────────────────────────────────────────────────────
+   One block. Light and dark both work without a second copy, because the
+   v13 tokens on the right-hand side already swap under [data-mt-theme]. */
+.v13.home-v12 {
+  --serif: var(--v13-f-read);      /* kept, for editorial prose only */
+  --sans: var(--v13-f-ui);
+
+  --bg: var(--v13-ground);
+  --bg2: var(--v13-surface-2);
+  --putty: var(--v13-surface);     /* every putty tile becomes the one card */
+  --ink: var(--v13-ink);
+  --ink-soft: var(--v13-ink-2);
+  --mut: var(--v13-ink-3);
+  --navy: var(--v13-ink);
+  --cream-text: var(--v13-ink);
+  --card-ink: var(--v13-surface);
+  --hair: var(--v13-rule);
+
+  --gold: var(--v13-surface-3);
+  --gold-deep: var(--v13-accent);  /* links and actives are accent now */
+  --gold-bar: var(--v13-accent);
+  --amber: var(--v13-warn);
+  --track: var(--v13-rule);
+
+  --up: var(--v13-up);
+  --down: var(--v13-down);
+  --live: var(--v13-down);
+
+  --sh: var(--v13-shadow);
+  --sect: var(--v13-s6);           /* was 104px */
+  --card-r: var(--v13-r);          /* was 44px */
+
+  background: var(--v13-ground);
+  background-image: none;
+  color: var(--v13-ink);
+  font-family: var(--v13-f-ui);
+  font-size: var(--v13-t3);
+  line-height: 1.45;
+}
+
+/* ── shared primitives ─────────────────────────────────────────────────── */
+.v13.home-v12 .wrap { max-width: var(--v13-page); padding: 0 var(--v13-s4); }
+
+/* Cards: the v12 files give these a putty background and --card-r; all that is
+   missing is the border and the header rhythm that make them one card. */
+.v13.home-v12 .putty-card,
+.v13.home-v12 .mt-card,
+.v13.home-v12 .tile,
+.v13.home-v12 .lab-card,
+.v13.home-v12 .paper-panel,
+.v13.home-v12 .paper-tile-summary,
+.v13.home-v12 .sc-tablecard,
+.v13.home-v12 .idea-tile,
+.v13.home-v12 .brief-card,
+.v13.home-v12 .cal-tile {
+  border: 1px solid var(--v13-rule);
+  border-radius: var(--v13-r);
+  box-shadow: var(--v13-shadow);
+  transition: box-shadow var(--v13-med) var(--v13-ease), border-color var(--v13-med) var(--v13-ease);
+}
+.v13.home-v12 .putty-card:hover,
+.v13.home-v12 .tile:hover,
+.v13.home-v12 .lab-card:hover,
+.v13.home-v12 .idea-tile:hover,
+.v13.home-v12 .brief-card:hover,
+.v13.home-v12 .cal-tile:hover {
+  box-shadow: var(--v13-shadow-lift);
+  border-color: var(--v13-rule-2);
+  transform: none;                 /* v12 lifted cards 2–4px; v13 does not */
+}
+
+/* Labels and eyebrows — one treatment everywhere. */
+.v13.home-v12 .mt-eyebrow,
+.v13.home-v12 .eyebrow,
+.v13.home-v12 .eyebrow2,
+.v13.home-v12 .label,
+.v13.home-v12 .k,
+.v13.home-v12 .micro,
+.v13.home-v12 .tilehead {
+  font-size: var(--v13-t1);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--v13-ink-3);
+}
+
+/* Body copy and the editorial measure. */
+.v13.home-v12 p,
+.v13.home-v12 .sub,
+.v13.home-v12 .secnote,
+.v13.home-v12 .tilenote { font-size: var(--v13-t3); line-height: 1.55; color: var(--v13-ink-2); }
+.v13.home-v12 .serif,
+.v13.home-v12 .fullbrief p,
+.v13.home-v12 .briefmodal-body p {
+  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.6; max-width: 66ch;
+}
+
+/* Every numeral, everywhere. */
+.v13.home-v12 .num,
+.v13.home-v12 .num *,
+.v13.home-v12 .v,
+.v13.home-v12 .tv { font-family: var(--v13-f-num); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* Pills and buttons. */
+.v13.home-v12 .mt-pill,
+.v13.home-v12 .lab-seg button,
+.v13.home-v12 .t {
+  font-size: var(--v13-t2); font-weight: 600; padding: 5px 10px;
+  border-radius: var(--v13-r); color: var(--v13-ink-2);
+}
+.v13.home-v12 .mt-pill.on,
+.v13.home-v12 .lab-seg button.on,
+.v13.home-v12 .t.on { background: var(--v13-accent); color: #fff; border-color: var(--v13-accent); }
+[data-mt-theme='dark'] .v13.home-v12 .mt-pill.on,
+[data-mt-theme='dark'] .v13.home-v12 .lab-seg button.on,
+[data-mt-theme='dark'] .v13.home-v12 .t.on { color: #0F1114; }
+.v13.home-v12 .mt-btn,
+.v13.home-v12 .lab-btn {
+  font-size: var(--v13-t2); font-weight: 600; padding: 5px 10px;
+  border-radius: var(--v13-r); border: 1px solid var(--v13-rule-2);
+}
+
+/* Tables: one row height and one header treatment across every page. */
+.v13.home-v12 table { font-size: var(--v13-t3); border-collapse: collapse; }
+.v13.home-v12 th {
+  height: 24px; padding: 0 var(--v13-s2); text-align: left; white-space: nowrap;
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--v13-ink-3); background: var(--v13-surface-2);
+  border-bottom: 1px solid var(--v13-rule);
+}
+.v13.home-v12 td {
+  height: var(--v13-row); padding: 0 var(--v13-s2);
+  border-bottom: 1px solid var(--v13-rule); font-size: var(--v13-t3);
+}
+.v13.home-v12 tbody tr:hover td { background: var(--v13-accent-soft); }
+
+/* ── page heroes ────────────────────────────────────────────────────────
+   The single largest source of "every page is different": five hero heights
+   and five H1 scales, from 34px to 104px. One treatment now. */
+.v13.home-v12 .hero,
+.v13.home-v12 .mac-hero,
+.v13.home-v12 .meth-hero,
+.v13.home-v12 .sc-ed,
+.v13.home-v12 .pp-ed,
+.v13.home-v12 .df-hero,
+.v13.home-v12 .lab-head,
+.v13.home-v12 section.sc-hero,
+.v13.home-v12 section.pp-hero,
+.v13.home-v12 section.df-hero {
+  text-align: left;
+  padding-top: var(--v13-s4);
+  padding-bottom: var(--v13-s3);
+}
+.v13.home-v12 .hero h1,
+.v13.home-v12 .mac-h1,
+.v13.home-v12 .meth-h1,
+.v13.home-v12 .df-h1,
+.v13.home-v12 .sc-ed h1,
+.v13.home-v12 .pp-ed h1,
+.v13.home-v12 .lab-head h1 {
+  font-family: var(--v13-f-ui);
+  font-size: var(--v13-t6) !important;   /* beats five different clamp() rules */
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: var(--v13-s1) 0 var(--v13-s2);
+  color: var(--v13-ink);
+}
+.v13.home-v12 .hero h1 em,
+.v13.home-v12 .mac-h1 em { font-style: normal; color: var(--v13-brand); }
+.v13.home-v12 .hero .sub,
+.v13.home-v12 .mac-hero .sub,
+.v13.home-v12 .meth-hero .sub,
+.v13.home-v12 .df-hero .sub,
+.v13.home-v12 .sc-sub,
+.v13.home-v12 .lab-sub {
+  font-size: var(--v13-t3); line-height: 1.55; color: var(--v13-ink-2);
+  max-width: 72ch; margin: 0 0 var(--v13-s2);
+}
+/* The home hero's floating gold coins belong to the cream era. */
+.v13.home-v12 .coin { display: none; }
+
+/* ── per-page deltas ───────────────────────────────────────────────────── */
+
+/* Home — the four-tile cockpit. Symmetry rule, applied literally: Joe's
+   "if a page is 4 tiles, they should be the same size". v12 laid these out as
+   a 12-column grid with a 6/6 row of 713px tiles above a 7/5 row of 289px
+   tiles — four tiles, four different sizes. Now: one 380px track, every tile
+   six columns wide, and content that does not fit scrolls INSIDE its tile. */
+.v13.home-cockpit .bgrid { grid-auto-rows: var(--v13-tile); gap: var(--v13-s3); }
+.v13.home-cockpit .bgrid > .sp5,
+.v13.home-cockpit .bgrid > .sp6,
+.v13.home-cockpit .bgrid > .sp7 { grid-column: span 6; }
+.v13.home-cockpit .bgrid > .tile { overflow: auto; min-height: 0; }
+.v13.home-cockpit .bgrid > .tile::-webkit-scrollbar { width: 7px; }
+.v13.home-cockpit .bgrid > .tile::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: 4px; }
+.v13.home-cockpit .calrows { gap: var(--v13-s3); }
+
+/* The regime line is one of the two places gold survives. v12 set it in
+   italic serif lowercase; the remap had turned it accent-blue. */
+.v13.home-cockpit .es-verdict em,
+.v13.home-cockpit .engine-strip em,
+.v13.home-cockpit .engine-card h2 em {
+  font-style: normal;
+  font-family: var(--v13-f-ui);
+  text-transform: capitalize;
+  color: var(--v13-brand);
+}
+.v13.home-cockpit .tile,
+.v13.home-cockpit .brief-card,
+.v13.home-cockpit .idea-tile,
+.v13.home-cockpit .engine-strip { padding: var(--v13-s3); }
+.v13.home-cockpit .tilehead { margin-bottom: var(--v13-s2); }
+.v13.home-cockpit .hl,
+.v13.home-cockpit .idea-title {
+  font-family: var(--v13-f-read); font-size: var(--v13-t5); font-weight: 400;
+  line-height: 1.32; letter-spacing: -0.01em;
+}
+.v13.home-cockpit .tape .v { font-size: var(--v13-t4); }
+.v13.home-cockpit .tape .k { font-size: var(--v13-t1); }
+.v13.home-cockpit .cal-time { font-family: var(--v13-f-num); font-size: var(--v13-t1); color: var(--v13-ink-3); }
+.v13.home-cockpit .es-verdict { font-size: var(--v13-t6); font-weight: 600; letter-spacing: -0.02em; }
+.v13.home-cockpit .idea-fact b,
+.v13.home-cockpit .idea-call { font-size: var(--v13-t3); }
+.v13.home-cockpit .idea-kind,
+.v13.home-cockpit .idea-asof,
+.v13.home-cockpit .idea-pos { font-size: var(--v13-t1); letter-spacing: 0.07em; text-transform: uppercase; }
+
+/* Scanner */
+.v13.scanner-v12 .sc-tablecard,
+.v13.scanner-v12 .sc-inset { border-radius: var(--v13-r); margin: 0; }
+.v13.scanner-v12 .sc-paneltitle {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
+}
+.v13.scanner-v12 .sc-panelhead { padding: 0 var(--v13-s3); height: var(--v13-bar);
+  background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
+.v13.scanner-v12 .sc-table th { padding: 0 var(--v13-s2); }
+.v13.scanner-v12 .sc-table td { padding: 0 var(--v13-s2); }
+.v13.scanner-v12 .sc-tk b { font-family: var(--v13-f-num); font-size: var(--v13-t3); color: var(--v13-accent); }
+.v13.scanner-v12 .sc-tk .nm { font-size: var(--v13-t2); color: var(--v13-ink-3); }
+.v13.scanner-v12 .sc-kicker { font-size: var(--v13-t1); color: var(--v13-accent); }
+.v13.scanner-v12 .sc-rule,
+.v13.scanner-v12 .sc-tilefoot { font-size: var(--v13-t2); color: var(--v13-ink-2); }
+
+/* Paper */
+.v13.paper-v12 .paper-panel-title {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
+}
+.v13.paper-v12 .paper-panel-head { padding: 0 var(--v13-s3); height: var(--v13-bar);
+  background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
+.v13.paper-v12 .pp-tablewrap { padding: 0; }
+.v13.paper-v12 .pp-book-nav { font-family: var(--v13-f-num); font-size: var(--v13-t6) !important; font-weight: 500; }
+.v13.paper-v12 .pp-book-rows > div { font-size: var(--v13-t3); padding: 0; height: var(--v13-row); }
+.v13.paper-v12 .pts-title,
+.v13.paper-v12 .pts-asof { font-size: var(--v13-t1); }
+.v13.paper-v12 .pp-ed .impl li { font-size: var(--v13-t3); padding-bottom: var(--v13-s2); }
+.v13.paper-v12 .qtt-card:hover,
+.v13.paper-v12 .qtt-tile:hover { transform: none; }
+
+/* Portfolio Lab */
+.v13.lab-v12 .lab-card { padding: 0; margin: var(--v13-s3) 0; }
+.v13.lab-v12 .lab-cardhead { height: var(--v13-bar); margin: 0; padding: 0 var(--v13-s3);
+  background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
+.v13.lab-v12 .lab-cardhead h2 {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t1); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--v13-ink-2);
+}
+.v13.lab-v12 .lab-card > *:not(.lab-cardhead) { padding-left: var(--v13-s3); padding-right: var(--v13-s3); }
+.v13.lab-v12 .lab-dim,
+.v13.lab-v12 .lab-empty,
+.v13.lab-v12 .lab-warn { font-size: var(--v13-t2); }
+.v13.lab-v12 .lab-saverow input { font-size: var(--v13-t3); border-radius: var(--v13-r); }
+.v13.lab-v12 .lab-savedchip { border-radius: var(--v13-r); }
+.v13.lab-v12 .lab-savedchip button { font-size: var(--v13-t2); }
+
+/* Methodology — the one page that stays genuinely editorial. */
+.v13.methodology-v12 .me-toc.me-rail { border-radius: var(--v13-r); padding: var(--v13-s3); }
+.v13.methodology-v12 .me-toc.me-rail a { font-size: var(--v13-t2); }
+.v13.methodology-v12 .me-section { padding: var(--v13-s5) 0 var(--v13-s4); gap: var(--v13-s4); }
+.v13.methodology-v12 .me-num { font-family: var(--v13-f-num); font-size: var(--v13-t6); }
+.v13.methodology-v12 .me-h2 {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t5) !important; font-weight: 600;
+  letter-spacing: -0.01em; margin: 0 0 var(--v13-s3);
+}
+.v13.methodology-v12 .me-h3 {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t4) !important; font-weight: 600;
+  margin: var(--v13-s5) 0 var(--v13-s2); padding-top: var(--v13-s4);
+}
+.v13.methodology-v12 .me-section p,
+.v13.methodology-v12 .me-content .me-body-p {
+  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.65; max-width: 68ch;
+}
+.v13.methodology-v12 .me-formula {
+  font-family: var(--v13-f-num); font-size: var(--v13-t2); border-radius: var(--v13-r); padding: var(--v13-s3);
+}
+.v13.methodology-v12 .me-vendors { border-radius: var(--v13-r); font-size: var(--v13-t3); }
+
+/* Data flow */
+.v13.data-v12 .df-banner,
+.v13.data-v12 .df-totals,
+.v13.data-v12 .df-legend-top { border-radius: var(--v13-r); font-size: var(--v13-t2); padding: var(--v13-s2) var(--v13-s3); }
+.v13.data-v12 .df-totals b { font-family: var(--v13-f-num); font-size: var(--v13-t5); }
+.v13.data-v12 .df-col-h,
+.v13.data-v12 .df-sub-h,
+.v13.data-v12 .df-legend-grp-h { font-size: var(--v13-t1); }
+.v13.data-v12 .df-tile { border-radius: var(--v13-r); min-height: var(--v13-row); padding: var(--v13-s1) var(--v13-s3) var(--v13-s1) var(--v13-s2); }
+.v13.data-v12 .df-tile-name { font-size: var(--v13-t2); }
+.v13.data-v12 .df-tile-cd,
+.v13.data-v12 .df-tile-count,
+.v13.data-v12 .df-legend-hint { font-size: var(--v13-t1); font-style: normal; }
+
+/* Ticker */
+.v13.ticker-v12 .tk-symbol {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t6) !important; font-weight: 600; letter-spacing: -0.02em;
+}
+.v13.ticker-v12 .tk-name { font-size: var(--v13-t4); color: var(--v13-ink-2); }
+.v13.ticker-v12 .tk-meta,
+.v13.ticker-v12 .tk-pricemeta { font-size: var(--v13-t2); }
+.v13.ticker-v12 .tk-price { font-family: var(--v13-f-num); font-size: var(--v13-t6); font-weight: 500; }
+.v13.ticker-v12 .mt-card,
+.v13.ticker-v12 .tk-scoreblock,
+.v13.ticker-v12 .tk-kvcell,
+.v13.ticker-v12 .tk-techcell,
+.v13.ticker-v12 .tk-relcard { border-radius: var(--v13-r); padding: var(--v13-s3); }
+.v13.ticker-v12 .tk-kvcell b,
+.v13.ticker-v12 .tk-techcell b.num { font-family: var(--v13-f-num); font-size: var(--v13-t4); font-weight: 500; }
+.v13.ticker-v12 .mt-pill { border-radius: var(--v13-r); }
+
+/* Scorecard — already on --mt-* tokens, so it only needs the scale. */
+.v13.sc-wrap .sc-h1 { font-size: var(--v13-t6) !important; font-weight: 600; letter-spacing: -0.02em; }
+.v13.sc-wrap .sc-tile { border-radius: var(--v13-r); padding: var(--v13-s3); }
+.v13.sc-wrap .sc-tile b { font-family: var(--v13-f-num); font-size: var(--v13-t5); }
+.v13.sc-wrap .sc-tile span,
+.v13.sc-wrap .sc-kind,
+.v13.sc-wrap .sc-status { font-size: var(--v13-t1); }
+.v13.sc-wrap .sc-title { font-size: var(--v13-t3); }
+.v13.sc-wrap .sc-date,
+.v13.sc-wrap .sc-reason { font-size: var(--v13-t2); }
+.v13.sc-wrap .sc-mark { font-family: var(--v13-f-num); font-size: var(--v13-t3); }
+.v13.sc-wrap .sc-row { padding: 0 var(--v13-s2); min-height: var(--v13-row); }
+
+/* ── responsive ── */
+@media (max-width: 820px) {
+  .v13.home-v12 .wrap { padding: 0 var(--v13-s2); }
+}
+
+/* Static pages (About / Terms / Privacy / Disclaimer). These never carried a
+   `.home-v12` root, so they take `.v13` alone and need the page shell values
+   set here rather than through the cream remap above. */
+.v13.mt-static-page {
+  max-width: 76ch; margin: 0 auto; padding: var(--v13-s5) var(--v13-s4) var(--v13-s6);
+  background: var(--v13-ground); color: var(--v13-ink);
+  font-family: var(--v13-f-ui); font-size: var(--v13-t3); line-height: 1.45;
+}
+.v13.mt-static-page h1 {
+  font-size: var(--v13-t6); font-weight: 600; letter-spacing: -0.02em;
+  margin: 0 0 var(--v13-s2); color: var(--v13-ink);
+}
+.v13.mt-static-page h2 {
+  font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
+  margin: var(--v13-s5) 0 var(--v13-s2); color: var(--v13-ink);
+}
+.v13.mt-static-page h3 {
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  margin: var(--v13-s4) 0 var(--v13-s2); color: var(--v13-ink-3);
+}
+.v13.mt-static-page p,
+.v13.mt-static-page li {
+  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.65; color: var(--v13-ink-2);
+}
+.v13.mt-static-page a { color: var(--v13-accent); }
+.v13.mt-static-page .mt-static-updated { font-family: var(--v13-f-ui); font-size: var(--v13-t2); color: var(--v13-ink-3); }

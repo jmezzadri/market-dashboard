@@ -33,6 +33,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConvictionEventsPanel from '../components/ConvictionEventsPanel';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/scanner-v12.css';
 
 /* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage (v12
@@ -55,7 +57,7 @@ export default function ScannerPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="home-v12 scanner-v12">
+    <div className="home-v12 v13 scanner-v12">
       <section className="wrap sc-hero">
         <Reveal className="sc-ed">
           <div className="eyebrow2"><span className="dot" />Conviction Events</div>

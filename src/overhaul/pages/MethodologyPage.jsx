@@ -38,6 +38,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/methodology-v12.css';
 
 /* TOC = the site's pages, one entry per nav page, EXACTLY as named in
@@ -190,7 +192,7 @@ export default function MethodologyPage() {
   const sectionsLiteral  = SECTIONS.length;
 
   return (
-    <div className="home-v12 methodology-v12">
+    <div className="home-v12 v13 methodology-v12">
       {/* hero -- left editorial, label + copy verbatim from the glass hero */}
       <div className="meth-hero wrap">
         <Reveal className="eyebrow2"><span className="dot" />Methodology</Reveal>

@@ -36,6 +36,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/ticker-v12.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
@@ -616,7 +618,7 @@ export default function TickerPage() {
   }
 
   return (
-    <div className="home-v12 ticker-v12">
+    <div className="home-v12 v13 ticker-v12">
       <div className="wrap">
       {/* Back row */}
       <div className="tk-backrow">
@@ -1554,7 +1556,7 @@ function UnknownTicker({ sym, suggestions, onBack, onPick }) {
   const rows = suggestions?.rows || [];
   const best = rows[0] || null;
   return (
-    <div className="home-v12 ticker-v12">
+    <div className="home-v12 v13 ticker-v12">
       <div className="wrap">
         <div className="tk-backrow">
           <button type="button" className="mt-btn mt-btn--ghost" onClick={onBack}>

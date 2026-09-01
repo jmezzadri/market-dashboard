@@ -4,6 +4,8 @@
    system; styling lives in styles/footer-v12.css (.mt-static-page). */
 
 import React from 'react';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 
 const CONTACT_EMAIL = 'admin@macrotilt.com';
 const LAST_UPDATED = 'July 29, 2026';
@@ -19,7 +21,7 @@ function Contact() {
 
 export function AboutPage() {
   return (
-    <div className="mt-static-page">
+    <div className="v13 mt-static-page">
       <h1>About Us</h1>
       <p>
         <strong>MacroTilt</strong> is a market intelligence dashboard built for
@@ -51,7 +53,7 @@ export function AboutPage() {
 
 export function TermsPage() {
   return (
-    <div className="mt-static-page">
+    <div className="v13 mt-static-page">
       <h1>Terms of Use</h1>
       <p className="mt-static-updated">Last updated: {LAST_UPDATED}</p>
       <p>
@@ -127,7 +129,7 @@ export function TermsPage() {
 
 export function PrivacyPage() {
   return (
-    <div className="mt-static-page">
+    <div className="v13 mt-static-page">
       <h1>Privacy Policy</h1>
       <p className="mt-static-updated">Last updated: {LAST_UPDATED}</p>
       <p>
@@ -203,7 +205,7 @@ export function PrivacyPage() {
 
 export function DisclaimerPage() {
   return (
-    <div className="mt-static-page">
+    <div className="v13 mt-static-page">
       <h1>Disclaimer</h1>
       <h2>No investment advice</h2>
       <p>
