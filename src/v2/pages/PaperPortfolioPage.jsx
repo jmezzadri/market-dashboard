@@ -38,6 +38,14 @@ const BT = {"dates":["2017-02-28","2017-03-31","2017-04-28","2017-05-31","2017-0
 const BT_STATS = { cagr: '21.2%', vol: '19.1%', sharpe: '0.97', sortino: '1.57', maxdd: '−19.3%', ir: '0.58', worst: '−6.7%' };
 const BT_SPX   = { cagr: '15.3%', vol: '15.6%', sharpe: '0.82', sortino: '1.18', maxdd: '−23.9%', worst: '−18.2%' };
 
+// [2026-09-01] SPY_INCEPTION is RETIRED as the benchmark baseline. It froze
+// the Aug 17 book's start into a constant, so the moment a NEW account's rows
+// became the displayed epoch, every "vs S&P" figure would have been measured
+// from the wrong day — the relaunched book would have inherited two weeks of
+// benchmark drift on day one. The baseline is now the first S&P close INSIDE
+// the displayed epoch (see spx0 where stats are computed), so it re-bases
+// itself whenever the account-selection logic switches books. The constant
+// remains only as documentation of the old book's baseline.
 // Book inception = Mon Aug 17 2026. Benchmark baseline is SPY's LAST CLOSE
 // before launch (Fri Aug 15 = 776.34). The since-inception S&P return is
 // always measured against THIS fixed price, never nav[0].spy_close — with one
@@ -343,7 +351,7 @@ function liveStats(nav) {
     n,
     since: last / 1_000_000 - 1,
     sinceUsd: last - 1_000_000,
-    spxSince: (() => { const nz = spx.filter((v) => v != null); return nz.length ? nz[nz.length - 1] / SPY_INCEPTION - 1 : null; })(),
+    spxSince: (() => { const nz = spx.filter((v) => v != null); return nz.length >= 2 ? nz[nz.length - 1] / nz[0] - 1 : null; })(),
     day: dayFromMarks ?? (last - prev),
     dayPct: (dayFromMarks ?? (last - prev)) / (prev || 1_000_000),
     bestDay: n >= 2 ? Math.max(...ret) : null,
@@ -380,6 +388,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [book, setBook] = useState(null);
   const [orders, setOrders] = useState({});
   const [nav, setNav] = useState(null);
+  const [brake, setBrake] = useState(null);   // latest qt_brake_state row (live book only)
   const [err, setErr] = useState(null);
   const [sortKey, setSortKey] = useState('rank');
   const [sortDir, setSortDir] = useState(1);
@@ -395,11 +404,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         .order('rebalance_date', { ascending: false }).limit(1);
       if (e1) throw e1;
       const rd = latest?.[0]?.rebalance_date;
-      const [bk, od, nv] = await Promise.all([
+      const [bk, od, nv, brk] = await Promise.all([
         rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
         rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
           .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
         supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at,account_number').order('d'),
+        supabase.from('qt_brake_state').select('d,composite,stress_on').order('d', { ascending: false }).limit(1),
       ]);
       if (bk.error) throw bk.error;
       setBook(bk.data || []);
@@ -410,6 +420,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         if (!om[o.symbol] || (o.status === 'filled' && om[o.symbol].status !== 'filled')) om[o.symbol] = o;
       });
       setOrders(om);
+      setBrake(brk?.data?.[0] ?? null);
       // Show ONE book. qt_nav_daily keeps every epoch, but a paper account
       // restart (new account, funded back to $1,000,000) is a new book, not a
       // continuation: charting across the boundary would splice the retired
@@ -576,7 +587,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     return {
       strategy: nav.map((r) => (Number(r.equity) / 1_000_000) * 100),
       spx: nav.some((r) => r.spy_close != null)
-        ? nav.map((r) => (r.spy_close != null ? (Number(r.spy_close) / SPY_INCEPTION) * 100 : null)).map((v, i, a) => v ?? a[i - 1] ?? 100)
+        ? (() => { const b = nav.find((r) => r.spy_close != null)?.spy_close;
+             return nav.map((r) => (r.spy_close != null && b ? (Number(r.spy_close) / Number(b)) * 100 : null)).map((v, i, a) => v ?? a[i - 1] ?? 100); })()
         : null,
     };
   }, [nav]);
@@ -728,6 +740,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 sub: `gross · net long · cash ${fmtUsd(cash)}`, color: CREAM, meter: invested },
               { k: 'Liquidity', hero: bookMeta?.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—',
                 sub: 'slowest exit at 20% of volume', color: CREAM },
+              // The brake is part of the deployed system, so it belongs on the
+              // page, state and reading both — a risk control the reader cannot
+              // see is indistinguishable from one that does not exist. Before
+              // the first evaluation (launch day, 5:25pm ET) it says so rather
+              // than faking a reading.
+              ...(bookIsLive ? [{
+                k: 'Crash brake',
+                hero: brake ? (brake.stress_on ? 'ON — half size' : 'Off') : 'Armed',
+                sub: brake
+                  ? `stress ${Number(brake.composite).toFixed(2)} · trips at 0.80, releases at 0.65`
+                  : 'first reading today, 5:25 PM ET',
+                color: brake?.stress_on ? '#e8b04b' : CREAM,
+              }] : []),
             ].map((t) => (
               <div key={t.k}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
@@ -904,7 +929,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </div>
 
         {/* ── benchmark comp ──────────────────────────────────────────── */}
-        <Card title="Versus benchmark" right="live and backtest are separate records — never blended" style={{ marginBottom: 22 }}>
+        <Card title="Versus benchmark" right="live book is 20 names; the backtest is the 40-name variant — separate records, never blended" style={{ marginBottom: 22 }}>
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
@@ -941,7 +966,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 </tr>
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
-                    Quality Trend — backtest <span style={{ color: INK3, fontWeight: 400 }}>Feb 2017 – Aug 2026, ann.</span>
+                    Quality Trend — backtest, 40-name variant <span style={{ color: INK3, fontWeight: 400 }}>Feb 2017 – Aug 2026, ann.</span>
                   </td>
                   <td style={td}>{BT_STATS.cagr}</td><td style={td}>{BT_STATS.vol}</td><td style={td}>{BT_STATS.sharpe}</td>
                   <td style={td}>{BT_STATS.sortino}</td><td style={td}>{BT_STATS.maxdd}</td><td style={td}>{BT_STATS.worst}</td>
@@ -1014,7 +1039,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── backtest reference ──────────────────────────────────────── */}
         <Card
-          title="Backtest reference — growth of $1,000,000"
+          title="Backtest reference — 40-name research variant, growth of $1,000,000"
           right={
             <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ marginRight: 6 }}>survivorship-free · log scale</span>
