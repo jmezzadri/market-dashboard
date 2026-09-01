@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-31T23:58:12Z",
+  "generated_at": "2026-09-01T14:13:45Z",
   "window": {
-    "from": "2026-08-24",
-    "to": "2026-11-09"
+    "from": "2026-08-25",
+    "to": "2026-11-10"
   },
   "counts": {
     "total": 101,
-    "tier1": 27
+    "tier1": 28
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,17 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-24",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-25",
       "time_et": "8:30 AM",
@@ -1128,6 +1117,17 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "8:30 AM",
+      "name": "Consumer prices (CPI)",
+      "short": "CPI",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
