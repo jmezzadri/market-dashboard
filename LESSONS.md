@@ -2033,3 +2033,24 @@ The build did not catch it. Vite/esbuild resolve free identifiers at runtime, th
 4. **Delete dead render code rather than leaving it.** `BucketModal` had no call site and referenced an undefined component; the next person to wire it up inherits a crash with no warning.
 
 **Applies to:** Lead Developer — every PR that adds or moves a component into a page's render tree; UX Designer on sign-off, since "the modal opens" is a design acceptance criterion.
+
+### 4.63 (2026-09-01) — You have the keys. Never tell Joe you cannot see something before you have actually tried
+
+**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/portfolio-lab`, `/scorecard` and `/scanner` were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
+
+He is right, and both halves of the claim were false:
+
+- **Three of the four pages are not gated at all.** Built locally and loaded headless, `/paper` (5,334 chars), `/scanner` (4,441) and `/scorecard` (3,387) render their full content logged out. Only `/portfolio-lab` shows a sign-in wall.
+- **The one that is gated took four minutes to get into**, using credentials this project already hands every session: `POST /auth/v1/signup` with the anon key returned a session immediately (email confirmation is OFF on this project), and Portfolio Lab then rendered signed in with zero page errors.
+
+The failure was not a missing capability. It was asserting a limit without spending a single tool call testing it, and then converting my own untested assumption into work for Joe. That is the most expensive thing this role can do: he is a management consultant who does not run terminals, and every invented blocker moves work from the side that can do it to the side that cannot.
+
+**Rule:**
+
+1. **A capability claim is a test result, not a belief.** Never write "I can't access / can't see / can't reach X" until a tool call has actually failed and the error is in front of you. If it has not been tried, the honest sentence is "let me check", followed by checking — in the same turn.
+2. **Assume the keys exist and go find them before asking.** This project deliberately gives every session what it needs: `ops_secrets` in Supabase (GitHub PAT, push token, broker keys, and now the UAT account), `.secrets/github_pat.txt` on Joe's Mac, the Supabase MCP with service-level SQL, and `ops-code-commit` for shipping when the git proxy refuses a push. Read `ops_secrets` before concluding anything is locked.
+3. **Signed-in UAT is a solved problem — use it.** `ops_secrets.uat_account_email` / `uat_account_password` hold a dedicated account (`uat-agent@macrotilt.com`). Sign in against `/auth/v1/token?grant_type=password` with the anon key and write the session to `localStorage` under `sb-yqaqqzseepebrocgibcw-auth-token`, or drive the app's own login form. Build with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set or the client falls back to placeholders and every auth call fails for a reason that has nothing to do with permissions.
+4. **Verify per page, not per assumption.** "Is this page gated?" is one headless load. Four pages is four loads. Never generalise one page's gate to its neighbours.
+5. **The only things Joe is ever asked for are identity-bound** — a credential only he can mint, a merge approval, a production go, his own financial data. Anything else is the agent's job. "Would you look at this page for me" is not a question; it is a task that was handed to the wrong person.
+
+**Applies to:** every specialist, every session, before any sentence containing "I can't".
