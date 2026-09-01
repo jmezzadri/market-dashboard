@@ -303,3 +303,51 @@
   .v13.macro-v13 .engine-card { grid-template-columns: minmax(0, 1fr); }
   .v13.macro-v13 .wrap { padding: 0 var(--v13-s2); }
 }
+
+/* ── two signals, two encodings ───────────────────────────────────────────
+   Joe, 2026-09-01: "Can we somehow highlight the indicators that are
+   'stretched'… it's not easy to see since it's light grey… I want to show
+   1. where indicators are at extreme levels, and 2. if there has been an
+   outsized move in the near term."
+
+   They are different questions and must not share an encoding:
+
+     LEVEL EXTREME  -> the percentile cell. Where today sits in 3 years.
+     BIG MOVE       -> the change cell. How large the latest step was, scaled
+                       by this indicator's own recent volatility.
+
+   Hue still means direction everywhere (green up, red down), so a big move is
+   marked by WEIGHT plus a tint of the direction colour it already has — never
+   by a new hue, which would collide with up/down. */
+
+/* 1 — level extreme. Was 10.5px grey, indistinguishable from the 47th. */
+.v13.macro-v13 .mac-pct {
+  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
+}
+.v13.macro-v13 .mac-pct.hot {
+  font-weight: 700; color: var(--v13-down);
+}
+.v13.macro-v13 .mac-pct.cold {
+  font-weight: 700; color: var(--v13-accent);
+}
+/* A rule under the figure, so the extreme reads even in a grey-scale glance
+   and for a red/green-colour-blind reader. */
+.v13.macro-v13 .mac-pct.hot,
+.v13.macro-v13 .mac-pct.cold { box-shadow: inset 0 -2px 0 currentColor; }
+
+/* 2 — big move. Top decile of this indicator's own regime-adjusted changes. */
+.v13.macro-v13 .mac-chg.mac-bigmove {
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: var(--v13-r);
+  background: var(--v13-surface-3);
+}
+.v13.macro-v13 .mac-chg.mac-bigmove.up { background: var(--v13-up-bg); color: var(--v13-up); }
+.v13.macro-v13 .mac-chg.mac-bigmove.down { background: var(--v13-down-bg); color: var(--v13-down); }
+
+/* tile header counts */
+.v13.macro-v13 .mac-cathead { gap: var(--v13-s1); }
+.v13.macro-v13 .mac-catcount--move {
+  background: var(--v13-accent-mid); color: var(--v13-accent);
+}

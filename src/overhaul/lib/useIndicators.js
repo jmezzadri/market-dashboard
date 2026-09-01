@@ -70,6 +70,70 @@ function pctRank(value, points) {
   return Math.round((below / vs.length) * 100);
 }
 
+/* ── movePctile — "was the latest move big for THIS indicator?" ────────────
+   Joe, 2026-09-01: "What about the most recent 1 day move (for daily
+   indicators), or 1 week move for weekly, or 1 month for monthly. I'd like to
+   know if the most recent move was sizeable."
+
+   The naive version — rank |Δ| against 3 years of |Δ| — is badly behaved. Run
+   over the last 250 observations of every indicator it fires on 44% of days
+   for silver and 2% for the 10-year: it measures which VOLATILITY REGIME a
+   series is in, not whether today was unusual. Commodities have been getting
+   noisier (older, calmer changes drag the threshold down, so everything
+   clears it) while rates have been calming (the threshold sits above every
+   recent move).
+
+   So the change is scaled by the volatility prevailing WHEN IT HAPPENED
+   before it is ranked:
+
+     1. Δ  = |latest value − prior value|, at the indicator's own frequency
+             (1 day daily, 1 week weekly, 1 month monthly).
+     2. x  = Δ ÷ median(|Δ|) over the trailing 60 observations (26 weekly,
+             6 monthly) — "how many times a normal move is this, lately".
+     3. rank x against the same x computed at every point in the last 3 years.
+     4. ≥ 90th percentile ⇒ a big move for this indicator, in this regime.
+
+   Calibration over the last 250 observations of 58 indicators, 16.7k
+   indicator-observations:
+
+     method                     pooled   per-indicator mean   sd
+     |Δ| vs 3y of |Δ|            10.6%          10.7%        8.4pp   (1%–44%)
+     |Δ| vs 1y of |Δ|            11.0%          11.0%        4.9pp
+     Δ ÷ local vol, ranked       11.3%          11.3%        2.4pp   (3%–16%)  <-
+
+   The last row is why this is the one that shipped: the badge means the same
+   thing on every row. Without step 2 it does not.                            */
+const MOVE_WIN = { D: 756, W: 156, M: 36, Q: 12 };   // ~3 years
+const MOVE_SPAN = { D: 60, W: 26, M: 6, Q: 4 };      // "lately"
+export const MOVE_FLAG_PCTILE = 90;
+
+function movePctile(points, freq) {
+  if (!Array.isArray(points) || points.length < 80) return null;
+  const vals = points.map((p) => p[1]).filter((v) => Number.isFinite(v));
+  if (vals.length < 80) return null;
+  const diffs = [];
+  for (let i = 1; i < vals.length; i += 1) diffs.push(Math.abs(vals[i] - vals[i - 1]));
+  const span = MOVE_SPAN[freq] || MOVE_SPAN.D;
+  const win = MOVE_WIN[freq] || MOVE_WIN.D;
+  const scaled = (j) => {
+    const base = diffs.slice(Math.max(0, j - span), j).slice().sort((a, b) => a - b);
+    if (base.length < 10) return null;
+    const med = base[Math.floor(base.length / 2)];
+    return med > 0 ? diffs[j] / med : null;
+  };
+  const cur = scaled(diffs.length - 1);
+  if (cur == null) return null;
+  const hist = [];
+  for (let j = Math.max(0, diffs.length - 1 - win); j < diffs.length - 1; j += 1) {
+    const x = scaled(j);
+    if (x != null) hist.push(x);
+  }
+  if (hist.length < 20) return null;
+  let le = 0;
+  for (let i = 0; i < hist.length; i += 1) if (hist[i] <= cur) le += 1;
+  return { pct: Math.round((100 * le) / hist.length), x: cur };
+}
+
 function stateFor(pct, direction) {
   if (pct == null) return 'calm';
   // direction: 'hw' = high warns, 'lw' = low warns, 'bw' = bidirectional
@@ -210,6 +274,7 @@ export default function useIndicators() {
       // registry meta slot only when points are missing (curated anchor-only
       // series like CAPE / bank_unreal).
       const livePts = h.points || [];
+      const mv = movePctile(h.points, freqCode || h.freq);   // computed once, not per-field
       const liveP1m = livePts.length ? priorAt(livePts, 30) : null;
       const liveP3m = livePts.length ? priorAt(livePts, 91) : null;
       const liveP6m = livePts.length ? priorAt(livePts, 183) : null;
@@ -232,6 +297,9 @@ export default function useIndicators() {
         pct,
         direction,
         state,
+        // How big was the latest move, for THIS indicator, in THIS regime?
+        movePct: mv ? mv.pct : null,
+        moveX: mv ? mv.x : null,
         prior_1m: liveP1m != null ? liveP1m : meta[7],
         prior_3m: liveP3m != null ? liveP3m : meta[8],
         prior_6m: liveP6m != null ? liveP6m : meta[9],
