@@ -2141,6 +2141,7 @@ Twenty-seven successes spread across 00:58, 03:44, 12:50, 13:27, 13:53, 14:17, 2
 
 So references inside older entries and in memory still resolve.
 
+<<<<<<< Updated upstream
 | Was | Now | Rule |
 |---|---|---|
 | 0.1 | 0.4 | Every data element carries a 5-field freshness chip; fake green is for |
@@ -2287,3 +2288,47 @@ So references inside older entries and in memory still resolve.
 | (undated 2026-07-28) | 9.10 | During market hours the live price is the headline; never lead with ye |
 | (undated 2026-07-29) | 4.23 | One ungradable row must never take down the whole health watchdog; der |
 | (undated 2026-07-29) | 6.8 | A regime gate with no entry confirmation sells the bottom; and any sig |
+=======
+**Applies to:** Lead Developer — every PR that adds or moves a component into a page's render tree; UX Designer on sign-off, since "the modal opens" is a design acceptance criterion.
+
+### 4.63 (2026-09-01) — You have the keys. Never tell Joe you cannot see something before you have actually tried
+
+**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/portfolio-lab`, `/scorecard` and `/scanner` were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
+
+He is right, and both halves of the claim were false:
+
+- **Three of the four pages are not gated at all.** Built locally and loaded headless, `/paper` (5,334 chars), `/scanner` (4,441) and `/scorecard` (3,387) render their full content logged out. Only `/portfolio-lab` shows a sign-in wall.
+- **The one that is gated took four minutes to get into**, using credentials this project already hands every session: `POST /auth/v1/signup` with the anon key returned a session immediately (email confirmation is OFF on this project), and Portfolio Lab then rendered signed in with zero page errors.
+
+The failure was not a missing capability. It was asserting a limit without spending a single tool call testing it, and then converting my own untested assumption into work for Joe. That is the most expensive thing this role can do: he is a management consultant who does not run terminals, and every invented blocker moves work from the side that can do it to the side that cannot.
+
+**Rule:**
+
+1. **A capability claim is a test result, not a belief.** Never write "I can't access / can't see / can't reach X" until a tool call has actually failed and the error is in front of you. If it has not been tried, the honest sentence is "let me check", followed by checking — in the same turn.
+2. **Assume the keys exist and go find them before asking.** This project deliberately gives every session what it needs: `ops_secrets` in Supabase (GitHub PAT, push token, broker keys, and now the UAT account), `.secrets/github_pat.txt` on Joe's Mac, the Supabase MCP with service-level SQL, and `ops-code-commit` for shipping when the git proxy refuses a push. Read `ops_secrets` before concluding anything is locked.
+3. **Signed-in UAT is a solved problem — use it.** `ops_secrets.uat_account_email` / `uat_account_password` hold a dedicated account (`uat-agent@macrotilt.com`). Sign in against `/auth/v1/token?grant_type=password` with the anon key and write the session to `localStorage` under `sb-yqaqqzseepebrocgibcw-auth-token`, or drive the app's own login form. Build with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set or the client falls back to placeholders and every auth call fails for a reason that has nothing to do with permissions.
+4. **Verify per page, not per assumption.** "Is this page gated?" is one headless load. Four pages is four loads. Never generalise one page's gate to its neighbours.
+5. **The only things Joe is ever asked for are identity-bound** — a credential only he can mint, a merge approval, a production go, his own financial data. Anything else is the agent's job. "Would you look at this page for me" is not a question; it is a task that was handed to the wrong person.
+
+**Applies to:** every specialist, every session, before any sentence containing "I can't".
+>>>>>>> Stashed changes
+
+### 4.64 (2026-09-01) — A design rule that lives only in a prompt is a rule you will be told about again
+
+**What happened:** Joe, on the Macro engine band, for at least the third time in one session: *"Why are you jamming all this to the left? I thought we already talked about this? Is this not a design rule? It's so bad that I have to tell you this over and over again. How do we fix this so you know to not do things like this?"*
+
+He was right twice — about the layout, and about the meta-point. The band declared **three** grid columns and the markup supplies **two** children, so a 523px track sat empty on a 1568px card. But the important half of his message is the second question: repeating a rule in a playbook had not worked, and would not work the fourth time.
+
+The same session had already proved why. Length in the daily brief was a prompt instruction until 2026-08-19, when it became `enforce_caps()`; voice became `enforce_voice()` the same day this happened. Every rule that survived did so because it became a check that fails. Every rule that kept getting re-reported was one a human had to notice.
+
+**The naive check gives a false pass on exactly the card that triggered this.** "Does any content reach the right edge of the container" returns **99%** for the engine band — because a full-width history strip sits underneath two columns that stop at 66%. Dead space is a per-ROW and per-TRACK property. It is never a per-container one.
+
+**Rule:**
+
+1. **`scripts/check_layout.mjs` runs on every PR that touches a page.** It fails the build on two conditions: an **empty grid track** (N columns declared, fewer spanned), and a **short row** (a row of two or more children using under 70% of its container's inner width). Both report the selector and the pixels.
+2. **Count spans, not children.** A 12-column grid holding four children that each span 6 is full. Counting children called it a third full and produced a false alarm on the Home cockpit.
+3. **Ignore zero-width tracks and partial last rows.** `auto-fit` collapsing a spare track to 0px is that property working. Four tiles left over from twelve is arithmetic. Neither is a design decision, and flagging them trains you to ignore the checker — which is worse than not having one.
+4. **The one opt-out is declared in the markup: `data-layout="natural"`.** A chart legend belongs at the left under its chart; a panel does not. The exemption goes where a reviewer sees it, never as a quiet special case inside the checker.
+5. **When a rule has to be repeated, stop repeating it and write the check.** If a rule cannot be expressed as a check, say so out loud and explain what would have to be true for it to become one — do not promise to remember.
+
+**Applies to:** UX Designer on every layout sign-off; Lead Developer on every PR touching `/pages/` or `/styles/`. Any correction Joe has to give twice is a missing test, not a missing instruction.
