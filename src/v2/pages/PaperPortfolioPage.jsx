@@ -334,8 +334,14 @@ function ChartLegend({ items }) {
   );
 }
 
-/* ── live stats from qt_nav_daily ─────────────────────────────────────── */
-function liveStats(nav) {
+/* ── live stats from qt_nav_daily ─────────────────────────────────────────
+   `nav` here is the HELD window — rows from the first day the account owned
+   stock. `spyBase` is the S&P close from the session BEFORE that first day,
+   read off the same epoch's earlier (cash) rows. Day-one returns for book and
+   benchmark are then measured over the same interval: the book from its $1M
+   start, the S&P from its prior close — never from a same-day quote, which
+   made the S&P read 0.00% on day one (Joe caught it, Aug 2026). */
+function liveStats(nav, spyBase = null) {
   if (!nav || nav.length < 1) return null;
   const eq = nav.map((r) => Number(r.equity));
   const spx = nav.map((r) => (r.spy_close == null ? null : Number(r.spy_close)));
@@ -355,11 +361,20 @@ function liveStats(nav) {
   const lastPos = nav[nav.length - 1]?.positions || [];
   const dayFromMarks = lastPos.length && lastPos.some((p) => p.upl_day != null)
     ? lastPos.reduce((t, p) => t + Number(p.upl_day || 0), 0) : null;
+  // S&P mirror figures. Baseline priority: the pre-launch close handed in as
+  // `spyBase`; failing that, the first close inside the window (needs >= 2
+  // points so a single row cannot benchmark against itself).
+  const spxNz = spx.filter((v) => v != null);
+  const lastSpy = spxNz.length ? spxNz[spxNz.length - 1] : null;
+  const spx0 = spyBase ?? (spxNz.length >= 2 ? spxNz[0] : null);
+  const prevSpy = spxNz.length >= 2 ? spxNz[spxNz.length - 2] : spyBase;
+  const spxDay = lastSpy != null && prevSpy != null ? lastSpy / prevSpy - 1 : null;
   const out = {
     n,
     since: last / 1_000_000 - 1,
     sinceUsd: last - 1_000_000,
-    spxSince: (() => { const nz = spx.filter((v) => v != null); return nz.length >= 2 ? nz[nz.length - 1] / nz[0] - 1 : null; })(),
+    spxSince: lastSpy != null && spx0 != null ? lastSpy / spx0 - 1 : null,
+    spxDay,
     day: dayFromMarks ?? (last - prev),
     dayPct: (dayFromMarks ?? (last - prev)) / (prev || 1_000_000),
     bestDay: n >= 2 ? Math.max(...ret) : null,
@@ -369,6 +384,11 @@ function liveStats(nav) {
     maxdd: mdd,
     vol: null, beta: null, te: null, sharpe: null,
   };
+  // The same two spreads in dollars: what the book made minus what the same
+  // capital in the S&P made over the same interval (start-of-day equity for
+  // the day figure, the $1,000,000 start for inception).
+  out.dayVsSpxUsd = spxDay != null ? out.day - spxDay * (prev || 1_000_000) : null;
+  out.sinceVsSpxUsd = out.spxSince != null ? out.sinceUsd - out.spxSince * 1_000_000 : null;
   if (n >= 20) {
     out.vol = sd(ret) * Math.sqrt(252);
     const pairs = ret.map((r, i) => [r, sret[i]]).filter(([, s]) => s != null);
@@ -396,7 +416,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [book, setBook] = useState(null);
   const [orders, setOrders] = useState({});
   const [nav, setNav] = useState(null);
-  const [brake, setBrake] = useState(null);   // latest qt_brake_state row (live book only)
   const [err, setErr] = useState(null);
   const [sortKey, setSortKey] = useState('rank');
   const [sortDir, setSortDir] = useState(1);
@@ -412,12 +431,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         .order('rebalance_date', { ascending: false }).limit(1);
       if (e1) throw e1;
       const rd = latest?.[0]?.rebalance_date;
-      const [bk, od, nv, brk] = await Promise.all([
+      const [bk, od, nv] = await Promise.all([
         rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
         rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
           .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
         supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at,account_number').order('d'),
-        supabase.from('qt_brake_state').select('d,composite,stress_on').order('d', { ascending: false }).limit(1),
       ]);
       if (bk.error) throw bk.error;
       setBook(bk.data || []);
@@ -428,7 +446,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         if (!om[o.symbol] || (o.status === 'filled' && om[o.symbol].status !== 'filled')) om[o.symbol] = o;
       });
       setOrders(om);
-      setBrake(brk?.data?.[0] ?? null);
       // Show ONE book. qt_nav_daily keeps every epoch, but a paper account
       // restart (new account, funded back to $1,000,000) is a new book, not a
       // continuation: charting across the boundary would splice the retired
@@ -472,7 +489,28 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [load]);
 
   const latestNav = nav && nav.length ? nav[nav.length - 1] : null;
-  const ls = useMemo(() => liveStats(nav), [nav]);
+  // The strategy's record starts the first day the account HELD stock. The
+  // epoch's earlier rows are the funded account parking $1,000,000 in cash
+  // before launch — account setup, not the strategy — so stats and the chart
+  // begin at the first held row. Those cash rows still do one job: the S&P
+  // close on the last of them is the benchmark's pre-launch baseline, so book
+  // and index are measured from the same starting bell. Data-keyed, never
+  // date-keyed (LESSONS 4.53): a memorial epoch that held stock from its first
+  // row passes through unchanged.
+  const heldIdx = nav ? nav.findIndex((r) => Number(r.n_positions) > 0) : -1;
+  const heldNav = nav && heldIdx > 0 ? nav.slice(heldIdx) : nav;
+  const spyBase = (() => {
+    if (!nav || heldIdx <= 0) return null;
+    for (let i = heldIdx - 1; i >= 0; i--) {
+      if (nav[i].spy_close != null) return Number(nav[i].spy_close);
+    }
+    return null;
+  })();
+  const inceptionD = heldNav && heldNav.length ? heldNav[0].d : null;
+  const inceptionShort = inceptionD
+    ? fmtDate(inceptionD).replace(/, \d{4}$/, '')
+    : null;
+  const ls = useMemo(() => liveStats(heldNav, spyBase), [heldNav, spyBase]);
   const marks = useMemo(() => {
     const m = {}; (latestNav?.positions || []).forEach((p) => { m[p.symbol] = p; }); return m;
   }, [latestNav]);
@@ -509,10 +547,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     : Infinity;
   const bookIsLive = !!(latestNav && Number(latestNav.n_positions) > 0 && lastMarkAgeDays <= 5);
 
-  const bookRan = (nav && nav.length)
+  // The dates of the record being shown — the HELD window, so a live book
+  // reads "since Sep 1" rather than counting the pre-launch cash-parking days.
+  const bookRan = (heldNav && heldNav.length)
     ? (() => {
-        const a = fmtDate(nav[0].d);
-        const b = fmtDate(nav[nav.length - 1].d);
+        const a = fmtDate(heldNav[0].d);
+        const b = fmtDate(heldNav[heldNav.length - 1].d);
         return a === b ? a : `${a.slice(0, -6)} – ${b}`;
       })()
     : null;
@@ -598,17 +638,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [book, marks, equity]);
 
   const liveCurve = useMemo(() => {
-    if (!nav || nav.length < 2) return null;
+    if (!heldNav || heldNav.length < 2) return null;
     // Both series indexed to 100 at INCEPTION — strategy off $1.0M, S&P off its
     // pre-launch close — so the chart and the header agree on the same origin.
     return {
-      strategy: nav.map((r) => (Number(r.equity) / 1_000_000) * 100),
-      spx: nav.some((r) => r.spy_close != null)
-        ? (() => { const b = nav.find((r) => r.spy_close != null)?.spy_close;
-             return nav.map((r) => (r.spy_close != null && b ? (Number(r.spy_close) / Number(b)) * 100 : null)).map((v, i, a) => v ?? a[i - 1] ?? 100); })()
-        : null,
+      strategy: heldNav.map((r) => (Number(r.equity) / 1_000_000) * 100),
+      spx: (() => {
+        const b = spyBase ?? heldNav.find((r) => r.spy_close != null)?.spy_close;
+        if (!b) return null;
+        return heldNav.map((r) => (r.spy_close != null ? (Number(r.spy_close) / Number(b)) * 100 : null))
+          .map((v, i, a) => v ?? a[i - 1] ?? 100);
+      })(),
     };
-  }, [nav]);
+  }, [heldNav, spyBase]);
 
   const btSlice = useMemo(() => {
     const yrs = { '1Y': 12, '3Y': 36, '5Y': 60 }[btRange];
@@ -752,39 +794,35 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         }}>
           <div style={{ ...grid(158, 22, 6) }}>
             {[
-              // hero = ONE number per tile (no crammed "$ · %"); the secondary
-              // value + its context live on the sub-line. Day P&L is a dollar
-              // figure, returns are percentages — labeled so the unit is never
-              // ambiguous and the two tiles never look "reversed".
-              // "· 10-min sync" describes what happens DURING a session. Once the
-              // mark is a previous session's it is not only long, it is untrue —
-              // nothing is syncing every ten minutes at 9am Monday.
+              // The band answers exactly four questions, in order, each in
+              // dollars AND percent (Joe, 2026-09-01): what is it worth · what
+              // did it make today, and how does that compare to the S&P · what
+              // has it made since inception, and how does that compare to the
+              // S&P. Hero = the dollar figure, sub-line = the percent + the
+              // benchmark's own number. Exposure closes the band; everything
+              // else (liquidity, brake state, system plumbing) lives below the
+              // fold or nowhere — a hero tile is not a status console.
               { k: 'Portfolio value', hero: fmtUsd(equity),
-                sub: markedAt ? `final ${markedAt.replace(/^marked /, 'mark ')}` : 'at inception', color: CREAM },
+                sub: markedAt ? (bookIsLive ? markedAt : `final ${markedAt.replace(/^marked /, 'mark ')}`) : 'at inception',
+                color: CREAM },
               { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
-                sub: ls ? `${fmtPct(ls.dayPct, 2)} · ${daySession}` : 'from broker marks', color: inkUpDown(ls?.day) },
-              { k: 'Since inception', hero: ls ? fmtPct(ls.since, 2) : '—',
-                sub: ls ? `${fmtSignedUsd(ls.sinceUsd)} · ${bookRan || 'whole book'}` : 'vs $1,000,000 start', color: inkUpDown(ls?.since) },
-              { k: 'vs S&P 500', hero: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : '—',
-                sub: (ls && ls.spxSince != null) ? `book ${fmtPct(ls.since, 2)} · S&P ${fmtPct(ls.spxSince, 2)}` : 'benchmark spread',
-                color: inkUpDown(ls ? (ls.since - ls.spxSince) : null) },
+                sub: ls ? `${fmtPct(ls.dayPct, 2)} · ${daySession}` : 'from broker marks',
+                color: inkUpDown(ls?.day) },
+              { k: 'Day vs S&P 500', hero: (ls && ls.spxDay != null) ? fmtSignedUsd(ls.dayVsSpxUsd) : '—',
+                sub: (ls && ls.spxDay != null)
+                  ? `${fmtPct(ls.dayPct - ls.spxDay, 2)} · S&P ${fmtPct(ls.spxDay, 2)} ${daySession}`
+                  : 'benchmark spread',
+                color: inkUpDown(ls && ls.spxDay != null ? ls.dayPct - ls.spxDay : null) },
+              { k: 'P&L since inception', hero: ls ? fmtSignedUsd(ls.sinceUsd) : '—',
+                sub: ls ? `${fmtPct(ls.since, 2)} on $1,000,000${inceptionShort ? ` · since ${inceptionShort}` : ''}` : 'vs $1,000,000 start',
+                color: inkUpDown(ls?.since) },
+              { k: 'vs S&P 500 inception', hero: (ls && ls.spxSince != null) ? fmtSignedUsd(ls.sinceVsSpxUsd) : '—',
+                sub: (ls && ls.spxSince != null)
+                  ? `${fmtPct(ls.since - ls.spxSince, 2)} · S&P ${fmtPct(ls.spxSince, 2)}${inceptionShort ? ` since ${inceptionShort}` : ''}`
+                  : 'benchmark spread',
+                color: inkUpDown(ls && ls.spxSince != null ? ls.since - ls.spxSince : null) },
               { k: 'Exposure', hero: latestNav ? fmtPctPlain(invested, 1) : '—',
                 sub: `gross · net long · cash ${fmtUsd(cash)}`, color: CREAM, meter: invested },
-              { k: 'Liquidity', hero: bookMeta?.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—',
-                sub: 'slowest exit at 20% of volume', color: CREAM },
-              // The brake is part of the deployed system, so it belongs on the
-              // page, state and reading both — a risk control the reader cannot
-              // see is indistinguishable from one that does not exist. Before
-              // the first evaluation (launch day, 5:25pm ET) it says so rather
-              // than faking a reading.
-              ...(bookIsLive ? [{
-                k: 'Crash brake',
-                hero: brake ? (brake.stress_on ? 'ON — half size' : 'Off') : 'Armed',
-                sub: brake
-                  ? `stress ${Number(brake.composite).toFixed(2)} · trips at 0.80, releases at 0.65`
-                  : 'first reading today, 5:25 PM ET',
-                color: brake?.stress_on ? '#e8b04b' : CREAM,
-              }] : []),
             ].map((t) => (
               <div key={t.k}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
@@ -895,7 +933,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
-          <Card title={bookIsLive ? 'Performance' : 'Performance — closed book'} right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
+          <Card title={bookIsLive ? 'Performance' : 'Performance — closed book'} right={ls ? `${(ls.n ?? 0) + 1} ${(ls.n ?? 0) + 1 === 1 ? 'mark' : 'marks'} · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
                 <LineChart
@@ -903,7 +941,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     { name: 'Quality Trend', color: GOLD, values: liveCurve.strategy },
                     ...(liveCurve.spx ? [{ name: 'S&P 500', color: BLUE, values: liveCurve.spx, width: 1.8, opacity: 0.9 }] : []),
                   ]}
-                  dates={nav.map((r) => r.d)}
+                  dates={heldNav.map((r) => r.d)}
                   yFmt={(v) => v.toFixed(1)}
                 />
                 <ChartLegend items={[['Quality Trend (indexed to 100)', GOLD], ['S&P 500', BLUE]]} />

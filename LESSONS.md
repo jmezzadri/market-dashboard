@@ -125,6 +125,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.28` A gap in a series is a symptom; check whether the two sides of it are even the same number
 - `4.29` A window measured in observations is not a window measured in time
 - `4.30` Ideas are sourced from the WORLD; our data validates them. A contract that can only mark 74 series will quietly narrow every idea to those 74 series
+- `4.31` Every field a page renders needs a CODE writer; a manual backfill is a bridge, not a source
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -912,6 +913,15 @@ They are not the same series and they are nowhere near each other:
 3. **When a surface's contract cannot express a whole class of legitimate ideas, that is a capability bug to fix, not a constraint to write around.** Scorecard legs now accept `ticker:XYZ`, marked from the same split-adjusted stock price store the scanner and backtests read, with entry, stop, path and benchmark rules unchanged — so a stock idea found in filings can publish and be graded like everything else.
 
 **Applies to:** the Trade Idea run and every recurring research surface; Lead Developer for any contract whose catalogue limits what ideas can exist.
+
+
+### 4.31 (2026-09-01) — Every field a page renders needs a CODE writer; a manual backfill is a bridge, not a source
+
+**What happened:** The relaunched Quality Trend book went live and the paper page rendered "Unclassified 98.7% · 0 of 74 GICS industries" with every size and liquidity figure blank. The sector/industry/market-cap/volume columns the page reads had been filled BY HAND on Aug 14 — a one-off SQL fill during the page build, never engine code — so restoring the engine for the relaunch restored everything that was code and none of what wasn't. The first automated scoring run wrote NULLs and the page faithfully rendered them. Joe found it on launch day, on the live site.
+
+**Rule:** Before a page ships, every field it renders traces to a writer that RUNS — a job, a function, a sync — not to a fill someone once executed. A manual backfill is allowed only to heal history, and the same change that backfills must ship the code writer (here: the rebalance writer now carries classification from `qt_gics` + `ticker_state_current` and its own 63-day dollar volume; a name missing from `qt_gics` stays NULL and is named in the run log — never guessed). Restoring or un-retiring a system re-verifies this for every surface it feeds.
+
+**Applies to:** Lead Developer — any change that adds a rendered field; any restore/un-retirement.
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
