@@ -289,6 +289,8 @@ VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and 
  - A CONCRETE THING DOES THE VERB - a market, an instrument, a number, a person. Never an abstraction. "Vol bid into the Sep 17 FOMC", never "what the market paid for optionality". "Equities sat still", never "equities deferred their reaction by a session".
  - SAY THE THING, NOT THE SHAPE OF THE THING. Name the instrument, the level, the date. Never describe the significance of a move before naming the move.
  - NO REVEAL STRUCTURE. "the tell", "it was not X it was Y", "the real story is", "what actually happened is" are column openers. Lead with the fact.
+ - EVERY CLAIM CARRIES ITS TIME. A move that already happened names the session it happened in ("Rate vol repriced Monday"). A scheduled event names its date and reads as ahead ("FOMC, Sep 16"). Never a verb that could be either - Joe on "Vol bid into the Sep 17 FOMC": "This sounds past tense but it's only Sept 1."
+ - NEVER WRITE AN EVENT DATE FROM MEMORY. FOMC, CPI, PPI, payrolls, ISM, PCE, GDP, claims, JOLTS, retail sales - read the date off https://macrotilt.com/econ_calendar.json, the same feed the homepage tile uses. The prepare step checks every dated event mention against it and REFUSES a mismatch.
  - CUT EVERY WORD THAT SURVIVES ITS OWN DELETION.
  - NO SENTENCE OVER 25 WORDS anywhere in the brief.
  - THE TEST: read it aloud as if saying it to a PM at your desk who has eight seconds. If you would not say it that way out loud, do not write it.
@@ -847,6 +849,69 @@ VOICE_BANNED = [
 ]
 _SENT_MAX_WORDS = 25
 
+# Joe, 2026-09-01, on the rewrite I offered him: "vol bid into the sep17
+# FOMC.... This sounds past tense but its only Sept 1...." Two failures in five
+# words. The tense was ambiguous — "bid" reads as something that already
+# happened — and the DATE WAS INVENTED: the calendar feed says Sep 16.
+#
+# Tense is not reliably checkable by regex. A named event's date is, and it is
+# the more dangerous of the two: a wrong tense is awkward, a wrong FOMC date is
+# a reader missing a meeting. Any dated reference to a scheduled event must
+# match econ_calendar.json, which is the same feed the homepage tile reads.
+_EVENT_WORDS = ("fomc", "cpi", "ppi", "payrolls", "jobs report", "ism", "pce",
+                "gdp", "jobless claims", "jolts", "retail sales")
+_MONTHS = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,"jul":7,"aug":8,
+           "sep":9,"sept":9,"oct":10,"nov":11,"dec":12}
+
+def _calendar_dates(cache={}):
+    """{event keyword -> set of ISO dates} from the live econ calendar feed."""
+    if cache:
+        return cache
+    out = {}
+    try:
+        raw = _get("https://macrotilt.com/econ_calendar.json")
+        rows = json.loads(raw)
+        rows = rows if isinstance(rows, list) else (rows.get("releases") or rows.get("events") or [])
+        for r in rows:
+            blob = (str(r.get("short", "")) + " " + str(r.get("name", ""))).lower()
+            d = r.get("date")
+            if not d:
+                continue
+            for w in _EVENT_WORDS:
+                if w in blob:
+                    out.setdefault(w, set()).add(d)
+    except Exception:
+        return {}          # a feed outage must never block the brief
+    cache.update(out)
+    return cache
+
+def _check_event_dates(where, plain, bad):
+    import re as _re
+    cal = _calendar_dates()
+    if not cal:
+        return
+    low = plain.lower()
+    for m in _re.finditer(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b", low):
+        mon, day = _MONTHS[m.group(1)], int(m.group(2))
+        # which event is this date attached to? look 60 chars either side
+        lo, hi = max(0, m.start() - 60), min(len(low), m.end() + 60)
+        window = low[lo:hi]
+        for w in _EVENT_WORDS:
+            if w not in window:
+                continue
+            known = cal.get(w) or set()
+            if not known:
+                continue
+            hit = {d for d in known if int(d[5:7]) == mon and int(d[8:10]) == day}
+            if hit:
+                continue
+            near = sorted(d for d in known if int(d[5:7]) in (mon, mon % 12 + 1))
+            bad.append(
+                f"{where}: {w.upper()} is not on {m.group(0)} — the calendar feed says "
+                f"{near[0] if near else 'no date this month'}. Never write an event date from memory."
+            )
+            break
+
 def enforce_voice(brief):
     """Reject the essayistic register. Reports every hit at once, like enforce_caps."""
     import re as _re
@@ -857,6 +922,7 @@ def enforce_voice(brief):
             for pat, why in VOICE_BANNED:
                 if _re.search(pat, plain, _re.I):
                     bad.append(f"{where}: {why}\n      \u2192 {plain[:120]}")
+            _check_event_dates(where, plain, bad)
             for sent in _re.split(r"(?<=[.!?])\s+", plain):
                 n = len(sent.split())
                 if n > _SENT_MAX_WORDS:
