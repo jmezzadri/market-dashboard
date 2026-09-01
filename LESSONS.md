@@ -1275,6 +1275,8 @@ Every one of those numbers was false. Quality Trend's real record is **−6.45%*
 4. **A number stated by the rendered page is a claim you are making.** "0.00% since inception" and "+0.76% vs the S&P" were arithmetic on mismatched sources — right formula, two different books — and no test, health row or SQL query could see it, because every input was individually valid. Only loading the page catches this class (0.12), which is why the sweep loads it.
 5. **When you write a lesson predicting a failure, close it in code the same day or file it as an open item with a date.** 4.53(b) predicted this in prose, the prose was correct, and prose does not select an account.
 
+**Repeat, mirrored (2026-09-01):** rule 1 cuts BOTH ways — an un-retirement must also be reversed from the retirement's own footprint, item by item. The relaunch restored workflows, health rows, cron and manifest entries, but not the alert watchlist: `WORKFLOW_FAILURE_ALERT`'s trigger list and VISIBLE set still carried the 8/28 removals, so the relaunched book's first custody-check failure (Sep 1, 21:41 UTC — itself a false alarm from a backfilled snapshot's write-time timestamp) was neither emailed nor even recorded. Restored the four QT entries to trigger list, VISIBLE, and the plain-English copy map. Before declaring a restore done, diff the retiring commit and account for every file it touched.
+
 **Applies to:** Lead Developer, Data Steward — every retirement, every page that renders one book out of several epochs, and every hardcoded inception, baseline or launch date.
 
 ### 5.23 (2026-08-28) — Every trigger on the "reliable path" fired, all five were green, and not one of them could ever have sent the email

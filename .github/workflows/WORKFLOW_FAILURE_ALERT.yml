@@ -73,6 +73,16 @@ on:
       # - PAPER-PORTFOLIO-INTRADAY        removed 2026-08-14: disabled stub, trading halted 8/12
       - macrotilt-engine-daily
       - INDICATOR-DRILLS-DAILY
+      # Quality Trend relaunch (2026-09-01) — the live paper book's four jobs.
+      # The 8/28 retirement stripped the QT entries from BOTH this trigger list
+      # and the VISIBLE set below; the relaunch restored the workflows but not
+      # this watchlist, so the book's first custody-check failure (Sep 1,
+      # 21:41 UTC) was neither emailed nor even recorded. A retirement is
+      # reversed from its own footprint — this file was part of the footprint.
+      - QT-EOD-DAILY
+      - QT-BRAKE-DAILY
+      - QT-REBALANCE
+      - QT-PLACE-ORDERS
       # Conviction Events engine (2026-08-11) — the one book replacing the
       # two retired sleeves. KILL-CHECK deliberately FAILS on a fresh
       # kill-switch trip so this watchlist emails the trip.
@@ -265,9 +275,12 @@ jobs:
               "DAILY-BRIEF-WRITER",          # his morning email + the homepage brief
               "BRIEF-FRESHNESS-SELFHEAL",    # the homepage brief going stale
               "DAILY-HOME-SMOKE",            # the site itself being up
-              # "QT-EOD-DAILY",             retired 2026-08-28 with the Quality Trend book
-              # "QT-REBALANCE",              retired 2026-08-28 with the Quality Trend book
-              # "QT-FUNDAMENTALS-REFRESH",   retired 2026-08-28 with the Quality Trend book
+              # Quality Trend relaunched 2026-09-01 — the live paper book, his money.
+              "QT-EOD-DAILY",                # nightly accounting; deliberately FAILS on the custody check
+              "QT-REBALANCE",                # monthly scoring; a silent miss loses the month
+              "QT-BRAKE-DAILY",              # the risk cut itself; a failure means it did not run
+              "QT-PLACE-ORDERS",             # the only job that moves the account
+              # "QT-FUNDAMENTALS-REFRESH",   retired 2026-08-28; not restored in the relaunch
               # "CONVICTION-OPEN-DAILY",     retired 2026-08-13 with the Conviction Events book
               # "CONVICTION-KILL-CHECK",     retired 2026-08-13 with the Conviction Events book
               # "PAPER-PORTFOLIO-EOD-DAILY", retired 2026-08-13 — superseded by QT-EOD-DAILY
@@ -419,9 +432,29 @@ jobs:
           # management consultant and the standing rule is that the agent does all
           # technical work. Anything not on this list gets the honest default.
           PLAIN = {
-              # The three QT-* entries were removed on 2026-08-28 with the Quality
-              # Trend book itself. Their workflows no longer exist, so no event can
-              # ever name them again.
+              # Quality Trend relaunched 2026-09-01 — plain-English copy restored
+              # with the workflows (the 8/28 retirement had removed both).
+              "QT-EOD-DAILY": (
+                  "The paper book's nightly accounting",
+                  "Snapshots the paper account after the close and checks that every "
+                  "holding change has a trade behind it. A failure usually means that "
+                  "custody check found something it cannot explain.",
+                  "Nothing. Claude investigates the same evening; the paper page stays up."),
+              "QT-BRAKE-DAILY": (
+                  "The paper book's crash brake",
+                  "Reads the daily market-stress gauge and halves or restores the book "
+                  "when it trips. A failure means tonight's reading did not run.",
+                  "Nothing. Claude re-runs it; no reading means no trade, not a bad trade."),
+              "QT-REBALANCE": (
+                  "The paper book's monthly stock picking",
+                  "Scores the market and writes the month's 20-name list on the first "
+                  "trading day.",
+                  "Nothing. Claude re-runs it; orders only go out from the approved list."),
+              "QT-PLACE-ORDERS": (
+                  "The paper book's order placement",
+                  "The only job that moves the paper account, run deliberately with a "
+                  "typed confirmation.",
+                  "Nothing. Whoever dispatched it sees the failure and handles it."),
               "DAILY-BRIEF-WRITER": (
                   "Your morning market brief",
                   "Writes the brief that lands in your inbox and heads the MacroTilt homepage.",
