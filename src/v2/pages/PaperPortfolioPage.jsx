@@ -490,7 +490,16 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // eyebrow and card titles describe the Aug 17-25 book and would be lies over
   // a live one. One flag, derived from the displayed data itself — the book is
   // live when the latest displayed mark holds positions.
-  const bookIsLive = !!(latestNav && Number(latestNav.n_positions) > 0);
+  // Live means BOTH: the displayed epoch holds stock AND its data is current.
+  // The holdings-only version dressed the CLOSED book (whose final row holds
+  // 40 positions) in live copy the moment it deployed — "LIVE · inception
+  // Sep 1" over the dead book's -6.45%. Caught on the rendered page,
+  // launch eve. Five calendar days clears any weekend+holiday gap; a book
+  // stale beyond that has a dead pipeline and must not present itself as live.
+  const lastMarkAgeDays = latestNav
+    ? (Date.now() - new Date(latestNav.created_at || latestNav.d).getTime()) / 86_400_000
+    : Infinity;
+  const bookIsLive = !!(latestNav && Number(latestNav.n_positions) > 0 && lastMarkAgeDays <= 5);
 
   const bookRan = (nav && nav.length)
     ? (() => {
