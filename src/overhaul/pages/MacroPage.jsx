@@ -31,7 +31,7 @@ import RegimeCanvas from '../components/RegimeCanvas';
 import IndicatorCard from '../components/IndicatorCard';
 import IndicatorDetail from '../components/IndicatorDetail';
 import PositioningDetail from '../components/PositioningDetail';
-import useIndicators from '../lib/useIndicators';
+import useIndicators, { MOVE_FLAG_PCTILE } from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
 import '../styles/cream-system.css';
 import '../styles/v13.css';
@@ -594,16 +594,21 @@ export default function MacroPage() {
               const markets = cotPos?.domains?.[dom]?.markets || [];
               const ext = inds.filter((i) => i.state==='extreme').length;
               const elev = inds.filter((i) => i.state==='elevated').length;
+              // Big move = the latest change, scaled by this indicator's own
+              // recent volatility, in the top decile of its 3-year history.
+              const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
               return (
                 <div key={dom} className="mac-cat">
-                  <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>{(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
+                  <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
+                    {big>0 && <span className="mac-catcount mac-catcount--move" title={`${big} indicator${big>1?'s':''} moved more than usual at its own frequency`}>{big} big {big>1?'moves':'move'}</span>}
+                    {(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
                   <div className="mac-rows">
                     {inds.map((ind) => { const dd=ddOf(ind); return (
                       <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
                         <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
-                        <span className={'mac-chg'+(dd?' '+dd.cls:'')}>{dd ? dd.arrow+dd.txt : ''}</span>
-                        <span className="mac-pct">{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                        <span className={'mac-chg'+(dd?' '+dd.cls:'')+(ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' mac-bigmove':'')}>{dd ? dd.arrow+dd.txt : ''}</span>
+                        <span className={'mac-pct'+(ind.pct!=null?(ind.pct>=90?' hot':ind.pct<=10?' cold':''):'')}>{ind.pct!=null ? ord(ind.pct) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}
@@ -615,7 +620,7 @@ export default function MacroPage() {
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
                         <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
                         <span className="mac-chg mut">{chg}</span>
-                        <span className="mac-pct">{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                        <span className={'mac-pct'+(Number.isFinite(m.spec)?(m.spec>=90?' hot':m.spec<=10?' cold':''):'')}>{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}
