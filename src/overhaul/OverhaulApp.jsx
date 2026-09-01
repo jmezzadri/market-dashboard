@@ -55,6 +55,9 @@ import './styles/footer-v12.css';
 // 2026-08-25: "The site is not usable whatsoever if not on computer." Every
 // rule inside is behind a media query; this file is inert on desktop.
 import './styles/mobile-v12.css';
+// v13 shell — loaded last so it overrides chrome.css / chrome-v12 / footer-v12.
+import './styles/v13.css';
+import './styles/chrome-v13.css';
 
 import { TweaksProvider } from './tweaks/TweaksContext';
 

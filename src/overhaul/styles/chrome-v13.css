@@ -1,0 +1,186 @@
+/* ============================================================================
+   chrome-v13.css — the app shell (top nav, ticker search, mobile nav sheet,
+   footer) on the v13 system. Loaded LAST by OverhaulApp so it overrides
+   chrome.css, chrome-v12.css and footer-v12.css.
+
+   Why this is a small file: chrome-v12.css was already token-driven — every
+   colour came from a --ch-* variable on .mt-overhaul. So most of the shell
+   converts by REMAPPING those eleven variables onto the v13 tokens. What is
+   left is geometry the cream system chose editorially and v13 chooses densely:
+   a 60px nav becomes 44px, a 24px serif wordmark becomes 18px, 14px nav links
+   become 11px uppercase labels, and the gold active-underline becomes accent.
+
+   The wordmark keeps the serif and keeps the gold `em` — both explicitly
+   retained by Joe on 2026-09-01. They are the only two places either survives.
+
+   The v13 token block is defined for `.mt-overhaul` in v13.css, so nothing is
+   redefined here.
+   ========================================================================= */
+
+/* ── remap the cream chrome variables onto v13 ───────────────────────────
+   Every --ch-* consumer in chrome-v12.css and footer-v12.css follows these
+   automatically; that is the whole point of keeping the names. */
+.mt-overhaul {
+  --ch-bg: var(--v13-ground);
+  --ch-surface: var(--v13-surface);
+  --ch-putty: var(--v13-surface-2);
+  --ch-ink: var(--v13-ink);
+  --ch-ink-soft: var(--v13-ink-2);
+  --ch-mut: var(--v13-ink-3);
+  --ch-gold-deep: var(--v13-accent);   /* links and actives are accent now */
+  --ch-hair: var(--v13-rule);
+  --ch-nav-h: 44px;
+  --ch-serif: var(--v13-f-read);
+}
+
+/* The shell ground. `background-image: none` kills the tokens.css radial
+   gradient — a fixed-attachment gradient behind a dense grid reads as haze. */
+.mt-overhaul {
+  background: var(--v13-ground);
+  background-image: none;
+  font-family: var(--v13-f-ui);
+  color: var(--v13-ink);
+  transition: background var(--v13-med) var(--v13-ease), color var(--v13-med) var(--v13-ease);
+}
+
+/* ── top nav ─────────────────────────────────────────────────────────── */
+.mt-overhaul .mt-topnav {
+  gap: var(--v13-s5);
+  padding: 0 var(--v13-s4);
+  background: var(--v13-surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--v13-rule);
+}
+.mt-overhaul .mt-wordmark {
+  font-family: var(--v13-f-read);
+  font-size: var(--v13-t5);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--v13-ink);
+}
+.mt-overhaul .mt-wordmark em { font-style: normal; color: var(--v13-brand); }
+
+.mt-overhaul .mt-topnav-links { gap: 2px; }
+.mt-overhaul .mt-navlink {
+  padding: 6px 10px;
+  border-radius: var(--v13-r);
+  font-size: var(--v13-t2);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--v13-ink-3);
+  transition: color var(--v13-fast) var(--v13-ease), background var(--v13-fast) var(--v13-ease);
+}
+.mt-overhaul .mt-navlink:hover { color: var(--v13-ink); background: var(--v13-surface-3); }
+.mt-overhaul .mt-navlink.on { color: var(--v13-ink); background: transparent; }
+.mt-overhaul .mt-navlink.on::after {
+  left: 10px; right: 10px; bottom: -1px; height: 2px;
+  background: var(--v13-accent); border-radius: 0;
+}
+.mt-overhaul .mt-navlink--admin { font-size: var(--v13-t1); color: var(--v13-ink-3); }
+
+.mt-overhaul .mt-topnav-auth { gap: var(--v13-s2); }
+.mt-overhaul .mt-topnav-email,
+.mt-overhaul .mt-topnav-signout,
+.mt-overhaul .mt-topnav-dim { font-size: var(--v13-t2); color: var(--v13-ink-3); }
+.mt-overhaul .mt-topnav-signin {
+  font-size: var(--v13-t2); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--v13-accent);
+}
+.mt-overhaul .mt-navtoggle { color: var(--v13-ink-2); }
+
+/* ── utility header row (market status, date, search, freshness, theme) ── */
+.mt-overhaul .mt-utilbar,
+.mt-overhaul .mt-pagehead {
+  background: var(--v13-surface);
+  border-bottom: 1px solid var(--v13-rule);
+  padding: var(--v13-s2) var(--v13-s4);
+  font-size: var(--v13-t2);
+}
+.mt-overhaul .mt-tickersearch input,
+.mt-overhaul .mt-tickersearch input[type='search'],
+.mt-overhaul .mt-tickersearch input[type='text'] {
+  height: 28px;
+  padding: 0 var(--v13-s3);
+  border: 1px solid var(--v13-rule-2);
+  border-radius: var(--v13-r);
+  background: var(--v13-surface);
+  color: var(--v13-ink);
+  font-family: var(--v13-f-ui);
+  font-size: var(--v13-t3);
+  transition: border-color var(--v13-fast) var(--v13-ease), box-shadow var(--v13-fast) var(--v13-ease);
+}
+.mt-overhaul .mt-tickersearch input::placeholder { color: var(--v13-ink-3); }
+.mt-overhaul .mt-tickersearch input:focus {
+  outline: 0;
+  border-color: var(--v13-accent);
+  box-shadow: 0 0 0 3px var(--v13-accent-soft);
+}
+
+/* ── mobile nav sheet ────────────────────────────────────────────────── */
+.mt-overhaul .mt-navsheet {
+  background: var(--v13-surface);
+  border-left: 1px solid var(--v13-rule);
+  border-radius: 0;
+}
+.mt-overhaul .mt-navsheet .mt-navlink {
+  font-size: var(--v13-t3);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  padding: var(--v13-s3) var(--v13-s2);
+  border-bottom: 1px solid var(--v13-rule);
+  border-radius: 0;
+}
+.mt-overhaul .mt-navsheet-email { font-size: var(--v13-t2); color: var(--v13-ink-3); }
+.mt-overhaul .mt-navsheet-signin,
+.mt-overhaul .mt-navsheet-signout {
+  font-size: var(--v13-t2); font-weight: 700; color: var(--v13-accent);
+}
+.mt-overhaul .mt-navsheet-veil { background: rgba(20, 23, 26, 0.45); }
+
+/* ── footer ──────────────────────────────────────────────────────────── */
+.mt-overhaul .mt-footer {
+  background: var(--v13-surface);
+  border-top: 1px solid var(--v13-rule);
+  padding: var(--v13-s5) 0 var(--v13-s4);
+  font-size: var(--v13-t2);
+  color: var(--v13-ink-2);
+}
+.mt-overhaul .mt-footer .inner { max-width: var(--v13-page); padding: 0 var(--v13-s4); margin: 0 auto; }
+.mt-overhaul .mt-footer-grid { gap: var(--v13-s5); }
+.mt-overhaul .mt-footer-wordmark {
+  font-family: var(--v13-f-read);
+  font-size: var(--v13-t5);
+  font-weight: 600;
+  color: var(--v13-ink);
+}
+.mt-overhaul .mt-footer-wordmark em { font-style: normal; color: var(--v13-brand); }
+.mt-overhaul .mt-footer-tag,
+.mt-overhaul .mt-footer-loc { font-size: var(--v13-t2); color: var(--v13-ink-2); max-width: 44ch; }
+.mt-overhaul .mt-footer-col h4,
+.mt-overhaul .mt-footer-col > span:first-child {
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--v13-ink-3);
+}
+.mt-overhaul .mt-footer-col a {
+  font-size: var(--v13-t2); color: var(--v13-ink-2); text-decoration: none;
+  transition: color var(--v13-fast) var(--v13-ease);
+}
+.mt-overhaul .mt-footer-col a:hover { color: var(--v13-accent); }
+.mt-overhaul .mt-footer-legalband { max-width: var(--v13-page); margin: 0 auto; padding: 0 var(--v13-s4); }
+.mt-overhaul .mt-footer-legalband,
+.mt-overhaul .mt-footer-disclaimer,
+.mt-overhaul .mt-footer-copy,
+.mt-overhaul .mt-footer-bottom,
+.mt-overhaul .mt-footer-bottomlinks {
+  font-size: var(--v13-t1); color: var(--v13-ink-3); line-height: 1.55;
+}
+.mt-overhaul .mt-footer-bottom { border-top: 1px solid var(--v13-rule); padding-top: var(--v13-s3); }
+.mt-overhaul .mt-footer-bottomlinks a { color: var(--v13-ink-3); text-decoration: none; }
+.mt-overhaul .mt-footer-bottomlinks a:hover { color: var(--v13-accent); }
+
+@media (max-width: 820px) {
+  .mt-overhaul .mt-topnav { padding: 0 var(--v13-s2); gap: var(--v13-s3); }
+  .mt-overhaul .mt-footer .inner { padding: 0 var(--v13-s2); }
+}

@@ -34,7 +34,11 @@
    Use .v13-grid.eq, which sets grid-auto-rows to a fixed track.
    ========================================================================= */
 
-.v13 {
+/* The token block is applied to the app shell as well as page roots, so the
+   chrome (top nav, search, footer) can use the same scale without redefining
+   it. `.v13` still carries it for the page bodies. */
+.v13,
+.mt-overhaul {
   /* ── surfaces ── */
   --v13-ground: #F4F4F1;
   --v13-surface: #FFFFFF;
@@ -117,7 +121,9 @@
 
 /* Dark. Defined token-for-token — never style a component inside this block. */
 [data-mt-theme='dark'] .v13,
-[data-mt-theme='navy'] .v13 {
+[data-mt-theme='navy'] .v13,
+[data-mt-theme='dark'] .mt-overhaul,
+[data-mt-theme='navy'] .mt-overhaul {
   --v13-ground: #0F1114;
   --v13-surface: #16191D;
   --v13-surface-2: #1B1F24;
@@ -330,14 +336,25 @@
   transition: opacity 500ms var(--v13-ease), transform 500ms var(--v13-ease);
 }
 
+/* FAILSAFE — content must never stay invisible because an observer did not
+   fire. The shared `.rv` reveal (cream-system.css) starts at opacity 0 and is
+   only un-hidden when an IntersectionObserver adds `.in`. On a phone the six
+   Macro tiles sit far below the fold, so a page opened and screenshotted
+   without scrolling showed a blank column where the data should be. This
+   zero-duration, 3s-delayed animation forces them visible regardless; if the
+   observer does fire first, the normal transition has already run and this
+   changes nothing. A reveal is a flourish, never a gate on readability. */
+.v13 .rv:not(.in) { animation: v13reveal-failsafe 0s linear 3s forwards; }
+@keyframes v13reveal-failsafe { to { opacity: 1; transform: none; filter: none; } }
+
 /* Reduced motion kills all of it. A page must never depend on an animation
-   to become readable — see the reveal-failsafe note in the prototype. */
+   to become readable. */
 @media (prefers-reduced-motion: reduce) {
   .v13 *, .v13 *::before, .v13 *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
-  .v13 .v13-rise { opacity: 1; transform: none; }
+  .v13 .v13-rise, .v13 .rv { opacity: 1; transform: none; filter: none; }
 }
 
 /* ── responsive: every multi-column grid collapses, and `.eq` releases its
