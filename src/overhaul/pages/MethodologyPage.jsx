@@ -4,7 +4,7 @@
    2026-08-13 — it selected positions on a single input (dollar value of
    insider buying) with no test of who was buying or how meaningful the
    purchase was to them, and its own last day showed why that fails. §03
-   Paper is rewritten around the replacement, Quality Trend v3: 40 names
+   Paper is rewritten around the replacement, Quality Trend v3 (20 names + brake since 2026-09-01)
    scored on momentum + trend consistency + drawdown resilience (price),
    gross profitability + cash generation + buybacks (point-in-time SEC
    fundamentals), and a meaningful-insider-buy bonus; equal weight, monthly
@@ -407,11 +407,14 @@ export default function MethodologyPage() {
             <h2 className="me-h2">One paper book · Quality Trend</h2>
             <p className="me-body-p">
               MacroTilt runs a live <b>$1,000,000 paper account</b> with no manual input and no
-              broker import, live since <b>August 17, 2026</b>. It trades a single rules-based
-              book, <b>Quality Trend</b>: own the <b>40 US companies</b> with the strongest
+              broker import, live since <b>September 1, 2026</b>. It trades a single rules-based
+              book, <b>Quality Trend</b>: own the <b>20 US companies</b> with the strongest
               combination of steady price trend and real profitability, equal-weighted, rebalanced
-              monthly, with no leverage. Every rule below is the deployed rule — the scoring code
-              and this page describe the same system.
+              monthly, with no leverage, plus an automatic crash brake described below. Every rule
+              on this page is the deployed rule — the scoring code and this page describe the same
+              system. (A 40-name version of this book ran on paper from August 17–25, 2026 on an
+              account that was then closed; its brief record is preserved on the Paper page and is
+              not part of this book's track record.)
             </p>
             <p className="me-body-p">
               <b>Why the previous book was retired.</b> Conviction Events (retired 13 August 2026)
@@ -459,17 +462,19 @@ export default function MethodologyPage() {
               never knows a quarter before the market did.
             </p>
             <p className="me-body-p">
-              <b>Portfolio rules.</b> Buy the top 40 by score, <b>$25,000 per name</b> at inception
-              (2.5% each), rebalanced on the <b>first trading day of each month</b> with orders
+              <b>Portfolio rules.</b> Buy the top 20 by score, <b>$50,000 per name</b> at inception
+              (5% each), rebalanced on the <b>first trading day of each month</b> with orders
               submitted market-on-open. A held name is kept until it falls out of the <b>top 25% of
-              the ranking</b> — not the moment it slips below rank 40 — which roughly halves
+              the ranking</b> — not the moment it slips below rank 20 — which roughly halves
               turnover versus rebalancing to a fixed list. Long-only, <b>no leverage, no strategic
-              cash</b>, no market-timing overlay: a trend filter that cuts exposure in downturns
-              was tested and rejected, because it cost 4–5 points a year in this decade&rsquo;s
-              fast recoveries.
+              cash</b> in normal conditions.
             </p>
             <p className="me-body-p">
-              <b>The backtest, stated honestly.</b> Validated <b>February 2017 – August 2026</b> on
+              <b>The backtest, stated honestly.</b> The figures in this paragraph were computed on
+              the <b>40-name, equal-weight variant with no brake</b> and are quoted unchanged; the
+              live book holds 20 names and carries the brake, so treat them as evidence for the
+              scoring engine, not a promise for this exact configuration. Validated{' '}
+              <b>February 2017 – August 2026</b> on
               a <b>survivorship-free universe</b>: 14,632 US companies including <b>2,011 that no
               longer exist</b> — the bankrupt and the acquired stay in the sample, at their real
               exit prices. The strategy returned <b>21.2% a year against 15.3%</b> for the
@@ -496,12 +501,27 @@ export default function MethodologyPage() {
               All three are public data. Fills and account marks on the Paper page are the paper
               broker&rsquo;s official records, snapshotted after each close.
             </p>
+            <p className="me-body-p">
+              <b>The crash brake.</b> Once a day after the close, the book checks one number: the
+              average of where the market&rsquo;s fear gauge (VIX) and the depth of the recent
+              fall in high-yield credit each sit against their own last three years. Above the
+              trigger, the book <b>sells half of every position</b> and sits on the cash; it buys
+              back to full size only after stress has clearly receded (separate on and off levels,
+              so it cannot flip-flop). The brake can only ever do those two things — halve or
+              restore. It never picks stocks. It is also the one honest change of mind on this
+              page: an earlier version of this book rejected any market-timing overlay because
+              trend filters cost 4–5 points a year in this decade&rsquo;s fast recoveries, and
+              that cost is still real — the brake will give up ground whenever a panic reverses
+              quickly. It was added at the owner&rsquo;s direction on August 28, 2026, trading
+              some upside for a cap on catastrophe.
+            </p>
             <div className="me-formula">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
               score    = 0.45·mom12 + 0.30·mom6 + 0.15·trend + 0.10·drawdown + 0.15·gross_profit/assets + 0.10·cash_flow/assets + 0.20·buyback (all cross-sectional ranks)<br />
               insider  = + up to 0.20 bonus · officers/directors only · open-market only, no 10b5-1 · ranked by purchase ÷ existing stake · buys &gt; $250k half-weighted · never a penalty<br />
-              book     = top 40 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
-              risk     = no leverage · ~2.5% per name · diversification and the monthly exit band — no stops, no book-level alarm
+              book     = top 20 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
+              brake    = daily, after the close · mean(VIX 3y percentile, HY-credit drawdown 3y percentile) · &gt;0.80 sell half · &lt;0.65 restore<br />
+              risk     = no leverage · ~5% per name · the monthly exit band · the brake — no per-stock stops
             </div>
           </div>
         </article>

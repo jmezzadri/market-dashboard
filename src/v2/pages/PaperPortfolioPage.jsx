@@ -472,6 +472,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // off the rows themselves. Nothing about the book's window is hardcoded any
   // more: a hardcoded inception is what survived its own account and printed a
   // return that never happened.
+  // Live vs closed copy (2026-08-28, relaunch). The account-selection logic
+  // above already switches the DATA to the newest account that actually holds
+  // stock, so on launch morning this page starts charting the new book with no
+  // deploy. The copy must flip with it: the retirement notice, "closed book"
+  // eyebrow and card titles describe the Aug 17-25 book and would be lies over
+  // a live one. One flag, derived from the displayed data itself — the book is
+  // live when the latest displayed mark holds positions.
+  const bookIsLive = !!(latestNav && Number(latestNav.n_positions) > 0);
+
   const bookRan = (nav && nav.length)
     ? (() => {
         const a = fmtDate(nav[0].d);
@@ -638,16 +647,22 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div>
             <div className="eyebrow2" style={{ marginBottom: 10 }}>
               <span className="dot" />
-              Paper Portfolio · closed book · retired {RETIRED_ON}{markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}
+              {bookIsLive
+                ? `Paper Portfolio · live · marks sync every 10 min in market hours${markedAt ? ` · ${markedAt}` : ''}`
+                : `Paper Portfolio · closed book · retired ${RETIRED_ON}${markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}`}
             </div>
             <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
             </h1>
           </div>
           <div style={{ textAlign: 'right', fontSize: 13, color: INK2, lineHeight: 1.7 }}>
-            40 US companies · equal weight · monthly rebalance · no leverage
+            {bookIsLive
+              ? '20 US companies · equal weight · monthly rebalance · crash brake · no leverage'
+              : '40 US companies · equal weight · monthly rebalance · no leverage'}
             <br />
-            {`$1,000,000 paper account, ${bookRan || 'now closed'} · closed`}{' · '}
+            {bookIsLive
+              ? '$1,000,000 paper account, inception Sep 1, 2026'
+              : `$1,000,000 paper account, ${bookRan || 'now closed'} · closed`}{' · '}
             <Link to="/methodology#portfolio" style={{ color: INK2, fontWeight: 600, borderBottom: `1px solid ${EDGE}`, textDecoration: 'none', paddingBottom: 2 }}>Methodology</Link>
             <br />
             <span style={{ color: INK3 }}>Paper money — not investment advice.</span>
@@ -659,7 +674,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               names, no status words. Placed ABOVE the headline figures on
               purpose — a reader must not meet a portfolio value before
               learning the strategy behind it has been retired. */}
-        <div style={{
+        {!bookIsLive && <div style={{
           border: `1px solid ${EDGE}`, borderLeft: `3px solid ${GOLD}`,
           borderRadius: 'var(--card-r)', background: CARD2,
           padding: '18px 22px', marginBottom: 'var(--mt-gap-card, 22px)',
@@ -679,11 +694,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             Treating it as the strategy's track record overstates how badly the strategy
             itself did.
             <br /><br />
-            A cross-asset book is being designed to replace it. Nothing is trading in the
-            meantime. When the new one starts it starts at zero, with its own record, and
-            the two are never blended.
+            The relaunched book — 20 names with an automatic crash brake — starts
+            September 1, 2026. Nothing trades before then. When it starts, it starts at
+            zero, with its own record, and the two are never blended.
           </div>
-        </div>
+        </div>}
 
         {/* ── command band — the page's ONE ink card (like Home's Engine
               card): every headline number in a single dark surface ────── */}
@@ -823,7 +838,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
         {/* ── performance + risk ──────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(250px, 1fr)', gap: 22, marginBottom: 22 }}>
-          <Card title="Performance — closed book" right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
+          <Card title={bookIsLive ? 'Performance' : 'Performance — closed book'} right={ls ? `${(ls.n ?? 0) + 1} marks · ${markedAt || ''}` : 'no marks yet'}>
             {liveCurve ? (
               <>
                 <LineChart
@@ -907,7 +922,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 700 }}>
                     <span style={{ width: 10, height: 3, background: GOLD, display: 'inline-block', borderRadius: 2, marginRight: 8, verticalAlign: 'middle' }} />
-                    Quality Trend — closed book <span style={{ color: INK3, fontWeight: 400 }}>{bookRan || ''}</span>
+                    {bookIsLive ? 'Quality Trend — live' : 'Quality Trend — closed book'} <span style={{ color: INK3, fontWeight: 400 }}>{bookRan || ''}</span>
                   </td>
                   <td style={{ ...td, color: upDown(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
                   <td style={td}>{ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}</td>
@@ -947,7 +962,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </Card>
 
         {/* ── monthly returns (tear-sheet grid; fills as months accrue) ── */}
-        <Card title="Monthly returns — closed book" right="net paper returns, as far as the book ran" style={{ marginBottom: 22 }}>
+        <Card title={bookIsLive ? 'Monthly returns' : 'Monthly returns — closed book'} right={bookIsLive ? 'net paper returns, live book' : 'net paper returns, as far as the book ran'} style={{ marginBottom: 22 }}>
           {(() => {
             const months = {};
             (nav || []).forEach((r, i) => {
