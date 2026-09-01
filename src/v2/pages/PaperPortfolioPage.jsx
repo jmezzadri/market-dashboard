@@ -705,6 +705,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           border: `1px solid ${EDGE}`, borderLeft: `3px solid ${GOLD}`,
           borderRadius: 'var(--card-r)', background: CARD2,
           padding: '18px 22px', marginBottom: 'var(--mt-gap-card, 22px)',
+          /* 2026-09-01: the box ran the full 1600px frame while its copy was
+             capped at 72ch, so two-thirds of it was empty and the notice read
+             as "words jammed to the left". Cap the BOX, not just the text. */
+          maxWidth: '96ch',
         }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
             Retired — nothing here is trading
