@@ -38,6 +38,8 @@ import useIndicatorSeries from '../lib/useIndicatorSeries';
 // into the .sc-wrap scope. Both are required — scorecard-v12 alone leaves every
 // token undefined and the page renders on fallbacks.
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/scorecard-v12.css';
 
 const STATUS_LABEL = {
@@ -149,7 +151,7 @@ export default function ScorecardPage() {
        palette on that class, not on :root, so without it every token here
        falls back and the page renders off-brand. Same convention as
        DataFlowPage (`home-v12 data-v12`) and the other converted pages. */
-    <main className="mt-main-wrap home-v12 sc-wrap">
+    <main className="mt-main-wrap home-v12 v13 sc-wrap">
       <header className="sc-head">
         <h1>Trade Idea scorecard</h1>
         <p className="sc-sub">

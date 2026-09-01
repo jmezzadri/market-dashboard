@@ -27,6 +27,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import '../../overhaul/styles/v13.css';
+import '../../overhaul/styles/pages-v13.css';
 
 /* Monthly equity curve of the VALIDATED backtest run (Feb 2017 – Aug 2026),
    growth of $1,000,000. CAGR 21.2% vs 15.3%, Sharpe 0.97 vs 0.82. */
@@ -659,7 +661,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const inkUpDown = (v) => (v == null ? CREAM : v >= 0 ? 'var(--gold-bar)' : BAD);
 
   return (
-    <div className="home-v12 paper-v12">
+    <div className="home-v12 v13 paper-v12">
       <style>{CSS}</style>
       <div className="wrap qtt" style={{ padding: '44px 40px 96px' }}>
 

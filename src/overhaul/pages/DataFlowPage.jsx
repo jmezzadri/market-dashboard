@@ -58,6 +58,8 @@ import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../h
 import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/data-v12.css';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
@@ -1511,7 +1513,7 @@ export default function DataFlowPage() {
   }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
 
   return (
-    <div className="home-v12 data-v12">
+    <div className="home-v12 v13 data-v12">
       {/* Hero header removed 2026-07-22 (Joe: too much space; it also sat
           indented relative to the wider stage below). */}
       <section className="wrap df-stage">

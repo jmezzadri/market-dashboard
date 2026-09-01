@@ -37,6 +37,8 @@ import {
 } from '../lib/labMath';
 import { ERP_ANNUAL, ERP_SOURCE, MIN_HISTORY_DAYS } from '../lib/labConfig';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 import '../styles/lab-v12.css';
 
 const BENCHMARKS = ['SPY', 'QQQ', 'IWM', 'DIA'];
@@ -803,7 +805,7 @@ export default function PortfolioLabPage() {
   const failedHeld = held.filter((t) => failed[t]);
 
   return (
-    <div className="home-v12 lab-v12">
+    <div className="home-v12 v13 lab-v12">
       <div className="wrap">
 
         <Reveal as="section" className="lab-head">

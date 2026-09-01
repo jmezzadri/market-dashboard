@@ -42,6 +42,8 @@ import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal, { KIND_LABEL, POSITION_LABEL, POSITION_NOTE } from '../components/TradeIdeaNote';
 import { nyseMarketState } from '../chrome/PageHeader';
 import '../styles/cream-system.css';
+import '../styles/v13.css';
+import '../styles/pages-v13.css';
 
 /* ── format helpers ─────────────────────────────────────────────────────── */
 function fmt(v, dec) {
@@ -272,7 +274,7 @@ export default function HomePage() {
   const heroChart = idea?.charts?.[0];
 
   return (
-    <div className="home-v12 home-cockpit">
+    <div className="home-v12 v13 home-cockpit">
 
       {/* market tape */}
       <Reveal className="tape">
