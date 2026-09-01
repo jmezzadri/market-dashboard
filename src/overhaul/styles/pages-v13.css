@@ -187,7 +187,10 @@
   color: var(--v13-ink);
 }
 .v13.home-v12 .hero h1 em,
-.v13.home-v12 .mac-h1 em { font-style: normal; color: var(--v13-brand); }
+.v13.home-v12 .mac-h1 em,
+.v13.home-v12 .meth-h1 em,
+.v13.home-v12 .df-h1 em,
+.v13.home-v12 h1 em { font-style: normal; color: var(--v13-brand); }
 .v13.home-v12 .hero .sub,
 .v13.home-v12 .mac-hero .sub,
 .v13.home-v12 .meth-hero .sub,
