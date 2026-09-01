@@ -216,6 +216,85 @@
 .v13.home-v12.home-cockpit .bgrid > .tile::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: 4px; }
 .v13.home-v12.home-cockpit .calrows { gap: var(--v13-s3); }
 
+/* The Morning Brief stance paragraph disappeared in dark: cream-system clamps
+   it with `display:-webkit-box; -webkit-line-clamp:4`, and inside a v13 tile
+   (fixed track height, overflow:auto) the clamped box collapsed to 0px — the
+   paragraph was in the DOM and rendered nothing. v13 tiles scroll, so the
+   clamp has no job here. */
+.v13.home-v12.home-cockpit .brief-stance {
+  display: block; -webkit-line-clamp: none; overflow: visible;
+  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.6;
+  max-width: 66ch; margin: var(--v13-s2) 0 0; color: var(--v13-ink-2);
+}
+.v13.home-v12.home-cockpit .brief-stance b { color: var(--v13-ink); font-weight: 600; }
+
+/* The tape tiles: 42px cream serif, 26px on the cockpit. One numeral face. */
+.v13.home-v12 .t .tv,
+.v13.home-v12.home-cockpit .tape .tv {
+  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-size: var(--v13-t5); font-weight: 500; letter-spacing: -0.02em; line-height: 1.2;
+}
+.v13.home-v12 .t .tk { font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.v13.home-v12 .t .td { font-family: var(--v13-f-num); font-size: var(--v13-t1); }
+
+/* Gauges. The pin was a 15px gold-ringed ball on a 7px rounded track — the
+   cream era's one flourish. v13 reads it as a tick on a rule. */
+.v13.home-v12 .track { height: 4px; border-radius: 2px; background: var(--v13-surface-3); margin: 7px 0 5px; }
+.v13.home-v12 .track .fill { border-radius: 2px; background: var(--v13-rule-2); }
+.v13.home-v12 .track .pin {
+  width: 2px; height: 12px; border-radius: 1px;
+  background: var(--v13-ink); border: 0; box-shadow: none;
+}
+/* Three labels under a narrow gauge collided into "NEUTRALINFL ≥+32". */
+.v13.home-v12 .gauge .ends {
+  display: flex; justify-content: space-between; gap: var(--v13-s2); flex-wrap: nowrap;
+  font-size: var(--v13-t1); font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--v13-ink-3); white-space: nowrap;
+}
+.v13.home-v12 .gauge .ends span { flex: 0 0 auto; }
+.v13.home-v12 .gauge .gl b { font-family: var(--v13-f-num); font-size: var(--v13-t5); font-weight: 500; }
+.v13.home-v12 .gauge .read { font-size: var(--v13-t2); font-weight: 500; margin-top: var(--v13-s1); }
+.v13.home-v12 .gauge { padding: var(--v13-s2); border-radius: var(--v13-r); }
+
+/* Card-header links were running at 13.5px against a 10px header label. */
+.v13.home-v12 .tilehead a,
+.v13.home-v12 .tilehead .es-link,
+.v13.home-v12 .es-link,
+.v13.home-v12 .idea-more {
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--v13-accent); text-decoration: none;
+}
+/* The Engine tile was a three-column grid — regime | gauge | gauge — inside a
+   380px tile. Each gauge got ~210px, so its three scale labels collided into
+   "NEUTRALINFL ≥+32". Two columns with the gauges STACKED gives each one the
+   full width of its column, and the labels fit at their real length. Never
+   solve a collision by truncating a value. */
+.v13.home-v12.home-cockpit .engine-strip {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: var(--v13-s3) var(--v13-s5);
+  align-items: start; align-content: start;
+  padding: var(--v13-s3);
+}
+.v13.home-v12.home-cockpit .engine-strip:hover { transform: none; }
+.v13.home-v12.home-cockpit .es-gauges {
+  display: grid; grid-auto-rows: min-content; gap: var(--v13-s3); min-width: 0;
+}
+.v13.home-v12.home-cockpit .es-gauges .gauge { padding: 0; border: 0; }
+.v13.home-v12.home-cockpit .es-gauges .gauge + .gauge {
+  border-left: 0; padding-left: 0;
+  border-top: 1px solid var(--v13-rule); padding-top: var(--v13-s3);
+}
+.v13.home-v12.home-cockpit .es-gauges .gl span {
+  font-size: var(--v13-t1); letter-spacing: 0.09em; overflow: visible; text-overflow: clip;
+}
+.v13.home-v12.home-cockpit .es-verdict { gap: var(--v13-s2); }
+.v13.home-v12.home-cockpit .es-verdict h2 {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t6); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.12;
+}
+.v13.home-v12.home-cockpit .es-so { font-size: var(--v13-t2); line-height: 1.55; color: var(--v13-ink-2); }
+.v13.home-v12.home-cockpit .es-link { border-bottom: 0; }
+
 /* The regime line is one of the two places gold survives. v12 set it in
    italic serif lowercase; the remap had turned it accent-blue. */
 .v13.home-v12.home-cockpit .es-verdict em,
@@ -407,20 +486,128 @@
 .v13.home-v12.ticker-v12 .tk-relcard { border-radius: var(--v13-r); padding: var(--v13-s3); }
 .v13.home-v12.ticker-v12 .tk-kvcell b,
 .v13.home-v12.ticker-v12 .tk-techcell b.num { font-family: var(--v13-f-num); font-size: var(--v13-t4); font-weight: 500; }
-.v13.home-v12.ticker-v12 .mt-pill { border-radius: var(--v13-r); }
+.v13.home-v12.ticker-v12 .mt-pill,
+.v13.home-v12.ticker-v12 .mt-btn {
+  border-radius: var(--v13-r); padding: 5px 10px;
+  font-size: var(--v13-t2); font-weight: 600;
+}
+.v13.home-v12.ticker-v12 .mt-pillgroup { gap: 2px; background: transparent; padding: 0; }
+.v13.home-v12.ticker-v12 .mt-pill.on,
+.v13.home-v12.ticker-v12 .mt-btn.on {
+  background: var(--v13-accent); border-color: var(--v13-accent); color: #fff;
+}
+[data-mt-theme='dark'] .v13.home-v12.ticker-v12 .mt-pill.on,
+[data-mt-theme='dark'] .v13.home-v12.ticker-v12 .mt-btn.on { color: #0A0C0F; }
 
-/* Scorecard — already on --mt-* tokens, so it only needs the scale. */
-.v13.home-v12.sc-wrap .sc-h1 { font-size: var(--v13-t6) !important; font-weight: 600; letter-spacing: -0.02em; }
-.v13.home-v12.sc-wrap .sc-tile { border-radius: var(--v13-r); padding: var(--v13-s3); }
-.v13.home-v12.sc-wrap .sc-tile b { font-family: var(--v13-f-num); font-size: var(--v13-t5); }
-.v13.home-v12.sc-wrap .sc-tile span,
-.v13.home-v12.sc-wrap .sc-kind,
-.v13.home-v12.sc-wrap .sc-status { font-size: var(--v13-t1); }
-.v13.home-v12.sc-wrap .sc-title { font-size: var(--v13-t3); }
-.v13.home-v12.sc-wrap .sc-date,
-.v13.home-v12.sc-wrap .sc-reason { font-size: var(--v13-t2); }
-.v13.home-v12.sc-wrap .sc-mark { font-family: var(--v13-f-num); font-size: var(--v13-t3); }
-.v13.home-v12.sc-wrap .sc-row { padding: 0 var(--v13-s2); min-height: var(--v13-row); }
+/* The company name placeholder rendered in serif while the symbol beside it
+   was sans — two faces on one line. */
+.v13.home-v12.ticker-v12 .tk-name,
+.v13.home-v12.ticker-v12 .tk-hero .serif {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t4); font-weight: 500; color: var(--v13-ink-2);
+}
+
+/* "Not in a scan" plus "no current scanner signal" was set inside a 96px
+   dashed CIRCLE, so both lines overflowed and overprinted the ring. Two lines
+   of copy do not fit in a 96px circle at any size; it is a panel, not a dial. */
+.v13.home-v12.ticker-v12 .tk-noscore {
+  width: auto; height: auto; border-radius: var(--v13-r);
+  border: 1px dashed var(--v13-rule-2);
+  padding: var(--v13-s3) var(--v13-s4); gap: var(--v13-s1);
+  font-size: var(--v13-t3); font-weight: 600; color: var(--v13-ink-2);
+}
+.v13.home-v12.ticker-v12 .tk-noscore span {
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--v13-ink-3);
+}
+.v13.home-v12.ticker-v12 .tk-backrow { padding: var(--v13-s3) 0 0; }
+.v13.home-v12.ticker-v12 .tk-backrow a { font-size: var(--v13-t2); color: var(--v13-accent); }
+
+/* Scorecard. Its own `*-v12.css` re-declares the --mt-* tokens locally and
+   is scoped `.mt-overhaul .sc-*` (0,2,0), so these need `.v13.home-v12.sc-wrap`
+   (0,3,0) to land. Defects fixed here, all seen in dark at 1440:
+     a serif 34px H1 on a page whose siblings use 26px sans
+     stat tiles whose LABEL outweighed the NUMBER
+     a 1120px column inside a 1600px frame, so the right third sat empty
+     43px table rows against the 30px row everywhere else
+     header cells padded right while data cells were right-aligned, so the
+       column headings did not sit over their columns */
+.v13.home-v12.sc-wrap {
+  max-width: var(--v13-page);
+  padding: var(--v13-s5) var(--v13-s5) var(--v13-s6);
+  /* re-point the page's local --mt-* aliases at v13 */
+  --mt-ink: var(--v13-ink);
+  --mt-ink-1: var(--v13-ink-2);
+  --mt-ink-2: var(--v13-ink-2);
+  --mt-ink-3: var(--v13-ink-3);
+  --mt-rule: var(--v13-rule);
+  --mt-hair: var(--v13-rule);
+  --mt-surface: var(--v13-surface);
+  --mt-surface-2: var(--v13-surface-2);
+  --mt-accent: var(--v13-accent);
+  --mt-up: var(--v13-up);
+  --mt-down: var(--v13-down);
+  --mt-serif: var(--v13-f-read);
+}
+.v13.home-v12.sc-wrap .sc-head h1 {
+  font-family: var(--v13-f-ui); font-size: var(--v13-t6); font-weight: 600;
+  letter-spacing: -0.02em; margin: 0 0 var(--v13-s1);
+}
+.v13.home-v12.sc-wrap .sc-sub { font-size: var(--v13-t3); max-width: 88ch; margin: 0 0 var(--v13-s3); }
+
+/* Stat tiles: the number is the point, so it gets t5 and the label gets t1. */
+.v13.home-v12.sc-wrap .sc-tiles { gap: var(--v13-s3); margin-bottom: var(--v13-s3); }
+.v13.home-v12.sc-wrap .sc-tile {
+  flex: 1 1 160px; padding: var(--v13-s3);
+  border: 1px solid var(--v13-rule); border-radius: var(--v13-r); background: var(--v13-surface);
+}
+.v13.home-v12.sc-wrap .sc-tile--warn { border-color: var(--v13-down); }
+.v13.home-v12.sc-wrap .sc-tile-n {
+  display: block; font-family: var(--v13-f-num); font-size: var(--v13-t6);
+  font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: var(--v13-ink);
+}
+.v13.home-v12.sc-wrap .sc-tile-l {
+  display: block; margin-top: var(--v13-s1);
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--v13-ink-3);
+}
+
+/* Editorial blocks: they were capped at 62–86ch inside a wide frame, which is
+   right for prose but read as "everything jammed left" beside a full-width
+   table. Card them so the width is deliberate rather than accidental. */
+.v13.home-v12.sc-wrap .sc-book,
+.v13.home-v12.sc-wrap .sc-method,
+.v13.home-v12.sc-wrap .sc-disclaimer {
+  max-width: none; padding: var(--v13-s3);
+  background: var(--v13-surface); border: 1px solid var(--v13-rule); border-radius: var(--v13-r);
+  font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
+  margin: 0 0 var(--v13-s3);
+}
+.v13.home-v12.sc-wrap .sc-book p,
+.v13.home-v12.sc-wrap .sc-method p,
+.v13.home-v12.sc-wrap .sc-disclaimer p { max-width: 96ch; margin: 0 0 var(--v13-s2); }
+
+/* Table: the 30px row, and headers that sit over their own columns. */
+.v13.home-v12.sc-wrap .sc-tablewrap {
+  border: 1px solid var(--v13-rule); border-radius: var(--v13-r);
+  background: var(--v13-surface); overflow: hidden; margin-bottom: var(--v13-s3);
+}
+.v13.home-v12.sc-wrap .sc-table { font-size: var(--v13-t3); }
+.v13.home-v12.sc-wrap .sc-table th {
+  height: 24px; padding: 0 var(--v13-s2); font-size: var(--v13-t1); font-weight: 700;
+  letter-spacing: 0.09em; background: var(--v13-surface-2);
+  border-bottom: 1px solid var(--v13-rule); color: var(--v13-ink-3);
+}
+.v13.home-v12.sc-wrap .sc-table td {
+  height: var(--v13-row); padding: 0 var(--v13-s2);
+  border-bottom: 1px solid var(--v13-rule); vertical-align: middle;
+}
+.v13.home-v12.sc-wrap .sc-table th.num,
+.v13.home-v12.sc-wrap .sc-table td.num { text-align: right; font-family: var(--v13-f-num); }
+.v13.home-v12.sc-wrap .sc-table th:last-child,
+.v13.home-v12.sc-wrap .sc-table td:last-child { padding-right: var(--v13-s2); }
+.v13.home-v12.sc-wrap .sc-trow:hover { background: var(--v13-accent-soft); }
+.v13.home-v12.sc-wrap .sc-tradecell { font-weight: 600; color: var(--v13-ink); }
+.v13.home-v12.sc-wrap .sc-notebtn { font-size: var(--v13-t2); color: var(--v13-accent); }
 
 /* ── responsive ── */
 @media (max-width: 820px) {
