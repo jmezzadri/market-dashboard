@@ -2018,3 +2018,18 @@ The second email was a different bug with the same root — a value trusted with
 3. **When a surface's contract cannot express a whole class of legitimate ideas, that is a capability bug to fix, not a constraint to write around.** Scorecard legs now accept `ticker:XYZ`, marked from the same split-adjusted stock price store the scanner and backtests read, with entry, stop, path and benchmark rules unchanged — so a stock idea found in filings can publish and be graded like everything else.
 
 **Applies to:** the Trade Idea run and every recurring research surface; Lead Developer for any contract whose catalogue limits what ideas can exist.
+
+### 4.62 (2026-09-01) — A component that is rendered but never defined is a white screen, and it takes every other modal down with it
+
+**What happened:** Joe: "I'm not able to open Silver positioning signal model?" then "or any modal for that matter." `MacroPage.jsx` rendered `<PositioningDetail …>` at line 661 and imported nothing by that name — the symbol was never defined anywhere in the repo. Clicking any of the 25 COT positioning rows, or loading `/macro?pos=<market>`, threw `ReferenceError: PositioningDetail is not defined` and blanked the whole page to a dark screen. The second half of Joe's report is the important part: React unmounts the tree on an uncaught render error, so after the first positioning click *every* modal on the page appeared dead. One missing symbol read to the user as "the site's modals are broken." A second undefined component, `BucketPositioning`, sat inside `BucketModal` — dead code that nothing rendered, so it never fired, but it was the same landmine one call site away.
+
+The build did not catch it. Vite/esbuild resolve free identifiers at runtime, there is no type checker on this repo, and no test loads `/macro?pos=`. A 100%-green build shipped a page that crashes on click.
+
+**Rule:**
+
+1. **Never let a render reference a symbol the file does not import or define.** Before any PR touching a page's render tree, run the undefined-component scan: collect every `<Capitalised` in the file, subtract imports, local `function`/`const` declarations, and destructured props (`{ as: Tag }`), and require the remainder to be empty. It takes seconds and would have caught both of these.
+2. **A crash inside a modal is a whole-page outage, not a modal bug.** Any surface that mounts user-triggered content gets an error boundary, so one broken drill degrades to a message inside the overlay instead of unmounting the page around it.
+3. **Every deep-link parameter a page reads is a UAT case.** `/macro` reads `?ind=` and `?pos=`. Only `?ind=` had ever been opened. If a page branches on a query param, load every branch before calling the page verified — a click path that exists only in a `useEffect` is untested by definition.
+4. **Delete dead render code rather than leaving it.** `BucketModal` had no call site and referenced an undefined component; the next person to wire it up inherits a crash with no warning.
+
+**Applies to:** Lead Developer — every PR that adds or moves a component into a page's render tree; UX Designer on sign-off, since "the modal opens" is a design acceptance criterion.
