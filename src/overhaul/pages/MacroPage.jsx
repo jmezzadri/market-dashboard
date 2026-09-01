@@ -19,7 +19,7 @@
 
    Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
    scope to the shared home-v12 cream system (cream-system.css) with page
-   styles in macro-v12.css. RESKIN ONLY — classNames, layout wrappers and
+   styles in macro-v13.css (v13 system, 2026-09-01). RESKIN ONLY — classNames, layout wrappers and
    CSS; zero data/logic/chip changes. */
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
@@ -34,7 +34,8 @@ import PositioningDetail from '../components/PositioningDetail';
 import useIndicators from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
 import '../styles/cream-system.css';
-import '../styles/macro-v12.css';
+import '../styles/v13.css';
+import '../styles/macro-v13.css';
 import '../styles/modal.css';
 import BigHistoryChart from '../components/BigHistoryChart';
 import IndexOverlayToggles from '../components/IndexOverlayToggles';
@@ -506,7 +507,7 @@ export default function MacroPage() {
   const yieldTip = 'Yield regime · 3-month change in the 10-year'+(regime.yieldDeltaBp!=null?', '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nSets which defensive sleeve holds when the engine de-risks. Click for the full chart.';
 
   return (
-    <div className="home-v12 macro-v12">
+    <div className="home-v12 v13 macro-v13">
       {tip && createPortal(
         <div className="mac-tip" style={{ left: tip.x, top: tip.y - 8 }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
