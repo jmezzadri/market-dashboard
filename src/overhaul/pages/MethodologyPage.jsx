@@ -38,9 +38,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
+import '../styles/methodology-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/methodology-v12.css';
 
 /* TOC = the site's pages, one entry per nav page, EXACTLY as named in
    NAV_ITEMS (chrome/TopNav.jsx) — Joe 2026-07-28. The Engine folds into

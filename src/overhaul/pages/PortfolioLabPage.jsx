@@ -37,9 +37,10 @@ import {
 } from '../lib/labMath';
 import { ERP_ANNUAL, ERP_SOURCE, MIN_HISTORY_DAYS } from '../lib/labConfig';
 import '../styles/cream-system.css';
+import '../styles/lab-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/lab-v12.css';
 
 const BENCHMARKS = ['SPY', 'QQQ', 'IWM', 'DIA'];
 const SECTOR_MIX = 'Sector mix';

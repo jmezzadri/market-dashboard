@@ -75,7 +75,11 @@ const SPY_INCEPTION = 776.34;
 const RETIRED_ON = 'August 26, 2026';
 // Emphasis colour inside the retired notice — the live-cash sentence must not
 // read as body text; it is the first thing a confused reader needs.
-const CREAM_INK = '#14161a';
+// 2026-09-01: this was the literal '#14161a'. Hardcoded near-black, inline, and
+// theme-blind, so in dark mode the single most important sentence on the page
+// rendered black on a black ground — invisible. It is a token now, and it must
+// stay one: a colour literal in a themed app is a bug with a delay on it.
+const CREAM_INK = 'var(--v13-ink)';
 
 /* ── v12 tokens (cream-system.css) — the theme toggle swaps these ─────── */
 const CARD   = 'var(--putty)';

@@ -38,9 +38,10 @@ import useIndicatorSeries from '../lib/useIndicatorSeries';
 // into the .sc-wrap scope. Both are required — scorecard-v12 alone leaves every
 // token undefined and the page renders on fallbacks.
 import '../styles/cream-system.css';
+import '../styles/scorecard-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/scorecard-v12.css';
 
 const STATUS_LABEL = {
   open: 'Open',

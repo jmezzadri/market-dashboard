@@ -33,9 +33,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConvictionEventsPanel from '../components/ConvictionEventsPanel';
 import '../styles/cream-system.css';
+import '../styles/scanner-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/scanner-v12.css';
 
 /* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage (v12
    system). Replays in BOTH directions; state lives in React so data-poll

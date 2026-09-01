@@ -58,9 +58,10 @@ import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../h
 import { IND } from '../../data/indicatorRegistry';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
+import '../styles/data-v12.css';
+// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
-import '../styles/data-v12.css';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
 import { gradeTwoClock } from '../../lib/freshnessClock';

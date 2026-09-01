@@ -184,3 +184,17 @@
   .mt-overhaul .mt-topnav { padding: 0 var(--v13-s2); gap: var(--v13-s3); }
   .mt-overhaul .mt-footer .inner { padding: 0 var(--v13-s2); }
 }
+
+/* The ticker search input. Class rather than the inline style it used to carry
+   — see the note in TickerSearch.jsx. */
+.mt-overhaul .v13-search-input {
+  width: 100%; height: 28px; padding: 0 var(--v13-s3);
+  border: 1px solid var(--v13-rule-2); border-radius: var(--v13-r);
+  background: var(--v13-surface-2); color: var(--v13-ink);
+  font-family: var(--v13-f-ui); font-size: var(--v13-t3); outline: none;
+  transition: border-color var(--v13-fast) var(--v13-ease), box-shadow var(--v13-fast) var(--v13-ease);
+}
+.mt-overhaul .v13-search-input::placeholder { color: var(--v13-ink-3); }
+.mt-overhaul .v13-search-input:focus {
+  border-color: var(--v13-accent); box-shadow: 0 0 0 3px var(--v13-accent-soft);
+}
