@@ -1,0 +1,105 @@
+name: QT-REBALANCE
+
+# Quality Trend v3 — monthly scoring run. Writes qt_target_book. PLACES NO ORDERS.
+#
+# Scoring and execution are separate on purpose: this job can fire unattended
+# because the worst it can do is write a table. Orders require QT-PLACE-ORDERS,
+# which is manual-dispatch only and demands a typed confirmation.
+
+on:
+  schedule:
+    # 13:00 UTC on the 1st-4th — the first weekday run wins, later ones just
+    # overwrite the same row. Cron has no "first trading day" so the job guards
+    # itself on the Alpaca calendar below.
+    - cron: '0 13 1-4 * *'
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "YYYY-MM-DD score date (default: today)"
+        required: false
+      force:
+        description: "Run even if today is not the first trading day"
+        required: false
+        default: "false"
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Alpaca keys from ops_secrets (GitHub's ALPACA_* secrets are stale — old deleted account)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          resp=$(curl -sf "$SUPABASE_URL/rest/v1/ops_secrets?name=in.(alpaca_paper_key_id,alpaca_paper_secret)&select=name,value" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          kid=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_key_id'])")
+          sec=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_secret'])")
+          echo "::add-mask::$kid"; echo "::add-mask::$sec"
+          echo "ALPACA_PAPER_KEY_ID=$kid"  >> "$GITHUB_ENV"
+          echo "ALPACA_PAPER_SECRET=$sec" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy requests pyarrow
+
+      - name: Skip unless this is the first trading day of the month
+        id: gate
+        env:
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import os, requests, datetime as dt
+          if "${{ github.event.inputs.force }}" == "true":
+              print("run=true"); raise SystemExit
+          h = {"APCA-API-KEY-ID": os.environ["ALPACA_PAPER_KEY_ID"],
+               "APCA-API-SECRET-KEY": os.environ["ALPACA_PAPER_SECRET"]}
+          today = dt.date.today()
+          first = today.replace(day=1)
+          cal = requests.get("https://paper-api.alpaca.markets/v2/calendar",
+                             headers=h, params={"start": first.isoformat(),
+                                                "end": today.isoformat()}, timeout=60).json()
+          days = [c["date"] for c in cal]
+          print("run=" + ("true" if days and days[0] == today.isoformat() else "false"))
+          PY
+
+      - name: Score and write qt_target_book
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.as_of }}" ]; then ARGS="--as-of ${{ github.event.inputs.as_of }}"; fi
+          python -m paper_portfolio.qt.rebalance $ARGS
+
+      # Honest-stamp (LESSONS, 2026-06-03/06-11): stamp our own pipeline_health
+      # row after rows are verifiably in the table; data_as_of read back from
+      # qt_target_book itself, never the runner clock.
+      - name: Stamp pipeline health green
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python3 -c "
+          import os, json, urllib.request
+          req = urllib.request.Request(
+              os.environ['SUPABASE_URL'] + '/rest/v1/qt_target_book?select=rebalance_date&order=rebalance_date.desc&limit=1',
+              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
+                       'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+          rows = json.load(urllib.request.urlopen(req))
+          print(rows[0]['rebalance_date'] if rows else '-')
+          ")
+          python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" green
+      - name: Stamp pipeline health red on failure
+        if: failure() && steps.gate.outputs.run == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py qt-target-book - red "QT-REBALANCE failed — see workflow run logs"
+
+      - name: Report
+        if: steps.gate.outputs.run != 'true'
+        run: echo "Not the first trading day of the month — nothing scored."

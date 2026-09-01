@@ -1,0 +1,72 @@
+name: QT-BRAKE-DAILY
+
+# The Quality Trend crash brake (Joe approved 2026-08-28). Once each trading
+# day, 15 minutes after the EOD snapshot, it computes the stress composite
+# (VIX percentile + high-yield drawdown percentile, hysteresis 0.80 on / 0.65
+# off) and holds the book at full or half size:
+#   ON  -> sell half of every position into cash
+#   OFF -> buy back to the latest target book's full weights
+# It ONLY scales. It never selects a symbol, never shorts, never levers, acts
+# at most once per day and only on a state flip, and refuses to touch any
+# account other than ops_secrets/alpaca_paper_account. Any data failure means
+# no action. Details + limits: paper_portfolio/qt/brake.py.
+#
+# This is deliberate, Joe-approved scheduled trading — the narrow exception to
+# the 2026-08-12 automation halt, and the only workflow allowed to place orders
+# on a schedule. Its entire order vocabulary is "half" and "restore".
+
+on:
+  schedule:
+    - cron: '25 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = evaluate and print, place no orders"
+        required: false
+        default: "0"
+
+jobs:
+  brake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Not before the book goes live
+        id: gate
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%Y-%m-%d)
+          if [[ "$TODAY" < "2026-09-01" ]]; then
+            echo "hold=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Book starts 2026-09-01 — nothing to brake yet."
+          else
+            echo "hold=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Alpaca keys from ops_secrets (GitHub's ALPACA_* secrets are stale — old deleted account)
+        if: steps.gate.outputs.hold != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          resp=$(curl -sf "$SUPABASE_URL/rest/v1/ops_secrets?name=in.(alpaca_paper_key_id,alpaca_paper_secret)&select=name,value" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          kid=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_key_id'])")
+          sec=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_secret'])")
+          echo "::add-mask::$kid"; echo "::add-mask::$sec"
+          echo "ALPACA_PAPER_KEY_ID=$kid"  >> "$GITHUB_ENV"
+          echo "ALPACA_PAPER_SECRET=$sec" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.hold != 'true'
+        with:
+          python-version: '3.11'
+
+      - name: Evaluate and act
+        if: steps.gate.outputs.hold != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRAKE_DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+        run: python -m paper_portfolio.qt.brake

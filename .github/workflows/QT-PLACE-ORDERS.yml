@@ -1,0 +1,63 @@
+name: QT-PLACE-ORDERS
+
+# The ONLY job in this repo that can move the paper account.
+#
+# No schedule. Manual dispatch only, and the `confirm` input must literally be
+# GO — anything else runs as a dry run and prints the plan. The Python layer
+# repeats the check (--live plus --confirm GO), so a mis-edited workflow file
+# cannot submit on its own.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type GO to submit real orders. Anything else = dry run."
+        required: true
+        default: "dry-run"
+      rebalance_date:
+        description: "Book date in qt_target_book (default: latest)"
+        required: false
+      tif:
+        description: "day = market order now (paper OPG unreliable, 2026-08-17) | opg = market-on-open"
+        required: false
+        default: "day"
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Alpaca keys from ops_secrets (GitHub's ALPACA_* secrets are stale — old deleted account)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          resp=$(curl -sf "$SUPABASE_URL/rest/v1/ops_secrets?name=in.(alpaca_paper_key_id,alpaca_paper_secret)&select=name,value" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          kid=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_key_id'])")
+          sec=$(printf '%s' "$resp" | python3 -c "import sys,json;print({r['name']:r['value'] for r in json.load(sys.stdin)}['alpaca_paper_secret'])")
+          echo "::add-mask::$kid"; echo "::add-mask::$sec"
+          echo "ALPACA_PAPER_KEY_ID=$kid"  >> "$GITHUB_ENV"
+          echo "ALPACA_PAPER_SECRET=$sec" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy requests
+
+      - name: Plan and (if confirmed) submit
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS="--tif ${{ github.event.inputs.tif }}"
+          if [ -n "${{ github.event.inputs.rebalance_date }}" ]; then
+            ARGS="$ARGS --rebalance-date ${{ github.event.inputs.rebalance_date }}"
+          fi
+          if [ "${{ github.event.inputs.confirm }}" = "GO" ]; then
+            echo "::warning::LIVE submit requested"
+            ARGS="$ARGS --live --confirm GO"
+          else
+            echo "Dry run — printing the plan only."
+          fi
+          python -m paper_portfolio.qt.execute $ARGS

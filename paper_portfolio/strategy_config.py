@@ -50,12 +50,28 @@ class Config:
     EXCLUDE_FUNDS: bool = True         # ETFs/trusts are not companies
 
     # ---- portfolio ---------------------------------------------------------
-    POSITIONS: int = 40
+    # 2026-08-28, Joe ("run it"): the relaunched book holds 20 names, not 40.
+    # Halving the count doubles single-name weight (5%): more concentration in
+    # what the score likes, bigger drawdowns when it is wrong. The PUBLISHED
+    # backtest was computed on the 40-name variant and the site must say so —
+    # its figures are quoted verbatim, never re-derived for 20.
+    POSITIONS: int = 20
     WEIGHTING: str = "equal"           # inverse-vol tested, no Sharpe gain
     EXIT_BAND: float = 0.25            # hold until the name leaves the top 25%
     REBALANCE: str = "monthly"
     GROSS_EXPOSURE: float = 1.00       # NO leverage, NO strategic cash
-    MAX_POSITION: float = 0.025
+    MAX_POSITION: float = 0.05
+
+    # ---- crash brake (Joe approved 2026-08-28) ----------------------------
+    # Evaluated daily after the close by QT-BRAKE-DAILY. Composite stress =
+    # mean of VIX 3y percentile and HYG 63-day-drawdown 3y percentile.
+    # ON above 0.80, OFF below 0.65 (hysteresis so it cannot flap).
+    # ON  => scale the book to 50% (sell half of every position into cash).
+    # OFF => restore to full weights from the latest target book.
+    # The brake ONLY scales. It never picks stocks, never shorts, never levers.
+    BRAKE_ON: float = 0.80
+    BRAKE_OFF: float = 0.65
+    BRAKE_SCALE: float = 0.50
 
 CONFIG = Config()
 
