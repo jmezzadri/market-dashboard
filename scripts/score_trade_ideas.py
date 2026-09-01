@@ -107,6 +107,99 @@ MEASURES = {"pct_change", "bond_return"}
 LEGACY_MEASURES = {"level_change"}
 SIDES = {"long": 1.0, "short": -1.0}
 
+# Single-name legs (2026-08-31, Joe: idea sourcing must start in the public
+# domain — news, filings, single names — with our indicator set as support).
+# The scorecard's series catalogue was indicator_history.json only, which
+# structurally limited every publishable note to the 74 macro series: a stock
+# idea found in filings could not be marked, so it could not publish. A leg may
+# now name "ticker:XYZ"; closes come from the prices_eod table (the same
+# split-adjusted store the scanner and backtests read), fetched here at scoring
+# time and attached to the history map under that same key, so every rule
+# downstream — entry from the last close before publication, invalidation,
+# MFE/MAE, sizing, the S&P benchmark — applies to a stock leg unchanged.
+# prices_eod is a scoring input like indicator_history.json, not a rendered
+# element, so (like DERIVED above) it needs no manifest entry or health row.
+TICKER_PREFIX = "ticker:"
+TICKER_RE = re.compile(r"^ticker:[A-Z][A-Z0-9.\-]{0,9}$")
+TICKER_PAGE_ROWS = 1000
+TICKER_MAX_PAGES = 40                     # 4.60 rule 8: no unbounded paging
+
+
+def is_ticker_key(key) -> bool:
+    return isinstance(key, str) and key.startswith(TICKER_PREFIX)
+
+
+def fetch_ticker_series(symbol: str) -> list:
+    """[(date, close)] for one ticker from prices_eod, oldest first.
+
+    Raises ScoreError (with the reason) rather than returning a partial or
+    empty list silently — the caller turns that into an `unscoreable` row so
+    the failure is visible in the scorecard output and the --check exit code.
+    """
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not base or not key:
+        raise ScoreError(f"no database credentials in the environment to fetch prices for {symbol}")
+    import urllib.parse
+    import urllib.request
+    out, offset = [], 0
+    for _ in range(TICKER_MAX_PAGES):
+        q = urllib.parse.urlencode({
+            "select": "trade_date,close", "ticker": f"eq.{symbol}",
+            "order": "trade_date.asc", "limit": str(TICKER_PAGE_ROWS), "offset": str(offset)})
+        req = urllib.request.Request(
+            f"{base}/rest/v1/prices_eod?{q}",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            rows = json.loads(r.read().decode("utf-8"))
+        for row in rows:
+            try:
+                out.append((str(row["trade_date"])[:10], float(row["close"])))
+            except (TypeError, ValueError, KeyError):
+                continue
+        if len(rows) < TICKER_PAGE_ROWS:
+            break
+        offset += TICKER_PAGE_ROWS
+    else:
+        raise ScoreError(f"prices for {symbol} exceeded {TICKER_MAX_PAGES * TICKER_PAGE_ROWS} rows — refusing to page forever")
+    if not out:
+        raise ScoreError(f"prices_eod has no rows for ticker {symbol!r}")
+    out.sort(key=lambda x: x[0])
+    return out
+
+
+def attach_ticker_series(hist: dict, ideas: list, fetch=fetch_ticker_series) -> dict:
+    """Fetch every ticker: key named by any scorecard and add it to hist.
+
+    A fetch failure attaches nothing for that key — the note that named it is
+    then reported `unscoreable` with the stored reason instead of the generic
+    missing-series message, and every other note still scores (rule 2: no note
+    is silently dropped, and one bad ticker must not sink the whole run).
+    """
+    wanted = set()
+    for idea in ideas:
+        sc = idea.get("scorecard") if isinstance(idea, dict) else None
+        if not isinstance(sc, dict):
+            continue
+        for leg in sc.get("legs") or []:
+            if isinstance(leg, dict) and is_ticker_key(leg.get("series")):
+                wanted.add(leg["series"])
+        inv = sc.get("invalidation")
+        if isinstance(inv, dict) and is_ticker_key(inv.get("series")):
+            wanted.add(inv["series"])
+    hist.setdefault("__ticker_errors__", {})
+    for tkey in sorted(wanted):
+        if tkey in hist:
+            continue
+        if not TICKER_RE.match(tkey):
+            hist["__ticker_errors__"][tkey] = f"{tkey!r} is not a valid ticker key (expected ticker:SYMBOL)"
+            continue
+        try:
+            hist[tkey] = fetch(tkey[len(TICKER_PREFIX):])
+        except Exception as e:  # noqa: BLE001 — the reason is the product here
+            hist["__ticker_errors__"][tkey] = str(e)
+    return hist
+
 # Every call is sized so that its unlevered spread would have run at this
 # annualised volatility over the year before entry. Without this a duration-
 # matched TIPS/UST pair (~1.5% vol) and a bank/Nasdaq pair (~12% vol) print
@@ -364,6 +457,9 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         measure = leg.get("measure", "pct_change")
         weight = float(leg.get("weight", 1.0))
         if key not in hist:
+            if is_ticker_key(key):
+                why = (hist.get("__ticker_errors__") or {}).get(key) or "its prices could not be fetched"
+                return {**base, "status": "unscoreable", "reason": f"legs[{i}] names {key!r} — {why}"}
             return {**base, "status": "unscoreable",
                     "reason": f"legs[{i}] names series {key!r}, which is not in indicator_history.json"}
         if side not in SIDES:
@@ -470,6 +566,9 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
         key, op, level = inv["series"], inv.get("op"), inv.get("level")
         basis = inv.get("basis", "close")
         if key not in hist:
+            if is_ticker_key(key):
+                why = (hist.get("__ticker_errors__") or {}).get(key) or "its prices could not be fetched"
+                return {**base, "status": "unscoreable", "reason": f"invalidation names {key!r} — {why}"}
             return {**base, "status": "unscoreable",
                     "reason": f"invalidation names series {key!r}, which is not in indicator_history.json"}
         if op not in OPS or basis not in BASES:
@@ -630,6 +729,7 @@ def main(argv=None) -> int:
         doc = json.load(f)
     ideas = [i for i in (doc.get("ideas") or []) if isinstance(i, dict)]
     hist = load_history(args.history)      # already derived
+    hist = attach_ticker_series(hist, ideas)   # single-name legs from prices_eod
     today = dt.date.today().isoformat()
 
     rows = [score_one(i, hist, today) for i in ideas]
