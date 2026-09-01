@@ -84,6 +84,44 @@ REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
 # equity returns in per cent invites exactly the comparison it cannot support.
 # A yield leg is now stated as bond_return with a maturity, which converts the
 # yield move into a price return through the duration of a par bond.
+# Single-name scorecard legs (2026-08-31). "ticker:XYZ" marks a stock from the
+# prices_eod table instead of indicator_history.json — added because the
+# series-only catalogue structurally limited every publishable note to the 74
+# macro series (Joe: sourcing must start in the public domain — news, filings,
+# single names). The contract validates the FORM always, and EXISTENCE when
+# database credentials are in the environment; without credentials it warns,
+# and the daily scorer still fails loudly on a ticker it cannot fetch.
+_TICKER_RE = re.compile(r"^ticker:[A-Z][A-Z0-9.\-]{0,9}$")
+
+
+def _is_ticker_key(key) -> bool:
+    return isinstance(key, str) and key.startswith("ticker:")
+
+
+def _ticker_exists_error(tkey: str):
+    """None if the ticker is confirmed in prices_eod or cannot be checked here;
+    an error string if the database answered and the ticker is not there."""
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not base or not key:
+        return None                      # no credentials — the scorer enforces
+    sym = tkey.split(":", 1)[1]
+    try:
+        import urllib.parse
+        import urllib.request
+        q = urllib.parse.urlencode({"select": "ticker", "ticker": f"eq.{sym}", "limit": "1"})
+        req = urllib.request.Request(
+            f"{base}/rest/v1/prices_eod?{q}",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            rows = json.loads(r.read().decode("utf-8"))
+        if not rows:
+            return f"ticker {sym!r} has no rows in the price table — it cannot be marked"
+    except Exception:  # noqa: BLE001 — unreachable database is not a contract failure
+        return None
+    return None
+
+
 SCORE_MEASURES = {"pct_change", "bond_return"}
 RETIRED_MEASURES = {"level_change"}
 SCORE_SIDES = {"long", "short"}
@@ -586,7 +624,20 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 raise ContractError(
                     f"scorecard.legs[{i}].measure is bond_return but maturity_years is missing or not a number — "
                     "duration cannot be inferred from a yield alone")
-        if hist is not None:
+        if _is_ticker_key(leg.get("series")):
+            # Single-name legs (2026-08-31): "ticker:XYZ" is marked from the
+            # prices_eod table, not indicator_history.json. The contract checks
+            # the FORM here; existence is checked against the database when
+            # credentials are in the environment, and otherwise left to the
+            # scorer, which reports a missing ticker loudly as unscoreable.
+            if not _TICKER_RE.match(leg["series"]):
+                raise ContractError(
+                    f"scorecard.legs[{i}].series {leg['series']!r} is not a valid ticker key — "
+                    "expected ticker:SYMBOL (capital letters, digits, dot or dash)")
+            err = _ticker_exists_error(leg["series"])
+            if err:
+                raise ContractError(f"scorecard.legs[{i}]: {err}")
+        elif hist is not None:
             ser = hist.get(leg.get("series"))
             if ser is None:
                 raise ContractError(
@@ -618,7 +669,15 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             float(inv.get("level"))
         except (TypeError, ValueError):
             raise ContractError("scorecard.invalidation.level must be a number — a stop you cannot check is not a stop")
-        if hist is not None and inv.get("series") not in hist:
+        if _is_ticker_key(inv.get("series")):
+            if not _TICKER_RE.match(inv["series"]):
+                raise ContractError(
+                    f"scorecard.invalidation.series {inv['series']!r} is not a valid ticker key — "
+                    "expected ticker:SYMBOL (capital letters, digits, dot or dash)")
+            err = _ticker_exists_error(inv["series"])
+            if err:
+                raise ContractError(f"scorecard.invalidation: {err}")
+        elif hist is not None and inv.get("series") not in hist:
             raise ContractError(
                 f"scorecard.invalidation names series {inv.get('series')!r}, which is not in indicator_history.json")
     elif _is_concrete(idea["levels"].get("invalidation", "")):

@@ -78,10 +78,39 @@ Two consequences of the daily cadence:
 - Web search for anything the feeds do not carry — usable only if the page
   carries a visible publication timestamp.
 
-**2. Pick the idea.** Free-form macro: it can start from any theme, with our
-data as the support (Joe, 2026-08-13). It must still be a *trade*, not an
-observation — something with an instrument, a horizon and a level that proves
-it wrong.
+**2. Pick the idea — and source it OUTWARD-FIRST (2026-08-31, binding).**
+Joe, after a week of skips built entirely from indicator percentiles: *"Get the
+fuck off our data... what about the trillions of data points out in the public
+domain? You should be reading the news, looking at public filings, finding
+stocks, commodities, currency trades."* He is right about what had happened:
+the sweep had quietly inverted into "rank our 74 series, then look outside",
+so every candidate was born from the same indicator board and the external
+sweep was reduced to a veto. That ordering is now reversed:
+
+1. **Candidates come from the WORLD; our data is the validator.** The sweep
+   starts in the public domain — overnight sessions and wires, public filings
+   (insider-buying clusters, 13D/G activism, 8-K events), single names in the
+   news, commodities, currencies, policy calendars — and only then reaches for
+   indicator percentiles, positioning and backtests to test what it found.
+   MacroTilt data decides whether a candidate is REAL; it no longer decides
+   what the candidates ARE.
+2. **Every run's record names at least three outward-sourced candidates** (in
+   the skip reason or the note's composition trail), each with the dated
+   public source it came from. A run whose candidates all trace to our own
+   series has not swept, whatever else it did (companion to LESSONS 4.57).
+3. **Single names are publishable now.** A scorecard leg may name
+   `ticker:XYZ` — marked from the same end-of-day stock price store the
+   scanner and backtests use, entry and stop rules unchanged. The old
+   series-only catalogue silently forbade stock ideas, which is a large part
+   of how the sweep became inward-looking. Charts still draw carried
+   indicator series only, so a single-name note's charts show the macro
+   context around the name, and the prose links the site's own ticker page.
+
+It must still be a *trade*, not an observation — something with an instrument,
+a horizon and a level that proves it wrong — and the full bar below applies
+unchanged: measured edge with a baseline, real variant, book fit, no
+manufactured legs. Outward sourcing widens where ideas COME FROM, not what
+they must survive.
 
 Bias toward what the data actually says over what would make a good headline.
 "Nothing is stretched enough to write about" is a valid outcome on a given day;
@@ -553,6 +582,11 @@ machine-readable form:
 - `measure` is `pct_change` for a price or a ratio, `level_change` for a yield
   or a spread. Marking one as the other is silently wrong: a breakeven going
   2.30 to 2.45 is +0.15pp, not +6.5%.
+- A leg's `series` may be a stock: `"series": "ticker:ACDC"` (2026-08-31).
+  Closes come from the `prices_eod` table at scoring time; entry, stop, path
+  and the S&P benchmark apply unchanged. Confirm the ticker actually has rows
+  there before composing — the contract can only verify existence when it has
+  database credentials, and the daily scorer fails loudly otherwise.
 - `horizon_months` may not exceed the horizon the prose claims. The gate checks
   this — a call cannot be graded over a period it did not claim.
 - If the leg is already a RATIO of the two things being compared, do not add a
