@@ -813,12 +813,20 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   ? `${fmtPct(ls.dayPct - ls.spxDay, 2)} · S&P ${fmtPct(ls.spxDay, 2)} ${daySession}`
                   : 'benchmark spread',
                 color: inkUpDown(ls && ls.spxDay != null ? ls.dayPct - ls.spxDay : null) },
+              // On the book's FIRST day, "today" and "since inception" are the
+              // same interval, so the day and inception pairs match to the
+              // dollar. Correct, but it reads as a rendering bug (Joe,
+              // 2026-09-01, launch day) — so until a second mark exists the
+              // inception tiles say why. Data-keyed off the held window
+              // (ls.n === 0), never off a date.
               { k: 'P&L since inception', hero: ls ? fmtSignedUsd(ls.sinceUsd) : '—',
-                sub: ls ? `${fmtPct(ls.since, 2)} on $1,000,000${inceptionShort ? ` · since ${inceptionShort}` : ''}` : 'vs $1,000,000 start',
+                sub: ls
+                  ? `${fmtPct(ls.since, 2)} on $1,000,000 · ${ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book')}`
+                  : 'vs $1,000,000 start',
                 color: inkUpDown(ls?.since) },
               { k: 'vs S&P 500 inception', hero: (ls && ls.spxSince != null) ? fmtSignedUsd(ls.sinceVsSpxUsd) : '—',
                 sub: (ls && ls.spxSince != null)
-                  ? `${fmtPct(ls.since - ls.spxSince, 2)} · S&P ${fmtPct(ls.spxSince, 2)}${inceptionShort ? ` since ${inceptionShort}` : ''}`
+                  ? `${fmtPct(ls.since - ls.spxSince, 2)} · S&P ${fmtPct(ls.spxSince, 2)} · ${ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book')}`
                   : 'benchmark spread',
                 color: inkUpDown(ls && ls.spxSince != null ? ls.since - ls.spxSince : null) },
               { k: 'Exposure', hero: latestNav ? fmtPctPlain(invested, 1) : '—',
