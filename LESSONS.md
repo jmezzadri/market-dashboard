@@ -2054,3 +2054,25 @@ The failure was not a missing capability. It was asserting a limit without spend
 5. **The only things Joe is ever asked for are identity-bound** — a credential only he can mint, a merge approval, a production go, his own financial data. Anything else is the agent's job. "Would you look at this page for me" is not a question; it is a task that was handed to the wrong person.
 
 **Applies to:** every specialist, every session, before any sentence containing "I can't".
+
+### 4.62 (2026-09-01) — The bug queue had four untouched P1s because no sweep had ever been told to look at it
+
+**What happened:** Joe: *"Are you also looking at the bugs page and fixing shit when you do your sweep? If not, please add to instructions and fix them!"* It was not. `/admin/bugs` held four reports at status `new` — #1245 (2026-08-04), #1246 (2026-08-04), #1247 (2026-08-14), #1248 (2026-08-16) — every one filed P1, and the oldest had been sitting for four weeks. The weekday sweep checked workflow runs, `pipeline_health`, `workflow_failure_log`, the brief email and the rendered pages, and never once opened `bug_reports`. A surface with no reader is not a queue, it is a folder.
+
+**All four were closeable on the day, and three of them by the sweep's own STEP 2 rules:**
+
+- **#1245 `[feed:lse_intraday]`** — the feed had recovered on its own. Closed only after checking the backing table rather than the stamp: `lse_live_quotes` held 84 symbols with a newest bar at 10:29 UTC fetched at 10:45 UTC, minutes old.
+- **#1246 Momentum sleeve cash outside the 2% band** — the book no longer exists. That sleeve belonged to the Quality Trend paper portfolio, retired 2026-08-26, account deleted. There is no sizing to re-anchor.
+- **#1247 `[feed:ce_events]`** and **#1248 `[feed:paper-orders-intent]`** — both watch producers switched off on purpose when automated trading was halted on 2026-08-12. Retired, never repaired.
+
+Three of the four were auto-filed by the freshness alarm against feeds that were *deliberately dark*, at P1, with no human reporter — the failure mode 4.31 describes, arriving through a channel nobody was watching. Their `pipeline_health` rows have since been retired, so the alarm can no longer re-file them; had they not been, the queue would have kept growing.
+
+**Rule:**
+
+1. **The bug queue is swept every run, and it gets its own row in the closing table even when it is empty.** `select … from bug_reports where status in ('new','triaged','reopened','awaiting_approval','approved','merged','deployed')`. An empty queue reported is a check performed; an unmentioned queue is a check skipped, and the two are indistinguishable to the reader afterwards.
+2. **Closing a bug is a claim and needs the same evidence as any other claim.** "The chip is green now" is not proof a feed recovered — query the table behind it for a real recent row (0.1). Every transition writes `triage_notes` with the evidence and a `bug_status_log` row, because the next session inherits the note, not the reasoning.
+3. **A machine-filed report is closed by SQL, never by the resolve edge function.** That function emails `reporter_email`, and `alarm@macrotilt.com` / `paper-pipeline@macrotilt.internal` have nobody behind them.
+4. **When an automated filer files against a dark producer, retiring the watcher is part of closing the bug.** Otherwise the same report comes back on the next daily check and the queue re-fills behind you.
+5. **A monitoring surface nobody is instructed to read does not exist.** When a new channel is added — a queue, a table, a page, an inbox — the instruction that makes something read it ships in the same change. Every one of these four reports was created correctly, routed correctly, and displayed correctly; the only missing piece was a reader.
+
+**Applies to:** Lead Developer — the weekday sweep, and any future automated filer.
