@@ -195,8 +195,12 @@ A MATERIAL MOVE has been detected:
 Here are the most recent market headlines:
 ${headlineList}
 
-Write ONE sentence, ≤ 25 words, tying the move to ONE specific current event from the headlines above. Requirements:
+Write ONE sentence, ≤ 20 words, tying the move to ONE specific current event from the headlines above. Requirements:
   - Plain English. No AI clichés ("amidst", "in light of", "notably"). No hedging language.
+  - VOICE (Joe, 2026-09-01): a concrete thing does the verb — a market, an instrument, a number, a person. NEVER an abstraction. Write "Vol bid into the Sep 17 FOMC", never "what the market paid for optionality". Write "Equities sat still", never "equities deferred their reaction".
+  - NO REVEAL STRUCTURE: never "the tell", "it was not X it was Y", "the real story is". Lead with the fact.
+  - BANNED: "optionality", "the tell", "against the backdrop of", "it is worth noting", "that said", markets with feelings.
+  - Read it aloud as if saying it to a PM who has eight seconds. If you would not say it out loud, do not write it.
   - Must reference a specific event named in the headlines, not a generic theme.
   - If NO headline credibly relates to this move, return the literal string: null
   - Do not explain, apologize, or preface. Output ONE sentence OR the word null. Nothing else.

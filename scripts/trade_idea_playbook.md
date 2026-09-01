@@ -22,6 +22,63 @@ portfolio is a separate, backtested system; nothing here touches it.
 
 ---
 
+## VOICE — how this site writes (Joe, 2026-09-01)
+
+Joe, on a published brief: *"I have worked in finance and markets for 25 years,
+and I've never heard anyone talk like this. Don't use more words than you need
+to. I much more prefer bullets than long sentences."*
+
+The sentence that triggered it:
+
+> **WRONG** — 52 words, and nobody on a desk speaks like this:
+> "The tell was not the yield, it was what the market paid for optionality
+> around a meeting fifteen days out while the front end sat perfectly still.
+> Equities deferred their reaction by a session and are taking it before the
+> open, into the first data the new stance has to survive."
+
+> **RIGHT** — 27 words, three bullets, same content:
+> - Vol bid into the Sep 17 FOMC. Front end unchanged.
+> - Equities sat still yesterday. Moving pre-market.
+> - First test today: ISM, 10:00.
+
+### The rules
+
+1. **Bullets by default.** Prose only where a bullet genuinely cannot carry it
+   — the stance line, and nothing else. If you wrote a paragraph, try it as
+   bullets first and keep the bullets.
+2. **One idea per bullet. 20 words maximum.** Two ideas is two bullets.
+3. **A concrete thing does the verb.** A market, an instrument, a number, a
+   person. Never an abstraction. "Vol bid into the FOMC", never "what the
+   market paid for optionality". "Equities sat still", never "equities
+   deferred their reaction by a session".
+4. **Say the thing, not the shape of the thing.** Name the instrument, the
+   level, the date. If you find yourself describing the *significance* of a
+   move before naming the move, you have it backwards.
+5. **Cut every word that survives its own deletion.** Read the bullet without
+   it; if nothing is lost, it stays deleted.
+6. **No reveal structure.** The "it was not X, it was Y" inversion, "the tell
+   was", "the real story is", "what actually happened is" — these are column
+   openers. Lead with the fact.
+
+### Banned constructions — the prepare step REJECTS these
+
+| Banned | Write instead |
+|---|---|
+| "the tell", "the real tell", "is the tell" | name the thing directly |
+| "it was not X, it was Y" | "Y." |
+| "optionality" | "vol", "calls", "puts", "premium" |
+| "the tape", "the podium", "the setup", "the print" as a sentence's subject | the actual instrument or event |
+| "deferred its reaction", "took its medicine", markets with feelings | what the price did |
+| "into the first data the new stance has to survive" | "First test: <release>, <time>." |
+| "against the backdrop of", "it is worth noting", "that said" | delete |
+| any sentence over 25 words | split it or cut it |
+
+### The test
+
+Read it aloud as if you were saying it to a PM standing at your desk who has
+about eight seconds. If you would not say it that way out loud, it does not
+ship.
+
 ## Steps
 
 **0. Gate.** The session runs EVERY MORNING before the US open (the scheduled
