@@ -47,7 +47,6 @@ jobs:
 
       - name: Skip unless this is the first trading day of the month
         id: gate
-        env:
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import os, requests, datetime as dt
