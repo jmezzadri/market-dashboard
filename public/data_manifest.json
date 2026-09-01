@@ -4230,6 +4230,79 @@
    "sla_basis": "Weekly report; SLA = cadence + grace. Graded off the CFTC report date.",
    "display_name": "Positioning by trader type",
    "cadence_display": "Weekly \u00b7 Saturday morning, for Tuesday's report"
+  },
+  {
+   "id": "portfolio.qt-target-book",
+   "category": "portfolio",
+   "name": "qt-target-book",
+   "description": "Quality Trend monthly scoring output: the 20 names the relaunched book targets (5% each), written by QT-REBALANCE on the first trading day. The 40-name era ended 2026-08-25.",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt engine",
+   "source_endpoint": "Alpaca bars + SEC XBRL (qt_fundamentals) + SEC Form 4 (insider_history_edgar) \u2192 qt_target_book",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "monthly",
+   "scheduled_fetch_time_et": "09:00 ET, first trading day of the month",
+   "refresh_trigger": "QT-REBALANCE",
+   "freshness_sla_hours": 768,
+   "data_max_age_hours": 840,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "output_destination": "Supabase public.qt_target_book (+ run log in public.qt_run_log)",
+   "producer_script": "paper_portfolio/qt/rebalance.py",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "The book"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Book stays on the previous month's names \u2014 stale but coherent. Order placement never fires automatically, so a missed scoring run cannot mistrade."
+  },
+  {
+   "id": "portfolio.qt-nav-daily",
+   "category": "portfolio",
+   "name": "qt-nav-daily",
+   "description": "Quality Trend daily close snapshot (equity, cash, positions) for the live paper account, written by QT-EOD-DAILY; intraday marks every 10 minutes in market hours via qt-live-sync.",
+   "sourcing_mode": "STP",
+   "source_vendor": "Alpaca (paper)",
+   "source_endpoint": "Alpaca /v2/account + /v2/positions \u2192 qt_nav_daily; /v2/orders \u2192 qt_orders fill sync",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "17:10 (16:10 in winter \u2014 after the close in both)",
+   "refresh_trigger": "QT-EOD-DAILY",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "release_calendar": "nyse-trading-day",
+   "dependencies": [],
+   "output_destination": "Supabase public.qt_nav_daily (+ fill states in public.qt_orders)",
+   "producer_script": "paper_portfolio/qt/eod.py",
+   "consumer_surfaces": [
+    {
+     "tab": "paper",
+     "tile": "Account band + P&L column"
+    }
+   ],
+   "current_status": "live",
+   "failure_mode": "Page shows the previous close's equity and marks; fills stay at their last synced state. No trading impact \u2014 the job cannot submit orders."
+  },
+  {
+   "id": "portfolio.qt-brake-state",
+   "name": "qt-brake-state",
+   "category": "portfolio",
+   "description": "Quality Trend crash-brake daily reading: stress composite (VIX percentile + high-yield drawdown percentile), on/off state, and any half/restore action. Written by QT-BRAKE-DAILY after each close.",
+   "sourcing_mode": "computed",
+   "source_vendor": "MacroTilt engine (QT-BRAKE-DAILY)",
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "17:25",
+   "refresh_trigger": "QT-BRAKE-DAILY",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "release_calendar": "nyse-trading-day",
+   "output_destination": "public.qt_brake_state"
   }
  ],
  "_known_gaps_surfaced_in_phase1": [

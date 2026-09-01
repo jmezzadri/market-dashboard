@@ -70,3 +70,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BRAKE_DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
         run: python -m paper_portfolio.qt.brake
+
+      - name: Stamp brake health green
+        if: steps.gate.outputs.hold != 'true' && success()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py qt-brake-state "$(date -u +%Y-%m-%dT%H:%M:%SZ)" green
+
+      - name: Stamp brake health red on failure
+        if: steps.gate.outputs.hold != 'true' && failure()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/upsert_pipeline_health.py qt-brake-state - red "QT-BRAKE-DAILY failed - the brake did NOT evaluate; the book is running without its risk cut until this is fixed"
