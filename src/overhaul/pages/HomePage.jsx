@@ -133,8 +133,18 @@ const RIBBON = [
 const RIBBON_LIVE_SYMS = RIBBON.filter((r) => r.live).map((r) => r.live);
 
 /* One tape tile's numbers, resolved once so the value, the change and the
-   as-of label can never come from different observations. */
-function tapeTile(r, lv, liveQ) {
+   as-of label can never come from different observations.
+
+   The "live" stamp is a claim about the SESSION, not about the feed
+   (2026-09-02, Joe pre-open): outside market hours the quote provider still
+   answers — with the last close — so "we got a quote" must not print "live"
+   over Tuesday's close at 7am. Gate the stamp on marketOpen exactly the way
+   the ticker-page hero already does (`lseLive.marketOpen === true`); when the
+   session is closed the live quote is still the freshest CLOSE we have, so
+   keep its numbers and stamp them "close". marketOpen null (loading/error)
+   counts as closed — a momentary "close" during the session is honest,
+   a "live" on a closed market is not. */
+function tapeTile(r, lv, liveQ, marketOpen) {
   const live = r.live && liveQ && liveQ.covered && liveQ.price != null ? liveQ : null;
   if (live) {
     const base = live.prevClose != null && live.prevClose > 0 ? live.prevClose : null;
@@ -142,7 +152,7 @@ function tapeTile(r, lv, liveQ) {
       value: live.price,
       pct: base != null ? ((live.price / base) - 1) * 100 : null,
       dd: base != null ? live.price - base : null,
-      stamp: 'live',
+      stamp: marketOpen === true ? 'live' : 'close',
     };
   }
   if (!lv) return null;
@@ -281,7 +291,7 @@ export default function HomePage() {
       <Reveal className="tape">
         <div className="wrap row">
           {RIBBON.map((r) => {
-            const t = tapeTile(r, level(r.key), ribbonLive.bySymbol?.[r.live]);
+            const t = tapeTile(r, level(r.key), ribbonLive.bySymbol?.[r.live], ribbonLive.marketOpen);
             // Equity indexes quote in percent; macro series quote in their own
             // native unit, where a point change is the meaningful number.
             const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
