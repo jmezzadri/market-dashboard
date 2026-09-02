@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-01T22:42:05Z",
+  "generated_at": "2026-09-02T13:45:49Z",
   "window": {
-    "from": "2026-08-25",
-    "to": "2026-11-10"
+    "from": "2026-08-26",
+    "to": "2026-11-11"
   },
   "counts": {
-    "total": 101,
+    "total": 98,
     "tier1": 28
   },
   "sources": [
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-25",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-25",
-      "time_et": "8:30 AM",
-      "name": "Building permits (final)",
-      "short": "Permits",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Final building-permit counts for the prior month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-25",
-      "time_et": "10:00 AM",
-      "name": "New home sales",
-      "short": "New homes",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-26",
       "time_et": "8:30 AM",
