@@ -73,6 +73,11 @@ const DISPATCHABLE = new Set([
   // quarterly job is not a verification. Both open a PR or write data; neither
   // trades, deploys, or spends.
   "CFTC-COT-WEEKLY.yml", "TRADING-OPPS-BACKTEST.yml",
+  // 2026-09-02 (LESSONS 4.32): the rendered-page checker. Dispatchable so a
+  // cloud session can fire a render-and-read pass after any deploy — the
+  // sweep's only browser is this workflow's log. Read-only against the site;
+  // writes nothing but a bug_reports row on failure.
+  "RENDERED-DOM-SMOKE.yml",
   // The QT-* entries that stood here were removed on 2026-08-28: Quality Trend
   // was retired on 2026-08-26 and QT-EOD-DAILY / QT-FUNDAMENTALS-REFRESH /
   // QT-REBALANCE were deleted with it. A dispatchable name with no workflow

@@ -1,0 +1,58 @@
+name: RENDERED-DOM-SMOKE
+
+# Renders the live site in a REAL browser and checks what the page SAYS —
+# the check class that caught nobody until Joe's own eyes did (2026-09-02:
+# equity tape tiles stamped "live" pre-open over Tuesday's close).
+#
+# Division of labour, so this never duplicates an existing alarm:
+#   - DAILY-HOME-SMOKE           → the JSON files (producer/consumer contract)
+#   - pipeline_health + alarms   → data freshness
+#   - THIS workflow              → the rendered DOM: session-state labels,
+#                                  visible NaN/undefined/null, majority-
+#                                  Unclassified books, an empty tape.
+#
+# Why here and not the cloud health sweep: the sweep's sandbox cannot reach
+# macrotilt.com with a browser (egress reset) and a plain fetch returns the
+# empty SPA shell. GitHub Actions can. The script prints each page's rendered
+# text between "===== RENDERED-TEXT ... =====" markers, so the daily sweep
+# READS this run's log (ops-code-commit {"run_log": <run_id>}) as its
+# rendered-page verification — that is the standing bridge, keep it intact.
+#
+# Schedule: 11:10 UTC weekdays = 06:10 ET (DST) / 07:10 ET (standard) —
+# pre-open in both regimes, so EXPECT_MARKET_CLOSED=1 is always true for
+# scheduled fires (weekday holidays are also closed). Manual dispatches can
+# happen any time, so they skip the closed-session assertion.
+#
+# On any violation the script files a P0 into Supabase bug_reports (same
+# pattern as check_producer_contracts.py) and the run goes red.
+
+on:
+  schedule:
+    - cron: "10 11 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  rendered-smoke:
+    name: Rendered-page label/semantic smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Render the live site and check what it says
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EXPECT_MARKET_CLOSED: ${{ github.event_name == 'schedule' && '1' || '0' }}
+        run: node scripts/check_rendered_dom.mjs

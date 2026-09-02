@@ -926,6 +926,19 @@ They are not the same series and they are nowhere near each other:
 **Applies to:** Lead Developer — any change that adds a rendered field; any restore/un-retirement.
 
 
+### 4.32 (2026-09-02) — "live" is a claim about the SESSION, not the feed; and only a real browser can check what a page claims
+
+**What happened:** Pre-open, the S&P / Nasdaq / Dow tape tiles read **"live" over Tuesday's close** while the rate and credit tiles correctly said "close". `tapeTile()` stamped "live" whenever the quote resolver answered — but outside market hours the resolver still answers, with the last close, so "we got a quote" printed "live" on a closed market every single morning. The ticker-page hero had the correct gate (`lseLive.marketOpen === true`) the whole time; the home tape never adopted it. Nothing caught it: DAILY-HOME-SMOKE validates JSON files, pipeline_health grades producers, and the cloud health-sweep session **cannot render the site** (its egress resets browser connections to macrotilt.com; a plain fetch returns the empty SPA shell). Joe's eyes were the monitor, again — the same failure shape as 4.31, one layer up: 4.31 was a field nobody wrote, this was a label nobody checked.
+
+**Rule:**
+
+1. **A session-state badge ("live", "real-time", "as of now") is gated on the session clock, never on whether a feed answered.** A quote fetched on a closed market is a close and must say so. When one surface already has the correct gate, every sibling surface adopts it in the same change — grep for the label before shipping it (the 5.6 "audit the other phases" pattern, applied to copy).
+2. **What a page CLAIMS is a checkable invariant, and it is checked from somewhere that can actually render the page.** RENDERED-DOM-SMOKE (weekdays 11:10 UTC, pre-open) loads / and /paper in headless Chromium on GitHub Actions and asserts label/semantic invariants: no "live" stamp while the session is closed, no visible NaN/undefined/null, no majority-"Unclassified" book, no empty tape. Violations file a P0 into bug_reports. Freshness stays with pipeline_health — this checker owns claims, not staleness.
+3. **The health sweep's rendered-page check is that workflow's log.** The script prints each page's rendered text between `===== RENDERED-TEXT … =====` markers precisely so the cloud sweep (which has no browser path to the site) reads the rendered page via `{"run_log": <run_id>}`. A sweep that skips reading it has not verified the rendered site; a change that removes those markers breaks the sweep's only eyes.
+
+**Applies to:** Lead Developer — every user-visible state label; the weekday health sweep.
+
+
 # 5 · PIPELINES, SCHEDULES & ALERTING
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
