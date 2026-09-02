@@ -522,6 +522,8 @@
   font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
+/* 6 declared columns for 5 stats left a 255px track empty. */
+.v13.home-v12.ticker-v12 .tk-keygrid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .v13.home-v12.ticker-v12 .tk-backrow { padding: var(--v13-s3) 0 0; }
 .v13.home-v12.ticker-v12 .tk-backrow a { font-size: var(--v13-t2); color: var(--v13-accent); }
 

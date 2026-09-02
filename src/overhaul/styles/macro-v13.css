@@ -61,7 +61,12 @@
    as everything else: a header bar, then regime | stress | yield on one row. */
 .v13.macro-v13 .engine-card {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  /* 2026-09-01: this declared THREE columns and the markup supplies TWO
+     children (the regime block, and a wrapper holding both gauges), so the
+     third track sat empty — 520px of dead space on a 1568px card, which is
+     what Joe saw as "jamming all this to the left", twice.
+     scripts/check_layout.mjs now fails the build on an empty track. */
+  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 2.15fr);
   gap: var(--v13-s4);
   align-items: start;
   padding: var(--v13-s3);
@@ -80,12 +85,32 @@
   line-height: 1.1; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .engine-card h2 em { font-style: normal; color: var(--v13-brand); }
+/* Joe, 2026-09-01: "make the text bigger". This was t2 — the SMALLEST step in
+   the system, used for meta — on the one paragraph explaining what the whole
+   page is for. It is body copy; it gets the body step. */
 .v13.macro-v13 .engine-card .so,
 .v13.macro-v13 .mac-engine .so {
-  margin: var(--v13-s2) 0 0; max-width: 52ch;
-  font-size: var(--v13-t2); line-height: 1.55; color: var(--v13-ink-2);
+  margin: var(--v13-s2) 0 0; max-width: 56ch;
+  font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
 }
+.v13.macro-v13 .so-list { margin: var(--v13-s2) 0 0; padding: 0; list-style: none; max-width: 56ch; }
+.v13.macro-v13 .so-list li {
+  position: relative; padding: 0 0 var(--v13-s2) var(--v13-s3);
+  font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
+}
+.v13.macro-v13 .so-list li:last-child { padding-bottom: 0; }
+.v13.macro-v13 .so-list li::before {
+  content: ''; position: absolute; left: 0; top: 8px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--v13-ink-3);
+}
+.v13.macro-v13 .so-list b { color: var(--v13-ink); font-weight: 600; }
 .v13.macro-v13 .mac-engine { row-gap: var(--v13-s3); }
+/* The two dials sit side by side and use the whole of column two. */
+.v13.macro-v13 .engine-card > *:nth-child(2) {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--v13-s5); align-items: start; min-width: 0;
+}
+.v13.macro-v13 .engine-card > *:nth-child(2) > .gauge + .gauge { border-top: 0; }
 
 /* gauges — still buttons, still clickable, just quiet */
 .v13.macro-v13 .gauge {
@@ -104,7 +129,7 @@
 }
 .v13.macro-v13 .gauge .gl b {
   font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t5); font-weight: 500; letter-spacing: -0.02em; color: var(--v13-ink);
+  font-size: var(--v13-t6); font-weight: 500; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .gauge .gl b i {
   font-style: normal; font-family: var(--v13-f-ui); font-size: var(--v13-t2);
@@ -127,11 +152,11 @@
 }
 .v13.macro-v13 .gauge .ends {
   display: flex; justify-content: space-between; gap: var(--v13-s2);
-  font-size: var(--v13-t1); font-weight: 600; letter-spacing: 0.06em;
+  font-size: var(--v13-t2); font-weight: 600; letter-spacing: 0.05em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .gauge .read {
-  margin-top: var(--v13-s1); font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-2);
+  margin-top: var(--v13-s2); font-size: var(--v13-t3); font-weight: 500; color: var(--v13-ink-2);
 }
 .v13.macro-v13 .gauge .read.ok { color: var(--v13-up); }
 .v13.macro-v13 .gauge .read.warm { color: var(--v13-warn); }

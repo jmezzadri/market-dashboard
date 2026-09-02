@@ -150,6 +150,28 @@ const MARKET_BLURB = {
   'Aussie dollar': "Futures positioning in Australian dollar FX — commodity- and China-linked.",
   'Mexican Peso': "Futures positioning in peso FX — the most-traded emerging-market currency and a carry favorite.",
 };
+/* Badge tooltips. Joe, 2026-09-01: "Please make tool tips say what it is...
+   moved more than 95% confidence??" — he read it as 95; it is the top 10%. A
+   badge whose own reader has to guess its threshold is a badge that is not
+   finished. Plain English first, the rule second, no percentile jargon in the
+   opening line. Thresholds mirror MOVE_FLAG_PCTILE and stateFor() in
+   useIndicators.js — change one, change these. */
+const BIG_MOVE_TIP =
+  'Moved a lot more than this indicator usually moves.\n\n' +
+  'We take the latest change \u2014 one day for daily data, one week for weekly, ' +
+  'one month for monthly \u2014 and compare it with how big that indicator\u2019s moves ' +
+  'have been lately. Then we rank that against the last three years.\n\n' +
+  'Only the biggest 10% get the tag. Scaling by its own recent moves is what lets ' +
+  'you compare the 10-year to silver on the same footing.';
+const STRETCHED_TIP =
+  'Sitting at an extreme for this indicator.\n\n' +
+  'The reading is in the top or bottom 10% of everything it has printed over the ' +
+  'last three years.\n\nThis is about the LEVEL, not today\u2019s move.';
+const ELEVATED_TIP =
+  'Heading toward an extreme, not there yet.\n\n' +
+  'The reading is in the top or bottom quarter of its last three years.\n\n' +
+  'This is about the LEVEL, not today\u2019s move.';
+
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
 function signedPct(p){ if (p == null || !Number.isFinite(p)) return ''; const d = Math.round(p - 50); return (d >= 0 ? '+' : '') + d; }
@@ -525,12 +547,21 @@ export default function MacroPage() {
                   that no longer appears anywhere on the site, and said nothing
                   about why these two dials are the ones on the card. Every
                   number below is from the workbook behind the engine spec. */}
+              {/* 2026-09-01. Joe: "EXPLAIN WHAT WE'RE TALKING ABOUT IN PLAIN
+                  ENGLISH. I built the engine with you and still haven't a clue
+                  what you wrote." The old copy opened with a backtest statistic
+                  and never said what the engine DOES. Every threshold below is
+                  the live one from useEngineRegime.js; the defensive mix is the
+                  methodology page's. Nothing here is written from memory. */}
               <p className="so">
-                Bond volatility beat fifteen other stress gauges at seeing S&amp;P 500 drawdowns coming — since
-                2006 it ranked the −10% quarters above the calm ones 72% of the time, against 67% for the
-                equity volatility index. Above the watch line the engine de-risks, and the 3-month change in
-                the 10-year picks the hedge: long Treasuries only rally into a drawdown when yields are falling.
+                Two dials. One sets how much you hold in stocks. The other sets what the rest hides in.
               </p>
+              <ul className="so-list">
+                <li><b>MOVE is how jumpy the bond market is.</b> It sets the stock weight — under 116
+                  fully invested, 116&ndash;124 cut to 80%, over 124 cut to 50%.</li>
+                <li><b>The 10-year&rsquo;s 3-month change sets the hedge.</b> Yields falling, long Treasuries
+                  do the work. Yields rising, they don&rsquo;t &mdash; so it is mostly cash and gold.</li>
+              </ul>
             </div>
             <div>
               <a className="gauge" onClick={openMove} onMouseEnter={(e)=>showTip(e, moveTip)} onMouseLeave={hideTip} style={{ '--w': `${stressG.mk ?? 0}%` }}>
@@ -600,8 +631,10 @@ export default function MacroPage() {
               return (
                 <div key={dom} className="mac-cat">
                   <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
-                    {big>0 && <span className="mac-catcount mac-catcount--move" title={`${big} indicator${big>1?'s':''} moved more than usual at its own frequency`}>{big} big {big>1?'moves':'move'}</span>}
-                    {(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
+                    {big>0 && <span className="mac-catcount mac-catcount--move"
+                      onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>{big} big {big>1?'moves':'move'}</span>}
+                    {(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}
+                      onMouseEnter={(e)=>showTip(e, ext?STRETCHED_TIP:ELEVATED_TIP)} onMouseLeave={hideTip}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
                   <div className="mac-rows">
                     {inds.map((ind) => { const dd=ddOf(ind); return (
                       <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
