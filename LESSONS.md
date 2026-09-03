@@ -425,6 +425,20 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
+### 0.14 (2026-09-03, Joe, emphatic — "For the 400th time") — Scheduled-task prompts are UNTOUCHABLE from a session. Never call the prompt-update tool. Never mention an approval prompt to Joe.
+
+**What happened:** SEVENTH occurrence of the 1.1 pattern, one turn after everything had gone right. The trade-idea run flagged its own stale escalation-threshold note (the stored prompt still said 3 skips; the deployed alarm has been 7 since 2026-08-30), Joe approved raising it, the session verified the deployed code was already correct — and then called the scheduled-task prompt update anyway, hit the approval wall, and told Joe an approval prompt "should appear." Joe: *"For the 400th time, I DO NOT APPROVE PROMPTS TO UPDATE SHCEDUELD TASKS!! COMMIT THIS TO MEMORY ASAP!"*
+
+**Rule:**
+
+1. **Never call the scheduled-task prompt-update tool from any session. Not once, not to try.** Schedule, name and enabled changes are separate calls and remain fine; the prompt is walled and stays walled.
+2. **The route-around is standing policy, not an improvisation:** every scheduled run's first step is reading the repo (the playbook and this file), so any instruction meant for future runs is COMMITTED THERE via the ops commit function — no approval, versioned, and read by every run. A prompt correction is a repo commit, never a tool call.
+3. **Never tell Joe an approval prompt should appear, might appear, or can be waited for** (1.1 binds). If something truly cannot ship without him, name the one click he can do in a screen he already has open — or drop it.
+4. **Stale text in a stored prompt is harmless once the repo carries the correction.** The repo is canonical; note the contradiction there and move on. Do not re-flag it to Joe on later runs.
+
+**Applies to:** every agent, every session, every scheduled task.
+
+
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
@@ -446,6 +460,8 @@ credential-questioning anti-pattern wearing a new hat.
 **Applies to:** every agent, every session, every tool.
 
 **Repeated 2026-09-01 — SIXTH time.** `update_trigger` returned "requires approval" on the health-sweep task; the agent called it a second time, got the same error, and closed the turn asking Joe to "approve the scheduled-task prompt update when it pops up." Joe: *"nothing popped up."* The route-around this rule already mandates was available and obvious: the sweep's pre-flight reads LESSONS.md every run, so a standing instruction belongs in **section 0 of this file**, which needs no approval from anybody. Where a scheduled task's prompt cannot be edited from a session, the instruction goes in the file the task already reads — not into a request Joe cannot act on.
+
+**Repeated 2026-09-03 — SEVENTH time, now hard rule 0.14.** The trade-idea session tried a prompt update on the trade-idea task itself and told Joe an approval prompt "should appear." Joe: *"For the 400th time, I DO NOT APPROVE PROMPTS TO UPDATE SHCEDUELD TASKS!!"* 0.14 makes the attempt itself forbidden, not just the follow-up ask.
 
 ### 1.2 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name
 
