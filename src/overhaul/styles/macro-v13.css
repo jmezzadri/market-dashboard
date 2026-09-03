@@ -231,11 +231,34 @@
   font-family: var(--v13-f-ui); font-size: var(--v13-t2); font-weight: 700;
   letter-spacing: 0.02em; line-height: 1; color: var(--v13-ink);
 }
+/* Joe, 2026-09-03: "there's no way to know the 1 BIG MOVE is associated with
+   the down-5 number... Big Move is blue, down 5 is red, then Eq risk prem is
+   blue with 4 elevated amber. Nothing ties out."
+
+   He was right, and the cause was three separate classifiers on one tile:
+     - the row dot read ind.state (direction-aware, 85/75 thresholds)
+     - the percentile cell read raw pct (direction-BLIND, 90/10, red high /
+       BLUE low) — which is why a 0th-percentile row was blue while its own
+       dot was green and the tile badge never counted it
+     - the big-move cell took the direction colour (red/green), while its
+       badge was blue
+
+   ONE CLASSIFIER, ONE COLOUR PER CONCEPT, and the badge chip and the row chip
+   are now literally the same object:
+     BLUE  = big move   (a recent move — nothing to do with level)
+     RED   = stretched  (level at an extreme)
+     AMBER = elevated   (level approaching one)
+     GREEN = in range
+   Blue is now reserved for big move alone. Direction still reads off the
+   arrow glyph, which every change cell carries. */
 .v13.macro-v13 .mac-catcount {
   font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.07em;
   text-transform: uppercase; white-space: nowrap;
-  padding: 2px 6px; border-radius: var(--v13-r); background: var(--v13-surface-3);
+  padding: 2px 6px; border-radius: var(--v13-r);
+  background: var(--v13-surface-3); color: var(--v13-ink-2);
 }
+.v13.macro-v13 .mac-catcount--ext  { background: var(--v13-down-bg); color: var(--v13-down); }
+.v13.macro-v13 .mac-catcount--elev { background: var(--v13-warn-bg); color: var(--v13-warn); }
 
 /* rows: the shared 5-column grid stays (name | value | chg | pct | chevron).
    `.mac-irow` is display:contents, so the hover rail lives on the first cell. */
@@ -364,26 +387,27 @@
   font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
 }
-.v13.macro-v13 .mac-pct.hot {
-  font-weight: 700; color: var(--v13-down);
-}
-.v13.macro-v13 .mac-pct.cold {
-  font-weight: 700; color: var(--v13-accent);
-}
-/* A rule under the figure, so the extreme reads even in a grey-scale glance
-   and for a red/green-colour-blind reader. */
-.v13.macro-v13 .mac-pct.hot,
-.v13.macro-v13 .mac-pct.cold { box-shadow: inset 0 -2px 0 currentColor; }
+.v13.macro-v13 .mac-pct.ext  { font-weight: 700; color: var(--v13-down); }
+.v13.macro-v13 .mac-pct.elev { font-weight: 700; color: var(--v13-warn); }
+/* A rule under the figure, so the flag reads in a grey-scale glance and for a
+   red/green-colour-blind reader. */
+.v13.macro-v13 .mac-pct.ext,
+.v13.macro-v13 .mac-pct.elev { box-shadow: inset 0 -2px 0 currentColor; }
 
 /* 2 — big move. Top decile of this indicator's own regime-adjusted changes. */
-.v13.macro-v13 .mac-chg.mac-bigmove {
+/* Identical chip to .mac-catcount--move above — that identity IS the tie:
+   the blue badge in the header and the blue cell in the row are one object.
+   The direction colour is deliberately dropped here; ▲/▼ still carries it,
+   and a second hue inside the chip is what broke the mapping before. */
+.v13.macro-v13 .mac-chg.mac-bigmove,
+.v13.macro-v13 .mac-chg.mac-bigmove.up,
+.v13.macro-v13 .mac-chg.mac-bigmove.down {
   font-weight: 700;
   padding: 2px 5px;
   border-radius: var(--v13-r);
-  background: var(--v13-surface-3);
+  background: var(--v13-accent-mid);
+  color: var(--v13-accent);
 }
-.v13.macro-v13 .mac-chg.mac-bigmove.up { background: var(--v13-up-bg); color: var(--v13-up); }
-.v13.macro-v13 .mac-chg.mac-bigmove.down { background: var(--v13-down-bg); color: var(--v13-down); }
 
 /* tile header counts */
 .v13.macro-v13 .mac-cathead { gap: var(--v13-s1); }

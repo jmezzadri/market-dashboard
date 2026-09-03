@@ -508,7 +508,7 @@ export default function MacroPage() {
   const posLean = (spec) => spec<=15?{cls:'wash',txt:'Specs at low'}:spec>=85?{cls:'crowd',txt:'Specs at high'}:null;
   const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
   const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
-  const stateWord = (st) => st==='extreme'?'stretched (red)':st==='elevated'?'elevated (amber)':'in range (green)';
+  const stateWord = (st) => st==='extreme'?'stretched':st==='elevated'?'elevated':'in range';
   const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' pct · 3y range · '+stateWord(ind.state)); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>120?d.slice(0,117)+'…':d); L.push('Click for chart.'); return L.join('\n'); };
   const posTip = (m, ln) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Specs '+ord(m.spec)+' pct \u00b7 3y range'+(ln?(ln.cls==='wash'?' · washed out':' · crowded'):'')); L.push('Click for chart.'); return L.join('\n'); };
   const moveTip = 'MOVE '+fmtV(regime.move,0)+'\nRisk On ≤116 · Watch 116–124 · Risk Off ≥124\nClick for chart.';
@@ -609,8 +609,15 @@ export default function MacroPage() {
             {DOMAINS.map((dom) => {
               const inds = byDomain[dom] || [];
               const markets = cotPos?.domains?.[dom]?.markets || [];
-              const ext = inds.filter((i) => i.state==='extreme').length;
-              const elev = inds.filter((i) => i.state==='elevated').length;
+              // The badge counts what the ROWS show — indicators AND the COT
+              // positioning rows below them, which carry the same flags. It
+              // used to count indicators only, so a tile could show two red
+              // positioning rows under a header claiming nothing was stretched.
+              const posStates = markets.map((m) => posState(m.spec));
+              const ext = inds.filter((i) => i.state==='extreme').length
+                        + posStates.filter((x) => x==='extreme').length;
+              const elev = inds.filter((i) => i.state==='elevated').length
+                         + posStates.filter((x) => x==='elevated').length;
               // Big move = the latest change, scaled by this indicator's own
               // recent volatility, in the top decile of its 3-year history.
               const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
@@ -619,27 +626,29 @@ export default function MacroPage() {
                   <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
                     {big>0 && <span className="mac-catcount mac-catcount--move"
                       onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>{big} big {big>1?'moves':'move'}</span>}
-                    {(ext||elev)>0 && <span className="mac-catcount" style={{ color: ext?'var(--down)':'var(--amber)' }}
-                      onMouseEnter={(e)=>showTip(e, ext?STRETCHED_TIP:ELEVATED_TIP)} onMouseLeave={hideTip}>{ext||elev} {ext?'stretched':'elevated'}</span>}</div>
+                    {ext>0 && <span className="mac-catcount mac-catcount--ext"
+                      onMouseEnter={(e)=>showTip(e, STRETCHED_TIP)} onMouseLeave={hideTip}>{ext} stretched</span>}
+                    {elev>0 && <span className="mac-catcount mac-catcount--elev"
+                      onMouseEnter={(e)=>showTip(e, ELEVATED_TIP)} onMouseLeave={hideTip}>{elev} elevated</span>}</div>
                   <div className="mac-rows">
                     {inds.map((ind) => { const dd=ddOf(ind); return (
                       <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
                         <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
                         <span className={'mac-chg'+(dd?' '+dd.cls:'')+(ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' mac-bigmove':'')}>{dd ? dd.arrow+dd.txt : ''}</span>
-                        <span className={'mac-pct'+(ind.pct!=null?(ind.pct>=90?' hot':ind.pct<=10?' cold':''):'')}>{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                        <span className={'mac-pct'+(ind.state==='extreme'?' ext':ind.state==='elevated'?' elev':'')}>{ind.pct!=null ? ord(ind.pct) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}
                     {markets.length > 0 && (
                       <div className="mac-poshead">Positioning · COT extremes</div>
                     )}
-                    {markets.map((m) => { const ln=posLean(m.spec); const ps = (m.spec<=10||m.spec>=90)?'extreme':(m.spec<=25||m.spec>=75)?'elevated':'calm'; let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
+                    {markets.map((m) => { const ln=posLean(m.spec); const ps = posState(m.spec); let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
                       <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos({ ...m, domain: dom })} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
                         <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
                         <span className="mac-chg mut">{chg}</span>
-                        <span className={'mac-pct'+(Number.isFinite(m.spec)?(m.spec>=90?' hot':m.spec<=10?' cold':''):'')}>{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                        <span className={'mac-pct'+(ps==='extreme'?' ext':ps==='elevated'?' elev':'')}>{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}
