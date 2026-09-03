@@ -1,0 +1,22 @@
+# Registry guards. Pure node, no build, no secrets — so it can run on every PR.
+#
+# Today it enforces one rule: every indicator declares WHICH TAIL IS THE
+# WARNING. Joe, 2026-09-03, on equity risk premium at the 0th percentile
+# rendering as calm — the cause was `stats.direction || 'hw'` silently deciding
+# for 64 indicators that only high readings matter. See LESSONS 7.17.
+name: REGISTRY-CHECKS
+on:
+  pull_request:
+    paths: ['src/data/**', 'src/overhaul/lib/useIndicators.js', 'scripts/check_directions.mjs']
+  push:
+    branches: [main]
+    paths: ['src/data/**', 'src/overhaul/lib/useIndicators.js', 'scripts/check_directions.mjs']
+  workflow_dispatch:
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node scripts/check_directions.mjs

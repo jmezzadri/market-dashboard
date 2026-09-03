@@ -1750,6 +1750,23 @@ So a 0th-percentile row rendered **blue** — the big-move colour — beside a *
 
 **Applies to:** UX Designer and Lead Developer on any surface with a summary count over a list. Before shipping a badge, name the function that produces the number AND the function that produces each row's styling — if they are two functions, that is the bug.
 
+### 7.17 (2026-09-03) — A default is not a decision; `|| 'hw'` silently classified 64 indicators
+
+**What happened:** Equity risk premium was sitting at the **0th percentile** of its 3-year range — stocks at their most expensive versus bonds in three years — and the tile rendered it green, unflagged, and uncounted. Joe asked why. He was right to.
+
+`useIndicators.js` read `h.stats?.direction || 'hw'`. The history JSON almost never carried `stats.direction`, so the fallback fired for nearly every series and asserted that **only a high reading is a warning**. That is true of unemployment and jobless claims. It is the exact opposite of the truth for equity risk premium, market breadth, payrolls, JOLTS quits, bank reserves, the reverse repo balance and the 2s10s spread — every one of which warns at its LOW end and every one of which had therefore been invisible on the site since the flag system shipped.
+
+Turning the default off surfaced eleven live low-end extremes that had never once been shown.
+
+**Rule:**
+
+1. **A fallback that silently makes a judgement call is a bug, not a default.** `|| 'hw'` looked like defensive coding. It was 64 unreviewed classifications.
+2. **Judgement lives in a version-controlled registry, not in feed data.** `DIRECTION` in `src/data/indicatorRegistry.js` is one reviewable line per indicator and it OVERRIDES whatever the feed carries. A number can come from a feed; what the number means cannot.
+3. **`scripts/check_directions.mjs` fails the build on a missing entry.** A new indicator cannot inherit a silent default — the check names it and stops. Runs on every PR via `REGISTRY-CHECKS.yml`; it needs no secrets and no build, which is why it can.
+4. **When a fallback exists, ask what it is deciding and how often it fires.** If the answer is "everything, always", it is not a fallback — it is the actual behaviour, chosen by accident.
+
+**Applies to:** Lead Developer, on every `||` and `??` that supplies a semantic value rather than an empty one.
+
 ### 8.1 (2026-05-26; paths updated 2026-06-11) — The GitHub token is on disk; read it, never ask Joe for it
 
 **What happened:** The token was misplaced across sessions repeatedly, ending with the agent driving Joe's screen to push code by hand. Joe: "Can you please save this token so this never happens again… I set no expiration. Please do not lose this."

@@ -18,7 +18,7 @@
 */
 
 import { useEffect, useMemo, useState } from 'react';
-import { IND } from '../../data/indicatorRegistry';
+import { IND, DIRECTION } from '../../data/indicatorRegistry';
 import jsonOnce from './jsonOnce';
 
 const FAMILY_LABEL = {
@@ -261,7 +261,11 @@ export default function useIndicators() {
       const last = h.points?.length ? h.points[h.points.length - 1] : null;
       const value = last?.[1];
       const pct = pctRank(value, h.points);
-      const direction = h.stats?.direction || 'hw';
+      // The REGISTRY decides which tail warns, not the feed. Until 2026-09-03
+      // this read stats.direction and fell back to 'hw', so every low-end
+      // warning (ERP, breadth, payrolls, 2s10s, reserves) went unflagged.
+      // scripts/check_directions.mjs fails the build on a missing entry.
+      const direction = DIRECTION[id] || h.stats?.direction || 'hw';
       const state = stateFor(pct, direction);
       const familyId = meta[2];
       const src = sourceFor[id] || {};

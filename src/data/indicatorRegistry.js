@@ -199,3 +199,69 @@ ndx_above_200ema:["Nasdaq Breadth (200d)","Nasdaq-100 Breadth \u00b7 200-day EMA
 "The percentage of Nasdaq-100 members above their 200-day exponential moving average — the long-term trend-participation rate for the 100-name index. Below 40%, most members are in downtrends regardless of the index level; above 60% indicates broad participation.",
 "Membership = Invesco QQQ holdings (~100 names; Wikipedia constituents fallback); each member's 200-day EMA computed from Polygon end-of-day closes. History begins 2026 — limited by stored price depth; the ranking window grows daily toward the full 3 years. Pill state: trailing percentile of the available window, low-warns (Elevated 25th, Extreme 15th)."],
 };
+
+/* ── Which tail is the warning? ────────────────────────────────────────────
+   Joe, 2026-09-03, on equity risk premium sitting at the 0th percentile and
+   the tile calling it calm: "yes please fix."
+
+   Until now `direction` came from whatever the history JSON happened to carry
+   in stats.direction, and defaulted to 'hw' (high warns) when it carried
+   nothing — which was nearly always. So EVERY indicator whose warning lives at
+   the LOW end was silently unflagged: equity risk premium at its 3-year floor,
+   breadth collapsing, payrolls missing, jobless quits drying up, bank reserves
+   draining, 2s10s inverting. A default is not a decision, and this one had
+   been making 64 decisions unreviewed.
+
+   Direction now lives HERE — version-controlled, reviewable, one line each —
+   and overrides the feed. scripts/check_directions.mjs fails the build if any
+   registry id is missing an entry, so a new indicator cannot inherit a silent
+   default again.
+
+     'hw' — only a HIGH reading is a warning
+     'lw' — only a LOW reading is a warning
+     'bw' — both tails are notable (a stretched level in either direction)
+
+   The test for 'bw' is whether a PM acts on both tails. A commodity price, an
+   FX rate and a credit spread are all worth a look at either extreme. An
+   unemployment rate is not.                                                */
+export const DIRECTION = {
+  // ── prices: both tails are a stretched level ──
+  cmdty_gold:'bw', cmdty_silver:'bw', cmdty_copper:'bw', cmdty_uranium:'bw',
+  cmdty_oil:'bw', cmdty_brent:'bw', cmdty_natgas:'bw',
+  cmdty_corn:'bw', cmdty_soybeans:'bw', cmdty_wheat:'bw',
+  fx_eur:'bw', fx_jpy:'bw', fx_gbp:'bw', usd:'bw',
+
+  // ── volatility: high = stress, low = complacency. Both are positions. ──
+  vix:'bw', vxn:'bw', vix3m:'bw', gvz:'bw', ovx:'bw', skew:'bw',
+  move:'hw',            // the engine's own de-risk trigger; only the high end trades
+  vix_ts:'hw',          // VIX/VIX3M — inversion is the warning, contango is normal
+  eq_cr_corr:'hw',      // high correlation = the hedge stopped working
+
+  // ── equities ──
+  cape:'hw',            // expensive is the warning; cheap is an opportunity
+  erp:'lw',            // LOW equity risk premium = stocks dear vs bonds  ← Joe, 2026-09-03
+  spx_above_50ema:'lw', spx_above_200ema:'lw',   // narrow breadth is the warning
+  ndx_above_50ema:'lw', ndx_above_200ema:'lw',
+
+  // ── rates ──
+  ust_2y:'bw', ust_10y:'bw', ust_20y:'bw', ust_30y:'bw',
+  real_rates:'bw', breakeven_10y:'bw',
+  yield_curve:'lw',     // inversion is the warning
+  term_premium:'hw',
+
+  // ── credit ──
+  hy_ig:'bw', ig_oas:'bw', loan_syn:'bw', hy_ig_etf:'bw',
+  cmdi:'hw', cpff:'hw',
+  sloos_ci:'hw', sloos_cre:'hw',        // net % TIGHTENING
+  bank_credit:'bw', credit_3y:'bw',
+  bank_reserves:'lw', bank_unreal:'hw', bkx_spx:'lw',
+
+  // ── financial conditions & economy ──
+  anfci:'hw', stlfsi:'hw',              // higher = tighter
+  ism:'lw', copper_gold:'lw', cfnai:'lw', cfnai_3ma:'lw',
+  unrate:'hw', jobless:'hw',
+  payrolls:'lw', jolts_quits:'lw',
+  m2_yoy:'bw', fed_bs:'bw',
+  rrp:'lw',                             // a drained buffer is the warning
+  tga:'hw',                             // a full TGA is cash out of the system
+};
