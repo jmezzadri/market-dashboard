@@ -155,8 +155,8 @@ const MARKET_BLURB = {
    nothing else. Do not add a sentence of explanation here again. Thresholds
    mirror MOVE_FLAG_PCTILE and stateFor() in useIndicators.js. */
 const BIG_MOVE_TIP = 'Top 10% move \u00b7 3y lookback';
-const STRETCHED_TIP = 'Top/bottom 10% level \u00b7 3y lookback';
-const ELEVATED_TIP = 'Top/bottom 25% level \u00b7 3y lookback';
+const STRETCHED_TIP = 'Top/bottom 10% level \u00b7 3y lookback \u00b7 the row says which end';
+const ELEVATED_TIP = 'Top/bottom 25% level \u00b7 3y lookback \u00b7 the row says which end';
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
@@ -509,7 +509,7 @@ export default function MacroPage() {
   const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
   const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
   const stateWord = (st) => st==='extreme'?'stretched':st==='elevated'?'elevated':'in range';
-  const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' pct · 3y range · '+stateWord(ind.state)); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>120?d.slice(0,117)+'…':d); L.push('Click for chart.'); return L.join('\n'); };
+  const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' pct · 3y range'+(ind.tailWord?' · '+ind.tailWord:'')); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>120?d.slice(0,117)+'…':d); L.push('Click for chart.'); return L.join('\n'); };
   const posTip = (m, ln) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Specs '+ord(m.spec)+' pct \u00b7 3y range'+(ln?(ln.cls==='wash'?' · washed out':' · crowded'):'')); L.push('Click for chart.'); return L.join('\n'); };
   const moveTip = 'MOVE '+fmtV(regime.move,0)+'\nRisk On ≤116 · Watch 116–124 · Risk Off ≥124\nClick for chart.';
   const yieldTip = '3M Δ 10Y'+(regime.yieldDeltaBp!=null?' '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nClick for chart.';
@@ -636,7 +636,7 @@ export default function MacroPage() {
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
                         <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
                         <span className={'mac-chg'+(dd?' '+dd.cls:'')+(ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' mac-bigmove':'')}>{dd ? dd.arrow+dd.txt : ''}</span>
-                        <span className={'mac-pct'+(ind.state==='extreme'?' ext':ind.state==='elevated'?' elev':'')}>{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                        <span className={'mac-pct'+(ind.state==='extreme'?' ext':ind.state==='elevated'?' elev':'')}>{ind.tailWord && <em className="mac-tail">{ind.tailWord}</em>}{ind.pct!=null ? ord(ind.pct) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}
@@ -648,7 +648,7 @@ export default function MacroPage() {
                         <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
                         <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
                         <span className="mac-chg mut">{chg}</span>
-                        <span className={'mac-pct'+(ps==='extreme'?' ext':ps==='elevated'?' elev':'')}>{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                        <span className={'mac-pct'+(ps==='extreme'?' ext':ps==='elevated'?' elev':'')}>{ps!=='calm' && Number.isFinite(m.spec) && <em className="mac-tail">{m.spec<=50?'short':'long'}</em>}{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
                         <span className="mac-chev">›</span>
                       </a>
                     ); })}

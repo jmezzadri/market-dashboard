@@ -1767,6 +1767,29 @@ Turning the default off surfaced eleven live low-end extremes that had never onc
 
 **Applies to:** Lead Developer, on every `||` and `??` that supplies a semantic value rather than an empty one.
 
+### 7.18 (2026-09-03) — A two-sided flag must say WHICH side; colour cannot carry that
+
+**What happened:** With both tails finally flagged (7.17), HY OAS at the **3rd percentile** — 265bp, about as little as you have been paid to own credit risk in three years — rendered **red** next to unemployment-style warnings. Joe: *"But HY OAS is 3rd — super low, and we're calling that stretched? I'm not sure if I'm thinking about this correctly?"*
+
+He was thinking about it correctly. Two ideas had been merged into one colour:
+
+- **stress** — the thing is in trouble (spreads wide, claims high, vol spiking)
+- **stretched** — the level is at a tail, either direction, so risk from here is asymmetric
+
+Red says *stress*. A tight spread is the opposite of stress; it is *expensive*. The flag was right and the label was wrong.
+
+His own suggestion — *"expensive vs. cheap might be the right nomenclature?"* — is exactly right for anything with a price and meaningless for unemployment, breadth, bank reserves or lending standards. So no single vocabulary works.
+
+**Rule:**
+
+1. **A flag that can fire at either tail must name the tail.** Otherwise the reader has to remember, per indicator, which end is the bad one — which is precisely the work the flag exists to remove.
+2. **The word, not a colour, carries direction.** Colour stays severity only: red extreme, amber elevated. Adding a fourth hue to encode side would have made four colours to learn on a tile that already failed for having too many meanings per hue (7.16).
+3. **Each indicator declares its own two words** in `TAILS` — `['cheap','expensive']`, `['narrow','broad']`, `['drained','ample']`, `['inverted','steep']`. One vocabulary forced across 64 different series produces nonsense like "expensive unemployment".
+4. **`scripts/check_directions.mjs` requires both maps** and rejects a pair whose two words are identical.
+5. **When the user asks "am I thinking about this correctly?", the answer is usually that the display is wrong, not the user.** He was reading the tile exactly as designed. That is the bug report.
+
+**Applies to:** UX Designer and Lead Developer, on any bidirectional indicator, threshold or alert.
+
 ### 8.1 (2026-05-26; paths updated 2026-06-11) — The GitHub token is on disk; read it, never ask Joe for it
 
 **What happened:** The token was misplaced across sessions repeatedly, ending with the agent driving Joe's screen to push code by hand. Joe: "Can you please save this token so this never happens again… I set no expiration. Please do not lose this."

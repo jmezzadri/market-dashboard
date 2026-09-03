@@ -18,7 +18,7 @@
 */
 
 import { useEffect, useMemo, useState } from 'react';
-import { IND, DIRECTION } from '../../data/indicatorRegistry';
+import { IND, DIRECTION, TAILS } from '../../data/indicatorRegistry';
 import jsonOnce from './jsonOnce';
 
 const FAMILY_LABEL = {
@@ -267,6 +267,13 @@ export default function useIndicators() {
       // scripts/check_directions.mjs fails the build on a missing entry.
       const direction = DIRECTION[id] || h.stats?.direction || 'hw';
       const state = stateFor(pct, direction);
+      // WHICH tail, in this indicator's own words. Joe, 2026-09-03, on HY OAS
+      // at the 3rd percentile flagged red: "super low, and we're calling that
+      // stretched?" It IS at a tail — but the tile said nothing about which
+      // one, and red implied stress on the least-stressed reading in 3 years.
+      // Only shown when the row is flagged; a calm row stays a bare number.
+      const tailWord = (state === 'calm' || pct == null || !TAILS[id]) ? null
+        : (pct <= 50 ? TAILS[id][0] : TAILS[id][1]);
       const familyId = meta[2];
       const src = sourceFor[id] || {};
       // Manifest cadence wins for the displayed frequency + SLA lookup; the
@@ -301,6 +308,7 @@ export default function useIndicators() {
         pct,
         direction,
         state,
+        tailWord,
         // How big was the latest move, for THIS indicator, in THIS regime?
         movePct: mv ? mv.pct : null,
         moveX: mv ? mv.x : null,
