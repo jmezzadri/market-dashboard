@@ -425,20 +425,6 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
-### 0.14 (2026-09-03, Joe, emphatic — "For the 400th time") — Scheduled-task prompts are UNTOUCHABLE from a session. Never call the prompt-update tool. Never mention an approval prompt to Joe.
-
-**What happened:** SEVENTH occurrence of the 1.1 pattern, one turn after everything had gone right. The trade-idea run flagged its own stale escalation-threshold note (the stored prompt still said 3 skips; the deployed alarm has been 7 since 2026-08-30), Joe approved raising it, the session verified the deployed code was already correct — and then called the scheduled-task prompt update anyway, hit the approval wall, and told Joe an approval prompt "should appear." Joe: *"For the 400th time, I DO NOT APPROVE PROMPTS TO UPDATE SHCEDUELD TASKS!! COMMIT THIS TO MEMORY ASAP!"*
-
-**Rule:**
-
-1. **Never call the scheduled-task prompt-update tool from any session. Not once, not to try.** Schedule, name and enabled changes are separate calls and remain fine; the prompt is walled and stays walled.
-2. **The route-around is standing policy, not an improvisation:** every scheduled run's first step is reading the repo (the playbook and this file), so any instruction meant for future runs is COMMITTED THERE via the ops commit function — no approval, versioned, and read by every run. A prompt correction is a repo commit, never a tool call.
-3. **Never tell Joe an approval prompt should appear, might appear, or can be waited for** (1.1 binds). If something truly cannot ship without him, name the one click he can do in a screen he already has open — or drop it.
-4. **Stale text in a stored prompt is harmless once the repo carries the correction.** The repo is canonical; note the contradiction there and move on. Do not re-flag it to Joe on later runs.
-
-**Applies to:** every agent, every session, every scheduled task.
-
-
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
@@ -460,8 +446,6 @@ credential-questioning anti-pattern wearing a new hat.
 **Applies to:** every agent, every session, every tool.
 
 **Repeated 2026-09-01 — SIXTH time.** `update_trigger` returned "requires approval" on the health-sweep task; the agent called it a second time, got the same error, and closed the turn asking Joe to "approve the scheduled-task prompt update when it pops up." Joe: *"nothing popped up."* The route-around this rule already mandates was available and obvious: the sweep's pre-flight reads LESSONS.md every run, so a standing instruction belongs in **section 0 of this file**, which needs no approval from anybody. Where a scheduled task's prompt cannot be edited from a session, the instruction goes in the file the task already reads — not into a request Joe cannot act on.
-
-**Repeated 2026-09-03 — SEVENTH time, now hard rule 0.14.** The trade-idea session tried a prompt update on the trade-idea task itself and told Joe an approval prompt "should appear." Joe: *"For the 400th time, I DO NOT APPROVE PROMPTS TO UPDATE SHCEDUELD TASKS!!"* 0.14 makes the attempt itself forbidden, not just the follow-up ask.
 
 ### 1.2 (2026-05-29) — Refer to every indicator ONLY by its exact on-site name
 
@@ -1740,6 +1724,31 @@ The same session had already proved why. Length in the daily brief was a prompt 
 5. **When a rule has to be repeated, stop repeating it and write the check.** If a rule cannot be expressed as a check, say so out loud and explain what would have to be true for it to become one — do not promise to remember.
 
 **Applies to:** UX Designer on every layout sign-off; Lead Developer on every PR touching `/pages/` or `/styles/`. Any correction Joe has to give twice is a missing test, not a missing instruction.
+
+### 7.16 (2026-09-03) — One classifier, one colour per concept; a badge and the row it counts must be the same object
+
+**What happened:** Joe, on a Macro domain tile: *"There's no way to know that the 1 BIG MOVE is associated with the down-5 number. Big Move is blue, down 5 is red, then Eq risk prem is blue with 4 elevated amber. Nothing ties out. This is so bad."*
+
+Three independent classifiers were running on one tile, and none of them agreed:
+
+| Element | Read from | Thresholds | Colours |
+|---|---|---|---|
+| row dot | `ind.state` (direction-aware) | 85 / 75 | red / amber / green |
+| percentile cell | raw `ind.pct` (direction-BLIND) | 90 / 10 | red high, **blue** low |
+| big-move cell | direction of the change | top decile | red / green |
+| header badges | `ind.state`, indicators only | 85 / 75 | blue / red / amber |
+
+So a 0th-percentile row rendered **blue** — the big-move colour — beside a **green** dot, while the header badge counted it as nothing at all. And the header badges skipped the COT positioning rows entirely, so a tile could show two red rows under a header claiming nothing was stretched.
+
+**Rule:**
+
+1. **One classifier per concept, read by every element that displays it.** The dot, the cell and the badge count all call the same function. If two elements can disagree about the same fact, they eventually will.
+2. **One colour per concept, and no colour serves two concepts.** BLUE = big move. RED = stretched. AMBER = elevated. GREEN = in range. Blue was doing double duty as "low percentile"; that alone made the tile unreadable.
+3. **A badge and the thing it counts are the SAME chip.** Not the same hue — the same padding, radius, background and text colour. The identity is what makes the mapping obvious without a legend.
+4. **A count in a header counts every row under it.** Including the rows from a different data source that happen to share the tile.
+5. **Verify by counting, not by looking.** The fix was signed off with a browser audit asserting `badge_count === matching_row_count` for all six tiles, all three flags. Looking at one tile would have missed that the badges were counting indicators only.
+
+**Applies to:** UX Designer and Lead Developer on any surface with a summary count over a list. Before shipping a badge, name the function that produces the number AND the function that produces each row's styling — if they are two functions, that is the bug.
 
 ### 8.1 (2026-05-26; paths updated 2026-06-11) — The GitHub token is on disk; read it, never ask Joe for it
 
