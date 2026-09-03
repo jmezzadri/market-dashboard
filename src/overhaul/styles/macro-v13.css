@@ -132,10 +132,14 @@
 .v13.macro-v13 .gauge:hover { background: var(--v13-accent-soft); border-color: var(--v13-rule-2); }
 .v13.macro-v13 .gauge:focus-visible { outline: 2px solid var(--v13-accent); outline-offset: -2px; }
 .v13.macro-v13 .gauge + .gauge { border-top: 0 !important; }
+/* Joe, 2026-09-03: "make Stress Signal - MOVE bigger and gold, same as the
+   Yield Regime title." Both gauge titles use this rule, so both move together —
+   they are peers and must never diverge. Gold is --v13-brand, the same token as
+   the regime word in the headline. */
 .v13.macro-v13 .gauge .gl {
   display: flex; justify-content: space-between; align-items: baseline; gap: var(--v13-s2);
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
-  text-transform: uppercase; color: var(--v13-ink-3);
+  font-size: var(--v13-t3); font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--v13-brand);
 }
 .v13.macro-v13 .gauge .gl b {
   font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
