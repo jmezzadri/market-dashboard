@@ -267,7 +267,7 @@ WRITE FOR THE DESK, NOT FOR A BEGINNER (this REVERSES the old plain-English rule
 DATA LINES, THEN THE SO-WHAT. For any figure NOT in the snapshot table (30y, 20y, futures, a single stock, an overnight level, an economic release), write it as a data line, not a sentence: "Brent $91.54, +0.6% (~6am ET)". Then, only if there is one, one sentence of what it means. An observation is not a brief. If you cannot say why a PM should care, cut it.
 
 HARD LENGTH CAPS — the prepare step REFUSES a brief that breaks any of these, listing every overage. Write to them the first time.
-  headline <=140 chars · stance <=320 chars (2 sentences, the day in one breath)
+  headline <=95 chars, A DATA LINE, NOT A SENTENCE · stance <=200 chars, 2 sentences max
   each section: <=3 bullets, each <=200 chars · positioning <=220 · single-name note <=200
   news: <=4 items, head <=70, body <=190 · implications: <=3, each <=200
   watch: <=4 items, head <=60, body <=170 · WHOLE BRIEF <=700 words
@@ -291,6 +291,14 @@ VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and 
  - NO REVEAL STRUCTURE. "the tell", "it was not X it was Y", "the real story is", "what actually happened is" are column openers. Lead with the fact.
  - EVERY CLAIM CARRIES ITS TIME. A move that already happened names the session it happened in ("Rate vol repriced Monday"). A scheduled event names its date and reads as ahead ("FOMC, Sep 16"). Never a verb that could be either - Joe on "Vol bid into the Sep 17 FOMC": "This sounds past tense but it's only Sept 1."
  - NEVER WRITE AN EVENT DATE FROM MEMORY. FOMC, CPI, PPI, payrolls, ISM, PCE, GDP, claims, JOLTS, retail sales - read the date off https://macrotilt.com/econ_calendar.json, the same feed the homepage tile uses. The prepare step checks every dated event mention against it and REFUSES a mismatch.
+ - THE HEADLINE IS A DATA LINE. Facts separated by commas. No verbs where a number will do, no full stops, no second sentence. The prepare step REFUSES a headline containing a sentence break.
+     Joe, 2026-09-03, on a shipped brief: "ADP printed 38k into two-thirds odds of a hike. The curve sat still Wednesday and rate vol rose anyway."
+     "You wrote all that to say: ADP +38K, rate hike odds 66%, rate vol up 4 days."
+     WRONG headline: "ADP printed 38k into two-thirds odds of a hike. The curve sat still Wednesday and rate vol rose anyway."
+     RIGHT headline: "ADP +38K, rate hike odds 66%, rate vol up 4 days"
+     WRONG stance: "Two-thirds of a hike is priced for the FOMC, Sep 16, and the labor data keeps missing. Wednesday settled nothing: no yield moved, MOVE rose a fourth day, and Friday's payrolls now carries the meeting."
+     RIGHT stance: "66% odds of a hike into the Sep 16 FOMC, on a fourth straight day of rising rate vol. Friday's payrolls is the next input."
+ - NUMBERS AS NUMBERS. "66%", never "two-thirds". "+38K", never "printed 38k". "fourth day", not "rose anyway".
  - CUT EVERY WORD THAT SURVIVES ITS OWN DELETION.
  - NO SENTENCE OVER 25 WORDS anywhere in the brief.
  - THE TEST: read it aloud as if saying it to a PM at your desk who has eight seconds. If you would not say it that way out loud, do not write it.
@@ -311,8 +319,8 @@ OUTPUT: return ONLY a single JSON object (no prose, no markdown fence) with EXAC
  "date": "{today}",
  "recap_session": "<prior session label e.g. 'Wed Jun 24'>",
  "eyebrow": "Morning Brief",
- "headline": "<one factual sentence, <=140 chars, no hype>",
- "stance": "<2 sentences, <=320 chars: what changed and what it means; may use <b>..</b>>",
+ "headline": "<comma-separated data line, <=95 chars, NO full stops, e.g. 'ADP +38K, rate hike odds 66%, rate vol up 4 days'>",
+ "stance": "<max 2 sentences, <=200 chars: what changed and what it means; may use <b>..</b>>",
  "news": [{{"head":"<short>","body":"<one sentence>"}}, ...],
  "implications": ["<sentence>", ...],
  "watch": [{{"head":"<short>","body":"<one sentence>"}}, ...],
@@ -453,6 +461,7 @@ def validate(brief, today):
     # --prepare-file -- goes through validate(), so there is exactly one place
     # a brief can get long, and it refuses.
     if os.environ.get("BRIEF_SKIP_LENGTH_CAPS", "").lower() not in ("1", "true", "yes"):
+        enforce_shape(brief)
         enforce_caps(brief)
         # Voice runs in the same place and for the same reason: one gate every
         # generator path goes through, so a register Joe has rejected cannot
@@ -751,8 +760,8 @@ def build_ideas(scores):
 # breaks them. LESSONS 4.34.
 #   (field, max items, max chars per item, label)
 CAPS = {
-    "headline":     {"chars": 140},
-    "stance":       {"chars": 320},
+    "headline":   {"chars": 95},
+    "stance":     {"chars": 200},
     "bullets":      {"items": 3, "chars": 175},   # per section
     "positioning":  {"chars": 200},
     "single_note":  {"chars": 180},
@@ -846,8 +855,19 @@ VOICE_BANNED = [
     (r"\bit (?:is|\'s) worth noting\b",       'filler — delete'),
     (r"\bthat said,",                        'filler — delete'),
     (r"\bhas to survive\b",                  'essay phrasing — write "First test: <release>, <time>."'),
+    # Joe, 2026-09-03, on "ADP printed 38k into two-thirds odds of a hike. The
+    # curve sat still Wednesday and rate vol rose anyway." — "You wrote all that
+    # to say: ADP +38K, rate hike odds 66%, rate vol up 4 days."
+    (r"\bsettled nothing\b",                 'essay phrasing — say what did or did not move'),
+    (r"\bnow carries\b",                     'essay phrasing — name the event and its date'),
+    (r"\bkeeps? (?:missing|coming in|printing)\b",
+                                             'essay phrasing — give the number, not the trend narration'),
+    (r"\b(?:and|but)\b[^.]{0,60}\banyway\b", '"anyway" editorialises — state both facts'),
+    (r"\b(?:two-thirds|one-third|three-quarters|four-fifths|a third|a quarter)\b",
+                                             'write the number: "66%", not "two-thirds"'),
+    (r"\bprinted\b(?![^.]*\d)",              '"printed" with no number — give the print'),
 ]
-_SENT_MAX_WORDS = 25
+_SENT_MAX_WORDS = 20
 
 # Joe, 2026-09-01, on the rewrite I offered him: "vol bid into the sep17
 # FOMC.... This sounds past tense but its only Sept 1...." Two failures in five
@@ -946,6 +966,40 @@ def enforce_voice(brief):
             "Rewrite every line below as bullets, one idea each, 20 words max, with a "
             "concrete thing doing the verb:\n  - " + "\n  - ".join(bad[:12]))
     return brief
+
+_HEAD_SENT = __import__("re").compile(r"\.(?:\s|$)")
+
+def enforce_shape(brief):
+    """Headline is a DATA LINE, not sentences. Stance is at most two sentences.
+
+    Joe, 2026-09-03, quoting a shipped brief back at me — headline "ADP printed
+    38k into two-thirds odds of a hike. The curve sat still Wednesday and rate
+    vol rose anyway." plus a 34-word stance — "You wrote all that to say: ADP
+    +38K, rate hike odds 66%, rate vol up 4 days."
+
+    A cap on characters did not stop it, because two short sentences fit inside
+    140 chars. So the SHAPE is checked, not just the length: a headline with a
+    sentence break in it is prose, and prose in the headline is rejected.
+    """
+    import re as _re
+    bad = []
+    h = _plain(brief.get("headline"))
+    if _HEAD_SENT.search(h):
+        bad.append('headline: this is two sentences. The headline is a comma-separated '
+                   'data line — "ADP +38K, rate hike odds 66%, rate vol up 4 days" — '
+                   'not prose.\n      \u2192 ' + h[:120])
+    if h and h.rstrip().endswith("."):
+        bad.append("headline: drop the full stop — a data line does not take one.")
+    st = _plain(brief.get("stance"))
+    n_sent = len([x for x in _re.split(r"(?<=[.!?])\s+", st) if x.strip()])
+    if n_sent > 2:
+        bad.append(f"stance: {n_sent} sentences (max 2) — cut to what changed and what it means.")
+    if bad:
+        raise ValueError(
+            "SHAPE — Joe: \"I didn\u2019t want you to write more text. Just write the "
+            "numbers.\"\n  - " + "\n  - ".join(bad))
+    return brief
+
 
 def enforce_caps(brief):
     """Raise with EVERY overage at once, so one rewrite fixes the whole brief."""

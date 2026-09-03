@@ -150,27 +150,13 @@ const MARKET_BLURB = {
   'Aussie dollar': "Futures positioning in Australian dollar FX — commodity- and China-linked.",
   'Mexican Peso': "Futures positioning in peso FX — the most-traded emerging-market currency and a carry favorite.",
 };
-/* Badge tooltips. Joe, 2026-09-01: "Please make tool tips say what it is...
-   moved more than 95% confidence??" — he read it as 95; it is the top 10%. A
-   badge whose own reader has to guess its threshold is a badge that is not
-   finished. Plain English first, the rule second, no percentile jargon in the
-   opening line. Thresholds mirror MOVE_FLAG_PCTILE and stateFor() in
-   useIndicators.js — change one, change these. */
-const BIG_MOVE_TIP =
-  'Moved a lot more than this indicator usually moves.\n\n' +
-  'We take the latest change \u2014 one day for daily data, one week for weekly, ' +
-  'one month for monthly \u2014 and compare it with how big that indicator\u2019s moves ' +
-  'have been lately. Then we rank that against the last three years.\n\n' +
-  'Only the biggest 10% get the tag. Scaling by its own recent moves is what lets ' +
-  'you compare the 10-year to silver on the same footing.';
-const STRETCHED_TIP =
-  'Sitting at an extreme for this indicator.\n\n' +
-  'The reading is in the top or bottom 10% of everything it has printed over the ' +
-  'last three years.\n\nThis is about the LEVEL, not today\u2019s move.';
-const ELEVATED_TIP =
-  'Heading toward an extreme, not there yet.\n\n' +
-  'The reading is in the top or bottom quarter of its last three years.\n\n' +
-  'This is about the LEVEL, not today\u2019s move.';
+/* Badge tooltips. Joe, 2026-09-03: "JUST WRITE 95% move over x lookback.
+   THAT'S ALL, I DON'T NEED ALL THE SUPERFLUOUS WORDS." One line, the rule,
+   nothing else. Do not add a sentence of explanation here again. Thresholds
+   mirror MOVE_FLAG_PCTILE and stateFor() in useIndicators.js. */
+const BIG_MOVE_TIP = 'Top 10% move \u00b7 3y lookback';
+const STRETCHED_TIP = 'Top/bottom 10% level \u00b7 3y lookback';
+const ELEVATED_TIP = 'Top/bottom 25% level \u00b7 3y lookback';
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
 function stColor(s){ return s==='extreme'?'var(--mt-down)':s==='elevated'?'var(--mt-warn)':'var(--mt-up)'; }
@@ -523,10 +509,10 @@ export default function MacroPage() {
   const openMove = () => { const it=indicators.find((i)=>i.id==='move'); if(it) setSelected(it); };
   const openYield = () => { const it=indicators.find((i)=>i.id==='ust_10y')||indicators.find((i)=>i.id==='real_rates'); if(it) setSelected(it); };
   const stateWord = (st) => st==='extreme'?'stretched (red)':st==='elevated'?'elevated (amber)':'in range (green)';
-  const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' percentile of its 3-year range · '+stateWord(ind.state)); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>180?d.slice(0,177)+'…':d); L.push('Click for the full chart.'); return L.join('\n'); };
-  const posTip = (m, ln) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Speculators at the '+ord(m.spec)+' percentile of their 3-year range'+(ln?(ln.cls==='wash'?' — almost no bullish bets left (contrarian floor)':' — piled in (contrarian warning)'):'')); L.push('Click for the full positioning chart.'); return L.join('\n'); };
-  const moveTip = 'Stress signal · MOVE '+fmtV(regime.move,0)+'\nRisk On ≤116 · Watch 116–124 · Risk Off ≥124\nThe bond market\u2019s volatility gauge — the engine\u2019s primary de-risk trigger. Click for the full chart.';
-  const yieldTip = 'Yield regime · 3-month change in the 10-year'+(regime.yieldDeltaBp!=null?', '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nSets which defensive sleeve holds when the engine de-risks. Click for the full chart.';
+  const indTip = (ind) => { const v=fmtV(ind.value, ind.decimals, ind.unit); const L=[ind.name+' — '+v]; if(ind.pct!=null) L.push(ord(ind.pct)+' pct · 3y range · '+stateWord(ind.state)); const d=(ind.narrative||ind.description||'').trim(); if(d) L.push(d.length>120?d.slice(0,117)+'…':d); L.push('Click for chart.'); return L.join('\n'); };
+  const posTip = (m, ln) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Specs '+ord(m.spec)+' pct \u00b7 3y range'+(ln?(ln.cls==='wash'?' · washed out':' · crowded'):'')); L.push('Click for chart.'); return L.join('\n'); };
+  const moveTip = 'MOVE '+fmtV(regime.move,0)+'\nRisk On ≤116 · Watch 116–124 · Risk Off ≥124\nClick for chart.';
+  const yieldTip = '3M Δ 10Y'+(regime.yieldDeltaBp!=null?' '+(regime.yieldDeltaBp>=0?'+':'')+Math.round(regime.yieldDeltaBp)+'bp':'')+'\nInflationary ≥+32 · Neutral · Deflationary ≤−11\nClick for chart.';
 
   return (
     <div className="home-v12 v13 macro-v13">

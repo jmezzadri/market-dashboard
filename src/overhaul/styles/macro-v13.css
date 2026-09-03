@@ -66,9 +66,17 @@
      third track sat empty — 520px of dead space on a 1568px card, which is
      what Joe saw as "jamming all this to the left", twice.
      scripts/check_layout.mjs now fails the build on an empty track. */
-  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 2.15fr);
-  gap: var(--v13-s4);
-  align-items: start;
+  /* 2026-09-03: Joe, on the void under the two bars — "move both bars over and
+     stretch the text out. LOOK AT ALL THE BLANK SPACE UNDER THE BARS." Two
+     causes: the text was clamped to 56ch inside a wider column, and the card
+     was align-items:start, so column two stopped at its content height and
+     dumped ~110px of dead air beneath the dials. Both fixed here: the text
+     column is wider and unclamped, and column two STRETCHES so the gauges
+     fill the band. */
+  grid-template-columns: minmax(320px, 1.15fr) minmax(0, 1.85fr);
+  column-gap: var(--v13-s5);
+  row-gap: var(--v13-s3);
+  align-items: stretch;
   padding: var(--v13-s3);
   background: var(--v13-surface);
   border: 1px solid var(--v13-rule);
@@ -90,10 +98,10 @@
    page is for. It is body copy; it gets the body step. */
 .v13.macro-v13 .engine-card .so,
 .v13.macro-v13 .mac-engine .so {
-  margin: var(--v13-s2) 0 0; max-width: 56ch;
+  margin: var(--v13-s2) 0 0; max-width: none;
   font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
 }
-.v13.macro-v13 .so-list { margin: var(--v13-s2) 0 0; padding: 0; list-style: none; max-width: 56ch; }
+.v13.macro-v13 .so-list { margin: var(--v13-s2) 0 0; padding: 0; list-style: none; max-width: none; }
 .v13.macro-v13 .so-list li {
   position: relative; padding: 0 0 var(--v13-s2) var(--v13-s3);
   font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
@@ -108,18 +116,20 @@
 /* The two dials sit side by side and use the whole of column two. */
 .v13.macro-v13 .engine-card > *:nth-child(2) {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--v13-s5); align-items: start; min-width: 0;
+  gap: var(--v13-s3); align-items: stretch; min-width: 0;
 }
 .v13.macro-v13 .engine-card > *:nth-child(2) > .gauge + .gauge { border-top: 0; }
 
 /* gauges — still buttons, still clickable, just quiet */
 .v13.macro-v13 .gauge {
-  display: block; width: 100%; text-align: left; font: inherit; color: inherit;
-  background: none; border: 0; -webkit-appearance: none; appearance: none;
-  padding: var(--v13-s2); border-radius: var(--v13-r); cursor: pointer;
-  transition: background var(--v13-fast) var(--v13-ease);
+  display: flex; flex-direction: column; justify-content: center;
+  width: 100%; height: 100%; text-align: left; font: inherit; color: inherit;
+  background: var(--v13-surface-2); border: 1px solid var(--v13-rule);
+  -webkit-appearance: none; appearance: none;
+  padding: var(--v13-s3) var(--v13-s4); border-radius: var(--v13-r); cursor: pointer;
+  transition: background var(--v13-fast) var(--v13-ease), border-color var(--v13-fast) var(--v13-ease);
 }
-.v13.macro-v13 .gauge:hover { background: var(--v13-accent-soft); }
+.v13.macro-v13 .gauge:hover { background: var(--v13-accent-soft); border-color: var(--v13-rule-2); }
 .v13.macro-v13 .gauge:focus-visible { outline: 2px solid var(--v13-accent); outline-offset: -2px; }
 .v13.macro-v13 .gauge + .gauge { border-top: 0 !important; }
 .v13.macro-v13 .gauge .gl {
@@ -136,17 +146,17 @@
   font-weight: 500; letter-spacing: 0.04em; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .track {
-  position: relative; height: 4px; margin: 7px 0 5px;
-  border-radius: 2px; background: var(--v13-surface-3);
+  position: relative; height: 6px; margin: 12px 0 8px;
+  border-radius: 3px; background: var(--v13-surface-3);
 }
 .v13.macro-v13 .track .fill {
   position: absolute; inset: 0; width: var(--w, 0%);
-  border-radius: 2px; background: var(--v13-rule-2);
+  border-radius: 3px; background: var(--v13-rule-2);
   transition: width 900ms var(--v13-ease);
 }
 .v13.macro-v13 .track .pin {
   position: absolute; top: 50%; left: var(--w, 0%);
-  width: 2px; height: 12px; border-radius: 1px;
+  width: 2px; height: 16px; border-radius: 1px;
   background: var(--v13-ink); border: 0; box-shadow: none;
   transform: translate(-50%, -50%);
 }
@@ -156,7 +166,7 @@
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .gauge .read {
-  margin-top: var(--v13-s2); font-size: var(--v13-t3); font-weight: 500; color: var(--v13-ink-2);
+  margin-top: var(--v13-s3); font-size: var(--v13-t3); font-weight: 500; color: var(--v13-ink-2);
 }
 .v13.macro-v13 .gauge .read.ok { color: var(--v13-up); }
 .v13.macro-v13 .gauge .read.warm { color: var(--v13-warn); }
