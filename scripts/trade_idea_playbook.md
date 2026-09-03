@@ -133,6 +133,15 @@ Two consequences of the daily cadence:
   materially changed, the bar for another is even higher — the tile carries a
   position, not a headline.
 
+**Skip-alarm threshold — this file is canonical (2026-09-03).** The alarm on
+consecutive skips fires at **7** (`SKIP_ESCALATE_AFTER` in
+`pipeline-health-check`, raised from 3 on 2026-08-30; confirmed by Joe
+2026-09-03). The scheduled task's stored prompt still says 3 — that text cannot
+be edited from a session (LESSONS 0.14) and is superseded by this paragraph. Do
+not re-flag the mismatch to Joe, do not attempt to update the task prompt, and
+do not treat 3–5 quiet skips as alarm-worthy: a full week of nothing is news;
+a quiet half-week is the product working as designed.
+
 **1. Fetch the data.** All public, no secrets:
 
 - `https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/brief-latest` —
