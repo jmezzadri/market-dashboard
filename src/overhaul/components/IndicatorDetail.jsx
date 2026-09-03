@@ -10,6 +10,7 @@ import BigHistoryChart from './BigHistoryChart';
 import PercentileBar from './PercentileBar';
 import FreshnessChip from './FreshnessChip';
 import IndexOverlayToggles from './IndexOverlayToggles';
+import { TAILS } from '../../data/indicatorRegistry';
 
 function sliceByTimeframe(points, tf) {
   if (!points?.length) return [];
@@ -287,7 +288,16 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           }}
         >
           <div className="mt-eyebrow">Where today sits in the {tf} distribution</div>
+          {/* The tail word, same vocabulary as the tile row this was opened
+              from (LESSONS 7.18). Derived from slicePct, not the 3-year pct,
+              so it always describes the timeframe actually on screen. */}
           <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+            {slicePct != null && TAILS[ind.id] && (slicePct >= 75 || slicePct <= 25) && (
+              <b style={{ color: (slicePct >= 85 || slicePct <= 15) ? 'var(--mt-down)' : 'var(--mt-warn)',
+                          letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 6 }}>
+                {slicePct <= 50 ? TAILS[ind.id][0] : TAILS[ind.id][1]}
+              </b>
+            )}
             <b className="num">{slicePct != null ? slicePct : '—'}</b>{slicePct != null ? ordSuffix(slicePct) : ''} percentile
           </div>
         </div>
