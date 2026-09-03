@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-02T22:44:24Z",
+  "generated_at": "2026-09-03T13:43:22Z",
   "window": {
-    "from": "2026-08-26",
-    "to": "2026-11-11"
+    "from": "2026-08-27",
+    "to": "2026-11-12"
   },
   "counts": {
-    "total": 98,
-    "tier1": 28
+    "total": 97,
+    "tier1": 26
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-26",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-26",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-26",
-      "time_et": "8:30 AM",
-      "name": "Durable goods orders",
-      "short": "Durables",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Advance report on orders for long-lived manufactured goods \u2014 a proxy for capex intent.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-27",
       "time_et": "8:30 AM",
@@ -1095,6 +1062,28 @@
       "tier": 1,
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-12",
+      "time_et": "8:30 AM",
+      "name": "Jobless claims",
+      "short": "Claims",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-12",
+      "time_et": "4:30 PM",
+      "name": "Fed balance sheet (H.4.1)",
+      "short": "H.4.1",
+      "tier": 3,
+      "category": "Liquidity",
+      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
