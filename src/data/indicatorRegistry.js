@@ -265,3 +265,71 @@ export const DIRECTION = {
   rrp:'lw',                             // a drained buffer is the warning
   tga:'hw',                             // a full TGA is cash out of the system
 };
+
+/* ── What does each tail MEAN? ─────────────────────────────────────────────
+   Joe, 2026-09-03: "But HY OAS is 3rd — super low, and we're calling that
+   stretched? I'm not sure if I'm thinking about this correctly?" ... then:
+   "expensive vs. cheap might be the right nomenclature?"
+
+   He was right about the ambiguity and half-right about the fix. "Stretched"
+   correctly means AT A TAIL — HY OAS at 265bp is as little as you have been
+   paid to own credit risk in three years, which is a position, not a non-
+   event. What was missing is WHICH tail, and a red badge implying stress on
+   an indicator that is the opposite of stressed.
+
+   Expensive/cheap is the right pair for anything with a PRICE — vol, credit
+   spreads, commodities, equity valuation. It is meaningless for unemployment,
+   payrolls, breadth, bank reserves or lending standards, which have no price.
+   So each indicator declares its OWN two words: [what the LOW tail means,
+   what the HIGH tail means]. The row prints the word when the indicator is
+   flagged, so colour is free to mean severity alone — red extreme, amber
+   elevated — with no fourth hue to learn.                                  */
+export const TAILS = {
+  // ── priced: expensive / cheap ──
+  vix:['cheap','expensive'], vxn:['cheap','expensive'], vix3m:['cheap','expensive'],
+  gvz:['cheap','expensive'], ovx:['cheap','expensive'], skew:['cheap','expensive'],
+  cape:['cheap','expensive'],
+  erp:['expensive','cheap'],              // a LOW equity risk premium = dear stocks
+  hy_ig:['expensive','cheap'],            // a TIGHT spread = dear credit
+  ig_oas:['expensive','cheap'],
+  loan_syn:['expensive','cheap'],         // low yield = dear
+  cmdty_gold:['cheap','expensive'], cmdty_silver:['cheap','expensive'],
+  cmdty_copper:['cheap','expensive'], cmdty_uranium:['cheap','expensive'],
+  cmdty_oil:['cheap','expensive'], cmdty_brent:['cheap','expensive'],
+  cmdty_natgas:['cheap','expensive'], cmdty_corn:['cheap','expensive'],
+  cmdty_soybeans:['cheap','expensive'], cmdty_wheat:['cheap','expensive'],
+
+  // ── rates: a yield is not "expensive", it is high or low ──
+  ust_2y:['low','high'], ust_10y:['low','high'], ust_20y:['low','high'], ust_30y:['low','high'],
+  real_rates:['low','high'], term_premium:['low','high'],
+  breakeven_10y:['deflation','inflation'],
+  yield_curve:['inverted','steep'],
+  move:['calm','stressed'],
+  vix_ts:['contango','inverted'],
+  eq_cr_corr:['diversified','correlated'],
+  hy_ig_etf:['risk-off','risk-on'],
+
+  // ── FX: strong / weak, named so the direction cannot be misread ──
+  fx_eur:['weak EUR','strong EUR'], fx_gbp:['weak GBP','strong GBP'],
+  fx_jpy:['strong JPY','weak JPY'],       // USD/JPY higher = weaker yen
+  usd:['weak USD','strong USD'],
+
+  // ── activity: strong / weak ──
+  ism:['contracting','expanding'],
+  copper_gold:['defensive','cyclical'],
+  cfnai:['below trend','above trend'], cfnai_3ma:['below trend','above trend'],
+  unrate:['low','high'], jobless:['low','elevated'],
+  payrolls:['weak','strong'], jolts_quits:['weak','strong'],
+  spx_above_50ema:['narrow','broad'], spx_above_200ema:['narrow','broad'],
+  ndx_above_50ema:['narrow','broad'], ndx_above_200ema:['narrow','broad'],
+
+  // ── liquidity & credit availability: ample / tight ──
+  m2_yoy:['contracting','surging'], fed_bs:['shrinking','expanding'],
+  rrp:['drained','ample'], tga:['drained','full'],
+  bank_reserves:['scarce','ample'],
+  sloos_ci:['loose','tight'], sloos_cre:['loose','tight'],
+  bank_credit:['contracting','booming'], credit_3y:['contracting','booming'],
+  bank_unreal:['small','large'], bkx_spx:['lagging','leading'],
+  anfci:['loose','tight'], stlfsi:['loose','tight'],
+  cmdi:['calm','distressed'], cpff:['normal','stressed'],
+};

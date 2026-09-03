@@ -414,3 +414,14 @@
 .v13.macro-v13 .mac-catcount--move {
   background: var(--v13-accent-mid); color: var(--v13-accent);
 }
+
+/* The tail word — "expensive", "narrow", "drained". Joe, 2026-09-03: a red
+   badge on HY OAS at the 3rd percentile read as stress, when tight spreads are
+   the opposite of stress. The word says which end; colour is now free to mean
+   severity alone (red extreme, amber elevated) with no fourth hue to learn.
+   Inherits currentColor, so it can never drift from the figure it labels. */
+.v13.macro-v13 .mac-tail {
+  font-family: var(--v13-f-ui); font-style: normal;
+  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; opacity: 0.75; margin-right: 5px;
+}
