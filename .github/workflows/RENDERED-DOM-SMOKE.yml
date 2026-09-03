@@ -18,6 +18,12 @@ name: RENDERED-DOM-SMOKE
 # READS this run's log (ops-code-commit {"run_log": <run_id>}) as its
 # rendered-page verification — that is the standing bridge, keep it intact.
 #
+# Cron re-arm (2026-09-03, health sweep): the 11:10 UTC schedule never fired
+# on 2026-09-03 — the workflow's entire run history was workflow_dispatch,
+# which LESSONS 5.3 treats as proof the schedule is not registered. Per that
+# rule, this commit touches the workflow file on main to re-register the
+# cron. Tomorrow's sweep must see an event=schedule run in the history.
+#
 # Schedule: 11:10 UTC weekdays = 06:10 ET (DST) / 07:10 ET (standard) —
 # pre-open in both regimes, so EXPECT_MARKET_CLOSED=1 is always true for
 # scheduled fires (weekday holidays are also closed). Manual dispatches can
