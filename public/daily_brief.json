@@ -1,108 +1,108 @@
 {
-  "date": "2026-09-03",
-  "recap_session": "Wed Sep 2",
+  "date": "2026-09-04",
+  "recap_session": "Thu Sep 3",
   "eyebrow": "Morning Brief",
-  "headline": "ADP printed 38k into two-thirds odds of a hike. The curve sat still Wednesday and rate vol rose anyway.",
-  "stance": "Two-thirds of a hike is priced for the FOMC, Sep 16, and the labor data keeps missing. Wednesday settled nothing: no yield moved, MOVE rose a fourth day, and Friday's payrolls now carries the meeting.",
+  "headline": "Waller: we can wait one meeting, September hike odds 63% to 50%, jobs report 8:30",
+  "stance": "One Waller line took the September hike from 63% priced to 50%. Today's jobs report at 8:30 decides which half is right.",
   "news": [
     {
-      "head": "ADP 38,000, slowest since January",
-      "body": "August private payrolls +38k against +47k expected, July revised up to 46k. Manufacturing, professional services and information all shed jobs."
+      "head": "Waller: we can wait one meeting",
+      "body": "At a Thursday event the Fed governor said to give disinflation a chance. He backed holding rates steady this month."
     },
     {
-      "head": "Yen up a second day on Takata",
-      "body": "USD/JPY 156.80 (~5am ET). BoJ's Takata said the bank should drop its 0.25%-every-six-months pace. ING flags intervention talk."
+      "head": "ISM services 55.4, prices paid 72.6",
+      "body": "August services expanded faster than forecast, up 1.3pt from July. The 12-month prices-paid average hit 68.5%, highest since April 2023."
     },
     {
-      "head": "Broadcom guided Q4 to $34.8bn",
-      "body": "Reported after Wednesday's close. Q3 revenue $29.59bn, +86% y/y, ahead of $29.4bn. Q4 guide is +93% y/y, with operating margin near 66%."
+      "head": "Yen clawing back part of Thursday's rally",
+      "body": "USD/JPY 156.40 overnight (~4am ET). Nomura calls a 25bp BoJ move this month reasonable, three straight hikes its extreme case."
     },
     {
-      "head": "Crude lower for the first time since the Hormuz strike",
-      "body": "WTI $89.94, -1.2% (~4:15am ET), from $90.76 at Wednesday's close. Crude closed in the 92nd percentile of three years for a third session."
+      "head": "Payrolls consensus +58k after July's -23k",
+      "body": "Unemployment seen holding at 4.1%, average hourly earnings at 3.0% y/y. TD Securities is at +95k and flags hawkish risk to its own forecast."
     }
   ],
   "implications": [
-    "A 38k ADP and a two-thirds-priced hike cannot both be right. Friday's payrolls settles it, and the rates market has one session of vol to carry until then.",
-    "The yen is moving on the BoJ, not on the dollar. A hawkish BoJ alongside a hawkish Fed takes the funding leg out of every carry trade at once."
+    "Equities priced the hold in full Thursday. The long end priced almost none of it. One of the two is wrong and 8:30 picks.",
+    "A coin-flip meeting makes today's jobs report the whole decision. Only next week's CPI is left before the FOMC."
   ],
   "watch": [
     {
-      "head": "Jobless claims, 8:30",
-      "body": "Running near 203k. ADP already missed, so an uptick the day before the jobs report is the harder of the two signals."
+      "head": "Jobs report, 8:30",
+      "body": "The August print, first since July's negative headline. Above 40k reads hawkish into a meeting priced at even odds."
     },
     {
-      "head": "ISM services, 10:00",
-      "body": "The survey half that has held up. With a hike two-thirds priced, a strong number reads hawkish rather than good."
+      "head": "Average hourly earnings, 8:30",
+      "body": "Seen at 3.0% y/y, down from 3.2%. Waller's case rests on disinflation, and wages are what he has to defend."
     },
     {
-      "head": "Unit labor costs, 8:30",
-      "body": "The wage input. ADP has job-stayer pay at 3.0% y/y and job-changers at 4.7%, which is not the acceleration a hike needs."
+      "head": "Whether the long end joins",
+      "body": "The front end did Thursday's work alone. A soft print that finally moves the 30y is a different trade."
     },
     {
-      "head": "USD/JPY and the intervention line",
-      "body": "Second straight session of yen strength on BoJ comments alone. Watch whether Tokyo follows the words with anything."
+      "head": "Gold back at a three-year extreme",
+      "body": "Thursday's move put it in the 88th percentile of three years, new in the last three sessions. Spec net length is already at the 99th."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "The whole curve sat still Wednesday and MOVE rose anyway, a fourth straight day and the highest since Aug 3.",
-        "Vol without yield movement is hedging into Friday, not repricing. The front end did its repricing Monday and Tuesday.",
-        "A 38k ADP makes this a wage question. Job-stayer pay ran 3.0% y/y in August, job-changers 4.7% — no acceleration to hike into."
+        "Four days of rate-vol build unwound in one session on Waller. The front end did all of it, the long end none.",
+        "He would consider hiking only if inflation accelerates first. CPI lands Sep 11, five days before the meeting.",
+        "Services prices paid at 72.6 is the counterargument, its 12-month average the highest since April 2023."
       ],
-      "positioning": "Spec net length in 2-year Treasuries has sat at the 100th percentile of three years for five weeks. A standing extended long, into a meeting the market prices as a hike.",
+      "positioning": "Spec net length in 5-year Treasuries sits at the 100th percentile of three years, up seven points on the week. An extended long into a meeting now priced as a coin flip.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Breadth stopped falling. The share of S&P names above their 50-day rose Wednesday for the first time in five sessions.",
-        "Broadcom's Q4 guide is +93% y/y and it still needs 66% margins to hold. The AI capex names are being marked on the guide now, not the beat.",
-        "Downside hedges came off into the jobs report, not on. Skew and the VIX curve both unwound Tuesday's bid."
+        "Best session since Aug 4, and it came from a Fed governor, not from earnings or data.",
+        "Nasdaq led, which is what a rate-hold trade looks like before it becomes a growth trade.",
+        "Breadth still lags. Fewer than half of Nasdaq names sit above their 50-day line."
       ],
-      "positioning": "Spec positioning in Russell 2000 has been at the 2nd percentile of three years for eighteen weeks. A standing extended short in small caps, unmoved by the hike repricing.",
+      "positioning": "Spec positioning in VIX futures sits at the 9th percentile of three years, third straight week. An extended short in vol into an 8:30 release that settles the meeting.",
       "single_name": {
-        "ticker": "BCML",
-        "note": "BayCom, a small commercial bank, joined the insider-buy list Wednesday. Two insider rules fired, it trades above its 200-day, 4.0 days to cover."
+        "ticker": "JEF",
+        "note": "Jefferies joined the insider-buy list Thursday. One insider rule fired, it trades above its 200-day, 2.8 days to cover."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HYG/LQD rose Wednesday, the first up day in six. The ratio led the cash marks wider, so it has to lead them back.",
-        "Syndicated loan yields rose a third straight session to 7.18%. Loans reprice with the front end faster than bonds do.",
-        "The reverse repo facility is empty and reserves sit at $2.92tn. A Treasury cash build from here drains reserves directly."
+        "Credit sat out Thursday. Investment-grade and high-yield spreads are still marked to Wednesday, so the rally has no confirmation there.",
+        "Equity-credit correlation sits at 0.66. A one-day equity move on a Fed comment does not drag credit with it.",
+        "Reserves fell below $2.90tn last week as the Treasury account built. The plumbing is fine, the cushion keeps thinning."
       ],
-      "positioning": "Dealer high-yield inventory fell another six points last week, to the 6th percentile of three years. Dealers are not warehousing the widening.",
+      "positioning": "Dealer investment-grade inventory sits mid-range, the 56th percentile of three years. Dealers are neither defending spreads nor stepping away from them.",
       "single_name": null
     }
   ],
   "movers": [
     {
-      "ticker": "BFLY",
-      "pct": -7.1,
+      "ticker": "BKKT",
+      "pct": 12.8,
+      "link": true
+    },
+    {
+      "ticker": "AMR",
+      "pct": -6.9,
+      "link": true
+    },
+    {
+      "ticker": "WIX",
+      "pct": -6.3,
+      "link": true
+    },
+    {
+      "ticker": "FNKO",
+      "pct": -5.0,
       "link": true
     },
     {
       "ticker": "AUGO",
-      "pct": 7.0,
-      "link": true
-    },
-    {
-      "ticker": "EQPT",
-      "pct": 5.7,
-      "link": true
-    },
-    {
-      "ticker": "WW",
-      "pct": 5.0,
-      "link": true
-    },
-    {
-      "ticker": "PRMB",
-      "pct": -3.8,
+      "pct": 4.1,
       "link": true
     }
   ],
@@ -112,45 +112,45 @@
       "rows": [
         {
           "label": "2y",
-          "level": "4.39%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "4.34%",
+          "chg": "-5bp",
+          "dir": "down"
         },
         {
           "label": "10y",
-          "level": "4.79%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "4.77%",
+          "chg": "-2bp",
+          "dir": "down"
         },
         {
           "label": "20y",
-          "level": "5.27%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "5.25%",
+          "chg": "-2bp",
+          "dir": "down"
         },
         {
           "label": "30y",
-          "level": "5.27%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "5.25%",
+          "chg": "-2bp",
+          "dir": "down"
         },
         {
           "label": "2s10s",
-          "level": "40bp",
-          "chg": "unch",
-          "dir": "flat"
-        },
-        {
-          "label": "10y real",
-          "level": "2.45%",
-          "chg": "+1bp",
+          "level": "43bp",
+          "chg": "+3bp",
           "dir": "up"
         },
         {
-          "label": "10y B/E",
-          "level": "2.34%",
-          "chg": "-1bp",
+          "label": "10y real",
+          "level": "2.42%",
+          "chg": "-3bp",
           "dir": "down"
+        },
+        {
+          "label": "10y B/E",
+          "level": "2.35%",
+          "chg": "+1bp",
+          "dir": "up"
         },
         {
           "label": "Term prem",
@@ -161,9 +161,9 @@
         },
         {
           "label": "MOVE",
-          "level": "79.70",
-          "chg": "+1.80",
-          "dir": "up"
+          "level": "74.70",
+          "chg": "-5.00",
+          "dir": "down"
         }
       ]
     },
@@ -172,43 +172,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,666.60",
-          "chg": "+0.46%",
+          "level": "7,747.71",
+          "chg": "+1.06%",
           "dir": "up"
         },
         {
           "label": "Nasdaq",
-          "level": "26,217.83",
-          "chg": "+0.45%",
+          "level": "26,584.06",
+          "chg": "+1.40%",
           "dir": "up"
         },
         {
           "label": "Dow",
-          "level": "53,061.95",
-          "chg": "+0.56%",
+          "level": "53,686.11",
+          "chg": "+1.18%",
           "dir": "up"
         },
         {
           "label": "VIX",
-          "level": "15.20",
-          "chg": "-1.14",
+          "level": "14.32",
+          "chg": "-0.88",
           "dir": "down"
         },
         {
           "label": "VIX 1m/3m",
-          "level": "0.857",
-          "chg": "-0.034",
+          "level": "0.822",
+          "chg": "-0.035",
           "dir": "down"
         },
         {
           "label": "SKEW",
-          "level": "144.10",
-          "chg": "-5.10",
-          "dir": "down"
+          "level": "150.60",
+          "chg": "+6.50",
+          "dir": "up"
         },
         {
           "label": "CAPE",
-          "level": "41.93",
+          "level": "42.38",
           "chg": null,
           "dir": "flat"
         }
@@ -220,29 +220,29 @@
         {
           "label": "IG OAS",
           "level": "81bp",
-          "chg": "+1bp",
-          "dir": "up",
-          "as_of": "Sep 1"
+          "chg": "unch",
+          "dir": "flat",
+          "as_of": "Sep 2"
         },
         {
           "label": "HY-IG",
-          "level": "265bp",
-          "chg": "+2bp",
+          "level": "266bp",
+          "chg": "+1bp",
           "dir": "up",
-          "as_of": "Sep 1"
+          "as_of": "Sep 2"
         },
         {
           "label": "HYG/LQD",
           "level": "1.332",
-          "chg": "+0.002",
-          "dir": "up"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "SOFR-OIS",
-          "level": "3bp",
-          "chg": "-2bp",
+          "level": "2bp",
+          "chg": "-1bp",
           "dir": "down",
-          "as_of": "Sep 1"
+          "as_of": "Sep 2"
         },
         {
           "label": "CP spread",
@@ -253,16 +253,16 @@
         },
         {
           "label": "RRP",
-          "level": "$0.5bn",
+          "level": "$0.7bn",
           "chg": "unch",
           "dir": "flat"
         },
         {
           "label": "TGA",
-          "level": "$951bn",
-          "chg": "-3bn",
-          "dir": "down",
-          "as_of": "Aug 26"
+          "level": "$968bn",
+          "chg": "+17bn",
+          "dir": "up",
+          "as_of": "Sep 2"
         }
       ]
     },
@@ -271,45 +271,45 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$90.76",
-          "chg": "+0.60%",
+          "level": "$91.84",
+          "chg": "+0.91%",
           "dir": "up"
         },
         {
           "label": "Brent",
-          "level": "$95.36",
-          "chg": "+0.75%",
+          "level": "$95.88",
+          "chg": "+0.26%",
           "dir": "up"
         },
         {
           "label": "Gold",
-          "level": "$4,432.60",
-          "chg": "+1.95%",
+          "level": "$4,521.10",
+          "chg": "+3.55%",
           "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.61",
-          "chg": "+1.54%",
+          "level": "$6.67",
+          "chg": "+2.66%",
           "dir": "up"
         },
         {
           "label": "DXY",
-          "level": "99.60",
-          "chg": "-0.07%",
+          "level": "99.00",
+          "chg": "-0.56%",
           "dir": "down"
         },
         {
           "label": "USD/JPY",
-          "level": "158.79",
-          "chg": "-0.88%",
+          "level": "155.97",
+          "chg": "-1.86%",
           "dir": "down"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1590",
-          "chg": "-0.05%",
-          "dir": "down"
+          "level": "1.1628",
+          "chg": "+0.37%",
+          "dir": "up"
         }
       ]
     }
@@ -320,9 +320,9 @@
         "trade": "Long 10-year Treasury",
         "date": "2026-08-24",
         "kind": "rates",
-        "held": 7,
-        "pnl": "-1.19%",
-        "vs": "-1.05pp",
+        "held": 8,
+        "pnl": "-1.03%",
+        "vs": "-1.95pp",
         "bench": "S&P 500",
         "horizon": 12
       },
@@ -330,9 +330,9 @@
         "trade": "Long KBW / Short NASDAQ",
         "date": "2026-08-17",
         "kind": "equity",
-        "held": 14,
-        "pnl": "-2.82%",
-        "vs": "-1.29pp",
+        "held": 15,
+        "pnl": "-3.07%",
+        "vs": "-2.58pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -340,9 +340,9 @@
         "trade": "Long 10y TIPS / Short 10y UST",
         "date": "2026-08-16",
         "kind": "rates",
-        "held": 14,
-        "pnl": "+0.52%",
-        "vs": "+2.05pp",
+        "held": 15,
+        "pnl": "+0.62%",
+        "vs": "+1.11pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -350,15 +350,15 @@
         "trade": "Long EUR/USD",
         "date": "2026-08-14",
         "kind": "fx",
-        "held": 16,
-        "pnl": "+0.48%",
-        "vs": "+2.17pp",
+        "held": 17,
+        "pnl": "+0.81%",
+        "vs": "+1.46pp",
         "bench": "S&P 500",
         "horizon": 3
       }
     ],
     "closed": [],
-    "as_of": "2026-09-03",
+    "as_of": "2026-09-04",
     "line": "4 open · 0 closed — no hit rate until 10 (too few to mean anything)"
   }
 }
