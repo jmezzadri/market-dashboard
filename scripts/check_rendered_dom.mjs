@@ -15,9 +15,17 @@
 //      daily cloud health sweep can read the rendered page from this run's
 //      log (ops-code-commit {"run_log": <id>}) instead of needing a browser.
 //   2. ASSERTS label/semantic invariants that are bugs by construction:
-//        - no tape tile stamped "live" when the session is known closed
-//          (EXPECT_MARKET_CLOSED=1 — the schedule fires pre-open, when the
-//          US equity session is closed on every weekday, holidays included);
+//        - no tape tile stamped "live" when the session is known closed.
+//          EXPECT_MARKET_CLOSED=1 is the schedule's INTENT (the cron fires
+//          pre-open) — but GitHub delivers scheduled fires late by hours
+//          (2026-09-03: the 11:10 UTC fire arrived 14:58 UTC = 10:58 ET,
+//          market open, and the event-type proxy filed a false P0, #1250).
+//          So the script re-checks the ACTUAL ET clock at run time and only
+//          asserts when the regular session is provably closed (weekend, or
+//          outside 09:30–16:00 ET). Inside regular hours it skips the
+//          assertion and says why — a weekday holiday cannot be ruled out
+//          without a calendar, and a monitor that cannot tell must stay
+//          quiet rather than alarm (LESSONS 5.7, 5.19 rule 4, 4.32.1);
 //        - the tape rendered at all, with real values (not an em-dash storm);
 //        - no visible NaN / undefined / literal "null" on either page;
 //        - no majority-"Unclassified" book on /paper (the 4.31 launch bug).
@@ -33,7 +41,32 @@
 import { chromium } from 'playwright';
 
 const LIVE_BASE = 'https://macrotilt.com';
-const EXPECT_CLOSED = process.env.EXPECT_MARKET_CLOSED === '1';
+
+// Session state comes from the actual clock, never from the event type.
+// A "pre-open" cron delivered during market hours (GitHub delay, routinely
+// hours — see 2026-09-03, run 33769946910) must not assert "closed" against
+// an open session. Weekday inside 09:30–16:00 ET → possibly open (a holiday
+// cannot be ruled out without a calendar) → the closed-session assertion is
+// skipped, with a printed reason. Everything else the script checks still runs.
+function etClock() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short', hour: 'numeric',
+    minute: 'numeric', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  return { weekday: get('weekday'), minutes: Number(get('hour')) * 60 + Number(get('minute')) };
+}
+const EXPECT_CLOSED_INTENT = process.env.EXPECT_MARKET_CLOSED === '1';
+const { weekday: ET_WD, minutes: ET_MIN } = etClock();
+const IN_REGULAR_HOURS =
+  !['Sat', 'Sun'].includes(ET_WD) && ET_MIN >= 9 * 60 + 30 && ET_MIN < 16 * 60;
+const EXPECT_CLOSED = EXPECT_CLOSED_INTENT && !IN_REGULAR_HOURS;
+if (EXPECT_CLOSED_INTENT && !EXPECT_CLOSED) {
+  console.log(
+    `NOTE: scheduled fire landed inside regular trading hours (${ET_WD} ${Math.floor(ET_MIN / 60)}:${String(ET_MIN % 60).padStart(2, '0')} ET) — ` +
+    'the closed-session "live"-stamp assertion is skipped: the session cannot be presumed closed from the schedule (LESSONS 5.19 rule 4).',
+  );
+}
 
 const violations = [];
 
@@ -175,4 +208,4 @@ if (violations.length > 0) {
   await fileBug();
   process.exit(1);
 }
-console.log('\nRENDERED-DOM SMOKE: PASS (expect_market_closed=' + EXPECT_CLOSED + ')');
+console.log('\nRENDERED-DOM SMOKE: PASS (expect_market_closed intent=' + EXPECT_CLOSED_INTENT + ' effective=' + EXPECT_CLOSED + ')');
