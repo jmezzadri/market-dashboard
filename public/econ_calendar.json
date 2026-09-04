@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-03T22:41:24Z",
+  "generated_at": "2026-09-04T13:39:19Z",
   "window": {
-    "from": "2026-08-27",
-    "to": "2026-11-12"
+    "from": "2026-08-28",
+    "to": "2026-11-13"
   },
   "counts": {
-    "total": 97,
-    "tier1": 26
+    "total": 95,
+    "tier1": 27
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-27",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-27",
-      "time_et": "8:30 AM",
-      "name": "Advance goods trade & inventories",
-      "short": "Adv Econ",
-      "tier": 3,
-      "category": "Trade",
-      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-08-27",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-08-28",
       "time_et": "10:00 AM",
@@ -1084,6 +1051,17 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-13",
+      "time_et": "8:30 AM",
+      "name": "Producer prices (PPI)",
+      "short": "PPI",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
