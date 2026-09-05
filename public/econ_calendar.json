@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-04T22:26:09Z",
+  "generated_at": "2026-09-05T12:53:54Z",
   "window": {
-    "from": "2026-08-28",
-    "to": "2026-11-13"
+    "from": "2026-08-29",
+    "to": "2026-11-14"
   },
   "counts": {
-    "total": 95,
+    "total": 94,
     "tier1": 27
   },
   "sources": [
@@ -20,17 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-08-28",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan)",
-      "short": "UMich",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-01",
       "time_et": "10:00 AM",
