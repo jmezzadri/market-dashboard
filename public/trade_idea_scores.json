@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-04T23:02:53Z",
-  "as_of": "2026-09-04",
+  "generated_at": "2026-09-05T00:31:14Z",
+  "as_of": "2026-09-05",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -39,14 +39,14 @@
           "label": "10-year Treasury",
           "short_label": "10-year Treasury",
           "maturity_years": 10.0,
-          "return_pct": -1.0307
+          "return_pct": -1.11
         }
       ],
-      "buy_pct": -1.0307,
+      "buy_pct": -1.11,
       "sell_pct": null,
       "trade_label": "Long 10-year Treasury",
-      "position_pct": -1.0307,
-      "risk_sized_pct": -1.9841,
+      "position_pct": -1.11,
+      "risk_sized_pct": -2.1368,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.925,
@@ -61,13 +61,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7677.28,
-        "move": 0.9174,
-        "difference": -1.9481,
+        "move": 0.5382,
+        "difference": -1.6482,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -1.0307,
-      "mark_date": "2026-09-03",
-      "sessions_held": 8,
+      "mark": -1.11,
+      "mark_date": "2026-09-04",
+      "sessions_held": 9,
       "max_favourable": {
         "value": 0.0,
         "date": "2026-08-25"
@@ -104,7 +104,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -3.6153
+          "return_pct": -3.333
         },
         {
           "series": "ndx_index",
@@ -115,14 +115,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -0.5429
+          "return_pct": -0.8312
         }
       ],
-      "buy_pct": -3.6153,
-      "sell_pct": -0.5429,
+      "buy_pct": -3.333,
+      "sell_pct": -0.8312,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -3.0724,
-      "risk_sized_pct": -1.3334,
+      "position_pct": -2.5018,
+      "risk_sized_pct": -1.0858,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -137,13 +137,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.4887,
-        "difference": -2.5837,
+        "move": -0.8626,
+        "difference": -1.6392,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -3.0724,
-      "mark_date": "2026-09-03",
-      "sessions_held": 15,
+      "mark": -2.5018,
+      "mark_date": "2026-09-04",
+      "sessions_held": 16,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
@@ -181,7 +181,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": -0.0884
+          "return_pct": -0.1768
         },
         {
           "series": "ust_10y",
@@ -193,14 +193,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -0.7122
+          "return_pct": -0.7914
         }
       ],
-      "buy_pct": -0.0884,
-      "sell_pct": -0.7122,
+      "buy_pct": -0.1768,
+      "sell_pct": -0.7914,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.6238,
-      "risk_sized_pct": 2.6749,
+      "position_pct": 0.6146,
+      "risk_sized_pct": 2.6354,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -215,13 +215,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.4887,
-        "difference": 1.1125,
+        "move": -0.8626,
+        "difference": 1.4772,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.6238,
-      "mark_date": "2026-09-03",
-      "sessions_held": 15,
+      "mark": 0.6146,
+      "mark_date": "2026-09-04",
+      "sessions_held": 16,
       "max_favourable": {
         "value": 0.6238,
         "date": "2026-09-03"
@@ -275,7 +275,15 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7798.99,
+        "move": -1.0308,
+        "difference": 1.7764,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": 0.7456,
       "mark_date": "2026-09-04",
       "sessions_held": 18,
