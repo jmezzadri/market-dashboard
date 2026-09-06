@@ -1,9 +1,221 @@
 {
-  "generated_at": "2026-08-26T10:59:51Z",
+  "generated_at": "2026-09-06T09:25:50Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
-  "next_publish": "2026-08-25",
+  "next_publish": "2026-09-07",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-09-06",
+      "kind": "commodity",
+      "title": "The last buyers just showed up in wheat",
+      "dek": "Funds went net long CBOT wheat for the first time since June 2022. In 16 prior episodes since 2014, that crossing marked the end of the rally, not the middle of it.",
+      "position_type": "outright short",
+      "call": "Over the next one to two months, Chicago wheat is priced to give back part of its August spike. The funds that chased the rally turned net long in the Sep 1 report — the first time since June 2022 — and after the 16 prior such readings, wheat fell within a month 14 times, a median 5.3%.",
+      "instrument": "CBOT soft red winter wheat futures, sold short, one to two months",
+      "horizon": "one to two months",
+      "the_trade": {
+        "buy": "US Treasury bills, held as collateral against the futures margin — cash stays in bills while the short is on.",
+        "short": "CBOT wheat futures, front month, near Friday's 733 cents-per-bushel close.",
+        "sizing": "Small. Wheat around a war headline can gap through any stop — size so a close at the 767 invalidation costs no more than a normal single-position loss."
+      },
+      "edge": {
+        "source": "positioning",
+        "summary": "Managed money crossed from net short to net long wheat in the Sep 1 CFTC report — above the 85th percentile of the full 2013–2026 record for the first time since June 2022. Fund length at an extreme is one of the few positioning signals that has actually predicted returns, and wheat is where it has predicted them best.",
+        "vs_market": "After the 16 prior signals, wheat fell a median 5.3% in one month and 6.6% in three. A short earning those medians beats the S&P 500's unconditional +1.5% one-month and +3.8% three-month medians over the same 2014–2026 sample, roughly threefold at one month, before costs.",
+        "backtest": {
+          "window": "Weekly CFTC disaggregated reports, Dec 2013 – Sep 2026 (664 weeks); episodes separated by at least 13 weeks",
+          "n": 16,
+          "result": "Median wheat move after managed money crossed the 85th percentile of its full record: −5.3% at one month (14 of 16 negative), −6.6% at three months (13 of 16 negative)",
+          "baseline": "Unconditional wheat medians over the same sample and horizons: −0.1% at one month, −0.1% at three months"
+        }
+      },
+      "variant": "Consensus is a supply story with more to run — Black Sea strikes on grain vessels, the worst US wheat yield since 2015, talk of $8 wheat (Al Jazeera, Aug 31 2026; Farm Progress, September 2026). This note does not dispute the supply facts. It disputes the buyer: the funds now arriving have historically been a rally's last. The same crossing fired in March and June 2022, mid-invasion of a major exporter, and wheat fell about 20% within a month both times.",
+      "thesis": [
+        "Wheat rose 12% in three sessions — 686 at the Aug 25 close to 767 on Aug 28, a three-year high. Friday it closed at 733.",
+        "Funds flipped from 3.1% of open interest net short (Aug 25 report) to 3.2% net long (Sep 1) — the first net-long reading since June 2022.",
+        "That crossing has fired 16 times since 2014. Wheat fell within a month in 14 of them, median −5.3% against a flat baseline.",
+        "Its last two firings — March and June 2022 — preceded one-month declines of 19.9% and 23.1%, with the invasion still running.",
+        "Corn and soybean funds sit at the 96th and 89th percentiles of their own records. The whole grain complex leans the same way."
+      ],
+      "evidence": [
+        {
+          "claim": "CBOT wheat, Friday close",
+          "value": "732.75 cents per bushel — the 99th percentile of three years",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-04"
+        },
+        {
+          "claim": "August spike, close to close",
+          "value": "+11.9%, from 685.50 (Aug 25) to 767.00 (Aug 28)",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-04"
+        },
+        {
+          "claim": "Managed-money net position in wheat",
+          "value": "+3.2% of open interest — 85th percentile of the full 2013–2026 record, first net long since June 2022",
+          "source": "CFTC disaggregated Commitments of Traders, WHEAT-SRW (CBOT), report dated Sep 1",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "One-week positioning swing",
+          "value": "from −3.1% of open interest (Aug 25 report) to +3.2% (Sep 1)",
+          "source": "CFTC disaggregated Commitments of Traders, WHEAT-SRW (CBOT)",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "Forward wheat return after the 16 prior crossings",
+          "value": "median −5.3% at one month (14 of 16 negative), −6.6% at three months (13 of 16)",
+          "source": "MacroTilt backtest: CFTC disaggregated COT crossed with MacroTilt wheat price history, 2013–2026",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Unconditional wheat baseline, same sample",
+          "value": "−0.1% at one month, −0.1% at three months",
+          "source": "MacroTilt backtest: MacroTilt wheat price history, 2013–2026",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Wheat one month after the Mar 8 and Jun 7 2022 signal weeks",
+          "value": "−19.9% and −23.1%",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Corn and soybean managed-money positions",
+          "value": "corn +22.7% of open interest (96th percentile of full record); soybeans +22.9% (89th)",
+          "source": "CFTC disaggregated Commitments of Traders (CBOT), reports dated Sep 1",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "S&P 500 unconditional medians, same 2014–2026 sample",
+          "value": "+1.5% at one month, +3.8% at three months",
+          "source": "MacroTilt indicator history (spx_index)",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "US wheat yield forecast — the other side",
+          "value": "46.7 bushels per acre, the lowest since 2015",
+          "source": "Al Jazeera, citing USDA, 2026-08-31",
+          "as_of": "2026-08-31"
+        },
+        {
+          "claim": "Black Sea escalation — the other side",
+          "value": "35 Russian strikes on grain vessels in July, versus 14 in all of 2025",
+          "source": "Al Jazeera, citing Ukraine's agriculture ministry, 2026-08-31",
+          "as_of": "2026-08-31"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_wheat",
+          "title": "The August spike, and where it stopped",
+          "subtitle": "CBOT wheat, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "The rally ran from 686 on Aug 25 to 767 on Aug 28 and has since given a third of it back. Funds turned net long inside that top range.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_corn",
+          "title": "Corn: the same crowd, deeper in",
+          "subtitle": "CBOT corn, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "Corn funds hold 22.7% of open interest net long — the 96th percentile of their full record. The grain complex is one trade.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_soybeans",
+          "title": "Soybeans: third leg of the complex",
+          "subtitle": "CBOT soybeans, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "Soybean funds sit at the 89th percentile net long. When all three grains lean one way, the exit is narrow.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Short near Friday's 733 close. A bounce toward 745–755 improves the entry without changing the case.",
+        "invalidation": "A daily close above 767 — the Aug 28 high. A new closing high says the supply shock is still repricing and positioning is not yet binding.",
+        "target": "685 — the shelf wheat sat on Aug 20–25 before the spike, about 6.5% below Friday's close and in line with the one-to-three-month medians."
+      },
+      "sections": [
+        {
+          "title": "What happened",
+          "bullets": [
+            "Wheat ran 686 to 767 between the Aug 25 and Aug 28 closes — a three-year high on Black Sea strikes and failed harvests.",
+            "By Friday Sep 4 it had slipped to 733.",
+            "The Sep 1 CFTC report, published Friday, showed funds net long wheat for the first time since June 2022."
+          ]
+        },
+        {
+          "title": "Why late buyers matter in grains",
+          "bullets": [
+            "Grain funds follow trend. They arrive after the move.",
+            "Wheat funds have been net short in most weeks since 2013 — the median position is 8% of open interest short.",
+            "A net-long reading is rare: 16 separated episodes in 12 years. Wheat fell within the month in 14 of them.",
+            "This does not transfer across markets — the same chase in gold has been rewarded. The fade is wheat's own, measured pattern."
+          ]
+        },
+        {
+          "title": "The 2022 rhyme",
+          "bullets": [
+            "March and June 2022: a major exporter invaded, wheat at records, funds at maximum length.",
+            "One month later: down 19.9% and 23.1%. The supply story was true. The price still fell.",
+            "The bull case was fully priced the day the last fund bought it."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "Sep 11: next weekly CFTC positioning report — does the new fund length build or unwind?",
+            "Sep 11: US consumer prices (CPI), 8:30 AM ET — a dollar move passes straight into dollar-priced grain.",
+            "Sep 16: Fed decision (FOMC), 2:00 PM ET — same dollar channel, larger dose."
+          ]
+        }
+      ],
+      "other_side": "The supply story is real and still running: 35 strikes on grain vessels in July against 14 in all of 2025, the worst US yield since 2015, Canada's crop down 13%, Europe's down about 9 million tonnes (Al Jazeera, Aug 31). A further Black Sea escalation reprices wheat higher regardless of who is positioned how — that is what the 767 stop is for. And 16 episodes is enough to lean on, not enough to be certain.",
+      "risks": [
+        "Headline gap risk: an export-infrastructure strike can gap wheat through 767 overnight. A futures short has no ceiling on its loss without the stop.",
+        "The Sep 1 positioning report is five days old, and wheat has already slipped from 764 to 733 — part of the median move may be spent.",
+        "Harvest-season supply revisions move grain prices on their own clock, independent of positioning.",
+        "The signal is marginal — 85.4th percentile, one week over the line. Deeper extremes have been the stronger fades."
+      ],
+      "so_what": "The supply shock is on every front page; who now owns the rally is not. When the funds that chase grain cross to net long this late, the record says the price they paid was near the top — 14 times out of 16 since 2014. The short is small, stopped at 767, and aimed at 685.",
+      "book": {
+        "stance": "The live book is long 10-year Treasuries, long 10-year inflation breakevens, long US banks against the S&P 500, and long the euro against the dollar. Its core bet: US rates near their peak, a softer dollar, and mean reversion where the data has actually supported it. This note adds the book's first commodity leg and first outright short — a positioning fade in the one grain market where fades have paid. It does not offset the breakeven call: a two-month wheat fade and a ten-year inflation view price different things on different clocks. Highest conviction remains the Aug 24 10-year note; this wheat short is the smallest position in the book.",
+        "rebalance": "Holders of the four live calls change nothing. This is a small, independent addition — not a funding switch out of any existing position. The Aug 17 banks call and Aug 24 10-year call stay on as they are."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "cmdty_wheat",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "CBOT wheat (front month)"
+          }
+        ],
+        "horizon_months": 2,
+        "invalidation": {
+          "series": "cmdty_wheat",
+          "op": ">=",
+          "level": 767,
+          "basis": "close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        }
+      },
+      "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
+      "status": "live",
+      "published_at": "2026-09-06T09:25:50Z"
+    },
     {
       "date": "2026-08-24",
       "kind": "rates",
