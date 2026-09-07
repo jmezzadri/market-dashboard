@@ -17870,8 +17870,8 @@
     },
     {
       "date": "2026-09-04",
-      "move": 74.7,
-      "move_pctile_5y": 0.1916,
+      "move": 73.1,
+      "move_pctile_5y": 0.1609,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
       "delta_y_3m_bp": 22.0,
