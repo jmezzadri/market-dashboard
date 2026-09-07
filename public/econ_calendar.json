@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-06T22:11:39Z",
+  "generated_at": "2026-09-07T15:08:17Z",
   "window": {
-    "from": "2026-08-30",
-    "to": "2026-11-15"
+    "from": "2026-08-31",
+    "to": "2026-11-16"
   },
   "counts": {
-    "total": 94,
+    "total": 95,
     "tier1": 27
   },
   "sources": [
@@ -1051,6 +1051,17 @@
       "tier": 1,
       "category": "Inflation",
       "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-16",
+      "time_et": "8:30 AM",
+      "name": "Empire State survey",
+      "short": "Empire",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
