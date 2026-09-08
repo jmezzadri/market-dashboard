@@ -217,6 +217,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.14` A hard `max-width` on body copy inside a full-bleed card wastes most of the row
 - `9.15` One holding's history is a fact about that holding, never about the book; a shared window is only for the numbers that genuinely need one
 - `9.16` A drill-down is not a destination; opening a detail view is no reason to move the user to another page
+- `9.17` Three typefaces, three tokens, one declaration site — and a family we declare but never load is a face nobody chose
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2018,6 +2019,35 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
+### 9.17 (2026-09-08) — Three typefaces, three tokens, one declaration site; and a family we declare but never load is a face nobody chose
+
+**What happened:** Joe, on the Home cockpit: *"I thought we went over all the different font usages?! This looks ridiculous. Please can we fix this and mark a hard rule around fonts we use on the site? We need some consistency."*
+
+We had gone over it — twice, in comments. `v13.css` opens with "three roles, no more". `tokens.css` recorded on 2026-07-08 that the display face had been unified. Neither was a check, so neither held. Measured on the live page on 2026-09-08:
+
+| Token system | Where | Families it named |
+|---|---|---|
+| `--v13-f-ui / -num / -read` | `v13.css` | IBM Plex Sans / Mono / Serif |
+| `--mt-font-ui / -display / -mono` | `tokens.css` | Inter / Geist / JetBrains Mono |
+| `--sans` / `--serif` | `cream-system.css` | Geist / Instrument Serif |
+| `--ch-serif` | `chrome-v12.css` | Instrument Serif |
+
+Plus self-hosted Fraunces and Inter `@font-face` rules in `theme.css` and four `.woff2` files in `public/fonts/`.
+
+**The worse half: the three families the pages actually asked for were never loaded.** `index.html` requested Instrument Serif and Geist — which almost nothing still used — and never requested IBM Plex at all. So every visitor without IBM Plex installed locally saw the whole site in system fallbacks: San Francisco for the UI, Iowan Old Style for the headlines, Menlo for the numbers. Three unrelated faces on one card, none of them chosen by us. That is what Joe was looking at.
+
+**And the Home cockpit set prose in a number face.** `.v13.home-v12 .v` carried the mono token. `.v` is the value half of a Trade Idea key/value pair and is always a full English sentence, so "US Treasury bills, held as collateral against the futures margin — cash stays in bills while the short is on" rendered monospace at 600, beside a serif headline and a sans one.
+
+**Rule:**
+
+1. **Three roles, one family each, all IBM Plex.** `--mt-type-sans` for every control, label, chip and table cell; `--mt-type-serif` for editorial prose and the wordmark and nothing else; `--mt-type-mono` for numerals only. One superfamily so the three share a skeleton and read as one voice.
+2. **A font family name is written in exactly one file** — `src/overhaul/styles/type.css`. Every other stylesheet and every JSX style object references a token. The old token names survive only as aliases onto the three; adding a new alias is not the fix, changing the code is.
+3. **Declared means loaded.** Every family in `type.css` is requested by the single Google Fonts `<link>` in `index.html`, and that link requests nothing else. Declaring a face without loading it, or loading one nothing uses, is the same defect in two directions.
+4. **Mono is for figures.** A monospace face on a sentence is a defect, not a style. Mark numbers with `.num`; never with a class that also catches prose.
+5. **The rule is `scripts/check_fonts.mjs`, not this entry.** It fails the build on a family named outside `type.css`, a font token that is not one of the three, a bare generic fallback in a component, a declared-but-unloaded family, a stray self-hosted face, prose rendered in mono, and a fourth family appearing on screen. Per 7.15, `check_layout.mjs` — written for this same reason on 2026-09-01 and never wired to anything — now runs in the same workflow, `UI-STANDARDS-CHECK`.
+
+**Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`. See `docs/TYPOGRAPHY_STANDARD.md`.
+
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
 **What happened:** the Sunday gold note found a real, well-measured signal whose

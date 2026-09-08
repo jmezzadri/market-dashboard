@@ -176,10 +176,10 @@ const CSS = `
 .paper-v12 .qtt-tile:hover { transform: translateY(-2px); }
 .paper-v12 .qtt-row { transition: background .12s ease; }
 .paper-v12 .qtt-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
-.paper-v12 .qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; font-family: var(--sans); }
+.paper-v12 .qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-pill:hover { color: var(--ink); }
 .paper-v12 .qtt-pill.on { background: color-mix(in srgb, var(--gold-deep) 16%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
-.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size: 13px; width: 190px; outline: none; font-family: var(--sans); }
+.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size: 13px; width: 190px; outline: none; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
 .paper-v12 .qtt-search::placeholder { color: var(--mut); }
 .paper-v12 .qtt-secgrid { columns: 250px; column-gap: 18px; }

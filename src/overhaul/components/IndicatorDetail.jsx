@@ -183,7 +183,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           <div className="mt-eyebrow">{ind.familyFull || ind.domain}</div>
           <div
             style={{
-              fontFamily: 'var(--mt-font-display)',
+              fontFamily: 'var(--mt-type-mono)',
               fontSize: 32,
               fontWeight: 400,
               letterSpacing: '-0.02em',

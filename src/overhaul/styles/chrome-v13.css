@@ -30,7 +30,6 @@
   --ch-gold-deep: var(--v13-accent);   /* links and actives are accent now */
   --ch-hair: var(--v13-rule);
   --ch-nav-h: 44px;
-  --ch-serif: var(--v13-f-read);
 }
 
 /* The shell ground. `background-image: none` kills the tokens.css radial
@@ -38,7 +37,7 @@
 .mt-overhaul {
   background: var(--v13-ground);
   background-image: none;
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   color: var(--v13-ink);
   transition: background var(--v13-med) var(--v13-ease), color var(--v13-med) var(--v13-ease);
 }
@@ -53,7 +52,7 @@
   border-bottom: 1px solid var(--v13-rule);
 }
 .mt-overhaul .mt-wordmark {
-  font-family: var(--v13-f-read);
+  font-family: var(--mt-type-serif);
   font-size: var(--v13-t5);
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -107,7 +106,7 @@
   border-radius: var(--v13-r);
   background: var(--v13-surface);
   color: var(--v13-ink);
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   font-size: var(--v13-t3);
   transition: border-color var(--v13-fast) var(--v13-ease), box-shadow var(--v13-fast) var(--v13-ease);
 }
@@ -150,7 +149,7 @@
 .mt-overhaul .mt-footer .inner { max-width: var(--v13-page); padding: 0 var(--v13-s4); margin: 0 auto; }
 .mt-overhaul .mt-footer-grid { gap: var(--v13-s5); }
 .mt-overhaul .mt-footer-wordmark {
-  font-family: var(--v13-f-read);
+  font-family: var(--mt-type-serif);
   font-size: var(--v13-t5);
   font-weight: 600;
   color: var(--v13-ink);
@@ -191,7 +190,7 @@
   width: 100%; height: 28px; padding: 0 var(--v13-s3);
   border: 1px solid var(--v13-rule-2); border-radius: var(--v13-r);
   background: var(--v13-surface-2); color: var(--v13-ink);
-  font-family: var(--v13-f-ui); font-size: var(--v13-t3); outline: none;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t3); outline: none;
   transition: border-color var(--v13-fast) var(--v13-ease), box-shadow var(--v13-fast) var(--v13-ease);
 }
 .mt-overhaul .v13-search-input::placeholder { color: var(--v13-ink-3); }

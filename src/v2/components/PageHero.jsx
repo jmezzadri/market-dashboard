@@ -3,7 +3,7 @@
 // Locked spec (2026-05-13, Joe directive — "every page's Header and Subheader
 // looks EXACTLY THE SAME"):
 //   - eyebrow:  Inter 11 / 600 / 0.16em tracking / uppercase / --ink-3
-//   - title:    Fraunces 40 / 400 / line-height 1.15 / --ink-0
+//   - title:    site serif 40 / 400 / line-height 1.15 / --ink-0
 //   - bullets:  Inter 14.5 / 400 / line-height 1.55 / --ink-2 / disc list
 //   - vertical: 32px top padding, 14px eyebrow→title gap, 22px title→bullets
 //   - grid:     max-width 1440, padding-x 32, 1fr / 380px right slot

@@ -22,8 +22,6 @@
    One block. Light and dark both work without a second copy, because the
    v13 tokens on the right-hand side already swap under [data-mt-theme]. */
 .v13.home-v12 {
-  --serif: var(--v13-f-read);      /* kept, for editorial prose only */
-  --sans: var(--v13-f-ui);
 
   --bg: var(--v13-ground);
   --bg2: var(--v13-surface-2);
@@ -53,7 +51,7 @@
   background: var(--v13-ground);
   background-image: none;
   color: var(--v13-ink);
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   font-size: var(--v13-t3);
   line-height: 1.45;
 }
@@ -112,14 +110,17 @@
 .v13.home-v12 .serif,
 .v13.home-v12 .fullbrief p,
 .v13.home-v12 .briefmodal-body p {
-  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.6; max-width: 66ch;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.6; max-width: 66ch;
 }
 
-/* Every numeral, everywhere. */
+/* Every numeral, everywhere — and ONLY numerals. 2026-09-08: `.v` was in this
+   list. `.v` is the value half of a key/value pair in a Trade Idea fact, and
+   it is always a full English sentence, so the Home cockpit was setting
+   "US Treasury bills, held as collateral against the futures margin" in a
+   monospace face at 600. Mono is for figures. Mark numbers with `.num`. */
 .v13.home-v12 .num,
 .v13.home-v12 .num *,
-.v13.home-v12 .v,
-.v13.home-v12 .tv { font-family: var(--v13-f-num); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.v13.home-v12 .tv { font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 
 /* Pills and buttons. */
 .v13.home-v12 .mt-pill,
@@ -178,7 +179,7 @@
 .v13.home-v12 .sc-ed h1,
 .v13.home-v12 .pp-ed h1,
 .v13.home-v12 .lab-head h1 {
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   font-size: var(--v13-t6) !important;   /* beats five different clamp() rules */
   font-weight: 600;
   line-height: 1.15;
@@ -226,7 +227,7 @@
    clamp has no job here. */
 .v13.home-v12.home-cockpit .brief-stance {
   display: block; -webkit-line-clamp: none; overflow: visible;
-  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.6;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.6;
   max-width: 66ch; margin: var(--v13-s2) 0 0; color: var(--v13-ink-2);
 }
 .v13.home-v12.home-cockpit .brief-stance b { color: var(--v13-ink); font-weight: 600; }
@@ -234,11 +235,11 @@
 /* The tape tiles: 42px cream serif, 26px on the cockpit. One numeral face. */
 .v13.home-v12 .t .tv,
 .v13.home-v12.home-cockpit .tape .tv {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t5); font-weight: 500; letter-spacing: -0.02em; line-height: 1.2;
 }
 .v13.home-v12 .t .tk { font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
-.v13.home-v12 .t .td { font-family: var(--v13-f-num); font-size: var(--v13-t1); }
+.v13.home-v12 .t .td { font-family: var(--mt-type-mono); font-size: var(--v13-t1); }
 
 /* Gauges. The pin was a 15px gold-ringed ball on a 7px rounded track — the
    cream era's one flourish. v13 reads it as a tick on a rule. */
@@ -255,7 +256,7 @@
   text-transform: uppercase; color: var(--v13-ink-3); white-space: nowrap;
 }
 .v13.home-v12 .gauge .ends span { flex: 0 0 auto; }
-.v13.home-v12 .gauge .gl b { font-family: var(--v13-f-num); font-size: var(--v13-t5); font-weight: 500; }
+.v13.home-v12 .gauge .gl b { font-family: var(--mt-type-mono); font-size: var(--v13-t5); font-weight: 500; }
 .v13.home-v12 .gauge .read { font-size: var(--v13-t2); font-weight: 500; margin-top: var(--v13-s1); }
 .v13.home-v12 .gauge { padding: var(--v13-s2); border-radius: var(--v13-r); }
 
@@ -292,7 +293,7 @@
 }
 .v13.home-v12.home-cockpit .es-verdict { gap: var(--v13-s2); }
 .v13.home-v12.home-cockpit .es-verdict h2 {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t6); font-weight: 600;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 600;
   letter-spacing: -0.02em; line-height: 1.12;
 }
 .v13.home-v12.home-cockpit .es-so { font-size: var(--v13-t2); line-height: 1.55; color: var(--v13-ink-2); }
@@ -304,7 +305,7 @@
 .v13.home-v12.home-cockpit .engine-strip em,
 .v13.home-v12.home-cockpit .engine-card h2 em {
   font-style: normal;
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   text-transform: capitalize;
   color: var(--v13-brand);
 }
@@ -315,12 +316,12 @@
 .v13.home-v12.home-cockpit .tilehead { margin-bottom: var(--v13-s2); }
 .v13.home-v12.home-cockpit .hl,
 .v13.home-v12.home-cockpit .idea-title {
-  font-family: var(--v13-f-read); font-size: var(--v13-t5); font-weight: 400;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: 400;
   line-height: 1.32; letter-spacing: -0.01em;
 }
 .v13.home-v12.home-cockpit .tape .v { font-size: var(--v13-t4); }
 .v13.home-v12.home-cockpit .tape .k { font-size: var(--v13-t1); }
-.v13.home-v12.home-cockpit .cal-time { font-family: var(--v13-f-num); font-size: var(--v13-t1); color: var(--v13-ink-3); }
+.v13.home-v12.home-cockpit .cal-time { font-family: var(--mt-type-mono); font-size: var(--v13-t1); color: var(--v13-ink-3); }
 .v13.home-v12.home-cockpit .es-verdict { font-size: var(--v13-t6); font-weight: 600; letter-spacing: -0.02em; }
 .v13.home-v12.home-cockpit .idea-fact b,
 .v13.home-v12.home-cockpit .idea-call { font-size: var(--v13-t3); }
@@ -332,13 +333,13 @@
 .v13.home-v12.scanner-v12 .sc-tablecard,
 .v13.home-v12.scanner-v12 .sc-inset { border-radius: var(--v13-r); margin: 0; }
 .v13.home-v12.scanner-v12 .sc-paneltitle {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
 }
 .v13.home-v12.scanner-v12 .sc-panelhead { padding: 0 var(--v13-s3); height: var(--v13-bar);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
 .v13.home-v12.scanner-v12 .sc-table th { padding: 0 var(--v13-s2); }
 .v13.home-v12.scanner-v12 .sc-table td { padding: 0 var(--v13-s2); }
-.v13.home-v12.scanner-v12 .sc-tk b { font-family: var(--v13-f-num); font-size: var(--v13-t3); color: var(--v13-accent); }
+.v13.home-v12.scanner-v12 .sc-tk b { font-family: var(--mt-type-mono); font-size: var(--v13-t3); color: var(--v13-accent); }
 .v13.home-v12.scanner-v12 .sc-tk .nm { font-size: var(--v13-t2); color: var(--v13-ink-3); }
 .v13.home-v12.scanner-v12 .sc-kicker { font-size: var(--v13-t1); color: var(--v13-accent); }
 .v13.home-v12.scanner-v12 .sc-rule,
@@ -346,12 +347,12 @@
 
 /* Paper */
 .v13.home-v12.paper-v12 .paper-panel-title {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: 600; letter-spacing: -0.01em;
 }
 .v13.home-v12.paper-v12 .paper-panel-head { padding: 0 var(--v13-s3); height: var(--v13-bar);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
 .v13.home-v12.paper-v12 .pp-tablewrap { padding: 0; }
-.v13.home-v12.paper-v12 .pp-book-nav { font-family: var(--v13-f-num); font-size: var(--v13-t6) !important; font-weight: 500; }
+.v13.home-v12.paper-v12 .pp-book-nav { font-family: var(--mt-type-mono); font-size: var(--v13-t6) !important; font-weight: 500; }
 .v13.home-v12.paper-v12 .pp-book-rows > div { font-size: var(--v13-t3); padding: 0; height: var(--v13-row); }
 .v13.home-v12.paper-v12 .pts-title,
 .v13.home-v12.paper-v12 .pts-asof { font-size: var(--v13-t1); }
@@ -410,7 +411,7 @@
 .v13.home-v12.lab-v12 .lab-cardhead { height: var(--v13-bar); margin: 0; padding: 0 var(--v13-s3);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
 .v13.home-v12.lab-v12 .lab-cardhead h2 {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t1); font-weight: 700;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t1); font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--v13-ink-2);
 }
 .v13.home-v12.lab-v12 .lab-card > *:not(.lab-cardhead) { padding-left: var(--v13-s3); padding-right: var(--v13-s3); }
@@ -442,21 +443,21 @@
 .v13.home-v12.methodology-v12 .me-toc.me-rail { border-radius: var(--v13-r); padding: var(--v13-s3); }
 .v13.home-v12.methodology-v12 .me-toc.me-rail a { font-size: var(--v13-t2); }
 .v13.home-v12.methodology-v12 .me-section { padding: var(--v13-s5) 0 var(--v13-s4); gap: var(--v13-s4); }
-.v13.home-v12.methodology-v12 .me-num { font-family: var(--v13-f-num); font-size: var(--v13-t6); }
+.v13.home-v12.methodology-v12 .me-num { font-family: var(--mt-type-mono); font-size: var(--v13-t6); }
 .v13.home-v12.methodology-v12 .me-h2 {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t5) !important; font-weight: 600;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t5) !important; font-weight: 600;
   letter-spacing: -0.01em; margin: 0 0 var(--v13-s3);
 }
 .v13.home-v12.methodology-v12 .me-h3 {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t4) !important; font-weight: 600;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t4) !important; font-weight: 600;
   margin: var(--v13-s5) 0 var(--v13-s2); padding-top: var(--v13-s4);
 }
 .v13.home-v12.methodology-v12 .me-section p,
 .v13.home-v12.methodology-v12 .me-content .me-body-p {
-  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.65; max-width: 68ch;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.65; max-width: 68ch;
 }
 .v13.home-v12.methodology-v12 .me-formula {
-  font-family: var(--v13-f-num); font-size: var(--v13-t2); border-radius: var(--v13-r); padding: var(--v13-s3);
+  font-family: var(--mt-type-mono); font-size: var(--v13-t2); border-radius: var(--v13-r); padding: var(--v13-s3);
 }
 .v13.home-v12.methodology-v12 .me-vendors { border-radius: var(--v13-r); font-size: var(--v13-t3); }
 
@@ -464,7 +465,7 @@
 .v13.home-v12.data-v12 .df-banner,
 .v13.home-v12.data-v12 .df-totals,
 .v13.home-v12.data-v12 .df-legend-top { border-radius: var(--v13-r); font-size: var(--v13-t2); padding: var(--v13-s2) var(--v13-s3); }
-.v13.home-v12.data-v12 .df-totals b { font-family: var(--v13-f-num); font-size: var(--v13-t5); }
+.v13.home-v12.data-v12 .df-totals b { font-family: var(--mt-type-mono); font-size: var(--v13-t5); }
 .v13.home-v12.data-v12 .df-col-h,
 .v13.home-v12.data-v12 .df-sub-h,
 .v13.home-v12.data-v12 .df-legend-grp-h { font-size: var(--v13-t1); }
@@ -476,19 +477,19 @@
 
 /* Ticker */
 .v13.home-v12.ticker-v12 .tk-symbol {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t6) !important; font-weight: 600; letter-spacing: -0.02em;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t6) !important; font-weight: 600; letter-spacing: -0.02em;
 }
 .v13.home-v12.ticker-v12 .tk-name { font-size: var(--v13-t4); color: var(--v13-ink-2); }
 .v13.home-v12.ticker-v12 .tk-meta,
 .v13.home-v12.ticker-v12 .tk-pricemeta { font-size: var(--v13-t2); }
-.v13.home-v12.ticker-v12 .tk-price { font-family: var(--v13-f-num); font-size: var(--v13-t6); font-weight: 500; }
+.v13.home-v12.ticker-v12 .tk-price { font-family: var(--mt-type-mono); font-size: var(--v13-t6); font-weight: 500; }
 .v13.home-v12.ticker-v12 .mt-card,
 .v13.home-v12.ticker-v12 .tk-scoreblock,
 .v13.home-v12.ticker-v12 .tk-kvcell,
 .v13.home-v12.ticker-v12 .tk-techcell,
 .v13.home-v12.ticker-v12 .tk-relcard { border-radius: var(--v13-r); padding: var(--v13-s3); }
 .v13.home-v12.ticker-v12 .tk-kvcell b,
-.v13.home-v12.ticker-v12 .tk-techcell b.num { font-family: var(--v13-f-num); font-size: var(--v13-t4); font-weight: 500; }
+.v13.home-v12.ticker-v12 .tk-techcell b.num { font-family: var(--mt-type-mono); font-size: var(--v13-t4); font-weight: 500; }
 .v13.home-v12.ticker-v12 .mt-pill,
 .v13.home-v12.ticker-v12 .mt-btn {
   border-radius: var(--v13-r); padding: 5px 10px;
@@ -506,7 +507,7 @@
    was sans — two faces on one line. */
 .v13.home-v12.ticker-v12 .tk-name,
 .v13.home-v12.ticker-v12 .tk-hero .serif {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t4); font-weight: 500; color: var(--v13-ink-2);
+  font-family: var(--mt-type-sans); font-size: var(--v13-t4); font-weight: 500; color: var(--v13-ink-2);
 }
 
 /* "Not in a scan" plus "no current scanner signal" was set inside a 96px
@@ -551,10 +552,9 @@
   --mt-accent: var(--v13-accent);
   --mt-up: var(--v13-up);
   --mt-down: var(--v13-down);
-  --mt-serif: var(--v13-f-read);
 }
 .v13.home-v12.sc-wrap .sc-head h1 {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t6); font-weight: 600;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 600;
   letter-spacing: -0.02em; margin: 0 0 var(--v13-s1);
 }
 .v13.home-v12.sc-wrap .sc-sub { font-size: var(--v13-t3); max-width: 88ch; margin: 0 0 var(--v13-s3); }
@@ -567,7 +567,7 @@
 }
 .v13.home-v12.sc-wrap .sc-tile--warn { border-color: var(--v13-down); }
 .v13.home-v12.sc-wrap .sc-tile-n {
-  display: block; font-family: var(--v13-f-num); font-size: var(--v13-t6);
+  display: block; font-family: var(--mt-type-mono); font-size: var(--v13-t6);
   font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: var(--v13-ink);
 }
 .v13.home-v12.sc-wrap .sc-tile-l {
@@ -607,7 +607,7 @@
   border-bottom: 1px solid var(--v13-rule); vertical-align: middle;
 }
 .v13.home-v12.sc-wrap .sc-table th.num,
-.v13.home-v12.sc-wrap .sc-table td.num { text-align: right; font-family: var(--v13-f-num); }
+.v13.home-v12.sc-wrap .sc-table td.num { text-align: right; font-family: var(--mt-type-mono); }
 .v13.home-v12.sc-wrap .sc-table th:last-child,
 .v13.home-v12.sc-wrap .sc-table td:last-child { padding-right: var(--v13-s2); }
 .v13.home-v12.sc-wrap .sc-trow:hover { background: var(--v13-accent-soft); }
@@ -625,7 +625,7 @@
 .v13.mt-static-page {
   max-width: 76ch; margin: 0 auto; padding: var(--v13-s5) var(--v13-s4) var(--v13-s6);
   background: var(--v13-ground); color: var(--v13-ink);
-  font-family: var(--v13-f-ui); font-size: var(--v13-t3); line-height: 1.45;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t3); line-height: 1.45;
 }
 .v13.mt-static-page h1 {
   font-size: var(--v13-t6); font-weight: 600; letter-spacing: -0.02em;
@@ -641,7 +641,7 @@
 }
 .v13.mt-static-page p,
 .v13.mt-static-page li {
-  font-family: var(--v13-f-read); font-size: var(--v13-t4); line-height: 1.65; color: var(--v13-ink-2);
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.65; color: var(--v13-ink-2);
 }
 .v13.mt-static-page a { color: var(--v13-accent); }
-.v13.mt-static-page .mt-static-updated { font-family: var(--v13-f-ui); font-size: var(--v13-t2); color: var(--v13-ink-3); }
+.v13.mt-static-page .mt-static-updated { font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--v13-ink-3); }

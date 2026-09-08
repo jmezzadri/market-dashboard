@@ -103,7 +103,7 @@ function DesyncChip({ reasons }) {
       title={tip}
       style={{
         display: "inline-flex", alignItems: "center", gap: 3,
-        fontSize: 10, fontFamily: "monospace", fontWeight: 700,
+        fontSize: 10, fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
         color: "var(--yellow)", padding: "1px 5px", borderRadius: 3,
         border: "1px solid var(--yellow)", background: "rgba(107,122,133,0.10)",
         textTransform: "uppercase", letterSpacing: "0.08em",
@@ -215,7 +215,7 @@ function KpiTile({ label, value, sub, tone, active, onClick }) {
         color: "inherit",
         width: "100%",
       }}>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)', letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: toneColor, fontVariantNumeric: "tabular-nums" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{sub}</div>}
     </button>
@@ -225,7 +225,7 @@ function KpiTile({ label, value, sub, tone, active, onClick }) {
 function StatusBadge({ status }) {
   const color = statusColor(status);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color, fontFamily: 'var(--mt-type-mono)', textTransform: "uppercase", letterSpacing: "0.05em" }}>
       <span style={{ width: 6, height: 6, borderRadius: 3, background: color, display: "inline-block" }} />
       {statusLabel(status)}
     </span>
@@ -235,7 +235,7 @@ function StatusBadge({ status }) {
 function ComplexityBadge({ value }) {
   if (!value) return <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>;
   return (
-    <span style={{ display: "inline-block", minWidth: 18, textAlign: "center", padding: "1px 6px", fontSize: 11, fontWeight: 700, fontFamily: "monospace", borderRadius: 4, border: `1px solid ${complexityColor(value)}`, color: complexityColor(value), background: "transparent" }}>
+    <span style={{ display: "inline-block", minWidth: 18, textAlign: "center", padding: "1px 6px", fontSize: 11, fontWeight: 700, fontFamily: 'var(--mt-type-mono)', borderRadius: 4, border: `1px solid ${complexityColor(value)}`, color: complexityColor(value), background: "transparent" }}>
       {value}
     </span>
   );
@@ -263,7 +263,7 @@ function UatModeBadge({ row }) {
         marginLeft: 6,
         fontSize: 10,
         fontWeight: 700,
-        fontFamily: "monospace",
+        fontFamily: 'var(--mt-type-mono)',
         borderRadius: 4,
         border: `1px solid ${color}`,
         color,
@@ -326,7 +326,7 @@ function BugTable({ rows, selectedId, onSelect }) {
     borderBottom: "1px solid var(--border)",
     fontSize: 10,
     color: "var(--text-muted)",
-    fontFamily: "monospace",
+    fontFamily: 'var(--mt-type-mono)',
     textTransform: "uppercase",
     letterSpacing: "0.08em",
     fontWeight: 600,
@@ -385,11 +385,11 @@ function BugTable({ rows, selectedId, onSelect }) {
                     background: isSel ? "var(--hover, rgba(96,165,250,0.08))" : "transparent",
                   }}
                 >
-                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)" }}>#{r.report_number || "—"}</td>
-                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-2)" }}>{etDateShort(r.created_at)}</td>
+                  <td style={{ ...cellStyle, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>#{r.report_number || "—"}</td>
+                  <td style={{ ...cellStyle, fontFamily: 'var(--mt-type-mono)', color: "var(--text-2)" }}>{etDateShort(r.created_at)}</td>
                   <td style={{ ...cellStyle, color: "var(--text-2)" }} title={r.reporter_email || ""}>{r.reporter_name || r.reporter_email || "—"}</td>
                   <td style={{ ...cellStyle, color: "var(--text)" }}>{shortTitle(r)}</td>
-                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)" }} title={r.url_full || ""}>{whereText(r)}</td>
+                  <td style={{ ...cellStyle, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }} title={r.url_full || ""}>{whereText(r)}</td>
                   <td style={cellStyle}><ComplexityBadge value={r.complexity} /></td>
                   <td style={{ ...cellStyle, whiteSpace: "nowrap" }}>
                     <span style={{ display: "inline-flex", alignItems: "center" }}>
@@ -398,10 +398,10 @@ function BugTable({ rows, selectedId, onSelect }) {
                       <UatModeBadge row={r} />
                     </span>
                   </td>
-                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11 }} title={branch || ""}>
+                  <td style={{ ...cellStyle, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", fontSize: 11 }} title={branch || ""}>
                     {pr ? `#${pr}` : branch || "—"}
                   </td>
-                  <td style={{ ...cellStyle, textAlign: "right", fontFamily: "monospace", color: "var(--text-muted)" }}>{ageText(r.created_at)}</td>
+                  <td style={{ ...cellStyle, textAlign: "right", fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>{ageText(r.created_at)}</td>
                 </tr>
               );
             })}
@@ -447,7 +447,7 @@ function ActivityLog({ bugId }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {rows.map(l => (
         <div key={l.id} style={{ display: "flex", gap: 10, fontSize: 12, alignItems: "baseline" }}>
-          <div style={{ fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11, minWidth: 110 }}>{etDateTime(l.changed_at)}</div>
+          <div style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", fontSize: 11, minWidth: 110 }}>{etDateTime(l.changed_at)}</div>
           <div>
             <StatusBadge status={l.from_status || "new"} /> <span style={{ color: "var(--text-muted)" }}>→</span> <StatusBadge status={l.to_status} />
             {l.note && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{l.note}</div>}
@@ -530,14 +530,14 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--yellow)" }} />
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--yellow)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <div style={{ fontSize: 11, fontFamily: 'var(--mt-type-mono)', color: "var(--yellow)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Proposed fix — awaiting your approval
         </div>
         {gated && (
           <div style={{
             marginLeft: "auto",
             fontSize: 10,
-            fontFamily: "monospace",
+            fontFamily: 'var(--mt-type-mono)',
             color: "var(--yellow)",
             background: "rgba(251, 191, 36, 0.15)",
             border: "1px solid rgba(251, 191, 36, 0.45)",
@@ -558,7 +558,7 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
         {proposedText || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
       </pre>
       {branch && (
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
+        <div style={{ fontSize: 11, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
           Branch: <span style={{ color: "var(--text-2)" }}>{branch}</span>
         </div>
       )}
@@ -722,7 +722,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--red)" }} />
-          <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
             Reopen — tell the fix-builder what's still broken
           </div>
         </div>
@@ -778,7 +778,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
             }}>
             Cancel
           </button>
-          <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginLeft: "auto" }}>
+          <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)', marginLeft: "auto" }}>
             {trimmed.length ? `${trimmed.length} chars` : "note required"}
           </span>
         </div>
@@ -861,7 +861,7 @@ function SidePanel({ row, onClose, onActed }) {
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>#{row.report_number} · {etDateTime(row.created_at)}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)' }}>#{row.report_number} · {etDateTime(row.created_at)}</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginTop: 3 }}>{row.title || shortTitle(row)}</div>
         </div>
         <button onClick={onClose} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}>Close</button>
@@ -909,7 +909,7 @@ function SidePanel({ row, onClose, onActed }) {
       )}
 
       {actions.error && (
-        <div style={{ fontSize: 12, color: "var(--red)", fontFamily: "monospace", padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
+        <div style={{ fontSize: 12, color: "var(--red)", fontFamily: 'var(--mt-type-mono)', padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
           Action failed: {actions.error.message || String(actions.error)}
         </div>
       )}
@@ -963,7 +963,7 @@ function SidePanel({ row, onClose, onActed }) {
       {/* Console errors */}
       {Array.isArray(row.console_errors) && row.console_errors.length > 0 && (
         <Section title={`Console errors (${row.console_errors.length})`}>
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "monospace", fontSize: 11, color: "var(--red)", lineHeight: 1.45, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: 10, maxHeight: 160, overflow: "auto" }}>
+          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: 'var(--mt-type-mono)', fontSize: 11, color: "var(--red)", lineHeight: 1.45, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: 10, maxHeight: 160, overflow: "auto" }}>
             {row.console_errors.map((e, i) => (typeof e === "string" ? e : JSON.stringify(e))).join("\n")}
           </pre>
         </Section>
@@ -981,7 +981,7 @@ function SidePanel({ row, onClose, onActed }) {
 
       {/* Client context */}
       <Section title="Client context">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 11, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
           <div>viewport: {row.viewport || "—"}</div>
           <div>build: {row.build_sha ? row.build_sha.slice(0, 7) : "—"}</div>
           <div style={{ gridColumn: "1 / -1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.user_agent || ""}>ua: {row.user_agent || "—"}</div>
@@ -995,7 +995,7 @@ function SidePanel({ row, onClose, onActed }) {
 function Section({ title, children }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{title}</div>
       {children}
     </div>
   );
@@ -1003,16 +1003,16 @@ function Section({ title, children }) {
 function MetaField({ label, value, mono }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
-      <div style={{ fontSize: 12, color: "var(--text)", fontFamily: mono ? "monospace" : "inherit", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+      <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
+      <div style={{ fontSize: 12, color: "var(--text)", fontFamily: mono ? 'var(--mt-type-mono)' : "inherit", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 function StampRow({ label, iso }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-      <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", minWidth: 86 }}>{label}</div>
-      <div style={{ fontFamily: "monospace", fontSize: 11, color: iso ? "var(--text-2)" : "var(--text-muted)" }}>{iso ? etDateTime(iso) : "—"}</div>
+      <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", minWidth: 86 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 11, color: iso ? "var(--text-2)" : "var(--text-muted)" }}>{iso ? etDateTime(iso) : "—"}</div>
     </div>
   );
 }
@@ -1043,7 +1043,7 @@ function VerifyShippedPanel({ row }) {
   };
   const labelStyle = {
     fontSize: 10,
-    fontFamily: "monospace",
+    fontFamily: 'var(--mt-type-mono)',
     color: "var(--text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
@@ -1070,7 +1070,7 @@ function VerifyShippedPanel({ row }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981" }} />
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <div style={{ fontSize: 11, fontFamily: 'var(--mt-type-mono)', color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Verify before reopening — does what shipped match what you asked for?
         </div>
       </div>
@@ -1085,7 +1085,7 @@ function VerifyShippedPanel({ row }) {
         </div>
         <div style={columnStyle}>
           <div style={labelStyle}>3. What shipped</div>
-          <div style={{ ...bodyStyle, fontFamily: "monospace", fontSize: 11 }}>
+          <div style={{ ...bodyStyle, fontFamily: 'var(--mt-type-mono)', fontSize: 11 }}>
             {prUrl && (
               <div style={{ marginBottom: 4 }}>
                 <a href={prUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-text)", textDecoration: "underline" }}>
@@ -1256,7 +1256,7 @@ export default function AdminBugs() {
       </div>
 
       {error && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--red)", borderRadius: 8, padding: "12px 14px", color: "var(--red)", fontSize: 12, marginBottom: 12, fontFamily: "monospace" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--red)", borderRadius: 8, padding: "12px 14px", color: "var(--red)", fontSize: 12, marginBottom: 12, fontFamily: 'var(--mt-type-mono)' }}>
           Query failed: {error.message || String(error)}
         </div>
       )}
@@ -1268,7 +1268,7 @@ export default function AdminBugs() {
           above, so we only need the "N of M shown" readout + a Clear button
           when the current filter is not `all`. */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)' }}>
           {filter === "all"
             ? `${rows?.length || 0} total`
             : <>Filter: <span style={{ color: "var(--text-2)" }}>{FILTER_PILLS.find(p => p.id === filter)?.label || filter}</span> · {filtered.length} of {rows?.length || 0}</>}
@@ -1277,7 +1277,7 @@ export default function AdminBugs() {
           <button
             type="button"
             onClick={() => setFilter("all")}
-            style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-2)", fontSize: 11, fontFamily: "monospace", cursor: "pointer" }}>
+            style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-2)", fontSize: 11, fontFamily: 'var(--mt-type-mono)', cursor: "pointer" }}>
             Clear filter
           </button>
         )}
@@ -1291,7 +1291,7 @@ export default function AdminBugs() {
 
       {/* Footer */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-muted)" }}>
-        <div>Read-only (Phase 1) · RLS-gated via <code style={{ fontFamily: "monospace" }}>public.is_admin()</code> · v2 vocab (migration 013).</div>
+        <div>Read-only (Phase 1) · RLS-gated via <code style={{ fontFamily: 'var(--mt-type-mono)' }}>public.is_admin()</code> · v2 vocab (migration 013).</div>
         <button onClick={reload} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 10px", color: "var(--text-2)", fontSize: 11, cursor: "pointer" }}>Reload</button>
       </div>
     </main>

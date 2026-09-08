@@ -1,0 +1,67 @@
+/* ============================================================================
+   MacroTilt — TYPOGRAPHY. The single source of truth for every typeface on
+   the site. Imported first, before any other stylesheet.
+
+   2026-09-08. Joe, on the Home cockpit: "I thought we went over all the
+   different font usages?! This looks ridiculous."
+
+   He was right, and it was measurable. Four token systems were live at once
+   and none of them agreed:
+
+     --v13-f-ui / -num / -read   IBM Plex Sans / Mono / Serif   (v13.css)
+     --mt-font-ui / -display / -mono   Inter / Geist / JetBrains Mono (tokens.css)
+     --sans / --serif            Geist / Instrument Serif    (cream-system.css)
+     --ch-serif                  Instrument Serif            (chrome-v12.css)
+
+   Worse, the three families the pages actually ASK for — IBM Plex Sans,
+   Serif and Mono — were never loaded. index.html loaded Instrument Serif and
+   Geist, which almost nothing still used. So every visitor without IBM Plex
+   installed locally saw the whole site in system fallbacks: San Francisco for
+   the UI, Iowan Old Style for the headlines, Menlo for the numbers. Three
+   unrelated faces, none of them chosen by us.
+
+   THE RULE. Three roles. One family each. No fourth family, ever.
+
+     sans    every control, label, chip, button, table cell and body line
+     serif   editorial prose and the wordmark. NOTHING else is serif.
+     mono    numerals only — prices, percentages, dates, tickers, counts.
+             A mono face on a sentence is a defect. Never set prose in mono.
+
+   All three are IBM Plex, one superfamily: the serif, sans and mono share a
+   skeleton, widths and vertical rhythm, so mixing them on one card reads as
+   one voice rather than three.
+
+   HOW TO USE. Reference `--mt-type-sans`, `--mt-type-serif`, `--mt-type-mono`
+   and nothing else. Never write a family name in a stylesheet or a JSX style
+   object. `scripts/check_fonts.mjs` fails the build on both.
+
+   See docs/TYPOGRAPHY_STANDARD.md and LESSONS.md rule 9.10.
+   ========================================================================= */
+
+:root {
+  /* ── THE THREE. The only font stacks defined anywhere in the repo. ── */
+  --mt-type-sans:  'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mt-type-serif: 'IBM Plex Serif', 'Iowan Old Style', Georgia, serif;
+  --mt-type-mono:  'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  /* ── Aliases. Older stylesheets reference these names; they all resolve
+        here so a page cannot pick up a family we did not choose. Do not add
+        a new alias — change the stylesheet to use the three above. ── */
+  --v13-f-ui:        var(--mt-type-sans);
+  --v13-f-num:       var(--mt-type-mono);
+  --v13-f-read:      var(--mt-type-serif);
+
+  --mt-font-ui:      var(--mt-type-sans);
+  --mt-font-display: var(--mt-type-sans);
+  --mt-font-mono:    var(--mt-type-mono);
+
+  --sans:            var(--mt-type-sans);
+  --serif:           var(--mt-type-serif);
+  --ch-serif:        var(--mt-type-serif);
+  --mt-serif:        var(--mt-type-serif);
+
+  --font-ui:         var(--mt-type-sans);
+  --font-display:    var(--mt-type-serif);
+  --font-body:       var(--mt-type-sans);
+  --font-mono:       var(--mt-type-mono);
+}

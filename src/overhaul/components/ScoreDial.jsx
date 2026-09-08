@@ -57,7 +57,7 @@ export default function ScoreDial({ score, max = 10, size = 44 }) {
           fontSize: Math.round(size * 0.32),
           fontWeight: 600,
           color: 'var(--mt-ink-0)',
-          fontFamily: 'var(--mt-font-display)',
+          fontFamily: 'var(--mt-type-mono)',
           letterSpacing: '-0.02em',
         }}
       >

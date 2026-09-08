@@ -1,5 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+// type.css owns every font stack on the site and must load before any
+// stylesheet that references one. See docs/TYPOGRAPHY_STANDARD.md.
+import './overhaul/styles/type.css'
 import './theme.css'
 import OverhaulApp from './overhaul/OverhaulApp.jsx'
 import { installClientErrorLog } from './lib/clientErrorLog'

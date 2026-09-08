@@ -145,7 +145,7 @@ export function GaugeLegend({ zones }) {
               style={{
                 fontSize: 11,
                 color: 'var(--mt-ink-2)',
-                fontFamily: 'var(--mt-font-mono)',
+                fontFamily: 'var(--mt-type-mono)',
               }}
             >
               {z.range}

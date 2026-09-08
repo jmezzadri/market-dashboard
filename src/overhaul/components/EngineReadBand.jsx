@@ -255,14 +255,14 @@ export default function EngineReadBand({ onTip, onHideTip }) {
     <section className="mt-pagesection mer-band" style={{ paddingTop: 28 }}>
       <style>{`
         .mer-card{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}
-        .mer-state{font-family:var(--mt-font-display);font-size:clamp(16px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
+        .mer-state{font-family:var(--mt-type-sans);font-size:clamp(16px,1.7vw,21px);font-weight:500;color:var(--mt-ink-0);line-height:1.2}
         .mer-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
         .mer-panel{background:var(--mt-surface-2);border:1px solid var(--mt-line-1);border-radius:12px;padding:14px 16px 12px}
         .mer-ghead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
         .mer-gtitle{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700}
         .mer-ghval{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:0 0 auto}
-        .mer-gval{font-family:var(--mt-font-display);font-size:32px;font-weight:500;line-height:1;letter-spacing:-.01em}
-        .mer-gunit{font-family:var(--mt-font-ui);font-size:14px;font-weight:500;color:var(--mt-ink-2);margin-left:4px;letter-spacing:0}
+        .mer-gval{font-family:var(--mt-type-sans);font-size:32px;font-weight:500;line-height:1;letter-spacing:-.01em}
+        .mer-gunit{font-family:var(--mt-type-sans);font-size:14px;font-weight:500;color:var(--mt-ink-2);margin-left:4px;letter-spacing:0}
         .mer-gsub{font-size:11px;color:var(--mt-ink-3)}
         .mer-gcap{font-size:11.5px;color:var(--mt-ink-2);line-height:1.4;margin:6px 0 2px}
         .mer-dialrow{display:flex;align-items:center;gap:14px;margin-top:6px}
@@ -271,10 +271,10 @@ export default function EngineReadBand({ onTip, onHideTip }) {
         .mer-legtile{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--mt-line-0);border-radius:8px;background:var(--mt-surface-2)}
         .mer-legdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
         .mer-leglabel{font-size:11px;font-weight:600;letter-spacing:.03em;flex:1}
-        .mer-legrange{font-size:11px;color:var(--mt-ink-2);font-family:var(--mt-font-mono)}
+        .mer-legrange{font-size:11px;color:var(--mt-ink-2);font-family:var(--mt-type-mono)}
         .mer-spark{margin-top:12px;padding-top:10px;border-top:1px solid var(--mt-line-1)}
         .mer-sparkhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700;margin-bottom:5px}
-        .mer-sparkval{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mt-ink-1);font-family:var(--mt-font-mono);font-size:11px}
+        .mer-sparkval{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mt-ink-1);font-family:var(--mt-type-mono);font-size:11px}
         .mer-strip-wrap{margin-top:18px;padding-top:14px;border-top:1px solid var(--mt-line-1)}
         .mer-strip{display:grid;grid-template-columns:repeat(104,1fr);gap:1.5px;margin-top:8px}
         .mer-cell{height:30px;border-radius:2px;cursor:default;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--mt-line-1)}

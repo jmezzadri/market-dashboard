@@ -78,7 +78,7 @@ function AllFeedsPill() {
         position: 'fixed', left: xy.x, top: xy.y + 10, transform: 'translate(-50%,0)',
         background: 'var(--mt-surface)', color: 'var(--mt-ink-0)',
         border: '1px solid var(--mt-line-1)', borderRadius: 8,
-        padding: '10px 12px', fontSize: 11.5, fontFamily: 'var(--mt-font-ui)',
+        padding: '10px 12px', fontSize: 11.5, fontFamily: 'var(--mt-type-sans)',
         boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: 300, width: 'max-content',
         zIndex: 9999, pointerEvents: 'none',
       }}
@@ -136,7 +136,7 @@ function AllFeedsPill() {
       onBlur={onLeave}
       tabIndex={0}
       aria-label={status === 'red' ? `${red.length} feeds stale: ${red.map((r) => r.label).join(', ')}` : text}
-      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-font-ui)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
+      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--mt-type-sans)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 500 }}
     >
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
       {text}

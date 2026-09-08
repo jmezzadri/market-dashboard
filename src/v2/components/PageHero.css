@@ -28,7 +28,7 @@
 .mt-page-hero-right { min-width: 0; }
 
 .mt-page-eyebrow {
-  font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+  font-family: var(--mt-type-sans);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -39,7 +39,7 @@
 }
 
 .mt-page-title {
-  font-family: var(--font-display, 'Fraunces', Georgia, serif);
+  font-family: var(--mt-type-serif);
   /* Matches the shared mt-h1 standard so Paper's header is the same scale as
      every other page (Joe 2026-06-17 consistency pass). Was 40px. */
   font-size: clamp(26px, 3vw, 36px);
@@ -68,7 +68,7 @@
 }
 
 .mt-page-bullets li {
-  font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+  font-family: var(--mt-type-sans);
   font-size: 14.5px;
   font-weight: 400;
   line-height: 1.55;

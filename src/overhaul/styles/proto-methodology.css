@@ -14,7 +14,7 @@
 .me-formula {
   background: var(--mt-surface-2); border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-sm); padding: 14px 18px;
-  font-family: var(--mt-font-mono, ui-monospace, monospace);
+  font-family: var(--mt-type-mono);
   font-size: 12.5px; line-height: 1.8; color: var(--mt-ink-0);
   margin: 4px 0 14px;
 }
@@ -34,10 +34,10 @@
   padding: 10px 0; border-top: 1px solid var(--mt-line-0);
   font-size: 14px; line-height: 1.55; color: var(--mt-ink-1);
 }
-.mt-overhaul .me-changelog li b { font-family: var(--mt-font-mono, monospace); color: var(--mt-ink-2); font-size: 12px; }
+.mt-overhaul .me-changelog li b { font-family: var(--mt-type-mono); color: var(--mt-ink-2); font-size: 12px; }
 
 .mt-overhaul code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--mt-type-mono);
   background: var(--mt-surface-3); padding: 1px 6px; border-radius: 4px;
   font-size: 12px; color: var(--mt-ink-0);
 }
