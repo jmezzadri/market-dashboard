@@ -115,7 +115,7 @@
 .home-v12 .t .tk{font-size: var(--v13-t2);letter-spacing:.14em;font-weight:600;color:var(--mut);text-transform:uppercase}
 .home-v12 .t .tv{font-family:var(--mt-type-serif);font-size: var(--v13-t6);line-height:1.15;margin-top:4px;transition:color .25s}
 .home-v12 .t .td{font-size: var(--v13-t3);font-weight:600;margin-top:2px}
-.home-v12 .t .td small{color:var(--mut);font-weight: 400;margin-left:4px;letter-spacing:.04em}
+.home-v12 .t .td small{color:var(--mut);font-weight:400;font-size:var(--v13-t1);margin-left:4px;letter-spacing:.04em}
 /* The tape's own up/down colours. `.down` had no rule scoped to the home
    page, so a falling tile rendered in body ink (2026-08-18). */
 .home-v12 .t .td.up{color:var(--up)}
