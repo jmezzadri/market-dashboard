@@ -46,8 +46,6 @@
   --mt-warn: var(--amber);
   --mt-amber: var(--amber);
   /* serif display (symbol, price, section h2s, stat numerals), sans body */
-  --mt-font-display: var(--serif);
-  --mt-font-ui: var(--sans);
 }
 
 /* Neutralize the cream editorial section margin — this page keeps its own

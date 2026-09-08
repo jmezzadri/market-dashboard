@@ -6,7 +6,7 @@
    src/v2/styles/tokens.css.
 
    Two typefaces visible on the page:
-     • Fraunces (serif, weight 300–500) — page H1 + hero numbers ONLY
+     • the site serif — page H1 + hero numbers ONLY (see type.css)
      • Inter (sans, weight 300–600)     — everything else
    Mono is RETIRED from the design language. The --font-mono token is kept
    as a backward-compat alias to --font-ui (resolves to Inter) so legacy
@@ -30,35 +30,13 @@
    [data-theme="light"|"dark"] on <html>.
    ========================================================================= */
 
-/* ───────── Self-hosted fonts ─────────
-   Fraunces = display serif (variable opsz + weight 300-700, ital + roman)
-   Inter    = body UI (variable weight 100-900)
-   JetBrains Mono is RETIRED — @font-face removed. Existing --font-mono
-   references resolve through to Inter via the alias defined in :root. */
-@font-face {
-  font-family: 'Fraunces';
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url('/fonts/fraunces.woff2') format('woff2-variations'),
-       url('/fonts/fraunces.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Fraunces';
-  font-style: italic;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url('/fonts/fraunces-italic.woff2') format('woff2-variations'),
-       url('/fonts/fraunces-italic.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/inter.woff2') format('woff2-variations'),
-       url('/fonts/inter.woff2') format('woff2');
-}
+/* ───────── Fonts ─────────
+   2026-09-08: the self-hosted Fraunces, Inter and JetBrains Mono faces are
+   DELETED, and so are their .woff2 files. The site has three typefaces —
+   IBM Plex Sans, Serif and Mono — declared once, in
+   src/overhaul/styles/type.css, which also aliases --font-ui / --font-display
+   / --font-body / --font-mono onto them. Nothing here defines a face.
+   See docs/TYPOGRAPHY_STANDARD.md. */
 
 /* ───────── Light theme (default) — Option A teal ───────── */
 :root {
@@ -160,11 +138,9 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Typography — TWO families only, mono retired */
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-ui:      'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-                  'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono:    var(--font-ui);  /* RETIRED — alias for legacy refs */
+  /* Typography — defined once, in src/overhaul/styles/type.css. The
+     --font-* names are aliases onto the three site faces and are kept only
+     so legacy references keep resolving. Do not name a family here. */
 
   /* Type role tokens — Option A spec.
      Components opt in by referencing the role tokens; this lets the
@@ -315,7 +291,7 @@ html, body, #root {
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--mt-type-sans);
   font-feature-settings: 'cv11', 'ss01', 'ss03';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -342,13 +318,13 @@ a:hover { text-decoration: underline; }
 
 /* Numbers should always look tabular */
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
 .num {
   /* 2026-07-08: ONE number font site-wide — Geist tabular (was --font-mono, which aliased to Inter). */
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--mt-type-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
@@ -393,7 +369,7 @@ a:hover { text-decoration: underline; }
 .tile:active { transform: translateY(0); }
 
 .tile-eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -402,7 +378,7 @@ a:hover { text-decoration: underline; }
 }
 
 .tile-title {
-  font-family: var(--font-display);
+  font-family: var(--mt-type-serif);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -460,7 +436,7 @@ a:hover { text-decoration: underline; }
 
 /* Section header style */
 .section-eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -469,7 +445,7 @@ a:hover { text-decoration: underline; }
 }
 
 .section-title {
-  font-family: var(--font-display);
+  font-family: var(--mt-type-serif);
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -760,7 +736,7 @@ a:hover { text-decoration: underline; }
   display: grid; place-items: center;
   color: #fff;
   font-weight: 700; font-size: 13px; letter-spacing: -0.02em;
-  font-family: var(--font-display);
+  font-family: var(--mt-type-serif);
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
@@ -843,7 +819,7 @@ a:hover { text-decoration: underline; }
 [data-theme="dark"]  .login-brand-logo--light { display: none; }
 [data-theme="light"] .login-brand-logo--dark  { display: none; }
 .sidebar-brand-name {
-  font-family: var(--font-display);
+  font-family: var(--mt-type-serif);
   font-size: 14px; font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -851,7 +827,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar-brand-sub {
   font-size: 10px; color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
   letter-spacing: 0.06em;
   margin-top: 2px;
   text-transform: uppercase;
@@ -875,7 +851,7 @@ a:hover { text-decoration: underline; }
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 500;
-  font-family: var(--font-ui);
+  font-family: var(--mt-type-sans);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -906,7 +882,7 @@ a:hover { text-decoration: underline; }
 }
 
 /* Sidebar section divider — { divider: true, label?: 'Admin' } items.
-   Hairline rule with optional centred uppercase JetBrains-Mono microcopy.
+   Hairline rule with optional centred uppercase mono microcopy.
    Used to visually separate client-facing tabs from admin-only tabs. */
 .sidebar-divider {
   display: flex;
@@ -924,7 +900,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar-divider-label {
   flex: 0 0 auto;
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -937,7 +913,7 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--border-faint);
   font-size: 11px;
   color: var(--text-dim);
-  font-family: var(--font-mono);
+  font-family: var(--mt-type-mono);
 }
 
 .sidebar-backdrop {
@@ -1041,7 +1017,7 @@ a:hover { text-decoration: underline; }
 }
 .v2-stats .s .v {
   display: block;
-  font-family: var(--font-display, 'Fraunces', serif);
+  font-family: var(--mt-type-serif);
   font-size: 40px;
   line-height: 1.05;
   color: var(--ink-0, #0f1115);

@@ -19,8 +19,8 @@
   --ch-bg:#F2EEE6; --ch-surface:#F9F6F0; --ch-putty:#EDE9DF;
   --ch-ink:#212C33; --ch-ink-soft:#465660; --ch-mut:#7C7668;
   --ch-gold-deep:#B7975C; --ch-hair:rgba(33,44,51,.14);
-  --ch-serif:'Instrument Serif','Iowan Old Style',Georgia,serif;
-  font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ch-serif: var(--mt-type-serif);
+  font-family: var(--mt-type-sans);
 }
 [data-mt-theme='dark'] .rb-root,
 [data-mt-theme='navy'] .rb-root {
@@ -83,7 +83,7 @@
 }
 .rb-title {
   margin: 0;
-  font-family: var(--ch-serif, 'Instrument Serif', Georgia, serif);
+  font-family: var(--mt-type-serif);
   font-size: 24px; line-height: 1; font-weight: 400;
   color: var(--ch-ink, #212C33);
 }
@@ -209,7 +209,7 @@
 /* ── confirmation ─────────────────────────────────────────────────────── */
 .rb-done { text-align: center; padding: 14px 0 6px; }
 .rb-done-num {
-  font-family: var(--ch-serif, 'Instrument Serif', Georgia, serif);
+  font-family: var(--mt-type-serif);
   font-size: 30px; line-height: 1.1; color: var(--ch-ink, #212C33);
 }
 .rb-done-copy {

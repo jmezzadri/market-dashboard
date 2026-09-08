@@ -3,7 +3,7 @@
    tabular sans inside the grid. Nothing here is page-specific; the panel that
    hosts the table owns its own padding and card chrome. */
 
-.dt-wrap { --dt-hair: var(--hair, rgba(17, 25, 40, .12)); font-family: var(--sans, inherit); }
+.dt-wrap { --dt-hair: var(--hair, rgba(17, 25, 40, .12)); font-family: var(--mt-type-sans); }
 
 /* toolbar — sits above the grid, right-aligned control cluster */
 .dt-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }

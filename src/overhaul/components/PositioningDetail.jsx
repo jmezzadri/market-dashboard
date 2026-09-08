@@ -85,7 +85,7 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="mt-eyebrow">{domain ? `${domain} · Positioning` : 'Positioning'}</div>
-          <div style={{ fontFamily: 'var(--mt-font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', margin: '4px 0 0', lineHeight: 1.1 }}>
+          <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', margin: '4px 0 0', lineHeight: 1.1 }}>
             {market}
           </div>
         </div>

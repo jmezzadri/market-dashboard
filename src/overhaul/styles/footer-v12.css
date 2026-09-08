@@ -26,7 +26,7 @@
 }
 
 .mt-overhaul .mt-footer-wordmark {
-  font-family: var(--ch-serif);
+  font-family: var(--mt-type-serif);
   font-size: 26px;
   color: var(--ch-ink);
   letter-spacing: 0.2px;
@@ -108,7 +108,7 @@
   color: var(--ch-ink-soft);
 }
 .mt-overhaul .mt-static-page h1 {
-  font-family: var(--ch-serif);
+  font-family: var(--mt-type-serif);
   font-size: clamp(30px, 4.5vw, 40px);
   font-weight: 400;
   color: var(--ch-ink);
@@ -121,7 +121,7 @@
   margin: 0 0 30px;
 }
 .mt-overhaul .mt-static-page h2 {
-  font-family: var(--ch-serif);
+  font-family: var(--mt-type-serif);
   font-size: 21px;
   font-weight: 400;
   color: var(--ch-ink);

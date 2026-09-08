@@ -273,7 +273,7 @@ export default function FreshnessChip({
           alignItems: 'center',
           gap: 6,
           fontSize: 11,
-          fontFamily: 'var(--mt-font-ui)',
+          fontFamily: 'var(--mt-type-sans)',
           color: 'var(--mt-ink-2)',
         }}
       >
@@ -292,7 +292,7 @@ export default function FreshnessChip({
           alignItems: 'center',
           gap: 6,
           fontSize: 10.5,
-          fontFamily: 'var(--mt-font-ui)',
+          fontFamily: 'var(--mt-type-sans)',
           padding: '3px 8px',
           borderRadius: 999,
           background:
@@ -342,7 +342,7 @@ export default function FreshnessChip({
               fontSize: 11.5,
               lineHeight: 1.45,
               maxWidth: 320,
-              fontFamily: 'var(--mt-font-ui)',
+              fontFamily: 'var(--mt-type-sans)',
               boxShadow: '0 8px 24px rgba(0,0,0,.18)',
               pointerEvents: 'none',
               zIndex: 100000,

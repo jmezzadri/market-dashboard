@@ -14,22 +14,22 @@
 }
 .mt-overhaul .lm-mapsvg { width: 100%; height: auto; display: block; }
 .mt-overhaul .lm-axlbl, .mt-overhaul .lm-quadlbl {
-  font-size: 9.5px; font-family: var(--mt-font-ui); font-weight: 600;
+  font-size: 9.5px; font-family: var(--mt-type-sans); font-weight: 600;
   letter-spacing: 0.14em; text-transform: uppercase; fill: var(--mt-ink-3);
 }
 .mt-overhaul .lm-quadlbl--extreme { fill: var(--mt-down); }
 .mt-overhaul .lm-quadlbl--cool    { fill: var(--mt-up); }
 .mt-overhaul .lm-mapttl {
-  font-size: 10px; font-family: var(--mt-font-ui); font-weight: 600;
+  font-size: 10px; font-family: var(--mt-type-sans); font-weight: 600;
   letter-spacing: 0.14em; text-transform: uppercase; fill: var(--mt-ink-2);
 }
 .mt-overhaul .lm-mapdot circle { transition: r 200ms, opacity 200ms; }
-.mt-overhaul .lm-mappinlbl { font-size: 11px; font-family: var(--mt-font-display); fill: var(--mt-ink-2); }
+.mt-overhaul .lm-mappinlbl { font-size: 11px; font-family: var(--mt-type-sans); fill: var(--mt-ink-2); }
 .mt-overhaul .lm-mappinlbl--strong { fill: var(--mt-ink-0); font-weight: 500; }
-.mt-overhaul .lm-sectorlbl { font-size: 10px; font-family: var(--mt-font-mono, var(--mt-font-ui)); font-weight: 700; letter-spacing: 0.04em; pointer-events: none; }
-.mt-overhaul .lm-tipname { font-size: 11.5px; font-family: var(--mt-font-display); font-weight: 500; fill: var(--mt-ink-0); }
-.mt-overhaul .lm-tipval { font-size: 18px; font-family: var(--mt-font-display); font-weight: 400; fill: var(--mt-ink-0); font-variant-numeric: tabular-nums; }
-.mt-overhaul .lm-tippct { font-size: 10px; font-family: var(--mt-font-ui); fill: var(--mt-ink-2); letter-spacing: 0.06em; }
+.mt-overhaul .lm-sectorlbl { font-size: 10px; font-family: var(--mt-type-mono); font-weight: 700; letter-spacing: 0.04em; pointer-events: none; }
+.mt-overhaul .lm-tipname { font-size: 11.5px; font-family: var(--mt-type-sans); font-weight: 500; fill: var(--mt-ink-0); }
+.mt-overhaul .lm-tipval { font-size: 18px; font-family: var(--mt-type-sans); font-weight: 400; fill: var(--mt-ink-0); font-variant-numeric: tabular-nums; }
+.mt-overhaul .lm-tippct { font-size: 10px; font-family: var(--mt-type-sans); fill: var(--mt-ink-2); letter-spacing: 0.06em; }
 .mt-overhaul .lm-pulse { animation: lm-ping 3s ease-out infinite; transform-origin: center; }
 @keyframes lm-ping {
   0% { transform: scale(1); opacity: 1; }
@@ -61,7 +61,7 @@
   border-bottom: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .lm-iddname {
-  font-family: var(--mt-font-display);
+  font-family: var(--mt-type-sans);
   font-size: 30px; font-weight: 400; letter-spacing: -0.02em;
   margin: 8px 0 8px; line-height: 1.1;
 }
@@ -85,7 +85,7 @@
   font-size: 13px;
 }
 .mt-overhaul .lm-iddlegend > span:first-child {
-  font-family: var(--mt-font-display); font-size: 26px; font-weight: 400; color: var(--mt-ink-0);
+  font-family: var(--mt-type-sans); font-size: 26px; font-weight: 400; color: var(--mt-ink-0);
 }
 .mt-overhaul .lm-iddleg-dim { color: var(--mt-ink-2); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
 .mt-overhaul .lm-iddside { display: flex; flex-direction: column; gap: 14px; }
@@ -95,7 +95,7 @@
 .mt-overhaul .lm-iddstats > div {
   background: var(--mt-surface-2); border-radius: var(--mt-r-sm); padding: 10px 12px;
 }
-.mt-overhaul .lm-iddstats b { display: block; font-family: var(--mt-font-display); font-size: 17px; font-weight: 500; margin-top: 4px; }
+.mt-overhaul .lm-iddstats b { display: block; font-family: var(--mt-type-sans); font-size: 17px; font-weight: 500; margin-top: 4px; }
 .mt-overhaul .lm-iddrelated { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .mt-overhaul .lm-iddrelated li {
   display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
@@ -126,7 +126,7 @@
 .mt-overhaul .lm-pctile { position: relative; padding-bottom: 26px; }
 .mt-overhaul .lm-pctilelabels {
   display: flex; justify-content: space-between;
-  font-family: var(--mt-font-ui); font-size: 10px; color: var(--mt-ink-3);
+  font-family: var(--mt-type-sans); font-size: 10px; color: var(--mt-ink-3);
   letter-spacing: 0.08em; padding: 0 4px; margin-top: 2px;
 }
 .mt-overhaul .lm-pctilemarker { position: absolute; left: 0; right: 0; top: 0; bottom: 26px; }
@@ -163,7 +163,7 @@
 .mt-overhaul .lm-flowcode {
   display: inline-grid; place-items: center; padding: 3px 7px;
   border-radius: 4px; background: var(--mt-surface-3);
-  font-family: var(--mt-font-display); font-size: 11px; font-weight: 500; color: var(--mt-ink-2);
+  font-family: var(--mt-type-sans); font-size: 11px; font-weight: 500; color: var(--mt-ink-2);
   letter-spacing: 0.06em;
 }
 .mt-overhaul .lm-flowtrack { position: relative; height: 18px; }
@@ -199,8 +199,8 @@
 .mt-overhaul .lm-sectordrill { padding: 18px 22px 22px; border-top: 1px solid var(--mt-line-0); }
 .mt-overhaul .lm-sdmeta { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .mt-overhaul .lm-sdmetaline { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 12.5px; color: var(--mt-ink-2); }
-.mt-overhaul .lm-sdmetaline b { color: var(--mt-ink-0); font-family: var(--mt-font-display); font-size: 17px; font-weight: 500; }
-.mt-overhaul .lm-sdmetaline b i { font-style: normal; color: var(--mt-ink-2); font-size: 11px; font-family: var(--mt-font-ui); margin-left: 2px; }
+.mt-overhaul .lm-sdmetaline b { color: var(--mt-ink-0); font-family: var(--mt-type-sans); font-size: 17px; font-weight: 500; }
+.mt-overhaul .lm-sdmetaline b i { font-style: normal; color: var(--mt-ink-2); font-size: 11px; font-family: var(--mt-type-sans); margin-left: 2px; }
 
 .mt-overhaul .lm-igtable { background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-md); overflow: hidden; }
 .mt-overhaul .lm-igheader {
@@ -243,7 +243,7 @@
   padding: 6px 0; border-bottom: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .lm-iglist li:last-child { border-bottom: none; }
-.mt-overhaul .lm-igtk { font-family: var(--mt-font-display); font-size: 16px; font-weight: 500; cursor: pointer; }
+.mt-overhaul .lm-igtk { font-family: var(--mt-type-sans); font-size: 16px; font-weight: 500; cursor: pointer; }
 .mt-overhaul .lm-igtk.lm-tkmain--link:hover { color: var(--mt-accent); }
 .mt-overhaul .lm-igdial { display: flex; justify-content: center; }
 .mt-overhaul .lm-iggrowth { text-align: right; font-weight: 600; font-size: 12px; }
@@ -257,7 +257,7 @@
 .mt-overhaul /* ─── Score dial (used on scanner row + IG list) ──────────────────── */
 .lm-dialwrap { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
 .mt-overhaul .lm-dial { position: absolute; inset: 0; }
-.mt-overhaul .lm-dialnum { font-family: var(--mt-font-display); font-size: 15px; font-weight: 500; }
+.mt-overhaul .lm-dialnum { font-family: var(--mt-type-sans); font-size: 15px; font-weight: 500; }
 
 .mt-overhaul /* ─── Scanner ─────────────────────────────────────────────────────── */
 .lm-scanlist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -277,7 +277,7 @@
   font: inherit; color: inherit; cursor: pointer;
 }
 .mt-overhaul .lm-tk { display: flex; flex-direction: column; gap: 2px; }
-.mt-overhaul .lm-tkmain { font-family: var(--mt-font-display); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1; }
+.mt-overhaul .lm-tkmain { font-family: var(--mt-type-sans); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1; }
 .mt-overhaul .lm-tkmain--link { cursor: pointer; text-decoration-line: underline; text-decoration-color: transparent; text-decoration-thickness: 1.5px; text-underline-offset: 3px; transition: text-decoration-color 120ms; }
 .mt-overhaul .lm-tkmain--link:hover { text-decoration-color: var(--mt-accent); color: var(--mt-accent); }
 .mt-overhaul .lm-tksub { font-size: 11px; color: var(--mt-ink-2); }
@@ -290,7 +290,7 @@
   background: color-mix(in oklab, var(--mt-down) 14%, transparent); color: var(--mt-down);
 }
 .mt-overhaul .lm-tkscore { display: flex; justify-content: center; }
-.mt-overhaul .lm-tkpx { font-family: var(--mt-font-display); font-size: 18px; font-weight: 500; }
+.mt-overhaul .lm-tkpx { font-family: var(--mt-type-sans); font-size: 18px; font-weight: 500; }
 .mt-overhaul .lm-tkchg { font-size: 12.5px; font-weight: 600; margin-top: 2px; }
 .mt-overhaul .lm-tkfacets { display: flex; gap: 8px; }
 .mt-overhaul .lm-facet {
@@ -307,9 +307,9 @@
 }
 .mt-overhaul .lm-drillcol { display: flex; flex-direction: column; gap: 12px; }
 .mt-overhaul .lm-drillheadrow { display: flex; align-items: baseline; justify-content: space-between; }
-.mt-overhaul .lm-drilltotal { font-family: var(--mt-font-display); font-size: 22px; color: var(--mt-ink-0); cursor: help; }
+.mt-overhaul .lm-drilltotal { font-family: var(--mt-type-sans); font-size: 22px; color: var(--mt-ink-0); cursor: help; }
 .mt-overhaul .lm-drilltotal b { font-weight: 500; }
-.mt-overhaul .lm-drilltotal i { font-style: normal; color: var(--mt-ink-2); font-size: 13px; font-family: var(--mt-font-ui); }
+.mt-overhaul .lm-drilltotal i { font-style: normal; color: var(--mt-ink-2); font-size: 13px; font-family: var(--mt-type-sans); }
 .mt-overhaul .lm-scoremath { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .mt-overhaul .lm-scoremath thead th {
   text-align: right; padding: 6px 10px 8px; font-size: 9.5px; font-weight: 600;
@@ -323,22 +323,22 @@
 .mt-overhaul .lm-scorekwhy { font-size: 11px; color: var(--mt-ink-2); margin-top: 2px; max-width: 220px; }
 .mt-overhaul .lm-scoredim { color: var(--mt-ink-2); margin-left: 1px; }
 .mt-overhaul .lm-scorebarcell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-.mt-overhaul .lm-scoreval { font-family: var(--mt-font-display); font-size: 14px; color: var(--mt-ink-0); }
-.mt-overhaul .lm-scoreval i { font-style: normal; color: var(--mt-ink-3); font-size: 10.5px; font-family: var(--mt-font-ui); margin-left: 1px; }
+.mt-overhaul .lm-scoreval { font-family: var(--mt-type-sans); font-size: 14px; color: var(--mt-ink-0); }
+.mt-overhaul .lm-scoreval i { font-style: normal; color: var(--mt-ink-3); font-size: 10.5px; font-family: var(--mt-type-sans); margin-left: 1px; }
 .mt-overhaul .lm-scorebar { display: inline-block; width: 60px; height: 4px; background: var(--mt-surface-3); border-radius: 999px; overflow: hidden; }
 .mt-overhaul .lm-scorebar b { display: block; height: 100%; background: var(--mt-accent); border-radius: 999px; }
-.mt-overhaul .lm-scorecontr { font-family: var(--mt-font-display); font-size: 15px; }
+.mt-overhaul .lm-scorecontr { font-family: var(--mt-type-sans); font-size: 15px; }
 .mt-overhaul .lm-scorecontr b { font-weight: 600; }
-.mt-overhaul .lm-scorecontr i { font-style: normal; color: var(--mt-ink-2); font-size: 11px; font-family: var(--mt-font-ui); }
-.mt-overhaul .lm-scoremath tfoot td { padding: 12px 10px 4px; font-family: var(--mt-font-display); font-size: 14px; border-top: 2px solid var(--mt-line-1); }
+.mt-overhaul .lm-scorecontr i { font-style: normal; color: var(--mt-ink-2); font-size: 11px; font-family: var(--mt-type-sans); }
+.mt-overhaul .lm-scoremath tfoot td { padding: 12px 10px 4px; font-family: var(--mt-type-sans); font-size: 14px; border-top: 2px solid var(--mt-line-1); }
 
 .mt-overhaul .lm-evtchart { width: 100%; height: auto; display: block; max-height: 160px; }
 .mt-overhaul .lm-drilllayers { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .mt-overhaul .lm-drilllayer { display: flex; flex-direction: column; gap: 4px; }
 .mt-overhaul .lm-drilllayertop { display: flex; align-items: baseline; justify-content: space-between; }
 .mt-overhaul .lm-drilllayerk { font-size: 13px; font-weight: 600; }
-.mt-overhaul .lm-drilllayerv { font-family: var(--mt-font-display); font-size: 18px; font-weight: 500; }
-.mt-overhaul .lm-drilllayerv i { font-style: normal; color: var(--mt-ink-2); font-size: 12px; font-family: var(--mt-font-ui); margin-left: 2px; }
+.mt-overhaul .lm-drilllayerv { font-family: var(--mt-type-sans); font-size: 18px; font-weight: 500; }
+.mt-overhaul .lm-drilllayerv i { font-style: normal; color: var(--mt-ink-2); font-size: 12px; font-family: var(--mt-type-sans); margin-left: 2px; }
 .mt-overhaul .lm-drilllayerbar { height: 4px; background: var(--mt-surface-3); border-radius: 999px; overflow: hidden; }
 .mt-overhaul .lm-drilllayerbar b { display: block; height: 100%; background: var(--mt-accent); border-radius: 999px; }
 .mt-overhaul .lm-drilllayerwhy { font-size: 12px; color: var(--mt-ink-2); }
@@ -374,12 +374,12 @@
 
 .mt-overhaul .lm-indtop { display: flex; align-items: center; justify-content: space-between; }
 .mt-overhaul .lm-indcat {
-  font-family: var(--mt-font-mono); font-size: 9.5px; font-weight: 600;
+  font-family: var(--mt-type-mono); font-size: 9.5px; font-weight: 600;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--mt-ink-2);
 }
-.mt-overhaul .lm-indname { font-family: var(--mt-font-display); font-size: 16px; font-weight: 500; line-height: 1.2; }
+.mt-overhaul .lm-indname { font-family: var(--mt-type-sans); font-size: 16px; font-weight: 500; line-height: 1.2; }
 .mt-overhaul .lm-indvalrow { display: flex; align-items: baseline; gap: 8px; margin-top: auto; }
-.mt-overhaul .lm-indval { font-family: var(--mt-font-display); font-size: 28px; font-weight: 400; letter-spacing: -0.01em; line-height: 1; }
+.mt-overhaul .lm-indval { font-family: var(--mt-type-sans); font-size: 28px; font-weight: 400; letter-spacing: -0.01em; line-height: 1; }
 .mt-overhaul .lm-indunit { color: var(--mt-ink-2); font-size: 13px; margin-left: 2px; font-weight: 500; }
 .mt-overhaul .lm-indchg { font-size: 11.5px; font-weight: 600; }
 .mt-overhaul .lm-indfoot {

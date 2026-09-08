@@ -75,7 +75,7 @@
     white-space: nowrap;
   }
   .mt-overhaul .mt-topnav-email {
-    font-family: var(--mt-font-mono);
+    font-family: var(--mt-type-mono);
     font-size: 11px;
     color: var(--mt-ink-2);
     max-width: 140px;

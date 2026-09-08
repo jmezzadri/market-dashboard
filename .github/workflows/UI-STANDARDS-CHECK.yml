@@ -1,0 +1,62 @@
+name: UI-STANDARDS-CHECK
+
+# Design rules that are actually checks. Fires on any PR touching the frontend.
+#
+# 2026-09-08 — fonts. Joe, on the Home cockpit: "I thought we went over all the
+# different font usages?! This looks ridiculous." Four token systems naming six
+# families were live, and the three the pages asked for were never loaded, so
+# every visitor got system fallbacks. LESSONS 7.15 says a design rule that lives
+# only in a prompt is one you will be told about again — so it is a check.
+#
+# check_layout.mjs was written for the SAME reason on 2026-09-01 and was never
+# wired to a workflow. It is wired here now; its live half needs a running URL,
+# so it runs against the built preview.
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "index.html"
+      - "scripts/check_fonts.mjs"
+      - "scripts/check_layout.mjs"
+      - ".github/workflows/UI-STANDARDS-CHECK.yml"
+
+jobs:
+  ui-standards:
+    name: Typography and layout standards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Static half: one declaration site, three tokens, declared == loaded,
+      # no stray self-hosted faces. No browser needed.
+      - name: Typography standard (static)
+        run: node scripts/check_fonts.mjs
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Serve the build
+        run: |
+          npx --yes serve -s dist -l 4321 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4321/ >/dev/null && break
+            sleep 1
+          done
+
+      - name: Install a browser for the rendered checks
+        run: npx --yes playwright install --with-deps chromium
+
+      # Rendered half: no prose in the mono face, no fourth family on screen,
+      # no empty grid track, no short row.
+      - name: Typography standard (rendered)
+        run: node scripts/check_fonts.mjs http://localhost:4321 / /macro /paper /scorecard /portfolio-lab /methodology
+
+      - name: Layout standard (rendered)
+        run: node scripts/check_layout.mjs http://localhost:4321 / /macro /paper

@@ -29,7 +29,7 @@
   background: var(--v13-ground);
   background-image: none;
   color: var(--v13-ink);
-  font-family: var(--v13-f-ui);
+  font-family: var(--mt-type-sans);
   font-size: var(--v13-t3);
   line-height: 1.45;
 }
@@ -89,7 +89,7 @@
 .v13.macro-v13 .engine-card .eyebrow2 { margin-bottom: var(--v13-s1); color: var(--v13-ink-3); }
 .v13.macro-v13 .engine-card .eyebrow2 .dot { background: var(--v13-brand); }
 .v13.macro-v13 .engine-card h2 {
-  margin: 0; font-family: var(--v13-f-ui); font-size: var(--v13-t6); font-weight: 600;
+  margin: 0; font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 600;
   line-height: 1.1; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .engine-card h2 em { font-style: normal; color: var(--v13-brand); }
@@ -142,11 +142,11 @@
   text-transform: uppercase; color: var(--v13-brand);
 }
 .v13.macro-v13 .gauge .gl b {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t6); font-weight: 500; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .gauge .gl b i {
-  font-style: normal; font-family: var(--v13-f-ui); font-size: var(--v13-t2);
+  font-style: normal; font-family: var(--mt-type-sans); font-size: var(--v13-t2);
   font-weight: 500; letter-spacing: 0.04em; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .track {
@@ -228,7 +228,7 @@
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule);
 }
 .v13.macro-v13 .mac-catname {
-  font-family: var(--v13-f-ui); font-size: var(--v13-t2); font-weight: 700;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: 700;
   letter-spacing: 0.02em; line-height: 1; color: var(--v13-ink);
 }
 /* Joe, 2026-09-03: "there's no way to know the 1 BIG MOVE is associated with
@@ -294,15 +294,15 @@
 .v13.macro-v13 .mac-nm .mac-name { overflow: hidden; text-overflow: ellipsis; }
 .v13.macro-v13 .mac-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .v13.macro-v13 .mac-val {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t3); letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .mac-chg {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-pct {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-chev {
@@ -348,7 +348,7 @@
   max-width: 320px; padding: 8px 10px;
   border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.10);
   background: #16191D; color: #E9EAE6;
-  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-family: var(--mt-type-sans);
   font-size: 11px; line-height: 1.45; white-space: pre-line; text-align: left;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
@@ -384,7 +384,7 @@
 
 /* 1 — level extreme. Was 10.5px grey, indistinguishable from the 47th. */
 .v13.macro-v13 .mac-pct {
-  font-family: var(--v13-f-num); font-variant-numeric: tabular-nums;
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-pct.ext  { font-weight: 700; color: var(--v13-down); }
@@ -421,7 +421,7 @@
    severity alone (red extreme, amber elevated) with no fourth hue to learn.
    Inherits currentColor, so it can never drift from the figure it labels. */
 .v13.macro-v13 .mac-tail {
-  font-family: var(--v13-f-ui); font-style: normal;
+  font-family: var(--mt-type-sans); font-style: normal;
   font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; opacity: 0.75; margin-right: 5px;
 }

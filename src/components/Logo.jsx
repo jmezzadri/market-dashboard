@@ -1,11 +1,11 @@
-// MacroTilt brand component — V8+V2 Coutts-inspired monogram + Fraunces wordmark
+// MacroTilt brand component — V8+V2 Coutts-inspired monogram + serif wordmark
 // LOCKED 2026-04-22 (see /mnt/macrotilt/design-lab/index.html § 03 and § 12)
 //
 // Two exports:
 //   <Monogram size={N} color="currentColor" /> — circle + MT (italic T, +6°)
-//   <Wordmark  italicTilt /> — Fraunces small-caps "MACRO*TILT*"
+//   <Wordmark  italicTilt /> — serif small-caps "MACRO*TILT*"
 //
-// Fonts assumed present: Fraunces (shipped in /public/fonts/ via Phase 2 Step 1).
+// Type comes from --mt-type-serif (src/overhaul/styles/type.css).
 // Both components fall through to `currentColor` so they inherit CSS color by default.
 
 import React from "react";
@@ -37,7 +37,7 @@ export function Monogram({
       <text
         x="50"
         y="64"
-        fontFamily='"Fraunces", Georgia, serif'
+        fontFamily='var(--mt-type-serif)'
         fontSize="42"
         fontWeight="500"
         textAnchor="middle"
@@ -52,7 +52,7 @@ export function Monogram({
   );
 }
 
-// ── Wordmark: Fraunces small-caps "MACROTILT" with italic lowercase-style T ──
+// ── Wordmark: serif small-caps "MACROTILT" with italic lowercase-style T ──
 export function Wordmark({
   size = 15,
   color = "currentColor",
@@ -62,7 +62,7 @@ export function Wordmark({
   return (
     <span
       style={{
-        fontFamily: '"Fraunces", Georgia, serif',
+        fontFamily: 'var(--mt-type-serif)',
         fontWeight: 500,
         fontSize: size,
         letterSpacing: "0.14em",

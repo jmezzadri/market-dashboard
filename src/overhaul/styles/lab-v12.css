@@ -103,7 +103,7 @@
 .home-v12.lab-v12 .lab-chartwrap { position: relative; }
 .home-v12.lab-v12 .lab-frontier, .home-v12.lab-v12 .lab-growth { width: 100%; height: auto; display: block; }
 .home-v12.lab-v12 .lab-grid { stroke: var(--hair); stroke-width: 1; }
-.home-v12.lab-v12 .lab-tick { fill: var(--mut); font-size: 11px; font-family: var(--sans); }
+.home-v12.lab-v12 .lab-tick { fill: var(--mut); font-size: 11px; font-family: var(--mt-type-sans); }
 .home-v12.lab-v12 .lab-axis { fill: var(--mut); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
 .home-v12.lab-v12 .lab-curve { stroke: var(--ink); stroke-width: 2.4; }
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-curve,
@@ -131,7 +131,7 @@
 .home-v12.lab-v12 .lab-fmark svg { overflow: visible; }
 .home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--bg2); stroke-width: 2; }
 .home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 1.5; }
-.home-v12.lab-v12 .lab-dotlabel { fill: var(--ink-soft); font-size: 11px; font-family: var(--sans); }
+.home-v12.lab-v12 .lab-dotlabel { fill: var(--ink-soft); font-size: 11px; font-family: var(--mt-type-sans); }
 .home-v12.lab-v12 .lab-dotlabel.you { fill: var(--up); font-weight: 700; }
 .home-v12.lab-v12 .lab-frontier-read { color: var(--ink-soft); font-size: 13.5px; padding-top: 10px; min-height: 20px; }
 
@@ -195,7 +195,6 @@
   --mt-ink-1: var(--ink-soft);
   --mt-ink-2: var(--mut);
   --mt-ink-3: var(--mut);
-  --mt-font-ui: var(--sans);
   --mt-up: var(--up);
   --mt-down: var(--down);
   --mt-warn: var(--amber);

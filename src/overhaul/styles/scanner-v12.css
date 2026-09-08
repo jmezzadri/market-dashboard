@@ -43,15 +43,15 @@
 }
 .home-v12.scanner-v12 { --rowhover: color-mix(in srgb, var(--gold-deep) 8%, var(--bg2)); }
 .home-v12.scanner-v12 .num { font-variant-numeric: tabular-nums; }
-/* 2026-07-08: pin the whole scanner table to the tabular brand sans (Geist), the same font the Paper table uses, so numbers match across the site and columns stay aligned. Panel title keeps var(--serif) via its own rule. Kills the stray Inter drift. */
-.home-v12.scanner-v12 .sc-tablecard { font-family: var(--sans); }
+/* 2026-07-08: pin the whole scanner table to the tabular brand sans (Geist), the same font the Paper table uses, so numbers match across the site and columns stay aligned. Panel title keeps var(--mt-type-serif) via its own rule. Kills the stray Inter drift. */
+.home-v12.scanner-v12 .sc-tablecard { font-family: var(--mt-type-sans); }
 
 /* ── hero: editorial column — the strategy in one line, then the two links
       a reader needs (the book these events feed, and the methodology) ── */
 .home-v12 section.sc-hero { margin: 0 auto; max-width: 1560px; padding-top: 48px; display: grid; grid-template-columns: 1fr; gap: 18px; align-items: stretch; }
 .home-v12 .sc-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
-.home-v12 .sc-ed h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
+.home-v12 .sc-ed h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
 .home-v12 .sc-ed h1 i { font-style: italic; color: var(--gold-deep); }
 .home-v12 .sc-sub { font-size: 15.5px; color: var(--ink-soft); max-width: 880px; line-height: 1.6; }
 .home-v12 .sc-links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
@@ -70,7 +70,7 @@
 /* Shared scanner table — 12px/.12em headers, 14px cell rhythm, 13.5px body,
    16px gold tickers, hover = gold-tint row + inset gold bar + underlined
    ticker. */
-.home-v12 .sc-table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
+.home-v12 .sc-table { width: 100%; border-collapse: collapse; font-family: var(--mt-type-sans); font-size: 13.5px; color: var(--ink); }
 .home-v12 .sc-table th { text-align: left; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); padding: 12px 10px 9px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .home-v12 .sc-table th.num-h { text-align: right; }
 .home-v12 .sc-table th:first-child, .home-v12 .sc-table td:first-child { padding-left: 22px; }
@@ -87,21 +87,21 @@
 .home-v12 .sc-tk b { font-weight: 700; font-size: 16px; color: var(--gold-deep); }
 .home-v12 .sc-tk .nm { font-size: 12.5px; color: var(--ink-soft); max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
 /* Panel footnote — same voice + position on every panel. */
-.home-v12 .sc-tilefoot { font-family: var(--sans); font-size: 12.5px; color: var(--mut); padding: 0 30px 22px; line-height: 1.5; }
+.home-v12 .sc-tilefoot { font-family: var(--mt-type-sans); font-size: 12.5px; color: var(--mut); padding: 0 30px 22px; line-height: 1.5; }
 
 /* panel head — mirrors the Paper Portfolio panel head (serif title), so both
    tool tables read as one component (Joe, 2026-07-08). */
 .home-v12 .sc-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 26px 30px 14px; border-bottom: 1px solid var(--hair); }
-.home-v12 .sc-paneltitle { margin: 2px 0 0; font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1.1; letter-spacing: -.3px; color: var(--ink); }
+.home-v12 .sc-paneltitle { margin: 2px 0 0; font-family: var(--mt-type-serif); font-weight: 600; font-size: 34px; line-height: 1.1; letter-spacing: -.3px; color: var(--ink); }
 .home-v12 .sc-loading { padding: 44px; text-align: center; color: var(--mut); font-size: 14px; }
 
 /* ── Panel designation + rule lines ────────────────────────────────────────
    Small factual header furniture above/below the panel titles so all desk
    panels read as one visual system. */
 .home-v12 .sc-kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-deep); font-weight: 700; margin-bottom: 4px; }
-.home-v12 .sc-rule { font-family: var(--sans); font-size: 15.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.6; max-width: none; } /* 2026-07-16 Joe: description text a bit larger; no width cap — use the tile */
+.home-v12 .sc-rule { font-family: var(--mt-type-sans); font-size: 15.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.6; max-width: none; } /* 2026-07-16 Joe: description text a bit larger; no width cap — use the tile */
 .home-v12 .sc-scanmeta { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
-.home-v12 .sc-metalink { background: none; border: 0; padding: 0; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--gold-deep); cursor: pointer; border-bottom: 1px solid transparent; transition: border-color .25s; }
+.home-v12 .sc-metalink { background: none; border: 0; padding: 0; font-family: var(--mt-type-sans); font-size: 12.5px; font-weight: 600; color: var(--gold-deep); cursor: pointer; border-bottom: 1px solid transparent; transition: border-color .25s; }
 .home-v12 .sc-metalink:hover { border-color: var(--gold-deep); }
 
 /* ── Conviction Events desk (2026-08-11) — the whole page body. Both panels
@@ -123,10 +123,10 @@
 .home-v12 .sc-table td.ce-who { color: var(--ink-soft); }
 .home-v12 .ce-name { display: inline-block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .home-v12 .sc-table td.ce-act { white-space: normal; min-width: 360px; }
-.home-v12 .ce-why { font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-left: 10px; }
+.home-v12 .ce-why { font-family: var(--mt-type-sans); font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-left: 10px; }
 /* "No insider purchase cleared $250,000 today" — stated in words, above the
    most recent day's table, instead of rendering an empty one. */
-.home-v12 .ce-note { font-family: var(--sans); font-size: 13.5px; color: var(--ink-soft); background: var(--bg2); border-radius: 18px; margin: 14px 18px 0; padding: 14px 20px; line-height: 1.55; transition: background .5s; }
+.home-v12 .ce-note { font-family: var(--mt-type-sans); font-size: 13.5px; color: var(--ink-soft); background: var(--bg2); border-radius: 18px; margin: 14px 18px 0; padding: 14px 20px; line-height: 1.55; transition: background .5s; }
 /* Day separator inside the recent-events table. */
 .home-v12 .sc-table tr.ce-grouprow td { padding: 14px 22px 8px; border-bottom: 1px solid var(--hair); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 5%, transparent); }
 

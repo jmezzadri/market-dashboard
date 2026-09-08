@@ -265,7 +265,7 @@ export default function BigHistoryChart({
           <g key={i}>
             <line x1={padL} x2={w - padR} y1={yOf(v)} y2={yOf(v)} stroke="var(--mt-line-0)" strokeWidth="1" />
             <text x={padL - 8} y={yOf(v)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '11px var(--mt-font-ui)' }} className="num">
+              fill="var(--mt-ink-3)" style={{ font: '11px var(--mt-type-sans)' }} className="num">
               {yFormat(v)}
             </text>
           </g>
@@ -290,9 +290,9 @@ export default function BigHistoryChart({
                 stroke="var(--mt-line-0)" strokeWidth="1" strokeDasharray={lv === 50 ? '' : '3 3'} />
             ))}
             <text x={padL - 8} y={rsiY(70)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-font-ui)' }}>70</text>
+              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-type-sans)' }}>70</text>
             <text x={padL - 8} y={rsiY(30)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-font-ui)' }}>30</text>
+              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-type-sans)' }}>30</text>
             <path d={rsiSegPath(rsiValues)} fill="none" stroke="var(--mt-ink-1)" strokeWidth="1.3"
               strokeLinecap="round" strokeLinejoin="round" />
           </g>
@@ -330,7 +330,7 @@ export default function BigHistoryChart({
         {[0, Math.floor(data.length / 2), data.length - 1].map((i) => (
           <text key={i} x={xOf(i)} y={height - 8}
             textAnchor={i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}
-            fill="var(--mt-ink-3)" style={{ font: '10.5px var(--mt-font-ui)' }}>
+            fill="var(--mt-ink-3)" style={{ font: '10.5px var(--mt-type-sans)' }}>
             {dateLabel(i)}
           </text>
         ))}
@@ -385,7 +385,7 @@ export default function BigHistoryChart({
               transform: 'translate(-50%, -100%)',
               background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)',
               borderRadius: 6, padding: '7px 9px', fontSize: 11.5, minWidth: 150,
-              color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-font-ui)',
+              color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-type-sans)',
               boxShadow: '0 6px 18px rgba(0,0,0,0.16)', pointerEvents: 'none', zIndex: 5,
             }}
           >

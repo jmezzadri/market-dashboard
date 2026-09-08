@@ -149,10 +149,10 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
           <div>
             <div className="mt-eyebrow">{def.eyebrow}</div>
-            <h2 style={{ fontFamily: 'var(--mt-font-display)', fontSize: 34, fontWeight: 400, margin: '4px 0 0' }}>{def.name}</h2>
+            <h2 style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 34, fontWeight: 400, margin: '4px 0 0' }}>{def.name}</h2>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="num" style={{ fontFamily: 'var(--mt-font-display)', fontSize: 38, lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
+            <div className="num" style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 38, lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
             {dayPct != null && (
               <div className={`num ${dayPct >= 0 ? 'up' : 'down'}`} style={{ fontWeight: 600, fontSize: 14, marginTop: 2 }}>
                 {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} today

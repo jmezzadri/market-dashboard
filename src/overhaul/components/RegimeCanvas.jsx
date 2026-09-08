@@ -105,16 +105,16 @@ export default function RegimeCanvas({
         <line x1="30" x2={W - 30} y1={H / 2} y2={H / 2} stroke="var(--mt-line-1)" strokeDasharray="2 4" />
 
         {/* axis labels */}
-        <text x={W - 16} y={H / 2 - 10} textAnchor="end" fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-font-ui)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>stress →</text>
-        <text x="16" y={H / 2 - 10} fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-font-ui)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>← calm</text>
-        <text x={W / 2 + 10} y="28" fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-font-ui)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>inflationary ↑</text>
-        <text x={W / 2 + 10} y={H - 14} fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-font-ui)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>↓ deflationary</text>
+        <text x={W - 16} y={H / 2 - 10} textAnchor="end" fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-type-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>stress →</text>
+        <text x="16" y={H / 2 - 10} fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-type-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>← calm</text>
+        <text x={W / 2 + 10} y="28" fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-type-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>inflationary ↑</text>
+        <text x={W / 2 + 10} y={H - 14} fill="var(--mt-ink-2)" style={{ font: '10.5px var(--mt-type-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>↓ deflationary</text>
 
         {/* quadrant labels */}
-        <text x={W - 24} y="44" textAnchor="end" fill="var(--mt-down)" style={{ font: '600 11px var(--mt-font-ui)', letterSpacing: '0.15em' }}>RISK OFF · INFL</text>
-        <text x="24" y="44" fill="var(--mt-ink-2)" style={{ font: '600 11px var(--mt-font-ui)', letterSpacing: '0.15em' }}>RISK ON · INFL</text>
-        <text x={W - 24} y={H - 28} textAnchor="end" fill="var(--mt-ink-2)" style={{ font: '600 11px var(--mt-font-ui)', letterSpacing: '0.15em' }}>RISK OFF · DEFL</text>
-        <text x="24" y={H - 28} fill="var(--mt-up)" style={{ font: '600 11px var(--mt-font-ui)', letterSpacing: '0.15em' }}>RISK ON · DEFL</text>
+        <text x={W - 24} y="44" textAnchor="end" fill="var(--mt-down)" style={{ font: '600 11px var(--mt-type-sans)', letterSpacing: '0.15em' }}>RISK OFF · INFL</text>
+        <text x="24" y="44" fill="var(--mt-ink-2)" style={{ font: '600 11px var(--mt-type-sans)', letterSpacing: '0.15em' }}>RISK ON · INFL</text>
+        <text x={W - 24} y={H - 28} textAnchor="end" fill="var(--mt-ink-2)" style={{ font: '600 11px var(--mt-type-sans)', letterSpacing: '0.15em' }}>RISK OFF · DEFL</text>
+        <text x="24" y={H - 28} fill="var(--mt-up)" style={{ font: '600 11px var(--mt-type-sans)', letterSpacing: '0.15em' }}>RISK ON · DEFL</text>
 
         {/* Engine call marker — upper-left (Risk On · Inflationary) per brief */}
         <g transform={`translate(${px(-0.55)} ${py(0.45)})`}>
@@ -122,8 +122,8 @@ export default function RegimeCanvas({
           <line x1="-30" x2="30" y1="0" y2="0" stroke="var(--mt-accent)" strokeWidth="1" opacity="0.4" />
           <line x1="0" x2="0" y1="-30" y2="30" stroke="var(--mt-accent)" strokeWidth="1" opacity="0.4" />
           <circle r="5" fill="var(--mt-accent)" stroke="var(--mt-surface)" strokeWidth="2" />
-          <text x="14" y="-26" fill="var(--mt-ink-2)" style={{ font: '10px var(--mt-font-ui)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Engine call</text>
-          <text x="14" y="-12" fill="var(--mt-accent)" style={{ font: '600 12px var(--mt-font-ui)' }}>Risk On · Inflationary</text>
+          <text x="14" y="-26" fill="var(--mt-ink-2)" style={{ font: '10px var(--mt-type-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Engine call</text>
+          <text x="14" y="-12" fill="var(--mt-accent)" style={{ font: '600 12px var(--mt-type-sans)' }}>Risk On · Inflationary</text>
         </g>
 
         {/* Indicator dots */}
@@ -161,7 +161,7 @@ export default function RegimeCanvas({
                     x={cx > W * 0.7 ? -172 : 8}
                     y="2"
                     fill="var(--mt-ink-0)"
-                    style={{ font: '600 11.5px var(--mt-font-ui)' }}
+                    style={{ font: '600 11.5px var(--mt-type-sans)' }}
                   >
                     {ind.name}
                   </text>
@@ -169,7 +169,7 @@ export default function RegimeCanvas({
                     x={cx > W * 0.7 ? -172 : 8}
                     y="16"
                     fill="var(--mt-ink-2)"
-                    style={{ font: '10.5px var(--mt-font-ui)' }}
+                    style={{ font: '10.5px var(--mt-type-sans)' }}
                   >
                     {ind.domain} · {ind.state}{ind.pct != null ? ` · ${ind.pct}th pct` : ''}
                   </text>
