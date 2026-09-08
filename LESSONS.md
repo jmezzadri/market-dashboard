@@ -1351,6 +1351,19 @@ This is 0.3 — never commit a repo file from a stale copy — arriving through 
 
 **Applies to:** every agent that appends to LESSONS.md, and every whole-file write to a shared, frequently-appended file.
 
+### 5.26 (2026-09-08) — A mark writer is a session-claim maker; "read-only at the broker" does not exempt it from the trading calendar
+
+**What happened:** QT-EOD-DAILY's 21:10 UTC weekday cron fired on Labor Day (Mon 2026-09-07) and `qt.eod.snapshot()` wrote a `qt_nav_daily` row for a session that never happened. Alpaca answers `/v2/account` and `/v2/positions` on a holiday, and `trades/latest` returns whatever printed last — so the row carried an "S&P close" of 770.19 on a day the index never traded (Friday's close was 769.78) and position prices that drifted from Friday's marks. /paper then rendered a full "Mon, Sep 7 session": DAY P&L −$317, "S&P +0.05% Mon, Sep 7 session", "marked Mon, Sep 7, 5:40 PM ET" — every number an artifact of quote drift on a closed market. Nothing objected: the workflow was green, the freshness chip was stamped green from the row itself, and RENDERED-DOM-SMOKE checks labels, not whether a claimed session existed. The job was exempted from 5.6's calendar rule on the theory that it is read-only at the broker — but the rule's real subject is jobs whose OUTPUT asserts a trading session, whichever direction their broker calls point.
+
+**Rule:**
+
+1. **Any job whose output claims a trading session — an order, a fill, OR a dated mark/NAV row — asks the exchange calendar first.** "One row per trading day" is a contract with the calendar; a `1-5` cron field is a weekday filter, never a market calendar (5.6). `qt.eod.snapshot()` now checks `/v2/calendar` for the ET date and quietly skips on a non-session; calendar unreachable → raise, because a red run beats a fabricated session.
+2. **A quote fetched on a closed market is not a close.** `trades/latest` on a holiday hands back late/off-exchange prints that differ from the official close — the same trap as 4.32's "live" stamp, one table deeper: there it mislabeled a price, here it minted a whole session around one.
+3. **Date the row in the market's timezone.** The row's `d` now comes from the ET clock, not the runner's UTC `date.today()` — a manual dispatch after 00:00 UTC would otherwise file the mark under a day that hasn't traded yet.
+4. **Healing is delete-plus-writer, not delete alone (4.31 mirrored):** the fabricated 2026-09-07 row was deleted in the same change that shipped the calendar gate, so the page stops claiming the session AND the writer can never mint another one.
+
+**Applies to:** Lead Developer — every job that writes dated marks, NAV rows, or per-session records; the weekday health sweep.
+
 # 6 · QUANT METHODOLOGY & RESEARCH
 ### 6.1 (2026-05-13) — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
 
