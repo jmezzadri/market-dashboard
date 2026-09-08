@@ -175,8 +175,8 @@ for (const file of files) {
     const jf = code.match(/fontSize:\s*([^,}\n]+)/);
     if (jf) {
       const v = jf[1].trim().replace(/^['"`]|['"`]$/g, '');
-      if (/^[\d.]+(px)?$/.test(v)) {
-        fail(at, `fontSize ${v} is a literal. Use var(--v13-t1..t6).`);
+      if (/^[\d.]+(px)?$/.test(v) || /clamp\(|\dpx|\drem|\dem\b/.test(v)) {
+        fail(at, `fontSize "${v}" is a literal or a clamp(). Use var(--v13-t1..t6).`);
       } else if (v.startsWith('var(')) {
         const t = v.match(/var\(\s*(--[a-z0-9-]+)/i);
         if (t && !SIZE_TOKENS.includes(t[1])) fail(at, `fontSize uses ${t[1]}, which is not a type step.`);

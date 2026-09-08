@@ -733,7 +733,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 ? `Paper Portfolio · live · marks sync every 10 min in market hours${markedAt ? ` · ${markedAt}` : ''}`
                 : `Paper Portfolio · closed book · retired ${RETIRED_ON}${markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}`}
             </div>
-            <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
+            <h1 className="serif" style={{ fontSize: 'var(--v13-t6)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
             </h1>
           </div>
