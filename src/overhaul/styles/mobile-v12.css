@@ -44,7 +44,7 @@
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; padding: 0 14px; min-height: 56px;
   }
-  .mt-overhaul .mt-wordmark { font-size: 21px; margin: 0; }
+  .mt-overhaul .mt-wordmark { font-size: var(--v13-t5); margin: 0; }
 
   .mt-overhaul .mt-navtoggle {
     display: inline-flex; align-items: center; justify-content: center;
@@ -90,7 +90,7 @@
   }
   .mt-overhaul .mt-navsheet-link {
     display: block; padding: 15px 18px; min-height: 52px;
-    font-size: 17px; line-height: 22px; text-decoration: none;
+    font-size: var(--v13-t5); line-height: 22px; text-decoration: none;
     color: var(--ink, #212C33);
     border-bottom: 1px solid var(--hair, rgba(33,44,51,.10));
     -webkit-tap-highlight-color: transparent;
@@ -101,12 +101,12 @@
     gap: 12px; padding: 16px 18px 12px; min-height: 52px;
   }
   .mt-overhaul .mt-navsheet-email {
-    font-size: 14px; color: var(--mut, #7C7668);
+    font-size: var(--v13-t3); color: var(--mut, #7C7668);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .mt-overhaul .mt-navsheet-signin,
   .mt-overhaul .mt-navsheet-signout {
-    font-size: 16px; font-weight: 600; color: var(--gold-deep, #B7975C);
+    font-size: var(--v13-t4); font-weight: 600; color: var(--gold-deep, #B7975C);
     background: none; border: 0; padding: 10px 0; cursor: pointer; text-decoration: none;
   }
 }
@@ -120,7 +120,7 @@
     display: grid; grid-template-columns: 1fr auto; align-items: center;
     gap: 8px 10px; padding: 10px 14px;
   }
-  .mt-overhaul .mt-headmeta { font-size: 13px; min-width: 0; overflow: hidden; }
+  .mt-overhaul .mt-headmeta { font-size: var(--v13-t3); min-width: 0; overflow: hidden; }
   .mt-overhaul .mt-headmeta > * { white-space: nowrap; }
   .mt-overhaul .mt-headstatus { display: flex; align-items: center; gap: 8px; }
   /* The freshness pill is a desktop affordance — a tap target that navigates
@@ -139,7 +139,7 @@
     width: 100%;
     /* 16px exactly: iOS Safari zooms the viewport on focus for anything
        smaller, and the page never zooms back out. */
-    font-size: 16px; min-height: 44px;
+    font-size: var(--v13-t4); min-height: 44px;
   }
   .mt-overhaul .mt-iconbtn { min-width: 40px; min-height: 40px; }
 }
@@ -175,9 +175,9 @@
   .mt-overhaul section.wrap { padding-left: 14px; padding-right: 14px; }
 
   /* Display headlines authored at desktop sizes. */
-  .mt-overhaul h1 { font-size: clamp(26px, 7.2vw, 34px); line-height: 1.18; }
-  .mt-overhaul h2 { font-size: clamp(21px, 5.8vw, 27px); line-height: 1.22; }
-  .mt-overhaul .hero h1 { font-size: clamp(28px, 8vw, 38px); }
+  .mt-overhaul h1 { font-size: var(--v13-t6); line-height: 1.18; }
+  .mt-overhaul h2 { font-size: var(--v13-t5); line-height: 1.22; }
+  .mt-overhaul .hero h1 { font-size: var(--v13-t6); }
   .mt-overhaul .hero { padding: 40px 0 34px !important; }
   .mt-overhaul section { margin-top: 34px; }
 }
@@ -194,18 +194,18 @@
   .mt-overhaul dt, .mt-overhaul figcaption, .mt-overhaul small,
   .mt-overhaul .k, .mt-overhaul .src, .mt-overhaul [class*='-src'],
   .mt-overhaul [class*='-dim'], .mt-overhaul [class*='caption'] {
-    font-size: max(11px, 1em) !important;
+    font-size: var(--v13-t2) !important;
     letter-spacing: .05em;
   }
   .mt-overhaul p, .mt-overhaul li, .mt-overhaul dd, .mt-overhaul td {
-    font-size: max(14px, 1em);
+    font-size: var(--v13-t3);
     line-height: 1.6;
   }
   /* Eyebrows are wide-tracked caps. Do NOT nowrap-and-ellipsis them: .eyebrow2
      is a 16px header line ("Morning Brief · Tue, Aug 25") and clipping it threw
      away the date. Tighten the tracking and let it wrap instead. */
   .mt-overhaul .eyebrow, .mt-overhaul .eyebrow2 {
-    letter-spacing: .06em; font-size: 12.5px !important; line-height: 1.4;
+    letter-spacing: .06em; font-size: var(--v13-t3)!important; line-height: 1.4;
   }
 }
 
@@ -267,10 +267,10 @@
   }
   .mt-overhaul .briefmodal-x {
     position: fixed !important; top: 8px; right: 8px;
-    width: 44px; height: 44px; font-size: 26px; z-index: 5;
+    width: 44px; height: 44px; font-size: var(--v13-t6); z-index: 5;
     background: var(--bg2, #F9F6F0); border-radius: 50%;
   }
-  .mt-overhaul .briefmodal-h { font-size: clamp(22px, 6vw, 28px); line-height: 1.25; }
+  .mt-overhaul .briefmodal-h { font-size: var(--v13-t5); line-height: 1.25; }
   /* Charts inside a note are authored at a fixed desktop width. */
   .mt-overhaul .briefmodal svg,
   .mt-overhaul .idea-charts svg,
@@ -283,7 +283,7 @@
 @media (max-width: 780px) {
   /* HOME — the badge row overflowed its tile; the fact strip was 3 columns. */
   .mt-overhaul .idea-badges { flex-wrap: wrap; gap: 6px; }
-  .mt-overhaul .idea-badges > * { font-size: 10.5px; padding: 4px 8px; }
+  .mt-overhaul .idea-badges > * { font-size: var(--v13-t1); padding: 4px 8px; }
   .mt-overhaul .idea-facts,
   .mt-overhaul .es-verdict { grid-template-columns: 1fr !important; gap: 12px; }
   .mt-overhaul .idea-modal-facts,
@@ -302,15 +302,15 @@
     min-width: 0; overflow: hidden;
   }
   .mt-overhaul .tape .tv {
-    font-size: clamp(17px, 5.2vw, 24px) !important; white-space: nowrap;
+    font-size: var(--v13-t5)!important; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; display: block;
   }
-  .mt-overhaul .tape .tk { font-size: 10.5px !important; letter-spacing: .06em; }
+  .mt-overhaul .tape .tk { font-size: var(--v13-t1)!important; letter-spacing: .06em; }
 
   /* SCORECARD — the ledger row is a six-column grid on desktop. */
   .mt-overhaul .sc-trade { grid-template-columns: 1fr !important; gap: 2px 0; }
   .mt-overhaul .sc-tradefact .k { padding-top: 10px; }
-  .mt-overhaul .sc-call { font-size: 16px; }
+  .mt-overhaul .sc-call { font-size: var(--v13-t4); }
   .mt-overhaul .sc-wrap { padding: 18px 14px 48px; }
 
   /* MACRO — indicator rows are a wide multi-column table on desktop. */
@@ -347,7 +347,7 @@
     white-space: normal;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     overflow: hidden; text-overflow: unset;
-    font-size: 14.5px; line-height: 1.45;
+    font-size: var(--v13-t4); line-height: 1.45;
   }
   .mt-overhaul .home-v12 .ni { align-items: flex-start; }
 
@@ -360,9 +360,9 @@
   .mt-overhaul .idea-edge,
   .mt-overhaul .idea-pos,
   .mt-overhaul .tk,
-  .mt-overhaul .when { font-size: 11.5px !important; }
+  .mt-overhaul .when { font-size: var(--v13-t2)!important; }
   .mt-overhaul .mac-lean .lean {
-    font-size: 11px !important; padding: 3px 9px; letter-spacing: .04em;
+    font-size: var(--v13-t2)!important; padding: 3px 9px; letter-spacing: .04em;
   }
 
   /* A table that resolves `width:100%` against an already-overflowing parent

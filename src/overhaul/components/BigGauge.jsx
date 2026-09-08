@@ -131,7 +131,7 @@ export function GaugeLegend({ zones }) {
             />
             <span
               style={{
-                fontSize: 11,
+                fontSize: 'var(--v13-t2)',
                 fontWeight: 600,
                 letterSpacing: '0.04em',
                 color,
@@ -143,7 +143,7 @@ export function GaugeLegend({ zones }) {
             <span
               className="num"
               style={{
-                fontSize: 11,
+                fontSize: 'var(--v13-t2)',
                 color: 'var(--mt-ink-2)',
                 fontFamily: 'var(--mt-type-mono)',
               }}

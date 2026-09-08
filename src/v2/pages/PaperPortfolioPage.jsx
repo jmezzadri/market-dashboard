@@ -176,10 +176,10 @@ const CSS = `
 .paper-v12 .qtt-tile:hover { transform: translateY(-2px); }
 .paper-v12 .qtt-row { transition: background .12s ease; }
 .paper-v12 .qtt-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
-.paper-v12 .qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; font-family: var(--mt-type-sans); }
+.paper-v12 .qtt-pill { transition: background .12s ease, color .12s ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 3px 12px; font-size:var(--v13-t2); font-weight: 600; letter-spacing: .04em; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-pill:hover { color: var(--ink); }
 .paper-v12 .qtt-pill.on { background: color-mix(in srgb, var(--gold-deep) 16%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
-.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size: 13px; width: 190px; outline: none; font-family: var(--mt-type-sans); }
+.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); padding: 6px 12px; font-size:var(--v13-t3); width: 190px; outline: none; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
 .paper-v12 .qtt-search::placeholder { color: var(--mut); }
 .paper-v12 .qtt-secgrid { columns: 250px; column-gap: 18px; }
@@ -201,7 +201,7 @@ function Term({ children, tip, placement = 'top', alignRight = false, labelOpaci
           position: 'absolute', ...pos, ...side, zIndex: 40, background: CARD2,
           border: `1px solid ${EDGE}`, borderRadius: 10, padding: '9px 12px',
           width: 250, whiteSpace: 'normal', boxShadow: 'var(--sh)',
-          fontSize: 12, lineHeight: 1.55, fontWeight: 400, letterSpacing: 0,
+          fontSize: 'var(--v13-t2)', lineHeight: 1.55, fontWeight: 400, letterSpacing: 0,
           textTransform: 'none', color: INK,
         }}>{tip}</span>
       )}
@@ -214,8 +214,8 @@ function Card({ title, right, children, style, className }) {
     <div className={`qtt-card ${className || ''}`} style={{ background: CARD, borderRadius: 28, padding: '26px 30px', ...style }}>
       {(title || right) && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: INK3 }}>{title}</div>
-          {right ? <div style={{ fontSize: 12.5, color: INK3 }}>{right}</div> : null}
+          <div style={{ fontSize: 'var(--v13-t2)', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: INK3 }}>{title}</div>
+          {right ? <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{right}</div> : null}
         </div>
       )}
       {children}
@@ -305,7 +305,7 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
           right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined,
           background: CARD2, border: `1px solid ${EDGE}`, borderRadius: 10,
           padding: '8px 11px', pointerEvents: 'none', boxShadow: 'var(--sh)',
-          fontSize: 12.5, whiteSpace: 'nowrap', zIndex: 5, color: INK,
+          fontSize: 'var(--v13-t3)', whiteSpace: 'nowrap', zIndex: 5, color: INK,
         }}>
           <div style={{ color: INK3, marginBottom: 4 }}>{dateLbl(hov)}</div>
           {series.map((s) => (
@@ -326,7 +326,7 @@ function ChartLegend({ items }) {
     // layout check does not read it as a jammed row. See scripts/check_layout.mjs.
     <div data-layout="natural" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 10 }}>
       {items.map(([name, color]) => (
-        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: INK2 }}>
+        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--v13-t3)', color: INK2 }}>
           <span style={{ width: 16, height: 3, background: color, borderRadius: 2, display: 'inline-block' }} />{name}
         </div>
       ))}
@@ -408,8 +408,8 @@ function liveStats(nav, spyBase = null) {
   return out;
 }
 
-const th = { textAlign: 'right', padding: '9px 10px', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' };
-const td = { textAlign: 'right', padding: '10px 10px', fontSize: 13.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
+const th = { textAlign: 'right', padding: '9px 10px', fontSize: 'var(--v13-t1)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' };
+const td = { textAlign: 'right', padding: '10px 10px', fontSize: 'var(--v13-t3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
 
 /* ══════════════════════════════════════════════════════════════════════ */
 export default function PaperPortfolioPage({ onOpenTicker }) {
@@ -708,7 +708,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const px = m?.avg_entry ? Number(m.avg_entry) : (o?.status === 'filled' ? Number(o.filled_avg_price) : null);
     if (px) return <span style={{ color: INK }}>{fmtUsd(px, 2)}</span>;
     if (o && !['filled', 'expired'].includes(o.status)) {
-      return <span style={{ color: WARN, fontSize: 12 }}>◷ {o.status.replace(/_/g, ' ')}</span>;
+      return <span style={{ color: WARN, fontSize: 'var(--v13-t2)' }}>◷ {o.status.replace(/_/g, ' ')}</span>;
     }
     return <span style={{ color: INK3 }}>—</span>;
   };
@@ -733,11 +733,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 ? `Paper Portfolio · live · marks sync every 10 min in market hours${markedAt ? ` · ${markedAt}` : ''}`
                 : `Paper Portfolio · closed book · retired ${RETIRED_ON}${markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}`}
             </div>
-            <h1 className="serif" style={{ fontSize: 'clamp(34px, 3.8vw, 48px)', lineHeight: 1.08, margin: 0 }}>
+            <h1 className="serif" style={{ fontSize: 'var(--v13-t6)', lineHeight: 1.08, margin: 0 }}>
               Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
             </h1>
           </div>
-          <div style={{ textAlign: 'right', fontSize: 13, color: INK2, lineHeight: 1.7 }}>
+          <div style={{ textAlign: 'right', fontSize: 'var(--v13-t3)', color: INK2, lineHeight: 1.7 }}>
             {bookIsLive
               ? '20 US companies · equal weight · monthly rebalance · crash brake · no leverage'
               : '40 US companies · equal weight · monthly rebalance · no leverage'}
@@ -765,10 +765,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
              as "words jammed to the left". Cap the BOX, not just the text. */
           maxWidth: '96ch',
         }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
+          <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 8 }}>
             Retired — nothing here is trading
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.65, color: INK2, maxWidth: '72ch' }}>
+          <div style={{ fontSize: 'var(--v13-t3)', lineHeight: 1.65, color: INK2, maxWidth: '72ch' }}>
             <strong style={{ color: CREAM_INK }}>The paper account today holds $1,000,000
             in cash and owns nothing.</strong> Every number below belongs to a DIFFERENT,
             now-deleted account — the one that ran {bookRan || 'until it was closed'}. It is
@@ -833,17 +833,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 sub: `gross · net long · cash ${fmtUsd(cash)}`, color: CREAM, meter: invested },
             ].map((t) => (
               <div key={t.k}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
-                <div className="num" style={{ fontSize: 23, fontWeight: 600, letterSpacing: '-0.01em', color: t.color }}>{t.hero}</div>
+                <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 8 }}>{t.k}</div>
+                <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 600, letterSpacing: '-0.01em', color: t.color }}>{t.hero}</div>
                 {t.hero2 != null && (
-                  <div className="num" style={{ fontSize: 17.5, fontWeight: 600, letterSpacing: '-0.01em', color: t.color, marginTop: 3 }}>{t.hero2}</div>
+                  <div className="num" style={{ fontSize: 'var(--v13-t5)', fontWeight: 600, letterSpacing: '-0.01em', color: t.color, marginTop: 3 }}>{t.hero2}</div>
                 )}
                 {t.meter != null && (
                   <div style={{ height: 4, borderRadius: 999, background: 'rgba(247,243,232,0.18)', overflow: 'hidden', margin: '8px 0 2px', maxWidth: 140 }}>
                     <div style={{ width: `${Math.min(t.meter * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: CREAM, opacity: 0.72, marginTop: 6 }}>{t.sub}</div>
+                <div style={{ fontSize: 'var(--v13-t3)', color: CREAM, opacity: 0.72, marginTop: 6 }}>{t.sub}</div>
               </div>
             ))}
           </div>
@@ -857,12 +857,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 {[['Top', attribution.top], ['Bottom', attribution.bottom]].map(([lbl, rows]) => (
                   <div key={lbl}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: INK3, marginBottom: 8 }}>{lbl} 5</div>
+                    <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: INK3, marginBottom: 8 }}>{lbl} 5</div>
                     {rows.map((p) => (
                       <button key={p.s} type="button" onClick={() => onOpenTicker && onOpenTicker(p.s)} className="qtt-row"
                         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '7px 4px', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
-                        <span style={{ fontWeight: 700, fontSize: 13.5 }}>{p.s}</span>
-                        <span className="num" style={{ fontSize: 13, color: upDown(p.bp) }}>
+                        <span style={{ fontWeight: 700, fontSize: 'var(--v13-t3)' }}>{p.s}</span>
+                        <span className="num" style={{ fontSize: 'var(--v13-t3)', color: upDown(p.bp) }}>
                           {p.bp > 0 ? '+' : ''}{p.bp.toFixed(1)}bp · {fmtSignedUsd(p.usd)}
                         </span>
                       </button>
@@ -870,14 +870,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   </div>
                 ))}
               </div>
-            ) : <div style={{ fontSize: 13, color: INK3, padding: 8 }}>Populates from the first broker marks.</div>}
+            ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3, padding: 8 }}>Populates from the first broker marks.</div>}
           </Card>
           <Card title="Market cap & liquidity" right={<Term tip={TIPS.mcap} labelOpacity={0.9}>buckets</Term>}>
             {bookMeta ? (
               <>
                 {bookMeta.caps.map((b) => (
                   <div key={b.name} style={{ padding: '6px 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--v13-t3)', marginBottom: 4 }}>
                       <span style={{ color: INK2 }}>{b.name}</span>
                       <span className="num" style={{ fontWeight: 600 }}>{fmtPctPlain(b.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {b.n}</span></span>
                     </div>
@@ -886,7 +886,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     </div>
                   </div>
                 ))}
-                <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: 12, paddingTop: 10, fontSize: 12.5, color: INK2, lineHeight: 1.8 }}>
+                <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: 12, paddingTop: 10, fontSize: 'var(--v13-t3)', color: INK2, lineHeight: 1.8 }}>
                   Median market cap <b className="num" style={{ color: INK }}>{bookMeta.medMcap ? `$${(bookMeta.medMcap / 1e9).toFixed(0)}B` : '—'}</b>
                   <br />
                   Weighted avg daily volume <b className="num" style={{ color: INK }}>{bookMeta.wavgAddv ? `$${(bookMeta.wavgAddv / 1e6).toFixed(0)}M` : '—'}</b>
@@ -895,7 +895,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   <b className="num" style={{ color: INK }}>{bookMeta.worstDtl != null ? (bookMeta.worstDtl < 0.1 ? '< 0.1 day' : `${bookMeta.worstDtl.toFixed(1)} days`) : '—'}</b>
                 </div>
               </>
-            ) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
+            ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>}
           </Card>
         </div>
 
@@ -909,19 +909,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               {bookMeta.secList.map((sec) => (
                 <div className="qtt-sectile" key={sec.name}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 13.5, color: INK }}>{sec.name}</span>
-                    <span className="num" style={{ fontSize: 13, fontWeight: 700 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n}</span></span>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--v13-t3)', color: INK }}>{sec.name}</span>
+                    <span className="num" style={{ fontSize: 'var(--v13-t3)', fontWeight: 700 }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 400 }}>· {sec.n}</span></span>
                   </div>
                   <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 12%, transparent)', overflow: 'hidden', marginBottom: 8 }}>
                     <div style={{ width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, height: '100%', background: GOLD, borderRadius: 999 }} />
                   </div>
                   {sec.industries.map((ind) => (
                     <div key={ind.name} style={{ padding: '5px 0', borderTop: `1px solid ${HAIR}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 'var(--v13-t2)', gap: 8 }}>
                         <span style={{ color: INK2 }}>{ind.name}</span>
                         <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)} <span style={{ color: INK3 }}>· {ind.n}</span></span>
                       </div>
-                      <div style={{ fontSize: 11, color: INK3, marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 2 }}>
                         {ind.syms.map((sym, i) => (
                           <React.Fragment key={sym}>
                             <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
@@ -934,8 +934,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 </div>
               ))}
             </div>
-          ) : <div style={{ fontSize: 13, color: INK3 }}>Loading…</div>}
-          <div style={{ fontSize: 11.5, color: INK3, marginTop: 12, lineHeight: 1.55 }}>
+          ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>}
+          <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 12, lineHeight: 1.55 }}>
             Every holding shown at its GICS industry — click any ticker to open it. Tilts are an
             OUTPUT of the stock-level score, not a target: the book owns wherever momentum and
             profitability currently live.
@@ -958,7 +958,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 <ChartLegend items={[['Quality Trend (indexed to 100)', GOLD], ['S&P 500', BLUE]]} />
               </>
             ) : (
-              <div style={{ padding: '22px 4px', fontSize: 13.5, lineHeight: 1.65, color: INK2 }}>
+              <div style={{ padding: '22px 4px', fontSize: 'var(--v13-t3)', lineHeight: 1.65, color: INK2 }}>
                 The live line starts drawing at the second daily mark — tomorrow. Today&rsquo;s book,
                 fills and P&amp;L are already live below; the backtest reference chart carries the
                 long history until the real one exists.
@@ -976,9 +976,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 ['% up days', ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—', ls?.pctUp == null ? needs(ls?.n ?? 0, 2) : 'of trading days'],
               ].map(([label, value, sub], i) => (
                 <div key={i}>
-                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.11em', textTransform: 'uppercase', color: INK3, marginBottom: 6 }}>{label}</div>
-                  <div style={{ fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-                  <div style={{ fontSize: 11.5, color: INK3, marginTop: 2 }}>{sub}</div>
+                  <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 600, letterSpacing: '0.11em', textTransform: 'uppercase', color: INK3, marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 'var(--v13-t5)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                  <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 2 }}>{sub}</div>
                 </div>
               ))}
             </div>
@@ -995,14 +995,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             ].map(([k, tip, v, sub, frac, mcolor]) => (
               <div key={k} style={{ padding: '9px 0', borderBottom: `1px solid ${HAIR}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-                  <div style={{ fontSize: 13, color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{k}</Term> : k}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
+                  <div style={{ fontSize: 'var(--v13-t3)', color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{k}</Term> : k}</div>
+                  <div style={{ fontSize: 'var(--v13-t4)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</div>
                 </div>
-                <div style={{ fontSize: 11, color: INK3, marginTop: 1 }}>{sub}</div>
+                <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 1 }}>{sub}</div>
                 {frac != null && <Meter frac={frac} color={mcolor} />}
               </div>
             ))}
-            <div style={{ fontSize: 11.5, color: INK3, paddingTop: 10, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'var(--v13-t2)', color: INK3, paddingTop: 10, lineHeight: 1.55 }}>
               Risk is structural — diversification, the volatility gate at selection, the monthly
               exit band. No stops, no book-level alarm, by design.
             </div>
@@ -1060,7 +1060,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11.5, color: INK3, marginTop: 10 }}>
+          <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 10 }}>
             <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe appears after
             60 trading days — a ratio annualized from a few days is noise. Hover any dotted term for a
             plain-English definition.
@@ -1085,7 +1085,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             }
             const years = [...new Set(Object.keys(months).map((k) => k.slice(0, 4)))].sort();
             const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            if (!years.length) return <div style={{ fontSize: 13, color: INK3 }}>The first month prints after the first close.</div>;
+            if (!years.length) return <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>The first month prints after the first close.</div>;
             return (
               <div style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
@@ -1171,7 +1171,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 11.5, color: INK3, marginTop: 10, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 10, lineHeight: 1.6 }}>
             *2026 through Aug 11, the backtest's last mark. Bold = beat the index that year (7 of 10).
             A backtest is not a live record: it includes 2,011 companies that no longer exist, uses
             financials only from their SEC filing dates, and survives 40bp costs — and the live book
@@ -1200,7 +1200,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             <div style={{
               margin: '0 0 14px', padding: '12px 14px', borderRadius: 10,
               background: 'rgba(184,151,92,0.10)', border: '1px solid rgba(184,151,92,0.45)',
-              fontSize: 14, lineHeight: 1.5, color: INK2,
+              fontSize: 'var(--v13-t3)', lineHeight: 1.5, color: INK2,
             }}>
               <strong>These are not holdings.</strong> The account holds no shares and has
               placed no orders — it is 100% cash. The list below is what the model scored,
@@ -1209,9 +1209,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </div>
           ) : null}
           {err ? (
-            <div style={{ padding: 20, fontSize: 14, color: INK2 }}>The book could not be loaded ({err}). Refresh to retry.</div>
+            <div style={{ padding: 20, fontSize: 'var(--v13-t3)', color: INK2 }}>The book could not be loaded ({err}). Refresh to retry.</div>
           ) : !book ? (
-            <div style={{ padding: 20, fontSize: 14, color: INK3 }}>Loading…</div>
+            <div style={{ padding: 20, fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>
           ) : (
             <>
               <div style={{ overflow: 'auto', margin: '0 -6px' }}>
@@ -1245,7 +1245,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                             {c.tip
                               ? <Term tip={c.tip} placement="bottom" alignRight={!c.align} labelOpacity={active ? 0.95 : 0.6}>{c.label}</Term>
                               : <span style={{ opacity: active ? 0.95 : 0.6 }}>{c.label}</span>}
-                            <span style={{ marginLeft: 4, fontSize: 9, color: active ? GOLD : INK3 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
+                            <span style={{ marginLeft: 4, fontSize: 'var(--v13-t1)', color: active ? GOLD : INK3 }}>{active ? (sortDir === 1 ? '▲' : '▼') : '⇅'}</span>
                           </th>
                         );
                       })}
@@ -1263,7 +1263,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
                               title={`Open ${r.symbol}`}>
                               <span style={{ fontWeight: 700 }}>{r.symbol}</span>
-                              <span style={{ color: INK3, marginLeft: 8, fontSize: 12.5 }}>
+                              <span style={{ color: INK3, marginLeft: 8, fontSize: 'var(--v13-t3)' }}>
                                 {(r.company || '').replace(/\s*(Common Stock|Ordinary Share|Class A Common Stock).*$/i, '')}
                               </span>
                             </button>
@@ -1288,9 +1288,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                           </td>
                         ),
                         sector: (
-                          <td key="sector" style={{ ...td, textAlign: 'left', fontSize: 12.5, lineHeight: 1.35 }}>
+                          <td key="sector" style={{ ...td, textAlign: 'left', fontSize: 'var(--v13-t3)', lineHeight: 1.35 }}>
                             <div style={{ color: INK2 }}>{r.sector || '—'}</div>
-                            {r.industry ? <div style={{ color: INK3, fontSize: 11 }}>{r.industry}</div> : null}
+                            {r.industry ? <div style={{ color: INK3, fontSize: 'var(--v13-t2)' }}>{r.industry}</div> : null}
                           </td>
                         ),
                         trend1y: <td key="trend1y" style={td}>{r.mom12 == null ? '—' : `${r.mom12 > 0 ? '+' : ''}${Math.round(r.mom12 * 100)}%`}</td>,
@@ -1312,10 +1312,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 </table>
               </div>
               {query && sortedBook.length === 0 && (
-                <div style={{ padding: 16, fontSize: 13, color: INK3 }}>No holdings match “{query}”.</div>
+                <div style={{ padding: 16, fontSize: 'var(--v13-t3)', color: INK3 }}>No holdings match “{query}”.</div>
               )}
-              <details style={{ marginTop: 12, fontSize: 12.5, color: INK2 }}>
-                <summary style={{ cursor: 'pointer', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK3 }}>
+              <details style={{ marginTop: 12, fontSize: 'var(--v13-t3)', color: INK2 }}>
+                <summary style={{ cursor: 'pointer', fontSize: 'var(--v13-t2)', letterSpacing: '0.08em', textTransform: 'uppercase', color: INK3 }}>
                   What these columns mean
                 </summary>
                 <div style={{ padding: '10px 2px 0', lineHeight: 1.65, maxWidth: 880 }}>
@@ -1332,7 +1332,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           )}
         </Card>
 
-        <div style={{ fontSize: 12, color: INK3, marginTop: 16, lineHeight: 1.65, maxWidth: 900 }}>
+        <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 16, lineHeight: 1.65, maxWidth: 900 }}>
           Scored on 12- and 6-month momentum (skipping the most recent month), trend consistency,
           drawdown resilience, gross profitability, cash generation and buybacks from point-in-time
           SEC filings, plus a bonus for meaningful insider buying. Marks and P&amp;L are the paper

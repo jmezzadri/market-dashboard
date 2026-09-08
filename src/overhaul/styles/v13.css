@@ -166,6 +166,10 @@
 }
 .v13 .v13-page { max-width: var(--v13-page); margin: 0 auto; padding: var(--v13-s4); }
 .v13 .num, .v13 .num * { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+/* 2026-09-08: <small> and <sub>/<sup> shrink by a browser default percentage,
+   which lands between steps (the tape's "close" rendered at 8.3px). Any element
+   whose size the markup did not choose is pinned to the smallest step. */
+.v13 small, .mt-overhaul small { font-size: var(--v13-t1); }
 .v13 .up { color: var(--v13-up); }
 .v13 .down { color: var(--v13-down); }
 .v13 :focus-visible { outline: 2px solid var(--v13-accent); outline-offset: 2px; border-radius: 2px; }

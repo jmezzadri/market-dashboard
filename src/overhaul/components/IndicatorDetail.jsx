@@ -184,7 +184,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           <div
             style={{
               fontFamily: 'var(--mt-type-mono)',
-              fontSize: 32,
+              fontSize: 'var(--v13-t6)',
               fontWeight: 400,
               letterSpacing: '-0.02em',
               margin: '4px 0 0',
@@ -195,9 +195,9 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="num" style={{ fontSize: 32, fontWeight: 500, color: accent, lineHeight: 1 }}>
+          <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 400, color: accent, lineHeight: 1 }}>
             {fmtNum(ind.value, ind.decimals ?? 2)}
-            <span style={{ fontSize: 14, color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>
+            <span style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>
               {ind.unit}
             </span>
           </div>
@@ -212,7 +212,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       </header>
 
       {ind.description && (
-        <p style={{ fontSize: 13.5, color: 'var(--mt-ink-1)', lineHeight: 1.65, margin: '0 0 18px' }}>
+        <p style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-1)', lineHeight: 1.65, margin: '0 0 18px' }}>
           {ind.description}
         </p>
       )}
@@ -231,23 +231,23 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+        <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           <b className="num">{sliced.length.toLocaleString()}</b> observations
         </div>
       </div>
 
       {/* Overlay picker — compare another series (indexed to the same start) */}
       {catalog.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12, color: 'var(--mt-ink-2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           <span>Overlay:</span>
           <select value={overlayKey} onChange={(e) => setOverlayKey(e.target.value)}
-            style={{ font: 'inherit', fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
+            style={{ font: 'inherit', fontSize: 'var(--v13-t2)', padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
             <option value="">None</option>
             {catalog.filter((c) => c.label !== ind.name).map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
-          {overlay && <span style={{ fontSize: 11, color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
+          {overlay && <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>(indexed — scales differ)</span>}
         </div>
       )}
 
@@ -271,7 +271,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         bands={bands}
       />
       {bands.length > 0 && (
-        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mt-ink-3)' }}>
+        <div style={{ marginTop: 6, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
           Shaded bands mark where this pill turns amber and red — fixed to the same
           3-year basis that colors the pill, whatever timeframe you select.
         </div>
@@ -291,7 +291,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           {/* The tail word, same vocabulary as the tile row this was opened
               from (LESSONS 7.18). Derived from slicePct, not the 3-year pct,
               so it always describes the timeframe actually on screen. */}
-          <div style={{ fontSize: 12, color: 'var(--mt-ink-2)' }}>
+          <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
             {slicePct != null && TAILS[ind.id] && (slicePct >= 75 || slicePct <= 25) && (
               <b style={{ color: (slicePct >= 85 || slicePct <= 15) ? 'var(--mt-down)' : 'var(--mt-warn)',
                           letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 6 }}>
@@ -323,7 +323,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         ].map(([lbl, v]) => (
           <div key={lbl}>
             <div className="mt-eyebrow">{lbl}</div>
-            <div className="num" style={{ fontSize: 20, marginTop: 4, color: 'var(--mt-ink-0)' }}>
+            <div className="num" style={{ fontSize: 'var(--v13-t5)', marginTop: 4, color: 'var(--mt-ink-0)' }}>
               {v}
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           <summary
             style={{
               cursor: 'pointer',
-              fontSize: 11,
+              fontSize: 'var(--v13-t2)',
               color: 'var(--mt-ink-2)',
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
@@ -355,7 +355,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           <p
             style={{
               marginTop: 8,
-              fontSize: 13,
+              fontSize: 'var(--v13-t3)',
               lineHeight: 1.55,
               color: 'var(--mt-ink-1)',
             }}
@@ -371,7 +371,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           from somewhere but derive the indicator in-house, that must be on the
           screen so nobody mistakes a computed series for a vendor feed. */}
       {ind.sourceVendor && (
-        <div style={{ marginTop: 14, fontSize: 12, color: 'var(--mt-ink-2)' }}>
+        <div style={{ marginTop: 14, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           Source: <b style={{ color: 'var(--mt-ink-1)' }}>{ind.sourceVendor}</b>
           {ind.sourceEndpoint ? <> · {/FRED/i.test(ind.sourceVendor || '') ? linkifyFred(ind.sourceEndpoint) : ind.sourceEndpoint}</> : ''}
           {sourcingNote && (

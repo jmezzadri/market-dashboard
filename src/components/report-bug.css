@@ -42,7 +42,7 @@
   background: color-mix(in srgb, var(--ch-surface, #F9F6F0) 92%, transparent);
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   color: var(--ch-ink-soft, #465660);
-  font-family: inherit; font-size: 13px; font-weight: 500; letter-spacing: .1px;
+  font-family: inherit; font-size: var(--v13-t3); font-weight: 400; letter-spacing: .1px;
   cursor: pointer;
   box-shadow: 0 6px 20px -10px rgba(20,30,60,.45);
   transition: color .18s, border-color .18s, transform .18s, box-shadow .18s;
@@ -84,12 +84,12 @@
 .rb-title {
   margin: 0;
   font-family: var(--mt-type-serif);
-  font-size: 24px; line-height: 1; font-weight: 400;
+  font-size: var(--v13-t6); line-height: 1; font-weight: 400;
   color: var(--ch-ink, #212C33);
 }
 .rb-x {
   background: none; border: none; cursor: pointer;
-  font-size: 24px; line-height: 1; padding: 0 2px;
+  font-size: var(--v13-t6); line-height: 1; padding: 0 2px;
   color: var(--ch-mut, #7C7668);
 }
 .rb-x:hover { color: var(--ch-ink, #212C33); }
@@ -101,7 +101,7 @@
 .rb-body { padding: 16px 20px 20px; overflow: auto; flex: 1 1 auto; min-height: 0; }
 
 .rb-capturing, .rb-noshot {
-  font-size: 13px; color: var(--ch-mut, #7C7668);
+  font-size: var(--v13-t3); color: var(--ch-mut, #7C7668);
   padding: 22px 0; text-align: center;
 }
 .rb-noshot { text-align: left; padding: 0 0 14px; }
@@ -109,12 +109,12 @@
 /* ── screenshot + highlight ───────────────────────────────────────────── */
 .rb-shotlabel {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  font-size: 12px; color: var(--ch-mut, #7C7668);
+  font-size: var(--v13-t2); color: var(--ch-mut, #7C7668);
   margin: 0 0 6px;
 }
 .rb-clear {
   background: none; border: none; padding: 0; cursor: pointer;
-  font-size: 12px; color: var(--ch-gold-deep, #B7975C); text-decoration: underline;
+  font-size: var(--v13-t2); color: var(--ch-gold-deep, #B7975C); text-decoration: underline;
 }
 .rb-preview {
   position: relative;
@@ -155,7 +155,7 @@
 /* ── form ─────────────────────────────────────────────────────────────── */
 .rb-label {
   display: block; margin: 16px 0 6px;
-  font-size: 13px; font-weight: 600; color: var(--ch-ink, #212C33);
+  font-size: var(--v13-t3); font-weight: 600; color: var(--ch-ink, #212C33);
 }
 .rb-textarea {
   width: 100%; box-sizing: border-box;
@@ -164,19 +164,19 @@
   border-radius: 10px;
   background: var(--ch-bg, #F2EEE6);
   color: var(--ch-ink, #212C33);
-  font-family: inherit; font-size: 14px; line-height: 1.5;
+  font-family: inherit; font-size: var(--v13-t3); line-height: 1.5;
   resize: vertical;
 }
 .rb-textarea::placeholder { color: var(--ch-mut, #7C7668); }
 .rb-textarea:focus { outline: none; border-color: color-mix(in srgb, var(--ch-gold-deep, #B7975C) 70%, transparent); }
 .rb-textarea:disabled { opacity: .6; }
 
-.rb-meta { margin-top: 10px; font-size: 12px; color: var(--ch-mut, #7C7668); }
+.rb-meta { margin-top: 10px; font-size: var(--v13-t2); color: var(--ch-mut, #7C7668); }
 .rb-error {
   margin-top: 10px; padding: 8px 10px;
   border: 1px solid rgba(193,57,79,.35); border-radius: 8px;
   background: rgba(193,57,79,.08);
-  font-size: 13px; color: #C1394F;
+  font-size: var(--v13-t3); color: #C1394F;
 }
 
 /* The action row lives outside the scrolling body so Send is always on screen. */
@@ -189,7 +189,7 @@
 }
 .rb-cancel, .rb-send {
   height: 38px; padding: 0 18px; border-radius: 999px;
-  font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  font-family: inherit; font-size: var(--v13-t3); font-weight: 400; cursor: pointer;
   transition: opacity .18s, background .18s, color .18s;
 }
 .rb-cancel {
@@ -210,19 +210,19 @@
 .rb-done { text-align: center; padding: 14px 0 6px; }
 .rb-done-num {
   font-family: var(--mt-type-serif);
-  font-size: 30px; line-height: 1.1; color: var(--ch-ink, #212C33);
+  font-size: var(--v13-t6); line-height: 1.1; color: var(--ch-ink, #212C33);
 }
 .rb-done-copy {
   margin: 10px auto 18px; max-width: 46ch;
-  font-size: 14px; line-height: 1.55; color: var(--ch-ink-soft, #465660);
+  font-size: var(--v13-t3); line-height: 1.55; color: var(--ch-ink-soft, #465660);
 }
 
 /* ── narrow screens (390px check, LESSONS 8.10) ───────────────────────── */
 @media (max-width: 560px) {
-  .rb-launch { height: 34px; padding: 0 12px; font-size: 12px; right: 10px; bottom: 10px; }
+  .rb-launch { height: 34px; padding: 0 12px; font-size: var(--v13-t2); right: 10px; bottom: 10px; }
   .rb-dialog { border-radius: 14px; max-height: 92vh; }
   .rb-head { padding: 13px 15px 10px; }
-  .rb-title { font-size: 21px; }
+  .rb-title { font-size: var(--v13-t5); }
   .rb-body { padding: 13px 15px 16px; }
   .rb-foot { flex-direction: column-reverse; padding: 10px 15px 12px; }
   .rb-cancel, .rb-send { width: 100%; }

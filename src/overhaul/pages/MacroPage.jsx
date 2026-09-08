@@ -86,12 +86,12 @@ function DomainFreshness({ inds }) {
 function DomainPositioning({ data }) {
   if (!data) return null;
   const wrap = { marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--mt-line-1)' };
-  const label = { fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 700, marginBottom: 5 };
+  const label = { fontSize: 'var(--v13-t1)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 700, marginBottom: 5 };
   if (data.none) {
     return (
       <div style={wrap}>
         <div style={label}>Positioning</div>
-        <div style={{ fontSize: 11.5, color: 'var(--mt-ink-3)', lineHeight: 1.4 }}>{data.takeaway}</div>
+        <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', lineHeight: 1.4 }}>{data.takeaway}</div>
       </div>
     );
   }
@@ -103,7 +103,7 @@ function DomainPositioning({ data }) {
   return (
     <div style={wrap}>
       <div style={label}>Positioning</div>
-      <div style={{ fontSize: 11.5, color: 'var(--mt-ink-1)', lineHeight: 1.4 }}>{data.takeaway}</div>
+      <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-1)', lineHeight: 1.4 }}>{data.takeaway}</div>
       <div style={{ position: 'relative', height: 6, background: 'var(--mt-surface-3)', borderRadius: 4, marginTop: 8 }}>
         <span style={{ position: 'absolute', top: '50%', height: 3, transform: 'translateY(-50%)', left: `${lo}%`, width: `${hi - lo}%`, background: conn, borderRadius: 2 }} />
         <span style={{ ...dot, left: `${h.spec}%`, background: 'var(--mt-accent)' }} />

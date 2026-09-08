@@ -370,7 +370,7 @@ a:hover { text-decoration: underline; }
 
 .tile-eyebrow {
   font-family: var(--mt-type-mono);
-  font-size: 11px;
+  font-size: var(--v13-t2);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -379,7 +379,7 @@ a:hover { text-decoration: underline; }
 
 .tile-title {
   font-family: var(--mt-type-serif);
-  font-size: 22px;
+  font-size: var(--v13-t5);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -387,7 +387,7 @@ a:hover { text-decoration: underline; }
 }
 
 .tile-sub {
-  font-size: 14px;
+  font-size: var(--v13-t3);
   color: var(--text-muted);
   line-height: 1.45;
 }
@@ -397,8 +397,8 @@ a:hover { text-decoration: underline; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--v13-t3);
+  font-weight: 400;
   color: var(--accent);
 }
 .tile-cta::after {
@@ -420,8 +420,8 @@ a:hover { text-decoration: underline; }
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--v13-t3);
+  font-weight: 400;
   color: var(--text-2);
   background: var(--surface-3);
   border: 1px solid var(--border-faint);
@@ -437,7 +437,7 @@ a:hover { text-decoration: underline; }
 /* Section header style */
 .section-eyebrow {
   font-family: var(--mt-type-mono);
-  font-size: 11px;
+  font-size: var(--v13-t2);
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--text-muted);
@@ -446,7 +446,7 @@ a:hover { text-decoration: underline; }
 
 .section-title {
   font-family: var(--mt-type-serif);
-  font-size: 32px;
+  font-size: var(--v13-t6);
   font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--text);
@@ -465,8 +465,8 @@ a:hover { text-decoration: underline; }
 .theme-toggle button {
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--v13-t2);
+  font-weight: 400;
   color: var(--text-muted);
   transition: all var(--dur-fast) var(--ease);
 }
@@ -583,8 +583,8 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--v13-t5);
+  font-weight: 400;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
@@ -609,7 +609,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--v13-t4);
   box-shadow: var(--shadow-md);
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
   z-index: 1001;
@@ -735,7 +735,7 @@ a:hover { text-decoration: underline; }
   background: linear-gradient(135deg, var(--accent) 0%, var(--text) 100%);
   display: grid; place-items: center;
   color: #fff;
-  font-weight: 700; font-size: 13px; letter-spacing: -0.02em;
+  font-weight: 700; font-size: var(--v13-t3); letter-spacing: -0.02em;
   font-family: var(--mt-type-serif);
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
@@ -771,7 +771,7 @@ a:hover { text-decoration: underline; }
   flex-shrink: 0;
 }
 .hero-meta-date {
-  font-size: 13px;
+  font-size: var(--v13-t3);
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -820,13 +820,13 @@ a:hover { text-decoration: underline; }
 [data-theme="light"] .login-brand-logo--dark  { display: none; }
 .sidebar-brand-name {
   font-family: var(--mt-type-serif);
-  font-size: 14px; font-weight: 600;
+  font-size: var(--v13-t3); font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
   line-height: 1.15;
 }
 .sidebar-brand-sub {
-  font-size: 10px; color: var(--text-muted);
+  font-size: var(--v13-t1); color: var(--text-muted);
   font-family: var(--mt-type-mono);
   letter-spacing: 0.06em;
   margin-top: 2px;
@@ -849,8 +849,8 @@ a:hover { text-decoration: underline; }
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--v13-t3);
+  font-weight: 400;
   font-family: var(--mt-type-sans);
   cursor: pointer;
   text-align: left;
@@ -901,7 +901,7 @@ a:hover { text-decoration: underline; }
 .sidebar-divider-label {
   flex: 0 0 auto;
   font-family: var(--mt-type-mono);
-  font-size: 9px;
+  font-size: var(--v13-t1);
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -911,7 +911,7 @@ a:hover { text-decoration: underline; }
 .sidebar-footer {
   padding: 12px 16px 16px;
   border-top: 1px solid var(--border-faint);
-  font-size: 11px;
+  font-size: var(--v13-t2);
   color: var(--text-dim);
   font-family: var(--mt-type-mono);
 }
@@ -1010,7 +1010,7 @@ a:hover { text-decoration: underline; }
 }
 .v2-stats .s .lbl {
   display: block;
-  font-size: 11px;
+  font-size: var(--v13-t2);
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--ink-2, #6b7280);
@@ -1018,13 +1018,13 @@ a:hover { text-decoration: underline; }
 .v2-stats .s .v {
   display: block;
   font-family: var(--mt-type-serif);
-  font-size: 40px;
+  font-size: var(--v13-t6);
   line-height: 1.05;
   color: var(--ink-0, #0f1115);
 }
 .v2-stats .s .d {
   display: block;
-  font-size: 12px;
+  font-size: var(--v13-t2);
   color: var(--ink-2, #6b7280);
 }
 .v2-stats .s.warn .v { color: var(--accent, #b8462f); }
@@ -1080,7 +1080,7 @@ a:hover { text-decoration: underline; }
   right: 18px;
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: var(--v13-t6);
   line-height: 1;
   color: var(--ink-1, #4b5563);
   cursor: pointer;
@@ -1094,7 +1094,7 @@ a:hover { text-decoration: underline; }
   border: none;
   color: var(--accent, #b8462f);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--v13-t2);
   text-transform: uppercase;
   letter-spacing: .08em;
   cursor: pointer;
@@ -1116,7 +1116,7 @@ a:hover { text-decoration: underline; }
   gap: 18px;
   padding: 7px 0;
   border-bottom: 1px solid var(--line-0, #efece4);
-  font-size: 13px;
+  font-size: var(--v13-t3);
 }
 .v2-drawer .v2-drawer-row:last-child { border-bottom: none; }
 .v2-drawer .v2-drawer-row .lbl {

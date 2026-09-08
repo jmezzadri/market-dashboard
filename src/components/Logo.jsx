@@ -63,7 +63,7 @@ export function Wordmark({
     <span
       style={{
         fontFamily: 'var(--mt-type-serif)',
-        fontWeight: 500,
+        fontWeight: 400,
         fontSize: size,
         letterSpacing: "0.14em",
         textTransform: "uppercase",

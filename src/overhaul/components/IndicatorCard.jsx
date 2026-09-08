@@ -48,7 +48,7 @@ export default function IndicatorCard({ ind, onClick }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 13,
+              fontSize: 'var(--v13-t3)',
               fontWeight: 600,
               color: 'var(--mt-ink-0)',
               overflow: 'hidden',
@@ -58,7 +58,7 @@ export default function IndicatorCard({ ind, onClick }) {
           >
             {ind.name}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-2)', marginTop: 2 }}>
             {ind.familyFull || ind.domain}
           </div>
         </div>
@@ -72,9 +72,9 @@ export default function IndicatorCard({ ind, onClick }) {
           gap: 12,
         }}
       >
-        <div className="num" style={{ fontSize: 24, fontWeight: 500, color: accent }}>
+        <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 400, color: accent }}>
           {fmtNum(ind.value, ind.decimals ?? 2)}
-          <span style={{ fontSize: 11, color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>
+          <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>
             {ind.unit}
           </span>
         </div>
@@ -87,7 +87,7 @@ export default function IndicatorCard({ ind, onClick }) {
       <div style={{ color: accent }}>
         <Sparkline data={trend} width={240} height={28} stroke={accent} showDot />
       </div>
-      <div style={{ fontSize: 10.5, color: 'var(--mt-ink-2)' }} className="num">
+      <div style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-2)' }} className="num">
         {ind.pct != null ? `${ind.pct}th percentile` : 'no rank'}
       </div>
     </button>

@@ -254,7 +254,7 @@ export default function MethodologyPage() {
               stress. That ladder is a layout for the map only; it is a different lens from the
               category filter above.
             </p>
-            <div className="me-formula">
+            <div className="me-formula" data-mono="code">
               state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both ends)<br />
               map x (state)        = extreme +0.62 · elevated +0.20 · calm −0.55<br />
               map y (macro ladder) = Rates +0.45 · Credit +0.20 · Equities −0.10 · Money −0.40 · Economy −0.65
@@ -270,7 +270,7 @@ export default function MethodologyPage() {
               Treasury yield (<b>3M Δ 10y</b>) sets the <b>yield axis</b> — it decides what goes inside that
               defensive bucket when the engine de-risks, and does not change the equity weight.
             </p>
-            <div className="me-formula">
+            <div className="me-formula" data-mono="code">
               stress_signal = MOVE<br />
               stress_zone   = MOVE &lt; 116 → Risk On · 116 ≤ MOVE &lt; 124 → Watch · MOVE ≥ 124 → Risk Off<br />
               entry_filter  = a de-risk only starts after 2 consecutive Fridays at or above 116;
@@ -350,7 +350,7 @@ export default function MethodologyPage() {
               worst peak-to-trough loss from about 40% to about 30%, at the cost of a few points of
               annual return.
             </p>
-            <div className="me-formula">
+            <div className="me-formula" data-mono="code">
               universe = US common stock · close ≥ $2 · 45-day average dollar volume $50M–$40B<br />
               trend    = price above the 10/21/50/200-day EMAs · 3-mo return in the top 20% of the universe<br />
               strength = 3-mo return at least 5 points above the S&amp;P 500&rsquo;s<br />
@@ -518,7 +518,7 @@ export default function MethodologyPage() {
               quickly. It was added at the owner&rsquo;s direction on August 28, 2026, trading
               some upside for a cap on catastrophe.
             </p>
-            <div className="me-formula">
+            <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
               score    = 0.45·mom12 + 0.30·mom6 + 0.15·trend + 0.10·drawdown + 0.15·gross_profit/assets + 0.10·cash_flow/assets + 0.20·buyback (all cross-sectional ranks)<br />
               insider  = + up to 0.20 bonus · officers/directors only · open-market only, no 10b5-1 · ranked by purchase ÷ existing stake · buys &gt; $250k half-weighted · never a penalty<br />
@@ -595,7 +595,7 @@ export default function MethodologyPage() {
               &ldquo;Sector mix&rdquo; benchmark holds each stock&rsquo;s sector ETF at the same weight, mapped from the
               company&rsquo;s SEC industry classification.
             </p>
-            <div className="me-formula">
+            <div className="me-formula" data-mono="code">
               CAPM: expected_return = risk_free + beta × equity_risk_premium<br />
               Scenarios: expected_return = Σ probability × (target_price ÷ last_price − 1)<br />
               Implied vol: expected_return = risk_free + (equity_risk_premium ÷ SPY_implied_vol) × stock_implied_vol<br />

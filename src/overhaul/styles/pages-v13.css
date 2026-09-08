@@ -236,7 +236,7 @@
 .v13.home-v12 .t .tv,
 .v13.home-v12.home-cockpit .tape .tv {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t5); font-weight: 500; letter-spacing: -0.02em; line-height: 1.2;
+  font-size: var(--v13-t5); font-weight: 400; letter-spacing: -0.02em; line-height: 1.2;
 }
 .v13.home-v12 .t .tk { font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
 .v13.home-v12 .t .td { font-family: var(--mt-type-mono); font-size: var(--v13-t1); }
@@ -256,8 +256,8 @@
   text-transform: uppercase; color: var(--v13-ink-3); white-space: nowrap;
 }
 .v13.home-v12 .gauge .ends span { flex: 0 0 auto; }
-.v13.home-v12 .gauge .gl b { font-family: var(--mt-type-mono); font-size: var(--v13-t5); font-weight: 500; }
-.v13.home-v12 .gauge .read { font-size: var(--v13-t2); font-weight: 500; margin-top: var(--v13-s1); }
+.v13.home-v12 .gauge .gl b { font-family: var(--mt-type-mono); font-size: var(--v13-t5); font-weight: 400; }
+.v13.home-v12 .gauge .read { font-size: var(--v13-t2); font-weight: 400; margin-top: var(--v13-s1); }
 .v13.home-v12 .gauge { padding: var(--v13-s2); border-radius: var(--v13-r); }
 
 /* Card-header links were running at 13.5px against a 10px header label. */
@@ -323,8 +323,67 @@
 .v13.home-v12.home-cockpit .tape .k { font-size: var(--v13-t1); }
 .v13.home-v12.home-cockpit .cal-time { font-family: var(--mt-type-mono); font-size: var(--v13-t1); color: var(--v13-ink-3); }
 .v13.home-v12.home-cockpit .es-verdict { font-size: var(--v13-t6); font-weight: 600; letter-spacing: -0.02em; }
-.v13.home-v12.home-cockpit .idea-fact b,
-.v13.home-v12.home-cockpit .idea-call { font-size: var(--v13-t3); }
+/* ── ROLE PARITY on the cockpit ───────────────────────────────────────────
+   2026-09-08. Joe: "They're all different fucking sizes! Why all different
+   sizes, some bold, others not."
+
+   Two tiles sat side by side in the same row doing the same job, and every
+   matching part of them was different:
+
+     role            Morning Brief          Trade Idea
+     eyebrow         10 / 700 sans          10 / 700 sans      ok
+     headline        19 / 400 serif         18 / 400 serif     MISMATCH
+     lead paragraph  15 / 400 serif         13 / 400 sans      MISMATCH
+     body item       18 / 400 serif         13.5 / 600 sans    MISMATCH
+
+   The 19px came from `clamp(19px, 1.4vw, 24px)` in the v12 stylesheet — a
+   viewport-derived size can never land on a step, so those two headlines
+   could not have matched at any window width. Every clamp() font-size is now
+   gone from the overhaul, and same-role parts are declared TOGETHER, in one
+   rule, so they cannot drift apart again. Add a new tile by adding its class
+   to the role it belongs to — never by giving it its own size. */
+
+/* headline — one per tile, the largest thing in it */
+.v13.home-v12.home-cockpit .hl,
+.v13.home-v12.home-cockpit .idea-title,
+.v13.home-v12.home-cockpit .brief-card h1 {
+  font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: 400;
+  line-height: 1.32; letter-spacing: -0.01em;
+}
+/* lead paragraph — the standfirst under a headline */
+.v13.home-v12.home-cockpit .brief-stance,
+.v13.home-v12.home-cockpit .idea-call {
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); font-weight: 400;
+  line-height: 1.6;
+}
+/* body item — a row in a list inside a tile */
+.v13.home-v12.home-cockpit .ni > button,
+.v13.home-v12.home-cockpit .ni > button span,
+.v13.home-v12.home-cockpit .calrow .what {
+  font-family: var(--mt-type-sans); font-size: var(--v13-t3); font-weight: 400;
+}
+/* value — the answer half of a labelled pair */
+.v13.home-v12.home-cockpit .idea-fact .v,
+.v13.home-v12.home-cockpit .idea-fact b {
+  font-family: var(--mt-type-sans); font-size: var(--v13-t3); font-weight: 600;
+}
+/* label — every eyebrow, key and column head. Uppercase is the label's job. */
+.v13.home-v12.home-cockpit .eyebrow2,
+.v13.home-v12.home-cockpit .idea-fact .k,
+.v13.home-v12.home-cockpit .calrow .when,
+.v13.home-v12.home-cockpit .idea-kind,
+.v13.home-v12.home-cockpit .idea-asof,
+.v13.home-v12.home-cockpit .idea-pos {
+  font-family: var(--mt-type-sans); font-size: var(--v13-t1); font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+}
+.v13.home-v12.home-cockpit .idea-asof { font-weight: 400; }
+/* caption — the quiet line under a gauge or a chart */
+.v13.home-v12.home-cockpit .gauge .read,
+.v13.home-v12.home-cockpit .ic-caption,
+.v13.home-v12.home-cockpit .es-so {
+  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: 400;
+}
 .v13.home-v12.home-cockpit .idea-kind,
 .v13.home-v12.home-cockpit .idea-asof,
 .v13.home-v12.home-cockpit .idea-pos { font-size: var(--v13-t1); letter-spacing: 0.07em; text-transform: uppercase; }
@@ -352,7 +411,7 @@
 .v13.home-v12.paper-v12 .paper-panel-head { padding: 0 var(--v13-s3); height: var(--v13-bar);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
 .v13.home-v12.paper-v12 .pp-tablewrap { padding: 0; }
-.v13.home-v12.paper-v12 .pp-book-nav { font-family: var(--mt-type-mono); font-size: var(--v13-t6) !important; font-weight: 500; }
+.v13.home-v12.paper-v12 .pp-book-nav { font-family: var(--mt-type-mono); font-size: var(--v13-t6) !important; font-weight: 400; }
 .v13.home-v12.paper-v12 .pp-book-rows > div { font-size: var(--v13-t3); padding: 0; height: var(--v13-row); }
 .v13.home-v12.paper-v12 .pts-title,
 .v13.home-v12.paper-v12 .pts-asof { font-size: var(--v13-t1); }
@@ -482,14 +541,14 @@
 .v13.home-v12.ticker-v12 .tk-name { font-size: var(--v13-t4); color: var(--v13-ink-2); }
 .v13.home-v12.ticker-v12 .tk-meta,
 .v13.home-v12.ticker-v12 .tk-pricemeta { font-size: var(--v13-t2); }
-.v13.home-v12.ticker-v12 .tk-price { font-family: var(--mt-type-mono); font-size: var(--v13-t6); font-weight: 500; }
+.v13.home-v12.ticker-v12 .tk-price { font-family: var(--mt-type-mono); font-size: var(--v13-t6); font-weight: 400; }
 .v13.home-v12.ticker-v12 .mt-card,
 .v13.home-v12.ticker-v12 .tk-scoreblock,
 .v13.home-v12.ticker-v12 .tk-kvcell,
 .v13.home-v12.ticker-v12 .tk-techcell,
 .v13.home-v12.ticker-v12 .tk-relcard { border-radius: var(--v13-r); padding: var(--v13-s3); }
 .v13.home-v12.ticker-v12 .tk-kvcell b,
-.v13.home-v12.ticker-v12 .tk-techcell b.num { font-family: var(--mt-type-mono); font-size: var(--v13-t4); font-weight: 500; }
+.v13.home-v12.ticker-v12 .tk-techcell b.num { font-family: var(--mt-type-mono); font-size: var(--v13-t4); font-weight: 400; }
 .v13.home-v12.ticker-v12 .mt-pill,
 .v13.home-v12.ticker-v12 .mt-btn {
   border-radius: var(--v13-r); padding: 5px 10px;
@@ -507,7 +566,7 @@
    was sans — two faces on one line. */
 .v13.home-v12.ticker-v12 .tk-name,
 .v13.home-v12.ticker-v12 .tk-hero .serif {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t4); font-weight: 500; color: var(--v13-ink-2);
+  font-family: var(--mt-type-sans); font-size: var(--v13-t4); font-weight: 400; color: var(--v13-ink-2);
 }
 
 /* "Not in a scan" plus "no current scanner signal" was set inside a 96px
@@ -568,7 +627,7 @@
 .v13.home-v12.sc-wrap .sc-tile--warn { border-color: var(--v13-down); }
 .v13.home-v12.sc-wrap .sc-tile-n {
   display: block; font-family: var(--mt-type-mono); font-size: var(--v13-t6);
-  font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: var(--v13-ink);
+  font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; color: var(--v13-ink);
 }
 .v13.home-v12.sc-wrap .sc-tile-l {
   display: block; margin-top: var(--v13-s1);

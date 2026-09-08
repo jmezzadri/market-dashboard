@@ -58,9 +58,9 @@
 /* ── hero: left editorial on the open cream ground ── */
 .home-v12 .meth-hero { padding: 54px 0 4px; }
 .home-v12 .meth-hero .eyebrow2 { margin-bottom: 18px; }
-.home-v12 .meth-h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: clamp(38px, 4.6vw, 62px); line-height: 1.06; letter-spacing: -.5px; margin: 0 0 18px; }
+.home-v12 .meth-h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.06; letter-spacing: -.5px; margin: 0 0 18px; }
 .home-v12 .meth-h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .meth-hero .sub { font-size: 17px; color: var(--ink-soft); max-width: 66ch; margin: 0; line-height: 1.65; }
+.home-v12 .meth-hero .sub { font-size: var(--v13-t5); color: var(--ink-soft); max-width: 66ch; margin: 0; line-height: 1.65; }
 
 /* ── 2-col reading layout: sticky TOC rail + reading column ──
    Both tracks are min-width-locked so the vendor tables' intrinsic width can
@@ -72,12 +72,12 @@
 /* TOC rail — putty card; geometry (sticky top, counters, border-left slide)
    stays on the pages.css base, recolored to cream + gold here. */
 .home-v12.methodology-v12 .me-toc.me-rail { background: var(--putty); border: 0; border-radius: 28px; box-shadow: none; padding: 22px 24px; transition: background .5s; }
-.home-v12.methodology-v12 .me-toc .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-toc .mt-eyebrow { font-size: var(--v13-t2); letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
 .home-v12.methodology-v12 .me-toc ol { margin-top: 10px; }
-.home-v12.methodology-v12 .me-toc.me-rail a { color: var(--ink-soft); font-size: 14px; padding-top: 6px; padding-bottom: 6px; }
+.home-v12.methodology-v12 .me-toc.me-rail a { color: var(--ink-soft); font-size: var(--v13-t3); padding-top: 6px; padding-bottom: 6px; }
 .home-v12.methodology-v12 .me-toc a::before { color: var(--mut); }
 .home-v12.methodology-v12 .me-toc.me-rail a:hover { color: var(--gold-deep); }
-.home-v12.methodology-v12 .me-toc.me-rail a.is-active { color: var(--gold-deep); font-weight: 650; border-left-color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-toc.me-rail a.is-active { color: var(--gold-deep); font-weight: 700; border-left-color: var(--gold-deep); }
 .home-v12.methodology-v12 .me-toc.me-rail a.is-active::before { color: var(--gold-deep); }
 
 /* ── reading sections: open on the cream ground, hairline separated ──
@@ -90,27 +90,27 @@
 .home-v12.methodology-v12 .me-section:first-of-type { border-top: 0; padding-top: 10px; }
 .home-v12.methodology-v12 .me-section > * { min-width: 0; }
 
-.home-v12.methodology-v12 .me-num { font-family: var(--mt-type-sans); font-variant-numeric: tabular-nums; font-size: 56px; font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
-.home-v12.methodology-v12 .mt-eyebrow { font-size: 11px; letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
-.home-v12.methodology-v12 .me-h2 { font-family: var(--mt-type-serif); font-size: clamp(27px, 2.6vw, 36px); font-weight: 400; line-height: 1.14; letter-spacing: -.3px; color: var(--ink); margin: 10px 0 18px; }
+.home-v12.methodology-v12 .me-num { font-family: var(--mt-type-sans); font-variant-numeric: tabular-nums; font-size: var(--v13-t6); font-weight: 400; line-height: .9; letter-spacing: -.03em; color: color-mix(in srgb, var(--ink) 16%, transparent); }
+.home-v12.methodology-v12 .mt-eyebrow { font-size: var(--v13-t2); letter-spacing: .16em; font-weight: 700; color: var(--gold-deep); }
+.home-v12.methodology-v12 .me-h2 { font-family: var(--mt-type-serif); font-size: var(--v13-t6); font-weight: 400; line-height: 1.14; letter-spacing: -.3px; color: var(--ink); margin: 10px 0 18px; }
 /* me-h3 — sub-heads INSIDE a section (added 2026-07-30 for the Scanner
    methodology rewrite). Same serif voice as me-h2, a clear step down in size,
    with a hairline above so a long section reads as a document, not a wall. */
-.home-v12.methodology-v12 .me-h3 { font-family: var(--mt-type-serif); font-size: clamp(20px, 1.7vw, 24px); font-weight: 400; line-height: 1.2; letter-spacing: -.2px; color: var(--ink); margin: 38px 0 14px; padding-top: 22px; border-top: 1px solid var(--hair); }
+.home-v12.methodology-v12 .me-h3 { font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: 400; line-height: 1.2; letter-spacing: -.2px; color: var(--ink); margin: 38px 0 14px; padding-top: 22px; border-top: 1px solid var(--hair); }
 
 /* long-form body: generous measure and leading — the site's reading page */
-.home-v12.methodology-v12 .me-section p { font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); max-width: 72ch; margin: 0 0 16px; }
-.home-v12.methodology-v12 .me-content .me-body-p { font-size: 16.5px; line-height: 1.7; color: var(--ink-soft); max-width: 72ch; }
-.home-v12.methodology-v12 .me-section p b { color: var(--ink); font-weight: 650; }
+.home-v12.methodology-v12 .me-section p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft); max-width: 72ch; margin: 0 0 16px; }
+.home-v12.methodology-v12 .me-content .me-body-p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft); max-width: 72ch; }
+.home-v12.methodology-v12 .me-section p b { color: var(--ink); font-weight: 700; }
 
 /* formula insets — quiet paper (bg2) against the cream, mono from the base */
-.home-v12.methodology-v12 .me-formula { background: var(--bg2); border: 1px solid var(--hair); border-radius: 18px; padding: 16px 20px; font-size: 13px; line-height: 1.9; color: var(--ink-soft); margin: 14px 0 20px; overflow-x: auto; transition: background .5s; }
+.home-v12.methodology-v12 .me-formula { background: var(--bg2); border: 1px solid var(--hair); border-radius: 18px; padding: 16px 20px; font-size: var(--v13-t3); line-height: 1.9; color: var(--ink-soft); margin: 14px 0 20px; overflow-x: auto; transition: background .5s; }
 
 /* vendor / job tables — putty cards (rounded via corner cells; the card
    keeps radius when responsive.css flips it to display:block at phone) */
-.home-v12.methodology-v12 .me-vendors { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--putty); border-radius: 24px; margin: 18px 0 6px; font-size: 14px; transition: background .5s; }
-.home-v12.methodology-v12 .me-vendors thead th { text-align: left; padding: 16px 18px 12px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; border-bottom: 1px solid var(--hair); }
-.home-v12.methodology-v12 .me-vendors tbody td { padding: 13px 18px; border-top: 1px solid var(--hair); color: var(--ink-soft); font-size: 14px; line-height: 1.6; vertical-align: top; }
+.home-v12.methodology-v12 .me-vendors { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--putty); border-radius: 24px; margin: 18px 0 6px; font-size: var(--v13-t3); transition: background .5s; }
+.home-v12.methodology-v12 .me-vendors thead th { text-align: left; padding: 16px 18px 12px; font-size: var(--v13-t1); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; border-bottom: 1px solid var(--hair); }
+.home-v12.methodology-v12 .me-vendors tbody td { padding: 13px 18px; border-top: 1px solid var(--hair); color: var(--ink-soft); font-size: var(--v13-t3); line-height: 1.6; vertical-align: top; }
 .home-v12.methodology-v12 .me-vendors tbody tr:first-child td { border-top: 0; }
 .home-v12.methodology-v12 .me-vendors tbody td:first-child { color: var(--ink); font-weight: 600; }
 .home-v12.methodology-v12 .me-vendors thead th:first-child,
@@ -133,20 +133,20 @@
   .home-v12.methodology-v12 .me-toc.me-rail { position: static; max-height: none; overflow: visible; margin-bottom: 24px; border-radius: 22px; padding: 18px 20px; }
   .home-v12.methodology-v12 .me-section { grid-template-columns: 1fr; row-gap: 8px; padding: 30px 0 22px; }
   .home-v12.methodology-v12 .me-section:first-of-type { padding-top: 4px; }
-  .home-v12.methodology-v12 .me-num { font-size: 34px; }
+  .home-v12.methodology-v12 .me-num { font-size: var(--v13-t6); }
   /* tables scroll INSIDE their putty card; the card never stretches the
      column (mirrors the .mt-overhaul rule in responsive.css, scoped here) */
   .home-v12.methodology-v12 .me-vendors { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 20px; }
   .home-v12.methodology-v12 .me-formula { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 @media (max-width: 640px) {
-  .home-v12 .meth-h1 { font-size: 34px; }
+  .home-v12 .meth-h1 { font-size: var(--v13-t6); }
   .home-v12.methodology-v12 .me-section p,
-  .home-v12.methodology-v12 .me-content .me-body-p { font-size: 15.5px; }
-  .home-v12.methodology-v12 .me-formula { font-size: 12px; padding: 13px 14px; }
-  .home-v12.methodology-v12 .me-vendors { font-size: 13px; }
+  .home-v12.methodology-v12 .me-content .me-body-p { font-size: var(--v13-t4); }
+  .home-v12.methodology-v12 .me-formula { font-size: var(--v13-t2); padding: 13px 14px; }
+  .home-v12.methodology-v12 .me-vendors { font-size: var(--v13-t3); }
   .home-v12.methodology-v12 .me-vendors thead th { padding: 13px 12px 10px; }
-  .home-v12.methodology-v12 .me-vendors tbody td { padding: 11px 12px; font-size: 13px; }
+  .home-v12.methodology-v12 .me-vendors tbody td { padding: 11px 12px; font-size: var(--v13-t3); }
   .home-v12.methodology-v12 .me-vendors thead th:first-child,
   .home-v12.methodology-v12 .me-vendors tbody td:first-child { padding-left: 16px; }
   .home-v12.methodology-v12 .me-vendors thead th:last-child,

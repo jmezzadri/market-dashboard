@@ -70,13 +70,13 @@
   .mt-overhaul .mt-topnav-signin {
     color: var(--mt-accent);
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--v13-t3);
     text-decoration: none;
     white-space: nowrap;
   }
   .mt-overhaul .mt-topnav-email {
     font-family: var(--mt-type-mono);
-    font-size: 11px;
+    font-size: var(--v13-t2);
     color: var(--mt-ink-2);
     max-width: 140px;
     overflow: hidden;
@@ -88,7 +88,7 @@
     border: 1px solid var(--mt-line-1);
     border-radius: 6px;
     color: var(--mt-ink-2);
-    font-size: 11px;
+    font-size: var(--v13-t2);
     padding: 3px 8px;
     cursor: pointer;
     white-space: nowrap;
@@ -184,7 +184,7 @@
   .mt-overhaul .at-headalloc,
   .mt-overhaul [data-type="monumental"] .at-headalloc,
   .mt-overhaul .tk-hero h1 {
-    font-size: clamp(28px, 8vw, 40px) !important;
+    font-size: var(--v13-t6)!important;
     line-height: 1.1 !important;
     letter-spacing: -0.02em !important;
   }
@@ -217,7 +217,7 @@
   .mt-overhaul .home-v11 .sc-hero > * { min-width: 0 !important; }
 
   /* Editorial headline cap so it never overflows the card. */
-  .mt-overhaul .home-v11 .editorial h1 { font-size: clamp(24px, 7vw, 30px) !important; }
+  .mt-overhaul .home-v11 .editorial h1 { font-size: var(--v13-t6)!important; }
   .mt-overhaul .home-v11 .editorial { padding: 18px 16px 20px !important; }
 }
 
@@ -294,7 +294,7 @@
      track and stack the number above the content at phone width. */
   .mt-overhaul .me-section { grid-template-columns: 1fr !important; row-gap: 6px; }
   .mt-overhaul .me-section > * { min-width: 0 !important; }
-  .mt-overhaul .me-num { font-size: 34px !important; }
+  .mt-overhaul .me-num { font-size: var(--v13-t6)!important; }
   .mt-overhaul .me-formula,
   .mt-overhaul .me-section pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }

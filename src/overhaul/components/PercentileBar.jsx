@@ -78,7 +78,7 @@ export default function PercentileBar({ pct, direction = 'hw', height = 14 }) {
           display: 'flex',
           justifyContent: 'space-between',
           marginTop: 4,
-          fontSize: 10.5,
+          fontSize: 'var(--v13-t1)',
           color: 'var(--mt-ink-3)',
         }}
         className="num"

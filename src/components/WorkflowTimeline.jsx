@@ -231,10 +231,10 @@ export default function WorkflowTimeline({ row, blockers = [] }) {
   if (SIDE_BRANCHES.has(normalized)) {
     return (
       <div style={sideBranchStyle}>
-        <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Workflow
         </div>
-        <div style={{ fontSize: 13, color: "var(--text)", marginTop: 4 }}>
+        <div style={{ fontSize: 'var(--v13-t3)', color: "var(--text)", marginTop: 4 }}>
           Closed as <b style={{ color: "var(--text-muted)" }}>{normalized.replace("_", " ")}</b>{" "}
           {row.verified_at || row.resolved_at ? `· ${etDateTime(row.verified_at || row.resolved_at)}` : ""}
         </div>
@@ -245,7 +245,7 @@ export default function WorkflowTimeline({ row, blockers = [] }) {
   return (
     <div style={wrapStyle}>
       <div style={headerRow}>
-        <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Workflow
         </div>
         <OwnerLegend />
@@ -312,7 +312,7 @@ function StageRow({ row, stage, stamp, isActive, isComplete, isFuture, sla }) {
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: isActive ? `0 0 0 4px rgba(251,191,36,0.15)` : "none",
         }}>
-          {isComplete && <span style={{ color: "white", fontSize: 10, lineHeight: 1 }}>✓</span>}
+          {isComplete && <span style={{ color: "white", fontSize: 'var(--v13-t1)', lineHeight: 1 }}>✓</span>}
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -322,24 +322,24 @@ function StageRow({ row, stage, stamp, isActive, isComplete, isFuture, sla }) {
             display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
             cursor: body ? "pointer" : "default",
           }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: isFuture ? "var(--text-muted)" : "var(--text)" }}>
+          <div style={{ fontSize: 'var(--v13-t2)', fontWeight: 700, color: isFuture ? "var(--text-muted)" : "var(--text)" }}>
             {meta.label}
           </div>
           <OwnerPill owner={owner} />
           {isActive && sla && <SlaChip sla={sla} />}
           {isComplete && stamp && (
-            <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+            <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
               {etDateTime(stamp)}
             </div>
           )}
           {isActive && stamp == null && (
-            <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+            <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
               ← current
             </div>
           )}
         </div>
         {body && expanded && (
-          <div style={{ marginTop: 6, padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
+          <div style={{ marginTop: 6, padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 'var(--v13-t2)', color: "var(--text-2)", lineHeight: 1.5 }}>
             {body}
           </div>
         )}
@@ -363,7 +363,7 @@ function OwnerPill({ owner }) {
   const color = ownerColor(owner.tone);
   return (
     <span style={{
-      fontSize: 10, fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
+      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
       color, textTransform: "uppercase", letterSpacing: "0.08em",
       padding: "2px 6px", borderRadius: 4,
       border: `1px solid ${color}`, background: `${color}14`,
@@ -380,7 +380,7 @@ function SlaChip({ sla }) {
   const budget  = sla.sla >= 24 ? `${sla.sla / 24}d` : `${sla.sla}h`;
   return (
     <span style={{
-      fontSize: 10, fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
+      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
       color, padding: "2px 6px", borderRadius: 4,
       border: `1px solid ${color}`, background: `${color}14`,
     }}>
@@ -399,7 +399,7 @@ function OwnerLegend() {
     <div style={{ display: "flex", gap: 6 }}>
       {items.map(it => (
         <span key={it.label} style={{
-          fontSize: 9, fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
+          fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
           color: it.color, textTransform: "uppercase", letterSpacing: "0.08em",
           padding: "1px 5px", borderRadius: 3,
           border: `1px solid ${it.color}44`,
@@ -417,17 +417,17 @@ function BlockerBanner({ blockers }) {
       borderRadius: 6,
       padding: "8px 10px",
       marginBottom: 8,
-      fontSize: 12,
+      fontSize: 'var(--v13-t2)',
       color: "var(--text)",
     }}>
-      <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 4 }}>
+      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 4 }}>
         ⏸ Blocked — this bug can't start until:
       </div>
       <ul style={{ margin: 0, paddingLeft: 16 }}>
         {blockers.map(b => (
-          <li key={b.id} style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 2 }}>
+          <li key={b.id} style={{ fontSize: 'var(--v13-t2)', color: "var(--text-2)", marginBottom: 2 }}>
             <b style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text)" }}>#{b.report_number}</b>
-            {b.status && <span style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", marginLeft: 6 }}>[{b.status}]</span>}
+            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", marginLeft: 6 }}>[{b.status}]</span>}
             {b.title && <span style={{ marginLeft: 6 }}>{b.title}</span>}
           </li>
         ))}
@@ -450,18 +450,18 @@ function ResolvedBlockerChip({ blockers }) {
       borderRadius: 6,
       padding: "6px 10px",
       marginBottom: 8,
-      fontSize: 12,
+      fontSize: 'var(--v13-t2)',
       color: "var(--text)",
     }}>
-      <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "#10b981", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 2 }}>
+      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#10b981", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 2 }}>
         ✓ Blockers cleared — ready to re-triage
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-2)" }}>
+      <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-2)" }}>
         {blockers.map((b, i) => (
           <span key={b.id}>
             {i > 0 && ", "}
             <b style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text)" }}>#{b.report_number}</b>
-            {b.status && <span style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "#10b981", marginLeft: 4 }}>[{b.status}]</span>}
+            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#10b981", marginLeft: 4 }}>[{b.status}]</span>}
           </span>
         ))}
       </div>
@@ -487,7 +487,7 @@ function stageBody(row, stage) {
               {desc}
             </div>
           )}
-          <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+          <div style={{ marginTop: 6, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
             {row.complexity && <>complexity: <b style={{ color: "var(--text-2)" }}>{row.complexity}</b> · </>}
             {row.priority && <>priority: <b style={{ color: "var(--text-2)" }}>{row.priority}</b></>}
           </div>
@@ -507,7 +507,7 @@ function stageBody(row, stage) {
         <div>
           <div>Waiting on <b style={{ color: "#B8860B" }}>Joe</b> to approve (or reject) the proposed fix above.</div>
           {since && (
-            <div style={{ marginTop: 4, fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+            <div style={{ marginTop: 4, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
               Entered: {etDateTime(since)} · aging: {ageText(since)}
             </div>
           )}
@@ -521,7 +521,7 @@ function stageBody(row, stage) {
           <div>Approved by <b>Joe</b>{row.approved_at ? ` · ${etDateTime(row.approved_at)}` : ""}.</div>
           {row.approval_notes && (
             <div style={{ marginTop: 6, padding: "6px 8px", borderLeft: "2px solid #B8860B", background: "rgba(251,191,36,0.06)" }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
                 Feedback / conditions
               </div>
               <div style={{ whiteSpace: "pre-wrap" }}>{row.approval_notes}</div>
@@ -537,11 +537,11 @@ function stageBody(row, stage) {
       const at = row.merged_at || row.fixed_at;
       if (!pr && !sha && !at) return null;
       return (
-        <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 11 }}>
+        <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)' }}>
           {pr && <div>PR: <b>#{pr}</b>{sha ? ` · ${sha.slice(0, 7)}` : ""}</div>}
           {branch && <div>branch: {branch}</div>}
           {at && <div>merged: {etDateTime(at)}</div>}
-          <div style={{ marginTop: 4, fontFamily: "inherit", color: "var(--text-muted)", fontSize: 11 }}>
+          <div style={{ marginTop: 4, fontFamily: "inherit", color: "var(--text-muted)", fontSize: 'var(--v13-t2)' }}>
             Vercel will pick this up and deploy automatically — usually &lt;2 minutes.
           </div>
         </div>
@@ -554,7 +554,7 @@ function stageBody(row, stage) {
       return (
         <div>
           {at && (
-            <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 11 }}>
+            <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)' }}>
               deployed: {etDateTime(at)}{sha ? ` · ${sha.slice(0, 7)}` : ""}
             </div>
           )}
@@ -565,12 +565,12 @@ function stageBody(row, stage) {
           </div>
           {auto && row.auto_uat_checklist && (
             <div style={{ marginTop: 6, padding: "6px 8px", background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 4 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
                 UAT checklist
               </div>
-              <div style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{row.auto_uat_checklist}</div>
+              <div style={{ whiteSpace: "pre-wrap", fontSize: 'var(--v13-t2)' }}>{row.auto_uat_checklist}</div>
               {row.auto_uat_attempted_at && (
-                <div style={{ marginTop: 4, fontSize: 10, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+                <div style={{ marginTop: 4, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
                   Last attempt: {etDateTime(row.auto_uat_attempted_at)}
                   {row.auto_uat_failed ? " · FAILED (manual override required)" : ""}
                 </div>
@@ -584,7 +584,7 @@ function stageBody(row, stage) {
       const at = row.verified_at || row.resolved_at;
       if (!at) return null;
       return (
-        <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 11 }}>
+        <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)' }}>
           verified: {etDateTime(at)}
         </div>
       );

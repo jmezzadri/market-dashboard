@@ -29,7 +29,7 @@
 
 .mt-page-eyebrow {
   font-family: var(--mt-type-sans);
-  font-size: 11px;
+  font-size: var(--v13-t2);
   font-weight: 600;
   letter-spacing: 0.16em;
   line-height: 1;
@@ -42,7 +42,7 @@
   font-family: var(--mt-type-serif);
   /* Matches the shared mt-h1 standard so Paper's header is the same scale as
      every other page (Joe 2026-06-17 consistency pass). Was 40px. */
-  font-size: clamp(26px, 3vw, 36px);
+  font-size: var(--v13-t6);
   font-weight: 400;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -69,7 +69,7 @@
 
 .mt-page-bullets li {
   font-family: var(--mt-type-sans);
-  font-size: 14.5px;
+  font-size: var(--v13-t4);
   font-weight: 400;
   line-height: 1.55;
   color: var(--text-muted);
@@ -81,5 +81,5 @@
 
 @media (max-width: 980px) {
   .mt-page-hero-inner { grid-template-columns: 1fr; gap: 24px; }
-  .mt-page-title { font-size: 32px; }
+  .mt-page-title { font-size: var(--v13-t6); }
 }

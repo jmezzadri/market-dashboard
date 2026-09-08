@@ -56,15 +56,15 @@
 .home-v12.ticker-v12 .tk-backrow { padding: 26px 0 0; }
 
 /* v12 eyebrow voice for the existing mt-eyebrow chrome */
-.home-v12.ticker-v12 .mt-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--mut); }
+.home-v12.ticker-v12 .mt-eyebrow { font-size: var(--v13-t2); font-weight: 700; letter-spacing: .16em; color: var(--mut); }
 
 /* ── masthead — big serif symbol (site standard: stays big), serif price ── */
 .home-v12.ticker-v12 .tk-hero { padding-top: 30px; padding-bottom: 12px; }
-.home-v12.ticker-v12 .tk-symbol { font-size: clamp(52px, 6vw, 88px); letter-spacing: -.5px; }
-.home-v12.ticker-v12 .tk-name { font-size: 23px; }
-.home-v12.ticker-v12 .tk-meta { font-size: 12.5px; }
-.home-v12.ticker-v12 .tk-price { font-size: 44px; }
-.home-v12.ticker-v12 .tk-pricemeta { font-size: 11.5px; }
+.home-v12.ticker-v12 .tk-symbol { font-size: var(--v13-t6); letter-spacing: -.5px; }
+.home-v12.ticker-v12 .tk-name { font-size: var(--v13-t6); }
+.home-v12.ticker-v12 .tk-meta { font-size: var(--v13-t3); }
+.home-v12.ticker-v12 .tk-price { font-size: var(--v13-t6); }
+.home-v12.ticker-v12 .tk-pricemeta { font-size: var(--v13-t2); }
 
 /* score tile beside the masthead — putty, open (no hairline box) */
 .home-v12.ticker-v12 .tk-scoreblock { background: var(--putty); border: 0; border-radius: 32px; padding: 22px 28px; transition: background .5s; }
@@ -77,20 +77,20 @@
    putty tiles; inside a putty .mt-card (options / short-interest / overview)
    they step down to bg2 so the nesting stays legible. */
 .home-v12.ticker-v12 .tk-kvcell { background: var(--putty); border: 0; border-radius: 18px; padding: 13px 16px; transition: background .5s; }
-.home-v12.ticker-v12 .tk-kvcell b { font-size: 19px; font-weight: 400; }
+.home-v12.ticker-v12 .tk-kvcell b { font-size: var(--v13-t5); font-weight: 400; }
 .home-v12.ticker-v12 .tk-techcell { background: var(--putty); border-radius: 14px; padding: 11px 13px; transition: background .5s; }
-.home-v12.ticker-v12 .tk-techcell b.num { font-size: 17px; font-weight: 400; }
+.home-v12.ticker-v12 .tk-techcell b.num { font-size: var(--v13-t5); font-weight: 400; }
 .home-v12.ticker-v12 .mt-card .tk-kvcell,
 .home-v12.ticker-v12 .mt-card .tk-techcell { background: var(--bg2); }
 
 /* ── pills (chart mode / timeframe / tabs) — v12 rounded ghost language ── */
 .home-v12.ticker-v12 .mt-pillgroup { background: transparent; padding: 0; gap: 6px; flex-wrap: wrap; }
-.home-v12.ticker-v12 .mt-pill { border: 1px solid var(--hair); border-radius: 999px; padding: 7px 13px; font-size: 12px; font-weight: 600; color: var(--ink-soft); transition: color .25s, border-color .25s, background .25s; }
+.home-v12.ticker-v12 .mt-pill { border: 1px solid var(--hair); border-radius: 999px; padding: 7px 13px; font-size: var(--v13-t2); font-weight: 600; color: var(--ink-soft); transition: color .25s, border-color .25s, background .25s; }
 .home-v12.ticker-v12 .mt-pill:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
 .home-v12.ticker-v12 .mt-pill.on { background: var(--ink); border-color: var(--ink); color: var(--bg); box-shadow: none; }
 
 /* overlay toggles / compare + date inputs / back button */
-.home-v12.ticker-v12 .mt-btn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.home-v12.ticker-v12 .mt-btn { background: transparent; border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; font-size: var(--v13-t3); font-weight: 600; color: var(--ink-soft); }
 .home-v12.ticker-v12 .mt-btn:hover { background: color-mix(in srgb, var(--bg2) 60%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
 .home-v12.ticker-v12 .mt-btn--ghost { border-color: transparent; }
 
@@ -137,9 +137,9 @@
 }
 
 /* ── Live price line (LSE 1-minute feed, 2026-07-27) ── */
-.home-v12.ticker-v12 .tk-liveline { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
-.home-v12.ticker-v12 .tk-livelabel { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); }
-.home-v12.ticker-v12 .tk-livedim { color: var(--mut); font-size: 12.5px; }
+.home-v12.ticker-v12 .tk-liveline { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: var(--v13-t3); color: var(--ink-soft); }
+.home-v12.ticker-v12 .tk-livelabel { font-size: var(--v13-t1); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--mut); }
+.home-v12.ticker-v12 .tk-livedim { color: var(--mut); font-size: var(--v13-t3); }
 
 /* ── Company overview description: use the full card width (Joe 2026-07-30).
    proto-pages.css caps .tk-about at 74ch, which on a 1,600px card wrapped a
@@ -154,7 +154,7 @@
 .home-v12.ticker-v12 .tk-nftext {
   max-width: none;
   margin: 0 0 22px;
-  font-size: 15px;
+  font-size: var(--v13-t4);
   line-height: 1.6;
   color: var(--ink-soft);
 }

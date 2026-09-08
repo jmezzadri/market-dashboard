@@ -12,7 +12,7 @@ import FreshnessChip from './FreshnessChip';
 export default function IndexOverlayToggles({ series = [], on = {}, onToggle }) {
   if (!series.length) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--mt-ink-2)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
       <span>Add index to chart:</span>
       {/* Same .mt-pillgroup chrome as the timeframe buttons so these read as
           buttons, not a legend — Joe couldn't tell they were clickable

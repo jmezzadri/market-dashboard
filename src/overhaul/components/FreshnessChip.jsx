@@ -272,7 +272,7 @@ export default function FreshnessChip({
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          fontSize: 11,
+          fontSize: 'var(--v13-t2)',
           fontFamily: 'var(--mt-type-sans)',
           color: 'var(--mt-ink-2)',
         }}
@@ -291,7 +291,7 @@ export default function FreshnessChip({
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          fontSize: 10.5,
+          fontSize: 'var(--v13-t1)',
           fontFamily: 'var(--mt-type-sans)',
           padding: '3px 8px',
           borderRadius: 999,
@@ -305,7 +305,7 @@ export default function FreshnessChip({
                   : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
           color,
           letterSpacing: '0.04em',
-          fontWeight: 500,
+          fontWeight: 400,
         }}
       >
         {dot}
@@ -339,7 +339,7 @@ export default function FreshnessChip({
               border: '1px solid var(--mt-line-1)',
               borderRadius: 8,
               padding: '10px 12px',
-              fontSize: 11.5,
+              fontSize: 'var(--v13-t2)',
               lineHeight: 1.45,
               maxWidth: 320,
               fontFamily: 'var(--mt-type-sans)',
@@ -369,7 +369,7 @@ export default function FreshnessChip({
                 paddingTop: 7,
                 borderTop: '1px solid var(--mt-line-1)',
                 color: 'var(--mt-down)',
-                fontSize: 11,
+                fontSize: 'var(--v13-t2)',
                 lineHeight: 1.4,
               }}>
                 {f.reason}

@@ -34,7 +34,7 @@ export default class ErrorBoundary extends React.Component {
             If you'd like to log this, the Report Bug button bottom-right
             captures the page state.
           </p>
-          <p className="t-body" style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-2)' }}>
+          <p className="t-body" style={{ marginTop: 18, fontSize: 'var(--v13-t2)', color: 'var(--ink-2)' }}>
             <code style={{ background: 'var(--bg-2)', padding: '2px 6px', borderRadius: 4 }}>
               {this.state.message.slice(0, 200)}
             </code>
@@ -50,7 +50,7 @@ export default class ErrorBoundary extends React.Component {
               borderRadius: 'var(--r-pill)',
               color: 'var(--ink-0)',
               font: 'inherit',
-              fontSize: 13,
+              fontSize: 'var(--v13-t3)',
               cursor: 'pointer',
             }}
           >
