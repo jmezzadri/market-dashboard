@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-07T22:55:35Z",
+  "generated_at": "2026-09-08T13:45:53Z",
   "window": {
-    "from": "2026-08-31",
-    "to": "2026-11-16"
+    "from": "2026-09-01",
+    "to": "2026-11-17"
   },
   "counts": {
-    "total": 95,
-    "tier1": 27
+    "total": 99,
+    "tier1": 28
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -18,7 +18,9 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "release 291 (Existing home sales): HTTP Error 502: Bad Gateway"
+  ],
   "events": [
     {
       "date": "2026-09-01",
@@ -1062,6 +1064,50 @@
       "tier": 2,
       "category": "Surveys",
       "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-17",
+      "time_et": "8:30 AM",
+      "name": "Retail sales",
+      "short": "Retail",
+      "tier": 1,
+      "category": "Consumer",
+      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-17",
+      "time_et": "8:30 AM",
+      "name": "Import & export prices",
+      "short": "Imp/Exp",
+      "tier": 2,
+      "category": "Inflation",
+      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-17",
+      "time_et": "9:15 AM",
+      "name": "Industrial production",
+      "short": "Ind Prod",
+      "tier": 2,
+      "category": "Growth",
+      "blurb": "Factory, mining and utility output plus capacity utilisation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-17",
+      "time_et": "10:00 AM",
+      "name": "Business inventories",
+      "short": "Invent.",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Manufacturing and trade inventories and sales.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
