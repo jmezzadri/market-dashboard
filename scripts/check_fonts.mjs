@@ -38,7 +38,9 @@
  *
  * LIVE check (needs a URL; run against a preview or prod):
  *   5. NO MONO PROSE. No visible element longer than PROSE_WORDS words renders
- *      in the mono face. Mono is for figures. This is what put
+ *      in the mono face. Mono is for figures. The one opt-out is declared in
+ *      the markup: data-mono="code" (or a <code>/<pre> ancestor) for a formula
+ *      or code block, where a reviewer sees it. This is what put
  *      "US Treasury bills, held as collateral against the futures margin"
  *      into a monospace face at 600 on the Home cockpit.
  *   6. THREE FAMILIES ON SCREEN. The set of first-choice families actually
@@ -262,7 +264,11 @@ if (base) {
         const isMono = /mono/i.test(fam) || cs.fontFamily.includes('monospace');
         const wordCount = text.split(/\s+/).filter(Boolean).length;
         const numeric = /^[^A-Za-z]*$/.test(text);
-        if (isMono && !numeric && wordCount >= words) {
+        /* The one opt-out, declared in the markup where a reviewer sees it:
+           data-mono="code" on a formula or code block. Never a quiet special
+           case inside this script. <code> and <pre> count as declared too. */
+        const isCode = !!el.closest('[data-mono="code"], code, pre');
+        if (isMono && !numeric && !isCode && wordCount >= words) {
           prose.push({ sel: el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: text.slice(0, 70) });
         }
       }
