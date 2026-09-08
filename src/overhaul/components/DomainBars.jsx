@@ -124,11 +124,11 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
       {/* Single line, no wrap (Joe 2026-06-23): name (truncates) + reading,
           change and percentile as a fixed right-aligned cluster. */}
       <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'nowrap' }}>
-        <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--mt-ink-1)' }}>{label}</span>
+        <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-1)' }}>{label}</span>
         <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
-          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 11.5 }}>{valueText != null ? valueText : '—'}</span>
-          <span className="num" style={{ fontSize: 9.5, color: arrowColor, fontWeight: 700 }}>{arrow}{trend !== 0 && changeText ? changeText : ''}</span>
-          <span className="num" style={{ fontSize: 9.5, color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}</span>
+          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 'var(--v13-t2)' }}>{valueText != null ? valueText : '—'}</span>
+          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: arrowColor, fontWeight: 700 }}>{arrow}{trend !== 0 && changeText ? changeText : ''}</span>
+          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}</span>
         </span>
       </span>
     </button>
@@ -137,7 +137,7 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
 
 export default function DomainBars({ inds = [], markets = [], shortLabel, posDimmed, posNextPrint, onSelectInd, onSelectPos, onTip, onHideTip }) {
   const head = {
-    fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
+    fontSize: 'var(--v13-t2)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
     color: 'var(--mt-ink-1)', marginBottom: 7,
   };
   return (

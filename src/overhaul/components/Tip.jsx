@@ -70,7 +70,7 @@ export default function Tip({
             border: '1px solid var(--mt-line-1)',
             borderRadius: 8,
             padding: '8px 10px',
-            fontSize: 12,
+            fontSize: 'var(--v13-t2)',
             lineHeight: 1.5,
             maxWidth: 280,
             fontFamily: 'var(--mt-type-sans)',

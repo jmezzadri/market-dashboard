@@ -82,9 +82,9 @@ export default function TickerSearch() {
               onMouseEnter={() => setHi(i)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 13px', cursor: 'pointer', background: i === hi ? 'var(--mt-surface-2)' : 'transparent' }}
             >
-              <span style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 12.5, minWidth: 58, color: 'var(--mt-ink-0)' }}>{r.ticker}</span>
-              <span style={{ fontSize: 12, color: 'var(--mt-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{r.name}</span>
-              <span style={{ fontSize: 10.5, color: 'var(--mt-ink-3)', fontFamily: 'var(--mt-type-mono)' }}>{fmtCap(r.market_cap)}</span>
+              <span style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t3)', minWidth: 58, color: 'var(--mt-ink-0)' }}>{r.ticker}</span>
+              <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{r.name}</span>
+              <span style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontFamily: 'var(--mt-type-mono)' }}>{fmtCap(r.market_cap)}</span>
             </div>
           ))}
         </div>

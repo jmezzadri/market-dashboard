@@ -100,7 +100,7 @@ export default function BigHistoryChart({
   if (!data.length) {
     return (
       <div ref={wrapRef} style={{ height, display: 'grid', placeItems: 'center',
-        color: 'var(--mt-ink-3)', fontSize: 13 }}>
+        color: 'var(--mt-ink-3)', fontSize: 'var(--v13-t3)' }}>
         No data
       </div>
     );
@@ -265,7 +265,7 @@ export default function BigHistoryChart({
           <g key={i}>
             <line x1={padL} x2={w - padR} y1={yOf(v)} y2={yOf(v)} stroke="var(--mt-line-0)" strokeWidth="1" />
             <text x={padL - 8} y={yOf(v)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '11px var(--mt-type-sans)' }} className="num">
+              fill="var(--mt-ink-3)" style={{ font: 'var(--v13-t2) var(--mt-type-sans)' }} className="num">
               {yFormat(v)}
             </text>
           </g>
@@ -290,9 +290,9 @@ export default function BigHistoryChart({
                 stroke="var(--mt-line-0)" strokeWidth="1" strokeDasharray={lv === 50 ? '' : '3 3'} />
             ))}
             <text x={padL - 8} y={rsiY(70)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-type-sans)' }}>70</text>
+              fill="var(--mt-ink-3)" style={{ font: 'var(--v13-t1) var(--mt-type-sans)' }}>70</text>
             <text x={padL - 8} y={rsiY(30)} textAnchor="end" dominantBaseline="middle"
-              fill="var(--mt-ink-3)" style={{ font: '10px var(--mt-type-sans)' }}>30</text>
+              fill="var(--mt-ink-3)" style={{ font: 'var(--v13-t1) var(--mt-type-sans)' }}>30</text>
             <path d={rsiSegPath(rsiValues)} fill="none" stroke="var(--mt-ink-1)" strokeWidth="1.3"
               strokeLinecap="round" strokeLinejoin="round" />
           </g>
@@ -330,7 +330,7 @@ export default function BigHistoryChart({
         {[0, Math.floor(data.length / 2), data.length - 1].map((i) => (
           <text key={i} x={xOf(i)} y={height - 8}
             textAnchor={i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}
-            fill="var(--mt-ink-3)" style={{ font: '10.5px var(--mt-type-sans)' }}>
+            fill="var(--mt-ink-3)" style={{ font: 'var(--v13-t1) var(--mt-type-sans)' }}>
             {dateLabel(i)}
           </text>
         ))}
@@ -346,7 +346,7 @@ export default function BigHistoryChart({
       </svg>
 
       {(overlays.length > 0 || anyCompare || volume || rsi || hasInsiderEv || hasDarkEv || (bands || []).length > 0) && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--mt-ink-2)' }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label={primaryLabel} />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareDrawn.map((cs, k) => cs && <LegendSwatch key={`lc${k}`} color={compareList[k].color} label={`${compareList[k].label} (indexed)`} dash />)}
@@ -384,7 +384,7 @@ export default function BigHistoryChart({
               position: 'absolute', left, top: Math.max(6, hover.y - 16),
               transform: 'translate(-50%, -100%)',
               background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)',
-              borderRadius: 6, padding: '7px 9px', fontSize: 11.5, minWidth: 150,
+              borderRadius: 6, padding: '7px 9px', fontSize: 'var(--v13-t2)', minWidth: 150,
               color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-type-sans)',
               boxShadow: '0 6px 18px rgba(0,0,0,0.16)', pointerEvents: 'none', zIndex: 5,
             }}

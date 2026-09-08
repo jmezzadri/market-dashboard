@@ -247,7 +247,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
             color: "var(--text, #111)",
             border: "1px solid var(--border, #d4d7db)",
             borderRadius: 8,
-            fontSize: 12,
+            fontSize: 'var(--v13-t2)',
             lineHeight: 1.5,
             fontFamily: "var(--mt-type-sans)",
             boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
@@ -259,7 +259,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
           }}
         >
           {term && (
-            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 11, letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
               {String(term).toUpperCase()}
             </div>
           )}
@@ -340,7 +340,7 @@ export function Tip({ children, def, label }) {
             color: "var(--text, #111)",
             border: "1px solid var(--border, #d4d7db)",
             borderRadius: 8,
-            fontSize: 12,
+            fontSize: 'var(--v13-t2)',
             lineHeight: 1.5,
             fontFamily: "var(--mt-type-sans)",
             boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
@@ -352,7 +352,7 @@ export function Tip({ children, def, label }) {
           }}
         >
           {label && (
-            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 11, letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
               {label}
             </div>
           )}

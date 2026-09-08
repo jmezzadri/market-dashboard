@@ -16,6 +16,16 @@
  * LESSONS 7.15: a design rule that lives only in a prompt is a rule you will
  * be told about again. So this is the check.
  *
+ * 2026-09-08, same day, second round. Joe: "The fonts are not fixed!!! They're
+ * all different fucking sizes! Why all different sizes, some bold, others not."
+ * He was right again — round one fixed WHICH faces, not the sizes and weights.
+ * Home alone rendered 14 distinct sizes, 8 of them off the declared six-step
+ * scale, and 4 weights with no rule about which meant what. The mechanism was
+ * two size systems: the v12 stylesheets set arbitrary px and clamp() values,
+ * and v13 overrode only some of them. A clamp() font-size derives its value
+ * from the window width, so it can NEVER land on a step — two headlines set
+ * that way cannot match at any width.
+ *
  * STATIC checks (no browser, run on every PR):
  *   1. ONE DECLARATION SITE. A quoted font family name may appear only in
  *      src/overhaul/styles/type.css. Anywhere else in src/ it is a defect.
@@ -106,7 +116,7 @@ for (const file of files) {
     if (/^[A-Za-z_$][\w.$]*$/.test(value) && !GENERIC.has(value.toLowerCase())) continue;  /* a JS variable */
 
     /* the shorthand carries style/weight/size before the family; drop them */
-    if (shorthand) value = value.replace(/^(?:(?:normal|italic|oblique|small-caps|bold|lighter|bolder|[1-9]00)\s+)*[\d.]+(?:px|rem|em|%)?(?:\s*\/\s*[\d.]+\w*)?\s*/i, '');
+    if (shorthand) value = value.replace(/^(?:(?:normal|italic|oblique|small-caps|bold|lighter|bolder|[1-9]00)\s+)*(?:var\(\s*--v13-t[1-6]\s*\)|[\d.]+(?:px|rem|em|%)?)(?:\s*\/\s*[\d.]+\w*)?\s*/i, '');
 
     for (const m of value.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)) {
       if (!TOKENS.includes(m[1])) {
@@ -129,6 +139,62 @@ for (const file of files) {
       }
     }
   }
+}
+
+/* ── 2b — SIZES AND WEIGHTS ARE ON THE SCALE ───────────────────────────────
+   Six type steps, three weights, declared once in v13.css. A literal px size
+   or a clamp() in a component stylesheet is how the scale came apart. */
+const SIZE_TOKENS = ['--v13-t1','--v13-t2','--v13-t3','--v13-t4','--v13-t5','--v13-t6'];
+const WEIGHTS = ['400', '600', '700'];
+
+for (const file of files) {
+  const rel = relative(ROOT, file);
+  if (rel === TYPE_CSS || rel.endsWith('v13.css') || rel.endsWith('tokens.css')) continue;
+  const src = readFileSync(file, 'utf8');
+  const lines = src.split('\n');
+
+  lines.forEach((line, i) => {
+    const at = `${rel}:${i + 1}`;
+    const code = line.replace(/\/\*.*?\*\//g, '');
+
+    /* CSS font-size */
+    const fs = code.match(/font-size:\s*([^;}!]+)/);
+    if (fs) {
+      const v = fs[1].trim();
+      if (/clamp\(/.test(v)) {
+        fail(at, `font-size uses clamp(): "${v}". A viewport-derived size never lands on a step, so two elements set this way cannot match. Use one of ${SIZE_TOKENS.join(', ')}.`);
+      } else if (!v.startsWith('var(') && !/^(inherit|100%|1em)$/.test(v)) {
+        fail(at, `font-size "${v}" is a literal. The scale is ${SIZE_TOKENS.join(', ')} and there is no seventh step.`);
+      } else if (v.startsWith('var(')) {
+        const t = v.match(/var\(\s*(--[a-z0-9-]+)/i);
+        if (t && !SIZE_TOKENS.includes(t[1])) fail(at, `font-size uses ${t[1]}, which is not a type step.`);
+      }
+    }
+
+    /* JSX fontSize */
+    const jf = code.match(/fontSize:\s*([^,}\n]+)/);
+    if (jf) {
+      const v = jf[1].trim().replace(/^['"`]|['"`]$/g, '');
+      if (/^[\d.]+(px)?$/.test(v)) {
+        fail(at, `fontSize ${v} is a literal. Use var(--v13-t1..t6).`);
+      } else if (v.startsWith('var(')) {
+        const t = v.match(/var\(\s*(--[a-z0-9-]+)/i);
+        if (t && !SIZE_TOKENS.includes(t[1])) fail(at, `fontSize uses ${t[1]}, which is not a type step.`);
+      }
+    }
+
+    /* weights, CSS and JSX */
+    for (const m of code.matchAll(/font-weight:\s*([^;}!]+)/g)) {
+      const v = m[1].trim();
+      if (v.startsWith('var(') || v === 'inherit') continue;
+      if (!WEIGHTS.includes(v)) fail(at, `font-weight ${v} is not allowed. Three weights: 400 body and headlines, 600 emphasis and values, 700 uppercase labels.`);
+    }
+    for (const m of code.matchAll(/fontWeight:\s*['"]?(\w+)['"]?/g)) {
+      const v = m[1];
+      if (!/^\d+$/.test(v)) continue;            /* a JS expression, judged where it is defined */
+      if (!WEIGHTS.includes(v)) fail(at, `fontWeight ${v} is not allowed. Three weights: 400, 600, 700.`);
+    }
+  });
 }
 
 /* ── 3 — every declared family is actually loaded ──────────────────────── */
@@ -200,9 +266,28 @@ if (base) {
           prose.push({ sel: el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: text.slice(0, 70) });
         }
       }
-      return { fams: [...fams], prose };
+      const STEPS = [10, 11, 13, 15, 18, 26], WS = ['400', '600', '700'];
+      const offScale = []; const seen = new Set();
+      for (const el of document.querySelectorAll('body *')) {
+        if (!el.offsetParent) continue;
+        const text = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').trim();
+        if (!text) continue;
+        const cs = getComputedStyle(el);
+        const size = Math.round(parseFloat(cs.fontSize) * 10) / 10;
+        const weight = cs.fontWeight;
+        if (STEPS.includes(size) && WS.includes(weight)) continue;
+        const sel = el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '');
+        const k = sel + size + weight;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        offScale.push({ sel, size, weight, text: text.slice(0, 40) });
+      }
+      return { fams: [...fams], prose, offScale };
     }, PROSE_WORDS);
 
+    for (const p of found.offScale) {
+      fail(`${url} ${p.sel}`, `renders at ${p.size}px / ${p.weight} — off the six-step scale (10, 11, 13, 15, 18, 26) or not one of the three weights (400, 600, 700). "${p.text}…"`);
+    }
     for (const p of found.prose) {
       fail(`${url} ${p.sel}`, `prose set in the mono face: "${p.text}…". Mono is for figures only.`);
     }

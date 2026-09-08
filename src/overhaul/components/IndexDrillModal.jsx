@@ -149,22 +149,22 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
           <div>
             <div className="mt-eyebrow">{def.eyebrow}</div>
-            <h2 style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 34, fontWeight: 400, margin: '4px 0 0' }}>{def.name}</h2>
+            <h2 style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 'var(--v13-t6)', fontWeight: 400, margin: '4px 0 0' }}>{def.name}</h2>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="num" style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 38, lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
+            <div className="num" style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 'var(--v13-t6)', lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
             {dayPct != null && (
-              <div className={`num ${dayPct >= 0 ? 'up' : 'down'}`} style={{ fontWeight: 600, fontSize: 14, marginTop: 2 }}>
+              <div className={`num ${dayPct >= 0 ? 'up' : 'down'}`} style={{ fontWeight: 600, fontSize: 'var(--v13-t3)', marginTop: 2 }}>
                 {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} today
               </div>
             )}
-            <div style={{ fontSize: 11, color: 'var(--mt-ink-3)', marginTop: 3 }}>
+            <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', marginTop: 3 }}>
               {livePrice != null ? <>live · vs prev close {fmtLevel(prevClose)}</> : (asOf ? <>close {asOf}</> : null)}
             </div>
           </div>
         </div>
 
-        <p style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--mt-ink-2)', margin: '14px 0 18px', maxWidth: 760 }}>{def.blurb}</p>
+        <p style={{ fontSize: 'var(--v13-t3)', lineHeight: 1.55, color: 'var(--mt-ink-2)', margin: '14px 0 18px', maxWidth: 760 }}>{def.blurb}</p>
 
         {points.length > 0 ? (
           <>
@@ -172,7 +172,7 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
               {TFS.map((k) => (
                 <button key={k} type="button" className={`mt-pill ${tf === k ? 'on' : ''}`} onClick={() => setTf(k)}>{k}</button>
               ))}
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--mt-ink-3)' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
                 <b className="num">{sliced.length.toLocaleString('en-US')}</b> observations
               </span>
             </div>
@@ -187,7 +187,7 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
             />
 
             {dd && (
-              <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--mt-ink-3)' }}>
+              <div style={{ marginTop: 8, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
                 {dd.pct >= -0.05
                   ? <>At the high of the selected {tf} window.</>
                   : <>{fmtPct(dd.pct)} from the {tf} closing high of {fmtLevel(dd.peak)}.</>}
@@ -198,28 +198,28 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '14px 20px' }}>
               {rets.map((r) => (
                 <div key={r.label}>
-                  <div style={{ fontSize: 11, color: 'var(--mt-ink-3)', letterSpacing: '.04em' }}>{r.label}</div>
-                  <div className={`num ${r.v == null ? '' : r.v >= 0 ? 'up' : 'down'}`} style={{ fontSize: 21, fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', letterSpacing: '.04em' }}>{r.label}</div>
+                  <div className={`num ${r.v == null ? '' : r.v >= 0 ? 'up' : 'down'}`} style={{ fontSize: 'var(--v13-t5)', fontWeight: 600, marginTop: 2 }}>
                     {fmtPct(r.v)}
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--mt-ink-3)' }}>
+            <div style={{ marginTop: 10, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
               Price return on the index level — no dividends, so it understates a total-return benchmark
               by roughly the index's dividend yield per year. Windows are calendar-anchored and measured
               from the last stored close; the live quote above is not mixed into them.
             </div>
           </>
         ) : (
-          <div style={{ padding: '18px 0', fontSize: 13.5, color: 'var(--mt-ink-2)' }}>
+          <div style={{ padding: '18px 0', fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-2)' }}>
             No stored daily history for this index yet — the live quote above is real, the chart is not
             available. {def.name} is quoted through the live price feed and has no nightly history feed
             behind it.
           </div>
         )}
 
-        <div style={{ marginTop: 20, fontSize: 11, color: 'var(--mt-ink-3)' }}>Source: {def.source}</div>
+        <div style={{ marginTop: 20, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>Source: {def.source}</div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
           <button type="button" className="mt-btn mt-btn--ghost" onClick={onClose}>Close</button>

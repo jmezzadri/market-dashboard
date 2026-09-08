@@ -23,8 +23,8 @@
 }
 .mt-overhaul .al-sumnum {
   font-family: var(--mt-type-sans);
-  font-size: 26px;
-  font-weight: 500;
+  font-size: var(--v13-t6);
+  font-weight: 400;
   letter-spacing: -0.02em;
   display: block;
   margin-top: 2px;
@@ -44,7 +44,7 @@
 .mt-overhaul .al-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--v13-t3);
 }
 .mt-overhaul .al-table thead {
   background: var(--mt-surface-2);
@@ -54,7 +54,7 @@
   padding: 10px 14px;
   text-align: left;
   font-weight: 600;
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--mt-ink-2);
@@ -85,10 +85,10 @@
 .mt-overhaul .al-tkname {
   font-weight: 600;
   color: var(--mt-ink-0);
-  font-size: 13px;
+  font-size: var(--v13-t3);
 }
 .mt-overhaul .al-tkcode {
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   color: var(--mt-ink-3);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -96,14 +96,14 @@
   font-family: var(--mt-type-mono);
 }
 .mt-overhaul .al-cat {
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mt-ink-2);
-  font-weight: 500;
+  font-weight: 400;
 }
 .mt-overhaul .al-freq {
-  font-size: 11px;
+  font-size: var(--v13-t2);
   font-weight: 600;
   letter-spacing: 0.06em;
   background: var(--mt-surface-3);
@@ -112,7 +112,7 @@
   color: var(--mt-ink-2);
 }
 .mt-overhaul .al-type {
-  font-size: 9.5px;
+  font-size: var(--v13-t1);
   font-weight: 700;
   letter-spacing: 0.10em;
   padding: 2px 6px;
@@ -132,26 +132,26 @@
   color: var(--mt-up);
 }
 .mt-overhaul .al-current {
-  font-size: 14px;
+  font-size: var(--v13-t3);
   font-weight: 600;
 }
 .mt-overhaul .al-current--extreme { color: var(--mt-down); }
 .mt-overhaul .al-current--elevated { color: var(--mt-warn); }
 .mt-overhaul .al-current--calm { color: var(--mt-ink-0); }
 .mt-overhaul .al-unit {
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   color: var(--mt-ink-2);
   margin-left: 4px;
   font-weight: 400;
 }
 .mt-overhaul .al-historical {
   color: var(--mt-ink-2);
-  font-size: 12.5px;
+  font-size: var(--v13-t3);
 }
 .mt-overhaul .al-drill td { padding: 0 14px 14px; background: var(--mt-surface-2); }
 .mt-overhaul .al-tablefoot {
   margin-top: 12px;
-  font-size: 12px;
+  font-size: var(--v13-t2);
   color: var(--mt-ink-2);
   display: flex;
   gap: 14px;
@@ -171,17 +171,17 @@
 }
 .mt-overhaul .mc-otpval {
   font-family: var(--mt-type-sans);
-  font-size: 44px;
-  font-weight: 500;
+  font-size: var(--v13-t6);
+  font-weight: 400;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--mt-ink-0);
 }
-.mt-overhaul .mc-otpsub { font-size: 11.5px; color: var(--mt-ink-2); }
+.mt-overhaul .mc-otpsub { font-size: var(--v13-t2); color: var(--mt-ink-2); }
 .mt-overhaul .mc-otprow {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--v13-t2);
   color: var(--mt-ink-1);
   padding: 2px 0;
 }
@@ -218,34 +218,34 @@
 }
 .mt-overhaul .mc-domname {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--v13-t3);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .mc-domnum {
   font-family: var(--mt-type-sans);
-  font-size: 28px;
-  font-weight: 500;
+  font-size: var(--v13-t6);
+  font-weight: 400;
   color: var(--mt-down);
   display: flex;
   align-items: baseline;
   gap: 4px;
 }
 .mt-overhaul .mc-domof {
-  font-size: 14px;
+  font-size: var(--v13-t3);
   color: var(--mt-ink-2);
   font-weight: 400;
 }
 .mt-overhaul .mc-domlabel {
-  font-size: 11px;
+  font-size: var(--v13-t2);
   color: var(--mt-ink-2);
   margin-left: 8px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 400;
   font-family: var(--mt-type-sans);
 }
 .mt-overhaul .mc-domsub {
-  font-size: 11.5px;
+  font-size: var(--v13-t2);
   color: var(--mt-warn);
 }
 .mt-overhaul .mc-domsumbar {
@@ -279,7 +279,7 @@
   gap: 8px;
 }
 .mt-overhaul .mc-pillcount {
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   color: var(--mt-ink-2);
   margin-left: 4px;
 }
@@ -317,7 +317,7 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
-  font-size: 12.5px;
+  font-size: var(--v13-t3);
   width: 100%;
 }
 .mt-overhaul .hm-allocrow:hover { background: var(--mt-accent-soft); }
@@ -350,13 +350,13 @@
 .mt-overhaul .hm-allocpct {
   text-align: right;
   font-family: var(--mt-type-sans);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--v13-t4);
+  font-weight: 400;
   color: var(--mt-ink-0);
 }
 .mt-overhaul .hm-allocpct i {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--v13-t2);
   color: var(--mt-ink-2);
   margin-left: 1px;
   font-family: var(--mt-type-sans);
@@ -369,8 +369,8 @@
   border-radius: 4px;
   background: var(--mt-surface-3);
   font-family: var(--mt-type-sans);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--v13-t2);
+  font-weight: 400;
   color: var(--mt-ink-2);
   letter-spacing: 0.06em;
 }
@@ -463,13 +463,13 @@
   padding: 5px 0;
   text-decoration: none;
   color: var(--mt-ink-1);
-  font-size: 13px;
+  font-size: var(--v13-t3);
   transition: color var(--mt-dur-fast) var(--mt-ease);
 }
 .mt-overhaul .me-toc a::before {
   content: counter(section, decimal-leading-zero);
   font-family: var(--mt-type-mono);
-  font-size: 11px;
+  font-size: var(--v13-t2);
   color: var(--mt-ink-3);
   letter-spacing: 0.04em;
 }
@@ -482,14 +482,14 @@
 .mt-overhaul .me-section:first-of-type { border-top: none; }
 .mt-overhaul .me-section h2 {
   font-family: var(--mt-type-sans);
-  font-size: 32px;
+  font-size: var(--v13-t6);
   font-weight: 400;
   letter-spacing: -0.02em;
   margin: 0 0 14px;
   color: var(--mt-ink-0);
 }
 .mt-overhaul .me-section p {
-  font-size: 15px;
+  font-size: var(--v13-t4);
   line-height: 1.65;
   color: var(--mt-ink-1);
   margin: 0 0 14px;
@@ -497,8 +497,8 @@
 }
 .mt-overhaul .me-section h3 {
   font-family: var(--mt-type-sans);
-  font-size: 20px;
-  font-weight: 500;
+  font-size: var(--v13-t5);
+  font-weight: 400;
   letter-spacing: -0.01em;
   color: var(--mt-ink-0);
   margin: 22px 0 8px;
@@ -509,7 +509,7 @@
   border-radius: var(--mt-r-md);
   padding: 14px 18px;
   font-family: var(--mt-type-mono);
-  font-size: 13px;
+  font-size: var(--v13-t3);
   color: var(--mt-ink-0);
   margin: 12px 0 16px;
   overflow-x: auto;
@@ -518,7 +518,7 @@
   width: 100%;
   border-collapse: collapse;
   margin: 12px 0;
-  font-size: 13px;
+  font-size: var(--v13-t3);
 }
 .mt-overhaul .me-vendortbl th,
 .mt-overhaul .me-vendortbl td {
@@ -527,7 +527,7 @@
   border-bottom: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .me-vendortbl th {
-  font-size: 10.5px;
+  font-size: var(--v13-t1);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--mt-ink-2);

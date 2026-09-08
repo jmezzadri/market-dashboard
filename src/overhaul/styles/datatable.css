@@ -7,11 +7,11 @@
 
 /* toolbar — sits above the grid, right-aligned control cluster */
 .dt-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
-.dt-toolbar-left { font-size: 12.5px; color: var(--mut, #6b6558); }
+.dt-toolbar-left { font-size: var(--v13-t3); color: var(--mut, #6b6558); }
 
 .dt-colmenu { position: relative; }
 .dt-colbtn {
-  font: inherit; font-size: 12.5px; letter-spacing: .01em; cursor: pointer;
+  font: inherit; font-size: var(--v13-t3); letter-spacing: .01em; cursor: pointer;
   background: transparent; color: var(--mut, #6b6558);
   border: 1px solid var(--dt-hair); border-radius: 999px; padding: 5px 12px;
   transition: color .15s ease, border-color .15s ease;
@@ -23,21 +23,21 @@
   background: var(--bg, #fbf8f1); border: 1px solid var(--dt-hair); border-radius: 16px;
   box-shadow: 0 18px 40px rgba(17, 25, 40, .13); padding: 10px 8px 8px;
 }
-.dt-menu-head { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut, #6b6558); padding: 2px 10px 8px; }
-.dt-menu-row { display: flex; align-items: center; gap: 9px; padding: 6px 10px; border-radius: 9px; font-size: 13px; cursor: pointer; }
+.dt-menu-head { font-size: var(--v13-t2); letter-spacing: .08em; text-transform: uppercase; color: var(--mut, #6b6558); padding: 2px 10px 8px; }
+.dt-menu-row { display: flex; align-items: center; gap: 9px; padding: 6px 10px; border-radius: 9px; font-size: var(--v13-t3); cursor: pointer; }
 .dt-menu-row:hover { background: color-mix(in srgb, var(--bg2, #f2ece0) 70%, transparent); }
 .dt-menu-row.locked { opacity: .5; cursor: default; }
 .dt-menu-row input { accent-color: var(--ink, #111927); }
 .dt-menu-reset {
   display: block; width: calc(100% - 20px); margin: 8px 10px 2px; padding: 7px 0;
-  font: inherit; font-size: 12.5px; cursor: pointer; color: var(--mut, #6b6558);
+  font: inherit; font-size: var(--v13-t3); cursor: pointer; color: var(--mut, #6b6558);
   background: transparent; border: 0; border-top: 1px solid var(--dt-hair); text-align: left;
 }
 .dt-menu-reset:hover { color: var(--ink, #111927); }
 
 /* grid */
 .dt-scroll { overflow-x: auto; }
-.dt-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.dt-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--v13-t3); font-variant-numeric: tabular-nums; }
 .dt-table th, .dt-table td {
   padding: 9px 10px; text-align: left; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
@@ -46,7 +46,7 @@
 .dt-table th.r, .dt-table td.r { text-align: right; }
 .dt-table th.sorted { color: var(--ink, #111927); }
 .dt-th { cursor: pointer; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
-.dt-sort { margin-left: 4px; font-size: 11px; }
+.dt-sort { margin-left: 4px; font-size: var(--v13-t2); }
 
 /* resize grip — invisible until hovered, 8px target either side of the edge */
 .dt-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; }
@@ -65,7 +65,7 @@
 .dt-table tfoot td.dt-foot-label { overflow: visible; text-overflow: clip; }
 .dt-table tfoot tr.dt-foot.first td { border-top: 1px solid var(--dt-hair); }
 .dt-table tfoot tr.dt-foot td.r { color: var(--ink, #111927); font-weight: 600; }
-.dt-table tfoot tr.dt-foot.strong td { border-top: 2px solid var(--dt-hair); color: var(--ink, #111927); font-weight: 650; }
+.dt-table tfoot tr.dt-foot.strong td { border-top: 2px solid var(--dt-hair); color: var(--ink, #111927); font-weight: 700; }
 .dt-table tfoot tr.dt-foot.strong td.r { font-weight: 700; }
 .dt-table tfoot tr:hover { background: transparent; }
 
@@ -76,12 +76,12 @@
   content: attr(data-tip); position: absolute; left: 0; top: calc(100% + 7px); z-index: 60;
   width: max-content; max-width: 300px; white-space: normal; text-align: left;
   background: var(--ink, #111927); color: var(--bg, #fbf8f1);
-  font-size: 12px; font-weight: 400; line-height: 1.45; letter-spacing: 0;
+  font-size: var(--v13-t2); font-weight: 400; line-height: 1.45; letter-spacing: 0;
   padding: 8px 10px; border-radius: 10px; box-shadow: 0 10px 26px rgba(17, 25, 40, .22);
 }
 .dt-table th:nth-last-child(-n+3) .dt-th[data-tip]:hover::after { left: auto; right: 0; }
 
 @media (max-width: 640px) {
-  .dt-table { font-size: 12.5px; }
+  .dt-table { font-size: var(--v13-t3); }
   .dt-table th, .dt-table td { padding: 8px; }
 }

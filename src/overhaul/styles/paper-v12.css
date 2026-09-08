@@ -80,15 +80,15 @@
 .home-v12 section.pp-hero > * { min-width: 0; } /* LESSONS 8.10(d): the card table's intrinsic width must not blow the track */
 .home-v12 .pp-ed { padding: 22px 8px 8px 2px; }
 .home-v12 .pp-ed .eyebrow2 { margin-bottom: 18px; }
-.home-v12 .pp-ed h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: clamp(34px, 3.5vw, 54px); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
+.home-v12 .pp-ed h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
 .home-v12 .pp-ed h1 i { font-style: italic; color: var(--gold-deep); }
 .home-v12 .pp-ed .impl { margin: 0; padding: 0; list-style: none; max-width: 680px; }
-.home-v12 .pp-ed .impl li { position: relative; padding: 0 0 12px 22px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+.home-v12 .pp-ed .impl li { position: relative; padding: 0 0 12px 22px; font-size: var(--v13-t4); color: var(--ink-soft); line-height: 1.6; }
 .home-v12 .pp-ed .impl li:last-child { padding-bottom: 0; }
 .home-v12 .pp-ed .impl li::before { content: "\2192"; position: absolute; left: 0; top: 0; color: var(--gold-deep); font-weight: 700; }
-.home-v12 .pp-ed .impl li b { color: var(--ink); font-weight: 650; }
+.home-v12 .pp-ed .impl li b { color: var(--ink); font-weight: 700; }
 .home-v12 .pp-methlink { margin-top: 18px; }
-.home-v12 .pp-methlink a { font-family: var(--mt-type-sans); font-size: 13.5px; font-weight: 600; color: var(--gold-deep); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .25s; }
+.home-v12 .pp-methlink a { font-family: var(--mt-type-sans); font-size: var(--v13-t3); font-weight: 600; color: var(--gold-deep); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .25s; }
 .home-v12 .pp-methlink a:hover { border-color: var(--gold-deep); }
 .home-v12 .pp-heroright { display: flex; }
 .home-v12 .pp-heroright > .paper-tile-summary { flex: 1; min-width: 0; } /* min-width:auto would let the table's intrinsic width push the card past a phone viewport (LESSONS 8.10(d) applies to flex too) */
@@ -97,8 +97,8 @@
    type. Values stay SANS + tabular-nums on purpose: the site serif has no
    tabular figures, and money columns must stay aligned. */
 .home-v12 .paper-tile-summary { background: var(--putty); border: 0; border-radius: 36px; padding: 26px 28px 22px; transition: background .5s; }
-.home-v12 .pts-title { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
-.home-v12 .pts-asof { font-size: 10.5px; letter-spacing: .08em; color: var(--mut); font-weight: 600; }
+.home-v12 .pts-title { font-size: var(--v13-t2); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
+.home-v12 .pts-asof { font-size: var(--v13-t1); letter-spacing: .08em; color: var(--mut); font-weight: 600; }
 
 /* ── main stage: one brand stage width, matches Scanner results ── */
 .home-v12 section.pp-main { max-width: 1560px; }
@@ -107,7 +107,7 @@
    the token bridge recolors it; these override the card chrome. */
 .home-v12 .paper-panel { background: var(--putty); border: 0; border-radius: 40px; transition: background .5s; }
 .home-v12 .paper-panel-head { border-bottom-color: var(--hair); padding: 26px 30px 14px; }
-.home-v12 .paper-panel-title { font-family: var(--mt-type-serif); font-weight: 400; font-size: 26px; line-height: 1.12; letter-spacing: 0; }
+.home-v12 .paper-panel-title { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.12; letter-spacing: 0; }
 .home-v12 .paper-table th { background: transparent; }
 .home-v12 .paper-table tbody tr { transition: background .16s ease, transform .16s ease; }
 .home-v12 .paper-table tbody tr:hover { background: color-mix(in srgb, var(--bg2) 72%, transparent); transform: translateX(4px); }
@@ -125,17 +125,17 @@
    lift. The numbers stay tabular so they line up with the column above. */
 .home-v12 .paper-table tfoot tr.pp-foot td { border-top: 1px solid var(--hair); padding-top: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
 .home-v12 .paper-table tfoot tr.pp-foot:first-child td { border-top: 2px solid var(--hair); }
-.home-v12 .paper-table tfoot tr.pp-foot td.r { color: var(--ink); font-weight: 650; }
+.home-v12 .paper-table tfoot tr.pp-foot td.r { color: var(--ink); font-weight: 700; }
 .home-v12 .paper-table tfoot tr.pp-foot td.r.up { color: var(--up); }
 .home-v12 .paper-table tfoot tr.pp-foot td.r.dn,
 .home-v12 .paper-table tfoot tr.pp-foot td.r.down { color: var(--down); }
 .home-v12 .paper-table tfoot tr.pp-foot:hover { background: transparent; transform: none; }
 
 /* book card headline rows */
-.home-v12 .pp-book-nav { font-family: var(--mt-type-sans); font-size: clamp(34px, 3vw, 46px); line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums; margin: 14px 0 12px; }
-.home-v12 .pp-book-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--hair); font-family: var(--mt-type-sans); font-size: 13.5px; }
+.home-v12 .pp-book-nav { font-family: var(--mt-type-sans); font-size: var(--v13-t6); line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums; margin: 14px 0 12px; }
+.home-v12 .pp-book-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--hair); font-family: var(--mt-type-sans); font-size: var(--v13-t3); }
 .home-v12 .pp-book-rows span { color: var(--mut); }
-.home-v12 .pp-book-rows b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.home-v12 .pp-book-rows b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .home-v12 .pp-book-rows b.up { color: var(--up); }
 .home-v12 .pp-book-rows b.down { color: var(--down); }
 
@@ -150,7 +150,7 @@
   .home-v12 .paper-panel-head { padding: 20px 18px 12px; }
 }
 @media (max-width: 640px) {
-  .home-v12 .pp-ed h1 { font-size: 30px; }
+  .home-v12 .pp-ed h1 { font-size: var(--v13-t6); }
   /* LESSONS 8.10: tables scroll INSIDE their putty card at natural column
      widths at phone width — never a fixed layout + ellipsis (which silently
      truncates every value). */

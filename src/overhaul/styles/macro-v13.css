@@ -143,11 +143,11 @@
 }
 .v13.macro-v13 .gauge .gl b {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t6); font-weight: 500; letter-spacing: -0.02em; color: var(--v13-ink);
+  font-size: var(--v13-t6); font-weight: 400; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .gauge .gl b i {
   font-style: normal; font-family: var(--mt-type-sans); font-size: var(--v13-t2);
-  font-weight: 500; letter-spacing: 0.04em; color: var(--v13-ink-3);
+  font-weight: 400; letter-spacing: 0.04em; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .track {
   position: relative; height: 6px; margin: 12px 0 8px;
@@ -170,7 +170,7 @@
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .gauge .read {
-  margin-top: var(--v13-s3); font-size: var(--v13-t3); font-weight: 500; color: var(--v13-ink-2);
+  margin-top: var(--v13-s3); font-size: var(--v13-t3); font-weight: 400; color: var(--v13-ink-2);
 }
 .v13.macro-v13 .gauge .read.ok { color: var(--v13-up); }
 .v13.macro-v13 .gauge .read.warm { color: var(--v13-warn); }
@@ -290,7 +290,7 @@
 .v13.macro-v13 .mac-irow:hover > * { background: var(--v13-accent-soft); transform: none; border-radius: 0; }
 .v13.macro-v13 .mac-irow:hover > :first-child::before { transform: scaleY(1); }
 
-.v13.macro-v13 .mac-nm { gap: var(--v13-s2); font-weight: 500; color: var(--v13-ink); }
+.v13.macro-v13 .mac-nm { gap: var(--v13-s2); font-weight: 400; color: var(--v13-ink); }
 .v13.macro-v13 .mac-nm .mac-name { overflow: hidden; text-overflow: ellipsis; }
 .v13.macro-v13 .mac-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .v13.macro-v13 .mac-val {
@@ -299,11 +299,11 @@
 }
 .v13.macro-v13 .mac-chg {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-pct {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-chev {
   padding-left: var(--v13-s1);
@@ -349,7 +349,7 @@
   border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.10);
   background: #16191D; color: #E9EAE6;
   font-family: var(--mt-type-sans);
-  font-size: 11px; line-height: 1.45; white-space: pre-line; text-align: left;
+  font-size: var(--v13-t2); line-height: 1.45; white-space: pre-line; text-align: left;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -385,7 +385,7 @@
 /* 1 — level extreme. Was 10.5px grey, indistinguishable from the 47th. */
 .v13.macro-v13 .mac-pct {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-pct.ext  { font-weight: 700; color: var(--v13-down); }
 .v13.macro-v13 .mac-pct.elev { font-weight: 700; color: var(--v13-warn); }

@@ -27,7 +27,7 @@
 
 .mt-overhaul .mt-footer-wordmark {
   font-family: var(--mt-type-serif);
-  font-size: 26px;
+  font-size: var(--v13-t6);
   color: var(--ch-ink);
   letter-spacing: 0.2px;
   text-decoration: none;
@@ -36,14 +36,14 @@
 .mt-overhaul .mt-footer-wordmark em { font-style: normal; color: var(--ch-gold-deep); }
 
 .mt-overhaul .mt-footer-tag {
-  font-size: 13.5px;
+  font-size: var(--v13-t3);
   line-height: 1.55;
   margin-top: 10px;
   max-width: 300px;
   color: var(--ch-ink-soft);
 }
 
-.mt-overhaul .mt-footer-loc { font-size: 12.5px; margin-top: 16px; color: var(--ch-mut); }
+.mt-overhaul .mt-footer-loc { font-size: var(--v13-t3); margin-top: 16px; color: var(--ch-mut); }
 .mt-overhaul .mt-footer-loc a {
   color: var(--ch-mut);
   text-decoration: none;
@@ -53,7 +53,7 @@
 .mt-overhaul .mt-footer-loc a:hover { color: var(--ch-gold-deep); border-color: var(--ch-gold-deep); }
 
 .mt-overhaul .mt-footer-col h4 {
-  font-size: 11.5px;
+  font-size: var(--v13-t2);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -64,7 +64,7 @@
 .mt-overhaul .mt-footer-col li { margin-bottom: 10px; }
 .mt-overhaul .mt-footer-col a {
   color: var(--ch-ink-soft);
-  font-size: 13.5px;
+  font-size: var(--v13-t3);
   text-decoration: none;
   transition: color 0.18s;
 }
@@ -73,7 +73,7 @@
 .mt-overhaul .mt-footer-legalband { border-top: 1px solid var(--ch-hair); }
 .mt-overhaul .mt-footer-legalband .inner { max-width: 1160px; margin: 0 auto; padding: 18px 0 8px; }
 .mt-overhaul .mt-footer-disclaimer {
-  font-size: 11.5px;
+  font-size: var(--v13-t2);
   line-height: 1.6;
   color: var(--ch-mut);
   max-width: 840px;
@@ -90,10 +90,10 @@
   flex-wrap: wrap;
   gap: 10px;
 }
-.mt-overhaul .mt-footer-copy { font-size: 12px; color: var(--ch-mut); }
+.mt-overhaul .mt-footer-copy { font-size: var(--v13-t2); color: var(--ch-mut); }
 .mt-overhaul .mt-footer-bottomlinks { display: flex; gap: 20px; }
 .mt-overhaul .mt-footer-bottomlinks a {
-  font-size: 12px;
+  font-size: var(--v13-t2);
   color: var(--ch-mut);
   text-decoration: none;
   transition: color 0.18s;
@@ -109,27 +109,27 @@
 }
 .mt-overhaul .mt-static-page h1 {
   font-family: var(--mt-type-serif);
-  font-size: clamp(30px, 4.5vw, 40px);
+  font-size: var(--v13-t6);
   font-weight: 400;
   color: var(--ch-ink);
   margin: 0 0 6px;
   letter-spacing: 0.2px;
 }
 .mt-overhaul .mt-static-updated {
-  font-size: 12.5px;
+  font-size: var(--v13-t3);
   color: var(--ch-mut);
   margin: 0 0 30px;
 }
 .mt-overhaul .mt-static-page h2 {
   font-family: var(--mt-type-serif);
-  font-size: 21px;
+  font-size: var(--v13-t5);
   font-weight: 400;
   color: var(--ch-ink);
   margin: 34px 0 10px;
 }
 .mt-overhaul .mt-static-page p,
 .mt-overhaul .mt-static-page li {
-  font-size: 14.5px;
+  font-size: var(--v13-t4);
   line-height: 1.7;
 }
 .mt-overhaul .mt-static-page p { margin: 0 0 14px; }
