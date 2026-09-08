@@ -21,7 +21,8 @@ run on a schedule without being a trading system.
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -29,8 +30,43 @@ from . import data as D
 
 TERMINAL = {"filled", "canceled", "expired", "rejected", "dry_run"}
 
+ET = ZoneInfo("America/New_York")
 
-def snapshot() -> dict:
+
+def _today_et() -> str:
+    """The trading date this snapshot belongs to — the ET calendar date.
+
+    The cron fires 21:10 UTC, where UTC and ET agree on the date, but a manual
+    dispatch can happen any time; after 00:00 UTC, date.today() on the runner
+    is ET's *tomorrow* and would file the mark under a day that hasn't traded.
+    """
+    return datetime.now(ET).date().isoformat()
+
+
+def is_trading_day(day: str) -> bool:
+    """True iff `day` (YYYY-MM-DD) is an exchange session per Alpaca's calendar.
+
+    2026-09-08 (LESSONS 5.26): the 21:10 UTC weekday cron fired on Labor Day
+    and snapshot() wrote a qt_nav_daily row for a session that never happened —
+    /paper then rendered a "Mon, Sep 7 session" P&L against an S&P "close" that
+    was never printed. A `1-5` cron field is a weekday filter, not a market
+    calendar (LESSONS 5.6); a job whose output is "one row per trading day"
+    asks the exchange calendar first. Calendar unreachable → raise: better a
+    red run than a fabricated session (same fail-safe direction as 5.6).
+    """
+    r = requests.get(f"{D.ALPACA_TRADE}/v2/calendar",
+                     headers=D._alpaca_headers(),
+                     params={"start": day, "end": day}, timeout=30)
+    r.raise_for_status()
+    return any(c.get("date") == day for c in r.json())
+
+
+def snapshot() -> dict | None:
+    day = _today_et()
+    if not is_trading_day(day):
+        print(f"snapshot {day}: not a trading session (holiday/weekend) — "
+              f"no row written; qt_nav_daily is one row per TRADING day", flush=True)
+        return None
     H = D._alpaca_headers()
     acct = requests.get(f"{D.ALPACA_TRADE}/v2/account", headers=H, timeout=60).json()
     pos = requests.get(f"{D.ALPACA_TRADE}/v2/positions", headers=H, timeout=60).json()
@@ -45,7 +81,7 @@ def snapshot() -> dict:
         pass
 
     row = {
-        "d": date.today().isoformat(),
+        "d": day,
         # Which broker account this snapshot came from. The book is one
         # continuous series only within a single account_number — the site
         # charts a single epoch and reconcile never compares across a change.
