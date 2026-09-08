@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-08T13:45:53Z",
+  "generated_at": "2026-09-08T22:49:34Z",
   "window": {
     "from": "2026-09-01",
     "to": "2026-11-17"
@@ -18,9 +18,7 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "release 291 (Existing home sales): HTTP Error 502: Bad Gateway"
-  ],
+  "problems": [],
   "events": [
     {
       "date": "2026-09-01",
