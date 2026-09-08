@@ -218,6 +218,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.15` One holding's history is a fact about that holding, never about the book; a shared window is only for the numbers that genuinely need one
 - `9.16` A drill-down is not a destination; opening a detail view is no reason to move the user to another page
 - `9.17` Three typefaces, three tokens, one declaration site — and a family we declare but never load is a face nobody chose
+- `9.18` Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2047,6 +2048,38 @@ Plus self-hosted Fraunces and Inter `@font-face` rules in `theme.css` and four `
 5. **The rule is `scripts/check_fonts.mjs`, not this entry.** It fails the build on a family named outside `type.css`, a font token that is not one of the three, a bare generic fallback in a component, a declared-but-unloaded family, a stray self-hosted face, prose rendered in mono, and a fourth family appearing on screen. Per 7.15, `check_layout.mjs` — written for this same reason on 2026-09-01 and never wired to anything — now runs in the same workflow, `UI-STANDARDS-CHECK`.
 
 **Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`. See `docs/TYPOGRAPHY_STANDARD.md`.
+
+### 9.18 (2026-09-08, hours after 9.17) — Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
+
+**What happened:** Joe, on the same page, the same day: *"Are you shitting me? The fonts are not fixed!!! They're all different fucking sizes! Why all different sizes, some bold, others not. Im lost on how you operate this way."*
+
+He was right. 9.17 fixed WHICH typefaces and never touched the sizes, so nothing he was actually looking at changed. Measured on the live Home page: **14 distinct sizes, 8 of them off the declared six-step scale, and 4 weights** with no rule about which meant what.
+
+Two tiles sat side by side in the same row doing the same job, and every matching part of them was different:
+
+| role | Morning Brief | Trade Idea |
+|---|---|---|
+| eyebrow | 10 / 700 sans | 10 / 700 sans |
+| headline | **19 / 400 serif** | **18 / 400 serif** |
+| lead paragraph | **15 / 400 serif** | **13 / 400 sans** |
+| body item | **18 / 400 serif** | **13.5 / 600 sans** |
+
+The brief's bullets were rendering LARGER than the brief's own lead paragraph — the hierarchy was inverted inside one tile.
+
+**Cause: two size systems, one partially overriding the other.** The v12 stylesheets (`cream-system.css` and the `*-v12.css` set) supplied arbitrary px and `clamp()` values, and `pages-v13.css` patched only some of them. Anything v13 had not explicitly patched kept a v12 number. `v13.css` had declared "SIX type steps. There is no seventh." in a comment since 2026-09-01, and 668 declarations ignored it.
+
+**The 19px is the tell.** It came from `clamp(19px, 1.4vw, 24px)`. A viewport-derived size takes whatever the window happens to be, so it can never land on a step — those two headlines could not have matched at ANY window width. Every `clamp()` font-size is now gone from the overhaul.
+
+**Rule:**
+
+1. **Six steps (10, 11, 13, 15, 18, 26) and three weights (400 body and headlines, 600 emphasis and values, 700 uppercase labels).** 500 is gone; a number carries emphasis through the mono face and tabular figures, not through weight.
+2. **No literal font-size and no `clamp()` font-size anywhere in `src/`** — CSS, JSX style objects, and CSS-in-JSX alike. Only `var(--v13-t1..t6)`.
+3. **Same role, declared together.** Sibling tiles doing the same job have their matching parts in ONE rule — the ROLE PARITY block in `pages-v13.css` — never in two rules that happen to agree today. Add a tile by adding its class to the role it belongs to, never by giving it its own size.
+4. **Pin what the markup did not choose.** `<small>`/`<sub>`/`<sup>` shrink by a browser default percentage and land between steps; the tape's "close" was rendering at 8.3px.
+5. **`scripts/check_fonts.mjs` now fails on all of it** — a literal or `clamp()` size, a size token that is not a step, a weight outside the three, and any element that RENDERS off the scale on a real page. The one opt-out, `data-mono="code"`, lives in the markup where a reviewer sees it.
+6. **Fix what the user is looking at, not the adjacent thing you understand better.** "The fonts look wrong" was about size and weight, and answering it with a typeface change spent his patience for no visible gain. Measure the surface he is pointing at BEFORE choosing what to change, and say what the measurement was.
+
+**Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

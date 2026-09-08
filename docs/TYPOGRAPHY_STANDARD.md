@@ -59,3 +59,62 @@ were comments. Neither was a check, and by 2026-09-08 four token systems named
 six families while the three the pages actually asked for were never loaded at
 all. LESSONS 7.15: a design rule that lives only in a prompt is a rule you will
 be told about again. So it is a script now.
+
+---
+
+## The scale — added 2026-09-08 after round two
+
+Joe, the same day, on the same page: *"The fonts are not fixed!!! They're all
+different fucking sizes! Why all different sizes, some bold, others not."*
+
+Round one fixed WHICH faces and left the sizes alone. Home was rendering 14
+distinct sizes — 8 of them off the declared scale — and 4 weights with no rule
+about which meant what.
+
+### Six steps. There is no seventh.
+
+| Token | Size | Role |
+|---|---|---|
+| `--v13-t1` | 10px | label and eyebrow — uppercase, 700, letter-spaced |
+| `--v13-t2` | 11px | meta, caption, the quiet line under a gauge or chart |
+| `--v13-t3` | 13px | body, table cell, list row, the value half of a pair |
+| `--v13-t4` | 15px | lead paragraph and editorial prose |
+| `--v13-t5` | 18px | tile headline — one per tile, the largest thing in it |
+| `--v13-t6` | 26px | the page hero, the one big figure, the regime line |
+
+### Three weights. No fourth.
+
+| Weight | Used for |
+|---|---|
+| 400 | body, prose, headlines. The default. |
+| 600 | emphasis and values — the answer half of a labelled pair |
+| 700 | uppercase labels only |
+
+500 is gone. A number carries its emphasis through the mono face and tabular
+figures, not through weight.
+
+### Four hard lines on the scale
+
+1. **No literal font-size anywhere in `src/`.** Only `var(--v13-t1..t6)`.
+2. **No `clamp()` font-size, ever.** A viewport-derived size cannot land on a
+   step, so two elements set that way cannot match at any window width. That
+   is exactly why the two cockpit headlines were 19px and 18px.
+3. **Same role, same type, declared together.** Sibling tiles doing the same
+   job have their matching parts in ONE rule (see the ROLE PARITY block in
+   `pages-v13.css`), not in two rules that happen to agree today.
+4. **`<small>`, `<sub>`, `<sup>` are pinned.** A browser default shrink lands
+   between steps — the tape's "close" rendered at 8.3px.
+
+### The one opt-out
+
+`data-mono="code"` on a formula or code block lets it keep the mono face for a
+sentence. It goes in the markup, where a reviewer sees it — never as a quiet
+exception inside the checker. `<code>` and `<pre>` count as declared.
+
+### How this is verified
+
+`node scripts/check_fonts.mjs` for the static half. For the rendered half,
+build, serve `dist` on localhost, and run
+`node scripts/check_fonts.mjs http://localhost:4321 / /macro /paper ...`.
+It reports every element that renders off the scale, with its selector and its
+numbers. That loop needs no browser extension and no approvals.
