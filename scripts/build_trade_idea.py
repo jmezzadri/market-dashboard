@@ -546,6 +546,25 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     if idea["position_type"] not in ("outright short", "long/short spread") and str(tt.get("short", "")).strip():
         raise ContractError("the_trade.short is set but position_type says nothing is sold short — pick one")
 
+    # 3e-bis — RETAIL EXPRESSION (Joe, 2026-09-09): "I, and many other retail
+    # traders, dont have access to futures. How can I short wheat without
+    # futures?" Every leg of the_trade names a vehicle a standard US retail
+    # brokerage account can hold: a listed stock, an ETF/ETN, or listed options
+    # on one. Futures, forwards, swaps, CDX and CFDs are rejected as the NAMED
+    # vehicle — the futures series may still be the signal and carry the levels
+    # (the scorecard marks the series, not the vehicle), and the note states the
+    # mapping in one line. Dated notes before 2026-09-09 are grandfathered so
+    # --check stays green on the archive.
+    if str(idea.get("date", "")) >= "2026-09-09":
+        non_retail = re.compile(r"\b(futures?|forwards?|swaps?|CDX|CFDs?)\b", re.I)
+        for k in ("buy", "sell", "short"):
+            m = non_retail.search(str(tt.get(k, "")))
+            if m:
+                raise ContractError(
+                    f"the_trade.{k} names {m.group(0)!r} — express the trade in something a retail "
+                    "account can hold: a listed stock, an ETF/ETN, or listed options on one. The "
+                    "futures series may still carry the signal and the levels; the vehicle must be retail.")
+
     # 3c — charts. Joe, 2026-08-13: "I'd like to include charts embedded in the
     # tile and note. Several charts to show visuals of what you're writing
     # about." Charts are DECLARATIVE: a note names a series that already exists
