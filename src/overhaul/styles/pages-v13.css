@@ -467,8 +467,17 @@
 .v13.home-v12.lab-v12 .lab-savedrow { gap: var(--v13-s2); }
 
 .v13.home-v12.lab-v12 .lab-card { padding: 0; margin: var(--v13-s3) 0; min-height: 220px; }
-.v13.home-v12.lab-v12 .lab-cardhead { height: var(--v13-bar); margin: 0; padding: 0 var(--v13-s3);
+/* min-height, not height: a fixed-height flex box silently spills its children
+   over whatever follows. The bar still measures 28px with a title in it. */
+.v13.home-v12.lab-v12 .lab-cardhead { min-height: var(--v13-bar); align-items: center; margin: 0; padding: 0 var(--v13-s3);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
+.v13.home-v12.lab-v12 .lab-toolbar {
+  padding-top: var(--v13-s2); padding-bottom: var(--v13-s2);
+  border-bottom: 1px solid var(--v13-rule); gap: var(--v13-s3);
+}
+.v13.home-v12.lab-v12 .lab-cap {
+  margin: var(--v13-s2) 0 0; font-size: var(--v13-t2); color: var(--v13-ink-3); line-height: 1.55;
+}
 .v13.home-v12.lab-v12 .lab-cardhead h2 {
   font-family: var(--mt-type-sans); font-size: var(--v13-t1); font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--v13-ink-2);

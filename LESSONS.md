@@ -423,8 +423,6 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 3. **Closing a bug is a claim and carries the same evidence bar as any other claim.** "The chip is green now" does not prove a feed recovered — query the table behind it for a real recent row (0.4). #1245 was closed on `lse_live_quotes` holding 84 symbols with a newest bar minutes old, not on the stamp.
 4. **Every transition writes `triage_notes` with the evidence and a `bug_status_log` row.** The next session inherits the note, never the reasoning.
 5. **Machine-filed reports are closed with SQL, never the resolve edge function** — it emails `reporter_email`, and `alarm@macrotilt.com` / `paper-pipeline@macrotilt.internal` have nobody behind them.
-
-**Repeated 2026-09-09:** the weekday sweep ran its full checklist and never opened the queue — #1251 (the missing UMich prelim on the calendar, filed by the external-sweep alarm 2026-09-07) sat at `new` for two days until Joe found it on the bugs page himself. Nothing about the rule was unclear; it was simply not in the sweep's stored task list, so the sweep prompt now names the queue as a numbered step. A check that lives only in LESSONS and not in the checklist that drives the run will be skipped by exactly the run that needs it.
 6. **The general form, which binds beyond this queue: when a new channel is added — a queue, a table, a page, an inbox — the instruction that makes something READ it ships in the same change.** A filer without a reader is a folder that fills up.
 
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
@@ -2092,6 +2090,19 @@ The brief's bullets were rendering LARGER than the brief's own lead paragraph �
 6. **Fix what the user is looking at, not the adjacent thing you understand better.** "The fonts look wrong" was about size and weight, and answering it with a typeface change spent his patience for no visible gain. Measure the surface he is pointing at BEFORE choosing what to change, and say what the measurement was.
 
 **Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`.
+
+### 9.19 (2026-09-09) — A card header is a fixed 28px band; put a control cluster in it and the cluster lands on the row below
+
+**What happened:** Joe, on Portfolio Lab: *"What in the fuck is going on on the Portfolio Lab page?"* — with a screenshot of the Holdings card in which the "Set all methods" segment, the "Add a stock or ETF" box and the table's own header row (`EXPECTED RETURN · 1 YEAR`) were all drawn on top of one another.
+
+**Cause:** the v13 pass locked every card header on every page to `height: var(--v13-bar)` — 28px — which is right, because a title bar is a band. Portfolio Lab then put a ~40px control cluster inside that band on the Holdings card, a four-button segment plus benchmark chips on Growth of $10,000, and a three-line methodology sentence on Efficient frontier and Portfolio statistics. **A fixed-height flex box does not grow.** Its children overflow and paint over whatever follows, which here was the table header row.
+
+**The rule: the header bar carries the title and nothing taller.** Controls get their own `.lab-toolbar` row directly under the bar; a long explanatory sentence is a caption (`.lab-cap`), not a header item. And every card header is now `min-height`, not `height` — a band that grows is a spacing bug a reviewer can see, where a band that spills is a collision that reads as a broken page.
+
+**The checker could not see it, because all three of its rules judge WIDTH.** Empty grid track, narrow text, short row — every one measures how far content reaches to the right, so a purely vertical collision was structurally invisible. `check_layout.mjs` gains **SPILLED BAR**: an in-flow child whose bottom clears its container's bottom by more than 4px, where the container draws a visible band. Per 9.19's own predecessor, it was proved by re-introducing the exact defect and watching it go red before the fix was screenshotted.
+
+**Applies to:** UX Designer on every sign-off touching a card header; Lead Developer on every PR touching `src/overhaul/styles/`.
+
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

@@ -216,3 +216,15 @@
 /* Holdings card header: set-all-methods segment beside the add box. */
 .home-v12.lab-v12 .lab-headtools { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
 .home-v12.lab-v12 .lab-allmethod { display: flex; flex-direction: column; gap: 6px; }
+/* Card controls live on their own row UNDER the title bar, never inside it.
+   The bar is a fixed 28px band site-wide; a 40px control cluster placed in it
+   overflowed and painted over the table header row (Joe, 2026-09-09). */
+.home-v12.lab-v12 .lab-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap; padding: 12px 0 14px;
+}
+.home-v12.lab-v12 .lab-toolbar .lab-headtools { width: 100%; justify-content: space-between; align-items: center; }
+.home-v12.lab-v12 .lab-toolbar .lab-allmethod { flex-direction: row; align-items: center; gap: 10px; }
+.home-v12.lab-v12 .lab-toolbar .lab-chartctl { width: 100%; justify-content: space-between; }
+/* Caption line: the long method sentences that used to be crammed into the bar. */
+.home-v12.lab-v12 .lab-cap { margin: 12px 0 0; font-size: var(--v13-t2); color: var(--mut); line-height: 1.5; }

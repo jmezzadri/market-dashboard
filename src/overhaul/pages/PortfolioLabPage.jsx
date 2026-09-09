@@ -867,6 +867,11 @@ export default function PortfolioLabPage() {
         <Reveal as="section" className="lab-card">
           <div className="lab-cardhead">
             <h2 className="serif">Holdings</h2>
+          </div>
+          {/* The card header is a fixed 28px title bar site-wide (v13). Controls
+              do not live in it — they overflowed it and painted on top of the
+              table header row (Joe, 2026-09-09). They get their own toolbar. */}
+          <div className="lab-toolbar">
             <div className="lab-headtools">
               {holdings.length >= 2 && (
                 <div className="lab-ctl lab-allmethod">
@@ -1064,8 +1069,8 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Efficient frontier</h2>
-              <span className="lab-dim">Expected return uses each holding&rsquo;s selected method · beta and volatility from each holding&rsquo;s own daily history vs SPY (up to 5 years) · portfolio risk from the shared history of the optimized holdings ({windowLabel === '5y' ? '5 years' : `${windowLabel} — the longest window they all cover, capped at 5 years`}); Implied vol rows swap in options-implied volatility</span>
             </div>
+            <p className="lab-cap">Expected return uses each holding&rsquo;s selected method · beta and volatility from each holding&rsquo;s own daily history vs SPY (up to 5 years) · portfolio risk from the shared history of the optimized holdings ({windowLabel === '5y' ? '5 years' : `${windowLabel} — the longest window they all cover, capped at 5 years`}); Implied vol rows swap in options-implied volatility</p>
             {frontier && portfolio ? (
               <FrontierChart
                 frontier={frontier}
@@ -1088,8 +1093,8 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Portfolio statistics</h2>
-              <span className="lab-dim">vs {selBench?.ticker || 'SPY'} · {windowLabel === '5y' ? '5 years of shared daily history' : `${windowLabel} of shared daily history — the longest window the optimized holdings all cover`}</span>
             </div>
+            <p className="lab-cap">vs {selBench?.ticker || 'SPY'} · {windowLabel === '5y' ? '5 years of shared daily history' : `${windowLabel} of shared daily history — the longest window the optimized holdings all cover`}</p>
             <div className="lab-statgrid" role="table" aria-label="Portfolio statistics vs benchmark">
               <div className="lab-statrow head" role="row">
                 <span role="columnheader">&nbsp;</span>
@@ -1168,6 +1173,8 @@ export default function PortfolioLabPage() {
           <Reveal as="section" className="lab-card">
             <div className="lab-cardhead">
               <h2 className="serif">Growth of $10,000</h2>
+            </div>
+            <div className="lab-toolbar">
               <div className="lab-chartctl">
                 <div className="lab-seg small">
                   {[['1y', '1 year'], ['2y', '2 years'], ['3y', '3 years'], ['max', 'Max']].map(([k, l]) => (
