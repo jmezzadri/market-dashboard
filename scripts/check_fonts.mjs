@@ -290,11 +290,47 @@ if (base) {
         seen.add(k);
         offScale.push({ sel, size, weight, text: text.slice(0, 40) });
       }
-      return { fams: [...fams], prose, offScale };
+      /* SVG TEXT RENDERS AT viewBox SCALE, not at its declared size.
+         Joe, 2026-09-09: "all the different sized fonts we're using?! It looks
+         like a fucking kindergardener designed the page." Portfolio Lab's two
+         charts declared an identical, blameless `font-size: 11px` and rendered
+         their axis labels at 20.6px and 14.3px — because a 640-unit canvas and
+         a 940-unit canvas were both stretched to ~1200px, scaling everything
+         inside them by 1.87x and 1.30x. Neither loop above could see it: SVG
+         elements have no offsetParent, so they were skipped outright, and the
+         DECLARED size was on the scale anyway. Measure what the reader sees. */
+      const svgText = [];
+      for (const svg of document.querySelectorAll('svg[viewBox]')) {
+        /* The one opt-out, declared in the markup: data-type="mark" on a logo
+           or monogram, whose letterforms are artwork drawn to fit a shape. */
+        if (svg.closest('[data-type="mark"]')) continue;
+        const rect = svg.getBoundingClientRect();
+        const vbw = parseFloat((svg.getAttribute('viewBox') || '').split(/[\s,]+/)[2]);
+        if (!rect.width || !vbw) continue;
+        const scale = rect.width / vbw;
+        for (const t of svg.querySelectorAll('text, tspan')) {
+          if (!t.textContent.trim()) continue;
+          const cs = getComputedStyle(t);
+          const eff = Math.round(parseFloat(cs.fontSize) * scale * 10) / 10;
+          const weight = cs.fontWeight;
+          const onStep = STEPS.some((st) => Math.abs(st - eff) < 0.6);
+          if (onStep && WS.includes(weight)) continue;
+          const cls = (t.getAttribute('class') || '').split(/\s+/)[0];
+          const k = 'svg' + cls + eff + weight;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          svgText.push({ sel: (svg.getAttribute('class') || 'svg') + ' text' + (cls ? '.' + cls : ''),
+            declared: cs.fontSize, eff, weight, scale: Math.round(scale * 100) / 100 });
+        }
+      }
+      return { fams: [...fams], prose, offScale, svgText };
     }, PROSE_WORDS);
 
     for (const p of found.offScale) {
       fail(`${url} ${p.sel}`, `renders at ${p.size}px / ${p.weight} — off the six-step scale (10, 11, 13, 15, 18, 26) or not one of the three weights (400, 600, 700). "${p.text}…"`);
+    }
+    for (const p of found.svgText) {
+      fail(`${url} ${p.sel}`, `declares ${p.declared} but RENDERS at ${p.eff}px / ${p.weight} — the viewBox is stretched ${p.scale}x, so the label lands off the six-step scale. Draw the chart at its measured pixel width (one user unit = one CSS pixel).`);
     }
     for (const p of found.prose) {
       fail(`${url} ${p.sel}`, `prose set in the mono face: "${p.text}…". Mono is for figures only.`);

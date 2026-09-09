@@ -424,7 +424,11 @@
    right two-thirds empty, an oversized HOLDINGS heading, and two buttons in
    two different styles. Everything below is layout, not palette. */
 .v13.home-v12.lab-v12 .lab-head { padding: var(--v13-s5) 0 var(--v13-s3); }
-.v13.home-v12.lab-v12 .lab-sub { }
+/* The page lede is 13px on Macro, Methodology, Scanner and Scorecard, and was
+   15px here only because lab-v12.css lands later in the bundle at equal
+   specificity. Same role, one size. (This stub rule was already sitting here
+   empty, waiting for exactly this.) */
+.v13.home-v12.lab-v12 .lab-sub { font-size: var(--v13-t3); }
 
 /* Controls sat in a two-column grid that left the right half of a 1440px page
    empty. They are a toolbar now: groups flow left to right and wrap. */

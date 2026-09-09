@@ -37,6 +37,7 @@ import {
 } from '../lib/labMath';
 import { ERP_ANNUAL, ERP_SOURCE, MIN_HISTORY_DAYS } from '../lib/labConfig';
 import '../styles/cream-system.css';
+import useChartWidth from '../lib/useChartWidth';
 import '../styles/lab-v12.css';
 // v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
@@ -161,9 +162,11 @@ function niceDomain(lo, hi, count = 4) {
   return { min, max, step, ticks };
 }
 
+
 /* Efficient-frontier chart (SVG). Click loads the nearest point's weights. */
 function FrontierChart({ frontier, current, benches, rf, onPick }) {
-  const W = 640; const H = 340; const P = { l: 54, r: 16, t: 14, b: 36 };
+  const [wrapRef, W] = useChartWidth(940);
+  const H = 380; const P = { l: 52, r: 16, t: 16, b: 40 };
   const [hover, setHover] = useState(null);
   if (!frontier || frontier.points.length < 2) return null;
   const pts = frontier.points;
@@ -230,9 +233,11 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
     }
   }
   return (
-    <div className="lab-chartwrap">
+    <div className="lab-chartwrap" ref={wrapRef}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
+        width={W}
+        height={H}
         className="lab-frontier"
         onMouseMove={handleMove}
         onMouseLeave={() => setHover(null)}
@@ -292,7 +297,8 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
 
 /* Growth-of-$10K comparison chart (SVG multi-line). */
 function GrowthChart({ dates, lines }) {
-  const W = 940; const H = 300; const P = { l: 58, r: 12, t: 12, b: 30 };
+  const [wrapRef, W] = useChartWidth(940);
+  const H = 320; const P = { l: 56, r: 12, t: 14, b: 32 };
   if (!dates.length || !lines.length) return null;
   const all = lines.flatMap((l) => l.nav);
   /* Snap the dollar axis to round gridlines that enclose every line. */
@@ -308,7 +314,8 @@ function GrowthChart({ dates, lines }) {
     if (y !== lastYear) { yearMarks.push({ i, y }); lastYear = y; }
   });
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="lab-growth" role="img" aria-label="Growth of $10,000: portfolio vs benchmarks">
+    <div className="lab-chartwrap" ref={wrapRef}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="lab-growth" role="img" aria-label="Growth of $10,000: portfolio vs benchmarks">
       {yd.ticks.map((d, k) => (
         <g key={k}>
           <line x1={P.l} x2={W - P.r} y1={Y(d / 10000)} y2={Y(d / 10000)} className="lab-grid" />
@@ -327,6 +334,7 @@ function GrowthChart({ dates, lines }) {
         />
       ))}
     </svg>
+    </div>
   );
 }
 
