@@ -23,6 +23,10 @@ SOURCES (all free, no vendor, no key beyond the FRED key we already hold)
    Its schedule is a rule, not a feed: Manufacturing on the 1st business day
    of the month, Services on the 3rd, both 10:00 AM ET. Computed here against
    the US federal holiday calendar.
+4. UMich consumer sentiment PRELIMINARY — FRED's release 91 lists only the
+   FINAL dates (bug #1251 found the Sep 11 2026 prelim missing). The prelim
+   lands two Fridays before its final, 10:00 AM ET — computed off the FRED
+   final dates; see build_umich_prelim_events for the seam proof.
 
 RULES THIS SCRIPT OBEYS (LESSONS 4.21 — sourced-or-omitted)
 -----------------------------------------------------------
@@ -121,8 +125,8 @@ RELEASES = {
               blurb="Philadelphia Fed manufacturing outlook survey."),
     352: dict(name="Philadelphia Fed services survey", short="Philly Svc", time="8:30 AM", tier=3, cat="Surveys",
               blurb="Philadelphia Fed non-manufacturing outlook survey."),
-    91:  dict(name="Consumer sentiment (Michigan)", short="UMich",   time="10:00 AM", tier=2, cat="Surveys",
-              blurb="University of Michigan consumer sentiment and household inflation expectations."),
+    91:  dict(name="Consumer sentiment (Michigan, final)", short="UMich final", time="10:00 AM", tier=2, cat="Surveys",
+              blurb="University of Michigan consumer sentiment and household inflation expectations, final reading."),
     435: dict(name="Advance goods trade & inventories", short="Adv Econ", time="8:30 AM", tier=3, cat="Trade",
               blurb="Early estimate of the goods trade gap and retail/wholesale inventories."),
     3:   dict(name="Foreign Treasury flows (TIC)", short="TIC",      time="4:00 PM",  tier=3, cat="Flows",
@@ -339,6 +343,47 @@ def build_ism_events(start: dt.date, end: dt.date):
     return events
 
 
+# ── source 4: UMich preliminary, computed off the FRED finals ──────────────
+def build_umich_prelim_events(start: dt.date, end: dt.date, key: str):
+    """Bug #1251: FRED's release 91 carries only the Michigan FINAL dates, so
+    the preliminary reading — the market-moving print, whose household
+    inflation-expectations gauge often lands inside FOMC week — was never on
+    the calendar.
+
+    UMich publishes each release date but no long forward schedule, so the
+    prelim is computed: it lands exactly two Fridays (14 days) before its
+    final, 10:00 AM ET. Seam proven per LESSONS 4.28 before trusting the rule:
+    actual prelim dates 2025-09-12, 2025-10-10, 2025-11-07, 2025-12-05 are
+    each their FRED final minus 14 days, and sca.isr.umich.edu itself lists
+    the next release as Fri 2026-09-11 prelim = 2026-09-25 final minus 14.
+    Finals are pulled 3 weeks past the display window so a prelim whose final
+    falls outside it still lands. A computed date that is not a Friday means
+    the rule broke — it is skipped and reported, never published as a guess."""
+    events, problems = [], []
+    try:
+        finals = fred_release_dates(91, start, end + dt.timedelta(days=21), key)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"release 91 (UMich prelim derivation): {exc}"]
+    for f in finals:
+        p = f - dt.timedelta(days=14)
+        if not (start <= p <= end):
+            continue
+        if p.weekday() != 4:
+            problems.append(f"UMich prelim computed to a non-Friday ({p}) from final {f} — skipped")
+            continue
+        events.append(dict(
+            date=p.isoformat(), time_et="10:00 AM",
+            name="Consumer sentiment (Michigan, preliminary)", short="UMich prelim",
+            tier=2, category="Surveys",
+            blurb="University of Michigan consumer sentiment, preliminary reading — the first look at household inflation expectations for the month.",
+            source="UMich release schedule (computed: two Fridays before the final)",
+            time_source="published release policy",
+        ))
+    if not events:
+        problems.append("UMich prelim derivation produced zero events in window")
+    return events, problems
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -351,6 +396,9 @@ def build(today: dt.date | None = None, key: str | None = None):
     events += fomc
     problems += fomc_problems
     events += build_ism_events(start, end)
+    umich, umich_problems = build_umich_prelim_events(start, end, key)
+    events += umich
+    problems += umich_problems
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -376,6 +424,7 @@ def build(today: dt.date | None = None, key: str | None = None):
             "FRED release calendar (api.stlouisfed.org) — BLS, BEA, Census and Federal Reserve releases",
             "Federal Reserve FOMC calendar (federalreserve.gov) — meeting dates",
             "ISM published schedule — 1st and 3rd business day of the month, computed",
+            "UMich preliminary schedule — two Fridays before each FRED final date, computed",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",

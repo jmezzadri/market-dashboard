@@ -423,6 +423,8 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 3. **Closing a bug is a claim and carries the same evidence bar as any other claim.** "The chip is green now" does not prove a feed recovered — query the table behind it for a real recent row (0.4). #1245 was closed on `lse_live_quotes` holding 84 symbols with a newest bar minutes old, not on the stamp.
 4. **Every transition writes `triage_notes` with the evidence and a `bug_status_log` row.** The next session inherits the note, never the reasoning.
 5. **Machine-filed reports are closed with SQL, never the resolve edge function** — it emails `reporter_email`, and `alarm@macrotilt.com` / `paper-pipeline@macrotilt.internal` have nobody behind them.
+
+**Repeated 2026-09-09:** the weekday sweep ran its full checklist and never opened the queue — #1251 (the missing UMich prelim on the calendar, filed by the external-sweep alarm 2026-09-07) sat at `new` for two days until Joe found it on the bugs page himself. Nothing about the rule was unclear; it was simply not in the sweep's stored task list, so the sweep prompt now names the queue as a numbered step. A check that lives only in LESSONS and not in the checklist that drives the run will be skipped by exactly the run that needs it.
 6. **The general form, which binds beyond this queue: when a new channel is added — a queue, a table, a page, an inbox — the instruction that makes something READ it ships in the same change.** A filer without a reader is a folder that fills up.
 
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
