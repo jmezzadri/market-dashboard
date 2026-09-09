@@ -23,6 +23,7 @@
        never gates a number. */
 
 import React, { useMemo, useRef, useState } from 'react';
+import useChartWidth from '../lib/useChartWidth';
 
 const PAD = { t: 16, r: 58, b: 22, l: 46 };
 
@@ -94,10 +95,14 @@ function niceTicks(min, max, n = 4) {
    stays, because a number on this site never appears unattributed. The full
    apparatus (subtitle, table view, every chart in the note) is one click away
    in the note itself. */
-export default function IdeaChart({ spec, series, asOf = null, width = 620, height = 220, compact = false }) {
+export default function IdeaChart({ spec, series, asOf = null, width: widthProp = 620, height = 220, compact = false }) {
   const [hover, setHover] = useState(null);
   const [tableOpen, setTableOpen] = useState(false);
-  const wrapRef = useRef(null);
+  /* One user unit = one CSS pixel. The canvas used to be a fixed 620 units
+     stretched to the card, which rendered the 10px axis ticks at 11.9px — a
+     size that is on no step (Joe, 2026-09-09). */
+  const [wrapRef, measured] = useChartWidth(widthProp);
+  const width = measured || widthProp;
 
   const all = useMemo(() => {
     const pts = (series?.points || [])
@@ -195,7 +200,7 @@ export default function IdeaChart({ spec, series, asOf = null, width = 620, heig
         onMouseLeave={() => setHover(null)}
         onTouchMove={(e) => e.touches[0] && onMove(e.touches[0])}
       >
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" preserveAspectRatio="none"
+        <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img"
              aria-label={`${spec.title}. Latest ${fmtVal(last[1], dec)}${spec.unit || ''} on ${fmtDate(last[0], true)}.`}>
           {/* recessive grid — solid hairlines, one shade off the surface */}
           {yTicks.map((v) => (

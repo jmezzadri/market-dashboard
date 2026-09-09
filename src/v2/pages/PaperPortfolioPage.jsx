@@ -25,6 +25,7 @@
    Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useChartWidth from '../../overhaul/lib/useChartWidth';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import '../../overhaul/styles/v13.css';
@@ -233,8 +234,10 @@ function Meter({ frac, color = BLUE }) {
 /* ── interactive chart (crosshair + tooltip + keyboard) ───────────────── */
 function LineChart({ series, dates, height = 250, log = false, yFmt }) {
   const [hov, setHov] = useState(null);
-  const wrapRef = useRef(null);
-  const W = 1000, H = height, padL = 8, padR = 74, padT = 12, padB = 26;
+  /* One user unit = one CSS pixel — a fixed 1000-unit canvas stretched to the
+     card rendered these labels at 16.3px (Joe, 2026-09-09). */
+  const [wrapRef, W] = useChartWidth(1000);
+  const H = height, padL = 8, padR = 74, padT = 12, padB = 26;
   const all = series.flatMap((s) => s.values).filter((v) => v > 0);
   if (!all.length) return null;
   const t = (v) => (log ? Math.log(v) : v);
@@ -268,24 +271,24 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
       aria-label="Performance chart — arrow keys move the readout"
       onKeyDown={onKey} onPointerMove={(e) => setHov(idxFromEvent(e))}
       onPointerLeave={() => setHov(null)} onBlur={() => setHov(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="performance chart">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', maxWidth: '100%' }} role="img" aria-label="performance chart">
         {gridVals.map((gv, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke={HAIR} />
             {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
-              <text x={W - padR + 6} y={y(gv) + 4} fontSize="12" fill={INK3}>{fmt(gv)}</text>
+              <text x={W - padR + 6} y={y(gv) + 4} fontSize="11" fill={INK3}>{fmt(gv)}</text>
             ) : null}
           </g>
         ))}
         {xTicks.map((i) => (
-          <text key={i} x={x(i)} y={H - 6} fontSize="11.5" fill={INK3}
+          <text key={i} x={x(i)} y={H - 6} fontSize="11" fill={INK3}
             textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}>{dateLbl(i)}</text>
         ))}
         {series.map((s) => (
           <path key={s.name} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={s.width || 2.2} strokeLinejoin="round" strokeLinecap="round" opacity={s.opacity || 1} />
         ))}
         {series.map((s) => (
-          <text key={`${s.name}-end`} x={W - padR + 6} y={y(s.values[s.values.length - 1]) + 4} fontSize="12.5" fontWeight="600" fill={s.color}>
+          <text key={`${s.name}-end`} x={W - padR + 6} y={y(s.values[s.values.length - 1]) + 4} fontSize="13" fontWeight="600" fill={s.color}>
             {fmt(s.values[s.values.length - 1])}
           </text>
         ))}

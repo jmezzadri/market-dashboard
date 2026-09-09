@@ -28,6 +28,10 @@ export function Monogram({
       height={size}
       viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
+      /* A brand mark's letterforms are artwork, not type — they are drawn to
+         fit a 100-unit circle and scale with it. Declared here in the markup,
+         where a reviewer sees it, never as a quiet exception in the checker. */
+      data-type="mark"
       role="img"
       aria-label={title}
       {...rest}

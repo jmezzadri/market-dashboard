@@ -473,7 +473,8 @@
 .home-v12 .ic-title{font-size: var(--v13-t2);letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink)}
 .home-v12 .ic-sub{font-size: var(--v13-t3);color:var(--mut);line-height:1.45}
 .home-v12 .ic-plot{position:relative}
-.home-v12 .ic-plot svg{display:block;width:100%;height:auto;overflow:visible}
+/* Measured canvas: one unit = one pixel, so never stretch it (2026-09-09). */
+.home-v12 .ic-plot svg{display:block;max-width:100%;overflow:visible}
 .home-v12 .ic-grid{stroke:var(--hair);stroke-width:1}
 .home-v12 .ic-zero{stroke:var(--mut);stroke-width:1;opacity:.75}
 .home-v12 .ic-zerolab,.home-v12 .ic-ytick,.home-v12 .ic-xtick{fill:var(--mut);font-family:var(--mt-type-sans);font-size: var(--v13-t1);font-variant-numeric:tabular-nums}
