@@ -54,7 +54,7 @@
 .home-v12 .df-hero .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .df-h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 18px; }
 .home-v12 .df-h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .df-hero .sub { font-size: var(--v13-t4); color: var(--ink-soft); line-height: 1.65; max-width: 760px; margin: 0; }
+.home-v12 .df-hero .sub { font-size: var(--v13-t4); color: var(--ink-soft); line-height: 1.65;  margin: 0; }
 
 /* ── stage — wider than the 1240 editorial so the four-column board and the
       detail panel breathe on a large desktop (sc-results convention) ── */

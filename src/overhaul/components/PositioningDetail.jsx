@@ -98,12 +98,12 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
       </header>
 
       {blurb && (
-        <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 14px', maxWidth: '72ch' }}>
+        <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 14px' }}>
           {blurb}
         </p>
       )}
 
-      <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 18px', maxWidth: '72ch' }}>
+      <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 18px' }}>
         {specRead(market, spec, specNet)}
       </p>
 
@@ -187,7 +187,7 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
             yFormat={(v) => `${v.toFixed(0)}%`}
             overlays={hasComm ? [{ points: commPts, color: 'var(--mt-ink-3)', label: 'Hedgers', dash: '4 3' }] : []}
           />
-          <p style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', margin: '8px 0 0', lineHeight: 1.55, maxWidth: '80ch' }}>
+          <p style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', margin: '8px 0 0', lineHeight: 1.55 }}>
             Weekly, from the CFTC Commitments of Traders report. Above zero is net long, below zero net short.
             The percentiles above rank today's reading inside its own trailing 156-week range — so a high
             percentile means crowded relative to this market's own history, not relative to any other market.

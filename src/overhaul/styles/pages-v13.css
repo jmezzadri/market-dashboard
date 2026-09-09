@@ -110,7 +110,7 @@
 .v13.home-v12 .serif,
 .v13.home-v12 .fullbrief p,
 .v13.home-v12 .briefmodal-body p {
-  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.6; max-width: 66ch;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.6;
 }
 
 /* Every numeral, everywhere — and ONLY numerals. 2026-09-08: `.v` was in this
@@ -199,7 +199,7 @@
 .v13.home-v12 .sc-sub,
 .v13.home-v12 .lab-sub {
   font-size: var(--v13-t3); line-height: 1.55; color: var(--v13-ink-2);
-  max-width: 72ch; margin: 0 0 var(--v13-s2);
+   margin: 0 0 var(--v13-s2);
 }
 /* The home hero's floating gold coins belong to the cream era. */
 .v13.home-v12 .coin { display: none; }
@@ -228,7 +228,7 @@
 .v13.home-v12.home-cockpit .brief-stance {
   display: block; -webkit-line-clamp: none; overflow: visible;
   font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.6;
-  max-width: 66ch; margin: var(--v13-s2) 0 0; color: var(--v13-ink-2);
+ margin: var(--v13-s2) 0 0; color: var(--v13-ink-2);
 }
 .v13.home-v12.home-cockpit .brief-stance b { color: var(--v13-ink); font-weight: 600; }
 
@@ -424,7 +424,7 @@
    right two-thirds empty, an oversized HOLDINGS heading, and two buttons in
    two different styles. Everything below is layout, not palette. */
 .v13.home-v12.lab-v12 .lab-head { padding: var(--v13-s5) 0 var(--v13-s3); }
-.v13.home-v12.lab-v12 .lab-sub { max-width: 88ch; }
+.v13.home-v12.lab-v12 .lab-sub { }
 
 /* Controls sat in a two-column grid that left the right half of a 1440px page
    empty. They are a toolbar now: groups flow left to right and wrap. */
@@ -490,7 +490,7 @@
 .v13.home-v12.lab-v12 .lab-method-foot,
 .v13.home-v12.lab-v12 .lab-foot,
 .v13.home-v12.lab-v12 .lab-note {
-  max-width: 96ch; padding: var(--v13-s3); margin-top: var(--v13-s3);
+ padding: var(--v13-s3); margin-top: var(--v13-s3);
   background: var(--v13-surface-2); border: 1px solid var(--v13-rule);
   border-radius: var(--v13-r); font-size: var(--v13-t2); color: var(--v13-ink-3); line-height: 1.55;
 }
@@ -513,7 +513,7 @@
 }
 .v13.home-v12.methodology-v12 .me-section p,
 .v13.home-v12.methodology-v12 .me-content .me-body-p {
-  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.65; max-width: 68ch;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t4); line-height: 1.65; 
 }
 .v13.home-v12.methodology-v12 .me-formula {
   font-family: var(--mt-type-mono); font-size: var(--v13-t2); border-radius: var(--v13-r); padding: var(--v13-s3);
@@ -616,7 +616,7 @@
   font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 600;
   letter-spacing: -0.02em; margin: 0 0 var(--v13-s1);
 }
-.v13.home-v12.sc-wrap .sc-sub { font-size: var(--v13-t3); max-width: 88ch; margin: 0 0 var(--v13-s3); }
+.v13.home-v12.sc-wrap .sc-sub { font-size: var(--v13-t3); margin: 0 0 var(--v13-s3); }
 
 /* Stat tiles: the number is the point, so it gets t5 and the label gets t1. */
 .v13.home-v12.sc-wrap .sc-tiles { gap: var(--v13-s3); margin-bottom: var(--v13-s3); }
@@ -634,21 +634,6 @@
   font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
-
-/* Editorial blocks: they were capped at 62–86ch inside a wide frame, which is
-   right for prose but read as "everything jammed left" beside a full-width
-   table. Card them so the width is deliberate rather than accidental. */
-.v13.home-v12.sc-wrap .sc-book,
-.v13.home-v12.sc-wrap .sc-method,
-.v13.home-v12.sc-wrap .sc-disclaimer {
-  max-width: none; padding: var(--v13-s3);
-  background: var(--v13-surface); border: 1px solid var(--v13-rule); border-radius: var(--v13-r);
-  font-size: var(--v13-t3); line-height: 1.6; color: var(--v13-ink-2);
-  margin: 0 0 var(--v13-s3);
-}
-.v13.home-v12.sc-wrap .sc-book p,
-.v13.home-v12.sc-wrap .sc-method p,
-.v13.home-v12.sc-wrap .sc-disclaimer p { max-width: 96ch; margin: 0 0 var(--v13-s2); }
 
 /* Table: the 30px row, and headers that sit over their own columns. */
 .v13.home-v12.sc-wrap .sc-tablewrap {
@@ -704,3 +689,13 @@
 }
 .v13.mt-static-page a { color: var(--v13-accent); }
 .v13.mt-static-page .mt-static-updated { font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--v13-ink-3); }
+
+/* One line under the page header saying what this page is marked to. Replaces
+   the deleted "How these marks are made" footer (Joe, 2026-09-09: "Get rid of
+   this crap"). Rule 0.4 still requires the page to state its freshness; it
+   does not require an essay, and the site footer already carries the
+   disclaimer on every page. */
+.v13.home-v12.sc-wrap .sc-stamp {
+  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: 400;
+  color: var(--v13-ink-3); margin: var(--v13-s2) 0 0;
+}

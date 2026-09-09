@@ -18,6 +18,10 @@
  *
  *   1. EMPTY GRID TRACK — a grid declares N columns and fills fewer. That is
  *      what the engine band was doing: three tracks, two children.
+ *   3. NARROW TEXT — a single paragraph that stops short of its own container,
+ *      almost always a `max-width: NNch` inside a full-width card. Added
+ *      2026-09-09: checks 1 and 2 both judge rows of two or more children, so
+ *      a lone jammed paragraph passed them every time Joe reported it.
  *   2. SHORT ROW — within one grid/flex row, the rightmost content stops before
  *      MIN_FILL of the container's inner width, and the row is not deliberately
  *      a prose column (those are opted out with `data-measure="prose"`).
@@ -38,7 +42,7 @@ if (!base || !routes.length) {
   process.exit(2);
 }
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
 const ctx = await browser.newContext({ viewport: VIEWPORT });
 let failures = 0;
 
@@ -90,6 +94,38 @@ for (const route of routes) {
         }
       }
 
+
+      // 3. NARROW TEXT BLOCK — a paragraph that stops short of its own
+      //    container. Joe, 2026-09-09, on the Scorecard book paragraph:
+      //    "Why do you always jam fucking text to the left!!!" — the third
+      //    time (LESSONS 9.14, 7.15, 9.19). The short-row rule above only
+      //    judges rows of TWO or more children, so a single paragraph
+      //    wearing `max-width: 72ch` inside a full-width card sailed past it
+      //    every time. A `ch` measure is a real typographic idea, but it
+      //    belongs to the CARD, not to the text inside it: narrow the panel,
+      //    never leave the text stopping short of an edge it is drawn to.
+      //    The one opt-out is declared in the markup: data-measure="prose",
+      //    for a genuinely centred reading column.
+      if (/^(P|LI|H1|H2|H3|BLOCKQUOTE)$/.test(el.tagName) && el.textContent.trim().length > 90) {
+        if (el.closest('[data-measure="prose"]')) return;
+        const parent = el.parentElement;
+        if (!parent) return;
+        const pcs = getComputedStyle(parent);
+        const pbox = parent.getBoundingClientRect();
+        const avail = pbox.width - (parseFloat(pcs.paddingLeft) || 0) - (parseFloat(pcs.paddingRight) || 0);
+        if (avail < minW) return;
+        const centred = /auto/.test(cs.marginLeft) || Math.abs(
+          (box.left - pbox.left) - (pbox.right - box.right)) < 12;
+        if (centred) return;
+        const fill = box.width / avail;
+        if (fill < minFill) {
+          out.push({ kind: 'NARROW TEXT', el: sel(el),
+            detail: 'text uses ' + Math.round(fill * 100) + '% of ' + Math.round(avail) +
+                    'px — ' + Math.round(avail - box.width) + 'px dead to the right' +
+                    (cs.maxWidth !== 'none' ? ' (max-width: ' + cs.maxWidth + ')' : '') });
+        }
+      }
+
       // 2. short rows
       if (!/grid|flex/.test(cs.display)) return;
       const inner = box.width - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
@@ -127,6 +163,7 @@ for (const route of routes) {
                     'px — ' + Math.round(inner - r.right) + 'px dead to the right' });
         }
       });
+
     });
     return out;
   }, { minFill: MIN_FILL, minW: MIN_W });

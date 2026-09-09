@@ -400,7 +400,8 @@
 .mt-overhaul .me-content { min-width: 0; }
 /* Let prose breathe a touch wider in the roomier column while staying a
    comfortable line length; tables and formula blocks already fill the column. */
-.mt-overhaul .me-content .me-body-p { max-width: 760px; }
+/* 2026-09-09: was max-width: 760px — ~400px dead in the Methodology column.
+   The column sets the measure; the paragraph fills it. */
 
 .mt-overhaul .me-toc.me-rail {
   position: sticky;
@@ -493,7 +494,7 @@
   line-height: 1.65;
   color: var(--mt-ink-1);
   margin: 0 0 14px;
-  max-width: 70ch;
+  
 }
 .mt-overhaul .me-section h3 {
   font-family: var(--mt-type-sans);

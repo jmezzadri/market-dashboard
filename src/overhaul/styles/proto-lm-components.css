@@ -67,7 +67,7 @@
 }
 .mt-overhaul .lm-iddprose {
   font-size: var(--v13-t3); line-height: 1.55; color: var(--mt-ink-1);
-  max-width: 640px; margin: 0;
+   margin: 0;
 }
 .mt-overhaul .lm-iddctrls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .mt-overhaul .lm-iddclose {

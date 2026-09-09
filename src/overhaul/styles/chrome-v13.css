@@ -156,7 +156,7 @@
 }
 .mt-overhaul .mt-footer-wordmark em { font-style: normal; color: var(--v13-brand); }
 .mt-overhaul .mt-footer-tag,
-.mt-overhaul .mt-footer-loc { font-size: var(--v13-t2); color: var(--v13-ink-2); max-width: 44ch; }
+.mt-overhaul .mt-footer-loc { font-size: var(--v13-t2); color: var(--v13-ink-2);  }
 .mt-overhaul .mt-footer-col h4,
 .mt-overhaul .mt-footer-col > span:first-child {
   font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em;

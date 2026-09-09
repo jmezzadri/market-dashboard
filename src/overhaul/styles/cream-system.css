@@ -82,7 +82,7 @@
 @keyframes v12pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .home-v12 .hero h1{font-family:var(--mt-type-serif);font-weight:400;font-size: var(--v13-t6);line-height:1.02;margin:22px 0;letter-spacing:-.5px}
 .home-v12 .hero h1 em{font-style:italic;color:var(--gold-deep)}
-.home-v12 .hero .sub{font-size: var(--v13-t5);color:var(--ink-soft);max-width:620px;margin:0 auto;line-height:1.65}
+.home-v12 .hero .sub{font-size: var(--v13-t5);color:var(--ink-soft);margin:0 auto;line-height:1.65}
 .home-v12 .coin{position:absolute;border-radius:50%;
   background:radial-gradient(circle at 32% 30%,#F0DFB6,#D9C08A 45%,#A98E4E 75%,#8A713B);
   box-shadow:inset 0 0 0 4px rgba(255,255,255,.25),0 14px 30px rgba(33,44,51,.18);
@@ -132,7 +132,7 @@
 /* brief card */
 .home-v12 .brief-card{background:var(--putty);border-radius:var(--card-r);padding:56px 64px;transition:background .5s,transform .35s}
 .home-v12 .brief-card .eyebrow2{margin-bottom:24px}
-.home-v12 .brief-card h1{font-family:var(--mt-type-serif);font-weight:400;font-size: var(--v13-t6);line-height:1.22;max-width:1020px;margin:0}
+.home-v12 .brief-card h1{font-family:var(--mt-type-serif);font-weight:400;font-size: var(--v13-t6);line-height:1.22;margin:0}
 .home-v12 .newslist{margin-top:40px;border-top:1px solid var(--hair)}
 .home-v12 .ni{border-bottom:1px solid var(--hair)}
 .home-v12 .ni > button{width:100%;background:none;border:none;font-family:var(--mt-type-sans);text-align:left;display:flex;align-items:center;gap:16px;padding:20px 8px;cursor:pointer;color:var(--ink);border-radius:12px;transition:background .25s;font-size: var(--v13-t4)}
@@ -141,7 +141,7 @@
 .home-v12 .ni .hl span{color:var(--ink-soft);font-weight:400}
 .home-v12 .ni .plus{flex:none;width:30px;height:30px;border-radius:50%;background:var(--bg2);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size: var(--v13-t5);transition:transform .35s}
 .home-v12 .ni.open .plus{transform:rotate(45deg)}
-.home-v12 .ni .body{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.2,.6,.2,1);color:var(--ink-soft);font-size: var(--v13-t4);line-height:1.7;max-width:940px}
+.home-v12 .ni .body{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.2,.6,.2,1);color:var(--ink-soft);font-size: var(--v13-t4);line-height:1.7;}
 .home-v12 .ni.open .body{max-height:none}
 .home-v12 .ni .body > div{padding:2px 8px 22px}
 .home-v12 .fullbrief .body a{color:var(--ink);font-weight:600}
@@ -154,7 +154,7 @@
 .home-v12 .engine-card .eyebrow2 .dot{background:var(--gold-bar)}
 .home-v12 .engine-card h2{font-family:var(--mt-type-serif);font-weight:400;font-size: var(--v13-t6);line-height:1.05;margin:0}
 .home-v12 .engine-card h2 em{font-style:italic;color:var(--gold-bar)}
-.home-v12 .engine-card .so{font-size: var(--v13-t4);color:#C3BFAF;margin-top:14px;max-width:380px;line-height:1.65}
+.home-v12 .engine-card .so{font-size: var(--v13-t4);color:#C3BFAF;margin-top:14px;line-height:1.65}
 /* Also a <button> since 2026-08-18 — same reason as the tape tiles. */
 .home-v12 .gauge{padding:26px 12px;display:block;text-decoration:none;color:inherit;cursor:pointer;border-radius:12px;transition:background .25s;width:100%;text-align:left;background:none;border:0;font:inherit;-webkit-appearance:none;appearance:none}
 .home-v12 .gauge:focus-visible{outline:2px solid var(--gold-bar);outline-offset:-2px}
@@ -184,7 +184,7 @@
 .home-v12 .ir .v{font-family:var(--mt-type-serif);font-size: var(--v13-t6);width:96px;text-align:right;flex:none}
 .home-v12 .ir .d{width:100px;font-size: var(--v13-t3);font-weight:600;text-align:right;flex:none}
 .home-v12 .ir .d small{color:var(--mut);font-weight:600;font-size: var(--v13-t1);letter-spacing:.08em;margin-left:5px}
-.home-v12 .ind-note{margin-top:20px;font-size: var(--v13-t3);color:var(--mut);max-width:680px}
+.home-v12 .ind-note{margin-top:20px;font-size: var(--v13-t3);color:var(--mut);}
 .home-v12 .ind-note a{color:var(--ink-soft);font-weight:600}
 
 /* positioning gold card + cot rows retired 2026-07-21 (second-pass tile
@@ -358,13 +358,13 @@
 .home-v12 .idea-tile{display:flex;flex-direction:column;border-top:3px solid var(--gold-bar)}
 .home-v12 .idea-kind{font-size: var(--v13-t1);letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--gold-deep);border:1px solid color-mix(in srgb,var(--gold-deep) 45%,transparent);background:color-mix(in srgb,var(--gold-deep) 8%,transparent);border-radius:999px;padding:5px 12px;white-space:nowrap}
 .home-v12 .idea-title{font-family:var(--mt-type-serif);font-weight:400;font-size: var(--v13-t5);line-height:1.2;margin:4px 0 0}
-.home-v12 .idea-dek{font-size: var(--v13-t4);color:var(--ink-soft);line-height:1.65;margin:12px 0 0;max-width:64ch}
+.home-v12 .idea-dek{font-size: var(--v13-t4);color:var(--ink-soft);line-height:1.65;margin:12px 0 0;}
 /* The plain-English line. It leads because the first published note did not
    have one and Joe could not tell whether it was asking him to short stocks. */
-.home-v12 .idea-call{margin:10px 0 0;font-size: var(--v13-t4);line-height:1.6;color:var(--ink);max-width:62ch}
+.home-v12 .idea-call{margin:10px 0 0;font-size: var(--v13-t4);line-height:1.6;color:var(--ink);}
 .home-v12 .idea-modal-call{font-size: var(--v13-t5);line-height:1.55;color:var(--ink);margin-top:6px;font-family:var(--mt-type-serif);font-weight:400}
 /* Dates the note's prose figures so they can't be read as live quotes beside a live chart. */
-.home-v12 .idea-asof{margin:6px 0 0;font-size: var(--v13-t2);color:var(--mut);line-height:1.5;max-width:62ch}
+.home-v12 .idea-asof{margin:6px 0 0;font-size: var(--v13-t2);color:var(--mut);line-height:1.5;}
 .home-v12 .idea-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .home-v12 .idea-pos{font-size: var(--v13-t1);letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink);border:1px solid var(--hair);background:var(--bg2);border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:help}
 .home-v12 .idea-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
@@ -514,7 +514,7 @@
    it is the opening of that argument, clamped to three lines; the modal carries
    all of it. Clamped rather than truncated in JS so the cut lands on a rendered
    line, never mid-sentence at an arbitrary character count. */
-.home-cockpit .brief-stance{margin:14px 0 0;font-size: var(--v13-t4);line-height:1.6;color:var(--ink-soft);max-width:66ch;
+.home-cockpit .brief-stance{margin:14px 0 0;font-size: var(--v13-t4);line-height:1.6;color:var(--ink-soft);
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .home-cockpit .brief-stance b{color:var(--ink)}
 /* the edge source, on the tile — what KIND of signal drives the note */

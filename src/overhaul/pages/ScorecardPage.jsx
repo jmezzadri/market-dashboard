@@ -159,6 +159,11 @@ export default function ScorecardPage() {
           Every note published on the Home tile, marked from the position it stated at the time.
           Nothing here is entered by hand.
         </p>
+        {data?.as_of && (
+          <p className="sc-stamp">
+            Marked to {data.as_of} · the notes themselves are on the <Link to="/">Home</Link> tile
+          </p>
+        )}
       </header>
 
       {err && <p className="sc-err">Could not load the scores ({err}). The marker may not have run yet.</p>}
@@ -207,7 +212,11 @@ export default function ScorecardPage() {
         return (
           <section className="sc-book" style={{ margin: '18px 0 6px' }}>
             <p className="sc-tile-l" style={{ marginBottom: 6 }}>The book right now · as of {bk.date}</p>
-            <p style={{ maxWidth: '72ch', lineHeight: 1.55 }}>{bk.book.stance}</p>
+            {/* No max-width. Joe, 2026-09-09: "Why do you always jam fucking
+                text to the left!!!" — third time (LESSONS 9.14, 7.15). Prose
+                inside a card uses the card. If a measure is wanted, the CARD
+                gets narrower; the text never stops short of its own edge. */}
+            <p style={{ lineHeight: 1.55 }}>{bk.book.stance}</p>
           </section>
         );
       })()}
@@ -243,17 +252,12 @@ export default function ScorecardPage() {
         <TradeIdeaNoteModal idea={openNote} chartSeries={chartSeries} onClose={() => setOpenNote(null)} />
       )}
 
-      {data && (
-        <footer className="sc-method">
-          <h2>How these marks are made</h2>
-          <p>{data.method}</p>
-          <p className="sc-disclaimer">{data.disclaimer}</p>
-          <p className="sc-dim">
-            Marked to {data.as_of}. Generated {data.generated_at}. The notes themselves are on the{' '}
-            <Link to="/">Home</Link> tile.
-          </p>
-        </footer>
-      )}
+      {/* 2026-09-09, Joe: "Get rid of this crap on Scorecard Page." The
+          "How these marks are made" footer is DELETED — the method prose, the
+          duplicated disclaimer (the site footer already carries it on every
+          page) and the raw generated timestamp. The freshness stamp itself
+          moved under the page header, where it is one line: rule 0.4 still
+          requires this page to say what it is marked to. */}
     </main>
   );
 }

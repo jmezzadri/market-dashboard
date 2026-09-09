@@ -94,7 +94,7 @@
   font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 400;
   letter-spacing: -0.015em; line-height: 1.15; margin-top: 2px;
 }
-.mt-overhaul .hm-featbody { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55; margin: 0; max-width: 480px; }
+.mt-overhaul .hm-featbody { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55; margin: 0;  }
 .mt-overhaul .hm-featstat { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 16px; }
 .mt-overhaul .hm-featgo { font-size: var(--v13-t3); color: var(--mt-accent); font-weight: 400; }
 
@@ -697,7 +697,7 @@
 }
 .mt-overhaul .me-body-p {
   font-size: var(--v13-t4); line-height: 1.65; color: var(--mt-ink-1); margin: 0 0 14px;
-  max-width: 680px; text-wrap: pretty;
+   text-wrap: pretty;
 }
 .mt-overhaul .me-links { display: flex; gap: 8px; }
 
@@ -761,7 +761,7 @@
 }
 .mt-overhaul .tk-scoretotal b { font-family: var(--mt-type-sans); font-size: var(--v13-t5); color: var(--mt-ink-0); text-transform: none; }
 .mt-overhaul .tk-scoretotal b i { font-size: var(--v13-t3); color: var(--mt-ink-3); font-style: normal; }
-.mt-overhaul .tk-about { color: var(--mt-ink-1); font-size: var(--v13-t3); line-height: 1.55; margin: 0 0 14px; max-width: 74ch; }
+.mt-overhaul .tk-about { color: var(--mt-ink-1); font-size: var(--v13-t3); line-height: 1.55; margin: 0 0 14px;  }
 .mt-overhaul .tk-aboutlink { margin-top: 10px; font-size: var(--v13-t3); }
 
 /* ── Ticker chart controls + stat tooltips (rebuild 2026-06-02) ─────────── */
@@ -848,7 +848,7 @@
 
 /* — Layer 1: the cycle read — */
 .mt-overhaul .at-cycle { display: flex; flex-direction: column; gap: 16px; }
-.mt-overhaul .at-cycle-intro { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55; max-width: 760px; }
+.mt-overhaul .at-cycle-intro { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55;  }
 .mt-overhaul .at-cycle-intro b { color: var(--mt-ink-0); }
 .mt-overhaul .at-cyclegrid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
@@ -941,7 +941,7 @@
   background: var(--mt-surface); border: 1px solid var(--mt-line-0); border-radius: var(--mt-r-md);
 }
 .mt-overhaul .at-secwhy-left { display: flex; flex-direction: column; gap: 6px; }
-.mt-overhaul .at-secwhy-sentence { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55; margin: 2px 0 0; max-width: 420px; }
+.mt-overhaul .at-secwhy-sentence { font-size: var(--v13-t3); color: var(--mt-ink-1); line-height: 1.55; margin: 2px 0 0;  }
 .mt-overhaul .at-secwhy-hint { font-size: var(--v13-t2); color: var(--mt-ink-2); line-height: 1.45; margin-top: auto; }
 .mt-overhaul .at-secwhy-right { min-width: 0; }
 

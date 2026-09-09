@@ -39,7 +39,7 @@
   font-size: var(--v13-t3);
   line-height: 1.55;
   margin-top: 10px;
-  max-width: 300px;
+  
   color: var(--ch-ink-soft);
 }
 
@@ -76,7 +76,7 @@
   font-size: var(--v13-t2);
   line-height: 1.6;
   color: var(--ch-mut);
-  max-width: 840px;
+  
   margin: 0;
 }
 
