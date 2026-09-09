@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-08T22:49:34Z",
+  "generated_at": "2026-09-09T13:48:40Z",
   "window": {
-    "from": "2026-09-01",
-    "to": "2026-11-17"
+    "from": "2026-09-02",
+    "to": "2026-11-18"
   },
   "counts": {
-    "total": 99,
-    "tier1": 28
+    "total": 98,
+    "tier1": 26
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -20,39 +20,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-01",
-      "time_et": "10:00 AM",
-      "name": "Job openings (JOLTS)",
-      "short": "JOLTS",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-01",
-      "time_et": "10:00 AM",
-      "name": "ISM Manufacturing",
-      "short": "ISM Mfg",
-      "tier": 1,
-      "category": "Surveys",
-      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
-      "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-01",
-      "time_et": "10:00 AM",
-      "name": "Construction spending",
-      "short": "Constr",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Value of construction put in place, residential and non-residential.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-02",
       "time_et": "10:00 AM",
@@ -1106,6 +1073,28 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "Manufacturing and trade inventories and sales.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-18",
+      "time_et": "8:30 AM",
+      "name": "Housing starts & permits",
+      "short": "Starts",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "New residential construction \u2014 starts, permits and completions.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-18",
+      "time_et": "4:00 PM",
+      "name": "Foreign Treasury flows (TIC)",
+      "short": "TIC",
+      "tier": 3,
+      "category": "Flows",
+      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
