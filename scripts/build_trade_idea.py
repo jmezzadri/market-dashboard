@@ -922,7 +922,23 @@ def main(argv=None) -> int:
         print(f"FATAL: contract violation — {exc}", file=sys.stderr)
         return 1
 
+    explicit_pa = str(idea.get("published_at") or "").strip()
     idea = normalise(idea)
+    prev = next((x for x in ideas if x.get("id") == idea["id"]), None)
+    if prev is not None:
+        # A CORRECTION KEEPS THE ORIGINAL PUBLICATION MOMENT (2026-09-09).
+        # The scorer marks entry from the last settled close before
+        # `published_at`; normalise() stamping "now" on a re-publish silently
+        # moved the wheat short's entry from the Sep 4 close to the Sep 8
+        # close when its vehicle was corrected. The earliest stamp ever
+        # recorded for this id is the truth: take the minimum of the previous
+        # copy's stamp, an explicit stamp in the correction file (for
+        # restoring a value verified in git history), and now. min() means a
+        # correction can never move an entry LATER — no entry-shopping.
+        cands = [c for c in (str(prev.get("published_at") or "").strip(),
+                             explicit_pa, idea["published_at"]) if c]
+        idea["published_at"] = min(cands)
+        idea["corrected_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ideas = [x for x in ideas if x.get("id") != idea["id"]]
     ideas.insert(0, idea)
     ideas.sort(key=lambda x: x.get("date", ""), reverse=True)

@@ -173,6 +173,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.15` A relative-value call scored on a pre-computed ratio is not a scored call; and a number without a size is not a result
 - `6.16` The morning research sweep is a GATE on the publish decision, not background reading; a run that only sweeps its own feeds decides blind
 - `6.17` "X is at an extreme" is a reading, not analysis; every signal owes its WHY, its transmission path, and its consequence for the live book
+- `6.18` The scorecard grades the vehicle the reader is told to trade; a correction never moves the entry
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -1589,6 +1590,14 @@ It didn't. The entry rule was "the first close ON OR AFTER the publication date"
 **Rule:** No signal may be reported — in a note, a skip reason, or a summary to Joe — as a bare percentile or extreme. Each one carries: (1) WHY, from dated external sources, the thing is where it is; (2) the measured cross-asset transmission — run the conditional-vs-unconditional test against the assets it should move, from indicator history, that run; (3) what it means for each live call in the book. A signal whose why and transmission were not established is background, not content.
 
 **Applies to:** All agents — Trade Idea runs, skip reasons, briefs, and every market statement addressed to Joe or a reader.
+
+### 6.18 (2026-09-09) — The scorecard grades the vehicle the reader is told to trade; and a correction must never move the entry
+
+**What happened:** The retail-expression change rewrote the wheat note's `the_trade` to WEAT while the scorecard still marked front-month wheat — grading a different instrument than the note recommends (6.14/6.15's exact failure, re-made). The republish also re-stamped `published_at`, the scorer's entry anchor, silently moving the short's entry from the Sep 4 close to the Sep 8 close. And the first real `ticker:` leg exposed two dormant gaps in the 8/31 ticker support: the scorecard workflow had no Supabase env (the fetch would fail and `--check` would red the run at 21:15 UTC), and the self-test never attached ticker series at all, so it failed on any published ticker leg regardless of credentials. Joe caught the misalignment on the live site.
+
+**Rule:** (a) Scorecard legs name the instrument `the_trade` names; when the vehicle changes, the leg changes in the same edit, with a `scorecard.note` stating what changed and why — entry stays at the last close before the ORIGINAL publication. (b) A correction re-publish keeps the earliest `published_at` ever recorded for its id (`build_trade_idea.py` now takes the min; an entry can never move later). (c) When a contract gains a new leg TYPE, exercise the whole marking chain before its first real use: scorer env in the workflow, self-test attach path, and one local end-to-end score against real rows. (d) The blast radius of a note edit is every consumer of the edited field — the scorer, its workflow, its tests, and the site pages — checked before shipping, not after Joe loads the page.
+
+**Applies to:** Lead Developer + Senior Quant — every note correction and every scorecard-affecting change.
 
 
 # 7 · CODE & RELEASE DISCIPLINE
