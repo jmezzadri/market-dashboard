@@ -118,3 +118,23 @@ build, serve `dist` on localhost, and run
 `node scripts/check_fonts.mjs http://localhost:4321 / /macro /paper ...`.
 It reports every element that renders off the scale, with its selector and its
 numbers. That loop needs no browser extension and no approvals.
+
+---
+
+## Measure — added 2026-09-09
+
+**No `max-width` on a text element.** Not `ch`, not `px`. The measure belongs to
+the card or column — a box with an edge the reader can see — never to text
+drawn inside a box it then refuses to fill. Joe has reported jammed text three
+times (LESSONS 9.14, 7.15, 9.19); if a line feels too long, narrow the panel.
+
+The one opt-out is a genuinely centred reading column: `data-measure="prose"`
+plus real centring (`margin: 0 auto`), as on About / Terms / Privacy.
+
+`scripts/check_layout.mjs` enforces it as the NARROW TEXT rule, alongside the
+empty-grid-track and short-row rules. Run it the same way as the type check:
+
+```
+npm run build && npx serve -s dist -l 4321 &
+node scripts/check_layout.mjs http://localhost:4321 / /macro /paper /scorecard /portfolio-lab /methodology
+```

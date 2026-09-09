@@ -60,7 +60,7 @@
 .home-v12 .meth-hero .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .meth-h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.06; letter-spacing: -.5px; margin: 0 0 18px; }
 .home-v12 .meth-h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .meth-hero .sub { font-size: var(--v13-t5); color: var(--ink-soft); max-width: 66ch; margin: 0; line-height: 1.65; }
+.home-v12 .meth-hero .sub { font-size: var(--v13-t5); color: var(--ink-soft);  margin: 0; line-height: 1.65; }
 
 /* ── 2-col reading layout: sticky TOC rail + reading column ──
    Both tracks are min-width-locked so the vendor tables' intrinsic width can
@@ -99,8 +99,8 @@
 .home-v12.methodology-v12 .me-h3 { font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: 400; line-height: 1.2; letter-spacing: -.2px; color: var(--ink); margin: 38px 0 14px; padding-top: 22px; border-top: 1px solid var(--hair); }
 
 /* long-form body: generous measure and leading — the site's reading page */
-.home-v12.methodology-v12 .me-section p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft); max-width: 72ch; margin: 0 0 16px; }
-.home-v12.methodology-v12 .me-content .me-body-p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft); max-width: 72ch; }
+.home-v12.methodology-v12 .me-section p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px; }
+.home-v12.methodology-v12 .me-content .me-body-p { font-size: var(--v13-t4); line-height: 1.7; color: var(--ink-soft);  }
 .home-v12.methodology-v12 .me-section p b { color: var(--ink); font-weight: 700; }
 
 /* formula insets — quiet paper (bg2) against the cream, mono from the base */

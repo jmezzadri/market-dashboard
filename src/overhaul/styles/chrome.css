@@ -311,7 +311,7 @@
   font-size: var(--v13-t4);
   line-height: 1.55;
   color: var(--mt-ink-1);
-  max-width: 700px;
+  
   text-wrap: pretty;
 }
 .mt-overhaul .mt-deck b {
@@ -419,7 +419,7 @@
 }
 .mt-overhaul .lm-drillwhy {
   margin: 6px 0 0; font-size: var(--v13-t3); line-height: 1.55;
-  color: var(--mt-ink-1); max-width: 480px;
+  color: var(--mt-ink-1); 
 }
 /* Ticker page utilities introduced by the content-remediation refactor.
    Most of the tk-* page chrome ships in proto-pages.css; these are small

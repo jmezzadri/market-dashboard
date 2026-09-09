@@ -53,7 +53,7 @@
 .home-v12 .sc-ed .eyebrow2 { margin-bottom: 18px; }
 .home-v12 .sc-ed h1 { font-family: var(--mt-type-serif); font-weight: 400; font-size: var(--v13-t6); line-height: 1.08; letter-spacing: -.5px; margin: 0 0 22px; }
 .home-v12 .sc-ed h1 i { font-style: italic; color: var(--gold-deep); }
-.home-v12 .sc-sub { font-size: var(--v13-t4); color: var(--ink-soft); max-width: 880px; line-height: 1.6; }
+.home-v12 .sc-sub { font-size: var(--v13-t4); color: var(--ink-soft);  line-height: 1.6; }
 .home-v12 .sc-links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
 .home-v12 .sc-links .sc-metalink { font-size: var(--v13-t3); }
 
@@ -85,7 +85,7 @@
 .home-v12 .sc-table tbody tr.sc-trow:hover .sc-tk b { text-decoration: underline; text-underline-offset: 3px; }
 .home-v12 .sc-tk { display: flex; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
 .home-v12 .sc-tk b { font-weight: 700; font-size: var(--v13-t4); color: var(--gold-deep); }
-.home-v12 .sc-tk .nm { font-size: var(--v13-t3); color: var(--ink-soft); max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.home-v12 .sc-tk .nm { font-size: var(--v13-t3); color: var(--ink-soft);  overflow: hidden; text-overflow: ellipsis; }
 /* Panel footnote — same voice + position on every panel. */
 .home-v12 .sc-tilefoot { font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--mut); padding: 0 30px 22px; line-height: 1.5; }
 

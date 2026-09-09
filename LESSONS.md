@@ -220,6 +220,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.16` A drill-down is not a destination; opening a detail view is no reason to move the user to another page
 - `9.17` Three typefaces, three tokens, one declaration site — and a family we declare but never load is a face nobody chose
 - `9.18` Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
+- `9.19` A measure belongs to the CARD, never to the text inside it; and a checker rule placed after an early return has never once run
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2089,6 +2090,27 @@ The brief's bullets were rendering LARGER than the brief's own lead paragraph �
 6. **Fix what the user is looking at, not the adjacent thing you understand better.** "The fonts look wrong" was about size and weight, and answering it with a typeface change spent his patience for no visible gain. Measure the surface he is pointing at BEFORE choosing what to change, and say what the measurement was.
 
 **Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`.
+
+### 9.19 (2026-09-09) — A measure belongs to the CARD, never to the text inside it; and a checker rule placed after an early return has never once run
+
+**What happened:** Joe, on the Scorecard: *"Get rid of this crap... And please use the full width for 'the book right now' - Why do you always jam fucking text to the left!!! I cant stand how bad you are at UX design."*
+
+**Third report of the same defect.** 9.14 (2026-07-30) is "a hard `max-width` on body copy inside a full-bleed card wastes most of the row". 7.15 (2026-09-01) wrote `check_layout.mjs` because Joe had raised jammed content three times in one session. And it happened again, because the paragraph he was pointing at was 34% of a 1552px row — 1031px dead to the right — from `maxWidth: '72ch'`.
+
+**Why the checker did not catch it, twice over:**
+
+1. **A structural blind spot.** Both existing rules judge CONTAINERS: an empty grid track, and a row of *two or more* children that stops short. A single paragraph wearing its own `max-width` inside a full-width card is neither. It sailed past every run.
+2. **And when I added the rule, I put it in dead code.** The new NARROW TEXT check went in after `if (!/grid|flex/.test(cs.display)) return;` — a guard belonging to the short-row rule that bails on every `<p>` on the site. The suite reported "clean" on the exact page Joe had just sent a screenshot of. It only surfaced because I re-introduced the bug on purpose and the checker still passed.
+
+**Rule:**
+
+1. **No `max-width` on a text element in the overhaul.** Not `ch`, not `px`. A measure is a real typographic idea and it belongs to the CARD or column, which has an edge the reader can see — never to text drawn inside a box it then refuses to fill. The one opt-out is a genuinely centred reading column, declared as `data-measure="prose"` and actually centred (`margin: 0 auto`). 30 measures were removed across the overhaul under this rule.
+2. **`check_layout.mjs` has a third rule, NARROW TEXT:** a `<p>`/`<li>`/heading over 90 characters that renders under 70% of its container's inner width, is not centred, and is not opted out. It reports the percentage, the dead pixels and the offending `max-width`.
+3. **A new checker rule is not done until it has been seen to FAIL.** Re-introduce the exact defect, confirm the check goes red, then revert. A rule that has only ever printed "clean" is decoration. This one was literally unreachable and looked like it worked.
+4. **Sweeping edits get scoped by what they match, not by what you meant.** A first pass at removing measures also stripped `@media (max-width: 640px)` preludes — the same three characters in a completely different grammar — which would have shipped the mobile stylesheet to every viewport. Reverted and redone against rule bodies only. Never regex a stylesheet without checking what else the pattern spells.
+5. **A deleted surface takes its governance with it, not its obligations.** The "How these marks are made" footer is gone — method essay, a disclaimer the site footer already carries on every page, and a raw ISO generation timestamp. The FRESHNESS stamp rule 0.4 requires survives as one line under the page header.
+
+**Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/`, and on every change to a check.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
