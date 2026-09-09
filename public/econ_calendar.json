@@ -1,17 +1,18 @@
 {
-  "generated_at": "2026-09-09T13:48:40Z",
+  "generated_at": "2026-09-09T22:13:16Z",
   "window": {
     "from": "2026-09-02",
     "to": "2026-11-18"
   },
   "counts": {
-    "total": 98,
+    "total": 101,
     "tier1": 26
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
     "Federal Reserve FOMC calendar (federalreserve.gov) \u2014 meeting dates",
-    "ISM published schedule \u2014 1st and 3rd business day of the month, computed"
+    "ISM published schedule \u2014 1st and 3rd business day of the month, computed",
+    "UMich preliminary schedule \u2014 two Fridays before each FRED final date, computed"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
@@ -161,6 +162,17 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-11",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, preliminary)",
+      "short": "UMich prelim",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
+      "source": "UMich release schedule (computed: two Fridays before the final)",
       "time_source": "published release policy"
     },
     {
@@ -364,11 +376,11 @@
     {
       "date": "2026-09-25",
       "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan)",
-      "short": "UMich",
+      "name": "Consumer sentiment (Michigan, final)",
+      "short": "UMich final",
       "tier": 2,
       "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations.",
+      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     },
@@ -549,6 +561,17 @@
       "time_source": "published release policy"
     },
     {
+      "date": "2026-10-09",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, preliminary)",
+      "short": "UMich prelim",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
+      "source": "UMich release schedule (computed: two Fridays before the final)",
+      "time_source": "published release policy"
+    },
+    {
       "date": "2026-10-14",
       "time_et": "8:30 AM",
       "name": "Consumer prices (CPI)",
@@ -716,11 +739,11 @@
     {
       "date": "2026-10-23",
       "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan)",
-      "short": "UMich",
+      "name": "Consumer sentiment (Michigan, final)",
+      "short": "UMich final",
       "tier": 2,
       "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations.",
+      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     },
@@ -953,6 +976,17 @@
       "category": "Labor",
       "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-06",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, preliminary)",
+      "short": "UMich prelim",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
+      "source": "UMich release schedule (computed: two Fridays before the final)",
       "time_source": "published release policy"
     },
     {
