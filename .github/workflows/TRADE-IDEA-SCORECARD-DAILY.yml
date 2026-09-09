@@ -71,13 +71,25 @@ jobs:
       # the record of what we called must not be able to break because a
       # third-party wheel moved. No pip install step here is deliberate.
       - name: Self-test the scorer
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/test_score_trade_ideas.py
 
       # Fail loudly on a note that cannot be marked. `pending_entry` (a note
       # whose entry close has not printed yet) is NOT a failure and does not
       # trip this; a missing series or an absent scorecard block is, because it
       # means a published call is quietly outside the record.
+      # Single-name legs ("ticker:XYZ", 2026-08-31) are marked from the
+      # prices_eod table, which the scorer reaches over Supabase REST. These
+      # two secrets are how it gets there; without them any note carrying a
+      # ticker leg is reported unscoreable and --check fails the run.
+      # (Gap found 2026-09-09, the day the first ticker leg — WEAT — went
+      # live: the env was never wired when ticker support shipped.)
       - name: Mark every published note
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/score_trade_ideas.py --check
 
       - name: Configure git

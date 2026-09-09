@@ -326,9 +326,24 @@ class TestRealFile(unittest.TestCase):
         with open(ideas_p, encoding="utf-8") as f:
             doc = json.load(f)
         h = S.load_history(hist_p)
+        # Single-name legs live in prices_eod, not indicator_history.json —
+        # attach them the same way main() does, or every ticker leg reads as
+        # unscoreable here whatever the database says (found 2026-09-09, the
+        # day the first ticker leg — WEAT — was published).
+        h = S.attach_ticker_series(h, doc["ideas"])
+        creds = bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
         today = dt.date.today().isoformat()
-        bad = [(i["date"], S.score_one(i, h, today)["reason"])
-               for i in doc["ideas"] if S.score_one(i, h, today)["status"] == "unscoreable"]
+        bad = []
+        for i in doc["ideas"]:
+            r = S.score_one(i, h, today)
+            if r["status"] != "unscoreable":
+                continue
+            if not creds and "ticker:" in str(r.get("reason", "")):
+                # No database credentials in this environment, so the ticker
+                # fetch cannot succeed; CI runs this test WITH credentials and
+                # enforces it for real.
+                continue
+            bad.append((i["date"], r["reason"]))
         self.assertEqual(bad, [], f"unscoreable published notes: {bad}")
 
 
