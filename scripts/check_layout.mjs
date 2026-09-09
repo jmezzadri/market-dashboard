@@ -22,6 +22,10 @@
  *      almost always a `max-width: NNch` inside a full-width card. Added
  *      2026-09-09: checks 1 and 2 both judge rows of two or more children, so
  *      a lone jammed paragraph passed them every time Joe reported it.
+ *   4. SPILLED BAR — content taller than the fixed-height band it sits in,
+ *      painting over the next block. Added 2026-09-09 (Portfolio Lab holdings
+ *      header): rules 1-3 all judge WIDTH, so a vertical collision was
+ *      invisible to every one of them.
  *   2. SHORT ROW — within one grid/flex row, the rightmost content stops before
  *      MIN_FILL of the container's inner width, and the row is not deliberately
  *      a prose column (those are opted out with `data-measure="prose"`).
@@ -123,6 +127,37 @@ for (const route of routes) {
             detail: 'text uses ' + Math.round(fill * 100) + '% of ' + Math.round(avail) +
                     'px — ' + Math.round(avail - box.width) + 'px dead to the right' +
                     (cs.maxWidth !== 'none' ? ' (max-width: ' + cs.maxWidth + ')' : '') });
+        }
+      }
+
+      // 4. SPILLED BAR — content taller than the band it was put in, painting
+      //    over whatever comes next. Joe, 2026-09-09, on Portfolio Lab: "What
+      //    in the fuck is going on on the Portfolio Lab page?" — the Holdings
+      //    card header is the site-wide 28px title bar, and a 40px control
+      //    cluster had been placed inside it. A FIXED-height flex box does not
+      //    grow; its children simply overflow and land on the table header row
+      //    below. Neither of the rules above could see it: both judge width.
+      //    Only in-flow children count (a dropdown is meant to escape), and
+      //    only containers that draw a visible band, so an overlap is a real
+      //    collision the reader can see.
+      if (cs.overflow === 'visible' && el.children.length) {
+        const banded = (parseFloat(cs.borderBottomWidth) || 0) > 0 ||
+          (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent');
+        if (banded) {
+          let spill = 0;
+          [...el.children].forEach((k) => {
+            const kcs = getComputedStyle(k);
+            if (kcs.position === 'absolute' || kcs.position === 'fixed' || kcs.display === 'none') return;
+            const kb = k.getBoundingClientRect();
+            if (kb.height === 0) return;
+            spill = Math.max(spill, kb.bottom - box.bottom);
+          });
+          if (spill > 4) {
+            out.push({ kind: 'SPILLED BAR', el: sel(el),
+              detail: 'content overflows its ' + Math.round(box.height) + 'px band by ' +
+                      Math.round(spill) + 'px and paints over what follows' +
+                      (cs.height !== 'auto' ? ' (height: ' + cs.height + ')' : '') });
+          }
         }
       }
 

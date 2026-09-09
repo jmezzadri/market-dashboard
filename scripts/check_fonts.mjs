@@ -245,7 +245,9 @@ if (existsSync(fontDir)) {
 const [base, ...paths] = process.argv.slice(2);
 if (base) {
   const { chromium } = await import('playwright-core');
-  const browser = await chromium.launch();
+  // Same escape hatch as check_layout.mjs — the cloud container's Chromium is
+  // not where playwright-core looks for it by default.
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   for (const path of (paths.length ? paths : ['/'])) {
     const url = base.replace(/\/$/, '') + path;
