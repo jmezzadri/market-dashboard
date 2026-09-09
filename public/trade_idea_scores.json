@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-09T00:55:56Z",
+  "generated_at": "2026-09-09T13:28:21Z",
   "as_of": "2026-09-09",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -21,7 +21,7 @@
       "date": "2026-09-06",
       "kind": "commodity",
       "title": "The last buyers just showed up in wheat",
-      "instrument": "CBOT soft red winter wheat futures, sold short, one to two months",
+      "instrument": "WEAT, the US-listed wheat fund, sold short or held as puts, one to two months",
       "position_type": "outright short",
       "status": "open",
       "entry_date": "2026-09-04",
@@ -30,29 +30,29 @@
       "unit": "%",
       "legs": [
         {
-          "series": "cmdty_wheat",
+          "series": "ticker:WEAT",
           "side": "short",
           "measure": "pct_change",
           "weight": 1.0,
           "entry_date": "2026-09-04",
-          "entry_value": 716.0,
-          "label": "CBOT wheat (front month)",
-          "short_label": "CBOT wheat (front month)",
-          "return_pct": 4.3645
+          "entry_value": 26.49,
+          "label": "WEAT (Teucrium wheat fund)",
+          "short_label": "WEAT (Teucrium wheat fund)",
+          "return_pct": 1.7743
         }
       ],
       "buy_pct": null,
-      "sell_pct": 4.3645,
-      "trade_label": "Short CBOT wheat (front month)",
-      "position_pct": -4.3645,
-      "risk_sized_pct": -1.5538,
+      "sell_pct": 1.7743,
+      "trade_label": "Short WEAT (Teucrium wheat fund)",
+      "position_pct": -1.7743,
+      "risk_sized_pct": -1.7743,
       "sizing": {
-        "method": "risk_parity",
-        "multiple": 0.356,
-        "spread_vol_pct": 28.068,
+        "method": "none",
+        "multiple": 1.0,
+        "spread_vol_pct": null,
         "target_vol_pct": 10.0,
-        "observations": 252,
-        "basis": "trailing 365d daily vol of the unlevered spread to 2026-09-04, annualised x sqrt(252), frozen at entry"
+        "observations": 90,
+        "reason": "only 90 common sessions in the year before entry (need 120) — sized at 1x rather than off a vol we cannot measure"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
       "benchmark": {
@@ -61,10 +61,10 @@
         "measure": "pct_change",
         "entry_value": 7718.6,
         "move": -0.584,
-        "difference": -3.7805,
+        "difference": -1.1903,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -4.3645,
+      "mark": -1.7743,
       "mark_date": "2026-09-08",
       "sessions_held": 2,
       "max_favourable": {
@@ -72,7 +72,7 @@
         "date": "2026-09-04"
       },
       "max_adverse": {
-        "value": -4.3645,
+        "value": -1.7743,
         "date": "2026-09-08"
       },
       "invalidation": {
