@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T09:25:50Z",
+  "generated_at": "2026-09-09T11:35:22Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
   "next_publish": "2026-09-07",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -11,12 +11,12 @@
       "dek": "Funds went net long CBOT wheat for the first time since June 2022. In 16 prior episodes since 2014, that crossing marked the end of the rally, not the middle of it.",
       "position_type": "outright short",
       "call": "Over the next one to two months, Chicago wheat is priced to give back part of its August spike. The funds that chased the rally turned net long in the Sep 1 report — the first time since June 2022 — and after the 16 prior such readings, wheat fell within a month 14 times, a median 5.3%.",
-      "instrument": "CBOT soft red winter wheat futures, sold short, one to two months",
+      "instrument": "WEAT, the US-listed wheat fund, sold short or held as puts, one to two months",
       "horizon": "one to two months",
       "the_trade": {
-        "buy": "US Treasury bills, held as collateral against the futures margin — cash stays in bills while the short is on.",
-        "short": "CBOT wheat futures, front month, near Friday's 733 cents-per-bushel close.",
-        "sizing": "Small. Wheat around a war headline can gap through any stop — size so a close at the 767 invalidation costs no more than a normal single-position loss."
+        "buy": "Put options on WEAT, the US-listed wheat fund (closed $26.49 Friday) — one to two months out, struck near the share price. Defined risk: the premium is the most the trade can lose.",
+        "short": "Or short WEAT shares in a margin account. WEAT holds a ladder of CBOT wheat contracts, so it follows the grain with some drag — the signal and the levels below are on front-month Chicago wheat; WEAT is the vehicle.",
+        "sizing": "Small. Wheat around a war headline can gap through any stop. Puts cap the loss at the premium paid; a share short does not — size it so a front-month close at the 767 invalidation costs no more than a normal single-position loss."
       },
       "edge": {
         "source": "positioning",
@@ -103,6 +103,12 @@
           "value": "35 Russian strikes on grain vessels in July, versus 14 in all of 2025",
           "source": "Al Jazeera, citing Ukraine's agriculture ministry, 2026-08-31",
           "as_of": "2026-08-31"
+        },
+        {
+          "claim": "WEAT (Teucrium wheat fund) closing share price",
+          "value": "$26.49",
+          "source": "MacroTilt end-of-day stock prices",
+          "as_of": "2026-09-04"
         }
       ],
       "charts": [
@@ -141,7 +147,7 @@
         }
       ],
       "levels": {
-        "trigger": "Short near Friday's 733 close. A bounce toward 745–755 improves the entry without changing the case.",
+        "trigger": "Enter near current levels — front-month wheat closed 733 and WEAT $26.49 on Friday. A bounce toward 745–755 in wheat improves the entry without changing the case.",
         "invalidation": "A daily close above 767 — the Aug 28 high. A new closing high says the supply shock is still repricing and positioning is not yet binding.",
         "target": "685 — the shelf wheat sat on Aug 20–25 before the spike, about 6.5% below Friday's close and in line with the one-to-three-month medians."
       },
@@ -182,7 +188,7 @@
       ],
       "other_side": "The supply story is real and still running: 35 strikes on grain vessels in July against 14 in all of 2025, the worst US yield since 2015, Canada's crop down 13%, Europe's down about 9 million tonnes (Al Jazeera, Aug 31). A further Black Sea escalation reprices wheat higher regardless of who is positioned how — that is what the 767 stop is for. And 16 episodes is enough to lean on, not enough to be certain.",
       "risks": [
-        "Headline gap risk: an export-infrastructure strike can gap wheat through 767 overnight. A futures short has no ceiling on its loss without the stop.",
+        "Headline gap risk: an export-infrastructure strike can gap wheat through 767 overnight. A share short has no ceiling on its loss without the stop; puts cap it at the premium.",
         "The Sep 1 positioning report is five days old, and wheat has already slipped from 764 to 733 — part of the median move may be spent.",
         "Harvest-season supply revisions move grain prices on their own clock, independent of positioning.",
         "The signal is marginal — 85.4th percentile, one week over the line. Deeper extremes have been the stronger fades."
@@ -214,7 +220,7 @@
       },
       "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
       "status": "live",
-      "published_at": "2026-09-06T09:25:50Z"
+      "published_at": "2026-09-09T11:35:22Z"
     },
     {
       "date": "2026-08-24",

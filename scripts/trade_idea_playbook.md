@@ -266,6 +266,20 @@ Enforced by the contract:
   `watch only` is RETIRED (2026-08-24) — see "A relative edge you cannot short".
 - `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
   `short` (only for an actual short) and `sizing`.
+- **Retail expression (Joe, 2026-09-09, contract-enforced).** Joe: *"I, and
+  many other retail traders, dont have access to futures."* Every `the_trade`
+  leg names a vehicle a standard US brokerage account can trade — a listed
+  stock, an ETF/ETN, or listed options on one. Futures, forwards, swaps, CDX
+  and CFDs are REJECTED as the named vehicle on notes dated 2026-09-09 onward.
+  The futures series may still be the signal and carry the levels — the
+  scorecard marks the series, not the vehicle — but the note states the
+  mapping in one line ("levels are on front-month CBOT wheat; WEAT is the
+  vehicle"). Where borrow is doubtful or headline gap risk is real, prefer the
+  defined-risk options expression and say plainly that the premium is the most
+  the trade can lose. Confirm the vehicle has rows in the end-of-day stock
+  price store before naming it. Common mappings: grains WEAT / CORN / SOYB ·
+  metals GLD / SLV · energy USO / UNG · rates TLT / IEF / TIP · credit LQD /
+  HYG · dollar & euro UUP / FXE · banks KBE.
 
 ### A relative edge you cannot short (2026-08-23)
 
