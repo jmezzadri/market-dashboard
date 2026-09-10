@@ -183,6 +183,44 @@ export default function ScorecardPage() {
             )}
           </div>
 
+          {/* How we're doing — Joe, 2026-09-10: "Can we somehow sum up the
+              scorecard, like how we're doing overall. Its tough to tell just
+              by looking at the Scorecard page." The whole block — numbers AND
+              the sentence — is authored by the marker (summary.overall in
+              trade_idea_scores.json); this page renders it verbatim and
+              computes nothing, same rule as every other figure here. */}
+          {s.overall && (
+            <>
+              <div className="sc-tiles">
+                <div className="sc-tile">
+                  <span className={`sc-tile-n sc-${toneOf(s.overall.avg_mark_pct)}`}>{fmt(s.overall.avg_mark_pct, '%')}</span>
+                  <span className="sc-tile-l">Average call</span>
+                </div>
+                {s.overall.avg_vs_spx_pp != null && (
+                  <div className="sc-tile">
+                    <span className={`sc-tile-n sc-${toneOf(s.overall.avg_vs_spx_pp)}`}>{fmt(s.overall.avg_vs_spx_pp, '%')}</span>
+                    <span className="sc-tile-l">Average vs. S&amp;P 500</span>
+                  </div>
+                )}
+                {s.overall.ahead_of_spx != null && (
+                  <div className="sc-tile">
+                    <span className="sc-tile-n">{s.overall.ahead_of_spx} of {s.overall.marked}</span>
+                    <span className="sc-tile-l">Ahead of the S&amp;P</span>
+                  </div>
+                )}
+              </div>
+              {s.overall.line && (
+                <section className="sc-book" style={{ margin: '14px 0 6px' }}>
+                  <p className="sc-tile-l" style={{ marginBottom: 6 }}>How we&rsquo;re doing</p>
+                  <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
+                  {s.overall.basis && (
+                    <p className="sc-dim" style={{ marginTop: 6, fontSize: '0.85em' }}>{s.overall.basis}</p>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+
           {/* The "no hit rate yet" banner is gone (Joe, 2026-08-18: "just remove
               that"). The DISCIPLINE is unchanged and still lives in the marker:
               below MIN_CLOSED_FOR_STATS closed calls it refuses to compute a

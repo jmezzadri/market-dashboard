@@ -697,6 +697,61 @@ def summarise(rows: list[dict]) -> dict:
         "unscoreable_reasons": [{"id": r["id"], "reason": r["reason"]} for r in unscoreable],
         "min_closed_for_stats": MIN_CLOSED_FOR_STATS,
     }
+
+    # "How we're doing" — Joe, 2026-09-10: "Can we somehow sum up the
+    # scorecard, like how we're doing overall. Its tough to tell just by
+    # looking at the Scorecard page." One equal-weight read across every
+    # MARKED call (open + closed), stated in the same two currencies as the
+    # table's columns: the call's own return, and the gap to the S&P 500 over
+    # the same days. This is deliberately NOT a hit rate — the hit-rate
+    # withhold below MIN_CLOSED_FOR_STATS stands untouched. It is the table's
+    # existing numbers averaged, nothing a reader could not compute from the
+    # rows; the page renders this block verbatim and computes nothing.
+    marked = open_ + closed
+    marks = [r["mark"] for r in marked if isinstance(r.get("mark"), (int, float))]
+    diffs = [r["benchmark"]["difference"] for r in marked
+             if isinstance(r.get("benchmark"), dict)
+             and isinstance(r["benchmark"].get("difference"), (int, float))]
+    if marks:
+        avg_mark = sum(marks) / len(marks)
+        best = max(marked, key=lambda r: r.get("mark") if isinstance(r.get("mark"), (int, float)) else float("-inf"))
+        worst = min(marked, key=lambda r: r.get("mark") if isinstance(r.get("mark"), (int, float)) else float("inf"))
+        overall = {
+            "marked": len(marked),
+            "open": len(open_),
+            "closed": len(closed),
+            "avg_mark_pct": round(avg_mark, 2),
+            "best": {"id": best.get("id"), "trade_label": best.get("trade_label"),
+                     "mark": round(best.get("mark"), 2)},
+            "worst": {"id": worst.get("id"), "trade_label": worst.get("trade_label"),
+                      "mark": round(worst.get("mark"), 2)},
+            "basis": ("Equal-weight average of every marked call. Open calls are still moving, "
+                      "and these are price-only moves of the named series, not the returns of "
+                      "any account."),
+        }
+        if diffs:
+            avg_vs = sum(diffs) / len(diffs)
+            overall["avg_vs_spx_pp"] = round(avg_vs, 2)
+            overall["ahead_of_spx"] = sum(1 for d in diffs if d > 0)
+            overall["behind_spx"] = sum(1 for d in diffs if d < 0)
+            vs_word = "level with" if abs(avg_vs) < 0.05 else ("ahead of" if avg_vs > 0 else "behind")
+            vs_txt = (f"level with the S&P 500" if vs_word == "level with"
+                      else f"{abs(avg_vs):.1f} points {vs_word} the S&P 500")
+            counts = (f"{len(marked)} calls marked" if not closed
+                      else f"{len(marked)} calls marked ({len(open_)} open, {len(closed)} closed)")
+            overall["line"] = (
+                f"{counts}. Taken as one book they average {avg_mark:+.1f}% a call and sit "
+                f"{vs_txt} over the same days — {overall['ahead_of_spx']} ahead of the index, "
+                f"{overall['behind_spx']} behind. Best: {best.get('trade_label') or best.get('id')}, "
+                f"{best.get('mark'):+.1f}%. Worst: {worst.get('trade_label') or worst.get('id')}, "
+                f"{worst.get('mark'):+.1f}%.")
+        else:
+            overall["line"] = (
+                f"{len(marked)} calls marked. Taken as one book they average {avg_mark:+.1f}% a call. "
+                f"Best: {best.get('trade_label') or best.get('id')}, {best.get('mark'):+.1f}%. "
+                f"Worst: {worst.get('trade_label') or worst.get('id')}, {worst.get('mark'):+.1f}%.")
+        s["overall"] = overall
+
     # Rule 5 — no hit rate on a sample that cannot carry one.
     if len(closed) < MIN_CLOSED_FOR_STATS:
         s["stats_withheld"] = True
