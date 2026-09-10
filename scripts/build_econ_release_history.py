@@ -73,6 +73,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -228,10 +229,29 @@ RELEASES = {
 
 
 # ── fetch helpers ──────────────────────────────────────────────────────────
+FRED_PACE_SECONDS = 0.55   # FRED allows ~120 requests a minute; the run makes ~110 in a row
+_RETRY_SLEEPS = (3, 8, 20)
+
+
 def _get_json(url: str, timeout: int = 40):
+    """GET JSON, retrying 429 / 5xx with backoff. The first CI run after the
+    impact study shipped died on `HTTP Error 429: Too Many Requests` from FRED:
+    the calendar step had just made ~30 calls and this step makes ~110 more
+    (series observations, series metadata, three years of release dates), all
+    back to back. FRED calls are also paced below its published limit."""
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json,*/*"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    for attempt in range(len(_RETRY_SLEEPS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            if FRED_BASE in url:
+                time.sleep(FRED_PACE_SECONDS)
+            return data
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and attempt < len(_RETRY_SLEEPS):
+                time.sleep(_RETRY_SLEEPS[attempt])
+                continue
+            raise
 
 
 def fred_observations(series_id: str, start: dt.date, key: str):
@@ -451,6 +471,7 @@ def past_release_dates(start, end, key):
     """Every release date in the window, by event name, from the SAME sources
     the calendar tile uses. ISM is recomputed here over the whole window (the
     calendar's helper only looks six months ahead)."""
+    CAL._get_json = _get_json          # pace + retry the calendar module's FRED calls too
     events, _ = CAL.build_fred_events(start, end, key)
     fomc, _ = CAL.build_fomc_events(start, end)
     umich, _ = CAL.build_umich_prelim_events(start, end, key)
