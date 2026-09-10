@@ -4161,7 +4161,7 @@
    "id": "site-econ_release_history-daily",
    "name": "econ_release_history",
    "category": "indicator",
-   "description": "Three years of actual prints plus a named public nowcast for every release on the homepage \"Upcoming data\" tile \u2014 the feed behind the release modal that opens when a release is clicked. Actual prints are FRED series observations (current vintage, revisions included) for the headline number each release is traded on (CPI month over month, payroll change, initial claims, real GDP annualised growth, the effective fed funds rate for the FOMC, and so on); ISM comes from the site's own indicator feed. Nowcasts, where a free public forecaster exists and always labelled by author: Federal Reserve Bank of Cleveland inflation nowcast (CPI, core CPI, PCE, core PCE), Atlanta Fed GDPNow via FRED, and the rate priced by the CME 30-day fed funds future for the month after the next FOMC meeting (Yahoo Finance) against the current effective rate. No street consensus \u2014 June 2026 decision, no paid vendor.",
+   "description": "Three years of actual prints plus a named public nowcast for every release on the homepage \"Upcoming data\" tile \u2014 the feed behind the release modal that opens when a release is clicked. Actual prints are FRED series observations (current vintage, revisions included) for the headline number each release is traded on (CPI month over month, payroll change, initial claims, real GDP annualised growth, the effective fed funds rate for the FOMC, and so on); ISM comes from the site's own indicator feed. Nowcasts, where a free public forecaster exists and always labelled by author: Federal Reserve Bank of Cleveland inflation nowcast (CPI, core CPI, PCE, core PCE), Atlanta Fed GDPNow via FRED, and the rate priced by the CME 30-day fed funds future for the month after the next FOMC meeting (Yahoo Finance) against the current effective rate. No street consensus \u2014 June 2026 decision, no paid vendor. Also carries each release's MEASURED market impact: an event study over the same three years of the mean absolute release-day move in the S&P 500, the 10-year yield and the dollar index (from the site's own indicator history) against an ordinary session, attributed to the highest-tier release on the session, graded only where the excess is statistically distinguishable, and published with its sample size.",
    "sourcing_mode": "computed in-house",
    "source_vendor": "FRED (observations) + Federal Reserve Bank of Cleveland (inflation nowcast) + Federal Reserve Bank of Atlanta (GDPNow via FRED) + Yahoo Finance (CME fed funds futures)",
    "source_endpoint": "api.stlouisfed.org/fred/series/observations + clevelandfed.org/-/media/files/webcharts/inflationnowcasting/nowcast_month.json + query2.finance.yahoo.com/v8/finance/chart/ZQ<mon><yy>.CBT",
@@ -4180,7 +4180,7 @@
    "consumer_surfaces": [
     {
      "tab": "home",
-     "tile": "Upcoming data \u2014 release detail modal"
+     "tile": "Upcoming data \u2014 impact marks, full calendar and release detail modals"
     }
    ],
    "dependencies": [

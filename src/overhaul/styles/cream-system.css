@@ -536,6 +536,27 @@
 .home-v12 .rel-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 0;padding-top:14px;border-top:1px solid var(--hair)}
 .home-v12 .rel-footl{flex:none}
 .home-v12 .rel-footr{font-size: var(--v13-t2);color:var(--mut);line-height:1.5;flex:1 1 320px}
+/* measured market-impact mark: three bars, filled by grade; hollow = shared */
+.home-v12 .cal-evwrap{display:inline-flex;align-items:baseline;gap:7px}
+.home-v12 .impact{display:inline-flex;align-items:center;gap:6px;cursor:help;vertical-align:baseline}
+.home-v12 .impact-bars{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
+.home-v12 .impact-bars i{display:block;width:3px;border-radius:1px;background:var(--hair);}
+.home-v12 .impact-bars i:nth-child(1){height:4px}
+.home-v12 .impact-bars i:nth-child(2){height:7px}
+.home-v12 .impact-bars i:nth-child(3){height:10px}
+.home-v12 .impact-bars i.on{background:var(--ink-soft)}
+.home-v12 .impact--high .impact-bars i.on{background:var(--ink)}
+.home-v12 .impact--shared .impact-bars i{background:none;border:1px solid var(--hair)}
+.home-v12 .impact-word{font-size: var(--v13-t1);letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.impact-tip{max-width:260px;font-size: var(--v13-t2);line-height:1.5}
+.impact-tip b{display:block;margin-bottom:3px}
+.home-v12 .rel-impact{margin-top:22px;padding-top:16px;border-top:1px solid var(--hair)}
+.home-v12 .rel-impact-head{display:flex;align-items:center;gap:12px;margin-top:0}
+.home-v12 .rel-impact-facts.idea-modal-facts{grid-template-columns:repeat(3,1fr);margin-top:12px}
+.home-v12 .rel-impact-note{margin:12px 0 0;font-size: var(--v13-t2);color:var(--mut);line-height:1.5}
+.home-v12 .rel-impact-dir{margin:10px 0 0;font-size: var(--v13-t3);color:var(--ink-soft);line-height:1.55}
+.home-v12 .rel-impact-dir b{color:var(--ink);font-weight:600}
+
 /* full release calendar modal */
 .home-v12 .relcal-days{display:flex;flex-direction:column;gap:18px;margin-top:6px}
 .home-v12 .relcal-day{padding-top:12px;border-top:1px solid var(--hair)}
@@ -546,6 +567,7 @@
 .home-v12 .relcal-tier{font-size: var(--v13-t1);letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
 @media (max-width:640px){
   .home-v12 .relcal-list{grid-template-columns:1fr}
+  .home-v12 .rel-impact-facts.idea-modal-facts{grid-template-columns:1fr}
   .home-v12 .rel-facts.idea-modal-facts{grid-template-columns:repeat(2,1fr)}
   .home-v12 .rel-chart{padding:12px 10px 8px}
 }

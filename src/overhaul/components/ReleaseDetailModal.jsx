@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
 import FreshnessChip from './FreshnessChip';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
+import ImpactMark, { IMPACT_WORD } from './ImpactMark';
 
 const HISTORY_ELEMENT = 'econ_release_history';
 
@@ -152,6 +153,51 @@ function MeasurePanel({ measure }) {
   );
 }
 
+/* Market impact — an event study, shown as numbers the reader can check.
+   For each market: the mean absolute one-day move on this release's sessions
+   against an ordinary session, the ratio, and whether that ratio is
+   distinguishable from luck. Then the textbook direction for the category —
+   which is a definition, never a forecast. */
+function ImpactPanel({ impact }) {
+  const ms = Object.values(impact.markets || {});
+  const fmtMove = (v, unit) => (v == null ? '—' : unit === 'bp' ? `${v.toFixed(1)}bp` : `${v.toFixed(2)}%`);
+  return (
+    <div className="rel-impact">
+      <div className="briefmodal-sec rel-impact-head">
+        <span>Market impact · {IMPACT_WORD[impact.rating]}</span>
+        <ImpactMark impact={impact} />
+      </div>
+      {impact.rating === 'shared' ? (
+        <p className="rel-impact-note">
+          This report lands in the same session as {impact.shared_with} on {impact.n_all_days} of {impact.n_all_days} occasions in the last three years, so its own effect on markets cannot be separated from that release&rsquo;s.
+        </p>
+      ) : (
+        <>
+          <div className="idea-modal-facts rel-facts rel-impact-facts">
+            {ms.map((m) => (
+              <div className="idea-fact" key={m.label}>
+                <span className="k">{m.label}</span>
+                <span className="v">{m.ratio == null ? '—' : `${m.ratio.toFixed(2)}× an ordinary session`}</span>
+                <span className="rel-sub">
+                  {m.ratio == null
+                    ? `too few sessions to measure (${m.n})`
+                    : `${fmtMove(m.release_day, m.unit)} on release days vs ${fmtMove(m.typical_day, m.unit)} typical${m.significant ? '' : ' · not distinguishable from an ordinary day'}`}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="rel-impact-note">
+            Measured over {impact.n_days} release sessions since {new Date(`${impact.window_from}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
+            {impact.n_all_days > impact.n_days ? `, leaving out the ${impact.n_all_days - impact.n_days} that shared a session with a more important release` : ''}.
+            Close-to-prior-close moves; a release after the bell is credited to the next session.
+          </p>
+        </>
+      )}
+      {impact.direction && <p className="rel-impact-dir"><b>Direction.</b> {impact.direction}</p>}
+    </div>
+  );
+}
+
 export default function ReleaseDetailModal({ event, onClose }) {
   const open = !!event;
   const { data, failed, loading } = useEconReleaseHistory(open);
@@ -207,6 +253,7 @@ export default function ReleaseDetailModal({ event, onClose }) {
           </p>
         )}
         {measure && <MeasurePanel measure={measure} />}
+        {entry?.impact?.rating && <ImpactPanel impact={entry.impact} />}
 
         <p className="rel-foot">
           <span className="rel-footl">

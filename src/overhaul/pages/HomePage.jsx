@@ -35,6 +35,8 @@ import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import ReleaseDetailModal from '../components/ReleaseDetailModal';
 import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
+import ImpactMark from '../components/ImpactMark';
+import useEconReleaseHistory from '../lib/useEconReleaseHistory';
 import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
@@ -220,6 +222,11 @@ export default function HomePage() {
   const { brief } = useDailyBrief();
   const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
   const [calOpen, setCalOpen] = useState(false);
+  // The release history carries each release's MEASURED market impact, so the
+  // tile can grade its rows (Joe, 2026-09-10: "showing potential impact to
+  // markets"). ~65 KB, fetched once per page life, shared with the modals.
+  const { data: relHist } = useEconReleaseHistory(true);
+  const impactOf = (name) => relHist?.series?.[name]?.impact || null;
   // Which release's detail is open, or null. Joe 2026-09-10: a release is a
   // thing to read about where you are, not a link to the Macro page.
   const [openRelease, setOpenRelease] = useState(null);
@@ -495,11 +502,14 @@ export default function HomePage() {
                   <span className="when">{d.isToday ? 'Today' : weekdayDate(d.date)}</span>
                   <span className="what">
                     {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => (
-                      <button key={e.name} type="button" className={`cal-ev${e.tier === 1 ? ' cal-ev--major' : ''}`}
-                              onClick={() => setOpenRelease(e)}>
-                        <span className="cal-ev-name">{e.name}</span>
-                        <span className="cal-time">{e.time_et}</span>
-                      </button>
+                      <span key={e.name} className="cal-evwrap">
+                        <button type="button" className={`cal-ev${e.tier === 1 ? ' cal-ev--major' : ''}`}
+                                onClick={() => setOpenRelease(e)}>
+                          <span className="cal-ev-name">{e.name}</span>
+                          <span className="cal-time">{e.time_et}</span>
+                        </button>
+                        <ImpactMark impact={impactOf(e.name)} />
+                      </span>
                     ))}
                   </span>
                 </div>
@@ -571,7 +581,7 @@ export default function HomePage() {
       {/* full trade-idea note */}
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
-      <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta}
+      <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf}
                             onClose={() => setCalOpen(false)} onPick={(e) => { setOpenRelease(e); }} />
       <ReleaseDetailModal event={openRelease} onClose={() => setOpenRelease(null)} />
       <IndexDrillModal indexKey={drillIdx} hist={levelHist} onClose={() => setDrillIdx(null)} />
