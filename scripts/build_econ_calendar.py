@@ -384,6 +384,171 @@ def build_umich_prelim_events(start: dt.date, end: dt.date, key: str):
     return events, problems
 
 
+# ── source 5: foreign central-bank decisions (bug #1254) ───────────────────
+# The live Trade Idea book can carry FX and rates calls (a long EUR/USD call
+# was live when the ECB's 2026-09-10 decision was absent from this feed), so
+# the calendar carries the G3-ex-Fed decision dates: ECB, Bank of England,
+# Bank of Japan. One provider per source, and the provider is the central
+# bank itself — the same authority pattern as the FOMC block above.
+#
+# Times are the banks' standing publication times converted at the usual
+# CET/UK/JST-to-ET offsets and marked as policy, not wire, per this script's
+# standing rule. (For a few weeks a year DST transitions misalign by an hour;
+# the date, which is what the calendar exists for, is unaffected.)
+
+ECB_URL = "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"
+BOE_URL = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+BOJ_URL = "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm"
+
+MONTHS_ABBR = {m[:3].lower(): i for m, i in MONTHS.items()}
+
+
+def build_ecb_events(start: dt.date, end: dt.date):
+    """ECB Governing Council monetary policy decisions.
+
+    The ECB's own calendar page lists every Governing Council entry as
+    <dt>DD/MM/YYYY</dt><dd>description</dd>. The DECISION day is the entry
+    described as a "monetary policy meeting ... followed by press conference"
+    (Day 2). "Non-monetary policy" meetings and Day-1 entries never carry the
+    press-conference clause, so that clause is the filter. Decision statement
+    2:15 PM CET = 8:15 AM ET, press conference 2:45 PM CET."""
+    events, problems = [], []
+    try:
+        html = _get_text(ECB_URL)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"ECB calendar fetch failed: {exc}"]
+    for m in re.finditer(r"<dt>\s*(\d{2})/(\d{2})/(\d{4})\s*</dt>\s*<dd>(.*?)</dd>", html, re.S):
+        day, month, year, desc = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
+        if "monetary policy meeting" not in desc.lower() or "non-monetary" in desc.lower():
+            continue
+        if "followed by press conference" not in desc.lower():
+            continue  # Day 1 of the two-day meeting; the decision lands on Day 2
+        try:
+            d = dt.date(year, month, day)
+        except ValueError:
+            problems.append(f"ECB row unparsed: {m.group(0)[:80]}")
+            continue
+        if not (start <= d <= end):
+            continue
+        events.append(dict(
+            date=d.isoformat(), time_et="8:15 AM", name="ECB decision (Governing Council)", short="ECB",
+            tier=1, category="Policy",
+            blurb="European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
+            source="ECB Governing Council calendar (ecb.europa.eu)", time_source="published release policy",
+        ))
+    if not events:
+        problems.append("ECB calendar parsed to zero decisions in window")
+    return events, problems
+
+
+def build_boe_events(start: dt.date, end: dt.date):
+    """Bank of England MPC announcements.
+
+    The Bank's "upcoming MPC dates" page lists, per year block ("2026
+    confirmed dates", "2027 provisional dates"), each announcement as
+    "Thursday 18 June — June MPC Summary and minutes". The weekday-prefixed
+    date followed by "MPC Summary" is the filter; the news list further down
+    the page carries bare dates and never the weekday prefix, so it cannot
+    leak in. Announcements land 12:00 London = 7:00 AM ET."""
+    events, problems = [], []
+    try:
+        html = _get_text(BOE_URL)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"BoE calendar fetch failed: {exc}"]
+    import html as _html
+    txt = re.sub(r"<[^>]+>", " ", _html.unescape(html)).replace("\xa0", " ")
+    txt = re.sub(r"\s+", " ", txt)
+    blocks = re.split(r"(\d{4})\s+(?:confirmed|provisional)\s+dates", txt)
+    # re.split leaves [pre, year, block, year, block, ...]
+    for year_s, block in zip(blocks[1::2], blocks[2::2]):
+        year = int(year_s)
+        for wm in re.finditer(
+            r"(?:Monday|Tuesday|Wednesday|Thursday|Friday)\s+(\d{1,2})\s+([A-Za-z]+)"
+            r"(?=[\sA-Za-z]{0,40}MPC Summary)", block):
+            day, month = int(wm.group(1)), MONTHS.get(wm.group(2).title())
+            if not month:
+                problems.append(f"BoE month unparsed: {wm.group(0)[:60]}")
+                continue
+            try:
+                d = dt.date(year, month, day)
+            except ValueError:
+                problems.append(f"BoE row unparsed: {wm.group(0)[:60]}")
+                continue
+            if not (start <= d <= end):
+                continue
+            events.append(dict(
+                date=d.isoformat(), time_et="7:00 AM", name="Bank of England decision (MPC)", short="BoE",
+                tier=1, category="Policy",
+                blurb="Bank of England rate decision with the MPC vote split, published at noon London time.",
+                source="Bank of England MPC dates (bankofengland.co.uk)", time_source="published release policy",
+            ))
+    if not events:
+        problems.append("BoE calendar parsed to zero decisions in window")
+    return events, problems
+
+
+def build_boj_events(start: dt.date, end: dt.date):
+    """Bank of Japan Monetary Policy Meeting decisions.
+
+    The BoJ's English MPM schedule page carries one table per year
+    (id="p2026", ...); the first cell of each row is the meeting date range,
+    e.g. "Sept. 17 (Thurs.), 18 (Fri.)". The statement is released around
+    midday Tokyo on the FINAL day — overnight in New York — so the entry is
+    dated to the final meeting day (JST) and the time reads "overnight"."""
+    events, problems = [], []
+    try:
+        html = _get_text(BOJ_URL)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"BoJ calendar fetch failed: {exc}"]
+    for ym in re.finditer(r'id="p(\d{4})"', html):
+        year = int(ym.group(1))
+        seg = html[ym.end():html.find("</table>", ym.end())]
+        for row in re.finditer(r"<tr>\s*<td[^>]*>(.*?)</td>", seg, re.S):
+            cell = re.sub(r"<[^>]+>", " ", row.group(1))
+            cell = re.sub(r"\s+", " ", cell).strip()
+            toks = re.findall(r"(?:([A-Z][a-z]+)\.?\s*)?(\d{1,2})\s*\(", cell)
+            if not toks:
+                continue
+            month = None
+            last = None
+            ok = True
+            for mon_s, day_s in toks:
+                if mon_s:
+                    month = MONTHS_ABBR.get(mon_s[:3].lower())
+                if not month:
+                    ok = False
+                    break
+                last = (month, int(day_s))
+            if not ok or last is None:
+                problems.append(f"BoJ row unparsed: {cell[:60]}")
+                continue
+            try:
+                d = dt.date(year, last[0], last[1])
+            except ValueError:
+                problems.append(f"BoJ row unparsed: {cell[:60]}")
+                continue
+            if not (start <= d <= end):
+                continue
+            events.append(dict(
+                date=d.isoformat(), time_et="overnight", name="Bank of Japan decision (MPM)", short="BoJ",
+                tier=1, category="Policy",
+                blurb="Bank of Japan rate decision, released around midday Tokyo on the meeting's final day — overnight for US markets.",
+                source="Bank of Japan MPM schedule (boj.or.jp)", time_source="published release policy",
+            ))
+    if not events:
+        problems.append("BoJ calendar parsed to zero decisions in window")
+    return events, problems
+
+
+def build_foreign_cb_events(start: dt.date, end: dt.date):
+    events, problems = [], []
+    for fn in (build_ecb_events, build_boe_events, build_boj_events):
+        ev, pr = fn(start, end)
+        events += ev
+        problems += pr
+    return events, problems
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -399,6 +564,9 @@ def build(today: dt.date | None = None, key: str | None = None):
     umich, umich_problems = build_umich_prelim_events(start, end, key)
     events += umich
     problems += umich_problems
+    fcb, fcb_problems = build_foreign_cb_events(start, end)
+    events += fcb
+    problems += fcb_problems
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -425,6 +593,9 @@ def build(today: dt.date | None = None, key: str | None = None):
             "Federal Reserve FOMC calendar (federalreserve.gov) — meeting dates",
             "ISM published schedule — 1st and 3rd business day of the month, computed",
             "UMich preliminary schedule — two Fridays before each FRED final date, computed",
+            "ECB Governing Council calendar (ecb.europa.eu) — decision dates",
+            "Bank of England MPC dates (bankofengland.co.uk) — decision dates",
+            "Bank of Japan MPM schedule (boj.or.jp) — decision dates",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
