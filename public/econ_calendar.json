@@ -1,18 +1,21 @@
 {
-  "generated_at": "2026-09-10T10:36:57Z",
+  "generated_at": "2026-09-10T11:11:30Z",
   "window": {
     "from": "2026-09-03",
     "to": "2026-11-19"
   },
   "counts": {
-    "total": 103,
-    "tier1": 26
+    "total": 109,
+    "tier1": 32
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
     "Federal Reserve FOMC calendar (federalreserve.gov) \u2014 meeting dates",
     "ISM published schedule \u2014 1st and 3rd business day of the month, computed",
-    "UMich preliminary schedule \u2014 two Fridays before each FRED final date, computed"
+    "UMich preliminary schedule \u2014 two Fridays before each FRED final date, computed",
+    "ECB Governing Council calendar (ecb.europa.eu) \u2014 decision dates",
+    "Bank of England MPC dates (bankofengland.co.uk) \u2014 decision dates",
+    "Bank of Japan MPM schedule (boj.or.jp) \u2014 decision dates"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
@@ -96,6 +99,17 @@
       "category": "Consumer",
       "blurb": "Revolving and non-revolving household borrowing.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-10",
+      "time_et": "8:15 AM",
+      "name": "ECB decision (Governing Council)",
+      "short": "ECB",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
+      "source": "ECB Governing Council calendar (ecb.europa.eu)",
       "time_source": "published release policy"
     },
     {
@@ -232,6 +246,17 @@
     },
     {
       "date": "2026-09-17",
+      "time_et": "7:00 AM",
+      "name": "Bank of England decision (MPC)",
+      "short": "BoE",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
+      "source": "Bank of England MPC dates (bankofengland.co.uk)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-17",
       "time_et": "8:30 AM",
       "name": "Jobless claims",
       "short": "Claims",
@@ -272,6 +297,17 @@
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-18",
+      "time_et": "overnight",
+      "name": "Bank of Japan decision (MPM)",
+      "short": "BoJ",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
+      "source": "Bank of Japan MPM schedule (boj.or.jp)",
       "time_source": "published release policy"
     },
     {
@@ -804,6 +840,17 @@
     },
     {
       "date": "2026-10-29",
+      "time_et": "8:15 AM",
+      "name": "ECB decision (Governing Council)",
+      "short": "ECB",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
+      "source": "ECB Governing Council calendar (ecb.europa.eu)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-29",
       "time_et": "8:30 AM",
       "name": "Personal income & PCE prices",
       "short": "PCE",
@@ -855,6 +902,17 @@
       "category": "Labor",
       "blurb": "Wages and benefits per hour worked \u2014 the cleanest read on labor-cost inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-30",
+      "time_et": "overnight",
+      "name": "Bank of Japan decision (MPM)",
+      "short": "BoJ",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
+      "source": "Bank of Japan MPM schedule (boj.or.jp)",
       "time_source": "published release policy"
     },
     {
@@ -921,6 +979,17 @@
       "category": "Surveys",
       "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-05",
+      "time_et": "7:00 AM",
+      "name": "Bank of England decision (MPC)",
+      "short": "BoE",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
+      "source": "Bank of England MPC dates (bankofengland.co.uk)",
       "time_source": "published release policy"
     },
     {
