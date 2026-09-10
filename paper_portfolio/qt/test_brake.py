@@ -1,28 +1,31 @@
 """Guard rails for the brake's pure logic. python3 -m pytest paper_portfolio/qt/test_brake.py -q"""
-from paper_portfolio.qt.brake import pct_rank_last, hyg_drawdown_series, composite, next_state
+from paper_portfolio.qt.brake import pct_rank_last, stress, next_state
 
-def test_hysteresis_cannot_flap():
-    seq = [(0.50, False), (0.81, True), (0.75, True), (0.70, True), (0.64, False), (0.79, False), (0.81, True)]
-    was = False
-    for comp, expect in seq:
-        was = next_state(comp, was, on=0.80, off=0.65)
-        assert was == expect, f"comp={comp}"
 
-def test_percentile_extremes():
-    vals = list(range(100))
-    assert abs(pct_rank_last(vals, 100) - 0.995) < 1e-9
-    assert abs(pct_rank_last(list(reversed(vals)), 100) - 0.005) < 1e-9
-    assert pct_rank_last([7.0]*100, 100) == 0.5   # flat = neutral, never max
+def test_flat_series_is_neutral_not_extreme():
+    # Counting "<=" made a flat series read as the 100th percentile; midrank ties fix that.
+    assert abs(pct_rank_last([100.0] * 300, 300) - 0.5) < 1e-9
 
-def test_drawdown_series():
-    dd = hyg_drawdown_series([100, 90, 95, 100, 80])
-    assert dd[0] == 0.0
-    assert abs(dd[1] - 0.10) < 1e-9
-    assert abs(dd[4] - 0.20) < 1e-9
 
-def test_composite_calm_vs_stressed():
-    calm_vix = [15]*800; calm_hyg = [100.0]*800
-    assert composite(calm_vix, calm_hyg) < 0.80          # calm never trips ON by itself
-    stressed_vix = [15]*799 + [60]
-    crash_hyg = [100.0]*790 + [100 - i*1.5 for i in range(10)]
-    assert composite(stressed_vix, crash_hyg) > 0.80     # spike + credit crack trips
+def test_stress_calm_vs_panic():
+    calm = [80.0 + (i % 7) for i in range(1500)]
+    assert stress(calm + [60.0]) < 0.05
+    assert stress(calm + [200.0]) > 0.95
+
+
+def test_two_readings_needed_to_switch_on():
+    assert next_state(0.97, None, False, 0.95, 0.80) is False      # first day above: not yet
+    assert next_state(0.97, 0.90, False, 0.95, 0.80) is False      # prior was below the line
+    assert next_state(0.97, 0.96, False, 0.95, 0.80) is True       # two in a row: on
+
+
+def test_hysteresis_band_holds_state():
+    assert next_state(0.90, 0.90, True, 0.95, 0.80) is True        # inside the band: stays on
+    assert next_state(0.90, 0.90, False, 0.95, 0.80) is False      # inside the band: stays off
+    assert next_state(0.79, 0.90, True, 0.95, 0.80) is False       # one reading below OFF: off
+
+
+def test_not_enough_history_refuses():
+    import pytest
+    with pytest.raises(ValueError):
+        pct_rank_last([1.0] * 10, 1260)

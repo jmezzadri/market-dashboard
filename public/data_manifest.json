@@ -4331,7 +4331,7 @@
    "id": "portfolio.qt-brake-state",
    "name": "qt-brake-state",
    "category": "portfolio",
-   "description": "Quality Trend crash-brake daily reading: stress composite (VIX percentile + high-yield drawdown percentile), on/off state, and any half/restore action. Written by QT-BRAKE-DAILY after each close.",
+   "description": "Quality Trend crash-brake daily reading: bond-market stress (MOVE Index percentile vs its last five years), on/off state, and any sell-all / buy-back action. Above 0.95 two days running the book goes to cash; below 0.80 it buys back. Replaced the VIX + high-yield composite on 2026-09-10 after a backtest on the book itself.",
    "sourcing_mode": "computed",
    "source_vendor": "MacroTilt engine (QT-BRAKE-DAILY)",
    "cadence": "daily",

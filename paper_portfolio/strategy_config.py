@@ -62,16 +62,24 @@ class Config:
     GROSS_EXPOSURE: float = 1.00       # NO leverage, NO strategic cash
     MAX_POSITION: float = 0.05
 
-    # ---- crash brake (Joe approved 2026-08-28) ----------------------------
-    # Evaluated daily after the close by QT-BRAKE-DAILY. Composite stress =
-    # mean of VIX 3y percentile and HYG 63-day-drawdown 3y percentile.
-    # ON above 0.80, OFF below 0.65 (hysteresis so it cannot flap).
-    # ON  => scale the book to 50% (sell half of every position into cash).
-    # OFF => restore to full weights from the latest target book.
-    # The brake ONLY scales. It never picks stocks, never shorts, never levers.
-    BRAKE_ON: float = 0.80
-    BRAKE_OFF: float = 0.65
-    BRAKE_SCALE: float = 0.50
+    # ---- crash brake (v2, MOVE-based; Senior Quant 2026-09-10) ---------------
+    # The 08-31 brake (VIX + high-yield composite, sell half above 0.80) shipped
+    # without a backtest on this book. Tested 09-10 on the rebuilt daily book it
+    # COST 3.5 pts/yr (Sharpe 0.72 vs 0.75 no-brake). Every VIX-based variant
+    # lost; every MOVE-based variant won. See qt/research/brake_study_2026-09-10.
+    # Rule: stress = MOVE percentile over trailing 5y (1,260 sessions).
+    #   ON  when stress > 0.95 on two consecutive readings -> sell EVERYTHING.
+    #   OFF when stress < 0.80 -> buy the latest target book back at full weight.
+    # Backtest (20 names, 5bp, 2017-02..2026-09): CAGR 23.7% vs 19.8%, Sharpe
+    # 1.00 vs 0.75, worst year 0.0% vs -6.5%, both halves, one-day lag too.
+    # The brake ONLY moves between 0% and 100% of the target book. It never
+    # picks stocks, never shorts, never levers.
+    BRAKE_SIGNAL: str = "MOVE"
+    BRAKE_WINDOW: int = 1260
+    BRAKE_ON: float = 0.95
+    BRAKE_OFF: float = 0.80
+    BRAKE_CONFIRM_DAYS: int = 2
+    BRAKE_SCALE: float = 0.0           # exposure while ON: all cash
 
 CONFIG = Config()
 
