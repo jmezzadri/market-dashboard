@@ -9,13 +9,14 @@
 
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import ImpactMark from './ImpactMark';
 
 function weekdayLong(iso) {
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 
-export default function ReleaseCalendarModal({ open, events, todayISO, meta, onClose, onPick }) {
+export default function ReleaseCalendarModal({ open, events, todayISO, meta, onClose, onPick, impactOf }) {
   useEffect(() => {
     if (!open) return undefined;
     const k = (e) => { if (e.key === 'Escape') onClose?.(); };
@@ -46,7 +47,7 @@ export default function ReleaseCalendarModal({ open, events, todayISO, meta, onC
         <button type="button" className="briefmodal-x" onClick={onClose} aria-label="Close">×</button>
         <div className="eyebrow2"><span className="dot" />Upcoming data · {count} releases{meta?.window?.to ? ` through ${weekdayLong(meta.window.to).replace(/^[A-Za-z]+, /, '')}` : ''}</div>
         <h2 className="briefmodal-h">Release calendar</h2>
-        <p className="rel-blurb">Every scheduled US release the calendar holds, on the agencies&rsquo; own published dates. Times are Eastern. Click a release for its history.</p>
+        <p className="rel-blurb">Every scheduled US release the calendar holds, on the agencies&rsquo; own published dates. Times are Eastern. The bars grade each release&rsquo;s measured market impact — how far stocks, the 10-year and the dollar moved on its release days over the last three years against an ordinary session. Click a release for its history.</p>
         <div className="relcal-days">
           {days.map(([date, evs]) => (
             <div key={date} className={`relcal-day${date === todayISO ? ' is-today' : ''}`}>
@@ -58,7 +59,7 @@ export default function ReleaseCalendarModal({ open, events, todayISO, meta, onC
                       <span className="cal-ev-name">{e.name}</span>
                       <span className="cal-time">{e.time_et}</span>
                     </button>
-                    {e.tier === 3 && <span className="relcal-tier">background</span>}
+                    <ImpactMark impact={impactOf?.(e.name)} />
                   </li>
                 ))}
               </ul>

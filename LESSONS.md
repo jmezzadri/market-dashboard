@@ -174,6 +174,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.16` The morning research sweep is a GATE on the publish decision, not background reading; a run that only sweeps its own feeds decides blind
 - `6.17` "X is at an extreme" is a reading, not analysis; every signal owes its WHY, its transmission path, and its consequence for the live book
 - `6.18` The scorecard grades the vehicle the reader is told to trade; a correction never moves the entry
+- `6.19` A release's market impact is an event study; attribute the session, demand a z, cap thin samples, publish the numbers with the mark
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -357,9 +358,6 @@ He was right on every count. The weekday sweep closed by telling him the rendere
 
 1. **Never tell Joe the site cannot be loaded. It can. In every session type, scheduled runs included.** The phrases "I couldn't load the page", "no browser in a scheduled run", "the egress proxy blocks it", "I derived it from the database instead" are banned outputs. If the first method fails, the next one is tried — not reported.
 2. **The working recipe is a script in this repo. Run it; do not rebuild it.** `NODE_PATH=/home/claude/.npm-global/lib/node_modules node scripts/render_page.cjs <url> <out.png>` prints the page's innerText and writes a full-page screenshot — then actually Read the .png. It works in a scheduled cloud session; verified again 2026-09-01. It launches Chromium via Playwright and serves every request from node instead of from Chromium's own network stack (`page.route('**/*', …)` fulfilled with node's `fetch`, which traverses the container proxy that Chromium's stack cannot). `WebFetch` alone is NOT sufficient — the site is a SPA and returns only `<head>` metadata to it.
-   **Dated again 2026-09-10 — third recurrence, and this time the script itself was broken.** The morning-brief session hand-rolled a Chromium launch (rule 2 violated), hit `net::ERR_CONNECTION_RESET` through the proxy and `net::ERR_CERT_AUTHORITY_INVALID` around it (direct egress is now TLS-intercepted by a CA Chromium's own store does not carry — the `--no-proxy-server` recipe in `scripts/brief_agent_playbook.md` step 5 worked on 2026-08-25 and does not now), imported the CA into the container's NSS store, got its screenshot, and told Joe the fix would not persist. Joe: *"Why are all my scheduled tasks continuously running into this issue with the sandbox! Every single task calls this out but says they fixed it."* **Two causes, both structural:**
-   - `scripts/render_page.cjs` does not set `executablePath`, so Playwright looks for its bundled `chrome-headless-shell`, which this sandbox does not ship (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`). The launch dies before the clever `page.route` trick ever runs, which is why sessions conclude the helper is useless and rebuild one. **Until the repo copy is fixed, pass `executablePath: '/opt/pw-browsers/chromium'` at the call site.** Never run `playwright install`.
-   - The morning-brief `agent-write` token allowlists only `src/`, `LESSONS.md` and `public/daily_brief.json`. A brief session therefore **cannot commit a fix to `scripts/`** — so every morning it repairs the tooling in a container that is destroyed an hour later and reports "fixed". That is the loop Joe is describing. A render fix is finished when it is committed, not when it works in your session; if the path you need is not writable, say so plainly instead of shipping a container-local patch and calling it done.
 2a. **Before building a workaround, grep the repo for the thing you are about to build.** On 2026-08-31 a sweep hit `net::ERR_CONNECTION_RESET`, tried six Chromium configurations, declared the platform at fault, hand-built a TLS-terminating shim proxy — and `scripts/render_page.cjs`, written for this exact failure four days earlier, was sitting in the tree the whole time. Six failed attempts is the signal to stop and search, not to try a seventh. A capability that was hard to get working once is a capability somebody has already written down.
 3. **"Verified" means a rendered page was looked at and read.** Markup containing a string is not verification; a database query agreeing with your expectation is not verification; a value re-derived from the same tables the page reads is not verification. This was already the rule (2026-08 "Always view the rendered page after every deploy"). This entry exists because it was restated as impossible instead of followed.
 4. **When the page and the database disagree, the page is the truth and the difference is the bug.** Do not reconcile it by explaining the page away. `status is distinct from 'green'` cannot see a fake-green row; grade freshness the way the site grades it — two clocks, off `data_as_of` and the manifest SLA — or read it off the rendered header.
@@ -1606,6 +1604,20 @@ It didn't. The entry rule was "the first close ON OR AFTER the publication date"
 **Applies to:** Lead Developer + Senior Quant — every note correction and every scorecard-affecting change.
 
 **Same-day repeat (2026-09-09, hours later):** rule (d) was violated the same morning it was written — the fix verified `trade_ideas.json` but not `public/trade_idea_scores.json`, the file the Scorecard PAGE actually renders, so Joe loaded the page and still saw "Short CBOT wheat (front month)" until 21:15 UTC would have refreshed it. The consumer list for a scorecard field is at minimum: the scores file, the Scorecard page, the scorer, its workflow, its tests. Enumerate them by grepping for the FILE names, not by memory — and when a fix lands mid-day, regenerate any derived file a reader sees now rather than waiting for its schedule.
+
+### 6.19 (2026-09-10) — A release's "market impact" is an event study, and an event study has to attribute a session before it grades it
+
+**What happened:** Joe asked for a Macro Ops-style market-impact mark on the release calendar. The first pass — mean absolute release-day move in the S&P, the 10-year and the dollar against an ordinary session — graded **Construction spending HIGH (1.6×)**. It lands at 10:00 on the first business day, the same session as ISM Manufacturing; the grade was ISM's. With attribution fixed, **Wholesale inventories graded HIGH** on 14 sessions (S&P 1.8×) — a report that does not move stocks, on sessions that happened to move.
+
+**Rule:**
+
+1. **Attribute the session first.** A release is measured only on sessions where nothing of a strictly higher tier landed. With fewer than 8 such sessions it is not graded; it is reported as *sharing its days with X*, which is what the data can actually say.
+2. **A ratio needs a z.** A market counts toward the grade only when its release-day excess clears a one-sided z of 1.5 against the window's ordinary session; the ratio is still published, marked *not distinguishable*.
+3. **A HIGH needs a sample.** Fewer than 20 clean sessions caps the grade at medium (ECI: 1.41× on 12 sessions, z 1.56).
+4. **Publish the numbers with the mark.** Every grade on the site carries n, the per-market ratios and the window in its tooltip and panel — a mark that asks to be trusted is opinion with a glyph.
+5. **Direction is a definition, never a forecast.** The transmission sentence is the textbook one for the release's category (hot inflation → yields and dollar up, stocks down; higher claims the reverse; the FOMC's direction is the outcome's). No nowcast of which way the print will go.
+
+**Applies to:** Senior Quant (method), Lead Developer (the builder), UX Designer (the mark never renders without its numbers reachable).
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component

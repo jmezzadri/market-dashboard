@@ -49,6 +49,21 @@ RULES THIS SCRIPT OBEYS
   silently missing from the file.
 * Exits 1 if fewer than 20 measures carry at least 24 points — a broken FRED
   fetch must not publish a file of empty charts.
+
+MARKET IMPACT (added 2026-09-10 — Joe: "I like how Macro Ops lays out their
+calendar also showing potential impact to markets")
+-----------------------------------------------------------------------------
+For every release, an EVENT STUDY over the same three years: on the days this
+release landed, how far did the S&P 500, the 10-year yield and the dollar move
+(close to prior close, absolute), against the average day in the window? The
+ratio is the impact — 1.0 means release days look like any other day. It is
+measured, not opined; the number of release days it rests on is published with
+it. Releases stamped 4:00 PM ET or later land after the close, so their move
+is the NEXT session's. A day carrying several releases credits each of them —
+stated in the notes, not hidden. Direction is the textbook transmission for
+the release's category (a strong growth or inflation print lifts yields and
+the dollar and weighs on stocks; higher claims are the reverse; the FOMC's
+direction is the outcome's, not the print's), never a forecast.
 """
 
 from __future__ import annotations
@@ -56,10 +71,14 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import build_econ_calendar as CAL  # noqa: E402  — the same date sources the tile uses
 
 FRED_API_KEY_DEFAULT = "e1696db1c3f8bb036993f40c61aad0d5"
 FRED_BASE = "https://api.stlouisfed.org/fred"
@@ -370,6 +389,187 @@ def fedfunds_implied(next_meeting: str, key: str):
     )
 
 
+# ── market impact: an event study on release days ──────────────────────────
+IMPACT_MARKETS = (
+    # key in indicator_history, label, how a one-day move is measured, unit
+    ("spx_index", "S&P 500", "pct", "%"),
+    ("ust_10y", "10-year yield", "bp", "bp"),
+    ("usd", "Dollar index", "pct", "%"),
+)
+IMPACT_THRESHOLDS = dict(high=1.35, medium=1.10)   # max SIGNIFICANT ratio across the three markets
+IMPACT_Z = 1.5                                       # one-sided z for a market to count toward the grade
+IMPACT_MIN_N_HIGH = 20                               # clean sessions needed before a HIGH grade
+
+# Textbook transmission by release category — a definition, not a forecast.
+DIRECTION = {
+    "Inflation": "A hotter print typically lifts yields and the dollar and weighs on stocks; a cooler one the reverse.",
+    "Growth": "A stronger print typically lifts yields and the dollar; stocks weigh growth against the rate response.",
+    "Consumer": "A stronger print typically lifts yields and the dollar; stocks weigh growth against the rate response.",
+    "Labor": "A stronger print typically lifts yields and the dollar and weighs on rate-sensitive stocks; a weaker one the reverse.",
+    "Surveys": "A stronger survey typically lifts yields and the dollar; a weak one the reverse.",
+    "Housing": "A stronger print typically lifts yields; the direct equity read is confined to builders and rate-sensitives.",
+    "Policy": "The direction is the outcome's, not the print's: a hawkish decision or projections lift front-end yields and the dollar and weigh on stocks; a dovish one the reverse.",
+    "Trade": "Little systematic same-day market direction; feeds GDP tracking estimates.",
+    "Flows": "Little systematic same-day market direction; read for who is funding the deficit.",
+    "Liquidity": "Little systematic same-day market direction; read for reserve and balance-sheet trends.",
+}
+DIRECTION_OVERRIDES = {
+    "Jobless claims": "HIGHER claims are the weak print: they typically pull yields and the dollar down and can lift rate-sensitive stocks; lower claims the reverse.",
+}
+
+
+def _daily_moves(points, how):
+    """{date: one-day move} from a daily [[iso, value], …] series."""
+    out = {}
+    prev = None
+    for d, v in points:
+        if v is None:
+            continue
+        v = float(v)
+        if prev is not None and prev[1]:
+            out[d] = (v / prev[1] - 1.0) * 100.0 if how == "pct" else (v - prev[1]) * 100.0
+        prev = (d, v)
+    return out
+
+
+def _next_session(d_iso, trading_days):
+    """First trading day strictly after d_iso (release landed after the close)."""
+    for t in trading_days:
+        if t > d_iso:
+            return t
+    return None
+
+
+def _on_or_next_session(d_iso, trading_days):
+    for t in trading_days:
+        if t >= d_iso:
+            return t
+    return None
+
+
+def past_release_dates(start, end, key):
+    """Every release date in the window, by event name, from the SAME sources
+    the calendar tile uses. ISM is recomputed here over the whole window (the
+    calendar's helper only looks six months ahead)."""
+    events, _ = CAL.build_fred_events(start, end, key)
+    fomc, _ = CAL.build_fomc_events(start, end)
+    umich, _ = CAL.build_umich_prelim_events(start, end, key)
+    events = events + fomc + umich
+    y, m = start.year, start.month
+    while (y, m) <= (end.year, end.month):
+        for n, name in ((1, "ISM Manufacturing"), (3, "ISM Services")):
+            d = CAL.nth_business_day(y, m, n)
+            if start <= d <= end:
+                events.append(dict(date=d.isoformat(), time_et="10:00 AM", name=name, tier=1))
+        m += 1
+        if m == 13:
+            m, y = 1, y + 1
+    by_name = {}
+    for e in events:
+        by_name.setdefault(e["name"], {})[e["date"]] = (e.get("time_et", ""), int(e.get("tier") or 3))
+    return by_name
+
+
+def _after_close(time_et):
+    m = re.match(r"(\d+):(\d+)\s*(AM|PM)", time_et or "")
+    if not m:
+        return False
+    h = int(m.group(1)) % 12 + (12 if m.group(3) == "PM" else 0)
+    return h * 60 + int(m.group(2)) >= 16 * 60
+
+
+def compute_impact(ind_hist, dates_by_name, start):
+    """Per release: mean |one-day move| on release days vs all days, per market.
+
+    ATTRIBUTION. Construction spending lands at 10:00 on the first business
+    day — the same session as ISM Manufacturing — and on an unconditional
+    study it graded HIGH (1.6x) on ISM's back. So a release is measured only
+    on its CLEAN sessions: those where nothing of a strictly higher tier
+    landed. A release with fewer than 8 clean sessions is not graded; it is
+    reported as sharing its days with the release that outranks it, which is
+    the honest statement of what the data can and cannot separate."""
+    series = {}
+    for key, _label, how, _unit in IMPACT_MARKETS:
+        pts = [p for p in (ind_hist.get(key) or {}).get("points", []) if p[0] >= start.isoformat()]
+        series[key] = _daily_moves(pts, how)
+    trading_days = sorted(set().union(*(set(v) for v in series.values())))
+    base = {}
+    for key, _l, _h, _u in IMPACT_MARKETS:
+        vals = [abs(v) for v in series[key].values()]
+        base[key] = sum(vals) / len(vals) if vals else None
+
+    # session → list of (name, tier) landing in it
+    def _session_of(d, t):
+        sd = _next_session(d, trading_days) if _after_close(t) else _on_or_next_session(d, trading_days)
+        return sd if sd and sd <= trading_days[-1] else None
+    landings = {}
+    for name, dates in dates_by_name.items():
+        for d, (t, tier) in dates.items():
+            sd = _session_of(d, t)
+            if sd:
+                landings.setdefault(sd, []).append((name, tier))
+
+    out = {}
+    for name, dates in dates_by_name.items():
+        my_tier = min(tier for _t, tier in dates.values())
+        all_days, clean_days, crowding = set(), set(), {}
+        for d, (t, _tier) in dates.items():
+            sd = _session_of(d, t)
+            if not sd:
+                continue
+            all_days.add(sd)
+            outrank = [n for n, tier in landings.get(sd, []) if n != name and tier < my_tier]
+            if outrank:
+                for n in outrank:
+                    crowding[n] = crowding.get(n, 0) + 1
+            else:
+                clean_days.add(sd)
+        session_days = sorted(clean_days)
+        shared_with = max(crowding, key=crowding.get) if crowding else None
+        markets = {}
+        ratios = []
+        for key, label, how, unit in IMPACT_MARKETS:
+            mv = [abs(series[key][d]) for d in session_days if d in series[key]]
+            if len(mv) < 8 or not base[key]:
+                markets[key] = dict(label=label, unit=unit, n=len(mv), release_day=None, typical_day=round(base[key], 3) if base[key] else None, ratio=None)
+                continue
+            avg = sum(mv) / len(mv)
+            ratio = avg / base[key]
+            # Is the excess distinguishable from luck? A z-score of the mean
+            # absolute move against the window average, using the release-day
+            # sample's own spread. Wholesale inventories graded HIGH on 14
+            # sessions (S&P 1.8x) before this filter — the report does not move
+            # stocks; the sessions happened to. Only a market clearing z >= 1.5
+            # (one-sided, ~93%) counts toward the grade; the ratio is still
+            # published, marked as not distinguishable.
+            sd = (sum((x - avg) ** 2 for x in mv) / (len(mv) - 1)) ** 0.5
+            z = (avg - base[key]) / (sd / len(mv) ** 0.5) if sd > 0 else 0.0
+            significant = z >= IMPACT_Z
+            if significant:
+                ratios.append(ratio)
+            markets[key] = dict(label=label, unit=unit, n=len(mv), release_day=round(avg, 3),
+                                typical_day=round(base[key], 3), ratio=round(ratio, 2),
+                                z=round(z, 2), significant=significant)
+        top = max(ratios) if ratios else None
+        graded = any(m.get("ratio") is not None for m in markets.values())
+        if top is None:
+            rating = ("low" if graded
+                      else "shared" if shared_with and len(all_days) >= 8 else None)
+        else:
+            rating = ("high" if top >= IMPACT_THRESHOLDS["high"]
+                      else "medium" if top >= IMPACT_THRESHOLDS["medium"] else "low")
+            # A HIGH grade needs a real sample behind it: ECI cleared 1.35x on
+            # twelve sessions with a z of 1.56. Fewer than 20 clean sessions
+            # caps the grade at medium — the ratio is published either way.
+            if rating == "high" and len(session_days) < IMPACT_MIN_N_HIGH:
+                rating = "medium"
+        out[name] = dict(rating=rating, top_ratio=round(top, 2) if top else None,
+                         n_days=len(session_days), n_all_days=len(all_days),
+                         shared_with=shared_with if rating == "shared" else None,
+                         window_from=start.isoformat(), markets=markets)
+    return out
+
+
 # ── build ──────────────────────────────────────────────────────────────────
 def load_indicator_history(path: str):
     try:
@@ -395,13 +595,20 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
         fomc_dates = sorted(e["date"] for e in cal.get("events", [])
                             if e.get("name") == "Fed decision (FOMC)" and e["date"] >= today.isoformat())
     except FileNotFoundError:
-        fomc_dates = []
+        cal, fomc_dates = {}, []
     if not fomc_dates:
         raise RuntimeError("no forward FOMC date in the calendar — cannot price the next meeting")
     ff_nc = fedfunds_implied(fomc_dates[0], key)
 
     ind_hist = load_indicator_history(indicator_history_path)
     fred_cache: dict[str, tuple[list, dict]] = {}
+
+    # Market impact — the same three-year window as the prints.
+    impact_start = today.replace(year=today.year - YEARS)
+    dates_by_name = past_release_dates(impact_start, today, key)
+    impact = compute_impact(ind_hist, dates_by_name, impact_start)
+    if sum(1 for v in impact.values() if v["rating"]) < 15:
+        raise RuntimeError("impact study covered fewer than 15 releases — market series or release dates missing")
 
     series_out = {}
     good = 0
@@ -446,7 +653,15 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
                 nc = {k: v for k, v in nc.items() if k != "printed"}
             entry["nowcast"] = nc
             ms.append(entry)
-        series_out[name] = dict(measures=ms)
+        cat = None
+        for e in cal.get("events", []):
+            if e.get("name") == name:
+                cat = e.get("category")
+                break
+        imp = impact.get(name)
+        if imp:
+            imp = dict(imp, direction=DIRECTION_OVERRIDES.get(name) or DIRECTION.get(cat or "", ""))
+        series_out[name] = dict(measures=ms, impact=imp)
 
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -460,6 +675,14 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
             "Federal Reserve Bank of Atlanta — GDPNow, via FRED",
             "CME 30-day fed funds futures via Yahoo Finance — rate priced for the month after the next FOMC meeting",
         ],
+        "impact_method": {
+            "window_from": impact_start.isoformat(),
+            "markets": [dict(key=k, label=l, unit=u) for k, l, _h, u in IMPACT_MARKETS],
+            "thresholds": IMPACT_THRESHOLDS,
+            "min_z": IMPACT_Z,
+            "min_sessions_for_high": IMPACT_MIN_N_HIGH,
+            "note": "Mean absolute close-to-prior-close move on the sessions this release landed, divided by the mean absolute move on all sessions in the window. Releases at or after 4:00 PM ET are credited to the next session. A release is measured only on sessions where nothing of a higher tier landed; with fewer than eight such sessions it is reported as sharing its days with the release that outranks it, not graded. A market counts toward the grade only when its release-day excess clears a one-sided z of 1.5; otherwise its ratio is shown as not distinguishable from an ordinary day.",
+        },
         "notes": [
             "Actual prints are the current FRED vintage, revisions included — not the number as first released.",
             "No street consensus is shown (June 2026 decision: no paid vendor). Every forecast shown names its author.",
