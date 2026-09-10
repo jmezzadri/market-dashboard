@@ -33,6 +33,8 @@ import useEngineRegime from '../lib/useEngineRegime';
 import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
+import ReleaseDetailModal from '../components/ReleaseDetailModal';
+import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
@@ -216,7 +218,11 @@ export default function HomePage() {
   const [drillIdx, setDrillIdx] = useState(null);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
-  const { days: calDays, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
+  const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
+  const [calOpen, setCalOpen] = useState(false);
+  // Which release's detail is open, or null. Joe 2026-09-10: a release is a
+  // thing to read about where you are, not a link to the Macro page.
+  const [openRelease, setOpenRelease] = useState(null);
   const { idea, nextPublish } = useTradeIdea();
 
   // Charts are declarative: the note names series that already exist in
@@ -467,17 +473,36 @@ export default function HomePage() {
           <Reveal className="tile putty-card cal-tile cal-strip sp5">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot" />Upcoming data</div>
-              <a href="/macro" onClick={go('/macro')}>
-                {calMeta?.counts?.total > 0 ? `All ${calMeta.counts.total} releases →` : 'Macro Overview →'}
-              </a>
+              {/* The full calendar opens HERE. This used to link to the Macro
+                  page, which has never carried a release calendar. */}
+              {calMeta?.counts?.total > 0 && (
+                <a href="#releases" onClick={(e) => { e.preventDefault(); setCalOpen(true); }}>
+                  All releases →
+                </a>
+              )}
             </div>
             <div className="calrows">
+              {/* One line per day; each release on it is its own button. The
+                  releases used to be joined into one string in a nowrap,
+                  ellipsis cell — on 2026-09-16 that read "Retail sales ·
+                  Import & export prices · Fed decisi…" and the FOMC, the one
+                  release the whole week is about, was the part cut off (Joe,
+                  2026-09-10). Now the day's most important release leads, the
+                  line wraps, and nothing is truncated. Each release carries its
+                  own time so a 2:00 PM decision is never stamped 8:30 AM. */}
               {calDays.map((d) => (
-                <a key={d.date} className={`srow calrow${d.isToday ? ' calrow--today' : ''}`} href="/macro" onClick={go('/macro')}>
+                <div key={d.date} className={`srow calrow${d.isToday ? ' calrow--today' : ''}`}>
                   <span className="when">{d.isToday ? 'Today' : weekdayDate(d.date)}</span>
-                  <span className="what">{d.events.map((e) => e.name).join(' · ')}</span>
-                  <span className="cal-time">{d.time}</span>
-                </a>
+                  <span className="what">
+                    {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => (
+                      <button key={e.name} type="button" className={`cal-ev${e.tier === 1 ? ' cal-ev--major' : ''}`}
+                              onClick={() => setOpenRelease(e)}>
+                        <span className="cal-ev-name">{e.name}</span>
+                        <span className="cal-time">{e.time_et}</span>
+                      </button>
+                    ))}
+                  </span>
+                </div>
               ))}
               {calDays.length === 0 && !calFailed && (
                 <div className="secnote">No major releases scheduled in the next ten weeks.</div>
@@ -546,6 +571,9 @@ export default function HomePage() {
       {/* full trade-idea note */}
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
+      <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta}
+                            onClose={() => setCalOpen(false)} onPick={(e) => { setOpenRelease(e); }} />
+      <ReleaseDetailModal event={openRelease} onClose={() => setOpenRelease(null)} />
       <IndexDrillModal indexKey={drillIdx} hist={levelHist} onClose={() => setDrillIdx(null)} />
 
       {ideaOpen && idea && (

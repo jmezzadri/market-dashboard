@@ -95,7 +95,13 @@ function niceTicks(min, max, n = 4) {
    stays, because a number on this site never appears unattributed. The full
    apparatus (subtitle, table view, every chart in the note) is one click away
    in the note itself. */
-export default function IdeaChart({ spec, series, asOf = null, width: widthProp = 620, height = 220, compact = false }) {
+/* `expected` is an OPTIONAL single point drawn one period to the right of the
+   last print — a named forecaster's nowcast for the print that has not landed
+   yet ({ date, value, label }). It is a marker, not a second series: a hollow
+   gold ring on the same axis, so the reader sees "last print, then what the
+   forecaster expects next" with nothing invented between. Two-series charts
+   stay rejected (see the header); one extra point is not a series. */
+export default function IdeaChart({ spec, series, asOf = null, width: widthProp = 620, height = 220, compact = false, expected = null }) {
   const [hover, setHover] = useState(null);
   const [tableOpen, setTableOpen] = useState(false);
   /* One user unit = one CSS pixel. The canvas used to be a fixed 620 units
@@ -127,7 +133,11 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
   }
 
   const dec = spec?.decimals ?? 2;
+  const exp = (expected && expected.date && Number.isFinite(Number(expected.value)))
+    ? { date: String(expected.date).slice(0, 10), value: Number(expected.value), label: expected.label || 'expected' }
+    : null;
   const vals = all.map((p) => p[1]);
+  if (exp) vals.push(exp.value);
   let lo = Math.min(...vals);
   let hi = Math.max(...vals);
   if (spec?.zero_rule && lo > 0) lo = 0;
@@ -138,7 +148,8 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
   const iw = width - PAD.l - PAD.r;
   const ih = height - PAD.t - PAD.b;
   const t0 = new Date(`${all[0][0]}T00:00:00Z`).getTime();
-  const t1 = new Date(`${all[all.length - 1][0]}T00:00:00Z`).getTime();
+  const tLast = new Date(`${all[all.length - 1][0]}T00:00:00Z`).getTime();
+  const t1 = exp ? Math.max(tLast, new Date(`${exp.date}T00:00:00Z`).getTime()) : tLast;
   const span = t1 - t0 || 1;
   const X = (iso) => PAD.l + ((new Date(`${iso}T00:00:00Z`).getTime() - t0) / span) * iw;
   const Y = (v) => PAD.t + ih - ((v - lo) / (hi - lo)) * ih;
@@ -148,7 +159,7 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
 
   const last = all[all.length - 1];
   const yTicks = niceTicks(lo, hi, 4);
-  const xTicks = [all[0], all[Math.floor(all.length / 2)], last];
+  const xTicks = [all[0], all[Math.floor(all.length / 2)], exp && exp.date > last[0] ? [exp.date] : last];
 
   const onMove = (e) => {
     const r = wrapRef.current?.getBoundingClientRect();
@@ -231,10 +242,38 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
 
           {/* emphasis: the accent is spent on the current reading only */}
           <circle className="ic-dot" cx={X(last[0])} cy={Y(last[1])} r="4.5" />
-          <text className="ic-endlab" x={X(last[0]) + 9}
-                y={Math.max(PAD.t + 6, Math.min(PAD.t + ih - 6, Y(last[1])))} dominantBaseline="middle">
-            {fmtVal(last[1], dec)}{spec.unit || ''}
-          </text>
+          {/* With a forecaster's point one period to the right, the end label
+              would run straight through it — the latest value is in the header
+              readout, so the label yields to the ring. */}
+          {!exp && (
+            <text className="ic-endlab" x={X(last[0]) + 9}
+                  y={Math.max(PAD.t + 6, Math.min(PAD.t + ih - 6, Y(last[1])))} dominantBaseline="middle">
+              {fmtVal(last[1], dec)}{spec.unit || ''}
+            </text>
+          )}
+
+          {/* the forecaster's point: hollow ring, label beneath if the end
+              label would otherwise cover it */}
+          {exp && (() => {
+            const ex = X(exp.date);
+            const ey = Y(exp.value);
+            /* The ring sits at the right edge of the plot by construction (it
+               is the last period), so its label goes ABOVE it, centred — a
+               label to the right would run off the figure, and one to the
+               left would sit on the line's final stretch. Flips below when
+               the ring is near the top. */
+            const above = ey - PAD.t > 26;
+            const labY = above ? ey - 12 : ey + 16;
+            return (
+              <g className="ic-expected">
+                <circle className="ic-expdot" cx={ex} cy={ey} r="4.5" />
+                <text className="ic-explab" x={ex} y={labY} textAnchor="middle" dominantBaseline="middle">
+                  {fmtVal(exp.value, dec)}{spec.unit || ''}
+                  <tspan className="ic-explab-k"> {exp.label}</tspan>
+                </text>
+              </g>
+            );
+          })()}
 
           {hover && (
             <g>
@@ -283,6 +322,9 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
           <table>
             <thead><tr><th>Date</th><th>{spec.title}</th></tr></thead>
             <tbody>
+              {exp && (
+                <tr className="ic-exprow"><td>{fmtDate(exp.date, true)} · {exp.label}</td><td>{fmtVal(exp.value, dec)}{spec.unit || ''}</td></tr>
+              )}
               {/* Newest first, and a bounded sample of a long daily series with
                   the count stated — a silent cap would read as the whole series. */}
               {all.slice().reverse().filter((_, i, arr) => i < 12 || i % Math.ceil(arr.length / 24) === 0)

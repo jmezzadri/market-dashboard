@@ -4158,6 +4158,44 @@
    "cadence_display": "Twice daily \u00b7 5:30 AM & 4:30 PM"
   },
   {
+   "id": "site-econ_release_history-daily",
+   "name": "econ_release_history",
+   "category": "indicator",
+   "description": "Three years of actual prints plus a named public nowcast for every release on the homepage \"Upcoming data\" tile \u2014 the feed behind the release modal that opens when a release is clicked. Actual prints are FRED series observations (current vintage, revisions included) for the headline number each release is traded on (CPI month over month, payroll change, initial claims, real GDP annualised growth, the effective fed funds rate for the FOMC, and so on); ISM comes from the site's own indicator feed. Nowcasts, where a free public forecaster exists and always labelled by author: Federal Reserve Bank of Cleveland inflation nowcast (CPI, core CPI, PCE, core PCE), Atlanta Fed GDPNow via FRED, and the rate priced by the CME 30-day fed funds future for the month after the next FOMC meeting (Yahoo Finance) against the current effective rate. No street consensus \u2014 June 2026 decision, no paid vendor.",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "FRED (observations) + Federal Reserve Bank of Cleveland (inflation nowcast) + Federal Reserve Bank of Atlanta (GDPNow via FRED) + Yahoo Finance (CME fed funds futures)",
+   "source_endpoint": "api.stlouisfed.org/fred/series/observations + clevelandfed.org/-/media/files/webcharts/inflationnowcasting/nowcast_month.json + query2.finance.yahoo.com/v8/finance/chart/ZQ<mon><yy>.CBT",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "GH workflow ECON-CALENDAR-DAILY (cron 30 9 * * * and 30 20 * * *), second step after the calendar",
+   "release_calendar": "us-business-day",
+   "freshness_sla_hours": 30,
+   "data_max_age_hours": 48,
+   "data_calendar": "us-business-day",
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "data_as_of is the build time; each measure carries its own series-updated date in the file.",
+   "output_destination": "public/econ_release_history.json",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Upcoming data \u2014 release detail modal"
+    }
+   ],
+   "dependencies": [
+    "site-econ_calendar-daily",
+    "site-indicator_history-aggregate"
+   ],
+   "failure_mode": "Builder exits 1 if any nowcast cannot be fetched or fewer than 20 measures carry 24+ prints; the site keeps the last good file and this chip goes red. A release with no free series behind it is listed with no measures and the modal says so.",
+   "owner": "Lead Developer (pipe), Senior Quant (measure definitions), Data Steward (registration)",
+   "producer_script": "scripts/build_econ_release_history.py",
+   "current_status": "live",
+   "sla_basis": "Twice-daily job; SLA = job cadence + grace. Graded off last successful build.",
+   "display_name": "Economic release history & nowcasts",
+   "cadence_display": "Twice daily \u00b7 5:30 AM & 4:30 PM"
+  },
+  {
    "id": "site-trade_ideas-biweekly",
    "name": "trade_ideas",
    "category": "indicator",
