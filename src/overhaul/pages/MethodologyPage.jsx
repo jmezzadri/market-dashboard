@@ -505,25 +505,50 @@ export default function MethodologyPage() {
               broker&rsquo;s official records, snapshotted after each close.
             </p>
             <p className="me-body-p">
-              <b>The crash brake.</b> Once a day after the close, the book checks one number: the
-              average of where the market&rsquo;s fear gauge (VIX) and the depth of the recent
-              fall in high-yield credit each sit against their own last three years. Above the
-              trigger, the book <b>sells half of every position</b> and sits on the cash; it buys
-              back to full size only after stress has clearly receded (separate on and off levels,
-              so it cannot flip-flop). The brake can only ever do those two things — halve or
-              restore. It never picks stocks. It is also the one honest change of mind on this
-              page: an earlier version of this book rejected any market-timing overlay because
-              trend filters cost 4–5 points a year in this decade&rsquo;s fast recoveries, and
-              that cost is still real — the brake will give up ground whenever a panic reverses
-              quickly. It was added at the owner&rsquo;s direction on August 28, 2026, trading
-              some upside for a cap on catastrophe.
+              <b>The crash brake &mdash; what it reads.</b> Once a day after the close, the book
+              computes one stress reading from two gauges. <b>Gauge 1:</b> where today&rsquo;s
+              VIX sits against every day of the last three years (0 = calmest day in three years,
+              1 = most fearful). <b>Gauge 2:</b> how far the largest high-yield bond fund (HYG)
+              has fallen from its high of the last three months, ranked the same way against
+              the last three years (0 = no fall to speak of, 1 = the deepest fall in three years).
+              The two are averaged into a single number between 0 and 1. <b>Neither gauge has
+              to trip on its own &mdash; only the average matters.</b> A VIX spike with calm
+              credit, or a credit wobble with a calm VIX, usually will not reach the trigger; it
+              takes both leaning the same way.
+            </p>
+            <p className="me-body-p">
+              <b>What it does.</b> <b>Sell half:</b> the first day the average closes above
+              <b>0.80</b>, the brake switches on and sells half of every position at the next
+              open; the cash sits idle. <b>Buy back:</b> the brake stays on until the average
+              closes below <b>0.65</b>, then buys every position back to full size at the next
+              open. The gap between 0.80 and 0.65 is deliberate: a reading hovering at the line
+              cannot sell and buy back day after day. While on, the monthly rebalance still runs
+              at half size. The brake can only ever do those two things &mdash; halve or restore.
+              It never picks stocks, never shorts, never borrows, and if any of its data is
+              missing it does nothing. For scale: on September 9, 2026 the reading was 0.57.
+              Replayed over 2010&ndash;2026 the rule would have switched on 37 times &mdash;
+              roughly twice a year, including the 2018 correction, the 2020 crash and the 2022
+              bear &mdash; and held the book at half size about one day in six, sometimes for a
+              single day before buying back.
+            </p>
+            <p className="me-body-p">
+              <b>Where the rule came from, and what has not been tested.</b> The rule was lifted
+              unchanged from the cross-asset allocation engine, where it was tested from 2008
+              to 2026 on a 14-fund book: it added 0.07 to the Sharpe ratio and cut the worst fall
+              by three points. It has <b>not</b> yet been tested on this 20-stock book. A separate
+              July 2026 study of volatility gates on an earlier stock book found the MOVE index
+              (bond-market volatility) a better gate than the VIX, but rejected every gate on that
+              book because each cost 9&ndash;10 points of return a year by sitting out recoveries.
+              That is the trade the brake makes: it will give up ground whenever a panic reverses
+              quickly, in exchange for a cap on catastrophe. It was added at the owner&rsquo;s
+              direction on August 28, 2026.
             </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
               score    = 0.45·mom12 + 0.30·mom6 + 0.15·trend + 0.10·drawdown + 0.15·gross_profit/assets + 0.10·cash_flow/assets + 0.20·buyback (all cross-sectional ranks)<br />
               insider  = + up to 0.20 bonus · officers/directors only · open-market only, no 10b5-1 · ranked by purchase ÷ existing stake · buys &gt; $250k half-weighted · never a penalty<br />
               book     = top 20 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
-              brake    = daily, after the close · mean(VIX 3y percentile, HY-credit drawdown 3y percentile) · &gt;0.80 sell half · &lt;0.65 restore<br />
+              brake    = daily, after the close · average of (VIX rank vs last 3y) and (HYG 3-month fall, rank vs last 3y) · average &gt; 0.80 → sell half · then average &lt; 0.65 → buy back to full<br />
               risk     = no leverage · ~5% per name · the monthly exit band · the brake — no per-stock stops
             </div>
           </div>
