@@ -44,6 +44,20 @@ def _post(table: str, rows: list[dict], on_conflict: str | None = None) -> None:
         r.raise_for_status()
 
 
+def brake_is_on() -> bool:
+    """Latest qt_brake_state row. Any failure reads as OFF -- the brake's own
+    rule is that a brake that cannot see must not steer; the rebalance follows it."""
+    try:
+        r = requests.get(f"{SB_URL}/rest/v1/qt_brake_state", headers=D._sb_headers(),
+                         params={"select": "stress_on", "order": "d.desc", "limit": "1"}, timeout=30)
+        r.raise_for_status()
+        rows = r.json()
+        return bool(rows and rows[0]["stress_on"])
+    except Exception as e:  # noqa: BLE001
+        print(f"brake state unreadable ({e}); sizing at full weight", flush=True)
+        return False
+
+
 def current_holdings() -> list[str]:
     """Names already in the account — the trade band needs them."""
     try:
@@ -102,6 +116,13 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
                             headers=D._alpaca_headers(), timeout=60).json()
         equity = float(acct["equity"])
     per = equity * CONFIG.GROSS_EXPOSURE / CONFIG.POSITIONS
+    # Honour the crash brake. Found 2026-09-10: the rebalance sized every name to
+    # full weight regardless of brake state, so a monthly rebalance landing while
+    # the brake was ON would have bought the book straight back to full size --
+    # and the brake, which acts only on a state FLIP, would never have re-halved.
+    if brake_is_on():
+        per *= CONFIG.BRAKE_SCALE
+        print(f"crash brake is ON: sizing the book at {CONFIG.BRAKE_SCALE:.0%}", flush=True)
 
     nm = uni.set_index("query_symbol").name
     book = pd.DataFrame({
