@@ -21,7 +21,7 @@
    Deploy stamp 2026-08-17T14:4x: Vercel promoted a stale queued build over
    the v4 commit; this line exists to force a fresh production build.
 
-   Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily.
+   Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily, qt_brake_state.
    Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -426,6 +426,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const [query, setQuery] = useState('');
   const [btRange, setBtRange] = useState('All');
   const [openSectors, setOpenSectors] = useState(null); // null = default (top sector open)
+  const [brake, setBrake] = useState(null);   // latest qt_brake_state row: {d, composite, stress_on}
 
   const load = useCallback(async () => {
     try {
@@ -434,14 +435,16 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         .order('rebalance_date', { ascending: false }).limit(1);
       if (e1) throw e1;
       const rd = latest?.[0]?.rebalance_date;
-      const [bk, od, nv] = await Promise.all([
+      const [bk, od, nv, br] = await Promise.all([
         rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
         rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
           .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
         supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at,account_number').order('d'),
+        supabase.from('qt_brake_state').select('d,composite,stress_on,action').order('d', { ascending: false }).limit(1),
       ]);
       if (bk.error) throw bk.error;
       setBook(bk.data || []);
+      setBrake(br?.data?.[0] || null);
       // Several order rows can exist per symbol (an expired opening order plus
       // the day order that actually filled) — a FILLED row always wins.
       const om = {};
@@ -745,6 +748,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               ? '20 US companies · equal weight · monthly rebalance · crash brake · no leverage'
               : '40 US companies · equal weight · monthly rebalance · no leverage'}
             <br />
+            {/* The brake, in the open. Joe 2026-09-10: "I'm lost on what the trigger
+                is." Reading = MOVE Index vs its last five years (0-1); above 0.95
+                two days running the book goes to cash, below 0.80 it buys back. */}
+            {bookIsLive && brake && (
+              <>
+                {brake.stress_on
+                  ? `Crash brake ON — book in cash · bond-market stress ${Number(brake.composite).toFixed(2)} (back in below 0.80)`
+                  : `Crash brake off · bond-market stress ${Number(brake.composite).toFixed(2)} (to cash above 0.95, two days running)`}
+                {' · '}
+                <Link to="/methodology#portfolio" style={{ color: INK2, borderBottom: `1px solid ${EDGE}`, textDecoration: 'none', paddingBottom: 2 }}>how it works</Link>
+                <br />
+              </>
+            )}
             {bookIsLive
               ? '$1,000,000 paper account, inception Sep 1, 2026'
               : `$1,000,000 paper account, ${bookRan || 'now closed'} · closed`}{' · '}

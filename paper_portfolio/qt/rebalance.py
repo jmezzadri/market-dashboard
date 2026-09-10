@@ -121,6 +121,10 @@ def run(as_of: str | None = None, dry_run: bool = False, equity: float | None = 
     # the brake was ON would have bought the book straight back to full size --
     # and the brake, which acts only on a state FLIP, would never have re-halved.
     if brake_is_on():
+        # BRAKE_SCALE is 0.0 since v2: the target book is still scored and
+        # written (weights stay full, so the brake's restore leg knows what to
+        # buy), but every target_dollars is zero -- execute sells anything held
+        # and buys nothing until the brake switches off.
         per *= CONFIG.BRAKE_SCALE
         print(f"crash brake is ON: sizing the book at {CONFIG.BRAKE_SCALE:.0%}", flush=True)
 

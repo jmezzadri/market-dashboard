@@ -174,6 +174,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.16` The morning research sweep is a GATE on the publish decision, not background reading; a run that only sweeps its own feeds decides blind
 - `6.17` "X is at an extreme" is a reading, not analysis; every signal owes its WHY, its transmission path, and its consequence for the live book
 - `6.18` The scorecard grades the vehicle the reader is told to trade; a correction never moves the entry
+- `6.19` A rule lifted from another book is untested on this one; the backtest lives in the repo or it did not happen; VIX gates lose, MOVE gates win
 - `6.19` A release's market impact is an event study; attribute the session, demand a z, cap thin samples, publish the numbers with the mark
 
 **7 · CODE & RELEASE DISCIPLINE**
@@ -1618,6 +1619,23 @@ It didn't. The entry rule was "the first close ON OR AFTER the publication date"
 5. **Direction is a definition, never a forecast.** The transmission sentence is the textbook one for the release's category (hot inflation → yields and dollar up, stocks down; higher claims the reverse; the FOMC's direction is the outcome's). No nowcast of which way the print will go.
 
 **Applies to:** Senior Quant (method), Lead Developer (the builder), UX Designer (the mark never renders without its numbers reachable).
+
+### 6.19 (2026-09-10) — A rule lifted from another book is untested on this one; the backtest lives in the repo or it did not happen; VIX gates lose, MOVE gates win
+
+**What happened:** The Paper book's crash brake (VIX + high-yield composite, sell half above 0.80, restore below 0.65) shipped on 2026-08-31 lifted verbatim from the cross-asset engine's overlay, which had been tested on 14 ETFs. It was never run on the Quality Trend book. Joe asked what the trigger was and whether MOVE had not tested better; the Methodology page could not answer and I offered him "keep / pause / raise — your call". Joe: *"run the fucking test. Why are you pausing!!!! FIND THE BEST SOLUTION AND IMPLEMENT IT."* The published Quality Trend backtest could not help: its code was never committed and its daily series was saved nowhere. Rebuilt from the production scorer's rules (reconciles to the published figures on a monthly series; the published −19% drawdown was month-end, the daily worst was −33%), the shipped brake COST 3.5 pts/yr (Sharpe 0.72 vs 0.75 no-brake) and fired ~twice a year. Every VIX-based variant of ~400 lost to no brake; every MOVE-based variant beat it. Also found: the monthly rebalance ignored the brake's state and would have bought the book straight back to full size mid-panic.
+
+**Rule:**
+
+1. **No rule trades a book it was not tested on.** Lifting an overlay across books is a hypothesis, not evidence. Test on the destination book, both halves, at a one-day data lag, before it ships — 3.4's hand-computed paper check is necessary, not sufficient.
+2. **The backtest code and its daily series are committed with the strategy**, in `paper_portfolio/qt/research/<study>/`, or the number on the Methodology page is unverifiable. The Quality Trend rebuild is `qt/research/brake_study_2026-09-10/qt_backtest.py`; re-use it.
+3. **Declare the selection criterion before running the grid** and report the whole grid, not the winning cell. Ship the cell inside the robust region; say how many episodes carry the result.
+4. **Quote drawdowns on daily marks.** Month-end drawdowns understate a crash by a factor of ~2.
+5. **When a question can be settled by a backtest, run it in that turn and ship the answer.** Never hand Joe an empirical choice as a product call (see 0.1 / feedback 09-10).
+6. Every job that sizes the book reads the brake's state (`rebalance.py: brake_is_on()`); a brake that only acts on a state flip is undone by the next job that does not know it exists.
+
+**Result (live 2026-09-10):** MOVE Index percentile vs trailing 5y; > 0.95 two days running → all to cash; < 0.80 → all back in. 20-name book, 5bp, Feb 2017–Sep 2026: CAGR 23.7% vs 19.8%, Sharpe 1.00 vs 0.75, worst year 0.0% vs −6.5%, both halves, one-day lag, 40-name variant. Three episodes; thin sample, stated on the page.
+
+**Applies to:** Senior Quant (no untested rule ships; criterion first), Lead Developer (research directory is part of the change; sizing jobs read the brake), UX Designer (the brake's reading and state are on the Paper page, not only in a table).
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
