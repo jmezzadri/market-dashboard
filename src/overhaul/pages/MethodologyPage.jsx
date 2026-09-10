@@ -517,8 +517,8 @@ export default function MethodologyPage() {
               takes both leaning the same way.
             </p>
             <p className="me-body-p">
-              <b>What it does.</b> <b>Sell half:</b> the first day the average closes above
-              <b>0.80</b>, the brake switches on and sells half of every position at the next
+              <b>What it does.</b> <b>Sell half:</b> the first day the average closes
+              above <b>0.80</b>, the brake switches on and sells half of every position at the next
               open; the cash sits idle. <b>Buy back:</b> the brake stays on until the average
               closes below <b>0.65</b>, then buys every position back to full size at the next
               open. The gap between 0.80 and 0.65 is deliberate: a reading hovering at the line
@@ -677,7 +677,7 @@ export default function MethodologyPage() {
                 <tr>
                   <td>9:00 AM · 1st trading day</td>
                   <td>Quality Trend scoring</td>
-                  <td>Monthly: scores the full universe and writes the 40-name target book. Scoring cannot place orders — order placement is a separate, manually confirmed step.</td>
+                  <td>Monthly: scores the full universe and writes the 20-name target book. Scoring cannot place orders — order placement is a separate, manually confirmed step.</td>
                 </tr>
                 <tr>
                   <td>5:10 PM · daily</td>
