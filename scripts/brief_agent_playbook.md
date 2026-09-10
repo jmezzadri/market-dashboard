@@ -265,27 +265,47 @@ line, the headline, the market-snapshot table, the "All feeds current" chip and
 the surrounding tiles, and check for stale copy, placeholder text, hard-coded
 years, and numbers in prose that contradict the chart beside them.
 
-*How to render it in this sandbox (verified 2026-08-25).* The page is
-client-rendered, so a plain HTTP fetch returns an empty shell — a browser is
-required. Chromium is preinstalled at `/opt/pw-browsers/chromium` and Playwright
-is configured for it; never run `playwright install`. The sandbox exports an
-HTTP proxy in `$HTTPS_PROXY` which `curl` uses happily, but Chromium's CONNECT
-through that proxy is reset (`net::ERR_CONNECTION_RESET`) — this is what made an
-earlier session wrongly report that browser egress was blocked. Chromium's
-direct egress works, so launch with the proxy off:
+*How to render it in this sandbox — use the helper, do not re-derive it.* The
+page is client-rendered, so a plain HTTP fetch returns an empty shell. The repo
+already carries the tool for this:
 
-```js
-const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium',
-  args: ['--no-sandbox', '--no-proxy-server'],
-});
+```
+node scripts/render_page.cjs https://macrotilt.com/ /tmp/home.png
 ```
 
-Then `goto` with `waitUntil: 'networkidle'`, wait ~5s for the client-side data
-fetch, screenshot, and READ the screenshot with the Read tool — `innerText`
-alone will not show you a layout or clipping problem. If the render genuinely
-fails, say so plainly, state what was verified from the JSON instead, and never
-describe the page as visually verified.
+It prints the page's innerText and writes a full-page screenshot. READ the
+screenshot with the Read tool — innerText alone will not show a layout or
+clipping problem.
+
+**Do not hand-roll a Chromium launch.** Two separate egress failures live in
+this sandbox and a fresh launch hits one or the other:
+
+- through the container's CONNECT proxy, Chromium's tunnel is reset
+  (`net::ERR_CONNECTION_RESET`);
+- around it with `--no-proxy-server`, direct egress is TLS-intercepted by a CA
+  Chromium's own trust store does not carry
+  (`net::ERR_CERT_AUTHORITY_INVALID`, seen 2026-09-10 — the `--no-proxy-server`
+  recipe this file used to recommend worked on 2026-08-25 and does not now).
+
+`render_page.cjs` sidesteps both: it serves every request to the page from
+node's `fetch`, which traverses the proxy and trusts the bundle, so Chromium
+never touches the network. It also pins `executablePath` to the preinstalled
+`/opt/pw-browsers/chromium`; without that the launch dies with "Executable
+doesn't exist … chrome-headless-shell". Never run `playwright install`.
+
+**If it still fails, fix it in this file and open a PR — do not fix it only in
+your container.** Every firing gets a brand-new sandbox and clones this repo
+fresh. A workaround applied at the shell dies with the container, so the next
+morning's session rediscovers the same failure, improvises again, and reports
+"fixed" again. Joe has seen that loop enough times to name it. A render fix is
+finished when it is committed here, not when it works in your session. (LESSONS
+2a already says the same thing from the other direction: grep the repo before
+building a workaround — this helper existed for two weeks before a session
+hand-built a shim proxy next to it.)
+
+If the render genuinely fails after that, say so plainly, state what was
+verified from the JSON instead, and never describe the page as visually
+verified.
 
 **6. Report** in the numbered-table format, short. Joe is a management
 consultant, not an engineer: nothing he reads may contain a file path, a shell
