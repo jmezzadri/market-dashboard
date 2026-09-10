@@ -220,6 +220,9 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.16` A drill-down is not a destination; opening a detail view is no reason to move the user to another page
 - `9.17` Three typefaces, three tokens, one declaration site — and a family we declare but never load is a face nobody chose
 - `9.18` Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
+- `9.19` A card header is a fixed 28px band; a control cluster in it lands on the row below
+- `9.20` A viewBox scales the type inside it; a chart is drawn at its measured pixel width
+- `9.21` A row that truncates hides in proportion to how much there is to see; a "see all" link lands on the thing it names
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2029,7 +2032,6 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 ---
 
 
-# 10 · THE PUBLISHED BOOK — trade ideas & notes
 ### 9.17 (2026-09-08) — Three typefaces, three tokens, one declaration site; and a family we declare but never load is a face nobody chose
 
 **What happened:** Joe, on the Home cockpit: *"I thought we went over all the different font usages?! This looks ridiculous. Please can we fix this and mark a hard rule around fonts we use on the site? We need some consistency."*
@@ -2131,6 +2133,23 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Applies to:** UX Designer and Lead Developer on every PR touching a chart or a page the user has reported.
 
 
+
+### 9.21 (2026-09-10) — A row that truncates hides in proportion to how much there is to see; and a "see all" link must land on the thing it names
+
+**What happened:** Joe: *"How is FOMC meeting not on the upcoming Data Calendar on the home page?"* It was in the feed. The tile joined each day's releases into one string inside a nowrap / ellipsis cell, and on 2026-09-16 — three releases — that read "Retail sales · Import & export prices · Fed decisi…". The one release the whole week is about was the part cut off, because it was last by time of day. Truncation hides MORE on exactly the days with more to see, which is backwards for a calendar. The same tile's "All 101 releases →" link went to the Macro page, which has never carried a release calendar; and every row linked there too — Joe: *"It should open a modal that shows a chart of historical readings vs. expectations. Its so lazy what we have set up."*
+
+**Rule:**
+
+1. **No `text-overflow: ellipsis` on a list of things.** A cell that holds several items wraps or shortens each item; it never drops the last ones. If a container cannot fit its list, the container is the wrong shape.
+2. **Within a day, importance leads, not clock time.** Sort tier first; a 2:00 PM decision is not the third thing on its line.
+3. **Every item on a list carries its own stamp.** One time for a whole row stamps a 2:00 PM decision "8:30 AM".
+4. **A "see all" link lands on the thing it names, in place.** If the destination does not exist, build the list where the reader is (9.16) — never point at the nearest page and hope.
+5. **A release is a thing to read about, not a link.** The detail is the last three years of the headline number the desk trades on release, plus a nowcast where a free, public, NAMED forecaster covers it (Cleveland Fed, Atlanta Fed GDPNow, fed funds futures). Nothing is labelled "expectations" or "consensus": the June 2026 no-paid-vendor decision stands, and a forecast always names its author. Actual prints are the current FRED vintage, and the chart's source line says so.
+
+**Applies to:** UX Designer + Lead Developer on every list, calendar, and "see all" affordance; Senior Quant + Data Steward on the release-history feed.
+
+
+# 10 · THE PUBLISHED BOOK — trade ideas & notes
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

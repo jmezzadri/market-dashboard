@@ -1,7 +1,11 @@
 name: ECON-CALENDAR-DAILY
 
 # Rebuilds public/econ_calendar.json — the release schedule behind the
-# homepage "Upcoming data" tile.
+# homepage "Upcoming data" tile — and then public/econ_release_history.json,
+# the three years of prints + named nowcasts behind the modal a release opens
+# (added 2026-09-10; Joe: "It should open a modal that shows a chart of
+# historical readings vs. expectations"). Two feeds, two health rows, one run:
+# the history needs the calendar's next FOMC date, so it runs second.
 #
 # Why this workflow exists: that tile used to read a hand-typed array inside
 # src/overhaul/lib/econCalendar.js whose last entry was 2026-07-31. From
@@ -14,6 +18,9 @@ name: ECON-CALENDAR-DAILY
 #   FRED release calendar        — BLS / BEA / Census / Federal Reserve dates
 #   federalreserve.gov           — FOMC meeting dates
 #   ISM published schedule       — computed (1st and 3rd business day)
+#   FRED observations            — actual prints (history file)
+#   clevelandfed.org             — inflation nowcast (history file)
+#   Yahoo Finance                — CME fed funds futures (history file)
 #
 # Required GitHub secrets:
 #   FRED_API_KEY          — same key the indicator refresh uses
@@ -71,13 +78,25 @@ jobs:
         # correct.
         run: python3 scripts/build_econ_calendar.py public/econ_calendar.json
 
+      - name: Rebuild econ_release_history.json
+        id: history
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        # Exits 1 if any nowcast cannot be fetched or fewer than 20 measures
+        # carry 24+ prints. A failure here must not block the calendar commit
+        # below (the tile still needs today's dates), so this step is allowed
+        # to fail and its own health row records the outcome.
+        continue-on-error: true
+        run: python3 scripts/build_econ_release_history.py public/econ_release_history.json
+
       - name: Commit + push if changed
         run: |
-          if git diff --quiet -- public/econ_calendar.json; then
-            echo "No change to public/econ_calendar.json — skipping commit."
+          CHANGED=$(git diff --name-only -- public/econ_calendar.json public/econ_release_history.json)
+          if [ -z "$CHANGED" ]; then
+            echo "No change to the calendar or the release history — skipping commit."
           else
             N=$(python3 -c "import json;d=json.load(open('public/econ_calendar.json'));print(d['counts']['total'],d['counts']['tier1'])")
-            git add public/econ_calendar.json
+            git add public/econ_calendar.json public/econ_release_history.json
             git commit -m "Econ calendar refresh [skip ci]
 
             ${N% *} releases, ${N#* } major.
@@ -98,6 +117,22 @@ jobs:
           AS_OF=$(python3 -c "import json;print(json.load(open('public/econ_calendar.json'))['generated_at'])")
           python3 scripts/upsert_pipeline_health.py econ_calendar "$AS_OF" green
 
+      - name: Stamp release-history health
+        if: success()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # Its own row (econ_release_history), green off the file's generated_at
+        # when the builder succeeded, red with the reason when it did not — a
+        # run that produced nothing must never look fresh.
+        run: |
+          if [ "${{ steps.history.outcome }}" = "success" ]; then
+            AS_OF=$(python3 -c "import json;print(json.load(open('public/econ_release_history.json'))['generated_at'])")
+            python3 scripts/upsert_pipeline_health.py econ_release_history "$AS_OF" green
+          else
+            python3 scripts/upsert_pipeline_health.py econ_release_history - red "build_econ_release_history.py failed (nowcast or FRED fetch)"
+          fi
+
       - name: Stamp feed health (failure)
         if: failure()
         env:
@@ -107,3 +142,4 @@ jobs:
         # that produced nothing must never look fresh.
         run: |
           python3 scripts/upsert_pipeline_health.py econ_calendar - red "ECON-CALENDAR-DAILY failed"
+          python3 scripts/upsert_pipeline_health.py econ_release_history - red "ECON-CALENDAR-DAILY failed"

@@ -336,8 +336,20 @@
 .home-cockpit .es-gauges .track{margin:14px 0 7px}
 .home-cockpit .es-gauges .gauge .read{margin-top:9px;font-size: var(--v13-t3)}
 .home-cockpit .cal-strip .calrows{justify-content:flex-start;gap:0}
-.home-cockpit .cal-strip .srow{min-height:0;height:40px}
-.home-cockpit .cal-strip .calrow .what{font-size: var(--v13-t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* A day's releases are separate buttons on a line that WRAPS. The cell used to
+   be one joined string in a nowrap / ellipsis box, and on a three-release day
+   the third release — the FOMC, on 2026-09-16 — was the part the ellipsis ate
+   (Joe, 2026-09-10). Truncation hides in proportion to how much there is to
+   see, which is exactly backwards for a calendar. */
+.home-cockpit .cal-strip .srow{min-height:40px;height:auto;padding:4px 6px}
+.home-cockpit .cal-strip .calrow{cursor:default}
+.home-cockpit .cal-strip .calrow:hover{background:none;transform:none}
+.home-cockpit .cal-strip .calrow .what{font-size: var(--v13-t3);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;min-width:0}
+.home-v12 .cal-ev{display:inline-flex;align-items:baseline;gap:6px;background:none;border:none;padding:0;margin:0;font:inherit;color:var(--ink-soft);cursor:pointer;text-align:left;border-radius:6px}
+.home-v12 .cal-ev .cal-ev-name{border-bottom:1px solid transparent;transition:border-color .2s,color .2s}
+.home-v12 .cal-ev:hover .cal-ev-name,.home-v12 .cal-ev:focus-visible .cal-ev-name{color:var(--ink);border-bottom-color:var(--ink-soft)}
+.home-v12 .cal-ev:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.home-v12 .cal-ev--major .cal-ev-name{font-weight:600;color:var(--ink)}
 .home-cockpit .cal-strip .calrow .when{min-width:72px;font-size: var(--v13-t2)}
 .home-cockpit .cal-strip .cal-time{font-size: var(--v13-t2)}
 
@@ -505,6 +517,38 @@
 .home-v12 .ic-table td{padding:3px 0;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .home-v12 .ic-table td:last-child{text-align:right;color:var(--ink)}
 .home-v12 .ideachart--empty{padding:10px 0}
+/* the forecaster's point — a hollow gold ring on the same axis, never a line */
+.home-v12 .ic-expdot{fill:var(--putty);stroke:var(--gold-deep);stroke-width:2}
+.home-v12 .ic-explab{fill:var(--ink);font-family:var(--mt-type-sans);font-size: var(--v13-t3);font-weight:700}
+.home-v12 .ic-explab-k{fill:var(--mut);font-weight:400;font-size: var(--v13-t2)}
+.home-v12 .ic-table .ic-exprow td{color:var(--gold-deep)}
+
+/* release detail modal (Upcoming data → a release) */
+.home-v12 .rel-blurb{margin:-6px 0 16px;font-size: var(--v13-t4);line-height:1.6;color:var(--ink-soft)}
+.home-v12 .rel-pills{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.home-v12 .rel-pill{font:inherit;font-size: var(--v13-t2);font-weight:600;color:var(--ink-soft);background:none;border:1px solid var(--hair);border-radius:999px;padding:5px 12px;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.home-v12 .rel-pill:hover{color:var(--ink);border-color:var(--ink-soft)}
+.home-v12 .rel-pill.is-on{color:var(--ink);background:var(--putty);border-color:var(--putty)}
+.home-v12 .rel-chart{padding:16px 18px 12px;border:1px solid var(--hair);border-radius:18px;background:var(--putty)}
+.home-v12 .rel-facts.idea-modal-facts{grid-template-columns:repeat(4,1fr);gap:16px 22px;margin:18px 0 0;border-bottom:none;padding-bottom:0}
+.home-v12 .rel-sub{font-size: var(--v13-t2);color:var(--mut);line-height:1.45}
+.home-v12 .rel-ncsrc{margin:10px 0 0;font-size: var(--v13-t2);color:var(--mut)}
+.home-v12 .rel-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 0;padding-top:14px;border-top:1px solid var(--hair)}
+.home-v12 .rel-footl{flex:none}
+.home-v12 .rel-footr{font-size: var(--v13-t2);color:var(--mut);line-height:1.5;flex:1 1 320px}
+/* full release calendar modal */
+.home-v12 .relcal-days{display:flex;flex-direction:column;gap:18px;margin-top:6px}
+.home-v12 .relcal-day{padding-top:12px;border-top:1px solid var(--hair)}
+.home-v12 .relcal-date{margin:0 0 8px;font-size: var(--v13-t1);letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.home-v12 .relcal-day.is-today .relcal-date{color:var(--gold-deep)}
+.home-v12 .relcal-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px}
+.home-v12 .relcal-list li{display:flex;align-items:baseline;gap:10px;min-width:0;font-size: var(--v13-t3)}
+.home-v12 .relcal-tier{font-size: var(--v13-t1);letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+@media (max-width:640px){
+  .home-v12 .relcal-list{grid-template-columns:1fr}
+  .home-v12 .rel-facts.idea-modal-facts{grid-template-columns:repeat(2,1fr)}
+  .home-v12 .rel-chart{padding:12px 10px 8px}
+}
 /* the tile's hero chart is a compact version of the same figure */
 .home-v12 .idea-herochart .ic-caption{font-size: var(--v13-t3)}
 .home-v12 .idea-herochart .ic-meta{margin-top:5px}
