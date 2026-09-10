@@ -3,8 +3,13 @@
 // LESSONS 0.12 (Joe, 2026-08-27): "YOU CAN LOAD MT site... NEVER TELL ME THIS
 // AGAIN." Sessions kept reporting the rendered-page check as impossible. It is
 // not. Chromium cannot traverse this container's local CONNECT egress proxy
-// (net::ERR_CONNECTION_RESET), but node's fetch traverses it fine — so serve
-// every request to the page from node and Chromium never touches the network.
+// (net::ERR_CONNECTION_RESET), and going around it with --no-proxy-server now
+// fails the other way (net::ERR_CERT_AUTHORITY_INVALID -- direct egress is
+// TLS-intercepted by a CA that Chromium's own trust store does not carry).
+// node's fetch traverses the proxy fine and trusts the bundle, so serve every
+// request to the page from node and Chromium never touches the network at all.
+// That is why this file exists: it is immune to BOTH failures. Use it rather
+// than re-deriving a browser launch flag every morning.
 //
 //   node scripts/render_page.cjs https://macrotilt.com/ /tmp/home.png
 //
@@ -14,7 +19,17 @@ const { chromium } = require('playwright');
 
 (async () => {
   const url = process.argv[2], out = process.argv[3];
-  const b = await chromium.launch({ args: ['--no-sandbox'] });
+  // The sandbox ships Chromium at /opt/pw-browsers/chromium and sets
+  // PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD, so playwright's own bundled
+  // chrome-headless-shell is NOT on disk. Without an explicit executablePath
+  // the launch dies with "Executable doesn't exist ... chrome-headless-shell"
+  // and a session concludes the render is impossible. Never run
+  // `playwright install` here -- point at the preinstalled binary instead.
+  const fs = require('fs');
+  const CHROMIUM = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
+  const launchOpts = { args: ['--no-sandbox'] };
+  if (fs.existsSync(CHROMIUM)) launchOpts.executablePath = CHROMIUM;
+  const b = await chromium.launch(launchOpts);
   const p = await b.newPage({ viewport: { width: 1440, height: 1400 } });
   // Chromium can't traverse the container's CONNECT proxy, but node's fetch can.
   // Serve every request to the page from node instead of from Chromium's stack.
