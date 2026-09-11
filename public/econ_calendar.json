@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-10T22:41:28Z",
+  "generated_at": "2026-09-11T13:42:01Z",
   "window": {
-    "from": "2026-09-03",
-    "to": "2026-11-19"
+    "from": "2026-09-04",
+    "to": "2026-11-20"
   },
   "counts": {
-    "total": 109,
-    "tier1": 32
+    "total": 104,
+    "tier1": 30
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,61 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-03",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-03",
-      "time_et": "8:30 AM",
-      "name": "Trade balance",
-      "short": "Trade",
-      "tier": 2,
-      "category": "Trade",
-      "blurb": "Goods and services imports versus exports.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-03",
-      "time_et": "8:30 AM",
-      "name": "Productivity & unit labor costs",
-      "short": "Prod",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Output per hour and what each unit of output costs in labor.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-03",
-      "time_et": "10:00 AM",
-      "name": "ISM Services",
-      "short": "ISM Svc",
-      "tier": 1,
-      "category": "Surveys",
-      "blurb": "Services-sector survey \u2014 the larger share of the economy.",
-      "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-03",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-04",
       "time_et": "8:30 AM",
@@ -99,17 +44,6 @@
       "category": "Consumer",
       "blurb": "Revolving and non-revolving household borrowing.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-10",
-      "time_et": "8:15 AM",
-      "name": "ECB decision (Governing Council)",
-      "short": "ECB",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
-      "source": "ECB Governing Council calendar (ecb.europa.eu)",
       "time_source": "published release policy"
     },
     {
@@ -1220,6 +1154,17 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-20",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, final)",
+      "short": "UMich final",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
