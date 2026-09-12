@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-11T23:16:08Z",
-  "as_of": "2026-09-11",
+  "generated_at": "2026-09-12T00:49:37Z",
+  "as_of": "2026-09-12",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -16,22 +16,22 @@
       "marked": 5,
       "open": 5,
       "closed": 0,
-      "avg_mark_pct": -0.93,
+      "avg_mark_pct": -1.19,
       "best": {
-        "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
-        "trade_label": "Long 10y TIPS / Short 10y UST",
-        "mark": 0.9
+        "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
+        "trade_label": "Long EUR/USD",
+        "mark": 0.58
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
         "trade_label": "Long KBW / Short NASDAQ",
-        "mark": -2.82
+        "mark": -3.69
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 0.63,
-      "ahead_of_spx": 2,
+      "avg_vs_spx_pp": 0.22,
+      "ahead_of_spx": 3,
       "behind_spx": 2,
-      "line": "5 calls marked. Taken as one book they average -0.9% a call and sit 0.6 points ahead of the S&P 500 over the same days — 2 ahead of the index, 2 behind. Best: Long 10y TIPS / Short 10y UST, +0.9%. Worst: Long KBW / Short NASDAQ, -2.8%."
+      "line": "5 calls marked. Taken as one book they average -1.2% a call and sit 0.2 points ahead of the S&P 500 over the same days — 3 ahead of the index, 2 behind. Best: Long EUR/USD, +0.6%. Worst: Long KBW / Short NASDAQ, -3.7%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "0 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
@@ -125,14 +125,14 @@
           "label": "10-year Treasury",
           "short_label": "10-year Treasury",
           "maturity_years": 10.0,
-          "return_pct": -2.4579
+          "return_pct": -2.5372
         }
       ],
-      "buy_pct": -2.4579,
+      "buy_pct": -2.5372,
       "sell_pct": null,
       "trade_label": "Long 10-year Treasury",
-      "position_pct": -2.4579,
-      "risk_sized_pct": -4.7315,
+      "position_pct": -2.5372,
+      "risk_sized_pct": -4.8841,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.925,
@@ -147,20 +147,20 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7677.28,
-        "move": -1.1147,
-        "difference": -1.3432,
+        "move": -0.2644,
+        "difference": -2.2728,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -2.4579,
-      "mark_date": "2026-09-10",
-      "sessions_held": 12,
+      "mark": -2.5372,
+      "mark_date": "2026-09-11",
+      "sessions_held": 13,
       "max_favourable": {
         "value": 0.0,
         "date": "2026-08-25"
       },
       "max_adverse": {
-        "value": -2.4579,
-        "date": "2026-09-10"
+        "value": -2.5372,
+        "date": "2026-09-11"
       },
       "invalidation": {
         "rule": "ust_10y >= 5.0 (weekly close)",
@@ -190,7 +190,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -5.2392
+          "return_pct": -5.1702
         },
         {
           "series": "ndx_index",
@@ -201,14 +201,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -2.4222
+          "return_pct": -1.482
         }
       ],
-      "buy_pct": -5.2392,
-      "sell_pct": -2.4222,
+      "buy_pct": -5.1702,
+      "sell_pct": -1.482,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -2.817,
-      "risk_sized_pct": -1.2226,
+      "position_pct": -3.6882,
+      "risk_sized_pct": -1.6007,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -223,13 +223,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -2.4925,
-        "difference": -0.3245,
+        "move": -1.654,
+        "difference": -2.0342,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -2.817,
-      "mark_date": "2026-09-10",
-      "sessions_held": 19,
+      "mark": -3.6882,
+      "mark_date": "2026-09-11",
+      "sessions_held": 20,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
@@ -267,7 +267,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": -1.2375
+          "return_pct": -1.6795
         },
         {
           "series": "ust_10y",
@@ -279,14 +279,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -2.1367
+          "return_pct": -2.2158
         }
       ],
-      "buy_pct": -1.2375,
-      "sell_pct": -2.1367,
+      "buy_pct": -1.6795,
+      "sell_pct": -2.2158,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.8992,
-      "risk_sized_pct": 3.8558,
+      "position_pct": 0.5364,
+      "risk_sized_pct": 2.3001,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -301,13 +301,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -2.4925,
-        "difference": 3.3917,
+        "move": -1.654,
+        "difference": 2.1904,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.8992,
-      "mark_date": "2026-09-10",
-      "sessions_held": 19,
+      "mark": 0.5364,
+      "mark_date": "2026-09-11",
+      "sessions_held": 20,
       "max_favourable": {
         "value": 0.8992,
         "date": "2026-09-10"
@@ -361,7 +361,15 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7798.99,
+        "move": -1.8209,
+        "difference": 2.4017,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": 0.5808,
       "mark_date": "2026-09-11",
       "sessions_held": 24,
