@@ -1,9 +1,218 @@
 {
-  "generated_at": "2026-09-09T11:50:40Z",
+  "generated_at": "2026-09-12T09:27:05Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
-  "next_publish": "2026-09-07",
+  "next_publish": "2026-09-13",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-09-12",
+      "kind": "commodity",
+      "title": "Oil carries a war premium. US natural gas carries none.",
+      "dek": "WTI closed within a dollar of $100 on Sep 11 while front-month US gas closed $2.82 — one barrel of oil now buys 35 units of gas, the 96th percentile of 26 years. Readings this stretched have historically resolved with gas beating its own baseline, and the fast money is short.",
+      "position_type": "outright long",
+      "call": "Over the next three months, US natural gas at $2.82 is priced to close part of a 26-year extreme against oil: with WTI at $99.99, the oil-to-gas price ratio sits at the 96th percentile of our data since 2000, and past readings this stretched saw gas beat its unconditional baseline by five to seven points over the following quarter.",
+      "instrument": "UNG, the US-listed natural gas fund, held long, one quarter",
+      "horizon": "One quarter. The measured edge is a three-month effect; this is not a winter-long hold.",
+      "the_trade": {
+        "buy": "UNG, the US-listed natural gas fund (closed $10.17 on Sep 11) — shares, or call options one to three months out struck near the share price for defined risk, where the premium is the most the trade can lose.",
+        "sizing": "A small position. The signal was positive in 55% of past episodes against 50% unconditionally — the edge is in the size of the wins, not their frequency — so size it so a move to the stop is an acceptable loss. Levels are read on front-month Henry Hub gas; UNG is the vehicle, rolls its contracts monthly, and lags the spot chart when the curve is steep — expect the fund to capture less than the commodity's move."
+      },
+      "edge": {
+        "source": "relative value",
+        "summary": "The oil-to-gas price ratio closed at 35.5 on Sep 11, the 96.4th percentile of 6,539 daily observations since 2000. Ranked on a causal trailing percentile with episodes 42 trading days apart, readings at or above the 95th percentile were followed by a median gas gain of +7.6% over the next three months against +0.3% unconditionally — and the edge holds in the sub-sample that matches today's condition, where the extreme was driven by an oil rally rather than a gas collapse.",
+        "backtest": {
+          "window": "2000–2026 daily closes; causal trailing full-history percentile of WTI ÷ Henry Hub, 3-year warm-up; episodes at or above the 95th percentile, separated by 42 trading days (first episode Sep 2004)",
+          "n": 42,
+          "result": "Front-month gas median +7.6% over the following three months, positive in 55% of episodes; in the 22 episodes where oil had rallied 10%+ into the reading (today's condition), gas median +5.0%; in the ten 2021–26 episodes, +20.7%. WTI's own median was −1.9% against +3.1% unconditionally — the ratio closed from both ends.",
+          "baseline": "Unconditional three-month gas return over the same sample: median +0.3%, positive in 50% of windows"
+        }
+      },
+      "variant": "Consensus is the glut: the EIA's August outlook has Henry Hub averaging $2.87 in Q3 and staying below $3 until November on record production and the fullest storage entering winter since 2016, and September commentary reads gas as trapped. Nobody frames gas against oil: a war premium at the 92nd percentile of oil's own options market, and none of it in the fuel one border north of the disruption. The ratio, not the storage number, is the stretched price.",
+      "thesis": [
+        "WTI closed 99.99 on Sep 11 — the 98th percentile of three years. Gulf crude exports are down 47% since the war.",
+        "Front-month gas closed 2.82 the same day: the 26th percentile of 26 years, and 62% below its January close.",
+        "One barrel now buys 35.5 units of gas — 96th percentile since 2000. Extremes like this closed from both ends: gas up, oil flat-to-down.",
+        "Managed money is short gas at the 8th percentile of three years, six weeks running. The short is extended, not fresh.",
+        "QatarEnergy has declared force majeure on LNG cargoes after strikes on Ras Laffan. Any repricing of US export demand lands on a market at the 26th percentile.",
+        "The trade is Fed-quiet: a hike on Sep 16 moves the book's rates and dollar calls, not the storage-versus-winter math in gas."
+      ],
+      "evidence": [
+        {
+          "claim": "WTI front-month close, and its 3-year percentile",
+          "value": "$99.99 — 97.6th percentile",
+          "source": "MacroTilt indicator history (cmdty_oil)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Front-month Henry Hub close, and its percentile since 2000",
+          "value": "$2.82 — 26th percentile of 6,541 daily observations",
+          "source": "MacroTilt indicator history (cmdty_natgas)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Front-month gas close on Jan 28, 2026 — the winter high the market has since given back",
+          "value": "$7.46",
+          "source": "MacroTilt indicator history (cmdty_natgas)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Oil-to-gas price ratio and its full-history percentile",
+          "value": "35.5x — 96.4th percentile since 2000 (n=6,539)",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Backtest: ratio at/above 95th trailing percentile, episodes 42 trading days apart — next-3-month gas return",
+          "value": "median +7.6% vs +0.3% unconditional; positive 55% vs 50%; n=42 since 2004",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Same backtest, oil-driven episodes only (oil +10% or more in the prior 3 months — today's condition)",
+          "value": "gas median +5.0% next 3 months; n=22",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Same backtest, WTI's own next-3-month return in the episodes",
+          "value": "median −1.9% vs +3.1% unconditional",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Managed money net position in US gas, share of open interest, 3-year percentile",
+          "value": "−11.6% of open interest — 8th percentile, 6th week at the extreme",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "Oil implied volatility (OVX) and its ratio to the VIX",
+          "value": "58.92 — 92nd percentile since 2007; OVX÷VIX at 3.72, the 98th percentile",
+          "source": "MacroTilt indicator history (ovx, vix)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "EIA end-October US gas storage forecast, and its Q3 Henry Hub price forecast",
+          "value": "3,985 Bcf, about 5% above the five-year average — fullest entering winter since 2016; Q3 average $2.87",
+          "source": "EIA Short-Term Energy Outlook, August 2026 (via Rigzone, Aug 19)",
+          "as_of": "2026-08-19"
+        },
+        {
+          "claim": "Gulf crude exports since the Hormuz conflict began",
+          "value": "down 47% — from ~17 to ~9 million barrels/day",
+          "source": "Al Jazeera, Aug 27 2026",
+          "as_of": "2026-08-27"
+        },
+        {
+          "claim": "Market-implied odds of a 25bp Fed hike at the Sep 16 meeting, after the August CPI (3.4% y/y)",
+          "value": "roughly 85–90%",
+          "source": "CNBC market wrap, Sep 11 2026",
+          "as_of": "2026-09-11"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_natgas",
+          "title": "What a unit of US gas costs",
+          "subtitle": "Front-month Henry Hub natural gas, $/MMBtu, daily since 2016",
+          "unit": "$/MMBtu",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At $2.82 the market has given back the entire January spike to $7.46 and sits in the bottom third of its 26-year range — while oil trades at $100.",
+          "source": "MacroTilt indicator history (front-month Henry Hub natural gas)"
+        },
+        {
+          "series": "cmdty_oil",
+          "title": "The war premium in crude",
+          "subtitle": "Front-month WTI, $/bbl, daily over three years",
+          "unit": "$/bbl",
+          "decimals": 2,
+          "window": "3y",
+          "caption": "WTI closed 99.99 on Sep 11 — the 98th percentile of three years — with Gulf exports down 47% since the Hormuz conflict began.",
+          "source": "MacroTilt indicator history (front-month WTI crude)"
+        },
+        {
+          "series": "ovx",
+          "title": "What oil options cost",
+          "subtitle": "CBOE crude oil volatility index (OVX), daily since 2016",
+          "unit": "index",
+          "decimals": 1,
+          "window": "10y",
+          "caption": "Oil option prices sit at the 92nd percentile of their history since 2007: the market is paying up for oil risk while gas is priced for none of it.",
+          "source": "MacroTilt indicator history (CBOE OVX)"
+        }
+      ],
+      "levels": {
+        "trigger": "Entry at market — front-month gas closed 2.82 and UNG $10.17 on Sep 11. A further slip toward 2.60 improves the entry without changing the case.",
+        "invalidation": "A weekly close in front-month gas below 2.45 — beneath April's 2.52 low. Down there the storage glut has beaten the setup, and the position is wrong.",
+        "target": "3.05 within the quarter — the full-sample median move off these extremes. The 2021–26 episodes' median implies 3.40; treat that as the stretch case, not the base case."
+      },
+      "sections": [
+        {
+          "title": "Why gas is this cheap — the case against this trade is real",
+          "bullets": [
+            "US production is at a record. EIA (Aug 19) sees storage entering winter at 3,985 Bcf, about 5% above the five-year average.",
+            "That is the fullest start to winter since 2016, and the EIA's own price path stays below $3 until November.",
+            "January's $7.46 spike taught the market a lesson in both directions: gas can triple on cold, and give it all back by spring."
+          ]
+        },
+        {
+          "title": "The measured edge",
+          "bullets": [
+            "Signal: WTI ÷ Henry Hub at or above its 95th trailing percentile, computed only from data available on the day.",
+            "42 episodes since 2004. Next-3-month gas: median +7.6% against +0.3% unconditional. Positive 55% of the time against 50%.",
+            "The edge is asymmetric, not reliable: median wins are large, the hit rate is modest. Size accordingly.",
+            "It survives the split that matters today: in the 22 episodes where oil rallied 10%+ into the extreme, gas still made +5.0%.",
+            "Oil's own median in the episodes was −1.9% against +3.1% unconditional — the ratio closes from both ends, which is why this note buys gas rather than shorting oil into a war."
+          ]
+        },
+        {
+          "title": "The option the price ignores",
+          "prose": "QatarEnergy has declared force majeure on LNG cargoes after strikes on Ras Laffan, and Europe sources 12–14% of its LNG from Qatar. US export terminals are the marginal supplier to that gap, and they buy their feed gas at Henry Hub. The base case for this trade is the ratio arithmetic above — it needs no war at all. But a market at the 26th percentile of 26 years is not charging for the possibility that the world's spare LNG capacity is suddenly American."
+        },
+        {
+          "title": "What this trade is not",
+          "prose": "It is not a bet on the war escalating — the backtest episodes span calm markets and crises alike. It is not a winter-long storage play: the measured edge is a three-month effect and the note is graded on exactly that. And it is not a short of oil — the trend and the tail risk both argue against being short crude while tankers are being attacked, which is why the long gas leg, whose conditional return beats its own baseline on its own, carries the position alone."
+        }
+      ],
+      "other_side": "The glut is not a story, it is inventory: the fullest storage entering winter since 2016, record production, and the EIA's central path holds gas below $3 into November. The ratio can stay extreme for years — it did through 2009–2012, when shale kept gas pinned while oil traded above $100. US LNG export capacity, not price, is the binding constraint, so a Qatari outage does not mechanically lift Henry Hub. And a 55% hit rate means this trade loses outright almost half the time; the stop is what contains that.",
+      "risks": [
+        "A warm start to winter on record storage takes gas through 2.60 and toward the stop regardless of the ratio.",
+        "Escalation can widen the extreme rather than close it: oil to $120 with gas asleep loses nothing for this position but tests patience — the trade needs gas up, not oil down.",
+        "UNG's monthly roll erodes the fund's return relative to the commodity when the curve is steep; a flat gas price is a losing position in the fund.",
+        "A 25bp hike on Sep 16 and a stronger dollar pressure all commodity prices, gas included."
+      ],
+      "so_what": "The market is paying 92nd-percentile prices for oil risk and pricing US gas at the 26th percentile of 26 years, with the fast money short. History says a spread this wide closes partly through the cheap leg — and the cheap leg is the one thing in the book the Fed cannot touch on Wednesday.",
+      "book": {
+        "stance": "With this note the live book holds six positions: long 10-year Treasuries, long 10-year inflation breakevens, long US banks against the Nasdaq, long the euro against the dollar, short wheat via WEAT, and now long US natural gas via UNG. As one portfolio it is positioned for US rates near their peak, inflation compensation too cheap for a $100-oil world, a softer dollar, and mean reversion only where the data has supported it — the wheat and gas legs are both positioning-and-ratio fades in markets where the fade is measured, on opposite sides of the energy-food complex. Highest conviction remains the Aug 16 breakeven call, which the oil shock has been paying since entry (2.27% to 2.36%). Lowest is now the Aug 24 10-year note: at Friday's 4.96% it sits four basis points from its own stated stop, with a hike 85–90% priced for Sep 16.",
+        "rebalance": "Holders of the five live calls change nothing today; this is a small, independent addition. The position to watch is the Aug 24 10-year note, not this one: its stop is a weekly close at or above 5.00%, and Friday closed 4.96% with the Fed decision on Sep 16 — if that weekly close prints, the note comes off by its own rule, first out of the book. The breakeven, euro, banks and wheat calls all remain inside their invalidation levels as of Sep 11 and stay as they are."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "cmdty_natgas",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "Front-month US natural gas",
+            "short_label": "Natgas"
+          }
+        ],
+        "horizon_months": 3,
+        "invalidation": {
+          "series": "cmdty_natgas",
+          "op": "<=",
+          "level": 2.45,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Marked on the front-month Henry Hub series the levels are stated on; UNG is the retail vehicle and will lag the series by its roll cost."
+      },
+      "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+      "status": "live",
+      "published_at": "2026-09-12T09:27:05Z"
+    },
     {
       "date": "2026-09-06",
       "kind": "commodity",
