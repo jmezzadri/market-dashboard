@@ -270,8 +270,16 @@ page is client-rendered, so a plain HTTP fetch returns an empty shell. The repo
 already carries the tool for this:
 
 ```
+npm install --no-audit --no-fund          # fresh sandbox: node_modules is empty
 node scripts/render_page.cjs https://macrotilt.com/ /tmp/home.png
 ```
+
+The clone has no `node_modules`, so the install line is not optional — without
+it the helper exits before Chromium is ever launched. (2026-09-14: the helper
+also asked for the wrong package — `playwright` rather than the `playwright-core`
+package.json declares — and died with "Cannot find module". Fixed in the same
+commit as this note; if you see a missing-module error here again, the fix
+belongs in the repo, not in your shell.)
 
 It prints the page's innerText and writes a full-page screenshot. READ the
 screenshot with the Read tool — innerText alone will not show a layout or
