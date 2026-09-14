@@ -23,7 +23,10 @@
        accent and appears on the Trade Idea and nowhere else.
      • Lead with the day-over-day CHANGE on every level.
      • Prices are prior-close, labeled "close".
-     • Everything links to its detail route. */
+     • Everything links to its detail route.
+     • The Trade Idea tile is a HEADLINE surface (Joe, 2026-09-14: "Its too
+       much writing"): one-line call (tileLine), short fact values (`*_line`
+       from the note, else first clause), full text only in the modal. */
 
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -92,6 +95,23 @@ function firstClause(s, max = 82) {
   if (head.length <= max) return head;
   const cut = head.slice(0, max);
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+}
+
+/* One tile line from a long claim: cut at the first full stop, colon,
+   semicolon or spaced dash. The contract requires the call to carry its whole
+   argument, so the full text lives in the modal; the tile prints only the
+   claim itself. (Joe, 2026-09-14: "I want the home page trade idea tile to be
+   more succinct... Its too much writing.") */
+function tileLine(s, max = 150) {
+  const t = String(s || '').trim();
+  if (!t) return '';
+  const stop = t.search(/(?<=\S)\s+[—–]\s+|[.:;](?=\s)/);
+  const head = stop > 0 ? t.slice(0, stop).trim() : t;
+  if (head.length > max) {
+    const cut = head.slice(0, max);
+    return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+  }
+  return head === t ? head : `${head}.`;
 }
 
 /* Market tape.
@@ -395,31 +415,39 @@ export default function HomePage() {
                     your US large-company stocks and put the money into…") and
                     Joe's verdict was that it read as a terrible headline. A
                     research note states what is likely to happen and over what
-                    period; the instruction lives in the fact strip below. */}
-                {idea.call && <p className="idea-call">{idea.call}</p>}
+                    period; the instruction lives in the fact strip below.
+                    The tile prints the claim's FIRST CLAUSE only — the full call,
+                    with its numbers, lives in the modal (Joe, 2026-09-14: "Its
+                    too much writing."). */}
+                {idea.call && <p className="idea-call">{tileLine(idea.call)}</p>}
                 {/* Numbers quoted in the note's prose are point-in-time; the
                     chart beside them is live. Without this line a reader sees
                     "pays 4.69%" next to a chart reading 4.73% and takes the
-                    prose as a live quote (Joe, 2026-08-31). */}
+                    prose as a live quote (Joe, 2026-08-31). Kept to one short
+                    line — it is a footnote, not copy. */}
                 {idea.date && (
-                  <p className="idea-asof">Figures in the note are from {weekdayDate(idea.date)}, the day it was published. The chart is live.</p>
+                  <p className="idea-asof">Note figures from {weekdayDate(idea.date)} · chart is live.</p>
                 )}
 
+                {/* Fact strip values are SHORT: a hand-written `*_line` from
+                    the note when it carries one, else the leg's first clause.
+                    The full legs (prices, options mechanics, sizing) are in
+                    the modal. (Joe, 2026-09-14.) */}
                 {idea.the_trade && (
                   <div className="idea-facts">
                     {idea.the_trade.buy && (
-                      <div className="idea-fact"><span className="k">Buy</span><span className="v">{idea.the_trade.buy}</span></div>
+                      <div className="idea-fact"><span className="k">Buy</span><span className="v">{idea.the_trade.buy_line || firstClause(idea.the_trade.buy, 64)}</span></div>
                     )}
                     {idea.the_trade.sell && (
-                      <div className="idea-fact"><span className="k">Sell to pay for it</span><span className="v">{idea.the_trade.sell}</span></div>
+                      <div className="idea-fact"><span className="k">Sell to pay for it</span><span className="v">{idea.the_trade.sell_line || firstClause(idea.the_trade.sell, 64)}</span></div>
                     )}
                     {idea.the_trade.short && (
-                      <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short}</span></div>
+                      <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short_line || firstClause(idea.the_trade.short, 64)}</span></div>
                     )}
                     {idea.the_trade.what_would_make_it_a_position && (
-                      <div className="idea-fact"><span className="k">What would make it a position</span><span className="v">{idea.the_trade.what_would_make_it_a_position}</span></div>
+                      <div className="idea-fact"><span className="k">What would make it a position</span><span className="v">{firstClause(idea.the_trade.what_would_make_it_a_position)}</span></div>
                     )}
-                    <div className="idea-fact"><span className="k">Horizon</span><span className="v">{idea.horizon || "—"}</span></div>
+                    <div className="idea-fact"><span className="k">Horizon</span><span className="v">{firstClause(idea.horizon, 64) || "—"}</span></div>
                     <div className="idea-fact"><span className="k">What proves it wrong</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
                   </div>
                 )}

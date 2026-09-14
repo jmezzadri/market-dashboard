@@ -15,7 +15,8 @@
       "horizon": "One quarter. The measured edge is a three-month effect; this is not a winter-long hold.",
       "the_trade": {
         "buy": "UNG, the US-listed natural gas fund (closed $10.17 on Sep 11) — shares, or call options one to three months out struck near the share price for defined risk, where the premium is the most the trade can lose.",
-        "sizing": "A small position. The signal was positive in 55% of past episodes against 50% unconditionally — the edge is in the size of the wins, not their frequency — so size it so a move to the stop is an acceptable loss. Levels are read on front-month Henry Hub gas; UNG is the vehicle, rolls its contracts monthly, and lags the spot chart when the curve is steep — expect the fund to capture less than the commodity's move."
+        "sizing": "A small position. The signal was positive in 55% of past episodes against 50% unconditionally — the edge is in the size of the wins, not their frequency — so size it so a move to the stop is an acceptable loss. Levels are read on front-month Henry Hub gas; UNG is the vehicle, rolls its contracts monthly, and lags the spot chart when the curve is steep — expect the fund to capture less than the commodity's move.",
+        "buy_line": "UNG shares, or 1-3 month at-the-money call options"
       },
       "edge": {
         "source": "relative value",
