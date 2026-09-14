@@ -266,6 +266,15 @@ Enforced by the contract:
   `watch only` is RETIRED (2026-08-24) — see "A relative edge you cannot short".
 - `the_trade` — `buy` is required; add `sell` (what is sold to fund it),
   `short` (only for an actual short) and `sizing`.
+- **Tile lines (Joe, 2026-09-14, contract-enforced).** Joe, on the homepage
+  tile: *"I want the home page trade idea tile to be more succinct... Its too
+  much writing."* The tile is a headline surface: it prints the call's first
+  clause and short fact values only; the full legs live in the modal. Every
+  note SHOULD carry `the_trade.buy_line` (and `sell_line` / `short_line` where
+  those legs exist): a hand-written 8–64 character short form of the leg —
+  "UNG shares, or 1–3 month at-the-money call options" — vehicle first, no
+  prices, no mechanics. Without one the tile falls back to the leg's first
+  clause, which is worse copy than you writing it yourself.
 - **Retail expression (Joe, 2026-09-09, contract-enforced).** Joe: *"I, and
   many other retail traders, dont have access to futures."* Every `the_trade`
   leg names a vehicle a standard US brokerage account can trade — a listed

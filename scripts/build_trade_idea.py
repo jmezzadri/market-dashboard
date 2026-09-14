@@ -546,6 +546,23 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     if idea["position_type"] not in ("outright short", "long/short spread") and str(tt.get("short", "")).strip():
         raise ContractError("the_trade.short is set but position_type says nothing is sold short — pick one")
 
+    # 3e-ter — TILE LINES (Joe, 2026-09-14): "I want the home page trade idea
+    # tile to be more succinct... Its too much writing." The homepage tile
+    # prints the_trade as a scannable fact strip; a 40-word buy leg belongs in
+    # the modal, not the strip. Optional `buy_line` / `sell_line` / `short_line`
+    # give the tile a hand-written short form ("UNG shares, or 1–3 month
+    # at-the-money call options"); without one the tile falls back to the leg's
+    # first clause. Hard length cap so the strip stays scannable.
+    for k in ("buy_line", "sell_line", "short_line"):
+        v = str(tt.get(k, "") or "").strip()
+        if not v:
+            continue
+        if not (8 <= len(v) <= 64):
+            raise ContractError(f"the_trade.{k} is a tile display line: 8-64 characters, got {len(v)}")
+        base = k[:-5]
+        if not str(tt.get(base, "")).strip():
+            raise ContractError(f"the_trade.{k} without the_trade.{base} — the short line abridges a real leg")
+
     # 3e-bis — RETAIL EXPRESSION (Joe, 2026-09-09): "I, and many other retail
     # traders, dont have access to futures. How can I short wheat without
     # futures?" Every leg of the_trade names a vehicle a standard US retail
@@ -557,7 +574,7 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     # --check stays green on the archive.
     if str(idea.get("date", "")) >= "2026-09-09":
         non_retail = re.compile(r"\b(futures?|forwards?|swaps?|CDX|CFDs?)\b", re.I)
-        for k in ("buy", "sell", "short"):
+        for k in ("buy", "sell", "short", "buy_line", "sell_line", "short_line"):
             m = non_retail.search(str(tt.get(k, "")))
             if m:
                 raise ContractError(
