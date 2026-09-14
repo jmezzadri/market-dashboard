@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-13T13:50:54Z",
+  "generated_at": "2026-09-14T15:57:19Z",
   "window": {
-    "from": "2026-09-06",
-    "to": "2026-11-22"
+    "from": "2026-09-07",
+    "to": "2026-11-23"
   },
   "counts": {
-    "total": 103,
+    "total": 104,
     "tier1": 29
   },
   "sources": [
@@ -1154,6 +1154,17 @@
       "tier": 2,
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-23",
+      "time_et": "8:30 AM",
+      "name": "Chicago Fed activity index",
+      "short": "CFNAI",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "An 85-indicator composite of national economic activity.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
