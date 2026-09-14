@@ -15,7 +15,20 @@
 //
 // Prints the page's innerText and writes a full-page screenshot. Works for the
 // client-rendered React site; WebFetch does NOT (it returns only <head>).
-const { chromium } = require('playwright');
+// 2026-09-14: this required 'playwright', which is NOT a dependency of this
+// repo -- package.json declares 'playwright-core' (correct: this script pins
+// executablePath at the preinstalled Chromium, so the browser-downloading
+// wrapper is never wanted). A fresh morning sandbox therefore died with
+// "Cannot find module 'playwright'" before Chromium was ever launched. Resolve
+// playwright-core first and keep 'playwright' only as a fallback for a machine
+// that happens to have the wrapper installed. A fresh clone still needs
+// `npm install --no-audit --no-fund` once before this script will run.
+let chromium;
+try {
+  ({ chromium } = require('playwright-core'));
+} catch (e) {
+  ({ chromium } = require('playwright'));
+}
 
 (async () => {
   const url = process.argv[2], out = process.argv[3];
