@@ -670,8 +670,26 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
                 want = next_period(entry["points"][-1][0], "M") if entry["points"] else None
                 nc = cleveland.get((spec.split(":", 1)[1], want))
                 if nc is None or nc.get("printed"):
-                    raise RuntimeError(f"Cleveland nowcast for {name} / {m['label']} period {want} not found")
-                nc = {k: v for k, v in nc.items() if k != "printed"}
+                    # Post-print roll window (2026-09-15, LESSONS 4.33): for a
+                    # few days after a print lands on FRED, the Cleveland file
+                    # has not rolled to the next month yet, so the pending
+                    # month has no chart (or the just-printed one still reads
+                    # as pending). That is the forecaster mid-roll, not a
+                    # broken fetch: while FRED's update is 10 days old or
+                    # less, the measure publishes honestly with NO nowcast
+                    # and the gap is named in the log. Older than that, the
+                    # missing nowcast is a broken fetch again and the run
+                    # fails loudly, exactly as before.
+                    upd = entry.get("as_of")
+                    days = (dt.date.today() - dt.date.fromisoformat(upd)).days if upd else None
+                    if days is not None and 0 <= days <= 10:
+                        print(f"WARN: Cleveland nowcast for {name} / {m['label']} period {want} "
+                              f"not available yet (FRED updated {upd}, {days}d ago) — published without a nowcast")
+                        nc = None
+                    else:
+                        raise RuntimeError(f"Cleveland nowcast for {name} / {m['label']} period {want} not found")
+                else:
+                    nc = {k: v for k, v in nc.items() if k != "printed"}
             entry["nowcast"] = nc
             ms.append(entry)
         cat = None
