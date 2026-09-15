@@ -181,14 +181,33 @@ there is one. An observation is not a brief.
 
 | field | limit |
 |---|---|
-| headline | 140 chars |
-| stance | 320 chars (2 sentences) |
+| headline | **95 chars**, and a DATA LINE, not a sentence |
+| stance | **200 chars**, max 2 sentences |
 | section bullets | max 3, each 175 chars |
 | positioning | 200 chars · single-name note 180 chars |
 | news | max 4 · head 60 · body 155 |
 | implications | max 2, each 190 chars |
 | watch | max 4 · head 55 · body 155 |
+| **any single sentence, anywhere** | **20 words** |
 | **whole brief** | **700 words** (aim for 550) |
+
+**The headline is checked for SHAPE, not just length** (`enforce_shape`). It is a
+comma-separated data line — `ADP +38K, rate hike odds 66%, rate vol up 4 days` —
+so it may contain **no sentence break and no closing full stop**. Two short
+sentences fit inside the character cap and are still rejected. Decimals and
+prices (`5.041%`, `$107.55`) are fine; a period followed by a space or the end
+of the string is not.
+
+**Every sentence in every field is capped at 20 words** (`enforce_voice`), stance
+and positioning and single-name notes included. Two ideas is two sentences.
+Spell numbers as numerals — "25bp", not "a quarter point"; "66%", not
+"two-thirds" — the voice check rejects the words.
+
+*(2026-09-15: this table said 140/320 and listed neither the shape rule nor the
+20-word sentence cap. The script has enforced 95/200 and both rules for weeks,
+so the morning session burned three validation round-trips rediscovering them.
+`CAPS`, `enforce_shape` and `_SENT_MAX_WORDS` in `scripts/build_daily_brief.py`
+are canonical — change them and this table in the same commit.)*
 
 **Say it once.** The prepare step also rejects the same eight-word run appearing
 in two different blocks. The 8/19 brief told the $3tn AI story four times —
