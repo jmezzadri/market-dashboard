@@ -126,6 +126,8 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.29` A window measured in observations is not a window measured in time
 - `4.30` Ideas are sourced from the WORLD; our data validates them. A contract that can only mark 74 series will quietly narrow every idea to those 74 series
 - `4.31` Every field a page renders needs a CODE writer; a manual backfill is a bridge, not a source
+- `4.32` "live" is a claim about the SESSION, not the feed; and only a real browser can check what a page claims
+- `4.33` A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -950,6 +952,15 @@ They are not the same series and they are nowhere near each other:
 3. **The health sweep's rendered-page check is that workflow's log.** The script prints each page's rendered text between `===== RENDERED-TEXT … =====` markers precisely so the cloud sweep (which has no browser path to the site) reads the rendered page via `{"run_log": <run_id>}`. A sweep that skips reading it has not verified the rendered site; a change that removes those markers breaks the sweep's only eyes.
 
 **Applies to:** Lead Developer — every user-visible state label; the weekday health sweep.
+
+
+### 4.33 (2026-09-15) — A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
+
+**What happened:** `econ_release_history` sat red for two days. `build_econ_release_history.py` hard-fails when the Cleveland Fed nowcast for the pending month is missing — deliberate, per the fail-loud rule. But "pending month" is derived from FRED's last print, and FRED updates within hours of a release while Cleveland rolls its nowcast file to the new month days later. Every month, in the window between a CPI/PCE print landing on FRED and Cleveland starting the next month's chart, the builder failed the ENTIRE history file — every release's charts, not just the one nowcast — and `continue-on-error` on that step meant the workflow stayed green while the health row went red with nobody's alarm firing loudly.
+
+**Rule:** A fail-loud check on data stitched from two providers must name the structural race between them and bound it. Here: while FRED's update for the measure is ≤10 days old, a missing (or already-printed) Cleveland pending-month chart is the forecaster mid-roll — publish the measure honestly with NO nowcast and say so in the log. Past 10 days it is a broken fetch and the run fails loudly as before. The general form: "source B has nothing for the period source A implies" is only an error once B has had time to publish; before that it is the seam between two publication clocks, and failing the whole file on it turns a known monthly race into a monthly outage.
+
+**Applies to:** Data Steward + Lead Developer — every feed whose pending period is derived from a different provider's clock.
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
