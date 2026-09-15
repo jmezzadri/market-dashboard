@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-14T23:15:11Z",
+  "generated_at": "2026-09-15T11:16:56Z",
   "window": {
-    "from": "2026-09-07",
-    "to": "2026-11-23"
+    "from": "2026-09-08",
+    "to": "2026-11-24"
   },
   "counts": {
-    "total": 104,
+    "total": 105,
     "tier1": 29
   },
   "sources": [
@@ -1165,6 +1165,17 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "An 85-indicator composite of national economic activity.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-24",
+      "time_et": "8:30 AM",
+      "name": "Philadelphia Fed services survey",
+      "short": "Philly Svc",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
