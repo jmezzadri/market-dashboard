@@ -323,7 +323,17 @@ def cleveland_nowcasts():
         except ValueError:
             continue
         period = dt.date(y, m, 1).isoformat()
-        cats = [c.get("label", "") for c in ch["categories"][0]["category"]]
+        # Event markers ("CPI Aug", vline:"true") sit in the category array
+        # but have NO column in any data array — every data array aligns with
+        # the NON-vline categories only (verified 2026-09-16: 41/32/11 data
+        # points vs 44/35/12 raw labels across the 2026 charts, exactly the
+        # vline count apart). Zipping by raw index drifted the as-of one day
+        # per marker, and on 2026-09-16 the last PCE point landed exactly on
+        # the "CPI Aug" marker: int("CPI Aug") silently dropped the measure,
+        # and the pending-month lookup fail-louded on a nowcast that exists
+        # (LESSONS 4.34).
+        cats = [c.get("label", "") for c in ch["categories"][0]["category"]
+                if str(c.get("vline", "")).lower() not in ("true", "1")]
         series = {s["seriesname"]: s["data"] for s in ch["dataset"]}
         for name in ("CPI Inflation", "Core CPI Inflation", "PCE Inflation", "Core PCE Inflation"):
             actual = series.get(f"Actual {name}") or []
@@ -332,6 +342,10 @@ def cleveland_nowcasts():
             last_i = max((i for i, x in enumerate(path) if x.get("value") not in ("", None)), default=None)
             if last_i is None:
                 continue
+            if last_i >= len(cats):
+                raise RuntimeError(
+                    f"Cleveland chart {sub}: '{name}' has a data point at index {last_i} "
+                    f"but only {len(cats)} date labels — axis/data misalignment")
             try:
                 mm, dd = (int(x) for x in cats[last_i].split("/"))
             except ValueError:

@@ -128,6 +128,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.31` Every field a page renders needs a CODE writer; a manual backfill is a bridge, not a source
 - `4.32` "live" is a claim about the SESSION, not the feed; and only a real browser can check what a page claims
 - `4.33` A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
+- `4.34` Two arrays only zip by index if they describe the same axis; a marker row in the axis silently shifts every read after it
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -961,6 +962,15 @@ They are not the same series and they are nowhere near each other:
 **Rule:** A fail-loud check on data stitched from two providers must name the structural race between them and bound it. Here: while FRED's update for the measure is ≤10 days old, a missing (or already-printed) Cleveland pending-month chart is the forecaster mid-roll — publish the measure honestly with NO nowcast and say so in the log. Past 10 days it is a broken fetch and the run fails loudly as before. The general form: "source B has nothing for the period source A implies" is only an error once B has had time to publish; before that it is the seam between two publication clocks, and failing the whole file on it turns a known monthly race into a monthly outage.
 
 **Applies to:** Data Steward + Lead Developer — every feed whose pending period is derived from a different provider's clock.
+
+
+### 4.34 (2026-09-16) — Two arrays only zip by index if they describe the same axis; a marker row in the axis silently shifts every read after it
+
+**What happened:** `econ_release_history` went red at 14:17 UTC, three hours after a clean sweep. `FATAL: Cleveland nowcast for Personal income & PCE prices / PCE prices period 2026-08-01 not found` — but the nowcast existed. Cleveland's chart file interleaves event markers (`{"label":"CPI Aug","vline":"true"}`) into the category axis, and those markers have NO column in any data array: the 2026 charts carried 41/32/11 data points against 44/35/12 raw labels, exactly the vline count apart. The parser zipped data index to raw label index, so every as-of date it published since the first marker appeared (mid-August) was shifted a day per marker — silently green — until the day the last PCE data point landed exactly on the "CPI Aug" marker, `int("CPI Aug")` raised, the `except ValueError: continue` dropped the whole measure, and the 4.33 fail-loud correctly fired on a nowcast that was really there.
+
+**Rule:** Never index one array by another's positions without first establishing they share an axis. When a provider's axis can carry non-data rows (markers, vlines, separators), filter them out before zipping, and guard the alignment explicitly — a data index past the end of the filtered axis raises a named error, never a silent skip. The quiet failure mode here was worse than the loud one: weeks of subtly wrong as-of dates rendered green while only the lucky collision made it visible. An `except ValueError: continue` around an index-zip is a silent-drop trap; the 4.28 seam rule applies inside a single provider's file, not just between providers.
+
+**Applies to:** Data Steward + Lead Developer — every parser that joins a data array to a label/category array by position.
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
