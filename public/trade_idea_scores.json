@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-16T23:39:03Z",
-  "as_of": "2026-09-16",
+  "generated_at": "2026-09-17T00:59:07Z",
+  "as_of": "2026-09-17",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -16,7 +16,7 @@
       "marked": 6,
       "open": 5,
       "closed": 1,
-      "avg_mark_pct": -0.4,
+      "avg_mark_pct": -0.49,
       "best": {
         "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
         "trade_label": "Long Natgas",
@@ -25,13 +25,13 @@
       "worst": {
         "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
         "trade_label": "Long 10-year Treasury",
-        "mark": -2.85
+        "mark": -2.93
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 1.0,
-      "ahead_of_spx": 3,
+      "avg_vs_spx_pp": 1.75,
+      "ahead_of_spx": 5,
       "behind_spx": 1,
-      "line": "6 calls marked (5 open, 1 closed). Taken as one book they average -0.4% a call and sit 1.0 points ahead of the S&P 500 over the same days — 3 ahead of the index, 1 behind. Best: Long Natgas, +2.2%. Worst: Long 10-year Treasury, -2.9%."
+      "line": "6 calls marked (5 open, 1 closed). Taken as one book they average -0.5% a call and sit 1.8 points ahead of the S&P 500 over the same days — 5 ahead of the index, 1 behind. Best: Long Natgas, +2.2%. Worst: Long 10-year Treasury, -2.9%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "1 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
@@ -78,7 +78,15 @@
         "clamp_reason": "uncapped size 0.11x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7656.98,
+        "move": -1.3735,
+        "difference": 3.5635,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": 2.19,
       "mark_date": "2026-09-16",
       "sessions_held": 4,
@@ -184,14 +192,14 @@
           "label": "10-year Treasury",
           "short_label": "10-year Treasury",
           "maturity_years": 10.0,
-          "return_pct": -2.8544
+          "return_pct": -2.9336
         }
       ],
-      "buy_pct": -2.8544,
+      "buy_pct": -2.9336,
       "sell_pct": null,
       "trade_label": "Long 10-year Treasury",
-      "position_pct": -2.8544,
-      "risk_sized_pct": -5.4947,
+      "position_pct": -2.9336,
+      "risk_sized_pct": -5.6472,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.925,
@@ -206,28 +214,28 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7677.28,
-        "move": -1.1925,
-        "difference": -1.6619,
+        "move": -1.6343,
+        "difference": -1.2993,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -2.8544,
-      "mark_date": "2026-09-15",
-      "sessions_held": 15,
+      "mark": -2.9336,
+      "mark_date": "2026-09-16",
+      "sessions_held": 16,
       "max_favourable": {
         "value": 0.0,
         "date": "2026-08-25"
       },
       "max_adverse": {
-        "value": -2.8544,
-        "date": "2026-09-15"
+        "value": -2.9336,
+        "date": "2026-09-16"
       },
       "invalidation": {
-        "date": "2026-09-15",
+        "date": "2026-09-16",
         "series": "ust_10y",
-        "value": 5.0,
+        "value": 5.01,
         "rule": "ust_10y >= 5.0 (weekly close)"
       },
-      "result": -2.8544
+      "result": -2.9336
     },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -328,7 +336,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": -1.8562
+          "return_pct": -2.3866
         },
         {
           "series": "ust_10y",
@@ -340,14 +348,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -2.5324
+          "return_pct": -2.6115
         }
       ],
-      "buy_pct": -1.8562,
-      "sell_pct": -2.5324,
+      "buy_pct": -2.3866,
+      "sell_pct": -2.6115,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.6761,
-      "risk_sized_pct": 2.8991,
+      "position_pct": 0.2249,
+      "risk_sized_pct": 0.9644,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -362,13 +370,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -2.5692,
-        "difference": 3.2453,
+        "move": -3.0048,
+        "difference": 3.2297,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.6761,
-      "mark_date": "2026-09-15",
-      "sessions_held": 22,
+      "mark": 0.2249,
+      "mark_date": "2026-09-16",
+      "sessions_held": 23,
       "max_favourable": {
         "value": 0.8992,
         "date": "2026-09-10"
@@ -422,7 +430,15 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7798.99,
+        "move": -3.1694,
+        "difference": 2.6146,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": -0.5548,
       "mark_date": "2026-09-16",
       "sessions_held": 28,
