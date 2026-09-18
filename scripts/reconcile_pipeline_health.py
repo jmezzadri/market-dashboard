@@ -62,6 +62,15 @@ RETIRED_FEEDS = {
     # not have (2026-08-18 sweep).
     "uw-universe-snapshots",
     "uw-ticker-events",
+    # earnings_history retired 2026-09-18 (weekday sweep, LESSONS 4.35): its
+    # ticker universe came from universe_snapshots, whose producer died with
+    # the UW lapse (UNIVERSE_SNAPSHOT_3X_WEEKDAYS disabled 8/24, table now
+    # empty), so the 9/13 run wrote 0 rows and exited green while the row sat
+    # red. Its only reader, useEarningsHistory, is imported by no live page —
+    # the overhaul TickerPage shows next-earnings-date from ticker_events.
+    # Workflow and hook deleted in the same change; the orphaned producer
+    # script and stray TickerPage copy are the LESSONS 4.35 open item.
+    "earnings_history",
     # NOT retired, despite appearances (checked again 2026-08-26): the element
     # id equity-short_interest-daily belongs to a LIVE feed. Its ingest kept the
     # id from when it also pulled Unusual Whales daily short volume, but the UW
@@ -71,22 +80,21 @@ RETIRED_FEEDS = {
 }
 
 # Live feeds with no manifest entry yet, which the orphan check must not fail
-# red on. Both are LIVE and non-UW — earnings_history is yfinance via
-# EARNINGS-HISTORY-WEEKLY, scanner-v5-daily is trading_opps_signals via
-# V5_SCAN_DAILY — and both self-stamp on every run. Their manifest entries were
-# collateral damage in the UW teardown (#1411), which stripped everything the UW
-# vendor touched off the rendered pages. Registering them is a Data Steward job:
-# each needs a MEASURED pull/data SLA (LESSONS 4.28 — a deadline set inside the
+# red on. scanner-v5-daily is LIVE and non-UW — trading_opps_signals via
+# V5_SCAN_DAILY, self-stamping on every run. Its manifest entry was collateral
+# damage in the UW teardown (#1411), which stripped everything the UW vendor
+# touched off the rendered pages. Registering it is a Data Steward job: it
+# needs a MEASURED pull/data SLA (LESSONS 4.28 — a deadline set inside the
 # producer's arrival spread manufactures a daily failure), not a number guessed
-# inside a health sweep. Until then they grade off FALLBACK_PULL_SLA, which is
-# the behaviour they have had since July.
+# inside a health sweep. Until then it grades off FALLBACK_PULL_SLA, which is
+# the behaviour it has had since July. (earnings_history left this set for
+# RETIRED_FEEDS on 2026-09-18 — see the note there.)
 #
 # Renamed from UNLISTED_UNTIL_UW_LAPSE on 2026-08-18. That name promised the set
 # would empty at the 8/12 lapse, and a promise that has quietly expired is how a
 # zombie hides. The two UW rows it named are in RETIRED_FEEDS above now; what is
 # left has nothing to do with the lapse.
 UNREGISTERED_LIVE_FEEDS = {
-    "earnings_history",
     "scanner-v5-daily",
 }
 
@@ -229,7 +237,6 @@ TABLE_FEEDS = {
     "paper-nav-daily":           ("paper_nav_history",  ["nav_date", "as_of", "created_at"],     49,  True),
     "paper-orders-intent":       ("paper_orders",       ["created_at", "order_date"],            49,  True),
     # --- registered 2026-06-18: live feeds that previously had no tracking row ---
-    "earnings_history":          ("earnings_history",   ["updated_at", "report_date"],          200, False),
     "zerohedge_public":          ("trading_opps_signals", ["scan_date"],                        49,  True),
     "zerohedge_premium":         ("trading_opps_signals", ["scan_date"],                        49,  True),
     "options_chain":             ("trading_opps_signals", ["scan_date"],                        49,  True),
