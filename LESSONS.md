@@ -129,6 +129,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.32` "live" is a claim about the SESSION, not the feed; and only a real browser can check what a page claims
 - `4.33` A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
 - `4.34` Two arrays only zip by index if they describe the same axis; a marker row in the axis silently shifts every read after it
+- `4.35` A feed can outlive both its input and its reader; a green "wrote 0 rows" run is a retirement notice, not health
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -971,6 +972,21 @@ They are not the same series and they are nowhere near each other:
 **Rule:** Never index one array by another's positions without first establishing they share an axis. When a provider's axis can carry non-data rows (markers, vlines, separators), filter them out before zipping, and guard the alignment explicitly — a data index past the end of the filtered axis raises a named error, never a silent skip. The quiet failure mode here was worse than the loud one: weeks of subtly wrong as-of dates rendered green while only the lucky collision made it visible. An `except ValueError: continue` around an index-zip is a silent-drop trap; the 4.28 seam rule applies inside a single provider's file, not just between providers.
 
 **Applies to:** Data Steward + Lead Developer — every parser that joins a data array to a label/category array by position.
+
+
+### 4.35 (2026-09-18) — A feed can outlive both its input and its reader; a green "wrote 0 rows" run is a retirement notice, not health
+
+**What happened:** the weekday sweep found `earnings_history` red (last good 9/6) under a green EARNINGS-HISTORY-WEEKLY run from 9/13. The log said it plainly: `universe_snapshots empty — nothing to refresh… wrote 0 rows`, exit 0. Its ticker universe came from `universe_snapshots`, whose producer was retired with the Unusual Whales lapse (8/24) and whose rows were later cleaned out — so the feed had no input. Checking the other end before "fixing" it: its ONLY reader, `useEarningsHistory`, is imported by no live page (the overhaul TickerPage shows next-earnings-date from `ticker_events`). The one grep hit that looked like a consumer was `market-dashboard-live/` — a stray May copy of TickerPage committed to the repo, part of no build. A feed with a dead input and a dead reader is not broken; it is unretired. This change deletes the workflow, the hook, the watchlist entry (5.23 rule 3) and the health row via RETIRED_FEEDS. The same sweep found RENDERED-DOM-SMOKE had never been added to WORKFLOW_FAILURE_ALERT — the checker that grades what pages claim could itself die unrecorded — fixed in the same PR.
+
+**Open item — 0.10 not yet complete:** three deletions sit outside ops-code-commit's write allowlist and the cloud sweep's request to widen it was refused by permission policy: `trading-scanner/run_earnings_history.py` (now-orphaned producer, unreachable once its workflow is gone), `market-dashboard-live/` (the stray TickerPage copy), and the `EARNINGS_HISTORY_WEEKLY.yml` block in `pipeline_schedule.yml`. Next desktop session (repo write per 8.1): delete all three.
+
+**Rule:**
+
+1. **Before fixing a red feed, walk BOTH ends first: who writes its input, and who reads its output.** Input producer deliberately dark + zero live readers = retire (0.10), never re-source. Re-pointing the universe at a live table would have "fixed" a scrape nobody renders.
+2. **"Wrote 0 rows" with exit 0 on a producer is 4.10's silent-staleness shape** — if this feed had had a reader, the run should have failed loudly the day its universe emptied. Any producer whose input can legitimately vanish exits non-zero, naming the input, when it finds nothing to write.
+3. **A stale copy of a source file checked into an unused directory is a booby trap for every future grep.** It nearly reversed this retirement by impersonating a consumer. Tracked cruft gets deleted the moment it is identified (7.12), in the same change as whatever exposed it.
+
+**Applies to:** Lead Developer — every red feed triage; every retirement.
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING

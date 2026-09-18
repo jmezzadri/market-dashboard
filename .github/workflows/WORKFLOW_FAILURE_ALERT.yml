@@ -45,10 +45,10 @@ on:
       - MASSIVE-INITIAL-BACKFILL
       - MASSIVE-TICKER-REFERENCE-BACKFILL
       # Other production data feeds — added Phase 3 PR #11a (2026-04-30)
-      # 2026-08-18: EARNINGS_HISTORY_WEEKLY was the FILE name; the trigger matches
-      # the workflow's `name:`, which is EARNINGS-HISTORY-WEEKLY (hyphens). The
-      # underscore spelling matched nothing and had been inert since 2026-04-30.
-      - EARNINGS-HISTORY-WEEKLY
+      # EARNINGS-HISTORY-WEEKLY removed 2026-09-18: feed retired end-to-end
+      # (its universe_snapshots input died with the UW lapse and no live page
+      # reads earnings_history — LESSONS 4.35). A retired name in a watchlist
+      # is counted as coverage (5.23), so it goes in the same change.
       # 2026-08-18: SPY_SECTOR_WEIGHTS_DAILY, REFRESH-CONGRESS-ROSTER and
       # SCAN_330PM_WEEKDAYS removed — no workflow in this repo carries any of
       # those names. A watchlist entry that matches nothing is a silent no-op,
@@ -57,6 +57,11 @@ on:
       # Phase 4 cleanup PR η (2026-05-02) — close the workflow-alert watchlist
       # gap. Each of these was missing on-failure alerting.
       - DAILY-HOME-SMOKE
+      # 2026-09-18 sweep: RENDERED-DOM-SMOKE (added 9/2, LESSONS 4.32) was
+      # never put on this trigger, so a crash of the page-claims checker was
+      # unrecorded. Recording (BACKGROUND) tier — its own P0 bug filing covers
+      # assertion violations; this covers the checker itself dying.
+      - RENDERED-DOM-SMOKE
       - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY
       - MASSIVE-V9-ETF-BACKFILL
       - SCREENER_TRADING_OPPS_DAILY
