@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-18T22:42:16Z",
+  "generated_at": "2026-09-19T13:15:44Z",
   "window": {
-    "from": "2026-09-11",
-    "to": "2026-11-27"
+    "from": "2026-09-12",
+    "to": "2026-11-28"
   },
   "counts": {
-    "total": 108,
-    "tier1": 30
+    "total": 106,
+    "tier1": 29
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,28 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-11",
-      "time_et": "8:30 AM",
-      "name": "Consumer prices (CPI)",
-      "short": "CPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Headline and core consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-11",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, preliminary)",
-      "short": "UMich prelim",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
-      "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-15",
       "time_et": "8:30 AM",
