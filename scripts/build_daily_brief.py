@@ -863,7 +863,14 @@ VOICE_BANNED = [
     (r"\bkeeps? (?:missing|coming in|printing)\b",
                                              'essay phrasing — give the number, not the trend narration'),
     (r"\b(?:and|but)\b[^.]{0,60}\banyway\b", '"anyway" editorialises — state both facts'),
-    (r"\b(?:two-thirds|one-third|three-quarters|four-fifths|a third|a quarter)\b",
+    # 2026-09-21: "a third" / "a quarter" also open compound words that are not
+    # fractions at all -- "a third-tier release", "a third-party vendor", "a
+    # quarter-end turn". The morning session lost a validation round-trip to
+    # "and a third-tier one". A hyphen after the word means it is a compound,
+    # so skip it; "a quarter point" (and its hyphenated spelling) is still the
+    # fraction this rule exists to catch, so it stays matched explicitly.
+    (r"\b(?:two-thirds|one-third|three-quarters|four-fifths|a quarter[- ]point"
+     r"|a third(?!-)|a quarter(?!-))\b",
                                              'write the number: "66%", not "two-thirds"'),
     (r"\bprinted\b(?![^.]*\d)",              '"printed" with no number — give the print'),
 ]
