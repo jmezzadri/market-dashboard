@@ -1,9 +1,235 @@
 {
-  "generated_at": "2026-09-12T09:27:05Z",
+  "generated_at": "2026-09-22T09:34:10Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
-  "next_publish": "2026-09-13",
+  "next_publish": "2026-09-23",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-09-22",
+      "kind": "fx",
+      "title": "The record yen rescue looks dead. So did the last three at exactly this point.",
+      "dek": "Tokyo spent a record ¥15.4 trillion buying yen from late July and Washington joined. Two months on, the dollar has taken nearly all of it back — which is what month two looked like in 1998, 2022 and 2024, before the yen's real move began. This time the Bank of Japan is raising rates behind it.",
+      "position_type": "outright long",
+      "call": "Over the next four months the yen is set up to strengthen against the dollar: in all three yen-buying campaigns since 1998, the month-two retest of the intervention level — where dollar-yen sits today — was followed by a 6-21% yen gain, and this is the first campaign with the Bank of Japan raising rates behind it.",
+      "instrument": "Japanese yen via FXY, held long, four months",
+      "horizon": "four months (through late January 2027) — entry at the month-two retest",
+      "the_trade": {
+        "buy": "FXY — Invesco CurrencyShares Japanese Yen Trust — shares, or 3-6 month at-the-money call options on FXY for defined risk; the premium is the most the options position can lose.",
+        "buy_line": "FXY shares, or 3-6 month at-the-money calls",
+        "sizing": "Holding dollars pays about 2.6 points a year more than holding yen, so the position costs roughly 0.7% a quarter in forgone interest. Size for the four-month window with the stop 4% away, not as a buy-and-forget holding."
+      },
+      "edge": {
+        "source": "market structure",
+        "summary": "Official yen-buying campaigns mark durable turns, but with a lag: in every campaign since 1998 the first month went against the authorities and the real yen move ran from month two to month six. This campaign reached month two this week with dollar-yen back within 2% of the level where the buying began.",
+        "backtest": {
+          "window": "Dollar-yen daily history, 1996-2026; every yen-buying intervention campaign in the series: June 1998 (US-Japan), September 2022 (MoF), April 2024 (MoF)",
+          "n": 3,
+          "result": "Measured from two months after each campaign began — today's mark in this one — dollar-yen fell over the following four months in all three: -20.6% (1998), -6.9% (2022), -5.9% (2024); median -6.9%",
+          "baseline": "The unconditional four-month change over the same 30-year series: median +0.5%, negative only 47% of the time"
+        }
+      },
+      "variant": "Consensus after the September 18 BoJ meeting is that the hike changes nothing for the yen: the policy-rate gap is still about 2.6 points, dollar-yen drifting back to 157 is read as proof the record intervention failed, and ING's Chris Turner wrote that a sustainable yen rise 'now probably requires a much more hawkish Bank of Japan' (forex.com, September 2026). The record of the three prior campaigns says the opposite: the month-two retest preceded the entire move every time, none of the three had a rate-hiking BoJ behind it, and positioning is mid-range, so the repricing has room to run.",
+      "thesis": [
+        "Dollar-yen 157.34 Monday — within 2% of July 30, the day the record ¥15.4 trillion campaign began.",
+        "The BoJ raised its rate to 1.25% on Sep 18, the highest since 1995. The yen weakened that day anyway.",
+        "All three yen-buying campaigns since 1998: dollar-yen fell 5.9-20.6% in months two through six.",
+        "Month one went against the authorities in all three campaigns. The retest is the pattern, not the failure.",
+        "Leveraged funds swung 14 points of open interest toward yen longs in the week to Sep 15 — levels still mid-range."
+      ],
+      "evidence": [
+        {
+          "claim": "Dollar-yen exchange rate",
+          "value": "157.34",
+          "source": "MacroTilt indicator history (dollar-yen, daily since 1996)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Weakest yen close in the 30-year series",
+          "value": "163.86 on 2026-07-28; no later close above it",
+          "source": "MacroTilt indicator history (dollar-yen, daily since 1996)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Yen-buying intervention, disclosed as a record by Japan's Ministry of Finance",
+          "value": "¥15.3993 trillion spent July 30 - August 26",
+          "source": "Japan Ministry of Finance monthly disclosure, reported by forex.com / ING",
+          "as_of": "2026-08-26"
+        },
+        {
+          "claim": "US Treasury participation in the campaign, confirmed",
+          "value": "\"We will not hesitate to participate in further joint intervention\" — Treasury Secretary Bessent",
+          "source": "US Treasury statement, reported by CNBC and the Japan Times",
+          "as_of": "2026-08-03"
+        },
+        {
+          "claim": "Bank of Japan policy rate",
+          "value": "1.25% after a 25bp increase, vote 7-2, highest since 1995",
+          "source": "Bank of Japan decision, reported by CNBC",
+          "as_of": "2026-09-18"
+        },
+        {
+          "claim": "Federal Reserve target rate",
+          "value": "3.75-4.00% after a 25bp increase, the first since 2023",
+          "source": "Federal Reserve decision, reported by CNBC",
+          "as_of": "2026-09-16"
+        },
+        {
+          "claim": "Dollar-yen change, months two through six of the 1998, 2022 and 2024 campaigns",
+          "value": "-20.6%, -6.9%, -5.9%; median -6.9%, all three negative",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Unconditional four-month dollar-yen change over the same series",
+          "value": "median +0.5%; negative 47% of the time",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Dollar-yen one month after each campaign began — the move went against the authorities every time",
+          "value": "+1.5% (1998), +3.9% (2022), +0.6% (2024)",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Leveraged-fund yen position, week to Sep 15",
+          "value": "net long 4.3% of open interest, 76.6th percentile of 872 weeks; +14.1 points on the week",
+          "source": "CFTC Traders in Financial Futures via MacroTilt positioning feed",
+          "as_of": "2026-09-15"
+        },
+        {
+          "claim": "The current retest, through the BoJ hike",
+          "value": "dollar-yen 153.42 on Sep 13 to 157.34 on Sep 21",
+          "source": "MacroTilt indicator history (dollar-yen)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "US two-year Treasury yield — the American side of the rate gap, at a one-year high",
+          "value": "4.76%, 100th percentile of the past year",
+          "source": "MacroTilt indicator history (ust_2y)",
+          "as_of": "2026-09-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "fx_jpy",
+          "title": "What a dollar buys in yen",
+          "subtitle": "US dollar - Japanese yen exchange rate, daily since 1996",
+          "unit": "¥",
+          "decimals": 1,
+          "window": "full",
+          "caption": "The July 28 close at 163.86 is the weakest yen in the series. The record buying campaign began there; today's 157 is the retest of that decision.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "usd",
+          "title": "The broad dollar is not falling",
+          "subtitle": "Dollar index against major currencies, past year",
+          "unit": "index",
+          "decimals": 1,
+          "window": "1y",
+          "caption": "The dollar overall sits near the top of its one-year range. This is the headwind: the case here rests on Japanese policy and intervention mechanics, not on a general dollar decline.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "ust_2y",
+          "title": "The American side of the rate gap",
+          "subtitle": "US 2-year Treasury yield, past year",
+          "unit": "%",
+          "decimals": 2,
+          "window": "1y",
+          "caption": "The 2-year yield is at a one-year high with the Fed signaling one more increase. The trade pays if Japan's side of the gap now moves faster than this line.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Enter at current levels, dollar-yen 157-158; the authorities acted in the 160-164 zone in July and August, so a push there is an add, not an exit.",
+        "invalidation": "A weekly close above 164 on dollar-yen — through the July 28 weak point of 163.86 — means the campaign failed. Exit; the pattern is broken.",
+        "target": "147 on dollar-yen by late January 2027, the median months-two-to-six move (-6.9%) applied from today's 157.34; roughly +6% on FXY before costs."
+      },
+      "sections": [
+        {
+          "title": "What happened",
+          "bullets": [
+            "July 28: dollar-yen closed 163.86, the weakest yen in our 30-year series.",
+            "July 30 - August 26: Japan bought a record ¥15.4 trillion of yen. The US Treasury joined and said it would do so again.",
+            "September 18: the BoJ raised rates to 1.25%, a 31-year high, three months after its previous increase.",
+            "The yen weakened through the hike: 153.42 on Sep 13 to 157.34 on Sep 21."
+          ]
+        },
+        {
+          "title": "Three campaigns, one shape",
+          "bullets": [
+            "June 1998, US-Japan: +1.5% at one month, +6.6% at two. Then -20.6% over the next four months.",
+            "September 2022, MoF alone: +3.9% at one month, flat at two. Then -6.9%.",
+            "April 2024, MoF alone: +0.6% at one month, +2.8% at two. Then -5.9%.",
+            "The G7's March 2011 action was the opposite trade — selling yen, not buying — and is excluded.",
+            "Unconditional, the same series drifts +0.5% over any four months. The gap is the edge."
+          ]
+        },
+        {
+          "title": "Why the entry is now, not at the announcement",
+          "bullets": [
+            "Intervention day is the worst entry on record: month one went against the authorities all three times.",
+            "The market tests the commitment first. The durable move started around month two in each campaign.",
+            "This campaign reached two months — 43 trading days — this week, with the retest in progress.",
+            "What is different this time: a BoJ raising rates into the campaign, and a standing US commitment to buy more."
+          ]
+        },
+        {
+          "title": "The vehicle and the cost",
+          "bullets": [
+            "Levels in this note are on the dollar-yen exchange rate; FXY, which rises as the yen strengthens, is the vehicle.",
+            "Forgone interest costs about 0.7% a quarter at the current 2.6-point rate gap. The median historical move is nine times that.",
+            "For defined risk: 3-6 month at-the-money FXY calls. The premium is the most that position can lose."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "PCE inflation, Sep 30, 8:30 AM — a hot print widens the American side of the rate gap.",
+            "Jobs report, Oct 2 — same mechanism.",
+            "CPI, Oct 14, and the Fed decision, Oct 28 — a second US hike this year is the scenario the stop exists for."
+          ]
+        }
+      ],
+      "other_side": "The rate gap still pays about 2.6 points a year to hold dollars over yen, so the market is paid daily to take the other side of this trade. The sample is the entire history of the setup and it is three campaigns; the biggest win, 1998, had the LTCM collapse doing much of the work, and without it the median is a single-digit move. The BoJ vote was 7-2 with two dissenters appointed by a government that favors easy policy, which caps how fast Japan's side of the gap can close. And if US inflation keeps the Fed's projections pointing higher — most participants signaled one more increase by year-end — the American side widens as fast as Japan's closes; the US 2-year at a one-year high of 4.76% is that risk, priced.",
+      "risks": [
+        "US PCE (Sep 30) or the jobs report (Oct 2) print hot, the rate gap widens, and the dollar takes another leg up.",
+        "The authorities step back: no further disclosed intervention and the September drift extends through 164.",
+        "Three episodes is the entire record of this setup; one counterexample changes the median materially.",
+        "A risk-on turn in US-China talks this week lifts the dollar against funding currencies including the yen."
+      ],
+      "so_what": "The dollar has spent two months taking back a record ¥15.4 trillion yen-buying operation. In all three prior campaigns since 1998 that retest is where the yen's real move started — and this is the first one with the BoJ raising rates behind it.",
+      "book": {
+        "stance": "With the yen added, the book is positioned for a dollar that has peaked against the majors, US inflation that stays above target (TIPS breakevens, Aug 16), a calm-volatility rotation into banks (Aug 17), cheap US natural gas against war-priced oil (Sep 12), and a fading extended long in wheat (short via WEAT, Sep 6). The 10-year Treasury long (Aug 24) hit its stop — a 5.01% weekly close on Sep 18 against its 5.00% rule — and is out of the book, so the book carries no outright duration. Highest conviction: this yen position and the natural gas long, each with a policy actor or a physical constraint on its side. Lowest: the euro long (Aug 14), below its mid-August level with the broad dollar near one-year highs.",
+        "rebalance": "The Aug 24 10-year position stopped out on the Sep 18 weekly close at 5.01% and comes off; do not re-enter while the Fed projections point higher. The Aug 14 euro long stays but is now the junior anti-dollar leg — no additions; this yen position expresses the dollar view with a catalyst attached. Wheat short, natural gas long, banks, breakevens: leave alone."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:FXY",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "Japanese yen via FXY"
+          }
+        ],
+        "horizon_months": 4,
+        "invalidation": {
+          "series": "fx_jpy",
+          "op": ">=",
+          "level": 164,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Levels and the stop are stated on the dollar-yen rate (fx_jpy), the series the analysis runs on; the return is marked on FXY, the vehicle the note names."
+      },
+      "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
+      "status": "live",
+      "published_at": "2026-09-22T09:34:10Z"
+    },
     {
       "date": "2026-09-12",
       "kind": "commodity",
