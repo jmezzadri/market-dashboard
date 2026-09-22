@@ -680,6 +680,8 @@ A COMPUTED element lists EACH input source separately (provider + dataset + loca
 
 **Rule:** Every value on a data surface traces to a real stored field. If a field isn't available yet, render an em-dash (—) and say what's missing — never a synthesized stand-in, random series, or hardcoded example, even as a "temporary placeholder." Any fake/hash-seeded/random data generator in a production component is a defect. Before declaring a surface done, open the source row it claims to show and confirm each rendered value matches.
 
+**2026-09-22 — the mirror image, an error dressed as truth:** the Home trade-idea tile caught a transient 502 on `/trade_ideas.json` and rendered "No note published yet" — a confident factual claim — over a live note dated that same morning. `useTradeIdea` mapped `!r.ok` to the same null as a genuinely empty archive. Same rule, other direction: a failed fetch renders as a failed fetch ("couldn't load — refresh"), never as the authoritative empty state. Fixed by giving the hook an `error` flag and the tile a distinct error branch.
+
 **Applies to:** All.
 
 ### 4.10 (2026-05-27) — Never accept silent staleness on a "successful" data workflow; fail loud
