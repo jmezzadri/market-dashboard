@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-21T23:26:04Z",
+  "generated_at": "2026-09-22T14:06:54Z",
   "window": {
-    "from": "2026-09-14",
-    "to": "2026-11-30"
+    "from": "2026-09-15",
+    "to": "2026-12-01"
   },
   "counts": {
-    "total": 106,
-    "tier1": 29
+    "total": 109,
+    "tier1": 31
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -1187,6 +1187,39 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-01",
+      "time_et": "10:00 AM",
+      "name": "Job openings (JOLTS)",
+      "short": "JOLTS",
+      "tier": 1,
+      "category": "Labor",
+      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-01",
+      "time_et": "10:00 AM",
+      "name": "ISM Manufacturing",
+      "short": "ISM Mfg",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
+      "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-01",
+      "time_et": "10:00 AM",
+      "name": "Construction spending",
+      "short": "Constr",
+      "tier": 3,
+      "category": "Housing",
+      "blurb": "Value of construction put in place, residential and non-residential.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
