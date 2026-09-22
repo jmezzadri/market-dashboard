@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-22T01:22:30Z",
+  "generated_at": "2026-09-22T23:36:07Z",
   "as_of": "2026-09-22",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
-    "published": 6,
-    "open": 5,
+    "published": 7,
+    "open": 6,
     "pending_entry": 0,
     "closed": 1,
     "unscoreable": 0,
@@ -13,30 +13,95 @@
     "unscoreable_reasons": [],
     "min_closed_for_stats": 10,
     "overall": {
-      "marked": 6,
-      "open": 5,
+      "marked": 7,
+      "open": 6,
       "closed": 1,
-      "avg_mark_pct": -1.16,
+      "avg_mark_pct": 0.04,
       "best": {
-        "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
-        "trade_label": "Short WEAT (Teucrium wheat fund)",
-        "mark": 2.38
+        "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+        "trade_label": "Long Natgas",
+        "mark": 12.12
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
         "trade_label": "Long KBW / Short NASDAQ",
-        "mark": -6.07
+        "mark": -9.2
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": -0.78,
+      "avg_vs_spx_pp": -2.16,
       "ahead_of_spx": 2,
-      "behind_spx": 4,
-      "line": "6 calls marked (5 open, 1 closed). Taken as one book they average -1.2% a call and sit 0.8 points behind the S&P 500 over the same days — 2 ahead of the index, 4 behind. Best: Short WEAT (Teucrium wheat fund), +2.4%. Worst: Long KBW / Short NASDAQ, -6.1%."
+      "behind_spx": 2,
+      "line": "7 calls marked (6 open, 1 closed). Taken as one book they average +0.0% a call and sit 2.2 points behind the S&P 500 over the same days — 2 ahead of the index, 2 behind. Best: Long Natgas, +12.1%. Worst: Long KBW / Short NASDAQ, -9.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "1 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
   },
   "scores": [
+    {
+      "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
+      "date": "2026-09-22",
+      "kind": "fx",
+      "title": "The record yen rescue looks dead. So did the last three at exactly this point.",
+      "instrument": "Japanese yen via FXY, held long, four months",
+      "position_type": "outright long",
+      "status": "open",
+      "entry_date": "2026-09-21",
+      "target_date": "2027-01-21",
+      "horizon_months": 4,
+      "unit": "%",
+      "legs": [
+        {
+          "series": "ticker:FXY",
+          "side": "long",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-09-21",
+          "entry_value": 58.2,
+          "label": "Japanese yen via FXY",
+          "short_label": "Japanese yen via FXY",
+          "return_pct": 0.0
+        }
+      ],
+      "buy_pct": 0.0,
+      "sell_pct": null,
+      "trade_label": "Long Japanese yen via FXY",
+      "position_pct": 0.0,
+      "risk_sized_pct": 0.0,
+      "sizing": {
+        "method": "none",
+        "multiple": 1.0,
+        "spread_vol_pct": null,
+        "target_vol_pct": 10.0,
+        "observations": 100,
+        "reason": "only 100 common sessions in the year before entry (need 120) — sized at 1x rather than off a vol we cannot measure"
+      },
+      "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7764.7,
+        "move": 0.0,
+        "difference": 0.0,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
+      "mark": 0.0,
+      "mark_date": "2026-09-21",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-09-21"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-09-21"
+      },
+      "invalidation": {
+        "rule": "fx_jpy >= 164 (weekly close)",
+        "date": null
+      },
+      "result": null
+    },
     {
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
       "date": "2026-09-12",
@@ -59,14 +124,14 @@
           "entry_value": 2.831,
           "label": "Front-month US natural gas",
           "short_label": "Natgas",
-          "return_pct": -0.0706
+          "return_pct": 12.1159
         }
       ],
-      "buy_pct": -0.0706,
+      "buy_pct": 12.1159,
       "sell_pct": null,
       "trade_label": "Long Natgas",
-      "position_pct": -0.0706,
-      "risk_sized_pct": -0.0176,
+      "position_pct": 12.1159,
+      "risk_sized_pct": 3.029,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
@@ -78,25 +143,17 @@
         "clamp_reason": "uncapped size 0.11x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": {
-        "series": "spx_index",
-        "label": "S&P 500",
-        "measure": "pct_change",
-        "entry_value": 7656.98,
-        "move": 1.4068,
-        "difference": -1.4774,
-        "note": "What the obvious alternative did over exactly the same days."
-      },
-      "mark": -0.0706,
-      "mark_date": "2026-09-21",
-      "sessions_held": 7,
+      "benchmark": null,
+      "mark": 12.1159,
+      "mark_date": "2026-09-22",
+      "sessions_held": 8,
       "max_favourable": {
-        "value": 3.1084,
-        "date": "2026-09-15"
+        "value": 12.1159,
+        "date": "2026-09-22"
       },
       "max_adverse": {
-        "value": -0.0706,
-        "date": "2026-09-21"
+        "value": 0.0,
+        "date": "2026-09-11"
       },
       "invalidation": {
         "rule": "cmdty_natgas <= 2.45 (weekly close)",
@@ -126,14 +183,14 @@
           "entry_value": 26.49,
           "label": "WEAT (Teucrium wheat fund)",
           "short_label": "WEAT (Teucrium wheat fund)",
-          "return_pct": -2.3783
+          "return_pct": -0.6795
         }
       ],
       "buy_pct": null,
-      "sell_pct": -2.3783,
+      "sell_pct": -0.6795,
       "trade_label": "Short WEAT (Teucrium wheat fund)",
-      "position_pct": 2.3783,
-      "risk_sized_pct": 0.9822,
+      "position_pct": 0.6795,
+      "risk_sized_pct": 0.2806,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.413,
@@ -148,13 +205,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
-        "move": -0.8823,
-        "difference": 3.2606,
+        "move": 0.5973,
+        "difference": 0.0822,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 2.3783,
-      "mark_date": "2026-09-18",
-      "sessions_held": 10,
+      "mark": 0.6795,
+      "mark_date": "2026-09-21",
+      "sessions_held": 11,
       "max_favourable": {
         "value": 2.3783,
         "date": "2026-09-18"
@@ -259,7 +316,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -6.8474
+          "return_pct": -7.7259
         },
         {
           "series": "ndx_index",
@@ -270,14 +327,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": -0.773
+          "return_pct": 1.47
         }
       ],
-      "buy_pct": -6.8474,
-      "sell_pct": -0.773,
+      "buy_pct": -7.7259,
+      "sell_pct": 1.47,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -6.0743,
-      "risk_sized_pct": -2.6362,
+      "position_pct": -9.1959,
+      "risk_sized_pct": -3.991,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -292,20 +349,20 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -1.7373,
-        "difference": -4.337,
+        "move": -0.2705,
+        "difference": -8.9254,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -6.0743,
-      "mark_date": "2026-09-18",
-      "sessions_held": 25,
+      "mark": -9.1959,
+      "mark_date": "2026-09-21",
+      "sessions_held": 26,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
       },
       "max_adverse": {
-        "value": -6.0743,
-        "date": "2026-09-18"
+        "value": -9.1959,
+        "date": "2026-09-21"
       },
       "invalidation": {
         "rule": "vix_ts >= 1.0 (close)",
@@ -413,14 +470,14 @@
           "entry_value": 1.1535,
           "label": "EUR/USD",
           "short_label": "EUR/USD",
-          "return_pct": -0.5895
+          "return_pct": -0.7369
         }
       ],
-      "buy_pct": -0.5895,
+      "buy_pct": -0.7369,
       "sell_pct": null,
       "trade_label": "Long EUR/USD",
-      "position_pct": -0.5895,
-      "risk_sized_pct": -1.0411,
+      "position_pct": -0.7369,
+      "risk_sized_pct": -1.3014,
       "sizing": {
         "method": "risk_parity",
         "multiple": 1.766,
@@ -430,25 +487,17 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": {
-        "series": "spx_index",
-        "label": "S&P 500",
-        "measure": "pct_change",
-        "entry_value": 7798.99,
-        "move": -0.4397,
-        "difference": -0.1498,
-        "note": "What the obvious alternative did over exactly the same days."
-      },
-      "mark": -0.5895,
-      "mark_date": "2026-09-21",
-      "sessions_held": 32,
+      "benchmark": null,
+      "mark": -0.7369,
+      "mark_date": "2026-09-22",
+      "sessions_held": 33,
       "max_favourable": {
         "value": 1.3264,
         "date": "2026-08-20"
       },
       "max_adverse": {
-        "value": -0.5895,
-        "date": "2026-09-21"
+        "value": -0.7369,
+        "date": "2026-09-22"
       },
       "invalidation": {
         "rule": "usd >= 103 (weekly close)",
