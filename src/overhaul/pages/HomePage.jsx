@@ -250,7 +250,7 @@ export default function HomePage() {
   // Which release's detail is open, or null. Joe 2026-09-10: a release is a
   // thing to read about where you are, not a link to the Macro page.
   const [openRelease, setOpenRelease] = useState(null);
-  const { idea, nextPublish } = useTradeIdea();
+  const { idea, nextPublish, error: ideaError } = useTradeIdea();
 
   // Charts are declarative: the note names series that already exist in
   // indicator_history.json and the site draws them. The 4.5 MB history file is
@@ -464,6 +464,15 @@ export default function HomePage() {
                   </button>
                 </p>
               </>
+            ) : ideaError ? (
+              /* A failed fetch is an error, not an empty archive (LESSONS 4.9).
+                 Before 2026-09-22 a transient 502 here printed "No note
+                 published yet" over a live same-day note. */
+              <div className="idea-empty">
+                <p className="secnote">
+                  Couldn&rsquo;t load the trade idea just now — refresh to try again.
+                </p>
+              </div>
             ) : (
               <div className="idea-empty">
                 <p className="secnote">

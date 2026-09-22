@@ -17,13 +17,18 @@ import { useEffect, useMemo, useState } from 'react';
 export default function useTradeIdea() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // A failed fetch is NOT an empty archive (LESSONS 4.9): on 2026-09-22 a
+    // transient 502 on /trade_ideas.json made the tile print "No note
+    // published yet" while a live idea dated that morning existed. An error
+    // must render as an error, never impersonate the true empty state.
     fetch('/trade_ideas.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((d) => { if (!cancelled) { setData(d); setLoading(false); } })
-      .catch(() => { if (!cancelled) setLoading(false); });
+      .catch(() => { if (!cancelled) { setError(true); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
 
@@ -48,6 +53,7 @@ export default function useTradeIdea() {
     archive: ideas.slice(1),
     nextPublish: data?.next_publish || null,
     loading,
+    error,
   };
 }
 
