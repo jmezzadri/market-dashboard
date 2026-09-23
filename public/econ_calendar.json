@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-22T23:05:46Z",
+  "generated_at": "2026-09-23T14:18:28Z",
   "window": {
-    "from": "2026-09-15",
-    "to": "2026-12-01"
+    "from": "2026-09-16",
+    "to": "2026-12-02"
   },
   "counts": {
-    "total": 109,
+    "total": 108,
     "tier1": 31
   },
   "sources": [
@@ -24,17 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-15",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-16",
       "time_et": "8:30 AM",
