@@ -1,79 +1,74 @@
 {
-  "date": "2026-09-22",
-  "recap_session": "Mon Sep 21",
+  "date": "2026-09-23",
+  "recap_session": "Tue Sep 22",
   "eyebrow": "Morning Brief",
-  "headline": "Iran offers Hormuz reopening, Brent -7.3% Monday, 2s10s 20bp, Nasdaq record close",
-  "stance": "Oil is trading the diplomacy now, not the blockade. Rates followed it lower; the front end did not move.",
+  "headline": "WTI under $90, Saudi pipeline restarting, US-Iran met 3 hours, Nasdaq record again",
+  "stance": "Supply is coming back before the war ends. The front end moved on it Tuesday; the long end did not.",
   "news": [
     {
-      "head": "Iran offers to reopen Hormuz within seven days",
-      "body": "Offer reported Tuesday, conditional on the US lifting its blockade of Iranian ports. Sent through a mediator."
+      "head": "Saudi Arabia restarts the East-West pipeline",
+      "body": "Reported Tuesday. The line is running at a low rate against a 4m b/d target. Riyadh is aiming for meaningful flows by Saturday."
     },
     {
-      "head": "Treasury says Iranian airlines shut down from Wednesday",
-      "body": "Bessent's warning landed Tuesday. Foreign airports, fuel suppliers and ticketing agents face secondary sanctions for serving them."
+      "head": "US and Iran met three hours in New York",
+      "body": "Trump called it very good Tuesday. Iranian state TV said Araghchi met Witkoff on the UN sidelines. Another meeting is scheduled."
     },
     {
-      "head": "Trump held off Yemen strikes, open to an Iran meeting",
-      "body": "Rejected Saudi calls to hit the Houthis. Said he would probably meet Pezeshkian at the UN assembly this week."
-    },
-    {
-      "head": "Saudi crude keeps moving through Hormuz",
-      "body": "Exports ran 2.9 million barrels a day over six days, with the East-West pipeline still shut."
+      "head": "Trump threatens annihilation, defers any deal",
+      "body": "In his UN address Tuesday. Iran can rebuild under a deal, he said, but not before the November midterms. Iran's delegation walked out."
     }
   ],
   "implications": [
-    "Cheaper crude and a flatter curve arrived together Monday. The front end still prices the Fed, not the oil.",
-    "A reopened strait takes the risk premium out of corn, copper and crude, all pinned at three-year extremes."
+    "The premium is leaving crude without the war ending. Grains and copper still price the disruption at three-year extremes.",
+    "Cheaper crude reached the 2-year Tuesday and stopped there. The long end has not taken any of it."
   ],
   "watch": [
     {
-      "head": "Philadelphia Fed services survey, 8:30",
-      "body": "The only US release today. Nothing in it for rates."
+      "head": "Pezeshkian addresses the UN, this morning",
+      "body": "Iran's president speaks in New York while the war runs. Any line on the strait or the talks hits crude before it hits rates."
     },
     {
-      "head": "Trump meets Gulf leaders, 2:45pm ET",
-      "body": "Saudi Arabia, UAE, Qatar, Bahrain, Kuwait and Oman, in New York. Crude takes those headlines first."
+      "head": "East-West pipeline ramp toward Saturday",
+      "body": "Riyadh is targeting meaningful flows by then. Loading rates at Yanbu are the read, not the headline."
     },
     {
-      "head": "Trump addresses the UN General Assembly, Sep 23",
-      "body": "Iran's delegation is in New York through Sep 26. Any signal of a meeting moves oil before it moves rates."
+      "head": "Follow-up US-Iran meeting, no date set",
+      "body": "Trump said another is scheduled in the very near future. A confirmed date is the next leg out of the crude premium."
     },
     {
-      "head": "Job openings (JOLTS), September 29",
-      "body": "The next US release that can move rates. Headline risk fills the gap until then."
+      "head": "Jobless claims, Sep 24, 8:30",
+      "body": "The next US release. Nothing on the calendar today."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "2s10s flattened to 20bp Monday, the flattest since March 2025. The long end did the moving; the 2-year did not budge.",
-        "Overnight: 10-year 4.943%, 2-year 4.741%, 30-year 5.272% (~6am ET). Down about 2bp across the curve.",
-        "No FOMC until October 28. Iran headlines carry rates until then, not the US calendar."
+        "The front end took the crude move Tuesday. Monday the long end rallied and the 2-year sat still.",
+        "Natural gas $3.174, +11.9%, Tuesday's close. Specs sit extended short at the 3rd percentile, eight weeks running.",
+        "The US calendar is empty today. Rates trade New York headlines until jobless claims, Sep 24."
       ],
-      "positioning": "September 15 positioning: gold specs extended long, 95th percentile, seven weeks there. That is the position walking into de-escalation headlines.",
+      "positioning": "September 15 report: specs went extended long Canadian dollar, 88th percentile, new this week. That is the oil currency, into a 10% crude slide.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Nasdaq-100 closed at a record Monday. Best session for it and for the S&P since August 4.",
-        "Breadth barely followed. 31.3% of S&P members sit above their 50-day, from 29.3% Friday.",
-        "Futures little changed overnight (~6am ET). No follow-through bid after the record close."
+        "Nasdaq-100 set a second straight record close Tuesday. The S&P closed flat and is still below its August 13 high.",
+        "Nasdaq breadth is doing the work: 45.5% of members above their 50-day, from 38.6% Monday. S&P breadth went nowhere.",
+        "Banks are at their weakest against the S&P since June 3. Two records in two sessions, and financials are in neither."
       ],
-      "positioning": "Equity positioning sits mid-range on the September 15 report. No index extreme to lean against this week.",
+      "positioning": "VIX specs sit extended short, 13th percentile on the September 15 report, six weeks there. Standing background, not a new lean.",
       "single_name": {
-        "ticker": "GME",
-        "note": "GameStop: two insider rules fired and it trades above its 200-day. 9.7 days to cover. On the list three sessions."
+        "ticker": "GLP",
+        "note": "Global Partners: insider buying filed September 21, trading above its 200-day. 3.8 days to cover. Fuel terminals, into a crude slide."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Bank reserves went back above $3tn on September 16, first time since July 22. The system is gaining cash into the quarter turn.",
-        "Fed balance sheet +2.1% year on year, from +0.8% in mid-June. Liquidity is not the constraint here.",
-        "IG spreads tightened 3bp last week. Credit never priced the Hormuz closure."
+        "High yield kept tightening into Monday, straight through the crude slide. Credit has not traded either side of this war.",
+        "Reverse repo is effectively empty into the September 30 quarter turn. No buffer in the facility for that date."
       ],
       "positioning": null,
       "single_name": null
@@ -81,28 +76,28 @@
   ],
   "movers": [
     {
-      "ticker": "HELP",
-      "pct": 10.4,
+      "ticker": "GME",
+      "pct": 5.6,
       "link": true
     },
     {
-      "ticker": "LILA",
-      "pct": 4.3,
+      "ticker": "GLP",
+      "pct": -2.7,
       "link": true
     },
     {
-      "ticker": "VSTS",
-      "pct": 3.0,
+      "ticker": "SBLK",
+      "pct": -2.5,
       "link": true
     },
     {
-      "ticker": "AVBC",
-      "pct": -3.0,
+      "ticker": "ANGX",
+      "pct": -2.3,
       "link": true
     },
     {
-      "ticker": "INBX",
-      "pct": 2.5,
+      "ticker": "EQPT",
+      "pct": 2.3,
       "link": true
     }
   ],
@@ -112,58 +107,58 @@
       "rows": [
         {
           "label": "2y",
-          "level": "4.76%",
-          "chg": "unch",
-          "dir": "flat"
+          "level": "4.71%",
+          "chg": "-5bp",
+          "dir": "down"
         },
         {
           "label": "10y",
           "level": "4.96%",
-          "chg": "-5bp",
-          "dir": "down"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "20y",
           "level": "5.33%",
-          "chg": "-5bp",
-          "dir": "down"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "30y",
           "level": "5.29%",
-          "chg": "-5bp",
-          "dir": "down"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "2s10s",
-          "level": "20bp",
-          "chg": "-5bp",
-          "dir": "down"
+          "level": "25bp",
+          "chg": "+5bp",
+          "dir": "up"
         },
         {
           "label": "10y real",
-          "level": "2.62%",
-          "chg": "-6bp",
-          "dir": "down"
+          "level": "2.63%",
+          "chg": "+1bp",
+          "dir": "up"
         },
         {
           "label": "10y B/E",
-          "level": "2.34%",
-          "chg": "+1bp",
-          "dir": "up"
+          "level": "2.33%",
+          "chg": "-1bp",
+          "dir": "down"
         },
         {
           "label": "Term prem",
           "level": "96bp",
-          "chg": "+1bp",
+          "chg": "+2bp",
           "dir": "up",
-          "as_of": "Sep 11"
+          "as_of": "Sep 18"
         },
         {
           "label": "MOVE",
-          "level": "81.20",
-          "chg": "+0.60",
-          "dir": "up"
+          "level": "78.60",
+          "chg": "-2.60",
+          "dir": "down"
         }
       ]
     },
@@ -172,43 +167,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,764.70",
-          "chg": "+1.49%",
-          "dir": "up"
+          "level": "7,764.64",
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "Nasdaq",
-          "level": "27,122.09",
-          "chg": "+2.26%",
+          "level": "27,244.28",
+          "chg": "+0.45%",
           "dir": "up"
         },
         {
           "label": "Dow",
-          "level": "52,048.83",
-          "chg": "+0.71%",
-          "dir": "up"
-        },
-        {
-          "label": "VIX",
-          "level": "14.87",
-          "chg": "+0.06",
-          "dir": "up"
-        },
-        {
-          "label": "VIX 1m/3m",
-          "level": "0.823",
-          "chg": "+0.010",
-          "dir": "up"
-        },
-        {
-          "label": "SKEW",
-          "level": "142.20",
-          "chg": "-5.90",
+          "level": "51,863.69",
+          "chg": "-0.36%",
           "dir": "down"
         },
         {
+          "label": "VIX",
+          "level": "14.21",
+          "chg": "-0.66",
+          "dir": "down"
+        },
+        {
+          "label": "VIX 1m/3m",
+          "level": "0.807",
+          "chg": "-0.016",
+          "dir": "down"
+        },
+        {
+          "label": "SKEW",
+          "level": "144.80",
+          "chg": "+2.60",
+          "dir": "up"
+        },
+        {
           "label": "CAPE",
-          "level": "41.60",
+          "level": "41.59",
           "chg": null,
           "dir": "flat"
         }
@@ -220,30 +215,29 @@
         {
           "label": "IG OAS",
           "level": "77bp",
-          "chg": "-1bp",
-          "dir": "down",
-          "as_of": "Sep 18"
+          "chg": "unch",
+          "dir": "flat",
+          "as_of": "Sep 21"
         },
         {
           "label": "HY-IG",
-          "level": "268bp",
+          "level": "266bp",
           "chg": "-2bp",
           "dir": "down",
-          "as_of": "Sep 18"
+          "as_of": "Sep 21"
         },
         {
           "label": "HYG/LQD",
-          "level": "1.333",
-          "chg": "-0.003",
-          "dir": "down",
-          "as_of": "Sep 18"
+          "level": "1.336",
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "SOFR-OIS",
           "level": "-3bp",
           "chg": "unch",
           "dir": "flat",
-          "as_of": "Sep 18"
+          "as_of": "Sep 21"
         },
         {
           "label": "CP spread",
@@ -254,7 +248,7 @@
         },
         {
           "label": "RRP",
-          "level": "$0.6bn",
+          "level": "$0.5bn",
           "chg": "unch",
           "dir": "flat"
         },
@@ -272,44 +266,44 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$92.31",
-          "chg": "-7.97%",
+          "level": "$89.71",
+          "chg": "-6.34%",
           "dir": "down"
         },
         {
           "label": "Brent",
-          "level": "$96.29",
-          "chg": "-7.30%",
+          "level": "$98.58",
+          "chg": "-1.75%",
           "dir": "down"
         },
         {
           "label": "Gold",
-          "level": "$4,396.10",
-          "chg": "-0.65%",
-          "dir": "down"
+          "level": "$4,401.30",
+          "chg": "+0.40%",
+          "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.79",
-          "chg": "+2.69%",
+          "level": "$6.91",
+          "chg": "+3.27%",
           "dir": "up"
         },
         {
           "label": "DXY",
-          "level": "100.39",
-          "chg": "+0.17%",
+          "level": "100.55",
+          "chg": "+0.12%",
           "dir": "up"
         },
         {
           "label": "USD/JPY",
-          "level": "157.34",
-          "chg": "+0.19%",
+          "level": "157.45",
+          "chg": "+0.05%",
           "dir": "up"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1467",
-          "chg": "-0.11%",
+          "level": "1.1450",
+          "chg": "-0.13%",
           "dir": "down"
         }
       ]
@@ -318,12 +312,22 @@
   "ideas": {
     "open": [
       {
+        "trade": "Long Japanese yen via FXY",
+        "date": "2026-09-22",
+        "kind": "fx",
+        "held": 1,
+        "pnl": "+0.00%",
+        "vs": "+0.00pp",
+        "bench": "S&P 500",
+        "horizon": 4
+      },
+      {
         "trade": "Long Natgas",
         "date": "2026-09-12",
         "kind": "commodity",
-        "held": 7,
-        "pnl": "-0.07%",
-        "vs": "-1.48pp",
+        "held": 8,
+        "pnl": "+12.12%",
+        "vs": "+10.71pp",
         "bench": "S&P 500",
         "horizon": 3
       },
@@ -331,9 +335,9 @@
         "trade": "Short WEAT (Teucrium wheat fund)",
         "date": "2026-09-06",
         "kind": "commodity",
-        "held": 10,
-        "pnl": "+2.38%",
-        "vs": "+3.26pp",
+        "held": 11,
+        "pnl": "+0.68%",
+        "vs": "+0.08pp",
         "bench": "S&P 500",
         "horizon": 2
       },
@@ -341,9 +345,9 @@
         "trade": "Long KBW / Short NASDAQ",
         "date": "2026-08-17",
         "kind": "equity",
-        "held": 25,
-        "pnl": "-6.07%",
-        "vs": "-4.34pp",
+        "held": 27,
+        "pnl": "-10.84%",
+        "vs": "-10.57pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -351,9 +355,9 @@
         "trade": "Long 10y TIPS / Short 10y UST",
         "date": "2026-08-16",
         "kind": "rates",
-        "held": 26,
-        "pnl": "+0.36%",
-        "vs": "+0.63pp",
+        "held": 27,
+        "pnl": "+0.27%",
+        "vs": "+0.54pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -361,9 +365,9 @@
         "trade": "Long EUR/USD",
         "date": "2026-08-14",
         "kind": "fx",
-        "held": 32,
-        "pnl": "-0.59%",
-        "vs": "-0.15pp",
+        "held": 33,
+        "pnl": "-0.74%",
+        "vs": "-0.30pp",
         "bench": "S&P 500",
         "horizon": 3
       }
@@ -381,7 +385,7 @@
         "result": -2.9336
       }
     ],
-    "as_of": "2026-09-22",
-    "line": "5 open · 1 closed — no hit rate until 10 (too few to mean anything)"
+    "as_of": "2026-09-23",
+    "line": "6 open · 1 closed — no hit rate until 10 (too few to mean anything)"
   }
 }
