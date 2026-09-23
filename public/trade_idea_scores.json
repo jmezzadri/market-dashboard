@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-22T23:36:07Z",
-  "as_of": "2026-09-22",
+  "generated_at": "2026-09-23T01:07:03Z",
+  "as_of": "2026-09-23",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -16,7 +16,7 @@
       "marked": 7,
       "open": 6,
       "closed": 1,
-      "avg_mark_pct": 0.04,
+      "avg_mark_pct": -0.21,
       "best": {
         "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
         "trade_label": "Long Natgas",
@@ -25,13 +25,13 @@
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
         "trade_label": "Long KBW / Short NASDAQ",
-        "mark": -9.2
+        "mark": -10.84
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": -2.16,
-      "ahead_of_spx": 2,
-      "behind_spx": 2,
-      "line": "7 calls marked (6 open, 1 closed). Taken as one book they average +0.0% a call and sit 2.2 points behind the S&P 500 over the same days — 2 ahead of the index, 2 behind. Best: Long Natgas, +12.1%. Worst: Long KBW / Short NASDAQ, -9.2%."
+      "avg_vs_spx_pp": -0.3,
+      "ahead_of_spx": 3,
+      "behind_spx": 3,
+      "line": "7 calls marked (6 open, 1 closed). Taken as one book they average -0.2% a call and sit 0.3 points behind the S&P 500 over the same days — 3 ahead of the index, 3 behind. Best: Long Natgas, +12.1%. Worst: Long KBW / Short NASDAQ, -10.8%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "1 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
@@ -143,7 +143,15 @@
         "clamp_reason": "uncapped size 0.11x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7656.98,
+        "move": 1.406,
+        "difference": 10.7099,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": 12.1159,
       "mark_date": "2026-09-22",
       "sessions_held": 8,
@@ -316,7 +324,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -7.7259
+          "return_pct": -8.9151
         },
         {
           "series": "ndx_index",
@@ -327,14 +335,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": 1.47
+          "return_pct": 1.9272
         }
       ],
-      "buy_pct": -7.7259,
-      "sell_pct": 1.47,
+      "buy_pct": -8.9151,
+      "sell_pct": 1.9272,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -9.1959,
-      "risk_sized_pct": -3.991,
+      "position_pct": -10.8423,
+      "risk_sized_pct": -4.7056,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -349,20 +357,20 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.2705,
-        "difference": -8.9254,
+        "move": -0.2713,
+        "difference": -10.571,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -9.1959,
-      "mark_date": "2026-09-21",
-      "sessions_held": 26,
+      "mark": -10.8423,
+      "mark_date": "2026-09-22",
+      "sessions_held": 27,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
       },
       "max_adverse": {
-        "value": -9.1959,
-        "date": "2026-09-21"
+        "value": -10.8423,
+        "date": "2026-09-22"
       },
       "invalidation": {
         "rule": "vix_ts >= 1.0 (close)",
@@ -393,7 +401,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": -1.8562
+          "return_pct": -1.9446
         },
         {
           "series": "ust_10y",
@@ -408,11 +416,11 @@
           "return_pct": -2.2158
         }
       ],
-      "buy_pct": -1.8562,
+      "buy_pct": -1.9446,
       "sell_pct": -2.2158,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.3596,
-      "risk_sized_pct": 1.542,
+      "position_pct": 0.2712,
+      "risk_sized_pct": 1.1629,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -427,13 +435,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -0.2705,
-        "difference": 0.6301,
+        "move": -0.2713,
+        "difference": 0.5425,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.3596,
-      "mark_date": "2026-09-21",
-      "sessions_held": 26,
+      "mark": 0.2712,
+      "mark_date": "2026-09-22",
+      "sessions_held": 27,
       "max_favourable": {
         "value": 0.8992,
         "date": "2026-09-10"
@@ -487,7 +495,15 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7798.99,
+        "move": -0.4404,
+        "difference": -0.2965,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": -0.7369,
       "mark_date": "2026-09-22",
       "sessions_held": 33,
