@@ -130,6 +130,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.33` A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
 - `4.34` Two arrays only zip by index if they describe the same axis; a marker row in the axis silently shifts every read after it
 - `4.35` A feed can outlive both its input and its reader; a green "wrote 0 rows" run is a retirement notice, not health
+- `4.36` `as_of` is re-stamped from the points actually published, after every merge step; a clock computed before the union grades data the file no longer serves
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -989,6 +990,12 @@ They are not the same series and they are nowhere near each other:
 3. **A stale copy of a source file checked into an unused directory is a booby trap for every future grep.** It nearly reversed this retirement by impersonating a consumer. Tracked cruft gets deleted the moment it is identified (7.12), in the same change as whatever exposed it.
 
 **Applies to:** Lead Developer — every red feed triage; every retirement.
+
+
+### 4.36 (2026-09-24) — `as_of` is re-stamped from the points actually published, after every merge step
+**What happened:** Yahoo's ETF fetch (SPY/HYG/KBE/LQD) came back truncated at 09-21 while the index tickers were current. The point-union correctly restored the held 09-22 bar, so the published file held 09-22 — but `as_of` had been computed inside `fetch_all()`, before the union, and still said 09-21. `reconcile_pipeline_health.py` syncs `data_as_of` from that `as_of`, so bkx_spx, eq_cr_corr and hy_ig_etf all went red a session early, on data the file actually held. Same one-clock failure as 4.2, from the other direction: the clock was honest about the fetch and dishonest about the file.
+**Rule:** Any field that describes the published artifact (`as_of`, stats) is computed from the artifact as it is about to be written — after every carry-forward, union and regression step — never from an intermediate. `fetch_history.py` now re-runs `attach_stats_and_as_of` on the post-merge data (carried-forward entries excluded: they are already consistent and the cmdty_*/fx_* ones carry the other producer's stats schema).
+**Applies to:** Lead Developer, Data Steward.
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING

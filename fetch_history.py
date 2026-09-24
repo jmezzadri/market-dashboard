@@ -1830,6 +1830,25 @@ def main():
                           f"{', '.join(regressed)}")
         except Exception as _ce:
             print(f"  carry-forward step skipped: {_ce}")
+        # ── Re-stamp as_of + stats AFTER the merge steps (LESSONS 4.36) ──────
+        # attach_stats_and_as_of() runs inside fetch_all(), BEFORE the
+        # point-union above. When the fresh fetch comes back truncated and the
+        # union restores held dates past its end, the entry's points advance
+        # but its `as_of` (and stats) still describe the truncated fetch.
+        # reconcile_pipeline_health.py syncs data_as_of from this `as_of`, so
+        # every chip then grades a clock older than the data actually served.
+        # 2026-09-24: Yahoo's ETF fetch (SPY/HYG/KBE/LQD) ended 09-21, the
+        # union restored the held 09-22 bar, as_of stayed 09-21 — bkx_spx,
+        # eq_cr_corr and hy_ig_etf all went red a session early on data the
+        # file actually held. Recompute from the points we are about to write.
+        # Carried-forward entries are skipped on purpose: they were copied
+        # wholesale from the prior file, are already internally consistent,
+        # and the cmdty_*/fx_* ones carry fetch_market_indicators.py's OWN
+        # stats schema, which this pass must never overwrite.
+        _refetched = {k: v for k, v in data.items()
+                      if not k.startswith("__") and isinstance(v, dict)
+                      and k not in _CARRIED_FORWARD}
+        attach_stats_and_as_of(_refetched)
         # ── Publish healthy data FIRST, then flag staleness per-element ───────
         # 2026-06-02 incident: the old all-or-nothing gate raised BEFORE this
         # write, so when ONE indicator went stale (adv_dec — its Supabase RPC
