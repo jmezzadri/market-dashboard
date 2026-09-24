@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-23T23:02:56Z",
+  "generated_at": "2026-09-24T14:17:11Z",
   "window": {
-    "from": "2026-09-16",
-    "to": "2026-12-02"
+    "from": "2026-09-17",
+    "to": "2026-12-03"
   },
   "counts": {
-    "total": 108,
-    "tier1": 31
+    "total": 107,
+    "tier1": 30
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,61 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-16",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-16",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-16",
-      "time_et": "10:00 AM",
-      "name": "Business inventories",
-      "short": "Invent.",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Manufacturing and trade inventories and sales.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-16",
-      "time_et": "2:00 PM",
-      "name": "Fed decision (FOMC)",
-      "short": "FOMC",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "Federal Reserve rate decision and statement, with the quarterly rate and economic projections and a 2:30 PM press conference.",
-      "source": "Federal Reserve FOMC calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-16",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-17",
       "time_et": "7:00 AM",
@@ -1209,6 +1154,50 @@
       "tier": 3,
       "category": "Housing",
       "blurb": "Value of construction put in place, residential and non-residential.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-03",
+      "time_et": "8:30 AM",
+      "name": "Jobless claims",
+      "short": "Claims",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-03",
+      "time_et": "10:00 AM",
+      "name": "ISM Services",
+      "short": "ISM Svc",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Services-sector survey \u2014 the larger share of the economy.",
+      "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-03",
+      "time_et": "10:00 AM",
+      "name": "Factory orders",
+      "short": "Factory",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Full manufacturers' shipments, inventories and orders.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-03",
+      "time_et": "4:30 PM",
+      "name": "Fed balance sheet (H.4.1)",
+      "short": "H.4.1",
+      "tier": 3,
+      "category": "Liquidity",
+      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
