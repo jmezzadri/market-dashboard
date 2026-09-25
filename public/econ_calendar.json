@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-24T23:16:56Z",
+  "generated_at": "2026-09-25T14:40:24Z",
   "window": {
-    "from": "2026-09-17",
-    "to": "2026-12-03"
+    "from": "2026-09-18",
+    "to": "2026-12-04"
   },
   "counts": {
-    "total": 107,
+    "total": 104,
     "tier1": 30
   },
   "sources": [
@@ -24,61 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-17",
-      "time_et": "7:00 AM",
-      "name": "Bank of England decision (MPC)",
-      "short": "BoE",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
-      "source": "Bank of England MPC dates (bankofengland.co.uk)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-17",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-17",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed survey",
-      "short": "Philly",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-17",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-17",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-18",
       "time_et": "overnight",
@@ -1199,6 +1144,28 @@
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-04",
+      "time_et": "8:30 AM",
+      "name": "Jobs report",
+      "short": "Jobs",
+      "tier": 1,
+      "category": "Labor",
+      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-04",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, preliminary)",
+      "short": "UMich prelim",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
+      "source": "UMich release schedule (computed: two Fridays before the final)",
       "time_source": "published release policy"
     }
   ]
