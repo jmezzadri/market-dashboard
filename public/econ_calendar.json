@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-25T23:22:26Z",
+  "generated_at": "2026-09-26T13:48:17Z",
   "window": {
-    "from": "2026-09-18",
-    "to": "2026-12-04"
+    "from": "2026-09-19",
+    "to": "2026-12-05"
   },
   "counts": {
-    "total": 104,
-    "tier1": 30
+    "total": 102,
+    "tier1": 29
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,28 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-18",
-      "time_et": "overnight",
-      "name": "Bank of Japan decision (MPM)",
-      "short": "BoJ",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
-      "source": "Bank of Japan MPM schedule (boj.or.jp)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-18",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-21",
       "time_et": "8:30 AM",
