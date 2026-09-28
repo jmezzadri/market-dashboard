@@ -622,6 +622,58 @@ def _fmt_row(label, fmt, cur, prev):
 
 _HOLES = []
 
+# --- futures artifacts: the oil pair cross-check (2026-09-28) -----------------
+# cmdty_brent is Yahoo's BZ=F continuous front month. On 2026-09-25 it printed
+# 97.47 against 106.60 the session before -- a "-8.56%" that never happened:
+# Reuters had Brent settling 104.32 that day, and Monday's quote of ~107.82 was
+# +3.4% off ~104.3, not off 97.47. Whether the cause is a contract roll or a bad
+# close, the table would have published a 9% move on a day oil fell 2%, next to
+# a brief citing the real overnight level. That is the exact contradiction the
+# snapshot exists to prevent.
+#
+# Brent and WTI are the same barrel with a freight and quality spread between
+# them. That spread moves slowly -- it is an economic quantity, not a market
+# wager -- so the two benchmarks cannot diverge by six percentage points in one
+# session. When they do, one leg is an artifact, and it is the leg with the
+# bigger move: a roll gap or a bad tick is always larger than the day's real
+# move. Drop that row. The module already holds this line everywhere else (a
+# key with no data is DROPPED, a delta across a hole is SUPPRESSED) -- an absent
+# row is correct, a wrong one lies.
+OIL_PAIR = ("cmdty_oil", "cmdty_brent")
+OIL_DIVERGENCE_PP = 5.0   # one-session %-point gap that can only be an artifact
+
+def _one_session_pct(hist, key):
+    """Adjacent-day percent change for a key, or None if it cannot be trusted."""
+    pts = ((hist.get(key) or {}).get("points") or [])
+    pts = [p for p in pts if isinstance(p, (list, tuple)) and len(p) == 2
+           and p[1] is not None]
+    if len(pts) < 2:
+        return None
+    try:
+        gap = (datetime.date.fromisoformat(str(pts[-1][0]))
+               - datetime.date.fromisoformat(str(pts[-2][0]))).days
+    except Exception:
+        return None
+    if not 0 < gap <= 5:
+        return None
+    prev = float(pts[-2][1])
+    if not prev:
+        return None
+    return (float(pts[-1][1]) - prev) / prev * 100.0
+
+def _artifact_keys(hist):
+    """Keys whose newest print fails the oil-pair cross-check."""
+    a, b = OIL_PAIR
+    pa, pb = _one_session_pct(hist, a), _one_session_pct(hist, b)
+    if pa is None or pb is None:
+        return set()
+    if abs(pa - pb) <= OIL_DIVERGENCE_PP:
+        return set()
+    bad = a if abs(pa) > abs(pb) else b
+    _HOLES.append(f"{bad} (oil pair diverged {pa:+.2f}% vs {pb:+.2f}% "
+                  f"in one session — row dropped as a futures artifact)")
+    return {bad}
+
 def build_metrics(hist, recap_date=None):
     """Levels + one-print changes, straight from indicator_history.json.
 
@@ -631,9 +683,12 @@ def build_metrics(hist, recap_date=None):
     """
     groups = []
     del _HOLES[:]
+    dropped = _artifact_keys(hist)
     for gname, spec in METRIC_GROUPS:
         rows = []
         for key, label, fmt in spec:
+            if key in dropped:
+                continue
             pts = ((hist.get(key) or {}).get("points") or [])
             pts = [p for p in pts if isinstance(p, (list, tuple)) and len(p) == 2
                    and p[1] is not None]
