@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-27T23:11:46Z",
+  "generated_at": "2026-09-28T17:45:41Z",
   "window": {
-    "from": "2026-09-20",
-    "to": "2026-12-06"
+    "from": "2026-09-21",
+    "to": "2026-12-07"
   },
   "counts": {
-    "total": 102,
+    "total": 103,
     "tier1": 29
   },
   "sources": [
@@ -1144,6 +1144,17 @@
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
       "source": "UMich release schedule (computed: two Fridays before the final)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-07",
+      "time_et": "3:00 PM",
+      "name": "Consumer credit",
+      "short": "Credit",
+      "tier": 3,
+      "category": "Consumer",
+      "blurb": "Revolving and non-revolving household borrowing.",
+      "source": "FRED release calendar",
       "time_source": "published release policy"
     }
   ]
