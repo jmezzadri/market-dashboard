@@ -6,18 +6,18 @@
   "next_refresh": "2026-10-02",
   "stress": {
     "state": "Risk On",
-    "move_value": 104.6,
-    "move_percentile_5y": 0.579,
+    "move_value": 96.0,
+    "move_percentile_5y": 0.452,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
   },
   "yield_regime": {
     "state": "Inflationary",
-    "delta_y_3m_bp": 80.0,
-    "delta_y_3m_bp_live": 78.0,
-    "live_as_of": "2026-09-24",
-    "delta_y_3m_percentile_5y": 0.912,
+    "delta_y_3m_bp": 79.0,
+    "delta_y_3m_bp_live": 79.0,
+    "live_as_of": "2026-09-25",
+    "delta_y_3m_percentile_5y": 0.908,
     "inflationary_threshold_bp": 36.0,
     "deflationary_threshold_bp": -6.0,
     "trailing_window_weeks": 261
