@@ -143,7 +143,15 @@ structure, SKEW, CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA,
 WTI, Brent, gold, copper, DXY, USD/JPY, EUR/USD — with each level, its
 one-session change and its as-of date. (The 30y and 20y got a feed on
 2026-08-21; before that you had to source them by hand every morning. Stop
-doing that — they are in the table.) **Never restate a row of that table in prose.** Your whole job is
+doing that — they are in the table.)
+
+*A row can be missing, and that is the table working.* A futures row whose
+one-session move fails the benchmark-pair cross-check is dropped rather than
+printed — 2026-09-25 Brent rolled contracts and the raw series showed -8.56% on
+a day crude fell 2%. When a row is absent you may write that market as a data
+line in prose, with its time, like any other figure the table does not carry.
+
+**Never restate a row of that table in prose.** Your whole job is
 the sentence *after* the numbers. If a move has no so-what, the table already
 said it and you say nothing.
 

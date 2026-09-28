@@ -131,6 +131,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.34` Two arrays only zip by index if they describe the same axis; a marker row in the axis silently shifts every read after it
 - `4.35` A feed can outlive both its input and its reader; a green "wrote 0 rows" run is a retirement notice, not health
 - `4.36` `as_of` is re-stamped from the points actually published, after every merge step; a clock computed before the union grades data the file no longer serves
+- `4.37` A one-session change measured across a futures contract roll is not a market move; cross-check the benchmark pair and drop the artifact leg
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -995,6 +996,16 @@ They are not the same series and they are nowhere near each other:
 ### 4.36 (2026-09-24) — `as_of` is re-stamped from the points actually published, after every merge step
 **What happened:** Yahoo's ETF fetch (SPY/HYG/KBE/LQD) came back truncated at 09-21 while the index tickers were current. The point-union correctly restored the held 09-22 bar, so the published file held 09-22 — but `as_of` had been computed inside `fetch_all()`, before the union, and still said 09-21. `reconcile_pipeline_health.py` syncs `data_as_of` from that `as_of`, so bkx_spx, eq_cr_corr and hy_ig_etf all went red a session early, on data the file actually held. Same one-clock failure as 4.2, from the other direction: the clock was honest about the fetch and dishonest about the file.
 **Rule:** Any field that describes the published artifact (`as_of`, stats) is computed from the artifact as it is about to be written — after every carry-forward, union and regression step — never from an intermediate. `fetch_history.py` now re-runs `attach_stats_and_as_of` on the post-merge data (carried-forward entries excluded: they are already consistent and the cmdty_*/fx_* ones carry the other producer's stats schema).
+**Applies to:** Lead Developer, Data Steward.
+
+### 4.37 (2026-09-28) — A one-session change measured across a futures contract roll is not a market move
+
+**What happened:** The morning brief's market-snapshot table was about to publish "Brent $97.47, -8.56%" for Friday 2026-09-25. `cmdty_brent` is Yahoo's `BZ=F` continuous front month, and it had rolled: Reuters had Brent settling 104.32 that day against 106.60 the session before, and Monday's quote of ~107.82 was +3.4% off ~104.3, not off 97.47. Hormuz being shut had put roughly $9 of backwardation into one contract month, so the roll looked like a 9% crash. The brief would have carried a 9% move on a day crude fell 2%, next to the real overnight level in its own prose — the exact contradiction the snapshot exists to prevent.
+
+**Why it happens:** A continuous front-month series is not one instrument. Every roll splices two contracts, and the splice shows up as a price change that no one traded. Nothing in the adjacency gate (4.46) can see it: both prints are real, adjacent and fresh.
+
+**Rule:** A futures-priced row is cross-checked against its benchmark pair before its one-session change is published. Brent and WTI are the same barrel with a slow freight-and-quality spread between them and cannot diverge by more than 5 percentage points in one session; when they do, the leg with the larger move is a roll gap or a bad tick, and that row is DROPPED — level and change — with the reason logged to the snapshot warning. Same doctrine the module already holds everywhere else: an absent row is correct, a wrong one lies. Measured over the full 4,771-session paired history this fires 47 times, 4 of them since 2024, every one at a contract roll or a 2020 price dislocation.
+
 **Applies to:** Lead Developer, Data Steward.
 
 
