@@ -175,6 +175,20 @@ def _get_text(url: str, timeout: int = 30) -> str:
         return r.read().decode("utf-8", errors="ignore")
 
 
+def _get_browser_text(url: str, timeout: int = 30) -> str:
+    """_get_text with ordinary browser headers, for hosts whose WAF rejects
+    plain-UA scripts (nass.usda.gov, 2026-09-29)."""
+    req = urllib.request.Request(url, headers={
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/128.0.0.0 Safari/537.36"),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode("utf-8", errors="ignore")
+
+
 def is_business_day(d: dt.date) -> bool:
     return d.weekday() < 5 and d.isoformat() not in FEDERAL_HOLIDAYS
 
@@ -593,7 +607,11 @@ def build_usda_nass_events(start: dt.date, end: dt.date):
     for mth in months:
         url = NASS_CAL_URL.format(month=mth.month, year=mth.year)
         try:
-            html = _get_text(url)
+            # nass.usda.gov sits behind a WAF that 403s non-browser user
+            # agents (verified 2026-09-29: the plain MacroTilt UA drew 403 on
+            # every month from the Actions runner while the page served fine
+            # to a browser). Send ordinary browser headers for this host only.
+            html = _get_browser_text(url)
         except Exception as exc:  # noqa: BLE001
             problems.append(f"NASS calendar fetch failed ({mth:%Y-%m}): {exc}")
             continue
