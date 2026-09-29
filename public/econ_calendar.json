@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-29T00:27:39Z",
+  "generated_at": "2026-09-29T11:18:16Z",
   "window": {
     "from": "2026-09-22",
     "to": "2026-12-08"
   },
   "counts": {
-    "total": 104,
-    "tier1": 29
+    "total": 106,
+    "tier1": 31
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -15,14 +15,22 @@
     "UMich preliminary schedule \u2014 two Fridays before each FRED final date, computed",
     "ECB Governing Council calendar (ecb.europa.eu) \u2014 decision dates",
     "Bank of England MPC dates (bankofengland.co.uk) \u2014 decision dates",
-    "Bank of Japan MPM schedule (boj.or.jp) \u2014 decision dates"
+    "Bank of Japan MPM schedule (boj.or.jp) \u2014 decision dates",
+    "USDA NASS release calendar (nass.usda.gov) \u2014 quarterly Grain Stocks",
+    "USDA OCE WASDE schedule (usda.gov) \u2014 monthly WASDE dates"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "NASS calendar fetch failed (2026-09): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-10): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-11): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-12): HTTP Error 403: Forbidden",
+    "NASS calendar parsed to zero rows across the window"
+  ],
   "events": [
     {
       "date": "2026-09-22",
@@ -286,6 +294,17 @@
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
       "source": "UMich release schedule (computed: two Fridays before the final)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-09",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -770,6 +789,17 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
