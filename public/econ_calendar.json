@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-29T16:04:20Z",
+  "generated_at": "2026-09-29T23:50:56Z",
   "window": {
     "from": "2026-09-22",
     "to": "2026-12-08"
   },
   "counts": {
-    "total": 105,
-    "tier1": 30
+    "total": 108,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,9 +24,7 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "release 54 (Personal income & PCE prices): HTTP Error 502: Bad Gateway"
-  ],
+  "problems": [],
   "events": [
     {
       "date": "2026-09-22",
@@ -124,6 +122,17 @@
       "tier": 1,
       "category": "Labor",
       "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-30",
+      "time_et": "8:30 AM",
+      "name": "Personal income & PCE prices",
+      "short": "PCE",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     },
@@ -570,6 +579,17 @@
     {
       "date": "2026-10-29",
       "time_et": "8:30 AM",
+      "name": "Personal income & PCE prices",
+      "short": "PCE",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-29",
+      "time_et": "8:30 AM",
       "name": "GDP",
       "short": "GDP",
       "tier": 1,
@@ -971,6 +991,17 @@
       "tier": 3,
       "category": "Surveys",
       "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-25",
+      "time_et": "8:30 AM",
+      "name": "Personal income & PCE prices",
+      "short": "PCE",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     },
