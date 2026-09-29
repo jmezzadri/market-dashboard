@@ -549,6 +549,130 @@ def build_foreign_cb_events(start: dt.date, end: dt.date):
     return events, problems
 
 
+# ── source 6: USDA releases (bug #1258) ────────────────────────────────────
+# The live Trade Idea book can carry agricultural commodity calls (a WEAT
+# short was live when the Sep 30 2026 quarterly Grain Stocks — direct event
+# risk to it — was absent from this feed), so the calendar carries the two
+# tier-1 USDA reports that move the grain complex: quarterly Grain Stocks and
+# the monthly WASDE. One provider per source, and the provider is the agency
+# itself — the same authority pattern as the FOMC and foreign-CB blocks above.
+#
+# Grain Stocks comes from NASS's own release calendar (list view — one table
+# row per release: "Wed, 09/30/26 | 12:00 pm ET | Grain Stocks"). WASDE is a
+# WAOB/OCE report and is NOT in the NASS calendar; its dates come from the
+# OCE WASDE page, which publishes the year's dates as a single sentence:
+# "In 2026 the WASDE report will be released on Jan. 12, Feb. 10, ... and
+# Dec. 10." (verified 2026-09-29). Both land 12:00 noon ET per the agencies'
+# standing release policy.
+
+NASS_CAL_URL = ("https://www.nass.usda.gov/Publications/Calendar/"
+                "reports_by_date.php?view=l&month={month:02d}&year={year}")
+WASDE_URL = ("https://www.usda.gov/about-usda/general-information/staff-offices/"
+             "office-chief-economist/commodity-markets/wasde-report")
+
+_NASS_ROW_RE = re.compile(
+    r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*(\d{2})/(\d{2})/(\d{2})\s+"
+    r"(\d{1,2}):(\d{2})\s*([ap]m)\s*ET\s*(.*?)"
+    r"(?=(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*\d{2}/\d{2}/\d{2}|$)", re.S)
+
+
+def build_usda_nass_events(start: dt.date, end: dt.date):
+    """Quarterly Grain Stocks from the NASS release calendar (list view).
+
+    Parses the tag-stripped page text rather than the table markup so a
+    markup reshuffle degrades to "parsed zero rows" (a named problem) rather
+    than a silent miss. The title is whatever follows the time up to the next
+    weekday-date token; the trailing status column ("Report Pending") is
+    ignored by matching the report name at the start of that span."""
+    events, problems = [], []
+    months, cur = [], dt.date(start.year, start.month, 1)
+    while cur <= end:
+        months.append(cur)
+        cur = (cur + dt.timedelta(days=32)).replace(day=1)
+    rows_parsed = 0
+    for mth in months:
+        url = NASS_CAL_URL.format(month=mth.month, year=mth.year)
+        try:
+            html = _get_text(url)
+        except Exception as exc:  # noqa: BLE001
+            problems.append(f"NASS calendar fetch failed ({mth:%Y-%m}): {exc}")
+            continue
+        txt = re.sub(r"<[^>]+>", " ", html)
+        txt = re.sub(r"\s+", " ", txt)
+        for m in _NASS_ROW_RE.finditer(txt):
+            rows_parsed += 1
+            title_span = m.group(7).strip()
+            if not re.match(r"[-\s]*Grain Stocks\b", title_span):
+                continue
+            mo, dy, yy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            try:
+                d = dt.date(2000 + yy, mo, dy)
+            except ValueError:
+                problems.append(f"NASS row unparsed: {m.group(0)[:60]}")
+                continue
+            if not (start <= d <= end):
+                continue
+            events.append(dict(
+                date=d.isoformat(), time_et="12:00 PM", name="USDA Grain Stocks", short="Grain Stk",
+                tier=1, category="Agriculture",
+                blurb="USDA's quarterly count of corn, soybean and wheat inventories — a recurring source of limit moves in grain futures, released at noon ET.",
+                source="USDA NASS release calendar (nass.usda.gov)", time_source="published release policy",
+            ))
+    if rows_parsed == 0 and months:
+        problems.append("NASS calendar parsed to zero rows across the window")
+    # Zero GRAIN STOCKS events is NOT a problem by itself: the report is
+    # quarterly and a ten-week window can legitimately contain none.
+    return events, problems
+
+
+def build_wasde_events(start: dt.date, end: dt.date):
+    """Monthly WASDE from the OCE WASDE page's published date list."""
+    events, problems = [], []
+    try:
+        html = _get_text(WASDE_URL)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"WASDE page fetch failed: {exc}"]
+    txt = re.sub(r"<[^>]+>", " ", html)
+    txt = re.sub(r"\s+", " ", txt)
+    for ym in re.finditer(
+            r"In (\d{4})[^.!?]{0,120}?WASDE report will be released on"
+            r"((?:\s*(?:and\s+)?[A-Z][a-z]{2,8}\.?\s+\d{1,2},?)+)", txt):
+        year = int(ym.group(1))
+        for tok in re.finditer(r"([A-Z][a-z]{2,8})\.?\s+(\d{1,2})", ym.group(2)):
+            month = MONTHS_ABBR.get(tok.group(1)[:3].lower())
+            if not month:
+                problems.append(f"WASDE month unparsed: {tok.group(0)[:40]}")
+                continue
+            try:
+                d = dt.date(year, month, int(tok.group(2)))
+            except ValueError:
+                problems.append(f"WASDE date unparsed: {tok.group(0)[:40]}")
+                continue
+            if not (start <= d <= end):
+                continue
+            events.append(dict(
+                date=d.isoformat(), time_et="12:00 PM", name="WASDE (USDA)", short="WASDE",
+                tier=1, category="Agriculture",
+                blurb="USDA's World Agricultural Supply and Demand Estimates — the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+                source="USDA OCE WASDE schedule (usda.gov)", time_source="published release policy",
+            ))
+    if not events:
+        # WASDE is monthly, so a ten-week window with zero dates is a broken
+        # parse (or the year rolled and USDA has not published next year's
+        # schedule yet — visible in the log either way, never fatal).
+        problems.append("WASDE schedule parsed to zero dates in window")
+    return events, problems
+
+
+def build_usda_events(start: dt.date, end: dt.date):
+    events, problems = [], []
+    for fn in (build_usda_nass_events, build_wasde_events):
+        ev, pr = fn(start, end)
+        events += ev
+        problems += pr
+    return events, problems
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -567,6 +691,9 @@ def build(today: dt.date | None = None, key: str | None = None):
     fcb, fcb_problems = build_foreign_cb_events(start, end)
     events += fcb
     problems += fcb_problems
+    usda, usda_problems = build_usda_events(start, end)
+    events += usda
+    problems += usda_problems
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -596,6 +723,8 @@ def build(today: dt.date | None = None, key: str | None = None):
             "ECB Governing Council calendar (ecb.europa.eu) — decision dates",
             "Bank of England MPC dates (bankofengland.co.uk) — decision dates",
             "Bank of Japan MPM schedule (boj.or.jp) — decision dates",
+            "USDA NASS release calendar (nass.usda.gov) — quarterly Grain Stocks",
+            "USDA OCE WASDE schedule (usda.gov) — monthly WASDE dates",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",

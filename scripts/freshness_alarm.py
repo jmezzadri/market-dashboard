@@ -154,10 +154,40 @@ def write_pipeline_health(spec, asof, is_stale):
 
 # ── Layer 2: every-other-feed coverage via the pipeline_health monitor ───────
 def fetch_monitor_reds():
-    """All feeds the monitor currently grades non-green."""
+    """All feeds the monitor currently grades non-green — excluding rows whose
+    silence is a producer's recorded DELIBERATE skip (bug #1259, 2026-09-29).
+
+    trade_ideas publishes selectively by design: the editorial session runs
+    every morning and records a skip reason + consecutive_skips on the row,
+    and pipeline-health-check already suppresses its own stale-feed email for
+    exactly this case (silenceIsDeliberate). This alarm duplicated that
+    escalation without the gate, so a normal quiet week filed a P1 "diagnose
+    the producer" bug about a producer that demonstrably ran that morning.
+    Same gate here: a red row whose last_skip_at is recent (within 1.5x the
+    row's expected cadence) has a live producer and is not escalated — the
+    designed alarm for over-long silence is pipeline-health-check's own
+    skip-story email at SKIP_ESCALATE_AFTER. If the producer dies, its skip
+    stamp ages out past the gate and this alarm escalates as before. The
+    chip stays red either way — a skip never fakes freshness."""
     rows = supa("GET", "pipeline_health?status=neq.green&select=indicator_id,status,"
-                       "last_error,data_as_of,last_check_at&order=indicator_id")
-    return rows or []
+                       "last_error,data_as_of,last_check_at,last_skip_at,"
+                       "expected_cadence_minutes&order=indicator_id") or []
+    now = dt.datetime.now(dt.timezone.utc)
+    out = []
+    for r in rows:
+        skip_at, cad_min = r.get("last_skip_at"), r.get("expected_cadence_minutes")
+        if skip_at and cad_min:
+            try:
+                age_h = (now - dt.datetime.fromisoformat(skip_at.replace("Z", "+00:00"))
+                         ).total_seconds() / 3600
+                if age_h <= (float(cad_min) / 60) * 1.5:
+                    print(f"  [deliberate-skip] {r['indicator_id']}: producer skipped "
+                          f"{age_h:.1f}h ago — alive, not escalated")
+                    continue
+            except (ValueError, TypeError):
+                pass  # unparseable stamp -> treat as no skip recorded
+        out.append(r)
+    return out
 
 def reconcile_red_state(reds):
     """Persist how long each feed has been continuously red across runs. Returns
