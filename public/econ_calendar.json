@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-28T17:45:41Z",
+  "generated_at": "2026-09-29T00:27:39Z",
   "window": {
-    "from": "2026-09-21",
-    "to": "2026-12-07"
+    "from": "2026-09-22",
+    "to": "2026-12-08"
   },
   "counts": {
-    "total": 103,
+    "total": 104,
     "tier1": 29
   },
   "sources": [
@@ -24,17 +24,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-21",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-22",
       "time_et": "8:30 AM",
@@ -1154,6 +1143,28 @@
       "tier": 3,
       "category": "Consumer",
       "blurb": "Revolving and non-revolving household borrowing.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-08",
+      "time_et": "8:30 AM",
+      "name": "Trade balance",
+      "short": "Trade",
+      "tier": 2,
+      "category": "Trade",
+      "blurb": "Goods and services imports versus exports.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-08",
+      "time_et": "8:30 AM",
+      "name": "Productivity & unit labor costs",
+      "short": "Prod",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Output per hour and what each unit of output costs in labor.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
