@@ -441,6 +441,8 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 5. **Machine-filed reports are closed with SQL, never the resolve edge function** — it emails `reporter_email`, and `alarm@macrotilt.com` / `paper-pipeline@macrotilt.internal` have nobody behind them.
 6. **The general form, which binds beyond this queue: when a new channel is added — a queue, a table, a page, an inbox — the instruction that makes something READ it ships in the same change.** A filer without a reader is a folder that fills up.
 
+**2026-09-29 — recurred, one producer-state further along:** the freshness alarm filed #1259 ("diagnose the producer") against `trade_ideas` during a normal quiet week — the producer had run that very morning and recorded its skip reason on the row. The alarm's bug-filer had no deliberate-skip gate, though `pipeline-health-check` had suppressed its own email for exactly this case since 2026-08-30. Rule 6 generalises to escalation paths, not just readers: every path that grades a feed's silence needs the same deliberate-skip gate, added to the alarm the same day (`fetch_monitor_reds` now passes over a red row whose `last_skip_at` is within 1.5× cadence — a dead producer's skip stamp ages out and escalates as before).
+
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
