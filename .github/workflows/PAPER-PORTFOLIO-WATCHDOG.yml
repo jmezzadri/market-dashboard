@@ -1,8 +1,8 @@
 name: PAPER-PORTFOLIO-WATCHDOG (DISABLED)
 
-# DISABLED 2026-08-14. Automated trading was halted on 2026-08-12 —
-# CONVICTION-OPEN-DAILY, CONVICTION-KILL-CHECK and PAPER-PORTFOLIO-INTRADAY are
-# all disabled stubs. This watchdog kept its 10:00 ET cron and kept asking "did
+# DISABLED 2026-08-14. Automated trading was halted on 2026-08-12 (the two
+# Conviction Events jobs were deleted 2026-09-30; PAPER-PORTFOLIO-INTRADAY is a
+# disabled stub). This watchdog kept its 10:00 ET cron and kept asking "did
 # the morning engine run?", correctly answered "no", and filed a P1 + emailed Joe
 # EVERY WEEKDAY for a book that is deliberately not trading.
 #

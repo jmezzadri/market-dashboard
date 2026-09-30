@@ -314,7 +314,7 @@ function insiderRoleLabel(payload) {
 }
 
 /* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage/
-   ScannerPage (v12 system). Replays in BOTH directions; state lives in React
+   the v12 page system. Replays in BOTH directions; state lives in React
    so data-poll re-renders preserve the revealed class. */
 function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   const ref = useRef(null);
@@ -624,7 +624,7 @@ export default function TickerPage() {
       {/* Back row */}
       <div className="tk-backrow">
         <button type="button" className="mt-btn mt-btn--ghost" onClick={() => navigate(-1)}>
-          ← Back to scanner
+          ← Back
         </button>
         <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
       </div>
