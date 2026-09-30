@@ -443,6 +443,9 @@ def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None
             errs.append(f"{tag}.called_for_pct (the return the note called for over its horizon, as a number) is required")
         if not _txt(rv.get("called_for_basis")):
             errs.append(f"{tag}.called_for_basis (which figure in the note it comes from) is required")
+        note_er = ((by_id.get(nid) or {}).get("expected_return") or {}).get("pct")
+        if called is not None and isinstance(note_er, (int, float)) and abs(float(note_er) - called) > 1e-9:
+            errs.append(f"{tag}.called_for_pct is {called} but the note states expected_return.pct = {note_er} — the review grades against what the note called for")
         if called is not None and nid in prior_called:
             pc, pdate = prior_called[nid]
             if abs(float(pc) - called) > 1e-9:

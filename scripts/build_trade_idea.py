@@ -63,8 +63,12 @@ VALID_KINDS = {
     "fx", "commodity", "equity",
 }
 
-# Notes dated from here carry machine-checkable review_conditions (see 3f-bis).
+# Notes dated from here carry machine-checkable review_conditions (see 3f-bis)
+# and an expected_return block that clears the 20% hurdle (see 3f-ter).
 REVIEW_CONDITIONS_FROM = "2026-10-01"
+# Joe, 2026-09-30: "I want a minimum of 20% expected return... If I want 10%
+# I'll buy the SPY." Per cent of the position, over the note's own horizon.
+MIN_EXPECTED_RETURN_PCT = 20.0
 
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
             "position_type", "call", "the_trade", "edge", "variant",
@@ -752,6 +756,33 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             crit = crit or c["critical"]
         if not crit:
             raise ContractError("review_conditions: at least one condition must be critical")
+
+    # 3f-ter — the 20% hurdle (2026-09-30). Joe, on finding the live book
+    # called for +0.9% and +3.7% over six months: "Did we really make a call
+    # for a trade that would have been 'successful' if it returned 0.9%?...
+    # I want a minimum of 20% expected return." A measured edge is necessary,
+    # not sufficient: the note must say what the reader earns if it works,
+    # on the position it tells them to hold, and that number must clear the
+    # bar. A small underlying move publishes only through an instrument
+    # (futures, options, leverage, stated sizing) that gets it there.
+    if str(idea.get("date", "")) >= REVIEW_CONDITIONS_FROM:
+        er = idea.get("expected_return")
+        if not isinstance(er, dict):
+            raise ContractError(
+                "expected_return{pct, basis, instrument} is required — the return the note calls for over its "
+                f"horizon, on the position the reader holds; it must be at least {MIN_EXPECTED_RETURN_PCT:g}%")
+        try:
+            er_pct = float(er.get("pct"))
+        except (TypeError, ValueError):
+            raise ContractError("expected_return.pct must be a number (per cent of the position over the horizon)")
+        if er_pct < MIN_EXPECTED_RETURN_PCT:
+            raise ContractError(
+                f"expected_return.pct is {er_pct:g}% — below the {MIN_EXPECTED_RETURN_PCT:g}% minimum. A real but small "
+                "edge does not publish unless the note names the instrument that turns it into 20%+ (and its risk); "
+                "if there is none, there is no note")
+        for k in ("basis", "instrument"):
+            if len(str(er.get(k) or "").strip()) < 20:
+                raise ContractError(f"expected_return.{k} must say, in a sentence, how the {MIN_EXPECTED_RETURN_PCT:g}%+ is earned")
 
     # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
     # have a call to buy tips and short treasuries?" The Aug 16 breakeven note
