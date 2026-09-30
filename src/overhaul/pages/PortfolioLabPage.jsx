@@ -163,75 +163,145 @@ function niceDomain(lo, hi, count = 4) {
 }
 
 
-/* Efficient-frontier chart (SVG). Click loads the nearest point's weights. */
-function FrontierChart({ frontier, current, benches, rf, onPick }) {
+/* One shape per kind of point, so the eye can tell them apart without a
+   legend (Joe 9/30: "use different shapes"). Sizes are in pixels. */
+function Glyph({ kind, x, y, className }) {
+  switch (kind) {
+    case 'you':   return <circle cx={x} cy={y} r="7.5" className={className} />;
+    case 'ms':    return <path d={`M${x} ${y - 9} L${x + 9} ${y} L${x} ${y + 9} L${x - 9} ${y} Z`} className={className} />;      // diamond
+    case 'mv':    return <path d={`M${x} ${y - 9} L${x + 8.5} ${y + 6} L${x - 8.5} ${y + 6} Z`} className={className} />;         // triangle
+    case 'ew':    return <rect x={x - 6.5} y={y - 6.5} width="13" height="13" className={className} />;                            // square
+    case 'hold':  return <circle cx={x} cy={y} r="5" className={className} />;                                                     // hollow circle
+    case 'bench': return <path d={`M${x - 5} ${y - 5} L${x + 5} ${y + 5} M${x - 5} ${y + 5} L${x + 5} ${y - 5}`} className={className} />; // cross
+    default:      return null;
+  }
+}
+
+/* Place text labels beside their dots without overlapping each other.
+   Each label tries right-of-dot, then left, then above, then below; the first
+   position whose box does not intersect an already-placed box wins. Boxes are
+   estimated from the label length at the caption size (about 6.2px per
+   character). Returns [{...item, lx, ly, anchor}]. */
+function placeLabels(items, bounds) {
+  const placed = [];
+  const out = [];
+  const CH = 6.2; const LH = 13; const GAP = 8;
+  for (const it of items) {
+    const w = it.label.length * CH;
+    const cands = [
+      { lx: it.x + GAP, ly: it.y + 4, anchor: 'start', box: [it.x + GAP, it.y - LH / 2, it.x + GAP + w, it.y + LH / 2] },
+      { lx: it.x - GAP, ly: it.y + 4, anchor: 'end', box: [it.x - GAP - w, it.y - LH / 2, it.x - GAP, it.y + LH / 2] },
+      { lx: it.x, ly: it.y - GAP - 2, anchor: 'middle', box: [it.x - w / 2, it.y - GAP - LH, it.x + w / 2, it.y - GAP] },
+      { lx: it.x, ly: it.y + GAP + LH - 2, anchor: 'middle', box: [it.x - w / 2, it.y + GAP, it.x + w / 2, it.y + GAP + LH] },
+    ];
+    const inside = (b) => b[0] >= bounds[0] && b[2] <= bounds[2] && b[1] >= bounds[1] && b[3] <= bounds[3];
+    const hits = (b) => placed.some((q) => !(b[2] < q[0] || b[0] > q[2] || b[3] < q[1] || b[1] > q[3]));
+    let pick = cands.find((c) => inside(c.box) && !hits(c.box)) || cands.find((c) => !hits(c.box)) || cands[0];
+    placed.push(pick.box);
+    out.push({ ...it, lx: pick.lx, ly: pick.ly, anchor: pick.anchor });
+  }
+  return out;
+}
+
+/* Efficient-frontier chart (SVG, drawn at its measured pixel width).
+   What the reader sees (Joe 9/30 — "hard to read, use, understand"):
+   - every holding as its own labelled dot, so the curve is visibly built
+     FROM the names in the table; benchmarks as hollow squares (reference
+     only — they never set the plot's bounds);
+   - the three optimizer portfolios and "Your portfolio" NAMED on the canvas
+     (labels placed to avoid each other; coincident points share one label);
+   - a tooltip that follows the pointer with return, volatility, Sharpe and
+     the weights behind the point, and a crosshair to both axes;
+   - both axes titled. Click a curve point or a marker to load its weights. */
+function FrontierChart({ frontier, current, holdings, benches, names, rf, onPick }) {
   const [wrapRef, W] = useChartWidth(940);
-  const H = 380; const P = { l: 52, r: 16, t: 16, b: 40 };
+  const H = 440; const P = { l: 76, r: 28, t: 22, b: 56 };
   const [hover, setHover] = useState(null);
   if (!frontier || frontier.points.length < 2) return null;
   const pts = frontier.points;
-  /* Scale to the CURVE + your portfolio only — reference dots must never
-     dictate the domain (an SPY dot far from a high-vol book crushed the
-     curve into the top corner). Bounds snap to round gridlines via
-     niceDomain, so the plot edges are gridlines. Benchmarks render only
-     when they land inside the visible window; the statistics card always
-     carries the full benchmark comparison. */
-  const xs = pts.map((p) => p.vol).concat(current ? [current.vol] : []);
-  const ys = pts.map((p) => p.ret).concat(current ? [current.ret] : []);
+  /* Domain = the curve, your portfolio and the holdings being optimized —
+     the objects the chart is ABOUT. Benchmarks are reference marks and never
+     dictate the domain (an SPY dot far from a high-vol book crushed the curve
+     into a corner, 7/27); they render only when they land inside the window.
+     Bounds snap to round gridlines via niceDomain, so the plot edges are
+     gridlines. */
+  const dom = [...pts, ...(current ? [current] : []), ...holdings];
+  const xs = dom.map((p) => p.vol);
+  const ys = dom.map((p) => p.ret);
   const xlo = Math.min(...xs); const xhi = Math.max(...xs);
   const ylo = Math.min(...ys); const yhi = Math.max(...ys);
   const xr = (xhi - xlo) || xhi * 0.2 || 0.02;
   const yr = (yhi - ylo) || Math.abs(yhi) * 0.2 || 0.02;
-  /* Tight padding + denser gridlines (Joe 7/27: the loose 25-30% padding
-     left the curve crushed into a corner of a mostly-empty plot). */
-  const xd = niceDomain(Math.max(0, xlo - xr * 0.08), xhi + xr * 0.08, 6);
-  const yd = niceDomain(ylo - yr * 0.12, yhi + yr * 0.12, 5);
+  const xd = niceDomain(Math.max(0, xlo - xr * 0.05), xhi + xr * 0.05, 10);
+  const yd = niceDomain(ylo - yr * 0.08, yhi + yr * 0.08, 10);
   const xmin = xd.min; const xmax = xd.max;
   const ymin = yd.min; const ymax = yd.max;
-  const visBenches = benches.filter((b) => b.vol >= xmin && b.vol <= xmax && b.ret >= ymin && b.ret <= ymax);
   const xdp = xd.step < 0.01 ? 1 : 0;
   const ydp = yd.step < 0.01 ? 1 : 0;
   const X = (v) => P.l + ((v - xmin) / (xmax - xmin)) * (W - P.l - P.r);
   const Y = (v) => H - P.b - ((v - ymin) / (ymax - ymin)) * (H - P.t - P.b);
+  const inWin = (p) => p.vol >= xmin && p.vol <= xmax && p.ret >= ymin && p.ret <= ymax;
+  const visBenches = benches.filter(inWin);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.vol).toFixed(1)},${Y(p.ret).toFixed(1)}`).join(' ');
-  const xticks = xd.ticks;
-  const yticks = yd.ticks;
-  const nearest = (mx, my) => {
-    let best = null; let bd = Infinity;
-    for (const p of pts) {
-      const d = (X(p.vol) - mx) ** 2 + (Y(p.ret) - my) ** 2;
-      if (d < bd) { bd = d; best = p; }
-    }
-    return best;
-  };
-  const handleMove = (e) => {
-    if (e.target?.classList?.contains('lab-clickmark')) return; // marker hover owns the read line
-    const box = e.currentTarget.getBoundingClientRect();
-    const mx = ((e.clientX - box.left) / box.width) * W;
-    const my = ((e.clientY - box.top) / box.height) * H;
-    setHover(nearest(mx, my));
-  };
-  /* Marker discipline (Joe 7/27, superseding the halo experiment): every
-     marker is SMALL (4.5px) and coincident points are DEDUPLICATED on the
-     canvas instead of stacked — when two presets land within a few pixels
-     of each other (or of the portfolio dot), only the first renders; the
-     legend below always carries all three names and stays clickable, so
-     nothing is lost. Names never render on-canvas (they collide). */
-  const markDefs = [
-    { p: frontier.maxSharpe, cls: 'lab-markdot', r: 4.5, label: 'Max Sharpe' },
-    { p: frontier.minVol, cls: 'lab-minvoldot', r: 4.5, label: 'Min volatility' },
-    { p: frontier.equalWeight, cls: 'lab-eqdot', r: 4.5, label: 'Equal weight' },
-  ];
-  const placedPx = current ? [[X(current.vol), Y(current.ret)]] : [];
+  const sharpe = (p) => (rf != null && p.vol > 0 ? (p.ret - rf) / p.vol : null);
+
+  /* Named portfolios. Coincident markers (within 9px) share ONE dot and one
+     label — "Your portfolio = Equal weight" — instead of one silently hiding
+     under the other. */
+  const named = [
+    current && { key: 'you', cls: 'lab-youdot', label: 'Your portfolio', p: current, loadable: false },
+    { key: 'ms', cls: 'lab-markdot', label: 'Max Sharpe', p: frontier.maxSharpe, loadable: true },
+    { key: 'mv', cls: 'lab-minvoldot', label: 'Min volatility', p: frontier.minVol, loadable: true },
+    { key: 'ew', cls: 'lab-eqdot', label: 'Equal weight', p: frontier.equalWeight, loadable: true },
+  ].filter(Boolean).map((m) => ({ ...m, x: X(m.p.vol), y: Y(m.p.ret) }));
+  /* Every named portfolio draws its own shape — a diamond on top of a circle
+     is still two readable things. Only the LABELS merge when two land on the
+     same pixel ("Your portfolio = Equal weight"), and the hover/click target
+     for a merged spot is the loadable one. */
   const marks = [];
-  for (const m of markDefs) {
-    const mx = X(m.p.vol);
-    const my = Y(m.p.ret);
-    if (!placedPx.some(([px, py]) => (px - mx) ** 2 + (py - my) ** 2 < 121)) { // 11px apart minimum
-      marks.push(m);
-      placedPx.push([mx, my]);
-    }
+  for (const m of named) {
+    const near = marks.find((q) => (q.x - m.x) ** 2 + (q.y - m.y) ** 2 < 81);
+    if (near) { near.labels.push(m.label); near.keys.push(m.key); if (m.loadable && !near.loadable) { near.loadable = true; near.p = m.p; } continue; }
+    marks.push({ ...m, labels: [m.label], keys: [m.key] });
   }
+  const holdPts = holdings.map((h) => ({ kind: 'hold', label: h.ticker, p: h, x: X(h.vol), y: Y(h.ret) }));
+  const benchPts = visBenches.map((b) => ({ kind: 'bench', label: b.ticker, p: b, x: X(b.vol), y: Y(b.ret) }));
+  const labels = placeLabels(
+    [
+      ...marks.map((m) => ({ kind: 'mark', label: m.labels.join(' = '), x: m.x, y: m.y, cls: m.keys.includes('you') ? 'you' : 'mark' })),
+      ...holdPts.map((h) => ({ ...h, cls: 'hold' })),
+      ...benchPts.map((b) => ({ ...b, cls: 'bench' })),
+    ],
+    [P.l, P.t, W - P.r, H - P.b],
+  );
+
+  /* Hover: snap to the nearest object within 26px — a curve point, a named
+     portfolio, a holding or a benchmark. */
+  const targets = [
+    ...pts.map((p) => ({ kind: 'curve', label: 'Frontier', p, x: X(p.vol), y: Y(p.ret), loadable: true })),
+    ...marks.map((m) => ({ kind: 'mark', label: m.labels.join(' = '), p: m.p, x: m.x, y: m.y, loadable: m.loadable })),
+    ...holdPts, ...benchPts,
+  ];
+  const handleMove = (e) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const mx = e.clientX - box.left;
+    const my = e.clientY - box.top;
+    let best = null; let bd = 40 * 40;
+    for (const t of targets) {
+      const d = (t.x - mx) ** 2 + (t.y - my) ** 2;
+      // named portfolios win ties against the curve underneath them
+      const dd = t.kind === 'mark' ? d * 0.5 : t.kind === 'curve' ? d : d * 0.8;
+      if (dd < bd) { bd = dd; best = t; }
+    }
+    setHover(best);
+  };
+  const weightsOf = (t) => {
+    const w = t.p?.weights;
+    if (!w || !names) return null;
+    return names.map((n, i) => [n, w[i]]).filter(([, v]) => v >= 0.005).sort((a, b) => b[1] - a[1]);
+  };
+  const tipLeft = hover ? hover.x > W * 0.62 : false;
+  const tipTop = hover ? Math.min(Math.max(hover.y - 12, P.t), H - 150) : 0;
   return (
     <div className="lab-chartwrap" ref={wrapRef}>
       <svg
@@ -241,68 +311,89 @@ function FrontierChart({ frontier, current, benches, rf, onPick }) {
         className="lab-frontier"
         onMouseMove={handleMove}
         onMouseLeave={() => setHover(null)}
-        onClick={() => hover && onPick(hover)}
+        onClick={() => hover && hover.loadable && onPick(hover.p)}
         role="img"
         aria-label="Efficient frontier: annual volatility vs expected return"
       >
-        {yticks.map((v, i) => (
+        {yd.ticks.map((v, i) => (
           <g key={`y${i}`}>
             <line x1={P.l} x2={W - P.r} y1={Y(v)} y2={Y(v)} className="lab-grid" />
-            <text x={P.l - 8} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, ydp)}</text>
+            <text x={P.l - 10} y={Y(v) + 4} className="lab-tick" textAnchor="end">{pct(v, ydp)}</text>
           </g>
         ))}
-        {xticks.map((v, i) => (
-          <text key={`x${i}`} x={X(v)} y={H - P.b + 22} className="lab-tick" textAnchor="middle">{pct(v, xdp)}</text>
+        {xd.ticks.map((v, i) => (
+          <g key={`x${i}`}>
+            <line x1={X(v)} x2={X(v)} y1={H - P.b} y2={H - P.b + 5} className="lab-grid" />
+            <text x={X(v)} y={H - P.b + 20} className="lab-tick" textAnchor="middle">{pct(v, xdp)}</text>
+          </g>
         ))}
-        <text x={(P.l + W - P.r) / 2} y={H - 4} className="lab-axis" textAnchor="middle">Volatility (annual)</text>
+        <line x1={P.l} x2={W - P.r} y1={H - P.b} y2={H - P.b} className="lab-axisline" />
+        <text x={(P.l + W - P.r) / 2} y={H - 8} className="lab-axis" textAnchor="middle">Volatility (annual)</text>
+        <text transform={`translate(14 ${(P.t + H - P.b) / 2}) rotate(-90)`} className="lab-axis" textAnchor="middle">Expected return (annual)</text>
         <path d={path} className="lab-curve" fill="none" />
-        {visBenches.map((b) => (
-          <g key={b.ticker}>
-            <circle cx={X(b.vol)} cy={Y(b.ret)} r="4" className="lab-benchdot" />
-            <text x={X(b.vol) - 7} y={Y(b.ret) + 4} className="lab-dotlabel" textAnchor="end">{b.ticker}</text>
+        {benchPts.map((b) => <Glyph key={b.label} kind="bench" x={b.x} y={b.y} className="lab-benchdot" />)}
+        {holdPts.map((h) => <Glyph key={h.label} kind="hold" x={h.x} y={h.y} className="lab-holddot" />)}
+        {/* biggest shape first so the smaller ones sit on top when they coincide */}
+        {named.filter((m) => m.key === 'you').map((m) => <Glyph key={m.key} kind={m.key} x={m.x} y={m.y} className={m.cls} />)}
+        {named.filter((m) => m.key !== 'you').map((m) => <Glyph key={m.key} kind={m.key} x={m.x} y={m.y} className={m.cls} />)}
+        {labels.map((l) => (
+          <text key={`${l.kind}${l.label}`} x={l.lx} y={l.ly} textAnchor={l.anchor} className={`lab-dotlabel ${l.cls}`}>{l.label}</text>
+        ))}
+        {hover && (
+          <g className="lab-xhair">
+            <line x1={P.l} x2={hover.x} y1={hover.y} y2={hover.y} />
+            <line x1={hover.x} x2={hover.x} y1={hover.y} y2={H - P.b} />
+            <circle cx={hover.x} cy={hover.y} r="12" className="lab-hoverdot" />
           </g>
-        ))}
-        {/* portfolio dot renders FIRST and ignores the pointer, so the
-            clickable preset markers are never buried underneath it when the
-            points coincide */}
-        {current && <circle cx={X(current.vol)} cy={Y(current.ret)} r="5" className="lab-youdot" />}
-        {marks.map((m) => (
-          <circle
-            key={m.cls}
-            cx={X(m.p.vol)} cy={Y(m.p.ret)} r={m.r}
-            className={`${m.cls} lab-clickmark`}
-            onClick={(e) => { e.stopPropagation(); onPick(m.p); }}
-            onMouseMove={(e) => { e.stopPropagation(); setHover({ ...m.p, label: m.label }); }}
-          />
-        ))}
-        {hover && <circle cx={X(hover.vol)} cy={Y(hover.ret)} r="4" className="lab-hoverdot" />}
+        )}
       </svg>
+      {hover && (
+        <div className={`lab-tip${tipLeft ? ' left' : ''}`} style={{ left: tipLeft ? hover.x - 14 : hover.x + 14, top: tipTop }}>
+          <div className="lab-tip-h">
+            {hover.label}
+            {hover.kind === 'hold' ? <span> · holding</span> : hover.kind === 'bench' ? <span> · benchmark</span> : hover.kind === 'curve' ? <span> · optimized mix</span> : null}
+          </div>
+          <div className="lab-tip-row"><span>Expected return</span><b className="num">{signPct(hover.p.ret)}</b></div>
+          <div className="lab-tip-row"><span>Volatility</span><b className="num">{pct(hover.p.vol)}</b></div>
+          {sharpe(hover.p) != null && <div className="lab-tip-row"><span>Sharpe</span><b className="num">{sharpe(hover.p).toFixed(2)}</b></div>}
+          {weightsOf(hover) && (
+            <div className="lab-tip-w">
+              {weightsOf(hover).map(([n, v]) => <span key={n}>{n} <b className="num">{Math.round(v * 100)}%</b></span>)}
+            </div>
+          )}
+          {hover.loadable && <div className="lab-tip-f">Click to load these weights</div>}
+        </div>
+      )}
       <div className="lab-fmarks">
-        <span className="lab-fmark"><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className="lab-youdot" /></svg>Your portfolio</span>
-        {markDefs.map((m) => (
-          <button key={m.cls} type="button" className="lab-fmark asbtn" onClick={() => onPick(m.p)}>
-            <svg width="12" height="12"><circle cx="6" cy="6" r="4.5" className={m.cls} /></svg>
+        <span className="lab-fmark"><svg width="22" height="22"><Glyph kind="you" x={11} y={11} className="lab-youdot" /></svg>Your portfolio</span>
+        {named.filter((m) => m.loadable).map((m) => (
+          <button key={m.key} type="button" className="lab-fmark asbtn" onClick={() => onPick(m.p)}>
+            <svg width="22" height="22"><Glyph kind={m.key} x={11} y={11} className={m.cls} /></svg>
             {m.label}
           </button>
         ))}
+        <span className="lab-fmark"><svg width="22" height="22"><Glyph kind="hold" x={11} y={11} className="lab-holddot" /></svg>Holding</span>
+        <span className="lab-fmark"><svg width="22" height="22"><Glyph kind="bench" x={11} y={11} className="lab-benchdot" /></svg>Benchmark</span>
       </div>
       <div className="lab-frontier-read">
-        {hover
-          ? <>{hover.label ? `${hover.label}: ` : 'At '}{pct(hover.vol)} volatility{hover.label ? '' : ' the frontier'} expects {signPct(hover.ret)} a year — click to load these weights.</>
-          : <>Click any point on the curve — or a marked point / its legend name — to load those weights into the table. Sharpe uses a {pct(rf, 2)} risk-free rate.</>}
+        Each point on the curve is the lowest-risk mix of your holdings for that return. Hover for the weights behind any point; click a curve point or a named portfolio to load its weights into the table. Sharpe uses a {pct(rf, 2)} risk-free rate.
       </div>
     </div>
   );
 }
 
-/* Growth-of-$10K comparison chart (SVG multi-line). */
+/* Growth-of-$10K comparison chart (SVG multi-line, drawn at its measured
+   pixel width). Hover reads the date and every line's value; each line is
+   named at its right-hand end; the dollar axis encloses the lines instead
+   of starting at $0. */
 function GrowthChart({ dates, lines }) {
   const [wrapRef, W] = useChartWidth(940);
-  const H = 320; const P = { l: 56, r: 12, t: 14, b: 32 };
+  const H = 340; const P = { l: 64, r: 96, t: 16, b: 36 };
+  const [hi, setHi] = useState(null); // hovered index
   if (!dates.length || !lines.length) return null;
   const all = lines.flatMap((l) => l.nav);
   /* Snap the dollar axis to round gridlines that enclose every line. */
-  const yd = niceDomain(Math.min(...all) * 10000 * 0.99, Math.max(...all) * 10000 * 1.01);
+  const yd = niceDomain(Math.min(...all) * 10000 * 0.98, Math.max(...all) * 10000 * 1.02, 8);
   const ymin = yd.min / 10000;
   const ymax = yd.max / 10000;
   const X = (i) => P.l + (i / (dates.length - 1)) * (W - P.l - P.r);
@@ -313,18 +404,43 @@ function GrowthChart({ dates, lines }) {
     const y = d.slice(0, 4);
     if (y !== lastYear) { yearMarks.push({ i, y }); lastYear = y; }
   });
+  /* Line-end names, nudged apart when two lines finish close together. */
+  const ends = lines
+    .map((l) => ({ label: l.label === 'Your portfolio' ? 'Portfolio' : l.label, cls: l.cls, y: Y(l.nav[l.nav.length - 1]) }))
+    .sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+  const handleMove = (e) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const mx = e.clientX - box.left;
+    const i = Math.round(((mx - P.l) / (W - P.l - P.r)) * (dates.length - 1));
+    setHi(Math.max(0, Math.min(dates.length - 1, i)));
+  };
+  const tipLeft = hi != null ? X(hi) > W * 0.6 : false;
   return (
     <div className="lab-chartwrap" ref={wrapRef}>
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="lab-growth" role="img" aria-label="Growth of $10,000: portfolio vs benchmarks">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      className="lab-growth"
+      role="img"
+      aria-label="Growth of $10,000: portfolio vs benchmarks"
+      onMouseMove={handleMove}
+      onMouseLeave={() => setHi(null)}
+    >
       {yd.ticks.map((d, k) => (
         <g key={k}>
           <line x1={P.l} x2={W - P.r} y1={Y(d / 10000)} y2={Y(d / 10000)} className="lab-grid" />
-          <text x={P.l - 8} y={Y(d / 10000) + 4} className="lab-tick" textAnchor="end">{money(d)}</text>
+          <text x={P.l - 10} y={Y(d / 10000) + 4} className="lab-tick" textAnchor="end">{`$${Math.round(d).toLocaleString('en-US')}`}</text>
         </g>
       ))}
       {yearMarks.slice(1).map((m) => (
-        <text key={m.y} x={X(m.i)} y={H - 8} className="lab-tick" textAnchor="middle">{m.y}</text>
+        <g key={m.y}>
+          <line x1={X(m.i)} x2={X(m.i)} y1={H - P.b} y2={H - P.b + 5} className="lab-grid" />
+          <text x={X(m.i)} y={H - P.b + 20} className="lab-tick" textAnchor="middle">{m.y}</text>
+        </g>
       ))}
+      <line x1={P.l} x2={W - P.r} y1={H - P.b} y2={H - P.b} className="lab-axisline" />
       {lines.map((l) => (
         <path
           key={l.label}
@@ -333,7 +449,24 @@ function GrowthChart({ dates, lines }) {
           fill="none"
         />
       ))}
+      {ends.map((e) => (
+        <text key={e.label} x={W - P.r + 8} y={e.y + 4} className={`lab-dotlabel ${e.cls}`}>{e.label}</text>
+      ))}
+      {hi != null && (
+        <g className="lab-xhair">
+          <line x1={X(hi)} x2={X(hi)} y1={P.t} y2={H - P.b} />
+          {lines.map((l) => <circle key={l.label} cx={X(hi)} cy={Y(l.nav[hi])} r="4" className={`lab-hoverpt ${l.cls}`} />)}
+        </g>
+      )}
     </svg>
+    {hi != null && (
+      <div className={`lab-tip${tipLeft ? ' left' : ''}`} style={{ left: tipLeft ? X(hi) - 14 : X(hi) + 14, top: P.t }}>
+        <div className="lab-tip-h">{dates[hi]}</div>
+        {lines.map((l) => (
+          <div className="lab-tip-row" key={l.label}><span className={`lab-leg ${l.cls}`}><i />{l.label}</span><b className="num">{money(l.nav[hi] * 10000)}</b></div>
+        ))}
+      </div>
+    )}
     </div>
   );
 }
@@ -1082,7 +1215,11 @@ export default function PortfolioLabPage() {
             {frontier && portfolio ? (
               <FrontierChart
                 frontier={frontier}
-                current={{ vol: portfolio.volAnnual, ret: portfolio.erAnnual }}
+                current={{ vol: portfolio.volAnnual, ret: portfolio.erAnnual, weights: portfolio.w }}
+                /* each holding off the SAME covariance matrix the curve is
+                   optimized on — one concept, one computation */
+                holdings={analysis.valid.map((t, i) => ({ ticker: t, vol: Math.sqrt(Math.max(analysis.S[i][i], 0)), ret: analysis.perStock[t].erAnnual }))}
+                names={analysis.valid}
                 benches={benchStats.map((b) => ({ ticker: b.ticker, vol: b.vol, ret: b.erAnnual }))}
                 rf={rfH}
                 onPick={applyFrontier}
