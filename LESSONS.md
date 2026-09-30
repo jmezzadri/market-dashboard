@@ -232,6 +232,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.19` A card header is a fixed 28px band; a control cluster in it lands on the row below
 - `9.20` A viewBox scales the type inside it; a chart is drawn at its measured pixel width
 - `9.21` A row that truncates hides in proportion to how much there is to see; a "see all" link lands on the thing it names
+- `9.22` A chart plots the objects it is about, names them on the canvas, merges coincident points instead of hiding one, and reads out at the pointer
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2268,6 +2269,21 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 5. **A release is a thing to read about, not a link.** The detail is the last three years of the headline number the desk trades on release, plus a nowcast where a free, public, NAMED forecaster covers it (Cleveland Fed, Atlanta Fed GDPNow, fed funds futures). Nothing is labelled "expectations" or "consensus": the June 2026 no-paid-vendor decision stands, and a forecast always names its author. Actual prints are the current FRED vintage, and the chart's source line says so.
 
 **Applies to:** UX Designer + Lead Developer on every list, calendar, and "see all" affordance; Senior Quant + Data Steward on the release-history feed.
+
+
+### 9.22 (2026-09-30) — A chart shows the objects it is about; two points that coincide share a label, they never hide each other; and a value the reader cannot hover is a value the chart does not give
+
+**What happened:** Joe, on the Portfolio Lab: *"Why is the chart on Portfolio Labs so fucking bad and hard to read, use, understand."* Rendered with five holdings, the Efficient frontier was one black curve on an axis it did not fill, two unnamed dots, and a legend of four names — two of which (Max Sharpe, Equal weight) were not on the canvas at all, because the 7/27 "deduplicate coincident markers" rule silently dropped any marker within 11px of another. The holdings the curve is built from were not plotted anywhere; the y-axis had no title; the only readout was a sentence under the chart that changed as the pointer moved, far from where the reader was looking. The Growth of $10,000 chart had no hover at all and spent its bottom third on the space between $0 and $10,000.
+
+**Rule:**
+
+1. **Plot the objects the chart is about.** A frontier is built from holdings — every holding is a labelled point on it, off the SAME covariance matrix the curve is optimized on (4.5: one concept, one computation). Benchmarks are reference marks: drawn when inside the window, never allowed to set it.
+2. **Name things on the canvas.** Every marked point carries its name beside it, with a placement rule that avoids other labels (right, then left, above, below). A legend of glyphs the reader has to match to 5px dots is not a label.
+3. **Coincident points MERGE, they never hide.** Two markers on the same pixel become one dot with one label — "Your portfolio = Equal weight" — because the coincidence is itself the fact the reader needs. Dropping one and leaving its name in the legend is a lie by omission.
+4. **Every chart has a pointer readout.** An instant tooltip (7.13) at the pointer with the values behind the point — and, on an optimizer chart, the weights that produce it — plus a crosshair to both axes. A sentence elsewhere on the page is not a readout.
+5. **Both axes are titled, and the domain is the data's.** A dollar axis of lines that never go below $8,000 does not start at $0.
+
+**Applies to:** UX Designer + Senior Quant on every chart; Lead Developer verifies by hovering the rendered chart and screenshotting the tooltip before claiming done.
 
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes

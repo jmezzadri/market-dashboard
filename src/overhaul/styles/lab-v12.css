@@ -113,30 +113,59 @@
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-curve,
 [data-mt-theme='navy'] .home-v12.lab-v12 .lab-curve { stroke: var(--gold-deep); }
 .home-v12.lab-v12 .lab-frontier { cursor: crosshair; }
-.home-v12.lab-v12 .lab-benchdot { fill: var(--mut); }
-/* Preset markers (2026-07-27 rework): all SMALL and crisp — a 1.5px card-color
-   casing stroke separates each dot from the curve; coincident presets are
-   deduplicated in the component, never stacked. */
-.home-v12.lab-v12 .lab-markdot { fill: var(--gold-deep); stroke: var(--bg2); stroke-width: 1.5; }
-.home-v12.lab-v12 .lab-minvoldot { fill: var(--ink); stroke: var(--bg2); stroke-width: 1.5; }
-.home-v12.lab-v12 .lab-eqdot { fill: var(--bg2); stroke: var(--ink-soft); stroke-width: 1.6; }
+.home-v12.lab-v12 .lab-axisline { stroke: var(--ink-soft); stroke-width: 1; opacity: .5; }
+/* Every mark on the frontier is a plain SVG shape; the SVG itself owns the
+   pointer (nearest-object snap in the component), so no shape needs its own
+   hit area and nothing can hide under anything else (2026-09-30). */
+.home-v12.lab-v12 .lab-frontier circle, .home-v12.lab-v12 .lab-frontier rect, .home-v12.lab-v12 .lab-frontier path, .home-v12.lab-v12 .lab-frontier text,
+.home-v12.lab-v12 .lab-growth circle, .home-v12.lab-v12 .lab-growth text { pointer-events: none; }
+.home-v12.lab-v12 .lab-holddot { fill: var(--v13-surface, var(--bg2)); stroke: var(--ink-soft); stroke-width: 2; }
+.home-v12.lab-v12 .lab-benchdot { fill: none; stroke: var(--mut); stroke-width: 2; }
+.home-v12.lab-v12 .lab-markdot { fill: var(--v13-accent, var(--navy)); stroke: var(--v13-surface, var(--bg2)); stroke-width: 2; }
+.home-v12.lab-v12 .lab-minvoldot { fill: var(--ink); stroke: var(--v13-surface, var(--bg2)); stroke-width: 2; }
+.home-v12.lab-v12 .lab-eqdot { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--v13-surface, var(--bg2)); stroke-width: 2; }
+.home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.home-v12.lab-v12 .lab-hoverpt { stroke: var(--v13-surface, var(--bg2)); stroke-width: 1.5; }
+.home-v12.lab-v12 .lab-hoverpt.you { fill: var(--up); }
+.home-v12.lab-v12 .lab-hoverpt.b0 { fill: var(--ink); }
+.home-v12.lab-v12 .lab-hoverpt.b1 { fill: var(--gold-deep); }
+.home-v12.lab-v12 .lab-hoverpt.b2 { fill: var(--navy); }
+.home-v12.lab-v12 .lab-hoverpt.b3 { fill: var(--mut); }
+.home-v12.lab-v12 .lab-hoverpt.mix { fill: var(--down); }
+.home-v12.lab-v12 .lab-xhair line { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
 .home-v12.lab-v12 .lab-fmarks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; font-size: var(--v13-t3); color: var(--ink-soft); }
 .home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: 6px; }
 .home-v12.lab-v12 .lab-fmark.asbtn { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: var(--v13-t3); padding: 0; cursor: pointer; }
 .home-v12.lab-v12 .lab-fmark.asbtn:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-/* pointer-events:all — a hollow (fill:none) SVG circle otherwise only
-   responds on its thin outline, so clicks in the middle fell through */
-.home-v12.lab-v12 .lab-clickmark { cursor: pointer; pointer-events: all; }
-/* every non-interactive dot ignores the pointer so the clickable preset
-   markers are reachable even when points coincide */
-.home-v12.lab-v12 svg .lab-youdot,
-.home-v12.lab-v12 svg .lab-hoverdot,
-.home-v12.lab-v12 svg .lab-benchdot { pointer-events: none; }
 .home-v12.lab-v12 .lab-fmark svg { overflow: visible; }
-.home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--bg2); stroke-width: 2; }
-.home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+/* on-canvas names: one caption size, weight tells the role */
 .home-v12.lab-v12 .lab-dotlabel { fill: var(--ink-soft); font-size: var(--v13-t2); font-family: var(--mt-type-sans); }
 .home-v12.lab-v12 .lab-dotlabel.you { fill: var(--up); font-weight: 700; }
+.home-v12.lab-v12 .lab-dotlabel.mark { fill: var(--ink); font-weight: 700; }
+.home-v12.lab-v12 .lab-dotlabel.hold { fill: var(--ink-soft); }
+.home-v12.lab-v12 .lab-dotlabel.bench { fill: var(--mut); }
+.home-v12.lab-v12 .lab-dotlabel.b0 { fill: var(--ink); }
+.home-v12.lab-v12 .lab-dotlabel.b1 { fill: var(--gold-deep); }
+.home-v12.lab-v12 .lab-dotlabel.b2 { fill: var(--navy); }
+.home-v12.lab-v12 .lab-dotlabel.b3 { fill: var(--mut); }
+.home-v12.lab-v12 .lab-dotlabel.mix { fill: var(--down); }
+/* pointer tooltip — instant (LESSONS 7.13), positioned by the component */
+.home-v12.lab-v12 .lab-tip {
+  position: absolute; z-index: 5; pointer-events: none; min-width: 168px; max-width: 280px;
+  background: var(--v13-surface, var(--bg2)); border: 1px solid var(--hair); border-radius: var(--v13-r, 4px);
+  box-shadow: var(--v13-shadow-lift, 0 2px 10px rgba(0,0,0,.1)); padding: 8px 10px;
+  font-size: var(--v13-t2); color: var(--ink-soft); text-align: left;
+}
+.home-v12.lab-v12 .lab-tip.left { transform: translateX(-100%); }
+.home-v12.lab-v12 .lab-tip-h { color: var(--ink); font-weight: 700; padding-bottom: 4px; }
+.home-v12.lab-v12 .lab-tip-h span { color: var(--mut); font-weight: 400; }
+.home-v12.lab-v12 .lab-tip-row { display: flex; justify-content: space-between; gap: 14px; line-height: 1.6; }
+.home-v12.lab-v12 .lab-tip-row b { color: var(--ink); font-weight: 600; }
+.home-v12.lab-v12 .lab-tip-row .lab-leg { gap: 6px; font-size: var(--v13-t2); }
+.home-v12.lab-v12 .lab-tip-w { display: flex; flex-wrap: wrap; gap: 4px 10px; padding-top: 6px; margin-top: 4px; border-top: 1px solid var(--hair); }
+.home-v12.lab-v12 .lab-tip-w b { color: var(--ink); font-weight: 600; }
+.home-v12.lab-v12 .lab-tip-f { color: var(--mut); padding-top: 6px; }
 .home-v12.lab-v12 .lab-frontier-read { color: var(--ink-soft); font-size: var(--v13-t3); padding-top: 10px; min-height: 20px; }
 
 .home-v12.lab-v12 .lab-line { stroke-width: 2; }
