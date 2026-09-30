@@ -245,7 +245,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `10.8` A note whose central claim has to be decoded has failed, however good its evidence is; and a chart drawn from typed-in numbers is a second source of truth
 - `10.9` Fixing "unclear" by writing an instruction produces a cold call; a research claim needs a horizon, and a tile is cramped when its shape is wrong, not when its type is too big
 - `10.10` Style guidance in a prompt does not hold a length; and prose is the worst container ever invented for a number
-- `10.11` A measured edge is necessary, not sufficient: a Trade Idea calls for at least 20% over its horizon on the position the reader holds, or it does not publish
+- `10.11` A measured edge is necessary, not sufficient: 20% minimum over the horizon, at least 2x the loss at the stop, and never above 0.60 correlation with a live call — or it does not publish
 
 **A · Archive** — retired, not binding. Nothing new goes there.
 
@@ -2473,8 +2473,10 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 1. **Twenty per cent, minimum, over the note's own horizon, on the position the reader is told to hold.** The contract requires `expected_return{pct, basis, instrument}` on every note and rejects `pct` under 20 (`scripts/build_trade_idea.py`, from 2026-10-01). The weekly review grades against that same number.
 2. **A small underlying move publishes only through an instrument that gets it to 20%+** — futures, options, a leveraged fund, stated sizing — with the risk of that instrument stated in the note. If no instrument does, there is no note. The Scorecard still marks the underlying series; the note says how its stated return and the mark relate.
 3. **Magnitude is a gate, not a preference.** Provenance rules (6.9, 6.17) say whether an edge is real; this rule says whether it is worth a reader's capital. Both are checked at publication, neither is judged on the day.
+4. **Downside is stated and the call pays at least twice it.** `expected_return.loss_at_stop_pct` is the loss if the stop prints; `pct` must be at least 2x it. Joe, same day: *"I want you to be a market leading hedge fund analyst! I'm the PM. Significant alpha generating ideas, downside protection, not an overly correlated book."*
+5. **Not the same bet twice.** The contract rejects a candidate whose position returns ran above 0.60 correlation with any live call over the last 126 sessions (long euro vs short dollar index: +0.89 — rejected in the test); no prose exemption. The weekly review prints the book's pairwise correlations and its sensitivity to equities, the 10-year yield and the dollar, and a driftless monthly range for the book as one position.
 
-**Applies to:** the Trade Idea run (every note), Senior Quant (the expected-return figure and its instrument), the weekly thesis review (grades against the stated figure).
+**Applies to:** the Trade Idea run (every note), Senior Quant (the expected-return figure, its instrument, the loss at the stop), the weekly thesis review (grades against the stated figure; reports the book's correlation and factor exposure).
 
 # A · ARCHIVE — closed 2026-09-01. Superseded and retired only. NOTHING NEW GOES BELOW THIS LINE.
 

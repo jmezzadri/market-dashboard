@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30T20:33:05Z",
+  "generated_at": "2026-09-30T21:23:45Z",
   "cadence": "weekly, Monday before the US open",
   "method": "Every Monday each open call is re-examined against the claims its note made. The numbers are computed from the record: where the call stands against what the note called for, how far the stop is, and a price-only range for where it can finish, drawn from the position's own recent volatility with no view assumed. The verdict is a judgment, stated with dated evidence: each claim the note relied on is re-measured and marked as holding or not, and the verdict has to follow from those marks. A broken thesis closes the call on the Scorecard from the review date. The return a note called for is written once and never changed.",
   "latest": {
@@ -7,6 +7,83 @@
     "marked_to": "2026-09-30",
     "scores_generated_at": "2026-09-30T20:31:45Z",
     "book_now": "After this review the book is four calls, all with a physical constraint or a policy actor behind them: long US natural gas against war-priced oil (the oil-to-gas extreme has been closing from the oil side, gas has held its gain), short wheat through the fund with money-manager length still at a record, long the yen at the month-two retest of the July intervention, and a long euro that is under water but whose driver — record euro shorts — is still in place. Two calls come off today. The bank-versus-Nasdaq pair is closed: what has moved it is a rates shock the note said it was not built on, and the volatility-curve reading it was built on is gone. The TIPS-versus-Treasuries pair is closed because it worked: the gap between gold and the inflation breakeven that the note was built on has closed, three-quarters of the widening it called for has printed, and what is left is not worth carrying a duration mismatch through a 10-year yield at 5.29%. Highest conviction: natural gas and wheat, each within a point or two of what its note called for with the driver intact. Lowest: the euro, which needs the dollar to give back its September gain inside six weeks. A reader holding the earlier calls takes off the bank pair and the TIPS pair at the review date's close and leaves the other four alone.",
+    "book_risk": {
+      "pairs": [
+        {
+          "a": "Long EUR/USD",
+          "b": "Short WEAT (Teucrium wheat fund)",
+          "correlation": 0.07
+        },
+        {
+          "a": "Long EUR/USD",
+          "b": "Long Natgas",
+          "correlation": -0.02
+        },
+        {
+          "a": "Long EUR/USD",
+          "b": "Long Japanese yen via FXY",
+          "correlation": 0.48
+        },
+        {
+          "a": "Short WEAT (Teucrium wheat fund)",
+          "b": "Long Natgas",
+          "correlation": -0.16
+        },
+        {
+          "a": "Short WEAT (Teucrium wheat fund)",
+          "b": "Long Japanese yen via FXY",
+          "correlation": 0.01
+        },
+        {
+          "a": "Long Natgas",
+          "b": "Long Japanese yen via FXY",
+          "correlation": -0.05
+        }
+      ],
+      "flagged_pairs": [],
+      "exposures": [
+        {
+          "trade_label": "Long EUR/USD",
+          "US equities": 0.07,
+          "10-year yield": -0.18,
+          "the dollar": -0.84
+        },
+        {
+          "trade_label": "Short WEAT (Teucrium wheat fund)",
+          "US equities": -0.16,
+          "10-year yield": 0.3,
+          "the dollar": 0.06
+        },
+        {
+          "trade_label": "Long Natgas",
+          "US equities": -0.36,
+          "10-year yield": 1.15,
+          "the dollar": 0.32
+        },
+        {
+          "trade_label": "Long Japanese yen via FXY",
+          "US equities": 0.34,
+          "10-year yield": -0.41,
+          "the dollar": -1.47
+        }
+      ],
+      "book": {
+        "positions": 4,
+        "sigma_day_pct": 0.728,
+        "annualised_pct": 11.6,
+        "range_21_sessions": {
+          "p10": -4.28,
+          "p90": 4.28
+        },
+        "beta": {
+          "US equities": 0.04,
+          "10-year yield": 0.18,
+          "the dollar": -0.67
+        },
+        "basis": "equal weight across the open calls, one unit each, trailing 63 sessions; a 21-session driftless range"
+      },
+      "note": "correlations are of daily mark changes over the trailing 63 sessions; exposure is the position's % move per 1% in equities or the dollar and per +10bp in the 10-year yield"
+    },
     "counts": {
       "intact": 3,
       "weakened": 1,

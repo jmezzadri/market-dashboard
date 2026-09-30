@@ -416,6 +416,69 @@ def _scrub(idea: dict) -> list[str]:
     return sorted(set(changed))
 
 
+# ── book construction: correlation of a candidate with the live calls ──────
+# Joe, 2026-09-30: "significant alpha generating ideas, ensuring we have
+# downside protection, not an overly correlated book." Exposure conflict (3g)
+# catches the same series on opposite sides; this catches two notes that are
+# the same bet in different clothes — long euro and short dollar index, say.
+MAX_BOOK_CORRELATION = 0.60
+WARN_BOOK_CORRELATION = 0.40
+CORRELATION_SESSIONS = 126
+MIN_REWARD_TO_RISK = 2.0
+
+
+def _position_daily_returns(sc: dict, hist: dict, sessions: int = CORRELATION_SESSIONS):
+    """{date: one-session % return of the position} over the last `sessions`
+    common sessions, from the scorecard legs (pct legs as % change, bond legs
+    as -duration x yield change, signed by side). None if any leg is a ticker
+    we cannot read here or a series we do not carry."""
+    if not isinstance(hist, dict) or not isinstance(sc, dict):
+        return None
+    legs = sc.get("legs") or []
+    maps = {}
+    for leg in legs:
+        key = leg.get("series")
+        if _is_ticker_key(key) or key not in hist:
+            return None
+        pts = hist[key].get("points") if isinstance(hist[key], dict) else hist[key]
+        try:
+            maps[key] = {str(p[0])[:10]: float(p[1]) for p in pts}
+        except (TypeError, ValueError, IndexError):
+            return None
+    if not maps:
+        return None
+    dates = sorted(set.intersection(*[set(m) for m in maps.values()]))[-(sessions + 1):]
+    if len(dates) < 40:
+        return None
+    from score_trade_ideas import modified_duration, SIDES
+    out = {}
+    for i in range(1, len(dates)):
+        d0, d1, tot = dates[i - 1], dates[i], 0.0
+        for leg in legs:
+            v0, v1 = maps[leg["series"]][d0], maps[leg["series"]][d1]
+            if leg.get("measure") == "bond_return":
+                r = -modified_duration(v0, float(leg.get("maturity_years") or 10)) * (v1 - v0)
+            else:
+                r = 100.0 * (v1 / v0 - 1.0) if v0 else 0.0
+            tot += SIDES.get(leg.get("side"), 0.0) * float(leg.get("weight", 1.0)) * r
+        out[d1] = tot
+    return out
+
+
+def _correlation(a: dict, b: dict):
+    ds = sorted(set(a) & set(b))
+    if len(ds) < 40:
+        return None
+    xa, xb = [a[d] for d in ds], [b[d] for d in ds]
+    ma, mb = sum(xa) / len(xa), sum(xb) / len(xb)
+    cov = sum((x - ma) * (y - mb) for x, y in zip(xa, xb))
+    va = sum((x - ma) ** 2 for x in xa)
+    vb = sum((y - mb) ** 2 for y in xb)
+    if va <= 0 or vb <= 0:
+        return None
+    return cov / (va * vb) ** 0.5
+
+
 # ── the contract ───────────────────────────────────────────────────────────
 def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     """Raise ContractError on anything that must not ship. Return warnings."""
@@ -783,6 +846,56 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         for k in ("basis", "instrument"):
             if len(str(er.get(k) or "").strip()) < 20:
                 raise ContractError(f"expected_return.{k} must say, in a sentence, how the {MIN_EXPECTED_RETURN_PCT:g}%+ is earned")
+        # Downside protection: what the position loses if the stop prints, on
+        # the same basis, and the call must pay at least twice that.
+        try:
+            loss = float(er.get("loss_at_stop_pct"))
+        except (TypeError, ValueError):
+            raise ContractError("expected_return.loss_at_stop_pct is required — the loss on the position if the stop prints, "
+                                "on the same basis as pct (a positive number)")
+        if loss <= 0:
+            raise ContractError("expected_return.loss_at_stop_pct must be a positive number")
+        if er_pct < MIN_REWARD_TO_RISK * loss:
+            raise ContractError(
+                f"expected_return.pct ({er_pct:g}%) is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) — "
+                "tighten the stop, change the instrument, or drop the idea")
+
+    # 3h — not an overly correlated book (2026-09-30). A candidate whose
+    # position returns have run at |correlation| above MAX_BOOK_CORRELATION
+    # with any live call over the last CORRELATION_SESSIONS sessions is the
+    # same bet twice and is rejected — no prose exemption (6.15 rule 1).
+    if str(idea.get("date", "")) >= REVIEW_CONDITIONS_FROM:
+        hist_c = _history()
+        mine = _position_daily_returns(idea.get("scorecard"), hist_c)
+        if mine is None:
+            warnings.append("book correlation not checked — a leg is a ticker or a series not carried here; "
+                            "the weekly review will report it from the price store")
+        else:
+            for prev in published:
+                if prev.get("id") == derive_id(idea):
+                    continue
+                psc = prev.get("scorecard") or {}
+                try:
+                    prev_date = dt.date.fromisoformat(str(prev.get("date", "")))
+                    prev_h = int(psc.get("horizon_months") or 0)
+                except (ValueError, TypeError):
+                    continue
+                if prev_date >= idea_date or prev_h <= 0 or idea_date > prev_date + dt.timedelta(days=int(prev_h * 30.44)):
+                    continue  # not live alongside this note
+                theirs = _position_daily_returns(psc, hist_c)
+                if theirs is None:
+                    continue
+                c = _correlation(mine, theirs)
+                if c is None:
+                    continue
+                label = prev.get("instrument") or prev.get("id")
+                if abs(c) > MAX_BOOK_CORRELATION:
+                    raise ContractError(
+                        f"this position's returns have run at {c:+.2f} correlation with the live {prev.get('date')} call "
+                        f"({label}) over the last {CORRELATION_SESSIONS} sessions — the book already holds this bet; "
+                        f"limit is {MAX_BOOK_CORRELATION:.2f}")
+                if abs(c) > WARN_BOOK_CORRELATION:
+                    warnings.append(f"correlation {c:+.2f} with the live {prev.get('date')} call ({label}) — say in book.stance how the two sit together")
 
     # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
     # have a call to buy tips and short treasuries?" The Aug 16 breakeven note
