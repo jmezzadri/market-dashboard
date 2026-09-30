@@ -51,7 +51,7 @@ STEP 5 — ALSO CHECK, every run:
 STEP 6 — RECORD. Append what you found and fixed to project memory. If you fixed something non-obvious, add a LESSONS entry in the same PR.
 
 KNOWN AND DELIBERATE — do not "fix" these, do not raise them:
-  - Automated paper trading is halted; /paper says so. PAPER-PORTFOLIO-WATCHDOG, CONVICTION-OPEN-DAILY, CONVICTION-KILL-CHECK and PAPER-PORTFOLIO-INTRADAY are disabled on purpose.
+  - Automated paper trading is halted; /paper says so. PAPER-PORTFOLIO-WATCHDOG and PAPER-PORTFOLIO-INTRADAY are disabled on purpose (the two Conviction Events jobs were deleted 2026-09-30).
   - UNIVERSE_SNAPSHOT_3X_WEEKDAYS and UW_METER_READ_NIGHTLY are retired (Unusual Whales lapsed).
   - TRADING-OPPS-BACKTEST is quarterly; its PR step was FIXED 2026-08-18 and validated end-to-end on the 2026-08-31 run — nothing left to fix. That run's recalibration sits unmerged on branch quant/trading-opps-recalibration-2026-08-31 awaiting Senior Quant review; the Oct 1 scheduled run supersedes it if never reviewed. The stale 2026-07-01 branch is a leftover from the old failure.
 

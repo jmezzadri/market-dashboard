@@ -81,7 +81,7 @@ function fmtPctSigned(v, digits = 2) {
 }
 
 /* Reveal -- scroll-reveal wrapper, same pattern as HomePage / MacroPage /
-   ScannerPage (v12 system). Replays in BOTH directions; state lives in React
+   the v12 page system. Replays in BOTH directions; state lives in React
    so data-poll re-renders preserve the revealed class. Hero only on this
    page: the reading sections and TOC render statically so hash deep-links
    (#engine etc.) land on settled, unblurred text. */

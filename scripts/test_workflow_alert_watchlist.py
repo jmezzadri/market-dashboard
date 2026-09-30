@@ -36,8 +36,6 @@ UNWATCHED_BY_DESIGN = {
     # Automated paper trading halted 2026-08-12; these are disabled stubs.
     "PAPER-PORTFOLIO-WATCHDOG",
     "PAPER-PORTFOLIO-INTRADAY",
-    "CONVICTION-OPEN-DAILY",
-    "CONVICTION-KILL-CHECK",
     # Unusual Whales subscription lapsed 2026-08-12; producers retired.
     "UNIVERSE_SNAPSHOT_3X_WEEKDAYS",
     "UW_METER_READ_NIGHTLY",

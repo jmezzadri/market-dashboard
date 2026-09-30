@@ -61,7 +61,7 @@ const FORBIDDEN_BRANCHES = ["main", "master"];
 // artifact: any hand-deploy is a bug until it is committed.
 const DISPATCHABLE = new Set([
   "DAILY-BRIEF-WRITER.yml", "BRIEF-FRESHNESS-SELFHEAL.yml", "BRIEF-EMAIL-SMOKE.yml",
-  "CONVICTION-OPEN-DAILY.yml", "ECON-CALENDAR-DAILY.yml",
+  "ECON-CALENDAR-DAILY.yml",
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml", "TRADE-IDEA-SCORECARD-DAILY.yml",
   // 2026-08-31 (health sweep): both added so a sweep can REPAIR what it finds
   // instead of only reporting it. CFTC-COT-WEEKLY had been silently killed by
