@@ -214,7 +214,7 @@ export default function ScorecardPage() {
                   <p className="sc-tile-l" style={{ marginBottom: 6 }}>How we&rsquo;re doing</p>
                   <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
                   {s.overall.basis && (
-                    <p className="sc-dim" style={{ marginTop: 6, fontSize: '0.85em' }}>{s.overall.basis}</p>
+                    <p className="sc-dim" style={{ marginTop: 6, fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
                   )}
                 </section>
               )}
