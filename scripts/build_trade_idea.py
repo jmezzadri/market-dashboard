@@ -63,6 +63,9 @@ VALID_KINDS = {
     "fx", "commodity", "equity",
 }
 
+# Notes dated from here carry machine-checkable review_conditions (see 3f-bis).
+REVIEW_CONDITIONS_FROM = "2026-10-01"
+
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
             "position_type", "call", "the_trade", "edge", "variant",
             "thesis", "evidence", "levels", "other_side", "risks", "so_what",
@@ -720,6 +723,35 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         warnings.append(
             "levels.invalidation states a condition in prose but scorecard.invalidation is absent — the stop "
             "will not be enforced when the note is marked")
+
+    # 3f-bis — review conditions (2026-09-30). Joe: "Do we have a process where
+    # we analyze intramonth ... to ensure the thesis is still intact?" The
+    # weekly review (scripts/thesis_review.py) re-measures each claim a note
+    # relied on. For that to be a check and not a vibe, the claims have to be
+    # written down as measurable conditions AT PUBLICATION, when they can still
+    # be written honestly. Every note dated on or after REVIEW_CONDITIONS_FROM
+    # carries at least one, and at least one is critical — the claim the call
+    # cannot survive losing. Older notes are reviewed from their thesis prose.
+    if str(idea.get("date", "")) >= REVIEW_CONDITIONS_FROM:
+        rc = idea.get("review_conditions")
+        if not isinstance(rc, list) or not rc:
+            raise ContractError(
+                "review_conditions[] is required — list the measurable claims the call rests on, each with "
+                "`claim` (one sentence), `measure` (what is read and where), `at_publication` (the reading now, "
+                "with its as-of), `holds_while` (the condition under which the claim still stands) and "
+                "`critical` (true for the claim the call cannot survive losing)")
+        crit = False
+        for i, c in enumerate(rc):
+            if not isinstance(c, dict):
+                raise ContractError(f"review_conditions[{i}] must be an object")
+            for k in ("claim", "measure", "at_publication", "holds_while"):
+                if not str(c.get(k) or "").strip():
+                    raise ContractError(f"review_conditions[{i}].{k} is required")
+            if not isinstance(c.get("critical"), bool):
+                raise ContractError(f"review_conditions[{i}].critical must be true or false")
+            crit = crit or c["critical"]
+        if not crit:
+            raise ContractError("review_conditions: at least one condition must be critical")
 
     # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
     # have a call to buy tips and short treasuries?" The Aug 16 breakeven note

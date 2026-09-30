@@ -217,7 +217,32 @@ commodity / equity), `title`, `dek`, `position_type`, `call`,
 `variant`, `instrument`, `horizon`, `thesis[]`
 (three or more), `evidence[]` (each `{claim, value, source, as_of}`),
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
-`{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`.
+`{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`,
+and — for every note dated 2026-10-01 or later — `review_conditions[]` (below).
+
+### Review conditions — the claims the weekly review will re-measure (2026-09-30)
+
+Joe: *"Do we have a process where we analyze intramonth and not wait until the
+target date to ensure the thesis is still intact?"* Every Monday
+`scripts/thesis_review_playbook.md` re-measures each open call's driver and
+gives it a verdict; a broken thesis closes the call on the Scorecard. For that
+to be a check and not a vibe, the claims are written down as measurable
+conditions AT PUBLICATION. The contract requires, on every new note:
+
+```json
+"review_conditions": [
+  {"claim": "Speculators hold an extended euro short",
+   "measure": "euro speculative positioning percentile of three years, CFTC via macrotilt.com/cot_positioning.json",
+   "at_publication": "10th percentile (Aug 4 report)",
+   "holds_while": "at or below the 25th percentile",
+   "critical": true}
+]
+```
+
+At least one condition, at least one `critical: true` — the claim the call
+cannot survive losing (the driver itself, not the colour). Write `holds_while`
+as the test the Monday session can apply without judgment. The note's stop is
+NOT a review condition; the scorer already enforces it.
 
 ### The call — a claim with a horizon, never an order
 

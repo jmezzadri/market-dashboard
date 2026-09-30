@@ -219,3 +219,14 @@
   .mt-overhaul .sc-table { font-size: var(--v13-t3); }
   .mt-overhaul .sc-table th, .mt-overhaul .sc-table td { padding-right: 10px; }
 }
+
+/* Weekly thesis review (2026-09-30). One verdict per open call, in the row;
+   the full re-measurement inside the note. Tones: up/down/warn tokens only —
+   green and red mean direction on this site, amber is "watch". */
+.mt-overhaul .sc-status--closed_thesis { color: var(--mt-down); }
+.mt-overhaul .sc-table .sc-reviewcell { white-space: nowrap; }
+.mt-overhaul .sc-verdict { font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+.mt-overhaul .sc-verdict--intact { color: var(--mt-up); }
+.mt-overhaul .sc-verdict--weakened { color: var(--v13-warn, var(--mt-warn)); }
+.mt-overhaul .sc-verdict--broken { color: var(--mt-down); }
+.mt-overhaul .sc-verdict-date { font-weight: 400; color: var(--mt-ink-3); text-transform: none; letter-spacing: 0; font-family: var(--mt-type-mono); }
