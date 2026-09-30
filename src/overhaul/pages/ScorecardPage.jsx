@@ -48,8 +48,18 @@ const STATUS_LABEL = {
   pending_entry: 'Awaiting entry',
   closed_horizon: 'Closed · horizon',
   closed_invalidated: 'Closed · invalidated',
+  closed_thesis: 'Closed · thesis broken',
   unscoreable: 'Not scoreable',
 };
+
+/* The weekly thesis review (Joe, 2026-09-30: "Do we have a process where we
+   analyze intramonth and not wait until the target date to ensure the thesis
+   is still intact?"). Every Monday each open call's driver is re-measured and
+   given a verdict; public/thesis_reviews.json is written by
+   scripts/thesis_review.py and rendered here verbatim, same rule as the marks. */
+const VERDICT_LABEL = { intact: 'Intact', weakened: 'Weakened', broken: 'Broken' };
+function pct(v) { return v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`; }
+function prob(p) { return p === null || p === undefined ? '—' : `${Math.round(100 * p)}%`; }
 
 function fmt(v, unit) {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
@@ -81,10 +91,13 @@ const KIND_LABEL = { equity: 'Equity', rates: 'Rates', fx: 'FX', commodity: 'Com
    How does anyone have a clue what we're measuring against?!" The column is
    the gap to the S&P 500 over the same days, for every call in every market.
    The header names it so nobody has to guess. */
-function Row({ r, idea, onOpenNote }) {
+function Row({ r, idea, review, reviewDate, onOpenNote }) {
   const closed = String(r.status || '').startsWith('closed');
   const showMark = r.status === 'open' || closed;
   const vs = r.benchmark ? r.benchmark.difference : null;
+  // Last review: the verdict and its date for an open call; a closed call
+  // keeps the verdict that closed it, if any. No review yet = em dash.
+  const rv = review || null;
   return (
     <tr className={`sc-trow sc-trow--${r.status}`}>
       <td className="num">{r.entry_date || '—'}</td>
@@ -95,6 +108,16 @@ function Row({ r, idea, onOpenNote }) {
       <td className={`num sc-${toneOf(showMark ? r.mark : null)}`}>{showMark ? fmt(r.mark, '%') : '—'}</td>
       <td className={`num sc-${toneOf(showMark ? vs : null)}`}>
         {showMark && vs != null ? fmt(vs, '%') : '—'}
+      </td>
+      <td className="sc-reviewcell">
+        {rv
+          ? (
+            <span className={`sc-verdict sc-verdict--${rv.verdict}`} title={rv.view_now || ''}>
+              {VERDICT_LABEL[rv.verdict] || rv.verdict}
+              <span className="sc-verdict-date"> · {reviewDate}</span>
+            </span>
+          )
+          : <span className="sc-dim">—</span>}
       </td>
       <td className="sc-notecell">
         {idea
@@ -108,6 +131,7 @@ function Row({ r, idea, onOpenNote }) {
 export default function ScorecardPage() {
   const [data, setData] = useState(null);
   const [notes, setNotes] = useState(null);
+  const [reviews, setReviews] = useState(null);
   const [openNote, setOpenNote] = useState(null);
   const [err, setErr] = useState(null);
   // The hook only loads the keys it is asked for, so gather every series any
@@ -127,6 +151,11 @@ export default function ScorecardPage() {
     // the scores file on purpose: score_trade_ideas.py stays a pure marker that
     // knows nothing about prose, and trade_ideas.json stays the single source
     // of the published text. The join happens here, at read time, by id.
+    // The weekly review record. Optional: the page renders without it.
+    fetch('/thesis_reviews.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setReviews(d))
+      .catch(() => setReviews(null));
     fetch('/trade_ideas.json', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -146,6 +175,17 @@ export default function ScorecardPage() {
     (notes || []).forEach((n) => { if (n?.id) m.set(n.id, n); });
     return m;
   }, [notes]);
+  // Latest verdict per note. The latest block covers the open calls; a call
+  // closed by a broken verdict keeps that verdict from history.
+  const reviewById = useMemo(() => {
+    const m = new Map();
+    const L = reviews?.latest;
+    (reviews?.history || []).forEach((h) => (h.calls || []).forEach((c) => {
+      if (c?.id && c.verdict === 'broken' && !m.has(c.id)) m.set(c.id, { ...c, review_date: h.review_date });
+    }));
+    (L?.calls || []).forEach((c) => { if (c?.id) m.set(c.id, { ...c, review_date: L.review_date }); });
+    return m;
+  }, [reviews]);
 
   return (
     /* `home-v12` is required, not decorative: cream-system.css declares the
@@ -214,7 +254,7 @@ export default function ScorecardPage() {
                   <p className="sc-tile-l" style={{ marginBottom: 6 }}>How we&rsquo;re doing</p>
                   <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
                   {s.overall.basis && (
-                    <p className="sc-dim" style={{ marginTop: 6, fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
+                    <p className="sc-dim" style={{ marginTop: 6, fontSize: '0.85em' }}>{s.overall.basis}</p>
                   )}
                 </section>
               )}
@@ -246,15 +286,21 @@ export default function ScorecardPage() {
         const withBook = (notes || []).filter((n) => n?.book?.stance)
           .sort((a, b) => String(b.date).localeCompare(String(a.date)));
         const bk = withBook[0];
-        if (!bk) return null;
+        // The Monday review restates the book after its verdicts; when it is
+        // newer than the newest note, it is the current reading (2026-09-30).
+        const L = reviews?.latest;
+        const useReview = L?.book_now && (!bk || String(L.review_date) > String(bk.date));
+        if (!bk && !useReview) return null;
+        const asOf = useReview ? L.review_date : bk.date;
+        const stance = useReview ? L.book_now : bk.book.stance;
         return (
           <section className="sc-book" style={{ margin: '18px 0 6px' }}>
-            <p className="sc-tile-l" style={{ marginBottom: 6 }}>The book right now · as of {bk.date}</p>
+            <p className="sc-tile-l" style={{ marginBottom: 6 }}>The book right now · as of {asOf}{useReview ? ' · weekly thesis review' : ''}</p>
             {/* No max-width. Joe, 2026-09-09: "Why do you always jam fucking
                 text to the left!!!" — third time (LESSONS 9.14, 7.15). Prose
                 inside a card uses the card. If a measure is wanted, the CARD
                 gets narrower; the text never stops short of its own edge. */}
-            <p style={{ lineHeight: 1.55 }}>{bk.book.stance}</p>
+            <p style={{ lineHeight: 1.55 }}>{stance}</p>
           </section>
         );
       })()}
@@ -272,12 +318,20 @@ export default function ScorecardPage() {
                   <th>Target close</th>
                   <th className="num">Total return</th>
                   <th className="num">vs. S&amp;P 500</th>
+                  <th>Last review</th>
                   <th aria-label="Full note" />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <Row key={r.id || r.date} r={r} idea={noteById.get(r.id)} onOpenNote={setOpenNote} />
+                  <Row
+                    key={r.id || r.date}
+                    r={r}
+                    idea={noteById.get(r.id)}
+                    review={reviewById.get(r.id)}
+                    reviewDate={reviewById.get(r.id)?.review_date}
+                    onOpenNote={setOpenNote}
+                  />
                 ))}
               </tbody>
             </table>
@@ -287,7 +341,7 @@ export default function ScorecardPage() {
       </section>
 
       {openNote && (
-        <TradeIdeaNoteModal idea={openNote} chartSeries={chartSeries} onClose={() => setOpenNote(null)} />
+        <TradeIdeaNoteModal idea={openNote} chartSeries={chartSeries} review={reviewById.get(openNote.id)} onClose={() => setOpenNote(null)} />
       )}
 
       {/* 2026-09-09, Joe: "Get rid of this crap on Scorecard Page." The

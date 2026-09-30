@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-09-30T01:46:34Z",
+  "generated_at": "2026-09-30T20:31:45Z",
   "as_of": "2026-09-30",
-  "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
+  "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
     "published": 7,
-    "open": 6,
+    "open": 4,
     "pending_entry": 0,
-    "closed": 1,
+    "closed": 3,
     "unscoreable": 0,
     "pending_reasons": [],
     "unscoreable_reasons": [],
     "min_closed_for_stats": 10,
     "overall": {
       "marked": 7,
-      "open": 6,
-      "closed": 1,
-      "avg_mark_pct": -0.31,
+      "open": 4,
+      "closed": 3,
+      "avg_mark_pct": -0.61,
       "best": {
         "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
         "trade_label": "Long Natgas",
@@ -25,16 +25,16 @@
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
         "trade_label": "Long KBW / Short NASDAQ",
-        "mark": -10.31
+        "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 0.56,
+      "avg_vs_spx_pp": 0.41,
       "ahead_of_spx": 4,
       "behind_spx": 3,
-      "line": "7 calls marked (6 open, 1 closed). Taken as one book they average -0.3% a call and sit 0.6 points ahead of the S&P 500 over the same days — 4 ahead of the index, 3 behind. Best: Long Natgas, +6.8%. Worst: Long KBW / Short NASDAQ, -10.3%."
+      "line": "7 calls marked (4 open, 3 closed). Taken as one book they average -0.6% a call and sit 0.4 points ahead of the S&P 500 over the same days — 4 ahead of the index, 3 behind. Best: Long Natgas, +6.8%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
-    "stats_withheld_reason": "1 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
+    "stats_withheld_reason": "3 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
   },
   "scores": [
     {
@@ -59,14 +59,14 @@
           "entry_value": 58.2,
           "label": "Japanese yen via FXY",
           "short_label": "Japanese yen via FXY",
-          "return_pct": 0.0344
+          "return_pct": 0.1203
         }
       ],
-      "buy_pct": 0.0344,
+      "buy_pct": 0.1203,
       "sell_pct": null,
       "trade_label": "Long Japanese yen via FXY",
-      "position_pct": 0.0344,
-      "risk_sized_pct": 0.0344,
+      "position_pct": 0.1203,
+      "risk_sized_pct": 0.1203,
       "sizing": {
         "method": "none",
         "multiple": 1.0,
@@ -81,13 +81,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
-        "move": -1.0433,
-        "difference": 1.0777,
+        "move": -1.2088,
+        "difference": 1.3291,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.0344,
-      "mark_date": "2026-09-28",
-      "sessions_held": 6,
+      "mark": 0.1203,
+      "mark_date": "2026-09-29",
+      "sessions_held": 7,
       "max_favourable": {
         "value": 0.1718,
         "date": "2026-09-25"
@@ -100,7 +100,8 @@
         "rule": "fx_jpy >= 164 (weekly close)",
         "date": null
       },
-      "result": null
+      "result": null,
+      "thesis_review_close": null
     },
     {
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
@@ -167,7 +168,8 @@
         "rule": "cmdty_natgas <= 2.45 (weekly close)",
         "date": null
       },
-      "result": null
+      "result": null,
+      "thesis_review_close": null
     },
     {
       "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
@@ -191,14 +193,14 @@
           "entry_value": 26.49,
           "label": "WEAT (Teucrium wheat fund)",
           "short_label": "WEAT (Teucrium wheat fund)",
-          "return_pct": -5.738
+          "return_pct": -5.436
         }
       ],
       "buy_pct": null,
-      "sell_pct": -5.738,
+      "sell_pct": -5.436,
       "trade_label": "Short WEAT (Teucrium wheat fund)",
-      "position_pct": 5.738,
-      "risk_sized_pct": 2.3698,
+      "position_pct": 5.436,
+      "risk_sized_pct": 2.2451,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.413,
@@ -213,13 +215,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
-        "move": -0.4523,
-        "difference": 6.1903,
+        "move": -0.6188,
+        "difference": 6.0548,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 5.738,
-      "mark_date": "2026-09-28",
-      "sessions_held": 16,
+      "mark": 5.436,
+      "mark_date": "2026-09-29",
+      "sessions_held": 17,
       "max_favourable": {
         "value": 5.738,
         "date": "2026-09-28"
@@ -232,7 +234,8 @@
         "rule": "cmdty_wheat >= 767 (close)",
         "date": null
       },
-      "result": null
+      "result": null,
+      "thesis_review_close": null
     },
     {
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
@@ -300,7 +303,8 @@
         "value": 5.01,
         "rule": "ust_10y >= 5.0 (weekly close)"
       },
-      "result": -2.9336
+      "result": -2.9336,
+      "thesis_review_close": null
     },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -309,7 +313,7 @@
       "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
       "instrument": "US bank equities against the S&P 500",
       "position_type": "allocation shift",
-      "status": "open",
+      "status": "closed_thesis",
       "entry_date": "2026-08-14",
       "target_date": "2027-02-14",
       "horizon_months": 6,
@@ -324,7 +328,7 @@
           "entry_value": 718.625648,
           "label": "KBW bank index",
           "short_label": "KBW",
-          "return_pct": -9.9717
+          "return_pct": -11.7322
         },
         {
           "series": "ndx_index",
@@ -335,14 +339,14 @@
           "entry_value": 26729.16,
           "label": "Nasdaq Composite",
           "short_label": "NASDAQ",
-          "return_pct": 0.3413
+          "return_pct": 0.4935
         }
       ],
-      "buy_pct": -9.9717,
-      "sell_pct": 0.3413,
+      "buy_pct": -11.7322,
+      "sell_pct": 0.4935,
       "trade_label": "Long KBW / Short NASDAQ",
-      "position_pct": -10.3129,
-      "risk_sized_pct": -4.4758,
+      "position_pct": -12.2257,
+      "risk_sized_pct": -5.306,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.434,
@@ -357,26 +361,30 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -1.311,
-        "difference": -9.0019,
+        "move": -1.7235,
+        "difference": -10.5022,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -10.3129,
-      "mark_date": "2026-09-28",
-      "sessions_held": 31,
+      "mark": -12.2257,
+      "mark_date": "2026-09-30",
+      "sessions_held": 33,
       "max_favourable": {
         "value": 0.1156,
         "date": "2026-08-18"
       },
       "max_adverse": {
-        "value": -10.8423,
-        "date": "2026-09-22"
+        "value": -12.2257,
+        "date": "2026-09-30"
       },
       "invalidation": {
         "rule": "vix_ts >= 1.0 (close)",
         "date": null
       },
-      "result": null
+      "result": -12.2257,
+      "thesis_review_close": {
+        "review_date": "2026-09-30",
+        "closed_on": "2026-09-30"
+      }
     },
     {
       "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
@@ -385,7 +393,7 @@
       "title": "Two prices for the same insurance, and only one of them is cheap",
       "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
       "position_type": "allocation shift",
-      "status": "open",
+      "status": "closed_thesis",
       "entry_date": "2026-08-14",
       "target_date": "2027-02-14",
       "horizon_months": 6,
@@ -401,7 +409,7 @@
           "label": "10-year TIPS",
           "short_label": "10y TIPS",
           "maturity_years": 10.0,
-          "return_pct": -4.4196
+          "return_pct": -4.5964
         },
         {
           "series": "ust_10y",
@@ -413,14 +421,14 @@
           "label": "10-year Treasuries",
           "short_label": "10y UST",
           "maturity_years": 10.0,
-          "return_pct": -4.5899
+          "return_pct": -4.8274
         }
       ],
-      "buy_pct": -4.4196,
-      "sell_pct": -4.5899,
+      "buy_pct": -4.5964,
+      "sell_pct": -4.8274,
       "trade_label": "Long 10y TIPS / Short 10y UST",
-      "position_pct": 0.1703,
-      "risk_sized_pct": 0.7302,
+      "position_pct": 0.2309,
+      "risk_sized_pct": 0.9901,
       "sizing": {
         "method": "risk_parity",
         "multiple": 4.288,
@@ -435,13 +443,13 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
-        "move": -1.476,
-        "difference": 1.6463,
+        "move": -1.7235,
+        "difference": 1.9544,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.1703,
-      "mark_date": "2026-09-29",
-      "sessions_held": 32,
+      "mark": 0.2309,
+      "mark_date": "2026-09-30",
+      "sessions_held": 33,
       "max_favourable": {
         "value": 0.8992,
         "date": "2026-09-10"
@@ -454,7 +462,11 @@
         "rule": "breakeven_10y <= 2.1 (weekly close)",
         "date": null
       },
-      "result": null
+      "result": 0.2309,
+      "thesis_review_close": {
+        "review_date": "2026-09-30",
+        "closed_on": "2026-09-30"
+      }
     },
     {
       "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
@@ -519,7 +531,8 @@
         "rule": "usd >= 103 (weekly close)",
         "date": null
       },
-      "result": null
+      "result": null,
+      "thesis_review_close": null
     }
   ]
 }

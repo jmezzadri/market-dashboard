@@ -55,6 +55,14 @@ Five rules are enforced here rather than remembered:
      adverse excursion, so a call that was 12% underwater before it came good
      cannot be reported as though it were a straight line.
 
+  5a. A BROKEN THESIS CLOSES THE CALL (2026-09-30). The weekly review
+     (scripts/thesis_review.py) can find that the reason for a call is gone
+     before price reaches the stop. When its record carries a "broken" verdict
+     for a note, the call closes at the last close on or before that review
+     date, status `closed_thesis`, and does not run on to the horizon. The
+     scorer reads the verdict from public/thesis_reviews.json and computes
+     nothing about it; the review file is a second input, like the history.
+
   5. NO AGGREGATE STATISTICS UNTIL THERE IS A SAMPLE. Below MIN_CLOSED_FOR_STATS
      closed calls the summary block refuses to compute a hit rate and says why.
      Three calls is not a track record, and a number invites being judged on
@@ -79,6 +87,7 @@ import sys
 IDEAS_PATH = "public/trade_ideas.json"
 HISTORY_PATH = "public/indicator_history.json"
 OUT_PATH = "public/trade_idea_scores.json"
+REVIEWS_PATH = "public/thesis_reviews.json"
 
 # Below this many CLOSED calls the summary reports no hit rate. Ten is not a
 # statistically magic number; it is the point below which a single outcome
@@ -342,6 +351,26 @@ class ScoreError(Exception):
 
 # ---------------------------------------------------------------- data access
 
+def load_review_closes(path: str = REVIEWS_PATH) -> dict:
+    """{note id: review_date} for every note the weekly review has marked
+    BROKEN — the earliest such date wins. Missing file = no closes."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    blocks = list(doc.get("history") or []) + ([doc["latest"]] if isinstance(doc.get("latest"), dict) else [])
+    for blk in blocks:
+        rd = str(blk.get("review_date") or "")[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", rd):
+            continue
+        for c in blk.get("calls") or []:
+            if str(c.get("verdict", "")).lower() == "broken" and c.get("id"):
+                out[c["id"]] = min(out.get(c["id"], rd), rd)
+    return out
+
+
 def load_history(path: str = HISTORY_PATH) -> dict:
     with open(path, encoding="utf-8") as f:
         raw = json.load(f)
@@ -429,7 +458,7 @@ def add_months(d: dt.date, months: int) -> dt.date:
 
 # ------------------------------------------------------------------- scoring
 
-def score_one(idea: dict, hist: dict, today: str) -> dict:
+def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = None) -> dict:
     date = str(idea.get("date", ""))
     pub_ts = _published_ts(idea)
     base = {
@@ -585,10 +614,22 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                            "rule": f"{key} {op} {level} ({basis.replace('_', ' ')})"}
                 break
 
-    # Close date: the earlier of the invalidation and the horizon; else open.
+    # Close date: the earliest of the invalidation, a broken-thesis review and
+    # the horizon; else open. Rule 5a: a review dated D closes the call at the
+    # last mark on or before D (the review runs Monday pre-open on Friday's
+    # closes), and only if that is after entry — a verdict cannot pre-date
+    # the position.
     close_date, status = None, "open"
-    if inv_hit:
+    thesis_close = None
+    rd = (review_closes or {}).get(idea.get("id"))
+    if rd:
+        prior = [d for d, _ in marks if d <= rd]
+        if prior and prior[-1] >= entry_date:
+            thesis_close = prior[-1]
+    if inv_hit and (thesis_close is None or inv_hit["date"] <= thesis_close):
         close_date, status = inv_hit["date"], "closed_invalidated"
+    elif thesis_close is not None:
+        close_date, status = thesis_close, "closed_thesis"
     elif today >= target_date:
         close_date, status = target_date, "closed_horizon"
 
@@ -649,6 +690,7 @@ def score_one(idea: dict, hist: dict, today: str) -> dict:
                      f"({str(inv.get('basis', 'close')).replace('_', ' ')})", "date": None}
             if isinstance(inv, dict) and inv.get("series") else None),
         "result": last_mark if status != "open" else None,
+        "thesis_review_close": ({"review_date": rd, "closed_on": close_date} if status == "closed_thesis" else None),
     }
 
     # Benchmark — the passive alternative in this call's own asset class, over
@@ -768,6 +810,7 @@ def summarise(rows: list[dict]) -> dict:
     s["worst"] = min(closed, key=lambda r: r.get("result") or 0)["id"]
     s["best"] = max(closed, key=lambda r: r.get("result") or 0)["id"]
     s["closed_by_invalidation"] = sum(1 for r in closed if r["status"] == "closed_invalidated")
+    s["closed_by_thesis_review"] = sum(1 for r in closed if r["status"] == "closed_thesis")
     return s
 
 
@@ -776,6 +819,7 @@ def main(argv=None) -> int:
     ap.add_argument("--ideas", default=IDEAS_PATH)
     ap.add_argument("--history", default=HISTORY_PATH)
     ap.add_argument("--out", default=OUT_PATH)
+    ap.add_argument("--reviews", default=REVIEWS_PATH, help="weekly thesis-review record; a BROKEN verdict closes a call")
     ap.add_argument("--print", dest="show", action="store_true")
     ap.add_argument("--check", action="store_true", help="exit 1 if any note is unscoreable")
     args = ap.parse_args(argv)
@@ -786,8 +830,9 @@ def main(argv=None) -> int:
     hist = load_history(args.history)      # already derived
     hist = attach_ticker_series(hist, ideas)   # single-name legs from prices_eod
     today = dt.date.today().isoformat()
+    review_closes = load_review_closes(args.reviews)
 
-    rows = [score_one(i, hist, today) for i in ideas]
+    rows = [score_one(i, hist, today, review_closes) for i in ideas]
     rows.sort(key=lambda r: str(r.get("date")), reverse=True)
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -801,7 +846,8 @@ def main(argv=None) -> int:
             "built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — "
             "the comparison answers \u201cwas this better than doing the obvious thing\u201d, not \u201cdid it work\u201d. Returns are price only — no dividends on shares, no "
             "interest on bonds — on both sides of every trade. If a note named a level at which it would be "
-            "wrong and that level printed, the call is closed there. Every note is listed, including the ones "
+            "wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason "
+            "for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones "
             "that did not work, and no win rate is shown until there are enough closed calls for one to mean "
             "anything. Nothing on this page is typed in by hand."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "

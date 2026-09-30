@@ -67,10 +67,64 @@ export function longDate(iso) {
 
 /* The note body without the modal chrome — so a page can render it inline if
    it ever wants to. The modal below is the usual entry point. */
-export function TradeIdeaNoteBody({ idea, chartSeries }) {
+/* The latest weekly thesis review of this call (2026-09-30). Rendered from
+   public/thesis_reviews.json verbatim: the verdict, each claim the note relied
+   on re-measured, the arithmetic, our view now. Nothing here is computed. */
+const VERDICT_LABEL = { intact: 'Intact', weakened: 'Weakened', broken: 'Broken' };
+const pct1 = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
+const prob = (p) => (p === null || p === undefined ? '—' : `${Math.round(100 * p)}%`);
+
+export function ThesisReview({ review }) {
+  if (!review) return null;
+  const q = review.quant || {};
+  const rng = q.range_at_horizon;
+  const stop = q.stop;
+  return (
+    <div className={`idea-review idea-review--${review.verdict}`}>
+      <p className="briefmodal-sec">
+        Weekly thesis review · {longDate(review.review_date)} ·{' '}
+        <span className={`idea-verdict idea-verdict--${review.verdict}`}>{VERDICT_LABEL[review.verdict] || review.verdict}</span>
+      </p>
+      <div className="idea-modal-facts">
+        {[
+          ['Return so far', `${pct1(q.mark_pct)} to ${q.mark_date || '—'}`],
+          ['What the note called for', review.called_for_pct != null ? `${pct1(review.called_for_pct)} over ${review.horizon_months} months — ${review.called_for_basis || ''}` : null],
+          ['Where it can finish, no view', rng ? `10th ${pct1(rng.p10)} · median ${pct1(rng.p50)} · 90th ${pct1(rng.p90)} (from the position's own volatility)` : null],
+          ['Chance of finishing positive', rng ? prob(q.p_finish_positive) : null],
+          ['Chance of reaching the call', rng ? prob(q.p_finish_at_or_above_called_for) : null],
+          ['Distance to the stop', stop?.sigmas_away != null
+            ? `${stop.label || stop.series} ${stop.now} vs ${stop.level} at the stop — ${stop.sigmas_away} daily moves away; a move this size within the time left has happened ${prob(stop.p_touch_before_horizon)} of the time in this series' history`
+            : null],
+          ['Our expected finish now', `${pct1(review.expected_return_now_pct)} — ${review.expected_basis || ''}`],
+        ].filter(([, v]) => v).map(([k, v]) => (
+          <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+        ))}
+      </div>
+      {review.driver_checks?.length > 0 && (
+        <>
+          <p className="briefmodal-sec">What the note relied on — re-measured</p>
+          <ul className="idea-checks">
+            {review.driver_checks.map((c, i) => (
+              <li key={i} className={c.holds ? 'holds' : 'fails'}>
+                <b>{c.holds ? '✓' : '✗'}</b> {c.claim}{c.critical ? <span className="idea-crit"> critical</span> : null}
+                <span className="idea-check-meta"> — at publication {c.at_publication}; now {c.now} ({c.source}, {c.as_of})</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {review.weakened_reason && <p><b>What moved against it.</b> {review.weakened_reason}</p>}
+      {review.view_now && <p><b>Our view now.</b> {review.view_now}</p>}
+      {review.action_reason && <p><b>{String(review.action || '').replace(/^./, (ch) => ch.toUpperCase())}.</b> {review.action_reason}</p>}
+    </div>
+  );
+}
+
+export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
   if (!idea) return null;
   return (
     <div className="briefmodal-body">
+      <ThesisReview review={review} />
       {idea.call && <p className="idea-modal-call">{idea.call}</p>}
       {/* Prose figures are point-in-time; charts are live (Joe, 2026-08-31). */}
       {idea.date && (
@@ -213,7 +267,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries }) {
   );
 }
 
-export default function TradeIdeaNoteModal({ idea, chartSeries, onClose }) {
+export default function TradeIdeaNoteModal({ idea, chartSeries, review, onClose }) {
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') onClose?.(); };
     window.addEventListener('keydown', k);
@@ -233,7 +287,7 @@ export default function TradeIdeaNoteModal({ idea, chartSeries, onClose }) {
           Trade idea · {longDate(idea.date)}{idea.kind ? ` · ${KIND_LABEL[idea.kind] || idea.kind}` : ''}
         </div>
         <h2 className="briefmodal-h">{idea.title}</h2>
-        <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} />
+        <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} review={review} />
       </div>
     </div>,
     target,

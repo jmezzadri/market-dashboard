@@ -182,6 +182,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.18` The scorecard grades the vehicle the reader is told to trade; a correction never moves the entry
 - `6.19` A rule lifted from another book is untested on this one; the backtest lives in the repo or it did not happen; VIX gates lose, MOVE gates win
 - `6.19` A release's market impact is an event study; attribute the session, demand a z, cap thin samples, publish the numbers with the mark
+- `6.20` A stop is not a thesis check; the review re-measures the driver against conditions written at publication, the verdict must follow from the checks, and a probability shown to Joe is calibrated on the record first
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -1300,8 +1301,6 @@ Four workflows still had an unguarded bare `git push`: `macrotilt-engine-daily`,
 
 **2026-09-04 (weekday health sweep) — violated a third time, one day after the checker shipped:** RENDERED-DOM-SMOKE's closed-session assertion trusted `event == schedule` to mean "pre-open". GitHub delivered the 2026-09-03 fire 3h48m late — 10:58 ET, market open — and the checker filed a false P0 (#1250) against tape tiles that were correctly stamped "live" on an open session. The event type says when a fire was *supposed* to happen; only the clock says when it did. The script now reads the actual ET clock at run time and skips the closed-session assertion when the fire lands inside regular hours (a weekday holiday can't be ruled out without a calendar — a monitor that cannot tell stays quiet, 5.7).
 
-**Repeat 2026-09-30 — the pre-merge page check was red on every pull request for seven weeks.** It still opened the Trading Scanner (retired 2026-08-11) and demanded a score tile the ticker page dropped on 2026-07-20, so every change was merged past it with the admin key: a required gate that protected nothing. It also graded ticker pages mid-load. Rule addition: the page check lists exactly the pages in the top navigation and changes in the same pull request as any page added, renamed or retired; it waits for the page to settle before grading; and a required check that has failed on three consecutive unrelated changes is itself the bug to fix before the next merge.
-
 **Applies to:** every guard, gate, smoke test and alarm — and to every change that moves a formula, a schema or a contract. The blast radius of such a change includes everything that *checks* it, not just everything that *reads* it.
 
 ### 5.20 (2026-08-20, merged 2026-09-01 from 4.51 and 4.52 — 4.51's root cause was disproved by 4.52 one day later and is archived) — Before writing "the evidence is unavailable", check whether you shipped the tool that provides it
@@ -1705,6 +1704,23 @@ It didn't. The entry rule was "the first close ON OR AFTER the publication date"
 **Result (live 2026-09-10):** MOVE Index percentile vs trailing 5y; > 0.95 two days running → all to cash; < 0.80 → all back in. 20-name book, 5bp, Feb 2017–Sep 2026: CAGR 23.7% vs 19.8%, Sharpe 1.00 vs 0.75, worst year 0.0% vs −6.5%, both halves, one-day lag, 40-name variant. Three episodes; thin sample, stated on the page.
 
 **Applies to:** Senior Quant (no untested rule ships; criterion first), Lead Developer (research directory is part of the change; sizing jobs read the brake), UX Designer (the brake's reading and state are on the Paper page, not only in a table).
+
+### 6.20 (2026-09-30) — A stop is not a thesis check; the review re-measures the driver against conditions written at publication, the verdict must follow from the checks, and a probability shown to Joe is calibrated on the record first
+
+**What happened:** Joe, reading the Scorecard: *"Do we have a process where we analyze intramonth and not wait until the target date to ensure the thesis is still intact?"* We did not. The daily scorer asked one question every evening — did price cross the stop — and the only thesis re-read happened when a NEW note published. The bank-versus-Nasdaq call had sat ten points under water for six weeks with the volatility-curve reading it was built on back at mid-range and nobody had said so; the TIPS-versus-Treasuries call had earned three-quarters of the widening it called for and the gap it was built on had closed, and it was still carrying a duration mismatch through a 10-year at 5.29%. Both were closed on the first review. Joe then asked for it weekly, by email, with *"range or probability analysis for how the trade is doing vs. expected return and how the future expected return has changed."*
+
+Two things went wrong on the way to shipping it that are worth keeping. (1) The first stop-probability model was the textbook one — reflection principle on trailing volatility — and it was off by a factor of two on the vol ratio, wheat and gas, because those series are skewed and mean-reverting; the declared criterion caught it before the number reached an email. (2) The contract rejected the day's own review the second time it was prepared, because the scorer had already closed the two broken calls and "only open calls are reviewed" was written without thinking about re-running the same week.
+
+**Rule:**
+
+1. **Price against the stop is one check; the reason for the call is another, and the second runs weekly.** Every open call is reviewed every Monday before the open (`scripts/thesis_review_playbook.md`), each claim the note relied on re-measured with a dated source, and given a verdict: intact, weakened, broken. Broken closes the call on the Scorecard from the review date (`closed_thesis`), whether it is in profit or in a hole — an intact thesis is held under water and a broken one is closed in profit; that asymmetry is the point.
+2. **The conditions are written at publication, not on the day.** New notes carry `review_conditions[]` with a measure and a `holds_while` test (contract-enforced from 2026-10-01); older notes are reviewed from their thesis prose. A check the reviewer invents on the day is a vibe with a source attached.
+3. **The verdict must follow from the checks, mechanically.** Intact with a failed check, broken without a failed CRITICAL check, close without broken — all rejected by `scripts/thesis_review.py --prepare-file`. The return a note called for is written once on the first review and can never change (same rule as the scorecard block, 6.13).
+4. **A probability shown to Joe is calibrated on the record before it ships, with the criterion declared first and the whole grid published** (`scripts/research/thesis_review_calibration/`). The driftless range passed (78–84% inside its 10–90 band on every live series); the reflection-principle stop formula failed and was replaced by a base rate read from the stop series' own history, tested causally. Where the base rate still over-predicts (two-sigma moves on rates and FX), it is stated, and it errs toward warning.
+5. **The email is rendered from the committed file by a workflow, never sent by the session** — the morning-brief rule (4.14 / 4.29), so the Scorecard and the inbox cannot disagree. A Monday with no review fails `THESIS-REVIEW-WEEKLY.yml` and alerts; a quiet week must never look like a skipped one.
+6. **A contract that gates on state the pipeline itself changes must allow its own re-run.** "Reviewable" means open OR already closed by this same review date.
+
+**Applies to:** Senior Quant (verdicts, called-for and expected numbers, calibration), Lead Developer (the Monday session, the scorer close, the email workflow), Data Steward (`thesis_reviews` manifest row and health stamp), UX (the Last review column and the review block in the note).
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component

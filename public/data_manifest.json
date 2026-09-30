@@ -4235,6 +4235,48 @@
    "cadence_display": "Daily research run \u00b7 publishes at most twice a week"
   },
   {
+   "id": "site-thesis_reviews-weekly",
+   "name": "thesis_reviews",
+   "category": "commentary",
+   "description": "The weekly thesis review of every open Trade Idea. Joe 2026-09-30: the daily scorer only checks price against the stop; nothing asked whether the reason for a call still held. Every Monday before the open a scheduled session re-measures each open call's driver against the claims its note made, states a verdict (intact / weakened / broken) with dated evidence, and records our expected finish from here; scripts/thesis_review.py validates the verdicts against the contract (a verdict must follow from the re-measured checks; the return the note called for is written once and frozen) and computes the arithmetic from the record \u2014 return so far vs what the note called for, a driftless price-only range for the finish, the chance of finishing positive and of reaching the call, and a base-rate chance the stop prints. A broken verdict closes the call on the Scorecard (score_trade_ideas.py, status closed_thesis). THESIS-REVIEW-WEEKLY.yml emails the review to Joe from the committed file and fails loudly Monday 08:30 ET if no review landed.",
+   "sourcing_mode": "computed in-house",
+   "source_vendor": "MacroTilt editorial (Monday scheduled session) + scripts/thesis_review.py",
+   "source_endpoint": "scripts/thesis_review.py --prepare-file",
+   "license_tier": "n/a (in-house)",
+   "monthly_cost_usd": 0,
+   "cadence": "weekly (Monday, pre-open)",
+   "scheduled_fetch_time_et": "06:45",
+   "refresh_trigger": "Scheduled session 'MacroTilt Weekly Thesis Review' (Mondays ~06:45 ET) commits public/thesis_reviews.json via ops-code-commit; THESIS-REVIEW-WEEKLY.yml emails it on that commit and guards at 08:30 ET Monday",
+   "release_calendar": "none",
+   "freshness_sla_hours": 192,
+   "data_max_age_hours": 192,
+   "data_calendar": "calendar-day",
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "Marks are Friday's closes (the daily scorer's as-of); the review is dated the Monday it is written.",
+   "output_destination": "public/thesis_reviews.json",
+   "consumer_surfaces": [
+    {
+     "tab": "scorecard",
+     "tile": "Last review column + review verdict inside each note"
+    },
+    {
+     "tab": "email",
+     "tile": "Weekly thesis review email (Joe only, via THESIS-REVIEW-WEEKLY.yml)"
+    }
+   ],
+   "dependencies": [
+    "site-trade_ideas-biweekly",
+    "site-indicator_history-aggregate"
+   ],
+   "failure_mode": "A review that fails the contract is never written \u2014 the Scorecard keeps the prior review with its own date. A missing Monday review reds this row and fails THESIS-REVIEW-WEEKLY.yml, which emails Joe; the Scorecard rows show the last review date so a stale one is visible. Model calibration lives in scripts/research/thesis_review_calibration/.",
+   "owner": "Senior Quant (model + verdict contract), Lead Developer (pipe + email), Data Steward (this row)",
+   "producer_script": "scripts/thesis_review.py",
+   "current_status": "live",
+   "sla_basis": "Weekly cadence: 7 days + 1 day grace = 192h. Health key is this element's short name (thesis_reviews); stamped green by THESIS-REVIEW-WEEKLY.yml after the email sends, red on any failure.",
+   "display_name": "Weekly thesis review",
+   "cadence_display": "Every Monday before the open"
+  },
+  {
    "id": "indicator-positioning_tff-weekly",
    "name": "positioning_tff",
    "category": "indicator",

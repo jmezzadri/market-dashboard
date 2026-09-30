@@ -253,6 +253,48 @@ class TestInvalidation(unittest.TestCase):
         self.assertIn("px <= 50", r["invalidation"]["rule"])
 
 
+class TestThesisReviewClose(unittest.TestCase):
+    """Rule 5a (2026-09-30) — a BROKEN verdict from the weekly thesis review
+    closes the call at the last close on or before the review date, and the
+    later path is not counted."""
+
+    def test_broken_verdict_closes_at_the_last_close_before_the_review(self):
+        # Mon 01-05 .. entry 100; review dated Sat 01-10 -> closes on Fri 01-09 (bar 4); the rally after is ignored
+        h = hist(px=days("2026-01-05", [100, 101, 99, 98, 97, 150, 160]))
+        r = S.score_one(idea(), h, "2026-01-14", {"x": "2026-01-10"})
+        self.assertEqual(r["status"], "closed_thesis")
+        self.assertEqual(r["mark_date"], h["px"][4][0])
+        self.assertAlmostEqual(r["mark"], -3.0, places=3)
+        self.assertEqual(r["thesis_review_close"]["review_date"], "2026-01-10")
+
+    def test_stop_hit_first_still_wins(self):
+        h = hist(px=days("2026-01-05", [100, 80, 90, 95, 99, 120]))
+        r = S.score_one(idea(scorecard={"invalidation": {"series": "px", "op": "<=", "level": 85}}),
+                        h, "2026-01-14", {"x": "2026-01-10"})
+        self.assertEqual(r["status"], "closed_invalidated")
+
+    def test_review_dated_before_entry_is_ignored(self):
+        h = hist(px=days("2026-01-05", [100, 101, 102]))
+        r = S.score_one(idea(), h, "2026-01-08", {"x": "2026-01-03"})
+        self.assertEqual(r["status"], "open")
+
+    def test_other_notes_are_untouched(self):
+        h = hist(px=days("2026-01-05", [100, 101, 102]))
+        r = S.score_one(idea(), h, "2026-01-08", {"someone-else": "2026-01-06"})
+        self.assertEqual(r["status"], "open")
+
+    def test_loader_takes_the_earliest_broken_date_and_ignores_other_verdicts(self):
+        doc = {"latest": {"review_date": "2026-01-20", "calls": [{"id": "a", "verdict": "broken"}, {"id": "b", "verdict": "weakened"}]},
+               "history": [{"review_date": "2026-01-13", "calls": [{"id": "a", "verdict": "broken"}]}]}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(doc, f)
+        try:
+            self.assertEqual(S.load_review_closes(f.name), {"a": "2026-01-13"})
+        finally:
+            os.unlink(f.name)
+        self.assertEqual(S.load_review_closes("/nonexistent/thesis_reviews.json"), {})
+
+
 class TestHorizonAndPath(unittest.TestCase):
     def test_closes_at_the_horizon_and_ignores_what_happened_after(self):
         h = hist(px=days("2026-01-05", [100] + [100] * 60 + [500] * 20))

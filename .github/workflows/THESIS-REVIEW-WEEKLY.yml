@@ -1,0 +1,103 @@
+name: THESIS-REVIEW-WEEKLY
+
+# Emails Joe the weekly thesis review FROM THE COMMITTED FILE, and fails loudly
+# on Monday morning if no review landed.
+#
+# Joe, 2026-09-30: "Can you run it weekly and I'd like an email of the analysis
+# and some range or probability analysis for how the trade is doing vs.
+# expected return and how the future expected return has changed."
+#
+# Division of labour (same shape as the morning brief, LESSONS 4.14 / 4.29):
+#   * The Monday scheduled session ("MacroTilt Weekly Thesis Review", ~06:45
+#     ET) re-measures every open call's driver, writes the verdicts, validates
+#     them through scripts/thesis_review.py --prepare-file, and commits
+#     public/thesis_reviews.json via ops-code-commit. It NEVER sends email.
+#   * This workflow fires on that commit, re-renders the email from the file
+#     the site itself serves, and sends it. Site and inbox cannot disagree.
+#   * At 12:30 UTC Monday (08:30 ET) it also runs as a guard: if the file is
+#     not dated within the last 8 days, or an open call has no review, the
+#     run fails and WORKFLOW_FAILURE_ALERT emails Joe that the review did not
+#     happen — a silent skip must never look like a quiet week.
+#
+# Idempotent: one email per review date, claimed in thesis_review_email_log
+# BEFORE the send; a failed send releases the claim so a re-run can retry.
+#
+# Required secrets: SMTP_USER, SMTP_PASSWORD, EMAIL_FROM (optional),
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. The review email goes to Joe only
+#   (SMTP_USER); it is not on the EMAIL_TO distribution.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/thesis_reviews.json'
+  schedule:
+    # Monday 12:30 UTC = 08:30 EDT (07:30 EST). The Monday session runs ~06:45
+    # ET and commits within the hour; this is the "did it happen" check.
+    - cron: '30 12 * * 1'
+  workflow_dispatch:
+    inputs:
+      resend:
+        description: "Re-send the current review even if already emailed (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: thesis-review-weekly
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      # Standard library only, on purpose — same rule as the scorer.
+      - name: Self-test the review contract
+        run: python scripts/test_thesis_review.py
+
+      # Stale or inconsistent on the Monday guard = failure = alert to Joe.
+      # On a push the file was just committed, so this is a consistency check.
+      - name: Review file is current and covers every open call
+        run: python scripts/thesis_review.py --check
+
+      - name: Render the email from the committed file
+        run: |
+          python scripts/thesis_review.py --email-html /tmp/review.html --email-text /tmp/review.txt
+          test -s /tmp/review.html
+
+      - name: Send to Joe (once per review date)
+        env:
+          SMTP_USER:                 ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:             ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM:                ${{ secrets.EMAIL_FROM }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND:                    ${{ github.event.inputs.resend || 'false' }}
+          RUN_ID:                    ${{ github.run_id }}
+        run: python scripts/send_thesis_review_email.py
+
+      - name: Stamp feed health (success)
+        if: success()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          AS_OF=$(python3 -c "import json;print(json.load(open('public/thesis_reviews.json'))['generated_at'])")
+          python3 scripts/upsert_pipeline_health.py thesis_reviews "$AS_OF" green
+
+      - name: Stamp feed health (failure)
+        if: failure()
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/upsert_pipeline_health.py thesis_reviews - red "THESIS-REVIEW-WEEKLY failed - review missing, stale, or email not sent"

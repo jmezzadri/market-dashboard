@@ -594,3 +594,18 @@
   background:var(--putty);border-radius:14px;border-left:3px solid var(--gold-bar)}
 .home-v12 .idea-backtest .idea-fact .v{font-weight: 400;color:var(--ink-soft);font-size: var(--v13-t3)}
 .home-v12 .idea-backtest .idea-fact .k{color:var(--ink)}
+
+/* Weekly thesis review block at the top of a Trade Idea note (2026-09-30). */
+.home-v12 .idea-review{margin:18px 0 6px;padding:14px 16px;border:1px solid var(--hair);border-radius:4px;background:var(--putty,transparent)}
+.home-v12 .idea-review .briefmodal-sec:first-child{margin-top:0}
+.home-v12 .idea-review .idea-modal-facts{margin:14px 0 0;padding:14px 0 0;border-bottom:none}
+.home-v12 .idea-verdict{font-weight:700}
+.home-v12 .idea-verdict--intact{color:var(--up,#1f9d60)}
+.home-v12 .idea-verdict--weakened{color:var(--v13-warn,var(--mt-warn))}
+.home-v12 .idea-verdict--broken{color:var(--down,#c1394f)}
+.home-v12 .idea-checks{list-style:none;padding:0;margin:8px 0 0}
+.home-v12 .idea-checks li{font-size:var(--v13-t3);line-height:1.5;margin:0 0 6px;color:var(--ink)}
+.home-v12 .idea-checks li.holds b{color:var(--up,#1f9d60)}
+.home-v12 .idea-checks li.fails b{color:var(--down,#c1394f)}
+.home-v12 .idea-crit{font-size:var(--v13-t1);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-left:6px}
+.home-v12 .idea-check-meta{color:var(--mut)}
